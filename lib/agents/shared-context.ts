@@ -51,6 +51,8 @@ interface AgentContext {
   };
   dmPerformance: {
     dmsSent7d: number;
+    igDMsSent: number;
+    ttDMsPrepared: number;
     dmsQueued: number;
     responseRate: string;
     bestChannel: string;
@@ -192,9 +194,9 @@ export async function loadSharedContext(
   const dmsReplied7d = dmEvents?.filter((e: any) => e.type === 'dm_replied')?.length || 0;
   const { count: dmsQueued } = await supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('status', 'pending');
 
-  const igDMs = dmEvents?.filter((e: any) => e.type === 'dm_instagram')?.length || 0;
-  const ttDMs = dmEvents?.filter((e: any) => e.type === 'tiktok_comment')?.length || 0;
-  const bestDMChannel = igDMs >= ttDMs ? 'instagram' : 'tiktok';
+  const igDMsSent = dmEvents?.filter((e: any) => e.type === 'dm_instagram')?.length || 0;
+  const ttDMsPrepared = dmEvents?.filter((e: any) => e.type === 'tiktok_comment')?.length || 0;
+  const bestDMChannel = igDMsSent >= ttDMsPrepared ? 'instagram' : 'tiktok';
 
   // ── ACTIVE DIRECTIVES from CEO/Marketing ──
   const { data: directives } = await supabase
@@ -288,7 +290,7 @@ export async function loadSharedContext(
       clicked24h,
       replied24h,
       openRate: sent24h > 0 ? `${(opened24h / sent24h * 100).toFixed(1)}%` : 'N/A',
-      clickRate: sent24h > 0 ? `${(clicked24h / sent24h * 100).toFixed(1)}%` : 'N/A',
+      clickRate: opened24h > 0 ? `${(clicked24h / opened24h * 100).toFixed(1)}%` : 'N/A',
       replyRate: sent24h > 0 ? `${(replied24h / sent24h * 100).toFixed(1)}%` : 'N/A',
       bestCategory,
     },
@@ -302,6 +304,8 @@ export async function loadSharedContext(
     },
     dmPerformance: {
       dmsSent7d,
+      igDMsSent,
+      ttDMsPrepared,
       dmsQueued: dmsQueued || 0,
       responseRate: dmsSent7d > 0 ? `${(dmsReplied7d / dmsSent7d * 100).toFixed(1)}%` : 'N/A',
       bestChannel: bestDMChannel,
@@ -390,7 +394,8 @@ PERFORMANCE CONTENU (7j):
 - Plateformes: ${Object.entries(c.platformBreakdown).map(([k, v]) => `${k}: ${v}`).join(' | ') || 'aucune'}
 
 PERFORMANCE DM (7j):
-- ${d.dmsSent7d} DMs envoyés | ${d.dmsQueued} en file d'attente | Taux réponse: ${d.responseRate}
+- ${d.igDMsSent} DMs Instagram envoyés | ${d.ttDMsPrepared} TikTok DMs préparés (envoi manuel)
+- ${d.dmsQueued} en file d'attente | Taux réponse: ${d.responseRate}
 - Meilleur canal: ${d.bestChannel}
 
 FUNNEL DE CONVERSION:

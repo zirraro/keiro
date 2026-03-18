@@ -14,7 +14,7 @@ export const maxDuration = 300;
  * Slots and what they trigger:
  *
  * 03:00 UTC  slot=discovery       → Commercial: verify CRM
- * 05:00 UTC  slot=ceo             → CEO brief (auto-triggers orders)
+ * 05:00 UTC  slot=ceo             → CEO brief (auto-triggers orders) + Marketing analysis + Community early prep
  * 05:30 UTC  slot=trends          → Refresh trends
  * 06:00 UTC  slot=early_morning   → Email cold: restaurants/traiteurs (ouverture)
  * 07:00 UTC  slot=morning_prep    → DM Instagram + SEO + Content
@@ -183,13 +183,23 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'ceo':
-      // 05:00 UTC — CEO brief + then execute orders
+      // 05:00 UTC — CEO brief + execute orders + Marketing analysis + Community morning prep
       // Uses waitUntil to avoid 300s timeout (CEO brief can take 2-4 min)
       fireBackground(async () => {
         await callEndpoint('CEO Brief', '/api/agents/ceo');
         await callEndpoint('Execute Orders', '/api/agents/orders');
+        // Marketing: sync analytics + run analysis right after CEO brief
+        await callParallel(
+          ['Marketing Sync Analytics', '/api/agents/marketing', 'POST', { action: 'sync_publication_analytics' }],
+          ['Marketing Analysis (morning)', '/api/agents/marketing'],
+        );
+        // Community: early prep — prepare comments + find follow targets
+        await callParallel(
+          ['Community Comments (early)', '/api/agents/marketing', 'POST', { action: 'prepare_comments', count: 30 }],
+          ['Community Follow Targets IG (early)', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'instagram', count: 25 }],
+        );
       });
-      results.push({ task: 'CEO Brief + Orders', ok: true, data: { status: 'dispatched_background' } });
+      results.push({ task: 'CEO Brief + Orders + Marketing + Community', ok: true, data: { status: 'dispatched_background' } });
       break;
 
     case 'trends':

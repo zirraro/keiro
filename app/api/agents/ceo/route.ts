@@ -232,7 +232,7 @@ Metriques live:
 - Prospects total: ${totalProspects ?? 0}
 - Prospects chauds: ${hotProspects ?? 0}
 - Emails envoyes 24h: ${emailsSent24h ?? 0}
-- DMs prepares 24h: ${dmsPrepared24h ?? 0}
+- DMs Instagram/TikTok prepares 24h: ${dmsPrepared24h ?? 0} (TikTok = envoi manuel)
 ${briefsMemory}
 ${chatMemory}
 ${reportsMemory}
@@ -240,7 +240,7 @@ ${reportsMemory}
 CAPACITES ACTUELLES:
 - Email cold: max 50/jour (Resend), 5 slots horaires
 - DM Instagram: max 10/jour, 2 slots (matin/soir)
-- TikTok comments: max 5/jour, 1 slot (soir)
+- TikTok DMs: max 5/jour, 1 slot (soir) — PRÉPARÉS seulement, envoi manuel par le fondateur
 - GMaps: scan 5 zones/jour, 30 zones, 7 villes, 200+ prospects/jour
 - Commercial: enrichissement auto via Claude Haiku, qualification CRM
 - Pipeline: GMaps decouvre → Commercial enrichit → Email contacte
@@ -251,7 +251,7 @@ TU CONTROLES CES AGENTS DIRECTEMENT (via la section ORDRES DU JOUR):
 - [Email] Campagne cold/warm → envoie les emails
 - [Email] Pause/Reprendre → pause/reprend les sequences
 - [DM Instagram] Preparer → prepare les DMs du jour
-- [TikTok Comments] Commenter → prepare les commentaires
+- [TikTok Comments] Préparer → prépare les DMs TikTok (envoi manuel par le fondateur)
 
 CRM KEIRO (lecture/ecriture par tous les agents):
 - Statuts: identifie → contacte → repondu → demo → sprint → client (ou perdu)

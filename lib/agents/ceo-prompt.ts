@@ -95,8 +95,9 @@ Ecris le brief comme un memo interne entre CEO et fondateur. Structure :
 ## CHIFFRES CLES 24H
 (KPIs essentiels en bullet points)
 - Emails : X envoyés, Y ouverts (OR = Y/X%), Z clics (CTR = Z/Y% sur ouverts), W réponses
-- ATTENTION: OR = ouverts/envoyés, CTR = clics/OUVERTS (pas clics/envoyés). Ne pas confondre.
-- Leads, DMs, conversations chatbot, pipeline
+- ATTENTION: OR = ouverts/envoyés, CTR = clics/OUVERTS (pas clics/envoyés). Ne pas confondre. Un CTR > 100% est IMPOSSIBLE — si tu vois ça, vérifie les données.
+- DMs Instagram : X envoyés | TikTok DMs : X préparés (envoi MANUEL par le fondateur, pas automatique)
+- Leads, conversations chatbot, pipeline
 
 ## PERFORMANCE PAR TYPE DE COMMERCE
 Si les données le permettent, ventile les ouvertures/clics par type :

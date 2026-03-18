@@ -131,7 +131,9 @@ async function generateDM(prospect: any, platform: 'instagram' | 'tiktok' = 'ins
       message: prospectData,
       maxTokens: 1000,
     });
-    const cleanText = rawText.replace(/```[\w]*\s*/g, '');
+    // Strip markdown code fences: ```json ... ``` or ``` ... ```
+    let cleanText = rawText.trim();
+    cleanText = cleanText.replace(/^```[\w]*\s*\n?/gm, '').replace(/\n?```\s*$/gm, '');
     const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       console.warn(`[DMAgent] No JSON found in AI response for ${prospect.company}:`, rawText.substring(0, 200));
@@ -236,7 +238,7 @@ async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram'):
     .neq(handleField, '')
     .neq(handleField, 'A_VERIFIER')
     .order('score', { ascending: false })
-    .limit(200);
+    .limit(500);
 
   if (error) {
     console.error('[DMAgent] Fetch error:', error.message);

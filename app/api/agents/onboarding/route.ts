@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { getOnboardingSystemPrompt, getOnboardingStepPrompt } from '@/lib/agents/onboarding-prompt';
 import { callGemini } from '@/lib/agents/gemini';
+import { canSendEmail } from '@/lib/agents/email-dedup';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -179,6 +180,30 @@ export async function GET(request: NextRequest) {
           });
           alerts++;
           continue;
+        }
+
+        // Cross-agent dedup: skip if any agent emailed this user in last 3 days
+        // Exception: h0 (welcome) always sends immediately on signup
+        if (item.step_key !== 'h0') {
+          const { data: authUserForDedup } = await supabase.auth.admin.getUserById(item.user_id);
+          const dedupEmail = authUserForDedup?.user?.email;
+          if (dedupEmail) {
+            const dedupCheck = await canSendEmail(supabase, dedupEmail, {
+              minDays: 3,
+              userId: item.user_id,
+            });
+            if (!dedupCheck.allowed) {
+              // Reschedule 1 day later instead of dropping
+              const rescheduleAt = new Date(Date.now() + 24 * 3600000).toISOString();
+              await supabase.from('onboarding_queue').update({
+                scheduled_at: rescheduleAt,
+                skip_reason: `dedup: ${dedupCheck.reason}`,
+              }).eq('id', item.id);
+              console.log(`[Onboarding] Dedup skip ${item.step_key} for ${profile.first_name}: ${dedupCheck.reason} — rescheduled`);
+              skipped++;
+              continue;
+            }
+          }
         }
 
         // Generate message via Gemini

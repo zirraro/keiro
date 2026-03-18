@@ -5,6 +5,7 @@ import { getSequenceForProspect } from '@/lib/agents/scoring';
 import { verifyProspectData, verifyCRMCoherence } from '@/lib/agents/business-timing';
 import { callGemini } from '@/lib/agents/gemini';
 import { loadSharedContext, formatContextForPrompt } from '@/lib/agents/shared-context';
+import { canSendEmail } from '@/lib/agents/email-dedup';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -361,7 +362,7 @@ async function autoLearn(results: SendResult[], supabase: any) {
     // Build rich performance summary
     const totalSent = emailsSent.length;
     const openRate = totalSent > 0 ? (opens.length / totalSent * 100).toFixed(1) : '0';
-    const clickRate = totalSent > 0 ? (clicks.length / totalSent * 100).toFixed(1) : '0';
+    const clickRate = opens.length > 0 ? (clicks.length / opens.length * 100).toFixed(1) : '0';
     const replyRate = totalSent > 0 ? (replies.length / totalSent * 100).toFixed(1) : '0';
 
     const categoryBreakdown = Object.entries(byCategory)
@@ -372,7 +373,7 @@ async function autoLearn(results: SendResult[], supabase: any) {
       .map(([step, d]) => `Step ${step}: ${d.sent} envoyés, ${d.opens} ouverts, ${d.clicks} clics`)
       .join(' | ');
 
-    const learning = `Semaine du ${new Date().toLocaleDateString('fr-FR')}: ${totalSent} envoyés, ${opens.length} ouverts (${openRate}%), ${clicks.length} clics (${clickRate}%), ${replies.length} réponses (${replyRate}%). Meilleure catégorie: ${bestCategory[0]}. Meilleur step: ${bestStep?.[0] || '?'}. Détail: ${categoryBreakdown}. Steps: ${stepBreakdown}`;
+    const learning = `Semaine du ${new Date().toLocaleDateString('fr-FR')}: ${totalSent} envoyés, ${opens.length} ouverts (OR=${openRate}%), ${clicks.length} clics (CTR=${clickRate}% sur ouverts), ${replies.length} réponses (${replyRate}%). Meilleure catégorie: ${bestCategory[0]}. Meilleur step: ${bestStep?.[0] || '?'}. Détail: ${categoryBreakdown}. Steps: ${stepBreakdown}`;
 
     await supabase.from('agent_logs').insert({
       agent: 'email',
@@ -735,6 +736,15 @@ export async function GET(request: NextRequest) {
             console.log('[EmailDaily] Daily quota exhausted mid-warm-batch, stopping.');
             break;
           }
+          // Cross-agent dedup: skip if any agent emailed this prospect in last 3 days
+          const warmDedup = await canSendEmail(supabase, prospect.email, {
+            minDays: 3,
+            prospectId: prospect.id,
+          });
+          if (!warmDedup.allowed) {
+            console.log(`[EmailDaily] Warm dedup skip: ${prospect.email} — ${warmDedup.reason}`);
+            continue;
+          }
           const aiEmail = aiEmails.get(prospect.id);
           const template = aiEmail || getEmailTemplate(getSequenceForProspect(prospect), 10, {
             first_name: prospect.first_name || '',
@@ -923,6 +933,16 @@ export async function GET(request: NextRequest) {
 
         // DEDUP: Per-prospect rate limit — never email same person more than once per 3 days
         if (lastSent && daysSinceLastSent < MIN_DAYS_BETWEEN_ANY_EMAIL) {
+          skippedWaitingNextStep++;
+          continue;
+        }
+        // Cross-agent dedup: also check emails sent by retention & onboarding agents
+        const dedupCheck = await canSendEmail(supabase, prospect.email, {
+          minDays: MIN_DAYS_BETWEEN_ANY_EMAIL,
+          force: forceMode,
+          prospectId: prospect.id,
+        });
+        if (!dedupCheck.allowed) {
           skippedWaitingNextStep++;
           continue;
         }

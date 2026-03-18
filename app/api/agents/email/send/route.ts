@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { getEmailTemplate } from '@/lib/agents/email-templates';
 import { getSequenceForProspect } from '@/lib/agents/scoring';
+import { canSendEmail } from '@/lib/agents/email-dedup';
 
 export const runtime = 'nodejs';
 
@@ -89,6 +90,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { ok: false, error: 'Prospect sans email' },
         { status: 400 }
+      );
+    }
+
+    // --- Cross-agent dedup check ---
+    const forceParam = body.force === true;
+    const dedupCheck = await canSendEmail(supabase, prospect.email, {
+      minDays: 3,
+      force: forceParam,
+      prospectId: prospect_id,
+    });
+    if (!dedupCheck.allowed) {
+      return NextResponse.json(
+        { ok: false, error: `Dedup: ${dedupCheck.reason}. Use force=true to override.` },
+        { status: 429 }
       );
     }
 

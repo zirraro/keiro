@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { getRetentionSystemPrompt, getRetentionMessagePrompt } from '@/lib/agents/retention-prompt';
 import { callGemini } from '@/lib/agents/gemini';
+import { canSendEmail } from '@/lib/agents/email-dedup';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -171,6 +172,19 @@ export async function GET(request: NextRequest) {
           : 999;
 
         if (daysSinceLastMsg < 7 && level !== 'red') continue; // Max 1/week unless red
+
+        // Cross-agent dedup: check if any agent (email, onboarding) emailed this user in last 3 days
+        const dedupEmail = authData?.user?.email || client.email;
+        if (dedupEmail) {
+          const dedupCheck = await canSendEmail(supabase, dedupEmail, {
+            minDays: 3,
+            userId: client.id,
+          });
+          if (!dedupCheck.allowed) {
+            console.log(`[Retention] Dedup skip: ${client.first_name} — ${dedupCheck.reason}`);
+            continue;
+          }
+        }
 
         const daysSinceLogin = lastSignIn ? Math.floor((Date.now() - new Date(lastSignIn).getTime()) / 86400000) : 30;
         const daysToRenewal = client.next_renewal_at ? Math.floor((new Date(client.next_renewal_at).getTime() - Date.now()) / 86400000) : undefined;
