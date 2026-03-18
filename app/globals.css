@@ -491,8 +491,6 @@ html:not(.light) .homepage-sections .hp-light-island {
   background: white !important;
   color: #171717 !important;
   border-radius: 1.5rem;
-  padding: 2rem 1.5rem;
-  margin: 1rem 0;
   box-shadow: 0 8px 40px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
@@ -543,6 +541,9 @@ html:not(.light) .homepage-sections .hp-light-island .text-amber-500 { color: #f
 /* Reset gradient backgrounds inside light islands */
 html:not(.light) .homepage-sections .hp-light-island .from-purple-50 { background: revert !important; }
 html:not(.light) .homepage-sections .hp-light-island .from-amber-50 { background: revert !important; }
+html:not(.light) .homepage-sections .hp-light-island .from-green-50 { background: revert !important; }
+html:not(.light) .homepage-sections .hp-light-island .bg-gradient-to-r.from-green-50 { background: revert !important; }
+html:not(.light) .homepage-sections .hp-light-island .bg-gradient-to-br[class*="from-\[\#0c1a3a\]"] { background: revert !important; }
 html:not(.light) .homepage-sections .hp-light-island [class*="from-\[\#0c1a3a\]"] { background: revert !important; }
 
 /* ===== PAGES DARK MODE BACKGROUNDS ===== */
