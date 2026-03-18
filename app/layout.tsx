@@ -4,6 +4,7 @@ import Header from "@/components/Header";
 import BottomNav from "@/components/BottomNav";
 import Script from "next/script";
 import { LanguageProvider } from "@/lib/i18n/context";
+import { ThemeProvider } from "@/lib/theme/context";
 import NewsPrefetcher from "@/components/NewsPrefetcher";
 import ChatbotWidget from "@/components/ChatbotWidget";
 import { VortexBackground } from "@/components/ui/vortex-bg";
@@ -121,7 +122,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="bg-[#0c1a3a] text-neutral-900">
+      <body>
         {/* Google Tag Manager (noscript) */}
         <noscript>
           <iframe
@@ -132,6 +133,7 @@ export default function RootLayout({
           ></iframe>
         </noscript>
 
+        <ThemeProvider>
         <LanguageProvider>
           <VortexBackground />
           <Header />
@@ -142,6 +144,7 @@ export default function RootLayout({
           <BottomNav />
           <ChatbotWidget />
         </LanguageProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

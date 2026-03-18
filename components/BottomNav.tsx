@@ -3,10 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLanguage } from "@/lib/i18n/context";
+import { useTheme } from "@/lib/theme/context";
 
 export default function BottomNav() {
   const pathname = usePathname();
   const { t, locale, setLocale } = useLanguage();
+  const { theme, toggleTheme } = useTheme();
+  const isLight = theme === 'light';
 
   const toggleLocale = () => {
     setLocale(locale === 'fr' ? 'en' : 'fr');
@@ -71,17 +74,46 @@ export default function BottomNav() {
   ];
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#0c1a3a]/80 backdrop-blur-lg border-t border-white/10 safe-area-inset-bottom">
-      {/* Language toggle — floating pill above bottom nav */}
-      <button
-        onClick={toggleLocale}
-        className="absolute -top-10 right-3 flex items-center gap-1 px-2.5 py-1 bg-[#0c1a3a]/90 backdrop-blur-sm border border-white/10 rounded-full shadow-sm text-[11px] font-medium text-white/70 hover:bg-white/10 active:scale-95 transition-all"
-      >
-        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-        </svg>
-        {locale === 'fr' ? 'EN' : 'FR'}
-      </button>
+    <nav className={`lg:hidden fixed bottom-0 left-0 right-0 z-40 backdrop-blur-lg border-t safe-area-inset-bottom transition-colors duration-300 ${
+      isLight
+        ? 'bg-white/80 border-neutral-200/50'
+        : 'bg-[#0c1a3a]/80 border-white/10'
+    }`}>
+      {/* Language toggle + theme toggle — floating pills above bottom nav */}
+      <div className="absolute -top-10 right-3 flex items-center gap-1.5">
+        <button
+          onClick={toggleTheme}
+          className={`flex items-center justify-center w-8 h-8 backdrop-blur-sm border rounded-full shadow-sm active:scale-95 transition-all ${
+            isLight
+              ? 'bg-white/90 border-neutral-200 text-neutral-500 hover:bg-neutral-100'
+              : 'bg-[#0c1a3a]/90 border-white/10 text-white/70 hover:bg-white/10'
+          }`}
+          title={isLight ? 'Mode sombre' : 'Mode clair'}
+        >
+          {isLight ? (
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+            </svg>
+          ) : (
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+          )}
+        </button>
+        <button
+          onClick={toggleLocale}
+          className={`flex items-center gap-1 px-2.5 py-1 backdrop-blur-sm border rounded-full shadow-sm text-[11px] font-medium active:scale-95 transition-all ${
+            isLight
+              ? 'bg-white/90 border-neutral-200 text-neutral-500 hover:bg-neutral-100'
+              : 'bg-[#0c1a3a]/90 border-white/10 text-white/70 hover:bg-white/10'
+          }`}
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+          </svg>
+          {locale === 'fr' ? 'EN' : 'FR'}
+        </button>
+      </div>
 
       <div className="flex justify-around items-center px-2 py-2 pb-[env(safe-area-inset-bottom,0.5rem)]">
         {navItems.map((item) => {
@@ -93,8 +125,12 @@ export default function BottomNav() {
               key={item.href}
               href={item.href}
               className={`flex flex-col items-center justify-center min-w-[64px] px-3 py-2 rounded-lg transition-all ${
-                isActive ? 'text-white' : isHighlight ? 'text-cyan-400' : 'text-white/60'
-              } hover:bg-white/10 active:scale-95`}
+                isActive
+                  ? (isLight ? 'text-neutral-900' : 'text-white')
+                  : isHighlight
+                    ? 'text-cyan-400'
+                    : (isLight ? 'text-neutral-400' : 'text-white/60')
+              } ${isLight ? 'hover:bg-neutral-100' : 'hover:bg-white/10'} active:scale-95`}
             >
               <div className={`mb-1 ${isActive ? 'scale-110' : ''} transition-transform`}>
                 {item.icon}
@@ -103,7 +139,7 @@ export default function BottomNav() {
                 {item.label}
               </span>
               {isActive && (
-                <div className="mt-1 w-1 h-1 bg-white rounded-full" />
+                <div className={`mt-1 w-1 h-1 rounded-full ${isLight ? 'bg-neutral-900' : 'bg-white'}`} />
               )}
               {isHighlight && !isActive && (
                 <div className="absolute -top-1 right-1 flex h-2 w-2">

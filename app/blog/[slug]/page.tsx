@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { ReadingProgress, TableOfContents, ArticleBody, ShareButtons } from './ArticleContent';
+import { ReadingProgress, TableOfContents, MobileTableOfContents, ArticleBody, ShareButtons } from './ArticleContent';
 
 // Force dynamic rendering so newly published articles appear immediately
 export const dynamic = 'force-dynamic';
@@ -115,12 +115,10 @@ function extractHeadings(html: string): Array<{ id: string; text: string; level:
 function injectHeadingIds(html: string, headings: Array<{ id: string; text: string; level: number }>): string {
   let result = html;
   for (const h of headings) {
-    // Match the heading tag and add id if not present
     const escapedText = h.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(`(<h${h.level})([^>]*>\\s*${escapedText})`, 'i');
-    if (!result.match(new RegExp(`<h${h.level}[^>]*id=`))) {
-      result = result.replace(regex, `$1 id="${h.id}"$2`);
-    }
+    // Match this specific heading and add id if it doesn't already have one
+    const regex = new RegExp(`(<h${h.level})(?![^>]*\\bid=)([^>]*>\\s*${escapedText})`, 'i');
+    result = result.replace(regex, `$1 id="${h.id}"$2`);
   }
   return result;
 }
@@ -344,6 +342,7 @@ export default async function BlogPostPage({ params }: PageProps) {
 
         {/* Article Content */}
         <article className="max-w-3xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 pb-8">
+          <MobileTableOfContents headings={headings} />
           <ArticleBody html={processedHtml} />
 
           {/* Share + tags divider */}

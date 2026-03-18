@@ -46,9 +46,14 @@
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: #0c1a3a;
+  color: #171717;
   font-family: Arial, Helvetica, sans-serif;
+  transition: background-color 0.4s ease;
+}
+
+html.light body {
+  background: #ffffff;
 }
 
 /* --- Cursor pointer sur tous les éléments cliquables --- */
@@ -120,6 +125,13 @@ main, .fix-pointer {
 }
 
 .gradient-text {
+  background: linear-gradient(135deg, #ffffff, #22d3ee, #06b6d4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+html.light .gradient-text {
   background: linear-gradient(135deg, #0c1a3a, #1e3a5f, #06b6d4);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -127,10 +139,33 @@ main, .fix-pointer {
 }
 
 .gradient-text-blue {
+  background: linear-gradient(135deg, #ffffff, #06b6d4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+html.light .gradient-text-blue {
   background: linear-gradient(135deg, #0c1a3a, #06b6d4);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+/* Vortex hidden in light mode */
+html.light .vortex-bg {
+  display: none !important;
+}
+
+/* Premium card light mode */
+html.light .premium-card {
+  background: white;
+  border-color: rgba(12, 26, 58, 0.06);
+}
+
+/* Section light stays light in both modes */
+html.light .section-light {
+  background: linear-gradient(135deg, #FAFBFC 0%, #F0F4FF 50%, #FAFBFC 100%);
 }
 
 .dot-grid {

@@ -62,7 +62,7 @@ function ConfirmContent() {
   }, [searchParams]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0c1a3a]/5 via-white to-purple-50 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-white to-purple-50 flex items-center justify-center p-6">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center">
         {status === 'loading' && (
           <>
@@ -109,7 +109,7 @@ function ConfirmContent() {
 export default function AuthConfirmPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-[#0c1a3a]/5 via-white to-purple-50 flex items-center justify-center p-6">
+      <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-white to-purple-50 flex items-center justify-center p-6">
         <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center">
           <div className="w-16 h-16 border-4 border-[#0c1a3a]/10 border-t-[#0c1a3a] rounded-full animate-spin mx-auto mb-6"></div>
           <h2 className="text-xl font-bold text-neutral-900 mb-2">Chargement...</h2>

@@ -9,13 +9,16 @@ import { AnimatedGradientBG } from '@/components/ui/animated-gradient-bg';
 import { PageReveal } from '@/components/ui/page-reveal';
 import { KeiroLockup } from '@/components/ui/keiro-logo';
 import { useLanguage } from '@/lib/i18n/context';
+import { useTheme } from '@/lib/theme/context';
 
 function HomeKeiroInner() {
   const { t, locale, setLocale } = useLanguage();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly');
 
   return (
-    <main className="relative min-h-dvh bg-[#0c1a3a]">
+    <main className={`relative min-h-dvh ${isLight ? 'bg-white' : 'bg-[#0c1a3a]'}`}>
       {/* Luxury page opening animation */}
       <PageReveal />
 
@@ -57,7 +60,7 @@ function HomeKeiroInner() {
             <FadeUp delay={0.5}>
             <div className="mt-6 flex flex-wrap gap-3">
               <MagneticButton>
-              <a href="/generate" className="inline-block px-5 py-3 rounded-xl bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-medium hover:shadow-lg hover:shadow-[#0c1a3a]/25 hover:-translate-y-0.5 transition-all cta-shimmer">
+              <a href="/generate" className="inline-block px-5 py-3 rounded-xl bg-white text-[#0c1a3a] font-semibold hover:bg-neutral-100 hover:shadow-lg hover:shadow-white/20 hover:-translate-y-0.5 transition-all">
                 {t.common.tryFree}
               </a>
               </MagneticButton>
@@ -142,10 +145,10 @@ function HomeKeiroInner() {
       </section>
 
       {/* Gradient transition: dark hero → light sections */}
-      <div className="h-32 bg-gradient-to-b from-transparent via-[#0c1a3a]/50 to-[#eef2f7]" />
+      <div className={`h-32 bg-gradient-to-b ${isLight ? 'from-[#0c1a3a] via-[#0c1a3a]/30 to-white' : 'from-transparent via-[#0c1a3a]/50 to-[#eef2f7]'}`} />
 
       {/* === LIGHT SECTIONS BELOW === */}
-      <div className="bg-[#eef2f7]">
+      <div className={`text-neutral-900 ${isLight ? 'bg-white' : 'bg-[#eef2f7]'}`}>
 
       {/* OFFRE D'ESSAI 4.99€ - MIS EN AVANT */}
       <section className="py-6">
@@ -162,7 +165,7 @@ function HomeKeiroInner() {
                 <p className="text-xs text-[#c8d8e8]">{t.home.sprintSubtitle}</p>
               </div>
             </div>
-            <button onClick={() => startCheckout('sprint')} className="px-5 py-2 rounded-lg bg-white text-[#0c1a3a] font-semibold hover:bg-[#eef2f7] transition-all text-sm whitespace-nowrap">
+            <button onClick={() => startCheckout('sprint')} className="px-5 py-2 rounded-lg bg-white text-[#0c1a3a] font-semibold hover:bg-neutral-100 transition-all text-sm whitespace-nowrap shadow-lg">
               {t.home.sprintCta}
             </button>
           </div>
@@ -248,7 +251,7 @@ function HomeKeiroInner() {
       <section className="mx-auto max-w-6xl px-6 py-12">
         <FadeUp>
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold">{t.home.galleryTitle}</h2>
+          <h2 className="text-3xl font-bold text-neutral-900">{t.home.galleryTitle}</h2>
           <p className="mt-2 text-neutral-600">{t.home.gallerySubtitle}</p>
         </div>
         </FadeUp>

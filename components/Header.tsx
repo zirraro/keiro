@@ -9,6 +9,7 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import ContactSupportModal from "@/components/ContactSupportModal";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/lib/i18n/context";
+import { useTheme } from "@/lib/theme/context";
 import LanguageToggle from "@/components/LanguageToggle";
 
 export default function Header() {
@@ -16,6 +17,8 @@ export default function Header() {
   const router = useRouter();
   const supabase = useMemo(() => supabaseBrowser(), []);
   const { t, locale, setLocale } = useLanguage();
+  const { theme, toggleTheme } = useTheme();
+  const isLight = theme === 'light';
 
   const navItems = [
     { href: "/", label: t.nav.home },
@@ -237,12 +240,16 @@ export default function Header() {
 
   return (
     <>
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-[#0c1a3a]/80 backdrop-blur-lg">
+    <header className={`sticky top-0 z-40 border-b backdrop-blur-lg transition-colors duration-300 ${
+      isLight
+        ? 'bg-white/80 border-neutral-200/50'
+        : 'bg-[#0c1a3a]/80 border-white/10'
+    }`}>
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
         {/* Logo / marque */}
         <Link href="/" className="flex items-center gap-2">
-          <KeiroLogo size={32} color="#ffffff" />
-          <span className="text-lg font-bold text-white">KeiroAI</span>
+          <KeiroLogo size={32} color={isLight ? '#0c1a3a' : '#ffffff'} />
+          <span className={`text-lg font-bold ${isLight ? 'text-[#0c1a3a]' : 'text-white'}`}>KeiroAI</span>
         </Link>
 
         {/* Navigation */}
@@ -256,7 +263,11 @@ export default function Header() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="relative px-4 py-2 text-sm font-medium bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white rounded-lg hover:shadow-lg transition-all"
+                  className={`relative px-4 py-2 text-sm font-medium rounded-lg hover:shadow-lg transition-all ${
+                    isLight
+                      ? 'bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white'
+                      : 'bg-white text-[#0c1a3a] font-bold'
+                  }`}
                 >
                   <span className="relative">
                     {item.label}
@@ -275,13 +286,15 @@ export default function Header() {
                 href={item.href}
                 className={`relative text-sm transition-colors ${
                   isActive
-                    ? "font-semibold text-white"
-                    : "text-white/70 hover:text-white"
+                    ? `font-semibold ${isLight ? 'text-[#0c1a3a]' : 'text-white'}`
+                    : isLight ? 'text-neutral-500 hover:text-[#0c1a3a]' : 'text-white/70 hover:text-white'
                 }`}
               >
                 {item.label}
                 {isActive && (
-                  <span className="absolute -bottom-3.5 left-0 right-0 h-0.5 bg-gradient-to-r from-white to-white/50 rounded-full" />
+                  <span className={`absolute -bottom-3.5 left-0 right-0 h-0.5 rounded-full bg-gradient-to-r ${
+                    isLight ? 'from-[#0c1a3a] to-[#0c1a3a]/50' : 'from-white to-white/50'
+                  }`} />
                 )}
               </Link>
             );
@@ -289,7 +302,7 @@ export default function Header() {
           {user && (
             <button
               onClick={() => setShowContactModal(true)}
-              className="text-sm text-white/70 hover:text-white transition"
+              className={`text-sm transition ${isLight ? 'text-neutral-500 hover:text-[#0c1a3a]' : 'text-white/70 hover:text-white'}`}
             >
               Contact
             </button>
@@ -298,13 +311,30 @@ export default function Header() {
           {/* Language — compact globe icon */}
           <button
             onClick={() => setLocale(locale === 'fr' ? 'en' : 'fr')}
-            className="flex items-center gap-1 text-white/40 hover:text-white/80 transition-colors"
+            className={`flex items-center gap-1 transition-colors ${isLight ? 'text-neutral-400 hover:text-neutral-600' : 'text-white/40 hover:text-white/80'}`}
             title={locale === 'fr' ? 'Switch to English' : 'Passer en français'}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
             </svg>
             <span className="text-[11px] font-medium uppercase">{locale === 'fr' ? 'en' : 'fr'}</span>
+          </button>
+
+          {/* Theme toggle */}
+          <button
+            onClick={toggleTheme}
+            className={`p-1.5 rounded-lg transition-colors ${isLight ? 'text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100' : 'text-white/40 hover:text-white/80 hover:bg-white/10'}`}
+            title={isLight ? 'Mode sombre' : 'Mode clair'}
+          >
+            {isLight ? (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+              </svg>
+            ) : (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+            )}
           </button>
         </nav>
 
@@ -314,7 +344,7 @@ export default function Header() {
             <div>
               <button
                 onClick={() => setShowMenu(!showMenu)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-white/10 transition-all"
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${isLight ? 'hover:bg-neutral-100' : 'hover:bg-white/10'}`}
               >
                 <div className="relative">
                   <div className="w-8 h-8 bg-gradient-to-br from-[#0c1a3a] to-[#1e3a5f] rounded-full flex items-center justify-center text-white font-semibold text-sm">
@@ -333,10 +363,10 @@ export default function Header() {
                     </div>
                   )}
                 </div>
-                <span className="text-sm font-semibold text-white">
+                <span className={`text-sm font-semibold ${isLight ? 'text-neutral-800' : 'text-white'}`}>
                   {profile.first_name || user.email?.split('@')[0]}
                 </span>
-                <svg className="w-4 h-4 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className={`w-4 h-4 ${isLight ? 'text-neutral-400' : 'text-white/60'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
@@ -354,20 +384,22 @@ export default function Header() {
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: -8 }}
                     transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-                    className="absolute right-0 mt-2 w-56 bg-[#0c1a3a]/95 backdrop-blur-xl rounded-xl shadow-2xl border border-white/10 py-2 z-20">
-                    <div className="px-4 py-3 border-b border-white/10">
-                      <p className="text-sm font-semibold text-white">
+                    className={`absolute right-0 mt-2 w-56 backdrop-blur-xl rounded-xl shadow-2xl py-2 z-20 ${
+                      isLight ? 'bg-white/95 border border-neutral-200' : 'bg-[#0c1a3a]/95 border border-white/10'
+                    }`}>
+                    <div className={`px-4 py-3 border-b ${isLight ? 'border-neutral-100' : 'border-white/10'}`}>
+                      <p className={`text-sm font-semibold ${isLight ? 'text-neutral-900' : 'text-white'}`}>
                         {profile.first_name} {profile.last_name}
                       </p>
-                      <p className="text-xs text-white/50">{user.email}</p>
+                      <p className={`text-xs ${isLight ? 'text-neutral-500' : 'text-white/50'}`}>{user.email}</p>
                       {profile.business_type && (
-                        <p className="text-xs text-white/40 mt-1">{profile.business_type}</p>
+                        <p className={`text-xs mt-1 ${isLight ? 'text-neutral-400' : 'text-white/40'}`}>{profile.business_type}</p>
                       )}
                     </div>
 
                     <Link
                       href="/mon-compte"
-                      className="flex items-center gap-2 px-4 py-2 text-sm text-white/80 hover:bg-white/10 transition-colors"
+                      className={`flex items-center gap-2 px-4 py-2 text-sm transition-colors ${isLight ? 'text-neutral-700 hover:bg-neutral-100' : 'text-white/80 hover:bg-white/10'}`}
                       onClick={() => setShowMenu(false)}
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -378,7 +410,7 @@ export default function Header() {
 
                     <Link
                       href="/library"
-                      className="flex items-center gap-2 px-4 py-2 text-sm text-white/80 hover:bg-white/10 transition-colors"
+                      className={`flex items-center gap-2 px-4 py-2 text-sm transition-colors ${isLight ? 'text-neutral-700 hover:bg-neutral-100' : 'text-white/80 hover:bg-white/10'}`}
                       onClick={() => setShowMenu(false)}
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -391,7 +423,7 @@ export default function Header() {
                       <>
                         <Link
                           href="/admin/retours-clients"
-                          className="flex items-center gap-2 px-4 py-2 text-sm text-cyan-300 hover:bg-white/10 transition-colors font-medium"
+                          className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${isLight ? 'text-cyan-600 hover:bg-neutral-100' : 'text-cyan-300 hover:bg-white/10'}`}
                           onClick={() => setShowMenu(false)}
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -401,7 +433,7 @@ export default function Header() {
                         </Link>
                         <Link
                           href="/admin/crm"
-                          className="flex items-center gap-2 px-4 py-2 text-sm text-cyan-300 hover:bg-white/10 transition-colors font-medium"
+                          className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${isLight ? 'text-cyan-600 hover:bg-neutral-100' : 'text-cyan-300 hover:bg-white/10'}`}
                           onClick={() => setShowMenu(false)}
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -411,7 +443,7 @@ export default function Header() {
                         </Link>
                         <Link
                           href="/admin/agents"
-                          className="flex items-center gap-2 px-4 py-2 text-sm text-cyan-300 hover:bg-white/10 transition-colors font-medium"
+                          className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${isLight ? 'text-cyan-600 hover:bg-neutral-100' : 'text-cyan-300 hover:bg-white/10'}`}
                           onClick={() => setShowMenu(false)}
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -421,7 +453,7 @@ export default function Header() {
                         </Link>
                         <Link
                           href="/admin/dm-queue"
-                          className="flex items-center gap-2 px-4 py-2 text-sm text-cyan-300 hover:bg-white/10 transition-colors font-medium"
+                          className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${isLight ? 'text-cyan-600 hover:bg-neutral-100' : 'text-cyan-300 hover:bg-white/10'}`}
                           onClick={() => setShowMenu(false)}
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -432,7 +464,7 @@ export default function Header() {
                       </>
                     )}
 
-                    <hr className="my-2 border-white/10" />
+                    <hr className={`my-2 ${isLight ? 'border-neutral-100' : 'border-white/10'}`} />
 
                     {/* Instagram Connection Status */}
                     <div className="px-4 py-2 text-sm">
@@ -451,13 +483,13 @@ export default function Header() {
                                 <span className="font-medium">{t.nav.connectedInstagram}</span>
                                 <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-medium">✓</span>
                               </div>
-                              <span className="text-xs text-white/50">@{profile.instagram_username} • {t.nav.seePreview}</span>
+                              <span className={`text-xs ${isLight ? 'text-neutral-400' : 'text-white/50'}`}>@{profile.instagram_username} • {t.nav.seePreview}</span>
                             </div>
                           </Link>
                           <button
                             onClick={handleInstagramDisconnect}
                             disabled={disconnectingInstagram}
-                            className="mt-2 ml-8 text-xs text-white/40 hover:text-red-400 transition-colors disabled:opacity-50"
+                            className={`mt-2 ml-8 text-xs hover:text-red-400 transition-colors disabled:opacity-50 ${isLight ? 'text-neutral-400' : 'text-white/40'}`}
                           >
                             {disconnectingInstagram ? t.nav.disconnecting : t.nav.disconnectInstagram}
                           </button>
@@ -465,7 +497,7 @@ export default function Header() {
                       ) : (
                         <Link
                           href="/api/auth/instagram-oauth"
-                          className="flex items-center gap-2 text-white/60 hover:text-white transition-colors"
+                          className={`flex items-center gap-2 transition-colors ${isLight ? 'text-neutral-500 hover:text-neutral-900' : 'text-white/60 hover:text-white'}`}
                           onClick={() => setShowMenu(false)}
                         >
                           <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
@@ -496,7 +528,7 @@ export default function Header() {
                                 <span className="font-medium">{t.nav.connectedTikTok}</span>
                                 <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-medium">✓</span>
                               </div>
-                              <span className="text-xs text-white/50">
+                              <span className={`text-xs ${isLight ? 'text-neutral-400' : 'text-white/50'}`}>
                                 {profile.tiktok_username ? `@${profile.tiktok_username}` : ''} • {t.nav.seePreview}
                               </span>
                             </div>
@@ -504,7 +536,7 @@ export default function Header() {
                           <button
                             onClick={handleTikTokDisconnect}
                             disabled={disconnectingTikTok}
-                            className="mt-2 ml-8 text-xs text-white/40 hover:text-red-400 transition-colors disabled:opacity-50"
+                            className={`mt-2 ml-8 text-xs hover:text-red-400 transition-colors disabled:opacity-50 ${isLight ? 'text-neutral-400' : 'text-white/40'}`}
                           >
                             {disconnectingTikTok ? t.nav.disconnecting : t.nav.disconnectTikTok}
                           </button>
@@ -512,7 +544,7 @@ export default function Header() {
                       ) : (
                         <Link
                           href="/api/auth/tiktok-oauth"
-                          className="flex items-center gap-2 text-white/60 hover:text-white transition-colors"
+                          className={`flex items-center gap-2 transition-colors ${isLight ? 'text-neutral-500 hover:text-neutral-900' : 'text-white/60 hover:text-white'}`}
                           onClick={() => setShowMenu(false)}
                         >
                           <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
@@ -543,7 +575,7 @@ export default function Header() {
                                 <span className="font-medium">{t.nav.connectedLinkedIn}</span>
                                 <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-medium">✓</span>
                               </div>
-                              <span className="text-xs text-white/50">
+                              <span className={`text-xs ${isLight ? 'text-neutral-400' : 'text-white/50'}`}>
                                 {profile.linkedin_username || ''} • {t.nav.seePreview}
                               </span>
                             </div>
@@ -551,7 +583,7 @@ export default function Header() {
                           <button
                             onClick={handleLinkedInDisconnect}
                             disabled={disconnectingLinkedIn}
-                            className="mt-2 ml-8 text-xs text-white/40 hover:text-red-400 transition-colors disabled:opacity-50"
+                            className={`mt-2 ml-8 text-xs hover:text-red-400 transition-colors disabled:opacity-50 ${isLight ? 'text-neutral-400' : 'text-white/40'}`}
                           >
                             {disconnectingLinkedIn ? t.nav.disconnecting : t.nav.disconnectLinkedIn}
                           </button>
@@ -559,7 +591,7 @@ export default function Header() {
                       ) : (
                         <Link
                           href="/api/auth/linkedin-oauth"
-                          className="flex items-center gap-2 text-white/60 hover:text-white transition-colors"
+                          className={`flex items-center gap-2 transition-colors ${isLight ? 'text-neutral-500 hover:text-neutral-900' : 'text-white/60 hover:text-white'}`}
                           onClick={() => setShowMenu(false)}
                         >
                           <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
@@ -573,15 +605,15 @@ export default function Header() {
                       )}
                     </div>
 
-                    <hr className="my-2 border-white/10" />
+                    <hr className={`my-2 ${isLight ? 'border-neutral-100' : 'border-white/10'}`} />
 
                     {/* Language Toggle — mobile */}
                     <div className="px-4 py-2 flex items-center gap-2">
-                      <span className="text-sm text-white/50">🌐</span>
+                      <span className={`text-sm ${isLight ? 'text-neutral-400' : 'text-white/50'}`}>🌐</span>
                       <LanguageToggle />
                     </div>
 
-                    <hr className="my-2 border-white/10" />
+                    <hr className={`my-2 ${isLight ? 'border-neutral-100' : 'border-white/10'}`} />
 
                     <button
                       onClick={handleLogout}
@@ -600,7 +632,11 @@ export default function Header() {
           ) : (
             <Link
               href="/login"
-              className="px-3 py-2 text-xs sm:text-sm font-semibold bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white rounded-lg hover:shadow-lg transition-all whitespace-nowrap"
+              className={`px-3 py-2 text-xs sm:text-sm font-semibold rounded-lg hover:shadow-lg transition-all whitespace-nowrap ${
+                isLight
+                  ? 'bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white'
+                  : 'bg-white text-[#0c1a3a]'
+              }`}
             >
               <span className="sm:hidden">{t.nav.loginShort}</span>
               <span className="hidden sm:inline">{t.nav.loginSignup}</span>

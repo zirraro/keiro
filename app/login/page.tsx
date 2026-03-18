@@ -397,7 +397,7 @@ function LoginPageInner() {
     const inputClass = "w-full px-4 py-3 rounded-lg border-2 border-neutral-200 focus:border-[#0c1a3a] focus:outline-none focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all text-sm";
 
     return (
-      <div className="relative min-h-screen bg-gradient-to-br from-[#0c1a3a]/5 via-white to-cyan-50/30 flex items-center justify-center px-4 py-12 overflow-hidden">
+      <div className="relative min-h-screen bg-gradient-to-br from-neutral-50 via-white to-cyan-50/30 flex items-center justify-center px-4 py-12 overflow-hidden">
         <AnimatedGradientBG variant="hero" />
         <ScaleIn className="relative w-full max-w-lg">
         <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl w-full p-8">
@@ -728,7 +728,7 @@ function LoginPageInner() {
   }
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-[#0c1a3a]/5 via-white to-cyan-50/30 flex items-center justify-center px-4 py-12 overflow-hidden">
+    <div className="relative min-h-screen bg-gradient-to-br from-neutral-50 via-white to-cyan-50/30 flex items-center justify-center px-4 py-12 overflow-hidden">
       <AnimatedGradientBG variant="hero" />
       <ScaleIn className="relative w-full max-w-md">
       <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl w-full p-8">

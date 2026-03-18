@@ -22,6 +22,7 @@ import { addWatermark, isFreemiumUser } from '@/lib/add-watermark';
 import { computeSocialScore } from '@/lib/news/socialRanker';
 import { startCheckout } from '@/lib/stripe/checkout';
 import { useLanguage } from '@/lib/i18n/context';
+import { useTheme } from '@/lib/theme/context';
 import { NEWS_REGIONS } from '@/lib/newsProviders';
 
 /* ---------------- Types ---------------- */
@@ -98,6 +99,7 @@ const CATEGORIES = [
 export default function GeneratePage() {
   const router = useRouter();
   const { t, locale } = useLanguage();
+  const { theme } = useTheme();
 
   /* --- Auth user ID for scoped localStorage --- */
   const [authUserId, setAuthUserId] = useState<string | null>(null);
@@ -3227,7 +3229,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50 p-6">
+    <div className={`min-h-screen p-6 ${theme === 'light' ? 'bg-neutral-50' : 'bg-neutral-50/95 backdrop-blur-sm'}`}>
       <style jsx>{`
         @keyframes wizardFadeIn {
           from { opacity: 0; transform: translateY(12px); }

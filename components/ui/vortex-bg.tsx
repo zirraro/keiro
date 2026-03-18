@@ -105,7 +105,7 @@ export function VortexBackground() {
       `}</style>
 
       <div
-        className="vortex-bg-root"
+        className="vortex-bg-root vortex-bg"
         aria-hidden="true"
         style={{
           position: 'fixed',

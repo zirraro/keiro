@@ -85,7 +85,7 @@ export default function AssistantPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0c1a3a]/5 flex items-center justify-center">
+      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0c1a3a] mx-auto mb-4"></div>
           <p className="text-neutral-600">{t.assistant.loadingAssistant}</p>
@@ -95,7 +95,7 @@ export default function AssistantPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0c1a3a]/5">
+    <div className="min-h-screen bg-neutral-50">
       <div className="max-w-7xl mx-auto px-4 py-8">
 
         {/* Header intelligent personnalisé */}

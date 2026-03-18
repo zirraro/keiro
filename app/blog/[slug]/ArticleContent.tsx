@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 
 interface ArticleContentProps {
   html: string;
@@ -84,6 +84,52 @@ export function TableOfContents({ headings }: { headings: ArticleContentProps['h
         ))}
       </ul>
     </nav>
+  );
+}
+
+export function MobileTableOfContents({ headings }: { headings: ArticleContentProps['headings'] }) {
+  const [open, setOpen] = useState(false);
+
+  if (headings.length < 3) return null;
+
+  return (
+    <div className="xl:hidden mb-8">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between bg-neutral-50 hover:bg-neutral-100 border border-neutral-200 rounded-xl px-4 py-3 transition-colors"
+      >
+        <span className="text-sm font-semibold text-neutral-700">Sommaire</span>
+        <svg
+          className={`w-4 h-4 text-neutral-400 transition-transform ${open ? 'rotate-180' : ''}`}
+          fill="none" stroke="currentColor" viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {open && (
+        <nav className="mt-2 bg-neutral-50 border border-neutral-200 rounded-xl p-4">
+          <ul className="space-y-2">
+            {headings.map(h => (
+              <li key={h.id}>
+                <a
+                  href={`#${h.id}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setOpen(false);
+                    document.getElementById(h.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }}
+                  className={`block text-sm text-neutral-600 hover:text-purple-600 transition-colors ${
+                    h.level === 3 ? 'pl-4' : ''
+                  }`}
+                >
+                  {h.text}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )}
+    </div>
   );
 }
 
