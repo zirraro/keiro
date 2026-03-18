@@ -15,7 +15,7 @@ function HomeKeiroInner() {
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly');
 
   return (
-    <main className="relative min-h-dvh bg-[#f0f4f8]">
+    <main className="relative min-h-dvh bg-[#0c1a3a]">
       {/* Luxury page opening animation */}
       <PageReveal />
 
@@ -25,28 +25,28 @@ function HomeKeiroInner() {
       {/* All content sits above the background */}
       <div className="relative" style={{ zIndex: 2 }}>
 
-      {/* HERO */}
+      {/* HERO — dark bg matching reveal transition color exactly */}
       <section className="relative mx-auto max-w-6xl px-6 pt-16 pb-12">
         <div className="relative grid lg:grid-cols-12 gap-8 items-center">
           <div className="lg:col-span-7">
             <ScaleIn>
-            <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs text-blue-700">
-              <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse"></span>
+            <div className="inline-flex items-center gap-2 rounded-full border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-xs text-blue-300">
+              <span className="h-2 w-2 rounded-full bg-blue-400 animate-pulse"></span>
               {t.home.heroBadge}
             </div>
             </ScaleIn>
             <HeroTextReveal
               text={t.home.heroTitle}
-              className="mt-4 text-4xl/tight md:text-5xl/tight font-semibold"
+              className="mt-4 text-4xl/tight md:text-5xl/tight font-semibold text-white"
               highlightWords={locale === 'fr' ? ['actualité', 'minutes'] : ['news', 'minutes']}
               highlightClassName="gradient-text"
             />
             <FadeUp delay={0.3}>
-            <p className="mt-4 text-lg text-neutral-600">
+            <p className="mt-4 text-lg text-blue-200/70">
               {t.home.heroSubtitle}
             </p>
             <p className="mt-2 text-lg font-semibold">
-              <span className="text-neutral-500">{locale === 'fr' ? 'Pour ' : 'For '}</span>
+              <span className="text-blue-300/50">{locale === 'fr' ? 'Pour ' : 'For '}</span>
               <TextRotator
                 words={locale === 'fr'
                   ? ['restaurants', 'coachs sportifs', 'boutiques', 'cavistes', 'coiffeurs', 'artisans']
@@ -60,11 +60,11 @@ function HomeKeiroInner() {
             <FadeUp delay={0.5}>
             <div className="mt-6 flex flex-wrap gap-3">
               <MagneticButton>
-              <a href="/generate" className="inline-block px-5 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-medium hover:shadow-lg hover:-translate-y-0.5 transition-all cta-shimmer">
+              <a href="/generate" className="inline-block px-5 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-400 text-white font-medium hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5 transition-all cta-shimmer">
                 {t.common.tryFree}
               </a>
               </MagneticButton>
-              <a href="#exemple" className="px-5 py-3 rounded-xl border border-blue-200 hover:bg-blue-50 transition-colors">
+              <a href="#exemple" className="px-5 py-3 rounded-xl border border-white/20 text-white/80 hover:bg-white/10 transition-colors">
                 {t.common.seeExample}
               </a>
               <BookDemoButton variant="outline" size="md" />
@@ -72,14 +72,14 @@ function HomeKeiroInner() {
             </FadeUp>
             <FadeUp delay={0.6}>
             <ul className="mt-6 grid sm:grid-cols-3 gap-4 text-sm">
-              <li className="rounded-xl bg-white/80 backdrop-blur-sm shadow-sm p-3 text-blue-900">
-                <span className="text-blue-500 mr-1">✓</span> {t.home.heroCheck1}
+              <li className="rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 p-3 text-blue-100">
+                <span className="text-blue-400 mr-1">✓</span> {t.home.heroCheck1}
               </li>
-              <li className="rounded-xl bg-white/80 backdrop-blur-sm shadow-sm p-3 text-blue-900">
-                <span className="text-blue-500 mr-1">✓</span> {t.home.heroCheck2}
+              <li className="rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 p-3 text-blue-100">
+                <span className="text-blue-400 mr-1">✓</span> {t.home.heroCheck2}
               </li>
-              <li className="rounded-xl bg-white/80 backdrop-blur-sm shadow-sm p-3 text-blue-900">
-                <span className="text-blue-500 mr-1">✓</span> {t.home.heroCheck3}
+              <li className="rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 p-3 text-blue-100">
+                <span className="text-blue-400 mr-1">✓</span> {t.home.heroCheck3}
               </li>
             </ul>
             </FadeUp>
@@ -88,15 +88,15 @@ function HomeKeiroInner() {
             {/* Assistant IA Preview Card */}
             <FloatUp amplitude={6} duration={5}>
             <GlowPulse color="rgba(59, 130, 246, 0.12)">
-            <div className="rounded-2xl premium-card overflow-hidden bg-white">
-              <div className="p-5 border-b border-blue-200 bg-blue-50/50">
+            <div className="rounded-2xl overflow-hidden bg-white/5 backdrop-blur-sm border border-white/10">
+              <div className="p-5 border-b border-white/10 bg-white/5">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white text-xl">
+                  <div className="w-10 h-10 rounded-full bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-white text-xl">
                     🤖
                   </div>
                   <div>
-                    <h3 className="font-bold text-blue-900">{t.home.heroCardTitle}</h3>
-                    <p className="text-xs text-blue-600">{t.home.heroCardSubtitle}</p>
+                    <h3 className="font-bold text-white">{t.home.heroCardTitle}</h3>
+                    <p className="text-xs text-blue-300/60">{t.home.heroCardSubtitle}</p>
                   </div>
                 </div>
               </div>
@@ -104,36 +104,36 @@ function HomeKeiroInner() {
               <div className="p-5 space-y-3">
                 {/* Stats cards mini */}
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="bg-white rounded-lg p-3 border border-blue-200">
-                    <div className="text-xs text-blue-600 font-medium">{t.home.heroCardEngagement}</div>
-                    <div className="text-xl font-bold text-blue-900">+347%</div>
-                    <div className="text-[10px] text-blue-600">↗ +28% vs semaine</div>
+                  <div className="bg-white/5 rounded-lg p-3 border border-white/10">
+                    <div className="text-xs text-blue-300/70 font-medium">{t.home.heroCardEngagement}</div>
+                    <div className="text-xl font-bold text-white">+347%</div>
+                    <div className="text-[10px] text-cyan-400/60">↗ +28% vs semaine</div>
                   </div>
-                  <div className="bg-white rounded-lg p-3 border border-blue-200">
-                    <div className="text-xs text-blue-600 font-medium">{t.home.heroCardPosts}</div>
-                    <div className="text-xl font-bold text-blue-900">24</div>
-                    <div className="text-[10px] text-blue-600">{t.home.heroCardCharts}</div>
+                  <div className="bg-white/5 rounded-lg p-3 border border-white/10">
+                    <div className="text-xs text-blue-300/70 font-medium">{t.home.heroCardPosts}</div>
+                    <div className="text-xl font-bold text-white">24</div>
+                    <div className="text-[10px] text-cyan-400/60">{t.home.heroCardCharts}</div>
                   </div>
                 </div>
 
                 {/* Insight preview */}
-                <div className="bg-white rounded-lg p-3 border border-blue-200">
+                <div className="bg-white/5 rounded-lg p-3 border border-white/10">
                   <div className="flex items-start gap-2">
                     <span className="text-lg">🎯</span>
                     <div className="flex-1">
-                      <p className="text-xs font-semibold text-blue-900 mb-1">{t.home.heroCardRecommendation}</p>
-                      <p className="text-[11px] text-neutral-700 leading-relaxed" dangerouslySetInnerHTML={{ __html: t.home.heroCardRecommendationText }} />
+                      <p className="text-xs font-semibold text-white mb-1">{t.home.heroCardRecommendation}</p>
+                      <p className="text-[11px] text-blue-200/60 leading-relaxed" dangerouslySetInnerHTML={{ __html: t.home.heroCardRecommendationText }} />
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-blue-600 rounded-lg p-3 text-center">
-                  <p className="text-xs font-bold text-white">✨ {t.home.heroCardInsights}</p>
+                <div className="bg-blue-500/20 border border-blue-400/20 rounded-lg p-3 text-center">
+                  <p className="text-xs font-bold text-blue-200">✨ {t.home.heroCardInsights}</p>
                 </div>
               </div>
 
-              <div className="p-3 bg-white border-t border-blue-200 text-center">
-                <a href="/assistant" className="text-xs text-blue-600 hover:text-blue-700 font-medium">
+              <div className="p-3 bg-white/5 border-t border-white/10 text-center">
+                <a href="/assistant" className="text-xs text-blue-300 hover:text-blue-200 font-medium">
                   {t.home.heroCardDiscover}
                 </a>
               </div>
@@ -143,6 +143,12 @@ function HomeKeiroInner() {
           </SlideInRight>
         </div>
       </section>
+
+      {/* Gradient transition: dark hero → light sections */}
+      <div className="h-32 bg-gradient-to-b from-transparent via-[#0c1a3a]/50 to-[#eef2f7]" />
+
+      {/* === LIGHT SECTIONS BELOW === */}
+      <div className="bg-[#eef2f7]">
 
       {/* OFFRE D'ESSAI 4.99€ - MIS EN AVANT */}
       <section className="py-6">
@@ -1372,6 +1378,8 @@ function HomeKeiroInner() {
       {/* Footer légal - Terms of Service & Privacy Policy */}
       {/* Gradient divider */}
       <div className="h-px bg-gradient-to-r from-transparent via-blue-500 to-transparent" />
+
+      </div>{/* End light sections bg */}
 
       </div>{/* End content wrapper above vortex */}
 
