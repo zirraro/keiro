@@ -39,6 +39,7 @@ export const maxDuration = 300;
  * 18:00 UTC  slot=discovery_7     → Commercial: prospect external #4
  * 18:30 UTC  slot=email_recap     → Email cold: rattrapage tous types restants
  * 19:00 UTC  slot=marketing_learn → Marketing: analyze + advise agents
+ * 20:00 UTC  slot=ceo_night       → CEO brief #3 (bilan journée, résultats ordres, plan J+1) + execute orders
  * Every 10m  slot=video_poll      → Poll & advance async video generation jobs (30s+ TikTok)
  * Every 15m  slot=publish_scheduled → Auto-publish user-scheduled posts (from calendar)
  * 19:30 UTC  slot=tiktok_publish  → TikTok: publish pending TikTok content (21h30 Paris = peak engagement)
@@ -324,6 +325,17 @@ export async function GET(request: NextRequest) {
     case 'discovery_7':
       // 18:00 UTC — Commercial: prospect external #4 (evening batch)
       await callEndpoint('Commercial Prospect External #4', '/api/agents/commercial', 'POST', { action: 'prospect_external' });
+      break;
+
+    case 'ceo_night':
+      // 20:00 UTC — CEO brief #3 (bilan de fin de journée) + execute orders
+      // Runs after marketing_learn (19:00), so CEO has full day data + agent performance analysis
+      // CEO reviews: all executed orders results, day metrics, plans tomorrow's priorities
+      fireBackground(async () => {
+        await callEndpoint('CEO Brief (night)', '/api/agents/ceo');
+        await callEndpoint('Execute Orders', '/api/agents/orders');
+      });
+      results.push({ task: 'CEO Brief Night + Orders', ok: true, data: { status: 'dispatched_background' } });
       break;
 
     case 'marketing_learn':

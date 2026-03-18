@@ -121,6 +121,10 @@
       "schedule": "0 19 * * *"
     },
     {
+      "path": "/api/cron/scheduler?slot=ceo_night",
+      "schedule": "0 20 * * *"
+    },
+    {
       "path": "/api/cron/scheduler?slot=video_poll",
       "schedule": "15 18 * * *"
     },
