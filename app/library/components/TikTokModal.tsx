@@ -74,10 +74,10 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
     stitch_disabled: boolean;
   } | null>(null);
   const [loadingCreatorInfo, setLoadingCreatorInfo] = useState(false);
-  const [privacyLevel, setPrivacyLevel] = useState<string>('PUBLIC_TO_EVERYONE');
-  const [allowComments, setAllowComments] = useState(true);
-  const [allowDuet, setAllowDuet] = useState(true);
-  const [allowStitch, setAllowStitch] = useState(true);
+  const [privacyLevel, setPrivacyLevel] = useState<string>('');
+  const [allowComments, setAllowComments] = useState(false);
+  const [allowDuet, setAllowDuet] = useState(false);
+  const [allowStitch, setAllowStitch] = useState(false);
   const [contentDisclosure, setContentDisclosure] = useState(false);
   const [brandOrganic, setBrandOrganic] = useState(false);
   const [brandContent, setBrandContent] = useState(false);
@@ -735,15 +735,15 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
     setLoadingCreatorInfo(true);
     setShowReviewScreen(true);
 
-    // Set review fields with sensible defaults (user can uncheck if needed)
-    setAllowComments(true);
-    setAllowDuet(true);
-    setAllowStitch(true);
+    // Reset review fields — TikTok requires NO defaults for privacy and interactions unchecked
+    setAllowComments(false);
+    setAllowDuet(false);
+    setAllowStitch(false);
     setContentDisclosure(false);
     setBrandOrganic(false);
     setBrandContent(false);
     setLegalAccepted(false);
-    setPrivacyLevel('PUBLIC_TO_EVERYONE');
+    setPrivacyLevel('');
 
     // Fetch creator info from TikTok
     try {
@@ -751,16 +751,13 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
       const data = await res.json();
       if (data.ok && data.creator) {
         setCreatorInfo(data.creator);
-        // Pre-select PUBLIC if available, user can change
-        if (data.creator.privacy_level_options?.includes('PUBLIC_TO_EVERYONE')) {
-          setPrivacyLevel('PUBLIC_TO_EVERYONE');
-        } else if (data.creator.privacy_level_options?.length > 0) {
-          setPrivacyLevel(data.creator.privacy_level_options[0]);
-        }
-        // Enable interactions unless creator has disabled them
-        setAllowComments(!data.creator.comment_disabled);
-        setAllowDuet(!data.creator.duet_disabled);
-        setAllowStitch(!data.creator.stitch_disabled);
+        // TikTok UX Guidelines: NO default privacy — user must choose
+        setPrivacyLevel('');
+        // TikTok UX Guidelines: interactions must be UNCHECKED by default
+        // Grey out if creator has disabled them
+        setAllowComments(false);
+        setAllowDuet(false);
+        setAllowStitch(false);
       } else {
         console.error('[TikTokModal] Creator info error:', data.error);
         // Allow publishing with defaults if creator_info fails
@@ -2003,20 +2000,43 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
               </div>
             ) : (
               <div className="p-6 space-y-5">
+
+                {/* ═══ POINT 1: Creator Info ═══ */}
+                {/* Display creator nickname so user knows which TikTok account receives content */}
+                <div className="bg-gradient-to-r from-pink-50 to-cyan-50 rounded-xl p-4 border border-pink-200/50">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-400 to-pink-500 flex items-center justify-center text-white font-bold text-sm">
+                      {(creatorInfo?.display_name || creatorInfo?.username || '?')[0]?.toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-neutral-900">
+                        {creatorInfo?.display_name || creatorInfo?.username || 'Compte TikTok'}
+                      </p>
+                      {creatorInfo?.username && (
+                        <p className="text-xs text-neutral-500">@{creatorInfo.username}</p>
+                      )}
+                    </div>
+                    {creatorInfo?.can_post ? (
+                      <span className="ml-auto text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">Prêt à publier</span>
+                    ) : (
+                      <span className="ml-auto text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full font-medium">Publication indisponible</span>
+                    )}
+                  </div>
+                  {!creatorInfo?.can_post && (
+                    <p className="text-xs text-red-600 mt-2">TikTok indique que la publication n&apos;est pas disponible pour ce compte actuellement. Veuillez réessayer plus tard.</p>
+                  )}
+                </div>
+
                 {/* Content Preview — TikTok phone frame */}
                 <div>
                   <label className="block text-xs font-semibold text-neutral-700 mb-2">Aperçu de la publication</label>
                   <div className="flex justify-center">
                     <div className="relative w-[200px] bg-black rounded-[24px] overflow-hidden border-[3px] border-neutral-800 shadow-xl" style={{ aspectRatio: '9/16' }}>
-                      {/* Notch */}
                       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-4 bg-black rounded-b-xl z-20" />
-                      {/* Video */}
                       {reviewVideoUrl && (
                         <video src={reviewVideoUrl} className="absolute inset-0 w-full h-full object-cover" autoPlay loop muted playsInline />
                       )}
-                      {/* TikTok overlay UI */}
                       <div className="absolute inset-0 flex flex-col justify-end pointer-events-none">
-                        {/* Right sidebar icons */}
                         <div className="absolute right-2.5 bottom-24 flex flex-col items-center gap-4">
                           <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm border border-white/30" />
                           <div className="flex flex-col items-center">
@@ -2031,19 +2051,16 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                             <svg className="w-6 h-6 text-white drop-shadow-sm" fill="currentColor" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg>
                             <span className="text-[8px] text-white/90 font-medium mt-0.5">0</span>
                           </div>
-                          {/* Music disc */}
                           <div className="w-7 h-7 rounded-full bg-neutral-800 border-2 border-neutral-600 flex items-center justify-center animate-spin" style={{ animationDuration: '3s' }}>
                             <div className="w-2 h-2 rounded-full bg-white/50" />
                           </div>
                         </div>
-                        {/* Bottom caption + hashtags overlay */}
                         <div className="p-3 pb-5 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
                           <p className="text-[10px] font-bold text-white mb-1 drop-shadow-sm">@{creatorInfo?.username || 'vous'}</p>
                           {caption && <p className="text-[9px] text-white/95 leading-snug mb-1.5 drop-shadow-sm" style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{caption}</p>}
                           {hashtags.length > 0 && (
                             <p className="text-[9px] text-white/85 font-medium drop-shadow-sm">{hashtags.map(h => `#${h}`).join(' ')}</p>
                           )}
-                          {/* Music bar */}
                           <div className="flex items-center gap-1.5 mt-2">
                             <svg className="w-3 h-3 text-white/70" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
                             <div className="flex-1 overflow-hidden">
@@ -2052,7 +2069,6 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                           </div>
                         </div>
                       </div>
-                      {/* Bottom nav bar */}
                       <div className="absolute bottom-0 left-0 right-0 h-4 bg-black flex items-center justify-center gap-6 z-10">
                         <div className="w-1 h-1 rounded-full bg-white/40" />
                         <div className="w-1 h-1 rounded-full bg-white" />
@@ -2062,98 +2078,173 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                   </div>
                 </div>
 
-                {/* Privacy Level (required, no default) */}
+                {/* ═══ POINT 2: Privacy Level — NO default value, user MUST select ═══ */}
                 <div>
                   <label className="block text-xs font-semibold text-neutral-700 mb-2">
                     Qui peut voir cette vidéo <span className="text-red-500">*</span>
                   </label>
+                  {!privacyLevel && (
+                    <p className="text-xs text-amber-600 mb-2">Veuillez sélectionner un niveau de confidentialité</p>
+                  )}
                   <div className="space-y-2">
-                    {(creatorInfo?.privacy_level_options || ['SELF_ONLY']).map((option) => (
-                      <label key={option} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition ${privacyLevel === option ? 'border-blue-500 bg-blue-50' : 'border-neutral-200 hover:border-neutral-300'}`}>
-                        <input
-                          type="radio"
-                          name="privacyLevel"
-                          value={option}
-                          checked={privacyLevel === option}
-                          onChange={() => setPrivacyLevel(option)}
-                          className="w-4 h-4 text-blue-600"
-                        />
-                        <div>
-                          <p className="text-sm font-medium text-neutral-900">
-                            {option === 'PUBLIC_TO_EVERYONE' ? 'Public' : option === 'MUTUAL_FOLLOW_FRIENDS' ? 'Amis' : option === 'SELF_ONLY' ? 'Moi uniquement' : option}
-                          </p>
-                          <p className="text-xs text-neutral-500">
-                            {option === 'PUBLIC_TO_EVERYONE' ? 'Tout le monde peut voir' : option === 'MUTUAL_FOLLOW_FRIENDS' ? 'Seuls vos amis mutuels' : option === 'SELF_ONLY' ? 'Visible uniquement par vous' : ''}
-                          </p>
-                        </div>
-                      </label>
-                    ))}
+                    {(creatorInfo?.privacy_level_options || ['SELF_ONLY']).map((option) => {
+                      // Point 4: Disable SELF_ONLY when Branded Content is enabled
+                      const isSelfOnly = option === 'SELF_ONLY' || option === 'FOLLOWER_OF_CREATOR';
+                      const disabledByBrandContent = brandContent && isSelfOnly;
+                      return (
+                        <label
+                          key={option}
+                          className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition ${
+                            disabledByBrandContent ? 'opacity-50 cursor-not-allowed border-neutral-200 bg-neutral-50' :
+                            privacyLevel === option ? 'border-blue-500 bg-blue-50' : 'border-neutral-200 hover:border-neutral-300'
+                          }`}
+                          title={disabledByBrandContent ? 'Branded content visibility cannot be set to private' : undefined}
+                        >
+                          <input
+                            type="radio"
+                            name="privacyLevel"
+                            value={option}
+                            checked={privacyLevel === option}
+                            onChange={() => !disabledByBrandContent && setPrivacyLevel(option)}
+                            disabled={disabledByBrandContent}
+                            className="w-4 h-4 text-blue-600"
+                          />
+                          <div>
+                            <p className="text-sm font-medium text-neutral-900">
+                              {option === 'PUBLIC_TO_EVERYONE' ? 'Public' : option === 'MUTUAL_FOLLOW_FRIENDS' ? 'Amis' : option === 'FOLLOWER_OF_CREATOR' ? 'Abonnés' : option === 'SELF_ONLY' ? 'Moi uniquement' : option}
+                            </p>
+                            <p className="text-xs text-neutral-500">
+                              {option === 'PUBLIC_TO_EVERYONE' ? 'Tout le monde peut voir' : option === 'MUTUAL_FOLLOW_FRIENDS' ? 'Seuls vos amis mutuels' : option === 'FOLLOWER_OF_CREATOR' ? 'Vos abonnés uniquement' : option === 'SELF_ONLY' ? 'Visible uniquement par vous' : ''}
+                            </p>
+                            {disabledByBrandContent && (
+                              <p className="text-xs text-amber-600 mt-0.5">Le contenu de marque ne peut pas être défini en privé</p>
+                            )}
+                          </div>
+                        </label>
+                      );
+                    })}
                   </div>
                 </div>
 
-                {/* Interaction Settings (all unchecked by default per TikTok guidelines) */}
+                {/* ═══ POINT 2: Interaction Settings — ALL unchecked by default ═══ */}
                 <div>
                   <label className="block text-xs font-semibold text-neutral-700 mb-2">Interactions autorisées</label>
+                  <p className="text-xs text-neutral-400 mb-2">Cochez les interactions que vous souhaitez autoriser sur cette publication</p>
                   <div className="space-y-2">
-                    <label className="flex items-center gap-3 p-2.5 rounded-lg border border-neutral-200 cursor-pointer hover:bg-neutral-50">
+                    <label className={`flex items-center gap-3 p-2.5 rounded-lg border border-neutral-200 ${creatorInfo?.comment_disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-neutral-50'}`}>
                       <input type="checkbox" checked={allowComments} onChange={(e) => setAllowComments(e.target.checked)} disabled={creatorInfo?.comment_disabled} className="w-4 h-4 rounded text-blue-600" />
-                      <span className={`text-sm ${creatorInfo?.comment_disabled ? 'text-neutral-400' : 'text-neutral-700'}`}>Autoriser les commentaires</span>
+                      <div>
+                        <span className={`text-sm ${creatorInfo?.comment_disabled ? 'text-neutral-400' : 'text-neutral-700'}`}>Allow Comment</span>
+                        {creatorInfo?.comment_disabled && <p className="text-xs text-neutral-400">Désactivé par les paramètres de votre compte</p>}
+                      </div>
                     </label>
-                    <label className="flex items-center gap-3 p-2.5 rounded-lg border border-neutral-200 cursor-pointer hover:bg-neutral-50">
+                    <label className={`flex items-center gap-3 p-2.5 rounded-lg border border-neutral-200 ${creatorInfo?.duet_disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-neutral-50'}`}>
                       <input type="checkbox" checked={allowDuet} onChange={(e) => setAllowDuet(e.target.checked)} disabled={creatorInfo?.duet_disabled} className="w-4 h-4 rounded text-blue-600" />
-                      <span className={`text-sm ${creatorInfo?.duet_disabled ? 'text-neutral-400' : 'text-neutral-700'}`}>Autoriser les Duets</span>
+                      <div>
+                        <span className={`text-sm ${creatorInfo?.duet_disabled ? 'text-neutral-400' : 'text-neutral-700'}`}>Allow Duet</span>
+                        {creatorInfo?.duet_disabled && <p className="text-xs text-neutral-400">Désactivé par les paramètres de votre compte</p>}
+                      </div>
                     </label>
-                    <label className="flex items-center gap-3 p-2.5 rounded-lg border border-neutral-200 cursor-pointer hover:bg-neutral-50">
+                    <label className={`flex items-center gap-3 p-2.5 rounded-lg border border-neutral-200 ${creatorInfo?.stitch_disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-neutral-50'}`}>
                       <input type="checkbox" checked={allowStitch} onChange={(e) => setAllowStitch(e.target.checked)} disabled={creatorInfo?.stitch_disabled} className="w-4 h-4 rounded text-blue-600" />
-                      <span className={`text-sm ${creatorInfo?.stitch_disabled ? 'text-neutral-400' : 'text-neutral-700'}`}>Autoriser les Stitch</span>
+                      <div>
+                        <span className={`text-sm ${creatorInfo?.stitch_disabled ? 'text-neutral-400' : 'text-neutral-700'}`}>Allow Stitch</span>
+                        {creatorInfo?.stitch_disabled && <p className="text-xs text-neutral-400">Désactivé par les paramètres de votre compte</p>}
+                      </div>
                     </label>
                   </div>
                 </div>
 
-                {/* Content Disclosure (off by default per TikTok guidelines) */}
+                {/* ═══ POINT 3: Content Disclosure — toggle OFF by default ═══ */}
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-700 mb-2">Divulgation de contenu commercial</label>
-                  <label className="flex items-center gap-3 p-3 rounded-lg border border-neutral-200 cursor-pointer hover:bg-neutral-50">
-                    <input type="checkbox" checked={contentDisclosure} onChange={(e) => { setContentDisclosure(e.target.checked); if (!e.target.checked) { setBrandOrganic(false); setBrandContent(false); } }} className="w-4 h-4 rounded text-blue-600" />
-                    <div>
-                      <p className="text-sm font-medium text-neutral-700">Ce contenu fait la promotion de biens ou services</p>
-                      <p className="text-xs text-neutral-500">Activez si cette vidéo contient du contenu promotionnel</p>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-xs font-semibold text-neutral-700">Content Disclosure</label>
+                    <div className="group relative">
+                      <svg className="w-4 h-4 text-neutral-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div className="hidden group-hover:block absolute right-0 top-6 z-10 w-64 p-2 bg-neutral-800 text-white text-xs rounded-lg shadow-lg">
+                        You need to indicate if your content promotes yourself, a third party, or both.
+                      </div>
                     </div>
-                  </label>
+                  </div>
+                  {/* Toggle switch */}
+                  <div className="flex items-center gap-3 p-3 rounded-lg border border-neutral-200">
+                    <button
+                      type="button"
+                      onClick={() => { setContentDisclosure(!contentDisclosure); if (contentDisclosure) { setBrandOrganic(false); setBrandContent(false); } }}
+                      className={`relative w-11 h-6 rounded-full transition-colors ${contentDisclosure ? 'bg-blue-600' : 'bg-neutral-300'}`}
+                    >
+                      <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${contentDisclosure ? 'translate-x-5' : ''}`} />
+                    </button>
+                    <div>
+                      <p className="text-sm font-medium text-neutral-700">This content promotes goods or services</p>
+                      <p className="text-xs text-neutral-500">Turn on to disclose that this content promotes goods or services in exchange for something of value</p>
+                    </div>
+                  </div>
 
                   {contentDisclosure && (
-                    <div className="mt-3 ml-4 space-y-2">
-                      <label className="flex items-center gap-3 p-2.5 rounded-lg border border-neutral-200 cursor-pointer hover:bg-neutral-50">
+                    <div className="mt-3 space-y-2">
+                      {/* Your Brand */}
+                      <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition ${brandOrganic ? 'border-blue-500 bg-blue-50' : 'border-neutral-200 hover:bg-neutral-50'}`}>
                         <input type="checkbox" checked={brandOrganic} onChange={(e) => setBrandOrganic(e.target.checked)} className="w-4 h-4 rounded text-blue-600" />
                         <div>
-                          <p className="text-sm font-medium text-neutral-700">Votre marque</p>
-                          <p className="text-xs text-neutral-400">Votre vidéo sera étiquetée &quot;Contenu promotionnel&quot;</p>
+                          <p className="text-sm font-medium text-neutral-700">Your Brand</p>
+                          <p className="text-xs text-neutral-500">You are promoting yourself or your own business</p>
+                          {brandOrganic && <p className="text-xs text-blue-600 mt-1">Your photo/video will be labeled as &quot;Promotional content&quot;</p>}
                         </div>
                       </label>
-                      <label className="flex items-center gap-3 p-2.5 rounded-lg border border-neutral-200 cursor-pointer hover:bg-neutral-50">
-                        <input type="checkbox" checked={brandContent} onChange={(e) => setBrandContent(e.target.checked)} className="w-4 h-4 rounded text-blue-600" />
+                      {/* Branded Content */}
+                      <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition ${
+                        (privacyLevel === 'SELF_ONLY' || privacyLevel === 'FOLLOWER_OF_CREATOR')
+                          ? 'opacity-50 cursor-not-allowed border-neutral-200 bg-neutral-50'
+                          : brandContent ? 'border-blue-500 bg-blue-50' : 'border-neutral-200 hover:bg-neutral-50'
+                      }`}>
+                        <input
+                          type="checkbox"
+                          checked={brandContent}
+                          onChange={(e) => {
+                            if (privacyLevel === 'SELF_ONLY' || privacyLevel === 'FOLLOWER_OF_CREATOR') return;
+                            setBrandContent(e.target.checked);
+                            // Auto-switch to PUBLIC if private and branded content enabled
+                            if (e.target.checked && (privacyLevel === 'SELF_ONLY' || privacyLevel === 'FOLLOWER_OF_CREATOR')) {
+                              const publicOption = creatorInfo?.privacy_level_options?.includes('PUBLIC_TO_EVERYONE');
+                              if (publicOption) setPrivacyLevel('PUBLIC_TO_EVERYONE');
+                            }
+                          }}
+                          disabled={privacyLevel === 'SELF_ONLY' || privacyLevel === 'FOLLOWER_OF_CREATOR'}
+                          className="w-4 h-4 rounded text-blue-600"
+                        />
                         <div>
-                          <p className="text-sm font-medium text-neutral-700">Contenu de marque (partenariat)</p>
-                          <p className="text-xs text-neutral-400">Votre vidéo sera étiquetée &quot;Partenariat rémunéré&quot;</p>
+                          <p className="text-sm font-medium text-neutral-700">Branded Content</p>
+                          <p className="text-xs text-neutral-500">You are promoting another brand or a third party</p>
+                          {brandContent && <p className="text-xs text-blue-600 mt-1">Your photo/video will be labeled as &quot;Paid partnership&quot;</p>}
+                          {(privacyLevel === 'SELF_ONLY' || privacyLevel === 'FOLLOWER_OF_CREATOR') && (
+                            <p className="text-xs text-amber-600 mt-1">Branded content visibility cannot be set to private. Select Public or Friends visibility above.</p>
+                          )}
                         </div>
                       </label>
+
+                      {contentDisclosure && !brandOrganic && !brandContent && (
+                        <p className="text-xs text-red-500 mt-1">Please select at least one option when content disclosure is enabled</p>
+                      )}
                     </div>
                   )}
                 </div>
 
-                {/* Legal Compliance */}
+                {/* ═══ POINT 5: User Consent & Legal Compliance ═══ */}
                 <div className="border-t pt-4">
                   <label className="flex items-start gap-3 cursor-pointer">
                     <input type="checkbox" checked={legalAccepted} onChange={(e) => setLegalAccepted(e.target.checked)} className="w-4 h-4 rounded text-blue-600 mt-0.5" />
                     <p className="text-xs text-neutral-600">
-                      En publiant, vous acceptez les{' '}
+                      By posting, you agree to TikTok&apos;s{' '}
                       <a href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                        Conditions d&apos;utilisation musicale de TikTok
+                        Music Usage Confirmation
                       </a>
                       {(brandContent) && (
-                        <>{' '}et la{' '}
+                        <>{' '}and the{' '}
                           <a href="https://www.tiktok.com/legal/page/global/bc-policy/en" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                            Politique de contenu de marque
+                            Branded Content Policy
                           </a>
                         </>
                       )}
@@ -2164,7 +2255,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
 
                 {/* Processing notice */}
                 <p className="text-xs text-neutral-400 text-center">
-                  La publication peut prendre quelques minutes. Vous serez notifié quand elle sera terminée.
+                  Note: Your video may take a few minutes to process before it appears on your TikTok profile.
                 </p>
 
                 {/* Action buttons */}
@@ -2174,7 +2265,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                   </button>
                   <button
                     onClick={handleConfirmPublish}
-                    disabled={publishing || !privacyLevel || !legalAccepted || (contentDisclosure && !brandOrganic && !brandContent)}
+                    disabled={publishing || !privacyLevel || !legalAccepted || (contentDisclosure && !brandOrganic && !brandContent) || !creatorInfo?.can_post}
                     className="flex-1 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl hover:shadow-lg transition disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     {publishing ? (
@@ -2183,7 +2274,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                         Publication...
                       </span>
                     ) : (
-                      'Publier maintenant'
+                      'Publish to TikTok'
                     )}
                   </button>
                 </div>
