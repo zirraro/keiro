@@ -5,6 +5,10 @@
       "schedule": "0 3 * * *"
     },
     {
+      "path": "/api/cron/scheduler?slot=marketing_prep",
+      "schedule": "50 4 * * *"
+    },
+    {
       "path": "/api/cron/scheduler?slot=ceo",
       "schedule": "0 5 * * *"
     },

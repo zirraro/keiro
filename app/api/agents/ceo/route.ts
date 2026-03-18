@@ -232,15 +232,15 @@ Metriques live:
 - Prospects total: ${totalProspects ?? 0}
 - Prospects chauds: ${hotProspects ?? 0}
 - Emails envoyes 24h: ${emailsSent24h ?? 0}
-- DMs Instagram/TikTok prepares 24h: ${dmsPrepared24h ?? 0} (TikTok = envoi manuel)
+- DMs Instagram/TikTok prepares 24h: ${dmsPrepared24h ?? 0} (TOUS les DMs sont prepares par les agents, envoyes manuellement par le fondateur)
 ${briefsMemory}
 ${chatMemory}
 ${reportsMemory}
 
 CAPACITES ACTUELLES:
 - Email cold: max 50/jour (Resend), 5 slots horaires
-- DM Instagram: max 10/jour, 2 slots (matin/soir)
-- TikTok DMs: max 5/jour, 1 slot (soir) — PRÉPARÉS seulement, envoi manuel par le fondateur
+- DM Instagram: max 10/jour, 2 slots (matin/soir) — PRÉPARÉS par l'agent, envoi MANUEL par le fondateur
+- TikTok DMs: max 5/jour, 1 slot (soir) — PRÉPARÉS par l'agent, envoi MANUEL par le fondateur
 - GMaps: scan 5 zones/jour, 30 zones, 7 villes, 200+ prospects/jour
 - Commercial: enrichissement auto via Claude Haiku, qualification CRM
 - Pipeline: GMaps decouvre → Commercial enrichit → Email contacte
@@ -250,8 +250,8 @@ TU CONTROLES CES AGENTS DIRECTEMENT (via la section ORDRES DU JOUR):
 - [Commercial] Enrichir → enrichit et qualifie les prospects
 - [Email] Campagne cold/warm → envoie les emails
 - [Email] Pause/Reprendre → pause/reprend les sequences
-- [DM Instagram] Preparer → prepare les DMs du jour
-- [TikTok Comments] Préparer → prépare les DMs TikTok (envoi manuel par le fondateur)
+- [DM Instagram] Preparer → prepare les DMs Instagram du jour (envoi manuel par le fondateur)
+- [TikTok Comments] Préparer → prépare les DMs TikTok du jour (envoi manuel par le fondateur)
 
 CRM KEIRO (lecture/ecriture par tous les agents):
 - Statuts: identifie → contacte → repondu → demo → sprint → client (ou perdu)

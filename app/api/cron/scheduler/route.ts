@@ -14,7 +14,8 @@ export const maxDuration = 300;
  * Slots and what they trigger:
  *
  * 03:00 UTC  slot=discovery       → Commercial: verify CRM
- * 05:00 UTC  slot=ceo             → CEO brief (auto-triggers orders) + Marketing analysis + Community early prep
+ * 04:50 UTC  slot=marketing_prep  → Marketing: sync analytics + analysis (prepares stats for CEO)
+ * 05:00 UTC  slot=ceo             → CEO brief (auto-triggers orders) + Community early prep
  * 05:30 UTC  slot=trends          → Refresh trends
  * 06:00 UTC  slot=early_morning   → Email cold: restaurants/traiteurs (ouverture)
  * 07:00 UTC  slot=morning_prep    → DM Instagram + SEO + Content
@@ -182,24 +183,30 @@ export async function GET(request: NextRequest) {
       );
       break;
 
+    case 'marketing_prep':
+      // 04:50 UTC — Marketing: sync analytics + analysis (runs 10 min before CEO so stats are ready)
+      fireBackground(async () => {
+        await callParallel(
+          ['Marketing Sync Analytics', '/api/agents/marketing', 'POST', { action: 'sync_publication_analytics' }],
+          ['Marketing Analysis (morning)', '/api/agents/marketing', 'POST'],
+        );
+      });
+      results.push({ task: 'Marketing Prep', ok: true, data: { status: 'dispatched_background' } });
+      break;
+
     case 'ceo':
-      // 05:00 UTC — CEO brief + execute orders + Marketing analysis + Community morning prep
+      // 05:00 UTC — CEO brief + execute orders + Community morning prep
       // Uses waitUntil to avoid 300s timeout (CEO brief can take 2-4 min)
       fireBackground(async () => {
         await callEndpoint('CEO Brief', '/api/agents/ceo');
         await callEndpoint('Execute Orders', '/api/agents/orders');
-        // Marketing: sync analytics + run analysis right after CEO brief
-        await callParallel(
-          ['Marketing Sync Analytics', '/api/agents/marketing', 'POST', { action: 'sync_publication_analytics' }],
-          ['Marketing Analysis (morning)', '/api/agents/marketing'],
-        );
         // Community: early prep — prepare comments + find follow targets
         await callParallel(
           ['Community Comments (early)', '/api/agents/marketing', 'POST', { action: 'prepare_comments', count: 30 }],
           ['Community Follow Targets IG (early)', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'instagram', count: 25 }],
         );
       });
-      results.push({ task: 'CEO Brief + Orders + Marketing + Community', ok: true, data: { status: 'dispatched_background' } });
+      results.push({ task: 'CEO Brief + Orders + Community', ok: true, data: { status: 'dispatched_background' } });
       break;
 
     case 'trends':

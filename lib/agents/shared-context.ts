@@ -50,9 +50,11 @@ interface AgentContext {
     instagramPublished: number;
   };
   dmPerformance: {
-    dmsSent7d: number;
-    igDMsSent: number;
+    igDMsPrepared: number;
     ttDMsPrepared: number;
+    igDMsSent: number;
+    ttDMsSent: number;
+    totalSent: number;
     dmsQueued: number;
     responseRate: string;
     bestChannel: string;
@@ -183,20 +185,38 @@ export async function loadSharedContext(
   }
   const { count: draftsReady } = await supabase.from('content_calendar').select('id', { count: 'exact', head: true }).eq('status', 'draft');
 
-  // ── DM PERFORMANCE ──
-  const { data: dmEvents } = await supabase
+  // ── DM PERFORMANCE (from dm_queue table) ──
+  // Prepared = status 'pending' (agent wrote the DM, founder hasn't sent yet)
+  // Sent = status 'sent' (founder manually sent the DM)
+  const [
+    { count: igPrepared },
+    { count: ttPrepared },
+    { count: igSent },
+    { count: ttSent },
+    { count: dmsQueued },
+  ] = await Promise.all([
+    supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('channel', 'instagram').eq('status', 'pending').gte('created_at', sevenDaysAgo),
+    supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('channel', 'tiktok').eq('status', 'pending').gte('created_at', sevenDaysAgo),
+    supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('channel', 'instagram').eq('status', 'sent').gte('created_at', sevenDaysAgo),
+    supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('channel', 'tiktok').eq('status', 'sent').gte('created_at', sevenDaysAgo),
+    supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+  ]);
+
+  const igDMsPrepared = igPrepared || 0;
+  const ttDMsPrepared = ttPrepared || 0;
+  const igDMsSent = igSent || 0;
+  const ttDMsSent = ttSent || 0;
+  const totalSent = igDMsSent + ttDMsSent;
+
+  // Replies from crm_activities
+  const { data: dmReplyEvents } = await supabase
     .from('crm_activities')
-    .select('type, data')
-    .in('type', ['dm_instagram', 'tiktok_comment', 'dm_replied'])
+    .select('type')
+    .eq('type', 'dm_replied')
     .gte('created_at', sevenDaysAgo);
+  const dmsReplied7d = dmReplyEvents?.length || 0;
 
-  const dmsSent7d = dmEvents?.filter((e: any) => e.type === 'dm_instagram' || e.type === 'tiktok_comment')?.length || 0;
-  const dmsReplied7d = dmEvents?.filter((e: any) => e.type === 'dm_replied')?.length || 0;
-  const { count: dmsQueued } = await supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('status', 'pending');
-
-  const igDMsSent = dmEvents?.filter((e: any) => e.type === 'dm_instagram')?.length || 0;
-  const ttDMsPrepared = dmEvents?.filter((e: any) => e.type === 'tiktok_comment')?.length || 0;
-  const bestDMChannel = igDMsSent >= ttDMsPrepared ? 'instagram' : 'tiktok';
+  const bestDMChannel = (igDMsPrepared + igDMsSent) >= (ttDMsPrepared + ttDMsSent) ? 'instagram' : 'tiktok';
 
   // ── ACTIVE DIRECTIVES from CEO/Marketing ──
   const { data: directives } = await supabase
@@ -303,11 +323,13 @@ export async function loadSharedContext(
       instagramPublished,
     },
     dmPerformance: {
-      dmsSent7d,
-      igDMsSent,
+      igDMsPrepared,
       ttDMsPrepared,
+      igDMsSent,
+      ttDMsSent,
+      totalSent,
       dmsQueued: dmsQueued || 0,
-      responseRate: dmsSent7d > 0 ? `${(dmsReplied7d / dmsSent7d * 100).toFixed(1)}%` : 'N/A',
+      responseRate: totalSent > 0 ? `${(dmsReplied7d / totalSent * 100).toFixed(1)}%` : 'N/A',
       bestChannel: bestDMChannel,
     },
     conversionFunnel,
@@ -394,8 +416,9 @@ PERFORMANCE CONTENU (7j):
 - Plateformes: ${Object.entries(c.platformBreakdown).map(([k, v]) => `${k}: ${v}`).join(' | ') || 'aucune'}
 
 PERFORMANCE DM (7j):
-- ${d.igDMsSent} DMs Instagram envoyés | ${d.ttDMsPrepared} TikTok DMs préparés (envoi manuel)
-- ${d.dmsQueued} en file d'attente | Taux réponse: ${d.responseRate}
+- Préparés: ${d.igDMsPrepared} Instagram | ${d.ttDMsPrepared} TikTok (envoi manuel par le fondateur)
+- Envoyés (manuellement): ${d.igDMsSent} Instagram | ${d.ttDMsSent} TikTok | Total envoyés: ${d.totalSent}
+- ${d.dmsQueued} en file d'attente | Taux réponse (sur envoyés): ${d.responseRate}
 - Meilleur canal: ${d.bestChannel}
 
 FUNNEL DE CONVERSION:
