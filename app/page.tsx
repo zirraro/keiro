@@ -7,6 +7,7 @@ import { FadeUp, ScaleIn, SlideInLeft, SlideInRight, StaggerContainer, StaggerIt
 import { AnimatedGradientBG } from '@/components/ui/animated-gradient-bg';
 import { VortexBackground } from '@/components/ui/vortex-bg';
 import { PageReveal } from '@/components/ui/page-reveal';
+import { KeiroLockup } from '@/components/ui/keiro-logo';
 import { useLanguage } from '@/lib/i18n/context';
 
 function HomeKeiroInner() {
@@ -1379,7 +1380,7 @@ function HomeKeiroInner() {
           <div className="grid md:grid-cols-3 gap-8">
             {/* Marque */}
             <div>
-              <h3 className="text-lg font-bold mb-2">KeiroAI</h3>
+              <KeiroLockup size={28} color="#ffffff" className="mb-2" />
               <p className="text-sm text-neutral-400">
                 {t.home.footerDesc}
               </p>

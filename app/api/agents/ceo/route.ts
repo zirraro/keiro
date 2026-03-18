@@ -533,12 +533,21 @@ async function generateBrief(): Promise<NextResponse> {
       emails_clicked: emailsClicked24h,
       emails_replied: emailsReplied24h,
       chatbot_conversations: chatbotConversations24h,
-      open_rate_percent: emailsSent24h > 0 ? Math.round((emailsOpened24h / emailsSent24h) * 100) : 0,
-      click_through_rate_percent: emailsOpened24h > 0 ? Math.round((emailsClicked24h / emailsOpened24h) * 100) : 0,
-      note: 'OR = prospects uniques ouverts / envoyés, CTR = prospects uniques cliqués / ouverts (dédupliqué par prospect_id). raw_events = total events bruts (un prospect qui ouvre 3x = 3)',
-      raw_open_events_24h: (openLogs24h || []).length,
-      raw_click_events_24h: (clickLogs24h || []).length,
-      multi_open_signal: (openLogs24h || []).length > emailsOpened24h ? `${(openLogs24h || []).length - emailsOpened24h} ré-ouvertures (signe d'intérêt)` : 'aucune ré-ouverture',
+      unique_metrics: {
+        open_rate_percent: emailsSent24h > 0 ? Math.round((emailsOpened24h / emailsSent24h) * 100) : 0,
+        click_through_rate_percent: emailsOpened24h > 0 ? Math.round((emailsClicked24h / emailsOpened24h) * 100) : 0,
+        note: 'Dédupliqué par prospect_id — 1 prospect = 1 count max. OR = ouverts uniques / envoyés, CTR = cliqués uniques / ouverts uniques',
+      },
+      engagement_signals: {
+        raw_open_events: (openLogs24h || []).length,
+        raw_click_events: (clickLogs24h || []).length,
+        re_ouvertures: (openLogs24h || []).length - emailsOpened24h,
+        re_clicks: (clickLogs24h || []).length - emailsClicked24h,
+        signal: (openLogs24h || []).length > emailsOpened24h
+          ? `${(openLogs24h || []).length - emailsOpened24h} ré-ouvertures détectées (signe d'intérêt fort — prospects qui reviennent lire le mail)`
+          : 'aucune ré-ouverture',
+        note: 'Events bruts Brevo — un prospect qui ouvre 3x = 3 events. Les ré-ouvertures signalent un intérêt fort.',
+      },
       prospects_by_temperature: tempCounts,
       prospects_by_status: statusCounts,
       ab_test_data: abTestData,

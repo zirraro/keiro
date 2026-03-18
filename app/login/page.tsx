@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { ScaleIn } from '@/components/ui/motion';
 import { AnimatedGradientBG } from '@/components/ui/animated-gradient-bg';
+import { KeiroLogo } from '@/components/ui/keiro-logo';
 import { useLanguage } from '@/lib/i18n/context';
 
 export default function LoginPage() {
@@ -733,6 +734,9 @@ function LoginPageInner() {
       <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl w-full p-8">
         {/* Logo / Titre */}
         <div className="text-center mb-8">
+          <div className="flex justify-center mb-3">
+            <KeiroLogo size={48} color="#111111" />
+          </div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
             KeiroAI
           </h1>

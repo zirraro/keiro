@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 100 100">
+  <rect width="100" height="100" fill="#E8E0D0"/>
+  <path d="M50 2.00 L97.00 50 L3.00 50Z" stroke="#111111" stroke-width="2.00" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.220"/>
+  <path d="M50 98.00 L97.00 50 L3.00 50Z" stroke="#111111" stroke-width="2.00" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.220"/>
+  <path d="M50 6.19 L93.55 50 L6.45 50Z" stroke="#111111" stroke-width="1.91" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.277"/>
+  <path d="M50 93.81 L93.55 50 L6.45 50Z" stroke="#111111" stroke-width="1.91" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.277"/>
+  <path d="M50 10.38 L90.09 50 L9.91 50Z" stroke="#111111" stroke-width="1.82" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.335"/>
+  <path d="M50 89.62 L90.09 50 L9.91 50Z" stroke="#111111" stroke-width="1.82" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.335"/>
+  <path d="M50 14.57 L86.64 50 L13.36 50Z" stroke="#111111" stroke-width="1.73" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.392"/>
+  <path d="M50 85.43 L86.64 50 L13.36 50Z" stroke="#111111" stroke-width="1.73" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.392"/>
+  <path d="M50 18.76 L83.18 50 L16.82 50Z" stroke="#111111" stroke-width="1.64" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.449"/>
+  <path d="M50 81.24 L83.18 50 L16.82 50Z" stroke="#111111" stroke-width="1.64" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.449"/>
+  <path d="M50 22.95 L79.73 50 L20.27 50Z" stroke="#111111" stroke-width="1.55" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.506"/>
+  <path d="M50 77.05 L79.73 50 L20.27 50Z" stroke="#111111" stroke-width="1.55" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.506"/>
+  <path d="M50 27.13 L76.27 50 L23.73 50Z" stroke="#111111" stroke-width="1.45" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.564"/>
+  <path d="M50 72.87 L76.27 50 L23.73 50Z" stroke="#111111" stroke-width="1.45" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.564"/>
+  <path d="M50 31.32 L72.82 50 L27.18 50Z" stroke="#111111" stroke-width="1.36" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.621"/>
+  <path d="M50 68.68 L72.82 50 L27.18 50Z" stroke="#111111" stroke-width="1.36" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.621"/>
+  <path d="M50 35.51 L69.36 50 L30.64 50Z" stroke="#111111" stroke-width="1.27" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.678"/>
+  <path d="M50 64.49 L69.36 50 L30.64 50Z" stroke="#111111" stroke-width="1.27" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.678"/>
+  <path d="M50 39.70 L65.91 50 L34.09 50Z" stroke="#111111" stroke-width="1.18" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.735"/>
+  <path d="M50 60.30 L65.91 50 L34.09 50Z" stroke="#111111" stroke-width="1.18" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.735"/>
+  <path d="M50 43.89 L62.45 50 L37.55 50Z" stroke="#111111" stroke-width="1.09" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.793"/>
+  <path d="M50 56.11 L62.45 50 L37.55 50Z" stroke="#111111" stroke-width="1.09" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.793"/>
+  <path d="M50 48.08 L59.00 50 L41.00 50Z" stroke="#111111" stroke-width="1.00" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.850"/>
+  <path d="M50 51.92 L59.00 50 L41.00 50Z" stroke="#111111" stroke-width="1.00" fill="none" stroke-linejoin="round" stroke-linecap="round" opacity="0.850"/>
+</svg>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
+import { KeiroLogo } from "@/components/ui/keiro-logo";
 import { useEffect, useState, useMemo } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import ContactSupportModal from "@/components/ContactSupportModal";
@@ -240,13 +241,7 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
         {/* Logo / marque */}
         <Link href="/" className="flex items-center gap-2">
-          <Image
-            src="/keiro-logo.png"
-            alt="Keiro Logo"
-            width={32}
-            height={32}
-            className="rounded-lg"
-          />
+          <KeiroLogo size={32} color="#111111" />
           <span className="text-lg font-bold text-neutral-900">KeiroAI</span>
         </Link>
 
