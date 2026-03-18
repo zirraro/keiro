@@ -60,14 +60,14 @@ function HomeKeiroInner() {
             <FadeUp delay={0.5}>
             <div className="mt-6 flex flex-wrap gap-3">
               <MagneticButton>
-              <a href="/generate" className="inline-block px-5 py-3 rounded-xl bg-white text-[#0c1a3a] font-semibold hover:bg-neutral-100 hover:shadow-lg hover:shadow-white/20 hover:-translate-y-0.5 transition-all">
+              <a href="/generate" className="inline-block px-5 py-3 rounded-xl bg-white text-[#0c1a3a] font-semibold shadow-lg shadow-white/20 hover:shadow-xl hover:shadow-white/30 hover:-translate-y-0.5 transition-all">
                 {t.common.tryFree}
               </a>
               </MagneticButton>
-              <a href="#exemple" className="px-5 py-3 rounded-xl border border-white/20 text-white/80 hover:bg-white/10 transition-colors">
+              <a href="#exemple" className="px-5 py-3 rounded-xl border-2 border-white/40 text-white font-medium hover:bg-white/10 hover:border-white/60 transition-all">
                 {t.common.seeExample}
               </a>
-              <BookDemoButton variant="outline" size="md" />
+              <BookDemoButton variant="outline" size="md" className="!border-white/40 !bg-transparent !text-white hover:!bg-white/10" />
             </div>
             </FadeUp>
             <FadeUp delay={0.6}>

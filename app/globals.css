@@ -564,6 +564,25 @@ html:not(.light) .page-studio-bg [class*="text-\[#0c1a3a\]"] { color: #e2e8f0 !i
 html:not(.light) .page-studio-bg .bg-white { background-color: rgba(255, 255, 255, 0.05) !important; }
 html:not(.light) .page-studio-bg .border-neutral-200 { border-color: rgba(255, 255, 255, 0.1) !important; }
 
+/* ─── Force-light: widgets that stay light in dark mode (chatbot) ─── */
+html:not(.light) .force-light { background-color: white !important; color: #171717 !important; }
+html:not(.light) .force-light * { color: inherit; }
+html:not(.light) .force-light .text-neutral-800 { color: #1f2937 !important; }
+html:not(.light) .force-light .text-neutral-700 { color: #374151 !important; }
+html:not(.light) .force-light .text-neutral-600 { color: #525252 !important; }
+html:not(.light) .force-light .text-neutral-500 { color: #737373 !important; }
+html:not(.light) .force-light .text-sm { color: inherit !important; }
+html:not(.light) .force-light .text-white { color: white !important; }
+html:not(.light) .force-light .text-xs { color: inherit !important; }
+html:not(.light) .force-light .bg-white { background-color: white !important; }
+html:not(.light) .force-light .bg-neutral-50 { background-color: #fafafa !important; }
+html:not(.light) .force-light .bg-neutral-100 { background-color: #f5f5f5 !important; }
+html:not(.light) .force-light .bg-purple-600 { background-color: #9333ea !important; }
+html:not(.light) .force-light .border-neutral-200 { border-color: #e5e5e5 !important; }
+html:not(.light) .force-light .border-neutral-300 { border-color: #d4d4d4 !important; }
+html:not(.light) .force-light input { color: #171717 !important; background-color: white !important; border-color: #d4d4d4 !important; }
+html:not(.light) .force-light input::placeholder { color: #9ca3af !important; }
+
 /* Hide scrollbar for horizontal scroll */
 .scrollbar-hide {
   -ms-overflow-style: none;
