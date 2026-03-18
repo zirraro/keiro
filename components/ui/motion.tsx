@@ -1,6 +1,6 @@
 'use client';
 
-import { motion, useInView, useReducedMotion, AnimatePresence } from 'framer-motion';
+import { motion, useInView, useReducedMotion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { useRef, useEffect, useState, ReactNode } from 'react';
 
 const EASE_OUT_EXPO = [0.22, 1, 0.36, 1] as const;
@@ -362,6 +362,146 @@ export function AnimatedAccordion({
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+// ─── BlurIn ──────────────────────────────────────────────
+// Premium blur-to-focus reveal. Catches the eye.
+export function BlurIn({
+  children,
+  className,
+  delay = 0,
+  duration = 0.8,
+}: {
+  children: ReactNode;
+  className?: string;
+  delay?: number;
+  duration?: number;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const isInView = useInView(ref, { once: true, margin: '-40px' });
+  const shouldReduce = useReducedMotion();
+
+  return (
+    <motion.div
+      ref={ref}
+      className={className}
+      initial={shouldReduce ? { opacity: 1 } : { opacity: 0, filter: 'blur(12px)' }}
+      animate={isInView ? { opacity: 1, filter: 'blur(0px)' } : {}}
+      transition={{ duration, delay, ease: EASE_OUT_EXPO }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+// ─── FloatUp ─────────────────────────────────────────────
+// Continuous gentle floating animation (for hero cards, badges).
+export function FloatUp({
+  children,
+  className,
+  amplitude = 8,
+  duration = 4,
+}: {
+  children: ReactNode;
+  className?: string;
+  amplitude?: number;
+  duration?: number;
+}) {
+  const shouldReduce = useReducedMotion();
+
+  if (shouldReduce) return <div className={className}>{children}</div>;
+
+  return (
+    <motion.div
+      className={className}
+      animate={{ y: [-amplitude, amplitude, -amplitude] }}
+      transition={{ duration, repeat: Infinity, ease: 'easeInOut' }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+// ─── GlowPulse ──────────────────────────────────────────
+// Animated glowing border/shadow pulse for premium cards.
+export function GlowPulse({
+  children,
+  className,
+  color = 'rgba(59, 130, 246, 0.15)',
+}: {
+  children: ReactNode;
+  className?: string;
+  color?: string;
+}) {
+  const shouldReduce = useReducedMotion();
+
+  if (shouldReduce) return <div className={className}>{children}</div>;
+
+  return (
+    <motion.div
+      className={className}
+      animate={{
+        boxShadow: [
+          `0 0 20px ${color}`,
+          `0 0 40px ${color}`,
+          `0 0 20px ${color}`,
+        ],
+      }}
+      transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+// ─── TextShimmer ─────────────────────────────────────────
+// Animated gradient shimmer across text. Eye-catching for headlines.
+export function TextShimmer({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  const shouldReduce = useReducedMotion();
+
+  return (
+    <motion.span
+      className={`inline-block bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 bg-[length:200%_auto] ${className || ''}`}
+      animate={shouldReduce ? {} : { backgroundPosition: ['0% center', '200% center'] }}
+      transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
+    >
+      {children}
+    </motion.span>
+  );
+}
+
+// ─── ParallaxScroll ──────────────────────────────────────
+// Subtle parallax effect on scroll. Makes sections feel layered.
+export function ParallaxScroll({
+  children,
+  className,
+  speed = 0.3,
+}: {
+  children: ReactNode;
+  className?: string;
+  speed?: number;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const shouldReduce = useReducedMotion();
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ['start end', 'end start'],
+  });
+  const y = useTransform(scrollYProgress, [0, 1], [50 * speed, -50 * speed]);
+
+  if (shouldReduce) return <div ref={ref} className={className}>{children}</div>;
+
+  return (
+    <motion.div ref={ref} className={className} style={{ y }}>
+      {children}
+    </motion.div>
   );
 }
 

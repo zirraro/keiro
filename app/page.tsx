@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import BookDemoButton from '@/components/BookDemoButton';
 import { startCheckout } from '@/lib/stripe/checkout';
-import { FadeUp, ScaleIn, SlideInLeft, SlideInRight, StaggerContainer, StaggerItem, CountUp, HeroTextReveal } from '@/components/ui/motion';
+import { FadeUp, ScaleIn, SlideInLeft, SlideInRight, StaggerContainer, StaggerItem, CountUp, HeroTextReveal, BlurIn, FloatUp, GlowPulse, TextShimmer } from '@/components/ui/motion';
 import { AnimatedGradientBG } from '@/components/ui/animated-gradient-bg';
 import { useLanguage } from '@/lib/i18n/context';
 
@@ -12,7 +12,7 @@ function HomeKeiroInner() {
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly');
 
   return (
-    <main className="min-h-dvh bg-white">
+    <main className="min-h-dvh bg-[#FAFBFC]">
       {/* HERO */}
       <section className="relative mx-auto max-w-6xl px-6 pt-16 pb-12 overflow-hidden">
         <AnimatedGradientBG variant="hero" />
@@ -37,7 +37,7 @@ function HomeKeiroInner() {
             </FadeUp>
             <FadeUp delay={0.5}>
             <div className="mt-6 flex flex-wrap gap-3">
-              <a href="/generate" className="px-5 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-medium hover:shadow-lg hover:scale-105 transition-all cta-shimmer">
+              <a href="/generate" className="px-5 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-medium hover:shadow-lg hover:-translate-y-0.5 transition-all cta-shimmer">
                 {t.common.tryFree}
               </a>
               <a href="#exemple" className="px-5 py-3 rounded-xl border border-blue-200 hover:bg-blue-50 transition-colors">
@@ -48,13 +48,13 @@ function HomeKeiroInner() {
             </FadeUp>
             <FadeUp delay={0.6}>
             <ul className="mt-6 grid sm:grid-cols-3 gap-4 text-sm">
-              <li className="rounded-xl border border-blue-100 bg-blue-50/50 p-3 text-blue-900">
+              <li className="rounded-xl bg-white/80 backdrop-blur-sm shadow-sm p-3 text-blue-900">
                 <span className="text-blue-500 mr-1">✓</span> {t.home.heroCheck1}
               </li>
-              <li className="rounded-xl border border-blue-100 bg-blue-50/50 p-3 text-blue-900">
+              <li className="rounded-xl bg-white/80 backdrop-blur-sm shadow-sm p-3 text-blue-900">
                 <span className="text-blue-500 mr-1">✓</span> {t.home.heroCheck2}
               </li>
-              <li className="rounded-xl border border-blue-100 bg-blue-50/50 p-3 text-blue-900">
+              <li className="rounded-xl bg-white/80 backdrop-blur-sm shadow-sm p-3 text-blue-900">
                 <span className="text-blue-500 mr-1">✓</span> {t.home.heroCheck3}
               </li>
             </ul>
@@ -62,7 +62,9 @@ function HomeKeiroInner() {
           </div>
           <SlideInRight delay={0.4} className="lg:col-span-5">
             {/* Assistant IA Preview Card */}
-            <div className="rounded-2xl border-2 border-blue-200 shadow-lg overflow-hidden bg-white animate-glow">
+            <FloatUp amplitude={6} duration={5}>
+            <GlowPulse color="rgba(59, 130, 246, 0.12)">
+            <div className="rounded-2xl premium-card overflow-hidden bg-white">
               <div className="p-5 border-b border-blue-200 bg-blue-50/50">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white text-xl">
@@ -112,13 +114,18 @@ function HomeKeiroInner() {
                 </a>
               </div>
             </div>
+            </GlowPulse>
+            </FloatUp>
           </SlideInRight>
         </div>
       </section>
 
       {/* OFFRE D'ESSAI 4.99€ - MIS EN AVANT */}
-      <section className="bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-600 py-4 border-y border-blue-700">
-        <div className="max-w-6xl mx-auto px-6">
+      <section className="py-6">
+        <ScaleIn>
+        <div className="max-w-2xl mx-auto px-6">
+          <GlowPulse color="rgba(59, 130, 246, 0.15)">
+          <div className="bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-600 rounded-2xl px-6 py-4">
           <FadeUp>
           <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-white">
             <div className="flex items-center gap-3">
@@ -133,14 +140,17 @@ function HomeKeiroInner() {
             </button>
           </div>
           </FadeUp>
+          </div>
+          </GlowPulse>
         </div>
+        </ScaleIn>
       </section>
 
       {/* QUIZ INTERACTIF + ROI CALCULATOR */}
       <QuizAndCalculator />
 
       {/* VIDÉO WORKFLOW - Compact version */}
-      <section className="bg-gradient-to-br from-blue-50/50 to-cyan-50/50 border-b border-blue-100">
+      <section className="section-light section-divider">
         <div className="mx-auto max-w-6xl px-6 py-8">
           <div className="flex flex-col md:flex-row items-center gap-6">
             {/* Texte + Video à gauche */}
@@ -169,17 +179,17 @@ function HomeKeiroInner() {
 
             {/* Points clés à droite */}
             <StaggerContainer className="md:w-3/5 grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <StaggerItem><div className="bg-white rounded-lg p-3 border border-blue-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all">
+              <StaggerItem><div className="bg-white rounded-lg p-3 premium-card hover:shadow-soft-lg hover:-translate-y-0.5 transition-all">
                 <div className="text-xl mb-1">⚡</div>
                 <div className="font-semibold text-xs mb-0.5">{t.home.videoCard1Title}</div>
                 <div className="text-[10px] text-neutral-600">{t.home.videoCard1Desc}</div>
               </div></StaggerItem>
-              <StaggerItem><div className="bg-white rounded-lg p-3 border border-blue-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all">
+              <StaggerItem><div className="bg-white rounded-lg p-3 premium-card hover:shadow-soft-lg hover:-translate-y-0.5 transition-all">
                 <div className="text-xl mb-1">🎯</div>
                 <div className="font-semibold text-xs mb-0.5">{t.home.videoCard2Title}</div>
                 <div className="text-[10px] text-neutral-600">{t.home.videoCard2Desc}</div>
               </div></StaggerItem>
-              <StaggerItem><div className="bg-white rounded-lg p-3 border border-blue-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all">
+              <StaggerItem><div className="bg-white rounded-lg p-3 premium-card hover:shadow-soft-lg hover:-translate-y-0.5 transition-all">
                 <div className="text-xl mb-1">📈</div>
                 <div className="font-semibold text-xs mb-0.5">{t.home.videoCard3Title}</div>
                 <div className="text-[10px] text-neutral-600">{t.home.videoCard3Desc}</div>
@@ -190,7 +200,7 @@ function HomeKeiroInner() {
       </section>
 
       {/* COMMENT ÇA MARCHE */}
-      <section className="border-y bg-neutral-50/60">
+      <section className="section-divider section-light">
         <div className="mx-auto max-w-6xl px-6 py-12">
           <FadeUp><h2 className="text-2xl font-semibold">{t.home.howTitle}</h2></FadeUp>
           <StaggerContainer className="mt-6 grid md:grid-cols-3 gap-6" staggerDelay={0.15}>
@@ -218,7 +228,7 @@ function HomeKeiroInner() {
 
         <div className="grid lg:grid-cols-2 gap-8 items-center">
           {/* Galerie preview */}
-          <SlideInLeft><div className="rounded-2xl border-2 border-blue-200 overflow-hidden bg-white shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all">
+          <SlideInLeft><div className="rounded-2xl premium-card overflow-hidden bg-white hover:shadow-soft-lg hover:-translate-y-0.5 transition-all">
             <div className="bg-gradient-to-r from-blue-500 to-cyan-500 p-4">
               <h3 className="text-white font-bold flex items-center gap-2">
                 <span>📁</span> {t.home.galleryOrganized}
@@ -287,7 +297,7 @@ function HomeKeiroInner() {
           </div></SlideInLeft>
 
           {/* Multi-platform automation preview */}
-          <SlideInRight><div className="rounded-2xl border-2 border-blue-200 overflow-hidden bg-white shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all">
+          <SlideInRight><div className="rounded-2xl premium-card overflow-hidden bg-white hover:shadow-soft-lg hover:-translate-y-0.5 transition-all">
             <div className="bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500 p-4">
               <h3 className="text-white font-bold flex items-center gap-2">
                 <span>📱</span> {t.home.galleryPostsTitle}
@@ -341,13 +351,13 @@ function HomeKeiroInner() {
           </div></SlideInRight>
         </div>
 
-        <FadeUp><div className="mt-8 bg-gradient-to-r from-purple-50 via-pink-50 to-cyan-50 rounded-2xl border-2 border-blue-200 p-6 text-center">
+        <FadeUp><div className="mt-8 bg-gradient-to-r from-purple-50 via-pink-50 to-cyan-50 rounded-2xl premium-card p-6 text-center">
           <p className="text-sm text-blue-900" dangerouslySetInnerHTML={{ __html: t.home.galleryMultiPlatform }} />
         </div></FadeUp>
 
         {/* CTA après Galerie */}
         <div className="mt-10 text-center">
-          <a href="/generate" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold text-lg hover:shadow-xl transition-all hover:scale-105">
+          <a href="/generate" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold text-lg hover:shadow-xl transition-all hover:-translate-y-0.5">
             {t.home.galleryCta}
           </a>
           <p className="mt-3 text-sm text-neutral-600">
@@ -405,7 +415,7 @@ function HomeKeiroInner() {
 
           {/* APRÈS - Overlay simple et réaliste Keiro */}
           <SlideInRight><div className="relative">
-            <div className="absolute -top-3 -left-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-4 py-1 rounded-full text-sm font-semibold shadow-lg z-10 animate-glow">
+            <div className="absolute -top-3 -left-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-4 py-1 rounded-full text-sm font-semibold shadow-lg z-10">
               {t.home.afterLabel}
             </div>
             <div className="rounded-2xl border-2 border-blue-400 overflow-hidden bg-white shadow-2xl">
@@ -456,6 +466,7 @@ function HomeKeiroInner() {
         </div>
 
         {/* Explication sous les images */}
+        <FadeUp>
         <div className="mt-8 bg-blue-50 rounded-2xl border border-blue-200 p-6">
           <h3 className="text-lg font-bold text-blue-900 mb-3">{t.home.changeTitle}</h3>
           <div className="grid md:grid-cols-3 gap-4">
@@ -482,17 +493,19 @@ function HomeKeiroInner() {
             </div>
           </div>
         </div>
+        </FadeUp>
 
         {/* CTA */}
         <div className="mt-10 text-center">
-          <a href="/generate" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold text-lg hover:shadow-xl transition-all hover:scale-105">
+          <a href="/generate" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold text-lg hover:shadow-xl transition-all hover:-translate-y-0.5">
             {t.home.generateFirstCta}
           </a>
         </div>
       </section>
 
       {/* ASSISTANT IA MARKETING — DARK SECTION */}
-      <section className="relative border-y bg-[#0B1120] overflow-hidden">
+      <div className="h-20 bg-gradient-to-b from-[#FAFBFC] to-[#0B1120]" aria-hidden="true" />
+      <section className="relative bg-[#0B1120] overflow-hidden">
         <AnimatedGradientBG variant="dark" />
         <div className="relative mx-auto max-w-6xl px-6 py-12">
           <FadeUp>
@@ -660,7 +673,7 @@ function HomeKeiroInner() {
           {/* CTA */}
           <FadeUp>
           <div className="mt-10 text-center">
-            <a href="/assistant" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold text-lg hover:shadow-xl transition-all hover:scale-105 cta-shimmer">
+            <a href="/assistant" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold text-lg hover:shadow-xl transition-all hover:-translate-y-0.5 cta-shimmer">
               {t.home.aiCta}
             </a>
             <p className="mt-3 text-sm text-blue-300">
@@ -670,19 +683,20 @@ function HomeKeiroInner() {
           </FadeUp>
         </div>
       </section>
+      <div className="h-20 bg-gradient-to-b from-[#0B1120] to-[#FAFBFC]" aria-hidden="true" />
 
       {/* TÉMOIGNAGES CLIENTS */}
       <section className="mx-auto max-w-6xl px-6 py-12">
-        <FadeUp>
+        <BlurIn>
         <div className="text-center mb-10">
           <h2 className="text-3xl font-bold mb-2">{t.home.testimonialsTitle}</h2>
           <p className="text-neutral-600">{t.home.testimonialsSub}</p>
         </div>
-        </FadeUp>
+        </BlurIn>
 
         <StaggerContainer className="grid md:grid-cols-3 gap-6">
           {/* Témoignage 1 */}
-          <StaggerItem><div className="bg-white rounded-2xl border-2 border-blue-100 p-6 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all">
+          <StaggerItem><div className="bg-white rounded-2xl premium-card p-6 hover:shadow-soft-lg hover:-translate-y-0.5 transition-all">
             <div className="flex items-center gap-1 mb-4 text-purple-400">
               <span>⭐</span>
               <span>⭐</span>
@@ -703,7 +717,7 @@ function HomeKeiroInner() {
           </div></StaggerItem>
 
           {/* Témoignage 2 */}
-          <StaggerItem><div className="bg-white rounded-2xl border-2 border-blue-100 p-6 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all">
+          <StaggerItem><div className="bg-white rounded-2xl premium-card p-6 hover:shadow-soft-lg hover:-translate-y-0.5 transition-all">
             <div className="flex items-center gap-1 mb-4 text-blue-400">
               <span>⭐</span>
               <span>⭐</span>
@@ -724,7 +738,7 @@ function HomeKeiroInner() {
           </div></StaggerItem>
 
           {/* Témoignage 3 */}
-          <StaggerItem><div className="bg-white rounded-2xl border-2 border-blue-100 p-6 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all">
+          <StaggerItem><div className="bg-white rounded-2xl premium-card p-6 hover:shadow-soft-lg hover:-translate-y-0.5 transition-all">
             <div className="flex items-center gap-1 mb-4 text-blue-400">
               <span>⭐</span>
               <span>⭐</span>
@@ -747,7 +761,7 @@ function HomeKeiroInner() {
 
         {/* CTA après témoignages */}
         <div className="mt-10 text-center">
-          <a href="/generate" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold text-lg hover:shadow-xl transition-all hover:scale-105">
+          <a href="/generate" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold text-lg hover:shadow-xl transition-all hover:-translate-y-0.5">
             {t.home.testimonialCta}
           </a>
           <p className="mt-3 text-sm text-neutral-600">
@@ -758,14 +772,14 @@ function HomeKeiroInner() {
       </section>
 
       {/* POURQUOI PUBLIER SUR L'ACTU */}
-      <section className="border-y bg-neutral-50/60">
+      <section className="section-divider section-light">
         <div className="mx-auto max-w-6xl px-6 py-12">
-          <h2 className="text-2xl font-semibold">{t.home.whyTitle}</h2>
-          <div className="mt-6 grid md:grid-cols-3 gap-6 text-neutral-700">
-            <Card>{t.home.why1}</Card>
-            <Card>{t.home.why2}</Card>
-            <Card>{t.home.why3}</Card>
-          </div>
+          <BlurIn><h2 className="text-2xl font-semibold">{t.home.whyTitle}</h2></BlurIn>
+          <StaggerContainer className="mt-6 grid md:grid-cols-3 gap-6 text-neutral-700" staggerDelay={0.15}>
+            <StaggerItem><Card>{t.home.why1}</Card></StaggerItem>
+            <StaggerItem><Card>{t.home.why2}</Card></StaggerItem>
+            <StaggerItem><Card>{t.home.why3}</Card></StaggerItem>
+          </StaggerContainer>
         </div>
       </section>
 
@@ -775,7 +789,7 @@ function HomeKeiroInner() {
         <div className="text-center mb-10">
           <h2 className="text-3xl md:text-4xl font-bold mb-3">
             Vous n&apos;avez pas de graphiste ni de CM ?{' '}
-            <span className="gradient-text">Le vrai coût, c&apos;est l&apos;invisibilité.</span>
+            <TextShimmer className="text-3xl md:text-4xl font-bold">Le vrai coût, c&apos;est l&apos;invisibilité.</TextShimmer>
           </h2>
           <p className="text-lg text-neutral-600">
             Chaque jour sans Instagram, des clients potentiels choisissent votre concurrent.
@@ -916,7 +930,7 @@ function HomeKeiroInner() {
 
         {/* CTA après Comparatif */}
         <div className="text-center">
-          <a href="/generate" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold text-lg hover:shadow-xl transition-all hover:scale-105 cta-shimmer">
+          <a href="/generate" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold text-lg hover:shadow-xl transition-all hover:-translate-y-0.5 cta-shimmer">
             {t.home.comparatorCta}
           </a>
           <p className="mt-3 text-sm text-neutral-500">
@@ -930,6 +944,7 @@ function HomeKeiroInner() {
       <FadeUp>
       <section className="mx-auto max-w-6xl px-6 py-16">
         {/* Section Title */}
+        <BlurIn>
         <div className="text-center mb-10">
           <h2 className="text-3xl md:text-4xl font-bold mb-3">
             Les outils IA gratuits suffisent&nbsp;?
@@ -938,6 +953,7 @@ function HomeKeiroInner() {
             Parce que créer UN visuel et gérer votre présence en ligne, c&apos;est pas la même chose.
           </p>
         </div>
+        </BlurIn>
 
         {/* Video killer feature banner */}
         <div className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl p-4 mb-6">
@@ -1082,10 +1098,10 @@ function HomeKeiroInner() {
       </FadeUp>
 
       {/* PRICING */}
-      <section className="border-y bg-neutral-50/60">
+      <section className="section-divider section-light">
         <div className="mx-auto max-w-7xl px-6 py-16">
           <FadeUp><div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-bold mb-6 shadow-lg animate-glow">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-bold mb-6 shadow-lg">
               <span className="h-2 w-2 rounded-full bg-white animate-pulse"></span>
               {t.home.pricingBadge}
             </div>
@@ -1123,6 +1139,7 @@ function HomeKeiroInner() {
           </div></FadeUp>
 
           {/* Sprint — Essai 3 jours */}
+          <ScaleIn>
           <div className="max-w-2xl mx-auto mb-10">
             <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl border border-blue-200 p-5 flex flex-col sm:flex-row items-center gap-4">
               <div className="flex-1 text-center sm:text-left">
@@ -1132,16 +1149,17 @@ function HomeKeiroInner() {
               </div>
               <button
                 onClick={() => startCheckout('sprint')}
-                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm font-bold hover:shadow-lg transition-all hover:scale-105 whitespace-nowrap flex-shrink-0"
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm font-bold hover:shadow-lg transition-all hover:-translate-y-0.5 whitespace-nowrap flex-shrink-0"
               >
                 {t.home.sprintTrialCta}
               </button>
             </div>
           </div>
+          </ScaleIn>
 
           {/* Plans Grid — 3 plans principaux */}
-          <div className="grid md:grid-cols-3 gap-6 mb-6">
-            <Plan
+          <StaggerContainer className="grid md:grid-cols-3 gap-6 mb-6" staggerDelay={0.12}>
+            <StaggerItem><Plan
               title={`💎 ${t.home.planProTitle}`}
               price={billingPeriod === 'annual' ? `890€ ${t.common.perYear}` : `89€ ${t.common.perMonth}`}
               priceNote={billingPeriod === 'annual' ? t.home.priceNotePro : undefined}
@@ -1151,9 +1169,9 @@ function HomeKeiroInner() {
               bullets={t.home.planProBullets}
               ctaLabel={billingPeriod === 'annual' ? t.home.ctaProAnnual : 'Commencer — 49€ le 1er mois'}
               ctaOnClick={() => startCheckout(billingPeriod === 'annual' ? 'pro_annual' : 'pro')}
-            />
+            /></StaggerItem>
 
-            <Plan
+            <StaggerItem><Plan
               title={`⭐ ${t.home.planFondateursTitle}`}
               price={billingPeriod === 'annual' ? `1 490€ ${t.common.perYear}` : `149€ ${t.common.perMonth}`}
               priceNote={billingPeriod === 'annual' ? t.home.priceNoteFondateurs : undefined}
@@ -1163,9 +1181,9 @@ function HomeKeiroInner() {
               bullets={t.home.planFondateursBullets}
               ctaLabel={billingPeriod === 'annual' ? t.home.ctaFondateursAnnual : t.home.ctaBecomeFondateur}
               ctaOnClick={() => startCheckout(billingPeriod === 'annual' ? 'fondateurs_annual' : 'fondateurs')}
-            />
+            /></StaggerItem>
 
-            <Plan
+            <StaggerItem><Plan
               title={`🏢 ${t.home.planBusinessTitle}`}
               price={billingPeriod === 'annual' ? `3 490€ ${t.common.perYear}` : `349€ ${t.common.perMonth}`}
               priceNote={billingPeriod === 'annual' ? t.home.priceNoteBusiness : undefined}
@@ -1173,10 +1191,11 @@ function HomeKeiroInner() {
               bullets={t.home.planBusinessBullets}
               ctaLabel={billingPeriod === 'annual' ? t.home.ctaBusinessAnnual : t.home.ctaChooseBusiness}
               ctaOnClick={() => startCheckout(billingPeriod === 'annual' ? 'business_annual' : 'business')}
-            />
-          </div>
+            /></StaggerItem>
+          </StaggerContainer>
 
           {/* Ligne 2 : Elite */}
+          <ScaleIn delay={0.3}>
           <div className="max-w-3xl mx-auto mb-8">
             <div className="rounded-2xl border-2 border-purple-500 bg-gradient-to-br from-purple-50 to-pink-50 p-6 shadow-xl flex flex-col">
               <div className="flex items-center gap-3 mb-3">
@@ -1202,6 +1221,7 @@ function HomeKeiroInner() {
               </button>
             </div>
           </div>
+          </ScaleIn>
 
           <p className="text-center text-xs text-neutral-500 mb-6">
             {t.home.pricingFoundersNote}
@@ -1213,9 +1233,11 @@ function HomeKeiroInner() {
       {/* CONCRÈTEMENT LA DIFFÉRENCE */}
       <FadeUp>
       <section className="mx-auto max-w-6xl px-6 py-16">
+        <BlurIn>
         <div className="text-center mb-10">
           <h2 className="text-3xl md:text-4xl font-bold mb-3">Concrètement, c&apos;est quoi la différence ?</h2>
         </div>
+        </BlurIn>
 
         <div className="grid md:grid-cols-2 gap-8 mb-10">
           {/* Pro card */}
@@ -1279,6 +1301,7 @@ function HomeKeiroInner() {
       {/* SOCIAL PROOF & FAQ COURTE */}
       <section className="mx-auto max-w-6xl px-6 py-12">
         <div className="grid lg:grid-cols-2 gap-8">
+          <FadeUp>
           <div>
             <h2 className="text-2xl font-semibold">{t.home.socialProofTitle}</h2>
             <div className="mt-4 grid gap-4">
@@ -1292,6 +1315,8 @@ function HomeKeiroInner() {
               />
             </div>
           </div>
+          </FadeUp>
+          <FadeUp delay={0.2}>
           <div>
             <h2 className="text-2xl font-semibold">{t.home.faqTitle}</h2>
             <div className="mt-4 space-y-4 text-sm text-neutral-700">
@@ -1303,12 +1328,15 @@ function HomeKeiroInner() {
                    a={t.home.faq3A} />
             </div>
           </div>
+          </FadeUp>
         </div>
+        <ScaleIn delay={0.3}>
         <div className="mt-10 text-center">
-          <a href="/generate" className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-medium hover:shadow-lg hover:scale-105 transition-all">
+          <a href="/generate" className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-medium hover:shadow-lg hover:-translate-y-0.5 transition-all">
             {t.home.tryNow}
           </a>
         </div>
+        </ScaleIn>
       </section>
 
       {/* Footer légal - Terms of Service & Privacy Policy */}
