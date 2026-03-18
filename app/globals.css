@@ -76,7 +76,8 @@ html:not(.light) .border-neutral-200 { border-color: rgba(255, 255, 255, 0.1) !i
 html:not(.light) .border-neutral-300 { border-color: rgba(255, 255, 255, 0.15) !important; }
 html:not(.light) .bg-neutral-50 { background-color: rgba(255, 255, 255, 0.03) !important; }
 html:not(.light) .bg-neutral-100 { background-color: rgba(255, 255, 255, 0.05) !important; }
-html:not(.light) .bg-white {
+html:not(.light) .homepage-sections .bg-white,
+html:not(.light) .page-studio-bg .bg-white {
   background-color: rgba(255, 255, 255, 0.05) !important;
   border-color: rgba(255, 255, 255, 0.1);
 }
@@ -163,6 +164,14 @@ html.light .gradient-text {
   background-clip: text;
 }
 
+/* Hero always dark — gradient text stays white→cyan even in light mode */
+html.light .bg-\[\#0c1a3a\] .gradient-text {
+  background: linear-gradient(135deg, #ffffff, #22d3ee, #06b6d4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
 .gradient-text-blue {
   background: linear-gradient(135deg, #ffffff, #06b6d4);
   -webkit-background-clip: text;
@@ -177,10 +186,10 @@ html.light .gradient-text-blue {
   background-clip: text;
 }
 
-/* Vortex in light mode — dark subtle dots instead of hidden */
+/* Vortex in light mode — subtle dark dots on white bg */
 html.light .vortex-bg {
-  filter: brightness(0.15) saturate(0.4);
-  opacity: 0.2;
+  filter: brightness(0.2) saturate(0.5);
+  opacity: 0.35;
 }
 
 /* Premium card light mode */

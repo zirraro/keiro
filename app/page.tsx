@@ -25,9 +25,9 @@ function HomeKeiroInner() {
       {/* All content sits above the background */}
       <div className="relative" style={{ zIndex: 2 }}>
 
-      {/* HERO — dark bg matching reveal transition color exactly */}
-      <section className="relative mx-auto max-w-6xl px-6 pt-16 pb-12">
-        <div className="relative grid lg:grid-cols-12 gap-8 items-center">
+      {/* HERO — always dark, even in light mode */}
+      <section className="relative bg-[#0c1a3a] px-6 pt-16 pb-12">
+        <div className="relative mx-auto max-w-6xl grid lg:grid-cols-12 gap-8 items-center">
           <div className="lg:col-span-7">
             <ScaleIn>
             <div className="inline-flex items-center gap-2 rounded-full border border-[#1e3a5f]/30 bg-[#0c1a3a]/10 px-3 py-1 text-xs text-[#93b4d4]">
