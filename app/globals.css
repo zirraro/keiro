@@ -74,13 +74,86 @@ html:not(.light) [class*="text-\[#0c1a3a\]"] { color: #e2e8f0 !important; }
 html:not(.light) [class*="text-\[#171717\]"] { color: #f1f5f9 !important; }
 html:not(.light) .border-neutral-200 { border-color: rgba(255, 255, 255, 0.1) !important; }
 html:not(.light) .border-neutral-300 { border-color: rgba(255, 255, 255, 0.15) !important; }
+html:not(.light) .border-neutral-100 { border-color: rgba(255, 255, 255, 0.06) !important; }
 html:not(.light) .bg-neutral-50 { background-color: rgba(255, 255, 255, 0.03) !important; }
-html:not(.light) .bg-neutral-100 { background-color: rgba(255, 255, 255, 0.05) !important; }
+html:not(.light) .bg-neutral-100 { background-color: rgba(255, 255, 255, 0.06) !important; }
+html:not(.light) .bg-neutral-200 { background-color: rgba(255, 255, 255, 0.08) !important; }
 html:not(.light) .homepage-sections .bg-white,
 html:not(.light) .page-studio-bg .bg-white {
-  background-color: rgba(255, 255, 255, 0.05) !important;
-  border-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.12);
 }
+
+/* Dark mode: form inputs, textareas, selects — keep visible with glass effect */
+html:not(.light) .page-studio-bg input[type="text"],
+html:not(.light) .page-studio-bg input[type="email"],
+html:not(.light) .page-studio-bg input[type="number"],
+html:not(.light) .page-studio-bg input[type="search"],
+html:not(.light) .page-studio-bg input[type="url"],
+html:not(.light) .page-studio-bg textarea,
+html:not(.light) .page-studio-bg select {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  color: #f1f5f9 !important;
+}
+html:not(.light) .page-studio-bg input::placeholder,
+html:not(.light) .page-studio-bg textarea::placeholder {
+  color: rgba(148, 163, 184, 0.6) !important;
+}
+html:not(.light) .page-studio-bg input:focus,
+html:not(.light) .page-studio-bg textarea:focus,
+html:not(.light) .page-studio-bg select:focus {
+  border-color: rgba(59, 130, 246, 0.5) !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15) !important;
+}
+
+/* Dark mode: colored bg-*-50/100 — subtle dark equivalents */
+html:not(.light) .bg-red-50 { background-color: rgba(239, 68, 68, 0.08) !important; }
+html:not(.light) .bg-green-50 { background-color: rgba(34, 197, 94, 0.08) !important; }
+html:not(.light) .bg-amber-50 { background-color: rgba(245, 158, 11, 0.08) !important; }
+html:not(.light) .bg-orange-50 { background-color: rgba(249, 115, 22, 0.08) !important; }
+html:not(.light) .bg-purple-50 { background-color: rgba(168, 85, 247, 0.08) !important; }
+html:not(.light) .bg-blue-50 { background-color: rgba(59, 130, 246, 0.08) !important; }
+html:not(.light) .bg-cyan-50 { background-color: rgba(6, 182, 212, 0.08) !important; }
+html:not(.light) .bg-indigo-50 { background-color: rgba(99, 102, 241, 0.08) !important; }
+html:not(.light) .bg-red-100 { background-color: rgba(239, 68, 68, 0.12) !important; }
+html:not(.light) .bg-green-100 { background-color: rgba(34, 197, 94, 0.12) !important; }
+html:not(.light) .bg-purple-100 { background-color: rgba(168, 85, 247, 0.12) !important; }
+html:not(.light) .bg-blue-100 { background-color: rgba(59, 130, 246, 0.12) !important; }
+
+/* Dark mode: colored borders */
+html:not(.light) .border-red-200 { border-color: rgba(239, 68, 68, 0.2) !important; }
+html:not(.light) .border-green-200 { border-color: rgba(34, 197, 94, 0.2) !important; }
+html:not(.light) .border-amber-200 { border-color: rgba(245, 158, 11, 0.2) !important; }
+html:not(.light) .border-purple-200 { border-color: rgba(168, 85, 247, 0.2) !important; }
+html:not(.light) .border-purple-300 { border-color: rgba(168, 85, 247, 0.25) !important; }
+
+/* Dark mode: colored text that might be too dark */
+html:not(.light) .text-red-600 { color: #f87171 !important; }
+html:not(.light) .text-red-500 { color: #f87171 !important; }
+html:not(.light) .text-red-400 { color: #fca5a5 !important; }
+html:not(.light) .text-green-600 { color: #4ade80 !important; }
+html:not(.light) .text-green-500 { color: #4ade80 !important; }
+html:not(.light) .text-amber-800 { color: #fbbf24 !important; }
+html:not(.light) .text-amber-900 { color: #f59e0b !important; }
+
+/* Dark mode: bg-white/60, bg-white/50 sub-panels */
+html:not(.light) [class*="bg-white\/"] {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+/* Dark mode: active toggle buttons with bg-white + shadow should stay visible */
+html:not(.light) .page-studio-bg button.bg-white.shadow-sm,
+html:not(.light) .page-studio-bg button.bg-white.shadow-md {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Dark mode: gradient backgrounds with light colors */
+html:not(.light) .from-amber-50 { --tw-gradient-from: rgba(245, 158, 11, 0.08) !important; }
+html:not(.light) .to-orange-50 { --tw-gradient-to: rgba(249, 115, 22, 0.06) !important; }
+html:not(.light) .from-green-50 { --tw-gradient-from: rgba(34, 197, 94, 0.06) !important; }
+html:not(.light) .to-emerald-50 { --tw-gradient-to: rgba(16, 185, 129, 0.06) !important; }
 
 /* --- Cursor pointer sur tous les éléments cliquables --- */
 button, a, [role="button"], label[for], select, input[type="checkbox"], input[type="radio"], summary {
@@ -184,6 +257,14 @@ html.light .gradient-text-blue {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+/* Dark mode: gradient clip-text with dark navy is invisible — lighten */
+html:not(.light) .page-studio-bg .bg-clip-text {
+  background: linear-gradient(135deg, #e2e8f0, #06b6d4, #a78bfa) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
 }
 
 /* Vortex in light mode — subtle dark dots on white bg */
