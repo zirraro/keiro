@@ -21,6 +21,11 @@ module.exports = {
       boxShadow: {
         'glow-blue': '0 0 30px rgba(59, 130, 246, 0.2)',
         'glow-cyan': '0 0 30px rgba(6, 182, 212, 0.2)',
+        'soft': '0 2px 8px rgba(0,0,0,0.04), 0 4px 24px rgba(59,130,246,0.05)',
+        'soft-lg': '0 4px 12px rgba(0,0,0,0.05), 0 8px 32px rgba(59,130,246,0.07)',
+      },
+      borderRadius: {
+        '3xl': '1.5rem',
       },
     },
   },

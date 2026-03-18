@@ -968,26 +968,7 @@ export async function GET(request: NextRequest) {
       return generateDailyPost(supabase, todayStr, dayOfWeek);
     }
 
-    // Midday slot: generate 2nd post if < 2 exist
-    if (slot === 'midday' && todayPosts.length < 2) {
-      console.log('[Content] Midday slot — generating 2nd post for today');
-      return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, '__midday__');
-    }
-
-    // Evening slot: generate 3rd post if < 3 exist
-    if (slot === 'evening' && todayPosts.length < 3) {
-      console.log('[Content] Evening slot — generating 3rd post for today');
-      return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, '__evening__');
-    }
-
-    // TikTok slot: generate 4th post (1 tiktok/day) if no tiktok post exists today
-    const hasTiktokToday = todayPosts.some((p: any) => p.platform === 'tiktok');
-    if (slot === 'tiktok' && !hasTiktokToday) {
-      console.log('[Content] TikTok slot — generating daily TikTok video');
-      return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, '__tiktok__');
-    }
-
-    // If posts exist but none are published yet, auto-publish them
+    // Auto-publish any stuck unpublished posts (runs on EVERY cron call, not just morning)
     const unpublished = todayPosts.filter((p: any) => p.status === 'draft' || p.status === 'approved');
     if (unpublished.length > 0 && isCron) {
       console.log(`[Content] ${unpublished.length} unpublished posts for today — auto-publishing`);
@@ -1023,9 +1004,14 @@ export async function GET(request: NextRequest) {
           console.log(`[Content] Auto-publish: ${postFormat} needs video — generating...`);
           const desc = fullPost.visual_description || fullPost.hook || fullPost.caption;
           if (desc) {
-            const vidResult = await generateVideoWithNarration(desc, fullPost.caption || desc, postFormat, 30);
+            const vidResult = await generateVideoWithNarration(desc, fullPost.caption || desc, postFormat, 5);
             videoUrl = vidResult.videoUrl;
             if (vidResult.coverUrl && !visualUrl) visualUrl = vidResult.coverUrl;
+          }
+          // If video still failed, downgrade to image post
+          if (!videoUrl && visualUrl) {
+            console.log(`[Content] Video failed for post ${post.id} — downgrading to image post`);
+            await supabase.from('content_calendar').update({ format: 'post' }).eq('id', post.id);
           }
         }
 
@@ -1073,11 +1059,35 @@ export async function GET(request: NextRequest) {
       console.log(`[Content] Auto-published ${published}/${unpublished.length} posts`);
     }
 
+    // AFTER auto-publish: generate new posts for midday/evening/tiktok slots
+    // Re-query to get updated counts (some may have been published above)
+    const { data: updatedPosts } = await supabase
+      .from('content_calendar')
+      .select('id, platform, format, status')
+      .eq('scheduled_date', todayStr);
+    const postCount = updatedPosts?.length || todayPosts.length;
+
+    if (slot === 'midday' && postCount < 2) {
+      console.log('[Content] Midday slot — generating 2nd post for today');
+      return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, '__midday__');
+    }
+
+    if (slot === 'evening' && postCount < 3) {
+      console.log('[Content] Evening slot — generating 3rd post for today');
+      return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, '__evening__');
+    }
+
+    const hasTiktokToday = (updatedPosts || todayPosts).some((p: any) => p.platform === 'tiktok');
+    if (slot === 'tiktok' && !hasTiktokToday) {
+      console.log('[Content] TikTok slot — generating daily TikTok video');
+      return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, '__tiktok__');
+    }
+
     // Return today's content
     return NextResponse.json({
       ok: true,
-      today: todayPosts,
-      message: `${todayPosts.length} post(s) for today`,
+      today: updatedPosts || todayPosts,
+      message: `${postCount} post(s) for today`,
     });
   } catch (error: any) {
     console.error('[Content] GET error:', error);
@@ -2198,30 +2208,32 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
 
   // 4x/day content strategy: 3 Instagram (morning/midday/evening) + 1 TikTok (tiktok slot)
   // DB pillar constraint: tips, demo, social_proof, trends
-  // Reels & TikTok videos get Kling/Seedance T2V pipeline (5s AI-generated video)
+  // Morning & Midday = IMAGE posts (fast, reliable, always published)
+  // Evening = reel (video pipeline, may take longer but has time budget)
+  // TikTok = video via async pipeline
   const morningSchedule: Record<number, { platform: string; format: string; pillar: string }> = {
-    1: { platform: 'instagram', format: 'reel', pillar: 'tips' },                  // Mon AM: tips reel
-    2: { platform: 'instagram', format: 'reel', pillar: 'demo' },                  // Tue AM: démo reel
-    3: { platform: 'instagram', format: 'reel', pillar: 'social_proof' },          // Wed AM: témoignage reel
-    4: { platform: 'instagram', format: 'reel', pillar: 'trends' },                // Thu AM: tendances reel
-    5: { platform: 'instagram', format: 'reel', pillar: 'tips' },                  // Fri AM: tips reel
-    6: { platform: 'instagram', format: 'reel', pillar: 'demo' },                  // Sat AM: démo reel
-    0: { platform: 'instagram', format: 'reel', pillar: 'social_proof' },          // Sun AM: résultats reel
+    1: { platform: 'instagram', format: 'post', pillar: 'tips' },                  // Mon AM: tips post
+    2: { platform: 'instagram', format: 'post', pillar: 'demo' },                  // Tue AM: démo post
+    3: { platform: 'instagram', format: 'post', pillar: 'social_proof' },          // Wed AM: témoignage post
+    4: { platform: 'instagram', format: 'post', pillar: 'trends' },                // Thu AM: tendances post
+    5: { platform: 'instagram', format: 'post', pillar: 'tips' },                  // Fri AM: tips post
+    6: { platform: 'instagram', format: 'post', pillar: 'demo' },                  // Sat AM: démo post
+    0: { platform: 'instagram', format: 'post', pillar: 'social_proof' },          // Sun AM: résultats post
   };
   const middaySchedule: Record<number, { platform: string; format: string; pillar: string }> = {
-    1: { platform: 'instagram', format: 'reel', pillar: 'demo' },                  // Mon MID: démo reel
-    2: { platform: 'instagram', format: 'reel', pillar: 'social_proof' },          // Tue MID: témoignage reel
-    3: { platform: 'instagram', format: 'reel', pillar: 'tips' },                  // Wed MID: tips reel
-    4: { platform: 'instagram', format: 'reel', pillar: 'demo' },                  // Thu MID: démo reel
-    5: { platform: 'instagram', format: 'reel', pillar: 'social_proof' },          // Fri MID: social proof reel
-    6: { platform: 'instagram', format: 'reel', pillar: 'trends' },                // Sat MID: tendances reel
-    0: { platform: 'instagram', format: 'reel', pillar: 'tips' },                  // Sun MID: tips reel
+    1: { platform: 'instagram', format: 'post', pillar: 'demo' },                  // Mon MID: démo post
+    2: { platform: 'instagram', format: 'post', pillar: 'social_proof' },          // Tue MID: témoignage post
+    3: { platform: 'instagram', format: 'post', pillar: 'tips' },                  // Wed MID: tips post
+    4: { platform: 'instagram', format: 'post', pillar: 'demo' },                  // Thu MID: démo post
+    5: { platform: 'instagram', format: 'post', pillar: 'social_proof' },          // Fri MID: social proof post
+    6: { platform: 'instagram', format: 'post', pillar: 'trends' },                // Sat MID: tendances post
+    0: { platform: 'instagram', format: 'post', pillar: 'tips' },                  // Sun MID: tips post
   };
   const eveningSchedule: Record<number, { platform: string; format: string; pillar: string }> = {
-    1: { platform: 'instagram', format: 'post', pillar: 'social_proof' },           // Mon EVE: témoignage post
+    1: { platform: 'instagram', format: 'reel', pillar: 'social_proof' },           // Mon EVE: témoignage reel
     2: { platform: 'instagram', format: 'reel', pillar: 'trends' },                // Tue EVE: tendances reel
     3: { platform: 'instagram', format: 'reel', pillar: 'demo' },                  // Wed EVE: démo reel
-    4: { platform: 'instagram', format: 'post', pillar: 'social_proof' },           // Thu EVE: témoignage post
+    4: { platform: 'instagram', format: 'reel', pillar: 'social_proof' },           // Thu EVE: témoignage reel
     5: { platform: 'instagram', format: 'reel', pillar: 'trends' },                // Fri EVE: tendances reel
     6: { platform: 'instagram', format: 'reel', pillar: 'tips' },                  // Sat EVE: tips reel
     0: { platform: 'instagram', format: 'reel', pillar: 'demo' },                  // Sun EVE: démo reel
@@ -2522,6 +2534,8 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
       // If video failed but we have a cover image, downgrade to image post
       if (!videoUrl && visualUrl) {
         console.log('[Content] Video generation failed — publishing as image post instead of reel');
+        // Update format in DB so auto-publish won't try reel again
+        await supabase.from('content_calendar').update({ format: 'post', updated_at: new Date().toISOString() }).eq('id', inserted.id);
       }
     } else {
       // Image-based post (Instagram post, carousel, story)
