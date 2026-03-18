@@ -2133,24 +2133,36 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                   <div className="space-y-2">
                     <label className={`flex items-center gap-3 p-2.5 rounded-lg border border-neutral-200 ${creatorInfo?.comment_disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-neutral-50'}`}>
                       <input type="checkbox" checked={allowComments} onChange={(e) => setAllowComments(e.target.checked)} disabled={creatorInfo?.comment_disabled} className="w-4 h-4 rounded text-blue-600" />
-                      <div>
+                      <div className="flex items-center gap-1.5">
                         <span className={`text-sm ${creatorInfo?.comment_disabled ? 'text-neutral-400' : 'text-neutral-700'}`}>Allow Comment</span>
-                        {creatorInfo?.comment_disabled && <p className="text-xs text-neutral-400">Désactivé par les paramètres de votre compte</p>}
+                        <div className="group relative">
+                          <span className="w-3.5 h-3.5 rounded-full bg-neutral-200 text-neutral-500 text-[9px] font-bold inline-flex items-center justify-center cursor-help">i</span>
+                          <div className="hidden group-hover:block absolute left-5 top-0 z-10 w-48 p-2 bg-neutral-800 text-white text-[11px] rounded-lg shadow-lg leading-snug">Les utilisateurs peuvent commenter votre vidéo</div>
+                        </div>
                       </div>
+                      {creatorInfo?.comment_disabled && <p className="text-xs text-neutral-400 ml-7">Désactivé par vos paramètres TikTok</p>}
                     </label>
                     <label className={`flex items-center gap-3 p-2.5 rounded-lg border border-neutral-200 ${creatorInfo?.duet_disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-neutral-50'}`}>
                       <input type="checkbox" checked={allowDuet} onChange={(e) => setAllowDuet(e.target.checked)} disabled={creatorInfo?.duet_disabled} className="w-4 h-4 rounded text-blue-600" />
-                      <div>
+                      <div className="flex items-center gap-1.5">
                         <span className={`text-sm ${creatorInfo?.duet_disabled ? 'text-neutral-400' : 'text-neutral-700'}`}>Allow Duet</span>
-                        {creatorInfo?.duet_disabled && <p className="text-xs text-neutral-400">Désactivé par les paramètres de votre compte</p>}
+                        <div className="group relative">
+                          <span className="w-3.5 h-3.5 rounded-full bg-neutral-200 text-neutral-500 text-[9px] font-bold inline-flex items-center justify-center cursor-help">i</span>
+                          <div className="hidden group-hover:block absolute left-5 top-0 z-10 w-52 p-2 bg-neutral-800 text-white text-[11px] rounded-lg shadow-lg leading-snug">Les utilisateurs peuvent créer un Duet (vidéo côte à côte avec la vôtre)</div>
+                        </div>
                       </div>
+                      {creatorInfo?.duet_disabled && <p className="text-xs text-neutral-400 ml-7">Désactivé par vos paramètres TikTok</p>}
                     </label>
                     <label className={`flex items-center gap-3 p-2.5 rounded-lg border border-neutral-200 ${creatorInfo?.stitch_disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-neutral-50'}`}>
                       <input type="checkbox" checked={allowStitch} onChange={(e) => setAllowStitch(e.target.checked)} disabled={creatorInfo?.stitch_disabled} className="w-4 h-4 rounded text-blue-600" />
-                      <div>
+                      <div className="flex items-center gap-1.5">
                         <span className={`text-sm ${creatorInfo?.stitch_disabled ? 'text-neutral-400' : 'text-neutral-700'}`}>Allow Stitch</span>
-                        {creatorInfo?.stitch_disabled && <p className="text-xs text-neutral-400">Désactivé par les paramètres de votre compte</p>}
+                        <div className="group relative">
+                          <span className="w-3.5 h-3.5 rounded-full bg-neutral-200 text-neutral-500 text-[9px] font-bold inline-flex items-center justify-center cursor-help">i</span>
+                          <div className="hidden group-hover:block absolute left-5 top-0 z-10 w-52 p-2 bg-neutral-800 text-white text-[11px] rounded-lg shadow-lg leading-snug">Les utilisateurs peuvent intégrer un extrait de votre vidéo dans la leur</div>
+                        </div>
                       </div>
+                      {creatorInfo?.stitch_disabled && <p className="text-xs text-neutral-400 ml-7">Désactivé par vos paramètres TikTok</p>}
                     </label>
                   </div>
                 </div>
@@ -2233,11 +2245,18 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                 </div>
 
                 {/* ═══ POINT 5: User Consent & Legal Compliance ═══ */}
-                <div className="border-t pt-4">
+                <div className="border-t pt-4 space-y-3">
+                  {/* Music Usage Confirmation — Required by TikTok */}
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                    <p className="text-xs font-semibold text-amber-800 mb-1">Music Usage Confirmation</p>
+                    <p className="text-[11px] text-amber-700 leading-relaxed">
+                      You confirm that either (a) there is no copyright protected music in the video or (b) you have obtained and paid for all necessary licenses to use the music as part of this post on TikTok. If you cannot confirm (a) or (b), please do not accept.
+                    </p>
+                  </div>
                   <label className="flex items-start gap-3 cursor-pointer">
                     <input type="checkbox" checked={legalAccepted} onChange={(e) => setLegalAccepted(e.target.checked)} className="w-4 h-4 rounded text-blue-600 mt-0.5" />
                     <p className="text-xs text-neutral-600">
-                      By posting, you agree to TikTok&apos;s{' '}
+                      I agree to TikTok&apos;s{' '}
                       <a href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
                         Music Usage Confirmation
                       </a>
