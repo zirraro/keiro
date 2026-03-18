@@ -636,8 +636,9 @@ export default function Header() {
               className={`px-3 py-2 text-xs sm:text-sm font-semibold rounded-lg hover:shadow-lg transition-all whitespace-nowrap ${
                 isLight
                   ? 'bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white'
-                  : 'bg-white text-[#0c1a3a]'
+                  : 'bg-white font-bold'
               }`}
+              style={isLight ? undefined : { color: '#0c1a3a' }}
             >
               <span className="sm:hidden">{t.nav.loginShort}</span>
               <span className="hidden sm:inline">{t.nav.loginSignup}</span>

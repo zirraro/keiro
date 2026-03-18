@@ -260,8 +260,16 @@ html.light .gradient-text-blue {
 }
 
 /* Dark mode: gradient clip-text with dark navy is invisible — lighten */
-html:not(.light) .page-studio-bg .bg-clip-text {
+html:not(.light) .page-studio-bg .bg-clip-text,
+html:not(.light) .homepage-sections .bg-clip-text:not(.hp-light-island .bg-clip-text) {
   background: linear-gradient(135deg, #e2e8f0, #06b6d4, #a78bfa) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+/* Light islands keep original dark gradient text */
+html:not(.light) .homepage-sections .hp-light-island .bg-clip-text {
+  background: linear-gradient(135deg, #0c1a3a, #1e3a5f, #06b6d4) !important;
   -webkit-background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
   background-clip: text !important;
@@ -624,8 +632,7 @@ html:not(.light) .homepage-sections .hp-light-island .from-purple-50 { backgroun
 html:not(.light) .homepage-sections .hp-light-island .from-amber-50 { background: revert !important; }
 html:not(.light) .homepage-sections .hp-light-island .from-green-50 { background: revert !important; }
 html:not(.light) .homepage-sections .hp-light-island .bg-gradient-to-r.from-green-50 { background: revert !important; }
-html:not(.light) .homepage-sections .hp-light-island .bg-gradient-to-br[class*="from-\[\#0c1a3a\]"] { background: revert !important; }
-html:not(.light) .homepage-sections .hp-light-island [class*="from-\[\#0c1a3a\]"] { background: revert !important; }
+html:not(.light) .homepage-sections .hp-light-island [class*="from-\[\#0c1a3a\]\/"] { background: revert !important; }
 
 /* ===== PAGES DARK MODE BACKGROUNDS ===== */
 /* Generate, Library, Studio pages in dark mode */

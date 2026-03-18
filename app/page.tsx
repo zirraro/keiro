@@ -1268,7 +1268,7 @@ function HomeKeiroInner() {
 
       {/* CONCRÈTEMENT LA DIFFÉRENCE */}
       <FadeUp>
-      <section className="hp-light-island mx-auto max-w-6xl px-6 py-16">
+      <section className="hp-light-island mx-auto max-w-6xl px-6 py-16 mt-12">
         <BlurIn>
         <div className="text-center mb-10">
           <h2 className="text-3xl md:text-4xl font-bold mb-3">Concrètement, c&apos;est quoi la différence ?</h2>
