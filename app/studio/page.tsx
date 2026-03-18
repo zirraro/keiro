@@ -685,7 +685,7 @@ function StudioContent() {
   const displayImage = activeTab === 'text' && textPreviewUrl ? textPreviewUrl : loadedImage;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-[#0c1a3a]/[0.03] to-purple-50/20 py-6">
+    <div className="min-h-screen page-studio-bg py-6">
       <div className="max-w-7xl mx-auto px-4">
         {/* Header compact */}
         <div className="mb-5 text-center">
@@ -1558,7 +1558,7 @@ export default function StudioPage() {
   const { t } = useLanguage();
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-[#0c1a3a]/[0.03] to-purple-50/20 py-8 flex items-center justify-center">
+      <div className="min-h-screen page-studio-bg py-8 flex items-center justify-center">
         <div className="text-center">
           <div className="relative">
             <div className="animate-spin rounded-full h-16 w-16 border-4 border-neutral-200 border-t-[#0c1a3a] mx-auto mb-6"></div>

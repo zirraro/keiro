@@ -60,7 +60,7 @@ export default function TrendyPage() {
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [hours, strict]);
 
   return (
-    <div className="min-h-screen bg-white max-w-6xl mx-auto px-4 py-6">
+    <div className="min-h-screen page-studio-bg max-w-6xl mx-auto px-4 py-6">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-xl font-semibold">🔥 Sélection sociale (Trendy / Hidden Gems)</h1>
         <a className="text-sm underline opacity-70 hover:opacity-100" href="/generate">→ Générer</a>

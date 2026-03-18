@@ -80,7 +80,7 @@ export default function MarketingAssistantPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-white to-purple-50">
+    <div className="min-h-screen page-studio-bg">
       <div className="max-w-5xl mx-auto h-screen flex flex-col">
 
         {/* Header */}

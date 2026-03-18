@@ -397,7 +397,7 @@ function HomeKeiroInner() {
       </section>
 
       {/* EXEMPLE CONCRET AVANT/APRÈS */}
-      <section id="exemple" className="mx-auto max-w-6xl px-6 py-12">
+      <section id="exemple" className="hp-light-island mx-auto max-w-6xl px-6 py-12">
         <FadeUp>
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold">{t.home.beforeAfterTitle}</h2>
@@ -879,7 +879,7 @@ function HomeKeiroInner() {
 
       {/* COMPARATIF AU MOIS — IMPACTANT */}
       <FadeUp>
-      <section className="mx-auto max-w-6xl px-6 py-16">
+      <section className="hp-light-island mx-auto max-w-6xl px-6 py-16">
         <div className="text-center mb-10">
           <h2 className="text-3xl md:text-4xl font-bold mb-3">
             {t.home.comparatorTitle}
@@ -1134,7 +1134,7 @@ function HomeKeiroInner() {
       </FadeUp>
 
       {/* PRICING */}
-      <section className="section-divider section-light">
+      <section className="hp-light-island section-divider section-light">
         <div className="mx-auto max-w-7xl px-6 py-16">
           <FadeUp><div className="text-center mb-12">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-bold mb-6 shadow-lg">
@@ -1268,7 +1268,7 @@ function HomeKeiroInner() {
 
       {/* CONCRÈTEMENT LA DIFFÉRENCE */}
       <FadeUp>
-      <section className="mx-auto max-w-6xl px-6 py-16">
+      <section className="hp-light-island mx-auto max-w-6xl px-6 py-16">
         <BlurIn>
         <div className="text-center mb-10">
           <h2 className="text-3xl md:text-4xl font-bold mb-3">Concrètement, c&apos;est quoi la différence ?</h2>

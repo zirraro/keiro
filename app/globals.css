@@ -56,6 +56,31 @@ html.light body {
   background: #ffffff;
 }
 
+/* ===== GLOBAL DARK MODE TEXT FIXES ===== */
+/* Dark text classes are unreadable on dark bg — invert them globally */
+html:not(.light) .text-black { color: #f1f5f9 !important; }
+html:not(.light) .text-neutral-900 { color: #f1f5f9 !important; }
+html:not(.light) .text-neutral-800 { color: #e2e8f0 !important; }
+html:not(.light) .text-neutral-700 { color: #cbd5e1 !important; }
+html:not(.light) .text-neutral-600 { color: #94a3b8 !important; }
+html:not(.light) .text-neutral-500 { color: #94a3b8 !important; }
+html:not(.light) .text-neutral-400 { color: #64748b !important; }
+html:not(.light) .text-gray-900 { color: #f1f5f9 !important; }
+html:not(.light) .text-gray-800 { color: #e2e8f0 !important; }
+html:not(.light) .text-gray-700 { color: #cbd5e1 !important; }
+html:not(.light) .text-gray-600 { color: #94a3b8 !important; }
+html:not(.light) .text-gray-500 { color: #94a3b8 !important; }
+html:not(.light) [class*="text-\[#0c1a3a\]"] { color: #e2e8f0 !important; }
+html:not(.light) [class*="text-\[#171717\]"] { color: #f1f5f9 !important; }
+html:not(.light) .border-neutral-200 { border-color: rgba(255, 255, 255, 0.1) !important; }
+html:not(.light) .border-neutral-300 { border-color: rgba(255, 255, 255, 0.15) !important; }
+html:not(.light) .bg-neutral-50 { background-color: rgba(255, 255, 255, 0.03) !important; }
+html:not(.light) .bg-neutral-100 { background-color: rgba(255, 255, 255, 0.05) !important; }
+html:not(.light) .bg-white {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
 /* --- Cursor pointer sur tous les éléments cliquables --- */
 button, a, [role="button"], label[for], select, input[type="checkbox"], input[type="radio"], summary {
   cursor: pointer;
@@ -152,9 +177,10 @@ html.light .gradient-text-blue {
   background-clip: text;
 }
 
-/* Vortex hidden in light mode */
+/* Vortex in light mode — dark subtle dots instead of hidden */
 html.light .vortex-bg {
-  display: none !important;
+  filter: brightness(0.15) saturate(0.4);
+  opacity: 0.2;
 }
 
 /* Premium card light mode */
@@ -451,14 +477,83 @@ html:not(.light) .homepage-sections .hp-transition-dark-to-light {
   background: linear-gradient(to bottom, #0B1120, transparent 50%, transparent) !important;
 }
 
+/* ===== LIGHT ISLANDS — white breathing sections in dark mode ===== */
+html:not(.light) .homepage-sections .hp-light-island {
+  background: white !important;
+  color: #171717 !important;
+  border-radius: 1.5rem;
+  padding: 2rem 1.5rem;
+  margin: 1rem 0;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+/* Reset text colors inside light islands back to original */
+html:not(.light) .homepage-sections .hp-light-island .text-black { color: black !important; }
+html:not(.light) .homepage-sections .hp-light-island .text-neutral-900 { color: #171717 !important; }
+html:not(.light) .homepage-sections .hp-light-island .text-neutral-800 { color: #1f2937 !important; }
+html:not(.light) .homepage-sections .hp-light-island .text-neutral-700 { color: #374151 !important; }
+html:not(.light) .homepage-sections .hp-light-island .text-neutral-600 { color: #525252 !important; }
+html:not(.light) .homepage-sections .hp-light-island .text-neutral-500 { color: #737373 !important; }
+html:not(.light) .homepage-sections .hp-light-island [class*="text-\[#0c1a3a\]"] { color: #0c1a3a !important; }
+
+/* Reset backgrounds inside light islands */
+html:not(.light) .homepage-sections .hp-light-island .bg-white { background-color: white !important; border-color: revert !important; }
+html:not(.light) .homepage-sections .hp-light-island .bg-neutral-100 { background-color: #f5f5f5 !important; }
+html:not(.light) .homepage-sections .hp-light-island .bg-red-50 { background-color: #fef2f2 !important; }
+html:not(.light) .homepage-sections .hp-light-island .bg-green-50 { background-color: #f0fdf4 !important; }
+
+/* Reset borders inside light islands */
+html:not(.light) .homepage-sections .hp-light-island .border-neutral-200 { border-color: #e5e5e5 !important; }
+html:not(.light) .homepage-sections .hp-light-island .border-neutral-300 { border-color: #d4d4d4 !important; }
+html:not(.light) .homepage-sections .hp-light-island .border-red-200 { border-color: #fecaca !important; }
+html:not(.light) .homepage-sections .hp-light-island .border-green-200 { border-color: #bbf7d0 !important; }
+html:not(.light) .homepage-sections .hp-light-island .border-purple-200 { border-color: #ddd6fe !important; }
+html:not(.light) .homepage-sections .hp-light-island .border-amber-400 { border-color: #fbbf24 !important; }
+
+/* Reset premium cards and section-light inside light islands */
+html:not(.light) .homepage-sections .hp-light-island .premium-card {
+  background: white !important;
+  border-color: rgba(59, 130, 246, 0.06) !important;
+  color: #171717 !important;
+}
+html:not(.light) .homepage-sections .hp-light-island .section-light {
+  background: linear-gradient(135deg, #FAFBFC 0%, #F0F4FF 50%, #FAFBFC 100%) !important;
+}
+
+/* Reset colored text inside light islands */
+html:not(.light) .homepage-sections .hp-light-island .text-red-500 { color: #ef4444 !important; }
+html:not(.light) .homepage-sections .hp-light-island .text-red-400 { color: #f87171 !important; }
+html:not(.light) .homepage-sections .hp-light-island .text-red-600 { color: #dc2626 !important; }
+html:not(.light) .homepage-sections .hp-light-island .text-green-500 { color: #22c55e !important; }
+html:not(.light) .homepage-sections .hp-light-island .text-green-600 { color: #16a34a !important; }
+html:not(.light) .homepage-sections .hp-light-island .text-purple-900 { color: #581c87 !important; }
+html:not(.light) .homepage-sections .hp-light-island .text-amber-900 { color: #78350f !important; }
+html:not(.light) .homepage-sections .hp-light-island .text-purple-500 { color: #a855f7 !important; }
+html:not(.light) .homepage-sections .hp-light-island .text-amber-500 { color: #f59e0b !important; }
+
+/* Reset gradient backgrounds inside light islands */
+html:not(.light) .homepage-sections .hp-light-island .from-purple-50 { background: revert !important; }
+html:not(.light) .homepage-sections .hp-light-island .from-amber-50 { background: revert !important; }
+html:not(.light) .homepage-sections .hp-light-island [class*="from-\[\#0c1a3a\]"] { background: revert !important; }
+
 /* ===== PAGES DARK MODE BACKGROUNDS ===== */
-/* Generate, Library, Posts pages in dark mode */
+/* Generate, Library, Studio pages in dark mode */
 html:not(.light) .page-studio-bg {
   background: transparent !important;
 }
 html.light .page-studio-bg {
   background: linear-gradient(to bottom right, #fafafa, rgba(12, 26, 58, 0.03), rgba(168, 85, 247, 0.04)) !important;
 }
+
+/* Dark mode text overrides for studio-bg pages */
+html:not(.light) .page-studio-bg .text-neutral-900 { color: #f1f5f9 !important; }
+html:not(.light) .page-studio-bg .text-neutral-800 { color: #e2e8f0 !important; }
+html:not(.light) .page-studio-bg .text-neutral-700 { color: #cbd5e1 !important; }
+html:not(.light) .page-studio-bg .text-neutral-600 { color: #94a3b8 !important; }
+html:not(.light) .page-studio-bg .text-neutral-500 { color: #64748b !important; }
+html:not(.light) .page-studio-bg [class*="text-\[#0c1a3a\]"] { color: #e2e8f0 !important; }
+html:not(.light) .page-studio-bg .bg-white { background-color: rgba(255, 255, 255, 0.05) !important; }
+html:not(.light) .page-studio-bg .border-neutral-200 { border-color: rgba(255, 255, 255, 0.1) !important; }
 
 /* Hide scrollbar for horizontal scroll */
 .scrollbar-hide {

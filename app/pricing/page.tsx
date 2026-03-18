@@ -154,7 +154,7 @@ function PricingPageInner() {
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly');
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-neutral-50 via-white to-cyan-50 overflow-hidden">
+    <div className="relative min-h-screen page-studio-bg overflow-hidden">
       <AnimatedGradientBG variant="pricing" />
 
       <main className="relative max-w-7xl mx-auto px-4 py-16">

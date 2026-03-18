@@ -3247,10 +3247,10 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
         {wizardPhase === 'entry' && (
           <div className="max-w-3xl mx-auto py-8 wizard-phase-enter">
             <div className="text-center mb-8">
-              <h1 className="text-2xl font-bold text-neutral-900 mb-2">
+              <h1 className={`text-2xl font-bold mb-2 ${theme === 'light' ? 'text-neutral-900' : 'text-white'}`}>
                 {locale === 'fr' ? 'Quel contenu voulez-vous cr\u00e9er ?' : 'What content do you want to create?'}
               </h1>
-              <p className="text-sm text-neutral-500">
+              <p className={`text-sm ${theme === 'light' ? 'text-neutral-500' : 'text-slate-400'}`}>
                 {locale === 'fr' ? 'Choisissez votre approche pour un contenu unique' : 'Choose your approach for unique content'}
               </p>
             </div>
@@ -3692,9 +3692,9 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
             </div>
 
             {/* Hint — click to auto-advance */}
-            <div className="mt-6 flex items-center justify-center gap-2 py-3 px-4 bg-[#0c1a3a]/5 border border-[#0c1a3a]/10 rounded-xl max-w-md mx-auto">
-              <span className="text-[#0c1a3a] animate-pulse text-lg">👆</span>
-              <p className="text-sm font-medium text-[#0c1a3a]">
+            <div className={`mt-6 flex items-center justify-center gap-2 py-3 px-4 rounded-xl max-w-md mx-auto ${theme === 'light' ? 'bg-[#0c1a3a]/5 border border-[#0c1a3a]/10' : 'bg-white/10 border border-white/20'}`}>
+              <span className={`animate-pulse text-lg ${theme === 'light' ? 'text-[#0c1a3a]' : 'text-white'}`}>👆</span>
+              <p className={`text-sm font-medium ${theme === 'light' ? 'text-[#0c1a3a]' : 'text-white'}`}>
                 {locale === 'fr' ? 'Cliquez sur une actualité ou tendance pour continuer' : 'Click a news item or trend to continue'}
               </p>
             </div>
