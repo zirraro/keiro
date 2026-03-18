@@ -6,6 +6,7 @@ import { startCheckout } from '@/lib/stripe/checkout';
 import { FadeUp, ScaleIn, SlideInLeft, SlideInRight, StaggerContainer, StaggerItem, CountUp, HeroTextReveal, BlurIn, FloatUp, GlowPulse, TextShimmer, TextRotator, MorphingShape, MagneticButton } from '@/components/ui/motion';
 import { AnimatedGradientBG } from '@/components/ui/animated-gradient-bg';
 import { VortexBackground } from '@/components/ui/vortex-bg';
+import { PageReveal } from '@/components/ui/page-reveal';
 import { useLanguage } from '@/lib/i18n/context';
 
 function HomeKeiroInner() {
@@ -14,17 +15,13 @@ function HomeKeiroInner() {
 
   return (
     <main className="relative min-h-dvh bg-[#FAFBFC]">
-      {/* Global animated vortex background */}
+      {/* Luxury page opening animation */}
+      <PageReveal />
+
+      {/* Global animated gradient mesh background */}
       <VortexBackground />
 
-      {/* Floating morphing blobs — decorative, span full page */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden="true" style={{ zIndex: 1 }}>
-        <MorphingShape className="absolute -top-20 -right-32 opacity-[0.04]" color="#3b82f6" size={700} duration={15} />
-        <MorphingShape className="absolute top-1/3 -left-48 opacity-[0.03]" color="#8b5cf6" size={600} duration={18} />
-        <MorphingShape className="absolute bottom-20 right-10 opacity-[0.03]" color="#06b6d4" size={500} duration={20} />
-      </div>
-
-      {/* All content sits above the vortex */}
+      {/* All content sits above the background */}
       <div className="relative" style={{ zIndex: 2 }}>
 
       {/* HERO */}
