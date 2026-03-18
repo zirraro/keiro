@@ -15,7 +15,7 @@ function HomeKeiroInner() {
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly');
 
   return (
-    <main className="relative min-h-dvh bg-[#FAFBFC]">
+    <main className="relative min-h-dvh bg-[#f0f4f8]">
       {/* Luxury page opening animation */}
       <PageReveal />
 
