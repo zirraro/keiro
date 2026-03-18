@@ -60,7 +60,7 @@ function HomeKeiroInner() {
             <FadeUp delay={0.5}>
             <div className="mt-6 flex flex-wrap gap-3">
               <MagneticButton>
-              <a href="/generate" className="inline-block px-5 py-3 rounded-xl bg-white text-[#0c1a3a] font-semibold shadow-lg shadow-white/20 hover:shadow-xl hover:shadow-white/30 hover:-translate-y-0.5 transition-all">
+              <a href="/generate" className="inline-block px-5 py-3 rounded-xl bg-white font-semibold shadow-lg shadow-white/20 hover:shadow-xl hover:shadow-white/30 hover:-translate-y-0.5 transition-all" style={{ color: '#0c1a3a' }}>
                 {t.common.tryFree}
               </a>
               </MagneticButton>

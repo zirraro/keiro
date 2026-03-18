@@ -266,8 +266,9 @@ export default function Header() {
                   className={`relative px-4 py-2 text-sm font-medium rounded-lg hover:shadow-lg transition-all ${
                     isLight
                       ? 'bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white'
-                      : 'bg-white text-[#0c1a3a] font-bold'
+                      : 'bg-white font-bold'
                   }`}
+                  style={isLight ? undefined : { color: '#0c1a3a' }}
                 >
                   <span className="relative">
                     {item.label}
