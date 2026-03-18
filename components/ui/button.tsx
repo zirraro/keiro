@@ -14,7 +14,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           "inline-flex items-center justify-center rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950",
           variant === "primary" &&
-            "px-4 py-2 bg-blue-500 text-white hover:bg-blue-600 shadow-sm hover:shadow-md focus-visible:ring-blue-500",
+            "px-4 py-2 bg-[#0c1a3a] text-white hover:bg-[#0c1a3a] shadow-sm hover:shadow-md focus-visible:ring-[#0c1a3a]",
           variant === "outline" &&
             "px-4 py-2 border border-neutral-300 hover:bg-neutral-100 text-neutral-900",
           variant === "ghost" &&

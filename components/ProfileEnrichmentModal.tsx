@@ -130,8 +130,8 @@ export default function ProfileEnrichmentModal({ profile, userId, onClose }: Pro
     }
   };
 
-  const selectClass = "w-full px-4 py-3 rounded-lg border-2 border-neutral-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer text-sm";
-  const inputClass = "w-full px-4 py-3 rounded-lg border-2 border-neutral-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all text-sm";
+  const selectClass = "w-full px-4 py-3 rounded-lg border-2 border-neutral-200 focus:border-[#0c1a3a] focus:outline-none focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all cursor-pointer text-sm";
+  const inputClass = "w-full px-4 py-3 rounded-lg border-2 border-neutral-200 focus:border-[#0c1a3a] focus:outline-none focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all text-sm";
 
   const filled = countFilledFields(profile);
   const percent = Math.round((filled / 16) * 100);
@@ -142,7 +142,7 @@ export default function ProfileEnrichmentModal({ profile, userId, onClose }: Pro
         {/* Header */}
         <div className="p-6 pb-4">
           <div className="text-center mb-4">
-            <div className="w-14 h-14 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-14 h-14 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] rounded-full flex items-center justify-center mx-auto mb-4">
               <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
@@ -163,7 +163,7 @@ export default function ProfileEnrichmentModal({ profile, userId, onClose }: Pro
             </div>
             <div className="w-full h-2 bg-neutral-200 rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full transition-all"
+                className="h-full bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] rounded-full transition-all"
                 style={{ width: `${percent}%` }}
               />
             </div>
@@ -293,7 +293,7 @@ export default function ProfileEnrichmentModal({ profile, userId, onClose }: Pro
                   onClick={() => toggleSocialNetwork(network)}
                   className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
                     socialNetworks.includes(network)
-                      ? 'bg-blue-500 text-white'
+                      ? 'bg-[#0c1a3a] text-white'
                       : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                   }`}
                 >
@@ -316,7 +316,7 @@ export default function ProfileEnrichmentModal({ profile, userId, onClose }: Pro
                   onClick={() => toggleContentTheme(theme)}
                   className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
                     contentThemes.includes(theme)
-                      ? 'bg-blue-500 text-white'
+                      ? 'bg-[#0c1a3a] text-white'
                       : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                   }`}
                 >
@@ -465,7 +465,7 @@ export default function ProfileEnrichmentModal({ profile, userId, onClose }: Pro
             type="button"
             onClick={handleSubmit}
             disabled={loading}
-            className="flex-1 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 py-3 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Enregistrement...' : 'Continuer'}
           </button>

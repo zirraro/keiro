@@ -2495,12 +2495,12 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
               to: ['mrzirraro@gmail.com'],
               subject: `🎬 Vidéo TikTok 30s en cours — ${post.hook || 'Nouveau contenu'}`,
               html: `<div style="font-family:Arial,sans-serif;max-width:600px;">
-                <h2 style="color:#9333ea;">🎬 Vidéo TikTok 30s en génération</h2>
+                <h2 style="color:#0c1a3a;">🎬 Vidéo TikTok 30s en génération</h2>
                 <p>Job ID: <code>${asyncResult.jobId}</code></p>
                 <p><strong>Hook :</strong> ${post.hook || 'N/A'}</p>
                 <p>La vidéo sera publiée automatiquement quand elle sera prête (via le cron video-poll).</p>
                 ${asyncResult.coverUrl ? `<img src="${asyncResult.coverUrl}" style="max-width:100%;border-radius:8px;margin:12px 0;" alt="Cover"/>` : ''}
-                <p><a href="https://keiroai.com/admin/agents" style="color:#9333ea;">→ Voir dans l'admin</a></p>
+                <p><a href="https://keiroai.com/admin/agents" style="color:#0c1a3a;">→ Voir dans l'admin</a></p>
               </div>`,
             }),
           });
@@ -2600,7 +2600,7 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
         to: ['mrzirraro@gmail.com'],
         subject: `${isPublished ? '✅' : '📱'} Post ${isPublished ? 'publié' : 'prêt'} : ${postPlatform} ${postFormat} — ${post.hook || 'Nouveau contenu'}`,
         html: `<div style="font-family:Arial,sans-serif;max-width:600px;">
-          <h2 style="color:#9333ea;">${isPublished ? '✅ Publié' : '📱 Prêt'} — ${postPlatform} ${postFormat}</h2>
+          <h2 style="color:#0c1a3a;">${isPublished ? '✅ Publié' : '📱 Prêt'} — ${postPlatform} ${postFormat}</h2>
           <p><strong>Pilier :</strong> ${post.pillar} | <strong>Heure :</strong> ${post.best_time || scheduledTime}</p>
           <p><strong>Hook :</strong> ${post.hook || 'N/A'}</p>
           <p>${post.caption || ''}</p>
@@ -2609,7 +2609,7 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
           ${publicationError ? `<p style="color:#dc2626;"><strong>Erreur publication :</strong> ${publicationError}</p>` : ''}
           ${visualUrl ? `<img src="${visualUrl}" style="max-width:100%;border-radius:8px;margin:12px 0;" alt="Visuel généré par KeiroAI"/>
           <p style="color:#6b7280;font-size:12px;">Visuel généré et publié automatiquement par KeiroAI</p>` : ''}
-          <p style="margin-top:16px;"><a href="https://keiroai.com/admin/agents" style="color:#9333ea;">→ Voir dans l'admin</a></p>
+          <p style="margin-top:16px;"><a href="https://keiroai.com/admin/agents" style="color:#0c1a3a;">→ Voir dans l'admin</a></p>
         </div>`,
       }),
     });

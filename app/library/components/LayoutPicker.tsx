@@ -56,7 +56,7 @@ export default function LayoutPicker({ currentLayout, onLayoutChange }: LayoutPi
             onClick={() => onLayoutChange(layout.id)}
             className={`p-1.5 rounded border transition-all ${
               currentLayout === layout.id
-                ? 'border-blue-500 bg-blue-50'
+                ? 'border-[#0c1a3a] bg-[#0c1a3a]/5'
                 : 'border-neutral-200 bg-white hover:border-neutral-300'
             }`}
             title={layout.label}

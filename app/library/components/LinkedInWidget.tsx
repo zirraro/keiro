@@ -105,7 +105,7 @@ export default function LinkedInWidget({
 
   return (
     <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
-      <div className={`border-b border-neutral-200 bg-gradient-to-r from-blue-50 to-sky-50 ${isCollapsed ? 'p-2' : 'p-4'}`}>
+      <div className={`border-b border-neutral-200 bg-gradient-to-r from-[#0c1a3a]/5 to-sky-50 ${isCollapsed ? 'p-2' : 'p-4'}`}>
         <div className={`flex ${isCollapsed ? 'flex-col items-center gap-2' : 'items-center justify-between'}`}>
           <div className={`flex items-center gap-2 ${isCollapsed ? 'flex-col' : ''}`}>
             <button
@@ -144,7 +144,7 @@ export default function LinkedInWidget({
               <button
                 onClick={handleSync}
                 disabled={syncing}
-                className="p-2 border border-neutral-300 text-neutral-500 rounded-lg hover:bg-blue-50 hover:text-[#0077B5] hover:border-blue-200 transition-all disabled:opacity-50"
+                className="p-2 border border-neutral-300 text-neutral-500 rounded-lg hover:bg-[#0c1a3a]/5 hover:text-[#0077B5] hover:border-[#0c1a3a]/10 transition-all disabled:opacity-50"
                 title="Synchroniser les posts"
               >
                 <svg className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -154,7 +154,7 @@ export default function LinkedInWidget({
             )}
             <button
               onClick={onPreparePost}
-              className={`bg-gradient-to-r from-[#0077B5] to-blue-600 text-white font-semibold rounded-lg hover:shadow-lg transition-all ${
+              className={`bg-gradient-to-r from-[#0077B5] to-[#0c1a3a] text-white font-semibold rounded-lg hover:shadow-lg transition-all ${
                 isCollapsed
                   ? 'w-full px-2 py-1.5 text-[10px]'
                   : 'px-3 py-1.5 text-xs'
@@ -179,7 +179,7 @@ export default function LinkedInWidget({
               <div className="p-3">
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
                   {publishedDrafts.map((draft) => (
-                    <div key={draft.id} className="relative aspect-square rounded-lg overflow-hidden bg-gradient-to-br from-blue-50 to-sky-50 group">
+                    <div key={draft.id} className="relative aspect-square rounded-lg overflow-hidden bg-gradient-to-br from-[#0c1a3a]/5 to-sky-50 group">
                       {draft.media_url ? (
                         <img
                           src={draft.media_url}
@@ -218,7 +218,7 @@ export default function LinkedInWidget({
               </p>
               <button
                 onClick={onConnect || handleConnect}
-                className="px-6 py-2 bg-gradient-to-r from-[#0077B5] to-blue-600 text-white text-sm font-medium rounded-lg hover:from-[#005f8f] hover:to-blue-700 transition-all shadow-md"
+                className="px-6 py-2 bg-gradient-to-r from-[#0077B5] to-[#0c1a3a] text-white text-sm font-medium rounded-lg hover:from-[#005f8f] hover:to-[#1e3a5f] transition-all shadow-md"
               >
                 Connecter LinkedIn
               </button>

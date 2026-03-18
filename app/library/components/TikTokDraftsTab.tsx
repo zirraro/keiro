@@ -49,8 +49,8 @@ export default function TikTokDraftsTab({ drafts, onEdit, onDelete, onPublish, o
 
   if (drafts.length === 0) {
     return (
-      <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl border border-cyan-200 p-12 text-center">
-        <div className="w-20 h-20 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 flex items-center justify-center mx-auto mb-6 shadow-lg">
+      <div className="bg-gradient-to-br from-cyan-50 to-[#0c1a3a]/5 rounded-xl border border-cyan-200 p-12 text-center">
+        <div className="w-20 h-20 rounded-full bg-gradient-to-r from-cyan-500 to-[#0c1a3a]/50 flex items-center justify-center mx-auto mb-6 shadow-lg">
           <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
             <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64 2.93 2.93 0 01.88.13V9.4a6.84 6.84 0 00-1-.05A6.33 6.33 0 005 20.1a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 004.77 1.52v-3.4a4.85 4.85 0 01-1-.1z"/>
           </svg>
@@ -82,7 +82,7 @@ export default function TikTokDraftsTab({ drafts, onEdit, onDelete, onPublish, o
         </div>
         <button
           onClick={() => setShowPlatformChoice(true)}
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-semibold hover:from-cyan-700 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2"
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold hover:from-[#1e3a5f] hover:to-[#2a4a6f] transition-all shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -116,7 +116,7 @@ export default function TikTokDraftsTab({ drafts, onEdit, onDelete, onPublish, o
         );
       case 'published':
         return (
-          <span className="px-2 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-medium">
+          <span className="px-2 py-1 rounded-full bg-[#0c1a3a]/10 text-[#0c1a3a] text-xs font-medium">
             ✓ Publié
           </span>
         );
@@ -160,7 +160,7 @@ export default function TikTokDraftsTab({ drafts, onEdit, onDelete, onPublish, o
           onClick={() => setActiveCategory('all')}
           className={`px-4 py-2 rounded-lg font-medium transition-all ${
             activeCategory === 'all'
-              ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md'
+              ? 'bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white shadow-md'
               : 'bg-white border border-neutral-300 text-neutral-700 hover:bg-neutral-50'
           }`}
         >
@@ -212,7 +212,7 @@ export default function TikTokDraftsTab({ drafts, onEdit, onDelete, onPublish, o
         {filteredDrafts.map((draft) => (
         <div key={draft.id} className="bg-white rounded-xl border border-neutral-200 overflow-hidden hover:shadow-lg transition-shadow flex flex-col">
           {/* Image/Video - Format vidéo horizontal comme Mes vidéos */}
-          <div className="h-36 bg-gradient-to-br from-cyan-50 to-blue-50 relative">
+          <div className="h-36 bg-gradient-to-br from-cyan-50 to-[#0c1a3a]/5 relative">
             {!failedImages.has(draft.id) && (draft.media_url || (draft as any).image_url) ? (
               draft.media_type === 'video' || (draft.media_url || (draft as any).image_url)?.endsWith('.mp4') ? (
                 <video
@@ -305,7 +305,7 @@ export default function TikTokDraftsTab({ drafts, onEdit, onDelete, onPublish, o
                       setEditingDraftId(null);
                     }
                   }}
-                  className="w-full text-sm text-neutral-700 border border-blue-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  className="w-full text-sm text-neutral-700 border border-[#0c1a3a]/20 rounded p-2 focus:outline-none focus:ring-2 focus:ring-[#0c1a3a] resize-none"
                   rows={3}
                   autoFocus
                 />
@@ -317,7 +317,7 @@ export default function TikTokDraftsTab({ drafts, onEdit, onDelete, onPublish, o
                   setEditingDraftId(draft.id);
                   setEditedCaption(draft.caption || '');
                 }}
-                className="text-sm text-neutral-700 line-clamp-3 mb-2 cursor-pointer hover:text-blue-600 hover:bg-blue-50 rounded p-1 transition-colors"
+                className="text-sm text-neutral-700 line-clamp-3 mb-2 cursor-pointer hover:text-[#0c1a3a] hover:bg-[#0c1a3a]/5 rounded p-1 transition-colors"
                 title="Cliquer pour modifier la description"
               >
                 {draft.caption || 'Pas de description (cliquer pour ajouter)'}
@@ -349,7 +349,7 @@ export default function TikTokDraftsTab({ drafts, onEdit, onDelete, onPublish, o
             <div className="flex flex-col gap-1.5 mt-auto">
               <button
                 onClick={() => onEdit(draft)}
-                className="w-full px-2 py-1.5 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-xs font-semibold hover:from-cyan-600 hover:to-blue-600 transition-all flex items-center justify-center gap-1.5"
+                className="w-full px-2 py-1.5 rounded-lg bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white text-xs font-semibold hover:from-[#1e3a5f] hover:to-[#2a4a6f] transition-all flex items-center justify-center gap-1.5"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />

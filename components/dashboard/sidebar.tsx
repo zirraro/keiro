@@ -39,7 +39,7 @@ export default function Sidebar() {
   return (
     <aside className="flex h-full w-64 flex-col bg-zinc-900 p-4">
       <div className="mb-6 flex items-center gap-2">
-        <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-400" />
+        <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-[#0c1a3a] to-[#1e3a5f]" />
         <div className="text-lg font-bold text-white">Keiro</div>
       </div>
 

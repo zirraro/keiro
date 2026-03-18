@@ -60,7 +60,7 @@ function ContactFormPricing() {
         <p className="text-sm text-neutral-600">{t.pricing.supportFormDesc}</p>
         <button
           onClick={() => setSent(false)}
-          className="mt-3 text-sm text-blue-600 hover:underline"
+          className="mt-3 text-sm text-[#0c1a3a] hover:underline"
         >
           {t.pricing.supportFormCta}
         </button>
@@ -69,10 +69,10 @@ function ContactFormPricing() {
   }
 
   return (
-    <div className="bg-white rounded-xl border-2 border-blue-200 p-6 hover:shadow-xl transition-all">
+    <div className="bg-white rounded-xl border-2 border-[#0c1a3a]/10 p-6 hover:shadow-xl transition-all">
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-          <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="w-12 h-12 bg-[#0c1a3a]/10 rounded-lg flex items-center justify-center flex-shrink-0">
+          <svg className="w-6 h-6 text-[#0c1a3a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
           </svg>
         </div>
@@ -89,7 +89,7 @@ function ContactFormPricing() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
-            className="px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0c1a3a] focus:border-transparent"
             placeholder="Nom"
           />
           <input
@@ -97,7 +97,7 @@ function ContactFormPricing() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0c1a3a] focus:border-transparent"
             placeholder="Email"
           />
         </div>
@@ -106,7 +106,7 @@ function ContactFormPricing() {
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
           required
-          className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
+          className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0c1a3a] focus:border-transparent cursor-pointer"
         >
           <option value="">{t.pricing.formSubjectPlaceholder}</option>
           <option value="Question tarifs">{t.pricing.formSubjectPricing}</option>
@@ -120,14 +120,14 @@ function ContactFormPricing() {
           onChange={(e) => setMessage(e.target.value)}
           required
           rows={3}
-          className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+          className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0c1a3a] focus:border-transparent resize-none"
           placeholder={t.pricing.formMessagePlaceholder}
         />
 
         <button
           type="submit"
           disabled={sending}
-          className="w-full px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="w-full px-4 py-2 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white rounded-lg font-semibold hover:shadow-lg transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {sending ? (
             <>
@@ -154,17 +154,17 @@ function PricingPageInner() {
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly');
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 overflow-hidden">
+    <div className="relative min-h-screen bg-gradient-to-br from-[#0c1a3a]/5 via-white to-cyan-50 overflow-hidden">
       <AnimatedGradientBG variant="pricing" />
 
       <main className="relative max-w-7xl mx-auto px-4 py-16">
         {/* Hero Section */}
         <FadeUp>
         <div className="text-center mb-16">
-          <ScaleIn><div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 text-sm font-medium mb-6">
+          <ScaleIn><div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-[#0c1a3a]/10 to-cyan-100 text-[#0c1a3a] text-sm font-medium mb-6">
             <span className="flex h-2 w-2 relative">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#0c1a3a]/60 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#0c1a3a]"></span>
             </span>
             {t.pricing.badge}
           </div></ScaleIn>
@@ -182,7 +182,7 @@ function PricingPageInner() {
               onClick={() => setBillingPeriod('monthly')}
               className={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${
                 billingPeriod === 'monthly'
-                  ? 'bg-blue-600 text-white shadow'
+                  ? 'bg-[#0c1a3a] text-white shadow'
                   : 'text-neutral-600 hover:text-neutral-900'
               }`}
             >
@@ -192,7 +192,7 @@ function PricingPageInner() {
               onClick={() => setBillingPeriod('annual')}
               className={`px-5 py-2 rounded-full text-sm font-semibold transition-all relative ${
                 billingPeriod === 'annual'
-                  ? 'bg-blue-600 text-white shadow'
+                  ? 'bg-[#0c1a3a] text-white shadow'
                   : 'text-neutral-600 hover:text-neutral-900'
               }`}
             >
@@ -211,9 +211,9 @@ function PricingPageInner() {
         {/* Top Plan - Sprint Essai */}
         <div className="max-w-lg mx-auto mb-10">
           <FadeUp>
-          <div className="bg-white rounded-2xl border-2 border-blue-300 p-6 relative hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
+          <div className="bg-white rounded-2xl border-2 border-[#0c1a3a]/20 p-6 relative hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
             <div className="absolute -top-3 left-4">
-              <span className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+              <span className="bg-gradient-to-r from-[#0c1a3a]/50 to-purple-500 text-white px-3 py-1 rounded-full text-xs font-bold">
                 ⚡ {t.pricing.planSprintTitle}
               </span>
             </div>
@@ -222,7 +222,7 @@ function PricingPageInner() {
                 <span>⚡</span> {t.pricing.planSprintTitle}
               </h3>
               <div className="flex items-baseline gap-2 mb-4">
-                <span className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">4.99€</span>
+                <span className="text-5xl font-bold bg-gradient-to-r from-[#0c1a3a] to-purple-600 bg-clip-text text-transparent">4.99€</span>
                 <span className="text-neutral-500">/3 jours</span>
               </div>
               <p className="text-neutral-600 text-sm font-medium">{t.pricing.planSprintSubtitle}</p>
@@ -231,7 +231,7 @@ function PricingPageInner() {
             <ul className="space-y-4 mb-8">
               {t.pricing.planSprintBullets.map((bullet, i) => (
                 <li key={i} className="flex items-start gap-3">
-                  <svg className={`w-5 h-5 ${i === 1 ? 'text-cyan-500' : i === 4 ? 'text-purple-500' : 'text-blue-500'} flex-shrink-0 mt-0.5`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className={`w-5 h-5 ${i === 1 ? 'text-cyan-500' : i === 4 ? 'text-purple-500' : 'text-[#0c1a3a]'} flex-shrink-0 mt-0.5`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                   <span className="text-sm text-neutral-700" dangerouslySetInnerHTML={{ __html: bullet }} />
@@ -241,7 +241,7 @@ function PricingPageInner() {
 
             <button
               onClick={() => startCheckout('sprint')}
-              className="block w-full py-3 px-6 text-center rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold hover:shadow-lg transition-all hover:scale-105"
+              className="block w-full py-3 px-6 text-center rounded-xl bg-gradient-to-r from-[#0c1a3a]/50 to-purple-600 text-white font-bold hover:shadow-lg transition-all hover:scale-105"
             >
               {t.pricing.planSprintCta}
             </button>
@@ -252,7 +252,7 @@ function PricingPageInner() {
 
         {/* TikTok Unlock Highlight */}
         <FadeUp>
-        <div className="bg-gradient-to-br from-cyan-500 via-blue-500 to-purple-600 rounded-2xl p-8 mb-10 text-white relative overflow-hidden">
+        <div className="bg-gradient-to-br from-cyan-500 via-[#0c1a3a] to-purple-600 rounded-2xl p-8 mb-10 text-white relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 animate-float-slow"></div>
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-24 -mb-24 animate-float-medium"></div>
 
@@ -406,9 +406,9 @@ function PricingPageInner() {
           </div></StaggerItem>
 
           {/* Business 349€ */}
-          <StaggerItem><div className="bg-gradient-to-br from-blue-600 to-cyan-600 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col">
+          <StaggerItem><div className="bg-gradient-to-br from-[#0c1a3a] to-[#1e3a5f] rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-              <span className="bg-blue-900 text-blue-100 px-4 py-1 rounded-full text-xs font-bold shadow-lg">
+              <span className="bg-[#0c1a3a] text-[#0c1a3a]/60 px-4 py-1 rounded-full text-xs font-bold shadow-lg">
                 Agences & Teams
               </span>
             </div>
@@ -418,10 +418,10 @@ function PricingPageInner() {
               </h3>
               <div className="flex items-baseline gap-2 mb-2">
                 <span className="text-4xl font-bold">{billingPeriod === 'annual' ? '3 490€' : '349€'}</span>
-                <span className="text-blue-100">{billingPeriod === 'annual' ? t.common.perYear : t.common.perMonth}</span>
+                <span className="text-[#0c1a3a]/60">{billingPeriod === 'annual' ? t.common.perYear : t.common.perMonth}</span>
                 {billingPeriod === 'annual' && <span className="text-xs text-cyan-200 font-semibold">soit 290€/mois</span>}
               </div>
-              <p className="text-blue-100 text-sm" dangerouslySetInnerHTML={{ __html: t.pricing.planBusinessSubtitle }} />
+              <p className="text-[#0c1a3a]/60 text-sm" dangerouslySetInnerHTML={{ __html: t.pricing.planBusinessSubtitle }} />
             </div>
 
             <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3 mb-4 border border-white/30">
@@ -436,10 +436,10 @@ function PricingPageInner() {
                 </li>
               ))}
             </ul>
-            <button onClick={() => startCheckout(billingPeriod === 'annual' ? 'business_annual' : 'business')} className="block w-full py-3 text-center rounded-xl bg-white text-blue-600 font-bold hover:bg-blue-50 transition-all mt-auto">
+            <button onClick={() => startCheckout(billingPeriod === 'annual' ? 'business_annual' : 'business')} className="block w-full py-3 text-center rounded-xl bg-white text-[#0c1a3a] font-bold hover:bg-[#0c1a3a]/5 transition-all mt-auto">
               {billingPeriod === 'annual' ? `${t.pricing.planBusinessTitle} ${t.common.annual.toLowerCase()} (${t.common.annualDiscount})` : t.pricing.planBusinessCta}
             </button>
-            <p className="text-center text-blue-100 text-xs mt-2">{t.pricing.supportCallDesc}</p>
+            <p className="text-center text-[#0c1a3a]/60 text-xs mt-2">{t.pricing.supportCallDesc}</p>
           </div></StaggerItem>
         </StaggerContainer>
 
@@ -541,8 +541,8 @@ function PricingPageInner() {
         <div className="bg-white rounded-2xl border border-neutral-200 p-6 mb-10">
           <h3 className="text-lg font-bold text-neutral-900 mb-4 text-center">{t.pricing.creditTitle}</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center text-sm">
-            <div className="p-3 bg-blue-50 rounded-lg"><p className="font-bold text-blue-700">5 cr</p><p className="text-xs text-neutral-600">{t.pricing.creditImage}</p></div>
-            <div className="p-3 bg-blue-50 rounded-lg"><p className="font-bold text-blue-700">3 cr</p><p className="text-xs text-neutral-600">{t.pricing.creditImageEdit}</p></div>
+            <div className="p-3 bg-[#0c1a3a]/5 rounded-lg"><p className="font-bold text-[#0c1a3a]">5 cr</p><p className="text-xs text-neutral-600">{t.pricing.creditImage}</p></div>
+            <div className="p-3 bg-[#0c1a3a]/5 rounded-lg"><p className="font-bold text-[#0c1a3a]">3 cr</p><p className="text-xs text-neutral-600">{t.pricing.creditImageEdit}</p></div>
             <div className="p-3 bg-purple-50 rounded-lg"><p className="font-bold text-purple-700">25 cr</p><p className="text-xs text-neutral-600">{t.pricing.creditVideo5s}</p></div>
             <div className="p-3 bg-purple-50 rounded-lg"><p className="font-bold text-purple-700">40 cr</p><p className="text-xs text-neutral-600">{t.pricing.creditVideo10s}</p></div>
             <div className="p-3 bg-green-50 rounded-lg"><p className="font-bold text-green-700">1 cr</p><p className="text-xs text-neutral-600">{t.pricing.creditAiSuggestion}</p></div>
@@ -569,7 +569,7 @@ function PricingPageInner() {
               </thead>
               <tbody>
                 {/* Crédits */}
-                <tr className="border-b bg-blue-50/30">
+                <tr className="border-b bg-[#0c1a3a]/5/30">
                   <td className="py-3 px-2 font-medium">Crédits</td>
                   <td className="text-center py-3 px-2">110/3j</td>
                   <td className="text-center py-3 px-2"><strong>400/mois</strong></td>
@@ -745,7 +745,7 @@ function PricingPageInner() {
                   <td className="text-center py-3 px-2 font-bold">4.99€/3j</td>
                   <td className="text-center py-3 px-2 font-bold">89€</td>
                   <td className="text-center py-3 px-2 bg-amber-50 font-bold text-amber-600">149€*</td>
-                  <td className="text-center py-3 px-2 font-bold text-blue-600">349€</td>
+                  <td className="text-center py-3 px-2 font-bold text-[#0c1a3a]">349€</td>
                   <td className="text-center py-3 px-2 bg-yellow-50 font-bold text-amber-700">999€</td>
                 </tr>
               </tbody>
@@ -786,14 +786,14 @@ function PricingPageInner() {
             </div>
 
             {/* Card 3 - KeiroAI */}
-            <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl border-2 border-blue-300 p-5 shadow-lg">
-              <h4 className="font-bold text-blue-700 mb-3 flex items-center gap-1">⭐ KeiroAI</h4>
+            <div className="bg-gradient-to-br from-[#0c1a3a]/5 to-purple-50 rounded-2xl border-2 border-[#0c1a3a]/20 p-5 shadow-lg">
+              <h4 className="font-bold text-[#0c1a3a] mb-3 flex items-center gap-1">⭐ KeiroAI</h4>
               <div className="space-y-2 text-sm">
-                <p><span className="font-semibold text-blue-600">{"Coût :"}</span> à partir de 49€ le 1er mois</p>
-                <p><span className="font-semibold text-blue-600">{"Résultat :"}</span> 3 à 6 posts pro par semaine, brandés, liés à l{"'"}actu</p>
-                <p><span className="font-semibold text-blue-600">{"Clients :"}</span> {"Le calcul est simple ↓"}</p>
+                <p><span className="font-semibold text-[#0c1a3a]">{"Coût :"}</span> à partir de 49€ le 1er mois</p>
+                <p><span className="font-semibold text-[#0c1a3a]">{"Résultat :"}</span> 3 à 6 posts pro par semaine, brandés, liés à l{"'"}actu</p>
+                <p><span className="font-semibold text-[#0c1a3a]">{"Clients :"}</span> {"Le calcul est simple ↓"}</p>
               </div>
-              <p className="text-xs text-blue-500 mt-3 italic">{"\"Instagram crée pour vous + texte + hashtags + stats. Vous publiez en 30 secondes.\""}</p>
+              <p className="text-xs text-[#0c1a3a] mt-3 italic">{"\"Instagram crée pour vous + texte + hashtags + stats. Vous publiez en 30 secondes.\""}</p>
             </div>
           </div>
 
@@ -803,7 +803,7 @@ function PricingPageInner() {
         {/* Comparateur Keiro vs. Prestataires - 3 colonnes */}
         <FadeUp>
         <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-8 md:p-12 mb-16 text-white relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-72 h-72 bg-blue-500/10 rounded-full -mr-36 -mt-36 blur-3xl"></div>
+          <div className="absolute top-0 right-0 w-72 h-72 bg-[#0c1a3a]/10 rounded-full -mr-36 -mt-36 blur-3xl"></div>
           <div className="absolute bottom-0 left-0 w-56 h-56 bg-cyan-500/10 rounded-full -ml-28 -mb-28 blur-3xl"></div>
 
           <div className="relative z-10">
@@ -866,7 +866,7 @@ function PricingPageInner() {
               </div>
 
               {/* Col 3 - KeiroAI */}
-              <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 backdrop-blur-sm rounded-2xl border border-cyan-400/30 p-6 shadow-lg shadow-cyan-500/10">
+              <div className="bg-gradient-to-br from-[#0c1a3a]/50/20 to-cyan-500/20 backdrop-blur-sm rounded-2xl border border-cyan-400/30 p-6 shadow-lg shadow-cyan-500/10">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 bg-cyan-500/20 rounded-lg flex items-center justify-center">
                     <span className="text-cyan-400 text-lg">✓</span>
@@ -909,7 +909,7 @@ function PricingPageInner() {
           </h3>
 
           {/* Banner highlight */}
-          <div className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-2xl p-6 mb-8">
+          <div className="bg-gradient-to-r from-cyan-500 to-[#0c1a3a] text-white rounded-2xl p-6 mb-8">
             <p className="text-xl md:text-2xl font-bold mb-2">
               {"La vidéo change tout. ChatGPT ne fait pas de vidéo."}
             </p>
@@ -1146,9 +1146,9 @@ function PricingPageInner() {
 
         {/* Section Support */}
         <FadeUp>
-        <div className="mt-16 bg-gradient-to-br from-purple-50 via-blue-50 to-cyan-50 rounded-3xl border-2 border-purple-200 p-8 md:p-12">
+        <div className="mt-16 bg-gradient-to-br from-purple-50 via-[#0c1a3a]/5 to-cyan-50 rounded-3xl border-2 border-purple-200 p-8 md:p-12">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full mb-4">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-purple-600 to-[#0c1a3a] rounded-full mb-4">
               <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
               </svg>
@@ -1179,7 +1179,7 @@ function PricingPageInner() {
                     href="https://calendly.com/contact-keiroai/demo-keiroai-15-minutes"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all text-sm"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-[#0c1a3a] text-white rounded-lg font-semibold hover:shadow-lg transition-all text-sm"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -1201,7 +1201,7 @@ function PricingPageInner() {
               <p className="text-xs text-neutral-600">{t.pricing.statResponseTime}</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-blue-600">98%</p>
+              <p className="text-2xl font-bold text-[#0c1a3a]">98%</p>
               <p className="text-xs text-neutral-600">{t.pricing.statSatisfaction}</p>
             </div>
             <div>
@@ -1215,17 +1215,17 @@ function PricingPageInner() {
 
         {/* CTA Final */}
         <FadeUp>
-        <div className="mt-20 text-center bg-gradient-to-r from-blue-600 to-cyan-600 rounded-3xl p-12">
+        <div className="mt-20 text-center bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] rounded-3xl p-12">
           <h2 className="text-4xl font-bold text-white mb-4">
             {t.pricing.ctaTitle}
           </h2>
-          <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
+          <p className="text-xl text-[#0c1a3a]/60 mb-8 max-w-2xl mx-auto">
             {t.pricing.ctaSubtitle}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/generate"
-              className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-blue-600 font-bold rounded-xl hover:bg-blue-50 transition-all text-lg shadow-xl hover:shadow-2xl hover:scale-105"
+              className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-[#0c1a3a] font-bold rounded-xl hover:bg-[#0c1a3a]/5 transition-all text-lg shadow-xl hover:shadow-2xl hover:scale-105"
             >
               {t.pricing.ctaCta}
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1239,7 +1239,7 @@ function PricingPageInner() {
               {t.pricing.planFondateursCta} ⭐
             </Link>
           </div>
-          <p className="text-blue-100 text-sm mt-4">{t.pricing.foundersNote}</p>
+          <p className="text-[#0c1a3a]/60 text-sm mt-4">{t.pricing.foundersNote}</p>
         </div>
         </FadeUp>
       </main>

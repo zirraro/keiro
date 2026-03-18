@@ -62,11 +62,11 @@ function ConfirmContent() {
   }, [searchParams]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-gradient-to-br from-[#0c1a3a]/5 via-white to-purple-50 flex items-center justify-center p-6">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center">
         {status === 'loading' && (
           <>
-            <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-6"></div>
+            <div className="w-16 h-16 border-4 border-[#0c1a3a]/10 border-t-[#0c1a3a] rounded-full animate-spin mx-auto mb-6"></div>
             <h2 className="text-xl font-bold text-neutral-900 mb-2">Confirmation en cours...</h2>
             <p className="text-neutral-500 text-sm">Nous vérifions votre email</p>
           </>
@@ -74,7 +74,7 @@ function ConfirmContent() {
 
         {status === 'success' && (
           <>
-            <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center mx-auto mb-6">
+            <div className="w-16 h-16 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] rounded-full flex items-center justify-center mx-auto mb-6">
               <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
@@ -95,7 +95,7 @@ function ConfirmContent() {
             <p className="text-neutral-600 text-sm mb-6">{errorMsg}</p>
             <a
               href="/login"
-              className="inline-block px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-xl hover:shadow-lg transition-all"
+              className="inline-block px-6 py-3 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold rounded-xl hover:shadow-lg transition-all"
             >
               Se connecter
             </a>
@@ -109,9 +109,9 @@ function ConfirmContent() {
 export default function AuthConfirmPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-6">
+      <div className="min-h-screen bg-gradient-to-br from-[#0c1a3a]/5 via-white to-purple-50 flex items-center justify-center p-6">
         <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center">
-          <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-6"></div>
+          <div className="w-16 h-16 border-4 border-[#0c1a3a]/10 border-t-[#0c1a3a] rounded-full animate-spin mx-auto mb-6"></div>
           <h2 className="text-xl font-bold text-neutral-900 mb-2">Chargement...</h2>
         </div>
       </div>

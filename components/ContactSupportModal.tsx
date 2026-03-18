@@ -91,7 +91,7 @@ export default function ContactSupportModal({
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-xl max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto">
-        <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-6 text-white rounded-t-xl">
+        <div className="bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] p-6 text-white rounded-t-xl">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xl font-bold">{t.common.supportTitle}</h2>
@@ -176,7 +176,7 @@ export default function ContactSupportModal({
             <button
               type="submit"
               disabled={sending}
-              className="flex-1 px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-2 rounded-lg bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {sending ? (
                 <>

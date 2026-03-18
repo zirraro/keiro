@@ -131,7 +131,7 @@ export default function MyImagesTab({
               placeholder={t.library.mitSearchImage}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1a3a]"
             />
           </div>
 
@@ -139,7 +139,7 @@ export default function MyImagesTab({
             <select
               value={filterBy}
               onChange={(e) => setFilterBy(e.target.value as any)}
-              className="px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1a3a]"
             >
               <option value="all">{t.library.mitAllImages} ({images.length})</option>
               <option value="favorites">{t.library.mitFavorites} ({images.filter(i => i.is_favorite).length})</option>
@@ -150,7 +150,7 @@ export default function MyImagesTab({
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
-              className="px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1a3a]"
             >
               <option value="date">{t.library.mitMostRecent}</option>
               <option value="title">{t.library.mitTitleAZ}</option>

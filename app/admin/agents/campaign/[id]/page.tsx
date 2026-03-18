@@ -195,7 +195,7 @@ export default function CampaignDetailPage() {
   const AGENT_COLORS: Record<string, string> = {
     email: 'bg-green-100 text-green-700', content: 'bg-orange-100 text-orange-700',
     commercial: 'bg-purple-100 text-purple-700', dm_instagram: 'bg-pink-100 text-pink-700',
-    tiktok_comments: 'bg-neutral-900 text-white', seo: 'bg-blue-100 text-blue-700',
+    tiktok_comments: 'bg-neutral-900 text-white', seo: 'bg-[#0c1a3a]/10 text-[#0c1a3a]',
     ceo: 'bg-amber-100 text-amber-700', onboarding: 'bg-teal-100 text-teal-700',
     retention: 'bg-cyan-100 text-cyan-700',
   };
@@ -203,7 +203,7 @@ export default function CampaignDetailPage() {
   const StatusBadge = ({ status }: { status: string }) => (
     <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
       status === 'published' ? 'bg-green-100 text-green-700' :
-      status === 'approved' ? 'bg-blue-100 text-blue-700' :
+      status === 'approved' ? 'bg-[#0c1a3a]/10 text-[#0c1a3a]' :
       status === 'skipped' ? 'bg-neutral-100 text-neutral-500' :
       status === 'sent' ? 'bg-green-100 text-green-700' :
       status === 'pending' ? 'bg-amber-100 text-amber-700' :
@@ -215,7 +215,7 @@ export default function CampaignDetailPage() {
     <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
       platform === 'instagram' ? 'bg-pink-100 text-pink-700' :
       platform === 'tiktok' ? 'bg-neutral-900 text-white' :
-      'bg-blue-100 text-blue-700'
+      'bg-[#0c1a3a]/10 text-[#0c1a3a]'
     }`}>{platform}</span>
   );
 
@@ -247,7 +247,7 @@ export default function CampaignDetailPage() {
               {new Date(log.created_at).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}
             </span>
           </div>
-          {d.message && <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 mb-3"><p className="text-sm text-blue-800">{d.message}</p></div>}
+          {d.message && <div className="bg-[#0c1a3a]/5 border border-[#0c1a3a]/8 rounded-lg p-3 mb-3"><p className="text-sm text-[#0c1a3a]">{d.message}</p></div>}
           {log.error_message && <div className="bg-red-50 border border-red-100 rounded-lg p-3"><p className="text-sm text-red-700">{log.error_message}</p></div>}
         </div>
 
@@ -313,7 +313,7 @@ export default function CampaignDetailPage() {
                             {r.company && r.email && <p className="text-[10px] text-neutral-400">{r.email}</p>}
                           </div>
                           <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                            r.step === 1 ? 'bg-blue-100 text-blue-700' :
+                            r.step === 1 ? 'bg-[#0c1a3a]/10 text-[#0c1a3a]' :
                             r.step === 10 ? 'bg-orange-100 text-orange-700' :
                             r.step >= 4 ? 'bg-red-100 text-red-700' :
                             'bg-amber-100 text-amber-700'
@@ -432,7 +432,7 @@ export default function CampaignDetailPage() {
                       <input type="text" placeholder="Demander une modification à l'IA..." value={editingPostId === post.id ? '' : reviseInstructions}
                         onChange={e => setReviseInstructions(e.target.value)}
                         className="flex-1 px-3 py-1.5 text-xs border rounded-lg focus:ring-2 focus:ring-purple-500" />
-                      <LoadingBtn loading={actionLoading === `revise_${post.id}`} onClick={() => handleContentRevise(post.id)} className="bg-blue-100 text-blue-700 hover:bg-blue-200">
+                      <LoadingBtn loading={actionLoading === `revise_${post.id}`} onClick={() => handleContentRevise(post.id)} className="bg-[#0c1a3a]/10 text-[#0c1a3a] hover:bg-[#0c1a3a]/15">
                         Modifier via IA
                       </LoadingBtn>
                     </div>
@@ -446,7 +446,7 @@ export default function CampaignDetailPage() {
                         <>
                           {post.status === 'draft' && (
                             <>
-                              <LoadingBtn loading={actionLoading === `approve_${post.id}`} onClick={() => handleContentAction(post.id, 'approve')} className="bg-blue-100 text-blue-700 hover:bg-blue-200">Approuver</LoadingBtn>
+                              <LoadingBtn loading={actionLoading === `approve_${post.id}`} onClick={() => handleContentAction(post.id, 'approve')} className="bg-[#0c1a3a]/10 text-[#0c1a3a] hover:bg-[#0c1a3a]/15">Approuver</LoadingBtn>
                               <LoadingBtn loading={actionLoading === `skip_${post.id}`} onClick={() => handleContentAction(post.id, 'skip')} className="bg-neutral-100 text-neutral-500 hover:bg-neutral-200">Ignorer</LoadingBtn>
                             </>
                           )}
@@ -479,7 +479,7 @@ export default function CampaignDetailPage() {
                 <div className="p-4 border-b border-neutral-100 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <StatusBadge status={seoArticle.status} />
-                    {seoArticle.keywords_primary && <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">{seoArticle.keywords_primary}</span>}
+                    {seoArticle.keywords_primary && <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#0c1a3a]/10 text-[#0c1a3a]">{seoArticle.keywords_primary}</span>}
                     {seoArticle.slug && (
                       <a href={`/blog/${seoArticle.slug}`} target="_blank" rel="noopener noreferrer" className="text-xs text-purple-600 hover:underline">/blog/{seoArticle.slug}</a>
                     )}
@@ -529,7 +529,7 @@ export default function CampaignDetailPage() {
                     <input type="text" placeholder="Demander une modification à l'IA (ex: rendre plus concis, ajouter un CTA...)" value={seoReviseInstructions}
                       onChange={e => setSeoReviseInstructions(e.target.value)}
                       className="flex-1 px-3 py-1.5 text-xs border rounded-lg focus:ring-2 focus:ring-purple-500" />
-                    <LoadingBtn loading={actionLoading === 'seo_revise'} onClick={handleSeoRevise} className="bg-blue-100 text-blue-700 hover:bg-blue-200">
+                    <LoadingBtn loading={actionLoading === 'seo_revise'} onClick={handleSeoRevise} className="bg-[#0c1a3a]/10 text-[#0c1a3a] hover:bg-[#0c1a3a]/15">
                       Modifier via IA
                     </LoadingBtn>
                   </div>
@@ -554,7 +554,7 @@ export default function CampaignDetailPage() {
               <div className="bg-white rounded-xl shadow-sm border p-5">
                 <h3 className="text-lg font-bold text-neutral-900 mb-2">{d.title || d.meta_title}</h3>
                 {d.slug && <p className="text-sm text-purple-600">/blog/{d.slug}</p>}
-                {d.keyword && <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 mt-2 inline-block">{d.keyword}</span>}
+                {d.keyword && <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#0c1a3a]/10 text-[#0c1a3a] mt-2 inline-block">{d.keyword}</span>}
               </div>
             ) : null}
           </div>
@@ -600,7 +600,7 @@ export default function CampaignDetailPage() {
                         {item.prospect?.type && <span className="text-[10px] px-1.5 py-0.5 rounded bg-neutral-100 text-neutral-500">{item.prospect.type}</span>}
                         <StatusBadge status={item.status} />
                       </div>
-                      <p className="text-sm text-neutral-700 bg-blue-50 rounded-lg p-3 border border-blue-100 whitespace-pre-wrap">{item.message}</p>
+                      <p className="text-sm text-neutral-700 bg-[#0c1a3a]/5 rounded-lg p-3 border border-[#0c1a3a]/8 whitespace-pre-wrap">{item.message}</p>
                       {item.personalization && (
                         <p className="text-[10px] text-neutral-400 mt-1">{item.personalization}</p>
                       )}
@@ -618,7 +618,7 @@ export default function CampaignDetailPage() {
                         <span className="text-sm font-medium text-neutral-800">{c.name || c.handle}</span>
                         {c.type && <span className="text-[10px] px-1.5 py-0.5 rounded bg-neutral-100 text-neutral-500">{c.type}</span>}
                       </div>
-                      <p className="text-sm text-neutral-700 bg-blue-50 rounded-lg p-3 border border-blue-100 whitespace-pre-wrap">{c.comment || c.message}</p>
+                      <p className="text-sm text-neutral-700 bg-[#0c1a3a]/5 rounded-lg p-3 border border-[#0c1a3a]/8 whitespace-pre-wrap">{c.comment || c.message}</p>
                     </div>
                   ))}
                 </div>
@@ -653,7 +653,7 @@ export default function CampaignDetailPage() {
                     {[
                       ['Prospects analysés', d.phase1_enrichment.prospects_found, ''],
                       ['Enrichis', d.phase1_enrichment.enriched, 'text-green-600'],
-                      ['Promus contacté', d.phase1_enrichment.advanced_to_contact, 'text-blue-600'],
+                      ['Promus contacté', d.phase1_enrichment.advanced_to_contact, 'text-[#0c1a3a]'],
                       ['Disqualifiés', d.phase1_enrichment.flagged_dead, 'text-red-600'],
                       ['Ignorés', d.phase1_enrichment.skipped, 'text-neutral-400'],
                     ].map(([label, val, color]) => (
@@ -724,7 +724,7 @@ export default function CampaignDetailPage() {
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-sm font-semibold text-neutral-800">{detail.company || detail.prospect_id?.slice(0, 12)}</span>
                               {u.type && <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-600 font-medium">{u.type}</span>}
-                              {u.quartier && <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-600 font-medium">{u.quartier}</span>}
+                              {u.quartier && <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#0c1a3a]/10 text-[#0c1a3a] font-medium">{u.quartier}</span>}
                               {isDead && <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-100 text-red-600 font-bold">DISQUALIFIE</span>}
                               {isPromoted && <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-600 font-bold">PRET A CONTACTER</span>}
                               {hasScore && <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
@@ -758,7 +758,7 @@ export default function CampaignDetailPage() {
                                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
                                   u.temperature === 'hot' ? 'bg-red-100 text-red-700' :
                                   u.temperature === 'warm' ? 'bg-orange-100 text-orange-700' :
-                                  u.temperature === 'cold' ? 'bg-blue-100 text-blue-700' :
+                                  u.temperature === 'cold' ? 'bg-[#0c1a3a]/10 text-[#0c1a3a]' :
                                   'bg-neutral-100 text-neutral-600'
                                 }`}>{u.temperature}</span>
                               )}

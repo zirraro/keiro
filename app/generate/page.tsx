@@ -2100,7 +2100,7 @@ export default function GeneratePage() {
     // Feedback immédiat pour l'utilisateur — toast visible instantanément
     setSavingToLibrary(true);
     const savingToast = document.createElement('div');
-    savingToast.style.cssText = 'position:fixed;top:1.25rem;right:1.25rem;background:linear-gradient(135deg,#2563eb,#7c3aed);color:white;padding:0.875rem 1.5rem;border-radius:0.75rem;box-shadow:0 20px 25px -5px rgba(0,0,0,0.15),0 8px 10px -6px rgba(0,0,0,0.1);z-index:9999;display:flex;align-items:center;gap:0.75rem;font-size:0.875rem;font-weight:500;backdrop-filter:blur(8px);animation:toastSlideIn 0.3s ease-out;';
+    savingToast.style.cssText = 'position:fixed;top:1.25rem;right:1.25rem;background:linear-gradient(135deg,#0c1a3a,#7c3aed);color:white;padding:0.875rem 1.5rem;border-radius:0.75rem;box-shadow:0 20px 25px -5px rgba(0,0,0,0.15),0 8px 10px -6px rgba(0,0,0,0.1);z-index:9999;display:flex;align-items:center;gap:0.75rem;font-size:0.875rem;font-weight:500;backdrop-filter:blur(8px);animation:toastSlideIn 0.3s ease-out;';
     savingToast.innerHTML = `<div style="width:1.125rem;height:1.125rem;border:2.5px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite"></div><span>${t.generate.toastSaving}</span><style>@keyframes spin{to{transform:rotate(360deg)}}@keyframes toastSlideIn{from{opacity:0;transform:translateX(1rem)}to{opacity:1;transform:translateX(0)}}</style>`;
     document.body.appendChild(savingToast);
 
@@ -3260,14 +3260,14 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                   setUseNewsMode(true);
                   setWizardPhase('news-select');
                 }}
-                className="group relative bg-white rounded-2xl border-2 border-neutral-200 hover:border-blue-400 p-6 text-left transition-all hover:shadow-xl hover:-translate-y-1 cursor-pointer"
+                className="group relative bg-white rounded-2xl border-2 border-neutral-200 hover:border-[#0c1a3a] p-6 text-left transition-all hover:shadow-xl hover:-translate-y-1 cursor-pointer"
               >
                 <div className="absolute top-3 right-3">
-                  <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-full">
+                  <span className="px-2 py-0.5 bg-[#0c1a3a]/10 text-[#0c1a3a] text-[10px] font-bold rounded-full">
                     {locale === 'fr' ? 'Recommand\u00e9' : 'Recommended'}
                   </span>
                 </div>
-                <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <div className="w-14 h-14 bg-gradient-to-br from-[#0c1a3a] to-[#1e3a5f] rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                   <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
                   </svg>
@@ -3281,17 +3281,17 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                     : 'Ride the latest trends. Algorithms favor content tied to current events.'}
                 </p>
                 <div className="flex flex-wrap gap-1.5">
-                  <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-medium rounded-full">
+                  <span className="px-2 py-0.5 bg-[#0c1a3a]/5 text-[#0c1a3a] text-[10px] font-medium rounded-full">
                     {locale === 'fr' ? 'Tendances' : 'Trends'}
                   </span>
-                  <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-medium rounded-full">
+                  <span className="px-2 py-0.5 bg-[#0c1a3a]/5 text-[#0c1a3a] text-[10px] font-medium rounded-full">
                     {locale === 'fr' ? 'Newsjacking' : 'Newsjacking'}
                   </span>
-                  <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-medium rounded-full">
+                  <span className="px-2 py-0.5 bg-[#0c1a3a]/5 text-[#0c1a3a] text-[10px] font-medium rounded-full">
                     {locale === 'fr' ? 'Viral' : 'Viral'}
                   </span>
                 </div>
-                <div className="mt-4 flex items-center gap-1.5 text-blue-600 text-sm font-semibold group-hover:gap-3 transition-all">
+                <div className="mt-4 flex items-center gap-1.5 text-[#0c1a3a] text-sm font-semibold group-hover:gap-3 transition-all">
                   {locale === 'fr' ? 'Commencer' : 'Start'} <span>→</span>
                 </div>
               </button>
@@ -3356,7 +3356,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                   <div className="text-right">
                     <p className="text-[10px] text-neutral-400 capitalize">{credits.plan}</p>
                     {credits.plan === 'free' && (
-                      <button onClick={() => router.push('/pricing')} className="text-[10px] text-blue-600 font-semibold hover:underline">
+                      <button onClick={() => router.push('/pricing')} className="text-[10px] text-[#0c1a3a] font-semibold hover:underline">
                         {locale === 'fr' ? 'Passer Pro' : 'Go Pro'}
                       </button>
                     )}
@@ -3379,7 +3379,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
               </button>
               <div className="flex items-center gap-2">
-                <span className="w-7 h-7 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">1</span>
+                <span className="w-7 h-7 rounded-full bg-[#0c1a3a] text-white text-xs font-bold flex items-center justify-center">1</span>
                 <span className="text-xs font-semibold text-neutral-900">{locale === 'fr' ? 'Actualit\u00e9' : 'News'}</span>
                 <div className="w-6 h-0.5 bg-neutral-200"></div>
                 <span className="w-7 h-7 rounded-full bg-neutral-200 text-neutral-400 text-xs font-bold flex items-center justify-center">2</span>
@@ -3401,7 +3401,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                       onClick={() => setNewsRegion(r.code)}
                       className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                         isActive
-                          ? 'bg-blue-500 text-white shadow-sm'
+                          ? 'bg-[#0c1a3a] text-white shadow-sm'
                           : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                       }`}
                     >
@@ -3423,7 +3423,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                 <span className="text-xs font-bold text-neutral-800 mr-3">{locale === 'fr' ? 'Tendances' : 'Trending'}</span>
                 {([
                   { key: 'instagram' as const, label: '📸 Instagram', bg: 'bg-pink-500', bgHover: 'hover:bg-pink-600' },
-                  { key: 'tiktok' as const, label: '🎵 TikTok', bg: 'bg-blue-500', bgHover: 'hover:bg-blue-600' },
+                  { key: 'tiktok' as const, label: '🎵 TikTok', bg: 'bg-[#0c1a3a]', bgHover: 'hover:bg-[#0c1a3a]' },
                   { key: 'google' as const, label: '🔍 Google', bg: 'bg-orange-500', bgHover: 'hover:bg-orange-600' },
                   { key: 'linkedin' as const, label: '💼 LinkedIn', bg: 'bg-sky-600', bgHover: 'hover:bg-sky-700' },
                 ] as const).map((tab) => (
@@ -3456,8 +3456,8 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                   },
                   tiktok: {
                     data: trendingData?.tiktokTrends || [],
-                    badge: '🎵 TikTok', badgeCls: 'bg-blue-500/90',
-                    fallbackGrad: 'from-blue-600 to-cyan-700',
+                    badge: '🎵 TikTok', badgeCls: 'bg-[#0c1a3a]/90',
+                    fallbackGrad: 'from-[#0c1a3a] to-[#1e3a5f]',
                     getTitle: (t) => t.title, getSubtitle: (t) => t.keyword !== t.title ? t.keyword : null,
                     getImage: (t) => t.imageUrl, getTraffic: (t) => t.engagement,
                     getNewsCard: (t, i) => ({ id: `trend-tiktok-${i}`, title: t.title, description: t.description || t.title, url: '', image: t.imageUrl, source: 'TikTok Trends', category: 'Tendance' }),
@@ -3473,7 +3473,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                   linkedin: {
                     data: trendingData?.linkedinTrends || [],
                     badge: '💼 LinkedIn', badgeCls: 'bg-sky-600',
-                    fallbackGrad: 'from-sky-700 to-blue-900',
+                    fallbackGrad: 'from-sky-700 to-[#0c1a3a]',
                     getTitle: (t) => t.title, getSubtitle: (t) => t.keyword !== t.title ? t.keyword : null,
                     getImage: (t) => t.imageUrl, getTraffic: (t) => t.engagement,
                     getNewsCard: (t, i) => ({ id: `trend-linkedin-${i}`, title: t.title, description: t.description || t.title, url: '', image: t.imageUrl, source: 'LinkedIn Trends', category: 'Business' }),
@@ -3502,7 +3502,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                             }
                           }}
                           className={`group relative rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5 ${
-                            selectedNews?.id === cfg.getNewsCard(trend, i).id ? 'ring-2 ring-blue-500 ring-offset-1' : ''
+                            selectedNews?.id === cfg.getNewsCard(trend, i).id ? 'ring-2 ring-[#0c1a3a] ring-offset-1' : ''
                           }`}
                           style={{ height: '140px' }}
                         >
@@ -3556,7 +3556,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="rounded-lg border border-neutral-200 px-2.5 py-1.5 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[160px]"
+                className="rounded-lg border border-neutral-200 px-2.5 py-1.5 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#0c1a3a] min-w-[160px]"
               >
                 {availableCategories.map((cat) => {
                   const categoryLabels: Record<string, string> = {
@@ -3588,7 +3588,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                 value={searchQuery}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 placeholder={t.generate.searchPlaceholder}
-                className="flex-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0c1a3a]"
               />
             </div>
 
@@ -3635,7 +3635,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                       }}
                       className={`group relative rounded-xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5 ${
                         selectedNews?.id === item.id
-                          ? 'ring-2 ring-blue-500 ring-offset-1'
+                          ? 'ring-2 ring-[#0c1a3a] ring-offset-1'
                           : ''
                       }`}
                       style={{ height: '140px' }}
@@ -3651,7 +3651,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                       )}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
                       {selectedNews?.id === item.id && (
-                        <div className="absolute top-2 right-2 bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full font-medium z-10">
+                        <div className="absolute top-2 right-2 bg-[#0c1a3a] text-white text-[10px] px-2 py-0.5 rounded-full font-medium z-10">
                           {t.generate.selected}
                         </div>
                       )}
@@ -3677,7 +3677,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                 {visibleNewsCount < filteredNews.length && visibleNewsCount < 9 && (
                   <button
                     onClick={() => setVisibleNewsCount(prev => Math.min(prev + 3, 9))}
-                    className="mt-3 mx-auto flex items-center gap-1.5 text-xs text-neutral-400 hover:text-blue-500 transition-colors"
+                    className="mt-3 mx-auto flex items-center gap-1.5 text-xs text-neutral-400 hover:text-[#0c1a3a] transition-colors"
                   >
                     {t.generate.showMoreNews}
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
@@ -3690,9 +3690,9 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
             </div>
 
             {/* Hint — click to auto-advance */}
-            <div className="mt-6 flex items-center justify-center gap-2 py-3 px-4 bg-blue-50 border border-blue-200 rounded-xl max-w-md mx-auto">
-              <span className="text-blue-500 animate-pulse text-lg">👆</span>
-              <p className="text-sm font-medium text-blue-700">
+            <div className="mt-6 flex items-center justify-center gap-2 py-3 px-4 bg-[#0c1a3a]/5 border border-[#0c1a3a]/10 rounded-xl max-w-md mx-auto">
+              <span className="text-[#0c1a3a] animate-pulse text-lg">👆</span>
+              <p className="text-sm font-medium text-[#0c1a3a]">
                 {locale === 'fr' ? 'Cliquez sur une actualité ou tendance pour continuer' : 'Click a news item or trend to continue'}
               </p>
             </div>
@@ -3720,7 +3720,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                     <div className="w-6 h-0.5 bg-emerald-400"></div>
                   </>
                 )}
-                <span className="w-7 h-7 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center">{useNewsMode ? '2' : '1'}</span>
+                <span className="w-7 h-7 rounded-full bg-[#0c1a3a] text-white text-xs font-bold flex items-center justify-center">{useNewsMode ? '2' : '1'}</span>
                 <span className="text-xs font-semibold text-neutral-900">{locale === 'fr' ? 'Contenu' : 'Content'}</span>
                 <div className="w-6 h-0.5 bg-neutral-200"></div>
                 <span className="w-7 h-7 rounded-full bg-neutral-200 text-neutral-400 text-xs font-bold flex items-center justify-center">{useNewsMode ? '3' : '2'}</span>
@@ -3735,7 +3735,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                 onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
                 onDragLeave={() => setDragActive(false)}
                 onDrop={handleDrop}
-                className={`border border-dashed rounded-lg p-2 transition ${dragActive ? 'border-blue-500 bg-blue-50' : 'border-neutral-200 hover:border-neutral-300'}`}
+                className={`border border-dashed rounded-lg p-2 transition ${dragActive ? 'border-[#0c1a3a] bg-[#0c1a3a]/5' : 'border-neutral-200 hover:border-neutral-300'}`}
               >
                 {logoUrl ? (
                   <div className="flex items-center gap-4">
@@ -3782,7 +3782,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                           onClick={() => setFormStep(step)}
                           className={`flex items-center gap-1 transition-all ${
                             formStep === step
-                              ? 'text-blue-700'
+                              ? 'text-[#0c1a3a]'
                               : formStep > step
                               ? 'text-emerald-600'
                               : 'text-neutral-400'
@@ -3790,7 +3790,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                         >
                           <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold border-2 transition-all ${
                             formStep === step
-                              ? 'bg-blue-600 text-white border-blue-600'
+                              ? 'bg-[#0c1a3a] text-white border-[#0c1a3a]'
                               : formStep > step
                               ? 'bg-emerald-500 text-white border-emerald-500'
                               : 'bg-white text-neutral-400 border-neutral-300'
@@ -3806,12 +3806,12 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
 
                   {/* Strategy compact banner — visible on step 3+ */}
                   {formStep >= 3 && (
-                    <div ref={promptSectionRef} className="mb-4 flex items-center gap-2 bg-blue-50 rounded-lg border border-blue-200 px-3 py-2">
+                    <div ref={promptSectionRef} className="mb-4 flex items-center gap-2 bg-[#0c1a3a]/5 rounded-lg border border-[#0c1a3a]/10 px-3 py-2">
                       <span className="text-lg">{tonePresets[communicationProfile].icon}</span>
                       <span className="text-xs font-semibold text-neutral-900">{tonePresets[communicationProfile].label}</span>
                       <span className="text-[10px] text-neutral-500">—</span>
                       <span className="text-[10px] text-neutral-600 truncate flex-1">{tonePresets[communicationProfile].marketingStrategy}</span>
-                      <button onClick={() => setFormStep(2)} className="text-[10px] text-blue-600 font-semibold hover:underline flex-shrink-0">
+                      <button onClick={() => setFormStep(2)} className="text-[10px] text-[#0c1a3a] font-semibold hover:underline flex-shrink-0">
                         {locale === 'fr' ? 'Modifier' : 'Change'}
                       </button>
                     </div>
@@ -3826,7 +3826,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                         <div className="space-y-3">
                           <div>
                             <label className="flex items-center gap-1.5 text-xs font-semibold mb-1.5 text-neutral-700">
-                              <span className="w-5 h-5 rounded-md bg-blue-100 text-blue-600 flex items-center justify-center text-[10px]">1</span>
+                              <span className="w-5 h-5 rounded-md bg-[#0c1a3a]/10 text-[#0c1a3a] flex items-center justify-center text-[10px]">1</span>
                               {t.generate.businessLabel} <span className="text-red-500">*</span>
                             </label>
                             <input
@@ -3835,12 +3835,12 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                               onChange={(e) => setBusinessType(e.target.value)}
                               placeholder={t.generate.businessPlaceholder}
                               autoComplete="off"
-                              className="w-full text-sm rounded-xl border-2 border-neutral-200 px-4 py-2.5 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                              className="w-full text-sm rounded-xl border-2 border-neutral-200 px-4 py-2.5 bg-white focus:outline-none focus:border-[#0c1a3a] focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all"
                             />
                           </div>
                           <div>
                             <label className="flex items-center gap-1.5 text-xs font-semibold mb-1.5 text-neutral-700">
-                              <span className="w-5 h-5 rounded-md bg-blue-100 text-blue-600 flex items-center justify-center text-[10px]">2</span>
+                              <span className="w-5 h-5 rounded-md bg-[#0c1a3a]/10 text-[#0c1a3a] flex items-center justify-center text-[10px]">2</span>
                               {t.generate.descriptionLabel} {!useNewsMode && <span className="text-red-500">*</span>}
                             </label>
                             <textarea
@@ -3852,7 +3852,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                               className={`w-full text-sm rounded-xl border-2 px-4 py-2.5 bg-white focus:outline-none focus:ring-2 transition-all resize-none ${
                                 !useNewsMode
                                   ? 'border-purple-300 focus:border-purple-500 focus:ring-purple-100'
-                                  : 'border-neutral-200 focus:border-blue-500 focus:ring-blue-100'
+                                  : 'border-neutral-200 focus:border-[#0c1a3a] focus:ring-[#0c1a3a]/10'
                               }`}
                             />
                           </div>
@@ -3866,27 +3866,27 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                               value={targetAudience}
                               onChange={(e) => setTargetAudience(e.target.value)}
                               placeholder={t.generate.audiencePlaceholder}
-                              className="w-full text-sm rounded-xl border-2 border-neutral-200 px-4 py-2.5 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                              className="w-full text-sm rounded-xl border-2 border-neutral-200 px-4 py-2.5 bg-white focus:outline-none focus:border-[#0c1a3a] focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all"
                             />
                           </div>
                         </div>
                         {/* Right: tips */}
                         <div className="hidden lg:flex flex-col gap-3">
-                          <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl border border-blue-200 p-4 flex-1">
-                            <h4 className="text-xs font-bold text-blue-900 mb-3 flex items-center gap-1.5">
+                          <div className="bg-gradient-to-br from-[#0c1a3a]/5 to-[#1e3a5f]/5 rounded-xl border border-[#0c1a3a]/10 p-4 flex-1">
+                            <h4 className="text-xs font-bold text-[#0c1a3a] mb-3 flex items-center gap-1.5">
                               <span className="text-base">💡</span> {locale === 'fr' ? 'Conseils pour un bon résultat' : 'Tips for great results'}
                             </h4>
                             <div className="space-y-2.5">
                               <div className="flex items-start gap-2">
-                                <span className="text-blue-500 text-xs mt-0.5">▸</span>
+                                <span className="text-[#0c1a3a] text-xs mt-0.5">▸</span>
                                 <p className="text-[11px] text-neutral-700 leading-relaxed">{locale === 'fr' ? 'Soyez précis sur votre métier : "Boulangerie artisanale" plutôt que "Commerce"' : 'Be specific about your business: "Artisan bakery" rather than "Shop"'}</p>
                               </div>
                               <div className="flex items-start gap-2">
-                                <span className="text-blue-500 text-xs mt-0.5">▸</span>
+                                <span className="text-[#0c1a3a] text-xs mt-0.5">▸</span>
                                 <p className="text-[11px] text-neutral-700 leading-relaxed">{locale === 'fr' ? 'Décrivez ce qui vous rend unique : spécialités, valeurs, ambiance' : 'Describe what makes you unique: specialties, values, ambiance'}</p>
                               </div>
                               <div className="flex items-start gap-2">
-                                <span className="text-blue-500 text-xs mt-0.5">▸</span>
+                                <span className="text-[#0c1a3a] text-xs mt-0.5">▸</span>
                                 <p className="text-[11px] text-neutral-700 leading-relaxed">{locale === 'fr' ? 'L\'audience aide l\'IA à adapter le ton et le style visuel' : 'The audience helps AI adapt tone and visual style'}</p>
                               </div>
                             </div>
@@ -3903,7 +3903,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                         <button
                           onClick={() => setFormStep(2)}
                           disabled={!businessType.trim() || (!useNewsMode && !businessDescription.trim())}
-                          className="px-6 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+                          className="px-6 py-2 bg-[#0c1a3a] text-white text-sm font-semibold rounded-lg hover:bg-[#1e3a5f] transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
                         >
                           {t.generate.next} <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                         </button>
@@ -3925,8 +3925,8 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                                 onClick={() => setCommunicationProfile(key as any)}
                                 className={`p-4 rounded-xl border-2 text-center transition-all ${
                                   isSelected
-                                    ? 'border-blue-500 bg-blue-50 shadow-lg scale-[1.02]'
-                                    : 'border-neutral-200 hover:border-blue-300 bg-white hover:shadow-md'
+                                    ? 'border-[#0c1a3a] bg-[#0c1a3a]/5 shadow-lg scale-[1.02]'
+                                    : 'border-neutral-200 hover:border-[#0c1a3a]/20 bg-white hover:shadow-md'
                                 }`}
                               >
                                 <div className="text-3xl mb-2">{preset.icon}</div>
@@ -3936,7 +3936,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                           })}
                         </div>
                         {communicationProfile && (
-                          <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl border border-blue-200 p-4">
+                          <div className="bg-gradient-to-br from-[#0c1a3a]/5 to-[#1e3a5f]/5 rounded-xl border border-[#0c1a3a]/10 p-4">
                             <div className="flex items-start gap-3">
                               <div className="text-2xl flex-shrink-0">{tonePresets[communicationProfile].icon}</div>
                               <div className="flex-1">
@@ -3944,13 +3944,13 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                                 <p className="text-xs text-neutral-700 leading-relaxed mb-3">{tonePresets[communicationProfile].description}</p>
                                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
                                   <div className="bg-white/60 rounded-lg p-2.5">
-                                    <p className="text-[10px] text-neutral-600"><span className="text-blue-600 font-bold">▸</span> <strong>{t.generate.strategyLabel}</strong> {tonePresets[communicationProfile].details}</p>
+                                    <p className="text-[10px] text-neutral-600"><span className="text-[#0c1a3a] font-bold">▸</span> <strong>{t.generate.strategyLabel}</strong> {tonePresets[communicationProfile].details}</p>
                                   </div>
                                   <div className="bg-white/60 rounded-lg p-2.5">
-                                    <p className="text-[10px] text-neutral-600"><span className="text-blue-600 font-bold">▸</span> <strong>{t.generate.exampleLabel}</strong> {tonePresets[communicationProfile].example}</p>
+                                    <p className="text-[10px] text-neutral-600"><span className="text-[#0c1a3a] font-bold">▸</span> <strong>{t.generate.exampleLabel}</strong> {tonePresets[communicationProfile].example}</p>
                                   </div>
                                   <div className="bg-white/60 rounded-lg p-2.5">
-                                    <p className="text-[10px] text-neutral-600"><span className="text-blue-600 font-bold">▸</span> <strong>{t.generate.idealFor}</strong> {tonePresets[communicationProfile].whenToUse}</p>
+                                    <p className="text-[10px] text-neutral-600"><span className="text-[#0c1a3a] font-bold">▸</span> <strong>{t.generate.idealFor}</strong> {tonePresets[communicationProfile].whenToUse}</p>
                                   </div>
                                 </div>
                               </div>
@@ -3963,7 +3963,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                           {t.generate.back}
                         </button>
-                        <button onClick={() => { setCreativeSubStep('direction'); setFormStep(3); }} className="px-6 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition flex items-center gap-2">
+                        <button onClick={() => { setCreativeSubStep('direction'); setFormStep(3); }} className="px-6 py-2 bg-[#0c1a3a] text-white text-sm font-semibold rounded-lg hover:bg-[#1e3a5f] transition flex items-center gap-2">
                           {t.generate.next} <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                         </button>
                       </div>
@@ -3977,7 +3977,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                           onClick={() => setCreativeSubStep('direction')}
                           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                             creativeSubStep === 'direction'
-                              ? 'bg-blue-600 text-white shadow-sm'
+                              ? 'bg-[#0c1a3a] text-white shadow-sm'
                               : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'
                           }`}
                         >
@@ -3988,7 +3988,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                           onClick={() => setCreativeSubStep('content')}
                           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                             creativeSubStep === 'content'
-                              ? 'bg-blue-600 text-white shadow-sm'
+                              ? 'bg-[#0c1a3a] text-white shadow-sm'
                               : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'
                           }`}
                         >
@@ -3999,7 +3999,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                           onClick={() => setCreativeSubStep('expert')}
                           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                             creativeSubStep === 'expert'
-                              ? 'bg-blue-600 text-white shadow-sm'
+                              ? 'bg-[#0c1a3a] text-white shadow-sm'
                               : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'
                           }`}
                         >
@@ -4010,7 +4010,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                           type="button"
                           onClick={() => handleAiAutoFill(creativeSubStep === 'direction' ? 'direction' : creativeSubStep === 'content' ? 'creatif' : 'expert')}
                           disabled={autoFillLoading || (useNewsMode && !selectedNews)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-[11px] font-semibold rounded-md transition-all disabled:opacity-50"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-[#0c1a3a] hover:from-purple-700 hover:to-[#1e3a5f] text-white text-[11px] font-semibold rounded-md transition-all disabled:opacity-50"
                         >
                           {autoFillLoading ? (
                             <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> {t.generate.analyzing}</>
@@ -4024,17 +4024,17 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                       {creativeSubStep === 'direction' && (
                         <div className="wizard-phase-enter">
                           {useNewsMode && selectedNews && (
-                            <div className="mb-3 p-2.5 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-100">
+                            <div className="mb-3 p-2.5 rounded-lg bg-gradient-to-r from-[#0c1a3a]/5 to-purple-50 border border-[#0c1a3a]/8">
                               <label className="block text-[10px] font-semibold mb-1.5 text-neutral-700">{t.generate.visualOrientation}</label>
                               <div className="flex items-center gap-2">
-                                <span className="text-[9px] font-medium text-blue-600 whitespace-nowrap">🏢 {t.generate.businessFocus}</span>
+                                <span className="text-[9px] font-medium text-[#0c1a3a] whitespace-nowrap">🏢 {t.generate.businessFocus}</span>
                                 <input
                                   type="range"
                                   min={0} max={100} step={5}
                                   value={contentFocus}
                                   onChange={(e) => setContentFocus(Number(e.target.value))}
                                   className="w-full h-1.5 rounded-lg appearance-none cursor-pointer accent-purple-600"
-                                  style={{ background: `linear-gradient(to right, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%)` }}
+                                  style={{ background: `linear-gradient(to right, #0c1a3a 0%, #8b5cf6 50%, #ec4899 100%)` }}
                                 />
                                 <span className="text-[9px] font-medium text-pink-600 whitespace-nowrap">📰 {t.generate.newsFocus}</span>
                               </div>
@@ -4046,7 +4046,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                               <label className="block text-xs font-semibold mb-1 text-neutral-700">{t.generate.imageAngleLabel}</label>
                               <select
                                 onChange={(e) => { if (e.target.value !== 'custom') { setImageAngle(e.target.value); } else { setImageAngle(''); } }}
-                                className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-1.5 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer mb-1"
+                                className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-1.5 bg-white focus:outline-none focus:border-[#0c1a3a] focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all cursor-pointer mb-1"
                               >
                                 <option value="">{t.generate.chooseSuggestion}</option>
                                 {useNewsMode ? (<>
@@ -4064,14 +4064,14 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                                 </>)}
                                 <option value="custom">✏️ {t.generate.customOption}</option>
                               </select>
-                              <input type="text" value={imageAngle} onChange={(e) => setImageAngle(e.target.value)} placeholder={t.generate.customizeImageAngle} className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-1.5 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" />
+                              <input type="text" value={imageAngle} onChange={(e) => setImageAngle(e.target.value)} placeholder={t.generate.customizeImageAngle} className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-1.5 bg-white focus:outline-none focus:border-[#0c1a3a] focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all" />
                             </div>
 
                             <div>
                               <label className="block text-xs font-semibold mb-1 text-neutral-700">{t.generate.marketingAngleLabel}</label>
                               <select
                                 onChange={(e) => { if (e.target.value !== 'custom') { setMarketingAngle(e.target.value); } else { setMarketingAngle(''); } }}
-                                className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-1.5 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer mb-1"
+                                className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-1.5 bg-white focus:outline-none focus:border-[#0c1a3a] focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all cursor-pointer mb-1"
                               >
                                 <option value="">{t.generate.chooseSuggestion}</option>
                                 {useNewsMode ? (<>
@@ -4089,14 +4089,14 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                                 </>)}
                                 <option value="custom">✏️ {t.generate.customOption}</option>
                               </select>
-                              <textarea value={marketingAngle} onChange={(e) => setMarketingAngle(e.target.value)} placeholder={t.generate.customizeMarketingAngle} rows={2} className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-1.5 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none" />
+                              <textarea value={marketingAngle} onChange={(e) => setMarketingAngle(e.target.value)} placeholder={t.generate.customizeMarketingAngle} rows={2} className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-1.5 bg-white focus:outline-none focus:border-[#0c1a3a] focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all resize-none" />
                             </div>
 
                             <div>
                               <label className="block text-xs font-semibold mb-1 text-neutral-700">{t.generate.contentAngleLabel}</label>
                               <select
                                 onChange={(e) => { if (e.target.value !== 'custom') { setContentAngle(e.target.value); } else { setContentAngle(''); } }}
-                                className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-1.5 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer mb-1"
+                                className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-1.5 bg-white focus:outline-none focus:border-[#0c1a3a] focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all cursor-pointer mb-1"
                               >
                                 <option value="">{t.generate.chooseSuggestion}</option>
                                 <option value="Témoignage client ou étude de cas concret">{t.generate.testimonialCase}</option>
@@ -4106,7 +4106,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                                 <option value="Contenu inspirant et motivationnel">{t.generate.inspiringMotivational}</option>
                                 <option value="custom">✏️ {t.generate.customOption}</option>
                               </select>
-                              <input type="text" value={contentAngle} onChange={(e) => setContentAngle(e.target.value)} placeholder={t.generate.customizeContentAngle} className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-1.5 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" />
+                              <input type="text" value={contentAngle} onChange={(e) => setContentAngle(e.target.value)} placeholder={t.generate.customizeContentAngle} className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-1.5 bg-white focus:outline-none focus:border-[#0c1a3a] focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all" />
                             </div>
                           </div>
                         </div>
@@ -4117,32 +4117,32 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                         <div className="space-y-3 wizard-phase-enter">
                           <div>
                             <label className="block text-xs font-semibold mb-1.5 text-neutral-700">{t.generate.storyToTell}</label>
-                            <textarea value={storyToTell} onChange={(e) => setStoryToTell(e.target.value)} placeholder={useNewsMode ? t.generate.storyPlaceholder : t.generate.storyPlaceholderFree} rows={2} className="w-full text-sm rounded-xl border-2 border-neutral-200 px-4 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none" />
+                            <textarea value={storyToTell} onChange={(e) => setStoryToTell(e.target.value)} placeholder={useNewsMode ? t.generate.storyPlaceholder : t.generate.storyPlaceholderFree} rows={2} className="w-full text-sm rounded-xl border-2 border-neutral-200 px-4 py-2 bg-white focus:outline-none focus:border-[#0c1a3a] focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all resize-none" />
                           </div>
                           <div>
                             <label className="block text-xs font-semibold mb-1.5 text-neutral-700">{t.generate.publicationGoal}</label>
-                            <input type="text" value={publicationGoal} onChange={(e) => setPublicationGoal(e.target.value)} placeholder={useNewsMode ? t.generate.goalPlaceholder : t.generate.goalPlaceholderFree} className="w-full text-sm rounded-xl border-2 border-neutral-200 px-4 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" />
+                            <input type="text" value={publicationGoal} onChange={(e) => setPublicationGoal(e.target.value)} placeholder={useNewsMode ? t.generate.goalPlaceholder : t.generate.goalPlaceholderFree} className="w-full text-sm rounded-xl border-2 border-neutral-200 px-4 py-2 bg-white focus:outline-none focus:border-[#0c1a3a] focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all" />
                           </div>
                           <div>
                             <label className="block text-xs font-semibold mb-1.5 text-neutral-700">{t.generate.emotionToConvey}</label>
-                            <input type="text" value={emotionToConvey} onChange={(e) => setEmotionToConvey(e.target.value)} placeholder={useNewsMode ? t.generate.emotionPlaceholder : t.generate.emotionPlaceholderFree} className="w-full text-sm rounded-xl border-2 border-neutral-200 px-4 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" />
+                            <input type="text" value={emotionToConvey} onChange={(e) => setEmotionToConvey(e.target.value)} placeholder={useNewsMode ? t.generate.emotionPlaceholder : t.generate.emotionPlaceholderFree} className="w-full text-sm rounded-xl border-2 border-neutral-200 px-4 py-2 bg-white focus:outline-none focus:border-[#0c1a3a] focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all" />
                           </div>
                           <div>
                             <div className="flex items-center justify-between mb-1.5">
                               <label className="block text-xs font-semibold text-neutral-700 flex items-center gap-1">
                                 {t.generate.textToAdd} <span className="text-neutral-400 font-normal">{t.generate.optional}</span>
                               </label>
-                              <button type="button" onClick={handleGenerateTextSuggestions} className="text-[10px] px-2 py-0.5 rounded bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:shadow-md transition-all flex items-center gap-1">
+                              <button type="button" onClick={handleGenerateTextSuggestions} className="text-[10px] px-2 py-0.5 rounded bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white hover:shadow-md transition-all flex items-center gap-1">
                                 💡 {t.generate.suggestText}
                               </button>
                             </div>
-                            <input type="text" value={optionalText} onChange={(e) => setOptionalText(e.target.value)} placeholder={t.generate.textPlaceholder} className="w-full text-sm rounded-xl border-2 border-neutral-200 px-4 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" />
+                            <input type="text" value={optionalText} onChange={(e) => setOptionalText(e.target.value)} placeholder={t.generate.textPlaceholder} className="w-full text-sm rounded-xl border-2 border-neutral-200 px-4 py-2 bg-white focus:outline-none focus:border-[#0c1a3a] focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all" />
                             {showTextSuggestions && textSuggestions.length > 0 && (
-                              <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
-                                <p className="text-[10px] font-semibold text-blue-900 mb-1">{useNewsMode ? t.generate.suggestionsBasedOn : t.generate.suggestionsBasedOnBusiness}</p>
+                              <div className="mt-2 p-2 bg-[#0c1a3a]/5 border border-[#0c1a3a]/10 rounded-lg">
+                                <p className="text-[10px] font-semibold text-[#0c1a3a] mb-1">{useNewsMode ? t.generate.suggestionsBasedOn : t.generate.suggestionsBasedOnBusiness}</p>
                                 <div className="space-y-1">
                                   {textSuggestions.map((suggestion, index) => (
-                                    <button key={index} type="button" onClick={() => { setOptionalText(suggestion); setShowTextSuggestions(false); }} className="w-full text-left text-[10px] px-2 py-1.5 bg-white rounded hover:bg-blue-100 border border-blue-100 transition-all">
+                                    <button key={index} type="button" onClick={() => { setOptionalText(suggestion); setShowTextSuggestions(false); }} className="w-full text-left text-[10px] px-2 py-1.5 bg-white rounded hover:bg-[#0c1a3a]/10 border border-[#0c1a3a]/8 transition-all">
                                       {suggestion}
                                     </button>
                                   ))}
@@ -4159,15 +4159,15 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                         <div className="space-y-3 wizard-phase-enter">
                           <div>
                             <label className="block text-xs font-semibold mb-1.5 text-neutral-700">{useNewsMode ? t.generate.problemSolved : t.generate.problemSolvedFree}</label>
-                            <input type="text" value={problemSolved} onChange={(e) => setProblemSolved(e.target.value)} placeholder={useNewsMode ? t.generate.problemPlaceholder : t.generate.problemPlaceholderFree} className="w-full text-sm rounded-xl border-2 border-neutral-200 px-4 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" />
+                            <input type="text" value={problemSolved} onChange={(e) => setProblemSolved(e.target.value)} placeholder={useNewsMode ? t.generate.problemPlaceholder : t.generate.problemPlaceholderFree} className="w-full text-sm rounded-xl border-2 border-neutral-200 px-4 py-2 bg-white focus:outline-none focus:border-[#0c1a3a] focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all" />
                           </div>
                           <div>
                             <label className="block text-xs font-semibold mb-1.5 text-neutral-700">{t.generate.uniqueAdvantage}</label>
-                            <input type="text" value={uniqueAdvantage} onChange={(e) => setUniqueAdvantage(e.target.value)} placeholder={t.generate.advantagePlaceholder} className="w-full text-sm rounded-xl border-2 border-neutral-200 px-4 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" />
+                            <input type="text" value={uniqueAdvantage} onChange={(e) => setUniqueAdvantage(e.target.value)} placeholder={t.generate.advantagePlaceholder} className="w-full text-sm rounded-xl border-2 border-neutral-200 px-4 py-2 bg-white focus:outline-none focus:border-[#0c1a3a] focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all" />
                           </div>
                           <div>
                             <label className="block text-xs font-semibold mb-1.5 text-neutral-700">{t.generate.visualIdea}</label>
-                            <textarea value={desiredVisualIdea} onChange={(e) => setDesiredVisualIdea(e.target.value)} placeholder={useNewsMode ? t.generate.visualIdeaPlaceholder : t.generate.visualIdeaPlaceholderFree} rows={3} className="w-full text-sm rounded-xl border-2 border-neutral-200 px-4 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none" />
+                            <textarea value={desiredVisualIdea} onChange={(e) => setDesiredVisualIdea(e.target.value)} placeholder={useNewsMode ? t.generate.visualIdeaPlaceholder : t.generate.visualIdeaPlaceholderFree} rows={3} className="w-full text-sm rounded-xl border-2 border-neutral-200 px-4 py-2 bg-white focus:outline-none focus:border-[#0c1a3a] focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all resize-none" />
                           </div>
                         </div>
                       )}
@@ -4182,7 +4182,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                           <button onClick={() => setFormStep(4)} className="text-xs text-neutral-400 hover:text-neutral-600 transition">
                             {t.generate.skipOptionalSteps}
                           </button>
-                          <button onClick={() => { if (creativeSubStep === 'direction') { setCreativeSubStep('content'); } else if (creativeSubStep === 'content') { setCreativeSubStep('expert'); } else { setFormStep(4); } }} className="px-6 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition flex items-center gap-2">
+                          <button onClick={() => { if (creativeSubStep === 'direction') { setCreativeSubStep('content'); } else if (creativeSubStep === 'content') { setCreativeSubStep('expert'); } else { setFormStep(4); } }} className="px-6 py-2 bg-[#0c1a3a] text-white text-sm font-semibold rounded-lg hover:bg-[#1e3a5f] transition flex items-center gap-2">
                             {creativeSubStep === 'direction'
                               ? (locale === 'fr' ? 'Contenu' : 'Content')
                               : creativeSubStep === 'content'
@@ -4201,7 +4201,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                         <select
                           value={platform}
                           onChange={(e) => setPlatform(e.target.value)}
-                          className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer"
+                          className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-[#0c1a3a] focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all cursor-pointer"
                         >
                           <option>Instagram</option>
                           <option>LinkedIn</option>
@@ -4211,18 +4211,18 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                       </div>
                       <div>
                         <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                          {t.generate.toneLabel} <span className="text-blue-600">{t.generate.fromProfile}</span>
+                          {t.generate.toneLabel} <span className="text-[#0c1a3a]">{t.generate.fromProfile}</span>
                         </label>
-                        <input type="text" value={tone} readOnly className="w-full text-xs rounded-lg border-2 border-blue-100 bg-blue-50 px-3 py-2 text-neutral-700 cursor-default" />
+                        <input type="text" value={tone} readOnly className="w-full text-xs rounded-lg border-2 border-[#0c1a3a]/8 bg-[#0c1a3a]/5 px-3 py-2 text-neutral-700 cursor-default" />
                       </div>
                       <div>
                         <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                          {t.generate.styleLabel} <span className="text-blue-600">{t.generate.suggestedByProfile}</span>
+                          {t.generate.styleLabel} <span className="text-[#0c1a3a]">{t.generate.suggestedByProfile}</span>
                         </label>
                         <select
                           value={visualStyle}
                           onChange={(e) => setVisualStyle(e.target.value)}
-                          className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer"
+                          className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-[#0c1a3a] focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all cursor-pointer"
                         >
                           <optgroup label={t.generate.profileStyles}>
                             <option value="Lumineux et \u00e9pur\u00e9">{t.generate.styleBrightClean}</option>
@@ -4249,7 +4249,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                       <div>
                         <label className="block text-xs font-semibold mb-1.5 text-neutral-700">{t.generate.renderLabel}</label>
                         <div className="flex gap-2">
-                          <button onClick={() => setRenderStyle('photo')} className={`flex-1 py-2 text-xs font-semibold rounded-lg border-2 transition-all ${renderStyle === 'photo' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'}`}>
+                          <button onClick={() => setRenderStyle('photo')} className={`flex-1 py-2 text-xs font-semibold rounded-lg border-2 transition-all ${renderStyle === 'photo' ? 'border-[#0c1a3a] bg-[#0c1a3a]/5 text-[#0c1a3a]' : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'}`}>
                             {t.generate.photoRealistic}
                           </button>
                           <button onClick={() => setRenderStyle('illustration')} className={`flex-1 py-2 text-xs font-semibold rounded-lg border-2 transition-all ${renderStyle === 'illustration' ? 'border-purple-500 bg-purple-50 text-purple-700' : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'}`}>
@@ -4260,7 +4260,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                       <div>
                         <label className="block text-xs font-semibold mb-1.5 text-neutral-700">{t.generate.charactersLabel}</label>
                         <div className="flex gap-2">
-                          <button onClick={() => setCharacterStyle('real')} className={`flex-1 py-2 text-xs font-semibold rounded-lg border-2 transition-all ${characterStyle === 'real' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'}`}>
+                          <button onClick={() => setCharacterStyle('real')} className={`flex-1 py-2 text-xs font-semibold rounded-lg border-2 transition-all ${characterStyle === 'real' ? 'border-[#0c1a3a] bg-[#0c1a3a]/5 text-[#0c1a3a]' : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'}`}>
                             {t.generate.humans}
                           </button>
                           <button onClick={() => setCharacterStyle('fiction')} className={`flex-1 py-2 text-xs font-semibold rounded-lg border-2 transition-all ${characterStyle === 'fiction' ? 'border-purple-500 bg-purple-50 text-purple-700' : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'}`}>
@@ -4269,7 +4269,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                         </div>
                       </div>
                       <div className="flex gap-1 bg-neutral-100 p-1 rounded-lg">
-                        <button onClick={() => setGenerationMode('image')} className={`flex-1 py-2 text-xs font-semibold rounded-md transition-all ${generationMode === 'image' ? 'bg-white text-blue-700 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'}`}>
+                        <button onClick={() => setGenerationMode('image')} className={`flex-1 py-2 text-xs font-semibold rounded-md transition-all ${generationMode === 'image' ? 'bg-white text-[#0c1a3a] shadow-sm' : 'text-neutral-500 hover:text-neutral-700'}`}>
                           🖼️ {t.generate.visualMode}
                         </button>
                         <button onClick={() => setGenerationMode('video')} className={`flex-1 py-2 text-xs font-semibold rounded-md transition-all ${generationMode === 'video' ? 'bg-white text-purple-700 shadow-sm' : 'text-neutral-500 hover:text-neutral-700'}`}>
@@ -4282,7 +4282,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                         <>
                           <div className={`rounded-lg p-2.5 border text-[10px] font-medium ${
                             addAudio && selectedMusic !== 'none' ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
-                              : addAudio ? 'bg-blue-50 border-blue-200 text-blue-700'
+                              : addAudio ? 'bg-[#0c1a3a]/5 border-[#0c1a3a]/10 text-[#0c1a3a]'
                               : selectedMusic !== 'none' ? 'bg-purple-50 border-purple-200 text-purple-700'
                               : 'bg-neutral-50 border-neutral-200 text-neutral-500'
                           }`}>
@@ -4293,25 +4293,25 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                           </div>
 
                           {/* Voice section */}
-                          <div className="border border-blue-200 bg-blue-50 rounded-lg p-3 space-y-2.5">
+                          <div className="border border-[#0c1a3a]/10 bg-[#0c1a3a]/5 rounded-lg p-3 space-y-2.5">
                             <label className="flex items-center gap-2 cursor-pointer">
-                              <input type="checkbox" checked={addAudio} onChange={(e) => setAddAudio(e.target.checked)} className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500" />
+                              <input type="checkbox" checked={addAudio} onChange={(e) => setAddAudio(e.target.checked)} className="w-4 h-4 text-[#0c1a3a] bg-white border-gray-300 rounded focus:ring-[#0c1a3a]" />
                               <span className="text-xs font-semibold text-neutral-900">🎙️ {locale === 'fr' ? 'Ajouter une voix off' : 'Add voice narration'}</span>
                               <span className="text-[9px] text-neutral-400 ml-auto">{locale === 'fr' ? 'optionnel' : 'optional'}</span>
                             </label>
                             {addAudio && (
                               <div className="space-y-2">
                                 <div className="flex gap-2">
-                                  <button type="button" onClick={() => setAudioTextSource('ai')} className={`flex-1 py-1.5 px-3 text-xs font-medium rounded transition-all ${audioTextSource === 'ai' ? 'bg-blue-600 text-white' : 'bg-white text-neutral-700 hover:bg-neutral-50'}`}>
+                                  <button type="button" onClick={() => setAudioTextSource('ai')} className={`flex-1 py-1.5 px-3 text-xs font-medium rounded transition-all ${audioTextSource === 'ai' ? 'bg-[#0c1a3a] text-white' : 'bg-white text-neutral-700 hover:bg-neutral-50'}`}>
                                     ✨ {t.generate.automatic}
                                   </button>
-                                  <button type="button" onClick={() => setAudioTextSource('manual')} className={`flex-1 py-1.5 px-3 text-xs font-medium rounded transition-all ${audioTextSource === 'manual' ? 'bg-blue-600 text-white' : 'bg-white text-neutral-700 hover:bg-neutral-50'}`}>
+                                  <button type="button" onClick={() => setAudioTextSource('manual')} className={`flex-1 py-1.5 px-3 text-xs font-medium rounded transition-all ${audioTextSource === 'manual' ? 'bg-[#0c1a3a] text-white' : 'bg-white text-neutral-700 hover:bg-neutral-50'}`}>
                                     ✍️ {t.generate.writeYourText}
                                   </button>
                                 </div>
                                 {audioTextSource === 'manual' && (
                                   <div>
-                                    <textarea value={audioText} onChange={(e) => setAudioText(e.target.value)} placeholder={t.generate.audioTextPlaceholder} rows={2} maxLength={150} className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
+                                    <textarea value={audioText} onChange={(e) => setAudioText(e.target.value)} placeholder={t.generate.audioTextPlaceholder} rows={2} maxLength={150} className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#0c1a3a] resize-none" />
                                     <p className="text-[10px] text-neutral-500 mt-1">~{audioText.trim().split(/\s+/).filter(w => w.length > 0).length} {t.generate.wordsCount} ({Math.ceil(audioText.trim().split(/\s+/).filter(w => w.length > 0).length / 2.5)}s)</p>
                                   </div>
                                 )}
@@ -4331,7 +4331,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                                       { value: 'nPczCjzI2devNBz1zQrb', label: `\u2642 ${t.generate.maleDeep}` },
                                       { value: 'cjVigY5qzO86Huf0OWal', label: `\u2642 ${t.generate.maleAuthoritative}` },
                                     ]).map((v) => (
-                                      <button key={v.value} type="button" onClick={() => setSelectedVoice(v.value)} className={`px-2 py-1 text-[10px] rounded border transition-all text-left ${selectedVoice === v.value ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-neutral-700 border-neutral-200 hover:border-blue-300'}`}>
+                                      <button key={v.value} type="button" onClick={() => setSelectedVoice(v.value)} className={`px-2 py-1 text-[10px] rounded border transition-all text-left ${selectedVoice === v.value ? 'bg-[#0c1a3a] text-white border-[#0c1a3a]' : 'bg-white text-neutral-700 border-neutral-200 hover:border-[#0c1a3a]/20'}`}>
                                         {v.label}
                                       </button>
                                     ))}
@@ -4566,7 +4566,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                         className={`w-full py-3 text-sm font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                           generationMode === 'video'
                             ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:shadow-lg'
-                            : 'bg-blue-600 text-white hover:bg-blue-700'
+                            : 'bg-[#0c1a3a] text-white hover:bg-[#1e3a5f]'
                         }`}
                       >
                         {generationMode === 'video'
@@ -4614,7 +4614,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
               onClick={() => setModalMinimized(false)}>
               {(generating || generatingVideo) && !generatedImageUrl && !generatedVideoUrl ? (
                 <>
-                  <div className="w-5 h-5 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin flex-shrink-0"></div>
+                  <div className="w-5 h-5 border-2 border-[#0c1a3a]/10 border-t-[#0c1a3a] rounded-full animate-spin flex-shrink-0"></div>
                   <span className="text-sm font-medium text-neutral-700 truncate flex-1">
                     {generatingVideo ? t.generate.videoGenerationInProgress : t.generate.generatingInProgress}
                   </span>
@@ -4694,12 +4694,12 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                 {generating && !generatedImageUrl && (
                   <div className="flex flex-col items-center justify-center py-16">
                     <div className="relative mb-6">
-                      <div className="absolute inset-0 w-24 h-24 border-4 border-blue-200 rounded-full animate-ping opacity-20"></div>
+                      <div className="absolute inset-0 w-24 h-24 border-4 border-[#0c1a3a]/10 rounded-full animate-ping opacity-20"></div>
                       <svg className="w-24 h-24 transform -rotate-90" viewBox="0 0 100 100">
                         <circle cx="50" cy="50" r="45" fill="none" stroke="#e5e7eb" strokeWidth="8" />
                         <circle cx="50" cy="50" r="45" fill="none" stroke="url(#modalGradient)" strokeWidth="8" strokeLinecap="round"
                           strokeDasharray={`${imageLoadingProgress * 2.827} 282.7`} style={{ transition: 'stroke-dasharray 0.3s ease' }} />
-                        <defs><linearGradient id="modalGradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#3b82f6" /><stop offset="100%" stopColor="#06b6d4" /></linearGradient></defs>
+                        <defs><linearGradient id="modalGradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#0c1a3a" /><stop offset="100%" stopColor="#06b6d4" /></linearGradient></defs>
                       </svg>
                       <div className="absolute inset-0 flex items-center justify-center">
                         <div className="text-3xl">{loadingStep === 'api' ? '🎨' : loadingStep === 'download' ? '📥' : '✓'}</div>
@@ -4713,7 +4713,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                     </p>
                     <div className="w-full max-w-xs mt-4">
                       <div className="h-1.5 bg-neutral-200 rounded-full overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full transition-all duration-300 ease-out" style={{ width: `${imageLoadingProgress}%` }} />
+                        <div className="h-full bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] rounded-full transition-all duration-300 ease-out" style={{ width: `${imageLoadingProgress}%` }} />
                       </div>
                       <p className="text-xs text-neutral-400 mt-1 text-center">{imageLoadingProgress}%</p>
                     </div>
@@ -4764,7 +4764,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                             try { const preview = await renderOverlaysOnImage(cleanBase, items); setTextPreviewUrl(preview); setVersionPreviews({ [cleanBase]: preview }); } catch {}
                           } else { setTextOverlayItems([]); setVersionPreviews({}); setEditingOverlayId(null); }
                         }}
-                        className="flex-1 min-w-[120px] py-2.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                        className="flex-1 min-w-[120px] py-2.5 text-sm bg-[#0c1a3a] text-white rounded-lg hover:bg-[#1e3a5f] transition-colors font-medium"
                       >
                         {t.generate.edit}
                       </button>
@@ -4779,7 +4779,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                         onClick={saveToLibrary}
                         disabled={savingToLibrary || imageSavedToLibrary}
                         className={`flex-1 min-w-[120px] py-2.5 text-sm text-white rounded-lg transition-colors font-medium ${
-                          imageSavedToLibrary ? 'bg-green-600 cursor-default' : savingToLibrary ? 'bg-blue-400 cursor-wait' : 'bg-blue-600 hover:bg-blue-700'
+                          imageSavedToLibrary ? 'bg-green-600 cursor-default' : savingToLibrary ? 'bg-[#0c1a3a]/70 cursor-wait' : 'bg-[#0c1a3a] hover:bg-[#1e3a5f]'
                         }`}
                       >
                         {imageSavedToLibrary ? `✓ ${t.generate.saved}` : savingToLibrary ? t.generate.saving : t.generate.save}
@@ -4892,12 +4892,12 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                             value={generatedSubtitleText}
                             onChange={(e) => setGeneratedSubtitleText(e.target.value)}
                             placeholder={locale === 'fr' ? 'Texte à afficher sur la vidéo...' : 'Text to display on video...'}
-                            className="w-full text-xs rounded-lg border border-neutral-200 px-3 py-2 bg-white min-h-[60px] resize-none focus:outline-none focus:border-blue-500"
+                            className="w-full text-xs rounded-lg border border-neutral-200 px-3 py-2 bg-white min-h-[60px] resize-none focus:outline-none focus:border-[#0c1a3a]"
                           />
                           <div className="flex flex-wrap gap-1">
                             {['wordflash', 'wordstay', 'neon', 'cinema', 'impact', 'minimal'].map(style => (
                               <button key={style} onClick={() => setAITextStyle(style)}
-                                className={`px-2 py-1 text-[10px] rounded-full font-medium transition ${aiTextStyle === style ? 'bg-blue-600 text-white' : 'bg-neutral-100 hover:bg-neutral-200'}`}>
+                                className={`px-2 py-1 text-[10px] rounded-full font-medium transition ${aiTextStyle === style ? 'bg-[#0c1a3a] text-white' : 'bg-neutral-100 hover:bg-neutral-200'}`}>
                                 {style}
                               </button>
                             ))}
@@ -4905,7 +4905,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                           <div className="flex gap-1">
                             {(['sm', 'md', 'lg', 'xl'] as const).map(size => (
                               <button key={size} onClick={() => setSubtitleFontSize(size)}
-                                className={`px-2 py-1 text-[10px] rounded font-medium transition ${subtitleFontSize === size ? 'bg-blue-600 text-white' : 'bg-neutral-100 hover:bg-neutral-200'}`}>
+                                className={`px-2 py-1 text-[10px] rounded font-medium transition ${subtitleFontSize === size ? 'bg-[#0c1a3a] text-white' : 'bg-neutral-100 hover:bg-neutral-200'}`}>
                                 {size.toUpperCase()}
                               </button>
                             ))}
@@ -4913,7 +4913,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                           <div className="flex gap-1">
                             {(['top', 'center', 'bottom'] as const).map(pos => (
                               <button key={pos} onClick={() => setSubtitlePosition(pos)}
-                                className={`px-2 py-1 text-[10px] rounded font-medium transition ${subtitlePosition === pos ? 'bg-blue-600 text-white' : 'bg-neutral-100 hover:bg-neutral-200'}`}>
+                                className={`px-2 py-1 text-[10px] rounded font-medium transition ${subtitlePosition === pos ? 'bg-[#0c1a3a] text-white' : 'bg-neutral-100 hover:bg-neutral-200'}`}>
                                 {pos === 'top' ? '⬆️' : pos === 'center' ? '⬅️' : '⬇️'} {pos}
                               </button>
                             ))}
@@ -4966,7 +4966,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                     onClick={() => setActiveTab('image')}
                     className={`flex-1 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                       activeTab === 'image'
-                        ? 'border-blue-500 text-blue-600'
+                        ? 'border-[#0c1a3a] text-[#0c1a3a]'
                         : 'border-transparent text-neutral-600'
                     }`}
                   >
@@ -4983,7 +4983,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                     }}
                     className={`flex-1 px-3 py-3 text-sm font-medium border-b-2 transition-colors ${
                       activeTab === 'edit'
-                        ? 'border-blue-500 text-blue-600'
+                        ? 'border-[#0c1a3a] text-[#0c1a3a]'
                         : 'border-transparent text-neutral-600'
                     }`}
                   >
@@ -5003,7 +5003,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                     onClick={() => setActiveTab('versions')}
                     className={`flex-1 px-3 py-3 text-sm font-medium border-b-2 transition-colors ${
                       activeTab === 'versions'
-                        ? 'border-blue-500 text-blue-600'
+                        ? 'border-[#0c1a3a] text-[#0c1a3a]'
                         : 'border-transparent text-neutral-600'
                     }`}
                   >
@@ -5338,7 +5338,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                           }
                         }}
                         disabled={editingImage || !editPrompt.trim() || !selectedEditVersion}
-                        className="w-full py-4 text-base bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px] transition-colors"
+                        className="w-full py-4 text-base bg-[#0c1a3a] text-white font-semibold rounded-lg hover:bg-[#1e3a5f] disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px] transition-colors"
                       >
                         {editingImage ? t.generate.editingInProgress : `✏️ ${t.generate.editImage}`}
                       </button>
@@ -5431,7 +5431,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                                   setTextPosition(25);
                                 } else if (template.id === 'cta') {
                                   setTextColor('#ffffff');
-                                  setTextBackgroundColor('#3b82f6');
+                                  setTextBackgroundColor('#0c1a3a');
                                   setBackgroundStyle('solid');
                                   setTextPosition(80);
                                 } else if (template.id === 'minimal') {
@@ -5451,7 +5451,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                                   setTextPosition(50);
                                 } else if (template.id === 'modern') {
                                   setTextColor('#ffffff');
-                                  setTextBackgroundColor('linear-gradient(135deg, #3b82f6, #06b6d4)');
+                                  setTextBackgroundColor('linear-gradient(135deg, #0c1a3a, #06b6d4)');
                                   setBackgroundStyle('gradient');
                                   setTextPosition(80);
                                 }
@@ -5525,7 +5525,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                           <label className="block text-sm font-medium mb-2">{t.generate.backgroundColor}</label>
                           <input
                             type="color"
-                            value={textBackgroundColor.startsWith('rgba') || textBackgroundColor.startsWith('linear') ? '#3b82f6' : textBackgroundColor}
+                            value={textBackgroundColor.startsWith('rgba') || textBackgroundColor.startsWith('linear') ? '#0c1a3a' : textBackgroundColor}
                             onChange={(e) => setTextBackgroundColor(e.target.value)}
                             className="w-full h-10 rounded-lg border border-neutral-300 cursor-pointer"
                           />
@@ -5671,7 +5671,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                                   setBackgroundStyle(item.backgroundStyle as any);
                                   setEditingOverlayId(item.id);
                                 }}
-                                className="px-1.5 py-0.5 text-[10px] text-blue-600 hover:bg-blue-50 rounded"
+                                className="px-1.5 py-0.5 text-[10px] text-[#0c1a3a] hover:bg-[#0c1a3a]/5 rounded"
                               >
                                 {t.generate.modify}
                               </button>
@@ -5850,7 +5850,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                                 <a
                                   href={version}
                                   download={`keiro-v${idx + 1}.png`}
-                                  className="flex-1 py-2 text-sm bg-blue-600 text-white text-center rounded-lg font-medium min-h-[44px] hover:bg-blue-700 transition-colors flex items-center justify-center"
+                                  className="flex-1 py-2 text-sm bg-[#0c1a3a] text-white text-center rounded-lg font-medium min-h-[44px] hover:bg-[#1e3a5f] transition-colors flex items-center justify-center"
                                   onClick={(e) => e.stopPropagation()}
                                 >
                                   {t.generate.downloadLabel}
@@ -6020,7 +6020,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                             <a
                               href={version}
                               download={`keiro-v${idx + 1}.png`}
-                              className="flex-1 py-1 text-[10px] bg-blue-600 text-white text-center rounded hover:bg-blue-700 font-medium transition-colors"
+                              className="flex-1 py-1 text-[10px] bg-[#0c1a3a] text-white text-center rounded hover:bg-[#1e3a5f] font-medium transition-colors"
                               onClick={(e) => e.stopPropagation()}
                             >
                               ⬇️
@@ -6094,7 +6094,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                       }}
                       className={`flex-1 px-3 py-2 rounded text-sm font-medium transition-colors ${
                         activeTab === 'edit'
-                          ? 'bg-blue-500 text-white'
+                          ? 'bg-[#0c1a3a] text-white'
                           : 'text-neutral-600 hover:bg-neutral-100'
                       }`}
                     >
@@ -6397,7 +6397,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                         }
                       }}
                       disabled={editingImage || !editPrompt.trim() || !selectedEditVersion}
-                      className="w-full py-2 text-xs bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                      className="w-full py-2 text-xs bg-[#0c1a3a] text-white font-semibold rounded hover:bg-[#1e3a5f] disabled:opacity-50 disabled:cursor-not-allowed transition"
                     >
                       {editingImage ? t.generate.editingInProgress : `✏️ ${t.generate.edit}`}
                     </button>
@@ -6495,7 +6495,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                                 setTextPosition(25);
                               } else if (template.id === 'cta') {
                                 setTextColor('#ffffff');
-                                setTextBackgroundColor('#3b82f6');
+                                setTextBackgroundColor('#0c1a3a');
                                 setBackgroundStyle('solid');
                                 setTextPosition(80);
                               } else if (template.id === 'minimal') {
@@ -6515,7 +6515,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                                 setTextPosition(50);
                               } else if (template.id === 'modern') {
                                 setTextColor('#ffffff');
-                                setTextBackgroundColor('linear-gradient(135deg, #3b82f6, #06b6d4)');
+                                setTextBackgroundColor('linear-gradient(135deg, #0c1a3a, #06b6d4)');
                                 setBackgroundStyle('gradient');
                                 setTextPosition(80);
                               }
@@ -6575,7 +6575,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                         <label className="block text-xs font-medium mb-1">{t.generate.backgroundColor}</label>
                         <input
                           type="color"
-                          value={textBackgroundColor.startsWith('rgba') || textBackgroundColor.startsWith('linear') ? '#3b82f6' : textBackgroundColor}
+                          value={textBackgroundColor.startsWith('rgba') || textBackgroundColor.startsWith('linear') ? '#0c1a3a' : textBackgroundColor}
                           onChange={(e) => setTextBackgroundColor(e.target.value)}
                           className="w-full h-8 rounded border border-neutral-300 cursor-pointer"
                         />
@@ -6717,7 +6717,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                                 setBackgroundStyle(item.backgroundStyle as any);
                                 setEditingOverlayId(item.id);
                               }}
-                              className="px-1 py-0.5 text-[9px] text-blue-600 hover:bg-blue-50 rounded"
+                              className="px-1 py-0.5 text-[9px] text-[#0c1a3a] hover:bg-[#0c1a3a]/5 rounded"
                             >
                               {t.generate.modify}
                             </button>
@@ -6821,7 +6821,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                 <p className="text-sm text-neutral-600 mb-1">{t.generate.currentBalance} <span className="font-semibold text-red-600">{credits.balance} {t.generate.credits}</span></p>
                 <p className="text-sm text-neutral-600 mb-6">{t.generate.rechargeOrUpgrade}</p>
                 <div className="flex gap-3">
-                  <a href="/mon-compte" className="flex-1 py-2.5 text-sm font-semibold bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all text-center">
+                  <a href="/mon-compte" className="flex-1 py-2.5 text-sm font-semibold bg-gradient-to-r from-[#0c1a3a] to-purple-600 text-white rounded-lg hover:shadow-lg transition-all text-center">
                     {t.generate.buyCredits}
                   </a>
                   <a href="/pricing" className="flex-1 py-2.5 text-sm font-semibold border border-neutral-300 text-neutral-700 rounded-lg hover:bg-neutral-50 transition-all text-center">
@@ -6841,15 +6841,15 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
               <div className="text-center">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                <div className="w-16 h-16 bg-[#0c1a3a]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-[#0c1a3a]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                 </div>
                 <h3 className="text-lg font-bold text-neutral-900 mb-2">{t.generate.createAccountToContinue}</h3>
                 <p className="text-sm text-neutral-600 mb-2">{t.generate.featureRequiresAccount}</p>
                 <p className="text-sm text-neutral-500 mb-1">{t.generate.freeCreditsOnSignup}</p>
                 <p className="text-sm text-neutral-500 mb-6">{t.generate.promoCodeHint}</p>
                 <div className="flex gap-3">
-                  <a href="/login" className="flex-1 py-2.5 text-sm font-semibold bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all text-center">
+                  <a href="/login" className="flex-1 py-2.5 text-sm font-semibold bg-gradient-to-r from-[#0c1a3a] to-purple-600 text-white rounded-lg hover:shadow-lg transition-all text-center">
                     {t.generate.createAccount}
                   </a>
                   <a href="/pricing" className="flex-1 py-2.5 text-sm font-semibold border border-neutral-300 text-neutral-700 rounded-lg hover:bg-neutral-50 transition-all text-center">
@@ -6876,7 +6876,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
-              <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
@@ -6885,7 +6885,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
               <p className="text-neutral-600 mb-6">{t.generate.welcomeDesc}</p>
               <button
                 onClick={() => setShowWelcome(false)}
-                className="px-8 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-xl hover:shadow-lg transition-all text-lg"
+                className="px-8 py-3 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold rounded-xl hover:shadow-lg transition-all text-lg"
               >
                 {t.generate.start}
               </button>

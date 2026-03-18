@@ -258,7 +258,7 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
     return (
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-[#0077B5] to-blue-600 rounded-full mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-[#0077B5] to-[#0c1a3a] rounded-full mb-4">
             <LinkedInIcon className="w-8 h-8 text-white" />
           </div>
           <h3 className="text-lg font-bold text-neutral-900 mb-2">{t.library.prepareLinkedInPost}</h3>
@@ -268,13 +268,13 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
           <div className="space-y-2.5 mb-6">
             <button
               onClick={() => { window.location.href = '/generate'; }}
-              className="w-full px-5 py-3 bg-gradient-to-r from-[#0077B5] to-blue-600 text-white font-semibold rounded-lg hover:shadow-lg transition-all text-sm"
+              className="w-full px-5 py-3 bg-gradient-to-r from-[#0077B5] to-[#0c1a3a] text-white font-semibold rounded-lg hover:shadow-lg transition-all text-sm"
             >
               {t.library.createVisual}
             </button>
             <button
               onClick={() => { window.location.href = '/library'; }}
-              className="w-full px-5 py-3 border-2 border-blue-200 text-blue-700 font-semibold rounded-lg hover:bg-blue-50 transition-all text-sm"
+              className="w-full px-5 py-3 border-2 border-[#0c1a3a]/10 text-[#0c1a3a] font-semibold rounded-lg hover:bg-[#0c1a3a]/5 transition-all text-sm"
             >
               {t.library.addVisualToGallery}
             </button>
@@ -305,9 +305,9 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
       <div className="bg-white w-full h-full md:w-[95vw] md:h-[90vh] md:max-w-6xl md:rounded-2xl overflow-hidden flex flex-col shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-neutral-200 bg-gradient-to-r from-blue-50 to-sky-50">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-neutral-200 bg-gradient-to-r from-[#0c1a3a]/5 to-sky-50">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-r from-[#0077B5] to-blue-600 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-r from-[#0077B5] to-[#0c1a3a] flex items-center justify-center">
               <LinkedInIcon className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -333,7 +333,7 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
               onClick={() => setActiveTab('images')}
               className={`flex-1 px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
                 activeTab === 'images'
-                  ? 'bg-gradient-to-r from-[#0077B5] to-blue-600 text-white shadow-md'
+                  ? 'bg-gradient-to-r from-[#0077B5] to-[#0c1a3a] text-white shadow-md'
                   : 'bg-white text-neutral-600 hover:bg-neutral-100'
               }`}
             >
@@ -343,7 +343,7 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
               onClick={() => setActiveTab('videos')}
               className={`flex-1 px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
                 activeTab === 'videos'
-                  ? 'bg-gradient-to-r from-[#0077B5] to-blue-600 text-white shadow-md'
+                  ? 'bg-gradient-to-r from-[#0077B5] to-[#0c1a3a] text-white shadow-md'
                   : 'bg-white text-neutral-600 hover:bg-neutral-100'
               }`}
             >
@@ -353,7 +353,7 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
               onClick={() => { setActiveTab('text-only'); setSelectedImage(null); setSelectedVideo(null); }}
               className={`flex-1 px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
                 activeTab === 'text-only'
-                  ? 'bg-gradient-to-r from-[#0077B5] to-blue-600 text-white shadow-md'
+                  ? 'bg-gradient-to-r from-[#0077B5] to-[#0c1a3a] text-white shadow-md'
                   : 'bg-white text-neutral-600 hover:bg-neutral-100'
               }`}
             >
@@ -379,7 +379,7 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
                           key={img.id}
                           onClick={() => setSelectedImage(img)}
                           className={`w-full aspect-square rounded-lg overflow-hidden transition-all ${
-                            selectedImage?.id === img.id ? 'ring-2 ring-[#0077B5] scale-105 shadow-lg' : 'ring-1 ring-neutral-300 hover:ring-blue-300'
+                            selectedImage?.id === img.id ? 'ring-2 ring-[#0077B5] scale-105 shadow-lg' : 'ring-1 ring-neutral-300 hover:ring-[#0c1a3a]/20'
                           }`}
                         >
                           <img src={img.thumbnail_url || img.image_url} alt={img.title || 'Image'} className="w-full h-full object-cover" />
@@ -398,7 +398,7 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
                           key={vid.id}
                           onClick={() => setSelectedVideo(vid)}
                           className={`w-full aspect-square rounded-lg overflow-hidden transition-all relative ${
-                            selectedVideo?.id === vid.id ? 'ring-2 ring-[#0077B5] scale-105 shadow-lg' : 'ring-1 ring-neutral-300 hover:ring-blue-300'
+                            selectedVideo?.id === vid.id ? 'ring-2 ring-[#0077B5] scale-105 shadow-lg' : 'ring-1 ring-neutral-300 hover:ring-[#0c1a3a]/20'
                           }`}
                         >
                           {vid.thumbnail_url ? (
@@ -468,7 +468,7 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
                   <div className="bg-white rounded-lg border border-neutral-200 shadow-sm max-w-sm mx-auto overflow-hidden">
                     {/* Profile header */}
                     <div className="p-3 flex items-center gap-2">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#0077B5] to-blue-600 flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#0077B5] to-[#0c1a3a] flex items-center justify-center">
                         <LinkedInIcon className="w-5 h-5 text-white" />
                       </div>
                       <div>
@@ -500,7 +500,7 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
                     {activeTab === 'images' && selectedImage && (
                       <button
                         onClick={() => setShowImageEditModal(true)}
-                        className="mx-3 mt-2 w-[calc(100%-1.5rem)] py-2 bg-blue-50 text-blue-700 text-xs font-semibold rounded-lg hover:bg-blue-100 transition flex items-center justify-center gap-1.5"
+                        className="mx-3 mt-2 w-[calc(100%-1.5rem)] py-2 bg-[#0c1a3a]/5 text-[#0c1a3a] text-xs font-semibold rounded-lg hover:bg-[#0c1a3a]/10 transition flex items-center justify-center gap-1.5"
                       >
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -567,7 +567,7 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
                 className={`w-full py-3 px-4 rounded-lg font-medium transition-all flex items-center justify-center gap-2 ${
                   suggesting
                     ? 'bg-neutral-200 text-neutral-500 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-[#0077B5] to-blue-600 text-white hover:from-[#005f8f] hover:to-blue-700 shadow-lg hover:shadow-xl'
+                    : 'bg-gradient-to-r from-[#0077B5] to-[#0c1a3a] text-white hover:from-[#005f8f] hover:to-[#1e3a5f] shadow-lg hover:shadow-xl'
                 }`}
               >
                 {suggesting ? (
@@ -614,9 +614,9 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
                 {hashtags.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {hashtags.map((tag, idx) => (
-                      <span key={idx} className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 text-[#0077B5] rounded-full text-sm font-medium">
+                      <span key={idx} className="inline-flex items-center gap-1 px-3 py-1 bg-[#0c1a3a]/5 text-[#0077B5] rounded-full text-sm font-medium">
                         {tag}
-                        <button onClick={() => removeHashtag(tag)} className="text-blue-400 hover:text-red-500">
+                        <button onClick={() => removeHashtag(tag)} className="text-[#0c1a3a]/60 hover:text-red-500">
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                           </svg>
@@ -632,7 +632,7 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
                 <button
                   onClick={() => handleSave('draft')}
                   disabled={saving || publishing || (activeTab !== 'text-only' && !selectedImage && !selectedVideo)}
-                  className="flex-1 py-3 px-4 rounded-lg font-medium border-2 border-[#0077B5] text-[#0077B5] hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  className="flex-1 py-3 px-4 rounded-lg font-medium border-2 border-[#0077B5] text-[#0077B5] hover:bg-[#0c1a3a]/5 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
                   {saving ? t.library.savingInProgress : t.library.draft}
                 </button>

@@ -54,12 +54,12 @@ function ListItemTitle({ item, onTitleEdit }: { item: CreationItem; onTitleEdit:
           onBlur={save}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); save(); } else if (e.key === 'Escape') setEditing(false); }}
           maxLength={100}
-          className="w-full font-medium text-neutral-900 bg-white border-2 border-blue-400 rounded px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+          className="w-full font-medium text-neutral-900 bg-white border-2 border-[#0c1a3a]/40 rounded px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-[#0c1a3a] text-sm"
         />
       ) : (
         <h4
           onClick={() => setEditing(true)}
-          className="font-medium text-neutral-900 truncate cursor-pointer hover:text-blue-600 transition-colors"
+          className="font-medium text-neutral-900 truncate cursor-pointer hover:text-[#0c1a3a] transition-colors"
           title={t.library.actClickToEditTitle}
         >
           {item.title || t.library.actUntitled}
@@ -391,7 +391,7 @@ export default function AllCreationsTab({
                   </svg>
                 </button>
                 <button onClick={() => onDownload(item)} className="p-2 rounded-lg hover:bg-white transition-colors" title={t.library.actDownload}>
-                  <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 text-[#0c1a3a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
                 </button>
@@ -439,7 +439,7 @@ export default function AllCreationsTab({
                     key={folderId}
                     onClick={() => { if (!isEditing) toggleFolder(folderId); }}
                     className={`relative cursor-pointer rounded-xl border-2 transition-all p-6 flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-white to-neutral-50 hover:shadow-lg aspect-square ${
-                      isExpanded ? 'border-blue-500 ring-2 ring-blue-200 shadow-md' : 'border-neutral-200 hover:border-blue-400'
+                      isExpanded ? 'border-[#0c1a3a] ring-2 ring-[#0c1a3a]/10 shadow-md' : 'border-neutral-200 hover:border-[#0c1a3a]/40'
                     }`}
                   >
                     {/* Actions dossier (top-right) */}
@@ -448,10 +448,10 @@ export default function AllCreationsTab({
                         {onRenameFolder && (
                           <button
                             onClick={(e) => startRenamingFolder(folderId, folder.name, e)}
-                            className="p-1 rounded bg-white/80 hover:bg-blue-50 border border-neutral-200 transition-colors"
+                            className="p-1 rounded bg-white/80 hover:bg-[#0c1a3a]/5 border border-neutral-200 transition-colors"
                             title={t.library.actRename}
                           >
-                            <svg className="w-3.5 h-3.5 text-neutral-500 hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-3.5 h-3.5 text-neutral-500 hover:text-[#0c1a3a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                             </svg>
                           </button>
@@ -486,7 +486,7 @@ export default function AllCreationsTab({
                           onClick={(e) => e.stopPropagation()}
                           maxLength={50}
                           disabled={savingFolderName}
-                          className="w-full text-center font-bold text-base bg-white border-2 border-blue-400 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full text-center font-bold text-base bg-white border-2 border-[#0c1a3a]/40 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#0c1a3a]"
                           style={{ color: folder.color }}
                         />
                       ) : (
@@ -503,7 +503,7 @@ export default function AllCreationsTab({
                       </p>
                     </div>
                     {isExpanded && (
-                      <div className="absolute top-2 left-2 bg-blue-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                      <div className="absolute top-2 left-2 bg-[#0c1a3a] text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
                         ✓
                       </div>
                     )}
@@ -535,7 +535,7 @@ export default function AllCreationsTab({
                           onKeyDown={handleFolderNameKeyDown}
                           maxLength={50}
                           disabled={savingFolderName}
-                          className="font-bold text-lg bg-white border-2 border-blue-400 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="font-bold text-lg bg-white border-2 border-[#0c1a3a]/40 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#0c1a3a]"
                           style={{ color: folder.color }}
                         />
                       ) : (
@@ -549,7 +549,7 @@ export default function AllCreationsTab({
                               className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-neutral-200"
                               title={t.library.actRename}
                             >
-                              <svg className="w-4 h-4 text-neutral-400 hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg className="w-4 h-4 text-neutral-400 hover:text-[#0c1a3a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                               </svg>
                             </button>
@@ -600,7 +600,7 @@ export default function AllCreationsTab({
                         onClick={(e) => e.stopPropagation()}
                         maxLength={50}
                         disabled={savingFolderName}
-                        className="font-bold text-lg bg-white border-2 border-blue-400 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full max-w-xs"
+                        className="font-bold text-lg bg-white border-2 border-[#0c1a3a]/40 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#0c1a3a] w-full max-w-xs"
                         style={{ color: folder.color }}
                       />
                     ) : (
@@ -614,7 +614,7 @@ export default function AllCreationsTab({
                             className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-neutral-200"
                             title={t.library.actRename}
                           >
-                            <svg className="w-4 h-4 text-neutral-400 hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-4 h-4 text-neutral-400 hover:text-[#0c1a3a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                             </svg>
                           </button>
@@ -660,7 +660,7 @@ export default function AllCreationsTab({
             placeholder={t.library.actSearchByTitle}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1a3a]"
           />
         </div>
 
@@ -672,7 +672,7 @@ export default function AllCreationsTab({
               onClick={() => setFilterType('all')}
               className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
                 filterType === 'all'
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-[#0c1a3a] text-white'
                   : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
               }`}
             >
@@ -682,7 +682,7 @@ export default function AllCreationsTab({
               onClick={() => setFilterType('images')}
               className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
                 filterType === 'images'
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-[#0c1a3a] text-white'
                   : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
               }`}
             >
@@ -692,7 +692,7 @@ export default function AllCreationsTab({
               onClick={() => setFilterType('videos')}
               className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
                 filterType === 'videos'
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-[#0c1a3a] text-white'
                   : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
               }`}
             >
@@ -707,7 +707,7 @@ export default function AllCreationsTab({
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
-            className="px-3 py-1.5 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-1.5 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1a3a]"
           >
             <option value="folder">{t.library.actSortByFolder}</option>
             <option value="date">{t.library.actSortByDate}</option>
@@ -720,7 +720,7 @@ export default function AllCreationsTab({
               onClick={() => setViewMode('grid')}
               className={`p-1.5 rounded transition-colors ${
                 viewMode === 'grid'
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-[#0c1a3a] text-white'
                   : 'text-neutral-600 hover:bg-neutral-100'
               }`}
               title={t.library.actGridView}
@@ -733,7 +733,7 @@ export default function AllCreationsTab({
               onClick={() => setViewMode('list')}
               className={`p-1.5 rounded transition-colors ${
                 viewMode === 'list'
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-[#0c1a3a] text-white'
                   : 'text-neutral-600 hover:bg-neutral-100'
               }`}
               title={t.library.actListView}
@@ -747,7 +747,7 @@ export default function AllCreationsTab({
           {/* Create Folder Button */}
           <button
             onClick={() => setShowCreateFolderModal(true)}
-            className="ml-auto px-3 py-1.5 text-sm bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:from-blue-700 hover:to-cyan-700 rounded-lg transition-all flex items-center gap-2 font-semibold shadow-sm"
+            className="ml-auto px-3 py-1.5 text-sm bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white hover:from-[#1e3a5f] hover:to-[#0c1a3a] rounded-lg transition-all flex items-center gap-2 font-semibold shadow-sm"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -790,7 +790,7 @@ export default function AllCreationsTab({
                   value={newFolderName}
                   onChange={(e) => setNewFolderName(e.target.value)}
                   placeholder={t.library.actFolderNamePlaceholder}
-                  className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1a3a]"
                   autoFocus
                 />
               </div>
@@ -807,7 +807,7 @@ export default function AllCreationsTab({
                       onClick={() => setNewFolderIcon(icon)}
                       className={`w-12 h-12 rounded-lg flex items-center justify-center text-2xl transition-all ${
                         newFolderIcon === icon
-                          ? 'bg-blue-100 ring-2 ring-blue-500 scale-110'
+                          ? 'bg-[#0c1a3a]/10 ring-2 ring-[#0c1a3a] scale-110'
                           : 'bg-neutral-100 hover:bg-neutral-200'
                       }`}
                     >
@@ -871,7 +871,7 @@ export default function AllCreationsTab({
               <button
                 onClick={handleCreateFolder}
                 disabled={creatingFolder || !newFolderName.trim()}
-                className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-4 py-2 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white rounded-lg hover:from-[#1e3a5f] hover:to-[#0c1a3a] transition-all font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {creatingFolder ? t.library.actCreating : t.library.actCreateFolder}
               </button>
@@ -907,8 +907,8 @@ export default function AllCreationsTab({
 
               {/* Current folder indicator */}
               {itemToMove.folderId && (
-                <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-xs text-blue-600 font-medium mb-1">{t.library.actCurrentFolder}</p>
+                <div className="mb-4 p-3 bg-[#0c1a3a]/5 rounded-lg border border-[#0c1a3a]/10">
+                  <p className="text-xs text-[#0c1a3a] font-medium mb-1">{t.library.actCurrentFolder}</p>
                   <div className="flex items-center gap-2">
                     <span className="text-xl">{getFolderInfo(itemToMove.folderId).icon}</span>
                     <span className="text-sm font-semibold" style={{ color: getFolderInfo(itemToMove.folderId).color }}>
@@ -954,7 +954,7 @@ export default function AllCreationsTab({
                     disabled={movingToFolder}
                     className={`w-full p-3 rounded-lg text-left transition-all ${
                       itemToMove.folderId === folder.id
-                        ? 'bg-blue-50 border-2 border-blue-400'
+                        ? 'bg-[#0c1a3a]/5 border-2 border-[#0c1a3a]/40'
                         : 'bg-white hover:bg-neutral-50 border border-neutral-200'
                     }`}
                   >
@@ -969,7 +969,7 @@ export default function AllCreationsTab({
                         </p>
                       </div>
                       {itemToMove.folderId === folder.id && (
-                        <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                        <svg className="w-5 h-5 text-[#0c1a3a]" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
                       )}

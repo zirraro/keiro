@@ -124,7 +124,7 @@ export default function BrandPage() {
                 value={profile.name || ''}
                 onChange={(e) => setProfile({ ...profile, name: e.target.value })}
                 placeholder="Ex: Acme Inc."
-                className="w-full px-3 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1a3a]"
               />
             </div>
 
@@ -133,7 +133,7 @@ export default function BrandPage() {
               <select
                 value={profile.tone || ''}
                 onChange={(e) => setProfile({ ...profile, tone: e.target.value })}
-                className="w-full px-3 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1a3a]"
               >
                 <option value="">Sélectionner un ton</option>
                 <option value="professional">Professionnel</option>
@@ -158,7 +158,7 @@ export default function BrandPage() {
                     type="text"
                     value={profile.primary_color || '#2b82f6'}
                     onChange={(e) => setProfile({ ...profile, primary_color: e.target.value })}
-                    className="flex-1 px-3 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 px-3 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1a3a]"
                   />
                 </div>
               </div>
@@ -176,7 +176,7 @@ export default function BrandPage() {
                     type="text"
                     value={profile.secondary_color || '#111111'}
                     onChange={(e) => setProfile({ ...profile, secondary_color: e.target.value })}
-                    className="flex-1 px-3 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 px-3 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1a3a]"
                   />
                 </div>
               </div>
@@ -189,7 +189,7 @@ export default function BrandPage() {
                 value={profile.font_family || ''}
                 onChange={(e) => setProfile({ ...profile, font_family: e.target.value })}
                 placeholder="Ex: Inter, system-ui, sans-serif"
-                className="w-full px-3 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1a3a]"
               />
               <p className="text-xs text-neutral-500 mt-1">
                 Utilisez des polices disponibles sur Google Fonts ou système

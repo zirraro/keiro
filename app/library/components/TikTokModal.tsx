@@ -926,7 +926,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
     return (
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-cyan-500 to-[#1e3a5f] rounded-full mb-4">
             <span className="text-3xl">🎵</span>
           </div>
           <h3 className="text-lg font-bold text-neutral-900 mb-2">{t.library.prepareTikTokPost}</h3>
@@ -936,7 +936,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
           <div className="space-y-2.5 mb-6">
             <button
               onClick={() => { window.location.href = '/generate'; }}
-              className="w-full px-5 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all text-sm"
+              className="w-full px-5 py-3 bg-gradient-to-r from-cyan-500 to-[#1e3a5f] text-white font-semibold rounded-lg hover:shadow-lg transition-all text-sm"
             >
               {t.library.createVisual}
             </button>
@@ -962,9 +962,9 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 sm:p-6 border-b bg-gradient-to-r from-cyan-50 to-blue-50">
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b bg-gradient-to-r from-cyan-50 to-[#0c1a3a]/5">
           <div className="flex items-center gap-2 sm:gap-3">
-            <div className="w-8 h-8 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-to-r from-cyan-500 to-[#1e3a5f] rounded-lg flex items-center justify-center">
               <span className="text-xl">🎵</span>
             </div>
             <h2 className="text-lg sm:text-2xl font-bold text-neutral-900">{t.library.prepareTikTokPost}</h2>
@@ -994,7 +994,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
               onClick={() => setActiveTab('videos')}
               className={`flex-1 px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
                 activeTab === 'videos'
-                  ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-md'
+                  ? 'bg-gradient-to-r from-cyan-500 to-[#1e3a5f] text-white shadow-md'
                   : 'bg-white text-neutral-600 hover:bg-neutral-100'
               }`}
             >
@@ -1004,7 +1004,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
               onClick={() => setActiveTab('images')}
               className={`flex-1 px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
                 activeTab === 'images'
-                  ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-md'
+                  ? 'bg-gradient-to-r from-cyan-500 to-[#1e3a5f] text-white shadow-md'
                   : 'bg-white text-neutral-600 hover:bg-neutral-100'
               }`}
             >
@@ -1124,7 +1124,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                             </div>
                           </>
                         ) : (
-                          <div className="w-full h-full bg-gradient-to-br from-cyan-50 to-blue-50 flex flex-col items-center justify-center gap-2">
+                          <div className="w-full h-full bg-gradient-to-br from-cyan-50 to-[#0c1a3a]/5 flex flex-col items-center justify-center gap-2">
                             <svg className="w-8 h-8 text-cyan-400" fill="currentColor" viewBox="0 0 24 24">
                               <path d="M8 5v14l11-7z"/>
                             </svg>
@@ -1244,7 +1244,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                             </div>
                           </>
                         ) : (
-                          <div className="w-full h-full bg-gradient-to-br from-cyan-50 to-blue-50 flex flex-col items-center justify-center gap-1">
+                          <div className="w-full h-full bg-gradient-to-br from-cyan-50 to-[#0c1a3a]/5 flex flex-col items-center justify-center gap-1">
                             <svg className="w-4 h-4 text-cyan-400" fill="currentColor" viewBox="0 0 24 24">
                               <path d="M8 5v14l11-7z"/>
                             </svg>
@@ -1260,7 +1260,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
           </div>
 
           {/* APERÇU IMAGE/VIDÉO - COLONNE CENTRALE */}
-          <div className="flex-1 p-4 sm:p-6 overflow-y-auto bg-gradient-to-br from-cyan-50 to-blue-50">
+          <div className="flex-1 p-4 sm:p-6 overflow-y-auto bg-gradient-to-br from-cyan-50 to-[#0c1a3a]/5">
             {(selectedImage || selectedVideo) && (
               <div className="max-w-[280px] mx-auto">
                 <div className="aspect-[9/16] rounded-2xl overflow-hidden shadow-2xl mb-3 bg-black">
@@ -1330,7 +1330,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                 {activeTab === 'images' && selectedImage && (
                   <button
                     onClick={() => setShowImageEditModal(true)}
-                    className="w-full mb-2 py-2 bg-blue-50 text-blue-700 text-xs font-semibold rounded-lg hover:bg-blue-100 transition flex items-center justify-center gap-1.5"
+                    className="w-full mb-2 py-2 bg-[#0c1a3a]/5 text-[#0c1a3a] text-xs font-semibold rounded-lg hover:bg-[#0c1a3a]/10 transition flex items-center justify-center gap-1.5"
                   >
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -1494,7 +1494,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
 
               {/* Narration Audio (vidéos uniquement) */}
               {(activeTab === 'videos' && selectedVideo) || videoPreview ? (
-              <div className="border border-blue-200 bg-blue-50 rounded-lg p-4">
+              <div className="border border-[#0c1a3a]/10 bg-[#0c1a3a]/5 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-sm font-semibold text-neutral-900">
                     🎙️ {t.library.narrationAudio}
@@ -1511,7 +1511,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                 {!showNarrationEditor ? (
                   <button
                     onClick={() => setShowNarrationEditor(true)}
-                    className="w-full px-4 py-2 rounded-lg font-medium transition-colors bg-blue-600 text-white hover:bg-blue-700"
+                    className="w-full px-4 py-2 rounded-lg font-medium transition-colors bg-[#0c1a3a] text-white hover:bg-[#1e3a5f]"
                   >
                     {narrationAudioUrl ? `🎙️ ${t.library.editAudio}` : `🎙️ ${t.library.generateAudio}`}
                   </button>
@@ -1625,14 +1625,14 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
 
               {/* Statut fusion audio + vidéo */}
               {narrationAudioUrl && (selectedVideo || videoPreview) && (
-                <div className={`border rounded-lg p-4 space-y-3 ${mergedVideoUrl ? 'border-green-300 bg-green-50' : merging ? 'border-blue-300 bg-blue-50' : 'border-red-300 bg-red-50'}`}>
+                <div className={`border rounded-lg p-4 space-y-3 ${mergedVideoUrl ? 'border-green-300 bg-green-50' : merging ? 'border-[#0c1a3a]/20 bg-[#0c1a3a]/5' : 'border-red-300 bg-red-50'}`}>
                   <div className="flex items-center justify-between">
                     <label className="block text-sm font-semibold text-neutral-900">
                       🎬 {t.library.audioVideo}
                     </label>
                     {merging ? (
-                      <span className="text-xs text-blue-600 font-medium flex items-center gap-1">
-                        <span className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></span>
+                      <span className="text-xs text-[#0c1a3a] font-medium flex items-center gap-1">
+                        <span className="w-3 h-3 border-2 border-[#0c1a3a] border-t-transparent rounded-full animate-spin"></span>
                         {t.library.mergingInProgress}
                       </span>
                     ) : mergedVideoUrl ? (
@@ -2010,7 +2010,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                   {hashtags.map(tag => (
                     <span
                       key={tag}
-                      className="inline-flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-cyan-100 to-blue-100 text-cyan-800 text-xs rounded-full"
+                      className="inline-flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-cyan-100 to-[#0c1a3a]/10 text-cyan-800 text-xs rounded-full"
                     >
                       {tag}
                       <button
@@ -2093,7 +2093,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                   className={`flex-1 px-3 sm:px-4 py-2 sm:py-3 rounded-lg font-medium text-white transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm ${
                     publishing || !caption.trim() || (!isVideo(selectedImage?.image_url || '') && !videoPreview)
                       ? 'bg-neutral-400 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 shadow-lg hover:shadow-xl'
+                      : 'bg-gradient-to-r from-cyan-500 to-[#1e3a5f] hover:from-cyan-600 hover:to-[#0c1a3a] shadow-lg hover:shadow-xl'
                   }`}
                   title={!isVideo(selectedImage?.image_url || '') && !videoPreview ? t.library.generateVideoFirst : ''}
                 >
@@ -2130,7 +2130,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                 className={`flex-1 px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium text-white transition-colors flex items-center justify-center gap-2 text-sm sm:text-base ${
                   saving || !caption.trim()
                     ? 'bg-neutral-400 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600'
+                    : 'bg-gradient-to-r from-cyan-500 to-[#1e3a5f] hover:from-cyan-600 hover:to-[#0c1a3a]'
                 }`}
               >
                 {saving ? (
@@ -2179,7 +2179,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
 
             {loadingCreatorInfo ? (
               <div className="p-8 text-center">
-                <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                <div className="w-8 h-8 border-4 border-[#0c1a3a] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
                 <p className="text-sm text-neutral-500">Chargement des paramètres TikTok...</p>
               </div>
             ) : (
@@ -2280,7 +2280,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                           key={option}
                           className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition ${
                             disabledByBrandContent ? 'opacity-50 cursor-not-allowed border-neutral-200 bg-neutral-50' :
-                            privacyLevel === option ? 'border-blue-500 bg-blue-50' : 'border-neutral-200 hover:border-neutral-300'
+                            privacyLevel === option ? 'border-[#0c1a3a] bg-[#0c1a3a]/5' : 'border-neutral-200 hover:border-neutral-300'
                           }`}
                           title={disabledByBrandContent ? 'Branded content visibility cannot be set to private' : undefined}
                         >
@@ -2291,7 +2291,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                             checked={privacyLevel === option}
                             onChange={() => !disabledByBrandContent && setPrivacyLevel(option)}
                             disabled={disabledByBrandContent}
-                            className="w-4 h-4 text-blue-600"
+                            className="w-4 h-4 text-[#0c1a3a]"
                           />
                           <div>
                             <p className="text-sm font-medium text-neutral-900">
@@ -2316,7 +2316,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                   <p className="text-xs text-neutral-400 mb-2">Cochez les interactions que vous souhaitez autoriser sur cette publication</p>
                   <div className="space-y-2">
                     <label className={`flex items-center gap-3 p-2.5 rounded-lg border border-neutral-200 ${creatorInfo?.comment_disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-neutral-50'}`}>
-                      <input type="checkbox" checked={allowComments} onChange={(e) => setAllowComments(e.target.checked)} disabled={creatorInfo?.comment_disabled} className="w-4 h-4 rounded text-blue-600" />
+                      <input type="checkbox" checked={allowComments} onChange={(e) => setAllowComments(e.target.checked)} disabled={creatorInfo?.comment_disabled} className="w-4 h-4 rounded text-[#0c1a3a]" />
                       <div className="flex items-center gap-1.5">
                         <span className={`text-sm ${creatorInfo?.comment_disabled ? 'text-neutral-400' : 'text-neutral-700'}`}>Allow Comment</span>
                         <div className="group relative">
@@ -2327,7 +2327,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                       {creatorInfo?.comment_disabled && <p className="text-xs text-neutral-400 ml-7">Désactivé par vos paramètres TikTok</p>}
                     </label>
                     <label className={`flex items-center gap-3 p-2.5 rounded-lg border border-neutral-200 ${creatorInfo?.duet_disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-neutral-50'}`}>
-                      <input type="checkbox" checked={allowDuet} onChange={(e) => setAllowDuet(e.target.checked)} disabled={creatorInfo?.duet_disabled} className="w-4 h-4 rounded text-blue-600" />
+                      <input type="checkbox" checked={allowDuet} onChange={(e) => setAllowDuet(e.target.checked)} disabled={creatorInfo?.duet_disabled} className="w-4 h-4 rounded text-[#0c1a3a]" />
                       <div className="flex items-center gap-1.5">
                         <span className={`text-sm ${creatorInfo?.duet_disabled ? 'text-neutral-400' : 'text-neutral-700'}`}>Allow Duet</span>
                         <div className="group relative">
@@ -2338,7 +2338,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                       {creatorInfo?.duet_disabled && <p className="text-xs text-neutral-400 ml-7">Désactivé par vos paramètres TikTok</p>}
                     </label>
                     <label className={`flex items-center gap-3 p-2.5 rounded-lg border border-neutral-200 ${creatorInfo?.stitch_disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-neutral-50'}`}>
-                      <input type="checkbox" checked={allowStitch} onChange={(e) => setAllowStitch(e.target.checked)} disabled={creatorInfo?.stitch_disabled} className="w-4 h-4 rounded text-blue-600" />
+                      <input type="checkbox" checked={allowStitch} onChange={(e) => setAllowStitch(e.target.checked)} disabled={creatorInfo?.stitch_disabled} className="w-4 h-4 rounded text-[#0c1a3a]" />
                       <div className="flex items-center gap-1.5">
                         <span className={`text-sm ${creatorInfo?.stitch_disabled ? 'text-neutral-400' : 'text-neutral-700'}`}>Allow Stitch</span>
                         <div className="group relative">
@@ -2369,7 +2369,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                     <button
                       type="button"
                       onClick={() => { setContentDisclosure(!contentDisclosure); if (contentDisclosure) { setBrandOrganic(false); setBrandContent(false); } }}
-                      className={`relative w-11 h-6 rounded-full transition-colors ${contentDisclosure ? 'bg-blue-600' : 'bg-neutral-300'}`}
+                      className={`relative w-11 h-6 rounded-full transition-colors ${contentDisclosure ? 'bg-[#0c1a3a]' : 'bg-neutral-300'}`}
                     >
                       <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${contentDisclosure ? 'translate-x-5' : ''}`} />
                     </button>
@@ -2382,19 +2382,19 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                   {contentDisclosure && (
                     <div className="mt-3 space-y-2">
                       {/* Your Brand */}
-                      <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition ${brandOrganic ? 'border-blue-500 bg-blue-50' : 'border-neutral-200 hover:bg-neutral-50'}`}>
-                        <input type="checkbox" checked={brandOrganic} onChange={(e) => setBrandOrganic(e.target.checked)} className="w-4 h-4 rounded text-blue-600" />
+                      <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition ${brandOrganic ? 'border-[#0c1a3a] bg-[#0c1a3a]/5' : 'border-neutral-200 hover:bg-neutral-50'}`}>
+                        <input type="checkbox" checked={brandOrganic} onChange={(e) => setBrandOrganic(e.target.checked)} className="w-4 h-4 rounded text-[#0c1a3a]" />
                         <div>
                           <p className="text-sm font-medium text-neutral-700">Your Brand</p>
                           <p className="text-xs text-neutral-500">You are promoting yourself or your own business</p>
-                          {brandOrganic && <p className="text-xs text-blue-600 mt-1">Your photo/video will be labeled as &quot;Promotional content&quot;</p>}
+                          {brandOrganic && <p className="text-xs text-[#0c1a3a] mt-1">Your photo/video will be labeled as &quot;Promotional content&quot;</p>}
                         </div>
                       </label>
                       {/* Branded Content */}
                       <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition ${
                         (privacyLevel === 'SELF_ONLY' || privacyLevel === 'FOLLOWER_OF_CREATOR')
                           ? 'opacity-50 cursor-not-allowed border-neutral-200 bg-neutral-50'
-                          : brandContent ? 'border-blue-500 bg-blue-50' : 'border-neutral-200 hover:bg-neutral-50'
+                          : brandContent ? 'border-[#0c1a3a] bg-[#0c1a3a]/5' : 'border-neutral-200 hover:bg-neutral-50'
                       }`}>
                         <input
                           type="checkbox"
@@ -2409,12 +2409,12 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                             }
                           }}
                           disabled={privacyLevel === 'SELF_ONLY' || privacyLevel === 'FOLLOWER_OF_CREATOR'}
-                          className="w-4 h-4 rounded text-blue-600"
+                          className="w-4 h-4 rounded text-[#0c1a3a]"
                         />
                         <div>
                           <p className="text-sm font-medium text-neutral-700">Branded Content</p>
                           <p className="text-xs text-neutral-500">You are promoting another brand or a third party</p>
-                          {brandContent && <p className="text-xs text-blue-600 mt-1">Your photo/video will be labeled as &quot;Paid partnership&quot;</p>}
+                          {brandContent && <p className="text-xs text-[#0c1a3a] mt-1">Your photo/video will be labeled as &quot;Paid partnership&quot;</p>}
                           {(privacyLevel === 'SELF_ONLY' || privacyLevel === 'FOLLOWER_OF_CREATOR') && (
                             <p className="text-xs text-amber-600 mt-1">Branded content visibility cannot be set to private. Select Public or Friends visibility above.</p>
                           )}
@@ -2438,15 +2438,15 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                     </p>
                   </div>
                   <label className="flex items-start gap-3 cursor-pointer">
-                    <input type="checkbox" checked={legalAccepted} onChange={(e) => setLegalAccepted(e.target.checked)} className="w-4 h-4 rounded text-blue-600 mt-0.5" />
+                    <input type="checkbox" checked={legalAccepted} onChange={(e) => setLegalAccepted(e.target.checked)} className="w-4 h-4 rounded text-[#0c1a3a] mt-0.5" />
                     <p className="text-xs text-neutral-600">
                       I agree to TikTok&apos;s{' '}
-                      <a href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                      <a href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en" target="_blank" rel="noopener noreferrer" className="text-[#0c1a3a] underline">
                         Music Usage Confirmation
                       </a>
                       {(brandContent) && (
                         <>{' '}and the{' '}
-                          <a href="https://www.tiktok.com/legal/page/global/bc-policy/en" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                          <a href="https://www.tiktok.com/legal/page/global/bc-policy/en" target="_blank" rel="noopener noreferrer" className="text-[#0c1a3a] underline">
                             Branded Content Policy
                           </a>
                         </>
@@ -2469,7 +2469,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                   <button
                     onClick={handleConfirmPublish}
                     disabled={publishing || !privacyLevel || !legalAccepted || (contentDisclosure && !brandOrganic && !brandContent) || !creatorInfo?.can_post}
-                    className="flex-1 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl hover:shadow-lg transition disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="flex-1 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-cyan-500 to-[#0c1a3a] rounded-xl hover:shadow-lg transition disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     {publishing ? (
                       <span className="flex items-center justify-center gap-2">

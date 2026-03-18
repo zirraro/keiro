@@ -5,7 +5,7 @@ import BookDemoButton from '@/components/BookDemoButton';
 import { startCheckout } from '@/lib/stripe/checkout';
 import { FadeUp, ScaleIn, SlideInLeft, SlideInRight, StaggerContainer, StaggerItem, CountUp, HeroTextReveal, BlurIn, FloatUp, GlowPulse, TextShimmer, TextRotator, MorphingShape, MagneticButton } from '@/components/ui/motion';
 import { AnimatedGradientBG } from '@/components/ui/animated-gradient-bg';
-import { VortexBackground } from '@/components/ui/vortex-bg';
+
 import { PageReveal } from '@/components/ui/page-reveal';
 import { KeiroLockup } from '@/components/ui/keiro-logo';
 import { useLanguage } from '@/lib/i18n/context';
@@ -19,9 +19,6 @@ function HomeKeiroInner() {
       {/* Luxury page opening animation */}
       <PageReveal />
 
-      {/* Global animated gradient mesh background */}
-      <VortexBackground />
-
       {/* All content sits above the background */}
       <div className="relative" style={{ zIndex: 2 }}>
 
@@ -30,8 +27,8 @@ function HomeKeiroInner() {
         <div className="relative grid lg:grid-cols-12 gap-8 items-center">
           <div className="lg:col-span-7">
             <ScaleIn>
-            <div className="inline-flex items-center gap-2 rounded-full border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-xs text-blue-300">
-              <span className="h-2 w-2 rounded-full bg-blue-400 animate-pulse"></span>
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#1e3a5f]/30 bg-[#0c1a3a]/10 px-3 py-1 text-xs text-[#93b4d4]">
+              <span className="h-2 w-2 rounded-full bg-[#1e3a5f] animate-pulse"></span>
               {t.home.heroBadge}
             </div>
             </ScaleIn>
@@ -42,11 +39,11 @@ function HomeKeiroInner() {
               highlightClassName="gradient-text"
             />
             <FadeUp delay={0.3}>
-            <p className="mt-4 text-lg text-blue-200/70">
+            <p className="mt-4 text-lg text-[#a4bdd4]/70">
               {t.home.heroSubtitle}
             </p>
             <p className="mt-2 text-lg font-semibold">
-              <span className="text-blue-300/50">{locale === 'fr' ? 'Pour ' : 'For '}</span>
+              <span className="text-[#7fa0c4]/50">{locale === 'fr' ? 'Pour ' : 'For '}</span>
               <TextRotator
                 words={locale === 'fr'
                   ? ['restaurants', 'coachs sportifs', 'boutiques', 'cavistes', 'coiffeurs', 'artisans']
@@ -60,7 +57,7 @@ function HomeKeiroInner() {
             <FadeUp delay={0.5}>
             <div className="mt-6 flex flex-wrap gap-3">
               <MagneticButton>
-              <a href="/generate" className="inline-block px-5 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-400 text-white font-medium hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5 transition-all cta-shimmer">
+              <a href="/generate" className="inline-block px-5 py-3 rounded-xl bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-medium hover:shadow-lg hover:shadow-[#0c1a3a]/25 hover:-translate-y-0.5 transition-all cta-shimmer">
                 {t.common.tryFree}
               </a>
               </MagneticButton>
@@ -72,14 +69,14 @@ function HomeKeiroInner() {
             </FadeUp>
             <FadeUp delay={0.6}>
             <ul className="mt-6 grid sm:grid-cols-3 gap-4 text-sm">
-              <li className="rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 p-3 text-blue-100">
-                <span className="text-blue-400 mr-1">✓</span> {t.home.heroCheck1}
+              <li className="rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 p-3 text-[#c8d8e8]">
+                <span className="text-[#6b9fd4] mr-1">✓</span> {t.home.heroCheck1}
               </li>
-              <li className="rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 p-3 text-blue-100">
-                <span className="text-blue-400 mr-1">✓</span> {t.home.heroCheck2}
+              <li className="rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 p-3 text-[#c8d8e8]">
+                <span className="text-[#6b9fd4] mr-1">✓</span> {t.home.heroCheck2}
               </li>
-              <li className="rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 p-3 text-blue-100">
-                <span className="text-blue-400 mr-1">✓</span> {t.home.heroCheck3}
+              <li className="rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 p-3 text-[#c8d8e8]">
+                <span className="text-[#6b9fd4] mr-1">✓</span> {t.home.heroCheck3}
               </li>
             </ul>
             </FadeUp>
@@ -91,12 +88,12 @@ function HomeKeiroInner() {
             <div className="rounded-2xl overflow-hidden bg-white/5 backdrop-blur-sm border border-white/10">
               <div className="p-5 border-b border-white/10 bg-white/5">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-full bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-white text-xl">
+                  <div className="w-10 h-10 rounded-full bg-[#0c1a3a]/20 border border-[#1e3a5f]/30 flex items-center justify-center text-white text-xl">
                     🤖
                   </div>
                   <div>
                     <h3 className="font-bold text-white">{t.home.heroCardTitle}</h3>
-                    <p className="text-xs text-blue-300/60">{t.home.heroCardSubtitle}</p>
+                    <p className="text-xs text-[#7fa0c4]/60">{t.home.heroCardSubtitle}</p>
                   </div>
                 </div>
               </div>
@@ -105,12 +102,12 @@ function HomeKeiroInner() {
                 {/* Stats cards mini */}
                 <div className="grid grid-cols-2 gap-2">
                   <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-                    <div className="text-xs text-blue-300/70 font-medium">{t.home.heroCardEngagement}</div>
+                    <div className="text-xs text-[#7fa0c4]/70 font-medium">{t.home.heroCardEngagement}</div>
                     <div className="text-xl font-bold text-white">+347%</div>
                     <div className="text-[10px] text-cyan-400/60">↗ +28% vs semaine</div>
                   </div>
                   <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-                    <div className="text-xs text-blue-300/70 font-medium">{t.home.heroCardPosts}</div>
+                    <div className="text-xs text-[#7fa0c4]/70 font-medium">{t.home.heroCardPosts}</div>
                     <div className="text-xl font-bold text-white">24</div>
                     <div className="text-[10px] text-cyan-400/60">{t.home.heroCardCharts}</div>
                   </div>
@@ -122,18 +119,18 @@ function HomeKeiroInner() {
                     <span className="text-lg">🎯</span>
                     <div className="flex-1">
                       <p className="text-xs font-semibold text-white mb-1">{t.home.heroCardRecommendation}</p>
-                      <p className="text-[11px] text-blue-200/60 leading-relaxed" dangerouslySetInnerHTML={{ __html: t.home.heroCardRecommendationText }} />
+                      <p className="text-[11px] text-[#a4bdd4]/60 leading-relaxed" dangerouslySetInnerHTML={{ __html: t.home.heroCardRecommendationText }} />
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-blue-500/20 border border-blue-400/20 rounded-lg p-3 text-center">
-                  <p className="text-xs font-bold text-blue-200">✨ {t.home.heroCardInsights}</p>
+                <div className="bg-[#0c1a3a]/20 border border-[#1e3a5f]/20 rounded-lg p-3 text-center">
+                  <p className="text-xs font-bold text-[#a4bdd4]">✨ {t.home.heroCardInsights}</p>
                 </div>
               </div>
 
               <div className="p-3 bg-white/5 border-t border-white/10 text-center">
-                <a href="/assistant" className="text-xs text-blue-300 hover:text-blue-200 font-medium">
+                <a href="/assistant" className="text-xs text-[#7fa0c4] hover:text-[#a4bdd4] font-medium">
                   {t.home.heroCardDiscover}
                 </a>
               </div>
@@ -155,17 +152,17 @@ function HomeKeiroInner() {
         <ScaleIn>
         <div className="max-w-2xl mx-auto px-6">
           <GlowPulse color="rgba(59, 130, 246, 0.15)">
-          <div className="bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-600 rounded-2xl px-6 py-4">
+          <div className="bg-gradient-to-r from-[#0c1a3a] via-[#1e3a5f] to-[#0c1a3a] rounded-2xl px-6 py-4">
           <FadeUp>
           <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-white">
             <div className="flex items-center gap-3">
               <span className="text-xl">⚡</span>
               <div>
                 <p className="font-semibold">{t.home.sprintTitle}</p>
-                <p className="text-xs text-blue-100">{t.home.sprintSubtitle}</p>
+                <p className="text-xs text-[#c8d8e8]">{t.home.sprintSubtitle}</p>
               </div>
             </div>
-            <button onClick={() => startCheckout('sprint')} className="px-5 py-2 rounded-lg bg-white text-blue-600 font-semibold hover:bg-blue-50 transition-all text-sm whitespace-nowrap">
+            <button onClick={() => startCheckout('sprint')} className="px-5 py-2 rounded-lg bg-white text-[#0c1a3a] font-semibold hover:bg-[#eef2f7] transition-all text-sm whitespace-nowrap">
               {t.home.sprintCta}
             </button>
           </div>
@@ -259,49 +256,49 @@ function HomeKeiroInner() {
         <div className="grid lg:grid-cols-2 gap-8 items-center">
           {/* Galerie preview */}
           <SlideInLeft><div className="rounded-2xl premium-card overflow-hidden bg-white hover:shadow-soft-lg hover:-translate-y-0.5 transition-all">
-            <div className="bg-gradient-to-r from-blue-500 to-cyan-500 p-4">
+            <div className="bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] p-4">
               <h3 className="text-white font-bold flex items-center gap-2">
                 <span>📁</span> {t.home.galleryOrganized}
               </h3>
             </div>
             <div className="p-5">
               <div className="grid grid-cols-3 gap-2 mb-4">
-                <div className="aspect-square rounded-lg overflow-hidden border border-blue-200 shadow-sm">
+                <div className="aspect-square rounded-lg overflow-hidden border border-[#0c1a3a]/10 shadow-sm">
                   <img
                     src="https://images.unsplash.com/photo-1611162616305-c69b3fa7fbe0?q=80&w=400&auto=format&fit=crop"
                     alt="Exemple visuel"
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <div className="aspect-square rounded-lg overflow-hidden border border-blue-200 shadow-sm">
+                <div className="aspect-square rounded-lg overflow-hidden border border-[#0c1a3a]/10 shadow-sm">
                   <img
                     src="https://images.unsplash.com/photo-1557804506-669a67965ba0?q=80&w=400&auto=format&fit=crop"
                     alt="Exemple visuel"
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <div className="aspect-square rounded-lg overflow-hidden border border-blue-200 shadow-sm">
+                <div className="aspect-square rounded-lg overflow-hidden border border-[#0c1a3a]/10 shadow-sm">
                   <img
                     src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=400&auto=format&fit=crop"
                     alt="Exemple visuel"
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <div className="aspect-square rounded-lg overflow-hidden border border-blue-200 shadow-sm">
+                <div className="aspect-square rounded-lg overflow-hidden border border-[#0c1a3a]/10 shadow-sm">
                   <img
                     src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=400&auto=format&fit=crop"
                     alt="Exemple visuel"
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <div className="aspect-square rounded-lg overflow-hidden border border-blue-200 shadow-sm">
+                <div className="aspect-square rounded-lg overflow-hidden border border-[#0c1a3a]/10 shadow-sm">
                   <img
                     src="https://images.unsplash.com/photo-1533750516457-a7f992034fec?q=80&w=400&auto=format&fit=crop"
                     alt="Exemple visuel"
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <div className="aspect-square rounded-lg overflow-hidden border border-blue-200 shadow-sm">
+                <div className="aspect-square rounded-lg overflow-hidden border border-[#0c1a3a]/10 shadow-sm">
                   <img
                     src="https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=400&auto=format&fit=crop"
                     alt="Exemple visuel"
@@ -310,15 +307,15 @@ function HomeKeiroInner() {
                 </div>
               </div>
               <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2 text-blue-600">
+                <div className="flex items-center gap-2 text-[#0c1a3a]">
                   <span>✓</span>
                   <span>{t.home.galleryFolder}</span>
                 </div>
-                <div className="flex items-center gap-2 text-blue-600">
+                <div className="flex items-center gap-2 text-[#0c1a3a]">
                   <span>✓</span>
                   <span>{t.home.galleryDragDrop}</span>
                 </div>
-                <div className="flex items-center gap-2 text-blue-600">
+                <div className="flex items-center gap-2 text-[#0c1a3a]">
                   <span>✓</span>
                   <span>{t.home.galleryEditTitle}</span>
                 </div>
@@ -334,11 +331,11 @@ function HomeKeiroInner() {
               </h3>
             </div>
             <div className="p-5 space-y-3">
-              <div className="bg-white rounded-lg p-3 border border-blue-200">
+              <div className="bg-white rounded-lg p-3 border border-[#0c1a3a]/10">
                 <div className="flex items-start gap-2 mb-2">
                   <span className="text-lg">✨</span>
                   <div className="flex-1">
-                    <p className="text-xs font-semibold text-blue-900">{t.home.galleryCaptionTitle}</p>
+                    <p className="text-xs font-semibold text-[#0c1a3a]">{t.home.galleryCaptionTitle}</p>
                     <p className="text-[11px] text-neutral-600 mt-1">
                       "🔥 Cette semaine, on parle de [ton sujet]...<br/>
                       ✅ 3 actions concrètes<br/>
@@ -347,34 +344,34 @@ function HomeKeiroInner() {
                   </div>
                 </div>
               </div>
-              <div className="bg-white rounded-lg p-3 border border-blue-200">
+              <div className="bg-white rounded-lg p-3 border border-[#0c1a3a]/10">
                 <div className="flex items-start gap-2">
                   <span className="text-lg">#️⃣</span>
                   <div className="flex-1">
-                    <p className="text-xs font-semibold text-blue-900">{t.home.galleryHashtagTitle}</p>
-                    <p className="text-[11px] text-blue-600 mt-1">
+                    <p className="text-xs font-semibold text-[#0c1a3a]">{t.home.galleryHashtagTitle}</p>
+                    <p className="text-[11px] text-[#0c1a3a] mt-1">
                       {t.home.galleryHashtagOptimized}
                     </p>
                   </div>
                 </div>
               </div>
               <div className="space-y-2 text-xs">
-                <div className="flex items-center gap-2 text-blue-600">
+                <div className="flex items-center gap-2 text-[#0c1a3a]">
                   <span>✓</span>
                   <span>{t.home.galleryPublishInstagram}</span>
                 </div>
-                <div className="flex items-center gap-2 text-blue-600">
+                <div className="flex items-center gap-2 text-[#0c1a3a]">
                   <span>✓</span>
                   <span>{t.home.galleryPublishTikTok}</span>
                 </div>
-                <div className="flex items-center gap-2 text-blue-600">
+                <div className="flex items-center gap-2 text-[#0c1a3a]">
                   <span>✓</span>
                   <span>{t.home.galleryDrafts}</span>
                 </div>
               </div>
             </div>
-            <div className="p-3 bg-white border-t border-blue-200 text-center">
-              <a href="/library" className="text-xs text-blue-600 hover:text-blue-700 font-medium">
+            <div className="p-3 bg-white border-t border-[#0c1a3a]/10 text-center">
+              <a href="/library" className="text-xs text-[#0c1a3a] hover:text-[#0c1a3a] font-medium">
                 {t.home.galleryViewCta}
               </a>
             </div>
@@ -382,12 +379,12 @@ function HomeKeiroInner() {
         </div>
 
         <FadeUp><div className="mt-8 bg-gradient-to-r from-purple-50 via-pink-50 to-cyan-50 rounded-2xl premium-card p-6 text-center">
-          <p className="text-sm text-blue-900" dangerouslySetInnerHTML={{ __html: t.home.galleryMultiPlatform }} />
+          <p className="text-sm text-[#0c1a3a]" dangerouslySetInnerHTML={{ __html: t.home.galleryMultiPlatform }} />
         </div></FadeUp>
 
         {/* CTA après Galerie */}
         <div className="mt-10 text-center">
-          <a href="/generate" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold text-lg hover:shadow-xl transition-all hover:-translate-y-0.5">
+          <a href="/generate" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold text-lg hover:shadow-xl transition-all hover:-translate-y-0.5">
             {t.home.galleryCta}
           </a>
           <p className="mt-3 text-sm text-neutral-600">
@@ -445,10 +442,10 @@ function HomeKeiroInner() {
 
           {/* APRÈS - Overlay simple et réaliste Keiro */}
           <SlideInRight><div className="relative">
-            <div className="absolute -top-3 -left-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-4 py-1 rounded-full text-sm font-semibold shadow-lg z-10">
+            <div className="absolute -top-3 -left-3 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white px-4 py-1 rounded-full text-sm font-semibold shadow-lg z-10">
               {t.home.afterLabel}
             </div>
-            <div className="rounded-2xl border-2 border-blue-400 overflow-hidden bg-white shadow-2xl">
+            <div className="rounded-2xl border-2 border-[#0c1a3a]/30 overflow-hidden bg-white shadow-2xl">
               {/* Image pro avec overlay SIMPLE et RÉALISTE */}
               <div className="relative">
                 <img
@@ -467,27 +464,27 @@ function HomeKeiroInner() {
               </div>
 
               {/* Caption Instagram optimisée par IA */}
-              <div className="p-4 space-y-3 bg-gradient-to-b from-white to-blue-50/30">
+              <div className="p-4 space-y-3 bg-gradient-to-b from-white to-[#0c1a3a]/3">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 ring-2 ring-blue-300"></div>
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#0c1a3a] to-[#1e3a5f] ring-2 ring-[#1e3a5f]/30"></div>
                   <span className="text-sm font-semibold">coach_maxime</span>
-                  <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">{t.home.afterBadge}</span>
+                  <span className="text-xs bg-[#0c1a3a]/10 text-[#0c1a3a] px-2 py-0.5 rounded-full font-medium">{t.home.afterBadge}</span>
                 </div>
                 <p className="text-sm text-neutral-800 leading-relaxed whitespace-pre-line">
-                  <span className="font-bold text-blue-600">{t.home.afterCaptionTitle}</span> 💪{'\n\n'}
+                  <span className="font-bold text-[#0c1a3a]">{t.home.afterCaptionTitle}</span> 💪{'\n\n'}
                   {t.home.afterCaptionBody}{'\n\n'}
                   <span className="font-bold">{t.home.afterCaptionResult}</span>{'\n'}(ou remboursé){'\n\n'}
                   {t.home.afterCaptionCta}{'\n'}
                   <span className="text-xs text-neutral-600">{t.home.afterCaptionLimit}</span>
                 </p>
-                <p className="text-xs text-blue-600 font-medium">{t.home.afterHashtags}</p>
-                <div className="pt-2 border-t border-blue-200">
-                  <p className="text-xs text-blue-600 font-bold">{t.home.afterStats}</p>
+                <p className="text-xs text-[#0c1a3a] font-medium">{t.home.afterHashtags}</p>
+                <div className="pt-2 border-t border-[#0c1a3a]/10">
+                  <p className="text-xs text-[#0c1a3a] font-bold">{t.home.afterStats}</p>
                 </div>
               </div>
 
               {/* Résultat */}
-              <div className="bg-gradient-to-r from-blue-500 to-cyan-500 p-4 text-center border-t-2 border-cyan-400">
+              <div className="bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] p-4 text-center border-t-2 border-cyan-400">
                 <p className="text-sm font-bold text-white">{t.home.afterResult}</p>
                 <p className="text-xs text-white/90 mt-1">{t.home.afterResultSub}</p>
               </div>
@@ -497,28 +494,28 @@ function HomeKeiroInner() {
 
         {/* Explication sous les images */}
         <FadeUp>
-        <div className="mt-8 bg-blue-50 rounded-2xl border border-blue-200 p-6">
-          <h3 className="text-lg font-bold text-blue-900 mb-3">{t.home.changeTitle}</h3>
+        <div className="mt-8 bg-[#0c1a3a]/5 rounded-2xl border border-[#0c1a3a]/10 p-6">
+          <h3 className="text-lg font-bold text-[#0c1a3a] mb-3">{t.home.changeTitle}</h3>
           <div className="grid md:grid-cols-3 gap-4">
             <div className="flex items-start gap-2">
-              <span className="text-blue-500 text-xl">✓</span>
+              <span className="text-[#0c1a3a] text-xl">✓</span>
               <div>
-                <p className="text-sm font-semibold text-blue-900">{t.home.change1Title}</p>
-                <p className="text-xs text-blue-700">{t.home.change1Desc}</p>
+                <p className="text-sm font-semibold text-[#0c1a3a]">{t.home.change1Title}</p>
+                <p className="text-xs text-[#0c1a3a]">{t.home.change1Desc}</p>
               </div>
             </div>
             <div className="flex items-start gap-2">
-              <span className="text-blue-500 text-xl">✓</span>
+              <span className="text-[#0c1a3a] text-xl">✓</span>
               <div>
-                <p className="text-sm font-semibold text-blue-900">{t.home.change2Title}</p>
-                <p className="text-xs text-blue-700">{t.home.change2Desc}</p>
+                <p className="text-sm font-semibold text-[#0c1a3a]">{t.home.change2Title}</p>
+                <p className="text-xs text-[#0c1a3a]">{t.home.change2Desc}</p>
               </div>
             </div>
             <div className="flex items-start gap-2">
-              <span className="text-blue-500 text-xl">✓</span>
+              <span className="text-[#0c1a3a] text-xl">✓</span>
               <div>
-                <p className="text-sm font-semibold text-blue-900">{t.home.change3Title}</p>
-                <p className="text-xs text-blue-700">{t.home.change3Desc}</p>
+                <p className="text-sm font-semibold text-[#0c1a3a]">{t.home.change3Title}</p>
+                <p className="text-xs text-[#0c1a3a]">{t.home.change3Desc}</p>
               </div>
             </div>
           </div>
@@ -527,7 +524,7 @@ function HomeKeiroInner() {
 
         {/* CTA */}
         <div className="mt-10 text-center">
-          <a href="/generate" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold text-lg hover:shadow-xl transition-all hover:-translate-y-0.5">
+          <a href="/generate" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold text-lg hover:shadow-xl transition-all hover:-translate-y-0.5">
             {t.home.generateFirstCta}
           </a>
         </div>
@@ -543,12 +540,12 @@ function HomeKeiroInner() {
         <div className="relative mx-auto max-w-6xl px-6 py-12">
           <FadeUp>
           <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-blue-300 text-xs font-medium mb-4">
-              <span className="h-2 w-2 rounded-full bg-blue-400 animate-pulse"></span>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-[#7fa0c4] text-xs font-medium mb-4">
+              <span className="h-2 w-2 rounded-full bg-[#1e3a5f] animate-pulse"></span>
               {t.home.aiBadge}
             </div>
             <h2 className="text-3xl font-bold text-white">{t.home.aiTitle}</h2>
-            <p className="mt-2 text-blue-200">{t.home.aiSubtitle}</p>
+            <p className="mt-2 text-[#a4bdd4]">{t.home.aiSubtitle}</p>
           </div>
           </FadeUp>
 
@@ -559,60 +556,60 @@ function HomeKeiroInner() {
                 <h3 className="text-white font-bold text-lg flex items-center gap-2">
                   <span>📊</span> {t.home.aiDashboardTitle}
                 </h3>
-                <p className="text-blue-300 text-sm mt-1">{t.home.aiDashboardSub}</p>
+                <p className="text-[#7fa0c4] text-sm mt-1">{t.home.aiDashboardSub}</p>
               </div>
 
               <div className="p-5 space-y-4">
                 {/* Stats cards preview */}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-white/5 rounded-lg p-4 border border-white/10">
-                    <div className="text-xs text-blue-300 font-semibold mb-1">{t.home.aiThisWeek}</div>
+                    <div className="text-xs text-[#7fa0c4] font-semibold mb-1">{t.home.aiThisWeek}</div>
                     <div className="text-2xl font-bold text-white"><CountUp target={12} /></div>
-                    <div className="text-xs text-blue-400">{t.home.aiVisualsGenerated}</div>
+                    <div className="text-xs text-[#6b9fd4]">{t.home.aiVisualsGenerated}</div>
                   </div>
                   <div className="bg-white/5 rounded-lg p-4 border border-white/10">
-                    <div className="text-xs text-blue-300 font-semibold mb-1">{t.home.aiEngagement}</div>
+                    <div className="text-xs text-[#7fa0c4] font-semibold mb-1">{t.home.aiEngagement}</div>
                     <div className="text-2xl font-bold text-white"><CountUp target={347} suffix="%" prefix="+" /></div>
-                    <div className="text-xs text-blue-400 font-semibold">↗ +40%</div>
+                    <div className="text-xs text-[#6b9fd4] font-semibold">↗ +40%</div>
                   </div>
                 </div>
 
                 {/* Charts preview */}
                 <div className="space-y-3">
                   <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-                    <p className="text-xs font-semibold text-blue-300 mb-2">{t.home.aiEvolution}</p>
+                    <p className="text-xs font-semibold text-[#7fa0c4] mb-2">{t.home.aiEvolution}</p>
                     <div className="h-20 bg-white/5 rounded flex items-end justify-around p-2">
                       {[40, 60, 45, 80, 70, 95].map((h, i) => (
-                        <div key={i} className="bg-gradient-to-t from-blue-500 to-cyan-400 rounded-t" style={{ height: `${h}%`, width: '12%' }}></div>
+                        <div key={i} className="bg-gradient-to-t from-[#0c1a3a] to-[#1e3a5f] rounded-t" style={{ height: `${h}%`, width: '12%' }}></div>
                       ))}
                     </div>
                   </div>
 
                   <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-                    <p className="text-xs font-semibold text-blue-300 mb-2">{t.home.aiBestTimes}</p>
+                    <p className="text-xs font-semibold text-[#7fa0c4] mb-2">{t.home.aiBestTimes}</p>
                     <div className="h-16 bg-white/5 rounded flex items-center justify-center">
-                      <p className="text-xs text-blue-300 font-semibold">{t.home.aiBestTimesValue}</p>
+                      <p className="text-xs text-[#7fa0c4] font-semibold">{t.home.aiBestTimesValue}</p>
                     </div>
                   </div>
 
                   <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-                    <p className="text-xs font-semibold text-blue-300 mb-2">{t.home.aiTopCategories}</p>
+                    <p className="text-xs font-semibold text-[#7fa0c4] mb-2">{t.home.aiTopCategories}</p>
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <div className="h-2 bg-gradient-to-r from-blue-500 to-cyan-400 rounded" style={{ width: '80%' }}></div>
-                        <span className="text-[10px] text-blue-400">Tech</span>
+                        <div className="h-2 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] rounded" style={{ width: '80%' }}></div>
+                        <span className="text-[10px] text-[#6b9fd4]">Tech</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <div className="h-2 bg-gradient-to-r from-blue-400 to-cyan-300 rounded" style={{ width: '60%' }}></div>
-                        <span className="text-[10px] text-blue-400">Business</span>
+                        <div className="h-2 bg-gradient-to-r from-[#1e3a5f] to-cyan-300 rounded" style={{ width: '60%' }}></div>
+                        <span className="text-[10px] text-[#6b9fd4]">Business</span>
                       </div>
                     </div>
                   </div>
                 </div>
 
                 <div className="bg-white/10 rounded-lg p-3 border border-white/10 text-center">
-                  <p className="text-xs text-blue-300 font-semibold">{t.home.aiMoreCharts}</p>
-                  <p className="text-[10px] text-blue-400 mt-1">{t.home.aiMoreChartsSub}</p>
+                  <p className="text-xs text-[#7fa0c4] font-semibold">{t.home.aiMoreCharts}</p>
+                  <p className="text-[10px] text-[#6b9fd4] mt-1">{t.home.aiMoreChartsSub}</p>
                 </div>
               </div>
             </div></SlideInLeft>
@@ -624,7 +621,7 @@ function HomeKeiroInner() {
                   <h3 className="text-white font-bold text-lg flex items-center gap-2">
                     <span>🎯</span> {t.home.aiStrategicTitle}
                   </h3>
-                  <p className="text-blue-300 text-sm mt-1">{t.home.aiStrategicSub}</p>
+                  <p className="text-[#7fa0c4] text-sm mt-1">{t.home.aiStrategicSub}</p>
                 </div>
 
                 <div className="p-5 space-y-3">
@@ -634,9 +631,9 @@ function HomeKeiroInner() {
                       <span className="text-2xl">🎯</span>
                       <div className="flex-1">
                         <p className="text-sm font-bold text-white mb-1">{t.home.aiInsight1Title}</p>
-                        <p className="text-xs text-blue-200 leading-relaxed mb-2" dangerouslySetInnerHTML={{ __html: t.home.aiInsight1Text }} />
+                        <p className="text-xs text-[#a4bdd4] leading-relaxed mb-2" dangerouslySetInnerHTML={{ __html: t.home.aiInsight1Text }} />
                         <div className="bg-white/10 rounded p-2">
-                          <p className="text-[10px] text-blue-300" dangerouslySetInnerHTML={{ __html: t.home.aiInsight1Tip }} />
+                          <p className="text-[10px] text-[#7fa0c4]" dangerouslySetInnerHTML={{ __html: t.home.aiInsight1Tip }} />
                         </div>
                       </div>
                     </div>
@@ -648,9 +645,9 @@ function HomeKeiroInner() {
                       <span className="text-2xl">⏰</span>
                       <div className="flex-1">
                         <p className="text-sm font-bold text-white mb-1">{t.home.aiInsight2Title}</p>
-                        <p className="text-xs text-blue-200 leading-relaxed mb-2" dangerouslySetInnerHTML={{ __html: t.home.aiInsight2Text }} />
+                        <p className="text-xs text-[#a4bdd4] leading-relaxed mb-2" dangerouslySetInnerHTML={{ __html: t.home.aiInsight2Text }} />
                         <div className="bg-white/10 rounded p-2">
-                          <p className="text-[10px] text-blue-300" dangerouslySetInnerHTML={{ __html: t.home.aiInsight2Tip }} />
+                          <p className="text-[10px] text-[#7fa0c4]" dangerouslySetInnerHTML={{ __html: t.home.aiInsight2Tip }} />
                         </div>
                       </div>
                     </div>
@@ -662,9 +659,9 @@ function HomeKeiroInner() {
                       <span className="text-2xl">🔮</span>
                       <div className="flex-1">
                         <p className="text-sm font-bold text-white mb-1">{t.home.aiInsight3Title}</p>
-                        <p className="text-xs text-blue-200 leading-relaxed mb-2" dangerouslySetInnerHTML={{ __html: t.home.aiInsight3Text }} />
+                        <p className="text-xs text-[#a4bdd4] leading-relaxed mb-2" dangerouslySetInnerHTML={{ __html: t.home.aiInsight3Text }} />
                         <div className="bg-white/10 rounded p-2">
-                          <p className="text-[10px] text-blue-300" dangerouslySetInnerHTML={{ __html: t.home.aiInsight3Tip }} />
+                          <p className="text-[10px] text-[#7fa0c4]" dangerouslySetInnerHTML={{ __html: t.home.aiInsight3Tip }} />
                         </div>
                       </div>
                     </div>
@@ -679,24 +676,24 @@ function HomeKeiroInner() {
                 </h4>
                 <ul className="space-y-2 text-sm">
                   <li className="flex items-start gap-2">
-                    <span className="text-blue-400 text-lg">✓</span>
-                    <span className="text-blue-200" dangerouslySetInnerHTML={{ __html: t.home.aiFeature1 }} />
+                    <span className="text-[#6b9fd4] text-lg">✓</span>
+                    <span className="text-[#a4bdd4]" dangerouslySetInnerHTML={{ __html: t.home.aiFeature1 }} />
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-blue-400 text-lg">✓</span>
-                    <span className="text-blue-200" dangerouslySetInnerHTML={{ __html: t.home.aiFeature2 }} />
+                    <span className="text-[#6b9fd4] text-lg">✓</span>
+                    <span className="text-[#a4bdd4]" dangerouslySetInnerHTML={{ __html: t.home.aiFeature2 }} />
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-blue-400 text-lg">✓</span>
-                    <span className="text-blue-200" dangerouslySetInnerHTML={{ __html: t.home.aiFeature3 }} />
+                    <span className="text-[#6b9fd4] text-lg">✓</span>
+                    <span className="text-[#a4bdd4]" dangerouslySetInnerHTML={{ __html: t.home.aiFeature3 }} />
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-blue-400 text-lg">✓</span>
-                    <span className="text-blue-200" dangerouslySetInnerHTML={{ __html: t.home.aiFeature4 }} />
+                    <span className="text-[#6b9fd4] text-lg">✓</span>
+                    <span className="text-[#a4bdd4]" dangerouslySetInnerHTML={{ __html: t.home.aiFeature4 }} />
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-blue-400 text-lg">✓</span>
-                    <span className="text-blue-200" dangerouslySetInnerHTML={{ __html: t.home.aiFeature5 }} />
+                    <span className="text-[#6b9fd4] text-lg">✓</span>
+                    <span className="text-[#a4bdd4]" dangerouslySetInnerHTML={{ __html: t.home.aiFeature5 }} />
                   </li>
                 </ul>
               </div>
@@ -706,10 +703,10 @@ function HomeKeiroInner() {
           {/* CTA */}
           <FadeUp>
           <div className="mt-10 text-center">
-            <a href="/assistant" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold text-lg hover:shadow-xl transition-all hover:-translate-y-0.5 cta-shimmer">
+            <a href="/assistant" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold text-lg hover:shadow-xl transition-all hover:-translate-y-0.5 cta-shimmer">
               {t.home.aiCta}
             </a>
-            <p className="mt-3 text-sm text-blue-300">
+            <p className="mt-3 text-sm text-[#7fa0c4]">
               {t.home.aiCtaSub}
             </p>
           </div>
@@ -742,7 +739,7 @@ function HomeKeiroInner() {
             </div>
             <p className="text-neutral-700 mb-4 leading-relaxed">{t.home.testimonial1Text}</p>
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-lg">
+              <div className="w-12 h-12 rounded-full bg-[#0c1a3a] flex items-center justify-center text-white font-bold text-lg">
                 K
               </div>
               <div>
@@ -754,7 +751,7 @@ function HomeKeiroInner() {
 
           {/* Témoignage 2 */}
           <StaggerItem><div className="bg-white rounded-2xl premium-card p-6 hover:shadow-soft-lg hover:-translate-y-0.5 transition-all">
-            <div className="flex items-center gap-1 mb-4 text-blue-400">
+            <div className="flex items-center gap-1 mb-4 text-[#6b9fd4]">
               <span>⭐</span>
               <span>⭐</span>
               <span>⭐</span>
@@ -763,7 +760,7 @@ function HomeKeiroInner() {
             </div>
             <p className="text-neutral-700 mb-4 leading-relaxed">{t.home.testimonial2Text}</p>
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-lg">
+              <div className="w-12 h-12 rounded-full bg-[#0c1a3a] flex items-center justify-center text-white font-bold text-lg">
                 J
               </div>
               <div>
@@ -775,7 +772,7 @@ function HomeKeiroInner() {
 
           {/* Témoignage 3 */}
           <StaggerItem><div className="bg-white rounded-2xl premium-card p-6 hover:shadow-soft-lg hover:-translate-y-0.5 transition-all">
-            <div className="flex items-center gap-1 mb-4 text-blue-400">
+            <div className="flex items-center gap-1 mb-4 text-[#6b9fd4]">
               <span>⭐</span>
               <span>⭐</span>
               <span>⭐</span>
@@ -784,7 +781,7 @@ function HomeKeiroInner() {
             </div>
             <p className="text-neutral-700 mb-4 leading-relaxed">{t.home.testimonial3Text}</p>
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-lg">
+              <div className="w-12 h-12 rounded-full bg-[#0c1a3a] flex items-center justify-center text-white font-bold text-lg">
                 M
               </div>
               <div>
@@ -797,7 +794,7 @@ function HomeKeiroInner() {
 
         {/* CTA après témoignages */}
         <div className="mt-10 text-center">
-          <a href="/generate" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold text-lg hover:shadow-xl transition-all hover:-translate-y-0.5">
+          <a href="/generate" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold text-lg hover:shadow-xl transition-all hover:-translate-y-0.5">
             {t.home.testimonialCta}
           </a>
           <p className="mt-3 text-sm text-neutral-600">
@@ -860,15 +857,15 @@ function HomeKeiroInner() {
           </div>
 
           {/* Card 3 — KeiroAI */}
-          <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl border-2 border-blue-400 p-6 shadow-lg relative">
+          <div className="bg-gradient-to-br from-[#0c1a3a]/5 to-purple-50 rounded-2xl border-2 border-[#0c1a3a]/30 p-6 shadow-lg relative">
             <div className="absolute -top-2 -right-2 text-xl">⭐</div>
-            <h3 className="text-lg font-bold text-blue-900 mb-3">&quot;KeiroAI&quot;</h3>
+            <h3 className="text-lg font-bold text-[#0c1a3a] mb-3">&quot;KeiroAI&quot;</h3>
             <ul className="space-y-2 text-sm text-neutral-700">
-              <li><span className="font-semibold text-blue-900">Coût :</span> à partir de 49€ le 1er mois</li>
-              <li><span className="font-semibold text-blue-900">Résultat :</span> 3 à 6 posts pro par semaine, brandés, liés à l&apos;actu</li>
-              <li><span className="font-semibold text-blue-900">Clients :</span> Le calcul est simple ↓</li>
+              <li><span className="font-semibold text-[#0c1a3a]">Coût :</span> à partir de 49€ le 1er mois</li>
+              <li><span className="font-semibold text-[#0c1a3a]">Résultat :</span> 3 à 6 posts pro par semaine, brandés, liés à l&apos;actu</li>
+              <li><span className="font-semibold text-[#0c1a3a]">Clients :</span> Le calcul est simple ↓</li>
             </ul>
-            <p className="mt-3 text-xs text-blue-600 italic">
+            <p className="mt-3 text-xs text-[#0c1a3a] italic">
               &quot;Instagram crée pour vous + texte + hashtags + stats. Vous publiez en 30 secondes.&quot;
             </p>
           </div>
@@ -933,25 +930,25 @@ function HomeKeiroInner() {
           </div>
 
           {/* Colonne KeiroAI */}
-          <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl border-2 border-blue-400 p-6 relative shadow-lg shadow-blue-100">
+          <div className="bg-gradient-to-br from-[#0c1a3a]/5 to-cyan-50 rounded-2xl border-2 border-[#0c1a3a]/30 p-6 relative shadow-lg shadow-[#0c1a3a]/10">
             <div className="absolute -top-3 left-4">
-              <span className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-3 py-1 rounded-full text-xs font-bold">KeiroAI — à partir de 49€/mois</span>
+              <span className="bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white px-3 py-1 rounded-full text-xs font-bold">KeiroAI — à partir de 49€/mois</span>
             </div>
             <div className="pt-4">
-              <p className="text-2xl font-bold text-blue-600 mb-1">49€<span className="text-base font-normal text-blue-400">/mois</span></p>
+              <p className="text-2xl font-bold text-[#0c1a3a] mb-1">49€<span className="text-base font-normal text-[#6b9fd4]">/mois</span></p>
               <ul className="mt-4 space-y-2 text-sm text-neutral-700">
-                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> <span><strong>3 minutes</strong> par visuel, instantané</span></li>
-                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> <span>Modifications <strong>illimitées</strong>, en temps réel</span></li>
-                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> <span>Visuels <strong>liés à l&apos;actualité du jour</strong></span></li>
-                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> <span><strong>Vidéo IA + audio narration</strong> inclus</span></li>
-                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> <span><strong>Texte, légendes, hashtags</strong> générés automatiquement</span></li>
-                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> <span><strong>Instagram + TikTok + LinkedIn</strong> (multi-plateforme)</span></li>
-                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> <span><strong>Branding personnalisé</strong> (Fondateurs)</span></li>
-                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> <span><strong>Multi-format automatique</strong> (Fondateurs)</span></li>
-                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> <span><strong>Statistiques et analyse</strong> intégrées</span></li>
-                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> <span><strong>Assistant IA marketing</strong> personnalisé</span></li>
-                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> <span>Disponible <strong>24/7</strong>, jamais en congé</span></li>
-                <li className="flex gap-2"><span className="text-blue-500 font-bold">✓</span> <span><strong>Calendrier de planification</strong> intégré</span></li>
+                <li className="flex gap-2"><span className="text-[#0c1a3a] font-bold">✓</span> <span><strong>3 minutes</strong> par visuel, instantané</span></li>
+                <li className="flex gap-2"><span className="text-[#0c1a3a] font-bold">✓</span> <span>Modifications <strong>illimitées</strong>, en temps réel</span></li>
+                <li className="flex gap-2"><span className="text-[#0c1a3a] font-bold">✓</span> <span>Visuels <strong>liés à l&apos;actualité du jour</strong></span></li>
+                <li className="flex gap-2"><span className="text-[#0c1a3a] font-bold">✓</span> <span><strong>Vidéo IA + audio narration</strong> inclus</span></li>
+                <li className="flex gap-2"><span className="text-[#0c1a3a] font-bold">✓</span> <span><strong>Texte, légendes, hashtags</strong> générés automatiquement</span></li>
+                <li className="flex gap-2"><span className="text-[#0c1a3a] font-bold">✓</span> <span><strong>Instagram + TikTok + LinkedIn</strong> (multi-plateforme)</span></li>
+                <li className="flex gap-2"><span className="text-[#0c1a3a] font-bold">✓</span> <span><strong>Branding personnalisé</strong> (Fondateurs)</span></li>
+                <li className="flex gap-2"><span className="text-[#0c1a3a] font-bold">✓</span> <span><strong>Multi-format automatique</strong> (Fondateurs)</span></li>
+                <li className="flex gap-2"><span className="text-[#0c1a3a] font-bold">✓</span> <span><strong>Statistiques et analyse</strong> intégrées</span></li>
+                <li className="flex gap-2"><span className="text-[#0c1a3a] font-bold">✓</span> <span><strong>Assistant IA marketing</strong> personnalisé</span></li>
+                <li className="flex gap-2"><span className="text-[#0c1a3a] font-bold">✓</span> <span>Disponible <strong>24/7</strong>, jamais en congé</span></li>
+                <li className="flex gap-2"><span className="text-[#0c1a3a] font-bold">✓</span> <span><strong>Calendrier de planification</strong> intégré</span></li>
               </ul>
             </div>
           </div>
@@ -966,7 +963,7 @@ function HomeKeiroInner() {
 
         {/* CTA après Comparatif */}
         <div className="text-center">
-          <a href="/generate" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold text-lg hover:shadow-xl transition-all hover:-translate-y-0.5 cta-shimmer">
+          <a href="/generate" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold text-lg hover:shadow-xl transition-all hover:-translate-y-0.5 cta-shimmer">
             {t.home.comparatorCta}
           </a>
           <p className="mt-3 text-sm text-neutral-500">
@@ -992,7 +989,7 @@ function HomeKeiroInner() {
         </BlurIn>
 
         {/* Video killer feature banner */}
-        <div className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl p-4 mb-6">
+        <div className="bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white rounded-xl p-4 mb-6">
           <p className="font-bold text-lg mb-1">La vidéo change tout. ChatGPT ne fait pas de vidéo.</p>
           <p className="text-sm text-white/90">
             Sur TikTok, une vidéo peut toucher 100&nbsp;000 personnes gratuitement. ChatGPT génère des images, pas des vidéos. KeiroAI génère des vidéos avec narration audio, prêtes à publier. En 3 minutes.
@@ -1050,12 +1047,12 @@ function HomeKeiroInner() {
           </div>
 
           {/* Column 3: KeiroAI (highlighted) */}
-          <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl border-2 border-blue-400 p-6 shadow-lg">
+          <div className="bg-gradient-to-br from-[#0c1a3a]/5 to-purple-50 rounded-2xl border-2 border-[#0c1a3a]/30 p-6 shadow-lg">
             <div className="flex items-center gap-2 mb-1">
-              <p className="text-xl font-bold text-blue-700">KeiroAI</p>
+              <p className="text-xl font-bold text-[#0c1a3a]">KeiroAI</p>
               <span className="text-yellow-500">⭐</span>
             </div>
-            <p className="text-blue-500 text-sm mb-4">à partir de 49€/mois</p>
+            <p className="text-[#0c1a3a] text-sm mb-4">à partir de 49€/mois</p>
             <ul className="space-y-2 text-sm">
               <li className="flex gap-2"><span className="text-green-500 font-bold flex-shrink-0">✓</span><span className="text-neutral-800">Images IA optimisées pour les commerces</span></li>
               <li className="flex gap-2 bg-green-100/50 rounded px-2 py-1"><span className="text-green-500 font-bold flex-shrink-0">✓</span><span className="text-neutral-800"><strong>VIDÉOS IA</strong> (5s à 90s) — impossible avec ChatGPT</span></li>
@@ -1070,9 +1067,9 @@ function HomeKeiroInner() {
               <li className="flex gap-2"><span className="text-green-500 font-bold flex-shrink-0">✓</span><span className="text-neutral-800">Publication multi-plateforme</span></li>
               <li className="flex gap-2"><span className="text-green-500 font-bold flex-shrink-0">✓</span><span className="text-neutral-800">Galerie organisée + export optimisé</span></li>
             </ul>
-            <div className="mt-4 pt-4 border-t border-blue-200">
-              <p className="text-sm font-semibold text-blue-700">Temps par post : <strong>3 minutes</strong></p>
-              <p className="text-xs text-blue-600 italic mt-2">
+            <div className="mt-4 pt-4 border-t border-[#0c1a3a]/10">
+              <p className="text-sm font-semibold text-[#0c1a3a]">Temps par post : <strong>3 minutes</strong></p>
+              <p className="text-xs text-[#0c1a3a] italic mt-2">
                 &quot;Le commerçant publie 3-5 fois par semaine pendant des mois. Parce que c&apos;est facile.&quot;
               </p>
             </div>
@@ -1081,7 +1078,7 @@ function HomeKeiroInner() {
         </div>
 
         {/* "La vraie question" callout box */}
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl p-8 mb-10">
+        <div className="bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white rounded-2xl p-8 mb-10">
           <p className="text-lg md:text-xl font-medium leading-relaxed">
             La vraie question n&apos;est pas «&nbsp;est-ce que c&apos;est possible avec ChatGPT&nbsp;?&nbsp;» — c&apos;est «&nbsp;est-ce que vous allez <strong>VRAIMENT</strong> le faire 3 fois par semaine pendant 6 mois&nbsp;?&nbsp;»
           </p>
@@ -1152,7 +1149,7 @@ function HomeKeiroInner() {
                 onClick={() => setBillingPeriod('monthly')}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                   billingPeriod === 'monthly'
-                    ? 'bg-blue-600 text-white shadow-md'
+                    ? 'bg-[#0c1a3a] text-white shadow-md'
                     : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                 }`}
               >
@@ -1162,7 +1159,7 @@ function HomeKeiroInner() {
                 onClick={() => setBillingPeriod('annual')}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                   billingPeriod === 'annual'
-                    ? 'bg-blue-600 text-white shadow-md'
+                    ? 'bg-[#0c1a3a] text-white shadow-md'
                     : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                 }`}
               >
@@ -1177,15 +1174,15 @@ function HomeKeiroInner() {
           {/* Sprint — Essai 3 jours */}
           <ScaleIn>
           <div className="max-w-2xl mx-auto mb-10">
-            <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl border border-blue-200 p-5 flex flex-col sm:flex-row items-center gap-4">
+            <div className="bg-gradient-to-r from-[#0c1a3a]/5 to-purple-50 rounded-2xl border border-[#0c1a3a]/10 p-5 flex flex-col sm:flex-row items-center gap-4">
               <div className="flex-1 text-center sm:text-left">
                 <p className="text-sm font-bold text-neutral-900">⚡ {t.home.sprintTrialTitle}</p>
                 <p className="text-xs text-neutral-600 mt-0.5">{t.home.sprintTrialDesc}</p>
-                <p className="text-[11px] text-blue-600 mt-0.5">{t.home.sprintTrialNote}</p>
+                <p className="text-[11px] text-[#0c1a3a] mt-0.5">{t.home.sprintTrialNote}</p>
               </div>
               <button
                 onClick={() => startCheckout('sprint')}
-                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm font-bold hover:shadow-lg transition-all hover:-translate-y-0.5 whitespace-nowrap flex-shrink-0"
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white text-sm font-bold hover:shadow-lg transition-all hover:-translate-y-0.5 whitespace-nowrap flex-shrink-0"
               >
                 {t.home.sprintTrialCta}
               </button>
@@ -1368,7 +1365,7 @@ function HomeKeiroInner() {
         </div>
         <ScaleIn delay={0.3}>
         <div className="mt-10 text-center">
-          <a href="/generate" className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-medium hover:shadow-lg hover:-translate-y-0.5 transition-all">
+          <a href="/generate" className="px-6 py-3 rounded-xl bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-medium hover:shadow-lg hover:-translate-y-0.5 transition-all">
             {t.home.tryNow}
           </a>
         </div>
@@ -1377,7 +1374,7 @@ function HomeKeiroInner() {
 
       {/* Footer légal - Terms of Service & Privacy Policy */}
       {/* Gradient divider */}
-      <div className="h-px bg-gradient-to-r from-transparent via-blue-500 to-transparent" />
+      <div className="h-px bg-gradient-to-r from-transparent via-[#0c1a3a] to-transparent" />
 
       </div>{/* End light sections bg */}
 
@@ -1553,8 +1550,8 @@ function QuizAndCalculator() {
           onClick={() => setActiveSection('calculator')}
           className={`px-6 py-3 rounded-xl font-semibold transition-all ${
             activeSection === 'calculator'
-              ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg'
-              : 'bg-white border border-neutral-200 text-neutral-700 hover:border-blue-300'
+              ? 'bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white shadow-lg'
+              : 'bg-white border border-neutral-200 text-neutral-700 hover:border-[#0c1a3a]/20'
           }`}
         >
           {t.home.calculatorTab}
@@ -1654,13 +1651,13 @@ function QuizAndCalculator() {
 
       {/* Quiz Result */}
       {activeSection === 'quiz' && showQuizResult && (
-        <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl border-2 border-blue-300 p-8 max-w-3xl mx-auto">
+        <div className="bg-gradient-to-br from-[#0c1a3a]/5 to-purple-50 rounded-2xl border-2 border-[#0c1a3a]/20 p-8 max-w-3xl mx-auto">
           <div className="text-center mb-6">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 text-white text-3xl mb-4">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white text-3xl mb-4">
               ✓
             </div>
-            <h3 className="text-2xl font-bold text-blue-900 mb-2">{t.home.quizResultTitle} {getRecommendedPlan()}</h3>
-            <p className="text-blue-700">{t.home.quizResultSubtitle}</p>
+            <h3 className="text-2xl font-bold text-[#0c1a3a] mb-2">{t.home.quizResultTitle} {getRecommendedPlan()}</h3>
+            <p className="text-[#0c1a3a]">{t.home.quizResultSubtitle}</p>
           </div>
 
           <div className="bg-white rounded-xl p-6 mb-6">
@@ -1668,12 +1665,12 @@ function QuizAndCalculator() {
             <ul className="space-y-3">
               {getRecommendedPlan() === 'Pro' && t.home.quizProBullets.map((b, i) => (
                 <li key={`pro-${i}`} className="flex items-start gap-2 text-sm">
-                  <span className="text-blue-500 text-lg">✓</span>
+                  <span className="text-[#0c1a3a] text-lg">✓</span>
                   <span dangerouslySetInnerHTML={{ __html: b }} />
                 </li>
               ))}
               <li className="flex items-start gap-2 text-sm">
-                <span className="text-blue-500 text-lg">✓</span>
+                <span className="text-[#0c1a3a] text-lg">✓</span>
                 <span dangerouslySetInnerHTML={{ __html: t.home.quizCommonBullet }} />
               </li>
             </ul>
@@ -1682,13 +1679,13 @@ function QuizAndCalculator() {
           <div className="flex gap-3">
             <a
               href="/generate"
-              className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all text-center"
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold rounded-xl hover:shadow-lg transition-all text-center"
             >
               {t.home.quizStartWith} {getRecommendedPlan()} →
             </a>
             <button
               onClick={resetQuiz}
-              className="px-6 py-3 bg-white border border-blue-300 text-blue-700 font-semibold rounded-xl hover:bg-blue-50 transition-all"
+              className="px-6 py-3 bg-white border border-[#0c1a3a]/20 text-[#0c1a3a] font-semibold rounded-xl hover:bg-[#0c1a3a]/5 transition-all"
             >
               {t.common.restart}
             </button>
@@ -1698,8 +1695,8 @@ function QuizAndCalculator() {
 
       {/* ROI Calculator */}
       {activeSection === 'calculator' && (
-        <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl border-2 border-blue-200 p-8 max-w-3xl mx-auto">
-          <h3 className="text-2xl font-bold text-blue-900 mb-6 text-center">
+        <div className="bg-gradient-to-br from-[#0c1a3a]/5 to-cyan-50 rounded-2xl border-2 border-[#0c1a3a]/10 p-8 max-w-3xl mx-auto">
+          <h3 className="text-2xl font-bold text-[#0c1a3a] mb-6 text-center">
             {t.home.calcTitle}
           </h3>
 
@@ -1707,7 +1704,7 @@ function QuizAndCalculator() {
             <label className="block mb-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="font-semibold text-neutral-900">{t.home.calcLabel}</span>
-                <span className="text-2xl font-bold text-blue-600">{visualsPerMonth}</span>
+                <span className="text-2xl font-bold text-[#0c1a3a]">{visualsPerMonth}</span>
               </div>
               <input
                 type="range"
@@ -1715,7 +1712,7 @@ function QuizAndCalculator() {
                 max="20"
                 value={visualsPerMonth}
                 onChange={(e) => setVisualsPerMonth(Number(e.target.value))}
-                className="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                className="w-full h-2 bg-[#0c1a3a]/10 rounded-lg appearance-none cursor-pointer accent-[#0c1a3a]"
               />
               <div className="flex justify-between text-xs text-neutral-500 mt-1">
                 <span>1</span>
@@ -1735,15 +1732,15 @@ function QuizAndCalculator() {
               <div className="text-2xl font-bold text-neutral-900">{costGraphiste.toLocaleString()}€</div>
             </div>
 
-            <div className="bg-blue-100 rounded-xl p-5 flex items-center justify-between">
+            <div className="bg-[#0c1a3a]/10 rounded-xl p-5 flex items-center justify-between">
               <div>
-                <div className="text-sm text-blue-900 font-semibold mb-1">{t.home.calcKeiro}</div>
-                <div className="text-xs text-blue-700">{t.home.calcKeiroSub}</div>
+                <div className="text-sm text-[#0c1a3a] font-semibold mb-1">{t.home.calcKeiro}</div>
+                <div className="text-xs text-[#0c1a3a]">{t.home.calcKeiroSub}</div>
               </div>
-              <div className="text-2xl font-bold text-blue-900">{costKeiro}€</div>
+              <div className="text-2xl font-bold text-[#0c1a3a]">{costKeiro}€</div>
             </div>
 
-            <div className="bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl p-6 text-white">
+            <div className="bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] rounded-xl p-6 text-white">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-sm opacity-90 mb-1">{t.home.calcSavings}</div>
@@ -1757,13 +1754,13 @@ function QuizAndCalculator() {
             </div>
           </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
-            <p className="text-sm text-blue-900" dangerouslySetInnerHTML={{ __html: t.home.calcTip }} />
+          <div className="bg-[#0c1a3a]/5 border border-[#0c1a3a]/10 rounded-xl p-4 mb-6">
+            <p className="text-sm text-[#0c1a3a]" dangerouslySetInnerHTML={{ __html: t.home.calcTip }} />
           </div>
 
           <a
             href="/generate"
-            className="block w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all text-center"
+            className="block w-full px-6 py-3 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold rounded-xl hover:shadow-lg transition-all text-center"
           >
             {t.home.calcCta} {savings.toLocaleString()}€{t.common.perMonth} →
           </a>
@@ -1776,9 +1773,9 @@ function QuizAndCalculator() {
 /* --- mini composants UI --- */
 function Step({ num, title, children }: { num: string; title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-blue-100 p-5 bg-white hover:shadow-md transition-shadow">
+    <div className="rounded-2xl border border-[#0c1a3a]/8 p-5 bg-white hover:shadow-md transition-shadow">
       <div className="flex items-center gap-3">
-        <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 text-white grid place-items-center text-sm font-semibold">{num}</div>
+        <div className="h-8 w-8 rounded-full bg-gradient-to-br from-[#0c1a3a] to-[#1e3a5f] text-white grid place-items-center text-sm font-semibold">{num}</div>
         <h3 className="font-medium">{title}</h3>
       </div>
       <p className="mt-3 text-sm text-neutral-700">{children}</p>
@@ -1808,13 +1805,13 @@ function Plan({
 }) {
   const ctaClassName = `mt-5 inline-flex w-full items-center justify-center rounded-xl font-medium px-4 py-3 hover:shadow-lg transition-all text-sm ${
     special ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white' :
-    'bg-gradient-to-r from-blue-500 to-cyan-500 text-white'
+    'bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white'
   }`;
 
   return (
     <div className={`rounded-2xl border p-5 bg-white shadow-sm transition-all hover:shadow-lg flex flex-col ${
       special ? 'ring-2 ring-amber-400 bg-gradient-to-br from-amber-50 to-orange-50' :
-      highlight ? 'ring-2 ring-blue-500 shadow-lg' : ''
+      highlight ? 'ring-2 ring-[#0c1a3a] shadow-lg' : ''
     }`}>
       <h3 className="text-base font-semibold">{title}</h3>
       {promoPrice ? (
@@ -1833,7 +1830,7 @@ function Plan({
       <ul className="mt-4 space-y-2 text-sm text-neutral-700 flex-1">
         {bullets.map((b, i) => (
           <li key={i} className="flex gap-2">
-            <span className={special ? "text-amber-500" : "text-blue-500"}>✓</span>
+            <span className={special ? "text-amber-500" : "text-[#0c1a3a]"}>✓</span>
             <span>{b}</span>
           </li>
         ))}

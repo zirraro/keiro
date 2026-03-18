@@ -70,7 +70,7 @@ export default function EmailGateModal({ isOpen, onClose, onSubmit, type = 'gene
 
         {/* Icon */}
         <div className="flex justify-center mb-4">
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center">
+          <div className="w-16 h-16 bg-gradient-to-br from-[#0c1a3a] to-[#1e3a5f] rounded-full flex items-center justify-center">
             <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
             </svg>
@@ -94,7 +94,7 @@ export default function EmailGateModal({ isOpen, onClose, onSubmit, type = 'gene
               onChange={(e) => setEmail(e.target.value)}
               placeholder="votre@email.com"
               required
-              className="w-full px-4 py-3 rounded-xl border-2 border-neutral-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all"
+              className="w-full px-4 py-3 rounded-xl border-2 border-neutral-200 focus:border-[#0c1a3a] focus:outline-none focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all"
             />
             {error && (
               <p className="text-red-500 text-sm mt-2">{error}</p>
@@ -104,7 +104,7 @@ export default function EmailGateModal({ isOpen, onClose, onSubmit, type = 'gene
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-xl hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold rounded-xl hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? 'Envoi...' : 'Débloquer ma génération'}
           </button>
@@ -115,19 +115,19 @@ export default function EmailGateModal({ isOpen, onClose, onSubmit, type = 'gene
           <p className="text-xs text-neutral-500 text-center mb-3">Vous recevrez également :</p>
           <ul className="space-y-2 text-sm text-neutral-600">
             <li className="flex items-center gap-2">
-              <svg className="w-5 h-5 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-[#0c1a3a] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
               Des conseils exclusifs sur les réseaux sociaux
             </li>
             <li className="flex items-center gap-2">
-              <svg className="w-5 h-5 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-[#0c1a3a] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
               Accès anticipé aux nouvelles fonctionnalités
             </li>
             <li className="flex items-center gap-2">
-              <svg className="w-5 h-5 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-[#0c1a3a] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
               Des offres spéciales réservées

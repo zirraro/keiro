@@ -711,9 +711,9 @@ function SuiviPublicationsPage() {
               <p className="text-2xl font-bold text-green-700">{tabStats.sent}</p>
               <p className="text-[10px] text-green-600 font-medium">{isEmailTab ? 'Ouverts' : isFollowTab ? 'Suivis' : isCommentTab ? 'Postes' : 'Envoyes'}</p>
             </div>
-            <div className="bg-blue-50 rounded-xl p-3 text-center border border-blue-100">
-              <p className="text-2xl font-bold text-blue-700">{tabStats.responded}</p>
-              <p className="text-[10px] text-blue-600 font-medium">{isEmailTab ? 'Reponses' : isFollowTab ? 'Follow back' : isCommentTab ? 'Reponses' : 'Reponses'}</p>
+            <div className="bg-[#0c1a3a]/5 rounded-xl p-3 text-center border border-[#0c1a3a]/8">
+              <p className="text-2xl font-bold text-[#0c1a3a]">{tabStats.responded}</p>
+              <p className="text-[10px] text-[#0c1a3a] font-medium">{isEmailTab ? 'Reponses' : isFollowTab ? 'Follow back' : isCommentTab ? 'Reponses' : 'Reponses'}</p>
             </div>
           </div>
         )}
@@ -862,7 +862,7 @@ function SuiviPublicationsPage() {
                               <p className="text-xs text-neutral-500">@{item.handle.replace('@', '')}</p>
                               <div className="flex items-center gap-2 mt-1 flex-wrap">
                                 {perso?.type && <span className="text-[10px] px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded-full">{perso.type}</span>}
-                                {perso?.city && <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-full">{perso.city}</span>}
+                                {perso?.city && <span className="text-[10px] px-1.5 py-0.5 bg-[#0c1a3a]/10 text-[#0c1a3a] rounded-full">{perso.city}</span>}
                                 {perso?.followers && <span className="text-[10px] px-1.5 py-0.5 bg-neutral-100 text-neutral-600 rounded-full">{perso.followers}</span>}
                               </div>
                             </div>
@@ -957,12 +957,12 @@ function SuiviPublicationsPage() {
                               <textarea
                                 value={editText}
                                 onChange={(e) => setEditText(e.target.value)}
-                                className="w-full border border-blue-300 rounded-lg p-3 text-sm text-neutral-800 leading-relaxed resize-none focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                                className="w-full border border-[#0c1a3a]/20 rounded-lg p-3 text-sm text-neutral-800 leading-relaxed resize-none focus:ring-2 focus:ring-[#0c1a3a] focus:outline-none"
                                 rows={Math.max(3, editText.split('\n').length + 1)}
                                 autoFocus
                               />
                               <div className="flex gap-2">
-                                <button onClick={() => saveEditDm(item.id)} disabled={savingEdit} className="px-3 py-1 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                                <button onClick={() => saveEditDm(item.id)} disabled={savingEdit} className="px-3 py-1 text-xs font-medium bg-[#0c1a3a] text-white rounded-lg hover:bg-[#1e3a5f] disabled:opacity-50">
                                   {savingEdit ? 'Sauvegarde...' : 'Sauvegarder'}
                                 </button>
                                 <button onClick={cancelEditDm} className="px-3 py-1 text-xs font-medium bg-neutral-200 text-neutral-700 rounded-lg hover:bg-neutral-300">
@@ -973,7 +973,7 @@ function SuiviPublicationsPage() {
                           ) : (
                             <div
                               onClick={() => dmSubTab === 'pending' ? startEditDm(item.id, item.message) : undefined}
-                              className={`${isCommentTab ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'} border rounded-lg p-3 text-sm text-neutral-800 whitespace-pre-wrap leading-relaxed ${dmSubTab === 'pending' ? 'cursor-pointer hover:ring-2 hover:ring-blue-300 transition' : ''}`}
+                              className={`${isCommentTab ? 'bg-green-50 border-green-200' : 'bg-[#0c1a3a]/5 border-[#0c1a3a]/10'} border rounded-lg p-3 text-sm text-neutral-800 whitespace-pre-wrap leading-relaxed ${dmSubTab === 'pending' ? 'cursor-pointer hover:ring-2 hover:ring-[#0c1a3a]/20 transition' : ''}`}
                               title={dmSubTab === 'pending' ? 'Cliquer pour modifier' : undefined}
                             >
                               {item.message}
@@ -991,7 +991,7 @@ function SuiviPublicationsPage() {
                           {!isCommentTab && !isFollowTab && (
                           <button
                             onClick={() => setExpandedId(expandedId === item.id ? null : item.id)}
-                            className="text-[10px] text-blue-500 hover:underline mt-1"
+                            className="text-[10px] text-[#0c1a3a] hover:underline mt-1"
                           >
                             {expandedId === item.id ? 'Masquer' : 'Relances & réponses types'}
                           </button>
@@ -1045,7 +1045,7 @@ function SuiviPublicationsPage() {
                                 <button
                                   onClick={() => copyToClipboard(item.message, item.id)}
                                   className={`flex-1 py-2 text-xs font-medium rounded-lg transition ${
-                                    copiedId === item.id ? 'bg-green-600 text-white' : 'bg-blue-600 text-white hover:bg-blue-700'
+                                    copiedId === item.id ? 'bg-green-600 text-white' : 'bg-[#0c1a3a] text-white hover:bg-[#1e3a5f]'
                                   }`}
                                 >
                                   {copiedId === item.id ? 'Copié !' : isCommentTab ? 'Copier commentaire' : 'Copier le texte'}
@@ -1069,7 +1069,7 @@ function SuiviPublicationsPage() {
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className={`flex-1 py-2 text-xs font-medium text-white text-center rounded-lg hover:opacity-90 transition ${
-                                    item.channel.includes('tiktok') ? 'bg-gradient-to-r from-cyan-600 to-blue-600' : 'bg-gradient-to-r from-purple-600 to-pink-600'
+                                    item.channel.includes('tiktok') ? 'bg-gradient-to-r from-cyan-600 to-[#1e3a5f]' : 'bg-gradient-to-r from-purple-600 to-pink-600'
                                   }`}
                                 >
                                   Ouvrir {item.channel.includes('tiktok') ? 'TikTok' : 'Instagram'}
@@ -1193,7 +1193,7 @@ function SuiviPublicationsPage() {
                           <div className="flex items-center gap-2 mb-0.5">
                             <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
                               post.status === 'published' && (post.instagram_permalink || post.tiktok_publish_id) ? 'bg-green-100 text-green-700' :
-                              post.status === 'scheduled' ? 'bg-blue-100 text-blue-700' :
+                              post.status === 'scheduled' ? 'bg-[#0c1a3a]/10 text-[#0c1a3a]' :
                               post.status === 'approved' ? 'bg-purple-100 text-purple-700' :
                               'bg-amber-100 text-amber-700'
                             }`}>
@@ -1204,7 +1204,7 @@ function SuiviPublicationsPage() {
                             <span className="text-[10px] text-neutral-400">{post.scheduled_date}</span>
                             <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
                               post.platform === 'tiktok' ? 'bg-neutral-900 text-white' :
-                              post.platform === 'linkedin' ? 'bg-blue-100 text-blue-700' :
+                              post.platform === 'linkedin' ? 'bg-[#0c1a3a]/10 text-[#0c1a3a]' :
                               'bg-pink-100 text-pink-700'
                             }`}>{post.platform === 'tiktok' ? 'TT' : post.platform === 'linkedin' ? 'LI' : 'IG'}</span>
                           </div>
@@ -1272,7 +1272,7 @@ function SuiviPublicationsPage() {
                               {article.status === 'published' ? 'Publié' : 'Brouillon'}
                             </span>
                             {article.keywords_primary && (
-                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">{article.keywords_primary}</span>
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#0c1a3a]/10 text-[#0c1a3a]">{article.keywords_primary}</span>
                             )}
                           </div>
                           <h3 className="text-sm font-semibold text-neutral-900 line-clamp-1">{article.title}</h3>
@@ -1317,7 +1317,7 @@ function SuiviPublicationsPage() {
                     const isAI = item.data?.ai_generated;
 
                     const stepLabel = step === 1 ? '1er contact' : step === 2 ? 'Relance douce' : step === 3 ? 'Valeur gratuite' : step === 4 ? 'FOMO' : step === 5 ? 'Dernière chance' : step === 10 ? 'Warm' : `Step ${step}`;
-                    const stepColor = step === 1 ? 'bg-blue-100 text-blue-700' : step === 2 ? 'bg-orange-100 text-orange-700' : step === 3 ? 'bg-green-100 text-green-700' : step === 4 ? 'bg-red-100 text-red-700' : step === 5 ? 'bg-purple-100 text-purple-700' : 'bg-neutral-100 text-neutral-700';
+                    const stepColor = step === 1 ? 'bg-[#0c1a3a]/10 text-[#0c1a3a]' : step === 2 ? 'bg-orange-100 text-orange-700' : step === 3 ? 'bg-green-100 text-green-700' : step === 4 ? 'bg-red-100 text-red-700' : step === 5 ? 'bg-purple-100 text-purple-700' : 'bg-neutral-100 text-neutral-700';
 
                     return (
                       <div key={item.id} className="bg-white rounded-xl border border-neutral-200 shadow-sm p-4">
@@ -1342,7 +1342,7 @@ function SuiviPublicationsPage() {
                         <div className="flex items-center gap-2 mt-2">
                           {prospect?.status && (
                             <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                              prospect.status === 'contacte' ? 'bg-blue-50 text-blue-600' :
+                              prospect.status === 'contacte' ? 'bg-[#0c1a3a]/5 text-[#0c1a3a]' :
                               prospect.status === 'repondu' ? 'bg-green-50 text-green-600' :
                               prospect.status === 'client' ? 'bg-emerald-50 text-emerald-600' :
                               'bg-neutral-50 text-neutral-500'
@@ -1421,13 +1421,13 @@ function SuiviPublicationsPage() {
                                   <span className={`absolute top-1 left-1 text-[8px] px-1 py-0.5 rounded font-bold ${
                                     post.platform === 'instagram' ? 'bg-pink-500 text-white' :
                                     post.platform === 'tiktok' ? 'bg-black text-white' :
-                                    'bg-blue-600 text-white'
+                                    'bg-[#0c1a3a] text-white'
                                   }`}>
                                     {post.platform === 'instagram' ? 'IG' : post.platform === 'tiktok' ? 'TT' : 'LI'}
                                   </span>
                                   <span className={`absolute top-1 right-1 text-[8px] px-1 py-0.5 rounded font-bold ${
                                     post.status === 'published' && (post.instagram_permalink || post.tiktok_publish_id) ? 'bg-green-500 text-white' :
-                                    post.status === 'scheduled' ? 'bg-blue-500 text-white' :
+                                    post.status === 'scheduled' ? 'bg-[#0c1a3a] text-white' :
                                     'bg-amber-500 text-white'
                                   }`}>
                                     {post.status === 'published' && (post.instagram_permalink || post.tiktok_publish_id) ? 'OK' : post.status === 'scheduled' ? 'Plan' : 'Draft'}
@@ -1439,7 +1439,7 @@ function SuiviPublicationsPage() {
                                   <span className={`absolute top-1 left-1 text-[8px] px-1 py-0.5 rounded font-bold ${
                                     post.platform === 'instagram' ? 'bg-pink-500 text-white' :
                                     post.platform === 'tiktok' ? 'bg-black text-white' :
-                                    'bg-blue-600 text-white'
+                                    'bg-[#0c1a3a] text-white'
                                   }`}>
                                     {post.platform === 'instagram' ? 'IG' : post.platform === 'tiktok' ? 'TT' : 'LI'}
                                   </span>
@@ -1498,7 +1498,7 @@ function SuiviPublicationsPage() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
                             selectedPost.status === 'published' && (selectedPost.instagram_permalink || selectedPost.tiktok_publish_id) ? 'bg-green-100 text-green-700' :
-                            selectedPost.status === 'scheduled' ? 'bg-blue-100 text-blue-700' :
+                            selectedPost.status === 'scheduled' ? 'bg-[#0c1a3a]/10 text-[#0c1a3a]' :
                             'bg-amber-100 text-amber-700'
                           }`}>
                             {selectedPost.status === 'published' && selectedPost.instagram_permalink ? 'Publié sur IG' :
@@ -1508,7 +1508,7 @@ function SuiviPublicationsPage() {
                           <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
                             selectedPost.platform === 'instagram' ? 'bg-pink-100 text-pink-700' :
                             selectedPost.platform === 'tiktok' ? 'bg-neutral-900 text-white' :
-                            'bg-blue-100 text-blue-700'
+                            'bg-[#0c1a3a]/10 text-[#0c1a3a]'
                           }`}>
                             {selectedPost.platform === 'instagram' ? 'Instagram' : selectedPost.platform === 'tiktok' ? 'TikTok' : 'LinkedIn'}
                           </span>
@@ -1537,7 +1537,7 @@ function SuiviPublicationsPage() {
                         {selectedPost.hashtags && selectedPost.hashtags.length > 0 && (
                           <div>
                             <p className="text-[10px] font-bold text-neutral-400 mb-0.5">Hashtags</p>
-                            <p className="text-xs text-blue-500">{selectedPost.hashtags.join(' ')}</p>
+                            <p className="text-xs text-[#0c1a3a]">{selectedPost.hashtags.join(' ')}</p>
                           </div>
                         )}
 

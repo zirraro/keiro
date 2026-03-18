@@ -42,29 +42,29 @@ export default function SignupGateModal({ isOpen, onClose, onSuccess }: SignupGa
         </p>
 
         {/* Benefits */}
-        <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-6 mb-6">
+        <div className="bg-gradient-to-br from-[#0c1a3a]/5 to-[#1e3a5f]/5 rounded-xl p-6 mb-6">
           <h3 className="font-bold text-lg mb-4 text-center">Avec un compte gratuit :</h3>
           <ul className="space-y-3">
             <li className="flex items-start gap-3">
-              <svg className="w-6 h-6 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6 text-[#0c1a3a] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
               <span className="text-neutral-700"><strong>3 visuels gratuits</strong> avec watermark par mois</span>
             </li>
             <li className="flex items-start gap-3">
-              <svg className="w-6 h-6 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6 text-[#0c1a3a] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
               <span className="text-neutral-700"><strong>Bibliothèque personnelle</strong> pour sauvegarder vos créations</span>
             </li>
             <li className="flex items-start gap-3">
-              <svg className="w-6 h-6 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6 text-[#0c1a3a] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
               <span className="text-neutral-700"><strong>Accès au studio d'édition</strong> pour perfectionner vos visuels</span>
             </li>
             <li className="flex items-start gap-3">
-              <svg className="w-6 h-6 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6 text-[#0c1a3a] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
               <span className="text-neutral-700"><strong>Historique de génération</strong> pour retrouver tous vos visuels</span>
@@ -76,7 +76,7 @@ export default function SignupGateModal({ isOpen, onClose, onSuccess }: SignupGa
         <div className="space-y-3">
           <Link
             href="/login"
-            className="block w-full py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold rounded-xl text-center hover:shadow-lg transition-all"
+            className="block w-full py-3 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-bold rounded-xl text-center hover:shadow-lg transition-all"
           >
             Créer mon compte gratuit
           </Link>

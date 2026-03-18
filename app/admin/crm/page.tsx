@@ -8,7 +8,7 @@ import { supabaseBrowser } from '@/lib/supabase/client';
 
 const PIPELINE_STAGES = [
   { id: 'identifie', label: 'Identifié', color: 'bg-slate-400', textColor: 'text-slate-700', borderColor: 'border-slate-400', hex: '#94A3B8', icon: '🔍' },
-  { id: 'contacte', label: 'Contacté', color: 'bg-blue-500', textColor: 'text-blue-700', borderColor: 'border-blue-500', hex: '#3B82F6', icon: '📨' },
+  { id: 'contacte', label: 'Contacté', color: 'bg-[#0c1a3a]', textColor: 'text-[#0c1a3a]', borderColor: 'border-[#0c1a3a]', hex: '#0c1a3a', icon: '📨' },
   { id: 'relance_1', label: 'Relance 1', color: 'bg-sky-400', textColor: 'text-sky-700', borderColor: 'border-sky-400', hex: '#38BDF8', icon: '🔄' },
   { id: 'relance_2', label: 'Relance 2', color: 'bg-indigo-400', textColor: 'text-indigo-700', borderColor: 'border-indigo-400', hex: '#818CF8', icon: '🔄' },
   { id: 'relance_3', label: 'Relance 3', color: 'bg-purple-400', textColor: 'text-purple-700', borderColor: 'border-purple-400', hex: '#C084FC', icon: '⏰' },
@@ -21,11 +21,11 @@ const PIPELINE_STAGES = [
 
 const CHANNELS = [
   { id: 'dm_instagram', label: 'DM Instagram', icon: '📷', color: '#E1306C', bg: 'bg-pink-50', border: 'border-pink-300' },
-  { id: 'email', label: 'Email', icon: '✉️', color: '#3B82F6', bg: 'bg-blue-50', border: 'border-blue-300' },
+  { id: 'email', label: 'Email', icon: '✉️', color: '#0c1a3a', bg: 'bg-[#0c1a3a]/5', border: 'border-[#0c1a3a]/20' },
   { id: 'telephone', label: 'Telephone', icon: '📞', color: '#10B981', bg: 'bg-emerald-50', border: 'border-emerald-300' },
   { id: 'linkedin', label: 'LinkedIn', icon: '💼', color: '#0A66C2', bg: 'bg-sky-50', border: 'border-sky-300' },
   { id: 'terrain', label: 'Terrain', icon: '🚶', color: '#F59E0B', bg: 'bg-amber-50', border: 'border-amber-300' },
-  { id: 'facebook', label: 'Facebook', icon: '👥', color: '#1877F2', bg: 'bg-blue-50', border: 'border-blue-300' },
+  { id: 'facebook', label: 'Facebook', icon: '👥', color: '#1877F2', bg: 'bg-[#0c1a3a]/5', border: 'border-[#0c1a3a]/20' },
   { id: 'tiktok', label: 'TikTok', icon: '🎵', color: '#000000', bg: 'bg-neutral-50', border: 'border-neutral-300' },
   { id: 'recommandation', label: 'Recommandation', icon: '🤝', color: '#8B5CF6', bg: 'bg-violet-50', border: 'border-violet-300' },
 ];
@@ -187,7 +187,7 @@ function prospectInitials(p: Prospect) {
 function getPriorityBadge(prio: string) {
   switch (prio) {
     case 'A': return { label: '🔥 CHAUD', classes: 'bg-red-100 text-red-700' };
-    case 'C': return { label: '❄️ FROID', classes: 'bg-blue-100 text-blue-700' };
+    case 'C': return { label: '❄️ FROID', classes: 'bg-[#0c1a3a]/10 text-[#0c1a3a]' };
     default: return { label: '⭐ TIEDE', classes: 'bg-yellow-100 text-yellow-700' };
   }
 }
@@ -858,7 +858,7 @@ export default function AdminCRMPage() {
       <header className="border-b border-neutral-200 bg-white/80 backdrop-blur-sm sticky top-0 z-30">
         <div className="max-w-[1600px] mx-auto px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-3">
-            <h1 className="text-lg font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+            <h1 className="text-lg font-bold bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] bg-clip-text text-transparent">
               KeiroAI CRM
             </h1>
             <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
@@ -991,7 +991,7 @@ export default function AdminCRMPage() {
 
             <button
               onClick={openNewModal}
-              className="px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow"
+              className="px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] rounded-lg hover:from-[#1e3a5f] hover:to-[#1e3a5f] transition-all shadow"
             >
               + Nouveau
             </button>
@@ -1123,7 +1123,7 @@ export default function AdminCRMPage() {
             </button>
             <button
               onClick={() => { setFilterSuivi(filterSuivi === 'jour' ? 'none' : 'jour'); setFilterRappels(false); }}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${filterSuivi === 'jour' ? 'bg-blue-600 text-white' : 'text-neutral-500 hover:text-neutral-700'}`}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${filterSuivi === 'jour' ? 'bg-[#0c1a3a] text-white' : 'text-neutral-500 hover:text-neutral-700'}`}
             >
               📋 Suivi jour
             </button>
@@ -1309,7 +1309,7 @@ export default function AdminCRMPage() {
                             onClick={() => setSelected(isSelected ? null : p)}
                             className={`px-4 py-3.5 sm:py-3 flex items-center gap-3 cursor-pointer transition-colors active:bg-purple-100 ${isSelected ? 'bg-purple-50' : 'hover:bg-gray-50'}`}
                           >
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-700 to-blue-700 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#0c1a3a] to-[#1e3a5f] flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
                               {prospectInitials(p)}
                             </div>
                             <div className="flex-1 min-w-0">
@@ -1387,7 +1387,7 @@ export default function AdminCRMPage() {
                       {[
                         { key: 'A', label: '🔥 Chaud', color: 'bg-red-500', bgLight: 'bg-red-50 text-red-700' },
                         { key: 'B', label: '⭐ Tiède', color: 'bg-yellow-500', bgLight: 'bg-yellow-50 text-yellow-700' },
-                        { key: 'C', label: '❄️ Froid', color: 'bg-blue-500', bgLight: 'bg-blue-50 text-blue-700' },
+                        { key: 'C', label: '❄️ Froid', color: 'bg-[#0c1a3a]', bgLight: 'bg-[#0c1a3a]/5 text-[#0c1a3a]' },
                       ].map(p => {
                         const count = prospects.filter(pr => pr.priorite === p.key).length;
                         const pct = prospects.length > 0 ? Math.round((count / prospects.length) * 100) : 0;
@@ -1502,7 +1502,7 @@ export default function AdminCRMPage() {
                         const stg = getStageInfo(p.status);
                         return (
                           <div key={p.id} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors" onClick={() => { setSelected(p); setView('liste'); }}>
-                            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0">
+                            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#0c1a3a] to-[#1e3a5f] flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0">
                               {prospectInitials(p)}
                             </div>
                             <div className="flex-1 min-w-0">
@@ -1536,7 +1536,7 @@ export default function AdminCRMPage() {
                         <div key={c.id} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors">
                           <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
                             c.status === 'actif' ? 'bg-green-500'
-                            : c.status === 'nouveau' ? 'bg-blue-500'
+                            : c.status === 'nouveau' ? 'bg-[#0c1a3a]'
                             : c.status === 'inactif' ? 'bg-orange-500'
                             : 'bg-red-500'
                           }`} />
@@ -1554,7 +1554,7 @@ export default function AdminCRMPage() {
                           </div>
                           <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${
                             c.status === 'actif' ? 'bg-green-100 text-green-700'
-                            : c.status === 'nouveau' ? 'bg-blue-100 text-blue-700'
+                            : c.status === 'nouveau' ? 'bg-[#0c1a3a]/10 text-[#0c1a3a]'
                             : c.status === 'inactif' ? 'bg-orange-100 text-orange-700'
                             : 'bg-red-100 text-red-700'
                           }`}>{c.status}</span>
@@ -1657,7 +1657,7 @@ export default function AdminCRMPage() {
                             >
                               <td className="px-3 py-3">
                                 <div className="flex items-center gap-2">
-                                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-700 to-blue-700 flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0">
+                                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#0c1a3a] to-[#1e3a5f] flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0">
                                     {prospectInitials(p)}
                                   </div>
                                   <span className="font-medium text-neutral-900 truncate max-w-[140px]">{prospectName(p)}</span>
@@ -1902,7 +1902,7 @@ export default function AdminCRMPage() {
                 <button
                   onClick={saveProspect}
                   disabled={saving}
-                  className="px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow disabled:opacity-50"
+                  className="px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] rounded-lg hover:from-[#1e3a5f] hover:to-[#1e3a5f] transition-all shadow disabled:opacity-50"
                 >
                   {saving ? 'Enregistrement...' : 'Enregistrer'}
                 </button>
@@ -1969,7 +1969,7 @@ function DetailPanel({ prospect, onClose, onEdit, onDelete, activities, loadingA
       <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-neutral-200 bg-gradient-to-r from-neutral-50 to-white">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center text-sm sm:text-lg font-bold text-white flex-shrink-0 shadow-md">
+            <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br from-[#0c1a3a] to-[#1e3a5f] flex items-center justify-center text-sm sm:text-lg font-bold text-white flex-shrink-0 shadow-md">
               {prospectInitials(prospect)}
             </div>
             <div className="min-w-0">
@@ -2126,10 +2126,10 @@ function DetailPanel({ prospect, onClose, onEdit, onDelete, activities, loadingA
 
         {/* Email engagement tracking */}
         {(prospect.email_sequence_status && prospect.email_sequence_status !== 'not_started') && (
-          <div className="mt-2 p-2.5 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-[10px] text-blue-600 uppercase font-semibold mb-1">Suivi Email</p>
+          <div className="mt-2 p-2.5 bg-[#0c1a3a]/5 border border-[#0c1a3a]/10 rounded-lg">
+            <p className="text-[10px] text-[#0c1a3a] uppercase font-semibold mb-1">Suivi Email</p>
             <div className="flex flex-wrap gap-2 text-xs">
-              <span className="text-blue-700">Etape {prospect.email_sequence_step || 0} — {prospect.email_sequence_status}</span>
+              <span className="text-[#0c1a3a]">Etape {prospect.email_sequence_step || 0} — {prospect.email_sequence_status}</span>
               {prospect.last_email_sent_at && (
                 <span className="text-neutral-500">Envoyé: {formatDate(prospect.last_email_sent_at)}</span>
               )}
@@ -2227,7 +2227,7 @@ function DetailPanel({ prospect, onClose, onEdit, onDelete, activities, loadingA
           <button className="px-3 py-2.5 sm:px-2 sm:py-2 text-xs sm:text-[10px] font-semibold text-white bg-gradient-to-r from-pink-600 to-purple-600 rounded-lg hover:from-pink-700 hover:to-purple-700 transition-all text-center">
             Envoyer DM
           </button>
-          <button className="px-3 py-2.5 sm:px-2 sm:py-2 text-xs sm:text-[10px] font-semibold text-white bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all text-center">
+          <button className="px-3 py-2.5 sm:px-2 sm:py-2 text-xs sm:text-[10px] font-semibold text-white bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] rounded-lg hover:from-[#1e3a5f] hover:to-[#1e3a5f] transition-all text-center">
             Generer visuel
           </button>
           <button className="px-3 py-2.5 sm:px-2 sm:py-2 text-xs sm:text-[10px] font-semibold text-white bg-gradient-to-r from-orange-600 to-amber-600 rounded-lg hover:from-orange-700 hover:to-amber-700 transition-all text-center">
@@ -2315,7 +2315,7 @@ function QuickActivityForm({ prospectId, onAdd }: {
       <button
         onClick={handleAdd}
         disabled={adding}
-        className="w-full px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all disabled:opacity-50"
+        className="w-full px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] rounded-lg hover:from-[#1e3a5f] hover:to-[#1e3a5f] transition-all disabled:opacity-50"
       >
         {adding ? '...' : '+ Ajouter'}
       </button>
@@ -2363,7 +2363,7 @@ function ExportModal({ onClose, onExport, uniqueTypes, uniqueQuartiers, prospect
           {/* Quick export */}
           <button
             onClick={() => onExport()}
-            className="w-full px-4 py-3 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all shadow"
+            className="w-full px-4 py-3 text-sm font-semibold text-white bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] rounded-xl hover:from-[#1e3a5f] hover:to-[#1e3a5f] transition-all shadow"
           >
             Exporter tout ({prospects.length} prospects)
           </button>
@@ -2435,7 +2435,7 @@ function ExportModal({ onClose, onExport, uniqueTypes, uniqueQuartiers, prospect
                   quartier: expQuartier || undefined,
                   priorite: expPriorite || undefined,
                 })}
-                className="px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow"
+                className="px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] rounded-lg hover:from-[#1e3a5f] hover:to-[#1e3a5f] transition-all shadow"
               >
                 Exporter {previewCount} prospect{previewCount > 1 ? 's' : ''}
               </button>

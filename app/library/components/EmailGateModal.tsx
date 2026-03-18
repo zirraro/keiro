@@ -53,9 +53,9 @@ export default function EmailGateModal({ isOpen, onClose, onSubmit }: EmailGateM
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-500 to-cyan-500 p-6 text-white">
+        <div className="bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] p-6 text-white">
           <h2 className="text-2xl font-bold mb-2">🎉 Commencez gratuitement !</h2>
-          <p className="text-blue-100 text-sm">
+          <p className="text-[#0c1a3a]/60 text-sm">
             Entrez votre email pour accéder à la galerie
           </p>
         </div>
@@ -112,7 +112,7 @@ export default function EmailGateModal({ isOpen, onClose, onSubmit }: EmailGateM
                 setError('');
               }}
               placeholder="vous@exemple.com"
-              className="w-full px-4 py-3 rounded-lg border-2 border-neutral-300 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
+              className="w-full px-4 py-3 rounded-lg border-2 border-neutral-300 focus:outline-none focus:border-[#0c1a3a] focus:ring-4 focus:ring-[#0c1a3a]/10 transition-all"
               disabled={loading}
             />
             {error && (
@@ -143,7 +143,7 @@ export default function EmailGateModal({ isOpen, onClose, onSubmit }: EmailGateM
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-3 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-4 py-3 rounded-lg bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={loading}
             >
               {loading ? 'Chargement...' : 'Commencer 🚀'}

@@ -20,7 +20,7 @@
 
 export const PIPELINE_STAGES = [
   { id: 'identifie', label: 'Identifié', color: 'bg-slate-400', textColor: 'text-slate-700', borderColor: 'border-slate-400', hex: '#94A3B8', icon: '🔍', order: 0 },
-  { id: 'contacte', label: 'Contacté', color: 'bg-blue-500', textColor: 'text-blue-700', borderColor: 'border-blue-500', hex: '#3B82F6', icon: '📨', order: 1 },
+  { id: 'contacte', label: 'Contacté', color: 'bg-[#0c1a3a]', textColor: 'text-[#0c1a3a]', borderColor: 'border-[#0c1a3a]', hex: '#0C1A3A', icon: '📨', order: 1 },
   { id: 'relance_1', label: 'Relance 1', color: 'bg-sky-400', textColor: 'text-sky-700', borderColor: 'border-sky-400', hex: '#38BDF8', icon: '🔄', order: 2 },
   { id: 'relance_2', label: 'Relance 2', color: 'bg-indigo-400', textColor: 'text-indigo-700', borderColor: 'border-indigo-400', hex: '#818CF8', icon: '🔄', order: 3 },
   { id: 'relance_3', label: 'Relance 3', color: 'bg-purple-400', textColor: 'text-purple-700', borderColor: 'border-purple-400', hex: '#C084FC', icon: '⏰', order: 4 },

@@ -71,11 +71,11 @@ export default function BottomNav() {
   ];
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/80 backdrop-blur-lg border-t border-neutral-200/50 safe-area-inset-bottom">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#0c1a3a]/80 backdrop-blur-lg border-t border-white/10 safe-area-inset-bottom">
       {/* Language toggle — floating pill above bottom nav */}
       <button
         onClick={toggleLocale}
-        className="absolute -top-10 right-3 flex items-center gap-1 px-2.5 py-1 bg-white/90 backdrop-blur-sm border border-neutral-200 rounded-full shadow-sm text-[11px] font-medium text-neutral-600 hover:bg-neutral-50 active:scale-95 transition-all"
+        className="absolute -top-10 right-3 flex items-center gap-1 px-2.5 py-1 bg-[#0c1a3a]/90 backdrop-blur-sm border border-white/10 rounded-full shadow-sm text-[11px] font-medium text-white/70 hover:bg-white/10 active:scale-95 transition-all"
       >
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
@@ -93,8 +93,8 @@ export default function BottomNav() {
               key={item.href}
               href={item.href}
               className={`flex flex-col items-center justify-center min-w-[64px] px-3 py-2 rounded-lg transition-all ${
-                isActive ? 'text-blue-600' : isHighlight ? 'text-cyan-600' : 'text-neutral-600'
-              } hover:bg-neutral-50 active:scale-95`}
+                isActive ? 'text-white' : isHighlight ? 'text-cyan-400' : 'text-white/60'
+              } hover:bg-white/10 active:scale-95`}
             >
               <div className={`mb-1 ${isActive ? 'scale-110' : ''} transition-transform`}>
                 {item.icon}
@@ -103,7 +103,7 @@ export default function BottomNav() {
                 {item.label}
               </span>
               {isActive && (
-                <div className="mt-1 w-1 h-1 bg-blue-600 rounded-full" />
+                <div className="mt-1 w-1 h-1 bg-white rounded-full" />
               )}
               {isHighlight && !isActive && (
                 <div className="absolute -top-1 right-1 flex h-2 w-2">

@@ -29,7 +29,7 @@ export default function FolderList({ folders, selectedFolder, onSelectFolder }: 
           onClick={() => onSelectFolder(null)}
           className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
             selectedFolder === null
-              ? 'bg-blue-50 border-2 border-blue-500 text-blue-700'
+              ? 'bg-[#0c1a3a]/5 border-2 border-[#0c1a3a] text-[#0c1a3a]'
               : 'bg-white border border-neutral-200 text-neutral-700 hover:bg-neutral-50'
           }`}
         >
@@ -48,7 +48,7 @@ export default function FolderList({ folders, selectedFolder, onSelectFolder }: 
             onClick={() => onSelectFolder(folder.id)}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
               selectedFolder === folder.id
-                ? 'bg-blue-50 border-2 border-blue-500 text-blue-700'
+                ? 'bg-[#0c1a3a]/5 border-2 border-[#0c1a3a] text-[#0c1a3a]'
                 : 'bg-white border border-neutral-200 text-neutral-700 hover:bg-neutral-50'
             }`}
           >

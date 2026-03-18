@@ -397,7 +397,7 @@ async function notifyFounderPayment(info: {
 <!DOCTYPE html>
 <html><body style="font-family:Arial,sans-serif;color:#333;padding:20px;">
 <div style="max-width:500px;margin:0 auto;">
-  <div style="background:linear-gradient(135deg,#9333ea,#3b82f6);color:white;padding:20px;border-radius:12px 12px 0 0;text-align:center;">
+  <div style="background:linear-gradient(135deg,#0c1a3a,#1e3a5f);color:white;padding:20px;border-radius:12px 12px 0 0;text-align:center;">
     <h2 style="margin:0;">💰 ${typeLabel}</h2>
   </div>
   <div style="background:#f9fafb;padding:20px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;">
@@ -715,13 +715,13 @@ async function sendCancellationEmail(email: string, planName: string) {
   const html = `
 <!DOCTYPE html>
 <html>
-<head><style>body{font-family:Arial,sans-serif;color:#333;line-height:1.6;}.container{max-width:540px;margin:0 auto;padding:30px 20px;}h2{color:#9333ea;}</style></head>
+<head><style>body{font-family:Arial,sans-serif;color:#333;line-height:1.6;}.container{max-width:540px;margin:0 auto;padding:30px 20px;}h2{color:#0c1a3a;}</style></head>
 <body>
 <div class="container">
   <h2>Votre abonnement a bien été annulé</h2>
   <p>Bonjour,</p>
   <p>Nous confirmons l'annulation de votre abonnement <strong>${planLabel}</strong> sur KeiroAI.</p>
-  <p>Votre compte reste actif avec le plan Gratuit (15 crédits/mois). Vous pouvez vous réabonner à tout moment depuis votre espace <a href="https://keiroai.com/mon-compte?section=billing" style="color:#9333ea;">Mon compte</a>.</p>
+  <p>Votre compte reste actif avec le plan Gratuit (15 crédits/mois). Vous pouvez vous réabonner à tout moment depuis votre espace <a href="https://keiroai.com/mon-compte?section=billing" style="color:#0c1a3a;">Mon compte</a>.</p>
   <p>Si cette annulation est une erreur ou si vous avez des questions, répondez simplement à cet email.</p>
   <p style="margin-top:24px;">L'équipe KeiroAI</p>
   <hr style="margin:20px 0;border:none;border-top:1px solid #e5e7eb;"/>

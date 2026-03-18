@@ -1484,7 +1484,7 @@ function AdminAgentsContent() {
       status === 'pending'
         ? 'bg-amber-100 text-amber-700'
         : status === 'in_progress'
-        ? 'bg-blue-100 text-blue-700'
+        ? 'bg-[#0c1a3a]/10 text-[#0c1a3a]'
         : status === 'completed'
         ? 'bg-green-100 text-green-700'
         : status === 'failed'
@@ -1503,7 +1503,7 @@ function AdminAgentsContent() {
       agent === 'ceo'
         ? 'bg-purple-100 text-purple-700'
         : agent === 'chatbot'
-        ? 'bg-blue-100 text-blue-700'
+        ? 'bg-[#0c1a3a]/10 text-[#0c1a3a]'
         : agent === 'email'
         ? 'bg-green-100 text-green-700'
         : 'bg-neutral-100 text-neutral-600';
@@ -1521,7 +1521,7 @@ function AdminAgentsContent() {
       perf === 'excellent'
         ? 'bg-green-100 text-green-700'
         : perf === 'bon'
-        ? 'bg-blue-100 text-blue-700'
+        ? 'bg-[#0c1a3a]/10 text-[#0c1a3a]'
         : perf === 'moyen'
         ? 'bg-amber-100 text-amber-700'
         : 'bg-red-100 text-red-700';
@@ -1566,7 +1566,7 @@ function AdminAgentsContent() {
               <span>/</span>
               <span className="text-purple-600 font-medium">Agents IA</span>
             </div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-700 to-blue-600 bg-clip-text text-transparent">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-700 to-[#1e3a5f] bg-clip-text text-transparent">
               Agents IA
             </h1>
             <p className="text-sm text-neutral-500 mt-0.5">
@@ -1743,7 +1743,7 @@ function AdminAgentsContent() {
                             </p>
                             <div className="flex items-center gap-2 mt-0.5">
                               {prospect.type && <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-50 text-purple-600">{prospect.type}</span>}
-                              {prospect.quartier && <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-600">{prospect.quartier}</span>}
+                              {prospect.quartier && <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#0c1a3a]/5 text-[#0c1a3a]">{prospect.quartier}</span>}
                               {prospect.status && <span className="text-[10px] px-1.5 py-0.5 rounded bg-neutral-100 text-neutral-500">{prospect.status}</span>}
                             </div>
                           </div>
@@ -1757,7 +1757,7 @@ function AdminAgentsContent() {
                               </a>
                             )}
                             {prospect.email && (
-                              <a href={`mailto:${prospect.email}`} onClick={e => e.stopPropagation()} className="flex items-center gap-1 px-2.5 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium hover:bg-blue-200 transition" title={prospect.email}>
+                              <a href={`mailto:${prospect.email}`} onClick={e => e.stopPropagation()} className="flex items-center gap-1 px-2.5 py-1.5 bg-[#0c1a3a]/10 text-[#0c1a3a] rounded-lg text-xs font-medium hover:bg-[#0c1a3a]/15 transition" title={prospect.email}>
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                                 Email
                               </a>
@@ -1795,9 +1795,9 @@ function AdminAgentsContent() {
                                 </div>
                               )}
                               {prospect.last_email_opened_at && (
-                                <div className="bg-blue-50 rounded-lg border border-blue-100 p-2">
-                                  <p className="text-[10px] font-semibold text-blue-500 uppercase">Ouvert le</p>
-                                  <p className="text-xs text-blue-700">{new Date(prospect.last_email_opened_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+                                <div className="bg-[#0c1a3a]/5 rounded-lg border border-[#0c1a3a]/8 p-2">
+                                  <p className="text-[10px] font-semibold text-[#0c1a3a] uppercase">Ouvert le</p>
+                                  <p className="text-xs text-[#0c1a3a]">{new Date(prospect.last_email_opened_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
                                 </div>
                               )}
                               {prospect.last_email_clicked_at && (
@@ -1941,7 +1941,7 @@ function AdminAgentsContent() {
                                       </div>
                                       <div className="flex items-center gap-2 mb-1.5">
                                         {email.data?.step != null && <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-50 text-purple-600">Step {email.data.step}</span>}
-                                        {email.data?.category && <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-600">{email.data.category}</span>}
+                                        {email.data?.category && <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#0c1a3a]/5 text-[#0c1a3a]">{email.data.category}</span>}
                                         {email.data?.provider && <span className="text-[9px] px-1.5 py-0.5 rounded bg-neutral-100 text-neutral-500">{email.data.provider}</span>}
                                       </div>
                                       {email.data?.body ? (
@@ -2041,7 +2041,7 @@ function AdminAgentsContent() {
                     {[
                       { id: 'all', label: 'Tous', count: activeClients.length },
                       { id: 'actif', label: 'Actifs', count: activeClients.filter(c => c.status === 'actif').length, color: 'text-green-600' },
-                      { id: 'nouveau', label: 'Nouveaux', count: activeClients.filter(c => c.status === 'nouveau').length, color: 'text-blue-600' },
+                      { id: 'nouveau', label: 'Nouveaux', count: activeClients.filter(c => c.status === 'nouveau').length, color: 'text-[#0c1a3a]' },
                       { id: 'inactif', label: 'Inactifs', count: activeClients.filter(c => c.status === 'inactif').length, color: 'text-orange-600' },
                       { id: 'dormant', label: 'Dormants', count: activeClients.filter(c => c.status === 'dormant').length, color: 'text-red-600' },
                     ].filter(f => f.count > 0 || f.id === 'all').map(f => (
@@ -2067,9 +2067,9 @@ function AdminAgentsContent() {
                     <div className="w-2 h-2 rounded-full bg-green-500" />
                     <span className="text-xs font-medium text-green-700">{activeClients.filter(c => c.status === 'actif').length} actifs</span>
                   </div>
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 rounded-lg">
-                    <div className="w-2 h-2 rounded-full bg-blue-500" />
-                    <span className="text-xs font-medium text-blue-700">{activeClients.filter(c => c.status === 'nouveau').length} nouveaux</span>
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0c1a3a]/5 rounded-lg">
+                    <div className="w-2 h-2 rounded-full bg-[#0c1a3a]/50" />
+                    <span className="text-xs font-medium text-[#0c1a3a]">{activeClients.filter(c => c.status === 'nouveau').length} nouveaux</span>
                   </div>
                   <div className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 rounded-lg">
                     <div className="w-2 h-2 rounded-full bg-orange-500" />
@@ -2095,7 +2095,7 @@ function AdminAgentsContent() {
                     <div key={c.id} className="grid grid-cols-9 gap-2 px-3 py-2.5 items-center border-b border-neutral-100 last:border-0 hover:bg-neutral-50">
                       <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium text-center ${
                         c.status === 'actif' ? 'bg-green-100 text-green-700'
-                        : c.status === 'nouveau' ? 'bg-blue-100 text-blue-700'
+                        : c.status === 'nouveau' ? 'bg-[#0c1a3a]/10 text-[#0c1a3a]'
                         : c.status === 'inactif' ? 'bg-orange-100 text-orange-700'
                         : 'bg-red-100 text-red-700'
                       }`}>{c.status}</span>
@@ -2173,7 +2173,7 @@ function AdminAgentsContent() {
                 <button
                   onClick={sendTestEmail}
                   disabled={testSending || !testEmail.trim()}
-                  className="px-5 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm font-medium rounded-lg hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 transition-all"
+                  className="px-5 py-2 bg-gradient-to-r from-purple-600 to-[#1e3a5f] text-white text-sm font-medium rounded-lg hover:from-purple-700 hover:to-[#1e3a5f] disabled:opacity-50 transition-all"
                 >
                   {testSending ? (
                     <span className="flex items-center gap-2">
@@ -2527,7 +2527,7 @@ function AdminAgentsContent() {
                             Publication directe
                           </button>
                           <button onClick={() => setContentMode('week')}
-                            className={`px-2.5 py-1 rounded-full text-[11px] font-medium border ${contentMode === 'week' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-neutral-600 border-neutral-200'}`}>
+                            className={`px-2.5 py-1 rounded-full text-[11px] font-medium border ${contentMode === 'week' ? 'bg-[#0c1a3a] text-white border-[#0c1a3a]' : 'bg-white text-neutral-600 border-neutral-200'}`}>
                             📅 Plan semaine
                           </button>
                         </div>
@@ -2624,7 +2624,7 @@ function AdminAgentsContent() {
                     : campaign.agent === 'dm_instagram'
                     ? 'bg-pink-100 text-pink-700'
                     : campaign.agent === 'seo'
-                    ? 'bg-blue-100 text-blue-700'
+                    ? 'bg-[#0c1a3a]/10 text-[#0c1a3a]'
                     : 'bg-neutral-900 text-white';
 
                   const contentPlatformFromData = campaign.data?.platform || campaign.data?.post?.platform;
@@ -2696,7 +2696,7 @@ function AdminAgentsContent() {
                               </span>
                             )}
                             {campaign.data.pipeline.skipped_waiting_next_step > 0 && (
-                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium">
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#0c1a3a]/5 text-[#0c1a3a] font-medium">
                                 Attente: -{campaign.data.pipeline.skipped_waiting_next_step}
                               </span>
                             )}
@@ -2754,7 +2754,7 @@ function AdminAgentsContent() {
                 <button
                   onClick={handleSeoGenerate}
                   disabled={seoGenerating}
-                  className="bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+                  className="bg-gradient-to-r from-purple-600 to-[#1e3a5f] text-white text-sm font-medium px-4 py-2 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
                 >
                   {seoGenerating ? 'Generation...' : 'Generer un article'}
                 </button>
@@ -2818,7 +2818,7 @@ function AdminAgentsContent() {
                     <div className="flex items-center gap-2">
                       <Link
                         href={`/admin/agents/campaign/seo-preview?article_id=${article.id}`}
-                        className="text-xs text-blue-600 hover:underline"
+                        className="text-xs text-[#0c1a3a] hover:underline"
                       >
                         Aperçu
                       </Link>
@@ -2871,7 +2871,7 @@ function AdminAgentsContent() {
 
             {/* Chat area */}
             <div className="bg-white rounded-xl border border-neutral-200 shadow-sm overflow-hidden">
-              <div className="bg-gradient-to-r from-purple-600 to-blue-600 px-4 py-3 text-white">
+              <div className="bg-gradient-to-r from-purple-600 to-[#1e3a5f] px-4 py-3 text-white">
                 <h3 className="font-semibold text-sm">
                   {CHAT_AGENTS.find(a => a.id === selectedAgent)?.icon} Chat avec {CHAT_AGENTS.find(a => a.id === selectedAgent)?.name}
                 </h3>
@@ -2939,7 +2939,7 @@ function AdminAgentsContent() {
               <button
                 onClick={executeCeoBrief}
                 disabled={executingCeo}
-                className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm font-medium rounded-lg hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 transition-all"
+                className="px-4 py-2 bg-gradient-to-r from-purple-600 to-[#1e3a5f] text-white text-sm font-medium rounded-lg hover:from-purple-700 hover:to-[#1e3a5f] disabled:opacity-50 transition-all"
               >
                 {executingCeo ? (
                   <span className="flex items-center gap-2">
@@ -3159,7 +3159,7 @@ function AdminAgentsContent() {
                   <button
                     onClick={executeSelectedOrders}
                     disabled={executingOrders}
-                    className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs font-medium rounded-lg hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 transition-all"
+                    className="px-4 py-2 bg-gradient-to-r from-purple-600 to-[#1e3a5f] text-white text-xs font-medium rounded-lg hover:from-purple-700 hover:to-[#1e3a5f] disabled:opacity-50 transition-all"
                   >
                     {executingOrders ? (
                       <span className="flex items-center gap-2">
@@ -3262,7 +3262,7 @@ function AdminAgentsContent() {
                               <div className={`text-sm p-3 rounded-lg border ${
                                 order.status === 'completed' ? 'bg-green-50 border-green-200 text-green-800' :
                                 order.status === 'failed' ? 'bg-red-50 border-red-200 text-red-800' :
-                                'bg-blue-50 border-blue-200 text-blue-800'
+                                'bg-[#0c1a3a]/5 border-[#0c1a3a]/10 text-[#0c1a3a]'
                               }`}>
                                 {typeof (order as any).result === 'object' ? (
                                   <>
@@ -3306,7 +3306,7 @@ function AdminAgentsContent() {
                                 <>
                                   <span className="text-neutral-300">→</span>
                                   <span className="flex items-center gap-1">
-                                    <span className="w-2 h-2 rounded-full bg-blue-400" />
+                                    <span className="w-2 h-2 rounded-full bg-[#0c1a3a]" />
                                     Démarré {new Date((order as any).result.started_at).toLocaleString('fr-FR')}
                                   </span>
                                 </>
@@ -3341,7 +3341,7 @@ function AdminAgentsContent() {
                               className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${
                                 order.status === 'failed'
                                   ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                                  : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                                  : 'bg-[#0c1a3a]/10 text-[#0c1a3a] hover:bg-[#0c1a3a]/15'
                               }`}
                             >
                               {order.status === 'failed' ? 'Relancer cet ordre' : 'Re-executer'}
@@ -3404,7 +3404,7 @@ function AdminAgentsContent() {
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium">{item.first_name || 'Client'}</span>
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">{item.plan}</span>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">{item.step_key}</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#0c1a3a]/10 text-[#0c1a3a]">{item.step_key}</span>
                         <span className={`text-[10px] px-2 py-0.5 rounded-full ${
                           item.status === 'sent' ? 'bg-green-100 text-green-700'
                           : item.status === 'pending' ? 'bg-amber-100 text-amber-700'
@@ -3502,7 +3502,7 @@ function AdminAgentsContent() {
               <span className="text-neutral-500">Par plateforme :</span>
               <span className="px-2 py-0.5 rounded bg-pink-100 text-pink-700">IG: {contentStats.byPlatform?.instagram || 0}</span>
               <span className="px-2 py-0.5 rounded bg-neutral-800 text-white">TK: {contentStats.byPlatform?.tiktok || 0}</span>
-              <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-700">LI: {contentStats.byPlatform?.linkedin || 0}</span>
+              <span className="px-2 py-0.5 rounded bg-[#0c1a3a]/10 text-[#0c1a3a]">LI: {contentStats.byPlatform?.linkedin || 0}</span>
             </div>
 
             {/* Platform & mode selectors */}
@@ -3530,7 +3530,7 @@ function AdminAgentsContent() {
               <button
                 onClick={() => handleContentGenerate('generate_weekly')}
                 disabled={contentGenerating}
-                className="bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:opacity-90 disabled:opacity-50"
+                className="bg-gradient-to-r from-purple-600 to-[#1e3a5f] text-white text-sm font-medium px-4 py-2 rounded-lg hover:opacity-90 disabled:opacity-50"
               >
                 {contentGenerating ? 'Génération...' : 'Planifier la semaine'}
               </button>
@@ -3570,13 +3570,13 @@ function AdminAgentsContent() {
                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
                           post.platform === 'instagram' ? 'bg-pink-100 text-pink-700'
                           : post.platform === 'tiktok' ? 'bg-neutral-800 text-white'
-                          : 'bg-blue-100 text-blue-700'
+                          : 'bg-[#0c1a3a]/10 text-[#0c1a3a]'
                         }`}>{post.platform}</span>
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-600">{post.format}</span>
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-600">{post.pillar}</span>
                         <span className={`text-[10px] px-2 py-0.5 rounded-full ${
                           post.status === 'published' ? 'bg-green-100 text-green-700'
-                          : post.status === 'approved' ? 'bg-blue-100 text-blue-700'
+                          : post.status === 'approved' ? 'bg-[#0c1a3a]/10 text-[#0c1a3a]'
                           : post.status === 'skipped' ? 'bg-neutral-100 text-neutral-500'
                           : 'bg-amber-100 text-amber-700'
                         }`}>{post.status}</span>
@@ -3599,7 +3599,7 @@ function AdminAgentsContent() {
                       <div className="flex flex-wrap gap-2 mt-1" onClick={e => e.stopPropagation()}>
                         {post.status === 'draft' && (
                           <>
-                            <button onClick={() => handleContentAction(post.id, 'approve')} className="text-xs px-2 py-1 rounded bg-blue-50 text-blue-600 hover:bg-blue-100">Approuver</button>
+                            <button onClick={() => handleContentAction(post.id, 'approve')} className="text-xs px-2 py-1 rounded bg-[#0c1a3a]/5 text-[#0c1a3a] hover:bg-[#0c1a3a]/10">Approuver</button>
                             <button onClick={() => handleContentAction(post.id, 'skip')} className="text-xs px-2 py-1 rounded bg-neutral-50 text-neutral-400 hover:bg-neutral-100">Ignorer</button>
                           </>
                         )}
@@ -3746,7 +3746,7 @@ function AdminAgentsContent() {
                   </div>
                   <div className="ml-auto">
                     <span className={`text-[9px] px-2 py-0.5 rounded-full font-medium ${
-                      previewPost.status === 'published' ? 'bg-green-100 text-green-700' : previewPost.status === 'approved' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'
+                      previewPost.status === 'published' ? 'bg-green-100 text-green-700' : previewPost.status === 'approved' ? 'bg-[#0c1a3a]/10 text-[#0c1a3a]' : 'bg-amber-100 text-amber-700'
                     }`}>{previewPost.status}</span>
                   </div>
                 </div>

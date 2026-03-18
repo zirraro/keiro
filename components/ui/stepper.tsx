@@ -7,7 +7,7 @@ export function Stepper({ step, total = 3 }: { step: number; total?: number }) {
         <span>{pct}%</span>
       </div>
       <div className="h-2 rounded-full bg-neutral-100 overflow-hidden">
-        <div className="h-full bg-gradient-to-r from-blue-500 to-blue-400" style={{ width: `${pct}%` }} />
+        <div className="h-full bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f]" style={{ width: `${pct}%` }} />
       </div>
     </div>
   );

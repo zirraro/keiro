@@ -165,7 +165,7 @@ export default function ScheduleModal({ isOpen, onClose, image, onSchedule }: Sc
                     }}
                     className={`p-3 rounded-lg border-2 transition-all relative ${
                       isSelected
-                        ? 'border-blue-500 bg-blue-50'
+                        ? 'border-[#0c1a3a] bg-[#0c1a3a]/5'
                         : 'border-neutral-200 hover:border-neutral-300'
                     }`}
                   >
@@ -178,7 +178,7 @@ export default function ScheduleModal({ isOpen, onClose, image, onSchedule }: Sc
                       </span>
                       <span className="text-xs font-medium capitalize">{p}</span>
                       {isSelected && (
-                        <div className="absolute top-1 right-1 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                        <div className="absolute top-1 right-1 w-5 h-5 bg-[#0c1a3a] rounded-full flex items-center justify-center">
                           <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                           </svg>
@@ -206,7 +206,7 @@ export default function ScheduleModal({ isOpen, onClose, image, onSchedule }: Sc
                 onChange={(e) => setDate(e.target.value)}
                 min={minDate}
                 max={maxDateStr}
-                className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1a3a]"
               />
             </div>
             <div>
@@ -217,7 +217,7 @@ export default function ScheduleModal({ isOpen, onClose, image, onSchedule }: Sc
                 type="time"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
-                className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1a3a]"
               />
             </div>
           </div>
@@ -230,7 +230,7 @@ export default function ScheduleModal({ isOpen, onClose, image, onSchedule }: Sc
               </label>
               <button
                 onClick={generateCaption}
-                className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                className="text-xs text-[#0c1a3a] hover:text-[#1e3a5f] font-medium"
               >
                 ✨ {t.library.smRegenerate}
               </button>
@@ -240,7 +240,7 @@ export default function ScheduleModal({ isOpen, onClose, image, onSchedule }: Sc
               onChange={(e) => setCaption(e.target.value)}
               rows={4}
               placeholder={t.library.smCaptionPlaceholder}
-              className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1a3a] resize-none"
             />
             <p className="text-xs text-neutral-500 mt-1">{t.library.smCharsCount.replace('{n}', String(caption.length))}</p>
           </div>
@@ -253,7 +253,7 @@ export default function ScheduleModal({ isOpen, onClose, image, onSchedule }: Sc
               </label>
               <button
                 onClick={generateHashtags}
-                className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                className="text-xs text-[#0c1a3a] hover:text-[#1e3a5f] font-medium"
               >
                 ✨ {t.library.smSuggest}
               </button>
@@ -263,7 +263,7 @@ export default function ScheduleModal({ isOpen, onClose, image, onSchedule }: Sc
               value={hashtags}
               onChange={(e) => setHashtags(e.target.value)}
               placeholder="#marketing #business #entrepreneur"
-              className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1a3a]"
             />
             <p className="text-xs text-neutral-500 mt-1">
               {t.library.smHashtagsHint}
@@ -314,7 +314,7 @@ export default function ScheduleModal({ isOpen, onClose, image, onSchedule }: Sc
           <button
             onClick={handleSchedule}
             disabled={saving || !date || !time || selectedPlatforms.length === 0}
-            className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 px-6 py-3 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? t.library.smScheduling : `📅 ${t.library.smScheduleBtn.replace('{n}', String(selectedPlatforms.length))}`}
           </button>

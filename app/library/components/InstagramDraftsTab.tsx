@@ -124,7 +124,7 @@ export default function InstagramDraftsTab({ drafts, onEdit, onDelete, onPublish
         );
       case 'published':
         return (
-          <span className="px-2 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-medium">
+          <span className="px-2 py-1 rounded-full bg-[#0c1a3a]/10 text-[#0c1a3a] text-xs font-medium">
             ✓ Publié
           </span>
         );

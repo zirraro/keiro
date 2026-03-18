@@ -13,12 +13,12 @@ export default function CreateFolderModal({ onClose, onSave }: CreateFolderModal
   const { t } = useLanguage();
   const [name, setName] = useState('');
   const [selectedIcon, setSelectedIcon] = useState('📁');
-  const [selectedColor, setSelectedColor] = useState('#3b82f6');
+  const [selectedColor, setSelectedColor] = useState('#0c1a3a');
   const [saving, setSaving] = useState(false);
 
   const COLOR_OPTIONS = [
-    { name: t.library.cfmColorBlue, value: '#3b82f6' },
-    { name: t.library.cfmColorPurple, value: '#9333ea' },
+    { name: t.library.cfmColorBlue, value: '#0c1a3a' },
+    { name: t.library.cfmColorPurple, value: '#0c1a3a' },
     { name: t.library.cfmColorPink, value: '#ec4899' },
     { name: t.library.cfmColorRed, value: '#ef4444' },
     { name: t.library.cfmColorOrange, value: '#f97316' },
@@ -51,7 +51,7 @@ export default function CreateFolderModal({ onClose, onSave }: CreateFolderModal
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#0c1a3a] to-[#1e3a5f] flex items-center justify-center">
               <FolderIcon className="w-6 h-6 text-white" />
             </div>
             <h2 className="text-2xl font-bold text-neutral-900">{t.library.cfmTitle}</h2>
@@ -96,7 +96,7 @@ export default function CreateFolderModal({ onClose, onSave }: CreateFolderModal
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder={t.library.cfmPlaceholder}
-                className="w-full px-4 py-3 rounded-lg border border-neutral-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 rounded-lg border border-neutral-300 focus:outline-none focus:ring-2 focus:ring-[#0c1a3a]"
                 maxLength={50}
                 autoFocus
               />
@@ -117,7 +117,7 @@ export default function CreateFolderModal({ onClose, onSave }: CreateFolderModal
                     onClick={() => setSelectedIcon(icon)}
                     className={`aspect-square rounded-lg flex items-center justify-center text-2xl transition-all ${
                       selectedIcon === icon
-                        ? 'bg-blue-100 ring-2 ring-blue-500 scale-110'
+                        ? 'bg-[#0c1a3a]/10 ring-2 ring-[#0c1a3a] scale-110'
                         : 'bg-neutral-100 hover:bg-neutral-200'
                     }`}
                   >
@@ -181,7 +181,7 @@ export default function CreateFolderModal({ onClose, onSave }: CreateFolderModal
             className={`px-6 py-3 rounded-lg font-medium text-white transition-colors flex items-center gap-2 ${
               saving || !name.trim()
                 ? 'bg-neutral-400 cursor-not-allowed'
-                : 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700'
+                : 'bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] hover:from-[#1e3a5f] hover:to-[#2a4a6f]'
             }`}
           >
             {saving ? (

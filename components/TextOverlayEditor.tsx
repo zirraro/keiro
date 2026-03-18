@@ -89,7 +89,7 @@ const TEMPLATES = [
     description: 'Bouton dégradé en bas, pousse à l\'action',
     defaults: {
       textColor: '#ffffff',
-      backgroundColor: 'linear-gradient(135deg, #3b82f6, #06b6d4)',
+      backgroundColor: 'linear-gradient(135deg, #0c1a3a, #06b6d4)',
       backgroundStyle: 'gradient' as const,
       position: 75,
       fontFamily: 'montserrat' as const,
@@ -260,7 +260,7 @@ export default function TextOverlayEditor({
                 {isGenerating && (
                   <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-10">
                     <div className="text-center">
-                      <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-2"></div>
+                      <div className="w-12 h-12 border-4 border-[#0c1a3a]/10 border-t-[#0c1a3a] rounded-full animate-spin mx-auto mb-2"></div>
                       <p className="text-sm text-neutral-600">Generation...</p>
                     </div>
                   </div>
@@ -285,7 +285,7 @@ export default function TextOverlayEditor({
                   onChange={(e) => setConfig(prev => ({ ...prev, text: e.target.value }))}
                   placeholder="Ex: -50% ce week-end seulement !"
                   rows={3}
-                  className="w-full px-4 py-3 rounded-lg border-2 border-neutral-300 text-sm focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 resize-none"
+                  className="w-full px-4 py-3 rounded-lg border-2 border-neutral-300 text-sm focus:outline-none focus:border-[#0c1a3a] focus:ring-4 focus:ring-[#0c1a3a]/10 resize-none"
                 />
                 <p className="text-xs text-neutral-500 mt-1">
                   <span className="font-semibold">{config.text.length}</span> caracteres
@@ -299,7 +299,7 @@ export default function TextOverlayEditor({
                 </label>
 
                 {!config.logoUrl ? (
-                  <div className="border-2 border-dashed border-neutral-300 rounded-xl p-6 text-center hover:border-blue-400 transition-colors">
+                  <div className="border-2 border-dashed border-neutral-300 rounded-xl p-6 text-center hover:border-[#0c1a3a]/30 transition-colors">
                     <svg className="w-12 h-12 mx-auto text-neutral-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
@@ -393,15 +393,15 @@ export default function TextOverlayEditor({
                   <div className="flex-1 flex items-center gap-2 justify-center">
                     <button
                       onClick={() => setConfig(prev => ({ ...prev, position: 25 }))}
-                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${config.position <= 30 ? 'bg-blue-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
+                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${config.position <= 30 ? 'bg-[#0c1a3a] text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
                     >Haut</button>
                     <button
                       onClick={() => setConfig(prev => ({ ...prev, position: 50 }))}
-                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${config.position > 30 && config.position < 70 ? 'bg-blue-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
+                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${config.position > 30 && config.position < 70 ? 'bg-[#0c1a3a] text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
                     >Centre</button>
                     <button
                       onClick={() => setConfig(prev => ({ ...prev, position: 75 }))}
-                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${config.position >= 70 ? 'bg-blue-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
+                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${config.position >= 70 ? 'bg-[#0c1a3a] text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
                     >Bas</button>
                   </div>
                   <button
@@ -428,7 +428,7 @@ export default function TextOverlayEditor({
                   <label className="block text-sm font-semibold text-neutral-700 mb-2">Couleur fond</label>
                   <input
                     type="color"
-                    value={config.backgroundColor.startsWith('rgba') || config.backgroundColor.startsWith('linear') ? '#3b82f6' : config.backgroundColor}
+                    value={config.backgroundColor.startsWith('rgba') || config.backgroundColor.startsWith('linear') ? '#0c1a3a' : config.backgroundColor}
                     onChange={(e) => setConfig(prev => ({ ...prev, backgroundColor: e.target.value }))}
                     className="w-full h-10 rounded-lg border border-neutral-300 cursor-pointer"
                   />
@@ -460,7 +460,7 @@ export default function TextOverlayEditor({
                       onClick={() => setConfig(prev => ({ ...prev, fontFamily: font.id as any }))}
                       className={`px-2 py-2 rounded-lg text-xs font-medium transition-all text-center ${
                         config.fontFamily === font.id
-                          ? 'bg-blue-500 text-white'
+                          ? 'bg-[#0c1a3a] text-white'
                           : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
                       }`}
                     >
@@ -481,13 +481,13 @@ export default function TextOverlayEditor({
                       onClick={() => setConfig(prev => ({ ...prev, backgroundStyle: style.value }))}
                       className={`px-3 py-2.5 rounded-lg text-xs transition-all text-left ${
                         config.backgroundStyle === style.value
-                          ? 'bg-blue-500 text-white ring-2 ring-blue-300'
+                          ? 'bg-[#0c1a3a] text-white ring-2 ring-[#0c1a3a]/20'
                           : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
                       }`}
                     >
                       <span className="mr-1">{style.emoji}</span>
                       <span className="font-semibold">{style.label}</span>
-                      <div className={`text-[10px] mt-0.5 ${config.backgroundStyle === style.value ? 'text-blue-100' : 'text-neutral-500'}`}>
+                      <div className={`text-[10px] mt-0.5 ${config.backgroundStyle === style.value ? 'text-[#0c1a3a]/40' : 'text-neutral-500'}`}>
                         {style.description}
                       </div>
                     </button>
@@ -505,8 +505,8 @@ export default function TextOverlayEditor({
                       onClick={() => applyTemplate(template)}
                       className={`p-3 rounded-xl border-2 text-left transition-all hover:scale-[1.02] ${
                         config.template === template.id
-                          ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
-                          : 'border-neutral-200 hover:border-blue-300'
+                          ? 'border-[#0c1a3a] bg-[#0c1a3a]/5 ring-2 ring-[#0c1a3a]/10'
+                          : 'border-neutral-200 hover:border-[#0c1a3a]/20'
                       }`}
                     >
                       <div className="text-2xl mb-1">{template.icon}</div>
@@ -531,7 +531,7 @@ export default function TextOverlayEditor({
           <button
             onClick={handleApply}
             disabled={!config.text.trim()}
-            className="px-8 py-2 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-8 py-2 rounded-lg bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Appliquer
           </button>

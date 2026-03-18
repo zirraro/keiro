@@ -16,9 +16,9 @@ export default function BookDemoButton({ variant = 'primary', size = 'md', class
 
   // Variants
   const variantStyles = {
-    primary: 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:shadow-lg hover:scale-105 focus:ring-blue-500',
+    primary: 'bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white hover:shadow-lg hover:scale-105 focus:ring-[#0c1a3a]',
     secondary: 'bg-purple-600 text-white hover:bg-purple-700 hover:shadow-lg hover:scale-105 focus:ring-purple-500',
-    outline: 'bg-white text-blue-600 border-2 border-blue-500 hover:bg-blue-50 focus:ring-blue-500'
+    outline: 'bg-white text-[#0c1a3a] border-2 border-[#0c1a3a] hover:bg-[#0c1a3a]/5 focus:ring-[#0c1a3a]'
   };
 
   // Sizes

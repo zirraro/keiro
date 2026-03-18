@@ -18,7 +18,7 @@ export default function FolderDropZone({ folderId, children, className = '' }: F
     <div
       ref={setNodeRef}
       className={`transition-all ${
-        isOver ? 'ring-2 ring-blue-500 ring-offset-2 bg-blue-50' : ''
+        isOver ? 'ring-2 ring-[#0c1a3a] ring-offset-2 bg-[#0c1a3a]/5' : ''
       } ${className}`}
     >
       {children}

@@ -15,8 +15,8 @@ import { startCheckout } from '@/lib/stripe/checkout';
 // Plan definitions
 const PLANS: Record<string, { name: string; price: string; credits: number; color: string }> = {
   free: { name: 'Gratuit', price: '0€', credits: PLAN_CREDITS.free, color: '#9CA3AF' },
-  sprint: { name: 'Sprint Fondateur', price: '4,99€', credits: PLAN_CREDITS.sprint, color: '#3B82F6' },
-  pro: { name: 'Pro', price: '89€', credits: PLAN_CREDITS.pro, color: '#3B82F6' },
+  sprint: { name: 'Sprint Fondateur', price: '4,99€', credits: PLAN_CREDITS.sprint, color: '#0c1a3a' },
+  pro: { name: 'Pro', price: '89€', credits: PLAN_CREDITS.pro, color: '#0c1a3a' },
   pro_promo: { name: 'Pro (Promo)', price: '—', credits: PLAN_CREDITS.pro_promo, color: '#8B5CF6' },
   fondateurs: { name: 'Fondateurs', price: '149€', credits: PLAN_CREDITS.fondateurs, color: '#8B5CF6' },
   standard: { name: 'Standard', price: '199€', credits: PLAN_CREDITS.standard, color: '#06B6D4' },
@@ -301,7 +301,7 @@ function MonComptePage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-white flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-16 h-16 border-4 border-[#0c1a3a]/10 border-t-[#0c1a3a] rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-neutral-600">Chargement...</p>
         </div>
       </div>
@@ -319,7 +319,7 @@ function MonComptePage() {
         {/* Header avec avatar et infos */}
         <div className="bg-white rounded-2xl shadow-lg border border-neutral-200 p-6 mb-6">
           <div className="flex items-center gap-5">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-2xl font-bold flex-shrink-0">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#0c1a3a] to-[#1e3a5f] flex items-center justify-center text-white text-2xl font-bold flex-shrink-0">
               {(profile?.first_name?.[0] || user?.email?.[0] || 'K').toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
@@ -446,14 +446,14 @@ function MonComptePage() {
 
                 {/* Upsell si crédits bas */}
                 {creditsBalance <= 20 && (
-                  <div className="mt-3 p-4 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-xl">
+                  <div className="mt-3 p-4 bg-gradient-to-r from-[#0c1a3a]/5 to-[#1e3a5f]/5 border border-purple-200 rounded-xl">
                     <p className="text-sm text-purple-900 font-semibold mb-1">Continuez à créer sans interruption</p>
                     <p className="text-xs text-purple-700 mb-3">Rechargez vos crédits :</p>
                     <div className="flex gap-3">
                       <button onClick={() => setActiveSection('billing')} className="flex-1 text-xs px-3 py-2 bg-white border border-purple-200 rounded-lg text-purple-700 hover:bg-purple-50 transition-colors text-center font-medium">
                         Acheter un pack
                       </button>
-                      <Link href="/pricing" className="flex-1 text-xs px-3 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-colors text-center font-semibold">
+                      <Link href="/pricing" className="flex-1 text-xs px-3 py-2 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white rounded-lg hover:from-[#1e3a5f] hover:to-[#1e3a5f] transition-colors text-center font-semibold">
                         Upgrader mon plan
                       </Link>
                     </div>
@@ -467,9 +467,9 @@ function MonComptePage() {
 
             {/* Raccourcis */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Link href="/generate" className="flex items-center gap-3 p-4 bg-white rounded-xl border border-neutral-200 hover:border-blue-500 hover:shadow-md transition-all">
-                <div className="w-11 h-11 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+              <Link href="/generate" className="flex items-center gap-3 p-4 bg-white rounded-xl border border-neutral-200 hover:border-[#0c1a3a] hover:shadow-md transition-all">
+                <div className="w-11 h-11 bg-[#0c1a3a]/10 rounded-lg flex items-center justify-center">
+                  <svg className="w-5 h-5 text-[#0c1a3a]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                 </div>
                 <div>
                   <p className="font-semibold text-neutral-900 text-sm">Générer un visuel</p>
@@ -569,14 +569,14 @@ function MonComptePage() {
                           else alert(data.error || 'Erreur');
                         } catch { alert('Erreur réseau'); }
                       }}
-                      className="px-4 py-2 text-sm bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors font-medium"
+                      className="px-4 py-2 text-sm bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white rounded-lg hover:from-[#1e3a5f] hover:to-[#1e3a5f] transition-colors font-medium"
                     >
                       Gérer mon abonnement
                     </button>
                   ) : (
                     <Link
                       href="/pricing"
-                      className="px-4 py-2 text-sm bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors font-medium"
+                      className="px-4 py-2 text-sm bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white rounded-lg hover:from-[#1e3a5f] hover:to-[#1e3a5f] transition-colors font-medium"
                     >
                       {profile?.credits_expires_at ? 'S\'abonner pour garder mes avantages' : 'Choisir un plan'}
                     </Link>
@@ -613,7 +613,7 @@ function MonComptePage() {
                 <button
                   onClick={handleRedeemPromo}
                   disabled={promoLoading || !promoCode.trim()}
-                  className="px-6 py-2.5 text-sm font-semibold bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:shadow-lg transition-all disabled:opacity-50"
+                  className="px-6 py-2.5 text-sm font-semibold bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white rounded-lg hover:shadow-lg transition-all disabled:opacity-50"
                 >
                   {promoLoading ? 'Activation...' : 'Activer'}
                 </button>
@@ -710,7 +710,7 @@ function MonComptePage() {
                 <button
                   onClick={loadCreditHistory}
                   disabled={historyLoading}
-                  className="text-xs text-blue-600 hover:text-blue-700 font-medium disabled:opacity-50"
+                  className="text-xs text-[#0c1a3a] hover:text-[#1e3a5f] font-medium disabled:opacity-50"
                 >
                   {historyLoading ? 'Chargement...' : creditHistory.length > 0 ? 'Actualiser' : 'Charger'}
                 </button>
@@ -878,7 +878,7 @@ function MonComptePage() {
                 <h2 className="text-lg font-bold text-neutral-900">Mes demandes de support</h2>
                 <button
                   onClick={loadMyRequests}
-                  className="text-sm text-blue-600 hover:underline"
+                  className="text-sm text-[#0c1a3a] hover:underline"
                 >
                   {myRequestsLoading ? 'Chargement...' : 'Actualiser'}
                 </button>
@@ -906,7 +906,7 @@ function MonComptePage() {
                           onClick={() => setSelectedMyRequest(req)}
                           className={`w-full text-left p-3 rounded-lg border transition-all ${
                             selectedMyRequest?.id === req.id
-                              ? 'border-blue-500 bg-blue-50'
+                              ? 'border-[#0c1a3a] bg-[#0c1a3a]/5'
                               : 'border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50'
                           }`}
                         >
@@ -919,7 +919,7 @@ function MonComptePage() {
                               {req.status === 'resolved' ? 'Résolu' : req.status === 'in_progress' ? 'En cours' : 'Nouveau'}
                             </span>
                             {hasAdminReply && (
-                              <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-700">
+                              <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#0c1a3a]/10 text-[#0c1a3a]">
                                 Réponse
                               </span>
                             )}
@@ -954,9 +954,9 @@ function MonComptePage() {
                               <div className={`max-w-[80%] rounded-xl px-4 py-2.5 ${
                                 msg.from === 'admin'
                                   ? 'bg-purple-50 border border-purple-200'
-                                  : 'bg-blue-50 border border-blue-200'
+                                  : 'bg-[#0c1a3a]/5 border border-[#0c1a3a]/10'
                               }`}>
-                                <p className="text-xs font-semibold mb-1" style={{ color: msg.from === 'admin' ? '#7C3AED' : '#2563EB' }}>
+                                <p className="text-xs font-semibold mb-1" style={{ color: msg.from === 'admin' ? '#7C3AED' : '#0c1a3a' }}>
                                   {msg.from === 'admin' ? 'Keiro Support' : 'Vous'}
                                 </p>
                                 <p className="text-sm text-neutral-800 whitespace-pre-wrap">{msg.text}</p>
@@ -988,7 +988,7 @@ function MonComptePage() {
                                 title="Joindre une image"
                               >
                                 {userUploading ? (
-                                  <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                                  <div className="w-4 h-4 border-2 border-[#0c1a3a] border-t-transparent rounded-full animate-spin" />
                                 ) : (
                                   <svg className="w-4 h-4 text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
@@ -1001,12 +1001,12 @@ function MonComptePage() {
                                 onChange={(e) => setUserReply(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleUserReply(selectedMyRequest.id)}
                                 placeholder="Votre réponse..."
-                                className="flex-1 px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="flex-1 px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0c1a3a]"
                               />
                               <button
                                 onClick={() => handleUserReply(selectedMyRequest.id)}
                                 disabled={userReplyLoading || (!userReply.trim() && !userAttachment)}
-                                className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-all"
+                                className="px-4 py-2 bg-[#0c1a3a] text-white text-sm rounded-lg hover:bg-[#1e3a5f] disabled:opacity-50 transition-all"
                               >
                                 {userReplyLoading ? '...' : 'Envoyer'}
                               </button>

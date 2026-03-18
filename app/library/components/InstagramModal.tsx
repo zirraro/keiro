@@ -958,7 +958,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                   {activeTab === 'images' && selectedImage && (
                     <button
                       onClick={() => setShowImageEditModal(true)}
-                      className="mt-2 w-full py-2 bg-blue-50 text-blue-700 text-xs font-semibold rounded-lg hover:bg-blue-100 transition flex items-center justify-center gap-1.5"
+                      className="mt-2 w-full py-2 bg-[#0c1a3a]/5 text-[#0c1a3a] text-xs font-semibold rounded-lg hover:bg-[#0c1a3a]/10 transition flex items-center justify-center gap-1.5"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -1072,7 +1072,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
 
               {/* Narration Audio (vidéos uniquement) */}
               {activeTab === 'videos' && selectedVideo && (
-              <div className="border border-blue-200 bg-blue-50 rounded-lg p-4">
+              <div className="border border-[#0c1a3a]/10 bg-[#0c1a3a]/5 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-sm font-semibold text-neutral-900">
                     {t.library.narrationAudio}
@@ -1089,7 +1089,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                 {!showNarrationEditor ? (
                   <button
                     onClick={() => setShowNarrationEditor(true)}
-                    className="w-full px-4 py-2 rounded-lg font-medium transition-colors bg-blue-600 text-white hover:bg-blue-700"
+                    className="w-full px-4 py-2 rounded-lg font-medium transition-colors bg-[#0c1a3a] text-white hover:bg-[#1e3a5f]"
                   >
                     {narrationAudioUrl ? t.library.editAudio : t.library.generateAudio}
                   </button>
@@ -1179,14 +1179,14 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
 
               {/* Statut fusion audio + vidéo */}
               {narrationAudioUrl && activeTab === 'videos' && selectedVideo && (
-                <div className={`border rounded-lg p-4 space-y-3 ${mergedVideoUrl ? 'border-green-300 bg-green-50' : merging ? 'border-blue-300 bg-blue-50' : 'border-red-300 bg-red-50'}`}>
+                <div className={`border rounded-lg p-4 space-y-3 ${mergedVideoUrl ? 'border-green-300 bg-green-50' : merging ? 'border-[#0c1a3a]/20 bg-[#0c1a3a]/5' : 'border-red-300 bg-red-50'}`}>
                   <div className="flex items-center justify-between">
                     <label className="block text-sm font-semibold text-neutral-900">
                       {t.library.audioVideo}
                     </label>
                     {merging ? (
-                      <span className="text-xs text-blue-600 font-medium flex items-center gap-1">
-                        <span className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></span>
+                      <span className="text-xs text-[#0c1a3a] font-medium flex items-center gap-1">
+                        <span className="w-3 h-3 border-2 border-[#0c1a3a] border-t-transparent rounded-full animate-spin"></span>
                         {t.library.mergingInProgress}
                       </span>
                     ) : mergedVideoUrl ? (
@@ -1428,13 +1428,13 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
 
                 {/* Suggestions */}
                 {hashtags.length < 30 && (
-                  <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <p className="text-xs text-blue-700 font-medium mb-2">{t.library.hashtagSuggestions}</p>
+                  <div className="mt-3 p-3 bg-[#0c1a3a]/5 rounded-lg border border-[#0c1a3a]/10">
+                    <p className="text-xs text-[#0c1a3a] font-medium mb-2">{t.library.hashtagSuggestions}</p>
                     <div className="flex flex-wrap gap-1">
                       {selectedImage?.news_category && (
                         <button
                           onClick={() => suggestHashtag(selectedImage.news_category!.toLowerCase().replace(/\s/g, ''))}
-                          className="text-xs px-2 py-1 bg-white rounded hover:bg-blue-100 text-blue-600 border border-blue-200"
+                          className="text-xs px-2 py-1 bg-white rounded hover:bg-[#0c1a3a]/10 text-[#0c1a3a] border border-[#0c1a3a]/10"
                         >
                           #{selectedImage.news_category.toLowerCase().replace(/\s/g, '')}
                         </button>
@@ -1443,7 +1443,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                         <button
                           key={tag}
                           onClick={() => suggestHashtag(tag)}
-                          className="text-xs px-2 py-1 bg-white rounded hover:bg-blue-100 text-blue-600 border border-blue-200"
+                          className="text-xs px-2 py-1 bg-white rounded hover:bg-[#0c1a3a]/10 text-[#0c1a3a] border border-[#0c1a3a]/10"
                         >
                           #{tag}
                         </button>
@@ -1522,7 +1522,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                 </button>
                 <button
                   onClick={() => setShowCarouselModal(true)}
-                  className="flex-1 px-3 sm:px-4 py-2 sm:py-3 rounded-lg font-medium text-white transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 shadow-lg hover:shadow-xl"
+                  className="flex-1 px-3 sm:px-4 py-2 sm:py-3 rounded-lg font-medium text-white transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm bg-gradient-to-r from-purple-500 to-[#1e3a5f] hover:from-purple-600 hover:to-[#0c1a3a] shadow-lg hover:shadow-xl"
                 >
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/>

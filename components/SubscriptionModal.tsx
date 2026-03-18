@@ -102,7 +102,7 @@ export default function SubscriptionModal({ isOpen, onClose }: SubscriptionModal
                 plan.special
                   ? "border-2 border-amber-400 bg-gradient-to-br from-amber-50 to-orange-50"
                   : plan.highlight
-                  ? "border-2 border-blue-300 bg-blue-50/30"
+                  ? "border-2 border-[#0c1a3a]/20 bg-[#0c1a3a]/5"
                   : "border-neutral-200 bg-white"
               }`}
             >
@@ -111,7 +111,7 @@ export default function SubscriptionModal({ isOpen, onClose }: SubscriptionModal
                   <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
                     plan.special
                       ? "bg-amber-500 text-white"
-                      : "bg-gradient-to-r from-blue-500 to-cyan-500 text-white"
+                      : "bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white"
                   }`}>
                     {plan.badge}
                   </span>
@@ -134,7 +134,7 @@ export default function SubscriptionModal({ isOpen, onClose }: SubscriptionModal
               <ul className="space-y-1.5 mb-4">
                 {plan.features.map((feature, idx) => (
                   <li key={idx} className="flex items-start gap-1.5 text-xs">
-                    <span className={plan.special ? "text-amber-500" : "text-blue-500"}>✓</span>
+                    <span className={plan.special ? "text-amber-500" : "text-[#0c1a3a]"}>✓</span>
                     <span className="text-neutral-700">{feature}</span>
                   </li>
                 ))}
@@ -146,7 +146,7 @@ export default function SubscriptionModal({ isOpen, onClose }: SubscriptionModal
                   plan.special
                     ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:shadow-lg"
                     : plan.highlight
-                    ? "bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:shadow-lg"
+                    ? "bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white hover:shadow-lg"
                     : "bg-neutral-100 text-neutral-900 hover:bg-neutral-200"
                 }`}
               >
@@ -159,7 +159,7 @@ export default function SubscriptionModal({ isOpen, onClose }: SubscriptionModal
         {/* Footer */}
         <div className="mt-6 text-center text-sm text-neutral-500">
           <p>
-            Besoin d'aide pour choisir ? <Link href="/pricing" className="text-blue-600 hover:underline">Voir la comparaison complète</Link>
+            Besoin d'aide pour choisir ? <Link href="/pricing" className="text-[#0c1a3a] hover:underline">Voir la comparaison complète</Link>
           </p>
         </div>
       </div>

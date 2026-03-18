@@ -11,7 +11,7 @@ export default function LanguageToggle() {
         onClick={() => setLocale('fr')}
         className={`px-2.5 py-1 text-xs font-medium rounded-full transition-all ${
           locale === 'fr'
-            ? 'bg-blue-600 text-white shadow-sm'
+            ? 'bg-[#0c1a3a] text-white shadow-sm'
             : 'text-neutral-600 hover:text-neutral-900'
         }`}
       >
@@ -21,7 +21,7 @@ export default function LanguageToggle() {
         onClick={() => setLocale('en')}
         className={`px-2.5 py-1 text-xs font-medium rounded-full transition-all ${
           locale === 'en'
-            ? 'bg-blue-600 text-white shadow-sm'
+            ? 'bg-[#0c1a3a] text-white shadow-sm'
             : 'text-neutral-600 hover:text-neutral-900'
         }`}
       >

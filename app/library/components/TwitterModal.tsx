@@ -425,7 +425,7 @@ export default function TwitterModal({ image, images, video, videos, onClose, on
                     {activeTab === 'images' && selectedImage && (
                       <button
                         onClick={() => setShowImageEditModal(true)}
-                        className="mt-2 w-full py-2 bg-blue-50 text-blue-700 text-xs font-semibold rounded-lg hover:bg-blue-100 transition flex items-center justify-center gap-1.5"
+                        className="mt-2 w-full py-2 bg-[#0c1a3a]/5 text-[#0c1a3a] text-xs font-semibold rounded-lg hover:bg-[#0c1a3a]/10 transition flex items-center justify-center gap-1.5"
                       >
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />

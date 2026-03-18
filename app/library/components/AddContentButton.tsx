@@ -226,7 +226,7 @@ export default function AddContentButton({ onUploadComplete }: AddContentButtonP
       <button
         onClick={() => setIsOpen(!isOpen)}
         disabled={uploading}
-        className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+        className="px-4 py-2 bg-[#0c1a3a] text-white text-sm font-semibold rounded-lg hover:bg-[#1e3a5f] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
       >
         {uploading ? (
           <>
@@ -286,7 +286,7 @@ export default function AddContentButton({ onUploadComplete }: AddContentButtonP
           </div>
           <div className="w-full bg-neutral-200 rounded-full h-2">
             <div
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+              className="bg-[#0c1a3a] h-2 rounded-full transition-all duration-300"
               style={{ width: `${progress}%` }}
             ></div>
           </div>

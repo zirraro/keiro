@@ -184,7 +184,7 @@ export default function TrendyPage() {
               {it.angles?.length ? (
                 <div className="mt-3 flex flex-wrap gap-1">
                   {it.angles.slice(0, 4).map((a, i) => (
-                    <span key={i} className="text-[11px] bg-blue-50 rounded px-2 py-0.5 text-blue-700">{a}</span>
+                    <span key={i} className="text-[11px] bg-[#0c1a3a]/5 rounded px-2 py-0.5 text-[#0c1a3a]">{a}</span>
                   ))}
                 </div>
               ) : null}

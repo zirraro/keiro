@@ -6,7 +6,7 @@ export default function Navbar() {
     <header className="sticky top-0 z-40 border-b border-neutral-200/60 bg-white/70 backdrop-blur-md">
       <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-lg bg-blue-500" />
+          <div className="w-6 h-6 rounded-lg bg-[#0c1a3a]" />
           <span className="font-semibold">Keiro</span>
         </Link>
         <nav className="hidden sm:flex items-center gap-4 text-sm">

@@ -38,7 +38,7 @@ export default function DragProvider({ children, onDragEnd }: DragProviderProps)
       {children}
       <DragOverlay>
         {activeId && (
-          <div className="bg-white rounded-lg border-2 border-blue-500 shadow-2xl p-3 opacity-80">
+          <div className="bg-white rounded-lg border-2 border-[#0c1a3a] shadow-2xl p-3 opacity-80">
             <div className="w-48 h-48 bg-neutral-100 rounded flex items-center justify-center">
               <p className="text-sm text-neutral-500">{t.library.dpMoving}</p>
             </div>

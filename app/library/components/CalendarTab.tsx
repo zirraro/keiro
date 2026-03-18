@@ -165,21 +165,21 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
       {!isVisitor && (
         <>
           {scheduledPosts.length > 0 && (
-        <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-5">
+        <div className="bg-[#0c1a3a]/5 border-2 border-[#0c1a3a]/10 rounded-xl p-5">
           <div className="flex items-start gap-3 mb-4">
             <span className="text-2xl">🤖</span>
             <div className="flex-1">
-              <p className="text-sm font-semibold text-blue-900 mb-1">
+              <p className="text-sm font-semibold text-[#0c1a3a] mb-1">
                 {t.library.calAutoPublishEnabled}
               </p>
-              <p className="text-xs text-blue-800">
+              <p className="text-xs text-[#0c1a3a]">
                 {t.library.calAutoPublishDesc}
               </p>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg p-3 border border-blue-200">
-            <p className="text-xs font-semibold text-blue-900 mb-2">📆 {t.library.calNextAutoPublish}</p>
+          <div className="bg-white rounded-lg p-3 border border-[#0c1a3a]/10">
+            <p className="text-xs font-semibold text-[#0c1a3a] mb-2">📆 {t.library.calNextAutoPublish}</p>
             <div className="space-y-2">
               {scheduledPosts
                 .filter(post => new Date(post.scheduled_for) > new Date())
@@ -187,7 +187,7 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
                 .slice(0, 3)
                 .map(post => (
                   <div key={post.id} className="flex items-center gap-2 text-xs">
-                    <span className="text-blue-500">→</span>
+                    <span className="text-[#0c1a3a]">→</span>
                     <span className="font-medium text-neutral-900">
                       {new Date(post.scheduled_for).toLocaleDateString(dateLocale, {
                         weekday: 'short',
@@ -266,11 +266,11 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
                 key={idx}
                 className={`min-h-[120px] border-b border-r border-neutral-100 p-2 ${
                   !dayInfo.isCurrentMonth ? 'bg-neutral-50' : 'bg-white'
-                } ${isTodayDate ? 'bg-blue-50' : ''}`}
+                } ${isTodayDate ? 'bg-[#0c1a3a]/5' : ''}`}
               >
                 <div className={`text-sm font-medium mb-2 ${
                   !dayInfo.isCurrentMonth ? 'text-neutral-400' : 'text-neutral-900'
-                } ${isTodayDate ? 'text-blue-600 font-bold' : ''}`}>
+                } ${isTodayDate ? 'text-[#0c1a3a] font-bold' : ''}`}>
                   {dayInfo.day}
                 </div>
 
@@ -279,7 +279,7 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
                     <button
                       key={post.id}
                       onClick={() => setSelectedPost(post)}
-                      className="w-full text-left p-2 rounded bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-xs hover:shadow-md transition-all group"
+                      className="w-full text-left p-2 rounded bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white text-xs hover:shadow-md transition-all group"
                     >
                       <div className="flex items-center gap-1">
                         <span>{getPlatformEmoji(post.platform)}</span>
@@ -328,9 +328,9 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
               </div>
 
               {/* Editable Date & Time */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+              <div className="bg-[#0c1a3a]/5 border border-[#0c1a3a]/10 rounded-lg p-3 mb-4">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-semibold text-blue-900">📅 Date et heure de publication</span>
+                  <span className="text-xs font-semibold text-[#0c1a3a]">📅 Date et heure de publication</span>
                   {selectedPost.status === 'scheduled' && !editingTime && (
                     <button
                       onClick={() => {
@@ -339,7 +339,7 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
                         setEditTime(d.toTimeString().slice(0, 5));
                         setEditingTime(true);
                       }}
-                      className="text-[10px] text-blue-600 hover:text-blue-700 font-medium underline"
+                      className="text-[10px] text-[#0c1a3a] hover:text-[#1e3a5f] font-medium underline"
                     >
                       Modifier
                     </button>
@@ -354,20 +354,20 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
                         value={editDate}
                         onChange={(e) => setEditDate(e.target.value)}
                         min={new Date().toISOString().split('T')[0]}
-                        className="px-2 py-1.5 border border-blue-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="px-2 py-1.5 border border-[#0c1a3a]/20 rounded text-sm focus:outline-none focus:ring-2 focus:ring-[#0c1a3a]"
                       />
                       <input
                         type="time"
                         value={editTime}
                         onChange={(e) => setEditTime(e.target.value)}
-                        className="px-2 py-1.5 border border-blue-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="px-2 py-1.5 border border-[#0c1a3a]/20 rounded text-sm focus:outline-none focus:ring-2 focus:ring-[#0c1a3a]"
                       />
                     </div>
                     <div className="flex gap-2">
                       <button
                         onClick={handleSaveTime}
                         disabled={savingTime}
-                        className="flex-1 px-3 py-1.5 bg-blue-600 text-white text-xs rounded font-medium hover:bg-blue-700 disabled:bg-blue-300"
+                        className="flex-1 px-3 py-1.5 bg-[#0c1a3a] text-white text-xs rounded font-medium hover:bg-[#1e3a5f] disabled:bg-[#0c1a3a]/30"
                       >
                         {savingTime ? 'Enregistrement...' : 'Enregistrer'}
                       </button>
@@ -380,7 +380,7 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm font-medium text-blue-800">
+                  <p className="text-sm font-medium text-[#0c1a3a]">
                     {new Date(selectedPost.scheduled_for).toLocaleDateString(dateLocale, {
                       weekday: 'long',
                       year: 'numeric',
@@ -411,13 +411,13 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
                 {selectedPost.hashtags && selectedPost.hashtags.length > 0 && (
                   <div>
                     <p className="text-xs font-semibold text-neutral-700 mb-1">Hashtags</p>
-                    <p className="text-sm text-blue-600">{selectedPost.hashtags.join(' ')}</p>
+                    <p className="text-sm text-[#0c1a3a]">{selectedPost.hashtags.join(' ')}</p>
                   </div>
                 )}
 
                 <div className="flex items-center gap-2">
                   <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    selectedPost.status === 'scheduled' ? 'bg-blue-100 text-blue-700' :
+                    selectedPost.status === 'scheduled' ? 'bg-[#0c1a3a]/10 text-[#0c1a3a]' :
                     selectedPost.status === 'published' ? 'bg-green-100 text-green-700' :
                     selectedPost.status === 'failed' ? 'bg-red-100 text-red-700' :
                     'bg-neutral-100 text-neutral-700'
@@ -463,27 +463,27 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
       {/* Visitor preview */}
       {isVisitor && (
         <div>
-          <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-5 mb-6">
+          <div className="bg-[#0c1a3a]/5 border-2 border-[#0c1a3a]/10 rounded-xl p-5 mb-6">
             <div className="flex items-start gap-3">
               <span className="text-2xl">🤖</span>
               <div>
-                <h3 className="text-base font-bold text-blue-900 mb-1">
+                <h3 className="text-base font-bold text-[#0c1a3a] mb-1">
                   {t.library.calVisitorTitle}
                 </h3>
-                <p className="text-sm text-blue-800">
+                <p className="text-sm text-[#0c1a3a]">
                   {t.library.calVisitorDesc}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border-2 border-blue-200 p-4 mb-6">
+          <div className="bg-white rounded-xl border-2 border-[#0c1a3a]/10 p-4 mb-6">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-lg font-bold text-neutral-900">{t.library.calExampleTitle}</h3>
                 <p className="text-sm text-neutral-600">{t.library.calExampleCount}</p>
               </div>
-              <span className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-bold rounded-full">
+              <span className="px-3 py-1 bg-[#0c1a3a]/10 text-[#0c1a3a] text-xs font-bold rounded-full">
                 {t.library.calPreview}
               </span>
             </div>
@@ -511,7 +511,7 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
                         <>
                           <div className="text-xs font-medium text-neutral-900 mb-1">{day}</div>
                           {hasPost && (
-                            <div className="bg-blue-500 text-white text-[10px] rounded px-2 py-1 mb-1">
+                            <div className="bg-[#0c1a3a] text-white text-[10px] rounded px-2 py-1 mb-1">
                               📷 {day === 8 ? '18h00' : day === 15 ? '12h30' : '19h15'}
                             </div>
                           )}
@@ -525,20 +525,20 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
 
             <div className="mt-4 space-y-2">
               <p className="text-xs font-semibold text-neutral-700 mb-2">📋 {t.library.calScheduledPublications}</p>
-              <div className="flex items-center gap-2 text-xs text-neutral-700 bg-blue-50 rounded p-2">
-                <span className="text-blue-500">→</span>
+              <div className="flex items-center gap-2 text-xs text-neutral-700 bg-[#0c1a3a]/5 rounded p-2">
+                <span className="text-[#0c1a3a]">→</span>
                 <span className="font-medium">{t.library.calExPost1Date}</span>
                 <span className="text-neutral-600">•</span>
                 <span className="truncate flex-1">{t.library.calExPost1Text}</span>
               </div>
-              <div className="flex items-center gap-2 text-xs text-neutral-700 bg-blue-50 rounded p-2">
-                <span className="text-blue-500">→</span>
+              <div className="flex items-center gap-2 text-xs text-neutral-700 bg-[#0c1a3a]/5 rounded p-2">
+                <span className="text-[#0c1a3a]">→</span>
                 <span className="font-medium">{t.library.calExPost2Date}</span>
                 <span className="text-neutral-600">•</span>
                 <span className="truncate flex-1">{t.library.calExPost2Text}</span>
               </div>
-              <div className="flex items-center gap-2 text-xs text-neutral-700 bg-blue-50 rounded p-2">
-                <span className="text-blue-500">→</span>
+              <div className="flex items-center gap-2 text-xs text-neutral-700 bg-[#0c1a3a]/5 rounded p-2">
+                <span className="text-[#0c1a3a]">→</span>
                 <span className="font-medium">{t.library.calExPost3Date}</span>
                 <span className="text-neutral-600">•</span>
                 <span className="truncate flex-1">{t.library.calExPost3Text}</span>
@@ -550,19 +550,19 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
             <h4 className="font-bold text-neutral-900 mb-3">🎯 {t.library.calHowToTitle}</h4>
             <div className="space-y-2">
               <div className="flex items-start gap-2 text-sm text-neutral-700">
-                <span className="font-semibold text-blue-600">1.</span>
+                <span className="font-semibold text-[#0c1a3a]">1.</span>
                 <span dangerouslySetInnerHTML={{ __html: t.library.calStep1 }} />
               </div>
               <div className="flex items-start gap-2 text-sm text-neutral-700">
-                <span className="font-semibold text-blue-600">2.</span>
+                <span className="font-semibold text-[#0c1a3a]">2.</span>
                 <span dangerouslySetInnerHTML={{ __html: t.library.calStep2 }} />
               </div>
               <div className="flex items-start gap-2 text-sm text-neutral-700">
-                <span className="font-semibold text-blue-600">3.</span>
+                <span className="font-semibold text-[#0c1a3a]">3.</span>
                 <span dangerouslySetInnerHTML={{ __html: t.library.calStep3 }} />
               </div>
               <div className="flex items-start gap-2 text-sm text-neutral-700">
-                <span className="font-semibold text-blue-600">4.</span>
+                <span className="font-semibold text-[#0c1a3a]">4.</span>
                 <span>{t.library.calStep4}</span>
               </div>
             </div>

@@ -455,7 +455,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                 onClick={() => setActiveTab('text')}
                 className={`px-3 py-2 text-sm font-semibold rounded-t-lg transition ${
                   activeTab === 'text'
-                    ? 'bg-white border border-b-0 border-neutral-200 text-blue-700'
+                    ? 'bg-white border border-b-0 border-neutral-200 text-[#0c1a3a]'
                     : 'text-neutral-500 hover:text-neutral-700'
                 }`}
               >
@@ -527,7 +527,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                         key={overlay.id}
                         className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition ${
                           editingId === overlay.id
-                            ? 'border-blue-400 bg-blue-50 ring-1 ring-blue-200'
+                            ? 'border-[#0c1a3a]/40 bg-[#0c1a3a]/5 ring-1 ring-[#0c1a3a]/10'
                             : 'border-neutral-200 bg-neutral-50 hover:border-neutral-300 hover:bg-neutral-100'
                         }`}
                         onClick={() => handleEditOverlay(overlay)}
@@ -558,7 +558,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                   {editingId && (
                     <button
                       onClick={handleNewOverlay}
-                      className="mt-2 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition"
+                      className="mt-2 px-3 py-1.5 text-xs font-medium text-[#0c1a3a] bg-[#0c1a3a]/5 border border-[#0c1a3a]/10 rounded-lg hover:bg-[#0c1a3a]/10 transition"
                     >
                       {t.library.iemAddAnotherText}
                     </button>
@@ -575,7 +575,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                   value={formText}
                   onChange={(e) => setFormText(e.target.value)}
                   placeholder={t.library.iemTextPlaceholder}
-                  className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm resize-none focus:ring-2 focus:ring-[#0c1a3a] focus:border-transparent"
                   rows={2}
                 />
               </div>
@@ -593,15 +593,15 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                   <div className="flex-1 flex items-center gap-1.5 justify-center">
                     <button
                       onClick={() => setFormPosition(25)}
-                      className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${formPosition <= 30 ? 'bg-blue-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
+                      className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${formPosition <= 30 ? 'bg-[#0c1a3a]/50 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
                     >{t.library.iemTop}</button>
                     <button
                       onClick={() => setFormPosition(50)}
-                      className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${formPosition > 30 && formPosition < 70 ? 'bg-blue-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
+                      className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${formPosition > 30 && formPosition < 70 ? 'bg-[#0c1a3a]/50 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
                     >{t.library.iemCenter}</button>
                     <button
                       onClick={() => setFormPosition(75)}
-                      className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${formPosition >= 70 ? 'bg-blue-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
+                      className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${formPosition >= 70 ? 'bg-[#0c1a3a]/50 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
                     >{t.library.iemBottom}</button>
                   </div>
                   <button
@@ -635,7 +635,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                     max={120}
                     value={formFontSize}
                     onChange={(e) => setFormFontSize(Number(e.target.value))}
-                    className="w-full accent-blue-600"
+                    className="w-full accent-[#0c1a3a]"
                   />
                 </div>
               </div>
@@ -652,12 +652,12 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                       className="w-8 h-8 rounded border cursor-pointer"
                     />
                     <div className="flex gap-1">
-                      {['#ffffff', '#000000', '#f59e0b', '#ef4444', '#3b82f6'].map(c => (
+                      {['#ffffff', '#000000', '#f59e0b', '#ef4444', '#0c1a3a'].map(c => (
                         <button
                           key={c}
                           onClick={() => setFormTextColor(c)}
                           className={`w-6 h-6 rounded-full border-2 transition ${
-                            formTextColor === c ? 'border-blue-500 scale-110' : 'border-neutral-300'
+                            formTextColor === c ? 'border-[#0c1a3a] scale-110' : 'border-neutral-300'
                           }`}
                           style={{ backgroundColor: c }}
                         />
@@ -692,7 +692,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                           key={c}
                           onClick={() => setFormBgColor(c)}
                           className={`w-6 h-6 rounded-full border-2 transition ${
-                            formBgColor === c ? 'border-blue-500 scale-110' : 'border-neutral-300'
+                            formBgColor === c ? 'border-[#0c1a3a] scale-110' : 'border-neutral-300'
                           }`}
                           style={{ backgroundColor: c }}
                         />
@@ -712,7 +712,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                       onClick={() => setFormBgStyle(s.value)}
                       className={`py-1.5 text-xs font-medium rounded-lg transition flex items-center justify-center gap-1 ${
                         formBgStyle === s.value
-                          ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-300'
+                          ? 'bg-[#0c1a3a]/10 text-[#0c1a3a] ring-1 ring-[#0c1a3a]/20'
                           : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                       }`}
                     >
@@ -805,7 +805,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                 <button
                   onClick={handleAddOverlay}
                   disabled={saving || textLoading}
-                  className="px-4 py-2.5 bg-blue-600 text-white rounded-lg font-semibold text-sm hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2.5 bg-[#0c1a3a] text-white rounded-lg font-semibold text-sm hover:bg-[#1e3a5f] transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {editingId ? t.library.iemValidateChange : t.library.iemAddThisText}
                 </button>
@@ -815,7 +815,7 @@ export default function ImageEditModal({ imageUrl, originalImageUrl, imageId, in
                 <button
                   onClick={handleNewOverlay}
                   disabled={saving}
-                  className="px-4 py-2.5 border border-blue-300 text-blue-600 rounded-lg font-medium text-sm hover:bg-blue-50 transition disabled:opacity-50"
+                  className="px-4 py-2.5 border border-[#0c1a3a]/20 text-[#0c1a3a] rounded-lg font-medium text-sm hover:bg-[#0c1a3a]/5 transition disabled:opacity-50"
                 >
                   {t.library.iemNewTextBtn}
                 </button>

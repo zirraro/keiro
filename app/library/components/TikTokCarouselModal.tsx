@@ -505,7 +505,7 @@ export default function TikTokCarouselModal({ images, onClose }: TikTokCarouselM
                   <button
                     onClick={handleGeneratePreview}
                     disabled={generatingPreview}
-                    className="w-full px-3 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-sm font-medium rounded-lg hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="w-full px-3 py-2 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white text-sm font-medium rounded-lg hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {generatingPreview ? (
                       <>
@@ -681,7 +681,7 @@ export default function TikTokCarouselModal({ images, onClose }: TikTokCarouselM
                   </p>
                   <button
                     onClick={handleConnectTikTok}
-                    className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-lg font-semibold hover:from-cyan-600 hover:to-blue-600 transition-all shadow-lg hover:shadow-xl flex items-center gap-2 mx-auto"
+                    className="px-6 py-3 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white rounded-lg font-semibold hover:from-[#1e3a5f] hover:to-[#2a4a6f] transition-all shadow-lg hover:shadow-xl flex items-center gap-2 mx-auto"
                   >
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>

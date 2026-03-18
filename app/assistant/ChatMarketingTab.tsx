@@ -158,7 +158,7 @@ export default function ChatMarketingTab({ user }: any) {
                   <button
                     key={example}
                     onClick={() => setInput(example)}
-                    className="p-3 bg-gradient-to-br from-blue-50 to-purple-50 hover:from-blue-100 hover:to-purple-100 rounded-xl text-left text-xs text-blue-700 transition-all border border-blue-200 hover:border-blue-300 hover:shadow-md"
+                    className="p-3 bg-gradient-to-br from-[#0c1a3a]/5 to-purple-50 hover:from-[#0c1a3a]/10 hover:to-purple-100 rounded-xl text-left text-xs text-[#0c1a3a] transition-all border border-[#0c1a3a]/10 hover:border-[#0c1a3a]/20 hover:shadow-md"
                   >
                     {example}
                   </button>
@@ -176,7 +176,7 @@ export default function ChatMarketingTab({ user }: any) {
                 className={`
                   max-w-[85%] rounded-2xl px-4 py-3 shadow-md
                   ${msg.role === 'user'
-                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
+                    ? 'bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white'
                     : 'bg-white border border-neutral-200 text-neutral-800'
                   }
                 `}

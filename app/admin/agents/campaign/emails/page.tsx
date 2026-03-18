@@ -49,7 +49,7 @@ const STEP_LABELS: Record<number, string> = {
 const TEMP_COLORS: Record<string, string> = {
   hot: 'bg-red-100 text-red-700',
   warm: 'bg-orange-100 text-orange-700',
-  cold: 'bg-blue-100 text-blue-700',
+  cold: 'bg-[#0c1a3a]/10 text-[#0c1a3a]',
   dead: 'bg-neutral-200 text-neutral-500',
 };
 
@@ -187,7 +187,7 @@ function EmailsTrackingContent() {
         {[
           { label: 'Total', value: stats.total, color: 'text-neutral-900' },
           { label: 'Envoyes', value: stats.sent, color: 'text-green-600' },
-          { label: 'Ouverts', value: stats.opened, color: 'text-blue-600' },
+          { label: 'Ouverts', value: stats.opened, color: 'text-[#0c1a3a]' },
           { label: 'Cliques', value: stats.clicked, color: 'text-purple-600' },
           { label: 'Brouillons', value: stats.drafts, color: 'text-amber-600' },
           { label: 'Echoues', value: stats.failed, color: 'text-red-600' },
@@ -283,7 +283,7 @@ function EmailsTrackingContent() {
                       <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
                         tab === 'failed' ? 'bg-red-400' :
                         isClicked ? 'bg-purple-400' :
-                        isOpened ? 'bg-blue-400' :
+                        isOpened ? 'bg-[#0c1a3a]' :
                         'bg-green-400'
                       }`} />
                       <div className="flex-1 min-w-0">
@@ -291,14 +291,14 @@ function EmailsTrackingContent() {
                         <div className="flex items-center gap-2 mt-0.5">
                           {p?.email && <p className="text-[10px] text-neutral-400">{p.email}</p>}
                           {p?.type && <span className="text-[10px] px-1 py-0.5 rounded bg-purple-50 text-purple-500">{p.type}</span>}
-                          {p?.quartier && <span className="text-[10px] px-1 py-0.5 rounded bg-blue-50 text-blue-500">{p.quartier}</span>}
+                          {p?.quartier && <span className="text-[10px] px-1 py-0.5 rounded bg-[#0c1a3a]/5 text-[#0c1a3a]">{p.quartier}</span>}
                         </div>
                       </div>
                       <div className="flex items-center gap-1.5 flex-shrink-0">
-                        {isOpened && <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-600">Ouvert</span>}
+                        {isOpened && <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#0c1a3a]/10 text-[#0c1a3a]">Ouvert</span>}
                         {isClicked && <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-600">Clique</span>}
                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                          step === 1 ? 'bg-blue-100 text-blue-700' :
+                          step === 1 ? 'bg-[#0c1a3a]/10 text-[#0c1a3a]' :
                           step === 10 ? 'bg-orange-100 text-orange-700' :
                           step >= 4 ? 'bg-red-100 text-red-700' :
                           'bg-amber-100 text-amber-700'
@@ -356,9 +356,9 @@ function EmailsTrackingContent() {
                             </div>
                           )}
                           {isOpened && p?.last_email_opened_at && (
-                            <div className="bg-blue-50 rounded-lg border border-blue-100 p-2">
-                              <p className="text-[10px] font-semibold text-blue-500 uppercase">Ouvert le</p>
-                              <p className="text-xs text-blue-700">{new Date(p.last_email_opened_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+                            <div className="bg-[#0c1a3a]/5 rounded-lg border border-[#0c1a3a]/8 p-2">
+                              <p className="text-[10px] font-semibold text-[#0c1a3a] uppercase">Ouvert le</p>
+                              <p className="text-xs text-[#0c1a3a]">{new Date(p.last_email_opened_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
                             </div>
                           )}
                           {isClicked && p?.last_email_clicked_at && (

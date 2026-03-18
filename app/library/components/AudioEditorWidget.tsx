@@ -179,7 +179,7 @@ export default function AudioEditorWidget({
           <button
             onClick={handleSuggest}
             disabled={loadingSuggestions}
-            className="text-xs text-blue-600 hover:text-blue-700 font-medium disabled:text-neutral-400"
+            className="text-xs text-[#0c1a3a] hover:text-[#1e3a5f] font-medium disabled:text-neutral-400"
           >
             {loadingSuggestions ? t.library.aewLoading : t.library.aewSuggestions}
           </button>
@@ -190,7 +190,7 @@ export default function AudioEditorWidget({
           onChange={(e) => setScript(e.target.value)}
           rows={3}
           placeholder={t.library.aewScriptPlaceholder}
-          className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none"
+          className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0c1a3a] text-sm resize-none"
         />
 
         <div className="flex items-center justify-between mt-1">
@@ -217,8 +217,8 @@ export default function AudioEditorWidget({
               onClick={() => setSelectedVoice(voice.value)}
               className={`px-2 py-1.5 text-[10px] rounded border transition-all text-left ${
                 selectedVoice === voice.value
-                  ? 'bg-blue-600 text-white border-blue-600'
-                  : 'bg-white text-neutral-700 border-neutral-200 hover:border-blue-300'
+                  ? 'bg-[#0c1a3a] text-white border-[#0c1a3a]'
+                  : 'bg-white text-neutral-700 border-neutral-200 hover:border-[#0c1a3a]/20'
               }`}
               title={voice.description}
             >
@@ -252,7 +252,7 @@ export default function AudioEditorWidget({
 
       {/* AI Suggestions */}
       {showSuggestions && suggestions.length > 0 && (
-        <div className="border border-blue-200 bg-blue-50 rounded-lg p-3 space-y-2">
+        <div className="border border-[#0c1a3a]/10 bg-[#0c1a3a]/5 rounded-lg p-3 space-y-2">
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold text-neutral-700">
               {t.library.aewSuggestions}
@@ -270,7 +270,7 @@ export default function AudioEditorWidget({
               key={index}
               className="bg-white rounded-lg p-2 space-y-1"
             >
-              <p className="text-xs font-medium text-blue-600">
+              <p className="text-xs font-medium text-[#0c1a3a]">
                 {suggestion.label}
               </p>
               <p className="text-xs text-neutral-700">
@@ -278,7 +278,7 @@ export default function AudioEditorWidget({
               </p>
               <button
                 onClick={() => handleUseSuggestion(suggestion)}
-                className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                className="text-xs text-[#0c1a3a] hover:text-[#1e3a5f] font-medium"
               >
                 {t.library.aewUseSuggestion}
               </button>
@@ -309,9 +309,9 @@ export default function AudioEditorWidget({
           disabled={generating || !script.trim()}
           className={`flex-1 px-3 py-2 rounded-lg font-medium text-sm transition-colors ${
             generating
-              ? 'bg-blue-300 text-white cursor-not-allowed'
+              ? 'bg-[#0c1a3a]/30 text-white cursor-not-allowed'
               : script.trim()
-              ? 'bg-blue-600 text-white hover:bg-blue-700'
+              ? 'bg-[#0c1a3a] text-white hover:bg-[#1e3a5f]'
               : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
           }`}
         >

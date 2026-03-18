@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: 'Créez des visuels marketing professionnels avec l\'IA',
     start_url: '/',
     display: 'standalone',
-    background_color: '#ffffff',
-    theme_color: '#3b82f6',
+    background_color: '#0c1a3a',
+    theme_color: '#0c1a3a',
     icons: [
       {
         src: '/icon-192x192.png',

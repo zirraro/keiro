@@ -53,8 +53,8 @@ export default function LinkedInDraftsTab({ drafts, onEdit, onDelete, onSchedule
 
   if (drafts.length === 0) {
     return (
-      <div className="bg-gradient-to-br from-blue-50 to-sky-50 rounded-xl border border-blue-200 p-12 text-center">
-        <div className="w-20 h-20 rounded-full bg-gradient-to-r from-[#0077B5] to-blue-600 flex items-center justify-center mx-auto mb-6 shadow-lg">
+      <div className="bg-gradient-to-br from-[#0c1a3a]/5 to-sky-50 rounded-xl border border-[#0c1a3a]/10 p-12 text-center">
+        <div className="w-20 h-20 rounded-full bg-gradient-to-r from-[#0077B5] to-[#0c1a3a] flex items-center justify-center mx-auto mb-6 shadow-lg">
           <LinkedInIcon className="w-10 h-10 text-white" />
         </div>
         <h3 className="text-2xl font-bold text-neutral-900 mb-2">
@@ -65,7 +65,7 @@ export default function LinkedInDraftsTab({ drafts, onEdit, onDelete, onSchedule
         </p>
         <button
           onClick={onPrepareLinkedIn}
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-[#0077B5] to-blue-600 text-white font-semibold hover:from-[#005f8f] hover:to-blue-700 transition-all shadow-lg"
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-[#0077B5] to-[#0c1a3a] text-white font-semibold hover:from-[#005f8f] hover:to-[#1e3a5f] transition-all shadow-lg"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -92,7 +92,7 @@ export default function LinkedInDraftsTab({ drafts, onEdit, onDelete, onSchedule
         );
       case 'published':
         return (
-          <span className="px-2 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-medium">
+          <span className="px-2 py-1 rounded-full bg-[#0c1a3a]/10 text-[#0c1a3a] text-xs font-medium">
             ✓ Publié
           </span>
         );
@@ -106,7 +106,7 @@ export default function LinkedInDraftsTab({ drafts, onEdit, onDelete, onSchedule
     switch (category) {
       case 'draft':
         return (
-          <span className="px-2 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-medium">
+          <span className="px-2 py-1 rounded-full bg-[#0c1a3a]/10 text-[#0c1a3a] text-xs font-medium">
             {mediaIcon} Brouillon
           </span>
         );
@@ -128,7 +128,7 @@ export default function LinkedInDraftsTab({ drafts, onEdit, onDelete, onSchedule
           onClick={() => setActiveCategory('all')}
           className={`px-4 py-2 rounded-lg font-medium transition-all ${
             activeCategory === 'all'
-              ? 'bg-gradient-to-r from-[#0077B5] to-blue-600 text-white shadow-md'
+              ? 'bg-gradient-to-r from-[#0077B5] to-[#0c1a3a] text-white shadow-md'
               : 'bg-white border border-neutral-300 text-neutral-700 hover:bg-neutral-50'
           }`}
         >
@@ -138,7 +138,7 @@ export default function LinkedInDraftsTab({ drafts, onEdit, onDelete, onSchedule
           onClick={() => setActiveCategory('draft')}
           className={`px-4 py-2 rounded-lg font-medium transition-all ${
             activeCategory === 'draft'
-              ? 'bg-gradient-to-r from-[#0077B5] to-blue-500 text-white shadow-md'
+              ? 'bg-gradient-to-r from-[#0077B5] to-[#0c1a3a] text-white shadow-md'
               : 'bg-white border border-neutral-300 text-neutral-700 hover:bg-neutral-50'
           }`}
         >
@@ -167,7 +167,7 @@ export default function LinkedInDraftsTab({ drafts, onEdit, onDelete, onSchedule
           <div key={draft.id} className="bg-white rounded-xl border border-neutral-200 overflow-hidden hover:shadow-lg transition-shadow flex flex-col">
             {/* Preview zone - image/video/texte */}
             {draft.media_url && draft.media_type !== 'text-only' ? (
-              <div className="h-36 bg-gradient-to-br from-blue-50 to-sky-50 relative">
+              <div className="h-36 bg-gradient-to-br from-[#0c1a3a]/5 to-sky-50 relative">
                 {draft.media_type === 'video' ? (
                   <video
                     src={draft.media_url}
@@ -199,10 +199,10 @@ export default function LinkedInDraftsTab({ drafts, onEdit, onDelete, onSchedule
               </div>
             ) : (
               /* Aperçu texte-seul style LinkedIn */
-              <div className="h-36 bg-gradient-to-br from-blue-50 to-sky-50 relative overflow-hidden">
+              <div className="h-36 bg-gradient-to-br from-[#0c1a3a]/5 to-sky-50 relative overflow-hidden">
                 <div className="p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="w-7 h-7 rounded-full bg-gradient-to-r from-[#0077B5] to-blue-600 flex items-center justify-center flex-shrink-0">
+                    <div className="w-7 h-7 rounded-full bg-gradient-to-r from-[#0077B5] to-[#0c1a3a] flex items-center justify-center flex-shrink-0">
                       <LinkedInIcon className="w-3.5 h-3.5 text-white" />
                     </div>
                     <div>
@@ -235,7 +235,7 @@ export default function LinkedInDraftsTab({ drafts, onEdit, onDelete, onSchedule
                         setEditingDraftId(null);
                       }
                     }}
-                    className="w-full text-sm text-neutral-700 border border-blue-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    className="w-full text-sm text-neutral-700 border border-[#0c1a3a]/20 rounded p-2 focus:outline-none focus:ring-2 focus:ring-[#0c1a3a] resize-none"
                     rows={3}
                     autoFocus
                   />
@@ -247,7 +247,7 @@ export default function LinkedInDraftsTab({ drafts, onEdit, onDelete, onSchedule
                     setEditingDraftId(draft.id);
                     setEditedCaption(draft.caption || '');
                   }}
-                  className="text-sm text-neutral-700 line-clamp-3 mb-2 cursor-pointer hover:text-blue-600 hover:bg-blue-50 rounded p-1 transition-colors"
+                  className="text-sm text-neutral-700 line-clamp-3 mb-2 cursor-pointer hover:text-[#0c1a3a] hover:bg-[#0c1a3a]/5 rounded p-1 transition-colors"
                   title="Cliquer pour modifier la description"
                 >
                   {draft.caption || 'Pas de description (cliquer pour ajouter)'}
@@ -258,7 +258,7 @@ export default function LinkedInDraftsTab({ drafts, onEdit, onDelete, onSchedule
               {draft.hashtags?.length > 0 && (
                 <div className="flex flex-wrap gap-1 mb-2">
                   {draft.hashtags.slice(0, 3).map((tag, idx) => (
-                    <span key={idx} className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded">{tag}</span>
+                    <span key={idx} className="text-xs text-[#0c1a3a] bg-[#0c1a3a]/5 px-2 py-0.5 rounded">{tag}</span>
                   ))}
                   {draft.hashtags.length > 3 && (
                     <span className="text-xs text-neutral-500 bg-neutral-50 px-2 py-0.5 rounded">+{draft.hashtags.length - 3}</span>
@@ -270,7 +270,7 @@ export default function LinkedInDraftsTab({ drafts, onEdit, onDelete, onSchedule
 
               {/* Actions - EXACTEMENT comme TikTok : Continuer → Supprimer → Planifier */}
               <div className="flex flex-col gap-1.5 mt-auto">
-                <button onClick={() => onEdit(draft)} className="w-full px-2 py-1.5 rounded-lg bg-gradient-to-r from-[#0077B5] to-blue-600 text-white text-xs font-semibold hover:from-[#005f8f] hover:to-blue-700 transition-all flex items-center justify-center gap-1.5">
+                <button onClick={() => onEdit(draft)} className="w-full px-2 py-1.5 rounded-lg bg-gradient-to-r from-[#0077B5] to-[#0c1a3a] text-white text-xs font-semibold hover:from-[#005f8f] hover:to-[#1e3a5f] transition-all flex items-center justify-center gap-1.5">
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                   </svg>

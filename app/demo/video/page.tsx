@@ -188,7 +188,7 @@ export default function DemoVideoPage() {
         <button
           type="submit"
           disabled={loading}
-          className="rounded-lg px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-60"
+          className="rounded-lg px-4 py-2 bg-[#0c1a3a] hover:bg-[#1e3a5f] disabled:opacity-60"
         >
           {loading ? "Génération…" : "Lancer"}
         </button>

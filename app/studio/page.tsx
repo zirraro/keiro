@@ -685,21 +685,21 @@ function StudioContent() {
   const displayImage = activeTab === 'text' && textPreviewUrl ? textPreviewUrl : loadedImage;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-blue-50/30 to-purple-50/20 py-6">
+    <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-[#0c1a3a]/[0.03] to-purple-50/20 py-6">
       <div className="max-w-7xl mx-auto px-4">
         {/* Header compact */}
         <div className="mb-5 text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-gradient-to-r from-blue-100 to-purple-100 rounded-full mb-2">
-            <svg className="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-gradient-to-r from-[#0c1a3a]/10 to-purple-100 rounded-full mb-2">
+            <svg className="w-3.5 h-3.5 text-[#0c1a3a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" />
             </svg>
-            <span className="text-xs font-semibold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
+            <span className="text-xs font-semibold text-transparent bg-clip-text bg-gradient-to-r from-[#0c1a3a] to-purple-600">
               {t.studio.badgeLabel}
             </span>
           </div>
           <h1 className="text-2xl md:text-3xl font-bold text-neutral-900 mb-1">
             {t.studio.headerTitle}{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#0c1a3a] via-purple-600 to-pink-600">
               {t.studio.headerTitleHighlight}
             </span>
           </h1>
@@ -712,7 +712,7 @@ function StudioContent() {
           {/* Colonne gauche - Image */}
           <div className="bg-white rounded-xl shadow-lg border border-neutral-200/50 p-5">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#0c1a3a] to-purple-500 flex items-center justify-center shadow">
                 <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
@@ -729,12 +729,12 @@ function StudioContent() {
                   onDrop={handleDrop}
                   className={`border-2 border-dashed rounded-xl p-6 text-center transition-all duration-300 ${
                     isDragging
-                      ? "border-blue-500 bg-gradient-to-br from-blue-50 to-purple-50 scale-[1.02] shadow-lg"
-                      : "border-neutral-300 bg-gradient-to-br from-neutral-50 to-neutral-100 hover:border-blue-400 hover:shadow-md"
+                      ? "border-[#0c1a3a] bg-gradient-to-br from-[#0c1a3a]/5 to-purple-50 scale-[1.02] shadow-lg"
+                      : "border-neutral-300 bg-gradient-to-br from-neutral-50 to-neutral-100 hover:border-[#0c1a3a]/40 hover:shadow-md"
                   }`}
                 >
                   <div className={`transition-transform duration-300 ${isDragging ? 'scale-110' : ''}`}>
-                    <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg">
+                    <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gradient-to-br from-[#0c1a3a] to-purple-500 flex items-center justify-center shadow-lg">
                       <svg
                         className="h-6 w-6 text-white"
                         stroke="currentColor"
@@ -751,12 +751,12 @@ function StudioContent() {
                     </div>
                   </div>
                   <p className="text-sm text-neutral-700 mb-2 font-medium">
-                    <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
+                    <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#0c1a3a] to-purple-600">
                       {t.studio.dragImageHere}
                     </span>
                   </p>
                   <p className="text-xs text-neutral-500 mb-3">{t.studio.or}</p>
-                  <label className="cursor-pointer inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:shadow-xl transition-all hover:scale-105 font-semibold text-sm">
+                  <label className="cursor-pointer inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#0c1a3a] to-purple-600 text-white rounded-xl hover:shadow-xl transition-all hover:scale-105 font-semibold text-sm">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                     </svg>
@@ -786,7 +786,7 @@ function StudioContent() {
                 {/* URL Input premium */}
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-3 flex items-center gap-2">
-                    <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 text-[#0c1a3a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                     </svg>
                     {t.studio.imageUrl}
@@ -797,13 +797,13 @@ function StudioContent() {
                       value={imageUrl}
                       onChange={(e) => setImageUrl(e.target.value)}
                       placeholder={t.studio.imageUrlPlaceholder}
-                      className="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
+                      className="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl focus:outline-none focus:border-[#0c1a3a] focus:ring-4 focus:ring-[#0c1a3a]/10 transition-all"
                     />
                   </div>
                 </div>
                 <button
                   onClick={handleLoadImage}
-                  className="w-full py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl hover:shadow-xl transition-all hover:scale-[1.02] font-semibold flex items-center justify-center gap-2"
+                  className="w-full py-3 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white rounded-xl hover:shadow-xl transition-all hover:scale-[1.02] font-semibold flex items-center justify-center gap-2"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
@@ -881,8 +881,8 @@ function StudioContent() {
                       key={idx}
                       className={`rounded-xl border-2 overflow-hidden cursor-pointer transition-all duration-200 ${
                         loadedImage === img
-                          ? "border-blue-500 ring-4 ring-blue-100 shadow-lg scale-105"
-                          : "border-neutral-200 hover:border-blue-300 hover:shadow-md hover:scale-102"
+                          ? "border-[#0c1a3a] ring-4 ring-[#0c1a3a]/10 shadow-lg scale-105"
+                          : "border-neutral-200 hover:border-[#0c1a3a]/20 hover:shadow-md hover:scale-102"
                       }`}
                       onClick={() => {
                         setLoadedImage(img);
@@ -900,15 +900,15 @@ function StudioContent() {
                           className="w-full aspect-square object-cover"
                         />
                         {loadedImage === img && (
-                          <div className="absolute top-1 right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center shadow-lg">
+                          <div className="absolute top-1 right-1 w-6 h-6 bg-[#0c1a3a] rounded-full flex items-center justify-center shadow-lg">
                             <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                             </svg>
                           </div>
                         )}
                       </div>
-                      <div className={`p-2 text-center ${loadedImage === img ? 'bg-blue-50' : 'bg-neutral-50'}`}>
-                        <div className={`text-xs font-bold ${loadedImage === img ? 'text-blue-700' : 'text-neutral-700'}`}>
+                      <div className={`p-2 text-center ${loadedImage === img ? 'bg-[#0c1a3a]/5' : 'bg-neutral-50'}`}>
+                        <div className={`text-xs font-bold ${loadedImage === img ? 'text-[#0c1a3a]' : 'text-neutral-700'}`}>
                           {idx === 0 ? `📄 ${t.studio.originalLabel}` : `✨ V${idx}`}
                         </div>
                       </div>
@@ -1053,7 +1053,7 @@ function StudioContent() {
                       )}
                     </div>
                     <p className="text-xs text-neutral-500 mt-2 flex items-start gap-2">
-                      <svg className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 text-[#0c1a3a] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                       <span>{t.studio.tipBePrecise}</span>
@@ -1101,7 +1101,7 @@ function StudioContent() {
                             key={overlay.id}
                             className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition ${
                               editingOverlayId === overlay.id
-                                ? 'border-blue-400 bg-blue-50 ring-1 ring-blue-200'
+                                ? 'border-[#0c1a3a]/40 bg-[#0c1a3a]/5 ring-1 ring-[#0c1a3a]/10'
                                 : 'border-neutral-200 bg-white hover:border-neutral-300 hover:bg-neutral-50'
                             }`}
                             onClick={() => handleEditOverlay(overlay)}
@@ -1131,7 +1131,7 @@ function StudioContent() {
                       {editingOverlayId && (
                         <button
                           onClick={handleNewOverlay}
-                          className="mt-2 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition"
+                          className="mt-2 px-3 py-1.5 text-xs font-medium text-[#0c1a3a] bg-[#0c1a3a]/5 border border-[#0c1a3a]/10 rounded-lg hover:bg-[#0c1a3a]/10 transition"
                         >
                           {t.studio.addAnotherText}
                         </button>
@@ -1148,7 +1148,7 @@ function StudioContent() {
                       value={formText}
                       onChange={(e) => setFormText(e.target.value)}
                       placeholder={t.studio.textPlaceholder}
-                      className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm resize-none focus:ring-2 focus:ring-[#0c1a3a] focus:border-transparent"
                       rows={2}
                     />
                   </div>
@@ -1166,15 +1166,15 @@ function StudioContent() {
                       <div className="flex-1 flex items-center gap-1.5 justify-center">
                         <button
                           onClick={() => setFormPosition(25)}
-                          className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${formPosition <= 30 ? 'bg-blue-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
+                          className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${formPosition <= 30 ? 'bg-[#0c1a3a] text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
                         >{t.studio.posTop}</button>
                         <button
                           onClick={() => setFormPosition(50)}
-                          className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${formPosition > 30 && formPosition < 70 ? 'bg-blue-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
+                          className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${formPosition > 30 && formPosition < 70 ? 'bg-[#0c1a3a] text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
                         >{t.studio.posCenter}</button>
                         <button
                           onClick={() => setFormPosition(75)}
-                          className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${formPosition >= 70 ? 'bg-blue-500 text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
+                          className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${formPosition >= 70 ? 'bg-[#0c1a3a] text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'}`}
                         >{t.studio.posBottom}</button>
                       </div>
                       <button
@@ -1208,7 +1208,7 @@ function StudioContent() {
                         max={120}
                         value={formFontSize}
                         onChange={(e) => setFormFontSize(Number(e.target.value))}
-                        className="w-full accent-blue-600"
+                        className="w-full accent-[#0c1a3a]"
                       />
                     </div>
                   </div>
@@ -1230,7 +1230,7 @@ function StudioContent() {
                               key={c}
                               onClick={() => setFormTextColor(c)}
                               className={`w-6 h-6 rounded-full border-2 transition ${
-                                formTextColor === c ? 'border-blue-500 scale-110' : 'border-neutral-300'
+                                formTextColor === c ? 'border-[#0c1a3a] scale-110' : 'border-neutral-300'
                               }`}
                               style={{ backgroundColor: c }}
                             />
@@ -1265,7 +1265,7 @@ function StudioContent() {
                               key={c}
                               onClick={() => setFormBgColor(c)}
                               className={`w-6 h-6 rounded-full border-2 transition ${
-                                formBgColor === c ? 'border-blue-500 scale-110' : 'border-neutral-300'
+                                formBgColor === c ? 'border-[#0c1a3a] scale-110' : 'border-neutral-300'
                               }`}
                               style={{ backgroundColor: c }}
                             />
@@ -1285,7 +1285,7 @@ function StudioContent() {
                           onClick={() => setFormBgStyle(s.value)}
                           className={`py-1.5 text-xs font-medium rounded-lg transition flex items-center justify-center gap-1 ${
                             formBgStyle === s.value
-                              ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-300'
+                              ? 'bg-[#0c1a3a]/10 text-[#0c1a3a] ring-1 ring-[#0c1a3a]/20'
                               : 'bg-white text-neutral-600 hover:bg-neutral-100 border border-neutral-200'
                           }`}
                         >
@@ -1302,7 +1302,7 @@ function StudioContent() {
                       <button
                         onClick={handleAddOverlay}
                         disabled={textLoading}
-                        className="px-4 py-2.5 bg-blue-600 text-white rounded-lg font-semibold text-sm hover:bg-blue-700 transition disabled:opacity-50"
+                        className="px-4 py-2.5 bg-[#0c1a3a] text-white rounded-lg font-semibold text-sm hover:bg-[#1e3a5f] transition disabled:opacity-50"
                       >
                         {editingOverlayId ? t.studio.confirmEdit : t.studio.addThisText}
                       </button>
@@ -1310,7 +1310,7 @@ function StudioContent() {
                     {editingOverlayId && (
                       <button
                         onClick={handleNewOverlay}
-                        className="px-4 py-2.5 border border-blue-300 text-blue-600 rounded-lg font-medium text-sm hover:bg-blue-50 transition"
+                        className="px-4 py-2.5 border border-[#0c1a3a]/20 text-[#0c1a3a] rounded-lg font-medium text-sm hover:bg-[#0c1a3a]/5 transition"
                       >
                         {t.studio.newTextBtn}
                       </button>
@@ -1495,7 +1495,7 @@ function StudioContent() {
                       className={`py-3 text-white text-center rounded-xl transition-all text-sm font-semibold flex items-center justify-center gap-2 ${
                         savingToGallery
                           ? 'bg-neutral-400 cursor-not-allowed'
-                          : 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:shadow-lg hover:scale-[1.02]'
+                          : 'bg-gradient-to-r from-cyan-600 to-[#0c1a3a] hover:shadow-lg hover:scale-[1.02]'
                       }`}
                     >
                       {savingToGallery ? (
@@ -1558,17 +1558,17 @@ export default function StudioPage() {
   const { t } = useLanguage();
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-blue-50/30 to-purple-50/20 py-8 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-[#0c1a3a]/[0.03] to-purple-50/20 py-8 flex items-center justify-center">
         <div className="text-center">
           <div className="relative">
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-neutral-200 border-t-blue-600 mx-auto mb-6"></div>
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-neutral-200 border-t-[#0c1a3a] mx-auto mb-6"></div>
             <div className="absolute inset-0 flex items-center justify-center">
-              <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-8 h-8 text-[#0c1a3a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" />
               </svg>
             </div>
           </div>
-          <p className="text-lg font-semibold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 animate-pulse">
+          <p className="text-lg font-semibold text-transparent bg-clip-text bg-gradient-to-r from-[#0c1a3a] to-purple-600 animate-pulse">
             {t.studio.loadingStudio}
           </p>
           <p className="text-sm text-neutral-500 mt-2">{t.studio.preparingEnvironment}</p>

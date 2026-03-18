@@ -302,7 +302,7 @@ function VideoCard({
             </span>
           )}
           {video.source_type === 'upload' && (
-            <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded">
+            <span className="bg-[#0c1a3a]/10 text-[#0c1a3a] px-2 py-1 rounded">
               {t.library.mvtUpload}
             </span>
           )}
@@ -318,7 +318,7 @@ function VideoCard({
             {!video.published_to_tiktok && (
               <button
                 onClick={() => onPublishToTikTok(video)}
-                className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-xs font-semibold rounded-lg hover:from-cyan-600 hover:to-blue-600 transition-all shadow-sm"
+                className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white text-xs font-semibold rounded-lg hover:from-[#1e3a5f] hover:to-[#2a4a6f] transition-all shadow-sm"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -364,7 +364,7 @@ function VideoCard({
             <a
               href={video.video_url}
               download
-              className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition-all"
+              className="p-1.5 rounded-lg text-[#0c1a3a] hover:bg-[#0c1a3a]/5 transition-all"
               title={t.library.mvtDownload}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

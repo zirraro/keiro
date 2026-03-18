@@ -4,21 +4,21 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { useState, useEffect, useMemo } from 'react';
 
 /**
- * PageReveal — Cinematic luxury intro.
+ * PageReveal — Ultra-fast cinematic intro.
  *
- * KEY: No conditional rendering. All elements exist from frame 1.
- * Animations are pure CSS/framer transitions — no "snap" on phase change.
- * Background color: #0c1a3a → matches site hero top for seamless handoff.
+ * Logo visible within 100ms. No empty blue screen.
+ * All elements always rendered — zero conditional mounting.
+ * Background: #0c1a3a = exact match with site.
  *
- * Phases (8s):
- * 1. DRAW   (0-1.8s)   — Logo triangles draw in, particles appear
- * 2. GLOW   (1.8-3.5s) — Logo pulses, arcs orbit, tagline
- * 3. EXPAND (3.5-6.0s) — Everything expands outward (2.5s, very smooth)
- * 4. FADE   (6.0-8.0s) — Dissolve to site (2s, no jump)
- * 5. DONE   (8.0s)     — Unmount
+ * Timeline (4s total):
+ * 1. INSTANT (0-0.4s) — All triangles burst in simultaneously, particles
+ * 2. GLOW    (0.4-1.6s) — Logo pulses, text appears, arcs orbit
+ * 3. EXPAND  (1.6-3.0s) — Everything expands outward
+ * 4. FADE    (3.0-4.0s) — Dissolve to site
+ * 5. DONE    (4.0s)     — Unmount
  */
 
-const EASE = [0.22, 1, 0.36, 1] as const; // smoother than before
+const EASE = [0.16, 1, 0.3, 1] as const;
 
 const TRIANGLES = [
   { y1: 2.00, y2: 98.00, x1: 97.00, x2: 3.00, sw: 2.00, op: 0.22 },
@@ -35,7 +35,6 @@ const TRIANGLES = [
   { y1: 48.08, y2: 51.92, x1: 59.00, x2: 41.00, sw: 1.00, op: 0.850 },
 ];
 
-// 18 beam angles — always rendered, animated from 0
 const BEAM_ANGLES = [0, 20, 40, 60, 80, 100, 120, 140, 160, 180, 200, 220, 240, 260, 280, 300, 320, 340];
 
 function useParticles(count: number) {
@@ -44,9 +43,9 @@ function useParticles(count: number) {
       const s = (i * 7919 + 104729) % 1000;
       return {
         x: s % 100, y: ((s * 3 + 271) % 100),
-        size: 1 + (s % 3), delay: i * 0.03,
+        size: 1 + (s % 3), delay: i * 0.008,
         dx: ((s % 80) - 40), dy: ((s * 2 + 137) % 80) - 40,
-        dur: 3 + (s % 3), op: 0.2 + (s % 30) / 100,
+        dur: 2 + (s % 2), op: 0.2 + (s % 30) / 100,
         color: i % 3,
       };
     });
@@ -56,15 +55,15 @@ function useParticles(count: number) {
 export function PageReveal() {
   const [phase, setPhase] = useState<'draw' | 'glow' | 'expand' | 'fade' | 'done'>('draw');
   const shouldReduce = useReducedMotion();
-  const particles = useParticles(50);
+  const particles = useParticles(40);
 
   useEffect(() => {
     if (shouldReduce) { setPhase('done'); return; }
     const t = [
-      setTimeout(() => setPhase('glow'), 1800),
-      setTimeout(() => setPhase('expand'), 3500),
-      setTimeout(() => setPhase('fade'), 6000),
-      setTimeout(() => setPhase('done'), 8000),
+      setTimeout(() => setPhase('glow'), 400),
+      setTimeout(() => setPhase('expand'), 1600),
+      setTimeout(() => setPhase('fade'), 3000),
+      setTimeout(() => setPhase('done'), 4000),
     ];
     return () => t.forEach(clearTimeout);
   }, [shouldReduce]);
@@ -84,20 +83,20 @@ export function PageReveal() {
         pointerEvents: isFade ? 'none' : 'all',
       }}
       animate={{ opacity: isFade ? 0 : 1 }}
-      transition={{ duration: 2, ease: 'easeInOut' }}
+      transition={{ duration: 1, ease: [0.4, 0, 0.2, 1] }}
     >
-      {/* Background — #0c1a3a = exact match with site hero top */}
+      {/* Background */}
       <div style={{
         position: 'absolute', inset: 0,
         background: 'radial-gradient(ellipse 80% 60% at 50% 50%, #0c1a3a 0%, #060a14 100%)',
       }} />
 
-      {/* Ambient glow pools — drift gently, always present */}
+      {/* Ambient glows — visible immediately */}
       <motion.div
         style={{
           position: 'absolute', top: '10%', left: '5%',
           width: '55%', height: '45%',
-          background: 'radial-gradient(ellipse, rgba(59,130,246,0.15) 0%, transparent 70%)',
+          background: 'radial-gradient(ellipse, rgba(12,26,58,0.5) 0%, transparent 70%)',
           filter: 'blur(60px)',
         }}
         animate={{ x: [0, 30, -20, 0], y: [0, -20, 15, 0] }}
@@ -112,16 +111,6 @@ export function PageReveal() {
         }}
         animate={{ x: [0, -25, 20, 0], y: [0, 15, -25, 0] }}
         transition={{ duration: 16, repeat: Infinity, ease: 'easeInOut' }}
-      />
-      <motion.div
-        style={{
-          position: 'absolute', top: '40%', left: '35%',
-          width: '35%', height: '30%',
-          background: 'radial-gradient(ellipse, rgba(139,92,246,0.1) 0%, transparent 70%)',
-          filter: 'blur(50px)',
-        }}
-        animate={{ x: [0, 20, -15, 0], y: [0, -15, 20, 0] }}
-        transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
       />
 
       {/* Particles */}
@@ -140,11 +129,11 @@ export function PageReveal() {
             ? { opacity: 0, x: p.dx * 5, y: p.dy * 5, scale: 0 }
             : { opacity: p.op, x: p.dx, y: p.dy, scale: 1 }
           }
-          transition={{ delay: p.delay, duration: isExpand ? 2.5 : p.dur, ease: 'easeInOut' }}
+          transition={{ delay: p.delay, duration: isExpand ? 1.4 : p.dur, ease: 'easeOut' }}
         />
       ))}
 
-      {/* Orbiting arcs — always rendered, animate smoothly */}
+      {/* Orbiting arcs */}
       {[300, 220, 400].map((size, i) => (
         <motion.div
           key={`arc-${i}`}
@@ -163,7 +152,7 @@ export function PageReveal() {
               ? { opacity: 0.9, scale: 1, rotate: 90 + i * 40 }
               : { opacity: 0, scale: 0.4, rotate: 0 }
           }
-          transition={{ duration: isExpand ? 2.5 : 1.2, ease: EASE, delay: i * 0.1 }}
+          transition={{ duration: isExpand ? 1.4 : 0.6, ease: EASE, delay: i * 0.05 }}
         />
       ))}
 
@@ -180,10 +169,10 @@ export function PageReveal() {
             ? { scale: 280, opacity: 0.45 }
             : { scale: 0, opacity: 0 }
         }
-        transition={{ duration: isExpand ? 2.5 : 1.2, ease: EASE }}
+        transition={{ duration: isExpand ? 1.4 : 0.6, ease: EASE }}
       />
 
-      {/* Light beams — ALWAYS rendered, animated from scaleY:0 (no mount jump) */}
+      {/* Light beams */}
       {BEAM_ANGLES.map((angle, i) => (
         <motion.div
           key={`beam-${angle}`}
@@ -200,18 +189,22 @@ export function PageReveal() {
             ? { scaleY: 1, opacity: 1 }
             : { scaleY: 0, opacity: 0 }
           }
-          transition={{ duration: 2, delay: i * 0.03, ease: EASE }}
+          transition={{ duration: 1.2, delay: i * 0.015, ease: EASE }}
         />
       ))}
 
-      {/* ===== LOGO ===== */}
+      {/* ===== LOGO — visible from frame 1 ===== */}
       <motion.div
         style={{ position: 'relative', zIndex: 10, textAlign: 'center' }}
+        initial={{ scale: 0.8, opacity: 0 }}
         animate={isExpand
           ? { scale: 3, opacity: 0, filter: 'blur(20px)' }
           : { scale: 1, opacity: 1, filter: 'blur(0px)' }
         }
-        transition={{ duration: isExpand ? 2.5 : 0.8, ease: EASE }}
+        transition={{
+          duration: isExpand ? 1.4 : 0.3,
+          ease: EASE,
+        }}
       >
         <motion.div
           style={{ width: 140, height: 140, margin: '0 auto 24px' }}
@@ -228,7 +221,8 @@ export function PageReveal() {
             {TRIANGLES.map((tri, i) => {
               const topPath = `M50 ${tri.y1} L${tri.x1} 50 L${tri.x2} 50Z`;
               const botPath = `M50 ${tri.y2} L${tri.x1} 50 L${tri.x2} 50Z`;
-              const delay = i * 0.1;
+              // ALL triangles draw simultaneously — tiny stagger just for visual richness
+              const delay = i * 0.012;
               return [
                 <motion.path
                   key={`t-${i}`}
@@ -240,7 +234,7 @@ export function PageReveal() {
                   strokeLinecap="round"
                   initial={{ pathLength: 0, opacity: 0 }}
                   animate={{ pathLength: 1, opacity: tri.op }}
-                  transition={{ delay, duration: 0.5, ease: EASE }}
+                  transition={{ delay, duration: 0.25, ease: EASE }}
                 />,
                 <motion.path
                   key={`b-${i}`}
@@ -252,14 +246,14 @@ export function PageReveal() {
                   strokeLinecap="round"
                   initial={{ pathLength: 0, opacity: 0 }}
                   animate={{ pathLength: 1, opacity: tri.op }}
-                  transition={{ delay: delay + 0.04, duration: 0.5, ease: EASE }}
+                  transition={{ delay: delay + 0.01, duration: 0.25, ease: EASE }}
                 />,
               ];
             })}
           </svg>
         </motion.div>
 
-        {/* Brand text */}
+        {/* Brand text — appears fast during glow */}
         <motion.div style={{ overflow: 'hidden' }}>
           <motion.h1
             style={{
@@ -267,9 +261,9 @@ export function PageReveal() {
               letterSpacing: '0.08em', margin: 0, lineHeight: 1,
               fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif',
             }}
-            initial={{ y: 50, opacity: 0 }}
-            animate={isGlow ? { y: 0, opacity: 1 } : { y: 50, opacity: 0 }}
-            transition={{ duration: 0.9, ease: EASE }}
+            initial={{ y: 30, opacity: 0 }}
+            animate={isGlow ? { y: 0, opacity: 1 } : { y: 30, opacity: 0 }}
+            transition={{ duration: 0.4, ease: EASE }}
           >
             Keiro<span style={{ opacity: 0.25 }}>AI</span>
           </motion.h1>
@@ -282,9 +276,9 @@ export function PageReveal() {
             marginTop: 10, letterSpacing: '0.3em',
             textTransform: 'uppercase', fontWeight: 500,
           }}
-          initial={{ opacity: 0, y: 10, letterSpacing: '0.6em' }}
-          animate={isGlow ? { opacity: 1, y: 0, letterSpacing: '0.3em' } : { opacity: 0, y: 10, letterSpacing: '0.6em' }}
-          transition={{ delay: 0.3, duration: 0.7, ease: EASE }}
+          initial={{ opacity: 0, y: 6 }}
+          animate={isGlow ? { opacity: 1, y: 0 } : { opacity: 0, y: 6 }}
+          transition={{ delay: 0.1, duration: 0.35, ease: EASE }}
         >
           Marketing Intelligence
         </motion.p>
@@ -300,7 +294,7 @@ export function PageReveal() {
             ? isExpand ? { scaleX: 5, opacity: 0 } : { scaleX: 1, opacity: 1 }
             : { scaleX: 0, opacity: 0 }
           }
-          transition={{ duration: isExpand ? 2.5 : 0.6, ease: EASE }}
+          transition={{ duration: isExpand ? 1.4 : 0.3, ease: EASE }}
         />
       </motion.div>
 
@@ -324,7 +318,7 @@ export function PageReveal() {
             ? { opacity: 0, scale: 4 }
             : { opacity: 1, scale: 1 }
           }
-          transition={{ delay: isExpand ? 0 : 0.3 + i * 0.06, duration: isExpand ? 2.5 : 0.6, ease: EASE }}
+          transition={{ delay: isExpand ? 0 : 0.1 + i * 0.03, duration: isExpand ? 1.4 : 0.3, ease: EASE }}
         />
       ))}
     </motion.div>

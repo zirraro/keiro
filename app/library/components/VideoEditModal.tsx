@@ -192,7 +192,7 @@ export default function VideoEditModal({ video, onClose, onSave }: VideoEditModa
             <button
               onClick={handleSave}
               disabled={saving}
-              className="flex-1 py-2.5 text-sm bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 transition-all font-medium"
+              className="flex-1 py-2.5 text-sm bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white rounded-xl hover:from-[#1e3a5f] hover:to-[#2a4a6f] disabled:opacity-50 transition-all font-medium"
             >
               {saving ? 'Enregistrement...' : 'Enregistrer'}
             </button>

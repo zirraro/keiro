@@ -50,7 +50,7 @@ export default function TabNavigation({ activeTab, onTabChange, imageCount, vide
           onClick={() => onTabChange('images')}
           className={`pb-4 px-2 font-semibold transition-all relative ${
             activeTab === 'images'
-              ? 'text-blue-600 border-b-2 border-blue-600'
+              ? 'text-[#0c1a3a] border-b-2 border-[#0c1a3a]'
               : 'text-neutral-600 hover:text-neutral-900'
           }`}
         >
@@ -58,7 +58,7 @@ export default function TabNavigation({ activeTab, onTabChange, imageCount, vide
           {imageCount > 0 && (
             <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${
               activeTab === 'images'
-                ? 'bg-blue-100 text-blue-700'
+                ? 'bg-[#0c1a3a]/10 text-[#0c1a3a]'
                 : 'bg-neutral-100 text-neutral-600'
             }`}>
               {imageCount}
@@ -143,7 +143,7 @@ export default function TabNavigation({ activeTab, onTabChange, imageCount, vide
             {linkedinDraftCount > 0 && (
               <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${
                 activeTab === 'linkedin-drafts'
-                  ? 'bg-blue-100 text-[#0077B5]'
+                  ? 'bg-[#0c1a3a]/10 text-[#0077B5]'
                   : 'bg-neutral-100 text-neutral-600'
               }`}>
                 {linkedinDraftCount}

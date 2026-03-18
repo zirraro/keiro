@@ -15,7 +15,7 @@ const QUESTIONS = [
 
 const RATING_OPTIONS = [
   { value: 'tres_bien', label: 'Très bien', bg: 'bg-green-100', border: 'border-green-500', text: 'text-green-700', selectedBg: 'bg-green-500 text-white' },
-  { value: 'bien', label: 'Bien', bg: 'bg-blue-100', border: 'border-blue-500', text: 'text-blue-700', selectedBg: 'bg-blue-500 text-white' },
+  { value: 'bien', label: 'Bien', bg: 'bg-[#0c1a3a]/10', border: 'border-[#0c1a3a]', text: 'text-[#0c1a3a]', selectedBg: 'bg-[#0c1a3a] text-white' },
   { value: 'moyen', label: 'Moyen', bg: 'bg-amber-100', border: 'border-amber-500', text: 'text-amber-700', selectedBg: 'bg-amber-500 text-white' },
   { value: 'pas_du_tout', label: 'Pas du tout', bg: 'bg-red-100', border: 'border-red-500', text: 'text-red-700', selectedBg: 'bg-red-500 text-white' },
 ] as const;
@@ -87,7 +87,7 @@ export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
         className="bg-white rounded-xl max-w-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-6 text-white rounded-t-xl">
+        <div className="bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] p-6 text-white rounded-t-xl">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xl font-bold">Votre retour sur Keiro</h2>
@@ -145,7 +145,7 @@ export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
             <button
               onClick={handleSubmit}
               disabled={sending || Object.keys(ratings).length === 0}
-              className="flex-1 px-4 py-2.5 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-4 py-2.5 rounded-lg bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {sending ? 'Envoi...' : `Envoyer (${Object.keys(ratings).length}/8)`}
             </button>

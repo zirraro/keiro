@@ -235,7 +235,7 @@ function SeoPreviewContent() {
                           <button
                             onClick={() => { restoreVersion(previewingVersion); setPreviewingVersion(null); }}
                             disabled={actionLoading !== null}
-                            className="px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                            className="px-3 py-1 bg-[#0c1a3a] text-white text-xs font-medium rounded-lg hover:bg-[#1e3a5f] disabled:opacity-50"
                           >
                             {actionLoading === 'restore' ? '...' : 'Restaurer cette version'}
                           </button>
@@ -275,7 +275,7 @@ function SeoPreviewContent() {
                               <button
                                 onClick={() => restoreVersion(v)}
                                 disabled={actionLoading !== null}
-                                className="text-[10px] px-2 py-0.5 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50"
+                                className="text-[10px] px-2 py-0.5 bg-[#0c1a3a]/10 text-[#0c1a3a] rounded hover:bg-[#0c1a3a]/15 disabled:opacity-50"
                               >
                                 Restaurer
                               </button>
@@ -376,7 +376,7 @@ function SeoPreviewContent() {
           <p className="text-xs text-neutral-400 mb-4 font-medium">Apercu Google (SERP)</p>
           <div className="bg-white rounded-xl shadow-sm border p-6 space-y-1">
             <p className="text-xs text-green-700">keiroai.com/blog/{article.slug}</p>
-            <h3 className="text-xl text-blue-800 font-normal leading-snug cursor-pointer hover:underline">{article.meta_title || article.title}</h3>
+            <h3 className="text-xl text-[#0c1a3a] font-normal leading-snug cursor-pointer hover:underline">{article.meta_title || article.title}</h3>
             <p className="text-sm text-neutral-600 leading-relaxed">{article.meta_description}</p>
           </div>
 
@@ -405,7 +405,7 @@ function SeoPreviewContent() {
       {previewMode === 'blog' && !editMode && (
         <div className="bg-white min-h-screen">
           {/* Header gradient */}
-          <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white py-12">
+          <div className="bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white py-12">
             <div className="max-w-3xl mx-auto px-4 sm:px-6">
               <div className="flex items-center gap-3 mb-4">
                 {article.keywords_primary && (
@@ -507,7 +507,7 @@ function SeoPreviewContent() {
             )}
 
             {/* CTA section */}
-            <section className="mt-12 bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl p-8 text-center text-white">
+            <section className="mt-12 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] rounded-2xl p-8 text-center text-white">
               <h2 className="text-2xl font-bold mb-3">Pret a booster ton marketing ?</h2>
               <p className="text-white/90 mb-6 max-w-lg mx-auto">
                 Genere des visuels marketing professionnels en quelques secondes grace a l&apos;IA. Essai gratuit, sans carte bancaire.

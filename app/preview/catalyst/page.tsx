@@ -12,7 +12,7 @@ export default function CatalystPreview() {
 
   const price = (m:number, a:number) => annual ? a : m;
   const badge = (txt:string) => (
-    <span className="ml-2 text-[11px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-300 align-middle">
+    <span className="ml-2 text-[11px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-[#0c1a3a]/15 border border-[#0c1a3a]/30 text-[#0c1a3a] align-middle">
       {txt}
     </span>
   );
@@ -24,17 +24,17 @@ export default function CatalystPreview() {
         {/* blob/halo */}
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute -top-48 left-1/2 -translate-x-1/2 w-[1200px] h-[1200px] rounded-full opacity-20 blur-3xl"
-               style={{ background: "radial-gradient(closest-side, rgba(59,130,246,.35), transparent)" }} />
+               style={{ background: "radial-gradient(closest-side, rgba(12,26,58,.35), transparent)" }} />
         </div>
 
         <div className="max-w-6xl mx-auto px-4 pt-16 pb-10 grid md:grid-cols-2 gap-10 items-center">
           <div>
-            <div className="inline-flex items-center gap-2 text-xs text-blue-300/90 bg-blue-500/10 border border-blue-500/30 px-3 py-1 rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+            <div className="inline-flex items-center gap-2 text-xs text-[#0c1a3a]/90 bg-[#0c1a3a]/10 border border-[#0c1a3a]/30 px-3 py-1 rounded-full">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#0c1a3a]" />
               Génération guidée par l’actualité
             </div>
             <h1 className="mt-4 text-4xl md:text-5xl font-extrabold leading-tight">
-              Le studio IA <span className="text-blue-400">qui surfe sur l’actu</span>.
+              Le studio IA <span className="text-[#0c1a3a]">qui surfe sur l’actu</span>.
             </h1>
             <p className="mt-4 text-lg text-neutral-600">
               Créez des visuels prêts pour Instagram, TikTok, Facebook, LinkedIn & X — en partant de votre secteur, de votre angle et des tendances du jour.
@@ -74,7 +74,7 @@ export default function CatalystPreview() {
                   </div>
                 </div>
                 <div className="mt-4 flex gap-2">
-                  <div className="h-8 w-24 rounded bg-blue-600/80" />
+                  <div className="h-8 w-24 rounded bg-[#0c1a3a]/80" />
                   <div className="h-8 w-24 rounded border border-neutral-200" />
                 </div>
               </div>
@@ -140,7 +140,7 @@ export default function CatalystPreview() {
           </Card>
 
           {/* Pro (highlight) */}
-          <Card className="p-6 border-blue-500/60 shadow-[0_0_0_1px_rgba(59,130,246,.3)]">
+          <Card className="p-6 border-[#0c1a3a]/60 shadow-[0_0_0_1px_rgba(12,26,58,.3)]">
             <div className="flex items-baseline justify-between">
               <h3 className="text-xl font-semibold">Pro {badge("Recommandé")}</h3>
               <div className="text-2xl font-extrabold">

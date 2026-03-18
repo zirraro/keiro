@@ -47,7 +47,7 @@ export default function FilterBar({
             placeholder={t.library.filterSearch}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 rounded-lg border border-neutral-300 bg-white text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-10 pr-4 py-2 rounded-lg border border-neutral-300 bg-white text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-[#0c1a3a]"
             aria-label={t.library.filterSearch}
           />
         </div>
@@ -57,7 +57,7 @@ export default function FilterBar({
           <select
             value={selectedFolder || ''}
             onChange={(e) => setSelectedFolder(e.target.value || null)}
-            className="px-4 py-2 rounded-lg border border-neutral-300 bg-white text-neutral-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-4 py-2 rounded-lg border border-neutral-300 bg-white text-neutral-600 focus:outline-none focus:ring-2 focus:ring-[#0c1a3a]"
             aria-label={t.library.filterFolder}
           >
             <option value="">{t.library.filterAllFolders}</option>
@@ -71,7 +71,7 @@ export default function FilterBar({
           {onCreateFolder && (
             <button
               onClick={onCreateFolder}
-              className="px-4 py-2 rounded-lg border border-blue-300 bg-blue-50 text-blue-600 font-medium hover:bg-blue-100 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-4 py-2 rounded-lg border border-[#0c1a3a]/20 bg-[#0c1a3a]/5 text-[#0c1a3a] font-medium hover:bg-[#0c1a3a]/10 transition-colors focus:outline-none focus:ring-2 focus:ring-[#0c1a3a]"
               title={t.library.filterCreateFolder}
               aria-label={t.library.filterCreateFolder}
             >

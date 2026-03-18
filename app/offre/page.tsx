@@ -6,17 +6,17 @@ export default function OffrePage() {
   return (
     <div className="min-h-screen bg-white">
       {/* ── BLOCK 1 — Hero ── */}
-      <section className="bg-gradient-to-br from-blue-600 to-purple-700 text-white">
+      <section className="bg-gradient-to-br from-[#0c1a3a] to-purple-700 text-white">
         <div className="mx-auto max-w-4xl px-6 py-20 text-center">
           <h1 className="text-4xl md:text-5xl font-bold leading-tight">
             Votre commerce visible sur Instagram et TikTok en 3 minutes
           </h1>
-          <p className="mt-6 text-lg md:text-xl text-blue-100">
+          <p className="mt-6 text-lg md:text-xl text-[#0c1a3a]/60">
             L&apos;IA cr&eacute;e des visuels pro avec votre logo. Vous publiez. Les clients arrivent.
           </p>
           <button
             onClick={() => startCheckout('pro')}
-            className="mt-8 inline-block rounded-xl bg-white px-8 py-4 text-lg font-semibold text-blue-700 shadow-lg hover:shadow-xl hover:scale-105 transition-all"
+            className="mt-8 inline-block rounded-xl bg-white px-8 py-4 text-lg font-semibold text-[#0c1a3a] shadow-lg hover:shadow-xl hover:scale-105 transition-all"
           >
             Commencer &agrave; 49&euro;
           </button>
@@ -41,7 +41,7 @@ export default function OffrePage() {
                   <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Avant</span>
                   <p className="mt-2 text-neutral-600">{item.avant}</p>
                 </div>
-                <div className="bg-gradient-to-br from-blue-50 to-purple-50 p-5 text-center border-t border-neutral-200">
+                <div className="bg-gradient-to-br from-[#0c1a3a]/5 to-purple-50 p-5 text-center border-t border-neutral-200">
                   <span className="text-xs font-semibold uppercase tracking-wider text-purple-600">Apr&egrave;s</span>
                   <p className="mt-2 text-neutral-900 font-medium">{item.apres}</p>
                 </div>
@@ -78,12 +78,12 @@ export default function OffrePage() {
 
             {/* Step 2 */}
             <div className="text-center">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 text-3xl mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#0c1a3a]/10 text-3xl mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-[#0c1a3a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
-              <div className="text-sm font-bold text-blue-600 mb-1">2</div>
+              <div className="text-sm font-bold text-[#0c1a3a] mb-1">2</div>
               <h3 className="text-lg font-semibold text-neutral-900 mb-2">
                 Vous choisissez et planifiez
               </h3>

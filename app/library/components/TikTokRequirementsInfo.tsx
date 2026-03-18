@@ -138,9 +138,9 @@ export default function TikTokRequirementsInfo() {
               </div>
 
               {/* Recommended tools */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="font-semibold text-blue-900 mb-2">{t.library.triConversionTools}</h4>
-                <ul className="space-y-1 text-blue-900 text-xs">
+              <div className="bg-[#0c1a3a]/5 border border-[#0c1a3a]/10 rounded-lg p-4">
+                <h4 className="font-semibold text-[#0c1a3a] mb-2">{t.library.triConversionTools}</h4>
+                <ul className="space-y-1 text-[#0c1a3a] text-xs">
                   <li>• <strong>HandBrake</strong> (free, easy)</li>
                   <li>• <strong>CloudConvert</strong> (online)</li>
                   <li>• <strong>FFmpeg</strong> (command line)</li>

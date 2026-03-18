@@ -167,7 +167,7 @@ export async function POST(req: NextRequest) {
         user_id: user.id,
         name: name.trim(),
         description: description?.trim() || null,
-        color: color || '#3b82f6',
+        color: color || '#0c1a3a',
         icon: icon || '📁',
         parent_folder_id: parentFolderId || null,
         position: 0

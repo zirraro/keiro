@@ -723,7 +723,7 @@ async function generateBrief(): Promise<NextResponse> {
     const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
     const briefHtml = brief
-      .replace(/## /g, '<h3 style="color:#9333ea;margin-top:16px;">')
+      .replace(/## /g, '<h3 style="color:#0c1a3a;margin-top:16px;">')
       .replace(/\n(?=<h3)/g, '</p>\n')
       .replace(/^- /gm, '<li>')
       .replace(/<li>(.*)/gm, '<li>$1</li>')
@@ -733,7 +733,7 @@ async function generateBrief(): Promise<NextResponse> {
     const emailHtml = `
 <!DOCTYPE html>
 <html>
-<head><style>body{font-family:Arial,sans-serif;color:#333;line-height:1.6;}h2{color:#9333ea;}.container{max-width:640px;margin:0 auto;padding:20px;}h3{color:#9333ea;margin-top:16px;}li{margin:4px 0;}</style></head>
+<head><style>body{font-family:Arial,sans-serif;color:#333;line-height:1.6;}h2{color:#0c1a3a;}.container{max-width:640px;margin:0 auto;padding:20px;}h3{color:#0c1a3a;margin-top:16px;}li{margin:4px 0;}</style></head>
 <body>
 <div class="container">
   <h2>CEO Brief — ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</h2>

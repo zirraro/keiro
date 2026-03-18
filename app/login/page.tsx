@@ -10,7 +10,7 @@ import { useLanguage } from '@/lib/i18n/context';
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-neutral-50 flex items-center justify-center"><div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /></div>}>
+    <Suspense fallback={<div className="min-h-screen bg-neutral-50 flex items-center justify-center"><div className="w-8 h-8 border-2 border-[#0c1a3a] border-t-transparent rounded-full animate-spin" /></div>}>
       <LoginPageInner />
     </Suspense>
   );
@@ -393,17 +393,17 @@ function LoginPageInner() {
 
   // Step 2 - Profile enrichment
   if (step === 2) {
-    const selectClass = "w-full px-4 py-3 rounded-lg border-2 border-neutral-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer text-sm";
-    const inputClass = "w-full px-4 py-3 rounded-lg border-2 border-neutral-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all text-sm";
+    const selectClass = "w-full px-4 py-3 rounded-lg border-2 border-neutral-200 focus:border-[#0c1a3a] focus:outline-none focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all cursor-pointer text-sm";
+    const inputClass = "w-full px-4 py-3 rounded-lg border-2 border-neutral-200 focus:border-[#0c1a3a] focus:outline-none focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all text-sm";
 
     return (
-      <div className="relative min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 flex items-center justify-center px-4 py-12 overflow-hidden">
+      <div className="relative min-h-screen bg-gradient-to-br from-[#0c1a3a]/5 via-white to-cyan-50/30 flex items-center justify-center px-4 py-12 overflow-hidden">
         <AnimatedGradientBG variant="hero" />
         <ScaleIn className="relative w-full max-w-lg">
         <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl w-full p-8">
           {/* Header */}
           <div className="text-center mb-6">
-            <div className="w-14 h-14 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-14 h-14 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] rounded-full flex items-center justify-center mx-auto mb-4">
               <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
@@ -418,8 +418,8 @@ function LoginPageInner() {
 
           {/* Progress */}
           <div className="flex items-center gap-2 mb-6">
-            <div className="flex-1 h-1.5 bg-blue-500 rounded-full"></div>
-            <div className="flex-1 h-1.5 bg-blue-200 rounded-full"></div>
+            <div className="flex-1 h-1.5 bg-[#0c1a3a] rounded-full"></div>
+            <div className="flex-1 h-1.5 bg-[#0c1a3a]/15 rounded-full"></div>
           </div>
 
           <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
@@ -544,7 +544,7 @@ function LoginPageInner() {
                     onClick={() => toggleSocialNetwork(network)}
                     className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
                       socialNetworks.includes(network)
-                        ? 'bg-blue-500 text-white'
+                        ? 'bg-[#0c1a3a] text-white'
                         : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                     }`}
                   >
@@ -567,7 +567,7 @@ function LoginPageInner() {
                     onClick={() => toggleContentTheme(theme)}
                     className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
                       contentThemes.includes(theme)
-                        ? 'bg-blue-500 text-white'
+                        ? 'bg-[#0c1a3a] text-white'
                         : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                     }`}
                   >
@@ -716,7 +716,7 @@ function LoginPageInner() {
               type="button"
               onClick={handleStep2Submit}
               disabled={loading}
-              className="flex-1 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed cta-shimmer"
+              className="flex-1 py-3 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed cta-shimmer"
             >
               {loading ? t.login.step2Saving : t.login.step2Continue}
             </button>
@@ -728,7 +728,7 @@ function LoginPageInner() {
   }
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 flex items-center justify-center px-4 py-12 overflow-hidden">
+    <div className="relative min-h-screen bg-gradient-to-br from-[#0c1a3a]/5 via-white to-cyan-50/30 flex items-center justify-center px-4 py-12 overflow-hidden">
       <AnimatedGradientBG variant="hero" />
       <ScaleIn className="relative w-full max-w-md">
       <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl w-full p-8">
@@ -737,7 +737,7 @@ function LoginPageInner() {
           <div className="flex justify-center mb-3">
             <KeiroLogo size={48} color="#111111" />
           </div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] bg-clip-text text-transparent">
             KeiroAI
           </h1>
           <p className="text-neutral-600 mt-2">
@@ -763,7 +763,7 @@ function LoginPageInner() {
             onClick={() => setMode('login')}
             className={`flex-1 py-2 px-4 rounded-md font-semibold transition-all ${
               mode === 'login'
-                ? 'bg-white text-blue-600 shadow'
+                ? 'bg-white text-[#0c1a3a] shadow'
                 : 'text-neutral-600 hover:text-neutral-900'
             }`}
           >
@@ -773,7 +773,7 @@ function LoginPageInner() {
             onClick={() => setMode('signup')}
             className={`flex-1 py-2 px-4 rounded-md font-semibold transition-all ${
               mode === 'signup'
-                ? 'bg-white text-blue-600 shadow'
+                ? 'bg-white text-[#0c1a3a] shadow'
                 : 'text-neutral-600 hover:text-neutral-900'
             }`}
           >
@@ -811,7 +811,7 @@ function LoginPageInner() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg border-2 border-neutral-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all"
+                className="w-full px-4 py-3 rounded-lg border-2 border-neutral-200 focus:border-[#0c1a3a] focus:outline-none focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all"
                 placeholder="votre@email.com"
               />
             </div>
@@ -827,7 +827,7 @@ function LoginPageInner() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg border-2 border-neutral-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all"
+                className="w-full px-4 py-3 rounded-lg border-2 border-neutral-200 focus:border-[#0c1a3a] focus:outline-none focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all"
                 placeholder="••••••••"
               />
             </div>
@@ -848,7 +848,7 @@ function LoginPageInner() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed cta-shimmer"
+              className="w-full py-3 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed cta-shimmer"
             >
               {loading ? t.login.connecting : t.login.loginCta}
             </button>
@@ -857,7 +857,7 @@ function LoginPageInner() {
               type="button"
               onClick={handleResetPassword}
               disabled={loading}
-              className="w-full text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
+              className="w-full text-sm text-[#0c1a3a] hover:text-[#1e3a5f] font-medium transition-colors"
             >
               {t.login.forgotPassword}
             </button>
@@ -877,7 +877,7 @@ function LoginPageInner() {
                   required
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
-                  className="w-full px-4 py-3 rounded-lg border-2 border-neutral-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all"
+                  className="w-full px-4 py-3 rounded-lg border-2 border-neutral-200 focus:border-[#0c1a3a] focus:outline-none focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all"
                   placeholder="Jean"
                 />
               </div>
@@ -890,7 +890,7 @@ function LoginPageInner() {
                   required
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
-                  className="w-full px-4 py-3 rounded-lg border-2 border-neutral-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all"
+                  className="w-full px-4 py-3 rounded-lg border-2 border-neutral-200 focus:border-[#0c1a3a] focus:outline-none focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all"
                   placeholder="Dupont"
                 />
               </div>
@@ -907,7 +907,7 @@ function LoginPageInner() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg border-2 border-neutral-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all"
+                className="w-full px-4 py-3 rounded-lg border-2 border-neutral-200 focus:border-[#0c1a3a] focus:outline-none focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all"
                 placeholder="votre@email.com"
               />
             </div>
@@ -924,7 +924,7 @@ function LoginPageInner() {
                 minLength={6}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg border-2 border-neutral-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all"
+                className="w-full px-4 py-3 rounded-lg border-2 border-neutral-200 focus:border-[#0c1a3a] focus:outline-none focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all"
                 placeholder="••••••••"
               />
               <p className="text-xs text-neutral-500 mt-1">{t.login.passwordMinLength}</p>
@@ -938,7 +938,7 @@ function LoginPageInner() {
                 required
                 value={businessType}
                 onChange={(e) => setBusinessType(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg border-2 border-neutral-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer"
+                className="w-full px-4 py-3 rounded-lg border-2 border-neutral-200 focus:border-[#0c1a3a] focus:outline-none focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all cursor-pointer"
               >
                 <option value="">{t.login.step2SelectPlaceholder}</option>
                 <option value="restaurant">{t.login.signupRestaurant}</option>
@@ -955,7 +955,7 @@ function LoginPageInner() {
                   required
                   value={customBusinessType}
                   onChange={(e) => setCustomBusinessType(e.target.value)}
-                  className="w-full mt-2 px-4 py-3 rounded-lg border-2 border-neutral-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all"
+                  className="w-full mt-2 px-4 py-3 rounded-lg border-2 border-neutral-200 focus:border-[#0c1a3a] focus:outline-none focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all"
                   placeholder={t.login.signupOtherPlaceholder}
                 />
               )}
@@ -978,7 +978,7 @@ function LoginPageInner() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed cta-shimmer"
+              className="w-full py-3 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed cta-shimmer"
             >
               {loading ? t.login.signupCreating : t.login.signupCta}
             </button>

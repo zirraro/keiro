@@ -6,6 +6,7 @@ import Script from "next/script";
 import { LanguageProvider } from "@/lib/i18n/context";
 import NewsPrefetcher from "@/components/NewsPrefetcher";
 import ChatbotWidget from "@/components/ChatbotWidget";
+import { VortexBackground } from "@/components/ui/vortex-bg";
 
 export const metadata: Metadata = {
   title: {
@@ -120,7 +121,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="bg-white text-neutral-900">
+      <body className="bg-[#0c1a3a] text-neutral-900">
         {/* Google Tag Manager (noscript) */}
         <noscript>
           <iframe
@@ -132,9 +133,10 @@ export default function RootLayout({
         </noscript>
 
         <LanguageProvider>
+          <VortexBackground />
           <Header />
           <NewsPrefetcher />
-          <main className="pb-20 lg:pb-0">
+          <main className="relative pb-20 lg:pb-0" style={{ zIndex: 2 }}>
             {children}
           </main>
           <BottomNav />

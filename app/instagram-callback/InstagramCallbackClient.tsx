@@ -95,7 +95,7 @@ function InstagramCallbackContent() {
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center">
         {status === 'loading' && (
           <>
-            <div className="w-20 h-20 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-6"></div>
+            <div className="w-20 h-20 border-4 border-[#0c1a3a]/10 border-t-[#0c1a3a] rounded-full animate-spin mx-auto mb-6"></div>
             <h2 className="text-2xl font-bold text-neutral-900 mb-2">Connexion en cours</h2>
             <p className="text-neutral-600">{message}</p>
           </>
@@ -136,7 +136,7 @@ export default function InstagramCallbackClient() {
     <Suspense fallback={
       <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-white flex items-center justify-center p-6">
         <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center">
-          <div className="w-20 h-20 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-6"></div>
+          <div className="w-20 h-20 border-4 border-[#0c1a3a]/10 border-t-[#0c1a3a] rounded-full animate-spin mx-auto mb-6"></div>
           <h2 className="text-2xl font-bold text-neutral-900 mb-2">Chargement</h2>
           <p className="text-neutral-600">Préparation...</p>
         </div>

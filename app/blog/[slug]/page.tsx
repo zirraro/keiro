@@ -278,7 +278,7 @@ export default async function BlogPostPage({ params }: PageProps) {
         <header className="relative bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 text-white overflow-hidden">
           {/* Subtle pattern overlay */}
           <div className="absolute inset-0 opacity-5" style={{
-            backgroundImage: 'radial-gradient(circle at 25% 25%, #a855f7 1px, transparent 1px), radial-gradient(circle at 75% 75%, #3b82f6 1px, transparent 1px)',
+            backgroundImage: 'radial-gradient(circle at 25% 25%, #a855f7 1px, transparent 1px), radial-gradient(circle at 75% 75%, #0c1a3a 1px, transparent 1px)',
             backgroundSize: '40px 40px'
           }} />
 
@@ -396,7 +396,7 @@ export default async function BlogPostPage({ params }: PageProps) {
 
         {/* CTA Section */}
         <section className="max-w-3xl mx-auto px-4 sm:px-6 pb-8">
-          <div className="relative overflow-hidden bg-gradient-to-br from-purple-600 via-purple-700 to-blue-700 rounded-2xl p-8 sm:p-12 text-center text-white">
+          <div className="relative overflow-hidden bg-gradient-to-br from-purple-600 via-purple-700 to-[#1e3a5f] rounded-2xl p-8 sm:p-12 text-center text-white">
             {/* Background decoration */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4" />
             <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/4" />
@@ -453,7 +453,7 @@ export default async function BlogPostPage({ params }: PageProps) {
                         />
                       </div>
                     ) : (
-                      <div className="aspect-[16/9] bg-gradient-to-br from-purple-100 to-blue-50 flex items-center justify-center">
+                      <div className="aspect-[16/9] bg-gradient-to-br from-purple-100 to-[#0c1a3a]/5 flex items-center justify-center">
                         <svg className="w-8 h-8 text-purple-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
@@ -481,7 +481,7 @@ export default async function BlogPostPage({ params }: PageProps) {
         <div className="max-w-3xl mx-auto px-4 sm:px-6 pb-12">
           <div className="border-t border-neutral-100 pt-6 flex items-center justify-between text-xs text-neutral-400">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-blue-500" />
+              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-[#1e3a5f]" />
               <span>Publie par <strong className="text-neutral-600">KeiroAI</strong></span>
             </div>
             <Link href="/blog" className="hover:text-purple-600 transition-colors">

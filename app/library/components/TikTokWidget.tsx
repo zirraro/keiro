@@ -207,7 +207,7 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
             </div>
             <button
               onClick={onPreparePost}
-              className={`bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all ${
+              className={`bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold rounded-lg hover:shadow-lg transition-all ${
                 isCollapsed
                   ? 'w-full px-2 py-1.5 text-[10px]'
                   : 'px-3 py-1.5 text-xs'
@@ -230,7 +230,7 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
             </p>
             <button
               onClick={hasAccount ? onConnect : () => window.location.href = '/login'}
-              className="px-6 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-sm font-medium rounded-lg hover:shadow-lg transition-all"
+              className="px-6 py-2 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white text-sm font-medium rounded-lg hover:shadow-lg transition-all"
             >
               {hasAccount ? 'Connecter TikTok' : 'Créer un compte'}
             </button>
@@ -297,7 +297,7 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
             )}
             <button
               onClick={onPreparePost}
-              className={`bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all ${
+              className={`bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold rounded-lg hover:shadow-lg transition-all ${
                 isCollapsed
                   ? 'w-full px-2 py-1.5 text-[10px]'
                   : 'px-3 py-1.5 text-xs'
@@ -335,7 +335,7 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
                   href={post.share_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="relative aspect-square rounded-lg overflow-hidden group cursor-pointer bg-gradient-to-br from-cyan-50 to-blue-50"
+                  className="relative aspect-square rounded-lg overflow-hidden group cursor-pointer bg-gradient-to-br from-cyan-50 to-[#0c1a3a]/5"
                 >
                   {/* Thumbnail - Prioritize cached_thumbnail_url */}
                   {!hasError && thumbnailUrl ? (
@@ -389,7 +389,7 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
           <button
             onClick={handleSyncMedia}
             disabled={syncing}
-            className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-sm font-medium rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 mx-auto"
+            className="px-4 py-2 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white text-sm font-medium rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 mx-auto"
           >
             {syncing ? (
               <>

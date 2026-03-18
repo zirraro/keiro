@@ -332,7 +332,7 @@ export function AnimatedAccordion({
     <div className={className}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between py-4 text-left font-semibold text-neutral-900 hover:text-blue-600 transition-colors"
+        className="w-full flex items-center justify-between py-4 text-left font-semibold text-neutral-900 hover:text-[#0c1a3a] transition-colors"
       >
         <span>{title}</span>
         <motion.svg
@@ -428,7 +428,7 @@ export function FloatUp({
 export function GlowPulse({
   children,
   className,
-  color = 'rgba(59, 130, 246, 0.15)',
+  color = 'rgba(12, 26, 58, 0.15)',
 }: {
   children: ReactNode;
   className?: string;
@@ -468,7 +468,7 @@ export function TextShimmer({
 
   return (
     <motion.span
-      className={`inline-block bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 bg-[length:200%_auto] ${className || ''}`}
+      className={`inline-block bg-clip-text text-transparent bg-gradient-to-r from-[#0c1a3a] via-[#1e3a5f] to-[#0c1a3a] bg-[length:200%_auto] ${className || ''}`}
       animate={shouldReduce ? {} : { backgroundPosition: ['0% center', '200% center'] }}
       transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
     >
@@ -551,7 +551,7 @@ export function TextRotator({
 // An SVG shape that slowly morphs between blob paths. Creates organic, living feel.
 export function MorphingShape({
   className,
-  color = '#3b82f6',
+  color = '#0c1a3a',
   size = 400,
   duration = 12,
 }: {

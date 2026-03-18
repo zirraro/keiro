@@ -226,7 +226,7 @@ export default function ChatbotWidget() {
             exit={{ scale: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={() => setIsOpen(true)}
-            className={`fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg hover:shadow-xl flex items-center justify-center transition-shadow ${
+            className={`fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white shadow-lg hover:shadow-xl flex items-center justify-center transition-shadow ${
               pulseAnimation ? 'animate-pulse' : ''
             }`}
             whileHover={{ scale: 1.08 }}
@@ -250,7 +250,7 @@ export default function ChatbotWidget() {
             style={{ height: '520px', maxHeight: 'calc(100vh - 40px)' }}
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-purple-600 to-blue-600 px-4 py-3 flex items-center justify-between flex-shrink-0">
+            <div className="bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] px-4 py-3 flex items-center justify-between flex-shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center">
                   <MessageCircle className="w-5 h-5 text-white" />
@@ -330,7 +330,7 @@ export default function ChatbotWidget() {
                 <button
                   onClick={() => sendMessage(input)}
                   disabled={isLoading || !input.trim()}
-                  className="w-10 h-10 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 text-white flex items-center justify-center hover:from-purple-700 hover:to-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex-shrink-0"
+                  className="w-10 h-10 rounded-xl bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white flex items-center justify-center hover:from-purple-700 hover:to-[#1e3a5f] disabled:opacity-40 disabled:cursor-not-allowed transition-all flex-shrink-0"
                   aria-label="Envoyer"
                 >
                   <Send className="w-4 h-4" />

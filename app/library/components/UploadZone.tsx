@@ -119,7 +119,7 @@ export default function UploadZone({ type, onUpload, className = '' }: UploadZon
       className={`
         relative border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-all
         ${isDragging
-          ? 'border-blue-500 bg-blue-50'
+          ? 'border-[#0c1a3a] bg-[#0c1a3a]/5'
           : 'border-neutral-300 bg-neutral-50 hover:border-neutral-400 hover:bg-neutral-100'
         }
         ${uploading ? 'opacity-50 cursor-not-allowed' : ''}
@@ -140,7 +140,7 @@ export default function UploadZone({ type, onUpload, className = '' }: UploadZon
 
         {uploading ? (
           <>
-            <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-8 h-8 border-4 border-[#0c1a3a] border-t-transparent rounded-full animate-spin"></div>
             <p className="text-sm font-semibold text-neutral-700">{t.library.uzUploading}</p>
           </>
         ) : (
@@ -152,7 +152,7 @@ export default function UploadZone({ type, onUpload, className = '' }: UploadZon
       </div>
 
       {isDragging && (
-        <div className="absolute inset-0 bg-blue-500 bg-opacity-10 rounded-lg pointer-events-none"></div>
+        <div className="absolute inset-0 bg-[#0c1a3a]/50 bg-opacity-10 rounded-lg pointer-events-none"></div>
       )}
     </div>
   );

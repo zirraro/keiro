@@ -105,11 +105,11 @@ User-Agent: ${req.headers.get('user-agent') || 'Unknown'}
   <style>
     body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    .header { background: linear-gradient(to right, #9333ea, #2563eb); color: white; padding: 20px; border-radius: 8px 8px 0 0; }
+    .header { background: linear-gradient(to right, #0c1a3a, #1e3a5f); color: white; padding: 20px; border-radius: 8px 8px 0 0; }
     .content { background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; }
     .info { background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
     .label { font-weight: bold; color: #6b7280; }
-    .technical { background: #f3f4f6; padding: 10px; border-left: 4px solid #9333ea; margin-top: 15px; font-family: monospace; font-size: 12px; }
+    .technical { background: #f3f4f6; padding: 10px; border-left: 4px solid #0c1a3a; margin-top: 15px; font-family: monospace; font-size: 12px; }
     .footer { background: #f9fafb; padding: 15px; text-align: center; color: #6b7280; font-size: 12px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px; }
   </style>
 </head>

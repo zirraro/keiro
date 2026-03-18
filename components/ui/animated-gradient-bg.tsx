@@ -3,17 +3,17 @@
 export function AnimatedGradientBG({ variant = 'hero' }: { variant?: 'hero' | 'dark' | 'pricing' }) {
   const configs = {
     hero: {
-      blob1: 'bg-blue-400/20',
+      blob1: 'bg-[#0c1a3a]/20',
       blob2: 'bg-cyan-400/15',
       blob3: 'bg-indigo-400/10',
     },
     dark: {
-      blob1: 'bg-blue-600/20',
+      blob1: 'bg-[#0c1a3a]/20',
       blob2: 'bg-indigo-500/15',
       blob3: 'bg-purple-600/10',
     },
     pricing: {
-      blob1: 'bg-blue-400/15',
+      blob1: 'bg-[#0c1a3a]/15',
       blob2: 'bg-purple-400/12',
       blob3: 'bg-cyan-400/10',
     },

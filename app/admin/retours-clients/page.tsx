@@ -371,7 +371,7 @@ export default function AdminRetoursClientsPage() {
                       const isExpanded = expandedQuestion === key;
                       const questionVoters = feedbackVoters[key] || [];
                       const RATING_LABELS: Record<string, string> = { tres_bien: 'Tres bien', bien: 'Bien', moyen: 'Moyen', pas_du_tout: 'Pas du tout' };
-                      const RATING_COLORS: Record<string, string> = { tres_bien: 'text-green-600', bien: 'text-blue-600', moyen: 'text-amber-600', pas_du_tout: 'text-red-600' };
+                      const RATING_COLORS: Record<string, string> = { tres_bien: 'text-green-600', bien: 'text-[#0c1a3a]', moyen: 'text-amber-600', pas_du_tout: 'text-red-600' };
                       return (
                         <div key={key} className="border border-neutral-100 rounded-xl overflow-hidden">
                           <button onClick={() => setExpandedQuestion(isExpanded ? null : key)} className="w-full p-3 text-center hover:bg-neutral-50 transition-all">

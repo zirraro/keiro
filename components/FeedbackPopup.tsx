@@ -24,7 +24,7 @@ export default function FeedbackPopup({ show, onAccept, onDismiss }: FeedbackPop
         <div className="flex items-center gap-3 mt-4">
           <button
             onClick={onAccept}
-            className="flex-1 bg-gradient-to-r from-purple-600 to-blue-500 text-white text-sm font-semibold py-2 px-4 rounded-lg hover:from-purple-700 hover:to-blue-600 transition-all"
+            className="flex-1 bg-gradient-to-r from-purple-600 to-[#0c1a3a] text-white text-sm font-semibold py-2 px-4 rounded-lg hover:from-purple-700 hover:to-[#0c1a3a] transition-all"
           >
             Oui, je donne mon avis
           </button>

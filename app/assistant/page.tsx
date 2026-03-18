@@ -85,9 +85,9 @@ export default function AssistantPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-blue-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[#0c1a3a]/5 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0c1a3a] mx-auto mb-4"></div>
           <p className="text-neutral-600">{t.assistant.loadingAssistant}</p>
         </div>
       </div>
@@ -95,14 +95,14 @@ export default function AssistantPage() {
   }
 
   return (
-    <div className="min-h-screen bg-blue-50">
+    <div className="min-h-screen bg-[#0c1a3a]/5">
       <div className="max-w-7xl mx-auto px-4 py-8">
 
         {/* Header intelligent personnalisé */}
-        <div className="bg-white rounded-2xl shadow-lg border border-blue-100 p-4 md:p-6 mb-6">
+        <div className="bg-white rounded-2xl shadow-lg border border-[#0c1a3a]/8 p-4 md:p-6 mb-6">
           <div className="flex flex-col gap-4">
             <div className="flex-1">
-              <h1 className="text-2xl md:text-3xl font-bold mb-2 text-blue-900">
+              <h1 className="text-2xl md:text-3xl font-bold mb-2 text-[#0c1a3a]">
                 👋 {t.assistant.greeting} {user?.user_metadata?.full_name || user?.email?.split('@')[0] || t.assistant.greetingDefault} !
               </h1>
               <p className="text-sm md:text-base text-neutral-600 mb-4">
@@ -111,10 +111,10 @@ export default function AssistantPage() {
 
               {/* Stats résumé */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mt-4 md:mt-6">
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 md:p-6">
-                  <div className="text-xs md:text-sm text-blue-700 font-semibold mb-2">{t.assistant.thisWeek}</div>
-                  <div className="text-3xl md:text-4xl font-bold text-blue-900 mb-1">{stats.postsThisWeek}</div>
-                  <div className="text-xs md:text-sm text-blue-600 mb-2">{t.assistant.visualsGenerated}</div>
+                <div className="bg-gradient-to-br from-[#0c1a3a]/5 to-[#0c1a3a]/10 rounded-lg p-4 md:p-6">
+                  <div className="text-xs md:text-sm text-[#0c1a3a] font-semibold mb-2">{t.assistant.thisWeek}</div>
+                  <div className="text-3xl md:text-4xl font-bold text-[#0c1a3a] mb-1">{stats.postsThisWeek}</div>
+                  <div className="text-xs md:text-sm text-[#0c1a3a] mb-2">{t.assistant.visualsGenerated}</div>
                   {stats.improvement > 0 && (
                     <div className="text-xs md:text-sm text-green-600 font-semibold flex items-center gap-1">
                       <span>↗</span> +{stats.improvement}% {t.assistant.vsLastWeek}
@@ -122,29 +122,29 @@ export default function AssistantPage() {
                   )}
                 </div>
 
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 md:p-6">
-                  <div className="text-xs md:text-sm text-blue-700 font-semibold mb-2">{t.assistant.avgEngagement}</div>
-                  <div className="text-3xl md:text-4xl font-bold text-blue-900 mb-1">{stats.avgEngagement}</div>
-                  <div className="text-xs md:text-sm text-blue-600 mb-2">{t.assistant.viewsPerPost}</div>
-                  <div className="text-xs text-blue-700 font-medium">
+                <div className="bg-gradient-to-br from-[#0c1a3a]/5 to-[#0c1a3a]/10 rounded-lg p-4 md:p-6">
+                  <div className="text-xs md:text-sm text-[#0c1a3a] font-semibold mb-2">{t.assistant.avgEngagement}</div>
+                  <div className="text-3xl md:text-4xl font-bold text-[#0c1a3a] mb-1">{stats.avgEngagement}</div>
+                  <div className="text-xs md:text-sm text-[#0c1a3a] mb-2">{t.assistant.viewsPerPost}</div>
+                  <div className="text-xs text-[#0c1a3a] font-medium">
                     {stats.avgLikes} {t.assistant.avgLikes}
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 md:p-6">
-                  <div className="text-xs md:text-sm text-blue-700 font-semibold mb-2">{t.assistant.publishedContent}</div>
-                  <div className="text-3xl md:text-4xl font-bold text-blue-900 mb-1">{stats.totalPosts}</div>
-                  <div className="text-xs md:text-sm text-blue-600 mb-2">{t.assistant.totalPosts}</div>
-                  <div className="text-xs text-blue-700 font-medium">
+                <div className="bg-gradient-to-br from-[#0c1a3a]/5 to-[#0c1a3a]/10 rounded-lg p-4 md:p-6">
+                  <div className="text-xs md:text-sm text-[#0c1a3a] font-semibold mb-2">{t.assistant.publishedContent}</div>
+                  <div className="text-3xl md:text-4xl font-bold text-[#0c1a3a] mb-1">{stats.totalPosts}</div>
+                  <div className="text-xs md:text-sm text-[#0c1a3a] mb-2">{t.assistant.totalPosts}</div>
+                  <div className="text-xs text-[#0c1a3a] font-medium">
                     {t.assistant.topTheme} {stats.topCategory}
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 md:p-6">
-                  <div className="text-xs md:text-sm text-blue-700 font-semibold mb-2">{t.assistant.nextPost}</div>
-                  <div className="text-lg md:text-xl font-bold text-blue-900 mb-1">{t.assistant.bestTime}</div>
-                  <div className="text-xs md:text-sm text-blue-600 mb-2">{t.assistant.bestMoment}</div>
-                  <div className="text-xs text-blue-700 font-medium">
+                <div className="bg-gradient-to-br from-[#0c1a3a]/5 to-[#0c1a3a]/10 rounded-lg p-4 md:p-6">
+                  <div className="text-xs md:text-sm text-[#0c1a3a] font-semibold mb-2">{t.assistant.nextPost}</div>
+                  <div className="text-lg md:text-xl font-bold text-[#0c1a3a] mb-1">{t.assistant.bestTime}</div>
+                  <div className="text-xs md:text-sm text-[#0c1a3a] mb-2">{t.assistant.bestMoment}</div>
+                  <div className="text-xs text-[#0c1a3a] font-medium">
                     {t.assistant.basedOnData}
                   </div>
                 </div>
@@ -160,7 +160,7 @@ export default function AssistantPage() {
               onClick={() => setActiveTab('dashboard')}
               className={`flex-1 px-6 py-4 font-semibold transition-colors ${
                 activeTab === 'dashboard'
-                  ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                  ? 'text-[#0c1a3a] border-b-2 border-[#0c1a3a] bg-[#0c1a3a]/5'
                   : 'text-neutral-600 hover:text-neutral-900'
               }`}
             >
@@ -180,7 +180,7 @@ export default function AssistantPage() {
               onClick={() => setActiveTab('formation')}
               className={`flex-1 px-6 py-4 font-semibold transition-colors ${
                 activeTab === 'formation'
-                  ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                  ? 'text-[#0c1a3a] border-b-2 border-[#0c1a3a] bg-[#0c1a3a]/5'
                   : 'text-neutral-600 hover:text-neutral-900'
               }`}
             >
@@ -315,20 +315,20 @@ function DashboardTab({ stats, chartData, user }: any) {
     <div className="space-y-6">
       {/* Bannière démo si pas de vraies données */}
       {!hasRealData && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+        <div className="bg-[#0c1a3a]/5 border border-[#0c1a3a]/10 rounded-xl p-4">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div className="flex items-start gap-3">
               <span className="text-2xl">📊</span>
               <div>
-                <h3 className="font-bold text-blue-900 mb-1">{t.assistant.sampleData}</h3>
-                <p className="text-sm text-blue-800">
+                <h3 className="font-bold text-[#0c1a3a] mb-1">{t.assistant.sampleData}</h3>
+                <p className="text-sm text-[#0c1a3a]/80">
                   {t.assistant.sampleDataDesc}
                 </p>
               </div>
             </div>
             <a
               href="/generate"
-              className="shrink-0 px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:shadow-lg transition-all whitespace-nowrap"
+              className="shrink-0 px-6 py-2 bg-[#0c1a3a] text-white font-semibold rounded-lg hover:shadow-lg transition-all whitespace-nowrap"
             >
               {t.assistant.createVisual}
             </a>
@@ -341,7 +341,7 @@ function DashboardTab({ stats, chartData, user }: any) {
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold">📈 {t.assistant.yourPerformance}</h2>
           {!hasRealData && (
-            <span className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-bold rounded-full">
+            <span className="px-3 py-1 bg-[#0c1a3a]/10 text-[#0c1a3a]/80 text-xs font-bold rounded-full">
               {t.assistant.sampleBadge}
             </span>
           )}
@@ -371,7 +371,7 @@ function DashboardTab({ stats, chartData, user }: any) {
                     }}
                   />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Line type="monotone" dataKey="views" stroke="#3b82f6" strokeWidth={2} name={t.assistant.views} />
+                  <Line type="monotone" dataKey="views" stroke="#0c1a3a" strokeWidth={2} name={t.assistant.views} />
                   <Line type="monotone" dataKey="likes" stroke="#ec4899" strokeWidth={2} name={t.assistant.likes} />
                   <Line type="monotone" dataKey="comments" stroke="#8b5cf6" strokeWidth={2} name={t.assistant.comments} />
                 </LineChart>
@@ -408,7 +408,7 @@ function DashboardTab({ stats, chartData, user }: any) {
                   <YAxis tick={{ fontSize: 10 }} />
                   <Tooltip contentStyle={{ fontSize: 12 }} />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="count" fill="#3b82f6" name={t.assistant.postCount} />
+                  <Bar dataKey="count" fill="#0c1a3a" name={t.assistant.postCount} />
                   <Bar dataKey="avgEngagement" fill="#10b981" name={t.assistant.avgEngagementChart} />
                 </BarChart>
               </ResponsiveContainer>
@@ -462,11 +462,11 @@ function DashboardTab({ stats, chartData, user }: any) {
       </div>
 
       {/* Section Insights personnalisés */}
-      <div className="bg-blue-50 rounded-xl shadow border border-blue-200 p-6">
+      <div className="bg-[#0c1a3a]/5 rounded-xl shadow border border-[#0c1a3a]/10 p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold">🤖 {t.assistant.personalizedInsights}</h2>
           {stats.totalPosts > 0 && (
-            <span className="text-xs px-3 py-1 bg-blue-600 text-white rounded-full font-bold">
+            <span className="text-xs px-3 py-1 bg-[#0c1a3a] text-white rounded-full font-bold">
               {t.assistant.active}
             </span>
           )}
@@ -474,17 +474,17 @@ function DashboardTab({ stats, chartData, user }: any) {
 
         <div className="space-y-4 text-sm">
           {/* Insight 1 : Recommandation stratégique business */}
-          <div className="bg-white rounded-lg p-5 border border-blue-200 shadow-sm">
+          <div className="bg-white rounded-lg p-5 border border-[#0c1a3a]/10 shadow-sm">
             <div className="flex items-start gap-3">
               <span className="text-3xl">🎯</span>
               <div className="flex-1">
-                <p className="font-bold text-lg mb-2 text-blue-900">{t.assistant.sectorStrategy}</p>
+                <p className="font-bold text-lg mb-2 text-[#0c1a3a]">{t.assistant.sectorStrategy}</p>
                 <p className="text-neutral-700 mb-3">
                   {t.assistant.sectorStrategyPrefix} <strong>{user?.user_metadata?.business_type || 'Business'}</strong>{t.assistant.sectorStrategyMiddle} <strong>&quot;{stats.topCategory}&quot;</strong> {t.assistant.sectorStrategySuffix}
                 </p>
-                <div className="bg-blue-50 p-3 rounded-lg">
-                  <p className="font-semibold text-blue-900 mb-1">💡 {t.assistant.recommendedAction}</p>
-                  <p className="text-blue-800 text-xs">
+                <div className="bg-[#0c1a3a]/5 p-3 rounded-lg">
+                  <p className="font-semibold text-[#0c1a3a] mb-1">💡 {t.assistant.recommendedAction}</p>
+                  <p className="text-[#0c1a3a]/80 text-xs">
                     {t.assistant.recommendedActionPrefix}{stats.topCategory}{t.assistant.recommendedActionSuffix} <strong>{t.assistant.recommendedActionTime}</strong>.
                   </p>
                 </div>
@@ -493,17 +493,17 @@ function DashboardTab({ stats, chartData, user }: any) {
           </div>
 
           {/* Insight 2 : Optimisation horaire personnalisée */}
-          <div className="bg-white rounded-lg p-5 border border-blue-200 shadow-sm">
+          <div className="bg-white rounded-lg p-5 border border-[#0c1a3a]/10 shadow-sm">
             <div className="flex items-start gap-3">
               <span className="text-3xl">⏰</span>
               <div className="flex-1">
-                <p className="font-bold text-lg mb-2 text-blue-900">{t.assistant.optimalTiming}</p>
+                <p className="font-bold text-lg mb-2 text-[#0c1a3a]">{t.assistant.optimalTiming}</p>
                 <p className="text-neutral-700 mb-3">
                   {t.assistant.optimalTimingDesc}
                 </p>
-                <div className="bg-blue-50 p-3 rounded-lg">
-                  <p className="font-semibold text-blue-900 mb-1">⚡ {t.assistant.immediateOpportunity}</p>
-                  <p className="text-blue-800 text-xs">
+                <div className="bg-[#0c1a3a]/5 p-3 rounded-lg">
+                  <p className="font-semibold text-[#0c1a3a] mb-1">⚡ {t.assistant.immediateOpportunity}</p>
+                  <p className="text-[#0c1a3a]/80 text-xs">
                     {t.assistant.immediateOpportunityText}
                   </p>
                 </div>
@@ -512,17 +512,17 @@ function DashboardTab({ stats, chartData, user }: any) {
           </div>
 
           {/* Insight 3 : Analyse concurrentielle */}
-          <div className="bg-white rounded-lg p-5 border border-blue-200 shadow-sm">
+          <div className="bg-white rounded-lg p-5 border border-[#0c1a3a]/10 shadow-sm">
             <div className="flex items-start gap-3">
               <span className="text-3xl">📈</span>
               <div className="flex-1">
-                <p className="font-bold text-lg mb-2 text-blue-900">{t.assistant.sectorBenchmark}</p>
+                <p className="font-bold text-lg mb-2 text-[#0c1a3a]">{t.assistant.sectorBenchmark}</p>
                 <p className="text-neutral-700 mb-3">
                   {t.assistant.sectorBenchmarkDesc}
                 </p>
-                <div className="bg-blue-50 p-3 rounded-lg">
-                  <p className="font-semibold text-blue-900 mb-1">🚀 {t.assistant.actionPlan}</p>
-                  <ul className="text-blue-800 text-xs space-y-1 list-disc list-inside">
+                <div className="bg-[#0c1a3a]/5 p-3 rounded-lg">
+                  <p className="font-semibold text-[#0c1a3a] mb-1">🚀 {t.assistant.actionPlan}</p>
+                  <ul className="text-[#0c1a3a]/80 text-xs space-y-1 list-disc list-inside">
                     <li>{t.assistant.actionPlanItem1Prefix}{stats.topCategory}{t.assistant.actionPlanItem1Suffix}</li>
                     <li>{t.assistant.actionPlanItem2}</li>
                     <li>{t.assistant.actionPlanItem3}</li>
@@ -533,18 +533,18 @@ function DashboardTab({ stats, chartData, user }: any) {
           </div>
 
           {/* Insight 4 : Prédiction de croissance */}
-          <div className="bg-white rounded-lg p-5 border border-blue-200 shadow-sm">
+          <div className="bg-white rounded-lg p-5 border border-[#0c1a3a]/10 shadow-sm">
             <div className="flex items-start gap-3">
               <span className="text-3xl">🔮</span>
               <div className="flex-1">
-                <p className="font-bold text-lg mb-2 text-blue-900">{t.assistant.growthProjection}</p>
+                <p className="font-bold text-lg mb-2 text-[#0c1a3a]">{t.assistant.growthProjection}</p>
                 <p className="text-neutral-700 mb-3">
                   {t.assistant.growthProjectionPrefix}{stats.postsThisWeek}{t.assistant.growthProjectionMiddle}
                   <strong> {t.assistant.growthProjectionFollowers}</strong> {t.assistant.growthProjectionAnd} <strong>{t.assistant.growthProjectionViews}</strong> {t.assistant.growthProjectionSuffix}
                 </p>
-                <div className="bg-blue-50 p-3 rounded-lg">
-                  <p className="font-semibold text-blue-900 mb-1">✨ {t.assistant.toAccelerate}</p>
-                  <p className="text-blue-800 text-xs">
+                <div className="bg-[#0c1a3a]/5 p-3 rounded-lg">
+                  <p className="font-semibold text-[#0c1a3a] mb-1">✨ {t.assistant.toAccelerate}</p>
+                  <p className="text-[#0c1a3a]/80 text-xs">
                     {t.assistant.toAccelerateText} <strong>{t.assistant.toAccelerateGrowth}</strong> {t.assistant.toAccelerateEnd}
                   </p>
                 </div>
@@ -554,25 +554,25 @@ function DashboardTab({ stats, chartData, user }: any) {
 
           {/* Note méthodologie */}
           {stats.totalPosts === 0 ? (
-            <div className="text-sm bg-gradient-to-r from-blue-50 to-cyan-50 border-2 border-blue-300 p-4 rounded-xl">
-              <p className="font-bold text-blue-900 mb-2 flex items-center gap-2">
+            <div className="text-sm bg-gradient-to-r from-[#0c1a3a]/5 to-[#1e3a5f]/5 border-2 border-[#0c1a3a]/20 p-4 rounded-xl">
+              <p className="font-bold text-[#0c1a3a] mb-2 flex items-center gap-2">
                 <span>💡</span> {t.assistant.sampleDataNote}
               </p>
-              <p className="text-blue-800 mb-3 text-xs leading-relaxed">
+              <p className="text-[#0c1a3a]/80 mb-3 text-xs leading-relaxed">
                 {t.assistant.sampleDataNoteP1} <strong>{t.assistant.sampleDataNoteP2}</strong> {t.assistant.sampleDataNoteP3} <strong>{t.assistant.sampleDataNoteP4}</strong>{t.assistant.sampleDataNoteP5}
               </p>
-              <p className="text-blue-700 text-xs mb-3">
+              <p className="text-[#0c1a3a] text-xs mb-3">
                 {t.assistant.sampleDataNoteP6}
               </p>
               <a
                 href="/generate"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg font-semibold text-xs hover:shadow-lg transition-all hover:scale-105"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white rounded-lg font-semibold text-xs hover:shadow-lg transition-all hover:scale-105"
               >
                 {t.assistant.createFirstVisual}
               </a>
             </div>
           ) : (
-            <div className="text-xs text-blue-700 bg-blue-100 p-3 rounded-lg">
+            <div className="text-xs text-[#0c1a3a] bg-[#0c1a3a]/10 p-3 rounded-lg">
               <p className="font-semibold mb-1">📊 {t.assistant.methodologyLabel}</p>
               <p>
                 {t.assistant.methodologyPrefix} {stats.totalPosts} {t.assistant.methodologySuffix}
@@ -640,10 +640,10 @@ function FormationTab() {
   return (
     <div className="space-y-6">
       {/* Header section */}
-      <div className="bg-blue-50 rounded-xl border border-blue-200 p-6">
+      <div className="bg-[#0c1a3a]/5 rounded-xl border border-[#0c1a3a]/10 p-6">
         <div className="flex items-start justify-between">
           <div>
-            <h2 className="text-2xl font-bold mb-2 text-blue-900">
+            <h2 className="text-2xl font-bold mb-2 text-[#0c1a3a]">
               📺 {t.assistant.masterclassTitle}
             </h2>
             <p className="text-neutral-700 text-sm">
@@ -651,18 +651,18 @@ function FormationTab() {
             </p>
           </div>
           <div className="bg-white px-4 py-2 rounded-lg shadow-sm">
-            <div className="text-2xl font-bold text-blue-600">{videos.length}</div>
+            <div className="text-2xl font-bold text-[#0c1a3a]">{videos.length}</div>
             <div className="text-xs text-neutral-600">{t.assistant.videosCount}</div>
           </div>
         </div>
       </div>
 
       {/* Note test */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
+      <div className="bg-[#0c1a3a]/5 border border-[#0c1a3a]/10 rounded-lg p-4 flex items-start gap-3">
         <span className="text-xl">🧪</span>
         <div className="text-sm">
-          <p className="font-semibold text-blue-900 mb-1">{t.assistant.testInProgress}</p>
-          <p className="text-blue-800">
+          <p className="font-semibold text-[#0c1a3a] mb-1">{t.assistant.testInProgress}</p>
+          <p className="text-[#0c1a3a]/80">
             {t.assistant.testDesc}
           </p>
         </div>
@@ -708,7 +708,7 @@ function FormationTab() {
 
               {/* En attente badge */}
               {video.youtubeId === 'XXXXXXX' && (
-                <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-3 py-1 rounded-full font-bold">
+                <div className="absolute top-2 right-2 bg-[#0c1a3a]/50 text-white text-xs px-3 py-1 rounded-full font-bold">
                   {t.assistant.pendingBadge}
                 </div>
               )}
@@ -716,7 +716,7 @@ function FormationTab() {
 
             {/* Content */}
             <div className="p-4">
-              <h3 className={`font-bold text-neutral-900 mb-2 line-clamp-2 ${video.youtubeId !== 'XXXXXXX' ? 'group-hover:text-blue-600' : ''} transition-colors`}>
+              <h3 className={`font-bold text-neutral-900 mb-2 line-clamp-2 ${video.youtubeId !== 'XXXXXXX' ? 'group-hover:text-[#0c1a3a]' : ''} transition-colors`}>
                 {video.title}
               </h3>
               <p className="text-sm text-neutral-600 mb-3 line-clamp-2">
@@ -726,7 +726,7 @@ function FormationTab() {
               {/* Meta info */}
               <div className="flex items-center justify-between text-xs text-neutral-500 mb-3">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded font-medium">
+                  <span className="px-2 py-1 bg-[#0c1a3a]/5 text-[#0c1a3a] rounded font-medium">
                     {video.level}
                   </span>
                 </div>
@@ -748,14 +748,14 @@ function FormationTab() {
       </div>
 
       {/* CTA final */}
-      <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl border border-blue-200 p-6 text-center">
+      <div className="bg-gradient-to-br from-[#0c1a3a]/5 to-[#1e3a5f]/5 rounded-xl border border-[#0c1a3a]/10 p-6 text-center">
         <h3 className="text-xl font-bold mb-2">🚀 {t.assistant.readyForAction}</h3>
         <p className="text-neutral-700 mb-4">
           {t.assistant.putStrategiesIntoPractice}
         </p>
         <a
           href="/generate"
-          className="inline-block px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all"
+          className="inline-block px-6 py-3 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold rounded-xl hover:shadow-lg transition-all"
         >
           {t.assistant.createFirstViralVisual}
         </a>

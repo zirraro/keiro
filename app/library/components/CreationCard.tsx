@@ -160,7 +160,7 @@ export default function CreationCard({
         ) : (
           <h4
             onClick={() => setIsEditing(true)}
-            className="font-medium text-neutral-900 truncate cursor-pointer hover:text-blue-600 transition-colors"
+            className="font-medium text-neutral-900 truncate cursor-pointer hover:text-[#0c1a3a] transition-colors"
             title={t.library.ccClickToEditTitle}
           >
             {item.title || t.library.ccUntitled}
@@ -178,7 +178,7 @@ export default function CreationCard({
               <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded">{t.library.ccGeneratedByKeiro}</span>
             )}
             {item.source_type === 'upload' && (
-              <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded">{t.library.ccUpload}</span>
+              <span className="bg-[#0c1a3a]/10 text-[#0c1a3a] px-2 py-1 rounded">{t.library.ccUpload}</span>
             )}
             {item.source_type === 'tiktok_sync' && (
               <span className="bg-green-100 text-green-700 px-2 py-1 rounded">TikTok</span>
@@ -192,7 +192,7 @@ export default function CreationCard({
             {!item.published_to_instagram && !item.published_to_tiktok && (
               <button
                 onClick={() => onPublish(item)}
-                className="flex items-center justify-center gap-1 px-2 py-1.5 bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-[11px] font-semibold rounded-lg hover:from-cyan-600 hover:to-blue-600 transition-all shadow-sm"
+                className="flex items-center justify-center gap-1 px-2 py-1.5 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white text-[11px] font-semibold rounded-lg hover:from-[#1e3a5f] hover:to-[#2a4a6f] transition-all shadow-sm"
               >
                 <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -203,7 +203,7 @@ export default function CreationCard({
             {onEditImage && item.type === 'image' && (
               <button
                 onClick={() => onEditImage(item)}
-                className="flex items-center justify-center gap-1 px-2 py-1.5 bg-blue-100 text-blue-700 text-[11px] font-semibold rounded-lg hover:bg-blue-200 transition-all shadow-sm"
+                className="flex items-center justify-center gap-1 px-2 py-1.5 bg-[#0c1a3a]/10 text-[#0c1a3a] text-[11px] font-semibold rounded-lg hover:bg-[#0c1a3a]/15 transition-all shadow-sm"
                 title={t.library.ccEditImage}
               >
                 <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -240,7 +240,7 @@ export default function CreationCard({
               </button>
               <button
                 onClick={() => onDownload(item)}
-                className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition-all"
+                className="p-1.5 rounded-lg text-[#0c1a3a] hover:bg-[#0c1a3a]/5 transition-all"
                 title={t.library.ccDownload}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

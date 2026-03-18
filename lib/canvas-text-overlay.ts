@@ -218,7 +218,7 @@ export async function addTextOverlay(
         if (!finalBgColor) {
           if (isCallToAction || style === 'cta') {
             // CTA avec background solide
-            finalBgColor = 'rgba(59, 130, 246, 0.95)'; // blue-500
+            finalBgColor = 'rgba(12, 26, 58, 0.95)'; // brand navy
           } else {
             // Headline avec overlay transparent
             finalBgColor = 'rgba(0, 0, 0, 0.4)';
@@ -293,7 +293,7 @@ export async function addTextOverlay(
                   gradient.addColorStop(0.5, `rgba(${r}, ${g}, ${b}, 0.7)`);
                   gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0.9)`);
                 } else {
-                  gradient.addColorStop(0, '#3b82f6');
+                  gradient.addColorStop(0, '#0c1a3a');
                   gradient.addColorStop(1, '#06b6d4');
                 }
               }
