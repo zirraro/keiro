@@ -534,6 +534,23 @@ Genere le JSON complet comme specifie dans tes instructions.`,
         .substring(0, 60);
     }
 
+    // Ensure slug uniqueness — append -2, -3, etc. if already taken
+    {
+      const baseSlug = article.slug;
+      let suffix = 1;
+      while (true) {
+        const { data: existing } = await supabase
+          .from('blog_posts')
+          .select('id')
+          .eq('slug', article.slug)
+          .limit(1)
+          .maybeSingle();
+        if (!existing) break;
+        suffix++;
+        article.slug = `${baseSlug}-${suffix}`.substring(0, 63);
+      }
+    }
+
     // Store in blog_posts
     const { data: inserted, error: insertError } = await supabase
       .from('blog_posts')

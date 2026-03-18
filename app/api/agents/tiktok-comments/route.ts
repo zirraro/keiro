@@ -136,7 +136,7 @@ async function runTikTokCommentPreparation(): Promise<NextResponse> {
   const prospects = (rawTikTok || []).filter(p => {
     if (p.temperature === 'dead' || p.status === 'perdu' || p.status === 'client' || p.status === 'sprint') return false;
     return true;
-  }).slice(0, 15);
+  }).slice(0, 30);
 
   if (!prospects || prospects.length === 0) {
     const { count: totalTT } = await supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).not('tiktok_handle', 'is', null).neq('tiktok_handle', '');
@@ -151,7 +151,7 @@ async function runTikTokCommentPreparation(): Promise<NextResponse> {
   const byBusinessType: Record<string, { count: number; handles: string[] }> = {};
 
   for (const prospect of prospects) {
-    if (prepared >= 5) break;
+    if (prepared >= 15) break;
 
     // CRM coherence check — fix data issues before processing
     const { fixes, issues: crmIssues } = verifyCRMCoherence(prospect);

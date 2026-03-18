@@ -30,7 +30,7 @@ export const maxDuration = 300;
  * 14:00 UTC  slot=discovery_3     → Commercial: verify CRM #2 + prospect external #2
  * 13:30 UTC  slot=content_2        → Content: 2nd post of the day (midday)
  * 17:30 UTC  slot=content_3        → Content: 3rd post of the day (evening)
- * 14:30 UTC  slot=email_warm_2    → Email warm: follow-up batch 2
+ * 14:30 UTC  slot=email_warm_2    → Email warm: follow-up batch 2 + Marketing afternoon (mid-day analysis for CEO evening)
  * 15:00 UTC  slot=ceo_evening     → CEO brief #2 + execute orders
  * 15:30 UTC  slot=community_2     → Community Manager afternoon
  * 16:00 UTC  slot=evening         → Email cold: restaurants/bars (soirée)
@@ -157,8 +157,16 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'email_warm_2':
-      // 14:30 UTC — Email warm: follow-up batch 2
+      // 14:30 UTC — Email warm: follow-up batch 2 + Marketing afternoon (mid-day analysis for CEO evening at 15:00)
       await callEndpoint('Email Warm #2', '/api/agents/email/daily?type=warm');
+      // Marketing afternoon: sync analytics + analysis so CEO evening brief has fresh mid-day data
+      fireBackground(async () => {
+        await callParallel(
+          ['Marketing Sync Analytics (afternoon)', '/api/agents/marketing', 'POST', { action: 'sync_publication_analytics' }],
+          ['Marketing Analysis (afternoon)', '/api/agents/marketing', 'POST'],
+        );
+      });
+      results.push({ task: 'Marketing Afternoon', ok: true, data: { status: 'dispatched_background' } });
       break;
 
     case 'email_recap':
