@@ -137,6 +137,10 @@
       "schedule": "0 19 * * *"
     },
     {
+      "path": "/api/cron/scheduler?slot=publish_scheduled",
+      "schedule": "*/15 * * * *"
+    },
+    {
       "path": "/api/cron/scheduler?slot=tiktok_publish",
       "schedule": "30 19 * * *"
     }

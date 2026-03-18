@@ -4,6 +4,10 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { ReadingProgress, TableOfContents, ArticleBody, ShareButtons } from './ArticleContent';
 
+// Force dynamic rendering so newly published articles appear immediately
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 

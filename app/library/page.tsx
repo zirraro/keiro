@@ -1290,8 +1290,9 @@ function LibraryContent() {
 
   // Modifier un post planifié
   const handleEditPost = async (post: any) => {
-    // TODO: Ouvrir un modal pour éditer le post
-    console.log('[Library] Edit scheduled post:', post);
+    // Refresh scheduled posts after inline edit (time change from CalendarTab)
+    console.log('[Library] Edit scheduled post:', post.id, '→', post.scheduled_for);
+    await loadScheduledPosts();
   };
 
   // Supprimer un post planifié

@@ -235,6 +235,7 @@ export default function Header() {
   };
 
   return (
+    <>
     <header className="sticky top-0 z-40 border-b border-neutral-200/50 bg-white/80 backdrop-blur-lg">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
         {/* Logo / marque */}
@@ -613,10 +614,12 @@ export default function Header() {
         </div>
       </div>
 
-      <ContactSupportModal
-        isOpen={showContactModal}
-        onClose={() => setShowContactModal(false)}
-      />
     </header>
+    {/* Contact modal rendered outside <header> to avoid sticky stacking context */}
+    <ContactSupportModal
+      isOpen={showContactModal}
+      onClose={() => setShowContactModal(false)}
+    />
+    </>
   );
 }

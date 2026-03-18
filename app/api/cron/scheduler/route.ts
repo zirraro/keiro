@@ -40,6 +40,7 @@ export const maxDuration = 300;
  * 18:30 UTC  slot=email_recap     → Email cold: rattrapage tous types restants
  * 19:00 UTC  slot=marketing_learn → Marketing: analyze + advise agents
  * Every 10m  slot=video_poll      → Poll & advance async video generation jobs (30s+ TikTok)
+ * Every 15m  slot=publish_scheduled → Auto-publish user-scheduled posts (from calendar)
  * 19:30 UTC  slot=tiktok_publish  → TikTok: publish pending TikTok content (21h30 Paris = peak engagement)
  */
 export async function GET(request: NextRequest) {
@@ -336,6 +337,11 @@ export async function GET(request: NextRequest) {
       // Every 10 min (via external cron) — Poll & advance async video generation jobs
       // Advances multi-segment video jobs (30s+ TikTok) and publishes when complete
       await callEndpoint('Video Poll', '/api/cron/video-poll');
+      break;
+
+    case 'publish_scheduled':
+      // Every 15 min — Auto-publish user-scheduled posts from calendar
+      await callEndpoint('Publish Scheduled Posts', '/api/cron/publish-scheduled');
       break;
 
     case 'tiktok_publish':

@@ -110,6 +110,12 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
   const [mergedVideoUrl, setMergedVideoUrl] = useState<string | null>(null);
   const [merging, setMerging] = useState(false);
 
+  // États pour la musique de fond (standalone, sans narration)
+  const [selectedMusicStyle, setSelectedMusicStyle] = useState<string>('none');
+  const [musicUrl, setMusicUrl] = useState<string | null>(null);
+  const [generatingMusic, setGeneratingMusic] = useState(false);
+  const [musicVolume, setMusicVolume] = useState(35); // 0-100 (default 35%)
+
   // Toast de succès
   const [successToast, setSuccessToast] = useState<string | null>(null);
   const [selectedVoice, setSelectedVoice] = useState<string>('JBFqnCBsd6RMkjVDRZzb'); // ElevenLabs George
@@ -1514,7 +1520,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                     initialScript={narrationScript || caption}
                     initialAudioUrl={narrationAudioUrl}
                     caption={caption}
-                    onSave={async (script, audioUrl) => {
+                    onSave={async (script, audioUrl, musicStyleFromWidget) => {
                       setNarrationScript(script);
                       setNarrationAudioUrl(audioUrl);
                       setShowNarrationEditor(false);
@@ -1531,16 +1537,40 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                         return;
                       }
 
-                      // Fusion serveur audio + vidéo
+                      // Fusion serveur audio + vidéo (+ musique si sélectionnée)
                       setMerging(true);
                       setSuccessToast(`🔄 ${t.library.mergingInProgress}`);
 
                       try {
+                        // Générer la musique de fond si un style est sélectionné
+                        let bgMusicUrl: string | undefined;
+                        const effectiveMusicStyle = musicStyleFromWidget || (selectedMusicStyle !== 'none' ? selectedMusicStyle : undefined);
+                        if (effectiveMusicStyle) {
+                          console.log('[TikTokModal] Generating background music:', effectiveMusicStyle);
+                          setSuccessToast(`🎵 Génération de la musique...`);
+                          const musicRes = await fetch('/api/generate-music', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ style: effectiveMusicStyle, duration: selectedVideo?.duration || 10 })
+                          });
+                          const musicData = await musicRes.json();
+                          if (musicData.ok && musicData.musicUrl) {
+                            bgMusicUrl = musicData.musicUrl;
+                            setMusicUrl(musicData.musicUrl);
+                            console.log('[TikTokModal] ✅ Music generated:', musicData.musicUrl);
+                          }
+                          setSuccessToast(`🔄 ${t.library.mergingInProgress}`);
+                        }
+
                         console.log('[TikTokModal] Fusion serveur audio+vidéo...');
                         const mergeRes = await fetch('/api/merge-audio-video', {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ videoUrl: currentVideoUrl, audioUrl })
+                          body: JSON.stringify({
+                            videoUrl: currentVideoUrl,
+                            audioUrl,
+                            ...(bgMusicUrl ? { musicUrl: bgMusicUrl } : {})
+                          })
                         });
 
                         const mergeData = await mergeRes.json();
@@ -1796,6 +1826,160 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                       </div>
                     </>
                   )}
+                </div>
+              )}
+
+              {/* Musique de fond (standalone — sans narration) */}
+              {((activeTab === 'videos' && selectedVideo) || videoPreview) && (
+                <div className="border border-purple-200 bg-purple-50 rounded-lg p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-sm font-semibold text-neutral-900">
+                      🎵 Musique de fond
+                    </label>
+                    {musicUrl && selectedMusicStyle !== 'none' && (
+                      <span className="text-xs text-green-600 font-medium">✅ Musique ajoutée</span>
+                    )}
+                  </div>
+
+                  <p className="text-xs text-neutral-600">
+                    Ajoutez une musique de fond générée par IA (libre de droits). La musique sera mixée dans la vidéo avant publication.
+                  </p>
+
+                  {/* Style chips */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { value: 'none', label: 'Pas de musique', emoji: '🔇' },
+                      { value: 'corporate', label: 'Pro', emoji: '💼' },
+                      { value: 'energetic', label: 'Énergique', emoji: '⚡' },
+                      { value: 'calm', label: 'Calme', emoji: '🌊' },
+                      { value: 'inspiring', label: 'Inspirante', emoji: '✨' },
+                      { value: 'trendy', label: 'Tendance TikTok', emoji: '🔥' },
+                    ].map((music) => (
+                      <button
+                        key={music.value}
+                        onClick={() => {
+                          setSelectedMusicStyle(music.value);
+                          if (music.value === 'none') { setMusicUrl(null); }
+                        }}
+                        className={`px-2.5 py-1 text-[10px] rounded-full border transition-all ${
+                          selectedMusicStyle === music.value
+                            ? 'bg-purple-600 text-white border-purple-600'
+                            : 'bg-white text-neutral-600 border-neutral-200 hover:border-purple-300'
+                        }`}
+                      >
+                        {music.emoji} {music.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Volume slider */}
+                  {selectedMusicStyle !== 'none' && (
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-neutral-600">Volume musique</span>
+                        <span className="text-[10px] font-medium text-purple-700">{musicVolume}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="5"
+                        max="100"
+                        value={musicVolume}
+                        onChange={(e) => setMusicVolume(Number(e.target.value))}
+                        className="w-full h-1.5 bg-purple-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                      />
+                      <div className="flex justify-between text-[8px] text-neutral-400">
+                        <span>Discret</span>
+                        <span>Fort</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Generate & merge button (only if no narration — narration flow handles music internally) */}
+                  {selectedMusicStyle !== 'none' && !narrationAudioUrl && (
+                    <button
+                      onClick={async () => {
+                        const currentVideoUrl = activeTab === 'videos' && selectedVideo
+                          ? selectedVideo.video_url : videoPreview;
+                        if (!currentVideoUrl) return;
+
+                        setGeneratingMusic(true);
+                        setMerging(true);
+                        setSuccessToast('🎵 Génération de la musique...');
+
+                        try {
+                          // 1. Generate music
+                          const musicRes = await fetch('/api/generate-music', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ style: selectedMusicStyle, duration: selectedVideo?.duration || 10 })
+                          });
+                          const musicData = await musicRes.json();
+                          if (!musicData.ok || !musicData.musicUrl) throw new Error(musicData.error || 'Erreur génération musique');
+                          setMusicUrl(musicData.musicUrl);
+
+                          // 2. Merge music into video
+                          setSuccessToast(`🔄 ${t.library.mergingInProgress}`);
+                          const mergeRes = await fetch('/api/merge-audio-video', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ videoUrl: currentVideoUrl, musicUrl: musicData.musicUrl })
+                          });
+                          const mergeData = await mergeRes.json();
+
+                          if (mergeData.ok && mergeData.mergedUrl) {
+                            setMergedVideoUrl(mergeData.mergedUrl);
+                            setSuccessToast('✅ Musique ajoutée à la vidéo !');
+                            setTimeout(() => setSuccessToast(null), 4000);
+
+                            // Auto-save draft
+                            const supabase = supabaseBrowser();
+                            const { data: { user } } = await supabase.auth.getUser();
+                            if (user) {
+                              await supabase.from('tiktok_drafts').insert({
+                                user_id: user.id,
+                                video_id: selectedVideo?.id || null,
+                                media_url: mergeData.mergedUrl,
+                                media_type: 'video',
+                                category: 'draft',
+                                caption: caption || '',
+                                hashtags: hashtags || [],
+                                status: 'ready'
+                              });
+                            }
+                          } else {
+                            throw new Error(mergeData.error || 'Erreur de fusion');
+                          }
+                        } catch (err: any) {
+                          console.error('[TikTokModal] Music merge error:', err);
+                          setSuccessToast(`❌ ${err.message}`);
+                          setTimeout(() => setSuccessToast(null), 5000);
+                        } finally {
+                          setGeneratingMusic(false);
+                          setMerging(false);
+                        }
+                      }}
+                      disabled={generatingMusic || merging}
+                      className={`w-full px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        generatingMusic || merging
+                          ? 'bg-purple-300 text-white cursor-not-allowed'
+                          : 'bg-purple-600 text-white hover:bg-purple-700'
+                      }`}
+                    >
+                      {generatingMusic ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                          Génération en cours...
+                        </span>
+                      ) : musicUrl ? '🔄 Régénérer la musique' : '🎵 Générer et ajouter la musique'}
+                    </button>
+                  )}
+
+                  {/* Trending tip */}
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5">
+                    <p className="text-[10px] text-amber-800">
+                      <span className="font-semibold">💡 Astuce :</span> Pour un maximum de portée, vous pouvez aussi ajouter un son tendance TikTok après publication. Ouvrez votre vidéo dans TikTok → Modifier → Ajouter un son populaire. Les sons tendance boostent significativement la visibilité.
+                    </p>
+                  </div>
                 </div>
               )}
 

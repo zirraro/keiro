@@ -26,6 +26,10 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
   const { t, locale } = useLanguage();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedPost, setSelectedPost] = useState<ScheduledPost | null>(null);
+  const [editingTime, setEditingTime] = useState(false);
+  const [editDate, setEditDate] = useState('');
+  const [editTime, setEditTime] = useState('');
+  const [savingTime, setSavingTime] = useState(false);
 
   const { daysInMonth, firstDayOfMonth, prevMonthDays, nextMonthDays } = useMemo(() => {
     const year = currentDate.getFullYear();
@@ -112,10 +116,38 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
   const getPlatformEmoji = (platform: string) => {
     switch (platform) {
       case 'instagram': return '📷';
+      case 'tiktok': return '🎵';
       case 'facebook': return '👥';
       case 'linkedin': return '💼';
       case 'twitter': return '🐦';
       default: return '📱';
+    }
+  };
+
+  const handleSaveTime = async () => {
+    if (!selectedPost || !editDate || !editTime) return;
+    setSavingTime(true);
+    try {
+      const newScheduledFor = `${editDate}T${editTime}:00`;
+      const res = await fetch('/api/library/scheduled-posts', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: selectedPost.id, scheduled_for: newScheduledFor })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        // Update local state
+        setSelectedPost({ ...selectedPost, scheduled_for: newScheduledFor });
+        setEditingTime(false);
+        // Trigger parent refresh via onEditPost
+        onEditPost({ ...selectedPost, scheduled_for: newScheduledFor });
+      } else {
+        alert(data.error || 'Erreur lors de la modification');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Erreur réseau');
+    } finally {
+      setSavingTime(false);
     }
   };
 
@@ -275,7 +307,7 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
 
       {/* Selected Post Detail Modal */}
       {selectedPost && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setSelectedPost(null)}>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => { setSelectedPost(null); setEditingTime(false); }}>
           <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
             <div className="p-6">
               <div className="flex items-start justify-between mb-4">
@@ -283,19 +315,10 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
                   <h3 className="text-lg font-bold text-neutral-900 flex items-center gap-2">
                     {getPlatformEmoji(selectedPost.platform)} {t.library.calScheduledPost}
                   </h3>
-                  <p className="text-sm text-neutral-600 mt-1">
-                    {new Date(selectedPost.scheduled_for).toLocaleDateString(dateLocale, {
-                      weekday: 'long',
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </p>
+                  <p className="text-xs text-neutral-500 capitalize mt-0.5">{selectedPost.platform}</p>
                 </div>
                 <button
-                  onClick={() => setSelectedPost(null)}
+                  onClick={() => { setSelectedPost(null); setEditingTime(false); }}
                   className="text-neutral-400 hover:text-neutral-600"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -304,11 +327,80 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
                 </button>
               </div>
 
-              <img
-                src={selectedPost.image_url}
-                alt="Post"
-                className="w-full aspect-square object-cover rounded-lg mb-4"
-              />
+              {/* Editable Date & Time */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-semibold text-blue-900">📅 Date et heure de publication</span>
+                  {selectedPost.status === 'scheduled' && !editingTime && (
+                    <button
+                      onClick={() => {
+                        const d = new Date(selectedPost.scheduled_for);
+                        setEditDate(d.toISOString().split('T')[0]);
+                        setEditTime(d.toTimeString().slice(0, 5));
+                        setEditingTime(true);
+                      }}
+                      className="text-[10px] text-blue-600 hover:text-blue-700 font-medium underline"
+                    >
+                      Modifier
+                    </button>
+                  )}
+                </div>
+
+                {editingTime ? (
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="date"
+                        value={editDate}
+                        onChange={(e) => setEditDate(e.target.value)}
+                        min={new Date().toISOString().split('T')[0]}
+                        className="px-2 py-1.5 border border-blue-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <input
+                        type="time"
+                        value={editTime}
+                        onChange={(e) => setEditTime(e.target.value)}
+                        className="px-2 py-1.5 border border-blue-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleSaveTime}
+                        disabled={savingTime}
+                        className="flex-1 px-3 py-1.5 bg-blue-600 text-white text-xs rounded font-medium hover:bg-blue-700 disabled:bg-blue-300"
+                      >
+                        {savingTime ? 'Enregistrement...' : 'Enregistrer'}
+                      </button>
+                      <button
+                        onClick={() => setEditingTime(false)}
+                        className="px-3 py-1.5 border border-neutral-300 text-xs rounded font-medium hover:bg-neutral-50"
+                      >
+                        Annuler
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm font-medium text-blue-800">
+                    {new Date(selectedPost.scheduled_for).toLocaleDateString(dateLocale, {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })} {locale === 'fr' ? 'à' : 'at'} {new Date(selectedPost.scheduled_for).toLocaleTimeString(dateLocale, {
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </p>
+                )}
+              </div>
+
+              {selectedPost.image_url && (
+                <img
+                  src={selectedPost.image_url}
+                  alt="Post"
+                  className="w-full aspect-square object-cover rounded-lg mb-4"
+                />
+              )}
 
               <div className="space-y-3">
                 <div>
@@ -327,10 +419,12 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
                   <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                     selectedPost.status === 'scheduled' ? 'bg-blue-100 text-blue-700' :
                     selectedPost.status === 'published' ? 'bg-green-100 text-green-700' :
+                    selectedPost.status === 'failed' ? 'bg-red-100 text-red-700' :
                     'bg-neutral-100 text-neutral-700'
                   }`}>
                     {selectedPost.status === 'scheduled' ? '📅 ' + t.library.calStatusScheduled :
-                     selectedPost.status === 'published' ? '✅ ' + t.library.calStatusPublished : selectedPost.status}
+                     selectedPost.status === 'published' ? '✅ ' + t.library.calStatusPublished :
+                     selectedPost.status === 'failed' ? '❌ Échec' : selectedPost.status}
                   </span>
                 </div>
               </div>
@@ -340,6 +434,7 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
                   onClick={() => {
                     onEditPost(selectedPost);
                     setSelectedPost(null);
+                    setEditingTime(false);
                   }}
                   className="flex-1 px-4 py-2 border border-neutral-300 rounded-lg hover:bg-neutral-50 transition-colors font-medium"
                 >
@@ -350,6 +445,7 @@ export default function CalendarTab({ scheduledPosts, onEditPost, onDeletePost, 
                     if (confirm(t.library.calConfirmDelete)) {
                       onDeletePost(selectedPost.id);
                       setSelectedPost(null);
+                      setEditingTime(false);
                     }
                   }}
                   className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium"
