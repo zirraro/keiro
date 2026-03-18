@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import BookDemoButton from '@/components/BookDemoButton';
 import { startCheckout } from '@/lib/stripe/checkout';
-import { FadeUp, ScaleIn, SlideInLeft, SlideInRight, StaggerContainer, StaggerItem, CountUp, HeroTextReveal, BlurIn, FloatUp, GlowPulse, TextShimmer } from '@/components/ui/motion';
+import { FadeUp, ScaleIn, SlideInLeft, SlideInRight, StaggerContainer, StaggerItem, CountUp, HeroTextReveal, BlurIn, FloatUp, GlowPulse, TextShimmer, TextRotator, MorphingShape, MagneticButton } from '@/components/ui/motion';
 import { AnimatedGradientBG } from '@/components/ui/animated-gradient-bg';
+import { VortexBackground } from '@/components/ui/vortex-bg';
 import { useLanguage } from '@/lib/i18n/context';
 
 function HomeKeiroInner() {
@@ -12,10 +13,22 @@ function HomeKeiroInner() {
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly');
 
   return (
-    <main className="min-h-dvh bg-[#FAFBFC]">
+    <main className="relative min-h-dvh bg-[#FAFBFC]">
+      {/* Global animated vortex background */}
+      <VortexBackground />
+
+      {/* Floating morphing blobs — decorative, span full page */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden="true" style={{ zIndex: 1 }}>
+        <MorphingShape className="absolute -top-20 -right-32 opacity-[0.04]" color="#3b82f6" size={700} duration={15} />
+        <MorphingShape className="absolute top-1/3 -left-48 opacity-[0.03]" color="#8b5cf6" size={600} duration={18} />
+        <MorphingShape className="absolute bottom-20 right-10 opacity-[0.03]" color="#06b6d4" size={500} duration={20} />
+      </div>
+
+      {/* All content sits above the vortex */}
+      <div className="relative" style={{ zIndex: 2 }}>
+
       {/* HERO */}
-      <section className="relative mx-auto max-w-6xl px-6 pt-16 pb-12 overflow-hidden">
-        <AnimatedGradientBG variant="hero" />
+      <section className="relative mx-auto max-w-6xl px-6 pt-16 pb-12">
         <div className="relative grid lg:grid-cols-12 gap-8 items-center">
           <div className="lg:col-span-7">
             <ScaleIn>
@@ -34,12 +47,25 @@ function HomeKeiroInner() {
             <p className="mt-4 text-lg text-neutral-600">
               {t.home.heroSubtitle}
             </p>
+            <p className="mt-2 text-lg font-semibold">
+              <span className="text-neutral-500">{locale === 'fr' ? 'Pour ' : 'For '}</span>
+              <TextRotator
+                words={locale === 'fr'
+                  ? ['restaurants', 'coachs sportifs', 'boutiques', 'cavistes', 'coiffeurs', 'artisans']
+                  : ['restaurants', 'fitness coaches', 'shops', 'wine bars', 'hair salons', 'artisans']
+                }
+                className="gradient-text font-bold"
+                interval={2500}
+              />
+            </p>
             </FadeUp>
             <FadeUp delay={0.5}>
             <div className="mt-6 flex flex-wrap gap-3">
-              <a href="/generate" className="px-5 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-medium hover:shadow-lg hover:-translate-y-0.5 transition-all cta-shimmer">
+              <MagneticButton>
+              <a href="/generate" className="inline-block px-5 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-medium hover:shadow-lg hover:-translate-y-0.5 transition-all cta-shimmer">
                 {t.common.tryFree}
               </a>
+              </MagneticButton>
               <a href="#exemple" className="px-5 py-3 rounded-xl border border-blue-200 hover:bg-blue-50 transition-colors">
                 {t.common.seeExample}
               </a>
@@ -504,7 +530,10 @@ function HomeKeiroInner() {
       </section>
 
       {/* ASSISTANT IA MARKETING — DARK SECTION */}
-      <div className="h-20 bg-gradient-to-b from-[#FAFBFC] to-[#0B1120]" aria-hidden="true" />
+      <div className="relative h-40 overflow-hidden" aria-hidden="true">
+        <div className="absolute inset-0 bg-gradient-to-b from-[#FAFBFC] via-[#FAFBFC]/80 to-[#0B1120]" />
+        <div className="absolute bottom-0 left-0 right-0 h-24 bg-[#0B1120]" style={{ clipPath: 'ellipse(70% 100% at 50% 100%)' }} />
+      </div>
       <section className="relative bg-[#0B1120] overflow-hidden">
         <AnimatedGradientBG variant="dark" />
         <div className="relative mx-auto max-w-6xl px-6 py-12">
@@ -683,7 +712,10 @@ function HomeKeiroInner() {
           </FadeUp>
         </div>
       </section>
-      <div className="h-20 bg-gradient-to-b from-[#0B1120] to-[#FAFBFC]" aria-hidden="true" />
+      <div className="relative h-40 overflow-hidden" aria-hidden="true">
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0B1120] via-[#0B1120]/80 to-[#FAFBFC]" />
+        <div className="absolute top-0 left-0 right-0 h-24 bg-[#0B1120]" style={{ clipPath: 'ellipse(70% 100% at 50% 0%)' }} />
+      </div>
 
       {/* TÉMOIGNAGES CLIENTS */}
       <section className="mx-auto max-w-6xl px-6 py-12">
@@ -1343,7 +1375,9 @@ function HomeKeiroInner() {
       {/* Gradient divider */}
       <div className="h-px bg-gradient-to-r from-transparent via-blue-500 to-transparent" />
 
-      <footer className="bg-neutral-900 text-white">
+      </div>{/* End content wrapper above vortex */}
+
+      <footer className="relative bg-neutral-900 text-white" style={{ zIndex: 2 }}>
         <div className="max-w-7xl mx-auto px-6 py-12">
           <div className="grid md:grid-cols-3 gap-8">
             {/* Marque */}
