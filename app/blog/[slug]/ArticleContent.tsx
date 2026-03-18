@@ -68,7 +68,11 @@ export function TableOfContents({ headings }: { headings: ArticleContentProps['h
               href={`#${h.id}`}
               onClick={(e) => {
                 e.preventDefault();
-                document.getElementById(h.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                const target = document.getElementById(h.id);
+                if (target) {
+                  const y = target.getBoundingClientRect().top + window.scrollY - 100;
+                  window.scrollTo({ top: y, behavior: 'smooth' });
+                }
               }}
               className={`block text-[12px] leading-snug transition-all duration-200 border-l-2 ${
                 h.level === 3 ? 'pl-5' : 'pl-3'
@@ -116,7 +120,11 @@ export function MobileTableOfContents({ headings }: { headings: ArticleContentPr
                   onClick={(e) => {
                     e.preventDefault();
                     setOpen(false);
-                    document.getElementById(h.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    const target = document.getElementById(h.id);
+                    if (target) {
+                      const y = target.getBoundingClientRect().top + window.scrollY - 100;
+                      window.scrollTo({ top: y, behavior: 'smooth' });
+                    }
                   }}
                   className={`block text-sm text-neutral-600 hover:text-purple-600 transition-colors ${
                     h.level === 3 ? 'pl-4' : ''
@@ -156,7 +164,7 @@ export function ArticleBody({ html }: { html: string }) {
       // Wrap in figure with caption if not already wrapped
       if (img.parentElement?.tagName !== 'FIGURE') {
         const figure = document.createElement('figure');
-        figure.className = 'my-10 sm:my-14 not-prose -mx-4 sm:-mx-8 md:-mx-12';
+        figure.className = 'my-12 sm:my-16 not-prose -mx-4 sm:-mx-8 md:-mx-12';
 
         const wrapper = document.createElement('div');
         wrapper.className = 'relative overflow-hidden rounded-2xl shadow-xl bg-neutral-100 ring-1 ring-neutral-200/50';
@@ -164,13 +172,6 @@ export function ArticleBody({ html }: { html: string }) {
         img.parentElement?.insertBefore(figure, img);
         wrapper.appendChild(img);
         figure.appendChild(wrapper);
-
-        if (alt && alt.length > 10) {
-          const caption = document.createElement('figcaption');
-          caption.className = 'text-center text-xs text-neutral-400 mt-3 italic px-4';
-          caption.textContent = alt;
-          figure.appendChild(caption);
-        }
       }
 
       // Broken image handler — elegant gradient placeholder
@@ -248,14 +249,14 @@ export function ArticleBody({ html }: { html: string }) {
       id="article-body"
       className="prose prose-lg prose-neutral max-w-none
         prose-headings:text-neutral-900 prose-headings:font-bold prose-headings:tracking-tight
-        prose-h2:text-[1.75rem] prose-h2:mt-16 prose-h2:mb-6 prose-h2:pb-4 prose-h2:border-b prose-h2:border-neutral-100
-        prose-h3:text-xl prose-h3:mt-12 prose-h3:mb-4
-        prose-p:text-neutral-600 prose-p:leading-[1.9] prose-p:mb-6 prose-p:text-[1.05rem]
+        prose-h2:text-[1.85rem] prose-h2:mt-20 prose-h2:mb-8 prose-h2:pb-5 prose-h2:border-b prose-h2:border-neutral-100
+        prose-h3:text-[1.3rem] prose-h3:mt-14 prose-h3:mb-5
+        prose-p:text-neutral-600 prose-p:leading-[2] prose-p:mb-7 prose-p:text-[1.06rem]
         prose-a:text-purple-600 prose-a:font-medium prose-a:no-underline prose-a:border-b prose-a:border-purple-200 hover:prose-a:border-purple-500 prose-a:transition-colors
-        prose-ul:my-6 prose-ul:space-y-2 prose-li:text-neutral-600 prose-li:leading-relaxed
-        prose-ol:my-6 prose-ol:space-y-2
+        prose-ul:my-8 prose-ul:space-y-3 prose-li:text-neutral-600 prose-li:leading-relaxed
+        prose-ol:my-8 prose-ol:space-y-3
         prose-strong:text-neutral-800 prose-strong:font-semibold
-        prose-blockquote:border-l-4 prose-blockquote:border-purple-400 prose-blockquote:bg-gradient-to-r prose-blockquote:from-purple-50 prose-blockquote:to-transparent prose-blockquote:py-5 prose-blockquote:px-6 prose-blockquote:rounded-r-xl prose-blockquote:not-italic prose-blockquote:text-neutral-700 prose-blockquote:my-10
+        prose-blockquote:border-l-4 prose-blockquote:border-purple-400 prose-blockquote:bg-gradient-to-r prose-blockquote:from-purple-50 prose-blockquote:to-transparent prose-blockquote:py-6 prose-blockquote:px-8 prose-blockquote:rounded-r-xl prose-blockquote:not-italic prose-blockquote:text-neutral-700 prose-blockquote:my-12
         prose-code:text-purple-700 prose-code:bg-purple-50 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:text-sm prose-code:font-normal prose-code:before:content-none prose-code:after:content-none"
       dangerouslySetInnerHTML={{ __html: html }}
     />

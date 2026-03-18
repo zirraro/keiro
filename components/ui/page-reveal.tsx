@@ -10,12 +10,12 @@ import { useState, useEffect, useMemo } from 'react';
  * All elements always rendered — zero conditional mounting.
  * Background: #0c1a3a = exact match with site.
  *
- * Timeline (3.2s total):
+ * Timeline (3.6s total):
  * 1. INSTANT (0-0.4s) — All triangles burst in simultaneously, particles
- * 2. GLOW    (0.4-1.4s) — Logo pulses, text appears, arcs orbit
- * 3. EXPAND  (1.4-2.4s) — Everything expands outward
- * 4. FADE    (2.4-3.2s) — Dissolve to site
- * 5. DONE    (3.2s)     — Unmount
+ * 2. GLOW    (0.4-1.8s) — Logo pulses, text appears, arcs orbit
+ * 3. EXPAND  (1.8-2.8s) — Everything expands outward
+ * 4. FADE    (2.8-3.6s) — Dissolve to site
+ * 5. DONE    (3.6s)     — Unmount
  */
 
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -61,9 +61,9 @@ export function PageReveal() {
     if (shouldReduce) { setPhase('done'); return; }
     const t = [
       setTimeout(() => setPhase('glow'), 400),
-      setTimeout(() => setPhase('expand'), 1400),
-      setTimeout(() => setPhase('fade'), 2400),
-      setTimeout(() => setPhase('done'), 3200),
+      setTimeout(() => setPhase('expand'), 1800),
+      setTimeout(() => setPhase('fade'), 2800),
+      setTimeout(() => setPhase('done'), 3600),
     ];
     return () => t.forEach(clearTimeout);
   }, [shouldReduce]);

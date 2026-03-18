@@ -141,7 +141,7 @@ export const fr: Translations = {
     change3Desc: 'On comprend l\'offre en 3 secondes',
     generateFirstCta: 'Générer mon premier visuel →',
     aiBadge: 'Intelligence Artificielle Avancée',
-    aiTitle: 'Ton Assistant IA Marketing Personnel',
+    aiTitle: 'Ton Assistant Marketing Intelligence',
     aiSubtitle: 'Analyse tes performances et t\'aide à prendre les meilleures décisions stratégiques',
     aiDashboardTitle: 'Tableau de bord analytique complet',
     aiDashboardSub: '6 graphiques en temps réel',

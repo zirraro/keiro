@@ -949,7 +949,7 @@ function HomeKeiroInner() {
                 <li className="flex gap-2"><span className="text-[#0c1a3a] font-bold">✓</span> <span><strong>Branding personnalisé</strong> (Fondateurs)</span></li>
                 <li className="flex gap-2"><span className="text-[#0c1a3a] font-bold">✓</span> <span><strong>Multi-format automatique</strong> (Fondateurs)</span></li>
                 <li className="flex gap-2"><span className="text-[#0c1a3a] font-bold">✓</span> <span><strong>Statistiques et analyse</strong> intégrées</span></li>
-                <li className="flex gap-2"><span className="text-[#0c1a3a] font-bold">✓</span> <span><strong>Assistant IA marketing</strong> personnalisé</span></li>
+                <li className="flex gap-2"><span className="text-[#0c1a3a] font-bold">✓</span> <span><strong>Assistant Marketing Intelligence</strong> personnalisé</span></li>
                 <li className="flex gap-2"><span className="text-[#0c1a3a] font-bold">✓</span> <span>Disponible <strong>24/7</strong>, jamais en congé</span></li>
                 <li className="flex gap-2"><span className="text-[#0c1a3a] font-bold">✓</span> <span><strong>Calendrier de planification</strong> intégré</span></li>
               </ul>
@@ -1066,7 +1066,7 @@ function HomeKeiroInner() {
               <li className="flex gap-2"><span className="text-green-500 font-bold flex-shrink-0">✓</span><span className="text-neutral-800">Légendes + hashtags générés automatiquement</span></li>
               <li className="flex gap-2"><span className="text-green-500 font-bold flex-shrink-0">✓</span><span className="text-neutral-800">Calendrier de planification</span></li>
               <li className="flex gap-2"><span className="text-green-500 font-bold flex-shrink-0">✓</span><span className="text-neutral-800">Statistiques Instagram + TikTok</span></li>
-              <li className="flex gap-2"><span className="text-green-500 font-bold flex-shrink-0">✓</span><span className="text-neutral-800">Assistant IA marketing</span></li>
+              <li className="flex gap-2"><span className="text-green-500 font-bold flex-shrink-0">✓</span><span className="text-neutral-800">Assistant Marketing Intelligence</span></li>
               <li className="flex gap-2"><span className="text-green-500 font-bold flex-shrink-0">✓</span><span className="text-neutral-800">Publication multi-plateforme</span></li>
               <li className="flex gap-2"><span className="text-green-500 font-bold flex-shrink-0">✓</span><span className="text-neutral-800">Galerie organisée + export optimisé</span></li>
             </ul>

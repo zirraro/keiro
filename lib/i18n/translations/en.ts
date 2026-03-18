@@ -141,7 +141,7 @@ export const en: Translations = {
     change3Desc: 'People understand the offer in 3 seconds',
     generateFirstCta: 'Generate my first visual →',
     aiBadge: 'Advanced Artificial Intelligence',
-    aiTitle: 'Your Personal AI Marketing Assistant',
+    aiTitle: 'Your Marketing Intelligence Assistant',
     aiSubtitle: 'Analyzes your performance and helps you make the best strategic decisions',
     aiDashboardTitle: 'Complete Analytics Dashboard',
     aiDashboardSub: '6 real-time charts',

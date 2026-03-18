@@ -341,7 +341,7 @@ export default async function BlogPostPage({ params }: PageProps) {
         <TableOfContents headings={headings} />
 
         {/* Article Content */}
-        <article className="max-w-3xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 pb-8">
+        <article className="max-w-3xl mx-auto px-4 sm:px-6 pt-8 sm:pt-12 pb-12">
           <MobileTableOfContents headings={headings} />
           <ArticleBody html={processedHtml} />
 
