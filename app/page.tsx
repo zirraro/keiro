@@ -18,7 +18,7 @@ function HomeKeiroInner() {
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly');
 
   return (
-    <main className={`relative min-h-dvh ${isLight ? 'bg-white' : 'bg-[#0c1a3a]'}`}>
+    <main className={`relative min-h-dvh ${isLight ? 'bg-white/80' : 'bg-[#0c1a3a]'}`}>
       {/* Luxury page opening animation */}
       <PageReveal />
 
@@ -145,10 +145,10 @@ function HomeKeiroInner() {
       </section>
 
       {/* Gradient transition: dark hero → content sections */}
-      <div className={`h-32 bg-gradient-to-b ${isLight ? 'from-[#0c1a3a] via-[#0c1a3a]/30 to-white' : 'from-transparent to-transparent'}`} />
+      <div className={`h-32 bg-gradient-to-b ${isLight ? 'from-[#0c1a3a] via-[#0c1a3a]/30 to-transparent' : 'from-transparent to-transparent'}`} />
 
       {/* === CONTENT SECTIONS BELOW === */}
-      <div className={`homepage-sections ${isLight ? 'bg-[#eef2f7] text-neutral-900' : 'bg-transparent text-slate-200'}`}>
+      <div className={`homepage-sections ${isLight ? 'bg-[#eef2f7]/85 text-neutral-900' : 'bg-transparent text-slate-200'}`}>
 
       {/* OFFRE D'ESSAI 4.99€ - MIS EN AVANT */}
       <section className="py-6">

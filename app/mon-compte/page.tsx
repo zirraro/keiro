@@ -314,7 +314,7 @@ function MonComptePage() {
   const memberSince = user?.created_at ? new Date(user.created_at).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) : '—';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-white">
+    <div className="min-h-screen page-studio-bg">
       <main className="max-w-5xl mx-auto px-4 py-8">
         {/* Header avec avatar et infos */}
         <div className="bg-white rounded-2xl shadow-lg border border-neutral-200 p-6 mb-6">

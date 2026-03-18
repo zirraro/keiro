@@ -271,7 +271,7 @@ export default async function BlogPostPage({ params }: PageProps) {
 
       <ReadingProgress />
 
-      <main className="min-h-screen bg-white">
+      <main className="min-h-screen page-studio-bg">
         {/* Hero Header */}
         <header className="relative bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 text-white overflow-hidden">
           {/* Subtle pattern overlay */}

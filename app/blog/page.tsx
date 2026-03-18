@@ -71,7 +71,7 @@ export default async function BlogListingPage() {
   const posts = await getPosts();
 
   return (
-    <main className="min-h-screen bg-neutral-50">
+    <main className="min-h-screen page-studio-bg">
       {/* Header */}
       <div className="bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white py-16">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
