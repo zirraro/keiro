@@ -3229,7 +3229,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
   }
 
   return (
-    <div className={`min-h-screen p-6 ${theme === 'light' ? 'bg-neutral-50' : 'bg-neutral-50/95 backdrop-blur-sm'}`}>
+    <div className="min-h-screen p-6 page-studio-bg">
       <style jsx>{`
         @keyframes wizardFadeIn {
           from { opacity: 0; transform: translateY(12px); }

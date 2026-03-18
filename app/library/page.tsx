@@ -1668,7 +1668,7 @@ function LibraryContent() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-neutral-50 to-white flex items-center justify-center">
+      <main className="min-h-screen page-studio-bg flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-[#0c1a3a]/10 border-t-[#0c1a3a] rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-neutral-600">{t.library.loadingGallery}</p>
@@ -1913,7 +1913,7 @@ function LibraryContent() {
 
   return (
     <main
-      className="min-h-screen bg-gradient-to-br from-neutral-50 to-white"
+      className="min-h-screen page-studio-bg"
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}

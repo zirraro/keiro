@@ -144,11 +144,11 @@ function HomeKeiroInner() {
         </div>
       </section>
 
-      {/* Gradient transition: dark hero → light sections */}
-      <div className={`h-32 bg-gradient-to-b ${isLight ? 'from-[#0c1a3a] via-[#0c1a3a]/30 to-white' : 'from-transparent via-[#0c1a3a]/50 to-[#eef2f7]'}`} />
+      {/* Gradient transition: dark hero → content sections */}
+      <div className={`h-32 bg-gradient-to-b ${isLight ? 'from-[#0c1a3a] via-[#0c1a3a]/30 to-white' : 'from-transparent to-transparent'}`} />
 
-      {/* === LIGHT SECTIONS BELOW === */}
-      <div className={`text-neutral-900 ${isLight ? 'bg-white' : 'bg-[#eef2f7]'}`}>
+      {/* === CONTENT SECTIONS BELOW === */}
+      <div className={`homepage-sections ${isLight ? 'bg-[#eef2f7] text-neutral-900' : 'bg-transparent text-slate-200'}`}>
 
       {/* OFFRE D'ESSAI 4.99€ - MIS EN AVANT */}
       <section className="py-6">
@@ -535,7 +535,7 @@ function HomeKeiroInner() {
 
       {/* ASSISTANT IA MARKETING — DARK SECTION */}
       <div className="relative h-40 overflow-hidden" aria-hidden="true">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#FAFBFC] via-[#FAFBFC]/80 to-[#0B1120]" />
+        <div className={`absolute inset-0 bg-gradient-to-b ${isLight ? 'from-[#FAFBFC] via-[#FAFBFC]/80' : 'from-transparent via-transparent/80'} to-[#0B1120]`} />
         <div className="absolute bottom-0 left-0 right-0 h-24 bg-[#0B1120]" style={{ clipPath: 'ellipse(70% 100% at 50% 100%)' }} />
       </div>
       <section className="relative bg-[#0B1120] overflow-hidden">
@@ -717,7 +717,7 @@ function HomeKeiroInner() {
         </div>
       </section>
       <div className="relative h-40 overflow-hidden" aria-hidden="true">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0B1120] via-[#0B1120]/80 to-[#FAFBFC]" />
+        <div className={`absolute inset-0 bg-gradient-to-b from-[#0B1120] via-[#0B1120]/80 ${isLight ? 'to-[#FAFBFC]' : 'to-transparent'}`} />
         <div className="absolute top-0 left-0 right-0 h-24 bg-[#0B1120]" style={{ clipPath: 'ellipse(70% 100% at 50% 0%)' }} />
       </div>
 
@@ -1377,7 +1377,7 @@ function HomeKeiroInner() {
 
       {/* Footer légal - Terms of Service & Privacy Policy */}
       {/* Gradient divider */}
-      <div className="h-px bg-gradient-to-r from-transparent via-[#0c1a3a] to-transparent" />
+      <div className={`h-px bg-gradient-to-r from-transparent ${isLight ? 'via-[#0c1a3a]' : 'via-white/20'} to-transparent`} />
 
       </div>{/* End light sections bg */}
 

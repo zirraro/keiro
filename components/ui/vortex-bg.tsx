@@ -89,8 +89,8 @@ export function VortexBackground() {
           90% { transform: translate(-2%, 0%); }
         }
         @keyframes vbg-orb-glow {
-          0%, 100% { opacity: 0.12; transform: scale(1); }
-          50% { opacity: 0.25; transform: scale(1.15); }
+          0%, 100% { opacity: 0.2; transform: scale(1); }
+          50% { opacity: 0.4; transform: scale(1.15); }
         }
         @keyframes vbg-orb-drift {
           0%   { transform: translate(0%, 0%) scale(1); }
@@ -245,8 +245,8 @@ export function VortexBackground() {
               left: dot.l, top: dot.t,
               width: dot.s, height: dot.s,
               borderRadius: '50%',
-              background: 'rgba(59, 130, 246, 0.5)',
-              boxShadow: '0 0 12px rgba(59, 130, 246, 0.3)',
+              background: 'rgba(59, 130, 246, 0.7)',
+              boxShadow: '0 0 16px rgba(59, 130, 246, 0.5)',
               animation: `vbg-float-x ${6 + i * 0.5}s ease-in-out infinite ${i * 0.4}s`,
             }} />
           ))}
@@ -267,8 +267,8 @@ export function VortexBackground() {
               left: dot.l, top: dot.t,
               width: dot.s, height: dot.s,
               borderRadius: '50%',
-              background: 'rgba(6, 182, 212, 0.45)',
-              boxShadow: '0 0 12px rgba(6, 182, 212, 0.25)',
+              background: 'rgba(6, 182, 212, 0.65)',
+              boxShadow: '0 0 16px rgba(6, 182, 212, 0.45)',
               animation: `vbg-float-x ${7 + i * 0.4}s ease-in-out infinite ${i * 0.5 + 1}s`,
             }} />
           ))}
@@ -288,8 +288,8 @@ export function VortexBackground() {
               left: dot.l, top: dot.t,
               width: dot.s, height: dot.s,
               borderRadius: '50%',
-              background: 'rgba(139, 92, 246, 0.4)',
-              boxShadow: '0 0 12px rgba(139, 92, 246, 0.2)',
+              background: 'rgba(139, 92, 246, 0.6)',
+              boxShadow: '0 0 16px rgba(139, 92, 246, 0.4)',
               animation: `vbg-float-x ${8 + i * 0.3}s ease-in-out infinite ${i * 0.7 + 2}s`,
             }} />
           ))}
@@ -299,7 +299,7 @@ export function VortexBackground() {
         <div style={{
           position: 'absolute',
           inset: 0,
-          backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(59, 130, 246, 0.05) 1px, transparent 0)',
+          backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(59, 130, 246, 0.15) 1px, transparent 0)',
           backgroundSize: '48px 48px',
           animation: 'vbg-drift-2 45s ease-in-out infinite',
         }} />
@@ -311,7 +311,7 @@ export function VortexBackground() {
           width: 600, height: 600,
           marginTop: -300, marginLeft: -300,
           borderRadius: '50%',
-          border: '1px solid rgba(59, 130, 246, 0.06)',
+          border: '1px solid rgba(59, 130, 246, 0.12)',
           animation: 'vbg-pulse 5s ease-in-out infinite',
         }} />
         <div style={{
@@ -320,7 +320,7 @@ export function VortexBackground() {
           width: 900, height: 900,
           marginTop: -450, marginLeft: -450,
           borderRadius: '50%',
-          border: '1px solid rgba(6, 182, 212, 0.05)',
+          border: '1px solid rgba(6, 182, 212, 0.1)',
           animation: 'vbg-pulse 7s ease-in-out infinite 2s',
         }} />
         <div style={{
@@ -329,7 +329,7 @@ export function VortexBackground() {
           width: 1200, height: 1200,
           marginTop: -600, marginLeft: -600,
           borderRadius: '50%',
-          border: '1px solid rgba(139, 92, 246, 0.04)',
+          border: '1px solid rgba(139, 92, 246, 0.08)',
           animation: 'vbg-pulse 9s ease-in-out infinite 4s',
         }} />
 

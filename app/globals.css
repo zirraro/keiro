@@ -294,6 +294,172 @@ html {
     0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
+/* ===== HOMEPAGE DARK MODE SECTIONS ===== */
+/* When html does NOT have .light class, homepage sections go dark/transparent */
+
+html:not(.light) .homepage-sections {
+  background: transparent !important;
+  color: #e2e8f0;
+}
+
+/* Section-light → near-transparent in dark mode */
+html:not(.light) .homepage-sections .section-light {
+  background: rgba(255, 255, 255, 0.02) !important;
+}
+
+/* Section divider line → subtle white */
+html:not(.light) .homepage-sections .section-divider::before {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent) !important;
+}
+
+/* Premium cards → dark glass */
+html:not(.light) .homepage-sections .premium-card {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: #e2e8f0;
+}
+html:not(.light) .homepage-sections .premium-card:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 8px 32px rgba(59, 130, 246, 0.1) !important;
+}
+
+/* Override bg-white cards → dark glass */
+html:not(.light) .homepage-sections .bg-white {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Override neutral backgrounds */
+html:not(.light) .homepage-sections .bg-neutral-100 {
+  background-color: rgba(255, 255, 255, 0.04) !important;
+}
+
+/* Override colored light backgrounds for comparator section */
+html:not(.light) .homepage-sections .bg-red-50 {
+  background-color: rgba(239, 68, 68, 0.08) !important;
+}
+html:not(.light) .homepage-sections .bg-green-50 {
+  background-color: rgba(16, 185, 129, 0.08) !important;
+}
+
+/* Text color overrides — force light text in dark mode */
+html:not(.light) .homepage-sections .text-neutral-900 {
+  color: #f1f5f9 !important;
+}
+html:not(.light) .homepage-sections .text-neutral-800 {
+  color: #e2e8f0 !important;
+}
+html:not(.light) .homepage-sections .text-neutral-700 {
+  color: #cbd5e1 !important;
+}
+html:not(.light) .homepage-sections .text-neutral-600 {
+  color: #94a3b8 !important;
+}
+html:not(.light) .homepage-sections .text-neutral-500 {
+  color: #64748b !important;
+}
+
+/* Dark blue text → light in dark mode */
+html:not(.light) .homepage-sections [class*="text-\[#0c1a3a\]"] {
+  color: #e2e8f0 !important;
+}
+
+/* Border overrides */
+html:not(.light) .homepage-sections .border-neutral-200,
+html:not(.light) .homepage-sections .border-neutral-300 {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Gradient cards → dark variant */
+html:not(.light) .homepage-sections .from-purple-50,
+html:not(.light) .homepage-sections .from-\[\#0c1a3a\]\/5 {
+  background: rgba(139, 92, 246, 0.08) !important;
+}
+html:not(.light) .homepage-sections .bg-gradient-to-r.from-green-50 {
+  background: rgba(16, 185, 129, 0.06) !important;
+}
+
+/* Red/green comparison borders */
+html:not(.light) .homepage-sections .border-red-200 {
+  border-color: rgba(239, 68, 68, 0.2) !important;
+}
+html:not(.light) .homepage-sections .border-green-200 {
+  border-color: rgba(16, 185, 129, 0.2) !important;
+}
+html:not(.light) .homepage-sections .border-purple-200 {
+  border-color: rgba(139, 92, 246, 0.2) !important;
+}
+html:not(.light) .homepage-sections .border-amber-400 {
+  border-color: rgba(245, 158, 11, 0.3) !important;
+}
+
+/* Shadow text — ensure visibility in dark mode */
+html:not(.light) .homepage-sections .shadow-md,
+html:not(.light) .homepage-sections .shadow-lg,
+html:not(.light) .homepage-sections .shadow-xl,
+html:not(.light) .homepage-sections .shadow-2xl {
+  --tw-shadow-color: rgba(0, 0, 0, 0.3);
+}
+
+/* Gradient sections (purple-50, amber-50, etc.) → dark variants */
+html:not(.light) .homepage-sections .from-purple-50.to-indigo-50 {
+  background: rgba(139, 92, 246, 0.06) !important;
+}
+html:not(.light) .homepage-sections .from-amber-50.to-orange-50 {
+  background: rgba(245, 158, 11, 0.06) !important;
+}
+html:not(.light) .homepage-sections .from-purple-50.to-pink-50 {
+  background: rgba(139, 92, 246, 0.06) !important;
+}
+
+/* Red/green text adjust */
+html:not(.light) .homepage-sections .text-red-500 {
+  color: #f87171 !important;
+}
+html:not(.light) .homepage-sections .text-red-400 {
+  color: #fb7185 !important;
+}
+html:not(.light) .homepage-sections .text-red-600 {
+  color: #f87171 !important;
+}
+html:not(.light) .homepage-sections .text-green-500 {
+  color: #34d399 !important;
+}
+html:not(.light) .homepage-sections .text-green-600 {
+  color: #34d399 !important;
+}
+html:not(.light) .homepage-sections .text-purple-900 {
+  color: #c4b5fd !important;
+}
+html:not(.light) .homepage-sections .text-amber-900 {
+  color: #fbbf24 !important;
+}
+
+/* Keep already-dark sections (AI marketing) unaffected */
+html:not(.light) .homepage-sections .bg-\[\#0B1120\] {
+  background-color: #0B1120 !important;
+}
+html:not(.light) .homepage-sections .bg-\[\#0B1120\] .text-white {
+  color: white !important;
+}
+
+/* Light → dark section transition gradients */
+html:not(.light) .homepage-sections .hp-transition-light-to-dark {
+  background: linear-gradient(to bottom, transparent, transparent 50%, #0B1120) !important;
+}
+html:not(.light) .homepage-sections .hp-transition-dark-to-light {
+  background: linear-gradient(to bottom, #0B1120, transparent 50%, transparent) !important;
+}
+
+/* ===== PAGES DARK MODE BACKGROUNDS ===== */
+/* Generate, Library, Posts pages in dark mode */
+html:not(.light) .page-studio-bg {
+  background: transparent !important;
+}
+html.light .page-studio-bg {
+  background: linear-gradient(to bottom right, #fafafa, rgba(12, 26, 58, 0.03), rgba(168, 85, 247, 0.04)) !important;
+}
+
 /* Hide scrollbar for horizontal scroll */
 .scrollbar-hide {
   -ms-overflow-style: none;
