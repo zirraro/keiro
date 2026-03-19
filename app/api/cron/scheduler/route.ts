@@ -208,7 +208,7 @@ export async function GET(request: NextRequest) {
       fireBackground(async () => {
         await callParallel(
           ['Marketing Sync Analytics', '/api/agents/marketing', 'POST', { action: 'sync_publication_analytics' }],
-          ['Marketing Analysis (morning)', '/api/agents/marketing', 'POST'],
+          ['Marketing Analysis (morning)', '/api/agents/marketing', 'GET'],
         );
       });
       results.push({ task: 'Marketing Prep', ok: true, data: { status: 'dispatched_background' } });

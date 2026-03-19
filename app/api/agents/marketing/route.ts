@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { callGemini, callGeminiWithSearch } from '@/lib/agents/gemini';
-import { loadSharedContext, formatContextForPrompt } from '@/lib/agents/shared-context';
+import { loadSharedContext, formatContextForPrompt, writeDirective } from '@/lib/agents/shared-context';
 import { getBusinessDiscoveryPosts, getOwnInstagramMedia, type IgDiscoveryPost, type IgOwnMedia } from '@/lib/meta';
 import { getTikTokVideos, refreshTikTokToken, type TikTokVideo } from '@/lib/tiktok';
 
@@ -809,7 +809,6 @@ Date : ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric
 
           // Issue directives to each agent
           if (advice.agent_directives) {
-            const { writeDirective } = await import('@/lib/agents/shared-context');
             for (const [agent, dir] of Object.entries(advice.agent_directives) as [string, any][]) {
               if (dir?.directive) {
                 await writeDirective(supabase, 'marketing', agent, 'strategy', dir.directive, dir.priority || 'moyenne');

@@ -215,6 +215,30 @@ function AdminAgentsContent() {
   const [activeClients, setActiveClients] = useState<ActiveClient[]>([]);
   const [clientActivityFilter, setClientActivityFilter] = useState<string>('all');
 
+  // Lead intelligence state
+  type LeadIntel = {
+    id: string;
+    company: string | null;
+    email: string | null;
+    type: string | null;
+    source: string | null;
+    status: string;
+    temperature: string | null;
+    score: number;
+    created_at: string;
+    date_contact: string | null;
+    plan_interest: string | null;
+    conversion_source?: string;
+    email_sequence_step: number | null;
+    last_email_opened_at: string | null;
+    last_email_clicked_at: string | null;
+    matched_plan: string | null;
+  };
+  const [leadIntel, setLeadIntel] = useState<LeadIntel[]>([]);
+  const [leadIntelLoading, setLeadIntelLoading] = useState(false);
+  const [showLeadIntel, setShowLeadIntel] = useState(false);
+  const [leadIntelFilter, setLeadIntelFilter] = useState<'all' | 'converted' | 'lost' | 'hot' | 'recent'>('recent');
+
   // Content state
   type ContentPost = { id: string; platform: string; format: string; pillar: string; hook: string | null; caption: string; visual_description: string | null; visual_url: string | null; video_url?: string | null; scheduled_date: string; scheduled_time: string; status: string; published_at: string | null; instagram_permalink?: string | null; tiktok_publish_id?: string | null };
   const [contentPosts, setContentPosts] = useState<ContentPost[]>([]);
@@ -493,6 +517,35 @@ function AdminAgentsContent() {
       console.error('[Warm Prospects] Load emails error:', e);
     }
     setLoadingEmails(false);
+  };
+
+  // ─── Lead intelligence loader ─────────────────────────
+  const loadLeadIntel = async () => {
+    setLeadIntelLoading(true);
+    try {
+      let query = supabase
+        .from('crm_prospects')
+        .select('id, company, email, type, source, status, temperature, score, created_at, date_contact, plan_interest, email_sequence_step, last_email_opened_at, last_email_clicked_at, matched_plan')
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (leadIntelFilter === 'converted') {
+        query = query.in('status', ['client', 'sprint']);
+      } else if (leadIntelFilter === 'lost') {
+        query = query.eq('status', 'perdu');
+      } else if (leadIntelFilter === 'hot') {
+        query = query.in('temperature', ['hot', 'warm']);
+      } else if (leadIntelFilter === 'recent') {
+        const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+        query = query.gte('created_at', sevenDaysAgo);
+      }
+
+      const { data } = await query;
+      setLeadIntel((data || []) as LeadIntel[]);
+    } catch (e) {
+      console.error('[Lead Intel] Load error:', e);
+    }
+    setLeadIntelLoading(false);
   };
 
   // ─── Client activity loader ─────────────────────────
@@ -2197,6 +2250,203 @@ function AdminAgentsContent() {
                 </div>
               )}
             </div>
+            )}
+
+            {/* ===== LEAD INTELLIGENCE PANEL ===== */}
+            {dashboardAgent === 'global' && (
+              <div className="bg-white rounded-xl shadow-sm border border-purple-200 overflow-hidden">
+                <button
+                  className="w-full flex items-center justify-between px-5 py-3 bg-purple-50 border-b border-purple-200 hover:bg-purple-100 transition-colors"
+                  onClick={() => {
+                    setShowLeadIntel(!showLeadIntel);
+                    if (!showLeadIntel && leadIntel.length === 0) loadLeadIntel();
+                  }}
+                >
+                  <h3 className="text-sm font-semibold text-purple-900 flex items-center gap-2">
+                    <span>🧠</span> Lead Intelligence — Conversions & Apprentissages
+                  </h3>
+                  <span className="text-purple-400">{showLeadIntel ? '▲' : '▼'}</span>
+                </button>
+
+                {showLeadIntel && (
+                  <div className="p-5 space-y-4">
+                    {/* Filters */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {(['recent', 'converted', 'hot', 'lost', 'all'] as const).map(f => (
+                        <button
+                          key={f}
+                          onClick={() => { setLeadIntelFilter(f); setTimeout(loadLeadIntel, 50); }}
+                          className={`px-3 py-1 text-xs font-medium rounded-full transition-all ${
+                            leadIntelFilter === f
+                              ? 'bg-purple-600 text-white'
+                              : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                          }`}
+                        >
+                          {f === 'recent' ? '7 derniers jours' : f === 'converted' ? 'Convertis' : f === 'hot' ? 'Chauds' : f === 'lost' ? 'Perdus' : 'Tous'}
+                        </button>
+                      ))}
+                      <button onClick={loadLeadIntel} className="ml-auto text-xs text-purple-600 hover:text-purple-800">
+                        Actualiser
+                      </button>
+                    </div>
+
+                    {/* Stats summary */}
+                    {leadIntel.length > 0 && (
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                        {(() => {
+                          const converted = leadIntel.filter(l => l.status === 'client' || l.status === 'sprint').length;
+                          const hot = leadIntel.filter(l => l.temperature === 'hot').length;
+                          const warm = leadIntel.filter(l => l.temperature === 'warm').length;
+                          const lost = leadIntel.filter(l => l.status === 'perdu').length;
+                          const opened = leadIntel.filter(l => l.last_email_opened_at).length;
+                          return (
+                            <>
+                              <div className="text-center p-2 bg-emerald-50 rounded-lg">
+                                <p className="text-lg font-bold text-emerald-700">{converted}</p>
+                                <p className="text-[10px] text-emerald-600">Convertis</p>
+                              </div>
+                              <div className="text-center p-2 bg-red-50 rounded-lg">
+                                <p className="text-lg font-bold text-red-600">{hot}</p>
+                                <p className="text-[10px] text-red-500">Hot</p>
+                              </div>
+                              <div className="text-center p-2 bg-orange-50 rounded-lg">
+                                <p className="text-lg font-bold text-orange-600">{warm}</p>
+                                <p className="text-[10px] text-orange-500">Warm</p>
+                              </div>
+                              <div className="text-center p-2 bg-blue-50 rounded-lg">
+                                <p className="text-lg font-bold text-blue-600">{opened}</p>
+                                <p className="text-[10px] text-blue-500">Emails ouverts</p>
+                              </div>
+                              <div className="text-center p-2 bg-neutral-50 rounded-lg">
+                                <p className="text-lg font-bold text-neutral-600">{lost}</p>
+                                <p className="text-[10px] text-neutral-500">Perdus</p>
+                              </div>
+                            </>
+                          );
+                        })()}
+                      </div>
+                    )}
+
+                    {/* Lead list */}
+                    {leadIntelLoading ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    ) : leadIntel.length === 0 ? (
+                      <p className="text-center text-neutral-400 py-8 text-sm">Aucun prospect trouvé</p>
+                    ) : (
+                      <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                        {leadIntel.map(lead => {
+                          const isConverted = lead.status === 'client' || lead.status === 'sprint';
+                          const dayAcquired = new Date(lead.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+                          const daysInPipeline = Math.floor((Date.now() - new Date(lead.created_at).getTime()) / 86400000);
+                          const opened = !!lead.last_email_opened_at;
+                          const clicked = !!lead.last_email_clicked_at;
+
+                          // Conversion signal analysis
+                          let conversionSignal = '';
+                          if (isConverted) {
+                            if (clicked) conversionSignal = 'Email cliqué → conversion';
+                            else if (opened) conversionSignal = 'Email ouvert → conversion';
+                            else if (lead.source === 'chatbot') conversionSignal = 'Chatbot → conversion directe';
+                            else conversionSignal = `Source: ${lead.source || 'directe'}`;
+                          } else if (lead.temperature === 'hot') {
+                            if (clicked) conversionSignal = 'A cliqué — relancer maintenant';
+                            else if (opened) conversionSignal = 'Intéressé — email ouvert';
+                            else conversionSignal = 'Score élevé — proposer démo';
+                          } else if (lead.status === 'perdu') {
+                            conversionSignal = lead.email_sequence_step ? `Perdu après step ${lead.email_sequence_step}` : 'Aucun engagement';
+                          }
+
+                          return (
+                            <div key={lead.id} className={`rounded-lg border p-3 ${
+                              isConverted ? 'border-emerald-200 bg-emerald-50/50' :
+                              lead.temperature === 'hot' ? 'border-red-200 bg-red-50/30' :
+                              lead.temperature === 'warm' ? 'border-orange-200 bg-orange-50/30' :
+                              lead.status === 'perdu' ? 'border-neutral-200 bg-neutral-50 opacity-70' :
+                              'border-neutral-200'
+                            }`}>
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-sm font-semibold text-neutral-900 truncate">{lead.company || lead.email || 'Anonyme'}</span>
+                                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                                      isConverted ? 'bg-emerald-100 text-emerald-700' :
+                                      lead.temperature === 'hot' ? 'bg-red-100 text-red-700' :
+                                      lead.temperature === 'warm' ? 'bg-orange-100 text-orange-700' :
+                                      lead.status === 'perdu' ? 'bg-neutral-200 text-neutral-600' :
+                                      'bg-blue-100 text-blue-700'
+                                    }`}>
+                                      {isConverted ? 'CLIENT' : lead.temperature === 'hot' ? 'HOT' : lead.temperature === 'warm' ? 'WARM' : lead.status === 'perdu' ? 'PERDU' : lead.status?.toUpperCase()}
+                                    </span>
+                                    {lead.type && <span className="text-[10px] px-1.5 py-0.5 bg-neutral-100 rounded text-neutral-500">{lead.type}</span>}
+                                    {lead.plan_interest && <span className="text-[10px] px-1.5 py-0.5 bg-purple-50 rounded text-purple-600">{lead.plan_interest}</span>}
+                                  </div>
+                                  <div className="flex items-center gap-3 mt-1 text-[10px] text-neutral-500">
+                                    <span>Acquis le {dayAcquired}</span>
+                                    <span>{daysInPipeline}j dans le pipeline</span>
+                                    {lead.source && <span>via {lead.source}</span>}
+                                    <span>Score: {lead.score}</span>
+                                    {lead.email_sequence_step ? <span>Step {lead.email_sequence_step}</span> : null}
+                                  </div>
+                                  {/* Conversion signal */}
+                                  {conversionSignal && (
+                                    <p className={`text-xs mt-1 font-medium ${
+                                      isConverted ? 'text-emerald-600' :
+                                      lead.temperature === 'hot' ? 'text-red-600' :
+                                      lead.status === 'perdu' ? 'text-neutral-500' :
+                                      'text-blue-600'
+                                    }`}>
+                                      {isConverted ? '✅' : lead.temperature === 'hot' ? '🔥' : lead.status === 'perdu' ? '❌' : '💡'} {conversionSignal}
+                                    </p>
+                                  )}
+                                </div>
+                                <div className="text-right shrink-0">
+                                  {opened && <span className="text-[10px] text-blue-500 block">📧 Ouvert</span>}
+                                  {clicked && <span className="text-[10px] text-green-500 block">🖱️ Cliqué</span>}
+                                  {lead.matched_plan && <span className="text-[10px] text-purple-500 block">Plan: {lead.matched_plan}</span>}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Learning insights */}
+                    {leadIntel.length > 0 && (
+                      <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg p-4 border border-purple-100">
+                        <h4 className="text-xs font-bold text-purple-800 mb-2">🧠 Insights automatiques</h4>
+                        <div className="space-y-1 text-xs text-purple-700">
+                          {(() => {
+                            const converted = leadIntel.filter(l => l.status === 'client' || l.status === 'sprint');
+                            const topSource = converted.length > 0
+                              ? Object.entries(converted.reduce((acc, l) => { const s = l.source || 'direct'; acc[s] = (acc[s] || 0) + 1; return acc; }, {} as Record<string, number>)).sort((a, b) => b[1] - a[1])[0]
+                              : null;
+                            const topType = converted.length > 0
+                              ? Object.entries(converted.reduce((acc, l) => { const t = l.type || 'inconnu'; acc[t] = (acc[t] || 0) + 1; return acc; }, {} as Record<string, number>)).sort((a, b) => b[1] - a[1])[0]
+                              : null;
+                            const avgStep = leadIntel.filter(l => l.email_sequence_step).reduce((s, l) => s + (l.email_sequence_step || 0), 0) / Math.max(1, leadIntel.filter(l => l.email_sequence_step).length);
+                            const openedPct = Math.round(leadIntel.filter(l => l.last_email_opened_at).length / Math.max(1, leadIntel.length) * 100);
+
+                            return (
+                              <>
+                                {topSource && <p>Source #1 de conversion : <strong>{topSource[0]}</strong> ({topSource[1]} convertis)</p>}
+                                {topType && <p>Type de business qui convertit le plus : <strong>{topType[0]}</strong></p>}
+                                <p>Step email moyen avant action : <strong>{avgStep.toFixed(1)}</strong></p>
+                                <p>Taux d'ouverture email (sur cette sélection) : <strong>{openedPct}%</strong></p>
+                                {converted.length > 0 && <p className="font-bold text-emerald-700 mt-1">💡 Concentrez les efforts sur les {topType?.[0] || 'prospects'} via {topSource?.[0] || 'le canal principal'} — c'est ce qui convertit.</p>}
+                                {converted.length === 0 && openedPct > 20 && <p className="font-bold text-orange-600 mt-1">💡 L'engagement email est bon ({openedPct}% ouvertures) — les prospects lisent mais ne convertissent pas encore. Testez des CTA plus directs (démo, Sprint 4.99€).</p>}
+                                {converted.length === 0 && openedPct <= 20 && <p className="font-bold text-red-600 mt-1">💡 Taux d'ouverture faible ({openedPct}%). Les objets d'emails doivent être retravaillés. Testez des sujets plus directs/personnalisés.</p>}
+                              </>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
 
             {/* Reset dead prospects */}
