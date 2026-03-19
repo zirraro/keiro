@@ -17,11 +17,13 @@ import { callGeminiChat } from '@/lib/agents/gemini';
 export const runtime = 'nodejs';
 export const maxDuration = 30;
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
 function getSupabaseAdmin() {
-  return createClient(supabaseUrl, supabaseServiceKey);
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) {
+    throw new Error(`Supabase non configuré (url=${!!url}, key=${!!key})`);
+  }
+  return createClient(url, key);
 }
 
 /**
@@ -232,20 +234,39 @@ export async function POST(request: NextRequest) {
       { role: 'user' as const, content: message },
     ];
 
-    // --- Call Gemini 2.0 Flash ---
+    // --- Call Gemini 2.5 Flash (with fallback) ---
     console.log('[Chatbot] Calling Gemini for visitor:', visitorId);
 
-    const assistantMessage = await callGeminiChat({
-      system: systemPrompt + '\n' + contextualInstructions,
-      history: recentMessages.map((msg: any) => ({
-        role: msg.role as 'user' | 'assistant',
-        content: msg.content,
-      })),
-      message,
-      maxTokens: 300,
-    });
-
-    console.log('[Chatbot] Response:', assistantMessage.substring(0, 100));
+    let assistantMessage: string;
+    try {
+      assistantMessage = await callGeminiChat({
+        system: systemPrompt + '\n' + contextualInstructions,
+        history: recentMessages.map((msg: any) => ({
+          role: msg.role as 'user' | 'assistant',
+          content: msg.content,
+        })),
+        message,
+        maxTokens: 300,
+      });
+      console.log('[Chatbot] Response:', assistantMessage.substring(0, 100));
+    } catch (geminiError: any) {
+      console.error('[Chatbot] Gemini failed:', geminiError?.message);
+      // Fallback: respond with a contextual pre-written message instead of crashing
+      const lowMsg = message.toLowerCase();
+      if (lowMsg.includes('prix') || lowMsg.includes('combien') || lowMsg.includes('tarif') || lowMsg.includes('coût') || lowMsg.includes('cout')) {
+        assistantMessage = "Le plan le plus populaire c'est le Fondateurs à 149€/mois — la plupart des pros le choisissent. Et franchement, 1 seul client en plus et c'est remboursé 😉 Tu veux que je t'explique ce qui est inclus ?";
+      } else if (lowMsg.includes('resto') || lowMsg.includes('restaurant') || lowMsg.includes('cuisine')) {
+        assistantMessage = "Un resto ! Top 🔥 Avec du bon contenu sur Insta, c'est 5 couverts en plus facile. Et la vidéo TikTok c'est le jackpot. Tu postes déjà sur les réseaux ?";
+      } else if (lowMsg.includes('comment') || lowMsg.includes('marche') || lowMsg.includes('fonctionne')) {
+        assistantMessage = "C'est simple : tu décris ton business, on génère des visuels et vidéos pro en 3 min. Instagram, TikTok, LinkedIn — tout est automatisé. Tu veux voir un exemple pour ton secteur ?";
+      } else if (lowMsg.includes('bonjour') || lowMsg.includes('salut') || lowMsg.includes('hello') || lowMsg.includes('hey') || lowMsg.includes('coucou')) {
+        assistantMessage = "Salut ! 👋 Bienvenue. Tu cherches à booster ta présence sur les réseaux sociaux ? Dis-moi ton secteur et je te montre ce qu'on peut faire pour toi.";
+      } else if (lowMsg.includes('chatgpt') || lowMsg.includes('canva') || lowMsg.includes('ia') || lowMsg.includes('gratuit')) {
+        assistantMessage = "ChatGPT c'est top pour plein de trucs. Mais pour poster 3x/semaine, ça prend 30 min par post. Avec nous c'est 3 min. Et surtout : ChatGPT fait PAS de vidéo. Nous oui 🎬 Tu postes souvent en ce moment ?";
+      } else {
+        assistantMessage = "Bonne question ! KeiroAI c'est l'outil qui crée ton contenu pro en 3 min — images, vidéos, textes, tout. C'est quoi ton activité ? Je te montre un exemple concret 😊";
+      }
+    }
 
     // --- Append messages to session ---
     const updatedMessages = [
@@ -254,35 +275,39 @@ export async function POST(request: NextRequest) {
       { role: 'assistant', content: assistantMessage, at: now },
     ];
 
-    await supabase
-      .from('chatbot_sessions')
-      .update({
-        messages: updatedMessages,
-        visitor_data: visitorData || session.visitor_data,
-        updated_at: now,
-      })
-      .eq('id', session.id);
+    // --- Save session + log (non-blocking, never crash the response) ---
+    try {
+      await supabase
+        .from('chatbot_sessions')
+        .update({
+          messages: updatedMessages,
+          visitor_data: visitorData || session.visitor_data,
+          updated_at: now,
+        })
+        .eq('id', session.id);
 
-    // --- Log to agent_logs ---
-    let action = 'conversation';
-    if (detectedEmail) action = 'lead_captured_email';
-    else if (detectedPhone) action = 'lead_captured_phone';
-    else if (detectedPlan) action = 'plan_interest_detected';
-    else if (detectedObjection) action = 'objection_detected';
-    else if (detectedType) action = 'business_type_detected';
+      let action = 'conversation';
+      if (detectedEmail) action = 'lead_captured_email';
+      else if (detectedPhone) action = 'lead_captured_phone';
+      else if (detectedPlan) action = 'plan_interest_detected';
+      else if (detectedObjection) action = 'objection_detected';
+      else if (detectedType) action = 'business_type_detected';
 
-    await supabase.from('agent_logs').insert({
-      agent: 'chatbot',
-      action,
-      data: {
-        visitor_id: visitorId,
-        session_id: session.id,
-        detected,
-        message_count: updatedMessages.length,
-        tokens_used: 0,
-      },
-      created_at: now,
-    });
+      await supabase.from('agent_logs').insert({
+        agent: 'chatbot',
+        action,
+        data: {
+          visitor_id: visitorId,
+          session_id: session.id,
+          detected,
+          message_count: updatedMessages.length,
+          tokens_used: 0,
+        },
+        created_at: now,
+      });
+    } catch (dbError: any) {
+      console.error('[Chatbot] DB save error (non-fatal):', dbError?.message);
+    }
 
     return NextResponse.json({
       ok: true,
@@ -291,7 +316,8 @@ export async function POST(request: NextRequest) {
       detected: Object.keys(detected).length > 0 ? detected : undefined,
     });
   } catch (error: any) {
-    console.error('[Chatbot] Error:', error);
+    console.error('[Chatbot] Error:', error?.message, error?.stack?.slice(0, 500));
+    console.error('[Chatbot] Env check: GEMINI_API_KEY=', !!process.env.GEMINI_API_KEY, 'SUPABASE_URL=', !!process.env.NEXT_PUBLIC_SUPABASE_URL, 'SUPABASE_KEY=', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
     return NextResponse.json(
       { ok: false, error: error.message || 'Erreur serveur' },
       { status: 500 }

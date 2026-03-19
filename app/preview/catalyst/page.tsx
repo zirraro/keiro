@@ -128,7 +128,7 @@ export default function CatalystPreview() {
               </div>
             </div>
             <p className="mt-1 text-sm text-neutral-600">Lancez-vous en solo.</p>
-            <ul className="mt-4 space-y-2 text-sm text-neutral-200">
+            <ul className="mt-4 space-y-2 text-sm text-neutral-600">
               <li>• 50 images / {annual ? "an" : "mois"}</li>
               <li>• 1 proposition par génération</li>
               <li>• Formats auto réseaux</li>
@@ -149,7 +149,7 @@ export default function CatalystPreview() {
               </div>
             </div>
             <p className="mt-1 text-sm text-neutral-600">Pour poster souvent et tester.</p>
-            <ul className="mt-4 space-y-2 text-sm text-neutral-200">
+            <ul className="mt-4 space-y-2 text-sm text-neutral-600">
               <li>• 250 images / {annual ? "an" : "mois"}</li>
               <li>• Jusqu’à 3 variantes par génération</li>
               <li>• Couleur de marque & accroches</li>
@@ -170,7 +170,7 @@ export default function CatalystPreview() {
               </div>
             </div>
             <p className="mt-1 text-sm text-neutral-600">Pour les petites équipes.</p>
-            <ul className="mt-4 space-y-2 text-sm text-neutral-200">
+            <ul className="mt-4 space-y-2 text-sm text-neutral-600">
               <li>• 1000 images / {annual ? "an" : "mois"}</li>
               <li>• Espace marque (logo, couleurs)</li>
               <li>• Priorité support</li>
