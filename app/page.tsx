@@ -60,7 +60,7 @@ function HomeKeiroInner() {
             <FadeUp delay={0.5}>
             <div className="mt-6 flex flex-wrap gap-3">
               <MagneticButton>
-              <a href="/generate" className="inline-block px-5 py-3 rounded-xl bg-white font-semibold shadow-lg shadow-white/20 hover:shadow-xl hover:shadow-white/30 hover:-translate-y-0.5 transition-all" style={{ color: '#0c1a3a' }}>
+              <a href="/generate" className="cta-keep-white inline-block px-5 py-3 rounded-xl bg-white font-semibold shadow-lg shadow-white/20 hover:shadow-xl hover:shadow-white/30 hover:-translate-y-0.5 transition-all" style={{ color: '#0c1a3a' }}>
                 {t.common.tryFree}
               </a>
               </MagneticButton>
@@ -165,7 +165,7 @@ function HomeKeiroInner() {
                 <p className="text-xs text-[#c8d8e8]">{t.home.sprintSubtitle}</p>
               </div>
             </div>
-            <button onClick={() => startCheckout('sprint')} className="px-6 py-2.5 rounded-lg bg-white font-bold hover:bg-yellow-50 transition-all text-sm whitespace-nowrap shadow-lg ring-2 ring-white/30 hover:ring-yellow-300/50 hover:shadow-xl" style={{ color: '#0c1a3a' }}>
+            <button onClick={() => startCheckout('sprint')} className="cta-keep-white px-6 py-2.5 rounded-lg bg-white font-bold hover:bg-yellow-50 transition-all text-sm whitespace-nowrap shadow-lg ring-2 ring-white/30 hover:ring-yellow-300/50 hover:shadow-xl" style={{ color: '#0c1a3a' }}>
               {t.home.sprintCta}
             </button>
           </div>

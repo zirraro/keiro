@@ -96,10 +96,18 @@ html:not(.light) .page-studio-bg .bg-white {
   background-color: rgba(255, 255, 255, 0.08) !important;
   border-color: rgba(255, 255, 255, 0.12) !important;
 }
-/* Global bg-white fallback for dark mode — except force-light and modals */
-html:not(.light) .bg-white:not(.force-light .bg-white):not(.fixed.inset-0 .bg-white):not(.hp-light-island .bg-white) {
+/* Global bg-white fallback for dark mode — except force-light, modals, and protected CTAs */
+html:not(.light) .bg-white:not(.force-light .bg-white):not(.fixed.inset-0 .bg-white):not(.hp-light-island .bg-white):not(.cta-keep-white) {
   background-color: rgba(255, 255, 255, 0.08) !important;
   color: #e2e8f0 !important;
+}
+/* CTAs that must stay white on dark backgrounds */
+html:not(.light) .cta-keep-white {
+  background-color: #ffffff !important;
+  color: #0c1a3a !important;
+}
+html:not(.light) .cta-keep-white:hover {
+  background-color: #f8fafc !important;
 }
 /* Dark mode: table cells, td, th, tr text inherit — force light */
 html:not(.light) .page-studio-bg table,
