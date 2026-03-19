@@ -1066,6 +1066,11 @@ export async function GET(request: NextRequest) {
       .eq('scheduled_date', todayStr);
     const postCount = updatedPosts?.length || todayPosts.length;
 
+    if (slot === 'morning' && postCount < 1) {
+      console.log('[Content] Morning slot — generating 1st post for today');
+      return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, '__morning__');
+    }
+
     if (slot === 'midday' && postCount < 2) {
       console.log('[Content] Midday slot — generating 2nd post for today');
       return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, '__midday__');
@@ -1080,6 +1085,17 @@ export async function GET(request: NextRequest) {
     if (slot === 'tiktok' && !hasTiktokToday) {
       console.log('[Content] TikTok slot — generating daily TikTok video');
       return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, '__tiktok__');
+    }
+
+    // LinkedIn: 2 posts per day
+    const linkedinPostsToday = (updatedPosts || todayPosts).filter((p: any) => p.platform === 'linkedin').length;
+    if (slot === 'linkedin_1' && linkedinPostsToday < 1) {
+      console.log('[Content] LinkedIn slot 1 — generating 1st LinkedIn post');
+      return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, '__linkedin_1__');
+    }
+    if (slot === 'linkedin_2' && linkedinPostsToday < 2) {
+      console.log('[Content] LinkedIn slot 2 — generating 2nd LinkedIn post');
+      return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, '__linkedin_2__');
     }
 
     // Return today's content — flag as warning if 0 posts
@@ -2256,10 +2272,29 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
     6: { platform: 'tiktok', format: 'video', pillar: 'demo' },
     0: { platform: 'tiktok', format: 'video', pillar: 'social_proof' },
   };
+  // LinkedIn slot: 2 posts per day (linkedin_1 and linkedin_2) — professional content
+  const linkedinSchedule1: Record<number, { platform: string; format: string; pillar: string }> = {
+    1: { platform: 'linkedin', format: 'text', pillar: 'tips' },
+    2: { platform: 'linkedin', format: 'post', pillar: 'demo' },
+    3: { platform: 'linkedin', format: 'text', pillar: 'social_proof' },
+    4: { platform: 'linkedin', format: 'post', pillar: 'trends' },
+    5: { platform: 'linkedin', format: 'text', pillar: 'tips' },
+    6: { platform: 'linkedin', format: 'post', pillar: 'demo' },
+    0: { platform: 'linkedin', format: 'text', pillar: 'social_proof' },
+  };
+  const linkedinSchedule2: Record<number, { platform: string; format: string; pillar: string }> = {
+    1: { platform: 'linkedin', format: 'post', pillar: 'social_proof' },
+    2: { platform: 'linkedin', format: 'text', pillar: 'trends' },
+    3: { platform: 'linkedin', format: 'post', pillar: 'demo' },
+    4: { platform: 'linkedin', format: 'text', pillar: 'tips' },
+    5: { platform: 'linkedin', format: 'post', pillar: 'social_proof' },
+    6: { platform: 'linkedin', format: 'text', pillar: 'trends' },
+    0: { platform: 'linkedin', format: 'post', pillar: 'tips' },
+  };
 
-  // Determine which slot we're in (morning by default, midday, evening, or tiktok)
-  const slotType = forcePillar === '__midday__' ? 'midday' : forcePillar === '__evening__' ? 'evening' : forcePillar === '__tiktok__' ? 'tiktok' : 'morning';
-  const activeSchedule = slotType === 'tiktok' ? tiktokSchedule : slotType === 'evening' ? eveningSchedule : slotType === 'midday' ? middaySchedule : morningSchedule;
+  // Determine which slot we're in
+  const slotType = forcePillar === '__midday__' ? 'midday' : forcePillar === '__evening__' ? 'evening' : forcePillar === '__tiktok__' ? 'tiktok' : forcePillar === '__linkedin_1__' ? 'linkedin_1' : forcePillar === '__linkedin_2__' ? 'linkedin_2' : 'morning';
+  const activeSchedule = slotType === 'tiktok' ? tiktokSchedule : slotType === 'evening' ? eveningSchedule : slotType === 'midday' ? middaySchedule : slotType === 'linkedin_1' ? linkedinSchedule1 : slotType === 'linkedin_2' ? linkedinSchedule2 : morningSchedule;
   const schedule = activeSchedule[dayOfWeek] || morningSchedule[1];
   const platform = (forcePlatform && forcePlatform !== 'all') ? forcePlatform : schedule.platform;
   const rawForcePillar = (slotType !== 'morning' ? undefined : forcePillar);
@@ -2323,10 +2358,10 @@ STRATÉGIE GLOBALE :
 - Le CTA doit être NATUREL, intégré au contenu, pas forcé. Il guide vers KeiroAI sans être publicitaire.
 - Pense conversion INDIRECTE : le prospect voit le post → comprend la valeur → visite le profil → essaie KeiroAI.
 - UTILISE les données du pool partagé : si l'email marche bien sur une catégorie, fais un post ciblé pour cette catégorie. Si les DMs ont du succès, renforce la visibilité Instagram.
-- Ce post est le ${ slotType === 'evening' ? 'POST SOIR (3e du jour)' : slotType === 'midday' ? 'POST MIDI (2e du jour)' : 'POST MATIN (1er du jour)' } — assure-toi qu'il soit DIFFÉRENT des posts des autres créneaux de la journée.
+- Ce post est le ${ slotType === 'linkedin_1' ? 'POST LINKEDIN MATIN (1er du jour)' : slotType === 'linkedin_2' ? 'POST LINKEDIN APRES-MIDI (2e du jour)' : slotType === 'evening' ? 'POST SOIR (3e du jour)' : slotType === 'midday' ? 'POST MIDI (2e du jour)' : 'POST MATIN (1er du jour)' } — assure-toi qu'il soit DIFFÉRENT des posts des autres créneaux de la journée.
 
 RÈGLES :
-- Plateformes autorisées : instagram, tiktok UNIQUEMENT (pas de LinkedIn)
+- Plateformes autorisées : instagram, tiktok, linkedin
 - Tu DOIS fournir un champ "visual_description" ULTRA DÉTAILLÉ — c'est un PROMPT SEEDREAM complet EN ANGLAIS pour générer un visuel professionnel
 - Exemple de bon visual_description : "Professional flat design illustration of a smartphone showing a social media marketing dashboard, deep violet gradient background, clean minimalist composition, studio lighting, sharp details, no text no letters no words"
 - AUCUN texte/lettre/mot dans les visuels (Seedream ne gère pas le texte)

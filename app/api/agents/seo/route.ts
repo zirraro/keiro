@@ -713,7 +713,8 @@ Genere le JSON comme specifie.`,
     const articles = calendar.articles || [];
 
     for (const entry of articles) {
-      await supabase.from('blog_editorial_calendar').insert({
+      // Upsert to avoid duplicate key errors when calendar is regenerated
+      const { error: calError } = await supabase.from('blog_editorial_calendar').upsert({
         week_start: weekStart,
         day: entry.day,
         keyword_primary: entry.keyword_primary,
@@ -721,7 +722,10 @@ Genere le JSON comme specifie.`,
         target_business: entry.target_business,
         status: 'planned',
         created_at: nowISO,
-      });
+      }, { onConflict: 'week_start,day,keyword_primary', ignoreDuplicates: true });
+      if (calError) {
+        console.warn('[SEO] Calendar insert warning:', calError.message);
+      }
     }
 
     // Log

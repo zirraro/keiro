@@ -138,8 +138,31 @@ export async function GET(request: NextRequest) {
           })
         });
         publishResult = await res.json();
+      } else if (post.platform === 'linkedin') {
+        if (!profile.linkedin_access_token) {
+          await supabase.from('scheduled_posts').update({ status: 'failed', error_message: 'LinkedIn non connecté' }).eq('id', post.id);
+          results.push({ id: post.id, platform: post.platform, ok: false, error: 'LinkedIn not connected' });
+          continue;
+        }
+
+        const res = await fetch(`${baseUrl}/api/library/linkedin/publish`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${cronSecret}`,
+            'x-user-id': post.user_id,
+          },
+          body: JSON.stringify({
+            imageUrl: imageUrl || undefined,
+            caption: post.caption || '',
+            hashtags: post.hashtags || [],
+            mediaType: imageUrl ? 'image' : 'text',
+            _scheduledPublish: true,
+            _userId: post.user_id,
+          })
+        });
+        publishResult = await res.json();
       } else {
-        // LinkedIn, Twitter, Facebook — not yet auto-published
         console.log(`[PublishScheduled] Platform ${post.platform} not yet supported for auto-publish`);
         results.push({ id: post.id, platform: post.platform, ok: false, error: 'Platform not supported yet' });
         continue;

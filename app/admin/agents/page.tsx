@@ -1570,7 +1570,7 @@ function AdminAgentsContent() {
               Agents IA
             </h1>
             <p className="text-sm text-neutral-500 mt-0.5">
-              Supervision du syst\u00E8me multi-agents KeiroAI
+              Supervision du système multi-agents KeiroAI
             </p>
           </div>
           <div className="flex gap-2">
@@ -1820,13 +1820,13 @@ function AdminAgentsContent() {
                               )}
                             </div>
 
-                            {/* Dernier email - apercu rapide */}
+                            {/* Dernier email - complet */}
                             {!loadingEmails && prospectEmails.length > 0 && prospectEmails[0]?.data?.subject && (
                               <div className="mb-3 bg-amber-50 border border-amber-200 rounded-lg p-3">
                                 <p className="text-[10px] font-semibold text-amber-700 uppercase mb-1">Dernier email envoye</p>
                                 <p className="text-xs font-semibold text-amber-900 mb-1">{prospectEmails[0].data.subject}</p>
                                 {prospectEmails[0].data?.body ? (
-                                  <p className="text-[11px] text-amber-800 whitespace-pre-line line-clamp-3">{prospectEmails[0].data.body.substring(0, 300)}{prospectEmails[0].data.body.length > 300 ? '...' : ''}</p>
+                                  <div className="text-[11px] text-amber-800 whitespace-pre-line leading-relaxed max-h-[400px] overflow-y-auto bg-white/60 rounded p-2 border border-amber-100">{prospectEmails[0].data.body}</div>
                                 ) : (
                                   <p className="text-[10px] text-amber-600 italic">{prospectEmails[0].description || 'Contenu non enregistre (ancien envoi)'}</p>
                                 )}

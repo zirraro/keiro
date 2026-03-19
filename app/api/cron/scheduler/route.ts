@@ -149,6 +149,16 @@ export async function GET(request: NextRequest) {
       await callEndpoint('Content (TikTok)', '/api/agents/content?slot=tiktok');
       break;
 
+    case 'content_linkedin_1':
+      // 09:30 UTC — LinkedIn: 1st post of the day (morning professional)
+      await callEndpoint('Content (LinkedIn AM)', '/api/agents/content?slot=linkedin_1');
+      break;
+
+    case 'content_linkedin_2':
+      // 14:00 UTC — LinkedIn: 2nd post of the day (afternoon professional)
+      await callEndpoint('Content (LinkedIn PM)', '/api/agents/content?slot=linkedin_2');
+      break;
+
     case 'discovery_6':
       // 16:30 UTC — Commercial: full run (end of day cleanup)
       fireBackground(async () => {
@@ -235,7 +245,7 @@ export async function GET(request: NextRequest) {
         await callParallel(
           ['DM Instagram (morning)', '/api/agents/dm-instagram?slot=morning', 'POST'],
           ['SEO', '/api/agents/seo'],
-          ['Content', '/api/agents/content'],
+          ['Content', '/api/agents/content?slot=morning'],
         );
       });
       results.push({ task: 'Morning Prep', ok: true, data: { status: 'dispatched_background' } });

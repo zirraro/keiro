@@ -471,7 +471,7 @@ function HomeKeiroInner() {
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#0c1a3a] to-[#1e3a5f] ring-2 ring-[#1e3a5f]/30"></div>
                   <span className="text-sm font-semibold">coach_maxime</span>
-                  <span className="text-xs bg-[#0c1a3a]/10 text-[#0c1a3a] px-2 py-0.5 rounded-full font-medium">{t.home.afterBadge}</span>
+                  <span className="text-xs bg-neutral-100 text-neutral-800 px-2 py-0.5 rounded-full font-medium">{t.home.afterBadge}</span>
                 </div>
                 <p className="text-sm text-neutral-800 leading-relaxed whitespace-pre-line">
                   <span className="font-bold text-[#0c1a3a]">{t.home.afterCaptionTitle}</span> 💪{'\n\n'}
@@ -497,28 +497,28 @@ function HomeKeiroInner() {
 
         {/* Explication sous les images */}
         <FadeUp>
-        <div className="mt-8 bg-[#0c1a3a]/5 rounded-2xl border border-[#0c1a3a]/10 p-6">
-          <h3 className="text-lg font-bold text-[#0c1a3a] mb-3">{t.home.changeTitle}</h3>
+        <div className="mt-8 bg-neutral-50 rounded-2xl border border-neutral-200 p-6">
+          <h3 className="text-lg font-bold text-neutral-900 mb-3">{t.home.changeTitle}</h3>
           <div className="grid md:grid-cols-3 gap-4">
             <div className="flex items-start gap-2">
-              <span className="text-[#0c1a3a] text-xl">✓</span>
+              <span className="text-emerald-600 text-xl">✓</span>
               <div>
-                <p className="text-sm font-semibold text-[#0c1a3a]">{t.home.change1Title}</p>
-                <p className="text-xs text-[#0c1a3a]">{t.home.change1Desc}</p>
+                <p className="text-sm font-semibold text-neutral-900">{t.home.change1Title}</p>
+                <p className="text-xs text-neutral-600">{t.home.change1Desc}</p>
               </div>
             </div>
             <div className="flex items-start gap-2">
-              <span className="text-[#0c1a3a] text-xl">✓</span>
+              <span className="text-emerald-600 text-xl">✓</span>
               <div>
-                <p className="text-sm font-semibold text-[#0c1a3a]">{t.home.change2Title}</p>
-                <p className="text-xs text-[#0c1a3a]">{t.home.change2Desc}</p>
+                <p className="text-sm font-semibold text-neutral-900">{t.home.change2Title}</p>
+                <p className="text-xs text-neutral-600">{t.home.change2Desc}</p>
               </div>
             </div>
             <div className="flex items-start gap-2">
-              <span className="text-[#0c1a3a] text-xl">✓</span>
+              <span className="text-emerald-600 text-xl">✓</span>
               <div>
-                <p className="text-sm font-semibold text-[#0c1a3a]">{t.home.change3Title}</p>
-                <p className="text-xs text-[#0c1a3a]">{t.home.change3Desc}</p>
+                <p className="text-sm font-semibold text-neutral-900">{t.home.change3Title}</p>
+                <p className="text-xs text-neutral-600">{t.home.change3Desc}</p>
               </div>
             </div>
           </div>
@@ -1735,12 +1735,12 @@ function QuizAndCalculator() {
               <div className="text-2xl font-bold text-neutral-900">{costGraphiste.toLocaleString()}€</div>
             </div>
 
-            <div className="bg-[#0c1a3a]/10 rounded-xl p-5 flex items-center justify-between">
+            <div className="bg-emerald-50 rounded-xl p-5 flex items-center justify-between border border-emerald-200">
               <div>
-                <div className="text-sm text-[#0c1a3a] font-semibold mb-1">{t.home.calcKeiro}</div>
-                <div className="text-xs text-[#0c1a3a]">{t.home.calcKeiroSub}</div>
+                <div className="text-sm text-emerald-800 font-semibold mb-1">{t.home.calcKeiro}</div>
+                <div className="text-xs text-emerald-700">{t.home.calcKeiroSub}</div>
               </div>
-              <div className="text-2xl font-bold text-[#0c1a3a]">{costKeiro}€</div>
+              <div className="text-2xl font-bold text-emerald-700">{costKeiro}€</div>
             </div>
 
             <div className="bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] rounded-xl p-6 text-white">
@@ -1757,8 +1757,8 @@ function QuizAndCalculator() {
             </div>
           </div>
 
-          <div className="bg-[#0c1a3a]/5 border border-[#0c1a3a]/10 rounded-xl p-4 mb-6">
-            <p className="text-sm text-[#0c1a3a]" dangerouslySetInnerHTML={{ __html: t.home.calcTip }} />
+          <div className="bg-neutral-50 border border-neutral-200 rounded-xl p-4 mb-6">
+            <p className="text-sm text-neutral-700" dangerouslySetInnerHTML={{ __html: t.home.calcTip }} />
           </div>
 
           <a

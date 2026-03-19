@@ -364,9 +364,11 @@ export default function Header() {
                     </div>
                   )}
                 </div>
-                <span className={`text-sm font-semibold ${isLight ? 'text-neutral-800' : 'text-white'}`}>
-                  {profile.first_name || user.email?.split('@')[0]}
-                </span>
+                {(profile.first_name?.length > 2 || (!profile.first_name && user.email)) && (
+                  <span className={`text-sm font-semibold ${isLight ? 'text-neutral-800' : 'text-white'}`}>
+                    {profile.first_name || user.email?.split('@')[0]}
+                  </span>
+                )}
                 <svg className={`w-4 h-4 ${isLight ? 'text-neutral-400' : 'text-white/60'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>

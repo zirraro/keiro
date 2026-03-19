@@ -76,6 +76,7 @@ type ContentPost = {
   instagram_permalink: string | null;
   tiktok_publish_id: string | null;
   tiktok_permalink: string | null;
+  linkedin_permalink: string | null;
   created_at: string;
 };
 
@@ -112,11 +113,12 @@ type CalendarPost = {
   instagram_permalink: string | null;
   tiktok_publish_id: string | null;
   tiktok_permalink: string | null;
+  linkedin_permalink: string | null;
   published_at: string | null;
   created_at: string;
 };
 
-type MainTab = 'dm_instagram' | 'dm_tiktok' | 'comment_instagram' | 'follow_instagram' | 'follow_tiktok' | 'email' | 'pub_instagram' | 'pub_tiktok' | 'seo' | 'planning';
+type MainTab = 'dm_instagram' | 'dm_tiktok' | 'email' | 'pub_instagram' | 'pub_tiktok' | 'pub_linkedin' | 'seo' | 'planning';
 type DMSubTab = 'pending' | 'sent' | 'responded';
 type EmailSubTab = 'all' | 'step1' | 'step2' | 'step3_plus' | 'sent' | 'draft';
 type PubSubTab = 'all' | 'draft' | 'published';
@@ -157,7 +159,7 @@ function SuiviPublicationsPage() {
   const searchParams = useSearchParams();
   const initialTab = (() => {
     const t = searchParams.get('tab');
-    const validTabs: MainTab[] = ['dm_instagram', 'dm_tiktok', 'comment_instagram', 'follow_instagram', 'follow_tiktok', 'email', 'pub_instagram', 'pub_tiktok', 'seo', 'planning'];
+    const validTabs: MainTab[] = ['dm_instagram', 'dm_tiktok', 'email', 'pub_instagram', 'pub_tiktok', 'pub_linkedin', 'seo', 'planning'];
     if (t && validTabs.includes(t as MainTab)) return t as MainTab;
     return 'dm_instagram' as MainTab;
   })();
@@ -208,9 +210,7 @@ function SuiviPublicationsPage() {
   const router = useRouter();
 
   const isDmTab = mainTab === 'dm_instagram' || mainTab === 'dm_tiktok';
-  const isCommentTab = mainTab === 'comment_instagram';
-  const isFollowTab = mainTab === 'follow_instagram' || mainTab === 'follow_tiktok';
-  const isPubTab = mainTab === 'pub_instagram' || mainTab === 'pub_tiktok';
+  const isPubTab = mainTab === 'pub_instagram' || mainTab === 'pub_tiktok' || mainTab === 'pub_linkedin';
   const isSeoTab = mainTab === 'seo';
   const isPlanningTab = mainTab === 'planning';
   const isEmailTab = mainTab === 'email';
@@ -231,12 +231,8 @@ function SuiviPublicationsPage() {
     if (!profile?.is_admin) { router.push('/'); return; }
     setIsAdmin(true);
 
-    if (isDmTab || isCommentTab || isFollowTab) {
-      const channel = mainTab === 'dm_instagram' ? 'instagram'
-        : mainTab === 'dm_tiktok' ? 'tiktok'
-        : mainTab === 'comment_instagram' ? 'comment_instagram'
-        : mainTab === 'follow_instagram' ? 'follow_instagram'
-        : 'follow_tiktok';
+    if (isDmTab) {
+      const channel = mainTab === 'dm_instagram' ? 'instagram' : 'tiktok';
 
       const { from: dateFrom, to: dateTo } = getDateRange();
 
@@ -267,7 +263,7 @@ function SuiviPublicationsPage() {
       const { data } = await query.limit(50);
       setDmItems((data as any) || []);
     } else if (isPubTab) {
-      const network = mainTab === 'pub_instagram' ? 'instagram' : 'tiktok';
+      const network = mainTab === 'pub_instagram' ? 'instagram' : mainTab === 'pub_linkedin' ? 'linkedin' : 'tiktok';
       let query = supabase
         .from('content_calendar')
         .select('*')
@@ -283,6 +279,8 @@ function SuiviPublicationsPage() {
         query = query.eq('status', 'published');
         if (network === 'instagram') {
           query = query.not('instagram_permalink', 'is', null);
+        } else if (network === 'linkedin') {
+          query = query.not('linkedin_permalink', 'is', null);
         } else {
           query = query.not('tiktok_publish_id', 'is', null);
         }
@@ -407,7 +405,7 @@ function SuiviPublicationsPage() {
     }
 
     setLoading(false);
-  }, [mainTab, dmSubTab, pubSubTab, router, isDmTab, isCommentTab, isFollowTab, isPubTab, isSeoTab, isPlanningTab, isEmailTab, emailSubTab, calendarWeekOffset, getDateRange]);
+  }, [mainTab, dmSubTab, pubSubTab, router, isDmTab, isPubTab, isSeoTab, isPlanningTab, isEmailTab, emailSubTab, calendarWeekOffset, getDateRange]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -611,12 +609,10 @@ function SuiviPublicationsPage() {
   const MAIN_TABS: { key: MainTab; label: string; icon: string }[] = [
     { key: 'dm_instagram', label: 'DM Instagram', icon: '📸' },
     { key: 'dm_tiktok', label: 'DM TikTok', icon: '🎵' },
-    { key: 'comment_instagram', label: 'Commentaires', icon: '💬' },
-    { key: 'follow_instagram', label: 'Follow Insta', icon: '👥' },
-    { key: 'follow_tiktok', label: 'Follow TikTok', icon: '👥' },
     { key: 'email', label: 'Emails', icon: '📧' },
     { key: 'pub_instagram', label: 'Publi. Instagram', icon: '📷' },
     { key: 'pub_tiktok', label: 'Publi. TikTok', icon: '🎬' },
+    { key: 'pub_linkedin', label: 'Publi. LinkedIn', icon: '💼' },
     { key: 'seo', label: 'Articles SEO', icon: '📝' },
     { key: 'planning', label: 'Planning', icon: '📅' },
   ];
@@ -667,7 +663,7 @@ function SuiviPublicationsPage() {
         </div>
 
         {/* Date Filter */}
-        {(isDmTab || isCommentTab || isFollowTab || isEmailTab) && (
+        {(isDmTab || isEmailTab) && (
           <div className="flex flex-wrap items-center gap-2 mb-4">
             {(['24h', '7d', '14d', 'custom'] as const).map(p => (
               <button
@@ -701,30 +697,30 @@ function SuiviPublicationsPage() {
         )}
 
         {/* Mini Dashboard */}
-        {(isDmTab || isCommentTab || isFollowTab || isEmailTab) && !loading && (tabStats.pending > 0 || tabStats.sent > 0 || tabStats.responded > 0) && (
+        {(isDmTab || isEmailTab) && !loading && (tabStats.pending > 0 || tabStats.sent > 0 || tabStats.responded > 0) && (
           <div className="grid grid-cols-3 gap-3 mb-4">
             <div className="bg-amber-50 rounded-xl p-3 text-center border border-amber-100">
               <p className="text-2xl font-bold text-amber-700">{tabStats.pending}</p>
-              <p className="text-[10px] text-amber-600 font-medium">{isEmailTab ? 'Emails envoyes' : isFollowTab ? 'A suivre' : isCommentTab ? 'A poster' : 'En attente'}</p>
+              <p className="text-[10px] text-amber-600 font-medium">{isEmailTab ? 'Emails envoyes' : 'En attente'}</p>
             </div>
             <div className="bg-green-50 rounded-xl p-3 text-center border border-green-100">
               <p className="text-2xl font-bold text-green-700">{tabStats.sent}</p>
-              <p className="text-[10px] text-green-600 font-medium">{isEmailTab ? 'Ouverts' : isFollowTab ? 'Suivis' : isCommentTab ? 'Postes' : 'Envoyes'}</p>
+              <p className="text-[10px] text-green-600 font-medium">{isEmailTab ? 'Ouverts' : 'Envoyes'}</p>
             </div>
-            <div className="bg-[#0c1a3a]/5 rounded-xl p-3 text-center border border-[#0c1a3a]/8">
-              <p className="text-2xl font-bold text-[#0c1a3a]">{tabStats.responded}</p>
-              <p className="text-[10px] text-[#0c1a3a] font-medium">{isEmailTab ? 'Reponses' : isFollowTab ? 'Follow back' : isCommentTab ? 'Reponses' : 'Reponses'}</p>
+            <div className="bg-neutral-50 rounded-xl p-3 text-center border border-neutral-200">
+              <p className="text-2xl font-bold text-neutral-800">{tabStats.responded}</p>
+              <p className="text-[10px] text-neutral-600 font-medium">{isEmailTab ? 'Reponses' : 'Reponses'}</p>
             </div>
           </div>
         )}
 
         {/* Sub Tabs */}
-        {(isDmTab || isCommentTab || isFollowTab) && (
+        {isDmTab && (
           <div className="flex gap-1 bg-neutral-100/50 p-1 rounded-lg mb-6 w-fit">
             {([
-              { key: 'pending' as const, label: isFollowTab ? 'A suivre' : isCommentTab ? 'A poster' : 'En attente' },
-              { key: 'sent' as const, label: isFollowTab ? 'Suivis' : isCommentTab ? 'Postes' : 'Envoyés' },
-              { key: 'responded' as const, label: isFollowTab ? 'Follow back' : isCommentTab ? 'Reponses' : 'Réponses' },
+              { key: 'pending' as const, label: 'En attente' },
+              { key: 'sent' as const, label: 'Envoyés' },
+              { key: 'responded' as const, label: 'Réponses' },
             ]).map(t => (
               <button
                 key={t.key}
@@ -797,106 +793,21 @@ function SuiviPublicationsPage() {
         ) : (
           <>
             {/* DM Items */}
-            {(isDmTab || isCommentTab || isFollowTab) && (
+            {isDmTab && (
               dmItems.length === 0 ? (
                 <div className="text-center py-12">
                   <p className="text-neutral-400 mb-4">
                   {dmSubTab === 'pending'
-                    ? (isCommentTab
-                      ? 'Aucun commentaire pret.'
-                      : isFollowTab
-                      ? 'Aucun compte a suivre.'
-                      : `Aucun DM ${mainTab === 'dm_instagram' ? 'Instagram' : 'TikTok'} en attente.`)
+                    ? `Aucun DM ${mainTab === 'dm_instagram' ? 'Instagram' : 'TikTok'} en attente.`
                     : 'Aucun élément.'}
                   </p>
-                  {dmSubTab === 'pending' && (isFollowTab || isCommentTab) && (
-                    <button
-                      onClick={async () => {
-                        const platform = mainTab.includes('tiktok') ? 'tiktok' : 'instagram';
-                        const action = isFollowTab ? 'find_follow_targets' : 'prepare_comments';
-                        const btn = document.getElementById('launch-agent-btn');
-                        if (btn) btn.textContent = 'Lancement en cours...';
-                        try {
-                          const res = await fetch('/api/agents/marketing', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            credentials: 'include',
-                            body: JSON.stringify({ action, platform, count: 15 }),
-                          });
-                          const data = await res.json();
-                          if (btn) btn.textContent = data.ok
-                            ? `${isFollowTab ? data.targets_inserted || 0 : data.comments_inserted || 0} ${isFollowTab ? 'comptes trouves' : 'commentaires prepares'}`
-                            : `Erreur: ${data.error}`;
-                          fetchData();
-                        } catch (e: any) {
-                          if (btn) btn.textContent = `Erreur: ${e.message}`;
-                        }
-                      }}
-                      id="launch-agent-btn"
-                      className="px-6 py-2.5 text-sm font-medium bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition shadow-sm"
-                    >
-                      {isFollowTab
-                        ? `Trouver des comptes ${mainTab.includes('tiktok') ? 'TikTok' : 'Instagram'} a suivre`
-                        : `Preparer des commentaires ${mainTab.includes('tiktok') ? 'TikTok' : 'Instagram'}`}
-                    </button>
-                  )}
                 </div>
               ) : (
-                <div className={isFollowTab ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3' : 'space-y-4'}>
+                <div className="space-y-4">
                   {dmItems.map((item, i) => {
                     const prospect = Array.isArray(item.prospect) ? item.prospect[0] : item.prospect;
                     const perso = parsePersonalization(item.personalization);
                     const persoText = perso?.detail || perso?.strategy || item.personalization;
-
-                    // ─── Follow card: compact with big Follow button ───
-                    if (isFollowTab) {
-                      const platform = mainTab.includes('tiktok') ? 'tiktok' : 'instagram';
-                      const profileUrl = platform === 'tiktok'
-                        ? `https://tiktok.com/@${item.handle.replace('@', '')}`
-                        : `https://instagram.com/${item.handle.replace('@', '')}`;
-                      return (
-                        <div key={item.id} className="bg-white rounded-xl border border-neutral-200 shadow-sm p-4 flex flex-col gap-3">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0">
-                              <p className="text-sm font-bold text-neutral-900 truncate">{perso?.name || prospect?.company || item.handle}</p>
-                              <p className="text-xs text-neutral-500">@{item.handle.replace('@', '')}</p>
-                              <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                {perso?.type && <span className="text-[10px] px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded-full">{perso.type}</span>}
-                                {perso?.city && <span className="text-[10px] px-1.5 py-0.5 bg-[#0c1a3a]/10 text-[#0c1a3a] rounded-full">{perso.city}</span>}
-                                {perso?.followers && <span className="text-[10px] px-1.5 py-0.5 bg-neutral-100 text-neutral-600 rounded-full">{perso.followers}</span>}
-                              </div>
-                            </div>
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ${
-                              item.status === 'sent' ? 'bg-green-100 text-green-700' :
-                              item.status === 'pending' ? 'bg-amber-100 text-amber-700' :
-                              'bg-neutral-100 text-neutral-600'
-                            }`}>{item.status === 'sent' ? 'Suivi' : item.status === 'pending' ? 'A suivre' : item.status}</span>
-                          </div>
-                          {perso?.reason && <p className="text-xs text-neutral-500 italic line-clamp-2">{perso.reason}</p>}
-                          <div className="flex gap-2 mt-auto">
-                            <a
-                              href={profileUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className={`flex-1 py-2.5 text-sm font-bold text-white text-center rounded-xl hover:opacity-90 transition shadow-sm ${
-                                platform === 'tiktok' ? 'bg-black' : 'bg-gradient-to-r from-purple-600 to-pink-600'
-                              }`}
-                            >
-                              Follow @{item.handle.replace('@', '')}
-                            </a>
-                            {item.status === 'pending' && (
-                              <button
-                                onClick={() => updateDmStatus(item.id, 'sent')}
-                                className="px-3 py-2.5 text-xs font-medium bg-green-600 text-white rounded-xl hover:bg-green-700 transition"
-                                title="Marquer comme suivi"
-                              >
-                                Done
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    }
 
                     return (
                       <div key={item.id} className="bg-white rounded-xl border border-neutral-200 shadow-sm overflow-hidden">
@@ -924,26 +835,6 @@ function SuiviPublicationsPage() {
                         </div>
 
                         <div className="px-4 py-3">
-                          {/* Post context for comment items */}
-                          {isCommentTab && perso?.post_media_url && (
-                            <div className="mb-3 flex gap-3 bg-neutral-50 rounded-lg p-2 border border-neutral-100">
-                              <img src={perso.post_media_url} alt="" className="w-20 h-20 rounded-lg object-cover shrink-0" />
-                              <div className="min-w-0">
-                                <p className="text-[10px] font-bold text-neutral-400 mb-0.5">Post du prospect</p>
-                                <p className="text-xs text-neutral-600 line-clamp-3">{perso.post_caption || ''}</p>
-                                {(perso.post_likes || perso.post_comments) && (
-                                  <p className="text-[10px] text-neutral-400 mt-1">{perso.post_likes || 0} likes · {perso.post_comments || 0} commentaires</p>
-                                )}
-                              </div>
-                            </div>
-                          )}
-                          {isCommentTab && !perso?.post_media_url && perso?.post_caption && (
-                            <div className="mb-3 bg-neutral-50 rounded-lg p-2 border border-neutral-100">
-                              <p className="text-[10px] font-bold text-neutral-400 mb-0.5">Post du prospect</p>
-                              <p className="text-xs text-neutral-600 line-clamp-3">{perso.post_caption}</p>
-                            </div>
-                          )}
-
                           {/* Personalized visual for prospect */}
                           {perso?.visual_url && (
                             <div className="mb-3">
@@ -973,29 +864,24 @@ function SuiviPublicationsPage() {
                           ) : (
                             <div
                               onClick={() => dmSubTab === 'pending' ? startEditDm(item.id, item.message) : undefined}
-                              className={`${isCommentTab ? 'bg-green-50 border-green-200' : 'bg-[#0c1a3a]/5 border-[#0c1a3a]/10'} border rounded-lg p-3 text-sm text-neutral-800 whitespace-pre-wrap leading-relaxed ${dmSubTab === 'pending' ? 'cursor-pointer hover:ring-2 hover:ring-[#0c1a3a]/20 transition' : ''}`}
+                              className={`bg-neutral-50 border-neutral-200 border rounded-lg p-3 text-sm text-neutral-800 whitespace-pre-wrap leading-relaxed ${dmSubTab === 'pending' ? 'cursor-pointer hover:ring-2 hover:ring-[#0c1a3a]/20 transition' : ''}`}
                               title={dmSubTab === 'pending' ? 'Cliquer pour modifier' : undefined}
                             >
                               {item.message}
                             </div>
                           )}
-                          {isCommentTab && perso?.strategy_note && (
-                            <p className="text-[10px] text-neutral-400 mt-1.5 italic">Strategie : {perso.strategy_note}</p>
-                          )}
-                          {!isCommentTab && persoText && (
+                          {persoText && (
                             <p className="text-[10px] text-neutral-400 mt-1.5 italic">
                               Personnalisation : {persoText}
                               {perso?.tone_notes && ` · Ton : ${perso.tone_notes}`}
                             </p>
                           )}
-                          {!isCommentTab && !isFollowTab && (
                           <button
                             onClick={() => setExpandedId(expandedId === item.id ? null : item.id)}
                             className="text-[10px] text-[#0c1a3a] hover:underline mt-1"
                           >
                             {expandedId === item.id ? 'Masquer' : 'Relances & réponses types'}
                           </button>
-                          )}
                           {expandedId === item.id && (
                             <div className="mt-3 space-y-2">
                               {item.followup_message && (
@@ -1041,45 +927,32 @@ function SuiviPublicationsPage() {
                         <div className="px-4 py-3 border-t bg-neutral-50">
                           {dmSubTab === 'pending' && (
                             <div className="flex gap-2">
-                              {!isFollowTab && (
-                                <button
-                                  onClick={() => copyToClipboard(item.message, item.id)}
-                                  className={`flex-1 py-2 text-xs font-medium rounded-lg transition ${
-                                    copiedId === item.id ? 'bg-green-600 text-white' : 'bg-[#0c1a3a] text-white hover:bg-[#1e3a5f]'
-                                  }`}
-                                >
-                                  {copiedId === item.id ? 'Copié !' : isCommentTab ? 'Copier commentaire' : 'Copier le texte'}
-                                </button>
-                              )}
-                              {isCommentTab && perso?.post_permalink ? (
-                                <a
-                                  href={perso.post_permalink}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex-1 py-2 text-xs font-medium text-white text-center rounded-lg hover:opacity-90 transition bg-gradient-to-r from-purple-600 to-pink-600"
-                                >
-                                  Ouvrir le post
-                                </a>
-                              ) : (
-                                <a
-                                  href={item.channel.includes('tiktok')
-                                    ? `https://tiktok.com/@${item.handle.replace('@', '')}`
-                                    : `https://instagram.com/${item.handle.replace('@', '')}`
-                                  }
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className={`flex-1 py-2 text-xs font-medium text-white text-center rounded-lg hover:opacity-90 transition ${
-                                    item.channel.includes('tiktok') ? 'bg-gradient-to-r from-cyan-600 to-[#1e3a5f]' : 'bg-gradient-to-r from-purple-600 to-pink-600'
-                                  }`}
-                                >
-                                  Ouvrir {item.channel.includes('tiktok') ? 'TikTok' : 'Instagram'}
-                                </a>
-                              )}
+                              <button
+                                onClick={() => copyToClipboard(item.message, item.id)}
+                                className={`flex-1 py-2 text-xs font-medium rounded-lg transition ${
+                                  copiedId === item.id ? 'bg-green-600 text-white' : 'bg-[#0c1a3a] text-white hover:bg-[#1e3a5f]'
+                                }`}
+                              >
+                                {copiedId === item.id ? 'Copié !' : 'Copier le texte'}
+                              </button>
+                              <a
+                                href={item.channel.includes('tiktok')
+                                  ? `https://tiktok.com/@${item.handle.replace('@', '')}`
+                                  : `https://instagram.com/${item.handle.replace('@', '')}`
+                                }
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={`flex-1 py-2 text-xs font-medium text-white text-center rounded-lg hover:opacity-90 transition ${
+                                  item.channel.includes('tiktok') ? 'bg-gradient-to-r from-cyan-600 to-[#1e3a5f]' : 'bg-gradient-to-r from-purple-600 to-pink-600'
+                                }`}
+                              >
+                                Ouvrir {item.channel.includes('tiktok') ? 'TikTok' : 'Instagram'}
+                              </a>
                               <button
                                 onClick={() => updateDmStatus(item.id, 'sent')}
                                 className="px-4 py-2 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
                               >
-                                {isFollowTab ? 'Suivi' : isCommentTab ? 'Poste' : 'Envoyé'}
+                                Envoyé
                               </button>
                               <button
                                 onClick={() => updateDmStatus(item.id, 'skipped')}
@@ -1192,12 +1065,12 @@ function SuiviPublicationsPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-0.5">
                             <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
-                              post.status === 'published' && (post.instagram_permalink || post.tiktok_publish_id) ? 'bg-green-100 text-green-700' :
+                              post.status === 'published' && (post.instagram_permalink || post.tiktok_publish_id || post.linkedin_permalink) ? 'bg-green-100 text-green-700' :
                               post.status === 'scheduled' ? 'bg-[#0c1a3a]/10 text-[#0c1a3a]' :
                               post.status === 'approved' ? 'bg-purple-100 text-purple-700' :
                               'bg-amber-100 text-amber-700'
                             }`}>
-                              {post.status === 'published' && (post.instagram_permalink || post.tiktok_publish_id) ? 'Publié' :
+                              {post.status === 'published' && (post.instagram_permalink || post.tiktok_publish_id || post.linkedin_permalink) ? 'Publié' :
                                post.status === 'scheduled' ? 'Planifié' :
                                post.status === 'approved' ? 'Approuvé' : 'Brouillon'}
                             </span>
@@ -1213,7 +1086,7 @@ function SuiviPublicationsPage() {
 
                         {/* Compact actions */}
                         <div className="flex gap-1.5 shrink-0" onClick={e => e.stopPropagation()}>
-                          {!(post.instagram_permalink || post.tiktok_publish_id) && (
+                          {!(post.instagram_permalink || post.tiktok_publish_id || post.linkedin_permalink) && (
                             <button
                               onClick={() => post.status === 'published' ? republishSinglePost(post.id) : publishPost(post.id)}
                               disabled={publishingPostId === post.id}
@@ -1426,11 +1299,11 @@ function SuiviPublicationsPage() {
                                     {post.platform === 'instagram' ? 'IG' : post.platform === 'tiktok' ? 'TT' : 'LI'}
                                   </span>
                                   <span className={`absolute top-1 right-1 text-[8px] px-1 py-0.5 rounded font-bold ${
-                                    post.status === 'published' && (post.instagram_permalink || post.tiktok_publish_id) ? 'bg-green-500 text-white' :
+                                    post.status === 'published' && (post.instagram_permalink || post.tiktok_publish_id || post.linkedin_permalink) ? 'bg-green-500 text-white' :
                                     post.status === 'scheduled' ? 'bg-[#0c1a3a] text-white' :
                                     'bg-amber-500 text-white'
                                   }`}>
-                                    {post.status === 'published' && (post.instagram_permalink || post.tiktok_publish_id) ? 'OK' : post.status === 'scheduled' ? 'Plan' : 'Draft'}
+                                    {post.status === 'published' && (post.instagram_permalink || post.tiktok_publish_id || post.linkedin_permalink) ? 'OK' : post.status === 'scheduled' ? 'Plan' : 'Draft'}
                                   </span>
                                 </div>
                               ) : (
@@ -1497,12 +1370,13 @@ function SuiviPublicationsPage() {
                         {/* Status & meta */}
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                            selectedPost.status === 'published' && (selectedPost.instagram_permalink || selectedPost.tiktok_publish_id) ? 'bg-green-100 text-green-700' :
+                            selectedPost.status === 'published' && (selectedPost.instagram_permalink || selectedPost.tiktok_publish_id || selectedPost.linkedin_permalink) ? 'bg-green-100 text-green-700' :
                             selectedPost.status === 'scheduled' ? 'bg-[#0c1a3a]/10 text-[#0c1a3a]' :
                             'bg-amber-100 text-amber-700'
                           }`}>
                             {selectedPost.status === 'published' && selectedPost.instagram_permalink ? 'Publié sur IG' :
                              selectedPost.status === 'published' && selectedPost.tiktok_publish_id ? 'Publié sur TikTok' :
+                             selectedPost.status === 'published' && selectedPost.linkedin_permalink ? 'Publié sur LinkedIn' :
                              selectedPost.status === 'scheduled' ? 'Planifié' : 'Brouillon'}
                           </span>
                           <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
@@ -1559,7 +1433,7 @@ function SuiviPublicationsPage() {
                         {/* Actions */}
                         <div className="flex gap-2 pt-2 border-t flex-wrap">
                           {/* Republish: published but NOT actually on the platform */}
-                          {!(selectedPost.instagram_permalink || selectedPost.tiktok_publish_id) && (
+                          {!(selectedPost.instagram_permalink || selectedPost.tiktok_publish_id || selectedPost.linkedin_permalink) && (
                             <button
                               onClick={() => selectedPost.status === 'published' ? republishSinglePost(selectedPost.id) : publishPost(selectedPost.id)}
                               disabled={publishingPostId === selectedPost.id}

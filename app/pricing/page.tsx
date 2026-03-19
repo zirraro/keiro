@@ -161,10 +161,10 @@ function PricingPageInner() {
         {/* Hero Section */}
         <FadeUp>
         <div className="text-center mb-16">
-          <ScaleIn><div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-[#0c1a3a]/10 to-cyan-100 text-[#0c1a3a] text-sm font-medium mb-6">
+          <ScaleIn><div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 border border-neutral-200 text-neutral-800 text-sm font-medium mb-6 shadow-sm backdrop-blur-sm">
             <span className="flex h-2 w-2 relative">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#0c1a3a]/60 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#0c1a3a]"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500/60 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
             {t.pricing.badge}
           </div></ScaleIn>
@@ -541,8 +541,8 @@ function PricingPageInner() {
         <div className="bg-white rounded-2xl border border-neutral-200 p-6 mb-10">
           <h3 className="text-lg font-bold text-neutral-900 mb-4 text-center">{t.pricing.creditTitle}</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center text-sm">
-            <div className="p-3 bg-[#0c1a3a]/5 rounded-lg"><p className="font-bold text-[#0c1a3a]">5 cr</p><p className="text-xs text-neutral-600">{t.pricing.creditImage}</p></div>
-            <div className="p-3 bg-[#0c1a3a]/5 rounded-lg"><p className="font-bold text-[#0c1a3a]">3 cr</p><p className="text-xs text-neutral-600">{t.pricing.creditImageEdit}</p></div>
+            <div className="p-3 bg-blue-50 rounded-lg border border-blue-100"><p className="font-bold text-blue-800">5 cr</p><p className="text-xs text-neutral-600">{t.pricing.creditImage}</p></div>
+            <div className="p-3 bg-blue-50 rounded-lg border border-blue-100"><p className="font-bold text-blue-800">3 cr</p><p className="text-xs text-neutral-600">{t.pricing.creditImageEdit}</p></div>
             <div className="p-3 bg-purple-50 rounded-lg"><p className="font-bold text-purple-700">25 cr</p><p className="text-xs text-neutral-600">{t.pricing.creditVideo5s}</p></div>
             <div className="p-3 bg-purple-50 rounded-lg"><p className="font-bold text-purple-700">40 cr</p><p className="text-xs text-neutral-600">{t.pricing.creditVideo10s}</p></div>
             <div className="p-3 bg-green-50 rounded-lg"><p className="font-bold text-green-700">1 cr</p><p className="text-xs text-neutral-600">{t.pricing.creditAiSuggestion}</p></div>
