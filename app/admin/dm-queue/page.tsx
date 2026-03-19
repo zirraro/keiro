@@ -201,6 +201,7 @@ function SuiviPublicationsPage() {
   }, [datePreset, customDateFrom, customDateTo]);
 
   // UI
+  const [pubViewMode, setPubViewMode] = useState<'list' | 'card'>('card');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -999,6 +1000,21 @@ function SuiviPublicationsPage() {
               <div className="flex items-center justify-between mb-4">
                 <p className="text-xs text-neutral-500">{contentPosts.length} post{contentPosts.length !== 1 ? 's' : ''}</p>
                 <div className="flex items-center gap-3">
+                  {/* View mode toggle */}
+                  <div className="flex bg-neutral-100 rounded-lg p-0.5">
+                    <button
+                      onClick={() => setPubViewMode('card')}
+                      className={`px-2 py-1 text-[10px] font-medium rounded-md transition ${pubViewMode === 'card' ? 'bg-white shadow-sm text-neutral-800' : 'text-neutral-500 hover:text-neutral-700'}`}
+                    >
+                      Cartes
+                    </button>
+                    <button
+                      onClick={() => setPubViewMode('list')}
+                      className={`px-2 py-1 text-[10px] font-medium rounded-md transition ${pubViewMode === 'list' ? 'bg-white shadow-sm text-neutral-800' : 'text-neutral-500 hover:text-neutral-700'}`}
+                    >
+                      Liste
+                    </button>
+                  </div>
                   {mainTab === 'pub_instagram' && pubSubTab === 'published' && (
                     <button
                       onClick={async () => {
@@ -1036,12 +1052,93 @@ function SuiviPublicationsPage() {
               contentPosts.length === 0 ? (
                 <div className="text-center py-12 text-neutral-400">
                   {pubSubTab === 'draft'
-                    ? `Aucun brouillon ${mainTab === 'pub_instagram' ? 'Instagram' : 'TikTok'}. Lancez l'agent Contenu.`
+                    ? `Aucun brouillon ${mainTab === 'pub_instagram' ? 'Instagram' : mainTab === 'pub_linkedin' ? 'LinkedIn' : 'TikTok'}. Lancez l'agent Contenu.`
                     : pubSubTab === 'published'
                     ? 'Aucune publication.'
-                    : `Aucun post ${mainTab === 'pub_instagram' ? 'Instagram' : 'TikTok'}. Lancez l'agent Contenu.`}
+                    : `Aucun post ${mainTab === 'pub_instagram' ? 'Instagram' : mainTab === 'pub_linkedin' ? 'LinkedIn' : 'TikTok'}. Lancez l'agent Contenu.`}
+                </div>
+              ) : pubViewMode === 'card' ? (
+                /* ===== CARD VIEW ===== */
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {contentPosts.map(post => {
+                    const isPublished = post.status === 'published' && (post.instagram_permalink || post.tiktok_publish_id || post.linkedin_permalink);
+                    const platformLabel = post.platform === 'tiktok' ? 'TikTok' : post.platform === 'linkedin' ? 'LinkedIn' : 'Instagram';
+                    const platformShort = post.platform === 'tiktok' ? 'TT' : post.platform === 'linkedin' ? 'LI' : 'IG';
+                    return (
+                      <div
+                        key={post.id}
+                        className="group bg-white rounded-xl border border-neutral-200 shadow-sm overflow-hidden cursor-pointer hover:border-purple-300 hover:shadow-md transition-all"
+                        onClick={() => setSelectedPost(post as any)}
+                      >
+                        {/* Image / Platform mockup */}
+                        <div className={`relative ${post.platform === 'tiktok' ? 'aspect-[9/16] max-h-64' : 'aspect-square'} bg-neutral-100`}>
+                          {post.visual_url && !brokenImages.has(post.id) ? (
+                            <img
+                              src={post.visual_url}
+                              alt=""
+                              className="w-full h-full object-cover"
+                              onError={() => setBrokenImages(prev => new Set(prev).add(post.id))}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center gap-1">
+                              <span className="text-3xl opacity-20">{post.platform === 'tiktok' ? '🎬' : post.platform === 'linkedin' ? '💼' : '📷'}</span>
+                              <span className="text-[10px] text-neutral-300">Pas de visuel</span>
+                            </div>
+                          )}
+                          {/* Platform badge overlay */}
+                          <div className={`absolute top-2 left-2 text-[10px] px-1.5 py-0.5 rounded-full font-bold backdrop-blur-sm ${
+                            post.platform === 'tiktok' ? 'bg-black/70 text-white' :
+                            post.platform === 'linkedin' ? 'bg-blue-600/80 text-white' :
+                            'bg-gradient-to-r from-pink-500/80 to-purple-500/80 text-white'
+                          }`}>{platformShort}</div>
+                          {/* Status badge overlay */}
+                          <div className={`absolute top-2 right-2 text-[10px] px-1.5 py-0.5 rounded-full font-bold backdrop-blur-sm ${
+                            isPublished ? 'bg-green-500/80 text-white' :
+                            post.status === 'scheduled' ? 'bg-blue-500/80 text-white' :
+                            post.status === 'approved' ? 'bg-purple-500/80 text-white' :
+                            'bg-amber-500/80 text-white'
+                          }`}>
+                            {isPublished ? '✓' : post.status === 'scheduled' ? '⏰' : post.status === 'approved' ? '✓' : '✎'}
+                          </div>
+                          {/* Quick actions on hover */}
+                          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-between" onClick={e => e.stopPropagation()}>
+                            <div className="flex gap-1">
+                              {!isPublished && (
+                                <button
+                                  onClick={() => post.status === 'published' ? republishSinglePost(post.id) : publishPost(post.id)}
+                                  disabled={publishingPostId === post.id}
+                                  className="px-2 py-1 text-[10px] font-bold bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50"
+                                >
+                                  {publishingPostId === post.id ? '...' : 'Publier'}
+                                </button>
+                              )}
+                              <button
+                                onClick={() => copyToClipboard(post.caption + (post.hashtags?.length ? '\n\n' + post.hashtags.join(' ') : ''), post.id)}
+                                className={`px-2 py-1 text-[10px] font-bold rounded-md ${
+                                  copiedId === post.id ? 'bg-green-600 text-white' : 'bg-white/90 text-neutral-800 hover:bg-white'
+                                }`}
+                              >
+                                {copiedId === post.id ? '✓' : 'Copier'}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                        {/* Card info */}
+                        <div className="p-2.5">
+                          <p className="text-[11px] text-neutral-800 line-clamp-2 leading-snug font-medium">{post.caption || 'Sans caption'}</p>
+                          <div className="flex items-center gap-1.5 mt-1.5">
+                            <span className="text-[10px] text-neutral-400">{post.scheduled_date}</span>
+                            {post.hashtags && post.hashtags.length > 0 && (
+                              <span className="text-[10px] text-purple-400">{post.hashtags.length} tags</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               ) : (
+                /* ===== LIST VIEW (original) ===== */
                 <div className="space-y-2">
                   {contentPosts.map(post => (
                     <div key={post.id} className="bg-white rounded-xl border border-neutral-200 shadow-sm overflow-hidden flex cursor-pointer hover:border-purple-200 transition" onClick={() => setSelectedPost(post as any)}>
@@ -1066,7 +1163,7 @@ function SuiviPublicationsPage() {
                           <div className="flex items-center gap-2 mb-0.5">
                             <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
                               post.status === 'published' && (post.instagram_permalink || post.tiktok_publish_id || post.linkedin_permalink) ? 'bg-green-100 text-green-700' :
-                              post.status === 'scheduled' ? 'bg-[#0c1a3a]/10 text-[#0c1a3a]' :
+                              post.status === 'scheduled' ? 'bg-blue-100 text-blue-700' :
                               post.status === 'approved' ? 'bg-purple-100 text-purple-700' :
                               'bg-amber-100 text-amber-700'
                             }`}>
@@ -1077,7 +1174,7 @@ function SuiviPublicationsPage() {
                             <span className="text-[10px] text-neutral-400">{post.scheduled_date}</span>
                             <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
                               post.platform === 'tiktok' ? 'bg-neutral-900 text-white' :
-                              post.platform === 'linkedin' ? 'bg-[#0c1a3a]/10 text-[#0c1a3a]' :
+                              post.platform === 'linkedin' ? 'bg-blue-100 text-blue-700' :
                               'bg-pink-100 text-pink-700'
                             }`}>{post.platform === 'tiktok' ? 'TT' : post.platform === 'linkedin' ? 'LI' : 'IG'}</span>
                           </div>
@@ -1145,7 +1242,7 @@ function SuiviPublicationsPage() {
                               {article.status === 'published' ? 'Publié' : 'Brouillon'}
                             </span>
                             {article.keywords_primary && (
-                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#0c1a3a]/10 text-[#0c1a3a]">{article.keywords_primary}</span>
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">{article.keywords_primary}</span>
                             )}
                           </div>
                           <h3 className="text-sm font-semibold text-neutral-900 line-clamp-1">{article.title}</h3>
@@ -1190,7 +1287,7 @@ function SuiviPublicationsPage() {
                     const isAI = item.data?.ai_generated;
 
                     const stepLabel = step === 1 ? '1er contact' : step === 2 ? 'Relance douce' : step === 3 ? 'Valeur gratuite' : step === 4 ? 'FOMO' : step === 5 ? 'Dernière chance' : step === 10 ? 'Warm' : `Step ${step}`;
-                    const stepColor = step === 1 ? 'bg-[#0c1a3a]/10 text-[#0c1a3a]' : step === 2 ? 'bg-orange-100 text-orange-700' : step === 3 ? 'bg-green-100 text-green-700' : step === 4 ? 'bg-red-100 text-red-700' : step === 5 ? 'bg-purple-100 text-purple-700' : 'bg-neutral-100 text-neutral-700';
+                    const stepColor = step === 1 ? 'bg-blue-100 text-blue-700' : step === 2 ? 'bg-orange-100 text-orange-700' : step === 3 ? 'bg-green-100 text-green-700' : step === 4 ? 'bg-red-100 text-red-700' : step === 5 ? 'bg-purple-100 text-purple-700' : 'bg-neutral-100 text-neutral-700';
 
                     return (
                       <div key={item.id} className="bg-white rounded-xl border border-neutral-200 shadow-sm p-4">
@@ -1215,7 +1312,7 @@ function SuiviPublicationsPage() {
                         <div className="flex items-center gap-2 mt-2">
                           {prospect?.status && (
                             <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                              prospect.status === 'contacte' ? 'bg-[#0c1a3a]/5 text-[#0c1a3a]' :
+                              prospect.status === 'contacte' ? 'bg-blue-50 text-blue-700' :
                               prospect.status === 'repondu' ? 'bg-green-50 text-green-600' :
                               prospect.status === 'client' ? 'bg-emerald-50 text-emerald-600' :
                               'bg-neutral-50 text-neutral-500'
@@ -1340,38 +1437,68 @@ function SuiviPublicationsPage() {
                 {selectedPost && (
                   <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setSelectedPost(null)}>
                     <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
-                      {/* Visual — compact */}
-                      {selectedPost.visual_url && !brokenImages.has(selectedPost.id) ? (
-                        <div className="h-48 bg-neutral-100 relative rounded-t-2xl overflow-hidden">
-                          <img
-                            src={selectedPost.visual_url}
-                            alt=""
-                            className="w-full h-full object-cover"
-                            onError={() => setBrokenImages(prev => new Set(prev).add(selectedPost.id))}
-                          />
+                      {/* Social media preview mockup */}
+                      <div className={`rounded-t-2xl overflow-hidden ${
+                        selectedPost.platform === 'instagram' ? 'bg-gradient-to-br from-pink-50 to-purple-50' :
+                        selectedPost.platform === 'tiktok' ? 'bg-neutral-900' :
+                        'bg-[#f3f6f8]'
+                      }`}>
+                        {/* Platform header bar */}
+                        <div className={`flex items-center gap-2 px-4 py-2.5 ${
+                          selectedPost.platform === 'tiktok' ? 'text-white' : 'text-neutral-800'
+                        }`}>
+                          <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                            selectedPost.platform === 'instagram' ? 'bg-gradient-to-br from-pink-500 to-purple-500 text-white' :
+                            selectedPost.platform === 'tiktok' ? 'bg-white text-black' :
+                            'bg-blue-600 text-white'
+                          }`}>K</div>
+                          <div>
+                            <p className={`text-xs font-bold ${selectedPost.platform === 'tiktok' ? 'text-white' : 'text-neutral-900'}`}>keiroai</p>
+                            <p className={`text-[10px] ${selectedPost.platform === 'tiktok' ? 'text-neutral-400' : 'text-neutral-500'}`}>{selectedPost.scheduled_date}</p>
+                          </div>
                         </div>
-                      ) : (
-                        <div className="h-32 bg-neutral-50 flex items-center justify-center gap-3 rounded-t-2xl">
-                          <span className="text-2xl opacity-30">{selectedPost.visual_url ? '🖼️' : '📷'}</span>
-                          <span className="text-xs text-neutral-400">{selectedPost.visual_url ? 'Image expirée' : 'Pas d\'image'}</span>
-                          {selectedPost.visual_description && (
-                            <button
-                              onClick={() => regenerateImage(selectedPost.id)}
-                              disabled={publishingPostId === selectedPost.id}
-                              className="px-3 py-1.5 text-xs bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
-                            >
-                              {publishingPostId === selectedPost.id ? '...' : 'Régénérer'}
-                            </button>
-                          )}
+                        {/* Visual */}
+                        {selectedPost.visual_url && !brokenImages.has(selectedPost.id) ? (
+                          <div className={`${selectedPost.platform === 'tiktok' ? 'aspect-[9/16] max-h-80' : 'aspect-square max-h-80'} bg-neutral-100 relative`}>
+                            <img
+                              src={selectedPost.visual_url}
+                              alt=""
+                              className="w-full h-full object-cover"
+                              onError={() => setBrokenImages(prev => new Set(prev).add(selectedPost.id))}
+                            />
+                          </div>
+                        ) : (
+                          <div className="h-48 bg-neutral-100 flex items-center justify-center gap-3">
+                            <span className="text-2xl opacity-30">{selectedPost.visual_url ? '🖼️' : '📷'}</span>
+                            <span className="text-xs text-neutral-400">{selectedPost.visual_url ? 'Image expirée' : 'Pas d\'image'}</span>
+                            {selectedPost.visual_description && (
+                              <button
+                                onClick={() => regenerateImage(selectedPost.id)}
+                                disabled={publishingPostId === selectedPost.id}
+                                className="px-3 py-1.5 text-xs bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                              >
+                                {publishingPostId === selectedPost.id ? '...' : 'Régénérer'}
+                              </button>
+                            )}
+                          </div>
+                        )}
+                        {/* Engagement mockup bar */}
+                        <div className={`flex items-center gap-4 px-4 py-2 ${
+                          selectedPost.platform === 'tiktok' ? 'text-white/60' : 'text-neutral-400'
+                        }`}>
+                          <span className="text-sm">♡</span>
+                          <span className="text-sm">💬</span>
+                          <span className="text-sm">↗</span>
+                          {selectedPost.platform === 'instagram' && <span className="text-sm ml-auto">⊡</span>}
                         </div>
-                      )}
+                      </div>
 
                       <div className="p-5 space-y-3">
                         {/* Status & meta */}
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
                             selectedPost.status === 'published' && (selectedPost.instagram_permalink || selectedPost.tiktok_publish_id || selectedPost.linkedin_permalink) ? 'bg-green-100 text-green-700' :
-                            selectedPost.status === 'scheduled' ? 'bg-[#0c1a3a]/10 text-[#0c1a3a]' :
+                            selectedPost.status === 'scheduled' ? 'bg-blue-100 text-blue-700' :
                             'bg-amber-100 text-amber-700'
                           }`}>
                             {selectedPost.status === 'published' && selectedPost.instagram_permalink ? 'Publié sur IG' :
@@ -1382,7 +1509,7 @@ function SuiviPublicationsPage() {
                           <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${
                             selectedPost.platform === 'instagram' ? 'bg-pink-100 text-pink-700' :
                             selectedPost.platform === 'tiktok' ? 'bg-neutral-900 text-white' :
-                            'bg-[#0c1a3a]/10 text-[#0c1a3a]'
+                            'bg-blue-100 text-blue-700'
                           }`}>
                             {selectedPost.platform === 'instagram' ? 'Instagram' : selectedPost.platform === 'tiktok' ? 'TikTok' : 'LinkedIn'}
                           </span>
@@ -1411,7 +1538,7 @@ function SuiviPublicationsPage() {
                         {selectedPost.hashtags && selectedPost.hashtags.length > 0 && (
                           <div>
                             <p className="text-[10px] font-bold text-neutral-400 mb-0.5">Hashtags</p>
-                            <p className="text-xs text-[#0c1a3a]">{selectedPost.hashtags.join(' ')}</p>
+                            <p className="text-xs text-blue-600">{selectedPost.hashtags.join(' ')}</p>
                           </div>
                         )}
 
@@ -1423,10 +1550,20 @@ function SuiviPublicationsPage() {
                           </div>
                         )}
 
-                        {/* Instagram permalink */}
+                        {/* Platform permalinks */}
                         {selectedPost.instagram_permalink && (
-                          <a href={selectedPost.instagram_permalink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-purple-600 hover:underline">
+                          <a href={selectedPost.instagram_permalink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-pink-600 hover:underline">
                             Voir sur Instagram
+                          </a>
+                        )}
+                        {selectedPost.tiktok_permalink && (
+                          <a href={selectedPost.tiktok_permalink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-neutral-700 hover:underline">
+                            Voir sur TikTok
+                          </a>
+                        )}
+                        {selectedPost.linkedin_permalink && (
+                          <a href={selectedPost.linkedin_permalink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline">
+                            Voir sur LinkedIn
                           </a>
                         )}
 

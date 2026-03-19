@@ -229,13 +229,23 @@ export async function POST(request: NextRequest) {
     // Take last 10 messages for context
     const recentMessages = existingMessages.slice(-10);
 
-    const conversationHistory = [
-      ...recentMessages.map((msg: any) => ({
-        role: msg.role as 'user' | 'assistant',
-        content: msg.content,
-      })),
-      { role: 'user' as const, content: message },
-    ];
+    // --- Load chatbot learnings from past conversations ---
+    let learningsContext = '';
+    try {
+      const { data: learnings } = await supabase
+        .from('agent_logs')
+        .select('data')
+        .eq('agent', 'chatbot')
+        .eq('action', 'learning')
+        .order('created_at', { ascending: false })
+        .limit(10);
+      if (learnings && learnings.length > 0) {
+        const tips = learnings.map((l: any) => l.data?.insight).filter(Boolean);
+        if (tips.length > 0) {
+          learningsContext = '\n\nAPPRENTISSAGES DES CONVERSATIONS PRÉCÉDENTES :\n' + tips.map((t: string) => `- ${t}`).join('\n');
+        }
+      }
+    } catch { /* non-blocking */ }
 
     // --- Call Gemini 2.5 Flash (with fallback) ---
     console.log('[Chatbot] Calling Gemini for visitor:', visitorId);
@@ -243,13 +253,13 @@ export async function POST(request: NextRequest) {
     let assistantMessage: string;
     try {
       assistantMessage = await callGeminiChat({
-        system: systemPrompt + '\n' + contextualInstructions,
+        system: systemPrompt + '\n' + contextualInstructions + learningsContext,
         history: recentMessages.map((msg: any) => ({
           role: msg.role as 'user' | 'assistant',
           content: msg.content,
         })),
         message,
-        maxTokens: 300,
+        maxTokens: 500,
       });
       console.log('[Chatbot] Response:', assistantMessage.substring(0, 100));
     } catch (geminiError: any) {
@@ -310,6 +320,29 @@ export async function POST(request: NextRequest) {
         },
         created_at: now,
       });
+
+      // --- Extract learnings every 6 messages (3 exchanges) ---
+      if (updatedMessages.length === 6 || updatedMessages.length === 12) {
+        try {
+          const convoSummary = updatedMessages.map((m: any) => `${m.role}: ${m.content}`).join('\n');
+          const learningResponse = await callGeminiChat({
+            system: `Tu analyses des conversations de chatbot commercial. Extrais UN apprentissage clé en 1 phrase.
+Exemples : "Les restaurateurs répondent mieux quand on parle de couverts en plus", "Quand le prospect dit 'je réfléchis', proposer le Sprint à 4.99€ convertit mieux", "Les coachs préfèrent LinkedIn à Instagram".
+Réponds UNIQUEMENT avec l'apprentissage, rien d'autre.`,
+            history: [],
+            message: convoSummary,
+            maxTokens: 100,
+          });
+          if (learningResponse && learningResponse.length > 10 && learningResponse.length < 200) {
+            await supabase.from('agent_logs').insert({
+              agent: 'chatbot',
+              action: 'learning',
+              data: { insight: learningResponse.trim(), session_id: session.id, message_count: updatedMessages.length },
+              created_at: now,
+            });
+          }
+        } catch { /* non-blocking */ }
+      }
     } catch (dbError: any) {
       console.error('[Chatbot] DB save error (non-fatal):', dbError?.message);
     }
