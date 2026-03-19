@@ -968,18 +968,18 @@ export async function GET(request: NextRequest) {
       return generateDailyPost(supabase, todayStr, dayOfWeek);
     }
 
-    // Auto-publish any stuck unpublished posts (runs on EVERY cron call, not just morning)
+    // AUTO-PUBLISH DISABLED — posts stay as draft/approved until manually published via admin
+    // The content agent generates visuals and prepares posts, but does NOT publish to Instagram/TikTok
     const unpublished = todayPosts.filter((p: any) => p.status === 'draft' || p.status === 'approved');
-    if (unpublished.length > 0 && isCron) {
-      console.log(`[Content] ${unpublished.length} unpublished posts for today — auto-publishing`);
-      let published = 0;
+    if (unpublished.length > 0) {
+      console.log(`[Content] ${unpublished.length} unpublished posts for today — generating visuals only (NO auto-publish)`);
       for (const post of unpublished) {
         const { data: fullPost } = await supabase.from('content_calendar').select('*').eq('id', post.id).single();
         if (!fullPost) continue;
 
         let visualUrl = fullPost.visual_url;
 
-        // Generate visual if missing
+        // Generate visual if missing (prepare content but don't publish)
         if (!visualUrl) {
           const visualDesc = fullPost.visual_description || fullPost.hook || fullPost.caption;
           if (!visualDesc) {
@@ -991,72 +991,12 @@ export async function GET(request: NextRequest) {
             console.warn(`[Content] Visual generation failed for post ${post.id} — skipping`);
             continue;
           }
-          // Cache to permanent storage
           const cachedUrl = await cacheImageToStorage(visualUrl, post.id);
           if (cachedUrl) visualUrl = cachedUrl;
           await supabase.from('content_calendar').update({ visual_url: visualUrl, updated_at: new Date().toISOString() }).eq('id', post.id);
+          console.log(`[Content] Visual generated for post ${post.id} — ready for manual publish`);
         }
-
-        // For reel/video formats: generate video+narration if not already done
-        const postFormat = (fullPost.format || 'post').toLowerCase();
-        let videoUrl = fullPost.video_url || null;
-        if ((postFormat === 'reel' || postFormat === 'video') && !videoUrl) {
-          console.log(`[Content] Auto-publish: ${postFormat} needs video — generating...`);
-          const desc = fullPost.visual_description || fullPost.hook || fullPost.caption;
-          if (desc) {
-            const vidResult = await generateVideoWithNarration(desc, fullPost.caption || desc, postFormat, 5);
-            videoUrl = vidResult.videoUrl;
-            if (vidResult.coverUrl && !visualUrl) visualUrl = vidResult.coverUrl;
-          }
-          // If video still failed, downgrade to image post
-          if (!videoUrl && visualUrl) {
-            console.log(`[Content] Video failed for post ${post.id} — downgrading to image post`);
-            await supabase.from('content_calendar').update({ format: 'post' }).eq('id', post.id);
-          }
-        }
-
-        // Publish to platform FIRST, then mark as published
-        const postWithMedia = { ...fullPost, visual_url: visualUrl, video_url: videoUrl };
-        const updateFields: Record<string, any> = { updated_at: new Date().toISOString() };
-        if (videoUrl) updateFields.video_url = videoUrl;
-        let platformSuccess = false;
-
-        if (fullPost.platform === 'instagram') {
-          const igResult = await publishToInstagram(postWithMedia, supabase);
-          if (igResult.success && igResult.permalink) {
-            updateFields.instagram_permalink = igResult.permalink;
-            platformSuccess = true;
-            console.log(`[Content] Instagram published for post ${post.id}: ${igResult.permalink}`);
-          } else {
-            console.error(`[Content] Instagram publish FAILED for post ${post.id}: ${igResult.error}`);
-          }
-        } else if (fullPost.platform === 'tiktok') {
-          const ttResult = await publishToTikTok(postWithMedia, supabase);
-          if (ttResult.success && ttResult.publish_id) {
-            updateFields.tiktok_publish_id = ttResult.publish_id;
-            platformSuccess = true;
-            console.log(`[Content] TikTok published for post ${post.id}: ${ttResult.publish_id}`);
-          } else {
-            console.error(`[Content] TikTok publish FAILED for post ${post.id}: ${ttResult.error}`);
-          }
-        } else {
-          // LinkedIn or other — mark published without external API
-          platformSuccess = true;
-        }
-
-        // ONLY mark as published if platform publish succeeded
-        if (platformSuccess) {
-          updateFields.status = 'published';
-          updateFields.published_at = new Date().toISOString();
-          published++;
-        } else {
-          // Leave as approved so it can be retried
-          updateFields.status = 'approved';
-        }
-
-        await supabase.from('content_calendar').update(updateFields).eq('id', post.id);
       }
-      console.log(`[Content] Auto-published ${published}/${unpublished.length} posts`);
     }
 
     // AFTER auto-publish: generate new posts for midday/evening/tiktok slots
@@ -1424,6 +1364,13 @@ export async function POST(request: NextRequest) {
       }
 
       case 'execute_publication': {
+        // AUTO-PUBLISH DISABLED — return error to prevent agents from publishing directly
+        return NextResponse.json({
+          ok: false,
+          error: 'Auto-publication désactivée. Les posts doivent être publiés manuellement via l\'admin.',
+          message: 'Publication automatique bloquée pour éviter les publications non contrôlées.',
+        }, { status: 403 });
+        // Original code below is unreachable — kept for reference
         // Publish all approved OR draft posts that are due today or earlier (direct publish, no manual approval needed)
         const todayDate = new Date().toISOString().split('T')[0];
         const { data: readyPosts } = await supabase
