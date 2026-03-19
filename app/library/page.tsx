@@ -2178,7 +2178,7 @@ function LibraryContent() {
             </div>
             <div className="flex-1">
               <p className="text-sm font-semibold text-indigo-900">{t.library.keepGalleryOrganized}</p>
-              <p className="text-xs text-indigo-700/80 mt-0.5">
+              <p className="text-xs text-indigo-700 mt-0.5">
                 {t.library.keepGalleryOrganizedDesc}
               </p>
             </div>

@@ -1435,8 +1435,8 @@ function SuiviPublicationsPage() {
 
                 {/* Post detail modal */}
                 {selectedPost && (
-                  <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setSelectedPost(null)}>
-                    <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+                  <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center overflow-y-auto py-8 px-4" onClick={() => setSelectedPost(null)}>
+                    <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl my-auto" onClick={e => e.stopPropagation()}>
                       {/* Social media preview mockup */}
                       <div className={`rounded-t-2xl overflow-hidden ${
                         selectedPost.platform === 'instagram' ? 'bg-gradient-to-br from-pink-50 to-purple-50' :

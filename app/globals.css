@@ -261,6 +261,113 @@ html:not(.light) .to-orange-50 { --tw-gradient-to: rgba(249, 115, 22, 0.06) !imp
 html:not(.light) .from-green-50 { --tw-gradient-from: rgba(34, 197, 94, 0.06) !important; }
 html:not(.light) .to-emerald-50 { --tw-gradient-to: rgba(16, 185, 129, 0.06) !important; }
 
+/* ===== ADMIN PAGES DARK MODE ===== */
+/* Admin pages use bg-gray-50/100 which need dark mode overrides */
+html:not(.light) .bg-gray-50 { background-color: rgba(255, 255, 255, 0.03) !important; }
+html:not(.light) .bg-gray-100 { background-color: rgba(255, 255, 255, 0.06) !important; }
+html:not(.light) .bg-gray-200 { background-color: rgba(255, 255, 255, 0.08) !important; }
+html:not(.light) .text-gray-400 { color: #64748b !important; }
+html:not(.light) .text-gray-300 { color: #475569 !important; }
+html:not(.light) .border-gray-200 { border-color: rgba(255, 255, 255, 0.1) !important; }
+html:not(.light) .border-gray-300 { border-color: rgba(255, 255, 255, 0.15) !important; }
+html:not(.light) .hover\:bg-gray-100:hover { background-color: rgba(255, 255, 255, 0.08) !important; }
+html:not(.light) .hover\:bg-gray-50:hover { background-color: rgba(255, 255, 255, 0.05) !important; }
+/* Admin: bg-white/80 header backdrop */
+html:not(.light) [class*="bg-white\/80"] {
+  background-color: rgba(12, 26, 58, 0.85) !important;
+  backdrop-filter: blur(12px) !important;
+}
+/* Admin: inputs, textareas, selects — glass effect */
+html:not(.light) input[type="text"],
+html:not(.light) input[type="email"],
+html:not(.light) input[type="number"],
+html:not(.light) input[type="search"],
+html:not(.light) input[type="url"],
+html:not(.light) input[type="tel"],
+html:not(.light) input[type="date"],
+html:not(.light) textarea,
+html:not(.light) select {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  color: #f1f5f9 !important;
+}
+html:not(.light) input::placeholder,
+html:not(.light) textarea::placeholder {
+  color: rgba(148, 163, 184, 0.6) !important;
+}
+html:not(.light) input:focus,
+html:not(.light) textarea:focus,
+html:not(.light) select:focus {
+  border-color: rgba(59, 130, 246, 0.5) !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15) !important;
+}
+/* Admin: table styling */
+html:not(.light) table,
+html:not(.light) td,
+html:not(.light) th,
+html:not(.light) tr {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+html:not(.light) thead { background-color: rgba(255, 255, 255, 0.04) !important; }
+html:not(.light) tbody tr:hover { background-color: rgba(255, 255, 255, 0.05) !important; }
+/* Admin: colored bg-*-50 for badges/pills */
+html:not(.light) .bg-pink-50 { background-color: rgba(236, 72, 153, 0.08) !important; }
+html:not(.light) .bg-pink-100 { background-color: rgba(236, 72, 153, 0.12) !important; }
+html:not(.light) .bg-sky-50 { background-color: rgba(56, 189, 248, 0.08) !important; }
+html:not(.light) .bg-violet-50 { background-color: rgba(139, 92, 246, 0.08) !important; }
+html:not(.light) .bg-emerald-50 { background-color: rgba(16, 185, 129, 0.08) !important; }
+html:not(.light) .bg-amber-100 { background-color: rgba(245, 158, 11, 0.12) !important; }
+/* Admin: gradient text clips — make visible */
+html:not(.light) [class*="bg-clip-text"][class*="text-transparent"] {
+  -webkit-text-fill-color: #e2e8f0 !important;
+  color: #e2e8f0 !important;
+}
+/* Admin: hover:text-neutral-900 should lighten */
+html:not(.light) .hover\:text-neutral-900:hover { color: #f1f5f9 !important; }
+html:not(.light) .hover\:text-neutral-800:hover { color: #e2e8f0 !important; }
+/* Admin: scrollbar dark */
+html:not(.light) ::-webkit-scrollbar { width: 6px; height: 6px; }
+html:not(.light) ::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.03); }
+html:not(.light) ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 3px; }
+html:not(.light) ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.25); }
+/* Admin: fixed modals should stay white — protect from global bg-white override */
+html:not(.light) .fixed.inset-0 > .bg-white {
+  background-color: #ffffff !important;
+  color: #171717 !important;
+}
+html:not(.light) .fixed.inset-0 > .bg-white .text-neutral-900 { color: #171717 !important; }
+html:not(.light) .fixed.inset-0 > .bg-white .text-neutral-800 { color: #1f2937 !important; }
+html:not(.light) .fixed.inset-0 > .bg-white .text-neutral-700 { color: #374151 !important; }
+html:not(.light) .fixed.inset-0 > .bg-white .text-neutral-600 { color: #4b5563 !important; }
+html:not(.light) .fixed.inset-0 > .bg-white .text-neutral-500 { color: #6b7280 !important; }
+html:not(.light) .fixed.inset-0 > .bg-white .text-neutral-400 { color: #9ca3af !important; }
+html:not(.light) .fixed.inset-0 > .bg-white .bg-neutral-50 { background-color: #f9fafb !important; }
+html:not(.light) .fixed.inset-0 > .bg-white .bg-neutral-100 { background-color: #f3f4f6 !important; }
+html:not(.light) .fixed.inset-0 > .bg-white .border-neutral-200 { border-color: #e5e7eb !important; }
+html:not(.light) .fixed.inset-0 > .bg-white input,
+html:not(.light) .fixed.inset-0 > .bg-white textarea,
+html:not(.light) .fixed.inset-0 > .bg-white select {
+  background-color: #ffffff !important;
+  border-color: #d1d5db !important;
+  color: #171717 !important;
+}
+/* Admin: bg-[#0c1a3a]/5 patterns — dark mode */
+html:not(.light) [class*="bg-\[#0c1a3a\]\/5"] { background-color: rgba(255, 255, 255, 0.05) !important; }
+html:not(.light) [class*="bg-\[#0c1a3a\]\/10"] { background-color: rgba(255, 255, 255, 0.08) !important; }
+html:not(.light) [class*="border-\[#0c1a3a\]\/10"] { border-color: rgba(255, 255, 255, 0.1) !important; }
+html:not(.light) [class*="border-\[#0c1a3a\]\/20"] { border-color: rgba(255, 255, 255, 0.15) !important; }
+/* text-indigo-900 — too dark in dark mode */
+html:not(.light) .text-indigo-900 { color: #a5b4fc !important; }
+/* Gradient via/from/to for light colors in dark mode */
+html:not(.light) .via-indigo-50 { --tw-gradient-via: rgba(99, 102, 241, 0.06) !important; }
+html:not(.light) .via-purple-50 { --tw-gradient-via: rgba(168, 85, 247, 0.06) !important; }
+html:not(.light) .from-indigo-50 { --tw-gradient-from: rgba(99, 102, 241, 0.06) !important; }
+html:not(.light) .from-purple-50 { --tw-gradient-from: rgba(168, 85, 247, 0.06) !important; }
+html:not(.light) .to-indigo-50 { --tw-gradient-to: rgba(99, 102, 241, 0.06) !important; }
+html:not(.light) .to-purple-50 { --tw-gradient-to: rgba(168, 85, 247, 0.06) !important; }
+html:not(.light) .from-pink-50 { --tw-gradient-from: rgba(236, 72, 153, 0.06) !important; }
+html:not(.light) .to-pink-50 { --tw-gradient-to: rgba(236, 72, 153, 0.06) !important; }
+
 /* --- Cursor pointer sur tous les éléments cliquables --- */
 button, a, [role="button"], label[for], select, input[type="checkbox"], input[type="radio"], summary {
   cursor: pointer;
