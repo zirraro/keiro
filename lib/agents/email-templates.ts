@@ -110,59 +110,81 @@ function psLineText(text: string): string {
 
 const SUBJECT_VARIANTS: Record<string, string[]> = {
   restaurant: [
-    '{{company}} \u2014 une id\u00E9e pour vos r\u00E9seaux',
-    '{{company}} \u2014 vos clients vous adorent mais Instagram ne le sait pas',
-    'Restaurant {{quartier}} \u2014 une question rapide',
+    'Question rapide sur {{company}} ?',
+    'J\u2019ai une id\u00E9e pour {{company}}',
+    '{{first_name}}, +40% de r\u00E9servations en 30 jours ?',
+    '{{company}} \u2014 j\u2019ai vu votre Google, j\u2019ai un truc',
+    'Ce que font vos concurrents sur Instagram (et pas vous)',
   ],
   boutique: [
-    '{{company}} \u2014 vos produits m\u00E9ritent d\u2019\u00EAtre vus',
-    '{{company}} \u2014 1 vente en plus et c\u2019est pay\u00E9',
-    'Boutique {{quartier}} \u2014 une id\u00E9e',
+    'Question rapide sur {{company}} ?',
+    'J\u2019ai une id\u00E9e pour {{company}}',
+    '{{first_name}}, vos produits vus par 5 000 personnes ?',
+    '{{company}} \u2014 une vitrine Instagram en 3 min',
+    '3 ventes en plus ce mois-ci, \u00E7a vous int\u00E9resse ?',
   ],
   coach: [
-    '{{company}} \u2014 vos s\u00E9ances m\u00E9ritent plus de visibilit\u00E9',
-    '{{company}} \u2014 1 client en plus et c\u2019est rembours\u00E9',
-    'Coach {{quartier}} \u2014 une question rapide',
+    'Question rapide sur {{company}} ?',
+    'J\u2019ai une id\u00E9e pour {{company}}',
+    '{{first_name}}, remplir votre planning en 1 semaine ?',
+    '{{company}} \u2014 3 clients en plus sans publicit\u00E9',
+    'Ce que vos concurrents font sur Instagram',
   ],
   coiffeur: [
-    '{{company}} \u2014 une id\u00E9e pour remplir votre planning',
-    '{{company}} \u2014 3 coupes en plus et c\u2019est pay\u00E9',
-    'Salon {{quartier}} \u2014 une question rapide',
+    'Question rapide sur {{company}} ?',
+    'J\u2019ai une id\u00E9e pour {{company}}',
+    '{{first_name}}, remplir votre planning la semaine prochaine ?',
+    '{{company}} \u2014 5 RDV en plus gr\u00E2ce \u00E0 Instagram',
+    'Vos cr\u00E9ations m\u00E9ritent d\u2019\u00EAtre vues',
   ],
   caviste: [
-    '{{company}} \u2014 vos vins m\u00E9ritent d\u2019\u00EAtre vus',
-    '{{company}} \u2014 2 paniers en plus et c\u2019est pay\u00E9',
-    'Caviste {{quartier}} \u2014 une id\u00E9e',
+    'Question rapide sur {{company}} ?',
+    'J\u2019ai une id\u00E9e pour {{company}}',
+    '{{first_name}}, vos vins vus par 5 000 amateurs ?',
+    '{{company}} \u2014 2 paniers en plus cette semaine',
+    'Ce que font les caves qui cartonnent sur Insta',
   ],
   fleuriste: [
-    '{{company}} \u2014 vos cr\u00E9ations m\u00E9ritent Instagram',
-    '{{company}} \u2014 2 bouquets en plus et c\u2019est pay\u00E9',
-    'Fleuriste {{quartier}} \u2014 une id\u00E9e',
+    'Question rapide sur {{company}} ?',
+    'J\u2019ai une id\u00E9e pour {{company}}',
+    '{{first_name}}, vos bouquets vus par 5 000 personnes ?',
+    '{{company}} \u2014 3 commandes en plus cette semaine',
+    'Ce que font les fleuristes qui cartonnent sur Insta',
   ],
   freelance: [
-    '{{company}} \u2014 votre expertise m\u00E9rite plus de visibilit\u00E9',
-    '{{company}} \u2014 1 client en plus gr\u00E2ce aux r\u00E9seaux',
-    'Freelance {{quartier}} \u2014 une id\u00E9e pour vous',
+    'Question rapide sur {{company}} ?',
+    'J\u2019ai une id\u00E9e pour {{company}}',
+    '{{first_name}}, 3 clients en plus ce mois-ci ?',
+    '{{company}} \u2014 votre expertise m\u00E9rite d\u2019\u00EAtre visible',
+    'Ce qui diff\u00E9rencie les freelances qui trouvent des clients',
   ],
   services: [
-    '{{company}} \u2014 vos r\u00E9alisations m\u00E9ritent d\u2019\u00EAtre vues',
-    '{{company}} \u2014 1 devis en plus et c\u2019est pay\u00E9',
-    '{{type}} {{quartier}} \u2014 une question rapide',
+    'Question rapide sur {{company}} ?',
+    'J\u2019ai une id\u00E9e pour {{company}}',
+    '{{first_name}}, 3 devis en plus ce mois-ci ?',
+    '{{company}} \u2014 visible en 3 minutes sur Instagram',
+    'Vos concurrents postent d\u00E9j\u00E0 sur les r\u00E9seaux',
   ],
   professionnel: [
-    '{{company}} \u2014 votre image de marque en ligne',
-    '{{company}} \u2014 la confiance passe par la visibilit\u00E9',
-    '{{type}} {{quartier}} \u2014 une id\u00E9e',
+    'Question rapide sur {{company}} ?',
+    'J\u2019ai une id\u00E9e pour {{company}}',
+    '{{first_name}}, votre image en ligne en 3 minutes',
+    '{{company}} \u2014 la visibilit\u00E9 qui vous manque',
+    'Ce que font les pros qui attirent des clients en ligne',
   ],
   agence: [
+    'Question rapide sur {{company}} ?',
+    'J\u2019ai une id\u00E9e pour {{company}}',
+    '{{first_name}}, 2h gagn\u00E9es par client par semaine',
     '{{company}} \u2014 automatisez le contenu de vos clients',
-    '{{company}} \u2014 2h gagn\u00E9es par client par semaine',
-    'Agence {{quartier}} \u2014 une id\u00E9e',
+    'L\u2019outil que vos concurrents utilisent d\u00E9j\u00E0',
   ],
   pme: [
-    '{{company}} \u2014 votre communication m\u00E9rite mieux',
+    'Question rapide sur {{company}} ?',
+    'J\u2019ai une id\u00E9e pour {{company}}',
+    '{{first_name}}, votre comm\u2019 pro en 3 minutes ?',
     '{{company}} \u2014 marque employeur + r\u00E9seaux sociaux',
-    '{{type}} {{quartier}} \u2014 une question rapide',
+    'Ce qui diff\u00E9rencie les PME visibles en ligne',
   ],
 };
 
@@ -1162,10 +1184,12 @@ export function getEmailTemplate(
   if (step === 10) {
     const roiPhrase = ROI_PHRASES[category] ?? ROI_PHRASES.pme;
     const body = warmTemplateBody(roiPhrase);
-    const subject = replaceVars(
-      'Suite \u00E0 notre \u00E9change \u2014 un visuel pour {{company}}',
-      vars
-    );
+    const warmSubjects = [
+      '{{first_name}}, votre visuel est pr\u00EAt \u2014 suite \u00E0 notre \u00E9change',
+      'Re: {{company}} \u2014 j\u2019ai fait le visuel dont on a parl\u00E9',
+      '{{first_name}}, c\u2019est pr\u00EAt ! Votre visuel {{company}}',
+    ];
+    const subject = replaceVars(warmSubjects[subjectVariant % warmSubjects.length], vars);
 
     return {
       subject,
@@ -1191,16 +1215,28 @@ export function getEmailTemplate(
     );
     subject = replaceVars(templates.subjects[variantIndex], vars);
   } else if (step === 2) {
-    subject = replaceVars(
-      `Une idée pour {{company}} — visuel offert`,
-      vars
-    );
+    const step2Subjects = [
+      '{{first_name}}, j\u2019ai cr\u00E9\u00E9 un visuel pour {{company}}',
+      'Re: {{company}} \u2014 votre visuel gratuit est pr\u00EAt',
+      '{{first_name}}, 2 minutes pour voir ce que \u00E7a donne ?',
+    ];
+    subject = replaceVars(step2Subjects[subjectVariant % step2Subjects.length], vars);
   } else if (step === 3) {
-    subject = replaceVars('Vos concurrents utilisent déjà l\'IA, {{company}}', vars);
+    const step3Subjects = [
+      '{{first_name}}, derni\u00E8re question sur {{company}}',
+      'J\u2019ai remarqu\u00E9 un truc sur {{company}}...',
+      '{{company}} + IA = ? (r\u00E9ponse en 3 min)',
+    ];
+    subject = replaceVars(step3Subjects[subjectVariant % step3Subjects.length], vars);
   } else if (step === 4) {
-    subject = replaceVars('Dernière chance : votre visuel gratuit, {{company}}', vars);
+    const step4Subjects = [
+      '{{first_name}}, on ferme le dossier {{company}} ?',
+      'Dernier message \u2014 ensuite je vous laisse tranquille',
+      '{{company}} \u2014 3 cr\u00E9ations gratuites (derni\u00E8re chance)',
+    ];
+    subject = replaceVars(step4Subjects[subjectVariant % step4Subjects.length], vars);
   } else {
-    subject = replaceVars('On reste en contact, {{company}} ?', vars);
+    subject = replaceVars('{{first_name}}, on reste en contact ?', vars);
   }
 
   return {

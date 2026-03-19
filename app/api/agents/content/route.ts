@@ -1082,11 +1082,12 @@ export async function GET(request: NextRequest) {
       return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, '__tiktok__');
     }
 
-    // Return today's content
+    // Return today's content — flag as warning if 0 posts
     return NextResponse.json({
       ok: true,
       today: updatedPosts || todayPosts,
       message: `${postCount} post(s) for today`,
+      warning: postCount === 0 ? 'No posts planned or generated for today' : undefined,
     });
   } catch (error: any) {
     console.error('[Content] GET error:', error);
@@ -1931,7 +1932,9 @@ async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftO
       ai_generated: true,
     });
 
-    if (!insertError) {
+    if (insertError) {
+      console.error(`[Content] DB insert error for post ${post.day}/${postPlatform}:`, insertError.message);
+    } else {
       inserted++;
       // Generate visual using KeiroAI Seedream (proof of product) + auto-publish if not draft
       if (!draftOnly) {
@@ -1951,10 +1954,12 @@ async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftO
     }
   }
 
+  const planStatus = inserted > 0 ? 'success' : 'error';
   await supabase.from('agent_logs').insert({
     agent: 'content', action: 'weekly_plan_generated',
-    data: { postsPlanned: inserted, weekStart: mondayDate.toISOString().split('T')[0] },
-    status: 'success', created_at: nowISO,
+    data: { postsPlanned: inserted, totalAttempted: weekPlan.length, weekStart: mondayDate.toISOString().split('T')[0] },
+    status: planStatus, error_message: inserted === 0 ? `0/${weekPlan.length} posts inserted — all DB inserts failed` : undefined,
+    created_at: nowISO,
   });
 
   // Report strategy to marketing agent for alignment
@@ -1982,7 +1987,11 @@ async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftO
     created_at: nowISO,
   });
 
-  console.log(`[Content] Weekly plan: ${inserted} posts planned`);
+  console.log(`[Content] Weekly plan: ${inserted}/${weekPlan.length} posts planned`);
+
+  if (inserted === 0) {
+    return NextResponse.json({ ok: false, error: `Weekly plan generated ${weekPlan.length} posts from AI but all DB inserts failed`, postsPlanned: 0 }, { status: 500 });
+  }
 
   return NextResponse.json({ ok: true, postsPlanned: inserted });
 }

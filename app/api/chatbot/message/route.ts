@@ -14,7 +14,8 @@ import {
 import { calculateScore } from '@/lib/agents/scoring';
 import { callGeminiChat } from '@/lib/agents/gemini';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
+export const maxDuration = 30;
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;

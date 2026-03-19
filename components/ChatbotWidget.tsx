@@ -194,9 +194,27 @@ export default function ChatbotWidget() {
               timestamp: new Date().toISOString(),
             },
           ]);
+        } else {
+          console.error('[ChatbotWidget] API error:', data.error);
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: 'assistant',
+              content: "D\u00E9sol\u00E9, j'ai eu un petit souci technique. Essayez de reformuler votre question ou revenez dans quelques instants !",
+              timestamp: new Date().toISOString(),
+            },
+          ]);
         }
       } catch (err) {
         console.error('[ChatbotWidget] Error:', err);
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: "Oups, probl\u00E8me de connexion. V\u00E9rifiez votre connexion internet et r\u00E9essayez.",
+            timestamp: new Date().toISOString(),
+          },
+        ]);
       } finally {
         setIsLoading(false);
       }
