@@ -115,13 +115,16 @@ export async function POST(request: NextRequest) {
     }
 
     if (!session) {
-      // Create new session
+      // Create new session — columns must match chatbot_sessions schema
       const { data: newSession, error: insertError } = await supabase
         .from('chatbot_sessions')
         .insert({
           visitor_id: visitorId,
           messages: [],
-          visitor_data: visitorData || {},
+          source_page: visitorData?.currentPage || null,
+          pages_visited: visitorData?.pagesVisited || [],
+          time_on_site: visitorData?.timeOnSite || 0,
+          referrer_source: visitorData?.source || null,
           created_at: now,
           updated_at: now,
         })
@@ -129,7 +132,7 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (insertError || !newSession) {
-        console.error('[Chatbot] Error creating session:', insertError);
+        console.error('[Chatbot] Error creating session:', insertError?.message, insertError?.details, insertError?.hint);
         return NextResponse.json(
           { ok: false, error: 'Erreur lors de la creation de session' },
           { status: 500 }
@@ -281,7 +284,9 @@ export async function POST(request: NextRequest) {
         .from('chatbot_sessions')
         .update({
           messages: updatedMessages,
-          visitor_data: visitorData || session.visitor_data,
+          source_page: visitorData?.currentPage || session.source_page,
+          pages_visited: visitorData?.pagesVisited || session.pages_visited,
+          time_on_site: visitorData?.timeOnSite || session.time_on_site,
           updated_at: now,
         })
         .eq('id', session.id);

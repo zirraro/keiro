@@ -94,7 +94,11 @@ html:not(.light) .bg-neutral-200 { background-color: rgba(255, 255, 255, 0.08) !
 html:not(.light) .homepage-sections .bg-white,
 html:not(.light) .page-studio-bg .bg-white {
   background-color: rgba(255, 255, 255, 0.08) !important;
-  border-color: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+/* Global bg-white fallback for dark mode — except force-light and modals */
+html:not(.light) .bg-white:not(.force-light .bg-white):not(.fixed.inset-0 .bg-white):not(.hp-light-island .bg-white) {
+  background-color: rgba(255, 255, 255, 0.08) !important;
 }
 
 /* Dark mode: form inputs, textareas, selects — keep visible with glass effect */
