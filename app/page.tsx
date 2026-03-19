@@ -145,7 +145,7 @@ function HomeKeiroInner() {
       </section>
 
       {/* Gradient transition: dark hero → content sections */}
-      <div className={`h-32 bg-gradient-to-b ${isLight ? 'from-[#0c1a3a] via-[#0c1a3a]/30 to-transparent' : 'from-transparent to-transparent'}`} />
+      <div className={`h-20 bg-gradient-to-b ${isLight ? 'from-[#0c1a3a] to-[#eef2f7]' : 'from-transparent to-transparent'}`} />
 
       {/* === CONTENT SECTIONS BELOW === */}
       <div className={`homepage-sections ${isLight ? 'bg-[#eef2f7]/85 text-neutral-900' : 'bg-transparent text-slate-200'}`}>

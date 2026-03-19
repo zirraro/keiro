@@ -184,9 +184,15 @@ export default async function BlogPostPage({ params }: PageProps) {
   const processedHtml = injectHeadingIds(contentHtml, headings);
   const readingTime = getReadingTime(contentHtml);
 
-  // Extract hero image (first valid Supabase image)
+  // Extract hero image (first valid Supabase image) and strip it from body to avoid duplication
   const allImgs = [...(contentHtml.matchAll(/<img[^>]*src=["']([^"']+)["'][^>]*>/gi) || [])];
-  const heroImage = allImgs.find(m => m[1] && !m[1].includes('bytepluses.com') && m[1].includes('supabase'))?.[1];
+  const heroMatch = allImgs.find(m => m[1] && !m[1].includes('bytepluses.com') && m[1].includes('supabase'));
+  const heroImage = heroMatch?.[1];
+  // Remove the hero image from the article body so it's not shown twice
+  let cleanedHtml = processedHtml;
+  if (heroMatch) {
+    cleanedHtml = processedHtml.replace(heroMatch[0], '');
+  }
 
   const publishedDate = new Date(post.published_at).toLocaleDateString('fr-FR', {
     day: 'numeric',
@@ -273,7 +279,7 @@ export default async function BlogPostPage({ params }: PageProps) {
 
       <main className="min-h-screen page-studio-bg">
         {/* Hero Header */}
-        <header className="relative bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 text-white overflow-hidden">
+        <header className="relative bg-gradient-to-br from-[#0c1a3a] via-[#132d54] to-[#0c1a3a] text-white overflow-hidden">
           {/* Subtle pattern overlay */}
           <div className="absolute inset-0 opacity-5" style={{
             backgroundImage: 'radial-gradient(circle at 25% 25%, #a855f7 1px, transparent 1px), radial-gradient(circle at 75% 75%, #0c1a3a 1px, transparent 1px)',
@@ -317,8 +323,8 @@ export default async function BlogPostPage({ params }: PageProps) {
             )}
           </div>
 
-          {/* Bottom gradient fade */}
-          <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white to-transparent" />
+          {/* Bottom curve separator */}
+          <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-black/20 to-transparent" />
         </header>
 
         {/* Hero Image — full-width, cinematic */}
@@ -343,7 +349,7 @@ export default async function BlogPostPage({ params }: PageProps) {
         {/* Article Content */}
         <article className="max-w-3xl mx-auto px-4 sm:px-6 pt-8 sm:pt-12 pb-12">
           <MobileTableOfContents headings={headings} />
-          <ArticleBody html={processedHtml} />
+          <ArticleBody html={cleanedHtml} />
 
           {/* Share + tags divider */}
           <div className="mt-14 pt-8 border-t border-neutral-100">
