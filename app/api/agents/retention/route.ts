@@ -6,7 +6,7 @@ import { callGemini } from '@/lib/agents/gemini';
 import { canSendEmail } from '@/lib/agents/email-dedup';
 
 export const runtime = 'nodejs';
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 function getSupabaseAdmin() {
   return createClient(

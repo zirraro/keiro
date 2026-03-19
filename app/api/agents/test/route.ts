@@ -3,7 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { getEmailTemplate } from '@/lib/agents/email-templates';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
+export const maxDuration = 120;
 
 function getSupabaseAdmin() {
   return createClient(

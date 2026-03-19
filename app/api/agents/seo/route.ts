@@ -538,7 +538,8 @@ Genere le JSON complet comme specifie dans tes instructions.`,
     {
       const baseSlug = article.slug;
       let suffix = 1;
-      while (true) {
+      let maxAttempts = 10;
+      while (maxAttempts-- > 0) {
         const { data: existing } = await supabase
           .from('blog_posts')
           .select('id')
@@ -548,6 +549,10 @@ Genere le JSON complet comme specifie dans tes instructions.`,
         if (!existing) break;
         suffix++;
         article.slug = `${baseSlug}-${suffix}`.substring(0, 63);
+      }
+      // Extra safety: append timestamp if still colliding
+      if (maxAttempts <= 0) {
+        article.slug = `${baseSlug}-${Date.now().toString(36)}`.substring(0, 63);
       }
     }
 
