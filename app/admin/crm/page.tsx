@@ -36,6 +36,17 @@ const CHANNELS = [
   { id: 'recommandation', label: 'Recommandation', icon: '🤝', color: '#8B5CF6', bg: 'bg-violet-50', border: 'border-violet-300' },
 ];
 
+// Helper: effective pipeline stage from status + email_sequence_step
+// Fixes stale status='contacte' when email agent already sent step 2/3/4
+const STEP_TO_STAGE: Record<number, string> = { 2: 'relance_1', 3: 'relance_2', 4: 'relance_3', 5: 'relance_3' };
+function getEffectiveStatus(p: { status: string; email_sequence_step: number | null }): string {
+  const step = p.email_sequence_step ?? 0;
+  if (p.status === 'contacte' && step >= 2 && STEP_TO_STAGE[step]) {
+    return STEP_TO_STAGE[step];
+  }
+  return p.status;
+}
+
 type Prospect = {
   id: string;
   first_name: string | null;
@@ -767,7 +778,7 @@ export default function AdminCRMPage() {
       list = list.filter(p => p.priorite === filterPrio);
     }
     if (filterStatus) {
-      list = list.filter(p => p.status === filterStatus);
+      list = list.filter(p => getEffectiveStatus(p) === filterStatus);
     }
     if (filterSource) {
       list = list.filter(p => p.source === filterSource);
@@ -837,14 +848,8 @@ export default function AdminCRMPage() {
   const stageStats = useMemo(() => {
     const counts: Record<string, number> = {};
     PIPELINE_STAGES.forEach(s => { counts[s.id] = 0; });
-    // Count by status field, with email_sequence_step fallback
-    // If status is 'contacte' but step >= 2, count under the correct relance stage
-    const stepToStage: Record<number, string> = { 2: 'relance_1', 3: 'relance_2', 4: 'relance_3', 5: 'relance_3' };
     prospects.forEach(p => {
-      const step = p.email_sequence_step ?? 0;
-      const effectiveStatus = (p.status === 'contacte' && step >= 2 && stepToStage[step])
-        ? stepToStage[step]
-        : p.status;
+      const effectiveStatus = getEffectiveStatus(p);
       counts[effectiveStatus] = (counts[effectiveStatus] || 0) + 1;
     });
     return counts;
@@ -1260,7 +1265,7 @@ export default function AdminCRMPage() {
                 )}
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-10 gap-2" >
                   {PIPELINE_STAGES.map(stage => {
-                    const stageProspects = filtered.filter(p => p.status === stage.id);
+                    const stageProspects = filtered.filter(p => getEffectiveStatus(p) === stage.id);
                     const isCollapsed = collapsedCols.has(stage.id);
                     return (
                       <div key={stage.id} className={`min-w-0 transition-all ${isCollapsed ? 'max-w-[48px]' : ''}`}>
@@ -1393,7 +1398,7 @@ export default function AdminCRMPage() {
                     <div className="divide-y divide-neutral-200">
                       {filtered.map(p => {
                         const channel = getChannelInfo(p.source);
-                        const stg = getStageInfo(p.status);
+                        const stg = getStageInfo(getEffectiveStatus(p));
                         const isSelected = selected?.id === p.id;
                         return (
                           <div
@@ -1631,7 +1636,7 @@ export default function AdminCRMPage() {
                       .sort((a, b) => b.score - a.score)
                       .slice(0, 10)
                       .map(p => {
-                        const stg = getStageInfo(p.status);
+                        const stg = getStageInfo(getEffectiveStatus(p));
                         return (
                           <div key={p.id} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors" onClick={() => { setSelected(p); setView('liste'); }}>
                             <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#0c1a3a] to-[#1e3a5f] flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0">
@@ -1806,7 +1811,7 @@ export default function AdminCRMPage() {
                       </thead>
                       <tbody className="divide-y divide-neutral-200">
                         {sorted.map((p, idx) => {
-                          const stg = getStageInfo(p.status);
+                          const stg = getStageInfo(getEffectiveStatus(p));
                           const prioBadge = getPriorityBadge(p.priorite);
                           const channel = getChannelInfo(p.source);
                           const isSelected = selected?.id === p.id;
@@ -2520,7 +2525,7 @@ function ExportModal({ onClose, onExport, uniqueTypes, uniqueQuartiers, prospect
 
   const previewCount = useMemo(() => {
     let list = [...prospects];
-    if (expStatus) list = list.filter(p => p.status === expStatus);
+    if (expStatus) list = list.filter(p => getEffectiveStatus(p) === expStatus);
     if (expSource) list = list.filter(p => p.source === expSource);
     if (expType) list = list.filter(p => p.type === expType);
     if (expQuartier) list = list.filter(p => p.quartier === expQuartier);
