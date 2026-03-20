@@ -146,7 +146,7 @@ export interface Translations {
     change3Title: string;
     change3Desc: string;
     generateFirstCta: string;
-    // AI Assistant dark section
+    // AMI (Assistant Marketing Intelligence) dark section
     aiBadge: string;
     aiTitle: string;
     aiSubtitle: string;

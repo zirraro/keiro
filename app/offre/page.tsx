@@ -285,7 +285,7 @@ export default function OffrePage() {
                 </svg>
               </summary>
               <div className="px-5 pb-5 text-neutral-600">
-                Instagram + Stories + LinkedIn, visuels pro, vid&eacute;os, audio, stats, assistant IA. Tout sauf TikTok et le branding perso (r&eacute;serv&eacute;s Fondateurs).
+                Instagram + Stories + LinkedIn, visuels pro, vid&eacute;os, audio, stats, AMI (Assistant Marketing Intelligence). Tout sauf TikTok et le branding perso (r&eacute;serv&eacute;s Fondateurs).
               </div>
             </details>
           </div>

@@ -178,7 +178,7 @@ export default function AdminRetoursClientsPage() {
 
   const LABELS: Record<string, string> = {
     images: 'Images', videos: 'Videos', suggestions: 'Suggestions IA',
-    assistant: 'Assistant IA', audio: 'Audio', publication: 'Publication',
+    assistant: 'AMI', audio: 'Audio', publication: 'Publication',
     interface: 'Interface', prix: 'Qualite/Prix',
   };
 

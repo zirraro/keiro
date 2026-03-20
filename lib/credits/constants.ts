@@ -4,17 +4,18 @@
  */
 
 // Coût en crédits par fonctionnalité
+// Philosophie : images accessibles, vidéos progressives, IA cheap pour engagement
 export const CREDIT_COSTS = {
-  image_t2i: 5,
+  image_t2i: 4,
   image_i2i: 3,
-  video_5s: 25,
-  video_10s: 40,
+  video_5s: 15,
+  video_10s: 25,
   video_15s: 35,
   video_30s: 50,
-  video_45s: 70,
-  video_60s: 85,
-  video_90s: 120,
-  audio_tts: 1,
+  video_45s: 65,
+  video_60s: 80,
+  video_90s: 110,
+  audio_tts: 2,
   text_suggest: 1,
   narration_suggest: 1,
   marketing_chat: 1,
@@ -22,14 +23,14 @@ export const CREDIT_COSTS = {
 
 // Crédits par plan (~10% de marge sur usage réaliste)
 export const PLAN_CREDITS: Record<string, number> = {
-  free: 15,
-  sprint: 110,
-  pro: 220,
-  pro_promo: 220,
-  fondateurs: 700,
-  standard: 880,
-  business: 1750,
-  elite: 5500,
+  free: 20,
+  sprint: 120,
+  pro: 250,
+  pro_promo: 250,
+  fondateurs: 750,
+  standard: 950,
+  business: 1900,
+  elite: 6000,
   admin: 999999,
 };
 
@@ -92,19 +93,19 @@ export const FREE_FEATURES = [
 // Packs crédits à l'achat (plus cher que l'abonnement pour pousser vers l'abo)
 // Référence : Fondateurs = 700cr/149€ = 0,21€/cr
 export const CREDIT_PACKS = [
-  { id: 'starter', name: 'Starter', credits: 50, price: 14.99, priceLabel: '14,99€', perCredit: '0,30€' },
-  { id: 'pro', name: 'Pro', credits: 150, price: 39.99, priceLabel: '39,99€', perCredit: '0,27€' },
-  { id: 'expert', name: 'Expert', credits: 300, price: 69.99, priceLabel: '69,99€', perCredit: '0,23€' },
+  { id: 'starter', name: 'Starter', credits: 60, price: 14.99, priceLabel: '14,99€', perCredit: '0,25€' },
+  { id: 'pro', name: 'Pro', credits: 180, price: 39.99, priceLabel: '39,99€', perCredit: '0,22€' },
+  { id: 'expert', name: 'Expert', credits: 400, price: 69.99, priceLabel: '69,99€', perCredit: '0,17€' },
 ] as const;
 
 // Crédits offerts code promo (= Fondateurs)
-export const PROMO_CODE_CREDITS = 700;
+export const PROMO_CODE_CREDITS = 750;
 
 // Crédits offerts à l'inscription
 export const SIGNUP_BONUS_CREDITS = 30;
 
 // Limite mode gratuit
-export const FREE_MONTHLY_LIMIT = 3;
+export const FREE_MONTHLY_LIMIT = 5; // 20 credits / 4 per image = 5 images
 
 // Features bloquées en mode gratuit
 export const FREE_BLOCKED_FEATURES = [
@@ -119,11 +120,11 @@ export const VIDEO_DURATIONS = [5, 10, 15, 30, 45, 60, 90] as const;
  * Calcule le coût en crédits d'une vidéo selon sa durée
  */
 export function getVideoCreditCost(duration: number): number {
-  if (duration <= 5) return 25;
-  if (duration <= 10) return 40;
+  if (duration <= 5) return 15;
+  if (duration <= 10) return 25;
   if (duration <= 15) return 35;
   if (duration <= 30) return 50;
-  if (duration <= 45) return 70;
-  if (duration <= 60) return 85;
-  return 120; // 90s
+  if (duration <= 45) return 65;
+  if (duration <= 60) return 80;
+  return 110; // 90s
 }

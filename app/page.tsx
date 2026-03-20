@@ -85,7 +85,7 @@ function HomeKeiroInner() {
             </FadeUp>
           </div>
           <SlideInRight delay={0.4} className="lg:col-span-5">
-            {/* Assistant IA Preview Card */}
+            {/* AMI Preview Card */}
             <FloatUp amplitude={6} duration={5}>
             <GlowPulse color="rgba(59, 130, 246, 0.12)">
             <div className="rounded-2xl overflow-hidden bg-white/5 backdrop-blur-sm border border-white/10">
@@ -533,7 +533,7 @@ function HomeKeiroInner() {
         </div>
       </section>
 
-      {/* ASSISTANT IA MARKETING — DARK SECTION */}
+      {/* ASSISTANT MARKETING INTELLIGENCE (AMI) — DARK SECTION */}
       <div className="relative h-40 overflow-hidden" aria-hidden="true">
         <div className={`absolute inset-0 bg-gradient-to-b ${isLight ? 'from-[#FAFBFC] via-[#FAFBFC]/80' : 'from-transparent via-transparent/80'} to-[#0B1120]`} />
         <div className="absolute bottom-0 left-0 right-0 h-24 bg-[#0B1120]" style={{ clipPath: 'ellipse(70% 100% at 50% 100%)' }} />

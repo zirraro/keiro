@@ -14,7 +14,7 @@ function getSupabase() {
 }
 
 export const metadata: Metadata = {
-  title: 'Blog Marketing IA | Keiro',
+  title: 'Blog Marketing | Keiro',
   description: 'Conseils, guides et astuces pour booster le marketing de ton commerce avec l\'IA. Instagram, TikTok, visuels, strategies pour restaurants, boutiques, coaches et plus.',
   alternates: {
     canonical: '/blog',
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'fr_FR',
     url: 'https://www.keiroai.com/blog',
-    title: 'Blog Marketing IA | Keiro',
+    title: 'Blog Marketing | Keiro',
     description: 'Conseils et guides pour booster le marketing de ton commerce avec l\'IA.',
     siteName: 'Keiro',
   },
@@ -75,7 +75,7 @@ export default async function BlogListingPage() {
       {/* Header */}
       <div className="bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white py-16">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
-          <h1 className="text-4xl sm:text-5xl font-bold mb-4">Blog Marketing IA</h1>
+          <h1 className="text-4xl sm:text-5xl font-bold mb-4">Blog Marketing</h1>
           <p className="text-lg text-white/90 max-w-2xl mx-auto">
             Guides pratiques, conseils et strategies pour booster le marketing de ton commerce grace a l&apos;intelligence artificielle.
           </p>

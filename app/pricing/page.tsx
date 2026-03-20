@@ -408,7 +408,7 @@ function PricingPageInner() {
           {/* Business 349€ */}
           <StaggerItem><div className="bg-gradient-to-br from-[#0c1a3a] to-[#1e3a5f] rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-              <span className="bg-[#0c1a3a] text-[#0c1a3a]/60 px-4 py-1 rounded-full text-xs font-bold shadow-lg">
+              <span className="bg-[#0c1a3a] text-cyan-200 px-4 py-1 rounded-full text-xs font-bold shadow-lg">
                 Agences & Teams
               </span>
             </div>
@@ -418,10 +418,10 @@ function PricingPageInner() {
               </h3>
               <div className="flex items-baseline gap-2 mb-2">
                 <span className="text-4xl font-bold">{billingPeriod === 'annual' ? '3 490€' : '349€'}</span>
-                <span className="text-[#0c1a3a]/60">{billingPeriod === 'annual' ? t.common.perYear : t.common.perMonth}</span>
+                <span className="text-cyan-200">{billingPeriod === 'annual' ? t.common.perYear : t.common.perMonth}</span>
                 {billingPeriod === 'annual' && <span className="text-xs text-cyan-200 font-semibold">soit 290€/mois</span>}
               </div>
-              <p className="text-[#0c1a3a]/60 text-sm" dangerouslySetInnerHTML={{ __html: t.pricing.planBusinessSubtitle }} />
+              <p className="text-cyan-200 text-sm" dangerouslySetInnerHTML={{ __html: t.pricing.planBusinessSubtitle }} />
             </div>
 
             <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3 mb-4 border border-white/30">
@@ -439,7 +439,7 @@ function PricingPageInner() {
             <button onClick={() => startCheckout(billingPeriod === 'annual' ? 'business_annual' : 'business')} className="block w-full py-3 text-center rounded-xl bg-white text-[#0c1a3a] font-bold hover:bg-[#0c1a3a]/5 transition-all mt-auto">
               {billingPeriod === 'annual' ? `${t.pricing.planBusinessTitle} ${t.common.annual.toLowerCase()} (${t.common.annualDiscount})` : t.pricing.planBusinessCta}
             </button>
-            <p className="text-center text-[#0c1a3a]/60 text-xs mt-2">{t.pricing.supportCallDesc}</p>
+            <p className="text-center text-cyan-200 text-xs mt-2">{t.pricing.supportCallDesc}</p>
           </div></StaggerItem>
         </StaggerContainer>
 
@@ -538,21 +538,24 @@ function PricingPageInner() {
         </div>
 
         {/* Grille crédits */}
-        <div className="bg-white rounded-2xl border border-neutral-200 p-6 mb-10">
-          <h3 className="text-lg font-bold text-neutral-900 mb-4 text-center">{t.pricing.creditTitle}</h3>
+        <div className="bg-white dark:bg-white/5 rounded-2xl border border-neutral-200 dark:border-white/10 p-6 mb-10">
+          <h3 className="text-lg font-bold text-neutral-900 dark:text-white mb-4 text-center">{t.pricing.creditTitle}</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center text-sm">
-            <div className="p-3 bg-blue-50 rounded-lg border border-blue-100"><p className="font-bold text-blue-800">5 cr</p><p className="text-xs text-neutral-600">{t.pricing.creditImage}</p></div>
-            <div className="p-3 bg-blue-50 rounded-lg border border-blue-100"><p className="font-bold text-blue-800">3 cr</p><p className="text-xs text-neutral-600">{t.pricing.creditImageEdit}</p></div>
-            <div className="p-3 bg-purple-50 rounded-lg"><p className="font-bold text-purple-700">25 cr</p><p className="text-xs text-neutral-600">{t.pricing.creditVideo5s}</p></div>
-            <div className="p-3 bg-purple-50 rounded-lg"><p className="font-bold text-purple-700">40 cr</p><p className="text-xs text-neutral-600">{t.pricing.creditVideo10s}</p></div>
-            <div className="p-3 bg-green-50 rounded-lg"><p className="font-bold text-green-700">1 cr</p><p className="text-xs text-neutral-600">{t.pricing.creditAiSuggestion}</p></div>
-            <div className="p-3 bg-green-50 rounded-lg"><p className="font-bold text-green-700">1 cr</p><p className="text-xs text-neutral-600">{t.pricing.creditAudioNarration}</p></div>
-            <div className="p-3 bg-green-50 rounded-lg"><p className="font-bold text-green-700">1 cr</p><p className="text-xs text-neutral-600">{t.pricing.creditMarketingAssistant}</p></div>
+            <div className="p-3 bg-blue-50 dark:bg-blue-500/10 rounded-lg border border-blue-100 dark:border-blue-500/20"><p className="font-bold text-blue-800 dark:text-blue-300">4 cr</p><p className="text-xs text-neutral-600 dark:text-neutral-400">{t.pricing.creditImage}</p></div>
+            <div className="p-3 bg-blue-50 dark:bg-blue-500/10 rounded-lg border border-blue-100 dark:border-blue-500/20"><p className="font-bold text-blue-800 dark:text-blue-300">3 cr</p><p className="text-xs text-neutral-600 dark:text-neutral-400">{t.pricing.creditImageEdit}</p></div>
+            <div className="p-3 bg-purple-50 dark:bg-purple-500/10 rounded-lg border border-purple-100 dark:border-purple-500/20"><p className="font-bold text-purple-700 dark:text-purple-300">15 cr</p><p className="text-xs text-neutral-600 dark:text-neutral-400">{t.pricing.creditVideo5s}</p></div>
+            <div className="p-3 bg-purple-50 dark:bg-purple-500/10 rounded-lg border border-purple-100 dark:border-purple-500/20"><p className="font-bold text-purple-700 dark:text-purple-300">25 cr</p><p className="text-xs text-neutral-600 dark:text-neutral-400">{t.pricing.creditVideo10s}</p></div>
+            <div className="p-3 bg-purple-50 dark:bg-purple-500/10 rounded-lg border border-purple-100 dark:border-purple-500/20"><p className="font-bold text-purple-700 dark:text-purple-300">35 cr</p><p className="text-xs text-neutral-600 dark:text-neutral-400">{"Vidéo 15s"}</p></div>
+            <div className="p-3 bg-purple-50 dark:bg-purple-500/10 rounded-lg border border-purple-100 dark:border-purple-500/20"><p className="font-bold text-purple-700 dark:text-purple-300">50 cr</p><p className="text-xs text-neutral-600 dark:text-neutral-400">{"Vidéo 30s"}</p></div>
+            <div className="p-3 bg-purple-50 dark:bg-purple-500/10 rounded-lg border border-purple-100 dark:border-purple-500/20"><p className="font-bold text-purple-700 dark:text-purple-300">65-110 cr</p><p className="text-xs text-neutral-600 dark:text-neutral-400">{"Vidéo 45-90s"}</p></div>
+            <div className="p-3 bg-green-50 dark:bg-green-500/10 rounded-lg border border-green-100 dark:border-green-500/20"><p className="font-bold text-green-700 dark:text-green-300">2 cr</p><p className="text-xs text-neutral-600 dark:text-neutral-400">{t.pricing.creditAudioNarration}</p></div>
+            <div className="p-3 bg-green-50 dark:bg-green-500/10 rounded-lg border border-green-100 dark:border-green-500/20"><p className="font-bold text-green-700 dark:text-green-300">1 cr</p><p className="text-xs text-neutral-600 dark:text-neutral-400">{t.pricing.creditAiSuggestion}</p></div>
+            <div className="p-3 bg-green-50 dark:bg-green-500/10 rounded-lg border border-green-100 dark:border-green-500/20"><p className="font-bold text-green-700 dark:text-green-300">1 cr</p><p className="text-xs text-neutral-600 dark:text-neutral-400">{t.pricing.creditMarketingAssistant}</p></div>
           </div>
         </div>
 
         {/* Comparatif rapide */}
-        <div className="bg-white rounded-2xl border border-neutral-200 p-8 mb-16">
+        <div className="bg-white dark:bg-white/5 rounded-2xl border border-neutral-200 dark:border-white/10 p-8 mb-16">
           <h3 className="text-2xl font-bold text-center mb-2">{t.pricing.comparisonTitle}</h3>
           <p className="text-center text-neutral-500 text-sm mb-8">{t.pricing.subtitle}</p>
           <div className="overflow-x-auto">
@@ -571,11 +574,11 @@ function PricingPageInner() {
                 {/* Crédits */}
                 <tr className="border-b bg-[#0c1a3a]/5/30">
                   <td className="py-3 px-2 font-medium">Crédits</td>
-                  <td className="text-center py-3 px-2">110/3j</td>
-                  <td className="text-center py-3 px-2"><strong>400/mois</strong></td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><strong>700/mois</strong></td>
-                  <td className="text-center py-3 px-2"><strong>1750/mois</strong></td>
-                  <td className="text-center py-3 px-2 bg-yellow-50"><strong>5 500/mois</strong></td>
+                  <td className="text-center py-3 px-2">120/3j</td>
+                  <td className="text-center py-3 px-2"><strong>250/mois</strong></td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><strong>750/mois</strong></td>
+                  <td className="text-center py-3 px-2"><strong>1 900/mois</strong></td>
+                  <td className="text-center py-3 px-2 bg-yellow-50"><strong>6 000/mois</strong></td>
                 </tr>
                 {/* En concret */}
                 <tr className="border-b">
@@ -613,9 +616,9 @@ function PricingPageInner() {
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
                 </tr>
-                {/* Assistant IA */}
+                {/* AMI */}
                 <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">Assistant IA</td>
+                  <td className="py-3 px-2 font-medium">AMI</td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
@@ -886,7 +889,7 @@ function PricingPageInner() {
                   <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> Branding personnalisé (Fondateurs)</li>
                   <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> Multi-format automatique (Fondateurs)</li>
                   <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> Statistiques et analyse intégrées</li>
-                  <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> Assistant IA marketing</li>
+                  <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> Assistant Marketing Intelligence</li>
                   <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> Disponible 24/7</li>
                   <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> Calendrier de planification</li>
                 </ul>
@@ -919,7 +922,7 @@ function PricingPageInner() {
           </div>
 
           {/* Tableau comparatif détaillé */}
-          <div className="bg-white rounded-2xl border border-neutral-200 p-4 md:p-8">
+          <div className="bg-white dark:bg-white/5 rounded-2xl border border-neutral-200 dark:border-white/10 p-4 md:p-8">
             <div className="overflow-x-auto">
               <table className="w-full text-sm min-w-[700px]">
                 <thead>
@@ -935,34 +938,34 @@ function PricingPageInner() {
                   {/* GÉNÉRATION DE VIDÉOS - highlighted */}
                   <tr className="border-b bg-cyan-50 font-bold">
                     <td className="py-4 px-3 text-base">{"GÉNÉRATION DE VIDÉOS"}</td>
-                    <td className="text-center py-4 px-3"><span className="text-red-500">{"❌"}</span> Impossible</td>
-                    <td className="text-center py-4 px-3"><span className="text-red-500">{"❌"}</span> Impossible</td>
-                    <td className="text-center py-4 px-3 bg-purple-50/50"><span className="text-green-600">{"✅"}</span> Vidéos 5s-90s</td>
-                    <td className="text-center py-4 px-3 bg-amber-50/50"><span className="text-green-600">{"✅"}</span> Vidéos 5s-90s</td>
+                    <td className="text-center py-4 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span> Impossible</td>
+                    <td className="text-center py-4 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span> Impossible</td>
+                    <td className="text-center py-4 px-3 bg-purple-50/50"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Vidéos 5s-90s</td>
+                    <td className="text-center py-4 px-3 bg-amber-50/50"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Vidéos 5s-90s</td>
                   </tr>
                   {/* TikTok */}
                   <tr className="border-b">
                     <td className="py-3 px-3 font-medium">{"TikTok (format + publication)"}</td>
-                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span></td>
-                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span></td>
-                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span></td>
-                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="text-green-600">{"✅"}</span> Format optimisé</td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
+                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Format optimisé</td>
                   </tr>
                   {/* Vidéo + audio narration */}
                   <tr className="border-b">
                     <td className="py-3 px-3 font-medium">{"Vidéo + audio narration"}</td>
-                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span></td>
-                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span> (audio séparé)</td>
-                    <td className="text-center py-3 px-3"><span className="text-green-600">{"✅"}</span> Intégré</td>
-                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="text-green-600">{"✅"}</span> Intégré</td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span> (audio séparé)</td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Intégré</td>
+                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Intégré</td>
                   </tr>
                   {/* Images IA */}
                   <tr className="border-b">
                     <td className="py-3 px-3 font-medium">{"Images IA"}</td>
-                    <td className="text-center py-3 px-3"><span className="text-green-600">{"✅"}</span> Prompt manuel</td>
-                    <td className="text-center py-3 px-3"><span className="text-green-600">{"✅"}</span> Meilleure qualité</td>
-                    <td className="text-center py-3 px-3"><span className="text-green-600">{"✅"}</span> Optimisé commerce</td>
-                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="text-green-600">{"✅"}</span> Optimisé commerce</td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Prompt manuel</td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Meilleure qualité</td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Optimisé commerce</td>
+                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Optimisé commerce</td>
                   </tr>
                   {/* Temps par post - green bold for KeiroAI */}
                   <tr className="border-b">
@@ -983,112 +986,112 @@ function PricingPageInner() {
                   {/* Lié à l'actu du jour */}
                   <tr className="border-b">
                     <td className="py-3 px-3 font-medium">{"Lié à l'actu du jour"}</td>
-                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span> Vous cherchez</td>
-                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span> Vous cherchez</td>
-                    <td className="text-center py-3 px-3"><span className="text-green-600">{"✅"}</span> Automatique</td>
-                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="text-green-600">{"✅"}</span> Automatique</td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span> Vous cherchez</td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span> Vous cherchez</td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Automatique</td>
+                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Automatique</td>
                   </tr>
                   {/* Branding */}
                   <tr className="border-b">
                     <td className="py-3 px-3 font-medium">{"Branding (logo + couleurs)"}</td>
-                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span> Re-décrire à chaque fois</td>
-                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span> Re-décrire</td>
-                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span></td>
-                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="text-green-600">{"✅"}</span> Mémorisé, auto</td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span> Re-décrire à chaque fois</td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span> Re-décrire</td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
+                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Mémorisé, auto</td>
                   </tr>
                   {/* Multi-format */}
                   <tr className="border-b">
                     <td className="py-3 px-3 font-medium">{"Multi-format (post+Story+Reel)"}</td>
-                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span> 1 par 1</td>
-                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span> 1 par 1</td>
-                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span></td>
-                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="text-green-600">{"✅"}</span> 1 clic = 3 formats</td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span> 1 par 1</td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span> 1 par 1</td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
+                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> 1 clic = 3 formats</td>
                   </tr>
                   {/* Légendes Instagram */}
                   <tr className="border-b">
                     <td className="py-3 px-3 font-medium">{"Légendes Instagram"}</td>
-                    <td className="text-center py-3 px-3"><span className="text-amber-500">{"⚠️"}</span> Si demandé</td>
-                    <td className="text-center py-3 px-3"><span className="text-amber-500">{"⚠️"}</span> Si demandé</td>
-                    <td className="text-center py-3 px-3"><span className="text-green-600">{"✅"}</span> Auto</td>
-                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="text-green-600">{"✅"}</span> Auto</td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-500 text-xs font-bold">!</span> Si demandé</td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-500 text-xs font-bold">!</span> Si demandé</td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Auto</td>
+                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Auto</td>
                   </tr>
                   {/* Hashtags */}
                   <tr className="border-b">
                     <td className="py-3 px-3 font-medium">{"Hashtags"}</td>
-                    <td className="text-center py-3 px-3"><span className="text-amber-500">{"⚠️"}</span> Si demandé</td>
-                    <td className="text-center py-3 px-3"><span className="text-amber-500">{"⚠️"}</span> Si demandé</td>
-                    <td className="text-center py-3 px-3"><span className="text-green-600">{"✅"}</span> Auto</td>
-                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="text-green-600">{"✅"}</span> Auto</td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-500 text-xs font-bold">!</span> Si demandé</td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-500 text-xs font-bold">!</span> Si demandé</td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Auto</td>
+                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Auto</td>
                   </tr>
                   {/* Text-to-speech */}
                   <tr className="border-b">
                     <td className="py-3 px-3 font-medium">{"Text-to-speech"}</td>
-                    <td className="text-center py-3 px-3"><span className="text-green-600">{"✅"}</span> Basique</td>
-                    <td className="text-center py-3 px-3"><span className="text-green-600">{"✅"}</span> + MP3</td>
-                    <td className="text-center py-3 px-3"><span className="text-green-600">{"✅"}</span> Intégré vidéo</td>
-                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="text-green-600">{"✅"}</span> Intégré vidéo</td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Basique</td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> + MP3</td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Intégré vidéo</td>
+                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Intégré vidéo</td>
                   </tr>
                   {/* Calendrier publication */}
                   <tr className="border-b">
                     <td className="py-3 px-3 font-medium">{"Calendrier publication"}</td>
-                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span></td>
-                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span></td>
-                    <td className="text-center py-3 px-3"><span className="text-green-600">{"✅"}</span></td>
-                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="text-green-600">{"✅"}</span></td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span></td>
+                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span></td>
                   </tr>
                   {/* Stats Instagram */}
                   <tr className="border-b">
                     <td className="py-3 px-3 font-medium">{"Stats Instagram"}</td>
-                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span></td>
-                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span></td>
-                    <td className="text-center py-3 px-3"><span className="text-green-600">{"✅"}</span></td>
-                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="text-green-600">{"✅"}</span></td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span></td>
+                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span></td>
                   </tr>
                   {/* Stats multi-plateforme */}
                   <tr className="border-b">
                     <td className="py-3 px-3 font-medium">{"Stats multi-plateforme"}</td>
-                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span></td>
-                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span></td>
-                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span></td>
-                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="text-green-600">{"✅"}</span></td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
+                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span></td>
                   </tr>
                   {/* Recommandations IA */}
                   <tr className="border-b">
                     <td className="py-3 px-3 font-medium">{"Recommandations IA"}</td>
-                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span></td>
-                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span></td>
-                    <td className="text-center py-3 px-3"><span className="text-green-600">{"✅"}</span></td>
-                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="text-green-600">{"✅"}</span></td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span></td>
+                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span></td>
                   </tr>
                   {/* Publication multi-plateforme */}
                   <tr className="border-b">
                     <td className="py-3 px-3 font-medium">{"Publication multi-plateforme"}</td>
-                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span></td>
-                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span></td>
-                    <td className="text-center py-3 px-3"><span className="text-green-600">{"✅"}</span> IG + LinkedIn</td>
-                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="text-green-600">{"✅"}</span> IG + TikTok + LinkedIn</td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> IG + LinkedIn</td>
+                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> IG + TikTok + LinkedIn</td>
                   </tr>
                   {/* Galerie organisée */}
                   <tr className="border-b">
                     <td className="py-3 px-3 font-medium">{"Galerie organisée"}</td>
-                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span> Historique chat</td>
-                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span> Historique chat</td>
-                    <td className="text-center py-3 px-3"><span className="text-green-600">{"✅"}</span></td>
-                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="text-green-600">{"✅"}</span></td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span> Historique chat</td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span> Historique chat</td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span></td>
+                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span></td>
                   </tr>
                   {/* Retouche visuelle */}
                   <tr className="border-b">
                     <td className="py-3 px-3 font-medium">{"Retouche visuelle"}</td>
-                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span> Regénérer</td>
-                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span> Regénérer</td>
-                    <td className="text-center py-3 px-3"><span className="text-green-600">{"✅"}</span> Lumière, ambiance</td>
-                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="text-green-600">{"✅"}</span> Lumière, ambiance</td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span> Regénérer</td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span> Regénérer</td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Lumière, ambiance</td>
+                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Lumière, ambiance</td>
                   </tr>
                   {/* Support */}
                   <tr>
                     <td className="py-3 px-3 font-medium">{"Support"}</td>
-                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span></td>
-                    <td className="text-center py-3 px-3"><span className="text-red-500">{"❌"}</span></td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
+                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
                     <td className="text-center py-3 px-3">Email 48h</td>
                     <td className="text-center py-3 px-3 bg-amber-50/30"><strong>Prioritaire 12h</strong></td>
                   </tr>

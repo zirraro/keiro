@@ -971,14 +971,18 @@ html.light .page-studio-bg {
 html:not(.light) .page-studio-bg .text-neutral-900 { color: #f1f5f9 !important; }
 html:not(.light) .page-studio-bg .text-neutral-800 { color: #e2e8f0 !important; }
 html:not(.light) .page-studio-bg .text-neutral-700 { color: #cbd5e1 !important; }
-html:not(.light) .page-studio-bg .text-neutral-600 { color: #94a3b8 !important; }
-html:not(.light) .page-studio-bg .text-neutral-500 { color: #64748b !important; }
-html:not(.light) .page-studio-bg [class*="text-\[#0c1a3a\]"] { color: #e2e8f0 !important; }
-html:not(.light) .page-studio-bg .bg-white { background-color: rgba(255, 255, 255, 0.08) !important; border-color: rgba(255, 255, 255, 0.1) !important; }
-html:not(.light) .page-studio-bg .border-neutral-200 { border-color: rgba(255, 255, 255, 0.1) !important; }
-html:not(.light) .page-studio-bg .border-neutral-300 { border-color: rgba(255, 255, 255, 0.15) !important; }
+html:not(.light) .page-studio-bg .text-neutral-600 { color: #b0bec5 !important; }
+html:not(.light) .page-studio-bg .text-neutral-500 { color: #94a3b8 !important; }
+html:not(.light) .page-studio-bg .text-neutral-400 { color: #94a3b8 !important; }
+html:not(.light) .page-studio-bg .bg-white { background-color: rgba(255, 255, 255, 0.08) !important; border-color: rgba(255, 255, 255, 0.12) !important; }
+html:not(.light) .page-studio-bg .border-neutral-200 { border-color: rgba(255, 255, 255, 0.12) !important; }
+html:not(.light) .page-studio-bg .border-neutral-200\/50 { border-color: rgba(255, 255, 255, 0.12) !important; }
+html:not(.light) .page-studio-bg .border-neutral-300 { border-color: rgba(255, 255, 255, 0.18) !important; }
+html:not(.light) .page-studio-bg .border-neutral-100 { border-color: rgba(255, 255, 255, 0.10) !important; }
 html:not(.light) .page-studio-bg .text-purple-700 { color: #d8b4fe !important; }
 html:not(.light) .page-studio-bg .text-purple-600 { color: #d8b4fe !important; }
+html:not(.light) .page-studio-bg .text-indigo-700 { color: #a5b4fc !important; }
+html:not(.light) .page-studio-bg .text-pink-700 { color: #f9a8d4 !important; }
 html:not(.light) .page-studio-bg .text-pink-600 { color: #f9a8d4 !important; }
 html:not(.light) .page-studio-bg .text-pink-500 { color: #ec4899 !important; }
 html:not(.light) .page-studio-bg .border-purple-200 { border-color: rgba(168, 85, 247, 0.2) !important; }
@@ -992,6 +996,64 @@ html:not(.light) .page-studio-bg .to-purple-50 {
 }
 html:not(.light) .page-studio-bg .border-\[\#0c1a3a\]\/10 { border-color: rgba(255, 255, 255, 0.12) !important; }
 html:not(.light) .page-studio-bg .shadow-md { --tw-shadow-color: rgba(0, 0, 0, 0.3); }
+html:not(.light) .page-studio-bg .shadow-lg { --tw-shadow-color: rgba(0, 0, 0, 0.4); }
+/* Dark mode: drop zone and neutral gradient backgrounds */
+html:not(.light) .page-studio-bg .from-neutral-50 { --tw-gradient-from: rgba(255, 255, 255, 0.04) !important; }
+html:not(.light) .page-studio-bg .to-neutral-100 { --tw-gradient-to: rgba(255, 255, 255, 0.06) !important; }
+html:not(.light) .page-studio-bg .to-neutral-200 { --tw-gradient-to: rgba(255, 255, 255, 0.08) !important; }
+/* Dark mode: bg-neutral-50/100 inside studio (position buttons, inactive chips) */
+html:not(.light) .page-studio-bg .bg-neutral-50 { background-color: rgba(255, 255, 255, 0.06) !important; }
+html:not(.light) .page-studio-bg .bg-neutral-100 { background-color: rgba(255, 255, 255, 0.10) !important; }
+/* Dark mode: "Charger l'image" button — make gradient visible */
+html:not(.light) .page-studio-bg .from-\[\#0c1a3a\] { --tw-gradient-from: #1e3a6f !important; }
+html:not(.light) .page-studio-bg .to-\[\#1e3a5f\] { --tw-gradient-to: #2d4a7f !important; }
+/* Dark mode: bg-[#0c1a3a]/5 (version labels, overlay edit highlight) */
+html:not(.light) .page-studio-bg [class*="bg-\[#0c1a3a\]\/5"] { background-color: rgba(255, 255, 255, 0.08) !important; }
+html:not(.light) .page-studio-bg [class*="bg-\[#0c1a3a\]\/10"] { background-color: rgba(255, 255, 255, 0.12) !important; }
+/* Dark mode: text-[#0c1a3a] in buttons and labels */
+html:not(.light) .page-studio-bg [class*="text-\[#0c1a3a\]"] { color: #93c5fd !important; }
+/* Dark mode: border-dashed drop zone — more visible */
+html:not(.light) .page-studio-bg .border-dashed.border-neutral-300 { border-color: rgba(255, 255, 255, 0.25) !important; }
+/* Dark mode: bg-indigo-100 badge */
+html:not(.light) .page-studio-bg .bg-indigo-100 { background-color: rgba(99, 102, 241, 0.2) !important; }
+/* Dark mode: pink chips and badges */
+html:not(.light) .page-studio-bg .bg-pink-100 { background-color: rgba(236, 72, 153, 0.2) !important; }
+html:not(.light) .page-studio-bg .text-pink-700 { color: #f9a8d4 !important; }
+html:not(.light) .page-studio-bg .ring-pink-300 { --tw-ring-color: rgba(236, 72, 153, 0.3) !important; }
+/* Dark mode: amber "coming soon" badge */
+html:not(.light) .page-studio-bg .bg-amber-100 { background-color: rgba(245, 158, 11, 0.2) !important; }
+html:not(.light) .page-studio-bg .text-amber-700 { color: #fbbf24 !important; }
+/* Dark mode: purple version badge */
+html:not(.light) .page-studio-bg .from-purple-100 { --tw-gradient-from: rgba(168, 85, 247, 0.15) !important; }
+html:not(.light) .page-studio-bg .to-pink-100 { --tw-gradient-to: rgba(236, 72, 153, 0.15) !important; }
+html:not(.light) .page-studio-bg .text-purple-700 { color: #d8b4fe !important; }
+/* Dark mode: red delete buttons */
+html:not(.light) .page-studio-bg .bg-red-50 { background-color: rgba(239, 68, 68, 0.12) !important; }
+html:not(.light) .page-studio-bg .border-red-200 { border-color: rgba(239, 68, 68, 0.25) !important; }
+/* Dark mode: download button bg-neutral-900 — lighten slightly for contrast */
+html:not(.light) .page-studio-bg .bg-neutral-900 { background-color: rgba(255, 255, 255, 0.15) !important; }
+html:not(.light) .page-studio-bg .hover\:bg-neutral-800:hover { background-color: rgba(255, 255, 255, 0.20) !important; }
+/* Dark mode: character counter bg-white inside textarea */
+html:not(.light) .page-studio-bg .shadow-sm.bg-white { background-color: rgba(255, 255, 255, 0.12) !important; }
+/* Dark mode: hover states for neutral backgrounds */
+html:not(.light) .page-studio-bg .hover\:bg-neutral-50:hover { background-color: rgba(255, 255, 255, 0.08) !important; }
+html:not(.light) .page-studio-bg .hover\:bg-neutral-100:hover { background-color: rgba(255, 255, 255, 0.12) !important; }
+html:not(.light) .page-studio-bg .hover\:bg-neutral-200:hover { background-color: rgba(255, 255, 255, 0.15) !important; }
+html:not(.light) .page-studio-bg .hover\:border-neutral-300:hover { border-color: rgba(255, 255, 255, 0.22) !important; }
+html:not(.light) .page-studio-bg .hover\:border-neutral-400:hover { border-color: rgba(255, 255, 255, 0.28) !important; }
+/* Dark mode: disabled input backgrounds */
+html:not(.light) .page-studio-bg .disabled\:bg-neutral-100:disabled { background-color: rgba(255, 255, 255, 0.05) !important; }
+/* Dark mode: border-[#0c1a3a]/20 and /40 used in overlay items and buttons */
+html:not(.light) .page-studio-bg [class*="border-\[#0c1a3a\]\/20"] { border-color: rgba(147, 197, 253, 0.25) !important; }
+html:not(.light) .page-studio-bg [class*="border-\[#0c1a3a\]\/40"] { border-color: rgba(147, 197, 253, 0.35) !important; }
+/* Dark mode: ring-[#0c1a3a]/10 and /20 */
+html:not(.light) .page-studio-bg [class*="ring-\[#0c1a3a\]\/10"] { --tw-ring-color: rgba(147, 197, 253, 0.12) !important; }
+html:not(.light) .page-studio-bg [class*="ring-\[#0c1a3a\]\/20"] { --tw-ring-color: rgba(147, 197, 253, 0.2) !important; }
+/* Dark mode: bg-[#0c1a3a] solid buttons — make them visible */
+html:not(.light) .page-studio-bg .bg-\[\#0c1a3a\] { background-color: #2563eb !important; }
+html:not(.light) .page-studio-bg .hover\:bg-\[\#1e3a5f\]:hover { background-color: #1d4ed8 !important; }
+/* Dark mode: ring-4 ring-[#0c1a3a]/10 on selected version */
+html:not(.light) .page-studio-bg .ring-4[class*="ring-\[#0c1a3a\]"] { --tw-ring-color: rgba(37, 99, 235, 0.25) !important; }
 /* Dark mode: prose all text elements readable */
 html:not(.light) .page-studio-bg .prose {
   color: #cbd5e1 !important;
