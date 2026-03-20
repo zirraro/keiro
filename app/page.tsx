@@ -38,7 +38,7 @@ function HomeKeiroInner() {
             <HeroTextReveal
               text={t.home.heroTitle}
               className="mt-4 text-4xl/tight md:text-5xl/tight font-semibold text-white"
-              highlightWords={locale === 'fr' ? ['actualité', 'minutes'] : ['news', 'minutes']}
+              highlightWords={locale === 'fr' ? ['contenu pro', '3 clics'] : ['pro content', '3 clicks']}
               highlightClassName="gradient-text"
             />
             <FadeUp delay={0.3}>
@@ -106,13 +106,35 @@ function HomeKeiroInner() {
                 <div className="grid grid-cols-2 gap-2">
                   <div className="bg-white/5 rounded-lg p-3 border border-white/10">
                     <div className="text-xs text-[#7fa0c4]/70 font-medium">{t.home.heroCardEngagement}</div>
-                    <div className="text-xl font-bold text-white">+347%</div>
-                    <div className="text-[10px] text-cyan-400/60">↗ +28% vs semaine</div>
+                    <div className="text-xl font-bold text-white"><CountUp target={347} suffix="%" prefix="+" duration={2.5} /></div>
+                    <div className="text-[10px] text-cyan-400/60 flex items-center gap-1">
+                      <span>↗ +28%</span><span>/</span><span>{locale === 'fr' ? 'semaine' : 'week'}</span>
+                    </div>
                   </div>
                   <div className="bg-white/5 rounded-lg p-3 border border-white/10">
                     <div className="text-xs text-[#7fa0c4]/70 font-medium">{t.home.heroCardPosts}</div>
-                    <div className="text-xl font-bold text-white">24</div>
+                    <div className="text-xl font-bold text-white"><CountUp target={24} duration={1.5} /></div>
                     <div className="text-[10px] text-cyan-400/60">{t.home.heroCardCharts}</div>
+                  </div>
+                </div>
+
+                {/* Mini sparkline graph */}
+                <div className="bg-white/5 rounded-lg p-2 border border-white/10">
+                  <svg viewBox="0 0 200 40" className="w-full h-8" preserveAspectRatio="none">
+                    <defs>
+                      <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="rgb(34,211,238)" stopOpacity="0.3" />
+                        <stop offset="100%" stopColor="rgb(34,211,238)" stopOpacity="0" />
+                      </linearGradient>
+                    </defs>
+                    <path d="M0,35 L25,30 L50,32 L75,25 L100,20 L125,22 L150,12 L175,8 L200,5" fill="none" stroke="rgb(34,211,238)" strokeWidth="2" strokeLinecap="round" />
+                    <path d="M0,35 L25,30 L50,32 L75,25 L100,20 L125,22 L150,12 L175,8 L200,5 L200,40 L0,40 Z" fill="url(#sparkGrad)" />
+                  </svg>
+                  <div className="flex justify-between text-[9px] text-[#7fa0c4]/50 mt-0.5 px-1">
+                    <span>{locale === 'fr' ? 'Lun' : 'Mon'}</span>
+                    <span>{locale === 'fr' ? 'Mer' : 'Wed'}</span>
+                    <span>{locale === 'fr' ? 'Ven' : 'Fri'}</span>
+                    <span>{locale === 'fr' ? 'Dim' : 'Sun'}</span>
                   </div>
                 </div>
 
