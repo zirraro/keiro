@@ -967,6 +967,22 @@ function PricingPageInner() {
                     <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Optimisé commerce</td>
                     <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Optimisé commerce</td>
                   </tr>
+                  {/* Qualité de génération - KEY differentiator */}
+                  <tr className="border-b bg-emerald-50/40 font-semibold">
+                    <td className="py-4 px-3 text-base">{"Qualité de génération"}</td>
+                    <td className="text-center py-4 px-3"><span className="text-neutral-500">Standard</span><br/><span className="text-[10px] text-neutral-400">DALL-E basique</span></td>
+                    <td className="text-center py-4 px-3"><span className="text-neutral-600">Bonne</span><br/><span className="text-[10px] text-neutral-400">DALL-E 3 / GPT-4o</span></td>
+                    <td className="text-center py-4 px-3 bg-purple-50/50"><strong className="text-purple-700">Premium</strong><br/><span className="text-[10px] text-purple-500">Seedream 4.5 + Seedance</span></td>
+                    <td className="text-center py-4 px-3 bg-amber-50/50"><strong className="text-amber-700">Elite Studio</strong><br/><span className="text-[10px] text-amber-500">Niveau graphiste pro</span></td>
+                  </tr>
+                  {/* Rendus disponibles */}
+                  <tr className="border-b">
+                    <td className="py-3 px-3 font-medium">{"Rendus disponibles"}</td>
+                    <td className="text-center py-3 px-3"><span className="text-neutral-500">1 seul</span></td>
+                    <td className="text-center py-3 px-3"><span className="text-neutral-500">1 seul</span></td>
+                    <td className="text-center py-3 px-3"><strong className="text-green-600">6 rendus</strong><br/><span className="text-[10px] text-neutral-400">Photo, ciné, aquarelle...</span></td>
+                    <td className="text-center py-3 px-3 bg-amber-50/30"><strong className="text-green-600">6 rendus</strong><br/><span className="text-[10px] text-neutral-400">Photo, ciné, aquarelle...</span></td>
+                  </tr>
                   {/* Temps par post - green bold for KeiroAI */}
                   <tr className="border-b">
                     <td className="py-3 px-3 font-medium">{"Temps par post"}</td>

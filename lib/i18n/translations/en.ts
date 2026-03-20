@@ -1006,7 +1006,7 @@ export const en: Translations = {
     illustration3D: 'Illustration / 3D',
     renderWatercolor: 'Artistic watercolor',
     renderCinematic: 'Cinematic / Film',
-    renderFlat: 'Flat design / Vector',
+    renderFlat: 'Minimalist / Vector',
     renderPainting: 'Digital painting',
     charactersLabel: 'Characters',
     humans: 'Realistic humans',
