@@ -568,7 +568,7 @@ function AdminAgentsContent() {
         .from('crm_activities')
         .select('id, type, description, data, created_at')
         .eq('prospect_id', prospectId)
-        .in('type', ['email', 'email_opened', 'email_clicked', 'email_replied', 'email_bounced'])
+        .in('type', ['email', 'email_opened', 'email_clicked', 'email_replied', 'email_bounced', 'dm_instagram', 'dm_tiktok', 'tiktok_comment', 'comment_prepared', 'commercial_enrichment', 'commercial_social_enrichment', 'commercial_verification', 'prospect_discovered', 'retention_message', 'retention_alert', 'onboarding_email'])
         .order('created_at', { ascending: true })
         .limit(50);
       setLeadEmails(prev => ({ ...prev, [prospectId]: (data || []) as EmailActivity[] }));
@@ -2605,25 +2605,49 @@ function AdminAgentsContent() {
                                         </div>
                                       )}
 
-                                      {/* Engagement events */}
+                                      {/* Engagement & agent activities */}
                                       {emails.filter(e => e.type !== 'email').length > 0 && (
                                         <div>
-                                          <p className="text-[10px] font-bold text-green-700 uppercase tracking-wider mb-1.5">Engagement</p>
+                                          <p className="text-[10px] font-bold text-green-700 uppercase tracking-wider mb-1.5">Activités</p>
                                           <div className="flex flex-wrap gap-1.5">
-                                            {emails.filter(e => e.type !== 'email').map(ev => (
-                                              <span key={ev.id} className={`text-[10px] px-2 py-1 rounded-full font-medium ${
+                                            {emails.filter(e => e.type !== 'email').map(ev => {
+                                              const label =
+                                                ev.type === 'email_opened' ? '📧 Ouvert' :
+                                                ev.type === 'email_clicked' ? '🖱️ Cliqué' :
+                                                ev.type === 'email_replied' ? '💬 Répondu' :
+                                                ev.type === 'email_bounced' ? '⚠️ Bounce' :
+                                                ev.type === 'dm_instagram' ? '📩 DM IG' :
+                                                ev.type === 'dm_tiktok' ? '📩 DM TT' :
+                                                ev.type === 'tiktok_comment' ? '💬 Comment TT' :
+                                                ev.type === 'comment_prepared' ? '💬 Comment IG' :
+                                                ev.type === 'commercial_enrichment' ? '🔍 Enrichi' :
+                                                ev.type === 'commercial_social_enrichment' ? '🔗 Social' :
+                                                ev.type === 'commercial_verification' ? '❌ Vérifié' :
+                                                ev.type === 'prospect_discovered' ? '🆕 Découvert' :
+                                                ev.type === 'retention_message' ? '🔄 Rétention' :
+                                                ev.type === 'retention_alert' ? '🔴 Alerte' :
+                                                ev.type === 'onboarding_email' ? '🎓 Onboarding' :
+                                                ev.type;
+                                              const color =
                                                 ev.type === 'email_opened' ? 'bg-blue-100 text-blue-700' :
                                                 ev.type === 'email_clicked' ? 'bg-green-100 text-green-700' :
                                                 ev.type === 'email_replied' ? 'bg-emerald-100 text-emerald-800 font-bold' :
-                                                'bg-red-100 text-red-700'
-                                              }`}>
-                                                {ev.type === 'email_opened' ? '📧 Ouvert' :
-                                                 ev.type === 'email_clicked' ? '🖱️ Cliqué' :
-                                                 ev.type === 'email_replied' ? '💬 Répondu' :
-                                                 '⚠️ Bounce'}{' '}
-                                                {new Date(ev.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
-                                              </span>
-                                            ))}
+                                                ev.type === 'email_bounced' ? 'bg-red-100 text-red-700' :
+                                                ev.type.startsWith('dm_') ? 'bg-pink-100 text-pink-700' :
+                                                ev.type.includes('comment') ? 'bg-indigo-100 text-indigo-700' :
+                                                ev.type.startsWith('commercial') ? 'bg-amber-100 text-amber-700' :
+                                                ev.type === 'prospect_discovered' ? 'bg-cyan-100 text-cyan-700' :
+                                                ev.type.startsWith('retention') ? 'bg-orange-100 text-orange-700' :
+                                                ev.type === 'onboarding_email' ? 'bg-purple-100 text-purple-700' :
+                                                'bg-neutral-100 text-neutral-700';
+                                              return (
+                                                <button key={ev.id} onClick={() => setEmailDetailModal(ev)}
+                                                  className={`text-[10px] px-2 py-1 rounded-full font-medium cursor-pointer hover:opacity-80 ${color}`}>
+                                                  {label}{' '}
+                                                  {new Date(ev.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                                                </button>
+                                              );
+                                            })}
                                           </div>
                                         </div>
                                       )}
@@ -2661,14 +2685,24 @@ function AdminAgentsContent() {
                               </button>
                             </div>
                           </div>
-                          {/* Email body */}
+                          {/* Body */}
                           <div className="p-5">
                             {emailDetailModal.data?.body ? (
                               <div className="text-sm text-neutral-800 leading-relaxed whitespace-pre-wrap font-[system-ui]">
                                 {emailDetailModal.data.body}
                               </div>
+                            ) : emailDetailModal.data?.comment ? (
+                              <div className="text-sm text-neutral-800 leading-relaxed whitespace-pre-wrap font-[system-ui]">
+                                {emailDetailModal.data.comment}
+                              </div>
+                            ) : emailDetailModal.description ? (
+                              <div className="text-sm text-neutral-800 leading-relaxed">
+                                {emailDetailModal.description}
+                                {emailDetailModal.data?.reason && <p className="mt-2 text-neutral-500">Raison : {emailDetailModal.data.reason}</p>}
+                                {emailDetailModal.data?.fields && <p className="mt-2 text-neutral-500">Champs : {emailDetailModal.data.fields.join(', ')}</p>}
+                              </div>
                             ) : (
-                              <p className="text-sm text-neutral-400 italic">Corps de l'email non disponible</p>
+                              <p className="text-sm text-neutral-400 italic">Détail non disponible</p>
                             )}
                           </div>
                           {/* Footer info */}

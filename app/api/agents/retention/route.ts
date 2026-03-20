@@ -243,6 +243,21 @@ export async function GET(request: NextRequest) {
             status: 'success', created_at: nowISO,
           });
 
+          // Log to crm_activities if prospect exists
+          const clientEmail = authData?.user?.email || client.email;
+          if (clientEmail) {
+            const { data: prospect } = await supabase.from('crm_prospects').select('id').eq('email', clientEmail).limit(1).single();
+            if (prospect) {
+              await supabase.from('crm_activities').insert({
+                prospect_id: prospect.id,
+                type: 'retention_alert',
+                description: `Alerte rouge client: score ${score}/100, ${daysSinceLogin}j inactif`,
+                data: { action: 'red_alert', score, level, daysSinceLogin, plan: client.plan, agent: 'retention' },
+                created_at: nowISO,
+              });
+            }
+          }
+
           messagesSent++;
           continue;
         }
@@ -288,6 +303,20 @@ export async function GET(request: NextRequest) {
           data: { score, level, messageType, daysSinceLogin, plan: client.plan },
           status: 'success', created_at: nowISO,
         });
+
+        // Log to crm_activities if prospect exists
+        if (userEmail) {
+          const { data: prospect } = await supabase.from('crm_prospects').select('id').eq('email', userEmail).limit(1).single();
+          if (prospect) {
+            await supabase.from('crm_activities').insert({
+              prospect_id: prospect.id,
+              type: 'retention_message',
+              description: `Rétention (${messageType}): score ${score}/100, ${client.plan}`,
+              data: { action: messageType, score, level, plan: client.plan, agent: 'retention' },
+              created_at: nowISO,
+            });
+          }
+        }
 
         messagesSent++;
         console.log(`[Retention] ✓ ${messageType} sent to ${client.first_name} (score: ${score}, ${client.plan})`);

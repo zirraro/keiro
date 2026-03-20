@@ -389,7 +389,16 @@ Cherche des comptes actifs, variés géographiquement, dans la niche commerces l
               })
               .select('id')
               .single();
-            if (newProspect) prospectId = newProspect.id;
+            if (newProspect) {
+              prospectId = newProspect.id;
+              await supabase.from('crm_activities').insert({
+                prospect_id: newProspect.id,
+                type: 'prospect_discovered',
+                description: `Nouveau prospect via ${platform}: ${target.name || handle}`,
+                data: { action: 'follow_target_discovered', company: target.name, handle, platform, type: target.type, city: target.city, agent: 'marketing' },
+                created_at: nowISO,
+              });
+            }
           }
 
           await supabase.from('dm_queue').insert({
@@ -652,6 +661,17 @@ UNIQUEMENT du JSON, pas de markdown.`,
             prospect_id: item.prospect.id,
           });
           inserted++;
+
+          // Log to crm_activities for CRM visibility
+          if (item.prospect.id) {
+            await supabase.from('crm_activities').insert({
+              prospect_id: item.prospect.id,
+              type: 'comment_prepared',
+              description: `Commentaire IG préparé: "${aiComment.comment.substring(0, 80)}..."`,
+              data: { action: 'comment_prepared', comment: aiComment.comment, post_permalink: item.post.permalink, post_caption: (item.post.caption || '').substring(0, 100), agent: 'marketing' },
+              created_at: nowISO,
+            });
+          }
         }
 
         await supabase.from('agent_logs').insert({

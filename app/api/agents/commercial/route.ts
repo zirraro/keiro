@@ -456,6 +456,13 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
           // Still apply update below, but skip contact readiness
           updates.updated_at = nowISO;
           await supabase.from('crm_prospects').update(updates).eq('id', prospect.id);
+          await supabase.from('crm_activities').insert({
+            prospect_id: prospect.id,
+            type: 'commercial_verification',
+            description: `Business invalide: ${result.business_notes || 'introuvable'} → marqué dead/perdu`,
+            data: { action: 'flagged_dead', company: prospect.company, reason: result.business_notes, agent: 'commercial' },
+            created_at: nowISO,
+          });
           continue;
         }
 
@@ -536,6 +543,18 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
             updates,
             reasoning: result.reasoning,
           });
+
+          // Log enrichment to crm_activities for CRM visibility
+          const changedFields = Object.keys(updates).filter(k => k !== 'updated_at');
+          if (changedFields.length > 0) {
+            await supabase.from('crm_activities').insert({
+              prospect_id: prospect.id,
+              type: 'commercial_enrichment',
+              description: `Enrichi: ${changedFields.join(', ')}`,
+              data: { action: 'enriched', fields: changedFields, updates, confidence: result.type_confidence, agent: 'commercial' },
+              created_at: nowISO,
+            });
+          }
         } else {
           skippedCount++;
         }
@@ -630,7 +649,15 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
 
             if (!socialError) {
               socialEnrichedCount++;
-              console.log(`[CommercialAgent] Social enriched ${prospect.company}: +${Object.keys(socialUpdates).filter(k => k !== 'updated_at' && k !== 'score' && k !== 'temperature').join(', ')} (score: ${newScore})`);
+              const socialFields = Object.keys(socialUpdates).filter(k => !['updated_at', 'score', 'temperature'].includes(k));
+              console.log(`[CommercialAgent] Social enriched ${prospect.company}: +${socialFields.join(', ')} (score: ${newScore})`);
+              await supabase.from('crm_activities').insert({
+                prospect_id: prospect.id,
+                type: 'commercial_social_enrichment',
+                description: `Profils sociaux trouvés: ${socialFields.join(', ')}`,
+                data: { action: 'social_enriched', fields: socialFields, updates: socialUpdates, agent: 'commercial' },
+                created_at: nowISO,
+              });
             }
           }
         }
@@ -1019,6 +1046,17 @@ Retourne 8-12 prospects qualifiés AVEC EMAIL en JSON. Sois TRÈS concis dans de
             newProspectsCreated++;
             insertedNames.add(lowerName);
             console.log(`[CommercialAgent] New prospect: ${np.company} (${np.type}, ${np.quartier}, score: ${newScore}, email: ${np.email})`);
+            // Log to crm_activities — fetch new prospect ID
+            const { data: newP } = await supabase.from('crm_prospects').select('id').eq('company', np.company).eq('source', 'prospection_commerciale').order('created_at', { ascending: false }).limit(1).single();
+            if (newP) {
+              await supabase.from('crm_activities').insert({
+                prospect_id: newP.id,
+                type: 'prospect_discovered',
+                description: `Nouveau prospect: ${np.company} (${np.type || 'type inconnu'})`,
+                data: { action: 'discovered', company: np.company, type: np.type, quartier: np.quartier, email: np.email, instagram: igHandle, score: newScore, agent: 'commercial' },
+                created_at: nowISO,
+              });
+            }
           } else if (insertError.message?.includes('verified') || insertError.message?.includes('schema cache')) {
             // Retry without verified fields (column may not exist yet)
             const { error: retryError } = await supabase.from('crm_prospects').insert({
@@ -1045,6 +1083,16 @@ Retourne 8-12 prospects qualifiés AVEC EMAIL en JSON. Sois TRÈS concis dans de
             if (!retryError) {
               newProspectsCreated++;
               insertedNames.add(lowerName);
+              const { data: newP2 } = await supabase.from('crm_prospects').select('id').eq('company', np.company).eq('source', 'prospection_commerciale').order('created_at', { ascending: false }).limit(1).single();
+              if (newP2) {
+                await supabase.from('crm_activities').insert({
+                  prospect_id: newP2.id,
+                  type: 'prospect_discovered',
+                  description: `Nouveau prospect: ${np.company} (${np.type || 'type inconnu'})`,
+                  data: { action: 'discovered', company: np.company, type: np.type, email: np.email, agent: 'commercial' },
+                  created_at: nowISO,
+                });
+              }
               console.log(`[CommercialAgent] New prospect (retry): ${np.company} (${np.type}, score: ${newScore}, email: ${np.email})`);
             } else {
               console.warn(`[CommercialAgent] Insert retry error for ${np.company}:`, retryError.message);

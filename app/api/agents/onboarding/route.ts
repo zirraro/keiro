@@ -283,6 +283,20 @@ export async function GET(request: NextRequest) {
           status: 'success', created_at: now,
         });
 
+        // Log to crm_activities if prospect exists
+        if (userEmail) {
+          const { data: prospect } = await supabase.from('crm_prospects').select('id').eq('email', userEmail).limit(1).single();
+          if (prospect) {
+            await supabase.from('crm_activities').insert({
+              prospect_id: prospect.id,
+              type: 'onboarding_email',
+              description: `Onboarding ${item.step_key} (${item.plan})`,
+              data: { action: item.step_key, plan: item.plan, generations: generationsCount, agent: 'onboarding' },
+              created_at: now,
+            });
+          }
+        }
+
         processed++;
         console.log(`[Onboarding] Step ${item.step_key} sent to ${profile.first_name} (${item.plan})`);
 
