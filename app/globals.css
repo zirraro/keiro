@@ -88,18 +88,19 @@ html:not(.light) .border-neutral-100 { border-color: rgba(255, 255, 255, 0.06) !
 /* Dark mode: focus borders on navy inputs — make visible */
 html:not(.light) [class*="focus\:border-\[\#0c1a3a\]"]:focus { border-color: rgba(96, 165, 250, 0.6) !important; }
 html:not(.light) [class*="border-\[\#0c1a3a\]"] { border-color: rgba(255, 255, 255, 0.15) !important; }
-html:not(.light) .bg-neutral-50 { background-color: rgba(255, 255, 255, 0.03) !important; }
-html:not(.light) .bg-neutral-100 { background-color: rgba(255, 255, 255, 0.06) !important; }
-html:not(.light) .bg-neutral-200 { background-color: rgba(255, 255, 255, 0.08) !important; }
+html:not(.light) .bg-neutral-50 { background-color: #0f1d38 !important; }
+html:not(.light) .bg-neutral-100 { background-color: #142040 !important; }
+html:not(.light) .bg-neutral-200 { background-color: #1a2748 !important; }
 html:not(.light) .homepage-sections .bg-white,
 html:not(.light) .page-studio-bg .bg-white {
-  background-color: rgba(255, 255, 255, 0.08) !important;
+  background-color: rgba(255, 255, 255, 0.06) !important;
   border-color: rgba(255, 255, 255, 0.12) !important;
 }
 /* Global bg-white fallback for dark mode — except force-light, modals, and protected CTAs */
 html:not(.light) .bg-white:not(.force-light .bg-white):not(.fixed.inset-0 .bg-white):not(.hp-light-island .bg-white):not(.cta-keep-white) {
-  background-color: rgba(255, 255, 255, 0.08) !important;
+  background-color: #142244 !important;
   color: #e2e8f0 !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
 }
 /* CTAs that must stay white on dark backgrounds */
 html:not(.light) .cta-keep-white {
@@ -168,19 +169,19 @@ html:not(.light) .page-studio-bg select:focus {
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15) !important;
 }
 
-/* Dark mode: colored bg-*-50/100 — subtle dark equivalents */
-html:not(.light) .bg-red-50 { background-color: rgba(239, 68, 68, 0.08) !important; }
-html:not(.light) .bg-green-50 { background-color: rgba(34, 197, 94, 0.08) !important; }
-html:not(.light) .bg-amber-50 { background-color: rgba(245, 158, 11, 0.08) !important; }
-html:not(.light) .bg-orange-50 { background-color: rgba(249, 115, 22, 0.08) !important; }
-html:not(.light) .bg-purple-50 { background-color: rgba(168, 85, 247, 0.08) !important; }
-html:not(.light) .bg-blue-50 { background-color: rgba(59, 130, 246, 0.08) !important; }
-html:not(.light) .bg-cyan-50 { background-color: rgba(6, 182, 212, 0.08) !important; }
-html:not(.light) .bg-indigo-50 { background-color: rgba(99, 102, 241, 0.08) !important; }
-html:not(.light) .bg-red-100 { background-color: rgba(239, 68, 68, 0.12) !important; }
-html:not(.light) .bg-green-100 { background-color: rgba(34, 197, 94, 0.12) !important; }
-html:not(.light) .bg-purple-100 { background-color: rgba(168, 85, 247, 0.12) !important; }
-html:not(.light) .bg-blue-100 { background-color: rgba(59, 130, 246, 0.12) !important; }
+/* Dark mode: colored bg-*-50/100 — visible dark equivalents */
+html:not(.light) .bg-red-50 { background-color: rgba(239, 68, 68, 0.12) !important; }
+html:not(.light) .bg-green-50 { background-color: rgba(34, 197, 94, 0.12) !important; }
+html:not(.light) .bg-amber-50 { background-color: rgba(245, 158, 11, 0.12) !important; }
+html:not(.light) .bg-orange-50 { background-color: rgba(249, 115, 22, 0.12) !important; }
+html:not(.light) .bg-purple-50 { background-color: rgba(168, 85, 247, 0.12) !important; }
+html:not(.light) .bg-blue-50 { background-color: rgba(59, 130, 246, 0.12) !important; }
+html:not(.light) .bg-cyan-50 { background-color: rgba(6, 182, 212, 0.12) !important; }
+html:not(.light) .bg-indigo-50 { background-color: rgba(99, 102, 241, 0.12) !important; }
+html:not(.light) .bg-red-100 { background-color: rgba(239, 68, 68, 0.18) !important; }
+html:not(.light) .bg-green-100 { background-color: rgba(34, 197, 94, 0.18) !important; }
+html:not(.light) .bg-purple-100 { background-color: rgba(168, 85, 247, 0.18) !important; }
+html:not(.light) .bg-blue-100 { background-color: rgba(59, 130, 246, 0.18) !important; }
 
 /* Dark mode: colored borders */
 html:not(.light) .border-red-200 { border-color: rgba(239, 68, 68, 0.2) !important; }
@@ -253,7 +254,7 @@ html:not(.light) .text-teal-600 { color: #2dd4bf !important; }
 
 /* Dark mode: bg-white/60, bg-white/50 sub-panels */
 html:not(.light) [class*="bg-white\/"] {
-  background-color: rgba(255, 255, 255, 0.06) !important;
+  background-color: rgba(255, 255, 255, 0.08) !important;
 }
 
 /* Dark mode: active toggle buttons with bg-white + shadow should stay visible */
@@ -270,20 +271,24 @@ html:not(.light) .from-green-50 { --tw-gradient-from: rgba(34, 197, 94, 0.06) !i
 html:not(.light) .to-emerald-50 { --tw-gradient-to: rgba(16, 185, 129, 0.06) !important; }
 
 /* ===== ADMIN PAGES DARK MODE ===== */
-/* Admin pages use bg-gray-50/100 which need dark mode overrides */
-html:not(.light) .bg-gray-50 { background-color: rgba(255, 255, 255, 0.03) !important; }
-html:not(.light) .bg-gray-100 { background-color: rgba(255, 255, 255, 0.06) !important; }
-html:not(.light) .bg-gray-200 { background-color: rgba(255, 255, 255, 0.08) !important; }
+/* Admin root backgrounds — solid dark, not transparent */
+html:not(.light) .bg-gray-50 { background-color: #0f1d38 !important; }
+html:not(.light) .bg-gray-100 { background-color: #142040 !important; }
+html:not(.light) .bg-gray-200 { background-color: #1a2748 !important; }
 html:not(.light) .text-gray-400 { color: #64748b !important; }
 html:not(.light) .text-gray-300 { color: #475569 !important; }
 html:not(.light) .border-gray-200 { border-color: rgba(255, 255, 255, 0.1) !important; }
 html:not(.light) .border-gray-300 { border-color: rgba(255, 255, 255, 0.15) !important; }
-html:not(.light) .hover\:bg-gray-100:hover { background-color: rgba(255, 255, 255, 0.08) !important; }
-html:not(.light) .hover\:bg-gray-50:hover { background-color: rgba(255, 255, 255, 0.05) !important; }
+html:not(.light) .hover\:bg-gray-100:hover { background-color: #1a2748 !important; }
+html:not(.light) .hover\:bg-gray-50:hover { background-color: #142040 !important; }
+/* Admin: page-level gradient backgrounds — solid dark */
+html:not(.light) .from-neutral-50 { --tw-gradient-from: #0f1d38 !important; }
+html:not(.light) .to-white:not(.cta-keep-white) { --tw-gradient-to: #0c1a3a !important; }
 /* Admin: bg-white/80 header backdrop */
 html:not(.light) [class*="bg-white\/80"] {
-  background-color: rgba(12, 26, 58, 0.85) !important;
+  background-color: rgba(12, 26, 58, 0.9) !important;
   backdrop-filter: blur(12px) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
 }
 /* Admin: inputs, textareas, selects — glass effect */
 html:not(.light) input[type="text"],
@@ -330,9 +335,20 @@ html:not(.light) [class*="bg-clip-text"][class*="text-transparent"] {
   -webkit-text-fill-color: #e2e8f0 !important;
   color: #e2e8f0 !important;
 }
-/* Admin: hover:text-neutral-900 should lighten */
+/* Admin: hover states for dark mode */
 html:not(.light) .hover\:text-neutral-900:hover { color: #f1f5f9 !important; }
 html:not(.light) .hover\:text-neutral-800:hover { color: #e2e8f0 !important; }
+html:not(.light) .hover\:bg-neutral-50:hover { background-color: #1a2748 !important; }
+html:not(.light) .hover\:bg-neutral-200:hover { background-color: #1e2d50 !important; }
+html:not(.light) .hover\:shadow-md:hover { box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.08) !important; }
+html:not(.light) .hover\:border-purple-200:hover { border-color: rgba(168, 85, 247, 0.3) !important; }
+html:not(.light) .hover\:border-purple-300:hover { border-color: rgba(168, 85, 247, 0.4) !important; }
+html:not(.light) .hover\:border-purple-500:hover { border-color: rgba(168, 85, 247, 0.6) !important; }
+/* Admin: shadows in dark mode — subtle glow instead of drop shadow */
+html:not(.light) .shadow-sm { box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.05) !important; }
+html:not(.light) .shadow-md { box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05) !important; }
+html:not(.light) .shadow-lg { box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05) !important; }
+html:not(.light) .shadow-2xl { box-shadow: 0 16px 32px rgba(0, 0, 0, 0.6) !important; }
 /* Admin: scrollbar dark */
 html:not(.light) ::-webkit-scrollbar { width: 6px; height: 6px; }
 html:not(.light) ::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.03); }
