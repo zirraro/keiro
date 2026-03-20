@@ -17,14 +17,28 @@ export const runtime = 'edge';
  */
 export async function POST(req: NextRequest) {
   try {
-    const { user, error: authError } = await getAuthUser();
+    const body = await req.json();
+    const { mediaUrl, mediaType, caption, hashtags, draftId, _scheduledPublish, _userId } = body;
 
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+    // --- Auth: scheduled publish from cron OR normal user auth ---
+    let userId: string | null = null;
+
+    if (_scheduledPublish && _userId) {
+      const cronSecret = process.env.CRON_SECRET;
+      const authHeader = req.headers.get('authorization');
+      if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
+        userId = _userId;
+        console.log('[LinkedInPublish] Scheduled publish for user:', userId);
+      }
     }
 
-    const body = await req.json();
-    const { mediaUrl, mediaType, caption, hashtags, draftId } = body;
+    if (!userId) {
+      const { user, error: authError } = await getAuthUser();
+      if (authError || !user) {
+        return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+      }
+      userId = user.id;
+    }
 
     // Build full text with hashtags
     const hashtagText = hashtags?.length > 0 ? '\n\n' + hashtags.join(' ') : '';
@@ -42,7 +56,7 @@ export async function POST(req: NextRequest) {
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('linkedin_access_token, linkedin_user_id, linkedin_token_expiry')
-      .eq('id', user.id)
+      .eq('id', userId)
       .single();
 
     if (profileError || !profile) {
@@ -103,7 +117,7 @@ export async function POST(req: NextRequest) {
         .from('linkedin_drafts')
         .update({ status: 'published', category: 'published' })
         .eq('id', draftId)
-        .eq('user_id', user.id);
+        .eq('user_id', userId);
     }
 
     console.log('[LinkedInPublish] Post published successfully');

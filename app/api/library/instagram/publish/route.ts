@@ -45,34 +45,51 @@ export async function POST(req: NextRequest) {
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Récupérer l'utilisateur connecté
-    let accessToken = await getAccessTokenFromCookies();
+    // Clone request to read body (needed for both auth paths)
+    const body = await req.json();
+    const { imageUrl, caption, hashtags, _scheduledPublish, _userId } = body;
 
-    if (!accessToken) {
+    // --- Auth: scheduled publish from cron OR normal user auth ---
+    let userId: string | null = null;
+
+    if (_scheduledPublish && _userId) {
+      // Cron-triggered scheduled publish: verify CRON_SECRET
+      const cronSecret = process.env.CRON_SECRET;
       const authHeader = req.headers.get('authorization');
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        accessToken = authHeader.substring(7);
+      if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
+        userId = _userId;
+        console.log('[PublishInstagram] Scheduled publish for user:', userId);
       }
     }
 
-    if (!accessToken) {
-      return NextResponse.json(
-        { ok: false, error: 'Créez un compte pour accéder à cette fonctionnalité' },
-        { status: 401 }
-      );
+    if (!userId) {
+      // Normal user auth via cookies or Bearer token
+      let accessToken = await getAccessTokenFromCookies();
+
+      if (!accessToken) {
+        const authHeader = req.headers.get('authorization');
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+          accessToken = authHeader.substring(7);
+        }
+      }
+
+      if (!accessToken) {
+        return NextResponse.json(
+          { ok: false, error: 'Créez un compte pour accéder à cette fonctionnalité' },
+          { status: 401 }
+        );
+      }
+
+      const { data: { user }, error: authError } = await supabase.auth.getUser(accessToken);
+
+      if (authError || !user) {
+        return NextResponse.json(
+          { ok: false, error: 'Créez un compte pour accéder à cette fonctionnalité' },
+          { status: 401 }
+        );
+      }
+      userId = user.id;
     }
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser(accessToken);
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { ok: false, error: 'Créez un compte pour accéder à cette fonctionnalité' },
-        { status: 401 }
-      );
-    }
-
-    // Récupérer les données du body
-    const { imageUrl, caption, hashtags } = await req.json();
 
     if (!imageUrl) {
       return NextResponse.json(
@@ -82,7 +99,7 @@ export async function POST(req: NextRequest) {
     }
 
     console.log('[PublishInstagram] Publishing to Instagram...', {
-      userId: user.id,
+      userId,
       imageUrl: imageUrl.substring(0, 50)
     });
 
@@ -90,7 +107,7 @@ export async function POST(req: NextRequest) {
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('instagram_business_account_id, instagram_access_token, instagram_username')
-      .eq('id', user.id)
+      .eq('id', userId)
       .single();
 
     if (profileError || !profile) {
@@ -148,7 +165,7 @@ export async function POST(req: NextRequest) {
       .from('instagram_posts')
       .insert({
         id: result.id, // ID du post Instagram (TEXT)
-        user_id: user.id,
+        user_id: userId,
         caption: finalCaption,
         permalink: result.permalink || `https://www.instagram.com/p/${result.id}/`,
         media_type: 'IMAGE',

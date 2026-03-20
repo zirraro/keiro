@@ -23,16 +23,31 @@ export const runtime = 'edge';
  */
 export async function POST(req: NextRequest) {
   try {
-    const { user, error: authError } = await getAuthUser();
+    const body = await req.json();
+    const { videoUrl, caption, hashtags, privacyLevel, disableComment, disableDuet, disableStitch, brandContentToggle, brandOrganicToggle, _scheduledPublish, _userId } = body;
 
-    if (authError || !user) {
-      return NextResponse.json(
-        { ok: false, error: 'Créez un compte pour accéder à cette fonctionnalité' },
-        { status: 401 }
-      );
+    // --- Auth: scheduled publish from cron OR normal user auth ---
+    let userId: string | null = null;
+
+    if (_scheduledPublish && _userId) {
+      const cronSecret = process.env.CRON_SECRET;
+      const authHeader = req.headers.get('authorization');
+      if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
+        userId = _userId;
+        console.log('[TikTokPublish] Scheduled publish for user:', userId);
+      }
     }
 
-    const { videoUrl, caption, hashtags, privacyLevel, disableComment, disableDuet, disableStitch, brandContentToggle, brandOrganicToggle } = await req.json();
+    if (!userId) {
+      const { user, error: authError } = await getAuthUser();
+      if (authError || !user) {
+        return NextResponse.json(
+          { ok: false, error: 'Créez un compte pour accéder à cette fonctionnalité' },
+          { status: 401 }
+        );
+      }
+      userId = user.id;
+    }
 
     if (!videoUrl) {
       return NextResponse.json(
@@ -64,7 +79,7 @@ export async function POST(req: NextRequest) {
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('tiktok_access_token, tiktok_refresh_token, tiktok_token_expiry, tiktok_username, tiktok_user_id')
-      .eq('id', user.id)
+      .eq('id', userId)
       .single();
 
     if (profileError || !profile?.tiktok_access_token) {
@@ -106,7 +121,7 @@ export async function POST(req: NextRequest) {
           tiktok_refresh_token: refreshedTokens.refresh_token,
           tiktok_token_expiry: newExpiry.toISOString(),
         })
-        .eq('id', user.id);
+        .eq('id', userId);
 
       accessToken = refreshedTokens.access_token;
       console.log('[TikTokPublish] Token refreshed');
@@ -172,7 +187,7 @@ export async function POST(req: NextRequest) {
       .from('tiktok_posts')
       .insert({
         id: publishResult.publish_id,
-        user_id: user.id,
+        user_id: userId,
         video_description: finalCaption,
         posted_at: new Date().toISOString(),
         cached_video_url: videoUrl, // Store video URL
@@ -192,7 +207,7 @@ export async function POST(req: NextRequest) {
         category: 'published',
         status: 'published'
       })
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .eq('media_url', videoUrl);
 
     if (draftUpdateError) {

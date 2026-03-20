@@ -293,7 +293,7 @@ export async function POST(request: NextRequest) {
         // Use Google Search to find relevant accounts to follow
         const platform = body.platform || 'instagram';
         const niche = body.niche || 'commerces locaux, restaurants, boutiques, coachs, PME France';
-        const count = Math.min(body.count || 20, 50);
+        const count = Math.min(body.count || 15, 20);
 
         // Search for relevant accounts via Gemini + Google grounding
         const searchResult = await callGeminiWithSearch({
@@ -493,7 +493,8 @@ Retourne en JSON :
 
       case 'prepare_comments': {
         // Fetch real posts from prospects' Instagram accounts, generate contextual comments
-        const maxProspects = body.count || 10;
+        // Cap at 20 to avoid timeout (each prospect = 1 API call + DB queries ~3-5s)
+        const maxProspects = Math.min(body.count || 10, 20);
 
         // Get admin's Instagram credentials for Business Discovery API
         const { data: adminProfile } = await supabase

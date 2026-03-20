@@ -72,6 +72,20 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
+      // --- Retrieve category from original email activity ---
+      let emailCategory: string | null = null;
+      {
+        const { data: originalEmail } = await supabase
+          .from('crm_activities')
+          .select('data')
+          .eq('prospect_id', prospect.id)
+          .eq('type', 'email')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+        emailCategory = originalEmail?.data?.category || null;
+      }
+
       // --- Process event ---
       const currentScore = prospect.score ?? 0;
 
@@ -95,7 +109,7 @@ export async function POST(request: NextRequest) {
             prospect_id: prospect.id,
             type: 'email_opened',
             description: `Email step ${prospect.email_sequence_step} ouvert (+${scoreBonus} score)`,
-            data: { score_before: currentScore, score_after: newScore, temperature: newTemp },
+            data: { score_before: currentScore, score_after: newScore, temperature: newTemp, category: emailCategory, step: prospect.email_sequence_step },
             created_at: now,
           });
           break;
@@ -119,7 +133,7 @@ export async function POST(request: NextRequest) {
             prospect_id: prospect.id,
             type: 'email_clicked',
             description: `Lien clique dans email step ${prospect.email_sequence_step} (+25 score)`,
-            data: { score_before: currentScore, score_after: newScore, url: event.link },
+            data: { score_before: currentScore, score_after: newScore, url: event.link, category: emailCategory, step: prospect.email_sequence_step },
             created_at: now,
           });
           break;

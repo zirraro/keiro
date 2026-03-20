@@ -88,9 +88,9 @@ async function callAgentEndpoint(
     headers['Authorization'] = `Bearer ${cronSecret}`;
   }
 
-  // 60s timeout to prevent orders from hanging forever
+  // 120s timeout to prevent orders from hanging forever (agents like content/commercial need 60-90s)
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 60_000);
+  const timeout = setTimeout(() => controller.abort(), 120_000);
 
   try {
     const res = await fetch(`${baseUrl}${path}`, {
@@ -137,13 +137,20 @@ function buildSummary(path: string, data: any): string {
     return `SEO: ${data.article ? `Article "${data.article.title || ''}" généré` : 'Tâche SEO exécutée'}`;
   }
   if (path.includes('/onboarding')) {
-    return `Onboarding: ${data.sent || data.processed || 0} messages envoyés`;
+    const sent = data.sent || data.processed || 0;
+    const scheduled = data.dynamicScheduled || 0;
+    return `Onboarding: ${sent} messages envoyés${scheduled ? `, ${scheduled} planifiés` : ''}${data.message ? ` — ${data.message}` : ''}`;
   }
   if (path.includes('/retention')) {
-    return `Retention: ${data.actions || data.processed || 0} actions exécutées`;
+    const msgs = data.messagesSent || data.actions || data.processed || 0;
+    const total = data.totalClients || data.summary?.totalClients || 0;
+    return `Retention: ${msgs} messages envoyés sur ${total} clients vérifiés${data.summary ? ` (🟢${data.summary.green || 0} 🟡${data.summary.yellow || 0} 🟠${data.summary.orange || 0} 🔴${data.summary.red || 0})` : ''}`;
   }
   if (path.includes('/content')) {
-    return `Content: ${data.posts?.length || data.generated || 0} posts générés`;
+    // Content agent returns different field names: post (singular), postsPlanned, today (array)
+    const count = data.posts?.length || data.postsPlanned || data.today?.length || data.generated || (data.post ? 1 : 0);
+    const msg = data.message || '';
+    return `Content: ${count} posts ${data.postsPlanned ? 'planifiés' : 'générés'}${msg ? ` — ${msg}` : ''}`;
   }
   return `Exécuté avec succès: ${JSON.stringify(data).substring(0, 150)}`;
 }

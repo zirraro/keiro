@@ -186,21 +186,25 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'community_2':
-      // 15:30 UTC — Community Manager afternoon: more comments + follow targets (parallel)
-      await callParallel(
-        ['Community Comments PM', '/api/agents/marketing', 'POST', { action: 'prepare_comments', count: 60 }],
-        ['Community Follow IG PM', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'instagram', count: 50 }],
-        ['Community Follow TT PM', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'tiktok', count: 40 }],
-      );
+      // 15:30 UTC — Community Manager afternoon: more comments + follow targets
+      // Reduced counts to avoid 300s timeout
+      fireBackground(async () => {
+        await callEndpoint('Community Comments PM', '/api/agents/marketing', 'POST', { action: 'prepare_comments', count: 15 });
+        await callEndpoint('Community Follow IG PM', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'instagram', count: 15 });
+        await callEndpoint('Community Follow TT PM', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'tiktok', count: 10 });
+      });
+      results.push({ task: 'Community PM', ok: true, data: { status: 'dispatched_background' } });
       break;
 
     case 'community':
-      // 09:30 UTC — Community Manager: prepare comments on real posts + find follow targets (parallel)
-      await callParallel(
-        ['Community Comments', '/api/agents/marketing', 'POST', { action: 'prepare_comments', count: 60 }],
-        ['Community Follow Targets IG', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'instagram', count: 50 }],
-        ['Community Follow Targets TT', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'tiktok', count: 40 }],
-      );
+      // 09:30 UTC — Community Manager: prepare comments on real posts + find follow targets
+      // Reduced counts to avoid 300s timeout (serial API calls + DB queries per item)
+      fireBackground(async () => {
+        await callEndpoint('Community Comments', '/api/agents/marketing', 'POST', { action: 'prepare_comments', count: 15 });
+        await callEndpoint('Community Follow Targets IG', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'instagram', count: 15 });
+        await callEndpoint('Community Follow Targets TT', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'tiktok', count: 10 });
+      });
+      results.push({ task: 'Community', ok: true, data: { status: 'dispatched_background' } });
       break;
 
     case 'marketing_prep':
@@ -220,11 +224,9 @@ export async function GET(request: NextRequest) {
       fireBackground(async () => {
         await callEndpoint('CEO Brief', '/api/agents/ceo');
         await callEndpoint('Execute Orders', '/api/agents/orders');
-        // Community: early prep — prepare comments + find follow targets
-        await callParallel(
-          ['Community Comments (early)', '/api/agents/marketing', 'POST', { action: 'prepare_comments', count: 30 }],
-          ['Community Follow Targets IG (early)', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'instagram', count: 25 }],
-        );
+        // Community: early prep — prepare comments + find follow targets (reduced counts to avoid timeouts)
+        await callEndpoint('Community Comments (early)', '/api/agents/marketing', 'POST', { action: 'prepare_comments', count: 10 });
+        await callEndpoint('Community Follow Targets IG (early)', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'instagram', count: 10 });
       });
       results.push({ task: 'CEO Brief + Orders + Community', ok: true, data: { status: 'dispatched_background' } });
       break;
