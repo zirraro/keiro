@@ -110,6 +110,15 @@ html:not(.light) .cta-keep-white {
 html:not(.light) .cta-keep-white:hover {
   background-color: #f8fafc !important;
 }
+/* Sprint CTA glow — bright pulse in dark mode to stand out */
+html:not(.light) .sprint-cta-glow {
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.4), 0 0 40px rgba(59, 130, 246, 0.25), 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+  animation: sprint-glow 2s ease-in-out infinite alternate;
+}
+@keyframes sprint-glow {
+  from { box-shadow: 0 0 20px rgba(255, 255, 255, 0.4), 0 0 40px rgba(59, 130, 246, 0.25), 0 4px 12px rgba(0, 0, 0, 0.3); }
+  to { box-shadow: 0 0 28px rgba(255, 255, 255, 0.6), 0 0 56px rgba(59, 130, 246, 0.4), 0 4px 16px rgba(0, 0, 0, 0.3); }
+}
 /* Dark mode: table cells, td, th, tr text inherit — force light */
 html:not(.light) .page-studio-bg table,
 html:not(.light) .page-studio-bg td,

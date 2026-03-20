@@ -165,8 +165,8 @@ function HomeKeiroInner() {
                 <p className="text-xs text-[#c8d8e8]">{t.home.sprintSubtitle}</p>
               </div>
             </div>
-            <button onClick={() => startCheckout('sprint')} className="cta-keep-white px-6 py-2.5 rounded-lg bg-white font-bold hover:bg-yellow-50 transition-all text-sm whitespace-nowrap shadow-lg ring-2 ring-white/30 hover:ring-yellow-300/50 hover:shadow-xl" style={{ color: '#0c1a3a' }}>
-              {t.home.sprintCta}
+            <button onClick={() => startCheckout('sprint')} className="cta-keep-white sprint-cta-glow px-7 py-3 rounded-xl bg-white font-extrabold hover:bg-yellow-50 transition-all text-sm whitespace-nowrap shadow-lg ring-2 ring-white/40 hover:ring-yellow-300/60 hover:shadow-2xl hover:scale-105" style={{ color: '#0c1a3a' }}>
+              {t.home.sprintCta} →
             </button>
           </div>
           </FadeUp>
