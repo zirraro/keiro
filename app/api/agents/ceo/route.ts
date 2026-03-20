@@ -165,9 +165,26 @@ async function handleCeoChat(
     const { count: emailsSent24h } = await supabase
       .from('agent_logs').select('id', { count: 'exact', head: true })
       .eq('agent', 'email').gte('created_at', twentyFourHoursAgo);
-    const { count: dmsPrepared24h } = await supabase
-      .from('agent_logs').select('id', { count: 'exact', head: true })
-      .eq('agent', 'dm_instagram').gte('created_at', twentyFourHoursAgo);
+    // DM stats from dm_queue: separate prepared (by agents) vs sent (by founder), by platform
+    const { count: dmsIgPrepared24h } = await supabase
+      .from('dm_queue').select('id', { count: 'exact', head: true })
+      .eq('channel', 'instagram').eq('status', 'pending').gte('created_at', twentyFourHoursAgo);
+    const { count: dmsIgSent24h } = await supabase
+      .from('dm_queue').select('id', { count: 'exact', head: true })
+      .eq('channel', 'instagram').eq('status', 'sent').gte('sent_at', twentyFourHoursAgo);
+    const { count: dmsTkPrepared24h } = await supabase
+      .from('dm_queue').select('id', { count: 'exact', head: true })
+      .eq('channel', 'tiktok').eq('status', 'pending').gte('created_at', twentyFourHoursAgo);
+    const { count: dmsTkSent24h } = await supabase
+      .from('dm_queue').select('id', { count: 'exact', head: true })
+      .eq('channel', 'tiktok').eq('status', 'sent').gte('sent_at', twentyFourHoursAgo);
+    // Total pending DMs in queue (all time)
+    const { count: dmsIgPendingTotal } = await supabase
+      .from('dm_queue').select('id', { count: 'exact', head: true })
+      .eq('channel', 'instagram').eq('status', 'pending');
+    const { count: dmsTkPendingTotal } = await supabase
+      .from('dm_queue').select('id', { count: 'exact', head: true })
+      .eq('channel', 'tiktok').eq('status', 'pending');
 
     // Load persistent CEO memory (last 5 briefs summaries + key decisions)
     const { data: recentBriefs } = await supabase
@@ -232,7 +249,9 @@ Metriques live:
 - Prospects total: ${totalProspects ?? 0}
 - Prospects chauds: ${hotProspects ?? 0}
 - Emails envoyes 24h: ${emailsSent24h ?? 0}
-- DMs Instagram/TikTok prepares 24h: ${dmsPrepared24h ?? 0} (TOUS les DMs sont prepares par les agents, envoyes manuellement par le fondateur)
+- DMs prepares 24h: ${dmsIgPrepared24h ?? 0} Instagram | ${dmsTkPrepared24h ?? 0} TikTok (prepares par les agents, en attente d'envoi par le fondateur)
+- DMs envoyes 24h: ${dmsIgSent24h ?? 0} Instagram | ${dmsTkSent24h ?? 0} TikTok (reellement envoyes par le fondateur)
+- DMs en file d'attente (total): ${dmsIgPendingTotal ?? 0} Instagram | ${dmsTkPendingTotal ?? 0} TikTok
 ${briefsMemory}
 ${chatMemory}
 ${reportsMemory}
@@ -284,7 +303,12 @@ Reponds en francais, sois direct et actionnable.`;
           prospects: totalProspects ?? 0,
           hot: hotProspects ?? 0,
           emails_24h: emailsSent24h ?? 0,
-          dms_24h: dmsPrepared24h ?? 0,
+          dms_ig_prepared_24h: dmsIgPrepared24h ?? 0,
+          dms_ig_sent_24h: dmsIgSent24h ?? 0,
+          dms_tk_prepared_24h: dmsTkPrepared24h ?? 0,
+          dms_tk_sent_24h: dmsTkSent24h ?? 0,
+          dms_ig_pending_total: dmsIgPendingTotal ?? 0,
+          dms_tk_pending_total: dmsTkPendingTotal ?? 0,
         },
       },
       created_at: now.toISOString(),
@@ -552,6 +576,34 @@ async function generateBrief(): Promise<NextResponse> {
       prospects_by_status: statusCounts,
       ab_test_data: abTestData,
       email_performance_by_business_type_7d: emailByType,
+      dms: {
+        instagram: { prepared_24h: 0, sent_24h: 0, pending_total: 0 },
+        tiktok: { prepared_24h: 0, sent_24h: 0, pending_total: 0 },
+      },
+    };
+
+    // DM stats from dm_queue for brief (separate prepared vs sent, by platform)
+    const { count: briefDmsIgPrepared } = await supabase
+      .from('dm_queue').select('id', { count: 'exact', head: true })
+      .eq('channel', 'instagram').eq('status', 'pending').gte('created_at', twentyFourHoursAgo);
+    const { count: briefDmsIgSent } = await supabase
+      .from('dm_queue').select('id', { count: 'exact', head: true })
+      .eq('channel', 'instagram').eq('status', 'sent').gte('sent_at', twentyFourHoursAgo);
+    const { count: briefDmsTkPrepared } = await supabase
+      .from('dm_queue').select('id', { count: 'exact', head: true })
+      .eq('channel', 'tiktok').eq('status', 'pending').gte('created_at', twentyFourHoursAgo);
+    const { count: briefDmsTkSent } = await supabase
+      .from('dm_queue').select('id', { count: 'exact', head: true })
+      .eq('channel', 'tiktok').eq('status', 'sent').gte('sent_at', twentyFourHoursAgo);
+    const { count: briefDmsIgPendingTotal } = await supabase
+      .from('dm_queue').select('id', { count: 'exact', head: true })
+      .eq('channel', 'instagram').eq('status', 'pending');
+    const { count: briefDmsTkPendingTotal } = await supabase
+      .from('dm_queue').select('id', { count: 'exact', head: true })
+      .eq('channel', 'tiktok').eq('status', 'pending');
+    metrics24h.dms = {
+      instagram: { prepared_24h: briefDmsIgPrepared ?? 0, sent_24h: briefDmsIgSent ?? 0, pending_total: briefDmsIgPendingTotal ?? 0 },
+      tiktok: { prepared_24h: briefDmsTkPrepared ?? 0, sent_24h: briefDmsTkSent ?? 0, pending_total: briefDmsTkPendingTotal ?? 0 },
     };
 
     const { count: emailsSentCount7d } = await supabase

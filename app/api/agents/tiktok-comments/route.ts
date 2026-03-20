@@ -251,7 +251,7 @@ async function runTikTokCommentPreparation(): Promise<NextResponse> {
     action: 'report_to_ceo',
     data: {
       phase: 'completed',
-      message: `TikTok: ${sent} commentaires/DMs envoyés, ${skippedVerification} skipped`,
+      message: `TikTok: ${sent} commentaires/DMs PRÉPARÉS (en attente d'envoi manuel par le fondateur), ${skippedVerification} skipped`,
     },
     created_at: now,
   });

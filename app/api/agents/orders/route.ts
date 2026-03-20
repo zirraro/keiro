@@ -88,9 +88,9 @@ async function callAgentEndpoint(
     headers['Authorization'] = `Bearer ${cronSecret}`;
   }
 
-  // 120s timeout to prevent orders from hanging forever (agents like content/commercial need 60-90s)
+  // 300s timeout (max Vercel Pro) — agents like content/commercial do video gen, AI calls, etc.
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 120_000);
+  const timeout = setTimeout(() => controller.abort(), 300_000);
 
   try {
     const res = await fetch(`${baseUrl}${path}`, {
@@ -109,7 +109,7 @@ async function callAgentEndpoint(
     return { ok: true, summary: buildSummary(path, data), data };
   } catch (e: any) {
     if (e.name === 'AbortError') {
-      return { ok: false, summary: `Timeout (60s) pour ${path}` };
+      return { ok: false, summary: `Timeout (300s) pour ${path}` };
     }
     throw e;
   } finally {
