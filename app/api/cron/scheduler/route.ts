@@ -105,6 +105,9 @@ export async function GET(request: NextRequest) {
     waitUntil(fn().catch(e => console.error(`[Scheduler/${slot}] background error:`, e.message)));
   }
 
+  // Stagger delay between sequential agent calls to avoid resource contention
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
   switch (slot) {
     case 'discovery':
       // 03:00 UTC — Commercial: verify CRM (audit existing prospects)
@@ -118,10 +121,10 @@ export async function GET(request: NextRequest) {
 
     case 'discovery_3':
       // 14:00 UTC — Commercial: verify CRM batch 2 + prospect external batch 2
-      await callParallel(
-        ['Commercial Verify CRM #2', '/api/agents/commercial', 'POST', { action: 'verify_crm' }],
-        ['Commercial Prospect External #2', '/api/agents/commercial', 'POST', { action: 'prospect_external' }],
-      );
+      // Sequential to avoid hitting same agent route concurrently
+      await callEndpoint('Commercial Verify CRM #2', '/api/agents/commercial', 'POST', { action: 'verify_crm' });
+      await delay(3000);
+      await callEndpoint('Commercial Prospect External #2', '/api/agents/commercial', 'POST', { action: 'prospect_external' });
       break;
 
     case 'discovery_4':
@@ -170,12 +173,11 @@ export async function GET(request: NextRequest) {
     case 'email_warm_2':
       // 14:30 UTC — Email warm: follow-up batch 2 + Marketing afternoon (mid-day analysis for CEO evening at 15:00)
       await callEndpoint('Email Warm #2', '/api/agents/email/daily?type=warm');
-      // Marketing afternoon: sync analytics + analysis so CEO evening brief has fresh mid-day data
+      // Marketing afternoon: sequential to avoid concurrent marketing agent calls
       fireBackground(async () => {
-        await callParallel(
-          ['Marketing Sync Analytics (afternoon)', '/api/agents/marketing', 'POST', { action: 'sync_publication_analytics' }],
-          ['Marketing Analysis (afternoon)', '/api/agents/marketing', 'POST'],
-        );
+        await callEndpoint('Marketing Sync Analytics (afternoon)', '/api/agents/marketing', 'POST', { action: 'sync_publication_analytics' });
+        await delay(5000);
+        await callEndpoint('Marketing Analysis (afternoon)', '/api/agents/marketing', 'POST');
       });
       results.push({ task: 'Marketing Afternoon', ok: true, data: { status: 'dispatched_background' } });
       break;
@@ -186,22 +188,24 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'community_2':
-      // 15:30 UTC — Community Manager afternoon: more comments + follow targets
-      // Reduced counts to avoid 300s timeout
+      // 15:30 UTC — Community Manager afternoon: staggered to avoid concurrent marketing agent calls
       fireBackground(async () => {
         await callEndpoint('Community Comments PM', '/api/agents/marketing', 'POST', { action: 'prepare_comments', count: 15 });
+        await delay(5000);
         await callEndpoint('Community Follow IG PM', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'instagram', count: 15 });
+        await delay(5000);
         await callEndpoint('Community Follow TT PM', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'tiktok', count: 10 });
       });
       results.push({ task: 'Community PM', ok: true, data: { status: 'dispatched_background' } });
       break;
 
     case 'community':
-      // 09:30 UTC — Community Manager: prepare comments on real posts + find follow targets
-      // Reduced counts to avoid 300s timeout (serial API calls + DB queries per item)
+      // 09:30 UTC — Community Manager: staggered to avoid concurrent marketing agent calls
       fireBackground(async () => {
         await callEndpoint('Community Comments', '/api/agents/marketing', 'POST', { action: 'prepare_comments', count: 15 });
+        await delay(5000);
         await callEndpoint('Community Follow Targets IG', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'instagram', count: 15 });
+        await delay(5000);
         await callEndpoint('Community Follow Targets TT', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'tiktok', count: 10 });
       });
       results.push({ task: 'Community', ok: true, data: { status: 'dispatched_background' } });
@@ -209,11 +213,11 @@ export async function GET(request: NextRequest) {
 
     case 'marketing_prep':
       // 04:50 UTC — Marketing: sync analytics + analysis (runs 10 min before CEO so stats are ready)
+      // Sequential: sync first, then analysis (analysis needs fresh data from sync)
       fireBackground(async () => {
-        await callParallel(
-          ['Marketing Sync Analytics', '/api/agents/marketing', 'POST', { action: 'sync_publication_analytics' }],
-          ['Marketing Analysis (morning)', '/api/agents/marketing', 'GET'],
-        );
+        await callEndpoint('Marketing Sync Analytics', '/api/agents/marketing', 'POST', { action: 'sync_publication_analytics' });
+        await delay(5000);
+        await callEndpoint('Marketing Analysis (morning)', '/api/agents/marketing', 'GET');
       });
       results.push({ task: 'Marketing Prep', ok: true, data: { status: 'dispatched_background' } });
       break;
@@ -221,11 +225,15 @@ export async function GET(request: NextRequest) {
     case 'ceo':
       // 05:00 UTC — CEO brief + execute orders + Community morning prep
       // Uses waitUntil to avoid 300s timeout (CEO brief can take 2-4 min)
+      // All staggered with delays to avoid resource contention
       fireBackground(async () => {
         await callEndpoint('CEO Brief', '/api/agents/ceo');
+        await delay(5000);
         await callEndpoint('Execute Orders', '/api/agents/orders');
-        // Community: early prep — prepare comments + find follow targets (reduced counts to avoid timeouts)
+        await delay(5000);
+        // Community: early prep — staggered
         await callEndpoint('Community Comments (early)', '/api/agents/marketing', 'POST', { action: 'prepare_comments', count: 10 });
+        await delay(5000);
         await callEndpoint('Community Follow Targets IG (early)', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'instagram', count: 10 });
       });
       results.push({ task: 'CEO Brief + Orders + Community', ok: true, data: { status: 'dispatched_background' } });
@@ -242,13 +250,13 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'morning_prep':
-      // 07:00 UTC — DM prep (IG only) + SEO + Content (all in parallel)
+      // 07:00 UTC — DM prep (IG only) + SEO + Content (staggered to avoid resource contention)
       fireBackground(async () => {
-        await callParallel(
-          ['DM Instagram (morning)', '/api/agents/dm-instagram?slot=morning', 'POST'],
-          ['SEO', '/api/agents/seo'],
-          ['Content', '/api/agents/content?slot=morning'],
-        );
+        await callEndpoint('DM Instagram (morning)', '/api/agents/dm-instagram?slot=morning', 'POST');
+        await delay(5000);
+        await callEndpoint('SEO', '/api/agents/seo');
+        await delay(5000);
+        await callEndpoint('Content', '/api/agents/content?slot=morning');
       });
       results.push({ task: 'Morning Prep', ok: true, data: { status: 'dispatched_background' } });
       break;
@@ -294,34 +302,31 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'evening_prep':
-      // 17:00 UTC — Evening DM (IG only) + TikTok comments (parallel)
+      // 17:00 UTC — Evening DM (IG only) + TikTok comments (staggered)
       fireBackground(async () => {
-        await callParallel(
-          ['DM Instagram (evening)', '/api/agents/dm-instagram?slot=evening', 'POST'],
-          ['TikTok Comments', '/api/agents/tiktok-comments'],
-        );
+        await callEndpoint('DM Instagram (evening)', '/api/agents/dm-instagram?slot=evening', 'POST');
+        await delay(5000);
+        await callEndpoint('TikTok Comments', '/api/agents/tiktok-comments');
       });
       results.push({ task: 'Evening Prep', ok: true, data: { status: 'dispatched_background' } });
       break;
 
     case 'tiktok_dm_morning':
-      // 07:30 UTC — TikTok DM preparation: 5x volume (morning batch)
+      // 07:30 UTC — TikTok DM preparation (morning batch, staggered)
       fireBackground(async () => {
-        await callParallel(
-          ['DM TikTok Batch 1', '/api/agents/dm-instagram?platform=tiktok&count=20', 'POST'],
-          ['DM TikTok Batch 2', '/api/agents/dm-instagram?platform=tiktok&count=20', 'POST'],
-        );
+        await callEndpoint('DM TikTok Batch 1', '/api/agents/dm-instagram?platform=tiktok&count=20', 'POST');
+        await delay(5000);
+        await callEndpoint('DM TikTok Batch 2', '/api/agents/dm-instagram?platform=tiktok&count=20', 'POST');
       });
       results.push({ task: 'TikTok DM Morning', ok: true, data: { status: 'dispatched_background' } });
       break;
 
     case 'tiktok_dm_midday':
-      // 12:30 UTC — TikTok DM preparation: midday batch
+      // 12:30 UTC — TikTok DM preparation (midday batch, staggered)
       fireBackground(async () => {
-        await callParallel(
-          ['DM TikTok Batch 3', '/api/agents/dm-instagram?platform=tiktok&count=20', 'POST'],
-          ['DM TikTok Batch 4', '/api/agents/dm-instagram?platform=tiktok&count=20', 'POST'],
-        );
+        await callEndpoint('DM TikTok Batch 3', '/api/agents/dm-instagram?platform=tiktok&count=20', 'POST');
+        await delay(5000);
+        await callEndpoint('DM TikTok Batch 4', '/api/agents/dm-instagram?platform=tiktok&count=20', 'POST');
       });
       results.push({ task: 'TikTok DM Midday', ok: true, data: { status: 'dispatched_background' } });
       break;
@@ -352,15 +357,15 @@ export async function GET(request: NextRequest) {
 
     case 'marketing_learn':
       // 19:00 UTC — Marketing: sync analytics, analyze publications, full analysis + advise agents
+      // All sequential with stagger — same marketing agent route, can't run concurrently
       fireBackground(async () => {
-        await callParallel(
-          ['Sync Publication Analytics', '/api/agents/marketing', 'POST', { action: 'sync_publication_analytics' }],
-          ['Analyze Publications', '/api/agents/marketing', 'POST', { action: 'analyze_publications', days: 30 }],
-        );
-        await callParallel(
-          ['Marketing Analysis', '/api/agents/marketing'],
-          ['Marketing Advise Agents', '/api/agents/marketing', 'POST', { action: 'advise_agents' }],
-        );
+        await callEndpoint('Sync Publication Analytics', '/api/agents/marketing', 'POST', { action: 'sync_publication_analytics' });
+        await delay(5000);
+        await callEndpoint('Analyze Publications', '/api/agents/marketing', 'POST', { action: 'analyze_publications', days: 30 });
+        await delay(5000);
+        await callEndpoint('Marketing Analysis', '/api/agents/marketing');
+        await delay(5000);
+        await callEndpoint('Marketing Advise Agents', '/api/agents/marketing', 'POST', { action: 'advise_agents' });
       });
       results.push({ task: 'Marketing Learn', ok: true, data: { status: 'dispatched_background' } });
       break;
