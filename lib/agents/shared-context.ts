@@ -13,6 +13,7 @@
  */
 
 import { SupabaseClient } from '@supabase/supabase-js';
+import { getActiveLearnings, getAllAgentLearnings, formatLearningsForPrompt, type AgentLearning } from './learning';
 
 interface AgentContext {
   crmStats: {
@@ -69,6 +70,8 @@ interface AgentContext {
   recentAgentWork: string;
   learnings: string[];
   allAgentLearnings: string[];
+  structuredLearnings: AgentLearning[];
+  structuredOtherLearnings: AgentLearning[];
   topProspects: Array<{ company: string; score: number; temperature: string; status: string }>;
 }
 
@@ -287,6 +290,12 @@ export async function loadSharedContext(
     .map((m: any) => `[${m.agent}] ${m.data?.learning}`)
     .filter((l: string) => l && !l.endsWith('undefined'));
 
+  // Structured learnings (new system with confidence + expiration)
+  const [structuredLearnings, structuredOtherLearnings] = await Promise.all([
+    getActiveLearnings(supabase, agentName),
+    getAllAgentLearnings(supabase, agentName),
+  ]);
+
   return {
     crmStats: {
       total: total || 0,
@@ -337,6 +346,8 @@ export async function loadSharedContext(
     recentAgentWork,
     learnings,
     allAgentLearnings,
+    structuredLearnings,
+    structuredOtherLearnings,
     topProspects: (topProspectsData || []).map((p: any) => ({
       company: p.company || 'Inconnu',
       score: p.score || 0,
@@ -443,11 +454,18 @@ FUNNEL DE CONVERSION:
     text += `\n\nTRAVAIL DES AUTRES AGENTS (dernières 24h):\n${ctx.recentAgentWork}`;
   }
 
-  if (ctx.learnings.length > 0) {
+  // Structured learnings (new system) take priority
+  const structuredText = formatLearningsForPrompt(ctx.structuredLearnings, ctx.structuredOtherLearnings);
+  if (structuredText) {
+    text += structuredText;
+  }
+
+  // Legacy learnings (backward compatible, will be phased out)
+  if (ctx.learnings.length > 0 && ctx.structuredLearnings.length === 0) {
     text += `\n\nTES APPRENTISSAGES:\n${ctx.learnings.map(l => `- ${l}`).join('\n')}`;
   }
 
-  if (ctx.allAgentLearnings.length > 0) {
+  if (ctx.allAgentLearnings.length > 0 && ctx.structuredOtherLearnings.length === 0) {
     text += `\n\nAPPRENTISSAGES DES AUTRES AGENTS (cross-learning):\n${ctx.allAgentLearnings.map(l => `- ${l}`).join('\n')}`;
   }
 
