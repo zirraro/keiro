@@ -74,7 +74,7 @@ export const en: Translations = {
   home: {
     heroBadge: 'Images, videos, reels, carousels — ready to publish',
     heroTitle: 'Create and publish pro content — in 3 minutes.',
-    heroSubtitle: 'Keiro links your business to today\'s news — your audience sees you\'re on top of it. Pick your format, publish instantly.',
+    heroSubtitle: 'Ride the news or create for your brand — Keiro generates pro visuals that grab attention and convert.',
     heroCheck1: 'Publish directly on Instagram & TikTok',
     heroCheck2: 'Videos up to 90s with voice & music',
     heroCheck3: 'Reels, carousels, stories — all formats',
