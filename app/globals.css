@@ -110,14 +110,14 @@ html:not(.light) .cta-keep-white {
 html:not(.light) .cta-keep-white:hover {
   background-color: #f8fafc !important;
 }
-/* Sprint CTA glow — gold/amber pulse to pop on dark navy backgrounds */
+/* Sprint CTA glow — cyan/blue pulse, cohérent avec le design KeiroAI */
 .sprint-cta-glow {
-  box-shadow: 0 0 20px rgba(251, 191, 36, 0.4), 0 0 40px rgba(245, 158, 11, 0.2), 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+  box-shadow: 0 0 20px rgba(34, 211, 238, 0.35), 0 0 40px rgba(59, 130, 246, 0.2), 0 4px 12px rgba(0, 0, 0, 0.3) !important;
   animation: sprint-glow 2s ease-in-out infinite alternate;
 }
 @keyframes sprint-glow {
-  from { box-shadow: 0 0 20px rgba(251, 191, 36, 0.4), 0 0 40px rgba(245, 158, 11, 0.2), 0 4px 12px rgba(0, 0, 0, 0.3); }
-  to { box-shadow: 0 0 30px rgba(251, 191, 36, 0.6), 0 0 60px rgba(245, 158, 11, 0.35), 0 4px 16px rgba(0, 0, 0, 0.3); }
+  from { box-shadow: 0 0 20px rgba(34, 211, 238, 0.35), 0 0 40px rgba(59, 130, 246, 0.2), 0 4px 12px rgba(0, 0, 0, 0.3); }
+  to { box-shadow: 0 0 30px rgba(34, 211, 238, 0.55), 0 0 60px rgba(59, 130, 246, 0.35), 0 4px 16px rgba(0, 0, 0, 0.3); }
 }
 /* Dark mode: table cells, td, th, tr text inherit — force light */
 html:not(.light) .page-studio-bg table,
