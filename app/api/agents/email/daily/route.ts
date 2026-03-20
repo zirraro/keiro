@@ -665,7 +665,10 @@ async function sendEmail(
         prospectUpdate.status = 'relance_3';
       }
     }
-    await supabase.from('crm_prospects').update(prospectUpdate).eq('id', prospect.id);
+    const { error: updateError } = await supabase.from('crm_prospects').update(prospectUpdate).eq('id', prospect.id);
+    if (updateError) {
+      console.error(`[EmailDaily] Failed to update prospect ${prospect.id} status:`, updateError.message);
+    }
 
     await supabase.from('crm_activities').insert({
       prospect_id: prospect.id,

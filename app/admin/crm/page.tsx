@@ -1208,9 +1208,9 @@ export default function AdminCRMPage() {
                   <div className="mb-4">
                     <PipelineFunnel
                       stages={statsData.funnel.stages.map((s: any) => ({
-                        id: s.id, label: s.label, count: s.count,
-                        color: PIPELINE_STAGES.find(ps => ps.id === s.id)?.hex || '#94A3B8',
-                        icon: PIPELINE_STAGES.find(ps => ps.id === s.id)?.icon || '•',
+                        id: s.stage, label: PIPELINE_STAGES.find(ps => ps.id === s.stage)?.label || s.stage, count: s.current,
+                        color: PIPELINE_STAGES.find(ps => ps.id === s.stage)?.hex || '#94A3B8',
+                        icon: PIPELINE_STAGES.find(ps => ps.id === s.stage)?.icon || '•',
                       }))}
                       conversionRates={statsData.funnel.conversionRates}
                       onStageClick={(id: string) => setFunnelActiveStage(funnelActiveStage === id ? null : id)}
@@ -1627,7 +1627,13 @@ export default function AdminCRMPage() {
                   <StatsPanel
                     emailByCategory={statsData.emailByCategory || []}
                     emailByStep={statsData.emailByStep || []}
-                    bestActions={statsData.bestActions || []}
+                    bestActions={(statsData.bestActions || []).map((a: any) => ({
+                      actionType: a.actionType,
+                      label: a.actionType === 'email' ? 'Email' : a.actionType === 'dm_instagram' ? 'DM Instagram' : a.actionType === 'dm_tiktok' ? 'DM TikTok' : a.actionType === 'tiktok_comment' ? 'Commentaire TikTok' : a.actionType === 'comment_prepared' ? 'Commentaire' : a.actionType === 'appel' ? 'Appel' : a.actionType === 'visite' ? 'Visite' : a.actionType,
+                      conversions: a.convertedProspects || 0,
+                      totalActions: a.totalActivities || 0,
+                      conversionRate: a.conversionRate || 0,
+                    }))}
                     sourceAttribution={statsData.sourceAttribution || []}
                     loading={statsLoading}
                   />

@@ -71,6 +71,10 @@ function AdminAgentsContent() {
   const [resettingDead, setResettingDead] = useState(false);
   const [resetResult, setResetResult] = useState<{ ok: boolean; message: string } | null>(null);
 
+  // Mini commercial dashboard state
+  const [miniCrmStats, setMiniCrmStats] = useState<any>(null);
+  const [miniCrmLoading, setMiniCrmLoading] = useState(false);
+
   // Briefs state
   const [briefs, setBriefs] = useState<Brief[]>([]);
   const [expandedBrief, setExpandedBrief] = useState<string | null>(null);
@@ -207,6 +211,7 @@ function AdminAgentsContent() {
       setLoading(false);
       loadDashboard();
       loadCeoHistory();
+      loadMiniCrmStats();
     };
     init();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -392,6 +397,19 @@ function AdminAgentsContent() {
     } catch (err) {
       console.error('[Admin Agents] Dashboard load error:', err);
     }
+  };
+
+  // ─── Mini CRM stats for commercial overview ─────────────
+  const loadMiniCrmStats = async () => {
+    setMiniCrmLoading(true);
+    try {
+      const res = await fetch('/api/admin/crm/stats?type=all');
+      const data = await res.json();
+      if (data.ok) setMiniCrmStats(data);
+    } catch (e) {
+      console.error('[Mini CRM] Load error:', e);
+    }
+    setMiniCrmLoading(false);
   };
 
 
@@ -1498,6 +1516,101 @@ function AdminAgentsContent() {
               </div>
             )}
 
+            {/* Mini Commercial Dashboard */}
+            {dashboardAgent === 'global' && (
+              <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-bold text-neutral-900 flex items-center gap-2">
+                    <span className="text-lg">📊</span> Apercu Commercial
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    <button onClick={loadMiniCrmStats} className="text-[10px] text-purple-600 hover:underline">Actualiser</button>
+                    <Link href="/admin/crm" className="text-xs text-white bg-purple-600 hover:bg-purple-700 px-3 py-1 rounded-lg font-medium transition-all">
+                      Ouvrir CRM
+                    </Link>
+                  </div>
+                </div>
+
+                {miniCrmLoading ? (
+                  <div className="flex items-center justify-center py-6">
+                    <div className="w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : miniCrmStats ? (
+                  <div className="space-y-4">
+                    {/* Funnel résumé */}
+                    {miniCrmStats.funnel?.stages && (
+                      <div className="flex flex-wrap gap-2">
+                        {miniCrmStats.funnel.stages.map((s: any, i: number) => {
+                          const nextRate = miniCrmStats.funnel.conversionRates?.[i];
+                          return (
+                            <div key={s.stage} className="flex items-center gap-1">
+                              <div className="text-center px-3 py-2 bg-neutral-50 rounded-lg border border-neutral-100 min-w-[80px]">
+                                <p className="text-[10px] text-neutral-500 font-medium">{s.stage}</p>
+                                <p className="text-lg font-bold text-neutral-900">{s.current}</p>
+                              </div>
+                              {nextRate && (
+                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                                  nextRate.rate > 15 ? 'text-green-700 bg-green-50' : nextRate.rate >= 5 ? 'text-yellow-700 bg-yellow-50' : 'text-red-700 bg-red-50'
+                                }`}>
+                                  {nextRate.rate.toFixed(0)}%
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                        {miniCrmStats.funnel.perdu > 0 && (
+                          <div className="text-center px-3 py-2 bg-red-50 rounded-lg border border-red-100 min-w-[80px]">
+                            <p className="text-[10px] text-red-500 font-medium">perdu</p>
+                            <p className="text-lg font-bold text-red-600">{miniCrmStats.funnel.perdu}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Email perf résumé */}
+                    {miniCrmStats.emailByCategory && miniCrmStats.emailByCategory.length > 0 && (
+                      <div>
+                        <p className="text-[10px] font-semibold text-neutral-500 uppercase mb-2">Performance Email par Categorie</p>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                          {miniCrmStats.emailByCategory.slice(0, 8).map((cat: any) => (
+                            <div key={cat.category} className="bg-neutral-50 rounded-lg border border-neutral-100 p-2">
+                              <p className="text-[10px] font-bold text-neutral-700 truncate">{cat.category}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-xs text-neutral-500">{cat.sent} env.</span>
+                                <span className={`text-xs font-bold ${cat.openRate >= 30 ? 'text-green-600' : cat.openRate >= 15 ? 'text-yellow-600' : 'text-neutral-400'}`}>
+                                  {cat.openRate.toFixed(0)}% OR
+                                </span>
+                              </div>
+                              {cat.replied > 0 && (
+                                <span className="text-[10px] text-green-600 font-medium">{cat.replied} rep.</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Best actions */}
+                    {miniCrmStats.bestActions && miniCrmStats.bestActions.length > 0 && (
+                      <div>
+                        <p className="text-[10px] font-semibold text-neutral-500 uppercase mb-2">Actions qui convertissent</p>
+                        <div className="flex flex-wrap gap-2">
+                          {miniCrmStats.bestActions.slice(0, 5).map((a: any) => (
+                            <div key={a.actionType} className="flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 rounded-lg border border-indigo-100">
+                              <span className="text-xs font-medium text-indigo-700">{a.actionType}</span>
+                              <span className="text-[10px] text-indigo-500">{a.conversionRate.toFixed(0)}%</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-xs text-neutral-400 text-center py-4">Aucune donnee</p>
+                )}
+              </div>
+            )}
+
             {/* Per-agent metrics */}
             {dashboardAgent !== 'global' && (
               <div>
@@ -1620,24 +1733,6 @@ function AdminAgentsContent() {
             </div>
             )}
 
-            {/* CRM link — Lead Intelligence moved to /admin/crm */}
-            {dashboardAgent === 'global' && (
-              <Link
-                href="/admin/crm"
-                className="block bg-white rounded-xl shadow-sm border border-purple-200 p-6 hover:shadow-md hover:border-purple-400 transition-all group"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">📊</span>
-                    <div>
-                      <h3 className="text-sm font-semibold text-neutral-900 group-hover:text-purple-700 transition-colors">Ouvrir le CRM Commercial</h3>
-                      <p className="text-xs text-neutral-500 mt-0.5">Pipeline, stats, lead intelligence, conversions</p>
-                    </div>
-                  </div>
-                  <svg className="w-5 h-5 text-neutral-400 group-hover:text-purple-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-                </div>
-              </Link>
-            )}
 
             {/* Reset dead prospects */}
             {dashboardAgent === 'global' && (

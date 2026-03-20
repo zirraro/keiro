@@ -106,21 +106,21 @@ function SortHeader({
 }) {
   return (
     <th
-      className="px-2 py-2 text-left text-[11px] font-semibold text-neutral-500 uppercase tracking-wide cursor-pointer hover:text-neutral-800 select-none whitespace-nowrap"
+      className="px-2 py-2 text-left text-[11px] font-semibold text-neutral-500 uppercase tracking-wide cursor-pointer hover:text-white select-none whitespace-nowrap"
       onClick={() => onClick(field)}
     >
       {label}
       {active && (
-        <span className="ml-1 text-neutral-800">{dir === 'asc' ? '\u2191' : '\u2193'}</span>
+        <span className="ml-1 text-white">{dir === 'asc' ? '\u2191' : '\u2193'}</span>
       )}
     </th>
   );
 }
 
 function rateColor(rate: number): string {
-  if (rate >= 30) return 'text-green-600 font-semibold';
-  if (rate >= 15) return 'text-yellow-600';
-  return 'text-neutral-500';
+  if (rate >= 30) return 'text-green-400 font-semibold';
+  if (rate >= 15) return 'text-yellow-400';
+  return 'text-white/40';
 }
 
 function findBestIndex<T>(data: T[], key: keyof T): number {
@@ -148,13 +148,13 @@ function HorizontalBar({
   const width = maxValue > 0 ? Math.max((value / maxValue) * 100, 2) : 0;
   return (
     <div className="flex items-center gap-3 mb-2">
-      <span className="text-xs text-neutral-600 w-28 truncate shrink-0">{label}</span>
-      <div className="flex-1 h-5 bg-neutral-100 rounded-full overflow-hidden relative">
+      <span className="text-xs text-white/60 w-28 truncate shrink-0">{label}</span>
+      <div className="flex-1 h-5 bg-white/10 rounded-full overflow-hidden relative">
         <div
           className={`h-full rounded-full ${color} transition-all duration-500`}
           style={{ width: `${width}%` }}
         />
-        <span className="absolute inset-0 flex items-center justify-center text-[10px] font-semibold text-neutral-700">
+        <span className="absolute inset-0 flex items-center justify-center text-[10px] font-semibold text-white/80">
           {value.toFixed(1)}%
         </span>
       </div>
@@ -215,13 +215,13 @@ export default function StatsPanel({
     <div className="space-y-4">
       {/* Section 1: Email par Categorie */}
       <details open>
-        <summary className="cursor-pointer text-sm font-bold text-neutral-800 mb-2 select-none hover:text-neutral-600">
+        <summary className="cursor-pointer text-sm font-bold text-white mb-2 select-none hover:text-white/60">
           Email par Categorie
         </summary>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-neutral-100">
+              <tr className="border-b border-white/10">
                 <SortHeader label="Categorie" field="category" active={catSort.sortKey === 'category'} dir={catSort.sortDir} onClick={catSort.toggleSort} />
                 {EMAIL_COLUMNS.map((col) => (
                   <SortHeader
@@ -242,15 +242,15 @@ export default function StatsPanel({
                 return (
                   <tr
                     key={row.category}
-                    className={`border-b border-neutral-50 ${isBest ? 'bg-green-50' : i % 2 === 0 ? 'bg-white' : 'bg-neutral-50/50'}`}
+                    className={`border-b border-white/5 ${isBest ? 'bg-green-500/15' : i % 2 === 0 ? 'bg-transparent' : 'bg-white/5'}`}
                   >
-                    <td className="px-2 py-1.5 font-medium text-neutral-700">{row.category}</td>
-                    <td className="px-2 py-1.5 text-neutral-600">{row.sent}</td>
-                    <td className="px-2 py-1.5 text-neutral-600">{row.opened}</td>
+                    <td className="px-2 py-1.5 font-medium text-white/80">{row.category}</td>
+                    <td className="px-2 py-1.5 text-white/60">{row.sent}</td>
+                    <td className="px-2 py-1.5 text-white/60">{row.opened}</td>
                     <td className={`px-2 py-1.5 ${rateColor(row.openRate)}`}>{row.openRate.toFixed(1)}%</td>
-                    <td className="px-2 py-1.5 text-neutral-600">{row.clicked}</td>
+                    <td className="px-2 py-1.5 text-white/60">{row.clicked}</td>
                     <td className={`px-2 py-1.5 ${rateColor(row.clickRate)}`}>{row.clickRate.toFixed(1)}%</td>
-                    <td className="px-2 py-1.5 text-neutral-600">{row.replied}</td>
+                    <td className="px-2 py-1.5 text-white/60">{row.replied}</td>
                     <td className={`px-2 py-1.5 ${rateColor(row.replyRate)}`}>{row.replyRate.toFixed(1)}%</td>
                   </tr>
                 );
@@ -265,13 +265,13 @@ export default function StatsPanel({
 
       {/* Section 2: Email par Step */}
       <details open>
-        <summary className="cursor-pointer text-sm font-bold text-neutral-800 mb-2 select-none hover:text-neutral-600">
+        <summary className="cursor-pointer text-sm font-bold text-white mb-2 select-none hover:text-white/60">
           Email par Step
         </summary>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-neutral-100">
+              <tr className="border-b border-white/10">
                 <SortHeader label="Step" field="step" active={stepSort.sortKey === 'step'} dir={stepSort.sortDir} onClick={stepSort.toggleSort} />
                 <SortHeader label="Label" field="label" active={stepSort.sortKey === 'label'} dir={stepSort.sortDir} onClick={stepSort.toggleSort} />
                 {EMAIL_COLUMNS.map((col) => (
@@ -293,16 +293,16 @@ export default function StatsPanel({
                 return (
                   <tr
                     key={row.step}
-                    className={`border-b border-neutral-50 ${isBest ? 'bg-green-50' : i % 2 === 0 ? 'bg-white' : 'bg-neutral-50/50'}`}
+                    className={`border-b border-white/5 ${isBest ? 'bg-green-500/15' : i % 2 === 0 ? 'bg-transparent' : 'bg-white/5'}`}
                   >
-                    <td className="px-2 py-1.5 font-medium text-neutral-700">{row.step}</td>
-                    <td className="px-2 py-1.5 text-neutral-600">{row.label}</td>
-                    <td className="px-2 py-1.5 text-neutral-600">{row.sent}</td>
-                    <td className="px-2 py-1.5 text-neutral-600">{row.opened}</td>
+                    <td className="px-2 py-1.5 font-medium text-white/80">{row.step}</td>
+                    <td className="px-2 py-1.5 text-white/60">{row.label}</td>
+                    <td className="px-2 py-1.5 text-white/60">{row.sent}</td>
+                    <td className="px-2 py-1.5 text-white/60">{row.opened}</td>
                     <td className={`px-2 py-1.5 ${rateColor(row.openRate)}`}>{row.openRate.toFixed(1)}%</td>
-                    <td className="px-2 py-1.5 text-neutral-600">{row.clicked}</td>
+                    <td className="px-2 py-1.5 text-white/60">{row.clicked}</td>
                     <td className={`px-2 py-1.5 ${rateColor(row.clickRate)}`}>{row.clickRate.toFixed(1)}%</td>
-                    <td className="px-2 py-1.5 text-neutral-600">{row.replied}</td>
+                    <td className="px-2 py-1.5 text-white/60">{row.replied}</td>
                     <td className={`px-2 py-1.5 ${rateColor(row.replyRate)}`}>{row.replyRate.toFixed(1)}%</td>
                   </tr>
                 );
@@ -317,7 +317,7 @@ export default function StatsPanel({
 
       {/* Section 3: Meilleures Actions */}
       <details open>
-        <summary className="cursor-pointer text-sm font-bold text-neutral-800 mb-2 select-none hover:text-neutral-600">
+        <summary className="cursor-pointer text-sm font-bold text-white mb-2 select-none hover:text-white/60">
           Meilleures Actions
         </summary>
         <div className="space-y-1">
@@ -339,7 +339,7 @@ export default function StatsPanel({
 
       {/* Section 4: Attribution Source */}
       <details open>
-        <summary className="cursor-pointer text-sm font-bold text-neutral-800 mb-2 select-none hover:text-neutral-600">
+        <summary className="cursor-pointer text-sm font-bold text-white mb-2 select-none hover:text-white/60">
           Attribution Source
         </summary>
         <div className="space-y-1">

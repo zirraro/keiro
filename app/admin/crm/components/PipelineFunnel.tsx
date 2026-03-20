@@ -24,15 +24,15 @@ type Props = {
 };
 
 function getArrowColor(rate: number): string {
-  if (rate > 15) return 'text-green-600';
-  if (rate >= 5) return 'text-yellow-500';
-  return 'text-red-500';
+  if (rate > 15) return 'text-green-400';
+  if (rate >= 5) return 'text-yellow-400';
+  return 'text-red-400';
 }
 
 function getArrowBg(rate: number): string {
-  if (rate > 15) return 'bg-green-50';
-  if (rate >= 5) return 'bg-yellow-50';
-  return 'bg-red-50';
+  if (rate > 15) return 'bg-green-500/20';
+  if (rate >= 5) return 'bg-yellow-500/20';
+  return 'bg-red-500/20';
 }
 
 function getConversionRate(
@@ -93,7 +93,7 @@ export default function PipelineFunnel({
                 >
                   {stage.label}
                 </span>
-                <span className="text-xl font-bold text-neutral-800 mt-1">
+                <span className="text-xl font-bold text-white mt-1">
                   {stage.count}
                 </span>
               </button>
