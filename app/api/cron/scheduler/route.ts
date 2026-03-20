@@ -105,7 +105,8 @@ export async function GET(request: NextRequest) {
     waitUntil(fn().catch(e => console.error(`[Scheduler/${slot}] background error:`, e.message)));
   }
 
-  // Stagger delay between sequential agent calls to avoid resource contention
+  // 15s stagger between sequential agent calls — each callEndpoint already awaits completion,
+  // but this extra buffer lets Vercel fully release serverless resources (memory, connections) before next launch
   const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
   switch (slot) {
@@ -123,7 +124,7 @@ export async function GET(request: NextRequest) {
       // 14:00 UTC — Commercial: verify CRM batch 2 + prospect external batch 2
       // Sequential to avoid hitting same agent route concurrently
       await callEndpoint('Commercial Verify CRM #2', '/api/agents/commercial', 'POST', { action: 'verify_crm' });
-      await delay(3000);
+      await delay(15000);
       await callEndpoint('Commercial Prospect External #2', '/api/agents/commercial', 'POST', { action: 'prospect_external' });
       break;
 
@@ -176,7 +177,7 @@ export async function GET(request: NextRequest) {
       // Marketing afternoon: sequential to avoid concurrent marketing agent calls
       fireBackground(async () => {
         await callEndpoint('Marketing Sync Analytics (afternoon)', '/api/agents/marketing', 'POST', { action: 'sync_publication_analytics' });
-        await delay(5000);
+        await delay(15000);
         await callEndpoint('Marketing Analysis (afternoon)', '/api/agents/marketing', 'POST');
       });
       results.push({ task: 'Marketing Afternoon', ok: true, data: { status: 'dispatched_background' } });
@@ -191,9 +192,9 @@ export async function GET(request: NextRequest) {
       // 15:30 UTC — Community Manager afternoon: staggered to avoid concurrent marketing agent calls
       fireBackground(async () => {
         await callEndpoint('Community Comments PM', '/api/agents/marketing', 'POST', { action: 'prepare_comments', count: 15 });
-        await delay(5000);
+        await delay(15000);
         await callEndpoint('Community Follow IG PM', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'instagram', count: 15 });
-        await delay(5000);
+        await delay(15000);
         await callEndpoint('Community Follow TT PM', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'tiktok', count: 10 });
       });
       results.push({ task: 'Community PM', ok: true, data: { status: 'dispatched_background' } });
@@ -203,9 +204,9 @@ export async function GET(request: NextRequest) {
       // 09:30 UTC — Community Manager: staggered to avoid concurrent marketing agent calls
       fireBackground(async () => {
         await callEndpoint('Community Comments', '/api/agents/marketing', 'POST', { action: 'prepare_comments', count: 15 });
-        await delay(5000);
+        await delay(15000);
         await callEndpoint('Community Follow Targets IG', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'instagram', count: 15 });
-        await delay(5000);
+        await delay(15000);
         await callEndpoint('Community Follow Targets TT', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'tiktok', count: 10 });
       });
       results.push({ task: 'Community', ok: true, data: { status: 'dispatched_background' } });
@@ -216,7 +217,7 @@ export async function GET(request: NextRequest) {
       // Sequential: sync first, then analysis (analysis needs fresh data from sync)
       fireBackground(async () => {
         await callEndpoint('Marketing Sync Analytics', '/api/agents/marketing', 'POST', { action: 'sync_publication_analytics' });
-        await delay(5000);
+        await delay(15000);
         await callEndpoint('Marketing Analysis (morning)', '/api/agents/marketing', 'GET');
       });
       results.push({ task: 'Marketing Prep', ok: true, data: { status: 'dispatched_background' } });
@@ -228,12 +229,12 @@ export async function GET(request: NextRequest) {
       // All staggered with delays to avoid resource contention
       fireBackground(async () => {
         await callEndpoint('CEO Brief', '/api/agents/ceo');
-        await delay(5000);
+        await delay(15000);
         await callEndpoint('Execute Orders', '/api/agents/orders');
-        await delay(5000);
+        await delay(15000);
         // Community: early prep — staggered
         await callEndpoint('Community Comments (early)', '/api/agents/marketing', 'POST', { action: 'prepare_comments', count: 10 });
-        await delay(5000);
+        await delay(15000);
         await callEndpoint('Community Follow Targets IG (early)', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'instagram', count: 10 });
       });
       results.push({ task: 'CEO Brief + Orders + Community', ok: true, data: { status: 'dispatched_background' } });
@@ -253,9 +254,9 @@ export async function GET(request: NextRequest) {
       // 07:00 UTC — DM prep (IG only) + SEO + Content (staggered to avoid resource contention)
       fireBackground(async () => {
         await callEndpoint('DM Instagram (morning)', '/api/agents/dm-instagram?slot=morning', 'POST');
-        await delay(5000);
+        await delay(15000);
         await callEndpoint('SEO', '/api/agents/seo');
-        await delay(5000);
+        await delay(15000);
         await callEndpoint('Content', '/api/agents/content?slot=morning');
       });
       results.push({ task: 'Morning Prep', ok: true, data: { status: 'dispatched_background' } });
@@ -305,7 +306,7 @@ export async function GET(request: NextRequest) {
       // 17:00 UTC — Evening DM (IG only) + TikTok comments (staggered)
       fireBackground(async () => {
         await callEndpoint('DM Instagram (evening)', '/api/agents/dm-instagram?slot=evening', 'POST');
-        await delay(5000);
+        await delay(15000);
         await callEndpoint('TikTok Comments', '/api/agents/tiktok-comments');
       });
       results.push({ task: 'Evening Prep', ok: true, data: { status: 'dispatched_background' } });
@@ -315,7 +316,7 @@ export async function GET(request: NextRequest) {
       // 07:30 UTC — TikTok DM preparation (morning batch, staggered)
       fireBackground(async () => {
         await callEndpoint('DM TikTok Batch 1', '/api/agents/dm-instagram?platform=tiktok&count=20', 'POST');
-        await delay(5000);
+        await delay(15000);
         await callEndpoint('DM TikTok Batch 2', '/api/agents/dm-instagram?platform=tiktok&count=20', 'POST');
       });
       results.push({ task: 'TikTok DM Morning', ok: true, data: { status: 'dispatched_background' } });
@@ -325,7 +326,7 @@ export async function GET(request: NextRequest) {
       // 12:30 UTC — TikTok DM preparation (midday batch, staggered)
       fireBackground(async () => {
         await callEndpoint('DM TikTok Batch 3', '/api/agents/dm-instagram?platform=tiktok&count=20', 'POST');
-        await delay(5000);
+        await delay(15000);
         await callEndpoint('DM TikTok Batch 4', '/api/agents/dm-instagram?platform=tiktok&count=20', 'POST');
       });
       results.push({ task: 'TikTok DM Midday', ok: true, data: { status: 'dispatched_background' } });
@@ -360,11 +361,11 @@ export async function GET(request: NextRequest) {
       // All sequential with stagger — same marketing agent route, can't run concurrently
       fireBackground(async () => {
         await callEndpoint('Sync Publication Analytics', '/api/agents/marketing', 'POST', { action: 'sync_publication_analytics' });
-        await delay(5000);
+        await delay(15000);
         await callEndpoint('Analyze Publications', '/api/agents/marketing', 'POST', { action: 'analyze_publications', days: 30 });
-        await delay(5000);
+        await delay(15000);
         await callEndpoint('Marketing Analysis', '/api/agents/marketing');
-        await delay(5000);
+        await delay(15000);
         await callEndpoint('Marketing Advise Agents', '/api/agents/marketing', 'POST', { action: 'advise_agents' });
       });
       results.push({ task: 'Marketing Learn', ok: true, data: { status: 'dispatched_background' } });
