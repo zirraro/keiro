@@ -3,6 +3,12 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/client';
+import PipelineFunnel from './components/PipelineFunnel';
+import StatsPanel from './components/StatsPanel';
+import ActivityTimeline from './components/ActivityTimeline';
+import type { TimelineActivity } from './components/ActivityTimeline';
+import ProspectDetail from './components/ProspectDetail';
+import QuickFilters from './components/QuickFilters';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -142,7 +148,7 @@ const QUICK_RESULTS = [
   { id: 'numero_incorrect', label: 'Numéro incorrect' },
 ];
 
-type ViewType = 'pipeline' | 'canaux' | 'liste' | 'dashboard';
+type ViewType = 'pipeline' | 'canaux' | 'liste' | 'dashboard' | 'stats';
 type SortField = 'name' | 'type' | 'quartier' | 'instagram' | 'score' | 'priorite' | 'status' | 'source' | 'date_contact';
 type SortDir = 'asc' | 'desc';
 
@@ -257,6 +263,12 @@ export default function AdminCRMPage() {
   const [filterSuivi, setFilterSuivi] = useState<'none' | 'jour' | 'semaine'>('none');
   const [weeklyReminders, setWeeklyReminders] = useState<Activity[]>([]);
 
+  // Stats & Funnel
+  const [statsData, setStatsData] = useState<any>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+  const [funnelActiveStage, setFunnelActiveStage] = useState<string | null>(null);
+  const [showProspectDetail, setShowProspectDetail] = useState(false);
+
   // Clients actifs KeiroAI
   type PayingClient = { id: string; email: string; first_name: string | null; subscription_plan: string; credits_balance: number; credits_monthly_allowance: number; images_7d: number; videos_7d: number; total_generations: number; status: 'actif' | 'inactif' | 'nouveau' | 'dormant' };
   const [payingClients, setPayingClients] = useState<PayingClient[]>([]);
@@ -305,6 +317,14 @@ export default function AdminCRMPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected?.id]);
+
+  // Load stats when switching to stats or pipeline view
+  useEffect(() => {
+    if (isAdmin && (view === 'stats' || view === 'pipeline') && !statsData) {
+      loadStats();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, isAdmin]);
 
   // ─── Load paying clients activity ────────────────────────────────────
   const loadPayingClients = async () => {
@@ -593,6 +613,18 @@ export default function AdminCRMPage() {
       setActivities(data.activities || []);
     } catch (e) { console.error('[CRM] Activities error:', e); }
     finally { setLoadingActivities(false); }
+  };
+
+  const loadStats = async () => {
+    setStatsLoading(true);
+    try {
+      const res = await fetch('/api/admin/crm/stats?type=all');
+      const data = await res.json();
+      if (data.ok) setStatsData(data);
+    } catch (e) {
+      console.error('[CRM] Stats load error:', e);
+    }
+    setStatsLoading(false);
   };
 
   const addActivity = async (data: { prospect_id: string; type: string; description?: string; resultat?: string; date_rappel?: string; heure_rappel?: string }) => {
@@ -886,6 +918,12 @@ export default function AdminCRMPage() {
               >
                 📊 Dashboard
               </button>
+              <button
+                onClick={() => setView('stats')}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${view === 'stats' ? 'bg-purple-600 text-white shadow' : 'text-neutral-500 hover:text-neutral-900'}`}
+              >
+                📈 Stats
+              </button>
             </div>
           </div>
 
@@ -1166,6 +1204,20 @@ export default function AdminCRMPage() {
             ) : view === 'pipeline' ? (
               /* ── Pipeline Kanban ──────────────────────────────────────── */
               <div className="overflow-x-auto pb-4">
+                {statsData?.funnel && (
+                  <div className="mb-4">
+                    <PipelineFunnel
+                      stages={statsData.funnel.stages.map((s: any) => ({
+                        id: s.id, label: s.label, count: s.count,
+                        color: PIPELINE_STAGES.find(ps => ps.id === s.id)?.hex || '#94A3B8',
+                        icon: PIPELINE_STAGES.find(ps => ps.id === s.id)?.icon || '•',
+                      }))}
+                      conversionRates={statsData.funnel.conversionRates}
+                      onStageClick={(id: string) => setFunnelActiveStage(funnelActiveStage === id ? null : id)}
+                      activeStage={funnelActiveStage}
+                    />
+                  </div>
+                )}
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-10 gap-2" >
                   {PIPELINE_STAGES.map(stage => {
                     const stageProspects = filtered.filter(p => p.status === stage.id);
@@ -1206,7 +1258,7 @@ export default function AdminCRMPage() {
                             return (
                               <div
                                 key={p.id}
-                                onClick={() => setSelected(isSelected ? null : p)}
+                                onClick={() => { setSelected(isSelected ? null : p); if (!isSelected) setShowProspectDetail(true); }}
                                 className={`p-3 rounded-lg border cursor-pointer transition-all ${isSelected ? 'border-purple-500 bg-purple-50' : 'border-neutral-200 bg-gray-50 hover:border-neutral-300'}`}
                               >
                                 <p className="text-sm font-semibold text-neutral-900 truncate">{prospectName(p)}</p>
@@ -1306,7 +1358,7 @@ export default function AdminCRMPage() {
                         return (
                           <div
                             key={p.id}
-                            onClick={() => setSelected(isSelected ? null : p)}
+                            onClick={() => { setSelected(isSelected ? null : p); if (!isSelected) setShowProspectDetail(true); }}
                             className={`px-4 py-3.5 sm:py-3 flex items-center gap-3 cursor-pointer transition-colors active:bg-purple-100 ${isSelected ? 'bg-purple-50' : 'hover:bg-gray-50'}`}
                           >
                             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#0c1a3a] to-[#1e3a5f] flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
@@ -1564,6 +1616,29 @@ export default function AdminCRMPage() {
                   </div>
                 )}
               </div>
+            ) : view === 'stats' ? (
+              /* ── Stats View ──────────────────────────────────────────── */
+              <div className="space-y-6">
+                {statsLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : statsData ? (
+                  <StatsPanel
+                    emailByCategory={statsData.emailByCategory || []}
+                    emailByStep={statsData.emailByStep || []}
+                    bestActions={statsData.bestActions || []}
+                    sourceAttribution={statsData.sourceAttribution || []}
+                    loading={statsLoading}
+                  />
+                ) : (
+                  <div className="text-center py-12">
+                    <button onClick={loadStats} className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                      Charger les statistiques
+                    </button>
+                  </div>
+                )}
+              </div>
             ) : (
               /* ── List View ──────────────────────────────────────────── */
               <div className="space-y-3">
@@ -1652,7 +1727,7 @@ export default function AdminCRMPage() {
                           return (
                             <tr
                               key={p.id}
-                              onClick={() => setSelected(isSelected ? null : p)}
+                              onClick={() => { setSelected(isSelected ? null : p); if (!isSelected) setShowProspectDetail(true); }}
                               className={`cursor-pointer transition-colors ${isSelected ? 'bg-purple-50' : idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100`}
                             >
                               <td className="px-3 py-3">
@@ -1910,6 +1985,25 @@ export default function AdminCRMPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {selected && showProspectDetail && (
+        <ProspectDetail
+          prospect={selected}
+          activities={activities as any}
+          activitiesLoading={loadingActivities}
+          onClose={() => { setShowProspectDetail(false); setSelected(null); }}
+          onLoadMoreActivities={() => {}}
+          hasMoreActivities={false}
+          onLogActivity={async (type: string, desc: string) => {
+            await fetch('/api/admin/crm', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'add_activity', prospect_id: selected.id, type, description: desc }),
+            });
+            loadActivities(selected.id);
+          }}
+        />
       )}
     </div>
   );
