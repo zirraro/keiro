@@ -12,6 +12,7 @@ import { publishReelToInstagram } from '@/lib/meta';
 import { loadSharedContext, formatContextForPrompt, completeDirective } from '@/lib/agents/shared-context';
 import { decomposePromptIntoScenes, calculateSegments } from '@/lib/video-scenes';
 import { createVideoJob } from '@/lib/video-jobs-db';
+import { diagnosePublishFailure, sendPublishAlert } from '@/lib/agents/publish-diagnostics';
 
 // ──────────────────────────────────────
 // Claude Haiku for text generation (captions, hashtags, descriptions)
@@ -1513,6 +1514,8 @@ export async function POST(request: NextRequest) {
             } else {
               pubError = igResult.error;
               console.warn(`[Content] Instagram publish failed for post ${post.id}: ${igResult.error}`);
+              const diag = diagnosePublishFailure('Instagram', igResult.error || '');
+              await sendPublishAlert(diag, `Post ${post.id} — ${post.hook || post.caption?.substring(0, 60) || 'N/A'}`, supabase);
             }
           } else if (post.platform === 'tiktok' && (post.visual_url || videoUrl)) {
             const ttResult = await publishToTikTok(postWithVideo, supabase);
@@ -1522,6 +1525,8 @@ export async function POST(request: NextRequest) {
             } else {
               pubError = ttResult.error;
               console.warn(`[Content] TikTok publish failed for post ${post.id}: ${ttResult.error}`);
+              const diag = diagnosePublishFailure('TikTok', ttResult.error || '');
+              await sendPublishAlert(diag, `Post ${post.id} — ${post.hook || post.caption?.substring(0, 60) || 'N/A'}`, supabase);
             }
           }
 
@@ -1560,6 +1565,8 @@ export async function POST(request: NextRequest) {
                 } else {
                   pubError2 = igResult.error;
                   console.warn(`[Content] Instagram publish failed for post ${post.id}: ${igResult.error}`);
+                  const diag = diagnosePublishFailure('Instagram', igResult.error || '');
+                  await sendPublishAlert(diag, `Post ${post.id} — ${post.hook || post.caption?.substring(0, 60) || 'N/A'}`, supabase);
                 }
               } else if (post.platform === 'tiktok') {
                 const ttResult = await publishToTikTok({ ...post, visual_url: visualUrl }, supabase);
@@ -1568,6 +1575,8 @@ export async function POST(request: NextRequest) {
                 } else {
                   pubError2 = ttResult.error;
                   console.warn(`[Content] TikTok publish failed for post ${post.id}: ${ttResult.error}`);
+                  const diag = diagnosePublishFailure('TikTok', ttResult.error || '');
+                  await sendPublishAlert(diag, `Post ${post.id} — ${post.hook || post.caption?.substring(0, 60) || 'N/A'}`, supabase);
                 }
               }
 

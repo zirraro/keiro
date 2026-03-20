@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getVideoJob, updateVideoJob } from '@/lib/video-jobs-db';
 import { publishTikTokVideoViaFileUpload, refreshTikTokToken } from '@/lib/tiktok';
 import { publishReelToInstagram } from '@/lib/meta';
+import { diagnosePublishFailure, sendPublishAlert } from '@/lib/agents/publish-diagnostics';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -103,6 +104,8 @@ export async function GET(request: NextRequest) {
             } else {
               publishError = ttResult.error;
               console.warn(`[video-poll] TikTok publish failed for post ${post.id}: ${ttResult.error}`);
+              const diag = diagnosePublishFailure('TikTok', ttResult.error || '');
+              await sendPublishAlert(diag, `Video post ${post.id} (job ${jobId})`, supabase);
             }
           } else if (post.platform === 'instagram') {
             const igResult = await publishToInstagramReel(post, finalVideoUrl, supabase);
@@ -112,6 +115,8 @@ export async function GET(request: NextRequest) {
             } else {
               publishError = igResult.error;
               console.warn(`[video-poll] Instagram publish failed for post ${post.id}: ${igResult.error}`);
+              const diag = diagnosePublishFailure('Instagram', igResult.error || '');
+              await sendPublishAlert(diag, `Video post ${post.id} (job ${jobId})`, supabase);
             }
           }
 
