@@ -74,7 +74,7 @@ export const en: Translations = {
   home: {
     heroBadge: 'Images, videos, reels, carousels — ready to publish',
     heroTitle: 'Create and publish pro content — in 3 minutes.',
-    heroSubtitle: 'AI creates images and videos that link your business to today\'s news — your audience sees you\'re on top of it. Connect Instagram and TikTok, pick a format (post, reel, carousel, story) and publish. You can also create without news, just for your business.',
+    heroSubtitle: 'Keiro links your business to today\'s news — your audience sees you\'re on top of it. Pick your format, publish instantly.',
     heroCheck1: 'Publish directly on Instagram & TikTok',
     heroCheck2: 'Videos up to 90s with voice & music',
     heroCheck3: 'Reels, carousels, stories — all formats',

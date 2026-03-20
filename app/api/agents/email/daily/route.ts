@@ -636,35 +636,39 @@ async function sendEmail(
       return { success: false, error: `Brevo + Resend both failed (attempt ${failCount})` };
     }
 
-    // Update prospect in DB
+    // Update prospect in DB — SPLIT into 2 updates for safety
+    // Step update must NEVER fail because of a status constraint violation
     const supabase = getSupabaseAdmin();
     const now = new Date().toISOString();
 
-    // Update prospect CRM: sequence progress + status advancement
-    const prospectUpdate: Record<string, any> = {
+    // 1) Always update sequence progress (safe, no constraint issues)
+    const stepUpdate: Record<string, any> = {
       email_sequence_step: step,
       last_email_sent_at: now,
       email_sequence_status: step === 10 ? 'warm_sent' : 'in_progress',
       email_provider: provider,
       updated_at: now,
     };
-    // Advance CRM pipeline stage based on email step
-    // Only advance forward, never go backward
+    const { error: stepError } = await supabase.from('crm_prospects').update(stepUpdate).eq('id', prospect.id);
+    if (stepError) {
+      console.error(`[EmailDaily] Failed to update prospect ${prospect.id} step:`, stepError.message);
+    }
+
+    // 2) Advance CRM pipeline stage (separate update — if constraint fails, step still advances)
     const protectedStatuses = ['repondu', 'demo', 'sprint', 'client'];
     if (!prospect.status || !protectedStatuses.includes(prospect.status)) {
-      if (step === 1) {
-        prospectUpdate.status = 'contacte';
-      } else if (step === 2) {
-        prospectUpdate.status = 'relance_1';
-      } else if (step === 3) {
-        prospectUpdate.status = 'relance_2';
-      } else if (step === 4 || step === 5) {
-        prospectUpdate.status = 'relance_3';
+      const stepLabels: Record<number, string> = {
+        1: 'contacte', 2: 'relance_1', 3: 'relance_2', 4: 'relance_3', 5: 'relance_3', 10: 'contacte',
+      };
+      const newStatus = stepLabels[step];
+      if (newStatus) {
+        const { error: statusError } = await supabase.from('crm_prospects').update({
+          status: newStatus, updated_at: now,
+        }).eq('id', prospect.id);
+        if (statusError) {
+          console.error(`[EmailDaily] Failed to update prospect ${prospect.id} status to ${newStatus}:`, statusError.message);
+        }
       }
-    }
-    const { error: updateError } = await supabase.from('crm_prospects').update(prospectUpdate).eq('id', prospect.id);
-    if (updateError) {
-      console.error(`[EmailDaily] Failed to update prospect ${prospect.id} status:`, updateError.message);
     }
 
     await supabase.from('crm_activities').insert({

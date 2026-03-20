@@ -263,6 +263,14 @@ export default function AdminCRMPage() {
   const [filterSuivi, setFilterSuivi] = useState<'none' | 'jour' | 'semaine'>('none');
   const [weeklyReminders, setWeeklyReminders] = useState<Activity[]>([]);
 
+  // Engagement tracker (conversion analytics)
+  type EngagementEvent = { type: string; businessType: string; company: string; prospectStatus: string; step: number | null; subject: string | null; created_at: string };
+  type EngagementByType = { businessType: string; sent: number; opened: number; clicked: number; replied: number; dm: number; dm_replied: number; openRate: number; clickRate: number; replyRate: number };
+  type EngagementTimeline = { date: string; sent: number; opened: number; clicked: number; replied: number };
+  const [engagementToday, setEngagementToday] = useState<EngagementEvent[]>([]);
+  const [engagementByType, setEngagementByType] = useState<EngagementByType[]>([]);
+  const [engagementTimeline, setEngagementTimeline] = useState<EngagementTimeline[]>([]);
+
   // Stats & Funnel
   const [statsData, setStatsData] = useState<any>(null);
   const [statsLoading, setStatsLoading] = useState(false);
@@ -303,7 +311,8 @@ export default function AdminCRMPage() {
     if (!isAdmin) return;
     loadReminders();
     loadWeeklyReminders();
-    const interval = setInterval(() => { loadReminders(); loadWeeklyReminders(); }, 5 * 60 * 1000);
+    loadEngagement();
+    const interval = setInterval(() => { loadReminders(); loadWeeklyReminders(); loadEngagement(); }, 5 * 60 * 1000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin]);
@@ -604,6 +613,19 @@ export default function AdminCRMPage() {
     } catch (e) { console.error('[CRM] Weekly reminders error:', e); }
   };
 
+  const loadEngagement = async () => {
+    try {
+      const res = await fetch('/api/admin/crm/stats?type=engagement');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.engagement) {
+        setEngagementToday(data.engagement.today || []);
+        setEngagementByType(data.engagement.byType || []);
+        setEngagementTimeline(data.engagement.timeline || []);
+      }
+    } catch (e) { console.error('[CRM] Engagement error:', e); }
+  };
+
   const loadActivities = async (prospectId: string) => {
     setLoadingActivities(true);
     try {
@@ -760,15 +782,24 @@ export default function AdminCRMPage() {
       list = list.filter(p => prospectIdsWithReminders.has(p.id));
     }
     if (filterSuivi === 'jour') {
-      const dayIds = new Set(pendingReminders.map(r => r.prospect_id));
-      list = list.filter(p => dayIds.has(p.id));
+      // Show prospects with engagement activity today
+      const dayIds = new Set(engagementToday.map(e => {
+        const prospect = prospects.find(p => p.company === e.company);
+        return prospect?.id;
+      }).filter(Boolean));
+      if (dayIds.size > 0) list = list.filter(p => dayIds.has(p.id));
+      else {
+        // Fallback to reminders if no engagement data
+        const reminderIds = new Set(pendingReminders.map(r => r.prospect_id));
+        list = list.filter(p => reminderIds.has(p.id));
+      }
     }
     if (filterSuivi === 'semaine') {
       const weekIds = new Set(weeklyReminders.map(r => r.prospect_id));
       list = list.filter(p => weekIds.has(p.id));
     }
     return list;
-  }, [prospects, search, filterPrio, filterStatus, filterSource, filterType, filterQuartier, filterRappels, prospectIdsWithReminders, filterSuivi, weeklyReminders, pendingReminders]);
+  }, [prospects, search, filterPrio, filterStatus, filterSource, filterType, filterQuartier, filterRappels, prospectIdsWithReminders, filterSuivi, weeklyReminders, pendingReminders, engagementToday]);
 
   const sorted = useMemo(() => {
     const copy = [...filtered];
@@ -806,7 +837,16 @@ export default function AdminCRMPage() {
   const stageStats = useMemo(() => {
     const counts: Record<string, number> = {};
     PIPELINE_STAGES.forEach(s => { counts[s.id] = 0; });
-    prospects.forEach(p => { counts[p.status] = (counts[p.status] || 0) + 1; });
+    // Count by status field, with email_sequence_step fallback
+    // If status is 'contacte' but step >= 2, count under the correct relance stage
+    const stepToStage: Record<number, string> = { 2: 'relance_1', 3: 'relance_2', 4: 'relance_3', 5: 'relance_3' };
+    prospects.forEach(p => {
+      const step = p.email_sequence_step ?? 0;
+      const effectiveStatus = (p.status === 'contacte' && step >= 2 && stepToStage[step])
+        ? stepToStage[step]
+        : p.status;
+      counts[effectiveStatus] = (counts[effectiveStatus] || 0) + 1;
+    });
     return counts;
   }, [prospects]);
 
@@ -1399,9 +1439,11 @@ export default function AdminCRMPage() {
                     </p>
                   </div>
                   <div className="bg-white rounded-xl border border-neutral-200 p-4 shadow-sm">
-                    <p className="text-xs text-neutral-500 mb-1">🔔 Rappels en attente</p>
-                    <p className="text-3xl font-bold text-orange-600">{pendingReminders.length}</p>
-                    <p className="text-[10px] text-neutral-400 mt-0.5">{weeklyReminders.length} cette semaine</p>
+                    <p className="text-xs text-neutral-500 mb-1">📊 Engagement aujourd&apos;hui</p>
+                    <p className="text-3xl font-bold text-purple-600">{engagementToday.length}</p>
+                    <p className="text-[10px] text-neutral-400 mt-0.5">
+                      {engagementToday.filter(e => e.type === 'email_opened').length} ouv. · {engagementToday.filter(e => e.type === 'email_clicked').length} clic · {engagementToday.filter(e => e.type === 'email_replied').length} rép.
+                    </p>
                   </div>
                 </div>
 
@@ -1489,29 +1531,25 @@ export default function AdminCRMPage() {
                   </div>
                 </div>
 
-                {/* Suivi du jour - Today's action list */}
+                {/* ── Engagement Tracker : Actions du jour ─────────────── */}
                 <div className="bg-white rounded-xl border border-neutral-200 p-5 shadow-sm">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-bold text-neutral-900">📋 Suivi du jour</h3>
-                    <button onClick={exportReminders} className="text-xs text-purple-600 hover:text-purple-700 transition-colors">📤 Exporter CSV</button>
-                  </div>
-                  {pendingReminders.length === 0 ? (
-                    <p className="text-xs text-neutral-400 text-center py-4">Aucun rappel pour aujourd&apos;hui</p>
+                  <h3 className="text-sm font-bold text-neutral-900 mb-4">📊 Engagement du jour</h3>
+                  {engagementToday.length === 0 ? (
+                    <p className="text-xs text-neutral-400 text-center py-4">Aucune activité d&apos;engagement aujourd&apos;hui</p>
                   ) : (
                     <div className="space-y-2">
-                      {pendingReminders.map(r => {
-                        const p = r.crm_prospects;
-                        const name = p ? (p.company || [p.first_name, p.last_name].filter(Boolean).join(' ')) : '?';
-                        const actType = ACTIVITY_TYPES.find(t => t.id === r.type);
-                        const isOverdue = r.date_rappel && new Date(r.date_rappel) < new Date(new Date().toDateString());
+                      {engagementToday.map((e, i) => {
+                        const icons: Record<string, string> = { email: '✉️', email_opened: '👁️', email_clicked: '🖱️', email_replied: '💬', dm_instagram: '📷', dm_replied: '🔥' };
+                        const labels: Record<string, string> = { email: 'Email envoyé', email_opened: 'Email ouvert', email_clicked: 'Lien cliqué', email_replied: 'Réponse reçue', dm_instagram: 'DM envoyé', dm_replied: 'DM répondu' };
+                        const colors: Record<string, string> = { email: 'bg-slate-50 border-slate-200', email_opened: 'bg-sky-50 border-sky-200', email_clicked: 'bg-emerald-50 border-emerald-200', email_replied: 'bg-green-50 border-green-200', dm_instagram: 'bg-pink-50 border-pink-200', dm_replied: 'bg-orange-50 border-orange-200' };
+                        const time = new Date(e.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
                         return (
-                          <div key={r.id} className={`flex items-center gap-3 px-3 py-2 rounded-lg ${isOverdue ? 'bg-red-50 border border-red-200' : 'bg-orange-50 border border-orange-200'}`}>
-                            <span className="text-sm">{actType?.icon || '🔔'}</span>
-                            <button onClick={() => { const prospect = prospects.find(pp => pp.id === r.prospect_id); if (prospect) { setSelected(prospect); setView('liste'); } }} className="text-xs font-semibold text-neutral-900 hover:underline truncate max-w-[200px]">{name}</button>
-                            <span className="text-xs text-neutral-500 flex-1 truncate">{r.description || actType?.label || 'Rappel'}</span>
-                            {r.heure_rappel && <span className="text-xs text-neutral-500 whitespace-nowrap">{r.heure_rappel}</span>}
-                            {isOverdue && <span className="px-1.5 py-0.5 bg-red-100 text-red-600 rounded text-[10px] font-medium">En retard</span>}
-                            <button onClick={() => markReminderDone(r.id, r.prospect_id)} className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs font-medium hover:bg-emerald-200 transition-colors whitespace-nowrap">✓ Fait</button>
+                          <div key={i} className={`flex items-center gap-3 px-3 py-2 rounded-lg border ${colors[e.type] || 'bg-gray-50 border-gray-200'}`}>
+                            <span className="text-sm">{icons[e.type] || '📌'}</span>
+                            <span className="text-xs font-semibold text-neutral-900 truncate max-w-[180px]">{e.company}</span>
+                            <span className="px-1.5 py-0.5 bg-neutral-100 text-neutral-600 rounded text-[10px]">{e.businessType}</span>
+                            <span className="text-xs text-neutral-500 flex-1 truncate">{labels[e.type] || e.type}{e.step ? ` (step ${e.step})` : ''}</span>
+                            <span className="text-[10px] text-neutral-400 whitespace-nowrap">{time}</span>
                           </div>
                         );
                       })}
@@ -1519,22 +1557,64 @@ export default function AdminCRMPage() {
                   )}
                 </div>
 
-                {/* Suivi de la semaine */}
-                {weeklyReminders.filter(r => !pendingReminders.some(pr => pr.id === r.id)).length > 0 && (
+                {/* ── Performance par type de business (7 jours) ─────── */}
+                {engagementByType.length > 0 && (
                   <div className="bg-white rounded-xl border border-neutral-200 p-5 shadow-sm">
-                    <h3 className="text-sm font-bold text-neutral-900 mb-4">📅 Reste de la semaine</h3>
+                    <h3 className="text-sm font-bold text-neutral-900 mb-4">📈 Conversion par type de business (7 jours)</h3>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="border-b border-neutral-200">
+                            <th className="text-left py-2 pr-3 text-neutral-500 font-medium">Type</th>
+                            <th className="text-center py-2 px-2 text-neutral-500 font-medium">Envoyés</th>
+                            <th className="text-center py-2 px-2 text-neutral-500 font-medium">Ouverts</th>
+                            <th className="text-center py-2 px-2 text-neutral-500 font-medium">Cliqués</th>
+                            <th className="text-center py-2 px-2 text-neutral-500 font-medium">Répondus</th>
+                            <th className="text-center py-2 px-2 text-neutral-500 font-medium">OR%</th>
+                            <th className="text-center py-2 px-2 text-neutral-500 font-medium">CTR%</th>
+                            <th className="text-center py-2 px-2 text-neutral-500 font-medium">RR%</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {engagementByType.map(row => (
+                            <tr key={row.businessType} className="border-b border-neutral-100 hover:bg-neutral-50">
+                              <td className="py-2 pr-3 font-semibold text-neutral-900 capitalize">{row.businessType}</td>
+                              <td className="text-center py-2 px-2 text-neutral-600">{row.sent}</td>
+                              <td className="text-center py-2 px-2 text-neutral-600">{row.opened}</td>
+                              <td className="text-center py-2 px-2 text-neutral-600">{row.clicked}</td>
+                              <td className="text-center py-2 px-2 text-neutral-600">{row.replied}</td>
+                              <td className="text-center py-2 px-2"><span className={`px-1.5 py-0.5 rounded ${row.openRate > 30 ? 'bg-green-100 text-green-700' : row.openRate > 15 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-600'}`}>{row.openRate}%</span></td>
+                              <td className="text-center py-2 px-2"><span className={`px-1.5 py-0.5 rounded ${row.clickRate > 5 ? 'bg-green-100 text-green-700' : row.clickRate > 2 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-600'}`}>{row.clickRate}%</span></td>
+                              <td className="text-center py-2 px-2"><span className={`px-1.5 py-0.5 rounded ${row.replyRate > 3 ? 'bg-green-100 text-green-700' : row.replyRate > 1 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-600'}`}>{row.replyRate}%</span></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Timeline engagement 7 jours ──────────────────── */}
+                {engagementTimeline.length > 0 && (
+                  <div className="bg-white rounded-xl border border-neutral-200 p-5 shadow-sm">
+                    <h3 className="text-sm font-bold text-neutral-900 mb-4">📅 Activité email par jour</h3>
                     <div className="space-y-2">
-                      {weeklyReminders.filter(r => !pendingReminders.some(pr => pr.id === r.id)).map(r => {
-                        const p = r.crm_prospects;
-                        const name = p ? (p.company || [p.first_name, p.last_name].filter(Boolean).join(' ')) : '?';
-                        const actType = ACTIVITY_TYPES.find(t => t.id === r.type);
+                      {engagementTimeline.map(day => {
+                        const maxVal = Math.max(...engagementTimeline.map(d => d.sent), 1);
+                        const barWidth = Math.max(Math.round((day.sent / maxVal) * 100), 4);
+                        const dateLabel = new Date(day.date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
                         return (
-                          <div key={r.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-indigo-50 border border-indigo-200">
-                            <span className="text-sm">{actType?.icon || '🔔'}</span>
-                            <button onClick={() => { const prospect = prospects.find(pp => pp.id === r.prospect_id); if (prospect) { setSelected(prospect); setView('liste'); } }} className="text-xs font-semibold text-neutral-900 hover:underline truncate max-w-[200px]">{name}</button>
-                            <span className="text-xs text-neutral-500 flex-1 truncate">{r.description || actType?.label}</span>
-                            <span className="text-xs text-indigo-600 whitespace-nowrap">{formatDate(r.date_rappel)}</span>
-                            {r.heure_rappel && <span className="text-xs text-neutral-500">{r.heure_rappel}</span>}
+                          <div key={day.date} className="flex items-center gap-3">
+                            <span className="text-[10px] text-neutral-500 w-20 flex-shrink-0">{dateLabel}</span>
+                            <div className="flex-1 bg-gray-100 rounded-full h-5 overflow-hidden relative">
+                              <div className="h-5 rounded-full bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] transition-all" style={{ width: `${barWidth}%` }} />
+                            </div>
+                            <div className="flex gap-2 text-[10px] flex-shrink-0">
+                              <span className="text-neutral-600" title="Envoyés">✉️{day.sent}</span>
+                              <span className="text-sky-600" title="Ouverts">👁️{day.opened}</span>
+                              <span className="text-emerald-600" title="Cliqués">🖱️{day.clicked}</span>
+                              <span className="text-green-700" title="Répondus">💬{day.replied}</span>
+                            </div>
                           </div>
                         );
                       })}

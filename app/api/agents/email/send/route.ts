@@ -210,10 +210,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // --- Update prospect ---
-    const stepLabels: Record<number, string> = {
-      1: 'contacte', 2: 'relance_1', 3: 'relance_2', 4: 'relance_3', 5: 'relance_finale', 10: 'contacte_warm',
-    };
+    // --- Update prospect (split into 2 updates for safety) ---
+    // 1) Always update sequence progress (safe, no constraint issues)
     await supabase
       .from('crm_prospects')
       .update({
@@ -221,10 +219,22 @@ export async function POST(request: NextRequest) {
         last_email_sent_at: now,
         email_sequence_status: 'in_progress',
         email_subject_variant: selectedVariant,
-        status: stepLabels[template_step] || 'contacte',
         updated_at: now,
       })
       .eq('id', prospect_id);
+
+    // 2) Update pipeline status separately (if constraint fails, step still advances)
+    const stepLabels: Record<number, string> = {
+      1: 'contacte', 2: 'relance_1', 3: 'relance_2', 4: 'relance_3', 5: 'relance_3', 10: 'contacte',
+    };
+    const newStatus = stepLabels[template_step] || 'contacte';
+    const { error: statusErr } = await supabase
+      .from('crm_prospects')
+      .update({ status: newStatus, updated_at: now })
+      .eq('id', prospect_id);
+    if (statusErr) {
+      console.error(`[EmailSend] Status update failed for ${prospect_id} → ${newStatus}:`, statusErr.message);
+    }
 
     // --- Create CRM activity ---
     await supabase.from('crm_activities').insert({

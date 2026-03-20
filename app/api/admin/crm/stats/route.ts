@@ -75,6 +75,9 @@ export async function GET(req: NextRequest) {
     if (type === 'best_actions' || type === 'all') {
       tasks.push(computeBestActions(supabase).then((d) => { result.bestActions = d; }));
     }
+    if (type === 'engagement' || type === 'all') {
+      tasks.push(computeEngagementTracker(supabase).then((d) => { result.engagement = d; }));
+    }
     if (type === 'all') {
       tasks.push(computeSourceAttribution(supabase).then((d) => { result.sourceAttribution = d; }));
     }
@@ -91,29 +94,31 @@ export async function GET(req: NextRequest) {
 // ─── 1. Funnel Stats ────────────────────────────────────────────────────────
 
 async function computeFunnel(supabase: ReturnType<typeof getAdminClient>) {
-  // Count prospects per stage (including 'perdu')
-  const allStagesWithPerdu = [...FUNNEL_STAGES, 'perdu'] as const;
-  const countPromises = allStagesWithPerdu.map(async (stage) => {
-    const { count } = await supabase
-      .from('crm_prospects')
-      .select('id', { count: 'exact', head: true })
-      .eq('status', stage);
-    return { stage, count: count || 0 };
-  });
+  // Fetch all prospects' status + email_sequence_step for accurate counting
+  // email_sequence_step is the source of truth (status may be stale due to past constraint bug)
+  const { data: allProspects } = await supabase
+    .from('crm_prospects')
+    .select('status, email_sequence_step')
+    .limit(50000);
 
-  const counts = await Promise.all(countPromises);
+  const stepToStage: Record<number, string> = { 2: 'relance_1', 3: 'relance_2', 4: 'relance_3', 5: 'relance_3' };
   const countMap: Record<string, number> = {};
-  for (const { stage, count } of counts) {
-    countMap[stage] = count;
+  const allStagesWithPerdu = [...FUNNEL_STAGES, 'perdu'];
+  for (const s of allStagesWithPerdu) countMap[s] = 0;
+
+  for (const p of (allProspects || [])) {
+    const step = p.email_sequence_step ?? 0;
+    // If status is 'contacte' but step >= 2, count under the correct relance stage
+    const effectiveStatus = (p.status === 'contacte' && step >= 2 && stepToStage[step])
+      ? stepToStage[step]
+      : (p.status || 'identifie');
+    countMap[effectiveStatus] = (countMap[effectiveStatus] || 0) + 1;
   }
 
-  // Cumulative counts: how many prospects ever passed through each stage
-  // = sum of all stages from that point forward (excluding 'perdu')
+  // Cumulative counts: sum from that point forward (excluding 'perdu')
   const stages: { stage: string; current: number; cumulative: number }[] = [];
-  let cumulativeFromEnd = 0;
-
-  // Build cumulative from the end (client → identifie)
   const cumulatives: number[] = new Array(FUNNEL_STAGES.length).fill(0);
+  let cumulativeFromEnd = 0;
   for (let i = FUNNEL_STAGES.length - 1; i >= 0; i--) {
     cumulativeFromEnd += countMap[FUNNEL_STAGES[i]] || 0;
     cumulatives[i] = cumulativeFromEnd;
@@ -403,4 +408,99 @@ async function computeSourceAttribution(supabase: ReturnType<typeof getAdminClie
       conversionRate: rate(stats.converted, stats.total),
     }))
     .sort((a, b) => b.total - a.total);
+}
+
+// ─── 6. Engagement Tracker (daily actions by business type) ─────────────────
+
+async function computeEngagementTracker(supabase: ReturnType<typeof getAdminClient>) {
+  const now = new Date();
+  const todayStart = new Date(now);
+  todayStart.setUTCHours(0, 0, 0, 0);
+  const weekStart = new Date(now);
+  weekStart.setUTCDate(weekStart.getUTCDate() - 7);
+
+  // Fetch last 7 days of engagement activities + prospect types
+  const engagementTypes = ['email', 'email_opened', 'email_clicked', 'email_replied', 'dm_instagram', 'dm_replied'];
+  const { data: activities } = await supabase
+    .from('crm_activities')
+    .select('type, prospect_id, data, created_at')
+    .in('type', engagementTypes)
+    .gte('created_at', weekStart.toISOString())
+    .order('created_at', { ascending: false })
+    .limit(5000);
+
+  if (!activities || activities.length === 0) {
+    return { today: [], week: [], byType: [], timeline: [] };
+  }
+
+  // Fetch prospect types for these activities
+  const prospectIds = [...new Set(activities.map(a => a.prospect_id).filter(Boolean))];
+  const prospectMap: Record<string, { type: string; company: string; status: string }> = {};
+  for (let i = 0; i < prospectIds.length; i += 200) {
+    const chunk = prospectIds.slice(i, i + 200);
+    const { data } = await supabase
+      .from('crm_prospects')
+      .select('id, type, company, status')
+      .in('id', chunk);
+    if (data) {
+      for (const p of data) {
+        prospectMap[p.id] = { type: p.type || 'autre', company: p.company || '', status: p.status || '' };
+      }
+    }
+  }
+
+  const todayISO = todayStart.toISOString();
+
+  // Today's engagement events (for the daily tracker)
+  const todayEvents = activities
+    .filter(a => a.created_at >= todayISO)
+    .map(a => {
+      const prospect = prospectMap[a.prospect_id] || { type: 'autre', company: '?', status: '' };
+      return {
+        type: a.type,
+        businessType: prospect.type,
+        company: prospect.company,
+        prospectStatus: prospect.status,
+        step: (a.data as any)?.step || null,
+        subject: (a.data as any)?.subject || null,
+        created_at: a.created_at,
+      };
+    });
+
+  // Aggregate: engagement by business type (last 7 days)
+  const typeStats: Record<string, { sent: number; opened: number; clicked: number; replied: number; dm: number; dm_replied: number }> = {};
+  for (const a of activities) {
+    const bType = prospectMap[a.prospect_id]?.type || 'autre';
+    if (!typeStats[bType]) typeStats[bType] = { sent: 0, opened: 0, clicked: 0, replied: 0, dm: 0, dm_replied: 0 };
+    if (a.type === 'email') typeStats[bType].sent++;
+    else if (a.type === 'email_opened') typeStats[bType].opened++;
+    else if (a.type === 'email_clicked') typeStats[bType].clicked++;
+    else if (a.type === 'email_replied') typeStats[bType].replied++;
+    else if (a.type === 'dm_instagram') typeStats[bType].dm++;
+    else if (a.type === 'dm_replied') typeStats[bType].dm_replied++;
+  }
+
+  const byType = Object.entries(typeStats)
+    .map(([businessType, stats]) => ({
+      businessType,
+      ...stats,
+      openRate: rate(stats.opened, stats.sent),
+      clickRate: rate(stats.clicked, stats.sent),
+      replyRate: rate(stats.replied, stats.sent),
+    }))
+    .sort((a, b) => b.sent - a.sent);
+
+  // Daily timeline: group by day
+  const dailyCounts: Record<string, { date: string; sent: number; opened: number; clicked: number; replied: number }> = {};
+  for (const a of activities) {
+    const day = a.created_at.substring(0, 10);
+    if (!dailyCounts[day]) dailyCounts[day] = { date: day, sent: 0, opened: 0, clicked: 0, replied: 0 };
+    if (a.type === 'email') dailyCounts[day].sent++;
+    else if (a.type === 'email_opened') dailyCounts[day].opened++;
+    else if (a.type === 'email_clicked') dailyCounts[day].clicked++;
+    else if (a.type === 'email_replied') dailyCounts[day].replied++;
+  }
+  const timeline = Object.values(dailyCounts).sort((a, b) => a.date.localeCompare(b.date));
+
+  return { today: todayEvents, byType, timeline };
 }

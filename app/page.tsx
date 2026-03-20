@@ -526,28 +526,28 @@ function HomeKeiroInner() {
 
         {/* Explication sous les images */}
         <FadeUp>
-        <div className="mt-8 bg-neutral-50 rounded-2xl border border-neutral-200 p-6">
-          <h3 className="text-lg font-bold text-neutral-900 mb-3">{t.home.changeTitle}</h3>
+        <div className="mt-8 bg-neutral-50 dark:bg-white/5 rounded-2xl border border-neutral-200 dark:border-white/10 p-6">
+          <h3 className="text-lg font-bold text-neutral-900 dark:text-white mb-3">{t.home.changeTitle}</h3>
           <div className="grid md:grid-cols-3 gap-4">
             <div className="flex items-start gap-2">
-              <span className="text-emerald-600 text-xl">✓</span>
+              <span className="text-emerald-500 text-xl">✓</span>
               <div>
-                <p className="text-sm font-semibold text-neutral-900">{t.home.change1Title}</p>
-                <p className="text-xs text-neutral-600">{t.home.change1Desc}</p>
+                <p className="text-sm font-semibold text-neutral-900 dark:text-white">{t.home.change1Title}</p>
+                <p className="text-xs text-neutral-600 dark:text-neutral-400">{t.home.change1Desc}</p>
               </div>
             </div>
             <div className="flex items-start gap-2">
-              <span className="text-emerald-600 text-xl">✓</span>
+              <span className="text-emerald-500 text-xl">✓</span>
               <div>
-                <p className="text-sm font-semibold text-neutral-900">{t.home.change2Title}</p>
-                <p className="text-xs text-neutral-600">{t.home.change2Desc}</p>
+                <p className="text-sm font-semibold text-neutral-900 dark:text-white">{t.home.change2Title}</p>
+                <p className="text-xs text-neutral-600 dark:text-neutral-400">{t.home.change2Desc}</p>
               </div>
             </div>
             <div className="flex items-start gap-2">
-              <span className="text-emerald-600 text-xl">✓</span>
+              <span className="text-emerald-500 text-xl">✓</span>
               <div>
-                <p className="text-sm font-semibold text-neutral-900">{t.home.change3Title}</p>
-                <p className="text-xs text-neutral-600">{t.home.change3Desc}</p>
+                <p className="text-sm font-semibold text-neutral-900 dark:text-white">{t.home.change3Title}</p>
+                <p className="text-xs text-neutral-600 dark:text-neutral-400">{t.home.change3Desc}</p>
               </div>
             </div>
           </div>
