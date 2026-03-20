@@ -165,7 +165,7 @@ function HomeKeiroInner() {
                 <p className="text-xs text-[#c8d8e8]">{t.home.sprintSubtitle}</p>
               </div>
             </div>
-            <button onClick={() => startCheckout('sprint')} className="cta-keep-white sprint-cta-glow px-7 py-3 rounded-xl bg-white font-extrabold hover:bg-yellow-50 transition-all text-sm whitespace-nowrap shadow-lg ring-2 ring-white/40 hover:ring-yellow-300/60 hover:shadow-2xl hover:scale-105" style={{ color: '#0c1a3a' }}>
+            <button onClick={() => startCheckout('sprint')} className="sprint-cta-glow px-7 py-3 rounded-xl bg-gradient-to-r from-yellow-400 to-amber-500 text-[#0c1a3a] font-extrabold hover:from-yellow-300 hover:to-amber-400 transition-all text-sm whitespace-nowrap shadow-lg hover:shadow-2xl hover:scale-105">
               {t.home.sprintCta} →
             </button>
           </div>
