@@ -6,6 +6,7 @@ import { verifyProspectData, verifyCRMCoherence } from '@/lib/agents/business-ti
 import { callGemini } from '@/lib/agents/gemini';
 import { loadSharedContext, formatContextForPrompt } from '@/lib/agents/shared-context';
 import { canSendEmail } from '@/lib/agents/email-dedup';
+import { saveLearning, learningExpiresIn } from '@/lib/agents/learning';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -375,6 +376,7 @@ async function autoLearn(results: SendResult[], supabase: any) {
 
     const learning = `Semaine du ${new Date().toLocaleDateString('fr-FR')}: ${totalSent} envoyés, ${opens.length} ouverts (OR=${openRate}%), ${clicks.length} clics (CTR=${clickRate}% sur ouverts), ${replies.length} réponses (${replyRate}%). Meilleure catégorie: ${bestCategory[0]}. Meilleur step: ${bestStep?.[0] || '?'}. Détail: ${categoryBreakdown}. Steps: ${stepBreakdown}`;
 
+    // Legacy memory log (kept for backward compat)
     await supabase.from('agent_logs').insert({
       agent: 'email',
       action: 'memory',
@@ -399,7 +401,104 @@ async function autoLearn(results: SendResult[], supabase: any) {
       created_at: new Date().toISOString(),
     });
 
-    console.log(`[EmailDaily] Auto-learning: ${openRate}% open, ${clickRate}% click, ${replyRate}% reply. Best: ${bestCategory[0]}`);
+    // ── STRUCTURED LEARNINGS (new system) ──
+    // 1. Best category insight
+    const sortedCats = Object.entries(byCategory)
+      .filter(([, d]) => d.sent >= 3)
+      .sort((a, b) => {
+        const scoreA = a[1].replies * 5 + a[1].clicks * 2 + a[1].opens;
+        const scoreB = b[1].replies * 5 + b[1].clicks * 2 + b[1].opens;
+        return scoreB - scoreA;
+      });
+
+    if (sortedCats.length >= 2) {
+      const best = sortedCats[0];
+      const worst = sortedCats[sortedCats.length - 1];
+      const bestOR = best[1].sent > 0 ? (best[1].opens / best[1].sent * 100).toFixed(0) : '0';
+      const worstOR = worst[1].sent > 0 ? (worst[1].opens / worst[1].sent * 100).toFixed(0) : '0';
+
+      await saveLearning(supabase, {
+        agent: 'email',
+        category: 'email',
+        learning: `Les ${best[0]} répondent le mieux (OR ${bestOR}%, ${best[1].replies} réponses). Prioriser cette catégorie. Les ${worst[0]} performent moins bien (OR ${worstOR}%).`,
+        evidence: `${totalSent} emails analysés sur 7j. ${best[0]}: ${best[1].sent} envoyés, ${best[1].opens} ouverts, ${best[1].clicks} clics, ${best[1].replies} rép. ${worst[0]}: ${worst[1].sent} envoyés, ${worst[1].opens} ouverts.`,
+        confidence: Math.min(85, 40 + totalSent * 2),
+        expires_at: learningExpiresIn(14),
+      });
+    }
+
+    // 2. Best step insight
+    const sortedSteps = Object.entries(byStep)
+      .filter(([, d]) => d.sent >= 3)
+      .sort((a, b) => {
+        const scoreA = a[1].clicks * 2 + a[1].opens;
+        const scoreB = b[1].clicks * 2 + b[1].opens;
+        return scoreB - scoreA;
+      });
+
+    if (sortedSteps.length >= 2) {
+      const bestS = sortedSteps[0];
+      const bestSOR = bestS[1].sent > 0 ? (bestS[1].opens / bestS[1].sent * 100).toFixed(0) : '0';
+
+      await saveLearning(supabase, {
+        agent: 'email',
+        category: 'email',
+        learning: `Step ${bestS[0]} a le meilleur taux d'ouverture (${bestSOR}%). Adapter le ton des autres steps en conséquence.`,
+        evidence: `Step ${bestS[0]}: ${bestS[1].sent} envoyés, ${bestS[1].opens} ouverts, ${bestS[1].clicks} clics sur 7j.`,
+        confidence: Math.min(80, 35 + totalSent),
+        expires_at: learningExpiresIn(14),
+      });
+    }
+
+    // 3. Open rate trend insight
+    const orNum = parseFloat(openRate);
+    if (totalSent >= 10) {
+      if (orNum >= 30) {
+        await saveLearning(supabase, {
+          agent: 'email',
+          category: 'email',
+          learning: `Taux d'ouverture excellent (${openRate}%). Les objets actuels fonctionnent bien, continuer dans cette direction.`,
+          evidence: `${totalSent} emails, ${opens.length} ouvertures, OR=${openRate}% sur 7j.`,
+          confidence: Math.min(90, 50 + Math.round(orNum)),
+          expires_at: learningExpiresIn(7),
+        });
+      } else if (orNum < 15) {
+        await saveLearning(supabase, {
+          agent: 'email',
+          category: 'email',
+          learning: `Taux d'ouverture faible (${openRate}%). Il faut tester des objets plus courts, plus directs, avec une question ou le prénom du prospect.`,
+          evidence: `${totalSent} emails, seulement ${opens.length} ouvertures sur 7j. Action: changer la stratégie d'objets.`,
+          confidence: Math.min(85, 45 + totalSent),
+          expires_at: learningExpiresIn(7),
+        });
+      }
+    }
+
+    // 4. Reply detection — what triggered responses
+    if (replies.length > 0) {
+      const repliedProspectTypes = replies
+        .map((r: any) => r.data?.category)
+        .filter(Boolean);
+      const topReplyType = repliedProspectTypes.length > 0
+        ? repliedProspectTypes.sort((a: string, b: string) =>
+            repliedProspectTypes.filter((v: string) => v === b).length -
+            repliedProspectTypes.filter((v: string) => v === a).length
+          )[0]
+        : null;
+
+      if (topReplyType) {
+        await saveLearning(supabase, {
+          agent: 'email',
+          category: 'conversion',
+          learning: `Les ${topReplyType} répondent le plus aux emails (${replies.length} réponses cette semaine). Concentrer les efforts de prospection sur ce type.`,
+          evidence: `${replies.length} réponses reçues sur 7j, majoritairement des ${topReplyType}.`,
+          confidence: Math.min(90, 50 + replies.length * 10),
+          expires_at: learningExpiresIn(14),
+        });
+      }
+    }
+
+    console.log(`[EmailDaily] Auto-learning: ${openRate}% open, ${clickRate}% click, ${replyRate}% reply. Best: ${bestCategory[0]}. ${sortedCats.length >= 2 ? 'Structured learnings saved.' : ''}`);
   }
 }
 

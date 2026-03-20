@@ -264,7 +264,7 @@ export default function ChatbotWidget() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.25, ease: 'easeOut' }}
-            className="force-light fixed z-50 bottom-0 right-0 w-full sm:bottom-6 sm:right-6 sm:w-[380px] flex flex-col bg-white shadow-2xl border border-neutral-200 rounded-t-2xl sm:rounded-2xl overflow-hidden"
+            className="fixed z-50 bottom-0 right-0 w-full sm:bottom-6 sm:right-6 sm:w-[380px] flex flex-col bg-[#0f1f3d] shadow-2xl border border-white/10 rounded-t-2xl sm:rounded-2xl overflow-hidden"
             style={{ height: '520px', maxHeight: 'calc(100vh - 40px)' }}
           >
             {/* Header */}
@@ -288,7 +288,7 @@ export default function ChatbotWidget() {
             </div>
 
             {/* Messages area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-neutral-50">
+            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#0a1628]">
               {messages.map((msg, i) => (
                 <div
                   key={i}
@@ -298,7 +298,7 @@ export default function ChatbotWidget() {
                     className={`max-w-[85%] rounded-xl px-3.5 py-2.5 text-sm leading-relaxed ${
                       msg.role === 'user'
                         ? 'bg-purple-600 text-white rounded-br-sm'
-                        : 'bg-neutral-100 text-neutral-800 rounded-bl-sm'
+                        : 'bg-white/10 text-white/90 rounded-bl-sm'
                     }`}
                   >
                     {msg.content.split('\n').map((line, j) => (
@@ -313,7 +313,7 @@ export default function ChatbotWidget() {
               {/* Typing indicator */}
               {isLoading && (
                 <div className="flex justify-start">
-                  <div className="bg-neutral-100 rounded-xl px-4 py-3 rounded-bl-sm">
+                  <div className="bg-white/10 rounded-xl px-4 py-3 rounded-bl-sm">
                     <div className="flex items-center gap-1.5">
                       <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" />
                       <div
@@ -333,7 +333,7 @@ export default function ChatbotWidget() {
             </div>
 
             {/* Input area */}
-            <div className="border-t border-neutral-200 bg-white p-3 flex-shrink-0">
+            <div className="border-t border-white/10 bg-[#0f1f3d] p-3 flex-shrink-0">
               <div className="flex gap-2">
                 <input
                   ref={inputRef}
@@ -342,7 +342,7 @@ export default function ChatbotWidget() {
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="Votre message..."
-                  className="flex-1 px-3.5 py-2.5 border border-neutral-300 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                  className="flex-1 px-3.5 py-2.5 border border-white/20 rounded-xl text-sm text-white placeholder-white/40 bg-white/5 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
                   disabled={isLoading}
                 />
                 <button
