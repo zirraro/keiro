@@ -19,9 +19,9 @@ const SEEDANCE_API_KEY = '341cd095-2c11-49da-82e7-dc2db23c565c';
 const SEEDANCE_API_URL = 'https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks';
 
 // ═══ PROVIDER ORDER SWITCH ═══
-// To swap back: set PRIMARY_PROVIDER = 'seedance' and FALLBACK_PROVIDER = 'kling'
-const PRIMARY_PROVIDER: 'kling' | 'seedance' = 'kling';
-const FALLBACK_PROVIDER: 'kling' | 'seedance' = 'seedance';
+// To swap back: set PRIMARY_PROVIDER = 'kling' and FALLBACK_PROVIDER = 'seedance'
+const PRIMARY_PROVIDER: 'kling' | 'seedance' = 'seedance';
+const FALLBACK_PROVIDER: 'kling' | 'seedance' = 'kling';
 
 // Valid long-video durations
 const VALID_DURATIONS = [15, 30, 45, 60, 90] as const;
