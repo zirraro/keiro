@@ -181,7 +181,7 @@ function AdminAgentsContent() {
   const [retentionStats, setRetentionStats] = useState({ green: 0, yellow: 0, orange: 0, red: 0, mrrAtRisk: 0, totalClients: 0 });
 
   // Content state
-  type ContentPost = { id: string; platform: string; format: string; pillar: string; hook: string | null; caption: string; visual_description: string | null; visual_url: string | null; video_url?: string | null; scheduled_date: string; scheduled_time: string; status: string; published_at: string | null; instagram_permalink?: string | null; tiktok_publish_id?: string | null };
+  type ContentPost = { id: string; platform: string; format: string; pillar: string; hook: string | null; caption: string; visual_description: string | null; visual_url: string | null; video_url?: string | null; scheduled_date: string; scheduled_time: string; status: string; published_at: string | null; instagram_permalink?: string | null; tiktok_publish_id?: string | null; publish_error?: string | null; publish_diagnostic?: any };
   const [contentPosts, setContentPosts] = useState<ContentPost[]>([]);
   const [contentStats, setContentStats] = useState({ total: 0, published: 0, drafts: 0, approved: 0, byPlatform: { instagram: 0, tiktok: 0, linkedin: 0 } });
   const [contentGenerating, setContentGenerating] = useState(false);
@@ -1291,6 +1291,54 @@ function AdminAgentsContent() {
     } catch (err: any) {
       alert('Erreur: ' + err.message);
     }
+  };
+
+  const handleDeletePost = async (postId: string) => {
+    if (!confirm('Supprimer ce post définitivement ?')) return;
+    try {
+      const res = await fetch('/api/agents/content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action: 'delete_post', postId }),
+      });
+      const data = await res.json();
+      if (data.ok) { setPreviewPost(null); loadContentData(); }
+      else alert('Erreur: ' + data.error);
+    } catch (err: any) { alert('Erreur: ' + err.message); }
+  };
+
+  const handleResetToDraft = async (postId: string) => {
+    try {
+      const res = await fetch('/api/agents/content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action: 'reset_to_draft', postId }),
+      });
+      const data = await res.json();
+      if (data.ok) { setPreviewPost(null); loadContentData(); }
+      else alert('Erreur: ' + data.error);
+    } catch (err: any) { alert('Erreur: ' + err.message); }
+  };
+
+  const [modifyingPost, setModifyingPost] = useState<string | null>(null);
+  const handleModifyPost = async (postId: string, instruction?: string) => {
+    const instr = instruction || prompt('Instruction de modification (ex: "rends-le plus punchy", "ajoute un CTA"):', 'Améliore ce post pour le rendre plus engageant');
+    if (!instr) return;
+    setModifyingPost(postId);
+    try {
+      const res = await fetch('/api/agents/content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action: 'modify_post', postId, instruction: instr }),
+      });
+      const data = await res.json();
+      if (data.ok) { setPreviewPost(null); loadContentData(); }
+      else alert('Erreur: ' + data.error);
+    } catch (err: any) { alert('Erreur: ' + err.message); }
+    finally { setModifyingPost(null); }
   };
 
   // ─── Helper: priority badge ────────────────────────────
@@ -3020,12 +3068,13 @@ function AdminAgentsContent() {
           <div className="space-y-6">
             <div className="grid grid-cols-4 gap-4">
               {[
-                { label: 'Total', value: contentStats.total, icon: '📱' },
-                { label: 'Publiés', value: contentStats.published, icon: '✅' },
-                { label: 'Approuvés', value: contentStats.approved, icon: '👍' },
-                { label: 'Brouillons', value: contentStats.drafts, icon: '📝' },
+                { label: 'Total', value: contentStats.total, icon: '📱', cls: '' },
+                { label: 'Publiés', value: contentStats.published, icon: '✅', cls: '' },
+                { label: 'Approuvés', value: contentStats.approved, icon: '👍', cls: '' },
+                { label: 'Brouillons', value: contentStats.drafts, icon: '📝', cls: '' },
+                ...((contentStats as any).failed > 0 ? [{ label: 'Echecs', value: (contentStats as any).failed, icon: '❌', cls: 'border-red-200 bg-red-50' }] : []),
               ].map((s, i) => (
-                <div key={i} className="bg-white rounded-xl shadow-sm border p-4 text-center">
+                <div key={i} className={`bg-white rounded-xl shadow-sm border p-4 text-center ${s.cls}`}>
                   <div className="text-2xl mb-1">{s.icon}</div>
                   <div className="text-2xl font-bold text-neutral-900">{s.value}</div>
                   <div className="text-xs text-neutral-500">{s.label}</div>
@@ -3111,10 +3160,12 @@ function AdminAgentsContent() {
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-600">{post.pillar}</span>
                         <span className={`text-[10px] px-2 py-0.5 rounded-full ${
                           post.status === 'published' ? 'bg-green-100 text-green-700'
+                          : post.status === 'publish_failed' ? 'bg-red-100 text-red-700'
                           : post.status === 'approved' ? 'bg-[#0c1a3a]/10 text-[#0c1a3a]'
                           : post.status === 'skipped' ? 'bg-neutral-100 text-neutral-500'
+                          : post.status === 'video_generating' ? 'bg-purple-100 text-purple-700'
                           : 'bg-amber-100 text-amber-700'
-                        }`}>{post.status}</span>
+                        }`}>{post.status === 'publish_failed' ? 'Echec' : post.status === 'video_generating' ? 'Video...' : post.status}</span>
                       </div>
                       <span className="text-[10px] text-neutral-400">{post.scheduled_date} {post.scheduled_time}</span>
                     </div>
@@ -3130,25 +3181,45 @@ function AdminAgentsContent() {
                     {post.visual_description && (
                       <div className="text-[10px] text-neutral-400 bg-neutral-50 rounded p-2 mb-2">Visuel : {post.visual_description}</div>
                     )}
-                    {(post.status === 'draft' || post.status === 'approved') && (
-                      <div className="flex flex-wrap gap-2 mt-1" onClick={e => e.stopPropagation()}>
-                        {post.status === 'draft' && (
-                          <>
+                    {/* Publish error banner */}
+                    {post.publish_error && (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-2 mb-2 text-xs text-red-700" onClick={e => e.stopPropagation()}>
+                        <span className="font-semibold">Erreur :</span> {post.publish_error}
+                        {post.publish_diagnostic?.reason && <span className="ml-1 text-red-500">({post.publish_diagnostic.reason})</span>}
+                      </div>
+                    )}
+                    {/* Action buttons */}
+                    <div className="flex flex-wrap gap-2 mt-1" onClick={e => e.stopPropagation()}>
+                      {(post.status === 'draft' || post.status === 'approved' || post.status === 'publish_failed') && (
+                        <>
+                          {post.status === 'draft' && (
                             <button onClick={() => handleContentAction(post.id, 'approve')} className="text-xs px-2 py-1 rounded bg-[#0c1a3a]/5 text-[#0c1a3a] hover:bg-[#0c1a3a]/10">Approuver</button>
-                            <button onClick={() => handleContentAction(post.id, 'skip')} className="text-xs px-2 py-1 rounded bg-neutral-50 text-neutral-400 hover:bg-neutral-100">Ignorer</button>
-                          </>
-                        )}
-                        <button onClick={() => handleContentAction(post.id, 'publish', 'instagram')} className="text-xs px-2 py-1 rounded bg-pink-50 text-pink-600 hover:bg-pink-100">Publier Insta</button>
-                        <button onClick={() => handleContentAction(post.id, 'publish', 'tiktok')} className="text-xs px-2 py-1 rounded bg-black/5 text-neutral-800 hover:bg-black/10">Publier TikTok</button>
-                        <button onClick={() => handleContentAction(post.id, 'publish', 'all')} className="text-xs px-2 py-1 rounded bg-green-50 text-green-600 hover:bg-green-100">Publier Tous</button>
-                      </div>
-                    )}
-                    {post.status === 'published' && !post.instagram_permalink && (
-                      <div className="flex flex-wrap gap-2 mt-1" onClick={e => e.stopPropagation()}>
-                        <button onClick={() => handleContentAction(post.id, 'publish', 'instagram')} className="text-xs px-2 py-1 rounded bg-pink-50 text-pink-600 hover:bg-pink-100">Republier Insta</button>
-                        <button onClick={() => handleContentAction(post.id, 'publish', 'tiktok')} className="text-xs px-2 py-1 rounded bg-black/5 text-neutral-800 hover:bg-black/10">Republier TikTok</button>
-                      </div>
-                    )}
+                          )}
+                          <button onClick={() => handleContentAction(post.id, 'publish', 'instagram')} className="text-xs px-2 py-1 rounded bg-pink-50 text-pink-600 hover:bg-pink-100">Publier Insta</button>
+                          <button onClick={() => handleContentAction(post.id, 'publish', 'tiktok')} className="text-xs px-2 py-1 rounded bg-black/5 text-neutral-800 hover:bg-black/10">Publier TikTok</button>
+                          <button onClick={() => handleContentAction(post.id, 'publish', 'all')} className="text-xs px-2 py-1 rounded bg-green-50 text-green-600 hover:bg-green-100">Publier Tous</button>
+                        </>
+                      )}
+                      {(post.status === 'draft' || post.status === 'approved') && (
+                        <>
+                          <button onClick={() => handleModifyPost(post.id)} disabled={modifyingPost === post.id} className="text-xs px-2 py-1 rounded bg-purple-50 text-purple-600 hover:bg-purple-100 disabled:opacity-50">{modifyingPost === post.id ? 'Modification...' : 'Modifier'}</button>
+                          <button onClick={() => handleDeletePost(post.id)} className="text-xs px-2 py-1 rounded bg-red-50 text-red-500 hover:bg-red-100">Supprimer</button>
+                          <button onClick={() => handleContentAction(post.id, 'skip')} className="text-xs px-2 py-1 rounded bg-neutral-50 text-neutral-400 hover:bg-neutral-100">Ignorer</button>
+                        </>
+                      )}
+                      {post.status === 'publish_failed' && (
+                        <button onClick={() => handleResetToDraft(post.id)} className="text-xs px-2 py-1 rounded bg-amber-50 text-amber-600 hover:bg-amber-100">Repasser en brouillon</button>
+                      )}
+                      {post.status === 'published' && !post.instagram_permalink && (
+                        <>
+                          <button onClick={() => handleContentAction(post.id, 'publish', 'instagram')} className="text-xs px-2 py-1 rounded bg-pink-50 text-pink-600 hover:bg-pink-100">Republier Insta</button>
+                          <button onClick={() => handleContentAction(post.id, 'publish', 'tiktok')} className="text-xs px-2 py-1 rounded bg-black/5 text-neutral-800 hover:bg-black/10">Republier TikTok</button>
+                        </>
+                      )}
+                      {post.status === 'published' && (
+                        <button onClick={() => handleResetToDraft(post.id)} className="text-xs px-2 py-1 rounded bg-amber-50 text-amber-600 hover:bg-amber-100">Repasser en brouillon</button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -3265,56 +3336,154 @@ function AdminAgentsContent() {
             )}
           </div>
         )}
-        {/* Post Preview Modal */}
+        {/* Post Preview Modal — Platform mockup */}
         {previewPost && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setPreviewPost(null)}>
-            <div className="relative w-full max-w-[380px]" onClick={e => e.stopPropagation()}>
-              <button onClick={() => setPreviewPost(null)} className="absolute -top-10 right-0 text-white text-xl font-bold hover:opacity-70">X</button>
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setPreviewPost(null)}>
+            <div className="relative flex gap-6 max-w-[820px] w-full items-start" onClick={e => e.stopPropagation()}>
+              <button onClick={() => setPreviewPost(null)} className="absolute -top-10 right-0 text-white text-2xl font-bold hover:opacity-70 z-10">✕</button>
+
               {/* Phone frame */}
-              <div className="bg-white rounded-[32px] shadow-2xl overflow-hidden border-[6px] border-neutral-800" style={{ aspectRatio: previewPost.platform === 'tiktok' ? '9/16' : (previewPost.format === 'story' || previewPost.format === 'reel' ? '9/16' : '4/5') }}>
-                {/* Header */}
-                <div className="flex items-center gap-2 p-3 border-b border-neutral-100">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-[10px] font-bold">K</div>
-                  <div>
-                    <div className="text-[12px] font-semibold text-neutral-900">keiroai</div>
-                    <div className="text-[10px] text-neutral-400">{previewPost.platform === 'tiktok' ? 'TikTok' : previewPost.platform === 'linkedin' ? 'LinkedIn' : 'Instagram'}</div>
-                  </div>
-                  <div className="ml-auto">
-                    <span className={`text-[9px] px-2 py-0.5 rounded-full font-medium ${
-                      previewPost.status === 'published' ? 'bg-green-100 text-green-700' : previewPost.status === 'approved' ? 'bg-[#0c1a3a]/10 text-[#0c1a3a]' : 'bg-amber-100 text-amber-700'
-                    }`}>{previewPost.status}</span>
-                  </div>
-                </div>
-                {/* Media */}
-                <div className="relative bg-neutral-100 flex items-center justify-center" style={{ minHeight: '200px', maxHeight: '400px' }}>
-                  {previewPost.video_url ? (
-                    <video src={previewPost.video_url} controls autoPlay muted loop className="w-full h-full object-cover" style={{ maxHeight: '400px' }} />
-                  ) : previewPost.visual_url ? (
-                    <img src={previewPost.visual_url} alt="" className="w-full h-full object-cover" style={{ maxHeight: '400px' }} />
+              <div className="w-[340px] shrink-0">
+                <div className={`rounded-[32px] shadow-2xl overflow-hidden border-[6px] border-neutral-800 ${previewPost.platform === 'tiktok' ? 'bg-black' : 'bg-white'}`} style={{ maxHeight: '680px' }}>
+                  {/* Platform header */}
+                  {previewPost.platform === 'tiktok' ? (
+                    <div className="flex items-center justify-between px-4 py-3">
+                      <div className="text-white/60 text-xs">Suivre</div>
+                      <div className="flex gap-4 text-white text-xs font-semibold">
+                        <span className="text-white/60">Suivis</span>
+                        <span className="border-b-2 border-white pb-1">Pour toi</span>
+                      </div>
+                      <div className="text-white/60 text-xs">🔍</div>
+                    </div>
                   ) : (
-                    <div className="p-6 text-center text-neutral-400 text-sm">
-                      <div className="text-3xl mb-2">{previewPost.format === 'reel' || previewPost.format === 'video' ? '🎬' : '🖼️'}</div>
-                      <div>{previewPost.visual_description || 'Pas de visuel'}</div>
+                    <div className="flex items-center gap-2 p-3 border-b border-neutral-100">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400 p-[2px]">
+                        <div className="w-full h-full rounded-full bg-white flex items-center justify-center text-[10px] font-bold text-neutral-900">K</div>
+                      </div>
+                      <div>
+                        <div className="text-[12px] font-semibold text-neutral-900">keiroai</div>
+                        <div className="text-[10px] text-neutral-400">Sponsorisé</div>
+                      </div>
+                      <div className="ml-auto text-neutral-400">•••</div>
                     </div>
                   )}
-                  {(previewPost.format === 'reel' || previewPost.format === 'video') && (
-                    <div className="absolute top-2 right-2 bg-black/50 text-white text-[10px] px-1.5 py-0.5 rounded">{previewPost.format === 'reel' ? 'Reel' : 'Video'}</div>
+
+                  {/* Media */}
+                  <div className="relative bg-neutral-900 flex items-center justify-center" style={{ minHeight: previewPost.platform === 'tiktok' ? '420px' : '340px', maxHeight: '460px' }}>
+                    {previewPost.video_url ? (
+                      <video src={previewPost.video_url} controls autoPlay muted loop className="w-full h-full object-cover" style={{ maxHeight: '460px' }} />
+                    ) : previewPost.visual_url ? (
+                      <img src={previewPost.visual_url} alt="" className="w-full h-full object-cover" style={{ maxHeight: '460px' }} />
+                    ) : (
+                      <div className="p-6 text-center text-neutral-500 text-sm">
+                        <div className="text-4xl mb-2">{previewPost.format === 'reel' || previewPost.format === 'video' ? '🎬' : '🖼️'}</div>
+                        <div>{previewPost.visual_description || 'Pas de visuel'}</div>
+                      </div>
+                    )}
+                    {previewPost.platform === 'tiktok' && (
+                      <div className="absolute right-3 bottom-20 flex flex-col items-center gap-5">
+                        <div className="flex flex-col items-center"><div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white text-lg">♡</div><span className="text-white text-[10px] mt-1">24.5K</span></div>
+                        <div className="flex flex-col items-center"><div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white text-lg">💬</div><span className="text-white text-[10px] mt-1">328</span></div>
+                        <div className="flex flex-col items-center"><div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white text-lg">↗</div><span className="text-white text-[10px] mt-1">1.2K</span></div>
+                      </div>
+                    )}
+                    {(previewPost.format === 'reel' || previewPost.format === 'video') && previewPost.platform !== 'tiktok' && (
+                      <div className="absolute top-2 right-2 bg-black/50 text-white text-[10px] px-1.5 py-0.5 rounded">Reel</div>
+                    )}
+                  </div>
+
+                  {/* Instagram engagement bar */}
+                  {previewPost.platform !== 'tiktok' && (
+                    <>
+                      <div className="flex items-center justify-between px-3 py-2">
+                        <div className="flex items-center gap-4">
+                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                        </div>
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                      </div>
+                      <div className="px-3 pb-3 overflow-y-auto" style={{ maxHeight: '120px' }}>
+                        <div className="text-[11px] text-neutral-900 mb-1"><span className="font-bold">keiroai</span> {previewPost.hook || ''}</div>
+                        <div className="text-[11px] text-neutral-700 whitespace-pre-line leading-relaxed">{previewPost.caption}</div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* TikTok caption overlay */}
+                  {previewPost.platform === 'tiktok' && (
+                    <div className="px-3 py-2 bg-black">
+                      <div className="text-white text-[11px] font-semibold mb-1">@keiroai</div>
+                      <div className="text-white/80 text-[11px] whitespace-pre-line leading-relaxed" style={{ maxHeight: '60px', overflow: 'hidden' }}>{previewPost.caption?.substring(0, 150)}{(previewPost.caption?.length || 0) > 150 ? '...' : ''}</div>
+                    </div>
                   )}
                 </div>
-                {/* Engagement icons */}
-                <div className="flex items-center gap-4 px-3 py-2">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+              </div>
+
+              {/* Side panel — details + actions */}
+              <div className="flex-1 min-w-[280px] bg-white rounded-2xl shadow-xl p-5 max-h-[680px] overflow-y-auto">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                    previewPost.platform === 'instagram' ? 'bg-pink-100 text-pink-700'
+                    : previewPost.platform === 'tiktok' ? 'bg-neutral-800 text-white'
+                    : 'bg-[#0c1a3a]/10 text-[#0c1a3a]'
+                  }`}>{previewPost.platform}</span>
+                  <span className="text-xs px-2.5 py-1 rounded-full bg-neutral-100 text-neutral-600">{previewPost.format}</span>
+                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                    previewPost.status === 'published' ? 'bg-green-100 text-green-700'
+                    : previewPost.status === 'publish_failed' ? 'bg-red-100 text-red-700'
+                    : previewPost.status === 'approved' ? 'bg-blue-100 text-blue-700'
+                    : 'bg-amber-100 text-amber-700'
+                  }`}>{previewPost.status === 'publish_failed' ? 'Echec' : previewPost.status}</span>
                 </div>
-                {/* Caption */}
-                <div className="px-3 pb-3 overflow-y-auto" style={{ maxHeight: '160px' }}>
-                  {previewPost.hook && <div className="text-[12px] font-bold text-neutral-900 mb-1">{previewPost.hook}</div>}
-                  <div className="text-[11px] text-neutral-700 whitespace-pre-line leading-relaxed">{previewPost.caption}</div>
-                </div>
-                {/* Date */}
-                <div className="px-3 py-2 border-t border-neutral-100">
-                  <div className="text-[10px] text-neutral-400">{previewPost.scheduled_date} {previewPost.scheduled_time} - {previewPost.pillar}</div>
+
+                <div className="text-xs text-neutral-400 mb-3">{previewPost.scheduled_date} {previewPost.scheduled_time} — {previewPost.pillar}</div>
+
+                {previewPost.hook && <div className="text-sm font-bold text-neutral-900 mb-2">{previewPost.hook}</div>}
+                <div className="text-xs text-neutral-700 whitespace-pre-line mb-4 max-h-[200px] overflow-y-auto leading-relaxed">{previewPost.caption}</div>
+
+                {/* Error banner */}
+                {previewPost.publish_error && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 text-xs">
+                    <div className="font-semibold text-red-700 mb-1">Erreur de publication</div>
+                    <div className="text-red-600">{previewPost.publish_error}</div>
+                    {previewPost.publish_diagnostic?.reason && (
+                      <div className="text-red-500 mt-1">Diagnostic : {previewPost.publish_diagnostic.reason} — {previewPost.publish_diagnostic.detail}</div>
+                    )}
+                  </div>
+                )}
+
+                {/* Links */}
+                {previewPost.instagram_permalink && (
+                  <a href={previewPost.instagram_permalink} target="_blank" rel="noopener noreferrer" className="text-xs text-pink-600 hover:underline block mb-2">Voir sur Instagram →</a>
+                )}
+
+                {/* Actions */}
+                <div className="space-y-2 mt-4">
+                  <div className="text-[10px] text-neutral-400 uppercase tracking-wider font-semibold mb-1">Actions</div>
+                  {(previewPost.status === 'draft' || previewPost.status === 'approved' || previewPost.status === 'publish_failed') && (
+                    <div className="flex flex-wrap gap-2">
+                      <button onClick={() => handleContentAction(previewPost.id, 'publish', 'instagram')} className="text-xs px-3 py-1.5 rounded-lg bg-pink-50 text-pink-600 hover:bg-pink-100 font-medium">Publier Insta</button>
+                      <button onClick={() => handleContentAction(previewPost.id, 'publish', 'tiktok')} className="text-xs px-3 py-1.5 rounded-lg bg-neutral-100 text-neutral-800 hover:bg-neutral-200 font-medium">Publier TikTok</button>
+                      <button onClick={() => handleContentAction(previewPost.id, 'publish', 'all')} className="text-xs px-3 py-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 font-medium">Publier Tous</button>
+                    </div>
+                  )}
+                  {(previewPost.status === 'draft' || previewPost.status === 'approved') && (
+                    <div className="flex flex-wrap gap-2">
+                      {previewPost.status === 'draft' && <button onClick={() => handleContentAction(previewPost.id, 'approve')} className="text-xs px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100">Approuver</button>}
+                      <button onClick={() => handleModifyPost(previewPost.id)} disabled={modifyingPost === previewPost.id} className="text-xs px-3 py-1.5 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-100 disabled:opacity-50">{modifyingPost === previewPost.id ? 'Modification...' : 'Modifier'}</button>
+                      <button onClick={() => handleDeletePost(previewPost.id)} className="text-xs px-3 py-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100">Supprimer</button>
+                    </div>
+                  )}
+                  {(previewPost.status === 'published' || previewPost.status === 'publish_failed') && (
+                    <button onClick={() => handleResetToDraft(previewPost.id)} className="text-xs px-3 py-1.5 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100">Repasser en brouillon</button>
+                  )}
+                  {previewPost.status === 'published' && !previewPost.instagram_permalink && (
+                    <div className="flex flex-wrap gap-2">
+                      <button onClick={() => handleContentAction(previewPost.id, 'publish', 'instagram')} className="text-xs px-3 py-1.5 rounded-lg bg-pink-50 text-pink-600 hover:bg-pink-100">Republier Insta</button>
+                      <button onClick={() => handleContentAction(previewPost.id, 'publish', 'tiktok')} className="text-xs px-3 py-1.5 rounded-lg bg-neutral-100 text-neutral-800 hover:bg-neutral-200">Republier TikTok</button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

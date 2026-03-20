@@ -46,6 +46,8 @@ interface AgentContext {
     postsThisWeek: number;
     publishedThisWeek: number;
     draftsReady: number;
+    failedThisWeek: number;
+    failureReasons: string[];
     platformBreakdown: Record<string, number>;
     lastPublishedDate: string;
     instagramPublished: number;
@@ -170,7 +172,7 @@ export async function loadSharedContext(
   // ── CONTENT PERFORMANCE ──
   const { data: contentPosts } = await supabase
     .from('content_calendar')
-    .select('platform, status, scheduled_date, published_at')
+    .select('platform, status, scheduled_date, published_at, publish_error, publish_diagnostic')
     .gte('scheduled_date', sevenDaysAgo.split('T')[0])
     .order('scheduled_date', { ascending: false });
 
@@ -178,12 +180,20 @@ export async function loadSharedContext(
   let publishedThisWeek = 0;
   let instagramPublished = 0;
   let lastPublishedDate = '';
+  let failedThisWeek = 0;
+  const failureReasons: string[] = [];
   for (const p of contentPosts || []) {
     platformBreakdown[p.platform] = (platformBreakdown[p.platform] || 0) + 1;
     if (p.status === 'published') {
       publishedThisWeek++;
       if (p.platform === 'instagram') instagramPublished++;
       if (!lastPublishedDate && p.published_at) lastPublishedDate = p.published_at;
+    }
+    if (p.status === 'publish_failed') {
+      failedThisWeek++;
+      const diag = p.publish_diagnostic as any;
+      if (diag?.reason) failureReasons.push(`${p.platform}: ${diag.reason} — ${diag.detail || p.publish_error || ''}`);
+      else if (p.publish_error) failureReasons.push(`${p.platform}: ${p.publish_error}`);
     }
   }
   const { count: draftsReady } = await supabase.from('content_calendar').select('id', { count: 'exact', head: true }).eq('status', 'draft');
@@ -327,6 +337,8 @@ export async function loadSharedContext(
       postsThisWeek: contentPosts?.length || 0,
       publishedThisWeek,
       draftsReady: draftsReady || 0,
+      failedThisWeek,
+      failureReasons,
       platformBreakdown,
       lastPublishedDate,
       instagramPublished,
@@ -422,9 +434,9 @@ PERFORMANCE EMAIL (7j):
 - Meilleure catégorie: ${e.bestCategory}
 
 PERFORMANCE CONTENU (7j):
-- ${c.postsThisWeek} posts planifiés | ${c.publishedThisWeek} publiés | ${c.draftsReady} brouillons prêts
+- ${c.postsThisWeek} posts planifiés | ${c.publishedThisWeek} publiés | ${c.draftsReady} brouillons prêts${c.failedThisWeek > 0 ? ` | ⚠️ ${c.failedThisWeek} ÉCHECS DE PUBLICATION` : ''}
 - Instagram: ${c.instagramPublished} publiés | Dernière publication: ${c.lastPublishedDate || 'jamais'}
-- Plateformes: ${Object.entries(c.platformBreakdown).map(([k, v]) => `${k}: ${v}`).join(' | ') || 'aucune'}
+- Plateformes: ${Object.entries(c.platformBreakdown).map(([k, v]) => `${k}: ${v}`).join(' | ') || 'aucune'}${c.failureReasons.length > 0 ? `\n- 🚨 ERREURS PUBLICATION:\n${c.failureReasons.map(r => `  • ${r}`).join('\n')}` : ''}
 
 PERFORMANCE DM (7j):
 - Préparés: ${d.igDMsPrepared} Instagram | ${d.ttDMsPrepared} TikTok (envoi manuel par le fondateur)

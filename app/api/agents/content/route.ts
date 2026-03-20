@@ -1515,6 +1515,10 @@ export async function POST(request: NextRequest) {
               pubError = igResult.error;
               console.warn(`[Content] Instagram publish failed for post ${post.id}: ${igResult.error}`);
               const diag = diagnosePublishFailure('Instagram', igResult.error || '');
+              updateData.status = 'publish_failed';
+              updateData.publish_error = igResult.error || 'Unknown Instagram error';
+              updateData.publish_diagnostic = { platform: 'Instagram', reason: diag.reason, severity: diag.severity, detail: diag.detail, timestamp: new Date().toISOString() };
+              delete updateData.published_at;
               await sendPublishAlert(diag, `Post ${post.id} — ${post.hook || post.caption?.substring(0, 60) || 'N/A'}`, supabase);
             }
           } else if (post.platform === 'tiktok' && (post.visual_url || videoUrl)) {
@@ -1526,12 +1530,16 @@ export async function POST(request: NextRequest) {
               pubError = ttResult.error;
               console.warn(`[Content] TikTok publish failed for post ${post.id}: ${ttResult.error}`);
               const diag = diagnosePublishFailure('TikTok', ttResult.error || '');
+              updateData.status = 'publish_failed';
+              updateData.publish_error = ttResult.error || 'Unknown TikTok error';
+              updateData.publish_diagnostic = { platform: 'TikTok', reason: diag.reason, severity: diag.severity, detail: diag.detail, timestamp: new Date().toISOString() };
+              delete updateData.published_at;
               await sendPublishAlert(diag, `Post ${post.id} — ${post.hook || post.caption?.substring(0, 60) || 'N/A'}`, supabase);
             }
           }
 
           await supabase.from('content_calendar').update(updateData).eq('id', post.id);
-          publishedCount++;
+          if (!pubError) publishedCount++;
           publishedPosts.push({
             platform: post.platform,
             format: post.format,
@@ -1566,6 +1574,10 @@ export async function POST(request: NextRequest) {
                   pubError2 = igResult.error;
                   console.warn(`[Content] Instagram publish failed for post ${post.id}: ${igResult.error}`);
                   const diag = diagnosePublishFailure('Instagram', igResult.error || '');
+                  updateData.status = 'publish_failed';
+                  updateData.publish_error = igResult.error || 'Unknown Instagram error';
+                  updateData.publish_diagnostic = { platform: 'Instagram', reason: diag.reason, severity: diag.severity, detail: diag.detail, timestamp: new Date().toISOString() };
+                  delete updateData.published_at;
                   await sendPublishAlert(diag, `Post ${post.id} — ${post.hook || post.caption?.substring(0, 60) || 'N/A'}`, supabase);
                 }
               } else if (post.platform === 'tiktok') {
@@ -1576,12 +1588,16 @@ export async function POST(request: NextRequest) {
                   pubError2 = ttResult.error;
                   console.warn(`[Content] TikTok publish failed for post ${post.id}: ${ttResult.error}`);
                   const diag = diagnosePublishFailure('TikTok', ttResult.error || '');
+                  updateData.status = 'publish_failed';
+                  updateData.publish_error = ttResult.error || 'Unknown TikTok error';
+                  updateData.publish_diagnostic = { platform: 'TikTok', reason: diag.reason, severity: diag.severity, detail: diag.detail, timestamp: new Date().toISOString() };
+                  delete updateData.published_at;
                   await sendPublishAlert(diag, `Post ${post.id} — ${post.hook || post.caption?.substring(0, 60) || 'N/A'}`, supabase);
                 }
               }
 
               await supabase.from('content_calendar').update(updateData).eq('id', post.id);
-              publishedCount++;
+              if (!pubError2) publishedCount++;
               publishedPosts.push({
                 platform: post.platform,
                 format: post.format,
@@ -1714,10 +1730,19 @@ ${cleanCaption}`,
       }
 
       case 'stats': {
-        const { count: totalPosts } = await supabase.from('content_calendar').select('id', { count: 'exact', head: true });
-        const { count: published } = await supabase.from('content_calendar').select('id', { count: 'exact', head: true }).eq('status', 'published');
-        const { count: drafts } = await supabase.from('content_calendar').select('id', { count: 'exact', head: true }).eq('status', 'draft');
-        const { count: approved } = await supabase.from('content_calendar').select('id', { count: 'exact', head: true }).eq('status', 'approved');
+        const [
+          { count: totalPosts },
+          { count: published },
+          { count: drafts },
+          { count: approved },
+          { count: failed },
+        ] = await Promise.all([
+          supabase.from('content_calendar').select('id', { count: 'exact', head: true }),
+          supabase.from('content_calendar').select('id', { count: 'exact', head: true }).eq('status', 'published'),
+          supabase.from('content_calendar').select('id', { count: 'exact', head: true }).eq('status', 'draft'),
+          supabase.from('content_calendar').select('id', { count: 'exact', head: true }).eq('status', 'approved'),
+          supabase.from('content_calendar').select('id', { count: 'exact', head: true }).eq('status', 'publish_failed'),
+        ]);
 
         const { data: byPlatform } = await supabase
           .from('content_calendar')
@@ -1729,7 +1754,7 @@ ${cleanCaption}`,
 
         return NextResponse.json({
           ok: true,
-          stats: { total: totalPosts || 0, published: published || 0, drafts: drafts || 0, approved: approved || 0, byPlatform: platforms },
+          stats: { total: totalPosts || 0, published: published || 0, drafts: drafts || 0, approved: approved || 0, failed: failed || 0, byPlatform: platforms },
         });
       }
 
@@ -1795,6 +1820,62 @@ Instructions de modification : ${body.instructions}`,
         if (!url) return NextResponse.json({ ok: false, error: 'Visual generation failed' }, { status: 500 });
         await supabase.from('content_calendar').update({ visual_url: url, updated_at: new Date().toISOString() }).eq('id', body.postId);
         return NextResponse.json({ ok: true, visual_url: url });
+      }
+
+      case 'delete_post': {
+        if (!body.postId) return NextResponse.json({ ok: false, error: 'postId required' }, { status: 400 });
+        const { error: delErr } = await supabase.from('content_calendar').delete().eq('id', body.postId);
+        if (delErr) return NextResponse.json({ ok: false, error: delErr.message }, { status: 500 });
+        return NextResponse.json({ ok: true });
+      }
+
+      case 'reset_to_draft': {
+        if (!body.postId) return NextResponse.json({ ok: false, error: 'postId required' }, { status: 400 });
+        await supabase.from('content_calendar').update({
+          status: 'draft',
+          published_at: null,
+          publish_error: null,
+          publish_diagnostic: null,
+          updated_at: new Date().toISOString(),
+        }).eq('id', body.postId);
+        return NextResponse.json({ ok: true });
+      }
+
+      case 'modify_post': {
+        if (!body.postId) return NextResponse.json({ ok: false, error: 'postId required' }, { status: 400 });
+        const { data: postToModify } = await supabase.from('content_calendar').select('*').eq('id', body.postId).single();
+        if (!postToModify) return NextResponse.json({ ok: false, error: 'Post not found' }, { status: 404 });
+
+        const modifyInstruction = body.instruction || 'Améliore ce post pour le rendre plus engageant et percutant.';
+        const currentCaption = postToModify.caption || '';
+        const currentHook = postToModify.hook || '';
+
+        const modifiedText = await callClaude({
+          system: `Tu es un expert en contenu social media pour des commerces locaux. On te donne un post existant et une instruction de modification. Retourne un JSON avec { "hook": "...", "caption": "...", "visual_description": "..." }. Le hook doit être accrocheur (max 10 mots). La caption doit être aérée, engageante, avec des emojis stratégiques. La visual_description décrit le visuel idéal.`,
+          message: `POST ACTUEL:
+Hook: ${currentHook}
+Caption: ${currentCaption}
+Plateforme: ${postToModify.platform}
+Format: ${postToModify.format}
+
+INSTRUCTION: ${modifyInstruction}
+
+Retourne UNIQUEMENT le JSON.`,
+          maxTokens: 1500,
+        });
+
+        try {
+          const cleaned = modifiedText.replace(/```json?\s*/g, '').replace(/```/g, '').trim();
+          const parsed = JSON.parse(cleaned);
+          const updateFields: Record<string, any> = { updated_at: new Date().toISOString(), status: 'draft' };
+          if (parsed.hook) updateFields.hook = parsed.hook;
+          if (parsed.caption) updateFields.caption = parsed.caption;
+          if (parsed.visual_description) updateFields.visual_description = parsed.visual_description;
+          await supabase.from('content_calendar').update(updateFields).eq('id', body.postId);
+          return NextResponse.json({ ok: true, modified: updateFields });
+        } catch {
+          return NextResponse.json({ ok: false, error: 'Failed to parse modified content' }, { status: 500 });
+        }
       }
 
       case 'calendar': {
