@@ -13,7 +13,7 @@
  */
 
 import { SupabaseClient } from '@supabase/supabase-js';
-import { getActiveLearnings, getAllAgentLearnings, formatLearningsForPrompt, type AgentLearning } from './learning';
+import { getActiveLearnings, getAllAgentLearnings, getAgentFeedbacks, formatLearningsForPrompt, type AgentLearning, type AgentFeedback } from './learning';
 
 interface AgentContext {
   crmStats: {
@@ -74,6 +74,7 @@ interface AgentContext {
   allAgentLearnings: string[];
   structuredLearnings: AgentLearning[];
   structuredOtherLearnings: AgentLearning[];
+  agentFeedbacks: AgentFeedback[];
   topProspects: Array<{ company: string; score: number; temperature: string; status: string }>;
 }
 
@@ -300,10 +301,11 @@ export async function loadSharedContext(
     .map((m: any) => `[${m.agent}] ${m.data?.learning}`)
     .filter((l: string) => l && !l.endsWith('undefined'));
 
-  // Structured learnings (new system with confidence + expiration)
-  const [structuredLearnings, structuredOtherLearnings] = await Promise.all([
+  // Structured learnings (hybrid 3-tier: signal/pattern/insight) + feedbacks
+  const [structuredLearnings, structuredOtherLearnings, agentFeedbacks] = await Promise.all([
     getActiveLearnings(supabase, agentName),
     getAllAgentLearnings(supabase, agentName),
+    getAgentFeedbacks(supabase, agentName),
   ]);
 
   return {
@@ -360,6 +362,7 @@ export async function loadSharedContext(
     allAgentLearnings,
     structuredLearnings,
     structuredOtherLearnings,
+    agentFeedbacks,
     topProspects: (topProspectsData || []).map((p: any) => ({
       company: p.company || 'Inconnu',
       score: p.score || 0,
@@ -467,7 +470,7 @@ FUNNEL DE CONVERSION:
   }
 
   // Structured learnings (new system) take priority
-  const structuredText = formatLearningsForPrompt(ctx.structuredLearnings, ctx.structuredOtherLearnings);
+  const structuredText = formatLearningsForPrompt(ctx.structuredLearnings, ctx.structuredOtherLearnings, ctx.agentFeedbacks);
   if (structuredText) {
     text += structuredText;
   }

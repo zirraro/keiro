@@ -6,7 +6,7 @@ import { verifyProspectData, verifyCRMCoherence } from '@/lib/agents/business-ti
 import { callGemini } from '@/lib/agents/gemini';
 import { loadSharedContext, formatContextForPrompt } from '@/lib/agents/shared-context';
 import { canSendEmail } from '@/lib/agents/email-dedup';
-import { saveLearning, learningExpiresIn } from '@/lib/agents/learning';
+import { saveLearning } from '@/lib/agents/learning';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -423,7 +423,7 @@ async function autoLearn(results: SendResult[], supabase: any) {
         learning: `Les ${best[0]} répondent le mieux (OR ${bestOR}%, ${best[1].replies} réponses). Prioriser cette catégorie. Les ${worst[0]} performent moins bien (OR ${worstOR}%).`,
         evidence: `${totalSent} emails analysés sur 7j. ${best[0]}: ${best[1].sent} envoyés, ${best[1].opens} ouverts, ${best[1].clicks} clics, ${best[1].replies} rép. ${worst[0]}: ${worst[1].sent} envoyés, ${worst[1].opens} ouverts.`,
         confidence: Math.min(85, 40 + totalSent * 2),
-        expires_at: learningExpiresIn(14),
+        revenue_linked: best[1].replies > 0,
       });
     }
 
@@ -446,7 +446,6 @@ async function autoLearn(results: SendResult[], supabase: any) {
         learning: `Step ${bestS[0]} a le meilleur taux d'ouverture (${bestSOR}%). Adapter le ton des autres steps en conséquence.`,
         evidence: `Step ${bestS[0]}: ${bestS[1].sent} envoyés, ${bestS[1].opens} ouverts, ${bestS[1].clicks} clics sur 7j.`,
         confidence: Math.min(80, 35 + totalSent),
-        expires_at: learningExpiresIn(14),
       });
     }
 
@@ -460,7 +459,6 @@ async function autoLearn(results: SendResult[], supabase: any) {
           learning: `Taux d'ouverture excellent (${openRate}%). Les objets actuels fonctionnent bien, continuer dans cette direction.`,
           evidence: `${totalSent} emails, ${opens.length} ouvertures, OR=${openRate}% sur 7j.`,
           confidence: Math.min(90, 50 + Math.round(orNum)),
-          expires_at: learningExpiresIn(7),
         });
       } else if (orNum < 15) {
         await saveLearning(supabase, {
@@ -469,7 +467,6 @@ async function autoLearn(results: SendResult[], supabase: any) {
           learning: `Taux d'ouverture faible (${openRate}%). Il faut tester des objets plus courts, plus directs, avec une question ou le prénom du prospect.`,
           evidence: `${totalSent} emails, seulement ${opens.length} ouvertures sur 7j. Action: changer la stratégie d'objets.`,
           confidence: Math.min(85, 45 + totalSent),
-          expires_at: learningExpiresIn(7),
         });
       }
     }
@@ -493,7 +490,7 @@ async function autoLearn(results: SendResult[], supabase: any) {
           learning: `Les ${topReplyType} répondent le plus aux emails (${replies.length} réponses cette semaine). Concentrer les efforts de prospection sur ce type.`,
           evidence: `${replies.length} réponses reçues sur 7j, majoritairement des ${topReplyType}.`,
           confidence: Math.min(90, 50 + replies.length * 10),
-          expires_at: learningExpiresIn(14),
+          revenue_linked: true, // replies = direct conversion signal
         });
       }
     }

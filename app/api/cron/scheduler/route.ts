@@ -303,11 +303,9 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'evening_prep':
-      // 17:00 UTC — Evening DM (IG only) + TikTok comments (staggered)
+      // 17:00 UTC — Evening DM (IG only)
       fireBackground(async () => {
         await callEndpoint('DM Instagram (evening)', '/api/agents/dm-instagram?slot=evening', 'POST');
-        await delay(15000);
-        await callEndpoint('TikTok Comments', '/api/agents/tiktok-comments');
       });
       results.push({ task: 'Evening Prep', ok: true, data: { status: 'dispatched_background' } });
       break;

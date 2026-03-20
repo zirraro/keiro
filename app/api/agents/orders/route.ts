@@ -18,7 +18,6 @@ const AGENT_LABELS: Record<string, string> = {
   chatbot: 'Chatbot',
   commercial: 'Commercial',
   dm_instagram: 'DM Instagram',
-  tiktok_comments: 'TikTok Comments',
   gmaps: 'Google Maps',
   seo: 'SEO',
   onboarding: 'Onboarding',
@@ -123,9 +122,6 @@ function buildSummary(path: string, data: any): string {
   }
   if (path.includes('/dm-instagram')) {
     return `DM Instagram: ${data.prepared || data.count || 0} messages préparés`;
-  }
-  if (path.includes('/tiktok-comments')) {
-    return `TikTok: ${data.prepared || data.count || 0} commentaires préparés`;
   }
   if (path.includes('/gmaps')) {
     return `Google Maps: ${data.new_prospects || data.found || 0} nouveaux prospects trouvés`;
@@ -368,9 +364,6 @@ async function executeOrder(
 
     case 'dm_instagram':
       return callAgentEndpoint(baseUrl, '/api/agents/dm-instagram', 'POST', cronSecret);
-
-    case 'tiktok_comments':
-      return callAgentEndpoint(baseUrl, '/api/agents/tiktok-comments', 'POST', cronSecret);
 
     case 'gmaps':
       return callAgentEndpoint(baseUrl, '/api/agents/gmaps', 'POST', cronSecret);
