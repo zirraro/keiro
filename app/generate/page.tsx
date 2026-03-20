@@ -1147,6 +1147,12 @@ export default function GeneratePage() {
           businessDescription,
           tone,
           targetAudience,
+          marketingAngle,
+          storyToTell,
+          imageAngle,
+          contentAngle,
+          problemSolved,
+          uniqueAdvantage,
           mode: useNewsMode ? 'news' : 'free'
         })
       });
@@ -3924,7 +3930,16 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                             return (
                               <button
                                 key={key}
-                                onClick={() => setCommunicationProfile(key as any)}
+                                onClick={() => {
+                                  const preset = tonePresets[key as keyof typeof tonePresets];
+                                  setCommunicationProfile(key as any);
+                                  // Auto-fill direction fields from strategy
+                                  setImageAngle(preset.imageAngle);
+                                  setMarketingAngle(preset.marketingAngle);
+                                  setStoryToTell(preset.story);
+                                  setEmotionToConvey(preset.emotion);
+                                  setPublicationGoal(preset.goal);
+                                }}
                                 className={`p-4 rounded-xl border-2 text-center transition-all ${
                                   isSelected
                                     ? 'border-[#0c1a3a] bg-[#0c1a3a]/5 shadow-lg scale-[1.02]'
@@ -4045,7 +4060,13 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
 
                           <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
                             <div>
-                              <label className="block text-xs font-semibold mb-1 text-neutral-700">{t.generate.imageAngleLabel}</label>
+                              <label className="block text-xs font-semibold mb-1 text-neutral-700 flex items-center gap-1">
+                                {t.generate.imageAngleLabel}
+                                <span className="relative group">
+                                  <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-neutral-200 text-[8px] font-bold text-neutral-500 cursor-help">i</span>
+                                  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block w-40 p-1.5 bg-neutral-800 text-white text-[9px] rounded-lg shadow-lg z-50 leading-tight">{locale === 'fr' ? 'Définit le cadrage visuel de ton image. Pré-rempli selon ta stratégie.' : 'Defines the visual framing. Pre-filled from your strategy.'}</span>
+                                </span>
+                              </label>
                               <select
                                 onChange={(e) => { if (e.target.value !== 'custom') { setImageAngle(e.target.value); } else { setImageAngle(''); } }}
                                 className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-1.5 bg-white focus:outline-none focus:border-[#0c1a3a] focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all cursor-pointer mb-1"
@@ -4070,7 +4091,13 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                             </div>
 
                             <div>
-                              <label className="block text-xs font-semibold mb-1 text-neutral-700">{t.generate.marketingAngleLabel}</label>
+                              <label className="block text-xs font-semibold mb-1 text-neutral-700 flex items-center gap-1">
+                                {t.generate.marketingAngleLabel}
+                                <span className="relative group">
+                                  <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-neutral-200 text-[8px] font-bold text-neutral-500 cursor-help">i</span>
+                                  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block w-40 p-1.5 bg-neutral-800 text-white text-[9px] rounded-lg shadow-lg z-50 leading-tight">{locale === 'fr' ? 'L\'angle marketing guide le message de ton post. Pré-rempli selon ta stratégie.' : 'The marketing angle guides your post message. Pre-filled from your strategy.'}</span>
+                                </span>
+                              </label>
                               <select
                                 onChange={(e) => { if (e.target.value !== 'custom') { setMarketingAngle(e.target.value); } else { setMarketingAngle(''); } }}
                                 className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-1.5 bg-white focus:outline-none focus:border-[#0c1a3a] focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all cursor-pointer mb-1"
@@ -4095,7 +4122,13 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                             </div>
 
                             <div>
-                              <label className="block text-xs font-semibold mb-1 text-neutral-700">{t.generate.contentAngleLabel}</label>
+                              <label className="block text-xs font-semibold mb-1 text-neutral-700 flex items-center gap-1">
+                                {t.generate.contentAngleLabel}
+                                <span className="relative group">
+                                  <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-neutral-200 text-[8px] font-bold text-neutral-500 cursor-help">i</span>
+                                  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block w-40 p-1.5 bg-neutral-800 text-white text-[9px] rounded-lg shadow-lg z-50 leading-tight">{locale === 'fr' ? 'Le type de contenu : témoignage, éducatif, coulisses... Guide le ton de l\'ensemble.' : 'Content type: testimonial, educational, behind-the-scenes... Guides the overall tone.'}</span>
+                                </span>
+                              </label>
                               <select
                                 onChange={(e) => { if (e.target.value !== 'custom') { setContentAngle(e.target.value); } else { setContentAngle(''); } }}
                                 className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-1.5 bg-white focus:outline-none focus:border-[#0c1a3a] focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all cursor-pointer mb-1"
@@ -4156,19 +4189,44 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                         </div>
                       )}
 
-                      {/* Sub-phase: Expertise & value */}
+                      {/* Sub-phase: Expertise & value (OPTIONAL) */}
                       {creativeSubStep === 'expert' && (
                         <div className="space-y-3 wizard-phase-enter">
+                          <div className="flex items-center gap-2 mb-1 p-2 bg-purple-50 border border-purple-100 rounded-lg">
+                            <span className="text-purple-500 text-sm">💡</span>
+                            <p className="text-[10px] text-purple-700">{locale === 'fr' ? 'Optionnel — ces détails permettent à l\'IA d\'être encore plus précise et personnalisée dans tes créations.' : 'Optional — these details help the AI be even more precise and personalized in your creations.'}</p>
+                          </div>
                           <div>
-                            <label className="block text-xs font-semibold mb-1.5 text-neutral-700">{useNewsMode ? t.generate.problemSolved : t.generate.problemSolvedFree}</label>
+                            <label className="block text-xs font-semibold mb-1.5 text-neutral-700 flex items-center gap-1">
+                              {useNewsMode ? t.generate.problemSolved : t.generate.problemSolvedFree}
+                              <span className="text-neutral-400 font-normal text-[10px]">({locale === 'fr' ? 'optionnel' : 'optional'})</span>
+                              <span className="relative group">
+                                <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-neutral-200 text-[8px] font-bold text-neutral-500 cursor-help">i</span>
+                                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block w-44 p-1.5 bg-neutral-800 text-white text-[9px] rounded-lg shadow-lg z-50 leading-tight">{locale === 'fr' ? 'Aide l\'IA à positionner ton business comme LA solution. Le visuel sera plus percutant.' : 'Helps AI position your business as THE solution. The visual will be more impactful.'}</span>
+                              </span>
+                            </label>
                             <input type="text" value={problemSolved} onChange={(e) => setProblemSolved(e.target.value)} placeholder={useNewsMode ? t.generate.problemPlaceholder : t.generate.problemPlaceholderFree} className="w-full text-sm rounded-xl border-2 border-neutral-200 px-4 py-2 bg-white focus:outline-none focus:border-[#0c1a3a] focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all" />
                           </div>
                           <div>
-                            <label className="block text-xs font-semibold mb-1.5 text-neutral-700">{t.generate.uniqueAdvantage}</label>
+                            <label className="block text-xs font-semibold mb-1.5 text-neutral-700 flex items-center gap-1">
+                              {t.generate.uniqueAdvantage}
+                              <span className="text-neutral-400 font-normal text-[10px]">({locale === 'fr' ? 'optionnel' : 'optional'})</span>
+                              <span className="relative group">
+                                <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-neutral-200 text-[8px] font-bold text-neutral-500 cursor-help">i</span>
+                                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block w-44 p-1.5 bg-neutral-800 text-white text-[9px] rounded-lg shadow-lg z-50 leading-tight">{locale === 'fr' ? 'Ce qui te rend unique. L\'IA mettra en avant ta différence dans le visuel.' : 'What makes you unique. AI will highlight your difference in the visual.'}</span>
+                              </span>
+                            </label>
                             <input type="text" value={uniqueAdvantage} onChange={(e) => setUniqueAdvantage(e.target.value)} placeholder={t.generate.advantagePlaceholder} className="w-full text-sm rounded-xl border-2 border-neutral-200 px-4 py-2 bg-white focus:outline-none focus:border-[#0c1a3a] focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all" />
                           </div>
                           <div>
-                            <label className="block text-xs font-semibold mb-1.5 text-neutral-700">{t.generate.visualIdea}</label>
+                            <label className="block text-xs font-semibold mb-1.5 text-neutral-700 flex items-center gap-1">
+                              {t.generate.visualIdea}
+                              <span className="text-neutral-400 font-normal text-[10px]">({locale === 'fr' ? 'optionnel' : 'optional'})</span>
+                              <span className="relative group">
+                                <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-neutral-200 text-[8px] font-bold text-neutral-500 cursor-help">i</span>
+                                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block w-44 p-1.5 bg-neutral-800 text-white text-[9px] rounded-lg shadow-lg z-50 leading-tight">{locale === 'fr' ? 'Décris l\'image que tu as en tête. L\'IA s\'en inspirera pour créer un visuel sur-mesure.' : 'Describe the image you have in mind. AI will use it to create a custom visual.'}</span>
+                              </span>
+                            </label>
                             <textarea value={desiredVisualIdea} onChange={(e) => setDesiredVisualIdea(e.target.value)} placeholder={useNewsMode ? t.generate.visualIdeaPlaceholder : t.generate.visualIdeaPlaceholderFree} rows={3} className="w-full text-sm rounded-xl border-2 border-neutral-200 px-4 py-2 bg-white focus:outline-none focus:border-[#0c1a3a] focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all resize-none" />
                           </div>
                         </div>

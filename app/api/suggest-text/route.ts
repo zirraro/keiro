@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     // Non-connecté = gratuit (pas de déduction crédits)
 
     const body = await req.json();
-    const { newsTitle, newsDescription, businessType, businessDescription, tone, targetAudience } = body;
+    const { newsTitle, newsDescription, businessType, businessDescription, tone, targetAudience, marketingAngle, storyToTell, imageAngle, contentAngle, problemSolved, uniqueAdvantage } = body;
 
     if (!businessType) {
       return NextResponse.json(
@@ -61,8 +61,12 @@ ${newsDescription ? `Contexte: ${newsDescription}` : ''}
 Business: ${businessType}
 ${businessDescription ? `Ce business fait: ${businessDescription}` : ''}
 ${targetAudience ? `Pour: ${targetAudience}` : ''}
+${marketingAngle ? `Angle marketing: ${marketingAngle}` : ''}
+${storyToTell ? `Histoire à raconter: ${storyToTell}` : ''}
+${problemSolved ? `Problème résolu: ${problemSolved}` : ''}
+${uniqueAdvantage ? `Avantage unique: ${uniqueAdvantage}` : ''}
 
-Question clé: "Quel est le PONT CONCRET entre CE business et CETTE actualité ?"
+Question clé: "Quel est le PONT CONCRET entre CE business et CETTE actualité, en intégrant l'angle marketing et l'histoire ?"
 
 ÉTAPE 2 — GÉNÈRE 10 PUNCHLINES basées sur ce lien :
 
@@ -102,8 +106,12 @@ CONTEXTE:
 Business: ${businessType}
 ${businessDescription ? `Description: ${businessDescription}` : ''}
 ${targetAudience ? `Cible: ${targetAudience}` : ''}
+${marketingAngle ? `Angle marketing: ${marketingAngle}` : ''}
+${storyToTell ? `Histoire à raconter: ${storyToTell}` : ''}
+${problemSolved ? `Problème résolu: ${problemSolved}` : ''}
+${uniqueAdvantage ? `Avantage unique: ${uniqueAdvantage}` : ''}
 
-GÉNÈRE 10 PUNCHLINES pour mettre en valeur CE business :
+GÉNÈRE 10 PUNCHLINES pour mettre en valeur CE business${marketingAngle ? ` avec l'angle "${marketingAngle}"` : ''} :
 
 RÈGLES:
 - Chaque punchline DOIT être SPÉCIFIQUE à "${businessType}" (pas générique)
