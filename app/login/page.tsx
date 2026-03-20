@@ -728,7 +728,7 @@ function LoginPageInner() {
   }
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-neutral-50 via-white to-cyan-50/30 flex items-center justify-center px-4 py-12 overflow-hidden">
+    <div className="login-page relative min-h-screen bg-gradient-to-br from-neutral-50 via-white to-cyan-50/30 flex items-center justify-center px-4 py-12 overflow-hidden">
       <AnimatedGradientBG variant="hero" />
       <ScaleIn className="relative w-full max-w-md">
       <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl w-full p-8">

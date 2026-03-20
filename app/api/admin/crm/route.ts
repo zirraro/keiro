@@ -139,7 +139,7 @@ export async function GET(req: NextRequest) {
       if (from >= 10000) break;
     }
     const byStatus: Record<string, number> = {
-      identifie: 0, contacte: 0, repondu: 0, demo: 0, sprint: 0, client: 0, perdu: 0,
+      identifie: 0, contacte: 0, relance_1: 0, relance_2: 0, relance_3: 0, relance_finale: 0, repondu: 0, demo: 0, sprint: 0, client: 0, perdu: 0,
     };
     const byChannel: Record<string, number> = {};
     const byPriorite: Record<string, number> = { A: 0, B: 0, C: 0 };

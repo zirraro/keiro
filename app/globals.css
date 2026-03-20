@@ -375,6 +375,44 @@ html:not(.light) .fixed.inset-0 > .bg-white select {
   border-color: #d1d5db !important;
   color: #171717 !important;
 }
+/* Login page: dark mode — dark bg with light card */
+html:not(.light) .login-page {
+  background: linear-gradient(135deg, #0c1a3a 0%, #142244 50%, #0f1d38 100%) !important;
+}
+html:not(.light) .login-page .bg-white\/95 {
+  background-color: #1a2d52 !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+html:not(.light) .login-page .bg-neutral-100 {
+  background-color: #142040 !important;
+}
+html:not(.light) .login-page .text-neutral-600 { color: #94a3b8 !important; }
+html:not(.light) .login-page .text-neutral-700 { color: #cbd5e1 !important; }
+html:not(.light) .login-page .text-neutral-900 { color: #f1f5f9 !important; }
+html:not(.light) .login-page [class*="text-\[#0c1a3a\]"] { color: #e2e8f0 !important; }
+html:not(.light) .login-page [class*="text-\[#1e3a5f\]"] { color: #cbd5e1 !important; }
+html:not(.light) .login-page input {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  color: #f1f5f9 !important;
+}
+html:not(.light) .login-page input::placeholder { color: rgba(148, 163, 184, 0.5) !important; }
+html:not(.light) .login-page input:focus {
+  border-color: rgba(96, 165, 250, 0.5) !important;
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.15) !important;
+}
+html:not(.light) .login-page .bg-green-50 { background-color: rgba(34, 197, 94, 0.12) !important; }
+html:not(.light) .login-page .bg-red-50 { background-color: rgba(239, 68, 68, 0.12) !important; }
+html:not(.light) .login-page .shadow-2xl { box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5) !important; }
+/* Login: active tab bg-white + shadow */
+html:not(.light) .login-page button.shadow {
+  background-color: #1e3050 !important;
+  color: #e2e8f0 !important;
+}
+/* Login: gradient text clip */
+html:not(.light) .login-page [class*="bg-clip-text"] {
+  -webkit-text-fill-color: #e2e8f0 !important;
+}
 /* Admin: bg-[#0c1a3a]/5 patterns — dark mode */
 html:not(.light) [class*="bg-\[#0c1a3a\]\/5"] { background-color: rgba(255, 255, 255, 0.05) !important; }
 html:not(.light) [class*="bg-\[#0c1a3a\]\/10"] { background-color: rgba(255, 255, 255, 0.08) !important; }

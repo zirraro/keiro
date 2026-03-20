@@ -236,7 +236,7 @@ function AdminAgentsContent() {
   };
   const [leadIntel, setLeadIntel] = useState<LeadIntel[]>([]);
   const [leadIntelLoading, setLeadIntelLoading] = useState(false);
-  const [showLeadIntel, setShowLeadIntel] = useState(false);
+  const [showLeadIntel, setShowLeadIntel] = useState(true);
   const [leadIntelFilter, setLeadIntelFilter] = useState<'all' | 'converted' | 'lost' | 'hot' | 'recent'>('recent');
 
   // Content state
@@ -269,6 +269,7 @@ function AdminAgentsContent() {
       if (!profileData?.is_admin) { router.push('/'); return; }
       setLoading(false);
       loadDashboard();
+      loadLeadIntel();
       loadClientActivity();
       loadCeoHistory();
     };
