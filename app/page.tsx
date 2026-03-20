@@ -38,7 +38,7 @@ function HomeKeiroInner() {
             <HeroTextReveal
               text={t.home.heroTitle}
               className="mt-4 text-4xl/tight md:text-5xl/tight font-semibold text-white"
-              highlightWords={locale === 'fr' ? ['contenu pro', '3 clics'] : ['pro content', '3 clicks']}
+              highlightWords={locale === 'fr' ? ['contenu pro', '3 minutes'] : ['pro content', '3 minutes']}
               highlightClassName="gradient-text"
             />
             <FadeUp delay={0.3}>
@@ -118,7 +118,7 @@ function HomeKeiroInner() {
                   </div>
                 </div>
 
-                {/* Mini sparkline graph */}
+                {/* Mini sparkline graph — animated draw */}
                 <div className="bg-white/5 rounded-lg p-2 border border-white/10">
                   <svg viewBox="0 0 200 40" className="w-full h-8" preserveAspectRatio="none">
                     <defs>
@@ -126,9 +126,16 @@ function HomeKeiroInner() {
                         <stop offset="0%" stopColor="rgb(34,211,238)" stopOpacity="0.3" />
                         <stop offset="100%" stopColor="rgb(34,211,238)" stopOpacity="0" />
                       </linearGradient>
+                      <clipPath id="sparkClip">
+                        <rect x="0" y="0" width="200" height="40">
+                          <animate attributeName="width" from="0" to="200" dur="2.5s" begin="0.5s" fill="freeze" />
+                        </rect>
+                      </clipPath>
                     </defs>
-                    <path d="M0,35 L25,30 L50,32 L75,25 L100,20 L125,22 L150,12 L175,8 L200,5" fill="none" stroke="rgb(34,211,238)" strokeWidth="2" strokeLinecap="round" />
-                    <path d="M0,35 L25,30 L50,32 L75,25 L100,20 L125,22 L150,12 L175,8 L200,5 L200,40 L0,40 Z" fill="url(#sparkGrad)" />
+                    <g clipPath="url(#sparkClip)">
+                      <path d="M0,35 L25,30 L50,32 L75,25 L100,20 L125,22 L150,12 L175,8 L200,5" fill="none" stroke="rgb(34,211,238)" strokeWidth="2" strokeLinecap="round" />
+                      <path d="M0,35 L25,30 L50,32 L75,25 L100,20 L125,22 L150,12 L175,8 L200,5 L200,40 L0,40 Z" fill="url(#sparkGrad)" />
+                    </g>
                   </svg>
                   <div className="flex justify-between text-[9px] text-[#7fa0c4]/50 mt-0.5 px-1">
                     <span>{locale === 'fr' ? 'Lun' : 'Mon'}</span>

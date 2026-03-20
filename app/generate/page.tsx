@@ -340,8 +340,8 @@ export default function GeneratePage() {
   const [platform, setPlatform] = useState('Instagram');
   const [tone, setTone] = useState('');
   const [visualStyle, setVisualStyle] = useState('');
-  const [characterStyle, setCharacterStyle] = useState<'real' | 'fiction'>('real'); // Humains réels vs personnages fiction
-  const [renderStyle, setRenderStyle] = useState<'photo' | 'illustration'>('photo'); // Photo réaliste vs illustration
+  const [characterStyle, setCharacterStyle] = useState<'real' | 'fiction' | 'none'>('real');
+  const [renderStyle, setRenderStyle] = useState<'photo' | 'illustration' | 'watercolor' | 'cinematic' | 'flat' | 'painting'>('photo');
   const [specialist, setSpecialist] = useState<string>('');
 
   // NOUVELLES questions EXPERTES pour personnalisation ultra-précise
@@ -1551,13 +1551,22 @@ export default function GeneratePage() {
       }
 
       // 3. RENDER STYLE + TONE + CHARACTER STYLE
-      const renderInstruction = renderStyle === 'illustration'
-        ? 'RENDER STYLE: Stylized 3D illustration, digital art, cartoon or vector style. Colorful, clean, modern illustration look.'
-        : 'RENDER STYLE: PHOTOREALISTIC. Real photograph taken with a professional camera. Real textures, real lighting, real materials. NOT a drawing, NOT an illustration, NOT 3D render, NOT digital art.';
+      const renderInstructions: Record<string, string> = {
+        photo: 'RENDER STYLE: PHOTOREALISTIC. Real photograph taken with a professional camera. Real textures, real lighting, real materials. NOT a drawing, NOT an illustration, NOT 3D render, NOT digital art.',
+        illustration: 'RENDER STYLE: Stylized 3D illustration, digital art, cartoon or vector style. Colorful, clean, modern illustration look.',
+        watercolor: 'RENDER STYLE: Artistic watercolor painting. Soft edges, color bleeds, visible brush strokes, paper texture. Dreamy and artistic feel.',
+        cinematic: 'RENDER STYLE: Cinematic film still. Dramatic lighting, wide aspect ratio feel, color grading like a movie scene. Anamorphic lens flare, shallow depth of field.',
+        flat: 'RENDER STYLE: Flat design / vector illustration. Clean geometric shapes, solid colors, no gradients or textures. Modern, minimalist graphic design.',
+        painting: 'RENDER STYLE: Digital painting. Rich brushwork, painterly textures, artistic interpretation. Oil painting or acrylic style with visible strokes.',
+      };
+      const renderInstruction = renderInstructions[renderStyle] || renderInstructions.photo;
 
-      const characterInstruction = characterStyle === 'fiction'
-        ? 'CHARACTERS: Use animated/illustrated fictional characters (3D render or stylized illustration style). NOT real photographs of people.'
-        : 'CHARACTERS: If people appear, show REAL diverse humans (varied ethnicities, ages, body types). Photorealistic.';
+      const characterInstructions: Record<string, string> = {
+        real: 'CHARACTERS: If people appear, show REAL diverse humans (varied ethnicities, ages, body types). Photorealistic.',
+        fiction: 'CHARACTERS: Use animated/illustrated fictional characters (3D render or stylized illustration style). NOT real photographs of people.',
+        none: 'CHARACTERS: NO people or characters in the image. Focus on objects, products, landscapes, architecture, food, or abstract compositions. The scene should be empty of humans.',
+      };
+      const characterInstruction = characterInstructions[characterStyle] || characterInstructions.real;
 
       promptParts.push(
         `\n${renderInstruction}` +
@@ -1575,8 +1584,8 @@ export default function GeneratePage() {
 
       // 5. QUALITY + ABSOLUTE NO-TEXT (repeated at end for reinforcement)
       promptParts.push(
-        `\n\n4K, ${renderStyle === 'photo' ? 'shot on Canon EOS R5, 85mm f/1.4, natural film grain, ' : ''}depth of field, publication-ready for social media.\n` +
-        `AVOID: flat compositions, stock-photo clichés, generic backgrounds${renderStyle === 'photo' ? ', digital art look, illustration style, 3D render, cartoon, painting' : ''}.\n` +
+        `\n\n4K, ${renderStyle === 'photo' ? 'shot on Canon EOS R5, 85mm f/1.4, natural film grain, ' : renderStyle === 'cinematic' ? 'shot on ARRI Alexa, anamorphic lens, film grain, ' : ''}depth of field, publication-ready for social media.\n` +
+        `AVOID: flat compositions, stock-photo clichés, generic backgrounds${renderStyle === 'photo' ? ', digital art look, illustration style, 3D render, cartoon, painting' : renderStyle === 'cinematic' ? ', flat lighting, amateur look' : ''}.\n` +
         `⛔ ABSOLUTELY ZERO TEXT in the image — no letters, words, numbers, signs, labels, logos, brand names, watermarks, captions, titles, menus, price tags, screens with text. Every surface must be BLANK or show PATTERNS/COLORS only. PURE VISUAL.`
       );
 
@@ -2589,12 +2598,21 @@ export default function GeneratePage() {
 
     try {
       // Construire le prompt vidéo enrichi — même logique que le prompt image
-      const videoRenderStyle = renderStyle === 'illustration'
-        ? 'Stylized 3D illustration, digital art, colorful animated style'
-        : 'PHOTOREALISTIC footage, real camera, real textures, real lighting — NOT animation, NOT illustration';
-      const videoCharStyle = characterStyle === 'fiction'
-        ? 'animated fictional characters (3D or stylized)'
-        : 'real diverse humans (varied ethnicities, ages)';
+      const videoRenderStyles: Record<string, string> = {
+        photo: 'PHOTOREALISTIC footage, real camera, real textures, real lighting — NOT animation, NOT illustration',
+        illustration: 'Stylized 3D illustration, digital art, colorful animated style',
+        watercolor: 'Artistic watercolor animation style, soft edges, color bleeds, dreamy painterly look',
+        cinematic: 'Cinematic footage, dramatic lighting, film color grading, anamorphic lens look, shallow depth of field',
+        flat: 'Flat design motion graphics, clean geometric shapes, solid colors, modern minimal animation',
+        painting: 'Digital painting style animation, rich brushwork, painterly textures, artistic interpretation',
+      };
+      const videoRenderStyle = videoRenderStyles[renderStyle] || videoRenderStyles.photo;
+      const videoCharStyles: Record<string, string> = {
+        real: 'real diverse humans (varied ethnicities, ages)',
+        fiction: 'animated fictional characters (3D or stylized)',
+        none: 'NO people — focus on objects, products, landscapes, architecture, food',
+      };
+      const videoCharStyle = videoCharStyles[characterStyle] || videoCharStyles.real;
 
       let videoPrompt = '';
       if (useNewsMode && selectedNews) {
@@ -4271,9 +4289,9 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                       </div>
                       <div>
                         <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
-                          {t.generate.toneLabel} <span className="text-[#0c1a3a]">{t.generate.fromProfile}</span>
+                          {t.generate.toneLabel} <span className="text-[#0c1a3a] text-[10px]">{t.generate.fromProfile}</span>
                         </label>
-                        <input type="text" value={tone} readOnly className="w-full text-xs rounded-lg border-2 border-[#0c1a3a]/8 bg-[#0c1a3a]/5 px-3 py-2 text-neutral-700 cursor-default" />
+                        <input type="text" value={tone} onChange={(e) => setTone(e.target.value)} placeholder={locale === 'fr' ? 'Ex: Confiant, chaleureux, expert...' : 'E.g.: Confident, warm, expert...'} className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-[#0c1a3a] focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all" />
                       </div>
                       <div>
                         <label className="block text-xs font-semibold mb-1.5 text-neutral-700">
@@ -4308,23 +4326,32 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                       </div>
                       <div>
                         <label className="block text-xs font-semibold mb-1.5 text-neutral-700">{t.generate.renderLabel}</label>
-                        <div className="flex gap-2">
-                          <button onClick={() => setRenderStyle('photo')} className={`flex-1 py-2 text-xs font-semibold rounded-lg border-2 transition-all ${renderStyle === 'photo' ? 'border-[#0c1a3a] bg-[#0c1a3a]/5 text-[#0c1a3a]' : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'}`}>
-                            {t.generate.photoRealistic}
-                          </button>
-                          <button onClick={() => setRenderStyle('illustration')} className={`flex-1 py-2 text-xs font-semibold rounded-lg border-2 transition-all ${renderStyle === 'illustration' ? 'border-purple-500 bg-purple-50 text-purple-700' : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'}`}>
-                            {t.generate.illustration3D}
-                          </button>
+                        <div className="grid grid-cols-3 gap-1.5">
+                          {([
+                            { value: 'photo', label: t.generate.photoRealistic, icon: '📷' },
+                            { value: 'illustration', label: t.generate.illustration3D, icon: '🎨' },
+                            { value: 'watercolor', label: t.generate.renderWatercolor, icon: '🖌️' },
+                            { value: 'cinematic', label: t.generate.renderCinematic, icon: '🎬' },
+                            { value: 'flat', label: t.generate.renderFlat, icon: '📐' },
+                            { value: 'painting', label: t.generate.renderPainting, icon: '🖼️' },
+                          ] as const).map((r) => (
+                            <button key={r.value} onClick={() => setRenderStyle(r.value as any)} className={`py-2 px-1 text-[10px] font-semibold rounded-lg border-2 transition-all ${renderStyle === r.value ? 'border-[#0c1a3a] bg-[#0c1a3a]/5 text-[#0c1a3a]' : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'}`}>
+                              <span className="text-sm">{r.icon}</span> {r.label}
+                            </button>
+                          ))}
                         </div>
                       </div>
                       <div>
                         <label className="block text-xs font-semibold mb-1.5 text-neutral-700">{t.generate.charactersLabel}</label>
-                        <div className="flex gap-2">
-                          <button onClick={() => setCharacterStyle('real')} className={`flex-1 py-2 text-xs font-semibold rounded-lg border-2 transition-all ${characterStyle === 'real' ? 'border-[#0c1a3a] bg-[#0c1a3a]/5 text-[#0c1a3a]' : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'}`}>
-                            {t.generate.humans}
+                        <div className="grid grid-cols-3 gap-1.5">
+                          <button onClick={() => setCharacterStyle('real')} className={`py-2 text-xs font-semibold rounded-lg border-2 transition-all ${characterStyle === 'real' ? 'border-[#0c1a3a] bg-[#0c1a3a]/5 text-[#0c1a3a]' : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'}`}>
+                            👤 {t.generate.humans}
                           </button>
-                          <button onClick={() => setCharacterStyle('fiction')} className={`flex-1 py-2 text-xs font-semibold rounded-lg border-2 transition-all ${characterStyle === 'fiction' ? 'border-purple-500 bg-purple-50 text-purple-700' : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'}`}>
-                            {t.generate.fictionCharacters}
+                          <button onClick={() => setCharacterStyle('fiction')} className={`py-2 text-xs font-semibold rounded-lg border-2 transition-all ${characterStyle === 'fiction' ? 'border-purple-500 bg-purple-50 text-purple-700' : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'}`}>
+                            🧸 {t.generate.fictionCharacters}
+                          </button>
+                          <button onClick={() => setCharacterStyle('none' as any)} className={`py-2 text-xs font-semibold rounded-lg border-2 transition-all ${characterStyle === ('none' as any) ? 'border-green-500 bg-green-50 text-green-700' : 'border-neutral-200 text-neutral-600 hover:border-neutral-300'}`}>
+                            🏞️ {t.generate.noCharacters}
                           </button>
                         </div>
                       </div>
