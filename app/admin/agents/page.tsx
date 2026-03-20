@@ -234,10 +234,21 @@ function AdminAgentsContent() {
     last_email_clicked_at: string | null;
     matched_plan: string | null;
   };
+  type EmailActivity = {
+    id: string;
+    type: string;
+    description: string;
+    data: any;
+    created_at: string;
+  };
   const [leadIntel, setLeadIntel] = useState<LeadIntel[]>([]);
   const [leadIntelLoading, setLeadIntelLoading] = useState(false);
+  const [expandedLeadId, setExpandedLeadId] = useState<string | null>(null);
+  const [leadEmails, setLeadEmails] = useState<Record<string, EmailActivity[]>>({});
+  const [emailDetailModal, setEmailDetailModal] = useState<EmailActivity | null>(null);
   const [showLeadIntel, setShowLeadIntel] = useState(true);
-  const [leadIntelFilter, setLeadIntelFilter] = useState<'all' | 'converted' | 'lost' | 'hot' | 'recent'>('recent');
+  const [leadIntelFilter, setLeadIntelFilter] = useState<'all' | 'converted' | 'lost' | 'hot' | 'recent' | 'no_type' | 'contacted_24h'>('recent');
+  const [emailStats24h, setEmailStats24h] = useState<{ sent: number; opened: number; clicked: number; openedProspects: string[]; clickedProspects: string[] }>({ sent: 0, opened: 0, clicked: 0, openedProspects: [], clickedProspects: [] });
 
   // Content state
   type ContentPost = { id: string; platform: string; format: string; pillar: string; hook: string | null; caption: string; visual_description: string | null; visual_url: string | null; video_url?: string | null; scheduled_date: string; scheduled_time: string; status: string; published_at: string | null; instagram_permalink?: string | null; tiktok_publish_id?: string | null };
@@ -270,6 +281,7 @@ function AdminAgentsContent() {
       setLoading(false);
       loadDashboard();
       loadLeadIntel();
+      loadEmailStats24h();
       loadClientActivity();
       loadCeoHistory();
     };
@@ -520,7 +532,49 @@ function AdminAgentsContent() {
     setLoadingEmails(false);
   };
 
+  // ─── Email stats 24h ──────────────────────────────────
+  const loadEmailStats24h = async () => {
+    try {
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+      const [sentRes, openedRes, clickedRes] = await Promise.all([
+        supabase.from('crm_activities').select('prospect_id').eq('type', 'email').gte('created_at', twentyFourHoursAgo),
+        supabase.from('crm_activities').select('prospect_id').eq('type', 'email_opened').gte('created_at', twentyFourHoursAgo),
+        supabase.from('crm_activities').select('prospect_id').eq('type', 'email_clicked').gte('created_at', twentyFourHoursAgo),
+      ]);
+
+      const openedIds = [...new Set((openedRes.data || []).map((e: any) => e.prospect_id))] as string[];
+      const clickedIds = [...new Set((clickedRes.data || []).map((e: any) => e.prospect_id))] as string[];
+
+      setEmailStats24h({
+        sent: sentRes.data?.length || 0,
+        opened: openedRes.data?.length || 0,
+        clicked: clickedRes.data?.length || 0,
+        openedProspects: openedIds,
+        clickedProspects: clickedIds,
+      });
+    } catch (e) {
+      console.error('[Lead Intel] Email stats 24h error:', e);
+    }
+  };
+
   // ─── Lead intelligence loader ─────────────────────────
+  const loadLeadEmails = async (prospectId: string) => {
+    if (leadEmails[prospectId]) return; // already loaded
+    try {
+      const { data } = await supabase
+        .from('crm_activities')
+        .select('id, type, description, data, created_at')
+        .eq('prospect_id', prospectId)
+        .in('type', ['email', 'email_opened', 'email_clicked', 'email_replied', 'email_bounced'])
+        .order('created_at', { ascending: true })
+        .limit(50);
+      setLeadEmails(prev => ({ ...prev, [prospectId]: (data || []) as EmailActivity[] }));
+    } catch (e) {
+      console.error('[Lead Intel] Load emails error:', e);
+    }
+  };
+
   const loadLeadIntel = async () => {
     setLeadIntelLoading(true);
     try {
@@ -539,6 +593,11 @@ function AdminAgentsContent() {
       } else if (leadIntelFilter === 'recent') {
         const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
         query = query.gte('created_at', sevenDaysAgo);
+      } else if (leadIntelFilter === 'no_type') {
+        query = query.is('type', null);
+      } else if (leadIntelFilter === 'contacted_24h') {
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        query = query.gte('date_contact', twentyFourHoursAgo);
       }
 
       const { data } = await query;
@@ -2271,35 +2330,75 @@ function AdminAgentsContent() {
 
                 {showLeadIntel && (
                   <div className="p-5 space-y-4">
+                    {/* Mini dashboard emails 24h */}
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100">
+                      <h4 className="text-xs font-bold text-blue-800 mb-3">📊 Emails — Dernières 24h</h4>
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="text-center p-2 bg-white/80 rounded-lg shadow-sm">
+                          <p className="text-xl font-bold text-blue-700">{emailStats24h.sent}</p>
+                          <p className="text-[10px] text-blue-600 font-medium">Envoyés</p>
+                        </div>
+                        <div className="text-center p-2 bg-white/80 rounded-lg shadow-sm">
+                          <p className="text-xl font-bold text-green-600">{emailStats24h.opened}</p>
+                          <p className="text-[10px] text-green-600 font-medium">Ouvertures</p>
+                          {emailStats24h.sent > 0 && <p className="text-[9px] text-green-500">{Math.round(emailStats24h.opened / emailStats24h.sent * 100)}% taux</p>}
+                        </div>
+                        <div className="text-center p-2 bg-white/80 rounded-lg shadow-sm">
+                          <p className="text-xl font-bold text-purple-600">{emailStats24h.clicked}</p>
+                          <p className="text-[10px] text-purple-600 font-medium">Clics</p>
+                          {emailStats24h.opened > 0 && <p className="text-[9px] text-purple-500">{Math.round(emailStats24h.clicked / emailStats24h.opened * 100)}% CTR</p>}
+                        </div>
+                      </div>
+                      {emailStats24h.openedProspects.length > 0 && (
+                        <div className="mt-3 pt-2 border-t border-blue-100">
+                          <p className="text-[10px] font-semibold text-blue-700 mb-1">Prospects ayant ouvert (24h) :</p>
+                          <div className="flex flex-wrap gap-1">
+                            {emailStats24h.openedProspects.slice(0, 10).map(pid => {
+                              const prospect = leadIntel.find(l => l.id === pid);
+                              const isClicker = emailStats24h.clickedProspects.includes(pid);
+                              return (
+                                <span key={pid} className={`text-[10px] px-2 py-0.5 rounded-full ${isClicker ? 'bg-purple-100 text-purple-700 font-bold' : 'bg-blue-100 text-blue-700'}`}>
+                                  {prospect?.company || prospect?.email?.split('@')[0] || pid.slice(0, 8)}
+                                  {isClicker && ' + clic'}
+                                </span>
+                              );
+                            })}
+                            {emailStats24h.openedProspects.length > 10 && <span className="text-[10px] text-blue-500">+{emailStats24h.openedProspects.length - 10}</span>}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
                     {/* Filters */}
                     <div className="flex items-center gap-2 flex-wrap">
-                      {(['recent', 'converted', 'hot', 'lost', 'all'] as const).map(f => (
+                      {(['recent', 'contacted_24h', 'converted', 'hot', 'lost', 'no_type', 'all'] as const).map(f => (
                         <button
                           key={f}
                           onClick={() => { setLeadIntelFilter(f); setTimeout(loadLeadIntel, 50); }}
                           className={`px-3 py-1 text-xs font-medium rounded-full transition-all ${
                             leadIntelFilter === f
-                              ? 'bg-purple-600 text-white'
+                              ? f === 'no_type' ? 'bg-amber-600 text-white' : 'bg-purple-600 text-white'
                               : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                           }`}
                         >
-                          {f === 'recent' ? '7 derniers jours' : f === 'converted' ? 'Convertis' : f === 'hot' ? 'Chauds' : f === 'lost' ? 'Perdus' : 'Tous'}
+                          {f === 'recent' ? '7 jours' : f === 'contacted_24h' ? 'Contactés 24h' : f === 'converted' ? 'Convertis' : f === 'hot' ? 'Chauds' : f === 'lost' ? 'Perdus' : f === 'no_type' ? 'Sans catégorie' : 'Tous'}
                         </button>
                       ))}
-                      <button onClick={loadLeadIntel} className="ml-auto text-xs text-purple-600 hover:text-purple-800">
+                      <button onClick={() => { loadLeadIntel(); loadEmailStats24h(); }} className="ml-auto text-xs text-purple-600 hover:text-purple-800">
                         Actualiser
                       </button>
                     </div>
 
                     {/* Stats summary */}
                     {leadIntel.length > 0 && (
-                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
                         {(() => {
                           const converted = leadIntel.filter(l => l.status === 'client' || l.status === 'sprint').length;
                           const hot = leadIntel.filter(l => l.temperature === 'hot').length;
                           const warm = leadIntel.filter(l => l.temperature === 'warm').length;
                           const lost = leadIntel.filter(l => l.status === 'perdu').length;
                           const opened = leadIntel.filter(l => l.last_email_opened_at).length;
+                          const noType = leadIntel.filter(l => !l.type).length;
                           return (
                             <>
                               <div className="text-center p-2 bg-emerald-50 rounded-lg">
@@ -2322,6 +2421,12 @@ function AdminAgentsContent() {
                                 <p className="text-lg font-bold text-neutral-600">{lost}</p>
                                 <p className="text-[10px] text-neutral-500">Perdus</p>
                               </div>
+                              {noType > 0 && (
+                                <div className="text-center p-2 bg-amber-50 rounded-lg border border-amber-200 cursor-pointer hover:bg-amber-100" onClick={() => { setLeadIntelFilter('no_type'); setTimeout(loadLeadIntel, 50); }}>
+                                  <p className="text-lg font-bold text-amber-700">{noType}</p>
+                                  <p className="text-[10px] text-amber-600">Sans catégorie</p>
+                                </div>
+                              )}
                             </>
                           );
                         })()}
@@ -2336,13 +2441,18 @@ function AdminAgentsContent() {
                     ) : leadIntel.length === 0 ? (
                       <p className="text-center text-neutral-400 py-8 text-sm">Aucun prospect trouvé</p>
                     ) : (
-                      <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                      <div className="space-y-2 max-h-[600px] overflow-y-auto">
                         {leadIntel.map(lead => {
                           const isConverted = lead.status === 'client' || lead.status === 'sprint';
                           const dayAcquired = new Date(lead.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
                           const daysInPipeline = Math.floor((Date.now() - new Date(lead.created_at).getTime()) / 86400000);
                           const opened = !!lead.last_email_opened_at;
                           const clicked = !!lead.last_email_clicked_at;
+                          const isExpanded = expandedLeadId === lead.id;
+                          const emails = leadEmails[lead.id] || [];
+                          const sentEmails = emails.filter(e => e.type === 'email');
+                          const firstContact = sentEmails.find(e => e.data?.step === 1);
+                          const relances = sentEmails.filter(e => (e.data?.step || 1) > 1);
 
                           // Conversion signal analysis
                           let conversionSignal = '';
@@ -2360,57 +2470,193 @@ function AdminAgentsContent() {
                           }
 
                           return (
-                            <div key={lead.id} className={`rounded-lg border p-3 ${
+                            <div key={lead.id} className={`rounded-lg border transition-all ${
                               isConverted ? 'border-emerald-200 bg-emerald-50/50' :
                               lead.temperature === 'hot' ? 'border-red-200 bg-red-50/30' :
                               lead.temperature === 'warm' ? 'border-orange-200 bg-orange-50/30' :
                               lead.status === 'perdu' ? 'border-neutral-200 bg-neutral-50 opacity-70' :
                               'border-neutral-200'
                             }`}>
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="text-sm font-semibold text-neutral-900 truncate">{lead.company || lead.email || 'Anonyme'}</span>
-                                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                                      isConverted ? 'bg-emerald-100 text-emerald-700' :
-                                      lead.temperature === 'hot' ? 'bg-red-100 text-red-700' :
-                                      lead.temperature === 'warm' ? 'bg-orange-100 text-orange-700' :
-                                      lead.status === 'perdu' ? 'bg-neutral-200 text-neutral-600' :
-                                      'bg-blue-100 text-blue-700'
-                                    }`}>
-                                      {isConverted ? 'CLIENT' : lead.temperature === 'hot' ? 'HOT' : lead.temperature === 'warm' ? 'WARM' : lead.status === 'perdu' ? 'PERDU' : lead.status?.toUpperCase()}
-                                    </span>
-                                    {lead.type && <span className="text-[10px] px-1.5 py-0.5 bg-neutral-100 rounded text-neutral-500">{lead.type}</span>}
-                                    {lead.plan_interest && <span className="text-[10px] px-1.5 py-0.5 bg-purple-50 rounded text-purple-600">{lead.plan_interest}</span>}
+                              {/* Header — clickable to expand */}
+                              <button
+                                className="w-full text-left p-3 hover:bg-black/[0.02] transition-colors rounded-lg"
+                                onClick={() => {
+                                  const next = isExpanded ? null : lead.id;
+                                  setExpandedLeadId(next);
+                                  if (next) loadLeadEmails(lead.id);
+                                }}
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className="text-sm font-semibold text-neutral-900 truncate">{lead.company || lead.email || 'Anonyme'}</span>
+                                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                                        isConverted ? 'bg-emerald-100 text-emerald-700' :
+                                        lead.temperature === 'hot' ? 'bg-red-100 text-red-700' :
+                                        lead.temperature === 'warm' ? 'bg-orange-100 text-orange-700' :
+                                        lead.status === 'perdu' ? 'bg-neutral-200 text-neutral-600' :
+                                        'bg-blue-100 text-blue-700'
+                                      }`}>
+                                        {isConverted ? 'CLIENT' : lead.temperature === 'hot' ? 'HOT' : lead.temperature === 'warm' ? 'WARM' : lead.status === 'perdu' ? 'PERDU' : lead.status?.toUpperCase()}
+                                      </span>
+                                      {lead.type ? <span className="text-[10px] px-1.5 py-0.5 bg-neutral-100 rounded text-neutral-500">{lead.type}</span> : <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 rounded text-amber-700 font-bold">SANS TYPE</span>}
+                                      {lead.plan_interest && <span className="text-[10px] px-1.5 py-0.5 bg-purple-50 rounded text-purple-600">{lead.plan_interest}</span>}
+                                    </div>
+                                    <div className="flex items-center gap-3 mt-1 text-[10px] text-neutral-500">
+                                      <span>Acquis le {dayAcquired}</span>
+                                      <span>{daysInPipeline}j dans le pipeline</span>
+                                      {lead.source && <span>via {lead.source}</span>}
+                                      <span>Score: {lead.score}</span>
+                                      {lead.email_sequence_step ? <span>Step {lead.email_sequence_step}</span> : null}
+                                    </div>
+                                    {conversionSignal && (
+                                      <p className={`text-xs mt-1 font-medium ${
+                                        isConverted ? 'text-emerald-600' :
+                                        lead.temperature === 'hot' ? 'text-red-600' :
+                                        lead.status === 'perdu' ? 'text-neutral-500' :
+                                        'text-blue-600'
+                                      }`}>
+                                        {isConverted ? '✅' : lead.temperature === 'hot' ? '🔥' : lead.status === 'perdu' ? '❌' : '💡'} {conversionSignal}
+                                      </p>
+                                    )}
                                   </div>
-                                  <div className="flex items-center gap-3 mt-1 text-[10px] text-neutral-500">
-                                    <span>Acquis le {dayAcquired}</span>
-                                    <span>{daysInPipeline}j dans le pipeline</span>
-                                    {lead.source && <span>via {lead.source}</span>}
-                                    <span>Score: {lead.score}</span>
-                                    {lead.email_sequence_step ? <span>Step {lead.email_sequence_step}</span> : null}
+                                  <div className="text-right shrink-0 flex flex-col items-end gap-0.5">
+                                    {opened && <span className="text-[10px] text-blue-500">📧 Ouvert</span>}
+                                    {clicked && <span className="text-[10px] text-green-500">🖱️ Cliqué</span>}
+                                    {lead.matched_plan && <span className="text-[10px] text-purple-500">Plan: {lead.matched_plan}</span>}
+                                    <span className="text-[10px] text-neutral-400 mt-1">{isExpanded ? '▲' : '▼'}</span>
                                   </div>
-                                  {/* Conversion signal */}
-                                  {conversionSignal && (
-                                    <p className={`text-xs mt-1 font-medium ${
-                                      isConverted ? 'text-emerald-600' :
-                                      lead.temperature === 'hot' ? 'text-red-600' :
-                                      lead.status === 'perdu' ? 'text-neutral-500' :
-                                      'text-blue-600'
-                                    }`}>
-                                      {isConverted ? '✅' : lead.temperature === 'hot' ? '🔥' : lead.status === 'perdu' ? '❌' : '💡'} {conversionSignal}
-                                    </p>
+                                </div>
+                              </button>
+
+                              {/* Expanded email timeline */}
+                              {isExpanded && (
+                                <div className="px-3 pb-3 border-t border-neutral-100 mt-0">
+                                  {emails.length === 0 ? (
+                                    <p className="text-xs text-neutral-400 py-3 text-center">Aucun email envoyé</p>
+                                  ) : (
+                                    <div className="mt-3 space-y-3">
+                                      {/* 1er contact */}
+                                      {firstContact && (
+                                        <div>
+                                          <p className="text-[10px] font-bold text-blue-700 uppercase tracking-wider mb-1.5">1er Contact</p>
+                                          <button
+                                            className="w-full text-left bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg p-2.5 transition-colors group"
+                                            onClick={() => setEmailDetailModal(firstContact)}
+                                          >
+                                            <div className="flex items-center justify-between">
+                                              <p className="text-xs font-semibold text-blue-900 truncate flex-1">{firstContact.data?.subject || 'Sans objet'}</p>
+                                              <span className="text-[10px] text-blue-400 group-hover:text-blue-600 ml-2 shrink-0">Voir →</span>
+                                            </div>
+                                            <p className="text-[10px] text-blue-600 mt-0.5">
+                                              {new Date(firstContact.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                              {firstContact.data?.provider && <span className="ml-2 text-blue-400">via {firstContact.data.provider}</span>}
+                                            </p>
+                                          </button>
+                                        </div>
+                                      )}
+
+                                      {/* Relances */}
+                                      {relances.length > 0 && (
+                                        <div>
+                                          <p className="text-[10px] font-bold text-orange-700 uppercase tracking-wider mb-1.5">Relances ({relances.length})</p>
+                                          <div className="space-y-1.5">
+                                            {relances.map(r => (
+                                              <button
+                                                key={r.id}
+                                                className="w-full text-left bg-orange-50 hover:bg-orange-100 border border-orange-200 rounded-lg p-2.5 transition-colors group"
+                                                onClick={() => setEmailDetailModal(r)}
+                                              >
+                                                <div className="flex items-center justify-between">
+                                                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                                                    <span className="text-[10px] font-bold text-orange-500 shrink-0">Step {r.data?.step}</span>
+                                                    <p className="text-xs font-medium text-orange-900 truncate">{r.data?.subject || 'Sans objet'}</p>
+                                                  </div>
+                                                  <span className="text-[10px] text-orange-400 group-hover:text-orange-600 ml-2 shrink-0">Voir →</span>
+                                                </div>
+                                                <p className="text-[10px] text-orange-600 mt-0.5">
+                                                  {new Date(r.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                                </p>
+                                              </button>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {/* Engagement events */}
+                                      {emails.filter(e => e.type !== 'email').length > 0 && (
+                                        <div>
+                                          <p className="text-[10px] font-bold text-green-700 uppercase tracking-wider mb-1.5">Engagement</p>
+                                          <div className="flex flex-wrap gap-1.5">
+                                            {emails.filter(e => e.type !== 'email').map(ev => (
+                                              <span key={ev.id} className={`text-[10px] px-2 py-1 rounded-full font-medium ${
+                                                ev.type === 'email_opened' ? 'bg-blue-100 text-blue-700' :
+                                                ev.type === 'email_clicked' ? 'bg-green-100 text-green-700' :
+                                                ev.type === 'email_replied' ? 'bg-emerald-100 text-emerald-800 font-bold' :
+                                                'bg-red-100 text-red-700'
+                                              }`}>
+                                                {ev.type === 'email_opened' ? '📧 Ouvert' :
+                                                 ev.type === 'email_clicked' ? '🖱️ Cliqué' :
+                                                 ev.type === 'email_replied' ? '💬 Répondu' :
+                                                 '⚠️ Bounce'}{' '}
+                                                {new Date(ev.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                                              </span>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
                                   )}
                                 </div>
-                                <div className="text-right shrink-0">
-                                  {opened && <span className="text-[10px] text-blue-500 block">📧 Ouvert</span>}
-                                  {clicked && <span className="text-[10px] text-green-500 block">🖱️ Cliqué</span>}
-                                  {lead.matched_plan && <span className="text-[10px] text-purple-500 block">Plan: {lead.matched_plan}</span>}
-                                </div>
-                              </div>
+                              )}
                             </div>
                           );
                         })}
+                      </div>
+                    )}
+
+                    {/* Email detail modal */}
+                    {emailDetailModal && (
+                      <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto py-8 bg-black/50" onClick={() => setEmailDetailModal(null)}>
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4" onClick={e => e.stopPropagation()}>
+                          {/* Email header */}
+                          <div className="border-b border-neutral-100 p-4">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs text-neutral-500">
+                                  De : <span className="text-neutral-700">Victor de KeiroAI &lt;contact@keiroai.com&gt;</span>
+                                </p>
+                                <p className="text-sm font-semibold text-neutral-900 mt-1">{emailDetailModal.data?.subject || 'Sans objet'}</p>
+                                <div className="flex items-center gap-3 mt-1 text-[10px] text-neutral-400">
+                                  <span>{new Date(emailDetailModal.created_at).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                                  {emailDetailModal.data?.step && <span className="px-1.5 py-0.5 bg-neutral-100 rounded font-medium text-neutral-600">Step {emailDetailModal.data.step}</span>}
+                                  {emailDetailModal.data?.variant !== undefined && <span className="px-1.5 py-0.5 bg-purple-50 rounded font-medium text-purple-600">Variant {emailDetailModal.data.variant}</span>}
+                                  {emailDetailModal.data?.provider && <span className="px-1.5 py-0.5 bg-blue-50 rounded font-medium text-blue-600">{emailDetailModal.data.provider}</span>}
+                                </div>
+                              </div>
+                              <button onClick={() => setEmailDetailModal(null)} className="p-1 hover:bg-neutral-100 rounded-lg text-neutral-400 hover:text-neutral-600">
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                              </button>
+                            </div>
+                          </div>
+                          {/* Email body */}
+                          <div className="p-5">
+                            {emailDetailModal.data?.body ? (
+                              <div className="text-sm text-neutral-800 leading-relaxed whitespace-pre-wrap font-[system-ui]">
+                                {emailDetailModal.data.body}
+                              </div>
+                            ) : (
+                              <p className="text-sm text-neutral-400 italic">Corps de l'email non disponible</p>
+                            )}
+                          </div>
+                          {/* Footer info */}
+                          <div className="border-t border-neutral-100 px-4 py-3 bg-neutral-50 rounded-b-2xl">
+                            <div className="flex items-center gap-3 text-[10px] text-neutral-500">
+                              {emailDetailModal.data?.category && <span>Catégorie : <strong>{emailDetailModal.data.category}</strong></span>}
+                              {emailDetailModal.data?.message_id && <span className="truncate max-w-[200px]">ID : {emailDetailModal.data.message_id}</span>}
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     )}
 

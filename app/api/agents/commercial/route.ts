@@ -221,7 +221,11 @@ Données actuelles :
 - Quartier : ${prospect.quartier || '(vide - À DÉTERMINER SI POSSIBLE)'}
 - Note Google : ${prospect.note_google ?? '(vide)'}
 
-${!prospect.type ? 'PRIORITÉ : détermine le type de commerce à partir du nom de l\'entreprise et de l\'email.' : ''}
+${!prospect.type ? `PRIORITÉ ABSOLUE : détermine le type de commerce. Analyse le nom d'entreprise, l'email (domaine), le prénom, et tout indice disponible.
+Types valides : ${VALID_TYPES.join(', ')}.
+Tu DOIS choisir un type parmi cette liste. Si tu hésites, choisis le plus probable. Ne laisse JAMAIS type à null.
+Exemples : "Salon Léa" = coiffeur, "Le Petit Caveau" = caviste, "Studio Yoga" = coach, email "@boulangerie-xxx" = restaurant, domaine en ".restaurant" = restaurant.
+Si vraiment aucun indice = "pme".` : ''}
 ${!prospect.quartier ? 'Si possible, déduis le quartier/ville à partir du nom ou de l\'email. MAIS seulement si tu es SÛR — NE DEVINE PAS. Si tu n\'es pas certain, laisse vide (confidence: 0).' : ''}
 ${prospect.email ? 'Vérifie la validité de l\'email (format, domaine jetable, patterns suspects).' : 'ATTENTION : pas d\'email fourni, email_valid = false.'}
 
@@ -373,6 +377,7 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
       : { data: [] as any[], error: null };
 
     // Filter: prospects that need enrichment (missing type/quartier, or never processed, or old ones to re-verify)
+    // PRIORITY: prospects without type come first (critical for email category stats)
     const prospects = (rawProspects || []).filter(p => {
       // Skip dead/perdu
       if (p.temperature === 'dead' || p.status === 'perdu') return false;
@@ -382,6 +387,11 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
       const isNew = !p.status || p.status === 'new' || p.status === 'identifie';
       const neverProcessed = !p.email_sequence_status;
       return needsType || needsQuartier || isNew || neverProcessed;
+    }).sort((a, b) => {
+      // Prospects without type are highest priority
+      const aNoType = !a.type ? 0 : 1;
+      const bNoType = !b.type ? 0 : 1;
+      return aNoType - bNoType;
     }).slice(0, MAX_PROSPECTS_PER_RUN);
 
     if (fetchError) {
@@ -449,8 +459,17 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
           continue;
         }
 
-        if (!prospect.type && result.type && VALID_TYPES.includes(result.type) && result.type_confidence >= 70) {
-          updates.type = result.type;
+        if (!prospect.type) {
+          if (result.type && VALID_TYPES.includes(result.type) && result.type_confidence >= 40) {
+            // Accept type with moderate confidence — critical for email category targeting
+            updates.type = result.type;
+          } else if (result.type && VALID_TYPES.includes(result.type)) {
+            // Low confidence but valid type — still better than no type at all
+            updates.type = result.type;
+          } else {
+            // AI couldn't determine type — assign 'pme' as fallback so emails have a category
+            updates.type = 'pme';
+          }
         }
 
         if (!prospect.quartier && result.quartier && result.quartier_confidence >= 70) {
