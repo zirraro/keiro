@@ -6,7 +6,7 @@ import { verifyProspectData, verifyCRMCoherence } from '@/lib/agents/business-ti
 import { callGemini } from '@/lib/agents/gemini';
 import { loadSharedContext, formatContextForPrompt } from '@/lib/agents/shared-context';
 import { canSendEmail } from '@/lib/agents/email-dedup';
-import { saveLearning } from '@/lib/agents/learning';
+import { saveLearning, saveAgentFeedback } from '@/lib/agents/learning';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -1322,6 +1322,20 @@ export async function GET(request: NextRequest) {
       },
       created_at: nowISO,
     });
+
+    // ── Feedback to CEO ──
+    try {
+      if (successCount > 0 || failCount > 0) {
+        await saveAgentFeedback(supabase, {
+          from_agent: 'email',
+          to_agent: 'ceo',
+          feedback: `Emails ${type}: ${successCount} envoyés (${aiCount} IA), ${failCount} échoués. ${failCount > 0 ? `⚠️ Taux échec: ${(failCount / results.length * 100).toFixed(0)}%.` : 'Zéro échec.'} ${Object.keys(byBusinessType).length > 0 ? `Types ciblés: ${Object.entries(byBusinessType).map(([t, c]) => `${t}:${c}`).join(', ')}.` : ''}`,
+          category: 'email',
+        });
+      }
+    } catch (fbErr: any) {
+      console.warn('[EmailDaily] Feedback save error:', fbErr.message);
+    }
 
     console.log(`[EmailDaily] Done: ${successCount} sent (${aiCount} AI), ${failCount} failed`);
 

@@ -1,34 +1,55 @@
 /**
- * Hybrid Intelligence System — 3-tier learning with cross-agent feedback
+ * Elite Hybrid Intelligence System — Continuous Score + 5 Lifecycle Phases
  *
- * TIER 1: SIGNAL (7 days) — ephemeral observations, auto-expire if not confirmed
- *   → "Open rate restaurants bas aujourd'hui"
- *   → Disappears after 7 days unless promoted
+ * SCORE CONTINU 0-100 (granularité fine, pas de buckets rigides)
+ * Le score détermine automatiquement la phase de vie :
  *
- * TIER 2: PATTERN (90 days) — confirmed recurring insights, needs 3+ evidence points
- *   → "Restaurants ouvrent mieux le mardi matin"
- *   → Survives longer, requires repeated confirmation
+ * PHASE 1: NOISE (0-19) — 7 jours
+ *   → Bruit de fond, observations non confirmées
+ *   → Disparaît vite si pas confirmé
+ *   → Jamais partagé cross-agent
  *
- * TIER 3: INSIGHT (permanent) — validated gold, never expires
- *   → "Les DMs vidéo personnalisés convertissent 4x plus"
- *   → Promoted by CEO validation OR real conversion/revenue event
- *   → Rare exceptions that generate CA live here forever
+ * PHASE 2: SIGNAL (20-39) — 30 jours
+ *   → Observation intéressante, à surveiller
+ *   → Commence à influencer les décisions mineures
+ *   → Jamais partagé cross-agent
  *
- * PROMOTION RULES:
- * - Signal → Pattern: 3+ confirmations OR confidence >= 60
- * - Pattern → Insight: CEO validates OR linked to real conversion event
- * - Revenue event (reply, demo, client) → auto-promote to Insight
+ * PHASE 3: PATTERN (40-64) — 90 jours
+ *   → Tendance confirmée par plusieurs observations
+ *   → Appliqué avec prudence, partagé entre agents similaires
+ *   → Influence les stratégies
  *
- * CROSS-AGENT FEEDBACK:
- * - Any agent can write feedback to another agent
- * - Feedbacks are suggestions, not orders (only CEO writes orders)
- * - Agents read feedbacks from others in their prompt context
+ * PHASE 4: RULE (65-84) — 180 jours
+ *   → Règle fiable, confirmée par résultats concrets
+ *   → Appliqué systématiquement, partagé à tous les agents
+ *   → Visible dans les briefs CEO
+ *
+ * PHASE 5: INSIGHT (85-100) — Permanent
+ *   → Or validé, lié au CA réel
+ *   → Jamais expiré, appliqué TOUJOURS
+ *   → Fondation de la stratégie globale
+ *
+ * SCORING RULES:
+ * - Nouvelle observation: commence à confidence initiale (10-30 selon source)
+ * - Chaque confirmation: +boost (diminishing returns)
+ * - Revenue event (reply, demo, client): +30 boost
+ * - CEO validation: set to min 85
+ * - Contradiction/échec: -15 (peut rétrograder)
+ * - Phase = f(score), pas besoin de promotion manuelle
+ *
+ * CROSS-AGENT:
+ * - Pattern+ (score >= 40) partagé entre agents similaires
+ * - Rule+ (score >= 65) partagé à tous
+ * - Feedbacks = suggestions inter-agents (pas des ordres)
  */
 
 import { SupabaseClient } from '@supabase/supabase-js';
 
 export type LearningCategory = 'email' | 'dm' | 'content' | 'prospection' | 'conversion' | 'general' | 'community' | 'retention' | 'seo';
-export type LearningTier = 'signal' | 'pattern' | 'insight';
+export type LearningPhase = 'noise' | 'signal' | 'pattern' | 'rule' | 'insight';
+
+// Backward compat — old code may reference LearningTier
+export type LearningTier = LearningPhase;
 
 export interface AgentLearning {
   id?: string;
@@ -36,12 +57,14 @@ export interface AgentLearning {
   category: LearningCategory;
   learning: string;
   evidence: string;
-  confidence: number; // 0-100
-  tier: LearningTier;
+  confidence: number; // 0-100 continuous score
+  tier: LearningPhase; // auto-derived from confidence
   confirmations: number;
-  revenue_linked: boolean; // true if linked to actual conversion/sale
+  contradictions: number; // times this was contradicted
+  revenue_linked: boolean;
+  last_confirmed_at?: string;
   created_at?: string;
-  expires_at: string | null; // null = permanent (insight)
+  expires_at: string | null;
 }
 
 export interface AgentFeedback {
@@ -53,18 +76,46 @@ export interface AgentFeedback {
   created_at?: string;
 }
 
-// ── Tier expiration defaults ──
-// Signal 30j: survit un cycle commercial complet (2-4 semaines B2B local)
-// Pattern 180j: survit aux variations saisonnières (été/hiver, fêtes)
-// Insight: permanent — validé par du CA réel, jamais expiré
-const TIER_EXPIRY_DAYS: Record<LearningTier, number | null> = {
-  signal: 30,
-  pattern: 180,
-  insight: null, // permanent
+// ── Phase thresholds and expiration ──
+const PHASE_CONFIG: Record<LearningPhase, { min: number; max: number; expiryDays: number | null }> = {
+  noise:   { min: 0,  max: 19, expiryDays: 7 },
+  signal:  { min: 20, max: 39, expiryDays: 30 },
+  pattern: { min: 40, max: 64, expiryDays: 90 },
+  rule:    { min: 65, max: 84, expiryDays: 180 },
+  insight: { min: 85, max: 100, expiryDays: null }, // permanent
 };
 
 /**
- * Save a learning with automatic tier detection and promotion.
+ * Derive phase from continuous confidence score.
+ */
+export function scoreToPhase(confidence: number): LearningPhase {
+  if (confidence >= 85) return 'insight';
+  if (confidence >= 65) return 'rule';
+  if (confidence >= 40) return 'pattern';
+  if (confidence >= 20) return 'signal';
+  return 'noise';
+}
+
+/**
+ * Calculate expiry date based on confidence score.
+ */
+function expiryFromScore(confidence: number): string | null {
+  const phase = scoreToPhase(confidence);
+  const days = PHASE_CONFIG[phase].expiryDays;
+  return days ? new Date(Date.now() + days * 86400000).toISOString() : null;
+}
+
+/**
+ * Calculate confirmation boost (diminishing returns).
+ * Early confirmations boost more, later ones less.
+ */
+function confirmationBoost(currentConfirmations: number): number {
+  // 1st: +12, 2nd: +10, 3rd: +8, ... min +3
+  return Math.max(3, 14 - currentConfirmations * 2);
+}
+
+/**
+ * Save a learning with automatic phase detection via continuous scoring.
  */
 export async function saveLearning(
   supabase: SupabaseClient,
@@ -73,14 +124,26 @@ export async function saveLearning(
     category: LearningCategory;
     learning: string;
     evidence: string;
-    confidence: number;
-    tier?: LearningTier;
+    confidence: number; // initial score (10-30 typically)
+    tier?: LearningPhase; // optional override
     revenue_linked?: boolean;
   },
 ): Promise<void> {
-  const tier = learning.tier || (learning.revenue_linked ? 'insight' : 'signal');
-  const expiryDays = TIER_EXPIRY_DAYS[tier];
-  const expires_at = expiryDays ? new Date(Date.now() + expiryDays * 86400000).toISOString() : null;
+  // Revenue events get massive boost
+  let initialScore = learning.confidence;
+  if (learning.revenue_linked) {
+    initialScore = Math.max(initialScore, 85); // Direct to insight
+  }
+  if (learning.tier === 'insight') {
+    initialScore = Math.max(initialScore, 85);
+  } else if (learning.tier === 'rule') {
+    initialScore = Math.max(initialScore, 65);
+  } else if (learning.tier === 'pattern') {
+    initialScore = Math.max(initialScore, 40);
+  }
+
+  const phase = scoreToPhase(initialScore);
+  const expires_at = expiryFromScore(initialScore);
 
   // Check for existing similar learning to boost
   const { data: existing } = await supabase
@@ -101,26 +164,20 @@ export async function saveLearning(
 
   if (similar) {
     const currentData = similar.data || {};
-    const currentConfidence = currentData.confidence || 50;
+    const currentConfidence = currentData.confidence || 15;
     const currentConfirmations = (currentData.confirmations || 1) + 1;
-    const currentTier: LearningTier = currentData.tier || 'signal';
 
-    // Calculate new confidence (diminishing returns)
-    const boost = Math.max(5, 15 - currentConfirmations);
-    const newConfidence = Math.min(98, currentConfidence + boost);
+    // Calculate new confidence with diminishing returns
+    const boost = confirmationBoost(currentConfirmations);
+    let newConfidence = Math.min(98, currentConfidence + boost);
 
-    // Auto-promote tier based on confirmations and confidence
-    let newTier = currentTier;
-    if (currentTier === 'signal' && (currentConfirmations >= 3 || newConfidence >= 60)) {
-      newTier = 'pattern';
-    }
-    if (learning.revenue_linked || currentData.revenue_linked) {
-      newTier = 'insight'; // Revenue events always promote to insight
+    // Revenue boost
+    if (learning.revenue_linked && !currentData.revenue_linked) {
+      newConfidence = Math.min(98, newConfidence + 30);
     }
 
-    // Recalculate expiry based on new tier
-    const newExpiryDays = TIER_EXPIRY_DAYS[newTier];
-    const newExpiry = newExpiryDays ? new Date(Date.now() + newExpiryDays * 86400000).toISOString() : null;
+    const newPhase = scoreToPhase(newConfidence);
+    const newExpiry = expiryFromScore(newConfidence);
 
     await supabase
       .from('agent_logs')
@@ -128,11 +185,13 @@ export async function saveLearning(
         data: {
           ...currentData,
           confidence: newConfidence,
+          tier: newPhase,
           confirmations: currentConfirmations,
-          tier: newTier,
+          contradictions: currentData.contradictions || 0,
           revenue_linked: currentData.revenue_linked || learning.revenue_linked || false,
           evidence: `${currentData.evidence || ''} | ${learning.evidence}`.substring(0, 500),
           expires_at: newExpiry,
+          last_confirmed_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         },
       })
@@ -149,15 +208,54 @@ export async function saveLearning(
     data: {
       learning: learning.learning,
       evidence: learning.evidence,
-      confidence: learning.confidence,
+      confidence: initialScore,
       category: learning.category,
-      tier,
+      tier: phase,
       confirmations: 1,
+      contradictions: 0,
       revenue_linked: learning.revenue_linked || false,
       expires_at,
+      last_confirmed_at: new Date().toISOString(),
     },
     created_at: new Date().toISOString(),
   });
+}
+
+/**
+ * Record a contradiction — reduces confidence, can demote phase.
+ * Called when a learning is proven wrong or produces bad results.
+ */
+export async function contradictLearning(
+  supabase: SupabaseClient,
+  learningId: string,
+  reason: string,
+): Promise<void> {
+  const { data } = await supabase
+    .from('agent_logs')
+    .select('data')
+    .eq('id', learningId)
+    .single();
+
+  if (data?.data) {
+    const currentConfidence = data.data.confidence || 50;
+    const newConfidence = Math.max(0, currentConfidence - 15);
+    const contradictions = (data.data.contradictions || 0) + 1;
+    const newPhase = scoreToPhase(newConfidence);
+    const newExpiry = expiryFromScore(newConfidence);
+
+    await supabase.from('agent_logs').update({
+      data: {
+        ...data.data,
+        confidence: newConfidence,
+        tier: newPhase,
+        contradictions,
+        expires_at: newExpiry,
+        last_contradiction: reason,
+        last_contradiction_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+    }).eq('id', learningId);
+  }
 }
 
 /**
@@ -175,22 +273,24 @@ export async function promoteToInsight(
     .single();
 
   if (data?.data) {
+    const newConfidence = Math.max(data.data.confidence || 80, 85);
     await supabase.from('agent_logs').update({
       data: {
         ...data.data,
         tier: 'insight',
+        confidence: newConfidence,
         expires_at: null,
         revenue_linked: true,
-        confidence: Math.max(data.data.confidence || 80, 80),
         promotion_reason: reason,
         promoted_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       },
     }).eq('id', learningId);
   }
 }
 
 /**
- * Get active learnings for an agent, sorted by tier then confidence.
+ * Get active learnings for an agent, sorted by confidence (highest first).
  */
 export async function getActiveLearnings(
   supabase: SupabaseClient,
@@ -216,7 +316,7 @@ export async function getActiveLearnings(
   return (data || [])
     .filter((log: any) => {
       const expiresAt = log.data?.expires_at;
-      return !expiresAt || expiresAt > now; // null expires_at = permanent insight
+      return !expiresAt || expiresAt > now;
     })
     .map((log: any) => ({
       id: log.id,
@@ -224,24 +324,22 @@ export async function getActiveLearnings(
       category: log.data?.category || 'general',
       learning: log.data?.learning || '',
       evidence: log.data?.evidence || '',
-      confidence: log.data?.confidence || 50,
-      tier: log.data?.tier || 'signal',
+      confidence: log.data?.confidence || 15,
+      tier: scoreToPhase(log.data?.confidence || 15),
       confirmations: log.data?.confirmations || 1,
+      contradictions: log.data?.contradictions || 0,
       revenue_linked: log.data?.revenue_linked || false,
+      last_confirmed_at: log.data?.last_confirmed_at,
       created_at: log.created_at,
       expires_at: log.data?.expires_at || null,
     }))
-    .sort((a: AgentLearning, b: AgentLearning) => {
-      // Sort: insight > pattern > signal, then by confidence
-      const tierOrder: Record<LearningTier, number> = { insight: 3, pattern: 2, signal: 1 };
-      const tierDiff = (tierOrder[b.tier] || 0) - (tierOrder[a.tier] || 0);
-      return tierDiff !== 0 ? tierDiff : b.confidence - a.confidence;
-    });
+    .sort((a: AgentLearning, b: AgentLearning) => b.confidence - a.confidence);
 }
 
 /**
  * Get ALL agents' active learnings for cross-pollination.
- * Only returns patterns and insights (signals are too noisy for cross-agent).
+ * Pattern+ (score >= 40) shared between similar agents.
+ * Rule+ (score >= 65) shared to all agents.
  */
 export async function getAllAgentLearnings(
   supabase: SupabaseClient,
@@ -265,10 +363,9 @@ export async function getAllAgentLearnings(
   return (data || [])
     .filter((log: any) => {
       const expiresAt = log.data?.expires_at;
-      const tier = log.data?.tier || 'signal';
-      // Cross-agent: only share patterns and insights (not noisy signals)
-      return (tier === 'pattern' || tier === 'insight') &&
-        (!expiresAt || expiresAt > now);
+      const confidence = log.data?.confidence || 0;
+      // Cross-agent: only share Pattern+ (score >= 40)
+      return confidence >= 40 && (!expiresAt || expiresAt > now);
     })
     .map((log: any) => ({
       id: log.id,
@@ -276,23 +373,65 @@ export async function getAllAgentLearnings(
       category: log.data?.category || 'general',
       learning: log.data?.learning || '',
       evidence: log.data?.evidence || '',
-      confidence: log.data?.confidence || 50,
-      tier: log.data?.tier || 'signal',
+      confidence: log.data?.confidence || 40,
+      tier: scoreToPhase(log.data?.confidence || 40),
       confirmations: log.data?.confirmations || 1,
+      contradictions: log.data?.contradictions || 0,
       revenue_linked: log.data?.revenue_linked || false,
+      last_confirmed_at: log.data?.last_confirmed_at,
       created_at: log.created_at,
       expires_at: log.data?.expires_at || null,
     }))
-    .sort((a: AgentLearning, b: AgentLearning) => {
-      const tierOrder: Record<LearningTier, number> = { insight: 3, pattern: 2, signal: 1 };
-      const tierDiff = (tierOrder[b.tier] || 0) - (tierOrder[a.tier] || 0);
-      return tierDiff !== 0 ? tierDiff : b.confidence - a.confidence;
-    });
+    .sort((a: AgentLearning, b: AgentLearning) => b.confidence - a.confidence);
+}
+
+/**
+ * Get ALL historical learnings (including expired) for AMIT deep analysis.
+ * Unlike getActiveLearnings, this does NOT filter by expiry — all data is preserved.
+ * AMIT uses this to detect long-term patterns across the full history.
+ */
+export async function getAllHistoricalLearnings(
+  supabase: SupabaseClient,
+  options?: { minConfidence?: number; limit?: number; agentFilter?: string },
+): Promise<AgentLearning[]> {
+  const minConf = options?.minConfidence ?? 0;
+  const maxResults = options?.limit ?? 200;
+
+  let query = supabase
+    .from('agent_logs')
+    .select('id, agent, data, created_at')
+    .eq('action', 'learning')
+    .order('created_at', { ascending: false })
+    .limit(maxResults);
+
+  if (options?.agentFilter) {
+    query = query.eq('agent', options.agentFilter);
+  }
+
+  const { data } = await query;
+
+  return (data || [])
+    .filter((log: any) => (log.data?.confidence || 0) >= minConf)
+    .map((log: any) => ({
+      id: log.id,
+      agent: log.agent,
+      category: log.data?.category || 'general',
+      learning: log.data?.learning || '',
+      evidence: log.data?.evidence || '',
+      confidence: log.data?.confidence || 0,
+      tier: scoreToPhase(log.data?.confidence || 0),
+      confirmations: log.data?.confirmations || 1,
+      contradictions: log.data?.contradictions || 0,
+      revenue_linked: log.data?.revenue_linked || false,
+      last_confirmed_at: log.data?.last_confirmed_at,
+      created_at: log.created_at,
+      expires_at: log.data?.expires_at || null,
+    }))
+    .sort((a: AgentLearning, b: AgentLearning) => b.confidence - a.confidence);
 }
 
 /**
  * Save cross-agent feedback (suggestion, not order).
- * Only CEO writes orders. Agents write feedbacks to help each other improve.
  */
 export async function saveAgentFeedback(
   supabase: SupabaseClient,
@@ -347,7 +486,35 @@ export async function getAgentFeedbacks(
 }
 
 /**
- * Format learnings for prompt injection — 3-tier hierarchy.
+ * Get ALL recent feedbacks across all agents (for AMIT analysis).
+ */
+export async function getAllFeedbacks(
+  supabase: SupabaseClient,
+  days: number = 7,
+  limit: number = 50,
+): Promise<AgentFeedback[]> {
+  const since = new Date(Date.now() - days * 86400000).toISOString();
+
+  const { data } = await supabase
+    .from('agent_logs')
+    .select('id, agent, target, data, created_at')
+    .eq('action', 'agent_feedback')
+    .gte('created_at', since)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  return (data || []).map((log: any) => ({
+    id: log.id,
+    from_agent: log.data?.from_agent || log.target || 'unknown',
+    to_agent: log.agent,
+    feedback: log.data?.feedback || '',
+    category: log.data?.category || 'general',
+    created_at: log.created_at,
+  }));
+}
+
+/**
+ * Format learnings for prompt injection — 5-phase hierarchy with scores.
  */
 export function formatLearningsForPrompt(
   ownLearnings: AgentLearning[],
@@ -358,45 +525,56 @@ export function formatLearningsForPrompt(
 
   let text = '';
 
-  // INSIGHTS — permanent gold, always apply
-  const insights = ownLearnings.filter(l => l.tier === 'insight');
+  // INSIGHTS (85-100) — permanent gold, always apply
+  const insights = ownLearnings.filter(l => l.confidence >= 85);
   if (insights.length > 0) {
-    text += `\n\n💎 INSIGHTS VALIDÉS (permanents, applique TOUJOURS) :`;
+    text += `\n\n💎 INSIGHTS VALIDÉS (score 85-100, permanents, applique TOUJOURS) :`;
     for (const l of insights) {
-      text += `\n- [${l.category}] ${l.learning} (confiance: ${l.confidence}%${l.revenue_linked ? ', lié au CA' : ''})`;
+      text += `\n- [${l.category}] ${l.learning} (score: ${l.confidence}${l.revenue_linked ? ', CA réel' : ''}, ${l.confirmations} conf.)`;
     }
   }
 
-  // PATTERNS — confirmed, apply with confidence
-  const patterns = ownLearnings.filter(l => l.tier === 'pattern');
+  // RULES (65-84) — reliable, apply systematically
+  const rules = ownLearnings.filter(l => l.confidence >= 65 && l.confidence < 85);
+  if (rules.length > 0) {
+    text += `\n\n📏 RÈGLES FIABLES (score 65-84, applique systématiquement) :`;
+    for (const l of rules) {
+      text += `\n- [${l.category}] ${l.learning} (score: ${l.confidence}, ${l.confirmations} conf.)`;
+    }
+  }
+
+  // PATTERNS (40-64) — confirmed trends, apply with care
+  const patterns = ownLearnings.filter(l => l.confidence >= 40 && l.confidence < 65);
   if (patterns.length > 0) {
-    text += `\n\n🎯 PATTERNS CONFIRMÉS (${patterns.length}x confirmés, applique systématiquement) :`;
+    text += `\n\n🎯 PATTERNS (score 40-64, applique avec prudence) :`;
     for (const l of patterns) {
-      text += `\n- [${l.category}] ${l.learning} (confiance: ${l.confidence}%, ${l.confirmations} confirmations)`;
+      text += `\n- [${l.category}] ${l.learning} (score: ${l.confidence}, ${l.confirmations} conf.)`;
     }
   }
 
-  // SIGNALS — recent observations, test/explore
-  const signals = ownLearnings.filter(l => l.tier === 'signal');
+  // SIGNALS (20-39) — interesting observations
+  const signals = ownLearnings.filter(l => l.confidence >= 20 && l.confidence < 40);
   if (signals.length > 0) {
-    text += `\n\n📡 SIGNAUX RÉCENTS (à tester/confirmer) :`;
+    text += `\n\n📡 SIGNAUX (score 20-39, à tester/confirmer) :`;
     for (const l of signals.slice(0, 8)) {
-      text += `\n- [${l.category}] ${l.learning} (confiance: ${l.confidence}%)`;
+      text += `\n- [${l.category}] ${l.learning} (score: ${l.confidence})`;
     }
   }
 
-  // Cross-agent learnings (only patterns + insights)
+  // NOISE (0-19) — not shown in prompts, too unreliable
+
+  // Cross-agent learnings (Pattern+ = score >= 40)
   if (otherLearnings.length > 0) {
-    text += `\n\n🔄 INTELLIGENCE DES AUTRES AGENTS :`;
+    text += `\n\n🔄 INTELLIGENCE CROSS-AGENT :`;
     for (const l of otherLearnings.slice(0, 10)) {
-      const tierIcon = l.tier === 'insight' ? '💎' : '🎯';
-      text += `\n- ${tierIcon} [${l.agent}/${l.category}] ${l.learning} (confiance: ${l.confidence}%)`;
+      const icon = l.confidence >= 85 ? '💎' : l.confidence >= 65 ? '📏' : '🎯';
+      text += `\n- ${icon} [${l.agent}/${l.category}] ${l.learning} (score: ${l.confidence})`;
     }
   }
 
   // Feedbacks from other agents
   if (feedbacks && feedbacks.length > 0) {
-    text += `\n\n💬 FEEDBACKS DES AUTRES AGENTS (conseils, pas des ordres) :`;
+    text += `\n\n💬 FEEDBACKS INTER-AGENTS (conseils, pas des ordres) :`;
     for (const f of feedbacks.slice(0, 5)) {
       text += `\n- [${f.from_agent} → toi] ${f.feedback}`;
     }
@@ -406,10 +584,11 @@ export function formatLearningsForPrompt(
 }
 
 /**
- * Helper to create expiration date by tier.
+ * Helper to create expiration date by phase/score.
  */
-export function learningExpiresIn(days?: number, tier?: LearningTier): string | null {
-  if (tier === 'insight') return null; // permanent
-  const d = days ?? TIER_EXPIRY_DAYS[tier || 'signal'] ?? 7;
+export function learningExpiresIn(days?: number, tier?: LearningPhase): string | null {
+  if (tier === 'insight') return null;
+  const phase = tier || 'noise';
+  const d = days ?? PHASE_CONFIG[phase].expiryDays ?? 7;
   return new Date(Date.now() + d * 86400000).toISOString();
 }

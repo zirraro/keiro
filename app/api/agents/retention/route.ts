@@ -4,6 +4,7 @@ import { getAuthUser } from '@/lib/auth-server';
 import { getRetentionSystemPrompt, getRetentionMessagePrompt } from '@/lib/agents/retention-prompt';
 import { callGemini } from '@/lib/agents/gemini';
 import { canSendEmail } from '@/lib/agents/email-dedup';
+import { saveLearning, saveAgentFeedback } from '@/lib/agents/learning';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -334,6 +335,45 @@ export async function GET(request: NextRequest) {
       data: summary,
       status: 'success', created_at: nowISO,
     });
+
+    // ── Save learnings from retention ──
+    try {
+      const totalClients = clients.length;
+      if (totalClients > 0) {
+        await saveLearning(supabase, {
+          agent: 'retention',
+          category: 'retention',
+          learning: `Santé clients: ${greenCount} verts, ${yellowCount} jaunes, ${orangeCount} orange, ${redCount} rouges sur ${totalClients}. ${messagesSent} messages envoyés.`,
+          evidence: `Daily check: green=${greenCount}, yellow=${yellowCount}, orange=${orangeCount}, red=${redCount}, msgs=${messagesSent}`,
+          confidence: 25,
+        });
+      }
+
+      if (redCount > 0) {
+        await saveLearning(supabase, {
+          agent: 'retention',
+          category: 'retention',
+          learning: `${redCount} clients en danger critique (score <30). Intervention urgente nécessaire.`,
+          evidence: `Red alert: ${redCount} clients at risk out of ${totalClients} total`,
+          confidence: 30,
+          revenue_linked: true,
+        });
+      }
+    } catch (learnErr: any) {
+      console.warn('[Retention] Learning save error:', learnErr.message);
+    }
+
+    // ── Feedback to CEO ──
+    try {
+      await saveAgentFeedback(supabase, {
+        from_agent: 'retention',
+        to_agent: 'ceo',
+        feedback: `Santé clients: 🟢${greenCount} 🟡${yellowCount} 🟠${orangeCount} 🔴${redCount}. ${messagesSent} interventions envoyées. ${redCount > 0 ? `ALERTE: ${redCount} clients en danger.` : 'Situation stable.'}`,
+        category: 'retention',
+      });
+    } catch (fbErr: any) {
+      console.warn('[Retention] Feedback save error:', fbErr.message);
+    }
 
     // Email summary to founder
     if (process.env.RESEND_API_KEY && (orangeCount > 0 || redCount > 0)) {

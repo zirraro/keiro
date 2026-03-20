@@ -5,6 +5,7 @@ import { callGemini, callGeminiWithSearch } from '@/lib/agents/gemini';
 import { loadSharedContext, formatContextForPrompt, writeDirective } from '@/lib/agents/shared-context';
 import { getBusinessDiscoveryPosts, getOwnInstagramMedia, type IgDiscoveryPost, type IgOwnMedia } from '@/lib/meta';
 import { getTikTokVideos, refreshTikTokToken, type TikTokVideo } from '@/lib/tiktok';
+import { saveAgentFeedback } from '@/lib/agents/learning';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -247,6 +248,18 @@ Date : ${now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', mont
       status: 'success',
       created_at: nowISO,
     });
+
+    // ── Feedback to CEO ──
+    try {
+      await saveAgentFeedback(supabase, {
+        from_agent: 'marketing',
+        to_agent: 'ceo',
+        feedback: `Analyse marketing: ${learningsExtracted} apprentissages extraits. CRM: ${sharedCtx.crmStats.total} prospects (${sharedCtx.crmStats.hot} hot, ${sharedCtx.crmStats.warm} warm, ${sharedCtx.crmStats.clients} clients). Recommandation intégrée dans l'analyse.`,
+        category: 'content',
+      });
+    } catch (fbErr: any) {
+      console.warn('[MarketingAgent] Feedback save error:', fbErr.message);
+    }
 
     return NextResponse.json({
       ok: true,

@@ -155,6 +155,14 @@
     {
       "path": "/api/cron/scheduler?slot=tiktok_publish",
       "schedule": "30 19 * * *"
+    },
+    {
+      "path": "/api/cron/scheduler?slot=amit",
+      "schedule": "0 21 * * *"
+    },
+    {
+      "path": "/api/cron/scheduler?slot=ops",
+      "schedule": "0 22 * * *"
     }
   ]
 }

@@ -4,6 +4,7 @@ import { getAuthUser } from '@/lib/auth-server';
 import { getCeoSystemPrompt } from '@/lib/agents/ceo-prompt';
 import { callGemini, callGeminiChat } from '@/lib/agents/gemini';
 import { loadSharedContext, formatContextForPrompt, writeDirective } from '@/lib/agents/shared-context';
+import { saveLearning, saveAgentFeedback } from '@/lib/agents/learning';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -764,6 +765,55 @@ async function generateBrief(): Promise<NextResponse> {
       },
       created_at: nowISO,
     });
+
+    // ── Save learnings from CEO analysis ──
+    try {
+      // Learning: overall conversion effectiveness
+      if (metrics24h.emails_replied > 0) {
+        await saveLearning(supabase, {
+          agent: 'ceo',
+          category: 'conversion',
+          learning: `${metrics24h.emails_replied} réponses email aujourd'hui sur ${metrics24h.emails_sent} envoyés (${metrics24h.emails_sent > 0 ? Math.round(metrics24h.emails_replied / metrics24h.emails_sent * 100) : 0}% reply rate)`,
+          evidence: `24h: ${metrics24h.emails_sent} sent, ${metrics24h.emails_opened} opened, ${metrics24h.emails_replied} replied`,
+          confidence: 25,
+          revenue_linked: metrics24h.emails_replied > 0,
+        });
+      }
+
+      // Learning: chatbot lead generation effectiveness
+      if (metrics24h.leads_from_chatbot > 0) {
+        await saveLearning(supabase, {
+          agent: 'ceo',
+          category: 'conversion',
+          learning: `Chatbot a capturé ${metrics24h.leads_from_chatbot} leads sur ${metrics24h.chatbot_conversations} conversations`,
+          evidence: `24h metrics: ${metrics24h.chatbot_conversations} convos, ${metrics24h.leads_from_chatbot} leads captured`,
+          confidence: 20,
+        });
+      }
+
+      // Feedback to agents based on performance
+      if (metrics24h.emails_sent > 0 && metrics24h.emails_opened > 0) {
+        const openRate = Math.round(metrics24h.emails_opened / metrics24h.emails_sent * 100);
+        if (openRate < 15) {
+          await saveAgentFeedback(supabase, {
+            from_agent: 'ceo',
+            to_agent: 'email',
+            feedback: `Open rate bas (${openRate}%). Tester des objets plus courts et personnalisés. Essayer le prénom dans l'objet.`,
+            category: 'email',
+          });
+        }
+        if (openRate > 40) {
+          await saveAgentFeedback(supabase, {
+            from_agent: 'ceo',
+            to_agent: 'email',
+            feedback: `Excellent open rate (${openRate}%). Continuer avec cette approche d'objets.`,
+            category: 'email',
+          });
+        }
+      }
+    } catch (learnErr: any) {
+      console.warn('[CEOAgent] Learning save error:', learnErr.message);
+    }
 
     // --- Extract structured orders from brief and insert into agent_orders ---
     await extractAndInsertOrders(supabase, brief, nowISO);

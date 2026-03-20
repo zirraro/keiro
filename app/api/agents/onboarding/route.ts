@@ -4,6 +4,7 @@ import { getAuthUser } from '@/lib/auth-server';
 import { getOnboardingSystemPrompt, getOnboardingStepPrompt } from '@/lib/agents/onboarding-prompt';
 import { callGemini } from '@/lib/agents/gemini';
 import { canSendEmail } from '@/lib/agents/email-dedup';
+import { saveLearning, saveAgentFeedback } from '@/lib/agents/learning';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -312,6 +313,45 @@ export async function GET(request: NextRequest) {
       data: { processed, skipped, alerts, dynamicScheduled, total: pendingItems.length },
       status: 'success', created_at: now,
     });
+
+    // ── Save learnings from onboarding ──
+    try {
+      if (processed > 0 || alerts > 0) {
+        await saveLearning(supabase, {
+          agent: 'onboarding',
+          category: 'retention',
+          learning: `Onboarding: ${processed} emails envoyés, ${skipped} skippés, ${alerts} alertes fondateur. Taux envoi: ${pendingItems.length > 0 ? Math.round(processed / pendingItems.length * 100) : 0}%`,
+          evidence: `Queue: ${pendingItems.length} pending, ${processed} sent, ${skipped} skipped, ${alerts} alerts, ${dynamicScheduled} dynamic`,
+          confidence: 20,
+        });
+      }
+
+      if (dynamicScheduled > 0) {
+        await saveLearning(supabase, {
+          agent: 'onboarding',
+          category: 'conversion',
+          learning: `${dynamicScheduled} étapes dynamiques déclenchées (milestones/upsells détectés automatiquement)`,
+          evidence: `Dynamic steps scheduled: ${dynamicScheduled}`,
+          confidence: 15,
+        });
+      }
+    } catch (learnErr: any) {
+      console.warn('[Onboarding] Learning save error:', learnErr.message);
+    }
+
+    // ── Feedback to CEO ──
+    try {
+      if (processed > 0 || alerts > 0) {
+        await saveAgentFeedback(supabase, {
+          from_agent: 'onboarding',
+          to_agent: 'ceo',
+          feedback: `Onboarding: ${processed} emails envoyés, ${skipped} skippés, ${alerts} alertes fondateur. ${dynamicScheduled > 0 ? `${dynamicScheduled} étapes dynamiques déclenchées.` : ''} Taux envoi: ${pendingItems.length > 0 ? Math.round(processed / pendingItems.length * 100) : 0}%.`,
+          category: 'retention',
+        });
+      }
+    } catch (fbErr: any) {
+      console.warn('[Onboarding] Feedback save error:', fbErr.message);
+    }
 
     console.log(`[Onboarding] Queue processed: ${processed} sent, ${skipped} skipped, ${alerts} alerts, ${dynamicScheduled} dynamic`);
 

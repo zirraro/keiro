@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
+import { saveLearning, saveAgentFeedback } from '@/lib/agents/learning';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -340,6 +341,46 @@ async function runGMapsScan(): Promise<NextResponse> {
     data: report,
     created_at: now,
   });
+
+  // ── Save learnings from GMaps scan ──
+  try {
+    if (totalImported > 0) {
+      await saveLearning(supabase, {
+        agent: 'gmaps',
+        category: 'prospection',
+        learning: `Scan GMaps: ${totalImported} importés, ${totalSkipped} existants, ${totalErrors} erreurs sur ${scannedZones.length} zones`,
+        evidence: `Zones: ${scannedZones.join(', ')}. ${totalImported} new, ${totalSkipped} duplicates, ${totalErrors} errors`,
+        confidence: 20,
+      });
+    }
+
+    // Track zone effectiveness
+    if (totalImported > 5) {
+      await saveLearning(supabase, {
+        agent: 'gmaps',
+        category: 'prospection',
+        learning: `Zones productives aujourd'hui: ${scannedZones.join(', ')} — ${totalImported} nouveaux prospects trouvés`,
+        evidence: `${totalImported} imports from zones: ${scannedZones.join(', ')}`,
+        confidence: 15,
+      });
+    }
+  } catch (learnErr: any) {
+    console.warn('[GMaps] Learning save error:', learnErr.message);
+  }
+
+  // ── Feedback to CEO ──
+  try {
+    if (totalImported > 0) {
+      await saveAgentFeedback(supabase, {
+        from_agent: 'gmaps',
+        to_agent: 'ceo',
+        feedback: `Découverte GMaps: ${totalImported} nouveaux prospects importés depuis ${scannedZones.length} zones (${scannedZones.join(', ')}). ${totalSkipped} doublons, ${totalErrors} erreurs. ${totalErrors > 5 ? '⚠️ Taux erreur élevé.' : 'Scan nominal.'}`,
+        category: 'prospection',
+      });
+    }
+  } catch (fbErr: any) {
+    console.warn('[GMaps] Feedback save error:', fbErr.message);
+  }
 
   console.log(`[GMaps] ${scannedZones.join(', ')}: ${totalImported} imported, ${totalSkipped} skipped, ${totalErrors} errors`);
 

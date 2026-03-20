@@ -6,6 +6,7 @@ import { KEYWORD_CLUSTERS, pickNextKeyword } from '@/lib/agents/seo-keywords';
 import { callGemini } from '@/lib/agents/gemini';
 import { loadSharedContext, formatContextForPrompt } from '@/lib/agents/shared-context';
 import { getGscReport } from '@/lib/agents/gsc';
+import { saveLearning, saveAgentFeedback } from '@/lib/agents/learning';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -623,6 +624,31 @@ Genere le JSON complet comme specifie dans tes instructions.`,
       status: 'success',
       created_at: now,
     });
+
+    // ── Save learnings from SEO ──
+    try {
+      await saveLearning(supabase, {
+        agent: 'seo',
+        category: 'seo',
+        learning: `Article SEO généré: "${article.meta_title || article.h1 || targetKeyword}" — ${article.content_html?.split(/\s+/).length || 'N/A'} mots, keyword: ${targetKeyword}`,
+        evidence: `Article published: slug=${article.slug}, keyword=${targetKeyword}, cluster=${article.keywords?.primary || 'unknown'}`,
+        confidence: 20,
+      });
+    } catch (learnErr: any) {
+      console.warn('[SEOAgent] Learning save error:', learnErr.message);
+    }
+
+    // ── Feedback to CEO ──
+    try {
+      await saveAgentFeedback(supabase, {
+        from_agent: 'seo',
+        to_agent: 'ceo',
+        feedback: `Article SEO généré: "${article.meta_title || article.h1 || targetKeyword}" (${article.content_html?.split(/\s+/).length || 'N/A'} mots). Keyword: ${targetKeyword}. Slug: ${article.slug}. Statut: draft.`,
+        category: 'seo',
+      });
+    } catch (fbErr: any) {
+      console.warn('[SEOAgent] Feedback save error:', fbErr.message);
+    }
 
     console.log(`[SEOAgent] Article generated: "${article.slug}" (${inserted.id})`);
 

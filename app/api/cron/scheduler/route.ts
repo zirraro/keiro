@@ -40,6 +40,8 @@ export const maxDuration = 300;
  * 18:30 UTC  slot=email_recap     → Email cold: rattrapage tous types restants
  * 19:00 UTC  slot=marketing_learn → Marketing: analyze + advise agents
  * 20:00 UTC  slot=ceo_night       → CEO brief #3 (bilan journée, résultats ordres, plan J+1) + execute orders
+ * 21:00 UTC  slot=amit            → AMIT: Strategic analysis (after all agents finished)
+ * 22:00 UTC  slot=ops             → Ops: System health check (end of day diagnostic)
  * Every 10m  slot=video_poll      → Poll & advance async video generation jobs (30s+ TikTok)
  * Every 15m  slot=publish_scheduled → Auto-publish user-scheduled posts (from calendar)
  * 19:30 UTC  slot=tiktok_publish  → TikTok: publish pending TikTok content (21h30 Paris = peak engagement)
@@ -383,6 +385,17 @@ export async function GET(request: NextRequest) {
     case 'tiktok_publish':
       // 19:30 UTC (21h30 Paris) — Publish ALL pending content (Reels + TikTok videos)
       await callEndpoint('Publish Reels+TikTok', '/api/agents/content', 'POST', { action: 'execute_publication' });
+      break;
+
+    case 'amit':
+      // 21:00 UTC — AMIT Strategic Analysis (after ALL agents finished their day)
+      // Reads all learnings, feedbacks, CRM data → generates strategic intelligence
+      await callEndpoint('AMIT Strategic Analysis', '/api/agents/amit', 'POST', { action: 'analyze' });
+      break;
+
+    case 'ops':
+      // 22:00 UTC — Ops Health Check (end-of-day system diagnostic)
+      await callEndpoint('Ops Health Check', '/api/agents/ops', 'POST', { action: 'health_check' });
       break;
 
     default:

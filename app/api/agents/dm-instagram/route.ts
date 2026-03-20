@@ -5,6 +5,8 @@ import { getDMSystemPrompt } from '@/lib/agents/dm-prompt';
 import { callGemini } from '@/lib/agents/gemini';
 import { getSequenceForProspect } from '@/lib/agents/scoring';
 import { verifyCRMCoherence } from '@/lib/agents/business-timing';
+import { loadSharedContext, formatContextForPrompt } from '@/lib/agents/shared-context';
+import { saveLearning, saveAgentFeedback } from '@/lib/agents/learning';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -483,5 +485,49 @@ async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram'):
   });
 
   console.log(`[DMAgent] ${platform} Done: ${sent} prepared, ${failed} failed, ${skippedVerification} skipped, ${followupCount} followups`);
+
+    // ── Save learnings from DM preparation ──
+    try {
+      if (prepared > 0) {
+        await saveLearning(supabase, {
+          agent: agentName,
+          category: 'dm',
+          learning: `DM ${platform}: ${prepared} préparés, ${failed} échoués. Taux réussite: ${prepared > 0 ? Math.round((prepared - failed) / prepared * 100) : 0}%`,
+          evidence: `${platform} run: ${prepared} prepared, ${failed} failed, ${skippedVerification} skipped verification, ${followupCount} followups`,
+          confidence: 20,
+        });
+      }
+
+      // Track best performing business types
+      const topBizTypes = Object.entries(byBusinessType).sort((a, b) => b[1].count - a[1].count);
+      if (topBizTypes.length > 0) {
+        const [topType, topData] = topBizTypes[0];
+        await saveLearning(supabase, {
+          agent: agentName,
+          category: 'dm',
+          learning: `Type "${topType}" dominant pour DM ${platform}: ${topData.count} DMs préparés`,
+          evidence: `Business types: ${topBizTypes.map(([t, d]) => `${t}:${d.count}`).join(', ')}`,
+          confidence: 15,
+        });
+      }
+    } catch (learnErr: any) {
+      console.warn(`[DMAgent] Learning save error:`, learnErr.message);
+    }
+
+    // ── Feedback to CEO ──
+    try {
+      if (prepared > 0) {
+        const topTypes = Object.entries(byBusinessType).sort((a, b) => b[1].count - a[1].count).slice(0, 3).map(([t, d]) => `${t}:${d.count}`).join(', ');
+        await saveAgentFeedback(supabase, {
+          from_agent: agentName,
+          to_agent: 'ceo',
+          feedback: `DM ${platform}: ${prepared} préparés, ${failed} échoués, ${followupCount} relances. ${topTypes ? `Types: ${topTypes}.` : ''} ${failed > 0 ? `⚠️ ${failed} échecs à investiguer.` : 'Pipeline DM opérationnel.'}`,
+          category: 'prospection',
+        });
+      }
+    } catch (fbErr: any) {
+      console.warn(`[DMAgent] Feedback save error:`, fbErr.message);
+    }
+
   return NextResponse.json({ ok: true, platform, ...report });
 }

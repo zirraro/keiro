@@ -13,6 +13,7 @@ import { loadSharedContext, formatContextForPrompt, completeDirective } from '@/
 import { decomposePromptIntoScenes, calculateSegments } from '@/lib/video-scenes';
 import { createVideoJob } from '@/lib/video-jobs-db';
 import { diagnosePublishFailure, sendPublishAlert } from '@/lib/agents/publish-diagnostics';
+import { saveLearning, saveAgentFeedback } from '@/lib/agents/learning';
 
 // ──────────────────────────────────────
 // Claude Haiku for text generation (captions, hashtags, descriptions)
@@ -1640,6 +1641,34 @@ export async function POST(request: NextRequest) {
           created_at: nowISO,
         });
 
+        // ── Save learnings from publication ──
+        try {
+          if (publishedCount > 0) {
+            await saveLearning(supabase, {
+              agent: 'content',
+              category: 'content',
+              learning: `Publication: ${publishedCount} posts publiés avec succès`,
+              evidence: `Published ${publishedCount} posts`,
+              confidence: 25,
+            });
+          }
+        } catch (learnErr: any) {
+          console.warn('[ContentAgent] Learning save error:', learnErr.message);
+        }
+
+        // ── Feedback to CEO ──
+        try {
+          const failedCount = (publishedPosts || []).filter((p: any) => p.error).length;
+          await saveAgentFeedback(supabase, {
+            from_agent: 'content',
+            to_agent: 'ceo',
+            feedback: `Publication: ${publishedCount} posts publiés. ${failedCount > 0 ? `⚠️ ${failedCount} échecs.` : 'Zéro échec.'} Pipeline contenu opérationnel.`,
+            category: 'content',
+          });
+        } catch (fbErr: any) {
+          console.warn('[ContentAgent] Feedback save error:', (fbErr as any).message);
+        }
+
         return NextResponse.json({ ok: true, published: publishedCount, posts: publishedPosts });
       }
 
@@ -2068,6 +2097,21 @@ async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftO
     created_at: nowISO,
   });
 
+  // ── Save learnings from weekly plan ──
+  try {
+    if (inserted > 0) {
+      await saveLearning(supabase, {
+        agent: 'content',
+        category: 'content',
+        learning: `Plan hebdo généré: ${inserted}/${weekPlan.length} posts planifiés (semaine du ${mondayDate.toISOString().split('T')[0]})`,
+        evidence: `weekly_plan: ${inserted} inserted out of ${weekPlan.length} attempted`,
+        confidence: 20,
+      });
+    }
+  } catch (learnErr: any) {
+    console.warn('[ContentAgent] Learning save error:', learnErr.message);
+  }
+
   // Report strategy to marketing agent for alignment
   const platformBreakdown: Record<string, number> = {};
   const pillarBreakdown: Record<string, number> = {};
@@ -2293,6 +2337,21 @@ async function generateWeekWithVisuals(supabase: any, publishAll: boolean) {
     status: 'success',
     created_at: nowISO,
   });
+
+  // ── Save learnings from content generation ──
+  try {
+    if (results.length > 0) {
+      await saveLearning(supabase, {
+        agent: 'content',
+        category: 'content',
+        learning: `Contenu généré: ${results.length} posts (${totalGenerated} visuels). ${publishedCount} publiés sur Instagram`,
+        evidence: `generate_week: ${results.length} total, ${totalGenerated} visuals, ${publishedCount} published`,
+        confidence: 20,
+      });
+    }
+  } catch (learnErr: any) {
+    console.warn('[ContentAgent] Learning save error:', learnErr.message);
+  }
 
   console.log(`[Content] generate_week complete: ${results.length} posts, ${totalGenerated} visuals, ${publishedCount} published to Instagram`);
 
@@ -2762,6 +2821,19 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
     },
     status: 'success', created_at: nowISO,
   });
+
+  // ── Save learnings from daily post generation ──
+  try {
+    await saveLearning(supabase, {
+      agent: 'content',
+      category: 'content',
+      learning: `Post quotidien généré: ${postPlatform} ${postFormat}, pilier=${post.pillar}${publicationError ? ' (erreur publication)' : ''}`,
+      evidence: `daily_post: platform=${postPlatform}, format=${postFormat}, pillar=${post.pillar}, ig=${!!igPermalink}, tiktok=${!!tiktokPublishId}, error=${!!publicationError}`,
+      confidence: 20,
+    });
+  } catch (learnErr: any) {
+    console.warn('[ContentAgent] Learning save error:', learnErr.message);
+  }
 
   console.log(`[Content] Daily post: ${postPlatform} ${postFormat} — ${post.hook}`);
 

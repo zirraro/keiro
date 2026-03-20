@@ -4,6 +4,7 @@ import { getAuthUser } from '@/lib/auth-server';
 import { getCommercialSystemPrompt } from '@/lib/agents/commercial-prompt';
 import { callGemini, callGeminiWithSearch } from '@/lib/agents/gemini';
 import { loadSharedContext, formatContextForPrompt } from '@/lib/agents/shared-context';
+import { saveLearning, saveAgentFeedback } from '@/lib/agents/learning';
 import { calculateScore, calculateTemperature } from '@/lib/agents/scoring';
 
 export const runtime = 'nodejs';
@@ -1172,6 +1173,64 @@ Retourne 8-12 prospects qualifiés AVEC EMAIL en JSON. Sois TRÈS concis dans de
       },
       created_at: nowISO,
     });
+
+    // ── Save learnings from enrichment ──
+    try {
+      if (enrichedCount > 0 || newProspectsCreated > 0) {
+        await saveLearning(supabase, {
+          agent: 'commercial',
+          category: 'prospection',
+          learning: `Enrichissement: ${enrichedCount} prospects enrichis, ${newProspectsCreated} nouveaux trouvés. Taux d'enrichissement: ${(prospects?.length || 0) > 0 ? Math.round(enrichedCount / (prospects?.length || 1) * 100) : 0}%`,
+          evidence: `Run ${mode}: ${prospects?.length || 0} traités, ${enrichedCount} enrichis, ${newProspectsCreated} externes, ${skippedCount} skipped`,
+          confidence: 20,
+        });
+      }
+
+      // Track which business types have best enrichment rates
+      const typeStats: Record<string, { enriched: number; total: number }> = {};
+      for (const detail of enrichmentDetails) {
+        const pType = detail.updates?.type || 'unknown';
+        if (!typeStats[pType]) typeStats[pType] = { enriched: 0, total: 0 };
+        typeStats[pType].total++;
+        typeStats[pType].enriched++;
+      }
+      // Also count new prospects by type
+      for (const np of allNewProspects) {
+        if (np.type) {
+          if (!typeStats[np.type]) typeStats[np.type] = { enriched: 0, total: 0 };
+          typeStats[np.type].total++;
+        }
+      }
+      const bestTypes = Object.entries(typeStats).sort((a, b) => b[1].enriched - a[1].enriched);
+      if (bestTypes.length > 0) {
+        const [topType, topData] = bestTypes[0];
+        if (topData.enriched > 2) {
+          await saveLearning(supabase, {
+            agent: 'commercial',
+            category: 'prospection',
+            learning: `Type "${topType}" enrichit le mieux: ${topData.enriched} prospects avec données complètes`,
+            evidence: `Top type this run: ${topType} with ${topData.enriched} enriched out of ${topData.total}`,
+            confidence: 15,
+          });
+        }
+      }
+    } catch (learnErr: any) {
+      console.warn('[CommercialAgent] Learning save error:', learnErr.message);
+    }
+
+    // ── Feedback to CEO ──
+    try {
+      if (enrichedCount > 0 || newProspectsCreated > 0) {
+        await saveAgentFeedback(supabase, {
+          from_agent: 'commercial',
+          to_agent: 'ceo',
+          feedback: `Enrichissement: ${enrichedCount} prospects enrichis, ${newProspectsCreated} nouveaux découverts. ${socialEnrichedCount} profils sociaux trouvés. ${flaggedDeadCount > 0 ? `${flaggedDeadCount} prospects marqués dead.` : ''} Pipeline CRM: ${totalProspects || 0} total, ${withInstagram || 0} avec IG.`,
+          category: 'prospection',
+        });
+      }
+    } catch (fbErr: any) {
+      console.warn('[CommercialAgent] Feedback save error:', fbErr.message);
+    }
 
     console.log(`[CommercialAgent] Done: ${enrichedCount} enriched, ${socialEnrichedCount} social, ${newProspectsCreated} NEW, ${advancedToContactCount} → contacté | CRM: ${totalProspects} total`);
 
