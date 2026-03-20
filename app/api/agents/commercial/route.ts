@@ -460,16 +460,12 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
         }
 
         if (!prospect.type) {
-          if (result.type && VALID_TYPES.includes(result.type) && result.type_confidence >= 40) {
-            // Accept type with moderate confidence — critical for email category targeting
+          if (result.type && VALID_TYPES.includes(result.type)) {
+            // Accept any valid type the AI found — even low confidence is better than null
             updates.type = result.type;
-          } else if (result.type && VALID_TYPES.includes(result.type)) {
-            // Low confidence but valid type — still better than no type at all
-            updates.type = result.type;
-          } else {
-            // AI couldn't determine type — assign 'pme' as fallback so emails have a category
-            updates.type = 'pme';
           }
+          // If AI couldn't determine type → keep null so this prospect gets re-analyzed next run
+          // Email sending uses getSequenceForProspect() which falls back to 'pme' for the template
         }
 
         if (!prospect.quartier && result.quartier && result.quartier_confidence >= 70) {
