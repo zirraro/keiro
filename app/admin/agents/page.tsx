@@ -220,6 +220,7 @@ function AdminAgentsContent() {
     id: string;
     company: string | null;
     email: string | null;
+    first_name: string | null;
     type: string | null;
     source: string | null;
     status: string;
@@ -230,6 +231,7 @@ function AdminAgentsContent() {
     plan_interest: string | null;
     conversion_source?: string;
     email_sequence_step: number | null;
+    last_email_sent_at: string | null;
     last_email_opened_at: string | null;
     last_email_clicked_at: string | null;
     matched_plan: string | null;
@@ -580,7 +582,7 @@ function AdminAgentsContent() {
     try {
       let query = supabase
         .from('crm_prospects')
-        .select('id, company, email, type, source, status, temperature, score, created_at, date_contact, plan_interest, email_sequence_step, last_email_opened_at, last_email_clicked_at, matched_plan')
+        .select('id, company, email, first_name, type, source, status, temperature, score, created_at, date_contact, plan_interest, email_sequence_step, last_email_sent_at, last_email_opened_at, last_email_clicked_at, matched_plan')
         .order('created_at', { ascending: false })
         .limit(100);
 
@@ -597,11 +599,13 @@ function AdminAgentsContent() {
         query = query.is('type', null);
       } else if (leadIntelFilter === 'contacted_24h') {
         const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-        query = query.gte('date_contact', twentyFourHoursAgo);
+        query = query.not('last_email_sent_at', 'is', null).gte('last_email_sent_at', twentyFourHoursAgo);
       }
 
       const { data } = await query;
-      setLeadIntel((data || []) as LeadIntel[]);
+      // Filter out truly anonymous prospects (no company, no name, no email = useless)
+      const filtered = (data || []).filter((p: any) => p.company || p.first_name || p.email);
+      setLeadIntel(filtered as LeadIntel[]);
     } catch (e) {
       console.error('[Lead Intel] Load error:', e);
     }
@@ -2330,44 +2334,62 @@ function AdminAgentsContent() {
 
                 {showLeadIntel && (
                   <div className="p-5 space-y-4">
-                    {/* Mini dashboard emails 24h */}
-                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100">
-                      <h4 className="text-xs font-bold text-blue-800 mb-3">📊 Emails — Dernières 24h</h4>
-                      <div className="grid grid-cols-3 gap-3">
-                        <div className="text-center p-2 bg-white/80 rounded-lg shadow-sm">
-                          <p className="text-xl font-bold text-blue-700">{emailStats24h.sent}</p>
-                          <p className="text-[10px] text-blue-600 font-medium">Envoyés</p>
-                        </div>
-                        <div className="text-center p-2 bg-white/80 rounded-lg shadow-sm">
-                          <p className="text-xl font-bold text-green-600">{emailStats24h.opened}</p>
-                          <p className="text-[10px] text-green-600 font-medium">Ouvertures</p>
-                          {emailStats24h.sent > 0 && <p className="text-[9px] text-green-500">{Math.round(emailStats24h.opened / emailStats24h.sent * 100)}% taux</p>}
-                        </div>
-                        <div className="text-center p-2 bg-white/80 rounded-lg shadow-sm">
-                          <p className="text-xl font-bold text-purple-600">{emailStats24h.clicked}</p>
-                          <p className="text-[10px] text-purple-600 font-medium">Clics</p>
-                          {emailStats24h.opened > 0 && <p className="text-[9px] text-purple-500">{Math.round(emailStats24h.clicked / emailStats24h.opened * 100)}% CTR</p>}
-                        </div>
-                      </div>
-                      {emailStats24h.openedProspects.length > 0 && (
-                        <div className="mt-3 pt-2 border-t border-blue-100">
-                          <p className="text-[10px] font-semibold text-blue-700 mb-1">Prospects ayant ouvert (24h) :</p>
-                          <div className="flex flex-wrap gap-1">
-                            {emailStats24h.openedProspects.slice(0, 10).map(pid => {
-                              const prospect = leadIntel.find(l => l.id === pid);
-                              const isClicker = emailStats24h.clickedProspects.includes(pid);
-                              return (
-                                <span key={pid} className={`text-[10px] px-2 py-0.5 rounded-full ${isClicker ? 'bg-purple-100 text-purple-700 font-bold' : 'bg-blue-100 text-blue-700'}`}>
-                                  {prospect?.company || prospect?.email?.split('@')[0] || pid.slice(0, 8)}
-                                  {isClicker && ' + clic'}
-                                </span>
-                              );
-                            })}
-                            {emailStats24h.openedProspects.length > 10 && <span className="text-[10px] text-blue-500">+{emailStats24h.openedProspects.length - 10}</span>}
+                    {/* Mini dashboard emails */}
+                    {(() => {
+                      const emailed = leadIntel.filter(l => l.last_email_sent_at);
+                      const emailOpened = leadIntel.filter(l => l.last_email_opened_at);
+                      const emailClicked = leadIntel.filter(l => l.last_email_clicked_at);
+                      const totalEmailed = emailed.length;
+                      return (
+                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100">
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="text-xs font-bold text-blue-800">📊 Performance emails (sélection affichée)</h4>
+                            <span className="text-[10px] text-blue-500">{leadIntel.length} prospects</span>
                           </div>
+                          <div className="grid grid-cols-4 gap-3">
+                            <div className="text-center p-2 bg-white/80 rounded-lg shadow-sm">
+                              <p className="text-xl font-bold text-blue-700">{totalEmailed}</p>
+                              <p className="text-[10px] text-blue-600 font-medium">Contactés</p>
+                            </div>
+                            <div className="text-center p-2 bg-white/80 rounded-lg shadow-sm">
+                              <p className="text-xl font-bold text-green-600">{emailOpened.length}</p>
+                              <p className="text-[10px] text-green-600 font-medium">Ont ouvert</p>
+                              {totalEmailed > 0 && <p className="text-[9px] text-green-500">{Math.round(emailOpened.length / totalEmailed * 100)}%</p>}
+                            </div>
+                            <div className="text-center p-2 bg-white/80 rounded-lg shadow-sm">
+                              <p className="text-xl font-bold text-purple-600">{emailClicked.length}</p>
+                              <p className="text-[10px] text-purple-600 font-medium">Ont cliqué</p>
+                              {emailOpened.length > 0 && <p className="text-[9px] text-purple-500">{Math.round(emailClicked.length / emailOpened.length * 100)}% CTR</p>}
+                            </div>
+                            <div className="text-center p-2 bg-white/80 rounded-lg shadow-sm">
+                              <p className="text-xl font-bold text-amber-600">{leadIntel.length - totalEmailed}</p>
+                              <p className="text-[10px] text-amber-600 font-medium">Non contactés</p>
+                            </div>
+                          </div>
+                          {/* 24h real-time stats */}
+                          {emailStats24h.sent > 0 && (
+                            <div className="mt-3 pt-2 border-t border-blue-100">
+                              <p className="text-[10px] font-semibold text-blue-700 mb-1">Dernières 24h : {emailStats24h.sent} envoyés, {emailStats24h.opened} ouvertures, {emailStats24h.clicked} clics</p>
+                              {emailStats24h.openedProspects.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {emailStats24h.openedProspects.slice(0, 10).map(pid => {
+                                    const prospect = leadIntel.find(l => l.id === pid);
+                                    const isClicker = emailStats24h.clickedProspects.includes(pid);
+                                    return (
+                                      <span key={pid} className={`text-[10px] px-2 py-0.5 rounded-full ${isClicker ? 'bg-purple-100 text-purple-700 font-bold' : 'bg-blue-100 text-blue-700'}`}>
+                                        {prospect?.company || prospect?.first_name || prospect?.email?.split('@')[0] || pid.slice(0, 8)}
+                                        {isClicker && ' + clic'}
+                                      </span>
+                                    );
+                                  })}
+                                  {emailStats24h.openedProspects.length > 10 && <span className="text-[10px] text-blue-500">+{emailStats24h.openedProspects.length - 10}</span>}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
+                      );
+                    })()}
 
                     {/* Filters */}
                     <div className="flex items-center gap-2 flex-wrap">
@@ -2489,7 +2511,7 @@ function AdminAgentsContent() {
                                 <div className="flex items-start justify-between gap-3">
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 flex-wrap">
-                                      <span className="text-sm font-semibold text-neutral-900 truncate">{lead.company || lead.email || 'Anonyme'}</span>
+                                      <span className="text-sm font-semibold text-neutral-900 truncate">{lead.company || lead.first_name || lead.email || 'Anonyme'}</span>
                                       <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
                                         isConverted ? 'bg-emerald-100 text-emerald-700' :
                                         lead.temperature === 'hot' ? 'bg-red-100 text-red-700' :
