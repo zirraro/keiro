@@ -211,9 +211,9 @@ function PricingPageInner() {
         {/* Essai gratuit highlight */}
         <div className="max-w-lg mx-auto mb-10">
           <FadeUp>
-          <div className="bg-white rounded-2xl border-2 border-green-200 p-6 relative hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
+          <div className="bg-white dark:bg-[#0c1a3a] rounded-2xl border-2 border-purple-200 dark:border-purple-500/30 p-6 relative hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
             <div className="absolute -top-3 left-4">
-              <span className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 py-1 rounded-full text-xs font-bold">
+              <span className="bg-gradient-to-r from-[#0c1a3a] to-purple-700 text-white px-3 py-1 rounded-full text-xs font-bold">
                 {t.pricing.freeTrialBadge || '🎁 Essai gratuit'}
               </span>
             </div>
@@ -222,10 +222,10 @@ function PricingPageInner() {
                 <span>🎁</span> {t.pricing.freeTrialTitle || 'Essai gratuit 7 jours'}
               </h3>
               <div className="flex items-baseline gap-2 mb-4">
-                <span className="text-5xl font-bold bg-gradient-to-r from-green-500 to-emerald-600 bg-clip-text text-transparent">0€</span>
+                <span className="text-5xl font-bold bg-gradient-to-r from-[#0c1a3a] to-purple-600 bg-clip-text text-transparent">0€</span>
                 <span className="text-neutral-500">/ 7 jours</span>
               </div>
-              <p className="text-neutral-600 text-sm font-medium">{t.pricing.freeTrialSubtitle || 'Teste Keiro sans engagement — aucune carte requise'}</p>
+              <p className="text-neutral-600 dark:text-neutral-300 text-sm font-medium">{t.pricing.freeTrialSubtitle || 'Teste Keiro sans engagement — aucune carte requise'}</p>
             </div>
 
             <ul className="space-y-4 mb-8">
@@ -237,17 +237,17 @@ function PricingPageInner() {
                 'Aucune carte bancaire requise',
               ].map((bullet, i) => (
                 <li key={i} className="flex items-start gap-3">
-                  <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span className="text-sm text-neutral-700" dangerouslySetInnerHTML={{ __html: bullet }} />
+                  <span className="text-sm text-neutral-700 dark:text-neutral-300" dangerouslySetInnerHTML={{ __html: bullet }} />
                 </li>
               ))}
             </ul>
 
             <Link
               href="/generate"
-              className="block w-full py-3 px-6 text-center rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold hover:shadow-lg transition-all hover:scale-105"
+              className="block w-full py-3 px-6 text-center rounded-xl bg-gradient-to-r from-[#0c1a3a] to-purple-700 text-white font-bold hover:shadow-lg transition-all hover:scale-105"
             >
               {t.pricing.freeTrialCta || '→ Créer mon 1er visuel gratuitement'}
             </Link>
@@ -529,14 +529,14 @@ function PricingPageInner() {
         </FadeUp>
 
         {/* Inclus gratuitement */}
-        <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border border-green-200 p-6 mb-10">
-          <h3 className="text-lg font-bold text-green-900 mb-3 flex items-center gap-2">
+        <div className="bg-gradient-to-r from-[#0c1a3a]/5 to-purple-50 dark:from-[#0c1a3a] dark:to-purple-900/20 rounded-2xl border border-purple-200 dark:border-purple-500/20 p-6 mb-10">
+          <h3 className="text-lg font-bold text-neutral-900 dark:text-white mb-3 flex items-center gap-2">
             <span>🎁</span> {t.pricing.freeTitle}
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             {t.pricing.freeFeatures.map((item) => (
-              <div key={item} className="flex items-center gap-2 bg-white/70 rounded-lg px-3 py-2">
-                <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+              <div key={item} className="flex items-center gap-2 bg-white/70 dark:bg-white/10 rounded-lg px-3 py-2">
+                <svg className="w-4 h-4 text-purple-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                 <span className="text-xs font-medium text-green-800">{item}</span>
               </div>
             ))}
