@@ -238,6 +238,7 @@ export async function contradictLearning(
   supabase: SupabaseClient,
   learningId: string,
   reason: string,
+  orgId?: string | null,
 ): Promise<void> {
   const { data } = await supabase
     .from('agent_logs')
@@ -252,7 +253,7 @@ export async function contradictLearning(
     const newPhase = scoreToPhase(newConfidence);
     const newExpiry = expiryFromScore(newConfidence);
 
-    await supabase.from('agent_logs').update({
+    let updateQuery = supabase.from('agent_logs').update({
       data: {
         ...data.data,
         confidence: newConfidence,
@@ -264,6 +265,8 @@ export async function contradictLearning(
         updated_at: new Date().toISOString(),
       },
     }).eq('id', learningId);
+    if (orgId) updateQuery = updateQuery.eq('org_id', orgId);
+    await updateQuery;
   }
 }
 
@@ -274,6 +277,7 @@ export async function promoteToInsight(
   supabase: SupabaseClient,
   learningId: string,
   reason: string,
+  orgId?: string | null,
 ): Promise<void> {
   const { data } = await supabase
     .from('agent_logs')
@@ -283,7 +287,7 @@ export async function promoteToInsight(
 
   if (data?.data) {
     const newConfidence = Math.max(data.data.confidence || 80, 85);
-    await supabase.from('agent_logs').update({
+    let updateQuery = supabase.from('agent_logs').update({
       data: {
         ...data.data,
         tier: 'insight',
@@ -295,6 +299,8 @@ export async function promoteToInsight(
         updated_at: new Date().toISOString(),
       },
     }).eq('id', learningId);
+    if (orgId) updateQuery = updateQuery.eq('org_id', orgId);
+    await updateQuery;
   }
 }
 
@@ -409,7 +415,7 @@ export async function getAllAgentLearnings(
  */
 export async function getAllHistoricalLearnings(
   supabase: SupabaseClient,
-  options?: { minConfidence?: number; limit?: number; agentFilter?: string },
+  options?: { minConfidence?: number; limit?: number; agentFilter?: string; orgId?: string | null },
 ): Promise<AgentLearning[]> {
   const minConf = options?.minConfidence ?? 0;
   const maxResults = options?.limit ?? 200;
@@ -423,6 +429,9 @@ export async function getAllHistoricalLearnings(
 
   if (options?.agentFilter) {
     query = query.eq('agent', options.agentFilter);
+  }
+  if (options?.orgId) {
+    query = query.eq('org_id', options.orgId);
   }
 
   const { data } = await query;
@@ -527,7 +536,21 @@ function anonymizeEvidence(evidence: string): string {
     .replace(/(?:\+?33|0)\s*[1-9](?:[\s.-]*\d{2}){4}/g, '[phone]')
     .replace(/\+?\d{10,15}/g, '[phone]')
     // Remove common name patterns after "chez" or "de" (French business context)
-    .replace(/chez\s+[A-Z][a-zéèêëàâôûùïî]+(?:\s+[A-Z][a-zéèêëàâôûùïî]+)*/g, 'chez [entreprise]');
+    .replace(/chez\s+[A-Z][a-zéèêëàâôûùïî]+(?:\s+[A-Z][a-zéèêëàâôûùïî]+)*/g, 'chez [entreprise]')
+    // Anonymize company names: capitalized words of 3+ chars that aren't common words
+    .replace(/\b([A-Z][a-zA-ZéèêëàâôûùïîÉÈÊËÀÂÔÛÙÏÎ]{2,})\b/g, (match) => {
+      const commonWords = new Set([
+        'Les', 'Des', 'Une', 'Pour', 'Par', 'Sur', 'Avec', 'Dans', 'Pas', 'Plus',
+        'Qui', 'Que', 'Est', 'Sont', 'Ont', 'Mais', 'Donc', 'Car', 'The', 'And',
+        'For', 'Not', 'You', 'All', 'Can', 'Had', 'Her', 'Was', 'One', 'Our',
+        'This', 'That', 'From', 'With', 'They', 'Been', 'Have', 'Many', 'Some',
+        'Them', 'Than', 'Its', 'Over', 'Such', 'After', 'Most', 'Also', 'Made',
+        'Email', 'Agent', 'Score', 'Client', 'Pattern', 'Signal', 'Rule', 'Insight',
+        'Noise', 'Phase', 'Marketing', 'Content', 'Conversion', 'Prospection',
+        'Community', 'Retention', 'General',
+      ]);
+      return commonWords.has(match) ? match : '[company]';
+    });
 }
 
 /**
@@ -599,16 +622,20 @@ export async function getAllFeedbacks(
   supabase: SupabaseClient,
   days: number = 7,
   limit: number = 50,
+  orgId?: string | null,
 ): Promise<AgentFeedback[]> {
   const since = new Date(Date.now() - days * 86400000).toISOString();
 
-  const { data } = await supabase
+  let query = supabase
     .from('agent_logs')
     .select('id, agent, target, data, created_at')
     .eq('action', 'agent_feedback')
     .gte('created_at', since)
     .order('created_at', { ascending: false })
     .limit(limit);
+  if (orgId) query = query.eq('org_id', orgId);
+
+  const { data } = await query;
 
   return (data || []).map((log: any) => ({
     id: log.id,

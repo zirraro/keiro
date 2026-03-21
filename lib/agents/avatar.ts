@@ -100,8 +100,13 @@ function setCache(agentId: string, data: AgentAvatarConfig, orgId?: string) {
   avatarCache.set(cacheKey(agentId, orgId), { data, timestamp: Date.now() });
 }
 
-export function invalidateAvatarCache(agentId?: string) {
+export function invalidateAvatarCache(agentId?: string, orgId?: string) {
   if (agentId) {
+    // Delete org-scoped key when orgId is provided
+    if (orgId) {
+      avatarCache.delete(cacheKey(agentId, orgId));
+    }
+    // Always delete the base (non-org) key for backwards compat
     avatarCache.delete(agentId);
   } else {
     avatarCache.clear();
@@ -222,7 +227,8 @@ export async function getAllAgentAvatars(
 export async function updateAgentAvatar(
   supabase: SupabaseClient,
   agentId: string,
-  updates: Partial<Omit<AgentAvatarConfig, 'id'>>
+  updates: Partial<Omit<AgentAvatarConfig, 'id'>>,
+  orgId?: string,
 ): Promise<{ success: boolean; error?: string }> {
   const { error } = await supabase
     .from('agent_avatars')
@@ -236,7 +242,7 @@ export async function updateAgentAvatar(
     return { success: false, error: error.message };
   }
 
-  invalidateAvatarCache(agentId);
+  invalidateAvatarCache(agentId, orgId);
   return { success: true };
 }
 
@@ -296,9 +302,10 @@ export async function getAvatarPromptBlock(
  * Get avatar info for chatbot display (name + avatar URL for the widget).
  */
 export async function getChatbotAvatarInfo(
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
+  orgId?: string,
 ): Promise<{ name: string; avatarUrl: string | null; avatar3dUrl: string | null; catchphrase: string }> {
-  const avatar = await getAgentAvatar(supabase, 'commercial');
+  const avatar = await getAgentAvatar(supabase, 'commercial', orgId);
   return {
     name: avatar.display_name,
     avatarUrl: avatar.avatar_url,

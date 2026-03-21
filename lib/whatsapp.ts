@@ -32,6 +32,9 @@ export async function sendWhatsAppMessage(
   text: string,
 ): Promise<{ success: boolean; messageId?: string }> {
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30_000);
+
     const res = await fetch(getBaseUrl(), {
       method: 'POST',
       headers: {
@@ -45,11 +48,14 @@ export async function sendWhatsAppMessage(
         type: 'text',
         text: { preview_url: false, body: text },
       }),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeout);
 
     if (!res.ok) {
       const err = await res.text();
-      console.error('[WhatsApp] sendMessage error:', res.status, err);
+      console.error('[WhatsApp] sendMessage error:', res.status, err.slice(0, 200));
       return { success: false };
     }
 
@@ -57,7 +63,7 @@ export async function sendWhatsAppMessage(
     const messageId = data.messages?.[0]?.id;
     return { success: true, messageId };
   } catch (err: any) {
-    console.error('[WhatsApp] sendMessage exception:', err.message);
+    console.error('[WhatsApp] sendMessage exception:', (err.message || '').slice(0, 200));
     return { success: false };
   }
 }
@@ -191,8 +197,8 @@ export function verifyWebhookSignature(
 ): boolean {
   const appSecret = process.env.WHATSAPP_APP_SECRET;
   if (!appSecret) {
-    console.warn('[WhatsApp] WHATSAPP_APP_SECRET not set — skipping signature verification');
-    return true; // allow in dev
+    console.error('[WhatsApp] WHATSAPP_APP_SECRET not set — rejecting webhook');
+    return false;
   }
   if (!signature) return false;
 

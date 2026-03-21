@@ -1,8 +1,8 @@
 'use client';
 
-import { CSSProperties } from 'react';
+import { CSSProperties, useCallback, useEffect, useRef, useState } from 'react';
 
-// ─── Animation keyframes (injected once) ─────────────────────────────────────
+// ─── Animation keyframes (injected once globally) ────────────────────────────
 
 const ANIMATION_STYLES = `
 @keyframes avatar-idle {
@@ -39,9 +39,29 @@ const ANIMATION_STYLES = `
   0%, 100% { transform: translateY(0px); }
   50% { transform: translateY(-2px); }
 }
+@media (prefers-reduced-motion: reduce) {
+  .avatar-animated, .avatar-animated * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
 `;
 
-const ANIMATION_MAP: Record<string, string> = {
+let stylesInjected = false;
+function useAvatarStyles() {
+  useEffect(() => {
+    if (stylesInjected || typeof document === 'undefined') return;
+    const style = document.createElement('style');
+    style.setAttribute('data-avatar-3d', 'true');
+    style.textContent = ANIMATION_STYLES;
+    document.head.appendChild(style);
+    stylesInjected = true;
+  }, []);
+}
+
+type AnimationType = 'idle' | 'wave' | 'thinking' | 'talking' | 'none';
+
+const ANIMATION_MAP: Record<AnimationType, string> = {
   idle: 'avatar-idle 3s ease-in-out infinite',
   wave: 'avatar-wave 2.5s ease-in-out infinite',
   thinking: 'avatar-thinking 4s ease-in-out infinite',
@@ -70,13 +90,16 @@ export default function Avatar3DCard({
   name, title, avatarUrl, avatar3dUrl, gradientFrom, gradientTo, badgeColor,
   animation = 'idle', icon, size = 'md', onClick, selected, statusDot, statusLabel,
 }: Avatar3DCardProps) {
+  useAvatarStyles();
+
   const imageUrl = avatar3dUrl || avatarUrl;
-  const animationCSS = ANIMATION_MAP[animation] || ANIMATION_MAP.idle;
+  const animationCSS = ANIMATION_MAP[animation as AnimationType] || ANIMATION_MAP.idle;
+  const [imgError, setImgError] = useState(false);
 
   const sizes = {
-    sm: { card: 'w-32', img: 'w-28 h-28', nameSize: 'text-xs', titleSize: 'text-[10px]' },
-    md: { card: 'w-44', img: 'w-36 h-36', nameSize: 'text-sm', titleSize: 'text-xs' },
-    lg: { card: 'w-56', img: 'w-44 h-44', nameSize: 'text-base', titleSize: 'text-sm' },
+    sm: { card: 'w-32', img: 'w-28 h-28', nameSize: 'text-xs', titleSize: 'text-[11px]', emoji: 'text-2xl' },
+    md: { card: 'w-44', img: 'w-36 h-36', nameSize: 'text-sm', titleSize: 'text-xs', emoji: 'text-4xl' },
+    lg: { card: 'w-56', img: 'w-44 h-44', nameSize: 'text-base', titleSize: 'text-sm', emoji: 'text-5xl' },
   };
   const s = sizes[size];
 
@@ -85,61 +108,74 @@ export default function Avatar3DCard({
     animation: 'glow-pulse 4s ease-in-out infinite',
   };
 
-  return (
-    <>
-      <style dangerouslySetInnerHTML={{ __html: ANIMATION_STYLES }} />
-      <div
-        onClick={onClick}
-        className={`${s.card} rounded-2xl p-2 pb-3 flex flex-col items-center gap-1 transition-all duration-300 cursor-pointer group relative overflow-hidden ${
-          selected ? 'ring-2 ring-white/60 shadow-2xl scale-105' : 'hover:scale-105 hover:shadow-xl'
-        }`}
-        style={cardStyle}
-      >
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if ((e.key === 'Enter' || e.key === ' ') && onClick) {
+      e.preventDefault();
+      onClick();
+    }
+  }, [onClick]);
 
-        {/* Status dot */}
-        {statusDot && (
-          <div className="absolute top-2 right-2 z-10 flex items-center gap-1">
-            <div className={`w-2 h-2 rounded-full ${statusDot}`} />
-            {statusLabel && <span className="text-[9px] text-white/60">{statusLabel}</span>}
+  const showFallback = !imageUrl || imgError;
+
+  return (
+    <div
+      onClick={onClick}
+      onKeyDown={handleKeyDown}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      aria-label={`${name}, ${title}`}
+      aria-pressed={onClick ? selected : undefined}
+      className={`avatar-animated ${s.card} rounded-2xl p-2 pb-3 flex flex-col items-center gap-1 transition-all duration-300 cursor-pointer group relative overflow-hidden ${
+        selected ? 'ring-2 ring-white/60 shadow-2xl scale-105' : 'hover:scale-105 hover:shadow-xl'
+      }`}
+      style={cardStyle}
+    >
+
+      {/* Status dot */}
+      {statusDot && (
+        <div className="absolute top-2 right-2 z-10 flex items-center gap-1" role="status" aria-label={statusLabel || 'Status'}>
+          <div className={`w-2 h-2 rounded-full ${statusDot}`} />
+          {statusLabel && <span className="text-[9px] text-white/60">{statusLabel}</span>}
+        </div>
+      )}
+
+      {/* Avatar image with animation */}
+      <div className="relative z-10" style={{ animation: animationCSS, willChange: 'transform' }}>
+        {!showFallback ? (
+          <img
+            src={imageUrl!}
+            alt={`${name}, ${title}`}
+            className={`${s.img} object-cover rounded-xl`}
+            style={{ filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.3))' }}
+            loading="lazy"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <div className={`${s.img} rounded-full bg-white/20 backdrop-blur-sm border-2 border-white/30 flex items-center justify-center`}>
+            <span className={s.emoji}>{icon || '🤖'}</span>
           </div>
         )}
-
-        {/* Avatar image with animation */}
-        <div className="relative z-10" style={{ animation: animationCSS }}>
-          {imageUrl ? (
-            <img
-              src={imageUrl}
-              alt={name}
-              className={`${s.img} object-cover rounded-xl drop-shadow-2xl`}
-              style={{ filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.3))' }}
-            />
-          ) : (
-            <div className={`${s.img} rounded-full bg-white/20 backdrop-blur-sm border-2 border-white/30 flex items-center justify-center`}>
-              <span className="text-4xl">{icon || '🤖'}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Name — floating text, no box */}
-        <div
-          className="relative z-10 text-center"
-          style={{ animation: 'float-badge 3s ease-in-out infinite' }}
-        >
-          <span
-            className={`font-bold text-white ${s.nameSize}`}
-            style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5), 0 1px 3px rgba(0,0,0,0.3)' }}
-          >
-            {name}
-          </span>
-          <p
-            className={`text-white/90 ${s.titleSize} leading-tight`}
-            style={{ textShadow: '0 1px 6px rgba(0,0,0,0.4)' }}
-          >
-            {title}
-          </p>
-        </div>
       </div>
-    </>
+
+      {/* Name — floating text, no box */}
+      <div
+        className="relative z-10 text-center"
+        style={{ animation: 'float-badge 3s ease-in-out infinite' }}
+      >
+        <span
+          className={`font-bold text-white ${s.nameSize}`}
+          style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5), 0 1px 3px rgba(0,0,0,0.3)' }}
+        >
+          {name}
+        </span>
+        <p
+          className={`text-white/90 ${s.titleSize} leading-tight`}
+          style={{ textShadow: '0 1px 6px rgba(0,0,0,0.4)' }}
+        >
+          {title}
+        </p>
+      </div>
+    </div>
   );
 }
 
@@ -152,30 +188,32 @@ export function Avatar3DInline({
   name: string; avatarUrl: string | null; avatar3dUrl: string | null;
   gradientFrom: string; gradientTo: string; animation?: string; icon?: string; size?: number;
 }) {
+  useAvatarStyles();
+
   const imageUrl = avatar3dUrl || avatarUrl;
-  const animationCSS = ANIMATION_MAP[animation] || ANIMATION_MAP.idle;
+  const animationCSS = ANIMATION_MAP[animation as AnimationType] || ANIMATION_MAP.idle;
+  const [imgError, setImgError] = useState(false);
 
   return (
-    <>
-      <style dangerouslySetInnerHTML={{ __html: ANIMATION_STYLES }} />
-      <div
-        className="rounded-full flex items-center justify-center overflow-hidden flex-shrink-0"
-        style={{
-          width: size, height: size,
-          background: `linear-gradient(135deg, ${gradientFrom}, ${gradientTo})`,
-        }}
-      >
-        {imageUrl ? (
-          <img
-            src={imageUrl}
-            alt={name}
-            className="w-full h-full object-cover"
-            style={{ animation: animationCSS }}
-          />
-        ) : (
-          <span style={{ fontSize: size * 0.5 }}>{icon || '🤖'}</span>
-        )}
-      </div>
-    </>
+    <div
+      className="avatar-animated rounded-full flex items-center justify-center overflow-hidden flex-shrink-0"
+      style={{
+        width: size, height: size,
+        background: `linear-gradient(135deg, ${gradientFrom}, ${gradientTo})`,
+      }}
+    >
+      {imageUrl && !imgError ? (
+        <img
+          src={imageUrl}
+          alt={name}
+          className="w-full h-full object-cover"
+          style={{ animation: animationCSS, willChange: 'transform' }}
+          loading="lazy"
+          onError={() => setImgError(true)}
+        />
+      ) : (
+        <span style={{ fontSize: size * 0.5 }}>{icon || '🤖'}</span>
+      )}
+    </div>
   );
 }

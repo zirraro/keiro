@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { calculateTemperature } from '@/lib/agents/scoring';
+import { calculateTemperature, getSequenceForProspect } from '@/lib/agents/scoring';
+import { getEmailTemplate } from '@/lib/agents/email-templates';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -30,43 +31,60 @@ export async function POST(request: NextRequest) {
     for (const event of events) {
       const eventType = event.event?.toLowerCase();
       const email = event.email;
-      const prospectIdFromHeader = event['X-Mailin-custom'] || event.headers?.['X-Mailin-custom'];
+      const messageId = event['message-id'] || event.ts_event;
 
       if (!eventType || !email) {
-        console.log('[BrevoWebhook] Skipping event without type or email:', event);
+        console.log('[BrevoWebhook] Skipping event without type or email');
         continue;
+      }
+
+      // --- Idempotency: skip if already processed ---
+      if (messageId) {
+        const { data: existing } = await supabase
+          .from('agent_logs')
+          .select('id')
+          .eq('agent', 'email')
+          .eq('action', `webhook_${eventType}`)
+          .contains('data', { message_id: String(messageId), email })
+          .limit(1)
+          .maybeSingle();
+
+        if (existing) {
+          console.log(`[BrevoWebhook] Duplicate event skipped: ${eventType} for ${email}`);
+          continue;
+        }
       }
 
       console.log(`[BrevoWebhook] Processing event: ${eventType} for ${email}`);
 
-      // --- Find prospect ---
+      // --- Find prospect by email first (truth source), then validate header ---
       let prospect: any = null;
 
-      if (prospectIdFromHeader) {
-        const { data } = await supabase
-          .from('crm_prospects')
-          .select('*')
-          .eq('id', prospectIdFromHeader)
-          .single();
-        prospect = data;
-      }
+      const { data: prospectByEmail } = await supabase
+        .from('crm_prospects')
+        .select('*')
+        .eq('email', email)
+        .single();
+      prospect = prospectByEmail;
 
       if (!prospect) {
-        const { data } = await supabase
-          .from('crm_prospects')
-          .select('*')
-          .eq('email', email)
-          .single();
-        prospect = data;
+        const prospectIdFromHeader = event['X-Mailin-custom'] || event.headers?.['X-Mailin-custom'];
+        if (prospectIdFromHeader) {
+          const { data } = await supabase
+            .from('crm_prospects')
+            .select('*')
+            .eq('id', prospectIdFromHeader)
+            .single();
+          prospect = data;
+        }
       }
 
       if (!prospect) {
         console.log(`[BrevoWebhook] No prospect found for email: ${email}`);
-        // Still log the event even if no prospect found
         await supabase.from('agent_logs').insert({
           agent: 'email',
           action: `webhook_${eventType}`,
-          data: { email, event_type: eventType, prospect_found: false, raw: event },
+          data: { email, event_type: eventType, prospect_found: false, message_id: String(messageId || '') },
           created_at: now,
         });
         continue;
@@ -82,16 +100,17 @@ export async function POST(request: NextRequest) {
           .eq('type', 'email')
           .order('created_at', { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
         emailCategory = originalEmail?.data?.category || null;
       }
 
       // --- Process event ---
-      const currentScore = prospect.score ?? 0;
+      const currentScore = Math.max(0, prospect.score ?? 0);
 
       switch (eventType) {
         case 'opened': {
-          const scoreBonus = prospect.email_sequence_step === 2 ? 15 : 10;
+          const step = prospect.email_sequence_step ?? 1;
+          const scoreBonus = step === 2 ? 15 : 10;
           const newScore = Math.min(100, currentScore + scoreBonus);
           const newTemp = calculateTemperature(newScore, { ...prospect, last_email_opened_at: now, score: newScore });
           const opensCount = (prospect.email_opens_count ?? 0) + 1;
@@ -110,15 +129,14 @@ export async function POST(request: NextRequest) {
           await supabase.from('crm_activities').insert({
             prospect_id: prospect.id,
             type: 'email_opened',
-            description: `Email step ${prospect.email_sequence_step} ouvert (+${scoreBonus} score) — ${opensCount} ouvertures total`,
-            data: { score_before: currentScore, score_after: newScore, temperature: newTemp, category: emailCategory, step: prospect.email_sequence_step, opens_count: opensCount },
+            description: `Email step ${step} ouvert (+${scoreBonus} score) — ${opensCount} ouvertures total`,
+            data: { score_before: currentScore, score_after: newScore, temperature: newTemp, category: emailCategory, step, opens_count: opensCount },
             created_at: now,
           });
           break;
         }
 
         case 'click': {
-          // Click = prospect beaucoup plus intéressé que simple ouverture
           const clickScoreBonus = 25;
           const newScore = Math.min(100, currentScore + clickScoreBonus);
           const newClickTemp = calculateTemperature(newScore, { ...prospect, last_email_clicked_at: now, score: newScore });
@@ -140,39 +158,50 @@ export async function POST(request: NextRequest) {
           await supabase.from('crm_activities').insert({
             prospect_id: prospect.id,
             type: 'email_clicked',
-            description: `🔥 Lien cliqué dans email step ${prospect.email_sequence_step} (+${clickScoreBonus} score) — ${clicksCount} clics total`,
+            description: `Lien clique dans email step ${prospect.email_sequence_step ?? 1} (+${clickScoreBonus} score) — ${clicksCount} clics total`,
             data: { score_before: currentScore, score_after: newScore, url: clickedUrl, category: emailCategory, step: prospect.email_sequence_step, clicks_count: clicksCount },
             created_at: now,
           });
 
-          // Alert si premier clic (prospect passe de warm à hot)
+          // Alert on first click only (debounced via clicksCount check on fresh prospect data)
           if (clicksCount === 1) {
-            const RESEND_API_KEY = process.env.RESEND_API_KEY;
-            if (RESEND_API_KEY) {
-              try {
-                await fetch('https://api.resend.com/emails', {
-                  method: 'POST',
-                  headers: {
-                    'Authorization': `Bearer ${RESEND_API_KEY}`,
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({
-                    from: 'KeiroAI Agents <contact@keiroai.com>',
-                    to: ['contact@keiroai.com'],
-                    subject: `🎯 CLIC — ${prospect.company || prospect.email} a cliqué sur le lien !`,
-                    html: `<h2>🎯 Prospect intéressé — Premier clic !</h2>
-                      <p><strong>${prospect.company || 'Inconnu'}</strong> (${prospect.type || 'N/A'}, ${prospect.quartier || 'N/A'}) a cliqué sur un lien dans votre email.</p>
-                      <p><strong>Lien cliqué :</strong> ${clickedUrl || 'N/A'}</p>
-                      <p><strong>Score :</strong> ${currentScore} → ${newScore}/100</p>
-                      <p><strong>Température :</strong> ${newClickTemp}</p>
-                      <p><strong>Email step :</strong> ${prospect.email_sequence_step}</p>
-                      <hr/>
-                      <p style="color:#888;font-size:12px">Ce prospect est passé en HOT — il a visité KeiroAI. Envisagez un suivi personnalisé rapide.</p>`,
-                  }),
-                });
-                console.log('[BrevoWebhook] Click alert sent for:', prospect.email);
-              } catch (e: any) {
-                console.warn('[BrevoWebhook] Click alert email failed:', e.message);
+            // Re-check from DB to avoid double alert from race conditions
+            const { data: freshProspect } = await supabase
+              .from('crm_prospects')
+              .select('email_clicks_count')
+              .eq('id', prospect.id)
+              .single();
+
+            if (freshProspect && freshProspect.email_clicks_count === 1) {
+              const RESEND_API_KEY = process.env.RESEND_API_KEY;
+              if (RESEND_API_KEY) {
+                try {
+                  await fetch('https://api.resend.com/emails', {
+                    method: 'POST',
+                    headers: {
+                      'Authorization': `Bearer ${RESEND_API_KEY}`,
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      from: 'KeiroAI Agents <contact@keiroai.com>',
+                      to: ['contact@keiroai.com'],
+                      subject: `CLIC — ${prospect.company || prospect.email} a clique sur le lien !`,
+                      html: `<h2>Prospect interesse — Premier clic !</h2>
+                        <p><strong>${prospect.company || 'Inconnu'}</strong> (${prospect.type || 'N/A'}, ${prospect.quartier || 'N/A'}) a clique sur un lien dans votre email.</p>
+                        <p><strong>Lien clique :</strong> ${clickedUrl || 'N/A'}</p>
+                        <p><strong>Score :</strong> ${currentScore} → ${newScore}/100</p>
+                        <p><strong>Temperature :</strong> ${newClickTemp}</p>
+                        <p><strong>Email step :</strong> ${prospect.email_sequence_step}</p>
+                        <hr/>
+                        <p style="color:#888;font-size:12px">Ce prospect est passe en HOT — il a visite KeiroAI. Envisagez un suivi personnalise rapide.</p>`,
+                    }),
+                  });
+                  console.log('[BrevoWebhook] Click alert sent for:', prospect.email);
+                } catch (e: any) {
+                  console.warn('[BrevoWebhook] Click alert email failed:', e.message?.substring(0, 200));
+                }
+              } else {
+                console.warn('[BrevoWebhook] RESEND_API_KEY missing — click alert not sent for:', prospect.email);
               }
             }
           }
@@ -203,17 +232,12 @@ export async function POST(request: NextRequest) {
         case 'blocked':
         case 'deferred':
         case 'error': {
-          // Brevo failed to deliver — retry via Resend if available
           const RESEND_KEY = process.env.RESEND_API_KEY;
           let retried = false;
 
           if (RESEND_KEY && prospect.email_sequence_step) {
             try {
-              // Re-send the email via Resend as fallback
-              const { getEmailTemplate: getTemplate } = await import('@/lib/agents/email-templates');
-              const { getSequenceForProspect: getSeq } = await import('@/lib/agents/scoring');
-
-              const cat = getSeq(prospect);
+              const cat = getSequenceForProspect(prospect);
               const vars: Record<string, string> = {
                 first_name: prospect.first_name || '',
                 company: prospect.company || '',
@@ -221,7 +245,7 @@ export async function POST(request: NextRequest) {
                 quartier: prospect.quartier || '',
                 note_google: prospect.note_google != null ? String(prospect.note_google) : '',
               };
-              const tmpl = getTemplate(cat, prospect.email_sequence_step, vars, prospect.email_subject_variant || 0);
+              const tmpl = getEmailTemplate(cat, prospect.email_sequence_step, vars, prospect.email_subject_variant || 0);
 
               const resendRes = await fetch('https://api.resend.com/emails', {
                 method: 'POST',
@@ -248,23 +272,22 @@ export async function POST(request: NextRequest) {
                 const resendData = await resendRes.json();
                 console.log(`[BrevoWebhook] ${eventType} for ${prospect.email} — retried via Resend OK:`, resendData.id);
 
-                // Update provider in prospect
                 await supabase.from('crm_prospects').update({
                   email_provider: 'resend',
                   updated_at: now,
                 }).eq('id', prospect.id);
               } else {
-                console.warn(`[BrevoWebhook] Resend retry failed for ${prospect.email}:`, await resendRes.text().catch(() => ''));
+                console.warn(`[BrevoWebhook] Resend retry failed for ${prospect.email}:`, (await resendRes.text().catch(() => '')).substring(0, 200));
               }
             } catch (retryErr: any) {
-              console.error(`[BrevoWebhook] Resend retry error for ${prospect.email}:`, retryErr.message);
+              console.error(`[BrevoWebhook] Resend retry error for ${prospect.email}:`, retryErr.message?.substring(0, 200));
             }
           }
 
           await supabase.from('crm_activities').insert({
             prospect_id: prospect.id,
             type: `email_${eventType}`,
-            description: `${eventType} pour ${prospect.email}${retried ? ' — renvoyé via Resend' : ''}`,
+            description: `${eventType} pour ${prospect.email}${retried ? ' — renvoye via Resend' : ''}`,
             data: { bounce_reason: event.reason, retried_via_resend: retried },
             created_at: now,
           });
@@ -294,10 +317,12 @@ export async function POST(request: NextRequest) {
         }
 
         case 'replied': {
+          // Don't downgrade temperature if already hot
+          const replyTemp = prospect.temperature === 'hot' ? 'hot' : 'hot';
           await supabase
             .from('crm_prospects')
             .update({
-              temperature: 'hot',
+              temperature: replyTemp,
               status: 'repondu',
               updated_at: now,
             })
@@ -324,16 +349,16 @@ export async function POST(request: NextRequest) {
                 body: JSON.stringify({
                   from: 'KeiroAI Agents <contact@keiroai.com>',
                   to: ['contact@keiroai.com'],
-                  subject: `\uD83D\uDD25 PROSPECT CHAUD \u2014 ${prospect.company || prospect.email} a r\u00E9pondu !`,
-                  html: `<h2>\uD83D\uDD25 Prospect chaud !</h2><p><strong>${prospect.company || 'Inconnu'}</strong> (${prospect.type || 'N/A'}, ${prospect.quartier || 'N/A'}) a r\u00E9pondu \u00E0 votre email !</p><p>Action : R\u00E9pondez dans l'heure avec un visuel personnalis\u00E9.</p><p>Email : ${prospect.email}<br>Note Google : ${prospect.note_google ?? 'N/A'}/5<br>Score : ${prospect.score ?? 0}/100</p>`,
+                  subject: `PROSPECT CHAUD — ${prospect.company || prospect.email} a repondu !`,
+                  html: `<h2>Prospect chaud !</h2><p><strong>${prospect.company || 'Inconnu'}</strong> (${prospect.type || 'N/A'}, ${prospect.quartier || 'N/A'}) a repondu a votre email !</p><p>Action : Repondez dans l'heure avec un visuel personnalise.</p><p>Email : ${prospect.email}<br>Note Google : ${prospect.note_google ?? 'N/A'}/5<br>Score : ${prospect.score ?? 0}/100</p>`,
                 }),
               });
               console.log('[BrevoWebhook] Alert email sent for reply from:', prospect.email);
             } catch (alertError: any) {
-              console.error('[BrevoWebhook] Failed to send alert email:', alertError.message);
+              console.error('[BrevoWebhook] Failed to send alert email:', alertError.message?.substring(0, 200));
             }
           } else {
-            console.log('[BrevoWebhook] No RESEND_API_KEY, skipping alert for reply from:', prospect.email);
+            console.warn('[BrevoWebhook] No RESEND_API_KEY, skipping alert for reply from:', prospect.email);
           }
           break;
         }
@@ -344,7 +369,7 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // --- Log all events to agent_logs ---
+      // --- Log all events to agent_logs (with message_id for idempotency) ---
       await supabase.from('agent_logs').insert({
         agent: 'email',
         action: `webhook_${eventType}`,
@@ -355,6 +380,7 @@ export async function POST(request: NextRequest) {
           event_type: eventType,
           step: prospect.email_sequence_step,
           score: prospect.score,
+          message_id: String(messageId || ''),
         },
         created_at: now,
       });
@@ -385,7 +411,7 @@ export async function GET(request: NextRequest) {
   }
 
   if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ ok: false, error: 'Unauthorized — ajoutez Authorization: Bearer CRON_SECRET' }, { status: 401 });
+    return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
   }
 
   if (!testEmail) {
@@ -394,23 +420,21 @@ export async function GET(request: NextRequest) {
 
   const supabase = getSupabaseAdmin();
 
-  // Find prospect by email
   const { data: prospect } = await supabase
     .from('crm_prospects')
     .select('id, email, company, score, temperature, email_sequence_step')
     .eq('email', testEmail)
     .single();
 
-  // Simulate a Brevo webhook event
   const fakeEvent = {
     event: testType,
     email: testEmail,
     'X-Mailin-custom': prospect?.id || null,
+    'message-id': `test-${Date.now()}`,
     ts_event: Date.now() / 1000,
     link: testType === 'click' ? 'https://www.keiroai.com/generate' : undefined,
   };
 
-  // Call our own POST handler internally
   const fakeRequest = new Request(request.url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

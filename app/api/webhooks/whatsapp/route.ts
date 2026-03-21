@@ -21,6 +21,18 @@ import { callGeminiChat } from '@/lib/agents/gemini';
 export const runtime = 'nodejs';
 export const maxDuration = 30;
 
+const OPT_OUT_KEYWORDS = ['stop', 'unsubscribe', 'arrêter', 'arreter', 'désabonner', 'desabonner', 'non merci'];
+
+/**
+ * Strip control characters (except newline/tab) and limit length.
+ */
+function sanitizeInput(text: string): string {
+  return text
+    .trim()
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+    .slice(0, 2000);
+}
+
 function getSupabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -126,6 +138,70 @@ async function handleIncomingMessage(
     // Image, video, audio, document, location, etc. — acknowledge but don't process
     messageText = '[media]';
     messageType = msg.type;
+  }
+
+  // ── Sanitize input ──
+  if (messageText && messageText !== '[media]') {
+    messageText = sanitizeInput(messageText);
+  }
+
+  // ── Deduplication: skip if this WhatsApp message ID was already processed ──
+  {
+    const { data: existing } = await supabase
+      .from('whatsapp_conversations')
+      .select('id')
+      .eq('whatsapp_message_id', waMessageId)
+      .limit(1)
+      .maybeSingle();
+    if (existing) {
+      console.log('[WhatsApp] Duplicate message skipped:', waMessageId);
+      return;
+    }
+  }
+
+  // ── Opt-out detection ──
+  if (messageText) {
+    const lower = messageText.toLowerCase().trim();
+    if (OPT_OUT_KEYWORDS.some((kw) => lower === kw || lower === kw + '.')) {
+      // Update prospect status
+      const { data: optOutProspect } = await supabase
+        .from('crm_prospects')
+        .select('id')
+        .or(`whatsapp_phone.eq.${senderPhone},phone.eq.${senderPhone}`)
+        .limit(1)
+        .maybeSingle();
+
+      if (optOutProspect) {
+        await supabase
+          .from('crm_prospects')
+          .update({
+            temperature: 'dead',
+            email_sequence_status: 'paused',
+            whatsapp_opted_in: false,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', optOutProspect.id);
+      }
+
+      await sendWhatsAppMessage(
+        senderPhone,
+        "Vous avez été désabonné. Envoyez 'bonjour' pour reprendre.",
+      );
+
+      // Save the opt-out message to conversation history
+      await supabase.from('whatsapp_conversations').insert({
+        phone_number: senderPhone,
+        prospect_id: optOutProspect?.id || null,
+        role: 'user',
+        message: messageText,
+        message_type: messageType,
+        whatsapp_message_id: waMessageId,
+        created_at: new Date().toISOString(),
+      });
+
+      console.log('[WhatsApp] Opt-out processed for', senderPhone);
+      return;
+    }
   }
 
   if (!messageText || messageText === '[media]') {

@@ -43,10 +43,19 @@ function wrapHtmlEmail(subject: string, bodyHtml: string): string {
 </html>`;
 }
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function replaceVars(template: string, v: Record<string, string>): string {
   let result = template;
   for (const [key, value] of Object.entries(v)) {
-    result = result.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value || '');
+    result = result.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), escapeHtml(value || ''));
   }
   // Clean up sentences with empty quartier variable
   // "du " → remove trailing "du" before punctuation/tags/end-of-line
@@ -89,7 +98,9 @@ function replaceVars(template: string, v: Record<string, string>): string {
 // ---------------------------------------------------------------------------
 
 function ctaButtonHtml(text: string, url: string): string {
-  return `<p style="margin:20px 0;text-align:center;"><a href="${url}" style="display:inline-block;background:linear-gradient(to right,#0c1a3a,#1e3a5f);color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:bold;font-size:15px;letter-spacing:0.3px;">${text}</a></p>`;
+  const safeText = escapeHtml(text);
+  const safeUrl = escapeHtml(url);
+  return `<p style="margin:20px 0;text-align:center;"><a href="${safeUrl}" style="display:inline-block;background:linear-gradient(to right,#0c1a3a,#1e3a5f);color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:bold;font-size:15px;letter-spacing:0.3px;">${safeText}</a></p>`;
 }
 
 function socialProofHtml(): string {
@@ -97,7 +108,8 @@ function socialProofHtml(): string {
 }
 
 function psLineHtml(text: string): string {
-  return `<p style="margin:18px 0 0 0;font-size:13px;color:#6b7280;font-style:italic;"><strong>P.S.</strong> ${text}</p>`;
+  const safeText = escapeHtml(text);
+  return `<p style="margin:18px 0 0 0;font-size:13px;color:#6b7280;font-style:italic;"><strong>P.S.</strong> ${safeText}</p>`;
 }
 
 function psLineText(text: string): string {
