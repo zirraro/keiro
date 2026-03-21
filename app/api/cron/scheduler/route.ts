@@ -13,38 +13,43 @@ export const maxDuration = 300;
  *
  * Slots and what they trigger:
  *
- * 03:00 UTC  slot=discovery       → Commercial: verify CRM
- * 04:50 UTC  slot=marketing_prep  → Marketing: sync analytics + analysis (prepares stats for CEO)
- * 05:00 UTC  slot=ceo             → CEO brief (auto-triggers orders) + Community early prep
- * 05:30 UTC  slot=trends          → Refresh trends
- * 06:00 UTC  slot=early_morning   → Email cold: restaurants/traiteurs (ouverture)
- * 07:00 UTC  slot=morning_prep    → DM Instagram + SEO + Content
- * 08:00 UTC  slot=morning         → Email cold: boutiques/coiffeurs/fleuristes + Onboarding
- * 08:30 UTC  slot=discovery_4     → Commercial: verify CRM #3
- * 09:00 UTC  slot=retention       → Retention checks
- * 09:30 UTC  slot=community       → Community Manager: comments + follows
- * 10:00 UTC  slot=midday          → Email cold: coachs/freelances/services + Email warm
- * 11:00 UTC  slot=discovery_2     → Commercial: prospect external
- * 12:00 UTC  slot=afternoon       → Email cold: restaurants (service midi) + PME/agences
- * 13:00 UTC  slot=discovery_5     → Commercial: prospect external #3
- * 14:00 UTC  slot=discovery_3     → Commercial: verify CRM #2 + prospect external #2
- * 13:30 UTC  slot=content_2        → Content: 2nd post of the day (midday)
- * 17:30 UTC  slot=content_3        → Content: 3rd post of the day (evening)
- * 14:30 UTC  slot=email_warm_2    → Email warm: follow-up batch 2 + Marketing afternoon (mid-day analysis for CEO evening)
- * 15:00 UTC  slot=ceo_evening     → CEO brief #2 + execute orders
- * 15:30 UTC  slot=community_2     → Community Manager afternoon
- * 16:00 UTC  slot=evening         → Email cold: restaurants/bars (soirée)
- * 16:30 UTC  slot=discovery_6     → Commercial: full run (EOD)
- * 17:00 UTC  slot=evening_prep    → DM Instagram evening + TikTok comments
- * 18:00 UTC  slot=discovery_7     → Commercial: prospect external #4
- * 18:30 UTC  slot=email_recap     → Email cold: rattrapage tous types restants
- * 19:00 UTC  slot=marketing_learn → Marketing: analyze + advise agents
- * 20:00 UTC  slot=ceo_night       → CEO brief #3 (bilan journée, résultats ordres, plan J+1) + execute orders
- * 21:00 UTC  slot=amit            → AMIT: Strategic analysis (after all agents finished)
- * 22:00 UTC  slot=ops             → Ops: System health check (end of day diagnostic)
- * Every 10m  slot=video_poll      → Poll & advance async video generation jobs (30s+ TikTok)
- * Every 15m  slot=publish_scheduled → Auto-publish user-scheduled posts (from calendar)
- * 19:30 UTC  slot=tiktok_publish  → TikTok: publish pending TikTok content (21h30 Paris = peak engagement)
+ * SCHEDULE v2 — All slots spaced min 15 min apart, no overlaps
+ *
+ * 03:00  discovery         → Commercial: verify CRM
+ * 04:50  marketing_prep    → Marketing: sync analytics (prépare stats CEO)
+ * 05:00  ceo               → CEO brief + ordres + community early
+ * 05:30  trends            → Refresh actualités
+ * 06:00  early_morning     → Email cold: restaurants/traiteurs
+ * 07:00  morning_prep      → DM Instagram + SEO + Content matin
+ * 07:30  tiktok_dm_morning → DM TikTok 2x20
+ * 08:00  morning           → Email cold: boutiques/coiffeurs + Onboarding
+ * 08:30  discovery_4       → Commercial: verify CRM #2
+ * 09:00  retention         → Retention checks
+ * 09:30  community         → Community: comments + follows
+ * 09:45  content_linkedin_1→ LinkedIn post matin (décalé de community)
+ * 10:00  midday            → Email cold: coachs/freelances + warm
+ * 11:00  discovery_2       → Commercial: prospect external
+ * 12:00  afternoon         → Email cold: restaurants midi + PME
+ * 12:30  tiktok_dm_midday  → DM TikTok 2x20
+ * 13:00  discovery_5       → Commercial: prospect external #2
+ * 13:30  content_2         → Content post midi
+ * 14:00  discovery_3       → Commercial: verify + prospect #3
+ * 14:20  content_linkedin_2→ LinkedIn post après-midi (décalé de discovery_3)
+ * 14:40  email_warm_2      → Email warm #2 + Marketing sync
+ * 15:00  ceo_evening       → CEO brief soir + ordres
+ * 15:30  community_2       → Community après-midi
+ * 16:00  evening           → Email cold: restaurants/bars soirée
+ * 16:30  discovery_6       → Commercial: full EOD
+ * 17:00  evening_prep      → DM Instagram soir
+ * 17:30  content_3         → Content post soir
+ * 18:15  content_tiktok    → TikTok vidéo quotidienne
+ * 18:45  email_recap       → Email cold: rattrapage tous types
+ * 19:00  marketing_learn   → Marketing: analyse + conseil agents
+ * 19:30  tiktok_publish    → Publication Reels + TikTok
+ * 21:00  amit              → AMIT: analyse stratégique
+ * 22:00  ops               → Ops: diagnostic système
+ * every20m video_poll      → Poll vidéos async (toutes les 20 min)
+ * every15m publish_scheduled→ Publication auto posts programmés
  */
 export async function GET(request: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;

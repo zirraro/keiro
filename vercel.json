@@ -45,6 +45,10 @@
       "schedule": "30 9 * * *"
     },
     {
+      "path": "/api/cron/scheduler?slot=content_linkedin_1",
+      "schedule": "45 9 * * *"
+    },
+    {
       "path": "/api/cron/scheduler?slot=midday",
       "schedule": "0 10 * * *"
     },
@@ -57,12 +61,12 @@
       "schedule": "0 12 * * *"
     },
     {
-      "path": "/api/cron/scheduler?slot=discovery_5",
-      "schedule": "0 13 * * *"
-    },
-    {
       "path": "/api/cron/scheduler?slot=tiktok_dm_midday",
       "schedule": "30 12 * * *"
+    },
+    {
+      "path": "/api/cron/scheduler?slot=discovery_5",
+      "schedule": "0 13 * * *"
     },
     {
       "path": "/api/cron/scheduler?slot=content_2",
@@ -73,8 +77,12 @@
       "schedule": "0 14 * * *"
     },
     {
+      "path": "/api/cron/scheduler?slot=content_linkedin_2",
+      "schedule": "20 14 * * *"
+    },
+    {
       "path": "/api/cron/scheduler?slot=email_warm_2",
-      "schedule": "30 14 * * *"
+      "schedule": "40 14 * * *"
     },
     {
       "path": "/api/cron/scheduler?slot=ceo_evening",
@@ -97,60 +105,20 @@
       "schedule": "0 17 * * *"
     },
     {
-      "path": "/api/cron/scheduler?slot=tiktok_dm_evening",
-      "schedule": "15 17 * * *"
-    },
-    {
       "path": "/api/cron/scheduler?slot=content_3",
       "schedule": "30 17 * * *"
     },
     {
       "path": "/api/cron/scheduler?slot=content_tiktok",
-      "schedule": "0 18 * * *"
-    },
-    {
-      "path": "/api/cron/scheduler?slot=content_linkedin_1",
-      "schedule": "30 9 * * *"
-    },
-    {
-      "path": "/api/cron/scheduler?slot=content_linkedin_2",
-      "schedule": "0 14 * * *"
-    },
-    {
-      "path": "/api/cron/scheduler?slot=discovery_7",
       "schedule": "15 18 * * *"
     },
     {
       "path": "/api/cron/scheduler?slot=email_recap",
-      "schedule": "30 18 * * *"
+      "schedule": "45 18 * * *"
     },
     {
       "path": "/api/cron/scheduler?slot=marketing_learn",
       "schedule": "0 19 * * *"
-    },
-    {
-      "path": "/api/cron/scheduler?slot=ceo_night",
-      "schedule": "0 20 * * *"
-    },
-    {
-      "path": "/api/cron/scheduler?slot=video_poll",
-      "schedule": "15 18 * * *"
-    },
-    {
-      "path": "/api/cron/scheduler?slot=video_poll",
-      "schedule": "30 18 * * *"
-    },
-    {
-      "path": "/api/cron/scheduler?slot=video_poll",
-      "schedule": "45 18 * * *"
-    },
-    {
-      "path": "/api/cron/scheduler?slot=video_poll",
-      "schedule": "0 19 * * *"
-    },
-    {
-      "path": "/api/cron/scheduler?slot=publish_scheduled",
-      "schedule": "*/15 * * * *"
     },
     {
       "path": "/api/cron/scheduler?slot=tiktok_publish",
@@ -163,6 +131,14 @@
     {
       "path": "/api/cron/scheduler?slot=ops",
       "schedule": "0 22 * * *"
+    },
+    {
+      "path": "/api/cron/scheduler?slot=video_poll",
+      "schedule": "*/20 * * * *"
+    },
+    {
+      "path": "/api/cron/scheduler?slot=publish_scheduled",
+      "schedule": "*/15 * * * *"
     }
   ]
 }
