@@ -22,11 +22,18 @@ export interface AgentPersonality {
   signature_catchphrase: string;    // e.g. "On scale. 🚀"
 }
 
+export type AvatarAnimation = 'idle' | 'wave' | 'thinking' | 'talking' | 'none';
+
 export interface AgentAvatarConfig {
   id: string;
   display_name: string;
   title: string;
   avatar_url: string | null;
+  avatar_3d_url: string | null;
+  animation_type: AvatarAnimation;
+  gradient_from: string;
+  gradient_to: string;
+  badge_color: string;
   personality: AgentPersonality;
   custom_instructions: string;
   is_active: boolean;
@@ -44,18 +51,18 @@ const DEFAULT_PERSONALITY: AgentPersonality = {
   signature_catchphrase: '',
 };
 
-const DEFAULT_AVATARS: Record<string, Pick<AgentAvatarConfig, 'display_name' | 'title'>> = {
-  ceo: { display_name: 'Noah', title: 'Stratège en Chef' },
-  commercial: { display_name: 'Léo', title: 'Lead Scraper & Pipeline' },
-  email: { display_name: 'Hugo', title: 'Expert Prospection Email' },
-  content: { display_name: 'Léna', title: 'Créative Contenu, Trend & Publication' },
-  seo: { display_name: 'Oscar', title: 'Architecte SEO & Référencement' },
-  onboarding: { display_name: 'Clara', title: 'Spécialiste Activation & Premier Contact' },
-  retention: { display_name: 'Théo', title: 'Gardien Fidélisation & Relation Client' },
-  marketing: { display_name: 'Ami', title: 'Marketing Intelligence Coach' },
-  ops: { display_name: 'Jade', title: 'Pilote Publication Auto' },
-  ads: { display_name: 'Félix', title: 'Expert Publicité & Funnels' },
-  rh: { display_name: 'Sara', title: 'Spécialiste RH & Juridique' },
+const DEFAULT_AVATARS: Record<string, Pick<AgentAvatarConfig, 'display_name' | 'title' | 'gradient_from' | 'gradient_to' | 'badge_color'>> = {
+  ceo: { display_name: 'Noah', title: 'Stratège en Chef', gradient_from: '#7c3aed', gradient_to: '#4338ca', badge_color: '#7c3aed' },
+  commercial: { display_name: 'Léo', title: 'Lead Scraper & Pipeline', gradient_from: '#2563eb', gradient_to: '#0891b2', badge_color: '#2563eb' },
+  email: { display_name: 'Hugo', title: 'Expert Prospection Email', gradient_from: '#059669', gradient_to: '#10b981', badge_color: '#059669' },
+  content: { display_name: 'Léna', title: 'Créative Contenu & Publication', gradient_from: '#db2777', gradient_to: '#e11d48', badge_color: '#db2777' },
+  seo: { display_name: 'Oscar', title: 'Architecte SEO & Référencement', gradient_from: '#d97706', gradient_to: '#ea580c', badge_color: '#d97706' },
+  onboarding: { display_name: 'Clara', title: 'Spécialiste Activation', gradient_from: '#0891b2', gradient_to: '#2563eb', badge_color: '#0891b2' },
+  retention: { display_name: 'Théo', title: 'Gardien Fidélisation', gradient_from: '#7c3aed', gradient_to: '#a855f7', badge_color: '#8b5cf6' },
+  marketing: { display_name: 'Ami', title: 'Marketing Intelligence Coach', gradient_from: '#0d9488', gradient_to: '#059669', badge_color: '#0d9488' },
+  ops: { display_name: 'Jade', title: 'Pilote Publication Auto', gradient_from: '#525252', gradient_to: '#404040', badge_color: '#525252' },
+  ads: { display_name: 'Félix', title: 'Expert Publicité & Funnels', gradient_from: '#dc2626', gradient_to: '#ea580c', badge_color: '#dc2626' },
+  rh: { display_name: 'Sara', title: 'Spécialiste RH & Juridique', gradient_from: '#475569', gradient_to: '#334155', badge_color: '#475569' },
 };
 
 // ─── Cache ─────────────────────────────────────────────────────
@@ -112,11 +119,13 @@ export async function getAgentAvatar(
 
   if (error || !data) {
     // Return default fallback
-    const defaults = DEFAULT_AVATARS[agentId] || { display_name: agentId, title: 'Agent IA' };
+    const defaults = DEFAULT_AVATARS[agentId] || { display_name: agentId, title: 'Agent IA', gradient_from: '#7c3aed', gradient_to: '#4f46e5', badge_color: '#7c3aed' };
     const fallback: AgentAvatarConfig = {
       id: agentId,
       ...defaults,
       avatar_url: null,
+      avatar_3d_url: null,
+      animation_type: 'idle',
       personality: { ...DEFAULT_PERSONALITY },
       custom_instructions: '',
       is_active: true,
@@ -124,11 +133,17 @@ export async function getAgentAvatar(
     return fallback;
   }
 
+  const defaults = DEFAULT_AVATARS[agentId] || { gradient_from: '#7c3aed', gradient_to: '#4f46e5', badge_color: '#7c3aed' };
   const config: AgentAvatarConfig = {
     id: data.id,
     display_name: data.display_name,
     title: data.title || '',
     avatar_url: data.avatar_url,
+    avatar_3d_url: data.avatar_3d_url || null,
+    animation_type: data.animation_type || 'idle',
+    gradient_from: data.gradient_from || defaults.gradient_from,
+    gradient_to: data.gradient_to || defaults.gradient_to,
+    badge_color: data.badge_color || defaults.badge_color,
     personality: { ...DEFAULT_PERSONALITY, ...(data.personality || {}) },
     custom_instructions: data.custom_instructions || '',
     is_active: data.is_active,
@@ -151,15 +166,23 @@ export async function getAllAgentAvatars(
 
   if (error || !data) return [];
 
-  return data.map((row: any) => ({
-    id: row.id,
-    display_name: row.display_name,
-    title: row.title || '',
-    avatar_url: row.avatar_url,
-    personality: { ...DEFAULT_PERSONALITY, ...(row.personality || {}) },
-    custom_instructions: row.custom_instructions || '',
-    is_active: row.is_active,
-  }));
+  return data.map((row: any) => {
+    const defaults = DEFAULT_AVATARS[row.id] || { gradient_from: '#7c3aed', gradient_to: '#4f46e5', badge_color: '#7c3aed' };
+    return {
+      id: row.id,
+      display_name: row.display_name,
+      title: row.title || '',
+      avatar_url: row.avatar_url,
+      avatar_3d_url: row.avatar_3d_url || null,
+      animation_type: row.animation_type || 'idle',
+      gradient_from: row.gradient_from || defaults.gradient_from,
+      gradient_to: row.gradient_to || defaults.gradient_to,
+      badge_color: row.badge_color || defaults.badge_color,
+      personality: { ...DEFAULT_PERSONALITY, ...(row.personality || {}) },
+      custom_instructions: row.custom_instructions || '',
+      is_active: row.is_active,
+    };
+  });
 }
 
 /**
@@ -240,13 +263,12 @@ export async function getAvatarPromptBlock(
  */
 export async function getChatbotAvatarInfo(
   supabase: SupabaseClient
-): Promise<{ name: string; avatarUrl: string | null; catchphrase: string }> {
-  // The chatbot uses a composite personality — friendly & commercial
-  // Default to "Chloé" (content) personality for the public chatbot
+): Promise<{ name: string; avatarUrl: string | null; avatar3dUrl: string | null; catchphrase: string }> {
   const avatar = await getAgentAvatar(supabase, 'commercial');
   return {
     name: avatar.display_name,
     avatarUrl: avatar.avatar_url,
+    avatar3dUrl: avatar.avatar_3d_url,
     catchphrase: avatar.personality.signature_catchphrase,
   };
 }

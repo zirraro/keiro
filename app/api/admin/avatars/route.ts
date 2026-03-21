@@ -70,8 +70,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'File too large (max 2MB)' }, { status: 400 });
     }
 
+    const uploadType = formData.get('type') as string | null; // '3d' or null
+    const is3D = uploadType === '3d';
+
     const ext = file.name.split('.').pop() || 'png';
-    const fileName = `agent-avatars/${id}.${ext}`;
+    const fileName = is3D ? `agent-avatars/${id}-3d.${ext}` : `agent-avatars/${id}.${ext}`;
 
     // Upload to Supabase Storage
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -102,12 +105,16 @@ export async function POST(req: NextRequest) {
       .from('public-assets')
       .getPublicUrl(fileName);
 
-    const avatar_url = urlData.publicUrl;
+    const publicUrl = urlData.publicUrl;
 
-    // Update the avatar record
-    await updateAgentAvatar(supabaseAdmin, id, { avatar_url });
+    // Update the avatar record with appropriate field
+    if (is3D) {
+      await updateAgentAvatar(supabaseAdmin, id, { avatar_3d_url: publicUrl } as any);
+    } else {
+      await updateAgentAvatar(supabaseAdmin, id, { avatar_url: publicUrl });
+    }
 
-    return NextResponse.json({ success: true, avatar_url });
+    return NextResponse.json({ success: true, avatar_url: publicUrl, type: is3D ? '3d' : 'classic' });
   } catch (error: any) {
     console.error('[AdminAvatars] POST upload error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });

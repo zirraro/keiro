@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Avatar3DCard from './Avatar3DCard';
 
 // ─── Types ─────────────────────────────────────────────────────
 
@@ -19,26 +20,15 @@ interface AgentAvatar {
   display_name: string;
   title: string;
   avatar_url: string | null;
+  avatar_3d_url: string | null;
+  animation_type: string;
+  gradient_from: string;
+  gradient_to: string;
+  badge_color: string;
   personality: AgentPersonality;
   custom_instructions: string;
   is_active: boolean;
 }
-
-// ─── Agent Gradient Map ────────────────────────────────────────
-
-const AGENT_GRADIENTS: Record<string, string> = {
-  ceo: 'from-purple-600 to-indigo-700',
-  commercial: 'from-blue-600 to-cyan-600',
-  email: 'from-green-600 to-emerald-600',
-  content: 'from-pink-600 to-rose-600',
-  seo: 'from-amber-600 to-orange-600',
-  onboarding: 'from-cyan-600 to-blue-600',
-  retention: 'from-violet-600 to-purple-600',
-  marketing: 'from-teal-600 to-green-600',
-  ops: 'from-neutral-600 to-neutral-700',
-  ads: 'from-red-600 to-orange-600',
-  rh: 'from-slate-600 to-slate-700',
-};
 
 const AGENT_ICONS: Record<string, string> = {
   ceo: '🧠', commercial: '🎯', email: '📧', content: '⚡',
@@ -46,7 +36,26 @@ const AGENT_ICONS: Record<string, string> = {
   ops: '📱', ads: '🔥', rh: '⚖️',
 };
 
-// ─── Component ─────────────────────────────────────────────────
+const ANIMATION_OPTIONS = [
+  { value: 'idle', label: 'Respiration (idle)', desc: 'Mouvement doux de haut en bas' },
+  { value: 'wave', label: 'Salut (wave)', desc: 'Petit mouvement de salutation' },
+  { value: 'thinking', label: 'Réflexion', desc: 'Balancement pensif' },
+  { value: 'talking', label: 'Discussion', desc: 'Pulsation de conversation' },
+  { value: 'none', label: 'Statique', desc: 'Pas d\'animation' },
+];
+
+const PRESET_GRADIENTS = [
+  { from: '#7c3aed', to: '#4338ca', label: 'Violet' },
+  { from: '#2563eb', to: '#0891b2', label: 'Bleu-Cyan' },
+  { from: '#059669', to: '#10b981', label: 'Vert' },
+  { from: '#db2777', to: '#e11d48', label: 'Rose' },
+  { from: '#d97706', to: '#ea580c', label: 'Orange' },
+  { from: '#dc2626', to: '#ea580c', label: 'Rouge' },
+  { from: '#0d9488', to: '#059669', label: 'Teal' },
+  { from: '#475569', to: '#334155', label: 'Slate' },
+  { from: '#0c1a3a', to: '#1e3a5f', label: 'Navy' },
+  { from: '#f59e0b', to: '#f97316', label: 'Ambre' },
+];
 
 export default function AvatarEditor() {
   const [avatars, setAvatars] = useState<AgentAvatar[]>([]);
@@ -55,9 +64,11 @@ export default function AvatarEditor() {
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploading3D, setUploading3D] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const file3DInputRef = useRef<HTMLInputElement>(null);
 
-  // Editable fields for selected avatar
+  // Editable fields
   const [editName, setEditName] = useState('');
   const [editTitle, setEditTitle] = useState('');
   const [editTone, setEditTone] = useState('');
@@ -68,11 +79,13 @@ export default function AvatarEditor() {
   const [editLanguageStyle, setEditLanguageStyle] = useState('');
   const [editCatchphrase, setEditCatchphrase] = useState('');
   const [editInstructions, setEditInstructions] = useState('');
+  // 3D fields
+  const [editAnimation, setEditAnimation] = useState('idle');
+  const [editGradientFrom, setEditGradientFrom] = useState('#7c3aed');
+  const [editGradientTo, setEditGradientTo] = useState('#4f46e5');
+  const [editBadgeColor, setEditBadgeColor] = useState('#7c3aed');
 
-  // ─── Load avatars ─────────────────────────────────────────
-  useEffect(() => {
-    fetchAvatars();
-  }, []);
+  useEffect(() => { fetchAvatars(); }, []);
 
   async function fetchAvatars() {
     try {
@@ -80,15 +93,10 @@ export default function AvatarEditor() {
       const data = await res.json();
       if (data.avatars) {
         setAvatars(data.avatars);
-        if (!selectedId && data.avatars.length > 0) {
-          selectAvatar(data.avatars[0]);
-        }
+        if (!selectedId && data.avatars.length > 0) selectAvatar(data.avatars[0]);
       }
-    } catch (err) {
-      console.error('Failed to load avatars:', err);
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { console.error('Failed to load avatars:', err); }
+    finally { setLoading(false); }
   }
 
   function selectAvatar(avatar: AgentAvatar) {
@@ -103,15 +111,17 @@ export default function AvatarEditor() {
     setEditLanguageStyle(avatar.personality.language_style);
     setEditCatchphrase(avatar.personality.signature_catchphrase);
     setEditInstructions(avatar.custom_instructions);
+    setEditAnimation(avatar.animation_type || 'idle');
+    setEditGradientFrom(avatar.gradient_from || '#7c3aed');
+    setEditGradientTo(avatar.gradient_to || '#4f46e5');
+    setEditBadgeColor(avatar.badge_color || '#7c3aed');
     setSaveMsg(null);
   }
 
-  // ─── Save ──────────────────────────────────────────────────
   async function handleSave() {
     if (!selectedId) return;
     setSaving(true);
     setSaveMsg(null);
-
     try {
       const res = await fetch('/api/admin/avatars', {
         method: 'PUT',
@@ -120,6 +130,10 @@ export default function AvatarEditor() {
           id: selectedId,
           display_name: editName,
           title: editTitle,
+          animation_type: editAnimation,
+          gradient_from: editGradientFrom,
+          gradient_to: editGradientTo,
+          badge_color: editBadgeColor,
           personality: {
             tone: editTone,
             verbosity: editVerbosity,
@@ -132,324 +146,230 @@ export default function AvatarEditor() {
           custom_instructions: editInstructions,
         }),
       });
-
       const data = await res.json();
-      if (data.success) {
-        setSaveMsg({ ok: true, text: 'Sauvegardé !' });
-        fetchAvatars();
-      } else {
-        setSaveMsg({ ok: false, text: data.error || 'Erreur' });
-      }
-    } catch (err: any) {
-      setSaveMsg({ ok: false, text: err.message });
-    } finally {
-      setSaving(false);
-    }
+      if (data.success) { setSaveMsg({ ok: true, text: 'Sauvegardé !' }); fetchAvatars(); }
+      else setSaveMsg({ ok: false, text: data.error || 'Erreur' });
+    } catch (err: any) { setSaveMsg({ ok: false, text: err.message }); }
+    finally { setSaving(false); }
   }
 
-  // ─── Upload avatar image ──────────────────────────────────
-  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>, is3D: boolean) {
     const file = e.target.files?.[0];
     if (!file || !selectedId) return;
-    setUploading(true);
-
+    const setter = is3D ? setUploading3D : setUploading;
+    setter(true);
     try {
       const formData = new FormData();
       formData.append('id', selectedId);
       formData.append('file', file);
-
-      const res = await fetch('/api/admin/avatars', {
-        method: 'POST',
-        body: formData,
-      });
-
+      if (is3D) formData.append('type', '3d');
+      const res = await fetch('/api/admin/avatars', { method: 'POST', body: formData });
       const data = await res.json();
-      if (data.success) {
-        setSaveMsg({ ok: true, text: 'Avatar uploadé !' });
-        fetchAvatars();
-      } else {
-        setSaveMsg({ ok: false, text: data.error || 'Upload failed' });
-      }
-    } catch (err: any) {
-      setSaveMsg({ ok: false, text: err.message });
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      if (data.success) { setSaveMsg({ ok: true, text: is3D ? 'Avatar 3D uploadé !' : 'Avatar uploadé !' }); fetchAvatars(); }
+      else setSaveMsg({ ok: false, text: data.error || 'Upload failed' });
+    } catch (err: any) { setSaveMsg({ ok: false, text: err.message }); }
+    finally {
+      setter(false);
+      if (is3D && file3DInputRef.current) file3DInputRef.current.value = '';
+      if (!is3D && fileInputRef.current) fileInputRef.current.value = '';
     }
   }
 
   const selected = avatars.find(a => a.id === selectedId);
 
-  if (loading) {
-    return <div className="p-8 text-center text-gray-400">Chargement des avatars...</div>;
-  }
-
-  // ─── Preview block ────────────────────────────────────────
-  function renderPreview() {
-    if (!selected) return null;
-    const gradient = AGENT_GRADIENTS[selected.id] || 'from-gray-600 to-gray-700';
-
-    return (
-      <div className={`rounded-2xl bg-gradient-to-br ${gradient} p-6 text-white`}>
-        <div className="flex items-center gap-4 mb-4">
-          {/* Avatar circle */}
-          <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm border-2 border-white/40 flex items-center justify-center overflow-hidden">
-            {selected.avatar_url ? (
-              <img src={selected.avatar_url} alt={editName} className="w-full h-full object-cover rounded-full" />
-            ) : (
-              <span className="text-3xl">{AGENT_ICONS[selected.id] || '🤖'}</span>
-            )}
-          </div>
-          <div>
-            <h3 className="text-xl font-bold">{editName}</h3>
-            <p className="text-white/80 text-sm">{editTitle}</p>
-          </div>
-        </div>
-
-        {/* Personality badges */}
-        <div className="flex flex-wrap gap-2 mb-3">
-          <span className="px-2 py-0.5 rounded-full bg-white/20 text-xs">{editVerbosity}</span>
-          <span className="px-2 py-0.5 rounded-full bg-white/20 text-xs">emoji: {editEmoji}</span>
-          <span className="px-2 py-0.5 rounded-full bg-white/20 text-xs">humour: {editHumor}</span>
-        </div>
-
-        {/* Tone */}
-        <p className="text-white/90 text-sm italic mb-2">&ldquo;{editTone}&rdquo;</p>
-
-        {/* Catchphrase */}
-        {editCatchphrase && (
-          <p className="text-white font-semibold text-sm">{editCatchphrase}</p>
-        )}
-      </div>
-    );
-  }
+  if (loading) return <div className="p-8 text-center text-gray-400">Chargement des avatars...</div>;
 
   return (
-    <div className="grid grid-cols-12 gap-6">
-      {/* ─── Agent list (left sidebar) ─────────────────────── */}
-      <div className="col-span-3 space-y-2">
-        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Agents</h3>
-        {avatars.map(avatar => {
-          const gradient = AGENT_GRADIENTS[avatar.id] || 'from-gray-600 to-gray-700';
-          const isSelected = avatar.id === selectedId;
-          return (
-            <button
+    <div className="space-y-6">
+      {/* ─── Limova-style 3D Grid ─────────────────────────────── */}
+      <div>
+        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Ton Equipe IA</h3>
+        <div className="flex flex-wrap gap-4 justify-center">
+          {avatars.filter(a => a.is_active).map(avatar => (
+            <Avatar3DCard
               key={avatar.id}
+              name={avatar.display_name}
+              title={avatar.title}
+              avatarUrl={avatar.avatar_url}
+              avatar3dUrl={avatar.avatar_3d_url}
+              gradientFrom={avatar.gradient_from}
+              gradientTo={avatar.gradient_to}
+              badgeColor={avatar.badge_color}
+              animation={avatar.animation_type}
+              icon={AGENT_ICONS[avatar.id]}
+              size="md"
               onClick={() => selectAvatar(avatar)}
-              className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${
-                isSelected
-                  ? `bg-gradient-to-r ${gradient} text-white shadow-lg`
-                  : 'bg-[#1a1a2e] text-gray-300 hover:bg-[#252540]'
-              }`}
-            >
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center overflow-hidden ${
-                isSelected ? 'bg-white/20' : 'bg-white/10'
-              }`}>
-                {avatar.avatar_url ? (
-                  <img src={avatar.avatar_url} alt={avatar.display_name} className="w-full h-full object-cover rounded-full" />
-                ) : (
-                  <span className="text-lg">{AGENT_ICONS[avatar.id] || '🤖'}</span>
-                )}
-              </div>
-              <div className="text-left">
-                <div className="font-semibold text-sm">{avatar.display_name}</div>
-                <div className={`text-xs ${isSelected ? 'text-white/70' : 'text-gray-500'}`}>{avatar.title}</div>
-              </div>
-            </button>
-          );
-        })}
+              selected={avatar.id === selectedId}
+            />
+          ))}
+        </div>
       </div>
 
-      {/* ─── Editor (center) ───────────────────────────────── */}
-      <div className="col-span-5 space-y-5">
-        {!selected ? (
-          <div className="text-gray-400 text-center py-12">Sélectionne un agent</div>
-        ) : (
-          <>
+      {/* ─── Editor Panel ──────────────────────────────────────── */}
+      {selected && (
+        <div className="grid grid-cols-12 gap-6 bg-[#0f0f1a] rounded-2xl border border-white/10 p-6">
+          {/* Left: Form */}
+          <div className="col-span-7 space-y-5">
             <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              {AGENT_ICONS[selected.id]} Éditer {selected.display_name}
+              {AGENT_ICONS[selected.id]} Personnaliser {editName}
             </h3>
 
             {/* Identity */}
             <div className="grid grid-cols-2 gap-4">
+              <Field label="Prénom" value={editName} onChange={setEditName} />
+              <Field label="Titre / Rôle" value={editTitle} onChange={setEditTitle} />
+            </div>
+
+            {/* Avatar uploads */}
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs text-gray-400 mb-1">Prénom</label>
-                <input
-                  type="text"
-                  value={editName}
-                  onChange={e => setEditName(e.target.value)}
-                  className="w-full bg-[#1a1a2e] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
-                />
+                <label className="block text-xs text-gray-400 mb-2">Avatar classique (cercle)</label>
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-[#1a1a2e] border border-white/10 flex items-center justify-center overflow-hidden">
+                    {selected.avatar_url ? (
+                      <img src={selected.avatar_url} alt="" className="w-full h-full object-cover rounded-full" />
+                    ) : <span className="text-xl">{AGENT_ICONS[selected.id]}</span>}
+                  </div>
+                  <button onClick={() => fileInputRef.current?.click()} disabled={uploading}
+                    className="px-3 py-1.5 bg-purple-600/30 text-purple-300 rounded-lg text-sm hover:bg-purple-600/50 transition disabled:opacity-50">
+                    {uploading ? 'Upload...' : 'Changer'}
+                  </button>
+                  <input ref={fileInputRef} type="file" accept="image/*" onChange={e => handleUpload(e, false)} className="hidden" />
+                </div>
               </div>
               <div>
-                <label className="block text-xs text-gray-400 mb-1">Titre</label>
-                <input
-                  type="text"
-                  value={editTitle}
-                  onChange={e => setEditTitle(e.target.value)}
-                  className="w-full bg-[#1a1a2e] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
-                />
+                <label className="block text-xs text-gray-400 mb-2">Avatar 3D (PNG transparent)</label>
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-[#1a1a2e] border border-white/10 flex items-center justify-center overflow-hidden"
+                    style={{ background: `linear-gradient(135deg, ${editGradientFrom}, ${editGradientTo})` }}>
+                    {selected.avatar_3d_url ? (
+                      <img src={selected.avatar_3d_url} alt="" className="w-full h-full object-contain" />
+                    ) : <span className="text-xl">🖼️</span>}
+                  </div>
+                  <button onClick={() => file3DInputRef.current?.click()} disabled={uploading3D}
+                    className="px-3 py-1.5 bg-cyan-600/30 text-cyan-300 rounded-lg text-sm hover:bg-cyan-600/50 transition disabled:opacity-50">
+                    {uploading3D ? 'Upload...' : 'Upload 3D'}
+                  </button>
+                  <input ref={file3DInputRef} type="file" accept="image/png,image/webp" onChange={e => handleUpload(e, true)} className="hidden" />
+                </div>
               </div>
             </div>
 
-            {/* Avatar upload */}
-            <div>
-              <label className="block text-xs text-gray-400 mb-1">Photo avatar</label>
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-[#1a1a2e] border border-white/10 flex items-center justify-center overflow-hidden">
-                  {selected.avatar_url ? (
-                    <img src={selected.avatar_url} alt="" className="w-full h-full object-cover rounded-full" />
-                  ) : (
-                    <span className="text-xl">{AGENT_ICONS[selected.id]}</span>
-                  )}
+            {/* Gradient & Animation */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold text-gray-300">Apparence 3D</h4>
+
+              {/* Preset gradients */}
+              <div>
+                <label className="block text-xs text-gray-400 mb-2">Gradient de fond</label>
+                <div className="flex flex-wrap gap-2">
+                  {PRESET_GRADIENTS.map(g => (
+                    <button key={g.label} onClick={() => { setEditGradientFrom(g.from); setEditGradientTo(g.to); setEditBadgeColor(g.from); }}
+                      className={`w-8 h-8 rounded-lg border-2 transition-all ${
+                        editGradientFrom === g.from && editGradientTo === g.to ? 'border-white scale-110' : 'border-transparent hover:border-white/50'
+                      }`}
+                      style={{ background: `linear-gradient(135deg, ${g.from}, ${g.to})` }}
+                      title={g.label}
+                    />
+                  ))}
                 </div>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploading}
-                  className="px-3 py-1.5 bg-purple-600/30 text-purple-300 rounded-lg text-sm hover:bg-purple-600/50 transition disabled:opacity-50"
-                >
-                  {uploading ? 'Upload...' : 'Changer'}
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleUpload}
-                  className="hidden"
-                />
+                {/* Custom color inputs */}
+                <div className="flex gap-3 mt-2">
+                  <div className="flex items-center gap-2">
+                    <input type="color" value={editGradientFrom} onChange={e => setEditGradientFrom(e.target.value)}
+                      className="w-8 h-8 rounded border-none cursor-pointer" />
+                    <span className="text-xs text-gray-500">De</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input type="color" value={editGradientTo} onChange={e => setEditGradientTo(e.target.value)}
+                      className="w-8 h-8 rounded border-none cursor-pointer" />
+                    <span className="text-xs text-gray-500">Vers</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input type="color" value={editBadgeColor} onChange={e => setEditBadgeColor(e.target.value)}
+                      className="w-8 h-8 rounded border-none cursor-pointer" />
+                    <span className="text-xs text-gray-500">Badge</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Animation picker */}
+              <div>
+                <label className="block text-xs text-gray-400 mb-2">Animation</label>
+                <div className="grid grid-cols-5 gap-2">
+                  {ANIMATION_OPTIONS.map(opt => (
+                    <button key={opt.value} onClick={() => setEditAnimation(opt.value)}
+                      className={`px-2 py-2 rounded-lg text-xs text-center transition-all ${
+                        editAnimation === opt.value
+                          ? 'bg-purple-600 text-white'
+                          : 'bg-[#1a1a2e] text-gray-400 hover:bg-[#252540]'
+                      }`}>
+                      <div className="font-medium">{opt.label}</div>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
             {/* Personality */}
             <div className="space-y-3">
               <h4 className="text-sm font-semibold text-gray-300">Personnalité</h4>
-
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">Ton (ex: confiant, stratégique, visionnaire)</label>
-                <input
-                  type="text"
-                  value={editTone}
-                  onChange={e => setEditTone(e.target.value)}
-                  className="w-full bg-[#1a1a2e] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
-                />
-              </div>
-
+              <Field label="Ton (ex: confiant, stratégique, visionnaire)" value={editTone} onChange={setEditTone} />
               <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs text-gray-400 mb-1">Niveau de détail</label>
-                  <select
-                    value={editVerbosity}
-                    onChange={e => setEditVerbosity(e.target.value as any)}
-                    className="w-full bg-[#1a1a2e] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
-                  >
-                    <option value="concis">Concis</option>
-                    <option value="normal">Normal</option>
-                    <option value="détaillé">Détaillé</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-400 mb-1">Emojis</label>
-                  <select
-                    value={editEmoji}
-                    onChange={e => setEditEmoji(e.target.value as any)}
-                    className="w-full bg-[#1a1a2e] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
-                  >
-                    <option value="aucun">Aucun</option>
-                    <option value="subtil">Subtil</option>
-                    <option value="modéré">Modéré</option>
-                    <option value="expressif">Expressif</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-400 mb-1">Humour</label>
-                  <select
-                    value={editHumor}
-                    onChange={e => setEditHumor(e.target.value as any)}
-                    className="w-full bg-[#1a1a2e] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
-                  >
-                    <option value="aucun">Aucun</option>
-                    <option value="léger">Léger</option>
-                    <option value="modéré">Modéré</option>
-                    <option value="blagueur">Blagueur</option>
-                  </select>
-                </div>
+                <Select label="Détail" value={editVerbosity} onChange={v => setEditVerbosity(v as any)}
+                  options={[['concis','Concis'],['normal','Normal'],['détaillé','Détaillé']]} />
+                <Select label="Emojis" value={editEmoji} onChange={v => setEditEmoji(v as any)}
+                  options={[['aucun','Aucun'],['subtil','Subtil'],['modéré','Modéré'],['expressif','Expressif']]} />
+                <Select label="Humour" value={editHumor} onChange={v => setEditHumor(v as any)}
+                  options={[['aucun','Aucun'],['léger','Léger'],['modéré','Modéré'],['blagueur','Blagueur']]} />
               </div>
-
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">Expertises (séparées par virgule)</label>
-                <input
-                  type="text"
-                  value={editExpertise}
-                  onChange={e => setEditExpertise(e.target.value)}
-                  className="w-full bg-[#1a1a2e] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
-                  placeholder="stratégie, growth, data"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">Style de langage</label>
-                <input
-                  type="text"
-                  value={editLanguageStyle}
-                  onChange={e => setEditLanguageStyle(e.target.value)}
-                  className="w-full bg-[#1a1a2e] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
-                  placeholder="professionnel tutoiement"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs text-gray-400 mb-1">Catchphrase / Signature</label>
-                <input
-                  type="text"
-                  value={editCatchphrase}
-                  onChange={e => setEditCatchphrase(e.target.value)}
-                  className="w-full bg-[#1a1a2e] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
-                  placeholder="On scale. 🚀"
-                />
-              </div>
+              <Field label="Expertises (virgule)" value={editExpertise} onChange={setEditExpertise} placeholder="stratégie, growth, data" />
+              <Field label="Style langage" value={editLanguageStyle} onChange={setEditLanguageStyle} placeholder="professionnel tutoiement" />
+              <Field label="Catchphrase" value={editCatchphrase} onChange={setEditCatchphrase} placeholder="On scale. 🚀" />
             </div>
 
-            {/* Custom instructions */}
+            {/* Instructions */}
             <div>
-              <label className="block text-xs text-gray-400 mb-1">Instructions personnalisées (override fondateur)</label>
-              <textarea
-                value={editInstructions}
-                onChange={e => setEditInstructions(e.target.value)}
-                rows={3}
+              <label className="block text-xs text-gray-400 mb-1">Instructions personnalisées</label>
+              <textarea value={editInstructions} onChange={e => setEditInstructions(e.target.value)} rows={3}
                 className="w-full bg-[#1a1a2e] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500 resize-none"
-                placeholder="Instructions spéciales qui seront injectées dans le prompt de cet agent..."
+                placeholder="Instructions injectées dans le prompt de cet agent..." />
+            </div>
+
+            {/* Save */}
+            <div className="flex items-center gap-3">
+              <button onClick={handleSave} disabled={saving}
+                className="px-5 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-purple-700 hover:to-indigo-700 transition disabled:opacity-50">
+                {saving ? 'Sauvegarde...' : 'Sauvegarder'}
+              </button>
+              {saveMsg && <span className={`text-sm ${saveMsg.ok ? 'text-emerald-400' : 'text-red-400'}`}>{saveMsg.text}</span>}
+            </div>
+          </div>
+
+          {/* Right: Live Preview */}
+          <div className="col-span-5 space-y-4">
+            <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Aperçu Live</h4>
+
+            {/* Large 3D card preview */}
+            <div className="flex justify-center">
+              <Avatar3DCard
+                name={editName}
+                title={editTitle}
+                avatarUrl={selected.avatar_url}
+                avatar3dUrl={selected.avatar_3d_url}
+                gradientFrom={editGradientFrom}
+                gradientTo={editGradientTo}
+                badgeColor={editBadgeColor}
+                animation={editAnimation}
+                icon={AGENT_ICONS[selected.id]}
+                size="lg"
               />
             </div>
 
-            {/* Save button */}
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="px-5 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-purple-700 hover:to-indigo-700 transition disabled:opacity-50"
-              >
-                {saving ? 'Sauvegarde...' : 'Sauvegarder'}
-              </button>
-              {saveMsg && (
-                <span className={`text-sm ${saveMsg.ok ? 'text-emerald-400' : 'text-red-400'}`}>
-                  {saveMsg.text}
-                </span>
-              )}
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* ─── Preview (right) ───────────────────────────────── */}
-      <div className="col-span-4 space-y-4">
-        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Aperçu</h3>
-        {renderPreview()}
-
-        {/* Prompt preview */}
-        {selected && (
-          <div className="bg-[#1a1a2e] border border-white/10 rounded-xl p-4">
-            <h4 className="text-xs font-semibold text-gray-400 uppercase mb-2">Bloc prompt injecté</h4>
-            <pre className="text-xs text-gray-300 whitespace-pre-wrap font-mono leading-relaxed">
+            {/* Prompt preview */}
+            <div className="bg-[#1a1a2e] border border-white/10 rounded-xl p-4 max-h-64 overflow-y-auto">
+              <h4 className="text-xs font-semibold text-gray-400 uppercase mb-2">Prompt injecté</h4>
+              <pre className="text-xs text-gray-300 whitespace-pre-wrap font-mono leading-relaxed">
 {`━━━ TON IDENTITÉ ━━━
 Tu es ${editName}, ${editTitle} chez KeiroAI.
 
@@ -458,19 +378,36 @@ Ton style de communication :
 - Niveau de détail : ${editVerbosity}
 - Emojis : ${editEmoji}
 - Humour : ${editHumor}
-- Style : ${editLanguageStyle}${
-  editExpertise ? `\n- Tes domaines d'expertise : ${editExpertise}` : ''
-}${
-  editCatchphrase ? `\n- Ta signature : "${editCatchphrase}"` : ''
-}${
-  editInstructions ? `\n\nINSTRUCTIONS SPÉCIALES DU FONDATEUR :\n${editInstructions}` : ''
+- Style : ${editLanguageStyle}${editExpertise ? `\n- Expertises : ${editExpertise}` : ''}${editCatchphrase ? `\n- Signature : "${editCatchphrase}"` : ''}${editInstructions ? `\n\nINSTRUCTIONS SPÉCIALES :\n${editInstructions}` : ''}`}
+              </pre>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
-IMPORTANT : Reste toujours fidèle à ta personnalité. Tu ES ${editName}. Chaque message doit refléter ton caractère unique.`}
-            </pre>
-          </div>
-        )}
-      </div>
+// ─── Reusable form components ─────────────────────────────────
+
+function Field({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
+  return (
+    <div>
+      <label className="block text-xs text-gray-400 mb-1">{label}</label>
+      <input type="text" value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+        className="w-full bg-[#1a1a2e] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500" />
+    </div>
+  );
+}
+
+function Select({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: string[][] }) {
+  return (
+    <div>
+      <label className="block text-xs text-gray-400 mb-1">{label}</label>
+      <select value={value} onChange={e => onChange(e.target.value)}
+        className="w-full bg-[#1a1a2e] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500">
+        {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+      </select>
     </div>
   );
 }
