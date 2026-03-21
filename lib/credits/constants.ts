@@ -101,8 +101,8 @@ export const CREDIT_PACKS = [
 // Crédits offerts code promo (= Fondateurs)
 export const PROMO_CODE_CREDITS = 750;
 
-// Crédits offerts à l'inscription (3 visuels × 4cr + 1 vidéo 10s × 25cr = 37cr)
-export const SIGNUP_BONUS_CREDITS = 37;
+// Crédits offerts à l'inscription (6 visuels × 4cr + 1 vidéo 10s × 25cr = 49cr)
+export const SIGNUP_BONUS_CREDITS = 49;
 
 // Durée de l'essai gratuit en jours
 export const FREE_TRIAL_DAYS = 7;

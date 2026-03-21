@@ -61,10 +61,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Optional org_id passthrough for multi-tenant support
+  const orgId = request.nextUrl.searchParams.get('org_id') || null;
+
   // Vercel crons make GET requests — when CRON_SECRET is present, generate a new brief
   if (isCron) {
     console.log('[CEOAgent] Cron triggered — generating new daily brief');
-    return generateBrief();
+    return generateBrief(orgId);
   }
 
   // Chat history: return last 20 CEO chat messages for conversation reload
@@ -132,17 +135,20 @@ export async function POST(request: NextRequest) {
   }
 
   // Check if this is a chat request
+  let postBody: any = {};
   try {
-    const body = await request.json().catch(() => ({}));
-    if (body.action === 'chat' && body.message) {
-      return await handleCeoChat(body.message, body.history || []);
+    postBody = await request.json().catch(() => ({}));
+    if (postBody.action === 'chat' && postBody.message) {
+      return await handleCeoChat(postBody.message, postBody.history || []);
     }
   } catch (error: any) {
     console.error('[CEOAgent] POST error:', error);
     return NextResponse.json({ ok: false, error: error.message || 'Erreur serveur' }, { status: 500 });
   }
 
-  return generateBrief();
+  // Optional org_id passthrough for multi-tenant support
+  const postOrgId = postBody?.org_id || null;
+  return generateBrief(postOrgId);
 }
 
 /**
@@ -348,7 +354,7 @@ Reponds en francais, sois direct et actionnable.`;
 /**
  * Core: generate the daily CEO brief, store it, email it to founder.
  */
-async function generateBrief(): Promise<NextResponse> {
+async function generateBrief(orgId: string | null = null): Promise<NextResponse> {
   try {
     const supabase = getSupabaseAdmin();
     const now = new Date();
@@ -679,7 +685,7 @@ async function generateBrief(): Promise<NextResponse> {
     console.log('[CEOAgent] Metrics collected, loading shared context...');
 
     // Load the full shared data pool + avatar personality
-    const { context: sharedCtx, prompt: sharedDataPool } = await loadContextWithAvatar(supabase, 'ceo');
+    const { context: sharedCtx, prompt: sharedDataPool } = await loadContextWithAvatar(supabase, 'ceo', orgId || undefined);
 
     // --- Collect agent execution status (which agents ran in last 24h) ---
     const TRACKED_AGENTS = ['email', 'commercial', 'dm_instagram', 'tiktok_comments', 'seo', 'content', 'onboarding', 'retention', 'marketing', 'community'];
@@ -763,6 +769,7 @@ async function generateBrief(): Promise<NextResponse> {
         generated_at: nowISO,
       },
       created_at: nowISO,
+      ...(orgId ? { org_id: orgId } : {}),
     });
 
     // ── Save learnings from CEO analysis ──
@@ -776,6 +783,7 @@ async function generateBrief(): Promise<NextResponse> {
           evidence: `24h: ${metrics24h.emails_sent} sent, ${metrics24h.emails_opened} opened, ${metrics24h.emails_replied} replied`,
           confidence: 25,
           revenue_linked: metrics24h.emails_replied > 0,
+          orgId: orgId || undefined,
         });
       }
 
@@ -787,6 +795,7 @@ async function generateBrief(): Promise<NextResponse> {
           learning: `Chatbot a capturé ${metrics24h.leads_from_chatbot} leads sur ${metrics24h.chatbot_conversations} conversations`,
           evidence: `24h metrics: ${metrics24h.chatbot_conversations} convos, ${metrics24h.leads_from_chatbot} leads captured`,
           confidence: 20,
+          orgId: orgId || undefined,
         });
       }
 
@@ -799,6 +808,7 @@ async function generateBrief(): Promise<NextResponse> {
             to_agent: 'email',
             feedback: `Open rate bas (${openRate}%). Tester des objets plus courts et personnalisés. Essayer le prénom dans l'objet.`,
             category: 'email',
+            orgId: orgId || undefined,
           });
         }
         if (openRate > 40) {
@@ -807,6 +817,7 @@ async function generateBrief(): Promise<NextResponse> {
             to_agent: 'email',
             feedback: `Excellent open rate (${openRate}%). Continuer avec cette approche d'objets.`,
             category: 'email',
+            orgId: orgId || undefined,
           });
         }
       }
@@ -815,10 +826,10 @@ async function generateBrief(): Promise<NextResponse> {
     }
 
     // --- Extract structured orders from brief and insert into agent_orders ---
-    await extractAndInsertOrders(supabase, brief, nowISO);
+    await extractAndInsertOrders(supabase, brief, nowISO, orgId);
 
     // --- Extract strategic DIRECTIVES and write them to agent_orders ---
-    await extractAndWriteDirectives(supabase, brief);
+    await extractAndWriteDirectives(supabase, brief, orgId);
 
     // --- Send email brief to founder via Resend ---
     const RESEND_API_KEY = process.env.RESEND_API_KEY;
@@ -944,7 +955,8 @@ async function generateBrief(): Promise<NextResponse> {
 async function extractAndInsertOrders(
   supabase: ReturnType<typeof getSupabaseAdmin>,
   briefText: string,
-  nowISO: string
+  nowISO: string,
+  orgId: string | null = null
 ): Promise<number> {
   const VALID_AGENTS = [
     'chatbot', 'email', 'gmaps', 'dm_instagram', 'tiktok_comments',
@@ -1041,6 +1053,7 @@ async function extractAndInsertOrders(
       payload: { description: o.description || '' },
       status: 'pending',
       created_at: nowISO,
+      ...(orgId ? { org_id: orgId } : {}),
     }));
 
     const { error: insertError } = await supabase.from('agent_orders').insert(rows);
@@ -1068,6 +1081,7 @@ async function extractAndInsertOrders(
 async function extractAndWriteDirectives(
   supabase: ReturnType<typeof getSupabaseAdmin>,
   briefText: string,
+  orgId: string | null = null,
 ): Promise<number> {
   const AGENT_MAPPING: Record<string, string> = {
     'email': 'email', 'dm_instagram': 'dm_instagram', 'dm': 'dm_instagram',

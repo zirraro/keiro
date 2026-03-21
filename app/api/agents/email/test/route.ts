@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
+    const orgId = body?.org_id || null;
     const { email, step, category, company, first_name } = body as {
       email: string;
       step: number;
@@ -115,6 +116,7 @@ export async function POST(request: NextRequest) {
         provider: 'resend',
       },
       created_at: new Date().toISOString(),
+      ...(orgId ? { org_id: orgId } : {}),
     });
 
     return NextResponse.json({

@@ -36,7 +36,8 @@ async function reportToCeo(
   agentName: string,
   phase: 'started' | 'completed' | 'failed',
   orderType: string,
-  details?: string
+  details?: string,
+  orgId?: string | null
 ): Promise<void> {
   const label = AGENT_LABELS[agentName] || agentName;
   const messages: Record<string, string> = {
@@ -58,6 +59,7 @@ async function reportToCeo(
     },
     status: phase === 'failed' ? 'error' : 'success',
     created_at: new Date().toISOString(),
+    ...(orgId ? { org_id: orgId } : {}),
   });
 }
 
@@ -162,6 +164,8 @@ export async function GET(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
   let isAuthorized = cronSecret && authHeader === `Bearer ${cronSecret}`;
 
+  const orgId = request.nextUrl.searchParams.get('org_id') || null;
+
   if (!isAuthorized) {
     const { user } = await getAuthUser();
     if (!user) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
@@ -213,7 +217,7 @@ export async function GET(request: NextRequest) {
     // Execute ALL orders in parallel (not sequentially)
     const execPromises = orders.map(async (order: any) => {
       try {
-        await reportToCeo(supabase, order.id, order.to_agent, 'started', order.order_type);
+        await reportToCeo(supabase, order.id, order.to_agent, 'started', order.order_type, undefined, orgId);
 
         const executionResult = await executeOrder(supabase, order, baseUrl, cronSecret);
 
@@ -231,7 +235,7 @@ export async function GET(request: NextRequest) {
         await reportToCeo(
           supabase, order.id, order.to_agent,
           executionResult.ok ? 'completed' : 'failed',
-          order.order_type, executionResult.summary
+          order.order_type, executionResult.summary, orgId
         );
 
         console.log(`[OrderExecutor] Order ${order.id} → ${order.to_agent}: ${executionResult.summary}`);
@@ -246,7 +250,7 @@ export async function GET(request: NextRequest) {
           result: { error: orderError.message, failed_at: new Date().toISOString() },
         }).eq('id', order.id);
 
-        await reportToCeo(supabase, order.id, order.to_agent, 'failed', order.order_type, orderError.message);
+        await reportToCeo(supabase, order.id, order.to_agent, 'failed', order.order_type, orderError.message, orgId);
         console.error(`[OrderExecutor] Order ${order.id} failed:`, orderError.message);
 
         return {
@@ -271,6 +275,7 @@ export async function GET(request: NextRequest) {
       action: 'orders_executed',
       data: { total: results.length, succeeded, failed, results },
       created_at: now,
+      ...(orgId ? { org_id: orgId } : {}),
     });
 
     console.log(`[OrderExecutor] Done: ${succeeded} succeeded, ${failed} failed`);
@@ -303,6 +308,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
+    const orgId = body?.org_id || null;
     if (!body.orders || !Array.isArray(body.orders)) {
       return NextResponse.json({ ok: false, error: 'orders[] requis' }, { status: 400 });
     }
@@ -319,6 +325,7 @@ export async function POST(request: NextRequest) {
         payload: order.payload || {},
         status: 'pending',
         created_at: now,
+        ...(orgId ? { org_id: orgId } : {}),
       }).select('id').single();
 
       if (inserted) createdIds.push(inserted.id);

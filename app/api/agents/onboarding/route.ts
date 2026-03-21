@@ -43,6 +43,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'GEMINI_API_KEY non configurée' }, { status: 500 });
   }
 
+  // Optional org_id passthrough for multi-tenant support
+  const orgId = request.nextUrl.searchParams.get('org_id') || null;
+
   const supabase = getSupabaseAdmin();
   const now = new Date().toISOString();
 
@@ -323,7 +326,7 @@ export async function GET(request: NextRequest) {
           learning: `Onboarding: ${processed} emails envoyés, ${skipped} skippés, ${alerts} alertes fondateur. Taux envoi: ${pendingItems.length > 0 ? Math.round(processed / pendingItems.length * 100) : 0}%`,
           evidence: `Queue: ${pendingItems.length} pending, ${processed} sent, ${skipped} skipped, ${alerts} alerts, ${dynamicScheduled} dynamic`,
           confidence: 20,
-        });
+        }, orgId);
       }
 
       if (dynamicScheduled > 0) {
@@ -333,7 +336,7 @@ export async function GET(request: NextRequest) {
           learning: `${dynamicScheduled} étapes dynamiques déclenchées (milestones/upsells détectés automatiquement)`,
           evidence: `Dynamic steps scheduled: ${dynamicScheduled}`,
           confidence: 15,
-        });
+        }, orgId);
       }
     } catch (learnErr: any) {
       console.warn('[Onboarding] Learning save error:', learnErr.message);
@@ -347,7 +350,7 @@ export async function GET(request: NextRequest) {
           to_agent: 'ceo',
           feedback: `Onboarding: ${processed} emails envoyés, ${skipped} skippés, ${alerts} alertes fondateur. ${dynamicScheduled > 0 ? `${dynamicScheduled} étapes dynamiques déclenchées.` : ''} Taux envoi: ${pendingItems.length > 0 ? Math.round(processed / pendingItems.length * 100) : 0}%.`,
           category: 'retention',
-        });
+        }, orgId);
       }
     } catch (fbErr: any) {
       console.warn('[Onboarding] Feedback save error:', fbErr.message);

@@ -81,6 +81,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'GEMINI_API_KEY non configurée' }, { status: 500 });
   }
 
+  // Optional org_id passthrough for multi-tenant support
+  const orgId = request.nextUrl.searchParams.get('org_id') || null;
+
   const supabase = getSupabaseAdmin();
   const now = new Date();
   const nowISO = now.toISOString();
@@ -346,7 +349,7 @@ export async function GET(request: NextRequest) {
           learning: `Santé clients: ${greenCount} verts, ${yellowCount} jaunes, ${orangeCount} orange, ${redCount} rouges sur ${totalClients}. ${messagesSent} messages envoyés.`,
           evidence: `Daily check: green=${greenCount}, yellow=${yellowCount}, orange=${orangeCount}, red=${redCount}, msgs=${messagesSent}`,
           confidence: 25,
-        });
+        }, orgId);
       }
 
       if (redCount > 0) {
@@ -357,7 +360,7 @@ export async function GET(request: NextRequest) {
           evidence: `Red alert: ${redCount} clients at risk out of ${totalClients} total`,
           confidence: 30,
           revenue_linked: true,
-        });
+        }, orgId);
       }
     } catch (learnErr: any) {
       console.warn('[Retention] Learning save error:', learnErr.message);
@@ -370,7 +373,7 @@ export async function GET(request: NextRequest) {
         to_agent: 'ceo',
         feedback: `Santé clients: 🟢${greenCount} 🟡${yellowCount} 🟠${orangeCount} 🔴${redCount}. ${messagesSent} interventions envoyées. ${redCount > 0 ? `ALERTE: ${redCount} clients en danger.` : 'Situation stable.'}`,
         category: 'retention',
-      });
+      }, orgId);
     } catch (fbErr: any) {
       console.warn('[Retention] Feedback save error:', fbErr.message);
     }

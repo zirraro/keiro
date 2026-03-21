@@ -322,6 +322,9 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}));
   const { agent, message, history = [] } = body;
 
+  // Optional org_id passthrough for multi-tenant support
+  const orgId = body?.org_id || null;
+
   if (!agent || !message) {
     return NextResponse.json({ ok: false, error: 'agent and message required' }, { status: 400 });
   }
@@ -352,7 +355,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Shared CRM context + avatar personality (all agents see the same data)
-    const { prompt: sharedPrompt } = await loadContextWithAvatar(supabase, agent);
+    const { prompt: sharedPrompt } = await loadContextWithAvatar(supabase, agent, orgId || undefined);
     const statsContext = '\n\n' + sharedPrompt + `\n- Date: ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`;
 
     const systemPrompt = agentConfig.systemPrompt + activityContext + statsContext;

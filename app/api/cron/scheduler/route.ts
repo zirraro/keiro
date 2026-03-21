@@ -60,6 +60,10 @@ export async function GET(request: NextRequest) {
   }
 
   const slot = request.nextUrl.searchParams.get('slot');
+
+  // TODO [Phase B5 — Multi-org]: Iterate over all active orgs and dispatch each slot
+  // per org, passing ?org_id=<id> to each agent endpoint. For now, runs without org_id
+  // (single-tenant mode, backwards compatible).
   if (!slot) {
     return NextResponse.json({ ok: false, error: 'slot parameter required' }, { status: 400 });
   }

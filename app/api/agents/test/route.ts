@@ -39,6 +39,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
+  const orgId = body?.org_id || null;
   const testEmail = body.email || 'mrzirraro@gmail.com';
   const testType = body.type || 'restaurant';
   const testCompany = body.company || 'Restaurant Test KeiroAI';
@@ -152,6 +153,7 @@ export async function POST(request: NextRequest) {
           action: 'test_send',
           data: { email: testEmail, type: testType, results },
           created_at: now,
+          ...(orgId ? { org_id: orgId } : {}),
         });
       }
     }

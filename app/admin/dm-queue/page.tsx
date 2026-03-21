@@ -118,7 +118,14 @@ type CalendarPost = {
   created_at: string;
 };
 
-type MainTab = 'dm_instagram' | 'dm_tiktok' | 'email' | 'pub_instagram' | 'pub_tiktok' | 'pub_linkedin' | 'seo' | 'planning' | 'commercial' | 'onboarding' | 'retention' | 'ads' | 'gmaps';
+type MainTab = 'dm_instagram' | 'dm_tiktok' | 'email' | 'whatsapp' | 'pub_instagram' | 'pub_tiktok' | 'pub_linkedin' | 'seo' | 'planning' | 'commercial' | 'onboarding' | 'retention' | 'ads' | 'gmaps';
+
+type WhatsAppConversation = {
+  phone_number: string;
+  prospect_id: string | null;
+  messages: { role: string; message: string; created_at: string; message_type: string }[];
+  prospect?: { company: string | null; type: string | null; score: number | null; temperature: string | null };
+};
 
 type AgentLogItem = {
   id: string;
@@ -168,7 +175,7 @@ function SuiviPublicationsPage() {
   const searchParams = useSearchParams();
   const initialTab = (() => {
     const t = searchParams.get('tab');
-    const validTabs: MainTab[] = ['dm_instagram', 'dm_tiktok', 'email', 'pub_instagram', 'pub_tiktok', 'pub_linkedin', 'seo', 'planning', 'commercial', 'onboarding', 'retention', 'ads', 'gmaps'];
+    const validTabs: MainTab[] = ['dm_instagram', 'dm_tiktok', 'email', 'whatsapp', 'pub_instagram', 'pub_tiktok', 'pub_linkedin', 'seo', 'planning', 'commercial', 'onboarding', 'retention', 'ads', 'gmaps'];
     if (t && validTabs.includes(t as MainTab)) return t as MainTab;
     return 'dm_instagram' as MainTab;
   })();
@@ -187,6 +194,8 @@ function SuiviPublicationsPage() {
   const [emailItems, setEmailItems] = useState<EmailItem[]>([]);
   const [calendarPosts, setCalendarPosts] = useState<CalendarPost[]>([]);
   const [agentLogs, setAgentLogs] = useState<AgentLogItem[]>([]);
+  const [whatsappConversations, setWhatsappConversations] = useState<WhatsAppConversation[]>([]);
+  const [expandedWAPhone, setExpandedWAPhone] = useState<string | null>(null);
   const [selectedPost, setSelectedPost] = useState<CalendarPost | null>(null);
   const [calendarWeekOffset, setCalendarWeekOffset] = useState(0);
   const [publishingPostId, setPublishingPostId] = useState<string | null>(null);
@@ -225,6 +234,7 @@ function SuiviPublicationsPage() {
   const isSeoTab = mainTab === 'seo';
   const isPlanningTab = mainTab === 'planning';
   const isEmailTab = mainTab === 'email';
+  const isWhatsAppTab = mainTab === 'whatsapp';
   const isAgentTab = mainTab === 'commercial' || mainTab === 'onboarding' || mainTab === 'retention' || mainTab === 'ads' || mainTab === 'gmaps';
   const agentNameMap: Record<string, string> = { commercial: 'commercial', onboarding: 'onboarding', retention: 'retention', ads: 'ads', gmaps: 'gmaps' };
 
@@ -415,6 +425,52 @@ function SuiviPublicationsPage() {
       }
 
       setEmailItems(items);
+    } else if (isWhatsAppTab) {
+      // Load recent WhatsApp conversations grouped by phone number
+      const { data: waMessages } = await supabase
+        .from('whatsapp_conversations')
+        .select('phone_number, prospect_id, role, message, message_type, created_at')
+        .order('created_at', { ascending: false })
+        .limit(500);
+
+      if (waMessages && waMessages.length > 0) {
+        // Group by phone number
+        const grouped: Record<string, WhatsAppConversation> = {};
+        const prospectIds = new Set<string>();
+        for (const m of waMessages) {
+          if (!grouped[m.phone_number]) {
+            grouped[m.phone_number] = { phone_number: m.phone_number, prospect_id: m.prospect_id, messages: [] };
+            if (m.prospect_id) prospectIds.add(m.prospect_id);
+          }
+          grouped[m.phone_number].messages.push({ role: m.role, message: m.message, created_at: m.created_at, message_type: m.message_type });
+        }
+
+        // Load prospect info
+        if (prospectIds.size > 0) {
+          const { data: prospects } = await supabase
+            .from('crm_prospects')
+            .select('id, company, type, score, temperature')
+            .in('id', Array.from(prospectIds));
+          if (prospects) {
+            const pMap: Record<string, any> = {};
+            for (const p of prospects) pMap[p.id] = p;
+            for (const conv of Object.values(grouped)) {
+              if (conv.prospect_id && pMap[conv.prospect_id]) {
+                conv.prospect = pMap[conv.prospect_id];
+              }
+            }
+          }
+        }
+
+        // Sort conversations: most recent message first, reverse messages for display
+        const convos = Object.values(grouped).sort((a, b) =>
+          new Date(b.messages[0]?.created_at || 0).getTime() - new Date(a.messages[0]?.created_at || 0).getTime()
+        );
+        for (const c of convos) c.messages.reverse();
+        setWhatsappConversations(convos);
+      } else {
+        setWhatsappConversations([]);
+      }
     } else if (isAgentTab) {
       const agentKey = agentNameMap[mainTab] || mainTab;
       const { data } = await supabase
@@ -427,7 +483,7 @@ function SuiviPublicationsPage() {
     }
 
     setLoading(false);
-  }, [mainTab, dmSubTab, pubSubTab, router, isDmTab, isPubTab, isSeoTab, isPlanningTab, isEmailTab, isAgentTab, emailSubTab, calendarWeekOffset, getDateRange]);
+  }, [mainTab, dmSubTab, pubSubTab, router, isDmTab, isPubTab, isSeoTab, isPlanningTab, isEmailTab, isWhatsAppTab, isAgentTab, emailSubTab, calendarWeekOffset, getDateRange]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -632,6 +688,7 @@ function SuiviPublicationsPage() {
     { key: 'dm_instagram', label: 'DM Instagram', icon: '📸' },
     { key: 'dm_tiktok', label: 'DM TikTok', icon: '🎵' },
     { key: 'email', label: 'Emails', icon: '📧' },
+    { key: 'whatsapp', label: 'WhatsApp', icon: '💬' },
     { key: 'pub_instagram', label: 'Publi. Instagram', icon: '📷' },
     { key: 'pub_tiktok', label: 'Publi. TikTok', icon: '🎬' },
     { key: 'pub_linkedin', label: 'Publi. LinkedIn', icon: '💼' },
@@ -1620,6 +1677,89 @@ function SuiviPublicationsPage() {
                         </div>
                       </div>
                     </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {isWhatsAppTab && (
+              <>
+                <div className="mb-3 flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-neutral-700">Conversations WhatsApp</h3>
+                  <span className="text-[10px] px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-medium">
+                    {whatsappConversations.length} conversation{whatsappConversations.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
+
+                {loading ? (
+                  <div className="flex justify-center py-12">
+                    <div className="w-6 h-6 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : whatsappConversations.length === 0 ? (
+                  <div className="text-center py-12 text-neutral-400 text-sm">
+                    Aucune conversation WhatsApp.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {whatsappConversations.map(conv => (
+                      <div key={conv.phone_number} className="bg-white rounded-xl border border-neutral-200 overflow-hidden hover:shadow-sm transition">
+                        <button
+                          onClick={() => setExpandedWAPhone(expandedWAPhone === conv.phone_number ? null : conv.phone_number)}
+                          className="w-full p-4 flex items-center justify-between text-left"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-sm">
+                              WA
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-neutral-900">
+                                {conv.prospect?.company || conv.phone_number}
+                              </p>
+                              <p className="text-[10px] text-neutral-400">
+                                {conv.phone_number} {conv.prospect?.type ? `| ${conv.prospect.type}` : ''}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {conv.prospect?.temperature && (
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                                conv.prospect.temperature === 'hot' ? 'bg-red-100 text-red-700' :
+                                conv.prospect.temperature === 'warm' ? 'bg-amber-100 text-amber-700' :
+                                'bg-blue-100 text-blue-700'
+                              }`}>
+                                {conv.prospect.temperature}
+                              </span>
+                            )}
+                            <span className="text-[10px] text-neutral-400">
+                              {conv.messages.length} msg{conv.messages.length !== 1 ? 's' : ''}
+                            </span>
+                            <span className="text-[10px] text-neutral-400">
+                              {new Date(conv.messages[conv.messages.length - 1]?.created_at || '').toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            <span className="text-neutral-300">{expandedWAPhone === conv.phone_number ? '\u25B2' : '\u25BC'}</span>
+                          </div>
+                        </button>
+
+                        {expandedWAPhone === conv.phone_number && (
+                          <div className="border-t border-neutral-100 p-4 bg-neutral-50 space-y-2 max-h-80 overflow-y-auto">
+                            {conv.messages.map((m, i) => (
+                              <div key={i} className={`flex ${m.role === 'assistant' ? 'justify-start' : 'justify-end'}`}>
+                                <div className={`max-w-[75%] px-3 py-2 rounded-xl text-xs ${
+                                  m.role === 'assistant'
+                                    ? 'bg-white border border-neutral-200 text-neutral-700'
+                                    : 'bg-green-600 text-white'
+                                }`}>
+                                  <p>{m.message}</p>
+                                  <p className={`text-[9px] mt-1 ${m.role === 'assistant' ? 'text-neutral-300' : 'text-green-200'}`}>
+                                    {new Date(m.created_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 )}
               </>

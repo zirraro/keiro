@@ -37,6 +37,9 @@ export async function GET(request: NextRequest) {
   const { authorized } = await verifyAuth(request);
   if (!authorized) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 
+  // org_id passthrough (Phase B4 — backwards compatible)
+  const orgId = request.nextUrl.searchParams.get('org_id') || null;
+
   const supabase = getSupabaseAdmin();
 
   // Get combined stats from both onboarding and retention
@@ -90,6 +93,7 @@ export async function POST(request: NextRequest) {
 
   const supabase = getSupabaseAdmin();
   const body = await request.json().catch(() => ({}));
+  const orgId = body?.org_id || null;
   const action = body.action || 'full_report';
 
   if (action === 'full_report') {
@@ -118,6 +122,7 @@ export async function POST(request: NextRequest) {
       status: 'ok',
       data: report,
       created_at: new Date().toISOString(),
+      ...(orgId ? { org_id: orgId } : {}),
     });
 
     // Save learning about client lifecycle
@@ -130,7 +135,7 @@ export async function POST(request: NextRequest) {
           learning: `Cycle client unifie: ${onbRes.processed || 0} onboarding, ${retRes.messagesSent || 0} retention. Sante globale: ${totalClients} clients suivis.`,
           evidence: `Onboarding: ${JSON.stringify(onbRes).substring(0, 200)}, Retention: ${JSON.stringify(retRes).substring(0, 200)}`,
           confidence: 25,
-        });
+        }, orgId);
       }
 
       await saveAgentFeedback(supabase, {
@@ -138,7 +143,7 @@ export async function POST(request: NextRequest) {
         to_agent: 'ceo',
         feedback: `Rapport client unifie: ${onbRes.processed || 0} onboarding traites, ${retRes.messagesSent || 0} messages retention. ${(retRes.red || 0) > 0 ? `${retRes.red} clients en danger.` : 'Situation stable.'}`,
         category: 'retention',
-      });
+      }, orgId);
     } catch (learnErr: any) {
       console.warn('[ClientAgent] Learning error:', learnErr.message);
     }

@@ -80,6 +80,9 @@ type Prospect = {
   last_email_sent_at: string | null;
   last_email_opened_at: string | null;
   last_email_clicked_at: string | null;
+  email_opens_count: number | null;
+  email_clicks_count: number | null;
+  last_email_clicked_url: string | null;
   brevo_contact_id: string | null;
   tiktok: string | null;
 };
@@ -2327,17 +2330,22 @@ function DetailPanel({ prospect, onClose, onEdit, onDelete, activities, loadingA
             <div className="flex flex-wrap gap-2 mt-1">
               {prospect.last_email_opened_at && (
                 <span className="text-xs px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-medium">
-                  ✓ Ouvert {formatDateRelative(prospect.last_email_opened_at)}
+                  📧 Ouvert{prospect.email_opens_count && prospect.email_opens_count > 1 ? ` (${prospect.email_opens_count}x)` : ''} {formatDateRelative(prospect.last_email_opened_at)}
                 </span>
               )}
               {prospect.last_email_clicked_at && (
                 <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full font-medium">
-                  ✓ Cliqué {formatDateRelative(prospect.last_email_clicked_at)}
+                  🔥 Cliqué{prospect.email_clicks_count && prospect.email_clicks_count > 1 ? ` (${prospect.email_clicks_count}x)` : ''} {formatDateRelative(prospect.last_email_clicked_at)}
+                </span>
+              )}
+              {prospect.last_email_clicked_url && (
+                <span className="text-xs px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full font-medium truncate max-w-[200px]" title={prospect.last_email_clicked_url}>
+                  → {prospect.last_email_clicked_url.replace('https://www.keiroai.com', '').replace('https://keiroai.com', '') || '/'}
                 </span>
               )}
               {prospect.last_email_opened_at && !prospect.last_email_clicked_at && (
                 <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full font-medium">
-                  📞 Susceptible de répondre au tel
+                  📞 A ouvert mais pas cliqué — relancer par tel
                 </span>
               )}
             </div>

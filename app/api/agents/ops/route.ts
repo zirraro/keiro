@@ -87,7 +87,7 @@ interface HealthReport {
 
 // ── Health check logic ──
 
-async function runHealthCheck(): Promise<HealthReport> {
+async function runHealthCheck(orgId: string | null = null): Promise<HealthReport> {
   const supabase = getSupabaseAdmin();
   const now = new Date();
   const fortyEightHoursAgo = new Date(now.getTime() - 48 * 3600000).toISOString();
@@ -285,6 +285,7 @@ Réponds UNIQUEMENT avec une liste de recommandations, une par ligne, commençan
     target: null,
     data: report,
     created_at: now.toISOString(),
+    ...(orgId ? { org_id: orgId } : {}),
   });
 
   // Save learning about system health trends
@@ -295,7 +296,7 @@ Réponds UNIQUEMENT avec une liste de recommandations, une par ligne, commençan
       learning: `${downAgents.length} agents down, ${degradedAgents.length} degraded. Uptime score: ${uptimeScore}/100. Agents problématiques: ${[...downAgents, ...degradedAgents].map(a => a.agent).join(', ')}`,
       evidence: `Health check ${now.toISOString()} — ${issues.length} issues détectées`,
       confidence: issues.some(i => i.severity === 'critical') ? 30 : 15,
-    });
+    }, orgId);
   }
 
   // Send feedback to degraded/down agents
@@ -305,7 +306,7 @@ Réponds UNIQUEMENT avec une liste de recommandations, une par ligne, commençan
       to_agent: agent.agent,
       feedback: `[OPS ALERT] ${agent.reason || 'Agent en difficulté'}. Dernière réussite: ${agent.last_success || 'aucune en 48h'}. Taux succès 24h: ${agent.success_rate >= 0 ? agent.success_rate + '%' : 'N/A'}.`,
       category: 'general',
-    });
+    }, orgId);
   }
 
   return report;
@@ -400,10 +401,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const orgId = request.nextUrl.searchParams.get('org_id') || null;
+
   // If cron, run health check
   if (auth.isCron) {
     try {
-      const report = await runHealthCheck();
+      const report = await runHealthCheck(orgId);
       return NextResponse.json({ success: true, report });
     } catch (e: any) {
       console.error('[OpsAgent] Health check failed:', e.message);
@@ -444,11 +447,12 @@ export async function POST(request: NextRequest) {
     // empty body is fine, defaults to health_check
   }
 
+  const orgId = body?.org_id || null;
   const action = body.action || 'health_check';
 
   if (action === 'health_check') {
     try {
-      const report = await runHealthCheck();
+      const report = await runHealthCheck(orgId);
       return NextResponse.json({ success: true, report });
     } catch (e: any) {
       console.error('[OpsAgent] Health check failed:', e.message);

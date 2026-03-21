@@ -33,9 +33,9 @@ interface SendResult {
 /**
  * Load shared context + agent-specific learnings.
  */
-async function loadAgentLearnings(): Promise<string> {
+async function loadAgentLearnings(orgId: string | null = null): Promise<string> {
   const supabase = getSupabaseAdmin();
-  const { prompt: contextPrompt } = await loadContextWithAvatar(supabase, 'email');
+  const { prompt: contextPrompt } = await loadContextWithAvatar(supabase, 'email', orgId || undefined);
   let context = contextPrompt;
 
   // Add email-specific performance data
@@ -271,7 +271,7 @@ ${email.body.split('\n').map((line: string) => `<p style="margin:8px 0;">${line}
  * Called at the end of each run to save insights.
  * Tracks: open/click/reply rates, best categories, best subject patterns, best steps.
  */
-async function autoLearn(results: SendResult[], supabase: any) {
+async function autoLearn(results: SendResult[], supabase: any, orgId: string | null = null) {
   const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
   // Get engagement data + email subjects for correlation
@@ -424,7 +424,7 @@ async function autoLearn(results: SendResult[], supabase: any) {
         evidence: `${totalSent} emails analysés sur 7j. ${best[0]}: ${best[1].sent} envoyés, ${best[1].opens} ouverts, ${best[1].clicks} clics, ${best[1].replies} rép. ${worst[0]}: ${worst[1].sent} envoyés, ${worst[1].opens} ouverts.`,
         confidence: Math.min(85, 40 + totalSent * 2),
         revenue_linked: best[1].replies > 0,
-      });
+      }, orgId);
     }
 
     // 2. Best step insight
@@ -446,7 +446,7 @@ async function autoLearn(results: SendResult[], supabase: any) {
         learning: `Step ${bestS[0]} a le meilleur taux d'ouverture (${bestSOR}%). Adapter le ton des autres steps en conséquence.`,
         evidence: `Step ${bestS[0]}: ${bestS[1].sent} envoyés, ${bestS[1].opens} ouverts, ${bestS[1].clicks} clics sur 7j.`,
         confidence: Math.min(80, 35 + totalSent),
-      });
+      }, orgId);
     }
 
     // 3. Open rate trend insight
@@ -459,7 +459,7 @@ async function autoLearn(results: SendResult[], supabase: any) {
           learning: `Taux d'ouverture excellent (${openRate}%). Les objets actuels fonctionnent bien, continuer dans cette direction.`,
           evidence: `${totalSent} emails, ${opens.length} ouvertures, OR=${openRate}% sur 7j.`,
           confidence: Math.min(90, 50 + Math.round(orNum)),
-        });
+        }, orgId);
       } else if (orNum < 15) {
         await saveLearning(supabase, {
           agent: 'email',
@@ -467,7 +467,7 @@ async function autoLearn(results: SendResult[], supabase: any) {
           learning: `Taux d'ouverture faible (${openRate}%). Il faut tester des objets plus courts, plus directs, avec une question ou le prénom du prospect.`,
           evidence: `${totalSent} emails, seulement ${opens.length} ouvertures sur 7j. Action: changer la stratégie d'objets.`,
           confidence: Math.min(85, 45 + totalSent),
-        });
+        }, orgId);
       }
     }
 
@@ -491,7 +491,7 @@ async function autoLearn(results: SendResult[], supabase: any) {
           evidence: `${replies.length} réponses reçues sur 7j, majoritairement des ${topReplyType}.`,
           confidence: Math.min(90, 50 + replies.length * 10),
           revenue_linked: true, // replies = direct conversion signal
-        });
+        }, orgId);
       }
     }
 
@@ -735,6 +735,9 @@ export async function GET(request: NextRequest) {
   const forceMode = request.nextUrl.searchParams.get('force') === 'true';
   const draftMode = request.nextUrl.searchParams.get('draft') === 'true';
 
+  // Optional org_id passthrough for multi-tenant support
+  const orgId = request.nextUrl.searchParams.get('org_id') || null;
+
   const supabase = getSupabaseAdmin();
   const now = new Date();
   const nowISO = now.toISOString();
@@ -800,7 +803,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Load agent learnings for AI generation
-    const learnings = await loadAgentLearnings();
+    const learnings = await loadAgentLearnings(orgId);
 
     if (type === 'warm') {
       // --- Warm mode: follow-up chatbot leads ---
@@ -1322,7 +1325,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Auto-learn from performance
-    await autoLearn(results, supabase);
+    await autoLearn(results, supabase, orgId);
 
     // Report to CEO
     await supabase.from('agent_logs').insert({
@@ -1343,7 +1346,7 @@ export async function GET(request: NextRequest) {
           to_agent: 'ceo',
           feedback: `Emails ${type}: ${successCount} envoyés (${aiCount} IA), ${failCount} échoués. ${failCount > 0 ? `⚠️ Taux échec: ${(failCount / results.length * 100).toFixed(0)}%.` : 'Zéro échec.'} ${Object.keys(byBusinessType).length > 0 ? `Types ciblés: ${Object.entries(byBusinessType).map(([t, c]) => `${t}:${c}`).join(', ')}.` : ''}`,
           category: 'email',
-        });
+        }, orgId);
       }
     } catch (fbErr: any) {
       console.warn('[EmailDaily] Feedback save error:', fbErr.message);

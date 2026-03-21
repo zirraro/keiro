@@ -34,6 +34,7 @@ function getSupabaseAdmin() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const orgId = body?.org_id || null;
     const { visitorId, message, sessionId, visitorData } = body as {
       visitorId: string;
       message: string;
@@ -166,6 +167,7 @@ export async function POST(request: NextRequest) {
       if (detectedPhone) prospectData.phone = detectedPhone;
       if (detectedType) prospectData.type = detectedType;
       if (detectedPlan) prospectData.plan_interest = detectedPlan;
+      if (orgId) prospectData.org_id = orgId;
 
       if (detectedEmail) {
         // Try to find existing prospect by email
@@ -319,6 +321,7 @@ export async function POST(request: NextRequest) {
           tokens_used: 0,
         },
         created_at: now,
+        ...(orgId ? { org_id: orgId } : {}),
       });
 
       // --- Extract learnings every 6 messages (3 exchanges) ---
@@ -339,6 +342,7 @@ Réponds UNIQUEMENT avec l'apprentissage, rien d'autre.`,
               action: 'learning',
               data: { insight: learningResponse.trim(), session_id: session.id, message_count: updatedMessages.length },
               created_at: now,
+              ...(orgId ? { org_id: orgId } : {}),
             });
           }
         } catch { /* non-blocking */ }

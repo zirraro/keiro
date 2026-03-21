@@ -29,6 +29,10 @@
       "schedule": "30 7 * * *"
     },
     {
+      "path": "/api/cron/diagnose-social",
+      "schedule": "45 7 * * *"
+    },
+    {
       "path": "/api/cron/scheduler?slot=morning",
       "schedule": "0 8 * * *"
     },

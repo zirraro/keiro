@@ -59,13 +59,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'GEMINI_API_KEY non configurée' }, { status: 500 });
   }
 
+  // Optional org_id passthrough for multi-tenant support
+  const orgId = request.nextUrl.searchParams.get('org_id') || null;
+
   const supabase = getSupabaseAdmin();
   const now = new Date();
   const nowISO = now.toISOString();
 
   try {
     // Load shared context + avatar
-    const { context: sharedCtx, prompt: crmContext } = await loadContextWithAvatar(supabase, 'marketing');
+    const { context: sharedCtx, prompt: crmContext } = await loadContextWithAvatar(supabase, 'marketing', orgId || undefined);
 
     // Load recent agent performance (7 days)
     const { data: recentLogs } = await supabase
@@ -255,7 +258,7 @@ Date : ${now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', mont
         to_agent: 'ceo',
         feedback: `Analyse marketing: ${learningsExtracted} apprentissages extraits. CRM: ${sharedCtx.crmStats.total} prospects (${sharedCtx.crmStats.hot} hot, ${sharedCtx.crmStats.warm} warm, ${sharedCtx.crmStats.clients} clients). Recommandation intégrée dans l'analyse.`,
         category: 'content',
-      });
+      }, orgId);
     } catch (fbErr: any) {
       console.warn('[MarketingAgent] Feedback save error:', fbErr.message);
     }
@@ -291,7 +294,7 @@ Date : ${now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', mont
  * Analyzes recent agent_logs for marketing actions, identifies what works,
  * and saves structured learnings with confidence scores.
  */
-async function autoLearnMarketing(supabase: any) {
+async function autoLearnMarketing(supabase: any, orgId?: string | null) {
   try {
     const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
 
@@ -336,6 +339,7 @@ async function autoLearnMarketing(supabase: any) {
           learning: `Le format ${bestType[0]} a le meilleur engagement moyen (${avgEng}%) sur ${bestType[1].count} publications des 14 derniers jours.`,
           evidence: `${pubData.length} publications analysées. ${bestType[0]}: ${bestType[1].count} posts, eng moy ${avgEng}%.`,
           confidence: Math.min(30, 10 + bestType[1].count * 3),
+          orgId: orgId || undefined,
         });
       }
 
@@ -360,6 +364,7 @@ async function autoLearnMarketing(supabase: any) {
           learning: `${platform}: engagement moyen ${avgEng}% sur ${stats.count} posts (14j). Top caption style: "${stats.topCaption.substring(0, 60)}..."`,
           evidence: `Agrégé sur ${stats.count} publications ${platform}.`,
           confidence: Math.min(25, 10 + stats.count * 2),
+          orgId: orgId || undefined,
         });
       }
     }
@@ -385,7 +390,7 @@ async function autoLearnMarketing(supabase: any) {
         learning: `Tendances marketing (14j): ${actionSummary}. Focus sur les actions à haut taux de succès.`,
         evidence: `${recentLogs.length} logs marketing analysés.`,
         confidence: 15,
-      });
+      }, orgId);
     }
 
     console.log('[Marketing] autoLearnMarketing completed');
@@ -407,6 +412,9 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json().catch(() => ({}));
+
+    // Optional org_id passthrough for multi-tenant support
+    const orgId = body?.org_id || null;
 
     switch (body.action) {
       case 'find_follow_targets': {
@@ -565,7 +573,7 @@ Cherche des comptes actifs, variés géographiquement, dans la niche commerces l
 
       case 'engagement_plan': {
         // Generate a daily engagement plan (comments, likes strategy)
-        const { prompt: crmContext } = await loadContextWithAvatar(supabase, 'marketing');
+        const { prompt: crmContext } = await loadContextWithAvatar(supabase, 'marketing', orgId || undefined);
 
         const plan = await callGemini({
           system: `Tu es le community manager elite de KeiroAI. Tu crées des plans d'engagement quotidiens.
@@ -818,7 +826,7 @@ UNIQUEMENT du JSON, pas de markdown.`,
 
       case 'advise_agents': {
         // Marketing advisor: analyze performance, generate strategic advice for each agent
-        const { prompt: crmContext } = await loadContextWithAvatar(supabase, 'marketing');
+        const { prompt: crmContext } = await loadContextWithAvatar(supabase, 'marketing', orgId || undefined);
 
         // Load all agent learnings (deep history)
         const { data: allLearnings } = await supabase

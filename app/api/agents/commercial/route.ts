@@ -295,9 +295,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Optional org_id passthrough for multi-tenant support
+  const orgId = request.nextUrl.searchParams.get('org_id') || null;
+
   if (isCron) {
     console.log('[CommercialAgent] Cron triggered — running enrichment + social search pipeline');
-    return runEnrichment();
+    return runEnrichment('full', orgId);
   }
 
   // Admin UI: return last enrichment report
@@ -334,18 +337,20 @@ export async function POST(request: NextRequest) {
   if (!authorized) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 
   let action = 'full';
+  let orgId: string | null = null;
   try {
     const body = await request.json();
     if (body?.action) action = body.action;
+    orgId = body?.org_id || null;
   } catch {}
 
-  return runEnrichment(action as 'verify_crm' | 'prospect_external' | 'full');
+  return runEnrichment(action as 'verify_crm' | 'prospect_external' | 'full', orgId);
 }
 
 /**
  * Core: fetch incomplete prospects, enrich via Gemini + Google Search, update DB.
  */
-async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' = 'full'): Promise<NextResponse> {
+async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' = 'full', orgId: string | null = null): Promise<NextResponse> {
   const runStartTime = Date.now();
   const MAX_RUN_MS = 250_000; // Hard limit: 250s to leave 50s margin for reporting
 
@@ -358,7 +363,7 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
     }
 
     // Load shared context from all agents (see what email/DM/content agents have done)
-    const { context: sharedCtx, prompt: ctxText } = await loadContextWithAvatar(supabase, 'commercial');
+    const { context: sharedCtx, prompt: ctxText } = await loadContextWithAvatar(supabase, 'commercial', orgId || undefined);
     console.log(`[CommercialAgent] CRM: ${sharedCtx.crmStats.total} prospects, ${sharedCtx.crmStats.hot} hot, ${sharedCtx.crmStats.withInstagram} IG — mode: ${mode}`);
 
     const runPhase1 = mode === 'verify_crm' || mode === 'full';
@@ -1182,7 +1187,7 @@ Retourne 8-12 prospects qualifiés AVEC EMAIL en JSON. Sois TRÈS concis dans de
           learning: `Enrichissement: ${enrichedCount} prospects enrichis, ${newProspectsCreated} nouveaux trouvés. Taux d'enrichissement: ${(prospects?.length || 0) > 0 ? Math.round(enrichedCount / (prospects?.length || 1) * 100) : 0}%`,
           evidence: `Run ${mode}: ${prospects?.length || 0} traités, ${enrichedCount} enrichis, ${newProspectsCreated} externes, ${skippedCount} skipped`,
           confidence: 20,
-        });
+        }, orgId);
       }
 
       // Track which business types have best enrichment rates
@@ -1210,7 +1215,7 @@ Retourne 8-12 prospects qualifiés AVEC EMAIL en JSON. Sois TRÈS concis dans de
             learning: `Type "${topType}" enrichit le mieux: ${topData.enriched} prospects avec données complètes`,
             evidence: `Top type this run: ${topType} with ${topData.enriched} enriched out of ${topData.total}`,
             confidence: 15,
-          });
+          }, orgId);
         }
       }
     } catch (learnErr: any) {
@@ -1225,7 +1230,7 @@ Retourne 8-12 prospects qualifiés AVEC EMAIL en JSON. Sois TRÈS concis dans de
           to_agent: 'ceo',
           feedback: `Enrichissement: ${enrichedCount} prospects enrichis, ${newProspectsCreated} nouveaux découverts. ${socialEnrichedCount} profils sociaux trouvés. ${flaggedDeadCount > 0 ? `${flaggedDeadCount} prospects marqués dead.` : ''} Pipeline CRM: ${totalProspects || 0} total, ${withInstagram || 0} avec IG.`,
           category: 'prospection',
-        });
+        }, orgId);
       }
     } catch (fbErr: any) {
       console.warn('[CommercialAgent] Feedback save error:', fbErr.message);

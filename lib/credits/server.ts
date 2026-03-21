@@ -4,6 +4,7 @@ import {
   PLAN_CREDITS,
   FREE_MONTHLY_LIMIT,
   SIGNUP_BONUS_CREDITS,
+  FREE_TRIAL_DAYS,
   getVideoCreditCost,
 } from './constants';
 
@@ -93,6 +94,25 @@ async function ensureMonthlyReset(userId: string): Promise<void> {
 }
 
 /**
+ * Vérifie si l'utilisateur est dans sa période d'essai gratuit (7 jours après inscription)
+ * Pendant l'essai: modifications d'images (image_i2i) illimitées
+ */
+async function isInFreeTrial(userId: string): Promise<boolean> {
+  const supabase = getAdminClient();
+  const { data } = await supabase
+    .from('profiles')
+    .select('created_at')
+    .eq('id', userId)
+    .single();
+
+  if (!data?.created_at) return false;
+
+  const createdAt = new Date(data.created_at);
+  const trialEnd = new Date(createdAt.getTime() + FREE_TRIAL_DAYS * 24 * 60 * 60 * 1000);
+  return new Date() < trialEnd;
+}
+
+/**
  * Récupère le solde crédits d'un utilisateur (avec lazy refresh)
  */
 export async function getCreditsBalance(userId: string): Promise<number> {
@@ -141,6 +161,11 @@ export async function checkCredits(
     cost = (CREDIT_COSTS as any)[feature] ?? 0;
   }
 
+  // Modifications illimitées pendant l'essai gratuit
+  if (feature === 'image_i2i' && cost > 0 && await isInFreeTrial(userId)) {
+    cost = 0;
+  }
+
   return {
     allowed: balance >= cost,
     cost,
@@ -164,6 +189,11 @@ export async function deductCredits(
     cost = getVideoCreditCost(duration || 5);
   } else {
     cost = (CREDIT_COSTS as any)[feature] ?? 0;
+  }
+
+  // Modifications illimitées pendant l'essai gratuit
+  if (feature === 'image_i2i' && cost > 0 && await isInFreeTrial(userId)) {
+    cost = 0;
   }
 
   if (cost === 0) {

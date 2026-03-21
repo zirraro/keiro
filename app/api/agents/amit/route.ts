@@ -60,9 +60,12 @@ export async function GET(request: NextRequest) {
   }
 
   // Cron trigger: generate a new analysis
+  // Optional org_id passthrough for multi-tenant support
+  const orgId = request.nextUrl.searchParams.get('org_id') || null;
+
   if (isCron) {
     console.log('[AMIT] Cron triggered — generating strategic analysis');
-    return runStrategicAnalysis();
+    return runStrategicAnalysis(orgId);
   }
 
   // Admin UI: return the last report
@@ -104,8 +107,9 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json().catch(() => ({}));
+    const postOrgId = body?.org_id || null;
     if (body.action === 'analyze' || !body.action) {
-      return runStrategicAnalysis();
+      return runStrategicAnalysis(postOrgId);
     }
 
     return NextResponse.json({ ok: false, error: `Action inconnue: ${body.action}` }, { status: 400 });
@@ -118,7 +122,7 @@ export async function POST(request: NextRequest) {
 /**
  * Core AMIT analysis pipeline.
  */
-async function runStrategicAnalysis(): Promise<NextResponse> {
+async function runStrategicAnalysis(orgId: string | null = null): Promise<NextResponse> {
   const startTime = Date.now();
   const supabase = getSupabaseAdmin();
 
@@ -248,7 +252,7 @@ async function runStrategicAnalysis(): Promise<NextResponse> {
           learning: pred.prediction,
           evidence: pred.basis,
           confidence: Math.min(pred.probability || 30, 50), // AMIT starts conservative
-        });
+        }, orgId);
       }
     }
 
@@ -261,7 +265,7 @@ async function runStrategicAnalysis(): Promise<NextResponse> {
             to_agent: rec.target_agent,
             feedback: `[AMIT Strategic] ${rec.recommendation} (priorité: ${rec.priority}/10, impact: ${rec.expected_impact})`,
             category: 'general',
-          });
+          }, orgId);
         }
       }
     }

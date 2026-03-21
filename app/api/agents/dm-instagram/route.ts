@@ -157,10 +157,13 @@ export async function GET(request: NextRequest) {
   const { authorized, isCron } = await verifyAuth(request);
   if (!authorized) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 
+  // Optional org_id passthrough for multi-tenant support
+  const orgId = request.nextUrl.searchParams.get('org_id') || null;
+
   if (isCron) {
     const url = new URL(request.url);
     const platform = url.searchParams.get('platform') === 'tiktok' ? 'tiktok' as const : 'instagram' as const;
-    return runDMPreparation(platform);
+    return runDMPreparation(platform, orgId);
   }
 
   const supabase = getSupabaseAdmin();
@@ -185,16 +188,19 @@ export async function POST(request: NextRequest) {
   if (!authorized) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 
   let platform: 'instagram' | 'tiktok' = 'instagram';
+  let orgId: string | null = null;
   try {
     const body = await request.json().catch(() => ({}));
     if (body.platform === 'tiktok') platform = 'tiktok';
+    orgId = body?.org_id || null;
   } catch {}
 
   // Also check query param
   const url = new URL(request.url);
   if (url.searchParams.get('platform') === 'tiktok') platform = 'tiktok';
+  if (!orgId) orgId = url.searchParams.get('org_id') || null;
 
-  return runDMPreparation(platform);
+  return runDMPreparation(platform, orgId);
 }
 
 /**
@@ -222,7 +228,7 @@ function verifyDMProspectData(prospect: any, platform: 'instagram' | 'tiktok' = 
   return { valid: issues.length === 0, issues };
 }
 
-async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram'): Promise<NextResponse> {
+async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram', orgId: string | null = null): Promise<NextResponse> {
   const supabase = getSupabaseAdmin();
   const now = new Date().toISOString();
   const isTikTok = platform === 'tiktok';
@@ -495,7 +501,7 @@ async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram'):
           learning: `DM ${platform}: ${prepared} préparés, ${failed} échoués. Taux réussite: ${prepared > 0 ? Math.round((prepared - failed) / prepared * 100) : 0}%`,
           evidence: `${platform} run: ${prepared} prepared, ${failed} failed, ${skippedVerification} skipped verification, ${followupCount} followups`,
           confidence: 20,
-        });
+        }, orgId);
       }
 
       // Track best performing business types
@@ -508,7 +514,7 @@ async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram'):
           learning: `Type "${topType}" dominant pour DM ${platform}: ${topData.count} DMs préparés`,
           evidence: `Business types: ${topBizTypes.map(([t, d]) => `${t}:${d.count}`).join(', ')}`,
           confidence: 15,
-        });
+        }, orgId);
       }
     } catch (learnErr: any) {
       console.warn(`[DMAgent] Learning save error:`, learnErr.message);
@@ -523,7 +529,7 @@ async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram'):
           to_agent: 'ceo',
           feedback: `DM ${platform}: ${prepared} préparés, ${failed} échoués, ${followupCount} relances. ${topTypes ? `Types: ${topTypes}.` : ''} ${failed > 0 ? `⚠️ ${failed} échecs à investiguer.` : 'Pipeline DM opérationnel.'}`,
           category: 'prospection',
-        });
+        }, orgId);
       }
     } catch (fbErr: any) {
       console.warn(`[DMAgent] Feedback save error:`, fbErr.message);

@@ -56,6 +56,9 @@ export async function POST(request: NextRequest) {
       subject_variant?: number;
     };
 
+    // Optional org_id passthrough for multi-tenant support
+    const orgId = body?.org_id || null;
+
     if (!prospect_id || template_step === undefined) {
       return NextResponse.json(
         { ok: false, error: 'prospect_id et template_step sont requis' },
@@ -268,6 +271,7 @@ export async function POST(request: NextRequest) {
         provider,
       },
       created_at: now,
+      ...(orgId ? { org_id: orgId } : {}),
     });
 
     return NextResponse.json({

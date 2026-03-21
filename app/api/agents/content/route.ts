@@ -944,6 +944,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'ANTHROPIC_API_KEY non configurée' }, { status: 500 });
   }
 
+  const orgId = request.nextUrl.searchParams.get('org_id') || null;
   const supabase = getSupabaseAdmin();
   const now = new Date();
   const todayStr = now.toISOString().split('T')[0];
@@ -958,7 +959,7 @@ export async function GET(request: NextRequest) {
 
     // If Sunday evening cron (or no posts planned this week), generate weekly plan
     if (isCron && dayOfWeek === 0) {
-      return generateWeeklyPlan(supabase);
+      return generateWeeklyPlan(supabase, undefined, undefined, orgId);
     }
 
     // Check slot param for midday/evening content
@@ -967,15 +968,17 @@ export async function GET(request: NextRequest) {
     // If no post for today, generate one on the fly
     if (!todayPosts || todayPosts.length === 0) {
       console.log('[Content] No posts for today — generating one now');
-      return generateDailyPost(supabase, todayStr, dayOfWeek);
+      return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, undefined, undefined, orgId);
     }
 
-    // Auto-publish unpublished posts (max 2 per cron call to avoid timeouts)
+    // Auto-publish: only 1 post per slot to spread publications throughout the day
+    // Each content slot (morning, midday, evening) publishes max 1 post, avoiding 3 at once
     const unpublished = todayPosts.filter((p: any) => p.status === 'draft' || p.status === 'approved');
+    const maxPublishPerSlot = slot === 'tiktok' ? 2 : 1; // TikTok slot can do 2 (video + photo)
     if (unpublished.length > 0 && isCron) {
-      console.log(`[Content] ${unpublished.length} unpublished posts for today — auto-publishing (max 2)`);
+      console.log(`[Content] ${unpublished.length} unpublished posts for today — auto-publishing (max ${maxPublishPerSlot} for slot: ${slot || 'default'})`);
       let published = 0;
-      for (const post of unpublished.slice(0, 2)) {
+      for (const post of unpublished.slice(0, maxPublishPerSlot)) {
         try {
           const { data: fullPost } = await supabase.from('content_calendar').select('*').eq('id', post.id).single();
           if (!fullPost) continue;
@@ -1070,34 +1073,34 @@ export async function GET(request: NextRequest) {
 
     if (slot === 'morning' && postCount < 1) {
       console.log('[Content] Morning slot — generating 1st post for today');
-      return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, '__morning__');
+      return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, '__morning__', undefined, orgId);
     }
 
     if (slot === 'midday' && postCount < 2) {
       console.log('[Content] Midday slot — generating 2nd post for today');
-      return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, '__midday__');
+      return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, '__midday__', undefined, orgId);
     }
 
     if (slot === 'evening' && postCount < 3) {
       console.log('[Content] Evening slot — generating 3rd post for today');
-      return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, '__evening__');
+      return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, '__evening__', undefined, orgId);
     }
 
     const hasTiktokToday = (updatedPosts || todayPosts).some((p: any) => p.platform === 'tiktok');
     if (slot === 'tiktok' && !hasTiktokToday) {
       console.log('[Content] TikTok slot — generating daily TikTok video');
-      return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, '__tiktok__');
+      return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, '__tiktok__', undefined, orgId);
     }
 
     // LinkedIn: 2 posts per day
     const linkedinPostsToday = (updatedPosts || todayPosts).filter((p: any) => p.platform === 'linkedin').length;
     if (slot === 'linkedin_1' && linkedinPostsToday < 1) {
       console.log('[Content] LinkedIn slot 1 — generating 1st LinkedIn post');
-      return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, '__linkedin_1__');
+      return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, '__linkedin_1__', undefined, orgId);
     }
     if (slot === 'linkedin_2' && linkedinPostsToday < 2) {
       console.log('[Content] LinkedIn slot 2 — generating 2nd LinkedIn post');
-      return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, '__linkedin_2__');
+      return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, '__linkedin_2__', undefined, orgId);
     }
 
     // Return today's content — flag as warning if 0 posts
@@ -1128,19 +1131,20 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json().catch(() => ({}));
+    const orgId = body?.org_id || null;
 
     switch (body.action) {
       case 'generate_weekly':
-        return generateWeeklyPlan(supabase, body.platform, body.draftOnly);
+        return generateWeeklyPlan(supabase, body.platform, body.draftOnly, orgId);
 
       case 'generate_post': {
         const todayStr = new Date().toISOString().split('T')[0];
         const dayOfWeek = new Date().getDay();
-        return generateDailyPost(supabase, todayStr, dayOfWeek, body.platform, body.pillar, body.draftOnly);
+        return generateDailyPost(supabase, todayStr, dayOfWeek, body.platform, body.pillar, body.draftOnly, orgId);
       }
 
       case 'generate_week': {
-        return generateWeekWithVisuals(supabase, body.publishAll === true);
+        return generateWeekWithVisuals(supabase, body.publishAll === true, orgId);
       }
 
       case 'approve': {
@@ -1442,6 +1446,65 @@ export async function POST(request: NextRequest) {
       }
 
       case 'execute_publication': {
+        // ── Pre-publication Instagram token diagnostic ──
+        // Verify token validity before wasting API calls on publish attempts
+        const { data: adminProfile } = await supabase
+          .from('profiles')
+          .select('instagram_business_account_id, facebook_page_access_token')
+          .eq('is_admin', true)
+          .limit(1)
+          .single();
+
+        let igTokenValid = false;
+        if (!adminProfile?.instagram_business_account_id || !adminProfile?.facebook_page_access_token) {
+          console.error('[Content] execute_publication: Instagram tokens missing from admin profile');
+          await supabase.from('agent_logs').insert({
+            agent: 'diagnostic',
+            action: 'instagram_health_check',
+            status: 'error',
+            data: {
+              check: 'pre_publish_token',
+              severity: 'critical',
+              detail: 'Instagram tokens missing from admin profile. Skipping Instagram publications.',
+              triggered_by: 'execute_publication',
+            },
+            created_at: new Date().toISOString(),
+          });
+        } else {
+          try {
+            const { graphGET: graphGETCheck } = await import('@/lib/meta');
+            await graphGETCheck<{ id: string }>(
+              `/${adminProfile.instagram_business_account_id}`,
+              adminProfile.facebook_page_access_token,
+              { fields: 'id' }
+            );
+            igTokenValid = true;
+            console.log('[Content] execute_publication: Instagram token verified OK');
+          } catch (tokenErr: any) {
+            const errDetail = (tokenErr.message || '').substring(0, 300);
+            console.error('[Content] execute_publication: Instagram token INVALID:', errDetail);
+            const tokenDiag = diagnosePublishFailure('Instagram', errDetail);
+            await sendPublishAlert(
+              tokenDiag,
+              'Pre-publication token check failed — all Instagram posts will be skipped',
+              supabase
+            );
+            await supabase.from('agent_logs').insert({
+              agent: 'diagnostic',
+              action: 'instagram_health_check',
+              status: 'error',
+              data: {
+                check: 'pre_publish_token',
+                severity: 'critical',
+                detail: `Token validation failed: ${errDetail}`,
+                diagnostic_reason: tokenDiag.reason,
+                triggered_by: 'execute_publication',
+              },
+              created_at: new Date().toISOString(),
+            });
+          }
+        }
+
         // Publish approved/draft posts that are due today or earlier
         const todayDate = new Date().toISOString().split('T')[0];
         const { data: readyPosts } = await supabase
@@ -1508,19 +1571,29 @@ export async function POST(request: NextRequest) {
           const postWithVideo = { ...post, video_url: videoUrl };
 
           if (post.platform === 'instagram' && (post.visual_url || videoUrl)) {
-            const igResult = await publishToInstagram(postWithVideo, supabase);
-            if (igResult.success) {
-              igPermalink = igResult.permalink;
-              if (igResult.permalink) updateData.instagram_permalink = igResult.permalink;
-            } else {
-              pubError = igResult.error;
-              console.warn(`[Content] Instagram publish failed for post ${post.id}: ${igResult.error}`);
-              const diag = diagnosePublishFailure('Instagram', igResult.error || '');
+            if (!igTokenValid) {
+              // Skip Instagram publication — token is invalid
+              pubError = 'Instagram token invalid (pre-publish check failed). Skipped.';
+              console.warn(`[Content] Skipping Instagram post ${post.id}: token invalid`);
               updateData.status = 'publish_failed';
-              updateData.publish_error = igResult.error || 'Unknown Instagram error';
-              updateData.publish_diagnostic = { platform: 'Instagram', reason: diag.reason, severity: diag.severity, detail: diag.detail, timestamp: new Date().toISOString() };
+              updateData.publish_error = pubError;
+              updateData.publish_diagnostic = { platform: 'Instagram', reason: 'token_invalid_pre_check', severity: 'critical', detail: pubError, timestamp: new Date().toISOString() };
               delete updateData.published_at;
-              await sendPublishAlert(diag, `Post ${post.id} — ${post.hook || post.caption?.substring(0, 60) || 'N/A'}`, supabase);
+            } else {
+              const igResult = await publishToInstagram(postWithVideo, supabase);
+              if (igResult.success) {
+                igPermalink = igResult.permalink;
+                if (igResult.permalink) updateData.instagram_permalink = igResult.permalink;
+              } else {
+                pubError = igResult.error;
+                console.warn(`[Content] Instagram publish failed for post ${post.id}: ${igResult.error}`);
+                const diag = diagnosePublishFailure('Instagram', igResult.error || '');
+                updateData.status = 'publish_failed';
+                updateData.publish_error = igResult.error || 'Unknown Instagram error';
+                updateData.publish_diagnostic = { platform: 'Instagram', reason: diag.reason, severity: diag.severity, detail: diag.detail, timestamp: new Date().toISOString() };
+                delete updateData.published_at;
+                await sendPublishAlert(diag, `Post ${post.id} — ${post.hook || post.caption?.substring(0, 60) || 'N/A'}`, supabase);
+              }
             }
           } else if (post.platform === 'tiktok' && (post.visual_url || videoUrl)) {
             const ttResult = await publishToTikTok(postWithVideo, supabase);
@@ -1567,19 +1640,28 @@ export async function POST(request: NextRequest) {
               let igPermalink2: string | undefined;
               let pubError2: string | undefined;
               if (post.platform === 'instagram') {
-                const igResult = await publishToInstagram({ ...post, visual_url: visualUrl }, supabase);
-                if (igResult.success) {
-                  igPermalink2 = igResult.permalink;
-                  if (igResult.permalink) updateData.instagram_permalink = igResult.permalink;
-                } else {
-                  pubError2 = igResult.error;
-                  console.warn(`[Content] Instagram publish failed for post ${post.id}: ${igResult.error}`);
-                  const diag = diagnosePublishFailure('Instagram', igResult.error || '');
+                if (!igTokenValid) {
+                  pubError2 = 'Instagram token invalid (pre-publish check failed). Skipped.';
+                  console.warn(`[Content] Skipping Instagram post ${post.id}: token invalid`);
                   updateData.status = 'publish_failed';
-                  updateData.publish_error = igResult.error || 'Unknown Instagram error';
-                  updateData.publish_diagnostic = { platform: 'Instagram', reason: diag.reason, severity: diag.severity, detail: diag.detail, timestamp: new Date().toISOString() };
+                  updateData.publish_error = pubError2;
+                  updateData.publish_diagnostic = { platform: 'Instagram', reason: 'token_invalid_pre_check', severity: 'critical', detail: pubError2, timestamp: new Date().toISOString() };
                   delete updateData.published_at;
-                  await sendPublishAlert(diag, `Post ${post.id} — ${post.hook || post.caption?.substring(0, 60) || 'N/A'}`, supabase);
+                } else {
+                  const igResult = await publishToInstagram({ ...post, visual_url: visualUrl }, supabase);
+                  if (igResult.success) {
+                    igPermalink2 = igResult.permalink;
+                    if (igResult.permalink) updateData.instagram_permalink = igResult.permalink;
+                  } else {
+                    pubError2 = igResult.error;
+                    console.warn(`[Content] Instagram publish failed for post ${post.id}: ${igResult.error}`);
+                    const diag = diagnosePublishFailure('Instagram', igResult.error || '');
+                    updateData.status = 'publish_failed';
+                    updateData.publish_error = igResult.error || 'Unknown Instagram error';
+                    updateData.publish_diagnostic = { platform: 'Instagram', reason: diag.reason, severity: diag.severity, detail: diag.detail, timestamp: new Date().toISOString() };
+                    delete updateData.published_at;
+                    await sendPublishAlert(diag, `Post ${post.id} — ${post.hook || post.caption?.substring(0, 60) || 'N/A'}`, supabase);
+                  }
                 }
               } else if (post.platform === 'tiktok') {
                 const ttResult = await publishToTikTok({ ...post, visual_url: visualUrl }, supabase);
@@ -1614,7 +1696,7 @@ export async function POST(request: NextRequest) {
         if (publishedCount === 0 && (!readyPosts || readyPosts.length === 0) && (!approvedWithVisuals || approvedWithVisuals.length === 0)) {
           console.log('[Content] No posts to publish — generating a fresh one now');
           const dayOfWeek = new Date().getDay();
-          return generateDailyPost(supabase, todayDate, dayOfWeek);
+          return generateDailyPost(supabase, todayDate, dayOfWeek, undefined, undefined, undefined, orgId);
         }
 
         const nowISO = new Date().toISOString();
@@ -1628,6 +1710,7 @@ export async function POST(request: NextRequest) {
             published: publishedPosts,
           },
           created_at: nowISO,
+          ...(orgId ? { org_id: orgId } : {}),
         });
 
         // Also report to CEO
@@ -1639,6 +1722,7 @@ export async function POST(request: NextRequest) {
             message: `Contenu: ${publishedCount} publications exécutées`,
           },
           created_at: nowISO,
+          ...(orgId ? { org_id: orgId } : {}),
         });
 
         // ── Save learnings from publication ──
@@ -1650,7 +1734,7 @@ export async function POST(request: NextRequest) {
               learning: `Publication: ${publishedCount} posts publiés avec succès`,
               evidence: `Published ${publishedCount} posts`,
               confidence: 25,
-            });
+            }, orgId);
           }
         } catch (learnErr: any) {
           console.warn('[ContentAgent] Learning save error:', learnErr.message);
@@ -1664,7 +1748,7 @@ export async function POST(request: NextRequest) {
             to_agent: 'ceo',
             feedback: `Publication: ${publishedCount} posts publiés. ${failedCount > 0 ? `⚠️ ${failedCount} échecs.` : 'Zéro échec.'} Pipeline contenu opérationnel.`,
             category: 'content',
-          });
+          }, orgId);
         } catch (fbErr: any) {
           console.warn('[ContentAgent] Feedback save error:', (fbErr as any).message);
         }
@@ -1933,7 +2017,7 @@ Retourne UNIQUEMENT le JSON.`,
 // ──────────────────────────────────────
 // Generate weekly content plan
 // ──────────────────────────────────────
-async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftOnly?: boolean) {
+async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftOnly?: boolean, orgId: string | null = null) {
   const now = new Date();
   const nowISO = now.toISOString();
 
@@ -1981,6 +2065,7 @@ async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftO
       agent: 'content', action: 'weekly_plan_failed',
       data: { error: claudeError.message, phase: 'claude_call' },
       status: 'error', error_message: claudeError.message, created_at: nowISO,
+      ...(orgId ? { org_id: orgId } : {}),
     });
     return NextResponse.json({ ok: false, error: `Claude error: ${claudeError.message}` }, { status: 502 });
   }
@@ -2011,6 +2096,7 @@ async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftO
       agent: 'content', action: 'weekly_plan_failed',
       data: { raw: rawText.substring(0, 500), error: String(parseError) },
       status: 'error', error_message: String(parseError), created_at: nowISO,
+      ...(orgId ? { org_id: orgId } : {}),
     });
     return NextResponse.json({ ok: false, error: 'Failed to parse weekly plan' }, { status: 500 });
   }
@@ -2095,6 +2181,7 @@ async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftO
     data: { postsPlanned: inserted, totalAttempted: weekPlan.length, weekStart: mondayDate.toISOString().split('T')[0] },
     status: planStatus, error_message: inserted === 0 ? `0/${weekPlan.length} posts inserted — all DB inserts failed` : undefined,
     created_at: nowISO,
+    ...(orgId ? { org_id: orgId } : {}),
   });
 
   // ── Save learnings from weekly plan ──
@@ -2106,7 +2193,7 @@ async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftO
         learning: `Plan hebdo généré: ${inserted}/${weekPlan.length} posts planifiés (semaine du ${mondayDate.toISOString().split('T')[0]})`,
         evidence: `weekly_plan: ${inserted} inserted out of ${weekPlan.length} attempted`,
         confidence: 20,
-      });
+      }, orgId);
     }
   } catch (learnErr: any) {
     console.warn('[ContentAgent] Learning save error:', learnErr.message);
@@ -2135,6 +2222,7 @@ async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftO
       },
     },
     created_at: nowISO,
+    ...(orgId ? { org_id: orgId } : {}),
   });
 
   console.log(`[Content] Weekly plan: ${inserted}/${weekPlan.length} posts planned`);
@@ -2149,7 +2237,7 @@ async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftO
 // ──────────────────────────────────────
 // Generate week with visuals + optional Instagram publishing
 // ──────────────────────────────────────
-async function generateWeekWithVisuals(supabase: any, publishAll: boolean) {
+async function generateWeekWithVisuals(supabase: any, publishAll: boolean, orgId: string | null = null) {
   const now = new Date();
   const nowISO = now.toISOString();
 
@@ -2336,6 +2424,7 @@ async function generateWeekWithVisuals(supabase: any, publishAll: boolean) {
     },
     status: 'success',
     created_at: nowISO,
+    ...(orgId ? { org_id: orgId } : {}),
   });
 
   // ── Save learnings from content generation ──
@@ -2347,7 +2436,7 @@ async function generateWeekWithVisuals(supabase: any, publishAll: boolean) {
         learning: `Contenu généré: ${results.length} posts (${totalGenerated} visuels). ${publishedCount} publiés sur Instagram`,
         evidence: `generate_week: ${results.length} total, ${totalGenerated} visuals, ${publishedCount} published`,
         confidence: 20,
-      });
+      }, orgId);
     }
   } catch (learnErr: any) {
     console.warn('[ContentAgent] Learning save error:', learnErr.message);
@@ -2367,13 +2456,13 @@ async function generateWeekWithVisuals(supabase: any, publishAll: boolean) {
 // ──────────────────────────────────────
 // Generate a single daily post
 // ──────────────────────────────────────
-async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: number, forcePlatform?: string, forcePillar?: string, draftOnly?: boolean) {
+async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: number, forcePlatform?: string, forcePillar?: string, draftOnly?: boolean, orgId: string | null = null) {
   const nowISO = new Date().toISOString();
 
   // Load shared intelligence pool (all agents' data + active directives)
   let sharedIntelligence = '';
   try {
-    const { prompt: ctxPrompt } = await loadContextWithAvatar(supabase, 'content');
+    const { prompt: ctxPrompt } = await loadContextWithAvatar(supabase, 'content', orgId || undefined);
     sharedIntelligence = ctxPrompt;
   } catch (e: any) {
     console.warn('[Content] Failed to load shared context:', e.message);
@@ -2552,6 +2641,7 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
       agent: 'content', action: 'daily_post_failed',
       data: { error: claudeError.message, phase: 'claude_call' },
       status: 'error', error_message: claudeError.message, created_at: nowISO,
+      ...(orgId ? { org_id: orgId } : {}),
     });
     return NextResponse.json({ ok: false, error: `Claude error: ${claudeError.message}` }, { status: 502 });
   }
@@ -2562,6 +2652,7 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
       agent: 'content', action: 'daily_post_failed',
       data: { error: 'Empty Claude response', phase: 'claude_empty' },
       status: 'error', error_message: 'Empty Claude response', created_at: nowISO,
+      ...(orgId ? { org_id: orgId } : {}),
     });
     return NextResponse.json({ ok: false, error: 'Claude returned empty response' }, { status: 502 });
   }
@@ -2593,6 +2684,7 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
       agent: 'content', action: 'daily_post_failed',
       data: { raw: rawText.substring(0, 800), error: String(parseError) },
       status: 'error', error_message: String(parseError), created_at: nowISO,
+      ...(orgId ? { org_id: orgId } : {}),
     });
     return NextResponse.json({ ok: false, error: 'Failed to parse post' }, { status: 500 });
   }
@@ -2675,6 +2767,7 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
             hook: post.hook,
           },
           status: 'success', created_at: nowISO,
+          ...(orgId ? { org_id: orgId } : {}),
         });
 
         // Notify founder
@@ -2820,6 +2913,7 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
       has_video: !!videoUrl,
     },
     status: 'success', created_at: nowISO,
+    ...(orgId ? { org_id: orgId } : {}),
   });
 
   // ── Save learnings from daily post generation ──
@@ -2830,7 +2924,7 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
       learning: `Post quotidien généré: ${postPlatform} ${postFormat}, pilier=${post.pillar}${publicationError ? ' (erreur publication)' : ''}`,
       evidence: `daily_post: platform=${postPlatform}, format=${postFormat}, pillar=${post.pillar}, ig=${!!igPermalink}, tiktok=${!!tiktokPublishId}, error=${!!publicationError}`,
       confidence: 20,
-    });
+    }, orgId);
   } catch (learnErr: any) {
     console.warn('[ContentAgent] Learning save error:', learnErr.message);
   }

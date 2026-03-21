@@ -72,7 +72,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Admin required' }, { status: 403 });
   }
 
-  const { order_ids } = await request.json();
+  const body = await request.json();
+  const { order_ids } = body;
+  const orgId = body?.org_id || null;
   if (!order_ids || !Array.isArray(order_ids) || order_ids.length === 0) {
     return NextResponse.json({ ok: false, error: 'order_ids requis (array)' }, { status: 400 });
   }
@@ -102,6 +104,7 @@ export async function POST(request: NextRequest) {
   await supabase.from('agent_orders').update({
     status: 'in_progress',
     result: { started_at: now, executed_by: 'admin_manual' },
+    ...(orgId ? { org_id: orgId } : {}),
   }).in('id', orders.map((o: any) => o.id));
 
   // Execute ALL orders in parallel

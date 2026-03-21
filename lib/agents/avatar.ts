@@ -9,6 +9,7 @@
  */
 
 import { SupabaseClient } from '@supabase/supabase-js';
+import { getOrgAgentConfig } from '../tenant';
 
 // ─── Types ─────────────────────────────────────────────────────
 
@@ -76,18 +77,27 @@ interface CacheEntry {
 
 const avatarCache = new Map<string, CacheEntry>();
 
-function getCached(agentId: string): AgentAvatarConfig | null {
-  const entry = avatarCache.get(agentId);
+/**
+ * Build cache key. When orgId is provided, key is `${orgId}:${agentId}`.
+ * When not provided, key is just `agentId` (backwards compatible).
+ */
+function cacheKey(agentId: string, orgId?: string): string {
+  return orgId ? `${orgId}:${agentId}` : agentId;
+}
+
+function getCached(agentId: string, orgId?: string): AgentAvatarConfig | null {
+  const key = cacheKey(agentId, orgId);
+  const entry = avatarCache.get(key);
   if (!entry) return null;
   if (Date.now() - entry.timestamp > CACHE_TTL_MS) {
-    avatarCache.delete(agentId);
+    avatarCache.delete(key);
     return null;
   }
   return entry.data;
 }
 
-function setCache(agentId: string, data: AgentAvatarConfig) {
-  avatarCache.set(agentId, { data, timestamp: Date.now() });
+function setCache(agentId: string, data: AgentAvatarConfig, orgId?: string) {
+  avatarCache.set(cacheKey(agentId, orgId), { data, timestamp: Date.now() });
 }
 
 export function invalidateAvatarCache(agentId?: string) {
@@ -102,13 +112,18 @@ export function invalidateAvatarCache(agentId?: string) {
 
 /**
  * Get avatar config for a single agent. Returns default if not found in DB.
+ *
+ * @param orgId - Optional organization ID for multi-tenant overrides.
+ *                When provided, checks `org_agent_configs` for org-specific overrides
+ *                and merges them on top of the base config (org overrides win).
  */
 export async function getAgentAvatar(
   supabase: SupabaseClient,
-  agentId: string
+  agentId: string,
+  orgId?: string,
 ): Promise<AgentAvatarConfig> {
-  // Check cache first
-  const cached = getCached(agentId);
+  // Check cache first (cache key includes orgId when provided)
+  const cached = getCached(agentId, orgId);
   if (cached) return cached;
 
   const { data, error } = await supabase
@@ -117,10 +132,12 @@ export async function getAgentAvatar(
     .eq('id', agentId)
     .single();
 
+  let config: AgentAvatarConfig;
+
   if (error || !data) {
     // Return default fallback
     const defaults = DEFAULT_AVATARS[agentId] || { display_name: agentId, title: 'Agent IA', gradient_from: '#7c3aed', gradient_to: '#4f46e5', badge_color: '#7c3aed' };
-    const fallback: AgentAvatarConfig = {
+    config = {
       id: agentId,
       ...defaults,
       avatar_url: null,
@@ -130,26 +147,40 @@ export async function getAgentAvatar(
       custom_instructions: '',
       is_active: true,
     };
-    return fallback;
+  } else {
+    const defaults = DEFAULT_AVATARS[agentId] || { gradient_from: '#7c3aed', gradient_to: '#4f46e5', badge_color: '#7c3aed' };
+    config = {
+      id: data.id,
+      display_name: data.display_name,
+      title: data.title || '',
+      avatar_url: data.avatar_url,
+      avatar_3d_url: data.avatar_3d_url || null,
+      animation_type: data.animation_type || 'idle',
+      gradient_from: data.gradient_from || defaults.gradient_from,
+      gradient_to: data.gradient_to || defaults.gradient_to,
+      badge_color: data.badge_color || defaults.badge_color,
+      personality: { ...DEFAULT_PERSONALITY, ...(data.personality || {}) },
+      custom_instructions: data.custom_instructions || '',
+      is_active: data.is_active,
+    };
   }
 
-  const defaults = DEFAULT_AVATARS[agentId] || { gradient_from: '#7c3aed', gradient_to: '#4f46e5', badge_color: '#7c3aed' };
-  const config: AgentAvatarConfig = {
-    id: data.id,
-    display_name: data.display_name,
-    title: data.title || '',
-    avatar_url: data.avatar_url,
-    avatar_3d_url: data.avatar_3d_url || null,
-    animation_type: data.animation_type || 'idle',
-    gradient_from: data.gradient_from || defaults.gradient_from,
-    gradient_to: data.gradient_to || defaults.gradient_to,
-    badge_color: data.badge_color || defaults.badge_color,
-    personality: { ...DEFAULT_PERSONALITY, ...(data.personality || {}) },
-    custom_instructions: data.custom_instructions || '',
-    is_active: data.is_active,
-  };
+  // Multi-tenant: apply org-specific overrides when orgId is provided
+  if (orgId) {
+    const orgConfig = await getOrgAgentConfig(supabase, orgId, agentId);
+    if (orgConfig) {
+      if (orgConfig.display_name) config.display_name = orgConfig.display_name;
+      if (orgConfig.custom_instructions) config.custom_instructions = orgConfig.custom_instructions;
+      if (orgConfig.avatar_url) config.avatar_url = orgConfig.avatar_url;
+      if (orgConfig.avatar_3d_url) config.avatar_3d_url = orgConfig.avatar_3d_url;
+      if (orgConfig.is_enabled === false) config.is_active = false;
+      if (orgConfig.personality_overrides) {
+        config.personality = { ...config.personality, ...orgConfig.personality_overrides } as AgentPersonality;
+      }
+    }
+  }
 
-  setCache(agentId, config);
+  setCache(agentId, config, orgId);
   return config;
 }
 
@@ -249,12 +280,15 @@ Tu es ${avatar.display_name}, ${avatar.title} chez KeiroAI.`;
 
 /**
  * Get formatted avatar prompt block for injection. Convenience wrapper.
+ *
+ * @param orgId - Optional organization ID for multi-tenant overrides.
  */
 export async function getAvatarPromptBlock(
   supabase: SupabaseClient,
-  agentId: string
+  agentId: string,
+  orgId?: string,
 ): Promise<string> {
-  const avatar = await getAgentAvatar(supabase, agentId);
+  const avatar = await getAgentAvatar(supabase, agentId, orgId);
   return formatAvatarForPrompt(avatar);
 }
 

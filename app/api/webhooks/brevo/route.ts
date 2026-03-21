@@ -94,11 +94,13 @@ export async function POST(request: NextRequest) {
           const scoreBonus = prospect.email_sequence_step === 2 ? 15 : 10;
           const newScore = Math.min(100, currentScore + scoreBonus);
           const newTemp = calculateTemperature(newScore, { ...prospect, last_email_opened_at: now, score: newScore });
+          const opensCount = (prospect.email_opens_count ?? 0) + 1;
 
           await supabase
             .from('crm_prospects')
             .update({
               last_email_opened_at: now,
+              email_opens_count: opensCount,
               score: newScore,
               temperature: newTemp,
               updated_at: now,
@@ -108,21 +110,27 @@ export async function POST(request: NextRequest) {
           await supabase.from('crm_activities').insert({
             prospect_id: prospect.id,
             type: 'email_opened',
-            description: `Email step ${prospect.email_sequence_step} ouvert (+${scoreBonus} score)`,
-            data: { score_before: currentScore, score_after: newScore, temperature: newTemp, category: emailCategory, step: prospect.email_sequence_step },
+            description: `Email step ${prospect.email_sequence_step} ouvert (+${scoreBonus} score) — ${opensCount} ouvertures total`,
+            data: { score_before: currentScore, score_after: newScore, temperature: newTemp, category: emailCategory, step: prospect.email_sequence_step, opens_count: opensCount },
             created_at: now,
           });
           break;
         }
 
         case 'click': {
-          const newScore = Math.min(100, currentScore + 25);
+          // Click = prospect beaucoup plus intéressé que simple ouverture
+          const clickScoreBonus = 25;
+          const newScore = Math.min(100, currentScore + clickScoreBonus);
           const newClickTemp = calculateTemperature(newScore, { ...prospect, last_email_clicked_at: now, score: newScore });
+          const clicksCount = (prospect.email_clicks_count ?? 0) + 1;
+          const clickedUrl = event.link || null;
 
           await supabase
             .from('crm_prospects')
             .update({
               last_email_clicked_at: now,
+              last_email_clicked_url: clickedUrl,
+              email_clicks_count: clicksCount,
               score: newScore,
               temperature: newClickTemp,
               updated_at: now,
@@ -132,10 +140,42 @@ export async function POST(request: NextRequest) {
           await supabase.from('crm_activities').insert({
             prospect_id: prospect.id,
             type: 'email_clicked',
-            description: `Lien clique dans email step ${prospect.email_sequence_step} (+25 score)`,
-            data: { score_before: currentScore, score_after: newScore, url: event.link, category: emailCategory, step: prospect.email_sequence_step },
+            description: `🔥 Lien cliqué dans email step ${prospect.email_sequence_step} (+${clickScoreBonus} score) — ${clicksCount} clics total`,
+            data: { score_before: currentScore, score_after: newScore, url: clickedUrl, category: emailCategory, step: prospect.email_sequence_step, clicks_count: clicksCount },
             created_at: now,
           });
+
+          // Alert si premier clic (prospect passe de warm à hot)
+          if (clicksCount === 1) {
+            const RESEND_API_KEY = process.env.RESEND_API_KEY;
+            if (RESEND_API_KEY) {
+              try {
+                await fetch('https://api.resend.com/emails', {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${RESEND_API_KEY}`,
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    from: 'KeiroAI Agents <contact@keiroai.com>',
+                    to: ['contact@keiroai.com'],
+                    subject: `🎯 CLIC — ${prospect.company || prospect.email} a cliqué sur le lien !`,
+                    html: `<h2>🎯 Prospect intéressé — Premier clic !</h2>
+                      <p><strong>${prospect.company || 'Inconnu'}</strong> (${prospect.type || 'N/A'}, ${prospect.quartier || 'N/A'}) a cliqué sur un lien dans votre email.</p>
+                      <p><strong>Lien cliqué :</strong> ${clickedUrl || 'N/A'}</p>
+                      <p><strong>Score :</strong> ${currentScore} → ${newScore}/100</p>
+                      <p><strong>Température :</strong> ${newClickTemp}</p>
+                      <p><strong>Email step :</strong> ${prospect.email_sequence_step}</p>
+                      <hr/>
+                      <p style="color:#888;font-size:12px">Ce prospect est passé en HOT — il a visité KeiroAI. Envisagez un suivi personnalisé rapide.</p>`,
+                  }),
+                });
+                console.log('[BrevoWebhook] Click alert sent for:', prospect.email);
+              } catch (e: any) {
+                console.warn('[BrevoWebhook] Click alert email failed:', e.message);
+              }
+            }
+          }
           break;
         }
 

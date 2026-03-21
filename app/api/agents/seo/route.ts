@@ -222,11 +222,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Optional org_id passthrough for multi-tenant support
+  const orgId = request.nextUrl.searchParams.get('org_id') || null;
+
   // Cron trigger: auto-generate next article
   if (isCron) {
     console.log('[SEOAgent] Cron triggered — generating next article');
     // Generate article first
-    const articleResult = await generateArticle(null);
+    const articleResult = await generateArticle(null, orgId);
     // Then execute any pending orders
     try {
       await executeOrders();
@@ -302,9 +305,12 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => ({}));
     const action = body.action;
 
+    // Optional org_id passthrough for multi-tenant support
+    const orgId = body?.org_id || null;
+
     switch (action) {
       case 'generate_article':
-        return generateArticle(body.keyword || null);
+        return generateArticle(body.keyword || null, orgId);
 
       case 'calendar':
         return generateCalendar();
@@ -348,7 +354,7 @@ export async function POST(request: NextRequest) {
  * Generate a blog article using Claude Haiku.
  * If no keyword is provided, picks the next best one from clusters.
  */
-async function generateArticle(keyword: string | null): Promise<NextResponse> {
+async function generateArticle(keyword: string | null, orgId: string | null = null): Promise<NextResponse> {
   try {
     const supabase = getSupabaseAdmin();
     const now = new Date().toISOString();
@@ -375,7 +381,7 @@ async function generateArticle(keyword: string | null): Promise<NextResponse> {
     console.log(`[SEOAgent] Generating article for: "${targetKeyword}"`);
 
     // Load shared CRM context for data-driven content
-    const { prompt: crmContext } = await loadContextWithAvatar(supabase, 'seo');
+    const { prompt: crmContext } = await loadContextWithAvatar(supabase, 'seo', orgId || undefined);
 
     // Fetch Google Search Console data for data-driven SEO
     let gscContext = '';
@@ -632,7 +638,7 @@ Genere le JSON complet comme specifie dans tes instructions.`,
         learning: `Article SEO généré: "${article.meta_title || article.h1 || targetKeyword}" — ${article.content_html?.split(/\s+/).length || 'N/A'} mots, keyword: ${targetKeyword}`,
         evidence: `Article published: slug=${article.slug}, keyword=${targetKeyword}, cluster=${article.keywords?.primary || 'unknown'}`,
         confidence: 20,
-      });
+      }, orgId);
     } catch (learnErr: any) {
       console.warn('[SEOAgent] Learning save error:', learnErr.message);
     }
@@ -644,7 +650,7 @@ Genere le JSON complet comme specifie dans tes instructions.`,
         to_agent: 'ceo',
         feedback: `Article SEO généré: "${article.meta_title || article.h1 || targetKeyword}" (${article.content_html?.split(/\s+/).length || 'N/A'} mots). Keyword: ${targetKeyword}. Slug: ${article.slug}. Statut: draft.`,
         category: 'seo',
-      });
+      }, orgId);
     } catch (fbErr: any) {
       console.warn('[SEOAgent] Feedback save error:', fbErr.message);
     }

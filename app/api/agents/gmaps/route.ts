@@ -187,8 +187,10 @@ export async function GET(request: NextRequest) {
   const { authorized, isCron } = await verifyAuth(request);
   if (!authorized) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 
+  const orgId = request.nextUrl.searchParams.get('org_id') || null;
+
   if (isCron) {
-    return runGMapsScan();
+    return runGMapsScan(orgId);
   }
 
   // Admin: last report
@@ -212,10 +214,15 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const { authorized } = await verifyAuth(request);
   if (!authorized) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
-  return runGMapsScan();
+
+  let body: any = {};
+  try { body = await request.json(); } catch { /* empty body ok */ }
+  const orgId = body?.org_id || request.nextUrl.searchParams.get('org_id') || null;
+
+  return runGMapsScan(orgId);
 }
 
-async function runGMapsScan(): Promise<NextResponse> {
+async function runGMapsScan(orgId: string | null = null): Promise<NextResponse> {
   const apiKey = process.env.GOOGLE_MAPS_API_KEY;
   if (!apiKey) {
     return NextResponse.json({ ok: false, error: 'GOOGLE_MAPS_API_KEY non configurée' }, { status: 500 });
@@ -300,6 +307,7 @@ async function runGMapsScan(): Promise<NextResponse> {
             status: 'identifie',
             created_at: now,
             updated_at: now,
+            ...(orgId ? { org_id: orgId } : {}),
           });
 
           if (insertError) {
@@ -340,6 +348,7 @@ async function runGMapsScan(): Promise<NextResponse> {
     action: 'daily_scan',
     data: report,
     created_at: now,
+    ...(orgId ? { org_id: orgId } : {}),
   });
 
   // ── Save learnings from GMaps scan ──
@@ -351,7 +360,7 @@ async function runGMapsScan(): Promise<NextResponse> {
         learning: `Scan GMaps: ${totalImported} importés, ${totalSkipped} existants, ${totalErrors} erreurs sur ${scannedZones.length} zones`,
         evidence: `Zones: ${scannedZones.join(', ')}. ${totalImported} new, ${totalSkipped} duplicates, ${totalErrors} errors`,
         confidence: 20,
-      });
+      }, orgId);
     }
 
     // Track zone effectiveness
@@ -362,7 +371,7 @@ async function runGMapsScan(): Promise<NextResponse> {
         learning: `Zones productives aujourd'hui: ${scannedZones.join(', ')} — ${totalImported} nouveaux prospects trouvés`,
         evidence: `${totalImported} imports from zones: ${scannedZones.join(', ')}`,
         confidence: 15,
-      });
+      }, orgId);
     }
   } catch (learnErr: any) {
     console.warn('[GMaps] Learning save error:', learnErr.message);
@@ -376,7 +385,7 @@ async function runGMapsScan(): Promise<NextResponse> {
         to_agent: 'ceo',
         feedback: `Découverte GMaps: ${totalImported} nouveaux prospects importés depuis ${scannedZones.length} zones (${scannedZones.join(', ')}). ${totalSkipped} doublons, ${totalErrors} erreurs. ${totalErrors > 5 ? '⚠️ Taux erreur élevé.' : 'Scan nominal.'}`,
         category: 'prospection',
-      });
+      }, orgId);
     }
   } catch (fbErr: any) {
     console.warn('[GMaps] Feedback save error:', fbErr.message);

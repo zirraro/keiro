@@ -15,6 +15,7 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { getActiveLearnings, getAllAgentLearnings, getAgentFeedbacks, formatLearningsForPrompt, type AgentLearning, type AgentFeedback } from './learning';
 import { getAgentAvatar, formatAvatarForPrompt, type AgentAvatarConfig } from './avatar';
+import { getOrgContext, formatOrgContextForPrompt } from '../tenant';
 
 interface AgentContext {
   crmStats: {
@@ -80,17 +81,34 @@ interface AgentContext {
 }
 
 /**
+ * Apply optional org_id filter to a Supabase query builder.
+ * When orgId is provided, adds .eq('org_id', orgId).
+ * When not provided, returns the query unchanged (backwards compatible).
+ */
+function withOrgFilter<T>(query: T, orgId?: string): T {
+  if (orgId) {
+    return (query as any).eq('org_id', orgId) as T;
+  }
+  return query;
+}
+
+/**
  * Load shared CRM context that any agent can use.
  * Gives each agent visibility into the full pipeline state + performance metrics.
+ *
+ * @param orgId - Optional organization ID for multi-tenant filtering.
+ *                When provided, all queries are scoped to that org.
+ *                When omitted, behavior is unchanged (single-tenant mode).
  */
 export async function loadSharedContext(
   supabase: SupabaseClient,
   agentName: string,
+  orgId?: string,
 ): Promise<AgentContext> {
   const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-  // CRM stats (fast parallel queries)
+  // CRM stats (fast parallel queries) — scoped to org when orgId provided
   const [
     { count: total },
     { count: withEmail },
@@ -107,34 +125,34 @@ export async function loadSharedContext(
     { count: newLast24h },
     { count: newLast7d },
   ] = await Promise.all([
-    supabase.from('crm_prospects').select('id', { count: 'exact', head: true }),
-    supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).not('email', 'is', null),
-    supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).not('instagram', 'is', null),
-    supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).not('tiktok_handle', 'is', null),
-    supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).not('website', 'is', null),
-    supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('temperature', 'hot'),
-    supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('temperature', 'warm'),
-    supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('temperature', 'cold'),
-    supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('temperature', 'dead'),
-    supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('status', 'contacte'),
-    supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('status', 'repondu'),
-    supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).in('status', ['client', 'sprint']),
-    supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).gte('created_at', twentyFourHoursAgo),
-    supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).gte('created_at', sevenDaysAgo),
+    withOrgFilter(supabase.from('crm_prospects').select('id', { count: 'exact', head: true }), orgId),
+    withOrgFilter(supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).not('email', 'is', null), orgId),
+    withOrgFilter(supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).not('instagram', 'is', null), orgId),
+    withOrgFilter(supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).not('tiktok_handle', 'is', null), orgId),
+    withOrgFilter(supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).not('website', 'is', null), orgId),
+    withOrgFilter(supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('temperature', 'hot'), orgId),
+    withOrgFilter(supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('temperature', 'warm'), orgId),
+    withOrgFilter(supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('temperature', 'cold'), orgId),
+    withOrgFilter(supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('temperature', 'dead'), orgId),
+    withOrgFilter(supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('status', 'contacte'), orgId),
+    withOrgFilter(supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('status', 'repondu'), orgId),
+    withOrgFilter(supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).in('status', ['client', 'sprint']), orgId),
+    withOrgFilter(supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).gte('created_at', twentyFourHoursAgo), orgId),
+    withOrgFilter(supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).gte('created_at', sevenDaysAgo), orgId),
   ]);
 
   // Email performance (last 24h from crm_activities)
-  const { data: emailEvents } = await supabase
+  const { data: emailEvents } = await withOrgFilter(supabase
     .from('crm_activities')
     .select('type, data')
     .eq('type', 'email')
-    .gte('created_at', twentyFourHoursAgo);
+    .gte('created_at', twentyFourHoursAgo), orgId);
 
-  const { data: emailOpenEvents } = await supabase
+  const { data: emailOpenEvents } = await withOrgFilter(supabase
     .from('crm_activities')
     .select('type, data')
     .in('type', ['email_opened', 'email_clicked', 'email_replied'])
-    .gte('created_at', sevenDaysAgo);
+    .gte('created_at', sevenDaysAgo), orgId);
 
   const sent24h = emailEvents?.length || 0;
   const opened24h = emailOpenEvents?.filter((e: any) => e.type === 'email_opened')?.length || 0;
@@ -143,13 +161,13 @@ export async function loadSharedContext(
 
   // Best category from recent email logs
   let bestCategory = 'N/A';
-  const { data: recentEmailLogs } = await supabase
+  const { data: recentEmailLogs } = await withOrgFilter(supabase
     .from('agent_logs')
     .select('data')
     .eq('agent', 'email')
     .in('action', ['daily_cold', 'daily_warm'])
     .order('created_at', { ascending: false })
-    .limit(3);
+    .limit(3), orgId);
   if (recentEmailLogs) {
     const categoryCounts: Record<string, number> = {};
     for (const log of recentEmailLogs) {
@@ -163,20 +181,20 @@ export async function loadSharedContext(
   }
 
   // Top hot/warm prospects for priority visibility
-  const { data: topProspectsData } = await supabase
+  const { data: topProspectsData } = await withOrgFilter(supabase
     .from('crm_prospects')
     .select('company, score, temperature, status')
     .in('temperature', ['hot', 'warm'])
     .not('status', 'in', '("perdu","client","sprint")')
     .order('score', { ascending: false })
-    .limit(5);
+    .limit(5), orgId);
 
   // ── CONTENT PERFORMANCE ──
-  const { data: contentPosts } = await supabase
+  const { data: contentPosts } = await withOrgFilter(supabase
     .from('content_calendar')
     .select('platform, status, scheduled_date, published_at, publish_error, publish_diagnostic')
     .gte('scheduled_date', sevenDaysAgo.split('T')[0])
-    .order('scheduled_date', { ascending: false });
+    .order('scheduled_date', { ascending: false }), orgId);
 
   const platformBreakdown: Record<string, number> = {};
   let publishedThisWeek = 0;
@@ -198,7 +216,7 @@ export async function loadSharedContext(
       else if (p.publish_error) failureReasons.push(`${p.platform}: ${p.publish_error}`);
     }
   }
-  const { count: draftsReady } = await supabase.from('content_calendar').select('id', { count: 'exact', head: true }).eq('status', 'draft');
+  const { count: draftsReady } = await withOrgFilter(supabase.from('content_calendar').select('id', { count: 'exact', head: true }).eq('status', 'draft'), orgId);
 
   // ── DM PERFORMANCE (from dm_queue table) ──
   // Prepared = status 'pending' (agent wrote the DM, founder hasn't sent yet)
@@ -210,11 +228,11 @@ export async function loadSharedContext(
     { count: ttSent },
     { count: dmsQueued },
   ] = await Promise.all([
-    supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('channel', 'instagram').eq('status', 'pending').gte('created_at', sevenDaysAgo),
-    supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('channel', 'tiktok').eq('status', 'pending').gte('created_at', sevenDaysAgo),
-    supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('channel', 'instagram').eq('status', 'sent').gte('created_at', sevenDaysAgo),
-    supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('channel', 'tiktok').eq('status', 'sent').gte('created_at', sevenDaysAgo),
-    supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+    withOrgFilter(supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('channel', 'instagram').eq('status', 'pending').gte('created_at', sevenDaysAgo), orgId),
+    withOrgFilter(supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('channel', 'tiktok').eq('status', 'pending').gte('created_at', sevenDaysAgo), orgId),
+    withOrgFilter(supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('channel', 'instagram').eq('status', 'sent').gte('created_at', sevenDaysAgo), orgId),
+    withOrgFilter(supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('channel', 'tiktok').eq('status', 'sent').gte('created_at', sevenDaysAgo), orgId),
+    withOrgFilter(supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('status', 'pending'), orgId),
   ]);
 
   const igDMsPrepared = igPrepared || 0;
@@ -224,23 +242,23 @@ export async function loadSharedContext(
   const totalSent = igDMsSent + ttDMsSent;
 
   // Replies from crm_activities
-  const { data: dmReplyEvents } = await supabase
+  const { data: dmReplyEvents } = await withOrgFilter(supabase
     .from('crm_activities')
     .select('type')
     .eq('type', 'dm_replied')
-    .gte('created_at', sevenDaysAgo);
+    .gte('created_at', sevenDaysAgo), orgId);
   const dmsReplied7d = dmReplyEvents?.length || 0;
 
   const bestDMChannel = (igDMsPrepared + igDMsSent) >= (ttDMsPrepared + ttDMsSent) ? 'instagram' : 'tiktok';
 
   // ── ACTIVE DIRECTIVES from CEO/Marketing ──
-  const { data: directives } = await supabase
+  const { data: directives } = await withOrgFilter(supabase
     .from('agent_orders')
     .select('from_agent, order_type, payload, priority, created_at')
     .in('to_agent', [agentName, 'all'])
     .in('status', ['pending', 'in_progress'])
     .order('created_at', { ascending: false })
-    .limit(5);
+    .limit(5), orgId);
 
   const activeDirectives = (directives || []).map((d: any) => ({
     from: d.from_agent,
@@ -260,13 +278,13 @@ export async function loadSharedContext(
   };
 
   // Recent work from all agents (last 24h reports)
-  const { data: recentReports } = await supabase
+  const { data: recentReports } = await withOrgFilter(supabase
     .from('agent_logs')
     .select('agent, action, data, created_at')
     .eq('action', 'report_to_ceo')
     .gte('created_at', twentyFourHoursAgo)
     .order('created_at', { ascending: false })
-    .limit(15);
+    .limit(15), orgId);
 
   let recentAgentWork = '';
   if (recentReports && recentReports.length > 0) {
@@ -277,26 +295,26 @@ export async function loadSharedContext(
   }
 
   // Load this agent's own learnings
-  const { data: memories } = await supabase
+  const { data: memories } = await withOrgFilter(supabase
     .from('agent_logs')
     .select('data')
     .eq('agent', agentName)
     .eq('action', 'memory')
     .order('created_at', { ascending: false })
-    .limit(10);
+    .limit(10), orgId);
 
   const learnings = (memories || [])
     .map((m: any) => m.data?.learning)
     .filter(Boolean);
 
   // Load ALL agents' learnings (cross-pollination)
-  const { data: allMemories } = await supabase
+  const { data: allMemories } = await withOrgFilter(supabase
     .from('agent_logs')
     .select('agent, data')
     .eq('action', 'memory')
     .neq('agent', agentName)
     .order('created_at', { ascending: false })
-    .limit(15);
+    .limit(15), orgId);
 
   const allAgentLearnings = (allMemories || [])
     .map((m: any) => `[${m.agent}] ${m.data?.learning}`)
@@ -304,9 +322,9 @@ export async function loadSharedContext(
 
   // Structured learnings (hybrid 3-tier: signal/pattern/insight) + feedbacks
   const [structuredLearnings, structuredOtherLearnings, agentFeedbacks] = await Promise.all([
-    getActiveLearnings(supabase, agentName),
-    getAllAgentLearnings(supabase, agentName),
-    getAgentFeedbacks(supabase, agentName),
+    getActiveLearnings(supabase, agentName, undefined, orgId),
+    getAllAgentLearnings(supabase, agentName, orgId),
+    getAgentFeedbacks(supabase, agentName, undefined, orgId),
   ]);
 
   return {
@@ -384,14 +402,17 @@ export async function writeDirective(
   orderType: string,
   directive: string,
   priority: 'haute' | 'moyenne' | 'basse' = 'moyenne',
+  orgId?: string,
 ) {
   // Complete any previous directives of the same type to avoid stacking
-  await supabase.from('agent_orders')
+  let completeQuery = supabase.from('agent_orders')
     .update({ status: 'completed' })
     .eq('from_agent', fromAgent)
     .eq('to_agent', toAgent)
     .eq('order_type', orderType)
     .eq('status', 'pending');
+  if (orgId) completeQuery = completeQuery.eq('org_id', orgId);
+  await completeQuery;
 
   await supabase.from('agent_orders').insert({
     from_agent: fromAgent,
@@ -401,25 +422,31 @@ export async function writeDirective(
     payload: { directive, issued_at: new Date().toISOString() },
     status: 'pending',
     created_at: new Date().toISOString(),
+    ...(orgId ? { org_id: orgId } : {}),
   });
 }
 
 /**
  * Mark a directive as completed after an agent has acted on it.
  */
-export async function completeDirective(supabase: SupabaseClient, agentName: string, orderType: string) {
-  await supabase.from('agent_orders')
+export async function completeDirective(supabase: SupabaseClient, agentName: string, orderType: string, orgId?: string) {
+  let query = supabase.from('agent_orders')
     .update({ status: 'completed', result: { completed_at: new Date().toISOString() } })
     .eq('to_agent', agentName)
     .eq('order_type', orderType)
     .eq('status', 'pending');
+  if (orgId) query = query.eq('org_id', orgId);
+  await query;
 }
 
 /**
  * Format shared context as a string for injection into AI prompts.
  * This is the SHARED DATA POOL — every agent sees the same intelligence.
+ *
+ * @param orgContextBlock - Optional org context prompt block (from formatOrgContextForPrompt).
+ *                          Appended at the end when provided (multi-tenant mode).
  */
-export function formatContextForPrompt(ctx: AgentContext): string {
+export function formatContextForPrompt(ctx: AgentContext, orgContextBlock?: string): string {
   const s = ctx.crmStats;
   const e = ctx.emailPerformance;
   const c = ctx.contentPerformance;
@@ -485,23 +512,34 @@ FUNNEL DE CONVERSION:
     text += `\n\nAPPRENTISSAGES DES AUTRES AGENTS (cross-learning):\n${ctx.allAgentLearnings.map(l => `- ${l}`).join('\n')}`;
   }
 
+  // Multi-tenant: append org context when available
+  if (orgContextBlock) {
+    text += `\n\n${orgContextBlock}`;
+  }
+
   return text;
 }
 
 /**
  * Load shared context + avatar in one call. Returns formatted prompt block
  * with identity first, then shared data pool.
+ *
+ * @param orgId - Optional organization ID for multi-tenant scoping.
+ *                When provided, loads org context and applies org avatar overrides.
  */
 export async function loadContextWithAvatar(
   supabase: SupabaseClient,
   agentName: string,
+  orgId?: string,
 ): Promise<{ context: AgentContext; avatar: AgentAvatarConfig; prompt: string }> {
-  const [context, avatar] = await Promise.all([
-    loadSharedContext(supabase, agentName),
-    getAgentAvatar(supabase, agentName),
+  const [context, avatar, orgContext] = await Promise.all([
+    loadSharedContext(supabase, agentName, orgId),
+    getAgentAvatar(supabase, agentName, orgId),
+    orgId ? getOrgContext(supabase, orgId) : Promise.resolve(null),
   ]);
   const avatarBlock = formatAvatarForPrompt(avatar);
-  const contextBlock = formatContextForPrompt(context);
+  const orgContextBlock = orgContext ? formatOrgContextForPrompt(orgContext) : undefined;
+  const contextBlock = formatContextForPrompt(context, orgContextBlock);
   return {
     context,
     avatar,

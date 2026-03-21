@@ -127,8 +127,14 @@ export async function saveLearning(
     confidence: number; // initial score (10-30 typically)
     tier?: LearningPhase; // optional override
     revenue_linked?: boolean;
+    orgId?: string | null; // optional org scope for multi-tenant
   },
+  orgIdOverride?: string | null, // alternative: pass orgId as 3rd argument
 ): Promise<void> {
+  // Support orgId from either the object or as a standalone parameter
+  if (orgIdOverride && !learning.orgId) {
+    learning.orgId = orgIdOverride;
+  }
   // Revenue events get massive boost
   let initialScore = learning.confidence;
   if (learning.revenue_linked) {
@@ -146,13 +152,15 @@ export async function saveLearning(
   const expires_at = expiryFromScore(initialScore);
 
   // Check for existing similar learning to boost
-  const { data: existing } = await supabase
+  let existingQuery = supabase
     .from('agent_logs')
     .select('id, data')
     .eq('agent', learning.agent)
     .eq('action', 'learning')
     .order('created_at', { ascending: false })
     .limit(50);
+  if (learning.orgId) existingQuery = existingQuery.eq('org_id', learning.orgId);
+  const { data: existing } = await existingQuery;
 
   const similar = (existing || []).find((log: any) => {
     const d = log.data;
@@ -218,6 +226,7 @@ export async function saveLearning(
       last_confirmed_at: new Date().toISOString(),
     },
     created_at: new Date().toISOString(),
+    ...(learning.orgId ? { org_id: learning.orgId } : {}),
   });
 }
 
@@ -296,6 +305,7 @@ export async function getActiveLearnings(
   supabase: SupabaseClient,
   agentName: string,
   category?: LearningCategory,
+  orgId?: string,
 ): Promise<AgentLearning[]> {
   const now = new Date().toISOString();
 
@@ -309,6 +319,9 @@ export async function getActiveLearnings(
 
   if (category) {
     query = query.eq('target', category);
+  }
+  if (orgId) {
+    query = query.eq('org_id', orgId);
   }
 
   const { data } = await query;
@@ -344,6 +357,7 @@ export async function getActiveLearnings(
 export async function getAllAgentLearnings(
   supabase: SupabaseClient,
   excludeAgent?: string,
+  orgId?: string,
 ): Promise<AgentLearning[]> {
   const now = new Date().toISOString();
 
@@ -356,6 +370,9 @@ export async function getAllAgentLearnings(
 
   if (excludeAgent) {
     query = query.neq('agent', excludeAgent);
+  }
+  if (orgId) {
+    query = query.eq('org_id', orgId);
   }
 
   const { data } = await query;
@@ -431,6 +448,89 @@ export async function getAllHistoricalLearnings(
 }
 
 /**
+ * Get global learnings from ALL orgs that meet confidence thresholds.
+ * Used for cross-org intelligence sharing in multi-tenant mode.
+ *
+ * Sharing rules (by business_type match):
+ * - Same business_type: shared at confidence >= 40 (Pattern+)
+ * - Different business_type: shared at confidence >= 65 (Rule+)
+ * - Universal (no business_type filter): shared at confidence >= 85 (Insight)
+ *
+ * IMPORTANT: Returns anonymized learnings — no metadata with names/emails/prospect data.
+ */
+export async function getGlobalLearnings(
+  supabase: SupabaseClient,
+  businessType?: string,
+  minConfidence: number = 65,
+): Promise<AgentLearning[]> {
+  const now = new Date().toISOString();
+
+  // Fetch all learnings across all orgs with sufficient confidence
+  const effectiveMin = businessType ? Math.min(minConfidence, 40) : Math.max(minConfidence, 85);
+
+  const { data } = await supabase
+    .from('agent_logs')
+    .select('id, agent, data, created_at')
+    .eq('action', 'learning')
+    .order('created_at', { ascending: false })
+    .limit(200);
+
+  if (!data) return [];
+
+  return data
+    .filter((log: any) => {
+      const confidence = log.data?.confidence || 0;
+      const expiresAt = log.data?.expires_at;
+      if (expiresAt && expiresAt <= now) return false;
+
+      const logBusinessType = log.data?.business_type;
+
+      // Same business type: Pattern+ threshold (>= 40)
+      if (businessType && logBusinessType === businessType) {
+        return confidence >= 40;
+      }
+      // Different business type: Rule+ threshold (>= 65)
+      if (businessType && logBusinessType && logBusinessType !== businessType) {
+        return confidence >= 65;
+      }
+      // Universal (no business_type on either side): Insight threshold (>= 85)
+      return confidence >= 85;
+    })
+    .map((log: any) => ({
+      id: log.id,
+      agent: log.agent,
+      category: log.data?.category || 'general',
+      // Anonymized: only the learning text and evidence (no prospect names/emails)
+      learning: log.data?.learning || '',
+      evidence: anonymizeEvidence(log.data?.evidence || ''),
+      confidence: log.data?.confidence || 0,
+      tier: scoreToPhase(log.data?.confidence || 0),
+      confirmations: log.data?.confirmations || 1,
+      contradictions: log.data?.contradictions || 0,
+      revenue_linked: log.data?.revenue_linked || false,
+      last_confirmed_at: log.data?.last_confirmed_at,
+      created_at: log.created_at,
+      expires_at: log.data?.expires_at || null,
+    }))
+    .sort((a: AgentLearning, b: AgentLearning) => b.confidence - a.confidence);
+}
+
+/**
+ * Strip potential PII from evidence strings (emails, names, phone numbers).
+ * Keeps the insight value but removes identifying information.
+ */
+function anonymizeEvidence(evidence: string): string {
+  return evidence
+    // Remove email addresses
+    .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[email]')
+    // Remove phone numbers (French and international formats)
+    .replace(/(?:\+?33|0)\s*[1-9](?:[\s.-]*\d{2}){4}/g, '[phone]')
+    .replace(/\+?\d{10,15}/g, '[phone]')
+    // Remove common name patterns after "chez" or "de" (French business context)
+    .replace(/chez\s+[A-Z][a-zéèêëàâôûùïî]+(?:\s+[A-Z][a-zéèêëàâôûùïî]+)*/g, 'chez [entreprise]');
+}
+
+/**
  * Save cross-agent feedback (suggestion, not order).
  */
 export async function saveAgentFeedback(
@@ -440,8 +540,11 @@ export async function saveAgentFeedback(
     to_agent: string;
     feedback: string;
     category: LearningCategory;
+    orgId?: string | null; // optional org scope for multi-tenant
   },
+  orgIdOverride?: string | null, // alternative: pass orgId as 3rd argument
 ): Promise<void> {
+  const orgId = feedback.orgId || orgIdOverride;
   await supabase.from('agent_logs').insert({
     agent: feedback.to_agent,
     action: 'agent_feedback',
@@ -453,6 +556,7 @@ export async function saveAgentFeedback(
       category: feedback.category,
     },
     created_at: new Date().toISOString(),
+    ...(orgId ? { org_id: orgId } : {}),
   });
 }
 
@@ -463,10 +567,11 @@ export async function getAgentFeedbacks(
   supabase: SupabaseClient,
   agentName: string,
   limit: number = 10,
+  orgId?: string,
 ): Promise<AgentFeedback[]> {
   const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
 
-  const { data } = await supabase
+  let query = supabase
     .from('agent_logs')
     .select('id, data, created_at')
     .eq('agent', agentName)
@@ -474,6 +579,8 @@ export async function getAgentFeedbacks(
     .gte('created_at', sevenDaysAgo)
     .order('created_at', { ascending: false })
     .limit(limit);
+  if (orgId) query = query.eq('org_id', orgId);
+  const { data } = await query;
 
   return (data || []).map((log: any) => ({
     id: log.id,
