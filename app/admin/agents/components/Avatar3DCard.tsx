@@ -74,9 +74,9 @@ export default function Avatar3DCard({
   const animationCSS = ANIMATION_MAP[animation] || ANIMATION_MAP.idle;
 
   const sizes = {
-    sm: { card: 'w-32', img: 'w-20 h-20', nameSize: 'text-xs', titleSize: 'text-[10px]' },
-    md: { card: 'w-44', img: 'w-28 h-28', nameSize: 'text-sm', titleSize: 'text-xs' },
-    lg: { card: 'w-56', img: 'w-36 h-36', nameSize: 'text-base', titleSize: 'text-sm' },
+    sm: { card: 'w-32', img: 'w-28 h-28', nameSize: 'text-xs', titleSize: 'text-[10px]' },
+    md: { card: 'w-44', img: 'w-36 h-36', nameSize: 'text-sm', titleSize: 'text-xs' },
+    lg: { card: 'w-56', img: 'w-44 h-44', nameSize: 'text-base', titleSize: 'text-sm' },
   };
   const s = sizes[size];
 
@@ -90,13 +90,11 @@ export default function Avatar3DCard({
       <style dangerouslySetInnerHTML={{ __html: ANIMATION_STYLES }} />
       <div
         onClick={onClick}
-        className={`${s.card} rounded-2xl p-3 flex flex-col items-center gap-2 transition-all duration-300 cursor-pointer group relative overflow-hidden ${
-          selected ? 'ring-2 ring-white shadow-2xl scale-105' : 'hover:scale-105 hover:shadow-xl'
+        className={`${s.card} rounded-2xl p-2 pb-3 flex flex-col items-center gap-1 transition-all duration-300 cursor-pointer group relative overflow-hidden ${
+          selected ? 'ring-2 ring-white/60 shadow-2xl scale-105' : 'hover:scale-105 hover:shadow-xl'
         }`}
         style={cardStyle}
       >
-        {/* Glassmorphism overlay */}
-        <div className="absolute inset-0 bg-white/5 backdrop-blur-[1px] rounded-2xl" />
 
         {/* Status dot */}
         {statusDot && (
@@ -112,7 +110,7 @@ export default function Avatar3DCard({
             <img
               src={imageUrl}
               alt={name}
-              className={`${s.img} object-contain drop-shadow-2xl`}
+              className={`${s.img} object-cover rounded-xl drop-shadow-2xl`}
               style={{ filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.3))' }}
             />
           ) : (
@@ -122,13 +120,23 @@ export default function Avatar3DCard({
           )}
         </div>
 
-        {/* Name badge */}
+        {/* Name — floating text, no box */}
         <div
-          className="relative z-10 px-3 py-1 rounded-lg text-center"
-          style={{ backgroundColor: badgeColor, animation: 'float-badge 3s ease-in-out infinite' }}
+          className="relative z-10 text-center"
+          style={{ animation: 'float-badge 3s ease-in-out infinite' }}
         >
-          <span className={`font-bold text-white ${s.nameSize}`}>{name}</span>
-          <p className={`text-white/80 ${s.titleSize} leading-tight`}>{title}</p>
+          <span
+            className={`font-bold text-white ${s.nameSize}`}
+            style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5), 0 1px 3px rgba(0,0,0,0.3)' }}
+          >
+            {name}
+          </span>
+          <p
+            className={`text-white/90 ${s.titleSize} leading-tight`}
+            style={{ textShadow: '0 1px 6px rgba(0,0,0,0.4)' }}
+          >
+            {title}
+          </p>
         </div>
       </div>
     </>

@@ -15,59 +15,59 @@ const SEEDREAM_API_URL = 'https://ark.ap-southeast.bytepluses.com/api/v3/images/
 
 const OUTPUT_DIR = path.join(process.cwd(), 'public', 'avatars-3d');
 
-// KeiroAI style: modern tech, clean 3D, NOT cartoon
-const BASE_STYLE = `Hyper-realistic 3D rendered portrait, modern tech startup style, clean lighting, soft shadows, professional corporate headshot aesthetic. Upper body visible, slight 3/4 angle, confident expression, looking at camera. Solid gradient background. Ultra high quality, 4K render, clean edges, no text, no watermark.`;
+// KeiroAI style: cinematic 3D render with real depth and perspective
+const BASE_STYLE = `Cinematic 3D rendered portrait with strong depth of field, volumetric lighting, dramatic shadows. Realistic skin texture, subsurface scattering, studio-quality render. Upper body and shoulders visible, natural 3/4 pose, looking at camera. Smooth gradient background that blends seamlessly into the figure lighting. No flat look, strong parallax and depth layers between foreground subject and background. Ultra high quality, 8K render, photorealistic details, no text, no watermark, no logo.`;
 
 const AGENTS = [
   {
     id: 'ceo',
     name: 'Noah',
-    prompt: `${BASE_STYLE} Young man, early 30s, sharp jawline, short dark brown hair styled neatly, wearing a dark navy suit jacket over a white crew neck, confident and strategic expression, slight smirk, warm brown eyes. Background: deep purple to indigo gradient.`,
+    prompt: `${BASE_STYLE} Mediterranean man, early 30s, strong square jawline, thick dark eyebrows, short tapered dark brown hair with texture, olive skin, wearing a tailored charcoal suit jacket over a black turtleneck, confident leadership expression with subtle smirk, deep brown eyes. Dramatic purple-indigo volumetric background lighting wrapping around shoulders.`,
   },
   {
     id: 'commercial',
     name: 'Leo',
-    prompt: `${BASE_STYLE} Athletic young man, late 20s, medium-length wavy chestnut hair, wearing a fitted blue henley shirt, friendly and approachable smile, hazel green eyes, slight stubble. Background: blue to cyan gradient.`,
+    prompt: `${BASE_STYLE} Nordic man, late 20s, light skin with freckles, sandy blonde medium-length hair swept to one side, strong cheekbones, clean shaven, wearing a premium blue fitted polo shirt, warm genuine smile showing teeth, bright blue eyes. Soft blue-to-cyan ambient background glow.`,
   },
   {
     id: 'email',
     name: 'Hugo',
-    prompt: `${BASE_STYLE} Intellectual young man, early 30s, round glasses with thin black frames, short light brown hair, wearing a forest green pullover, thoughtful and precise expression, blue-grey eyes. Background: emerald to teal gradient.`,
+    prompt: `${BASE_STYLE} East Asian man, early 30s, slim face, modern rectangular glasses with tortoiseshell frames, neat black side-parted hair, wearing a forest green wool crewneck sweater over white collar shirt, thoughtful intellectual expression, dark brown eyes. Rich emerald-teal gradient background with soft bokeh.`,
   },
   {
     id: 'content',
     name: 'Lena',
-    prompt: `${BASE_STYLE} Creative young woman, mid 20s, shoulder-length auburn hair with subtle waves, wearing a trendy rose pink blazer, bright and energetic smile, green eyes, small earrings. Background: magenta to rose gradient.`,
+    prompt: `${BASE_STYLE} Latina woman, mid 20s, warm golden-brown skin, long wavy dark auburn hair falling past shoulders, bright hazel-green eyes, wearing a stylish dusty rose blazer over white top, radiant energetic smile, delicate gold necklace. Warm magenta-to-rose background with soft light flares.`,
   },
   {
     id: 'seo',
     name: 'Oscar',
-    prompt: `${BASE_STYLE} Focused young man, late 20s, undercut hairstyle with dark blonde hair on top, wearing an amber-orange bomber jacket, analytical and determined expression, steel blue eyes. Background: amber to orange gradient.`,
+    prompt: `${BASE_STYLE} Middle Eastern man, late 20s, well-groomed short dark beard, strong nose, thick black hair styled up with a modern fade on sides, wearing a rust-orange technical jacket, focused analytical expression, deep brown eyes. Warm amber-orange volumetric background lighting.`,
   },
   {
     id: 'onboarding',
     name: 'Clara',
-    prompt: `${BASE_STYLE} Warm young woman, late 20s, medium bob cut dark hair, wearing a sky blue button-up blouse, welcoming and reassuring smile, dark brown eyes, minimal makeup. Background: cyan to blue gradient.`,
+    prompt: `${BASE_STYLE} South Asian woman, late 20s, warm brown skin, sleek shoulder-length dark hair with subtle highlights, round face with dimples, wearing an elegant sky-blue silk blouse, warm welcoming smile, large expressive dark brown eyes. Soft cyan-to-blue gradient background with gentle light.`,
   },
   {
     id: 'retention',
     name: 'Theo',
-    prompt: `${BASE_STYLE} Caring young man, early 30s, curly dark hair medium length, wearing a lavender crew neck sweater, empathetic and attentive expression, warm brown eyes, gentle smile. Background: violet to purple gradient.`,
+    prompt: `${BASE_STYLE} Black man, early 30s, dark skin, short tight curly hair with a high top fade, well-groomed short beard, broad shoulders, wearing a soft lavender cashmere sweater, gentle empathetic smile, warm dark brown eyes. Dreamy violet-to-purple background with volumetric light.`,
   },
   {
     id: 'marketing',
     name: 'Ami',
-    prompt: `${BASE_STYLE} Sharp young woman, late 20s, sleek straight black hair pulled back, wearing a teal structured blazer, intelligent and strategic expression, dark eyes, minimal gold jewelry. Background: teal to emerald gradient.`,
+    prompt: `${BASE_STYLE} Japanese woman, late 20s, porcelain skin, sharp chin, sleek straight jet-black hair in a low professional ponytail, wearing a structured teal blazer with subtle texture, confident strategic expression, dark almond-shaped eyes, small silver earrings. Deep teal-to-emerald background with studio rim lighting.`,
   },
   {
     id: 'ads',
     name: 'Felix',
-    prompt: `${BASE_STYLE} Dynamic young man, mid 20s, messy styled dark hair with a fade, wearing a red leather jacket over black tee, bold and creative expression, brown eyes, slight grin. Background: crimson to orange gradient.`,
+    prompt: `${BASE_STYLE} Mixed-race man, mid 20s, light brown skin, textured curly medium hair with natural volume, angular face with defined cheekbones, wearing a burgundy leather bomber jacket over black henley, bold creative expression with confident grin, amber-brown eyes. Dramatic crimson-to-orange background with cinematic lighting.`,
   },
   {
     id: 'rh',
     name: 'Sara',
-    prompt: `${BASE_STYLE} Professional young woman, early 30s, neat bun with loose strands, wearing a slate grey tailored blazer, calm and authoritative expression, light brown eyes, pearl earrings. Background: slate to charcoal gradient.`,
+    prompt: `${BASE_STYLE} Scandinavian woman, early 30s, fair skin with rosy cheeks, soft strawberry-blonde hair in a loose elegant updo with wisps framing face, wearing a tailored dove-grey blazer with white lapel pin, composed and authoritative yet warm expression, grey-blue eyes, small pearl earrings. Cool slate-to-silver background with soft professional lighting.`,
   },
 ];
 
