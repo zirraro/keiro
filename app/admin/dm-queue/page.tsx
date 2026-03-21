@@ -118,7 +118,16 @@ type CalendarPost = {
   created_at: string;
 };
 
-type MainTab = 'dm_instagram' | 'dm_tiktok' | 'email' | 'pub_instagram' | 'pub_tiktok' | 'pub_linkedin' | 'seo' | 'planning';
+type MainTab = 'dm_instagram' | 'dm_tiktok' | 'email' | 'pub_instagram' | 'pub_tiktok' | 'pub_linkedin' | 'seo' | 'planning' | 'commercial' | 'onboarding' | 'retention' | 'ads' | 'gmaps';
+
+type AgentLogItem = {
+  id: string;
+  agent: string;
+  action: string;
+  status: string;
+  data: Record<string, any> | null;
+  created_at: string;
+};
 type DMSubTab = 'pending' | 'sent' | 'responded';
 type EmailSubTab = 'all' | 'step1' | 'step2' | 'step3_plus' | 'sent' | 'draft';
 type PubSubTab = 'all' | 'draft' | 'published';
@@ -159,7 +168,7 @@ function SuiviPublicationsPage() {
   const searchParams = useSearchParams();
   const initialTab = (() => {
     const t = searchParams.get('tab');
-    const validTabs: MainTab[] = ['dm_instagram', 'dm_tiktok', 'email', 'pub_instagram', 'pub_tiktok', 'pub_linkedin', 'seo', 'planning'];
+    const validTabs: MainTab[] = ['dm_instagram', 'dm_tiktok', 'email', 'pub_instagram', 'pub_tiktok', 'pub_linkedin', 'seo', 'planning', 'commercial', 'onboarding', 'retention', 'ads', 'gmaps'];
     if (t && validTabs.includes(t as MainTab)) return t as MainTab;
     return 'dm_instagram' as MainTab;
   })();
@@ -177,6 +186,7 @@ function SuiviPublicationsPage() {
   const [emailSubTab, setEmailSubTab] = useState<EmailSubTab>('all');
   const [emailItems, setEmailItems] = useState<EmailItem[]>([]);
   const [calendarPosts, setCalendarPosts] = useState<CalendarPost[]>([]);
+  const [agentLogs, setAgentLogs] = useState<AgentLogItem[]>([]);
   const [selectedPost, setSelectedPost] = useState<CalendarPost | null>(null);
   const [calendarWeekOffset, setCalendarWeekOffset] = useState(0);
   const [publishingPostId, setPublishingPostId] = useState<string | null>(null);
@@ -215,6 +225,8 @@ function SuiviPublicationsPage() {
   const isSeoTab = mainTab === 'seo';
   const isPlanningTab = mainTab === 'planning';
   const isEmailTab = mainTab === 'email';
+  const isAgentTab = mainTab === 'commercial' || mainTab === 'onboarding' || mainTab === 'retention' || mainTab === 'ads' || mainTab === 'gmaps';
+  const agentNameMap: Record<string, string> = { commercial: 'commercial', onboarding: 'onboarding', retention: 'retention', ads: 'ads', gmaps: 'gmaps' };
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -403,10 +415,19 @@ function SuiviPublicationsPage() {
       }
 
       setEmailItems(items);
+    } else if (isAgentTab) {
+      const agentKey = agentNameMap[mainTab] || mainTab;
+      const { data } = await supabase
+        .from('agent_logs')
+        .select('*')
+        .eq('agent', agentKey)
+        .order('created_at', { ascending: false })
+        .limit(100);
+      setAgentLogs((data as AgentLogItem[]) || []);
     }
 
     setLoading(false);
-  }, [mainTab, dmSubTab, pubSubTab, router, isDmTab, isPubTab, isSeoTab, isPlanningTab, isEmailTab, emailSubTab, calendarWeekOffset, getDateRange]);
+  }, [mainTab, dmSubTab, pubSubTab, router, isDmTab, isPubTab, isSeoTab, isPlanningTab, isEmailTab, isAgentTab, emailSubTab, calendarWeekOffset, getDateRange]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -616,6 +637,11 @@ function SuiviPublicationsPage() {
     { key: 'pub_linkedin', label: 'Publi. LinkedIn', icon: '💼' },
     { key: 'seo', label: 'Articles SEO', icon: '📝' },
     { key: 'planning', label: 'Planning', icon: '📅' },
+    { key: 'commercial', label: 'Commercial', icon: '🤝' },
+    { key: 'onboarding', label: 'Onboarding', icon: '👋' },
+    { key: 'retention', label: 'Retention', icon: '🔄' },
+    { key: 'ads', label: 'Ads/Funnels', icon: '📣' },
+    { key: 'gmaps', label: 'Google Maps', icon: '📍' },
   ];
 
   return (
@@ -626,7 +652,7 @@ function SuiviPublicationsPage() {
           <div>
             <h1 className="text-2xl font-bold text-neutral-900">Suivi & Publications</h1>
             <p className="text-sm text-neutral-500 mt-1">
-              DMs, publications et articles SEO
+              DMs, publications, articles SEO et agents IA
             </p>
           </div>
           <div className="flex gap-2">
@@ -1594,6 +1620,119 @@ function SuiviPublicationsPage() {
                         </div>
                       </div>
                     </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {isAgentTab && (
+              <>
+                <div className="mb-3 flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-neutral-700">
+                    {mainTab === 'commercial' && 'Leo — Prospection commerciale'}
+                    {mainTab === 'onboarding' && 'Clara — Emails de bienvenue'}
+                    {mainTab === 'retention' && 'Theo — Actions de retention'}
+                    {mainTab === 'ads' && 'Felix — Ads & Funnels'}
+                    {mainTab === 'gmaps' && 'Google Maps — Scans'}
+                  </h3>
+                  <span className="text-[10px] px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full font-medium">
+                    {agentLogs.length} log{agentLogs.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
+
+                {loading ? (
+                  <div className="flex justify-center py-12">
+                    <div className="w-6 h-6 border-4 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : agentLogs.length === 0 ? (
+                  <div className="text-center py-12 text-neutral-400 text-sm">
+                    Aucun log pour cet agent.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {agentLogs.map(log => (
+                      <div key={log.id} className="bg-white rounded-xl border border-neutral-200 p-4 hover:shadow-sm transition">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                                log.status === 'success' ? 'bg-green-100 text-green-700' :
+                                log.status === 'error' ? 'bg-red-100 text-red-700' :
+                                log.status === 'skipped' ? 'bg-neutral-100 text-neutral-500' :
+                                'bg-amber-100 text-amber-700'
+                              }`}>
+                                {log.status}
+                              </span>
+                              <span className="text-[10px] px-2 py-0.5 bg-blue-50 text-blue-600 rounded font-medium">
+                                {log.action}
+                              </span>
+                              <span className="text-[10px] text-neutral-400">
+                                {new Date(log.created_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                            {/* Show key data fields */}
+                            {log.data && (
+                              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
+                                {log.data.company && (
+                                  <span className="text-xs text-neutral-700"><span className="font-medium text-neutral-500">Entreprise:</span> {log.data.company}</span>
+                                )}
+                                {log.data.prospect_email && (
+                                  <span className="text-xs text-neutral-700"><span className="font-medium text-neutral-500">Email:</span> {log.data.prospect_email}</span>
+                                )}
+                                {log.data.subject && (
+                                  <span className="text-xs text-neutral-700"><span className="font-medium text-neutral-500">Objet:</span> {log.data.subject}</span>
+                                )}
+                                {log.data.category && (
+                                  <span className="text-xs text-neutral-700"><span className="font-medium text-neutral-500">Cat:</span> {log.data.category}</span>
+                                )}
+                                {log.data.step != null && (
+                                  <span className="text-xs text-neutral-700"><span className="font-medium text-neutral-500">Step:</span> {log.data.step}</span>
+                                )}
+                                {log.data.temperature && (
+                                  <span className="text-xs text-neutral-700"><span className="font-medium text-neutral-500">Temp:</span> {log.data.temperature}</span>
+                                )}
+                                {log.data.score != null && (
+                                  <span className="text-xs text-neutral-700"><span className="font-medium text-neutral-500">Score:</span> {log.data.score}</span>
+                                )}
+                                {log.data.count != null && (
+                                  <span className="text-xs text-neutral-700"><span className="font-medium text-neutral-500">Total:</span> {log.data.count}</span>
+                                )}
+                                {log.data.results_count != null && (
+                                  <span className="text-xs text-neutral-700"><span className="font-medium text-neutral-500">Resultats:</span> {log.data.results_count}</span>
+                                )}
+                                {log.data.city && (
+                                  <span className="text-xs text-neutral-700"><span className="font-medium text-neutral-500">Ville:</span> {log.data.city}</span>
+                                )}
+                                {log.data.query && (
+                                  <span className="text-xs text-neutral-700"><span className="font-medium text-neutral-500">Recherche:</span> {log.data.query}</span>
+                                )}
+                                {log.data.ad_type && (
+                                  <span className="text-xs text-neutral-700"><span className="font-medium text-neutral-500">Type:</span> {log.data.ad_type}</span>
+                                )}
+                                {log.data.funnel && (
+                                  <span className="text-xs text-neutral-700"><span className="font-medium text-neutral-500">Funnel:</span> {log.data.funnel}</span>
+                                )}
+                                {log.data.plan && (
+                                  <span className="text-xs text-neutral-700"><span className="font-medium text-neutral-500">Plan:</span> {log.data.plan}</span>
+                                )}
+                                {log.data.reason && (
+                                  <span className="text-xs text-neutral-700"><span className="font-medium text-neutral-500">Raison:</span> {log.data.reason}</span>
+                                )}
+                                {log.data.error && (
+                                  <span className="text-xs text-red-600"><span className="font-medium">Erreur:</span> {String(log.data.error).slice(0, 120)}</span>
+                                )}
+                              </div>
+                            )}
+                            {/* Fallback: show raw data summary if no known fields matched */}
+                            {log.data && !log.data.company && !log.data.subject && !log.data.category && !log.data.query && !log.data.city && !log.data.error && !log.data.ad_type && !log.data.plan && !log.data.reason && (
+                              <p className="text-[11px] text-neutral-400 mt-1 font-mono truncate">
+                                {JSON.stringify(log.data).slice(0, 200)}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </>

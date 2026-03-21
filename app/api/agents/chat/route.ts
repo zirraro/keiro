@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { callGeminiChat } from '@/lib/agents/gemini';
 import { loadContextWithAvatar } from '@/lib/agents/shared-context';
+import { saveLearning } from '@/lib/agents/learning';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -233,6 +234,63 @@ const AGENT_ENDPOINTS: Record<string, { path: string; method: string }> = {
 };
 
 /**
+ * Learn from chatbot interactions: objection handling, business type engagement,
+ * frequent questions, and email capture conversion.
+ */
+async function autoLearnChat(
+  supabase: any,
+  prospectType: string | null,
+  emailCaptured: boolean,
+  objectionDetected: string | null,
+): Promise<void> {
+  const agent = 'chatbot';
+
+  // 1. Objection handling → email capture (strongest signal)
+  if (objectionDetected && emailCaptured) {
+    await saveLearning(supabase, {
+      agent,
+      category: 'conversion',
+      learning: `Objection "${objectionDetected}" surmontée → email capturé`,
+      evidence: `Prospect a donné son email après objection "${objectionDetected}"`,
+      confidence: 35,
+      tier: 'pattern',
+    });
+  } else if (objectionDetected && !emailCaptured) {
+    await saveLearning(supabase, {
+      agent,
+      category: 'conversion',
+      learning: `Objection "${objectionDetected}" non convertie`,
+      evidence: `Prospect avec objection "${objectionDetected}" n'a pas laissé d'email`,
+      confidence: 15,
+    });
+  }
+
+  // 2. Business type engagement tracking
+  if (prospectType) {
+    const confidence = emailCaptured ? 30 : 15;
+    await saveLearning(supabase, {
+      agent,
+      category: 'prospection',
+      learning: `Type "${prospectType}" ${emailCaptured ? 'converti (email capturé)' : 'engagé sans conversion'}`,
+      evidence: `Interaction chatbot avec prospect type "${prospectType}", email=${emailCaptured}`,
+      confidence,
+    });
+  }
+
+  // 3. Email capture rate observation (aggregate signal)
+  if (emailCaptured) {
+    await saveLearning(supabase, {
+      agent,
+      category: 'conversion',
+      learning: `Email capturé via chatbot${prospectType ? ` (${prospectType})` : ''}${objectionDetected ? ` après objection "${objectionDetected}"` : ''}`,
+      evidence: `Conversion chat→email réussie`,
+      confidence: 25,
+      revenue_linked: true,
+    });
+  }
+}
+
+/**
  * POST /api/agents/chat
  * Direct conversation with any agent.
  * Body: { agent: string, message: string, history: Array<{role, content}> }
@@ -373,6 +431,20 @@ export async function POST(request: NextRequest) {
         });
         ordersExecuted++;
       }
+    }
+
+    // Auto-learn from chatbot interactions (non-blocking)
+    if (agent === 'commercial' || agent === 'email' || agent === 'marketing') {
+      const fullConvo = history.map((h: any) => h.content).join(' ') + ' ' + message + ' ' + reply;
+      const businessTypes = ['restaurant', 'boutique', 'coach', 'coiffeur', 'caviste', 'fleuriste', 'barbershop', 'freelance', 'agence'];
+      const detectedType = businessTypes.find(t => fullConvo.toLowerCase().includes(t)) || null;
+      const emailPattern = /[\w.-]+@[\w.-]+\.\w{2,}/;
+      const emailCaptured = emailPattern.test(message) || emailPattern.test(reply);
+      const objections = ['trop cher', 'pas le temps', 'déjà un outil', 'pas besoin', 'j\'hésite', 'pas convaincu', 'budget'];
+      const objectionDetected = objections.find(o => fullConvo.toLowerCase().includes(o)) || null;
+      autoLearnChat(supabase, detectedType, emailCaptured, objectionDetected).catch((e: any) =>
+        console.error('[AgentChat] autoLearnChat error:', e.message),
+      );
     }
 
     // Check if agent learned something (save to memory)

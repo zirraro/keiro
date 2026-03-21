@@ -5,7 +5,7 @@ import { callGemini, callGeminiWithSearch } from '@/lib/agents/gemini';
 import { writeDirective, loadContextWithAvatar } from '@/lib/agents/shared-context';
 import { getBusinessDiscoveryPosts, getOwnInstagramMedia, type IgDiscoveryPost, type IgOwnMedia } from '@/lib/meta';
 import { getTikTokVideos, refreshTikTokToken, type TikTokVideo } from '@/lib/tiktok';
-import { saveAgentFeedback } from '@/lib/agents/learning';
+import { saveAgentFeedback, saveLearning } from '@/lib/agents/learning';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -286,6 +286,114 @@ Date : ${now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', mont
  * POST /api/agents/marketing
  * Community management actions: find follow targets, engagement strategy.
  */
+/**
+ * Auto-learn from marketing performance.
+ * Analyzes recent agent_logs for marketing actions, identifies what works,
+ * and saves structured learnings with confidence scores.
+ */
+async function autoLearnMarketing(supabase: any) {
+  try {
+    const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+
+    // Fetch recent marketing logs (actions + publication analytics)
+    const { data: recentLogs } = await supabase
+      .from('agent_logs')
+      .select('action, data, status, created_at')
+      .eq('agent', 'marketing')
+      .gte('created_at', twoWeeksAgo)
+      .order('created_at', { ascending: false })
+      .limit(100);
+
+    if (!recentLogs || recentLogs.length < 3) return; // Need enough data
+
+    // ── 1. Content topic/type engagement analysis ──
+    const { data: pubData } = await supabase
+      .from('publication_analytics')
+      .select('platform, media_type, engagement_rate, like_count, comment_count, view_count, hashtags, caption')
+      .gte('posted_at', twoWeeksAgo)
+      .order('engagement_rate', { ascending: false })
+      .limit(50);
+
+    if (pubData && pubData.length >= 3) {
+      // Group by media type
+      const byType: Record<string, { count: number; totalEng: number }> = {};
+      for (const p of pubData) {
+        const t = p.media_type || 'UNKNOWN';
+        if (!byType[t]) byType[t] = { count: 0, totalEng: 0 };
+        byType[t].count++;
+        byType[t].totalEng += p.engagement_rate || 0;
+      }
+
+      const bestType = Object.entries(byType)
+        .filter(([, s]) => s.count >= 2)
+        .sort((a, b) => (b[1].totalEng / b[1].count) - (a[1].totalEng / a[1].count))[0];
+
+      if (bestType) {
+        const avgEng = (bestType[1].totalEng / bestType[1].count).toFixed(2);
+        await saveLearning(supabase, {
+          agent: 'marketing',
+          category: 'content',
+          learning: `Le format ${bestType[0]} a le meilleur engagement moyen (${avgEng}%) sur ${bestType[1].count} publications des 14 derniers jours.`,
+          evidence: `${pubData.length} publications analysées. ${bestType[0]}: ${bestType[1].count} posts, eng moy ${avgEng}%.`,
+          confidence: Math.min(30, 10 + bestType[1].count * 3),
+        });
+      }
+
+      // ── 2. Platform-specific strategy insights ──
+      const byPlatform: Record<string, { count: number; totalEng: number; topCaption: string }> = {};
+      for (const p of pubData) {
+        const plat = p.platform || 'unknown';
+        if (!byPlatform[plat]) byPlatform[plat] = { count: 0, totalEng: 0, topCaption: '' };
+        byPlatform[plat].count++;
+        byPlatform[plat].totalEng += p.engagement_rate || 0;
+        if ((p.engagement_rate || 0) > (byPlatform[plat].totalEng / byPlatform[plat].count)) {
+          byPlatform[plat].topCaption = (p.caption || '').substring(0, 120);
+        }
+      }
+
+      for (const [platform, stats] of Object.entries(byPlatform)) {
+        if (stats.count < 2) continue;
+        const avgEng = (stats.totalEng / stats.count).toFixed(2);
+        await saveLearning(supabase, {
+          agent: 'marketing',
+          category: 'content',
+          learning: `${platform}: engagement moyen ${avgEng}% sur ${stats.count} posts (14j). Top caption style: "${stats.topCaption.substring(0, 60)}..."`,
+          evidence: `Agrégé sur ${stats.count} publications ${platform}.`,
+          confidence: Math.min(25, 10 + stats.count * 2),
+        });
+      }
+    }
+
+    // ── 3. Campaign/action performance trends ──
+    const actionCounts: Record<string, { total: number; success: number }> = {};
+    for (const log of recentLogs) {
+      const a = log.action;
+      if (!actionCounts[a]) actionCounts[a] = { total: 0, success: 0 };
+      actionCounts[a].total++;
+      if (log.status === 'success') actionCounts[a].success++;
+    }
+
+    const actionSummary = Object.entries(actionCounts)
+      .filter(([, s]) => s.total >= 2)
+      .map(([action, s]) => `${action}: ${s.success}/${s.total} succès`)
+      .join(', ');
+
+    if (actionSummary) {
+      await saveLearning(supabase, {
+        agent: 'marketing',
+        category: 'general',
+        learning: `Tendances marketing (14j): ${actionSummary}. Focus sur les actions à haut taux de succès.`,
+        evidence: `${recentLogs.length} logs marketing analysés.`,
+        confidence: 15,
+      });
+    }
+
+    console.log('[Marketing] autoLearnMarketing completed');
+  } catch (e: any) {
+    console.error('[Marketing] autoLearnMarketing error:', e.message);
+  }
+}
+
 export async function POST(request: NextRequest) {
   const { authorized } = await verifyAuth(request);
   if (!authorized) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
@@ -883,6 +991,9 @@ Date : ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric
           created_at: nowISO,
         });
 
+        // Auto-learn from recent marketing performance
+        await autoLearnMarketing(supabase);
+
         return NextResponse.json({
           ok: true,
           advice: advice || adviceRaw.substring(0, 2000),
@@ -1257,6 +1368,9 @@ ${pastInsights || 'Premier run — pas encore d\'apprentissages publications.'}`
           status: 'success',
           created_at: nowISO,
         });
+
+        // Auto-learn from recent marketing performance
+        await autoLearnMarketing(supabase);
 
         return NextResponse.json({
           ok: true,
