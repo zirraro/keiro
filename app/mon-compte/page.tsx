@@ -15,7 +15,7 @@ import { startCheckout } from '@/lib/stripe/checkout';
 // Plan definitions
 const PLANS: Record<string, { name: string; price: string; credits: number; color: string }> = {
   free: { name: 'Gratuit', price: '0€', credits: PLAN_CREDITS.free, color: '#9CA3AF' },
-  sprint: { name: 'Sprint Fondateur', price: '4,99€', credits: PLAN_CREDITS.sprint, color: '#3B82F6' },
+  sprint: { name: 'Essai gratuit', price: '0€', credits: PLAN_CREDITS.sprint, color: '#10B981' },
   pro: { name: 'Pro', price: '89€', credits: PLAN_CREDITS.pro, color: '#3B82F6' },
   pro_promo: { name: 'Pro (Promo)', price: '—', credits: PLAN_CREDITS.pro_promo, color: '#8B5CF6' },
   fondateurs: { name: 'Fondateurs', price: '149€', credits: PLAN_CREDITS.fondateurs, color: '#8B5CF6' },
