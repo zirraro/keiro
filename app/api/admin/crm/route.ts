@@ -266,15 +266,30 @@ export async function POST(req: NextRequest) {
         const currentOrder = STATUS_ORDER[prospect.status] ?? 0;
         let newStatus: string | null = null;
 
+        // Auto-advance pipeline based on activity type + result
         if (CONTACT_TYPES.includes(type) && currentOrder < 1) newStatus = 'contacte';
         if ((resultat === 'interesse' || resultat === 'demande_infos') && currentOrder < 2) newStatus = 'repondu';
         if (resultat === 'rdv_pris' && currentOrder < 3) newStatus = 'demo';
         if (type === 'rdv' && currentOrder < 3) newStatus = 'demo';
+        if (resultat === 'demo_ok' && currentOrder < 3) newStatus = 'demo';
+        if (resultat === 'essai_gratuit' && currentOrder < 4) newStatus = 'sprint';
+        if (resultat === 'client_signe') newStatus = 'client';
+        // Negative outcomes → perdu
+        if (resultat === 'pas_interesse') newStatus = 'perdu';
+        if (resultat === 'concurrent') newStatus = 'perdu';
+        if (resultat === 'budget_ko') newStatus = 'perdu';
 
-        if (newStatus) {
-          await supabase.from('crm_prospects').update({ status: newStatus, updated_at: new Date().toISOString() }).eq('id', prospect_id);
+        const updateData: any = { date_contact: new Date().toISOString().slice(0, 10), updated_at: new Date().toISOString() };
+        if (newStatus) updateData.status = newStatus;
+        // Update temperature based on result
+        if (resultat === 'interesse' || resultat === 'demande_infos' || resultat === 'rdv_pris' || resultat === 'demo_ok') {
+          updateData.temperature = 'hot';
+        } else if (resultat === 'rappeler' || resultat === 'mauvais_moment') {
+          updateData.temperature = 'warm';
+        } else if (resultat === 'pas_interesse' || resultat === 'concurrent' || resultat === 'budget_ko') {
+          updateData.temperature = 'dead';
         }
-        await supabase.from('crm_prospects').update({ date_contact: new Date().toISOString().slice(0, 10) }).eq('id', prospect_id);
+        await supabase.from('crm_prospects').update(updateData).eq('id', prospect_id);
       }
 
       return NextResponse.json({ ok: true, activity });

@@ -149,14 +149,19 @@ const ACTIVITY_TYPES = [
 ];
 
 const QUICK_RESULTS = [
-  { id: 'pas_de_reponse', label: 'Pas de réponse' },
-  { id: 'interesse', label: 'Intéressé' },
-  { id: 'rappeler', label: 'Rappeler plus tard' },
-  { id: 'rdv_pris', label: 'RDV pris' },
-  { id: 'demande_infos', label: 'Demande infos' },
-  { id: 'pas_interesse', label: 'Pas intéressé' },
-  { id: 'mauvais_moment', label: 'Mauvais moment' },
-  { id: 'numero_incorrect', label: 'Numéro incorrect' },
+  { id: 'pas_de_reponse', label: 'Pas de réponse', pipeline: null },
+  { id: 'interesse', label: '✅ Intéressé → Répondu', pipeline: 'repondu' },
+  { id: 'demande_infos', label: '💬 Demande infos → Répondu', pipeline: 'repondu' },
+  { id: 'rdv_pris', label: '📅 RDV pris → Démo', pipeline: 'demo' },
+  { id: 'demo_ok', label: '🎯 Démo réussie → Démo', pipeline: 'demo' },
+  { id: 'essai_gratuit', label: '🚀 Essai gratuit lancé → Sprint', pipeline: 'sprint' },
+  { id: 'client_signe', label: '🎉 Client signé !', pipeline: 'client' },
+  { id: 'rappeler', label: '⏰ Rappeler plus tard', pipeline: null },
+  { id: 'mauvais_moment', label: '⏳ Mauvais moment', pipeline: null },
+  { id: 'pas_interesse', label: '❌ Pas intéressé → Perdu', pipeline: 'perdu' },
+  { id: 'concurrent', label: '🏢 Parti chez un concurrent → Perdu', pipeline: 'perdu' },
+  { id: 'budget_ko', label: '💸 Budget insuffisant → Perdu', pipeline: 'perdu' },
+  { id: 'numero_incorrect', label: '📵 Numéro incorrect', pipeline: null },
 ];
 
 type ViewType = 'pipeline' | 'canaux' | 'liste' | 'dashboard' | 'stats';
@@ -2416,7 +2421,7 @@ function DetailPanel({ prospect, onClose, onEdit, onDelete, activities, loadingA
             Generer visuel
           </button>
           <button className="px-3 py-2.5 sm:px-2 sm:py-2 text-xs sm:text-[10px] font-semibold text-white bg-gradient-to-r from-orange-600 to-amber-600 rounded-lg hover:from-orange-700 hover:to-amber-700 transition-all text-center">
-            Proposer Sprint
+            Proposer essai gratuit
           </button>
         </div>
         <div className="flex items-center justify-between pt-1">
