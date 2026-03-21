@@ -53,13 +53,11 @@ export function useGenerationLimit() {
     }
   };
 
-  // Déterminer l'action requise
-  const getRequiredAction = (): 'generate' | 'email' | 'signup' => {
-    if (state.hasAccount) return 'generate'; // Compte créé = illimité (pour freemium)
+  // Nouveau flow : 1ère gen gratuite sans compte, puis popup conversion
+  const getRequiredAction = (): 'generate' | 'conversion_popup' | 'signup' => {
+    if (state.hasAccount) return 'generate'; // Compte créé = utilise ses crédits
     if (state.count === 0) return 'generate'; // 1ère génération gratuite
-    if (state.count === 1 && !state.email) return 'email'; // 2ème génération = email requis
-    if (state.count === 1 && state.email) return 'generate'; // Email fourni = 1 génération de plus
-    return 'signup'; // 3ème+ = compte requis
+    return 'conversion_popup'; // 2ème+ = popup de conversion (visuel généré mais bloqué)
   };
 
   return {

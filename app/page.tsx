@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import BookDemoButton from '@/components/BookDemoButton';
 import { startCheckout } from '@/lib/stripe/checkout';
 import { FadeUp, ScaleIn, SlideInLeft, SlideInRight, StaggerContainer, StaggerItem, CountUp, HeroTextReveal, BlurIn, FloatUp, GlowPulse, TextShimmer, TextRotator, MorphingShape, MagneticButton } from '@/components/ui/motion';
@@ -179,24 +180,24 @@ function HomeKeiroInner() {
       {/* === CONTENT SECTIONS BELOW === */}
       <div className={`homepage-sections ${isLight ? 'bg-[#eef2f7]/85 text-neutral-900' : 'bg-transparent text-slate-200'}`}>
 
-      {/* OFFRE D'ESSAI 4.99€ - MIS EN AVANT */}
+      {/* ESSAI GRATUIT 7 JOURS - MIS EN AVANT */}
       <section className="py-6">
         <ScaleIn>
         <div className="max-w-2xl mx-auto px-6">
-          <GlowPulse color="rgba(59, 130, 246, 0.15)">
-          <div className="bg-gradient-to-r from-[#0c1a3a] via-[#1e3a5f] to-[#0c1a3a] rounded-2xl px-6 py-4">
+          <GlowPulse color="rgba(34, 197, 94, 0.15)">
+          <div className="bg-gradient-to-r from-green-600 via-emerald-600 to-green-700 rounded-2xl px-6 py-4">
           <FadeUp>
           <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-white">
             <div className="flex items-center gap-3">
-              <span className="text-xl">⚡</span>
+              <span className="text-xl">🎁</span>
               <div>
-                <p className="font-semibold">{t.home.sprintTitle}</p>
-                <p className="text-xs text-[#c8d8e8]">{t.home.sprintSubtitle}</p>
+                <p className="font-semibold">{t.home.freeTrialTitle || 'Essai gratuit 7 jours'}</p>
+                <p className="text-xs text-green-100">{t.home.freeTrialSubtitle || '3 visuels + 1 vidéo IA — sans carte bancaire'}</p>
               </div>
             </div>
-            <button onClick={() => startCheckout('sprint')} className="sprint-cta-glow px-7 py-3 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-400 text-[#0c1a3a] font-extrabold hover:from-cyan-300 hover:to-blue-300 transition-all text-sm whitespace-nowrap shadow-lg hover:shadow-2xl hover:scale-105">
-              {t.home.sprintCta} →
-            </button>
+            <Link href="/generate" className="px-7 py-3 rounded-xl bg-white text-green-700 font-extrabold hover:bg-green-50 transition-all text-sm whitespace-nowrap shadow-lg hover:shadow-2xl hover:scale-105">
+              {t.home.freeTrialCta || 'Essayer gratuitement'} →
+            </Link>
           </div>
           </FadeUp>
           </div>
@@ -1203,21 +1204,21 @@ function HomeKeiroInner() {
             )}
           </div></FadeUp>
 
-          {/* Sprint — Essai 3 jours */}
+          {/* Essai gratuit */}
           <ScaleIn>
           <div className="max-w-2xl mx-auto mb-10">
-            <div className="bg-gradient-to-r from-[#0c1a3a]/5 to-purple-50 rounded-2xl border border-[#0c1a3a]/10 p-5 flex flex-col sm:flex-row items-center gap-4">
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border border-green-200 p-5 flex flex-col sm:flex-row items-center gap-4">
               <div className="flex-1 text-center sm:text-left">
-                <p className="text-sm font-bold text-neutral-900">⚡ {t.home.sprintTrialTitle}</p>
-                <p className="text-xs text-neutral-600 mt-0.5">{t.home.sprintTrialDesc}</p>
-                <p className="text-[11px] text-[#0c1a3a] mt-0.5">{t.home.sprintTrialNote}</p>
+                <p className="text-sm font-bold text-neutral-900">🎁 {t.home.freeTrialTitle || 'Essai gratuit 7 jours'}</p>
+                <p className="text-xs text-neutral-600 mt-0.5">{t.home.freeTrialPricingDesc || '3 visuels IA + 1 vidéo offerte — sans engagement'}</p>
+                <p className="text-[11px] text-green-700 mt-0.5">{t.home.freeTrialPricingNote || 'Aucune carte bancaire requise'}</p>
               </div>
-              <button
-                onClick={() => startCheckout('sprint')}
-                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white text-sm font-bold hover:shadow-lg transition-all hover:-translate-y-0.5 whitespace-nowrap flex-shrink-0"
+              <Link
+                href="/generate"
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 text-white text-sm font-bold hover:shadow-lg transition-all hover:-translate-y-0.5 whitespace-nowrap flex-shrink-0"
               >
-                {t.home.sprintTrialCta}
-              </button>
+                {t.home.freeTrialCta || 'Essayer gratuitement'}
+              </Link>
             </div>
           </div>
           </ScaleIn>

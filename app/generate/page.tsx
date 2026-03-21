@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import SubscriptionModal from '@/components/SubscriptionModal';
 import EmailGateModal from '@/components/EmailGateModal';
 import SignupGateModal from '@/components/SignupGateModal';
+import ConversionPopup from '@/components/ConversionPopup';
 import AdminBadge from '@/components/AdminBadge';
 import ProfileEnrichmentModal, { shouldShowEnrichmentModal } from '@/components/ProfileEnrichmentModal';
 import { useGenerationLimit } from '@/hooks/useGenerationLimit';
@@ -538,8 +539,8 @@ export default function GeneratePage() {
   const feedback = useFeedbackPopup();
   const [sprintTick, setSprintTick] = useState(0);
   const [showWelcome, setShowWelcome] = useState(false);
-  const [showEmailGate, setShowEmailGate] = useState(false);
-  const [showSignupGate, setShowSignupGate] = useState(false);
+  // showEmailGate/showSignupGate remplacés par showConversionPopup
+  const [showConversionPopup, setShowConversionPopup] = useState(false);
   const [showEditEmailGate, setShowEditEmailGate] = useState(false);
   const [showEditSignupGate, setShowEditSignupGate] = useState(false);
   const [showInsufficientCreditsModal, setShowInsufficientCreditsModal] = useState(false);
@@ -1380,18 +1381,9 @@ export default function GeneratePage() {
 
     console.log('[Generate] Admin check:', { userId: user?.id, email: user?.email, isAdmin });
 
-    // Vérifier les limites de génération (freemium) - SAUF pour les admins
+    // Freemium : 1ère gen gratuite, puis popup conversion (mais on génère quand même)
     if (!isAdmin) {
-      if (generationLimit.requiredAction === 'email') {
-        console.log('[Generate] Non-admin user requires email');
-        setShowEmailGate(true);
-        return;
-      }
-      if (generationLimit.requiredAction === 'signup') {
-        console.log('[Generate] Non-admin user requires signup');
-        setShowSignupGate(true);
-        return;
-      }
+      console.log('[Generate] Freemium check:', { action: generationLimit.requiredAction, count: generationLimit.count });
     } else {
       console.log('[Generate] ✅ Admin user detected - bypassing ALL generation limits');
     }
@@ -1635,7 +1627,7 @@ export default function GeneratePage() {
           clearInterval(progressInterval);
           setGenerating(false);
           if (errorData.reason === 'free_limit') {
-            setShowSignupGate(true);
+            setShowConversionPopup(true);
           } else {
             setShowRequiresAccountModal(true);
           }
@@ -1945,6 +1937,12 @@ export default function GeneratePage() {
 
       // Incrémenter le compteur de génération pour le freemium
       generationLimit.incrementCount();
+
+      // Popup de conversion : après la 1ère gen gratuite, montrer le popup
+      if (!generationLimit.hasAccount && generationLimit.count === 0) {
+        // count === 0 car incrementCount vient de passer de 0 à 1
+        setShowConversionPopup(true);
+      }
 
       // Génération audio TTS si demandée
       if (addAudio) {
@@ -6850,21 +6848,27 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
           onClose={() => setShowSubscriptionModal(false)}
         />
 
-        {/* Modal Email Gate (2ème génération) */}
-        <EmailGateModal
-          isOpen={showEmailGate}
-          onClose={() => setShowEmailGate(false)}
-          onSubmit={(email) => {
-            generationLimit.setEmail(email);
-            setShowEmailGate(false);
+        {/* Popup de conversion après 1ère gen gratuite */}
+        <ConversionPopup
+          isOpen={showConversionPopup}
+          imageUrl={generatedImageUrl}
+          onClose={() => {
+            setShowConversionPopup(false);
+            // Visuel perdu — on ne clear pas l'image pour que l'utilisateur voie encore le résultat
           }}
-          type="generation"
-        />
-
-        {/* Modal Signup Gate (3ème+ génération) */}
-        <SignupGateModal
-          isOpen={showSignupGate}
-          onClose={() => setShowSignupGate(false)}
+          onSuccess={() => {
+            setShowConversionPopup(false);
+            generationLimit.setHasAccount(true);
+            // Auto-téléchargement du visuel
+            if (generatedImageUrl) {
+              const link = document.createElement('a');
+              link.href = generatedImageUrl;
+              link.download = `keiro-visuel-${Date.now()}.png`;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+            }
+          }}
         />
 
         {/* Modal Email Gate pour édition (2ème édition) */}

@@ -103,7 +103,7 @@ export function detectPhone(message: string): string | null {
 
 /**
  * Detects which plan the visitor is interested in from their message.
- * Returns 'fondateurs', 'pro', 'sprint', or null.
+ * Returns 'fondateurs', 'pro', 'free_trial', or null.
  */
 export function detectPlanInterest(message: string): string | null {
   const lowered = message.toLowerCase();
@@ -113,23 +113,22 @@ export function detectPlanInterest(message: string): string | null {
     return 'fondateurs';
   }
 
-  // Check for Pro / 89 / 49
+  // Check for Pro / 49
   if (
     /\bpro\b/.test(lowered) ||
-    lowered.includes('89') ||
     /\b49\s*\u20AC?\b/.test(lowered)
   ) {
     return 'pro';
   }
 
-  // Check for Sprint / 4.99 / tester
+  // Check for free trial / gratuit / tester / essai
   if (
-    lowered.includes('sprint') ||
-    lowered.includes('4.99') ||
-    lowered.includes('4,99') ||
-    lowered.includes('tester')
+    lowered.includes('gratuit') ||
+    lowered.includes('essai') ||
+    lowered.includes('tester') ||
+    lowered.includes('7 jours')
   ) {
-    return 'sprint';
+    return 'free_trial';
   }
 
   return null;

@@ -21,7 +21,7 @@ CE QUE TU FAIS (sans jamais le formuler comme un pitch) :
 - Tu crées des visuels et vidéos pro pour les commerces avec un outil IA
 - Tu peux générer un visuel en 30 secondes à partir d'une actu du jour
 - Les commerces postent du contenu pro sans graphiste ni budget
-- Offre découverte : Sprint 3 jours à 4,99€ puis 1er mois à 49€ (au lieu de 89€)
+- Offre découverte : Essai gratuit 7 jours (3 visuels + 1 vidéo, sans carte bancaire) puis Pro à 49€/mois
 
 RÈGLES ABSOLUES :
 1. MAX 3-4 lignes. C'est un DM, pas un roman.
@@ -51,12 +51,12 @@ Court, pas insistant, apporte de la VALEUR gratuite.
 
 ÉTAPE 3 — FOLLOW-UP J+7 (si toujours rien, dernier message)
 Très court, décontracté, avec un mini CTA.
-"Bon je tente une dernière fois haha. Si jamais t'as 5 min pour voir ce que ça donne pour [nom], y'a une offre de lancement à 4,99€ pour tester 3 jours. Zéro engagement. Si c'est pas ton truc no stress 👊"
+"Bon je tente une dernière fois haha. Si jamais t'as 5 min pour voir ce que ça donne pour [nom], y'a un essai gratuit 7 jours — 3 visuels + 1 vidéo offerts, même pas besoin de carte. Si c'est pas ton truc no stress 👊"
 
 QUAND ILS RÉPONDENT (adapte selon la réponse) :
 
 Si curieux/intéressé → Propose de faire un visuel gratuit LIVE, puis :
-"Trop bien ! Regarde, je t'ai fait un truc vite fait → [envoyer le visuel]. Ça m'a pris 30 sec. Si tu veux tester toi-même y'a un Sprint 3 jours à 4,99€, et le 1er mois complet c'est 49€ au lieu de 89. Tu veux que je t'envoie le lien ?"
+"Trop bien ! Regarde, je t'ai fait un truc vite fait → [envoyer le visuel]. Ça m'a pris 30 sec. Si tu veux tester toi-même y'a un essai gratuit 7 jours — 3 visuels + 1 vidéo, sans carte bancaire. Tu veux que je t'envoie le lien ?"
 
 Si sceptique → Rassure avec du concret :
 "Je comprends haha tout le monde dit ça. Regarde, [nom d'un commerce similaire] du [quartier] est passé de 200 à 1500 abonnés en 2 mois juste avec du contenu régulier. Le truc c'est que eux avant ils postaient jamais parce que c'était trop long. Maintenant c'est 2 min par visuel."
@@ -69,8 +69,8 @@ RÉPONSE EN JSON STRICT (sans markdown, sans backticks) :
   "dm_text": "Le premier DM à envoyer (max 4 lignes, hyper naturel)",
   "personalization_detail": "L'élément spécifique du profil que j'ai utilisé",
   "follow_up_3d": "Message de relance J+3 (2-3 lignes, apporte de la valeur)",
-  "follow_up_7d": "Message de relance J+7 (2 lignes, dernier message, mini CTA Sprint)",
-  "response_interested": "Réponse si ils sont curieux (visuel gratuit + CTA Sprint/1er mois 49€)",
+  "follow_up_7d": "Message de relance J+7 (2 lignes, dernier message, mini CTA essai gratuit)",
+  "response_interested": "Réponse si ils sont curieux (visuel gratuit + CTA essai gratuit 7j)",
   "response_skeptical": "Réponse si ils sont sceptiques (preuve sociale + résultat concret)",
   "tone_notes": "Notes sur le ton adapté à ce commerce (formel/décontracté/enthousiaste)"
 }`;
@@ -110,7 +110,7 @@ CE QUE TU PROPOSES (adapté TikTok) :
 - Tu peux générer des visuels/vidéos en 30 sec à partir d'une actu ou trend
 - Le contenu est optimisé pour l'algo TikTok (hooks, durée, format vertical)
 - TikTok = reach organique GRATUIT → pas besoin de budget pub
-- Offre découverte : Sprint 3 jours à 4,99€ puis 1er mois à 49€
+- Offre découverte : Essai gratuit 7 jours (3 visuels + 1 vidéo, sans carte bancaire) puis Pro à 49€/mois
 
 RÈGLES ABSOLUES :
 1. MAX 2-3 lignes. Sur TikTok c'est encore plus court qu'Insta.
@@ -140,12 +140,12 @@ Court, apporte de la valeur concrète liée à TikTok.
 
 ÉTAPE 3 — RELANCE J+7 (dernier message)
 Ultra court, mini CTA.
-"Bon dernier message promis ! Si t'as 2 min je peux te montrer ce que ça donne pour [nom] — y'a un test à 4,99€ pour 3 jours zéro prise de tête 👊"
+"Bon dernier message promis ! Si t'as 2 min je peux te montrer ce que ça donne pour [nom] — y'a un essai gratuit 7 jours, 3 visuels + 1 vidéo, même pas besoin de carte 👊"
 
 QUAND ILS RÉPONDENT :
 
 Si curieux → Montre un résultat concret TikTok :
-"Trop bien ! Regarde je t'ai fait un truc en 30 sec → [visuel]. Imagine ça en vidéo avec un hook accrocheur, ça explose sur le FYP. Y'a un Sprint 3 jours à 4,99€ pour tester, et le 1er mois c'est 49€ au lieu de 89. Tu veux voir ?"
+"Trop bien ! Regarde je t'ai fait un truc en 30 sec → [visuel]. Imagine ça en vidéo avec un hook accrocheur, ça explose sur le FYP. Y'a un essai gratuit 7 jours — 3 visuels + 1 vidéo, sans carte bancaire. Tu veux voir ?"
 
 Si sceptique → Argument reach organique :
 "Je comprends ! Mais le truc avec TikTok c'est que t'as pas besoin de followers pour exploser. Un [type commerce] du coin est passé de 0 à 50K vues en 1 semaine juste avec du contenu régulier. Le secret c'est de poster souvent avec les bons hooks."
@@ -163,8 +163,8 @@ RÉPONSE EN JSON STRICT (sans markdown, sans backticks) :
   "personalization_detail": "La vidéo/contenu spécifique que j'ai référencé",
   "pre_comments": ["Commentaire 1 à poster sous une vidéo", "Commentaire 2 sous une autre vidéo"],
   "follow_up_3d": "Relance J+3 (2 lignes, valeur concrète TikTok)",
-  "follow_up_7d": "Relance J+7 (1-2 lignes, mini CTA Sprint)",
-  "response_interested": "Réponse si curieux (résultat concret + CTA Sprint)",
+  "follow_up_7d": "Relance J+7 (1-2 lignes, mini CTA essai gratuit)",
+  "response_interested": "Réponse si curieux (résultat concret + CTA essai gratuit)",
   "response_skeptical": "Réponse si sceptique (argument reach organique)",
   "tone_notes": "Notes sur le ton adapté (créateur/entertainer/expert)"
 }`;

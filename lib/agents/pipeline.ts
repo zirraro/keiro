@@ -12,8 +12,8 @@
  * - relance_2: second follow-up sent (email step 3)
  * - relance_3: third follow-up / FOMO sent (email step 4-5)
  * - repondu: prospect responded positively
- * - demo: demo/trial scheduled or Sprint offered
- * - sprint: Sprint trial active (4.99€/3d)
+ * - demo: demo/trial scheduled or free trial offered
+ * - sprint: Essai gratuit actif (7 jours)
  * - client: paying customer
  * - perdu: 3+ relances without response, or explicit rejection
  */
@@ -26,7 +26,7 @@ export const PIPELINE_STAGES = [
   { id: 'relance_3', label: 'Relance 3', color: 'bg-purple-400', textColor: 'text-purple-700', borderColor: 'border-purple-400', hex: '#C084FC', icon: '⏰', order: 4 },
   { id: 'repondu', label: 'Répondu', color: 'bg-violet-500', textColor: 'text-violet-700', borderColor: 'border-violet-500', hex: '#8B5CF6', icon: '💬', order: 5 },
   { id: 'demo', label: 'Démo', color: 'bg-amber-500', textColor: 'text-amber-700', borderColor: 'border-amber-500', hex: '#F59E0B', icon: '🎯', order: 6 },
-  { id: 'sprint', label: 'Sprint', color: 'bg-orange-500', textColor: 'text-orange-700', borderColor: 'border-orange-500', hex: '#F97316', icon: '⚡', order: 7 },
+  { id: 'sprint', label: 'Essai gratuit', color: 'bg-orange-500', textColor: 'text-orange-700', borderColor: 'border-orange-500', hex: '#F97316', icon: '🚀', order: 7 },
   { id: 'client', label: 'Client', color: 'bg-emerald-500', textColor: 'text-emerald-700', borderColor: 'border-emerald-500', hex: '#10B981', icon: '✅', order: 8 },
   { id: 'perdu', label: 'Perdu', color: 'bg-red-500', textColor: 'text-red-700', borderColor: 'border-red-500', hex: '#EF4444', icon: '✗', order: 9 },
 ] as const;

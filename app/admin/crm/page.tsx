@@ -20,7 +20,7 @@ const PIPELINE_STAGES = [
   { id: 'relance_3', label: 'Relance 3', color: 'bg-purple-400', textColor: 'text-purple-700', borderColor: 'border-purple-400', hex: '#C084FC', icon: '⏰' },
   { id: 'repondu', label: 'Répondu', color: 'bg-violet-500', textColor: 'text-violet-700', borderColor: 'border-violet-500', hex: '#8B5CF6', icon: '💬' },
   { id: 'demo', label: 'Démo', color: 'bg-amber-500', textColor: 'text-amber-700', borderColor: 'border-amber-500', hex: '#F59E0B', icon: '🎯' },
-  { id: 'sprint', label: 'Sprint', color: 'bg-orange-500', textColor: 'text-orange-700', borderColor: 'border-orange-500', hex: '#F97316', icon: '⚡' },
+  { id: 'sprint', label: 'Essai gratuit', color: 'bg-orange-500', textColor: 'text-orange-700', borderColor: 'border-orange-500', hex: '#F97316', icon: '🚀' },
   { id: 'client', label: 'Client', color: 'bg-emerald-500', textColor: 'text-emerald-700', borderColor: 'border-emerald-500', hex: '#10B981', icon: '✅' },
   { id: 'perdu', label: 'Perdu', color: 'bg-red-500', textColor: 'text-red-700', borderColor: 'border-red-500', hex: '#EF4444', icon: '✗' },
 ];
@@ -154,7 +154,7 @@ const QUICK_RESULTS = [
   { id: 'demande_infos', label: '💬 Demande infos → Répondu', pipeline: 'repondu' },
   { id: 'rdv_pris', label: '📅 RDV pris → Démo', pipeline: 'demo' },
   { id: 'demo_ok', label: '🎯 Démo réussie → Démo', pipeline: 'demo' },
-  { id: 'essai_gratuit', label: '🚀 Essai gratuit lancé → Sprint', pipeline: 'sprint' },
+  { id: 'essai_gratuit', label: '🚀 Essai gratuit lancé', pipeline: 'sprint' },
   { id: 'client_signe', label: '🎉 Client signé !', pipeline: 'client' },
   { id: 'rappeler', label: '⏰ Rappeler plus tard', pipeline: null },
   { id: 'mauvais_moment', label: '⏳ Mauvais moment', pipeline: null },
@@ -557,7 +557,7 @@ export default function AdminCRMPage() {
   const [commercialRunning, setCommercialRunning] = useState<string | null>(null);
   const [commercialResult, setCommercialResult] = useState<{ ok: boolean; message: string } | null>(null);
   const handleRecategorize = async () => {
-    if (!confirm('Recatégoriser automatiquement les sources et statuts de tous les prospects ?\n\nCette action analyse les notes et données pour :\n- Détecter le canal (terrain, DM Instagram, etc.)\n- Mettre à jour le statut (Sprint vendu → Sprint, Converti → Client)\n- Remonter les prospects contactés/visités dans le pipeline')) return;
+    if (!confirm('Recatégoriser automatiquement les sources et statuts de tous les prospects ?\n\nCette action analyse les notes et données pour :\n- Détecter le canal (terrain, DM Instagram, etc.)\n- Mettre à jour le statut (Essai gratuit → Essai gratuit, Converti → Client)\n- Remonter les prospects contactés/visités dans le pipeline')) return;
     setRecategorizing(true);
     try {
       const res = await fetch('/api/admin/crm/recategorize', { method: 'POST' });
@@ -2016,7 +2016,7 @@ export default function AdminCRMPage() {
               {/* Date contact + Angle */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <ModalField label="Date contact" type="date" value={form.date_contact} onChange={v => setForm(f => ({ ...f, date_contact: v }))} />
-                <ModalField label="Angle d'approche" value={form.angle_approche} onChange={v => setForm(f => ({ ...f, angle_approche: v }))} placeholder="Sprint gratuit, demo..." />
+                <ModalField label="Angle d'approche" value={form.angle_approche} onChange={v => setForm(f => ({ ...f, angle_approche: v }))} placeholder="Essai gratuit, demo..." />
               </div>
 
               {/* Notes */}

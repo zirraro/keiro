@@ -208,17 +208,29 @@ Le profil @keiroai doit donner une impression PREMIUM et COHÉRENTE quand on le 
    → JAMAIS 2 posts de même couleur dominante côte à côte
    → Chaque post doit être identifiable en miniature 100x100px
 
-2. STYLE VISUEL PAR FORMAT :
-   - Carrousels : Cover slide = fond uni vibrant + titre blanc gras + icône/illustration simple
-   - Reels : Frame d'accroche = texte overlay blanc sur fond semi-transparent sombre
-   - Posts image : Composition centrée, flat design ou 3D soft, palette KeiroAI
+2. STYLES VISUELS VARIÉS (ALTERNE entre ces styles, JAMAIS 2 posts consécutifs du même style) :
+   - ISOMÉTRIQUE : scène 3D isométrique colorée (commerce, atelier, bureau) vue de dessus
+   - PHOTO RÉALISTE : mise en scène cinématique d'un commerçant en action, lumière naturelle chaude
+   - MINIMALISTE GÉOMÉTRIQUE : formes abstraites épurées, grand aplat de couleur, 1 élément central
+   - ILLUSTRATION MODERNE : style editorial illustration tendance (Behance/Dribbble), personnage stylisé
+   - 3D SOFT / CLAY : objets 3D doux et arrondis (style Blender clay render), couleurs pastel premium
+   - COLLAGE CRÉATIF : composition multi-éléments (photos découpées, formes, textures) style magazine
+   - GRADIENT ART : dégradés vibrants avec silhouettes ou formes organiques en négatif
+   - FLAT DESIGN AUDACIEUX : aplats de couleurs vifs avec compositions asymétriques dynamiques
+   - Carrousels : Cover slide = fond uni vibrant + illustration ou forme graphique forte
+   - Reels : Frame d'accroche = composition cinématique ou animation motion graphics
+   - Posts image : Composition créative et VARIÉE (voir styles ci-dessus)
    - Stories : Fond gradient violet, texte blanc, éléments interactifs (sondage, question)
+
+   RÈGLE CRITIQUE : Ne PAS toujours mettre un téléphone/smartphone dans le visuel !
+   Les mockups de téléphone sont OK max 1 post sur 5. Privilégie les scènes de vie,
+   les illustrations conceptuelles, et les compositions graphiques originales.
 
 3. ÉLÉMENTS RÉCURRENTS :
    - Logo KeiroAI discret en bas à droite (watermark de marque)
-   - Icônes flat design cohérentes (même style partout)
-   - Mockups de téléphone montrant l'app KeiroAI quand pertinent
-   - Illustrations de commerçants (restaurateur, coiffeur) en style flat/moderne
+   - Palette de couleurs cohérente (violet, ambre, noir, blanc cassé)
+   - Illustrations variées de commerçants EN ACTION (pas toujours derrière un écran)
+   - Objets métier : plat gastronomique, bouquet de fleurs, coupe de cheveux, vitrine de boutique
 
 4. TIKTOK FEED :
    - Miniature vidéo = texte overlay GROS et LISIBLE sur fond contrasté
@@ -274,7 +286,7 @@ FORMAT DE RÉPONSE (JSON strict, PAS de markdown)
   "hook": "Les 3-8 premiers mots qui STOPPENT le scroll (pattern interrupt, chiffre choc, ou question provocante)",
   "caption": "Texte AÉRÉ et PERCUTANT avec des \\n pour les sauts de ligne. Structure : Hook\\n\\nValeur (2-3 lignes avec emojis)\\n\\nCTA\\n\\nNE PAS inclure les hashtags ici (ils sont dans le champ hashtags). Instagram max 800 chars, TikTok max 500 chars. Tutoiement. Max 3-5 emojis. DOIT être cohérent avec le visual_description.",
   "hashtags": ["#keiroai", "#tag2", "#tag3", "...max 10 hashtags de niche pertinents"],
-  "visual_description": "Description détaillée du visuel principal : composition, couleurs (utiliser la palette KeiroAI), style (flat design/3D soft/photo réaliste), éléments visuels, ambiance. AUCUN texte dans l'image.",
+  "visual_description": "Description détaillée du visuel principal : composition, couleurs (palette KeiroAI), style (isométrique/photo réaliste/minimaliste/illustration moderne/3D soft clay/collage/gradient art/flat design), éléments visuels, ambiance. VARIE le style à chaque post. PAS de téléphone/smartphone sauf 1 post sur 5 max. AUCUN texte dans l'image.",
   "thumbnail_description": "Description EXACTE de ce que la miniature 100x100px montre dans la grille : couleur de fond dominante, forme centrale, contraste. Doit être LISIBLE en petit et DISTINCT des posts adjacents.",
   "slides": [{"text": "Texte de la slide", "visual": "Description visuelle de la slide", "style": "cover|tip|example|stat|quote|recap|cta"}],
   "script": "Script vidéo avec timing : [0-3s] Hook... [3-15s] Contenu... [15-25s] Démo... [25-30s] CTA",
@@ -324,6 +336,12 @@ EXIGENCES QUALITÉ :
 - Les visuels doivent être décrits pour la MINIATURE GRID d'abord (lisible en 100x100px)
 - Tous les hashtags incluent #keiroai en premier + hashtags de niche
 - Les descriptions visuelles ne doivent JAMAIS inclure de texte/lettres dans l'image
+
+DIVERSITÉ VISUELLE OBLIGATOIRE :
+- VARIE les styles visuels sur la semaine : isométrique, photo réaliste, minimaliste géométrique, illustration moderne, 3D soft clay, collage créatif, gradient art, flat design
+- MAX 1 post avec un téléphone/smartphone sur les 7 de la semaine
+- Privilégie les scènes de vie réelle des commerçants, les compositions graphiques créatives, les illustrations conceptuelles
+- JAMAIS 2 posts consécutifs avec le même style visuel
 
 Retourne UNIQUEMENT un tableau JSON : [{ "day": "lundi", ...contentJSON }, ...]
 Pas de markdown, pas de commentaires. Juste le JSON.`;

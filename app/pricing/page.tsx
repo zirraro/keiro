@@ -208,30 +208,36 @@ function PricingPageInner() {
         </div>
         </FadeUp>
 
-        {/* Top Plan - Sprint Essai */}
+        {/* Essai gratuit highlight */}
         <div className="max-w-lg mx-auto mb-10">
           <FadeUp>
-          <div className="bg-white rounded-2xl border-2 border-[#0c1a3a]/20 p-6 relative hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
+          <div className="bg-white rounded-2xl border-2 border-green-200 p-6 relative hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
             <div className="absolute -top-3 left-4">
-              <span className="bg-gradient-to-r from-[#0c1a3a]/50 to-purple-500 text-white px-3 py-1 rounded-full text-xs font-bold">
-                ⚡ {t.pricing.planSprintTitle}
+              <span className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 py-1 rounded-full text-xs font-bold">
+                {t.pricing.freeTrialBadge || '🎁 Essai gratuit'}
               </span>
             </div>
             <div className="mb-6 pt-2">
               <h3 className="text-2xl font-bold mb-2 flex items-center gap-2">
-                <span>⚡</span> {t.pricing.planSprintTitle}
+                <span>🎁</span> {t.pricing.freeTrialTitle || 'Essai gratuit 7 jours'}
               </h3>
               <div className="flex items-baseline gap-2 mb-4">
-                <span className="text-5xl font-bold bg-gradient-to-r from-[#0c1a3a] to-purple-600 bg-clip-text text-transparent">4.99€</span>
-                <span className="text-neutral-500">/3 jours</span>
+                <span className="text-5xl font-bold bg-gradient-to-r from-green-500 to-emerald-600 bg-clip-text text-transparent">0€</span>
+                <span className="text-neutral-500">/ 7 jours</span>
               </div>
-              <p className="text-neutral-600 text-sm font-medium">{t.pricing.planSprintSubtitle}</p>
+              <p className="text-neutral-600 text-sm font-medium">{t.pricing.freeTrialSubtitle || 'Teste Keiro sans engagement — aucune carte requise'}</p>
             </div>
 
             <ul className="space-y-4 mb-8">
-              {t.pricing.planSprintBullets.map((bullet, i) => (
+              {[
+                '<strong>3 visuels IA</strong> professionnels',
+                '<strong>1 vidéo IA</strong> offerte',
+                'Publication Instagram, LinkedIn, TikTok',
+                'Assistant marketing IA inclus',
+                'Aucune carte bancaire requise',
+              ].map((bullet, i) => (
                 <li key={i} className="flex items-start gap-3">
-                  <svg className={`w-5 h-5 ${i === 1 ? 'text-cyan-500' : i === 4 ? 'text-purple-500' : 'text-[#0c1a3a]'} flex-shrink-0 mt-0.5`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                   <span className="text-sm text-neutral-700" dangerouslySetInnerHTML={{ __html: bullet }} />
@@ -239,13 +245,13 @@ function PricingPageInner() {
               ))}
             </ul>
 
-            <button
-              onClick={() => startCheckout('sprint')}
-              className="block w-full py-3 px-6 text-center rounded-xl bg-gradient-to-r from-[#0c1a3a]/50 to-purple-600 text-white font-bold hover:shadow-lg transition-all hover:scale-105"
+            <Link
+              href="/generate"
+              className="block w-full py-3 px-6 text-center rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold hover:shadow-lg transition-all hover:scale-105"
             >
-              {t.pricing.planSprintCta}
-            </button>
-            <p className="text-xs text-center text-neutral-500 mt-2">{t.pricing.planSprintNote}</p>
+              {t.pricing.freeTrialCta || '→ Créer mon 1er visuel gratuitement'}
+            </Link>
+            <p className="text-xs text-center text-neutral-500 mt-2">{t.pricing.freeTrialNote || 'Sans engagement • Sans carte bancaire'}</p>
           </div>
           </FadeUp>
         </div>
@@ -563,7 +569,6 @@ function PricingPageInner() {
               <thead>
                 <tr className="border-b">
                   <th className="text-left py-3 px-2">Fonctionnalité</th>
-                  <th className="text-center py-3 px-2">Sprint 4.99€</th>
                   <th className="text-center py-3 px-2">Pro 89€</th>
                   <th className="text-center py-3 px-2 bg-amber-50 font-bold">Fondateurs 149€ ⭐</th>
                   <th className="text-center py-3 px-2">Business 349€</th>
@@ -574,8 +579,6 @@ function PricingPageInner() {
                 {/* Crédits */}
                 <tr className="border-b bg-[#0c1a3a]/5/30">
                   <td className="py-3 px-2 font-medium">Crédits</td>
-                  <td className="text-center py-3 px-2">120/3j</td>
-                  <td className="text-center py-3 px-2"><strong>250/mois</strong></td>
                   <td className="text-center py-3 px-2 bg-amber-50"><strong>750/mois</strong></td>
                   <td className="text-center py-3 px-2"><strong>1 900/mois</strong></td>
                   <td className="text-center py-3 px-2 bg-yellow-50"><strong>6 000/mois</strong></td>
@@ -583,8 +586,6 @@ function PricingPageInner() {
                 {/* En concret */}
                 <tr className="border-b">
                   <td className="py-3 px-2 font-medium">En concret</td>
-                  <td className="text-center py-3 px-2">~7/jour (3j)</td>
-                  <td className="text-center py-3 px-2">~3/sem</td>
                   <td className="text-center py-3 px-2 bg-amber-50"><strong>~5-6/sem</strong></td>
                   <td className="text-center py-3 px-2"><strong>Quotidien</strong></td>
                   <td className="text-center py-3 px-2 bg-yellow-50"><strong>Illimité</strong></td>
@@ -592,7 +593,6 @@ function PricingPageInner() {
                 {/* Images IA */}
                 <tr className="border-b">
                   <td className="py-3 px-2 font-medium">Images IA</td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
@@ -602,7 +602,6 @@ function PricingPageInner() {
                 <tr className="border-b">
                   <td className="py-3 px-2 font-medium">Vidéos IA</td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
@@ -610,7 +609,6 @@ function PricingPageInner() {
                 {/* Audio narration */}
                 <tr className="border-b">
                   <td className="py-3 px-2 font-medium">Audio narration</td>
-                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
@@ -620,7 +618,6 @@ function PricingPageInner() {
                 <tr className="border-b">
                   <td className="py-3 px-2 font-medium">AMI</td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
@@ -628,7 +625,6 @@ function PricingPageInner() {
                 {/* Instagram Posts */}
                 <tr className="border-b">
                   <td className="py-3 px-2 font-medium">Instagram Posts</td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
@@ -638,7 +634,6 @@ function PricingPageInner() {
                 <tr className="border-b">
                   <td className="py-3 px-2 font-medium">Instagram Stories</td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
@@ -646,7 +641,6 @@ function PricingPageInner() {
                 {/* LinkedIn */}
                 <tr className="border-b">
                   <td className="py-3 px-2 font-medium">LinkedIn</td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
@@ -656,7 +650,6 @@ function PricingPageInner() {
                 <tr className="border-b bg-cyan-50/30">
                   <td className="py-3 px-2 font-medium">🎵 TikTok</td>
                   <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
-                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
                   <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
@@ -664,7 +657,6 @@ function PricingPageInner() {
                 {/* Branding */}
                 <tr className="border-b">
                   <td className="py-3 px-2 font-medium">Branding (logo+couleurs)</td>
-                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
                   <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
                   <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
@@ -674,7 +666,6 @@ function PricingPageInner() {
                 <tr className="border-b">
                   <td className="py-3 px-2 font-medium">Multi-format (3 en 1)</td>
                   <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
-                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
                   <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
@@ -682,7 +673,6 @@ function PricingPageInner() {
                 {/* Calendrier */}
                 <tr className="border-b">
                   <td className="py-3 px-2 font-medium">Calendrier</td>
-                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
                   <td className="text-center py-3 px-2">Manuel</td>
                   <td className="text-center py-3 px-2 bg-amber-50">Manuel</td>
                   <td className="text-center py-3 px-2"><strong>Collaboratif</strong></td>
@@ -691,7 +681,6 @@ function PricingPageInner() {
                 {/* Stats Instagram */}
                 <tr className="border-b">
                   <td className="py-3 px-2 font-medium">Stats Instagram</td>
-                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
@@ -701,7 +690,6 @@ function PricingPageInner() {
                 <tr className="border-b">
                   <td className="py-3 px-2 font-medium">Stats multi-plateforme</td>
                   <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
-                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
                   <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
@@ -710,7 +698,6 @@ function PricingPageInner() {
                 <tr className="border-b">
                   <td className="py-3 px-2 font-medium">Multi-comptes</td>
                   <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
-                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
                   <td className="text-center py-3 px-2 bg-amber-50"><span className="text-neutral-400">—</span></td>
                   <td className="text-center py-3 px-2"><strong>1+5</strong></td>
                   <td className="text-center py-3 px-2 bg-yellow-50"><strong>Illimité</strong></td>
@@ -718,7 +705,6 @@ function PricingPageInner() {
                 {/* Support */}
                 <tr className="border-b">
                   <td className="py-3 px-2 font-medium">Support</td>
-                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
                   <td className="text-center py-3 px-2">Email 48h</td>
                   <td className="text-center py-3 px-2 bg-amber-50"><strong>Prioritaire 12h</strong></td>
                   <td className="text-center py-3 px-2"><strong>Premium 4h</strong></td>
@@ -728,7 +714,6 @@ function PricingPageInner() {
                 <tr className="border-b">
                   <td className="py-3 px-2 font-medium">Appel onboarding</td>
                   <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
-                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
                   <td className="text-center py-3 px-2 bg-amber-50"><strong className="text-green-600">✓ Offert</strong></td>
                   <td className="text-center py-3 px-2"><strong className="text-green-600">✓ Offert</strong></td>
                   <td className="text-center py-3 px-2 bg-yellow-50"><strong className="text-green-600">✓ Réguliers</strong></td>
@@ -737,7 +722,6 @@ function PricingPageInner() {
                 <tr className="border-b">
                   <td className="py-3 px-2 font-medium">Prix verrouillé à vie</td>
                   <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
-                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
                   <td className="text-center py-3 px-2 bg-amber-50"><strong className="text-green-600">✓ (50 places)</strong></td>
                   <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
                   <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-neutral-400">—</span></td>
@@ -745,8 +729,6 @@ function PricingPageInner() {
                 {/* Prix */}
                 <tr>
                   <td className="py-3 px-2 font-medium">{t.pricing.compPrice}</td>
-                  <td className="text-center py-3 px-2 font-bold">4.99€/3j</td>
-                  <td className="text-center py-3 px-2 font-bold">89€</td>
                   <td className="text-center py-3 px-2 bg-amber-50 font-bold text-amber-600">149€*</td>
                   <td className="text-center py-3 px-2 font-bold text-[#0c1a3a]">349€</td>
                   <td className="text-center py-3 px-2 bg-yellow-50 font-bold text-amber-700">999€</td>
@@ -939,7 +921,6 @@ function PricingPageInner() {
                   <tr className="border-b bg-cyan-50 font-bold">
                     <td className="py-4 px-3 text-base">{"GÉNÉRATION DE VIDÉOS"}</td>
                     <td className="text-center py-4 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span> Impossible</td>
-                    <td className="text-center py-4 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span> Impossible</td>
                     <td className="text-center py-4 px-3 bg-purple-50/50"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Vidéos 5s-90s</td>
                     <td className="text-center py-4 px-3 bg-amber-50/50"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Vidéos 5s-90s</td>
                   </tr>
@@ -948,13 +929,11 @@ function PricingPageInner() {
                     <td className="py-3 px-3 font-medium">{"TikTok (format + publication)"}</td>
                     <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
                     <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
                     <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Format optimisé</td>
                   </tr>
                   {/* Vidéo + audio narration */}
                   <tr className="border-b">
                     <td className="py-3 px-3 font-medium">{"Vidéo + audio narration"}</td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
                     <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span> (audio séparé)</td>
                     <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Intégré</td>
                     <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Intégré</td>
@@ -962,7 +941,6 @@ function PricingPageInner() {
                   {/* Images IA */}
                   <tr className="border-b">
                     <td className="py-3 px-3 font-medium">{"Images IA"}</td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Prompt manuel</td>
                     <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Meilleure qualité</td>
                     <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Optimisé commerce</td>
                     <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Optimisé commerce</td>
@@ -970,7 +948,6 @@ function PricingPageInner() {
                   {/* Qualité de génération - KEY differentiator */}
                   <tr className="border-b bg-emerald-50/40 font-semibold">
                     <td className="py-4 px-3 text-base">{"Qualité de génération"}</td>
-                    <td className="text-center py-4 px-3"><span className="text-neutral-500">Standard</span><br/><span className="text-[10px] text-neutral-400">DALL-E basique</span></td>
                     <td className="text-center py-4 px-3"><span className="text-neutral-600">Bonne</span><br/><span className="text-[10px] text-neutral-400">DALL-E 3 / GPT-4o</span></td>
                     <td className="text-center py-4 px-3 bg-purple-50/50"><strong className="text-purple-700">Premium</strong><br/><span className="text-[10px] text-purple-500">Seedream 4.5 + Seedance</span></td>
                     <td className="text-center py-4 px-3 bg-amber-50/50"><strong className="text-amber-700">Elite Studio</strong><br/><span className="text-[10px] text-amber-500">Niveau graphiste pro</span></td>
@@ -979,14 +956,12 @@ function PricingPageInner() {
                   <tr className="border-b">
                     <td className="py-3 px-3 font-medium">{"Rendus disponibles"}</td>
                     <td className="text-center py-3 px-3"><span className="text-neutral-500">1 seul</span></td>
-                    <td className="text-center py-3 px-3"><span className="text-neutral-500">1 seul</span></td>
                     <td className="text-center py-3 px-3"><strong className="text-green-600">6 rendus</strong><br/><span className="text-[10px] text-neutral-400">Photo, ciné, aquarelle...</span></td>
                     <td className="text-center py-3 px-3 bg-amber-50/30"><strong className="text-green-600">6 rendus</strong><br/><span className="text-[10px] text-neutral-400">Photo, ciné, aquarelle...</span></td>
                   </tr>
                   {/* Temps par post - green bold for KeiroAI */}
                   <tr className="border-b">
                     <td className="py-3 px-3 font-medium">{"Temps par post"}</td>
-                    <td className="text-center py-3 px-3">25-35 min</td>
                     <td className="text-center py-3 px-3">20-30 min</td>
                     <td className="text-center py-3 px-3"><strong className="text-green-600">3 min</strong></td>
                     <td className="text-center py-3 px-3 bg-amber-50/30"><strong className="text-green-600">3 min</strong></td>
@@ -995,7 +970,6 @@ function PricingPageInner() {
                   <tr className="border-b">
                     <td className="py-3 px-3 font-medium">{"Compétence requise"}</td>
                     <td className="text-center py-3 px-3">Savoir écrire des prompts</td>
-                    <td className="text-center py-3 px-3">Savoir écrire des prompts</td>
                     <td className="text-center py-3 px-3"><strong className="text-green-600">Aucune</strong></td>
                     <td className="text-center py-3 px-3 bg-amber-50/30"><strong className="text-green-600">Aucune</strong></td>
                   </tr>
@@ -1003,14 +977,12 @@ function PricingPageInner() {
                   <tr className="border-b">
                     <td className="py-3 px-3 font-medium">{"Lié à l'actu du jour"}</td>
                     <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span> Vous cherchez</td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span> Vous cherchez</td>
                     <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Automatique</td>
                     <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Automatique</td>
                   </tr>
                   {/* Branding */}
                   <tr className="border-b">
                     <td className="py-3 px-3 font-medium">{"Branding (logo + couleurs)"}</td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span> Re-décrire à chaque fois</td>
                     <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span> Re-décrire</td>
                     <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
                     <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Mémorisé, auto</td>
@@ -1019,14 +991,12 @@ function PricingPageInner() {
                   <tr className="border-b">
                     <td className="py-3 px-3 font-medium">{"Multi-format (post+Story+Reel)"}</td>
                     <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span> 1 par 1</td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span> 1 par 1</td>
                     <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
                     <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> 1 clic = 3 formats</td>
                   </tr>
                   {/* Légendes Instagram */}
                   <tr className="border-b">
                     <td className="py-3 px-3 font-medium">{"Légendes Instagram"}</td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-500 text-xs font-bold">!</span> Si demandé</td>
                     <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-500 text-xs font-bold">!</span> Si demandé</td>
                     <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Auto</td>
                     <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Auto</td>
@@ -1035,14 +1005,12 @@ function PricingPageInner() {
                   <tr className="border-b">
                     <td className="py-3 px-3 font-medium">{"Hashtags"}</td>
                     <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-500 text-xs font-bold">!</span> Si demandé</td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-500 text-xs font-bold">!</span> Si demandé</td>
                     <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Auto</td>
                     <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Auto</td>
                   </tr>
                   {/* Text-to-speech */}
                   <tr className="border-b">
                     <td className="py-3 px-3 font-medium">{"Text-to-speech"}</td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Basique</td>
                     <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> + MP3</td>
                     <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Intégré vidéo</td>
                     <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Intégré vidéo</td>
@@ -1051,14 +1019,12 @@ function PricingPageInner() {
                   <tr className="border-b">
                     <td className="py-3 px-3 font-medium">{"Calendrier publication"}</td>
                     <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
                     <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span></td>
                     <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span></td>
                   </tr>
                   {/* Stats Instagram */}
                   <tr className="border-b">
                     <td className="py-3 px-3 font-medium">{"Stats Instagram"}</td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
                     <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
                     <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span></td>
                     <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span></td>
@@ -1068,13 +1034,11 @@ function PricingPageInner() {
                     <td className="py-3 px-3 font-medium">{"Stats multi-plateforme"}</td>
                     <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
                     <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
                     <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span></td>
                   </tr>
                   {/* Recommandations IA */}
                   <tr className="border-b">
                     <td className="py-3 px-3 font-medium">{"Recommandations IA"}</td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
                     <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
                     <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span></td>
                     <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span></td>
@@ -1083,14 +1047,12 @@ function PricingPageInner() {
                   <tr className="border-b">
                     <td className="py-3 px-3 font-medium">{"Publication multi-plateforme"}</td>
                     <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
                     <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> IG + LinkedIn</td>
                     <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> IG + TikTok + LinkedIn</td>
                   </tr>
                   {/* Galerie organisée */}
                   <tr className="border-b">
                     <td className="py-3 px-3 font-medium">{"Galerie organisée"}</td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span> Historique chat</td>
                     <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span> Historique chat</td>
                     <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span></td>
                     <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span></td>
@@ -1099,14 +1061,12 @@ function PricingPageInner() {
                   <tr className="border-b">
                     <td className="py-3 px-3 font-medium">{"Retouche visuelle"}</td>
                     <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span> Regénérer</td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span> Regénérer</td>
                     <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Lumière, ambiance</td>
                     <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Lumière, ambiance</td>
                   </tr>
                   {/* Support */}
                   <tr>
                     <td className="py-3 px-3 font-medium">{"Support"}</td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
                     <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
                     <td className="text-center py-3 px-3">Email 48h</td>
                     <td className="text-center py-3 px-3 bg-amber-50/30"><strong>Prioritaire 12h</strong></td>

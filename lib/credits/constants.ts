@@ -101,11 +101,14 @@ export const CREDIT_PACKS = [
 // Crédits offerts code promo (= Fondateurs)
 export const PROMO_CODE_CREDITS = 750;
 
-// Crédits offerts à l'inscription
-export const SIGNUP_BONUS_CREDITS = 30;
+// Crédits offerts à l'inscription (3 visuels × 4cr + 1 vidéo 10s × 25cr = 37cr)
+export const SIGNUP_BONUS_CREDITS = 37;
 
-// Limite mode gratuit
-export const FREE_MONTHLY_LIMIT = 5; // 20 credits / 4 per image = 5 images
+// Durée de l'essai gratuit en jours
+export const FREE_TRIAL_DAYS = 7;
+
+// Limite mode gratuit (avant inscription)
+export const FREE_MONTHLY_LIMIT = 1; // 1 visuel gratuit sans compte, puis popup
 
 // Features bloquées en mode gratuit
 export const FREE_BLOCKED_FEATURES = [

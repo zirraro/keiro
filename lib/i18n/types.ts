@@ -92,6 +92,12 @@ export interface Translations {
     sprintTitle: string;
     sprintSubtitle: string;
     sprintCta: string;
+    // Free trial
+    freeTrialTitle: string;
+    freeTrialSubtitle: string;
+    freeTrialCta: string;
+    freeTrialPricingDesc: string;
+    freeTrialPricingNote: string;
     // Video workflow
     videoTitle: string;
     videoSubtitle: string;
@@ -365,6 +371,11 @@ export interface Translations {
     planSprintBullets: string[];
     planSprintCta: string;
     planSprintNote: string;
+    freeTrialBadge: string;
+    freeTrialTitle: string;
+    freeTrialSubtitle: string;
+    freeTrialCta: string;
+    freeTrialNote: string;
     planProTitle: string;
     planProSubtitle: string;
     planProBullets: string[];
