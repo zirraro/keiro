@@ -5,7 +5,7 @@ import { getDMSystemPrompt } from '@/lib/agents/dm-prompt';
 import { callGemini } from '@/lib/agents/gemini';
 import { getSequenceForProspect } from '@/lib/agents/scoring';
 import { verifyCRMCoherence } from '@/lib/agents/business-timing';
-import { loadSharedContext, formatContextForPrompt } from '@/lib/agents/shared-context';
+import { loadContextWithAvatar } from '@/lib/agents/shared-context';
 import { saveLearning, saveAgentFeedback } from '@/lib/agents/learning';
 
 export const runtime = 'nodejs';
@@ -342,8 +342,8 @@ async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram'):
         dm_text: `Salut ! Je viens de tomber sur ${name}, franchement j'adore le concept. Je bosse dans le marketing digital pour les commerces du coin et honnêtement tu mérites plus de visibilité. Tu fais tes visuels toi-même ?`,
         personalization_detail: 'fallback template — AI generation failed',
         follow_up_3d: `Hey ! Je sais pas si t'as vu mon message, je voulais juste te montrer un truc sympa pour ${name}. J'ai fait un visuel gratos pour toi, tu veux que je te l'envoie ?`,
-        follow_up_7d: `Dernier message promis haha. Si jamais t'as 5 min pour voir ce que ça donne pour ${name}, y'a une offre à 4,99€ pour tester 3 jours. Zéro engagement 👊`,
-        response_interested: `Trop bien ! Regarde, je t'ai fait un truc vite fait. Ça m'a pris 30 sec. Si tu veux tester toi-même y'a un Sprint 3 jours à 4,99€. Tu veux que je t'envoie le lien ?`,
+        follow_up_7d: `Dernier message promis haha. Si jamais t'as 5 min pour voir ce que ça donne pour ${name}, y'a un essai gratuit 7 jours — 3 visuels + 1 vidéo, même pas besoin de carte 👊`,
+        response_interested: `Trop bien ! Regarde, je t'ai fait un truc vite fait. Ça m'a pris 30 sec. Si tu veux tester toi-même y'a un essai gratuit 7 jours, sans carte bancaire. Tu veux que je t'envoie le lien ?`,
         response_skeptical: `Je comprends haha. Regarde, des commerces comme toi dans ${quartier} postent déjà du contenu pro tous les jours. Le truc c'est que ça prend 2 min par visuel.`,
         tone_notes: 'Template fallback — personnalisation manuelle recommandée',
       };

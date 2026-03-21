@@ -37,6 +37,7 @@ export default function ChatbotWidget() {
   const [hasShownInitial, setHasShownInitial] = useState(false);
   const [pulseAnimation, setPulseAnimation] = useState(false);
   const [pageEnteredAt, setPageEnteredAt] = useState(Date.now());
+  const [avatarInfo, setAvatarInfo] = useState<{ name: string; avatarUrl: string | null } | null>(null);
 
   // ─── Refs ──────────────────────────────────────────────
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -62,6 +63,17 @@ export default function ChatbotWidget() {
     const params = new URLSearchParams(window.location.search);
     const source = params.get('utm_source') || '';
     setUtmSource(source);
+
+    // Load chatbot avatar info
+    fetch('/api/admin/avatars')
+      .then(r => r.json())
+      .then(data => {
+        const commercial = data.avatars?.find((a: any) => a.id === 'commercial');
+        if (commercial) {
+          setAvatarInfo({ name: commercial.display_name, avatarUrl: commercial.avatar_url });
+        }
+      })
+      .catch(() => {}); // Silent fail — defaults to "Keiro"
   }, []);
 
   // ─── Track pages visited + reset page timer ─────────────
@@ -270,11 +282,15 @@ export default function ChatbotWidget() {
             {/* Header */}
             <div className="bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] px-4 py-3 flex items-center justify-between flex-shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center">
-                  <MessageCircle className="w-5 h-5 text-white" />
+                <div className="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center overflow-hidden">
+                  {avatarInfo?.avatarUrl ? (
+                    <img src={avatarInfo.avatarUrl} alt={avatarInfo.name} className="w-full h-full object-cover rounded-full" />
+                  ) : (
+                    <MessageCircle className="w-5 h-5 text-white" />
+                  )}
                 </div>
                 <div>
-                  <h3 className="text-white font-semibold text-sm leading-tight">Keiro</h3>
+                  <h3 className="text-white font-semibold text-sm leading-tight">{avatarInfo?.name || 'Keiro'}</h3>
                   <p className="text-white/70 text-xs">Votre assistant</p>
                 </div>
               </div>

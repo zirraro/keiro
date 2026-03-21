@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { callGemini, callGeminiWithSearch } from '@/lib/agents/gemini';
-import { loadSharedContext, formatContextForPrompt, writeDirective } from '@/lib/agents/shared-context';
+import { writeDirective, loadContextWithAvatar } from '@/lib/agents/shared-context';
 import { getBusinessDiscoveryPosts, getOwnInstagramMedia, type IgDiscoveryPost, type IgOwnMedia } from '@/lib/meta';
 import { getTikTokVideos, refreshTikTokToken, type TikTokVideo } from '@/lib/tiktok';
 import { saveAgentFeedback } from '@/lib/agents/learning';
@@ -64,9 +64,8 @@ export async function GET(request: NextRequest) {
   const nowISO = now.toISOString();
 
   try {
-    // Load shared context
-    const sharedCtx = await loadSharedContext(supabase, 'marketing');
-    const crmContext = formatContextForPrompt(sharedCtx);
+    // Load shared context + avatar
+    const { context: sharedCtx, prompt: crmContext } = await loadContextWithAvatar(supabase, 'marketing');
 
     // Load recent agent performance (7 days)
     const { data: recentLogs } = await supabase
@@ -458,8 +457,7 @@ Cherche des comptes actifs, variés géographiquement, dans la niche commerces l
 
       case 'engagement_plan': {
         // Generate a daily engagement plan (comments, likes strategy)
-        const sharedCtx = await loadSharedContext(supabase, 'marketing');
-        const crmContext = formatContextForPrompt(sharedCtx);
+        const { prompt: crmContext } = await loadContextWithAvatar(supabase, 'marketing');
 
         const plan = await callGemini({
           system: `Tu es le community manager elite de KeiroAI. Tu crées des plans d'engagement quotidiens.
@@ -712,8 +710,7 @@ UNIQUEMENT du JSON, pas de markdown.`,
 
       case 'advise_agents': {
         // Marketing advisor: analyze performance, generate strategic advice for each agent
-        const sharedCtx = await loadSharedContext(supabase, 'marketing');
-        const crmContext = formatContextForPrompt(sharedCtx);
+        const { prompt: crmContext } = await loadContextWithAvatar(supabase, 'marketing');
 
         // Load all agent learnings (deep history)
         const { data: allLearnings } = await supabase

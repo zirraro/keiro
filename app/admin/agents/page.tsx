@@ -4,8 +4,33 @@ import { Suspense, useEffect, useState, useMemo, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import Link from 'next/link';
+import AvatarEditor from './components/AvatarEditor';
 
-type Tab = 'dashboard' | 'campagnes' | 'seo' | 'onboarding' | 'retention' | 'contenu' | 'agents_chat' | 'briefs' | 'ordres' | 'logs';
+type Tab = 'fiches' | 'campagnes' | 'ordres' | 'logs' | 'avatars';
+type FicheSubTab = 'overview' | 'chat' | 'ordres' | 'logs';
+
+type AgentFiche = {
+  id: string;
+  name: string;
+  icon: string;
+  description: string;
+  gradient: string;
+  logAgents: string[];
+  chatId: string;
+};
+
+const AGENT_FICHES: AgentFiche[] = [
+  { id: 'ceo', name: 'Noah — Stratège', icon: '🧠', description: 'Stratégie globale, briefs quotidiens, alertes', gradient: 'from-purple-600 to-indigo-700', logAgents: ['ceo'], chatId: 'ceo' },
+  { id: 'commercial', name: 'Léo — Commercial', icon: '🎯', description: 'Lead scraping, qualification, pipeline CRM', gradient: 'from-blue-600 to-cyan-600', logAgents: ['commercial', 'gmaps'], chatId: 'commercial' },
+  { id: 'email', name: 'Hugo — Email', icon: '📧', description: 'Séquences cold/warm, relances, A/B testing', gradient: 'from-green-600 to-emerald-600', logAgents: ['email'], chatId: 'email' },
+  { id: 'contenu_social', name: 'Léna — Contenu & Publication', icon: '⚡', description: 'Création, DMs, tendances, calendrier éditorial, scheduling', gradient: 'from-pink-600 to-rose-600', logAgents: ['content', 'dm_instagram', 'tiktok_comments', 'ops', 'scheduler'], chatId: 'content' },
+  { id: 'seo', name: 'Oscar — SEO', icon: '🔍', description: 'Articles blog, mots-clés, référencement', gradient: 'from-amber-600 to-orange-600', logAgents: ['seo'], chatId: 'seo' },
+  { id: 'onboarding', name: 'Clara — Onboarding', icon: '🚀', description: 'Activation, premier succès, conversion J0-J7', gradient: 'from-cyan-600 to-blue-600', logAgents: ['onboarding'], chatId: 'onboarding' },
+  { id: 'retention', name: 'Théo — Rétention', icon: '💎', description: 'Fidélisation, win-back, santé clients', gradient: 'from-violet-600 to-purple-600', logAgents: ['retention'], chatId: 'retention' },
+  { id: 'marketing', name: 'Ami — Marketing', icon: '📊', description: 'Intelligence marketing, analytics, stratégie', gradient: 'from-teal-600 to-green-600', logAgents: ['marketing'], chatId: 'marketing' },
+  { id: 'ads', name: 'Félix — Publicité', icon: '🔥', description: 'Meta Ads, Google Ads, funnels, conversion', gradient: 'from-red-600 to-orange-600', logAgents: ['ads'], chatId: 'ads' },
+  { id: 'rh', name: 'Sara — RH & Juridique', icon: '⚖️', description: 'Contrats, RGPD, CGV/CGU, conformité', gradient: 'from-slate-600 to-slate-700', logAgents: ['rh'], chatId: 'rh' },
+];
 
 type MetricCard = {
   label: string;
@@ -51,8 +76,13 @@ function AdminAgentsContent() {
   const supabase = useMemo(() => supabaseBrowser(), []);
 
   const [loading, setLoading] = useState(true);
-  const initialTab = (searchParams.get('tab') as Tab) || 'dashboard';
+  const initialTab = (searchParams.get('tab') as Tab) || 'fiches';
   const [activeTab, setActiveTab] = useState<Tab>(initialTab);
+
+  // Fiche agent state
+  const [focusedAgent, setFocusedAgent] = useState<string | null>(null);
+  const [ficheSubTab, setFicheSubTab] = useState<FicheSubTab>('overview');
+  const [agentStatuses, setAgentStatuses] = useState<Record<string, { lastRun: string | null; count24h: number; status: string }>>({});
 
   // Dashboard state
   const [metrics, setMetrics] = useState<MetricCard[]>([]);
@@ -74,6 +104,24 @@ function AdminAgentsContent() {
   // Mini commercial dashboard state
   const [miniCrmStats, setMiniCrmStats] = useState<any>(null);
   const [miniCrmLoading, setMiniCrmLoading] = useState(false);
+
+  // Warm/hot prospects list (call list)
+  type WarmProspect = {
+    id: string; company: string; email: string | null; phone: string | null;
+    instagram_handle: string | null; type: string | null; temperature: string;
+    score: number | null; status: string | null; quartier: string | null;
+    email_sequence_step: number | null; email_sequence_status: string | null;
+    last_email_sent_at: string | null; last_email_opened_at: string | null;
+    last_email_clicked_at: string | null; created_at: string;
+    notes: string | null; source: string | null;
+  };
+  const [warmProspects, setWarmProspects] = useState<WarmProspect[]>([]);
+  const [warmLoading, setWarmLoading] = useState(false);
+  const [selectedWarmProspect, setSelectedWarmProspect] = useState<WarmProspect | null>(null);
+  const [warmActivities, setWarmActivities] = useState<any[]>([]);
+  const [warmActivitiesLoading, setWarmActivitiesLoading] = useState(false);
+  const [editingProspect, setEditingProspect] = useState<Partial<WarmProspect>>({});
+  const [savingProspect, setSavingProspect] = useState(false);
 
   // Briefs state
   const [briefs, setBriefs] = useState<Brief[]>([]);
@@ -97,15 +145,17 @@ function AdminAgentsContent() {
 
   // Agent Chat state (multi-agent)
   const CHAT_AGENTS = [
-    { id: 'ceo', name: 'CEO', icon: '👔' },
-    { id: 'commercial', name: 'Commercial', icon: '🎯' },
-    { id: 'email', name: 'Email', icon: '📧' },
-    { id: 'content', name: 'Contenu', icon: '📱' },
-    { id: 'seo', name: 'SEO', icon: '🔍' },
+    { id: 'ceo', name: 'Noah', icon: '🧠' },
+    { id: 'commercial', name: 'Léo', icon: '🎯' },
+    { id: 'email', name: 'Hugo', icon: '📧' },
+    { id: 'content', name: 'Léna (Contenu+Publi)', icon: '⚡' },
+    { id: 'seo', name: 'Oscar', icon: '🔍' },
     { id: 'social', name: 'DM & Comments', icon: '💬' },
-    { id: 'onboarding', name: 'Onboarding', icon: '🚀' },
-    { id: 'retention', name: 'Rétention', icon: '🔄' },
-    { id: 'marketing', name: 'Marketing', icon: '📊' },
+    { id: 'onboarding', name: 'Clara', icon: '🚀' },
+    { id: 'retention', name: 'Théo', icon: '💎' },
+    { id: 'marketing', name: 'Ami', icon: '📊' },
+    { id: 'ads', name: 'Félix', icon: '🔥' },
+    { id: 'rh', name: 'Sara', icon: '⚖️' },
   ];
   const [selectedAgent, setSelectedAgent] = useState('ceo');
   const [agentMessages, setAgentMessages] = useState<Record<string, Array<{ role: 'user' | 'assistant'; content: string }>>>({});
@@ -195,6 +245,53 @@ function AdminAgentsContent() {
   const [logPage, setLogPage] = useState(0);
   const [logTotal, setLogTotal] = useState(0);
 
+  // ─── Load agent statuses for fiche cards ───────────────
+  const loadAgentStatuses = async () => {
+    try {
+      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { data: recentLogs } = await supabase
+        .from('agent_logs')
+        .select('agent, created_at, status')
+        .order('created_at', { ascending: false })
+        .limit(500);
+
+      const statuses: Record<string, { lastRun: string | null; count24h: number; status: string }> = {};
+      for (const fiche of AGENT_FICHES) {
+        const agLogs = (recentLogs || []).filter((l: any) => fiche.logAgents.includes(l.agent));
+        const lastRun = agLogs[0]?.created_at || null;
+        const count24h = agLogs.filter((l: any) => l.created_at >= yesterday).length;
+        const hoursAgo = lastRun ? (Date.now() - new Date(lastRun).getTime()) / 3600000 : Infinity;
+        const hasError = agLogs.slice(0, 3).some((l: any) => l.status === 'error' || l.status === 'failed');
+        statuses[fiche.id] = {
+          lastRun,
+          count24h,
+          status: hasError ? 'error' : hoursAgo < 24 ? 'active' : hoursAgo < 48 ? 'idle' : 'inactive',
+        };
+      }
+      setAgentStatuses(statuses);
+    } catch (err) {
+      console.error('[Agent Statuses] Load error:', err);
+    }
+  };
+
+  // ─── Open a fiche agent detail view ────────────────────
+  const openFiche = (agentId: string) => {
+    setFocusedAgent(agentId);
+    setFicheSubTab('overview');
+    const fiche = AGENT_FICHES.find(f => f.id === agentId);
+    if (!fiche) return;
+    // Load agent-specific data
+    loadAgentMetrics(fiche.logAgents[0] === 'content' ? 'content' : fiche.logAgents[0]);
+    if (agentId === 'ceo') loadBriefs();
+    if (agentId === 'seo') loadSeoData();
+    if (agentId === 'onboarding') loadOnboardingData();
+    if (agentId === 'retention') loadRetentionData();
+    if (agentId === 'contenu_social') loadContentData();
+    if (agentId === 'email') loadAgentMetrics('email');
+    if (agentId === 'commercial') { loadAgentMetrics('commercial'); loadMiniCrmStats(); }
+    loadAgentHistory(fiche.chatId);
+  };
+
   // ─── Auth check ────────────────────────────────────────
   useEffect(() => {
     const init = async () => {
@@ -210,8 +307,9 @@ function AdminAgentsContent() {
       if (!profileData?.is_admin) { router.push('/'); return; }
       setLoading(false);
       loadDashboard();
-      loadCeoHistory();
+      loadAgentStatuses();
       loadMiniCrmStats();
+      loadWarmProspects();
     };
     init();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -397,6 +495,67 @@ function AdminAgentsContent() {
     } catch (err) {
       console.error('[Admin Agents] Dashboard load error:', err);
     }
+  };
+
+  // ─── Load warm/hot prospects (call list) ─────────────
+  const loadWarmProspects = async () => {
+    setWarmLoading(true);
+    try {
+      const { data } = await supabase
+        .from('crm_prospects')
+        .select('id, company, email, phone, instagram_handle, type, temperature, score, status, quartier, email_sequence_step, email_sequence_status, last_email_sent_at, last_email_opened_at, last_email_clicked_at, created_at, notes, source')
+        .in('temperature', ['hot', 'warm'])
+        .order('score', { ascending: false })
+        .limit(50);
+      setWarmProspects(data || []);
+    } catch (e) {
+      console.error('[WarmProspects] Load error:', e);
+    }
+    setWarmLoading(false);
+  };
+
+  const loadProspectActivities = async (prospectId: string) => {
+    setWarmActivitiesLoading(true);
+    try {
+      const { data } = await supabase
+        .from('crm_activities')
+        .select('*')
+        .eq('prospect_id', prospectId)
+        .order('created_at', { ascending: false })
+        .limit(30);
+      setWarmActivities(data || []);
+    } catch (e) {
+      console.error('[ProspectActivities] Load error:', e);
+    }
+    setWarmActivitiesLoading(false);
+  };
+
+  const openWarmProspect = (p: WarmProspect) => {
+    setSelectedWarmProspect(p);
+    setEditingProspect({ company: p.company, email: p.email, phone: p.phone, instagram_handle: p.instagram_handle, notes: p.notes, type: p.type, quartier: p.quartier });
+    loadProspectActivities(p.id);
+  };
+
+  const saveProspectEdits = async () => {
+    if (!selectedWarmProspect) return;
+    setSavingProspect(true);
+    try {
+      await supabase.from('crm_prospects').update({
+        company: editingProspect.company,
+        email: editingProspect.email,
+        phone: editingProspect.phone,
+        instagram_handle: editingProspect.instagram_handle,
+        notes: editingProspect.notes,
+        type: editingProspect.type,
+        quartier: editingProspect.quartier,
+      }).eq('id', selectedWarmProspect.id);
+      // Refresh
+      setSelectedWarmProspect({ ...selectedWarmProspect, ...editingProspect } as WarmProspect);
+      loadWarmProspects();
+    } catch (e) {
+      console.error('[SaveProspect] Error:', e);
+    }
+    setSavingProspect(false);
   };
 
   // ─── Mini CRM stats for commercial overview ─────────────
@@ -828,8 +987,9 @@ function AdminAgentsContent() {
 
   // Load history when switching agent
   useEffect(() => {
-    if (activeTab === 'agents_chat') {
-      loadAgentHistory(selectedAgent);
+    if (activeTab === 'fiches' && focusedAgent) {
+      const fiche = AGENT_FICHES.find(f => f.id === focusedAgent);
+      if (fiche) loadAgentHistory(fiche.chatId);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedAgent, activeTab]);
@@ -1048,31 +1208,17 @@ function AdminAgentsContent() {
   // ─── Tab change handler ────────────────────────────────
   const handleTabChange = (tab: Tab) => {
     setActiveTab(tab);
+    setFocusedAgent(null);
     switch (tab) {
-      case 'dashboard':
+      case 'fiches':
         loadDashboard();
-        loadCeoHistory();
+        loadAgentStatuses();
         break;
       case 'campagnes':
         loadCampaigns(campaignFilter);
         break;
-      case 'briefs':
-        loadBriefs();
-        break;
       case 'ordres':
         loadOrders();
-        break;
-      case 'seo':
-        loadSeoData();
-        break;
-      case 'onboarding':
-        loadOnboardingData();
-        break;
-      case 'retention':
-        loadRetentionData();
-        break;
-      case 'contenu':
-        loadContentData();
         break;
       case 'logs':
         loadLogs(0, logFilter);
@@ -1425,16 +1571,11 @@ function AdminAgentsContent() {
   }
 
   const tabs: { key: Tab; label: string }[] = [
-    { key: 'dashboard', label: 'Dashboard' },
+    { key: 'fiches', label: 'Agents' },
     { key: 'campagnes', label: 'Campagnes' },
-    { key: 'seo', label: 'SEO Blog' },
-    { key: 'onboarding', label: 'Onboarding' },
-    { key: 'retention', label: 'Rétention' },
-    { key: 'contenu', label: 'Contenu' },
-    { key: 'agents_chat', label: 'Chat Agents' },
-    { key: 'briefs', label: 'Briefs CEO' },
     { key: 'ordres', label: 'Ordres' },
     { key: 'logs', label: 'Logs' },
+    { key: 'avatars', label: 'Avatars' },
   ];
 
   return (
@@ -1496,204 +1637,678 @@ function AdminAgentsContent() {
           ))}
         </div>
 
-        {/* ===== TAB DASHBOARD ===== */}
-        {activeTab === 'dashboard' && (
+        {/* ===== TAB FICHES AGENTS ===== */}
+        {activeTab === 'fiches' && !focusedAgent && (
           <div className="space-y-6">
-            {/* Agent selector pills */}
-            <div className="flex flex-wrap gap-2">
-              {[
-                { id: 'global', label: 'Global', icon: '🌐' },
-                { id: 'email', label: 'Email', icon: '📧' },
-                { id: 'commercial', label: 'Commercial', icon: '🎯' },
-                { id: 'dm_instagram', label: 'DM Instagram', icon: '📩' },
-                { id: 'tiktok_comments', label: 'TikTok', icon: '🎵' },
-                { id: 'content', label: 'Contenu', icon: '📱' },
-                { id: 'seo', label: 'SEO', icon: '🔍' },
-                { id: 'onboarding', label: 'Onboarding', icon: '🚀' },
-                { id: 'retention', label: 'Retention', icon: '🔄' },
-                { id: 'ceo', label: 'CEO', icon: '👔' },
-                { id: 'marketing', label: 'Marketing', icon: '📊' },
-              ].map((a) => (
-                <button
-                  key={a.id}
-                  onClick={() => {
-                    setDashboardAgent(a.id);
-                    if (a.id === 'global') { setAgentMetrics([]); }
-                    else { loadAgentMetrics(a.id); }
-                  }}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${
-                    dashboardAgent === a.id
-                      ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
-                      : 'bg-white text-neutral-600 border-neutral-200 hover:border-purple-300 hover:text-purple-700'
-                  }`}
-                >
-                  <span className="mr-1">{a.icon}</span>
-                  {a.label}
+            {/* Agent cards grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {AGENT_FICHES.map(fiche => {
+                const st = agentStatuses[fiche.id];
+                const statusDot = st?.status === 'active' ? 'bg-green-500' : st?.status === 'idle' ? 'bg-yellow-500' : st?.status === 'error' ? 'bg-red-500' : 'bg-neutral-300';
+                const statusLabel = st?.status === 'active' ? 'Actif' : st?.status === 'idle' ? 'Inactif 24h+' : st?.status === 'error' ? 'Erreur' : 'Hors ligne';
+                const lastRunText = st?.lastRun ? new Date(st.lastRun).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'Jamais';
+                return (
+                  <div
+                    key={fiche.id}
+                    onClick={() => openFiche(fiche.id)}
+                    className="bg-white rounded-xl shadow-sm border border-neutral-200 p-5 hover:shadow-lg hover:border-purple-300 transition-all cursor-pointer group"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${fiche.gradient} flex items-center justify-center text-xl shadow-sm`}>
+                        {fiche.icon}
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <div className={`w-2 h-2 rounded-full ${statusDot}`} />
+                        <span className="text-[10px] text-neutral-500">{statusLabel}</span>
+                      </div>
+                    </div>
+                    <h3 className="text-sm font-bold text-neutral-900 mb-1 group-hover:text-purple-700 transition-colors">{fiche.name}</h3>
+                    <p className="text-xs text-neutral-500 mb-3 leading-relaxed">{fiche.description}</p>
+                    <div className="flex items-center justify-between text-[10px] text-neutral-400 border-t border-neutral-100 pt-3">
+                      <span>Dernière exécution : {lastRunText}</span>
+                      <span className="font-medium text-purple-600">{st?.count24h ?? 0} actions/24h</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Global KPIs */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {metrics.map((m, i) => (
+                <div key={i} className="bg-white rounded-xl shadow-sm border border-neutral-200 p-5 hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xl">{m.icon}</span>
+                    {m.trend && (
+                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${m.trendUp ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
+                        {m.trend}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xl font-bold text-neutral-900">{m.value}</p>
+                  <p className="text-[10px] text-neutral-500 mt-1">{m.label}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Quick tools */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-5">
+                <h3 className="text-sm font-semibold text-neutral-900 mb-3">Tester un email</h3>
+                <div className="flex flex-wrap gap-2 items-end">
+                  <input type="email" value={testEmail} onChange={(e) => setTestEmail(e.target.value)} placeholder="email@test.com" className="flex-1 min-w-[140px] px-3 py-1.5 border border-neutral-200 rounded-lg text-xs focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none" />
+                  <select value={testCategory} onChange={(e) => setTestCategory(e.target.value)} className="px-2 py-1.5 border border-neutral-200 rounded-lg text-xs">
+                    <option value="restaurant">Restaurant</option><option value="boutique">Boutique</option><option value="coach">Coach</option><option value="agence">Agence</option><option value="pme">PME</option>
+                  </select>
+                  <select value={testStep} onChange={(e) => setTestStep(Number(e.target.value))} className="px-2 py-1.5 border border-neutral-200 rounded-lg text-xs">
+                    <option value={1}>Step 1</option><option value={2}>Step 2</option><option value={3}>Step 3</option><option value={10}>Warm</option>
+                  </select>
+                  <button onClick={sendTestEmail} disabled={testSending || !testEmail.trim()} className="px-3 py-1.5 bg-purple-600 text-white text-xs font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50">
+                    {testSending ? 'Envoi...' : 'Tester'}
+                  </button>
+                </div>
+                {testResult && <div className={`mt-2 text-xs px-3 py-2 rounded-lg ${testResult.ok ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>{testResult.message}</div>}
+              </div>
+              <div className="bg-white rounded-xl shadow-sm border border-red-100 p-5">
+                <h3 className="text-sm font-semibold text-neutral-900 mb-1">Pipeline bloqué ?</h3>
+                <p className="text-[10px] text-neutral-500 mb-3">Remet les prospects dead/perdu en circulation.</p>
+                <button onClick={resetDeadProspects} disabled={resettingDead} className="px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 disabled:opacity-50">
+                  {resettingDead ? 'Reset...' : 'Reset prospects dead'}
+                </button>
+                {resetResult && <div className={`mt-2 text-xs px-3 py-2 rounded-lg ${resetResult.ok ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>{resetResult.message}</div>}
+              </div>
+            </div>
+
+            {/* ═══ WARM/HOT PROSPECTS — CALL LIST ═══ */}
+            <div className="bg-white rounded-xl shadow-sm border border-orange-200 overflow-hidden">
+              <div className="px-5 py-4 border-b border-orange-100 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">🔥</span>
+                  <h3 className="text-sm font-bold text-neutral-900">Prospects chauds à appeler ({warmProspects.length})</h3>
+                </div>
+                <button onClick={loadWarmProspects} className="text-xs text-purple-600 hover:underline">Actualiser</button>
+              </div>
+              {warmLoading ? (
+                <div className="p-6 text-center text-neutral-400 text-xs">Chargement...</div>
+              ) : warmProspects.length === 0 ? (
+                <div className="p-6 text-center text-neutral-400 text-xs">Aucun prospect chaud pour le moment</div>
+              ) : (
+                <div className="divide-y divide-neutral-100 max-h-[400px] overflow-y-auto">
+                  {warmProspects.map(p => (
+                    <div
+                      key={p.id}
+                      onClick={() => openWarmProspect(p)}
+                      className="px-5 py-3 hover:bg-orange-50 cursor-pointer transition-colors flex items-center gap-4"
+                    >
+                      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${p.temperature === 'hot' ? 'bg-red-500' : 'bg-orange-400'}`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-neutral-900 truncate">{p.company}</span>
+                          {p.type && <span className="text-[10px] px-1.5 py-0.5 bg-neutral-100 rounded text-neutral-500">{p.type}</span>}
+                          {p.score && <span className="text-[10px] font-bold text-purple-600">{p.score}pts</span>}
+                        </div>
+                        <div className="flex items-center gap-3 text-[10px] text-neutral-400 mt-0.5">
+                          {p.email && <span>📧 {p.email}</span>}
+                          {p.phone && <span>📞 {p.phone}</span>}
+                          {p.instagram_handle && <span>📸 @{p.instagram_handle}</span>}
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                        {p.last_email_opened_at && !p.last_email_clicked_at && (
+                          <span className="text-[9px] px-1.5 py-0.5 bg-green-50 text-green-700 rounded-full font-medium">📞 A ouvert le mail</span>
+                        )}
+                        {p.email_sequence_step && (
+                          <span className="text-[9px] text-neutral-400">Step {p.email_sequence_step}</span>
+                        )}
+                        {p.status && (
+                          <span className="text-[9px] text-neutral-400">{p.status}</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ═══ PROSPECT DETAIL SLIDE-OUT ═══ */}
+        {selectedWarmProspect && (
+          <div className="fixed inset-0 z-50 flex justify-end" onClick={() => setSelectedWarmProspect(null)}>
+            <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
+            <div
+              className="relative w-full max-w-[480px] bg-white shadow-2xl overflow-y-auto"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="sticky top-0 z-10 bg-gradient-to-r from-orange-500 to-red-500 px-6 py-5 text-white">
+                <button onClick={() => setSelectedWarmProspect(null)} className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center">✕</button>
+                <div className="flex items-center gap-3">
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold ${selectedWarmProspect.temperature === 'hot' ? 'bg-red-600' : 'bg-orange-600'}`}>
+                    {selectedWarmProspect.temperature === 'hot' ? '🔥' : '🌡️'}
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold">{selectedWarmProspect.company}</h2>
+                    <div className="flex items-center gap-2 text-white/80 text-xs">
+                      {selectedWarmProspect.type && <span>{selectedWarmProspect.type}</span>}
+                      {selectedWarmProspect.quartier && <span>• {selectedWarmProspect.quartier}</span>}
+                      {selectedWarmProspect.score && <span>• {selectedWarmProspect.score} pts</span>}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Editable contact info */}
+              <div className="px-6 py-4 border-b border-neutral-100 space-y-3">
+                <h3 className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Contact</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] text-neutral-400">Entreprise</label>
+                    <input value={editingProspect.company || ''} onChange={e => setEditingProspect(p => ({ ...p, company: e.target.value }))} className="w-full text-sm border border-neutral-200 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-neutral-400">Type</label>
+                    <input value={editingProspect.type || ''} onChange={e => setEditingProspect(p => ({ ...p, type: e.target.value }))} className="w-full text-sm border border-neutral-200 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-neutral-400">📧 Email</label>
+                    <input value={editingProspect.email || ''} onChange={e => setEditingProspect(p => ({ ...p, email: e.target.value }))} className="w-full text-sm border border-neutral-200 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-neutral-400">📞 Téléphone</label>
+                    <input value={editingProspect.phone || ''} onChange={e => setEditingProspect(p => ({ ...p, phone: e.target.value }))} className="w-full text-sm border border-neutral-200 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-neutral-400">📸 Instagram</label>
+                    <input value={editingProspect.instagram_handle || ''} onChange={e => setEditingProspect(p => ({ ...p, instagram_handle: e.target.value }))} className="w-full text-sm border border-neutral-200 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-neutral-400">📍 Quartier</label>
+                    <input value={editingProspect.quartier || ''} onChange={e => setEditingProspect(p => ({ ...p, quartier: e.target.value }))} className="w-full text-sm border border-neutral-200 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none" />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[10px] text-neutral-400">📝 Notes</label>
+                  <textarea value={editingProspect.notes || ''} onChange={e => setEditingProspect(p => ({ ...p, notes: e.target.value }))} rows={2} className="w-full text-sm border border-neutral-200 rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none resize-none" />
+                </div>
+                <button onClick={saveProspectEdits} disabled={savingProspect} className="w-full py-2 bg-purple-600 text-white text-xs font-semibold rounded-lg hover:bg-purple-700 disabled:opacity-50 transition">
+                  {savingProspect ? 'Sauvegarde...' : 'Sauvegarder les modifications'}
+                </button>
+              </div>
+
+              {/* Email engagement tracking */}
+              <div className="px-6 py-4 border-b border-neutral-100">
+                <h3 className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-3">Email tracking</h3>
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div className="bg-neutral-50 rounded-lg p-3">
+                    <div className="text-[10px] text-neutral-400">Séquence</div>
+                    <div className="font-bold text-neutral-900">{selectedWarmProspect.email_sequence_status || 'Aucune'}</div>
+                    <div className="text-neutral-500">Step {selectedWarmProspect.email_sequence_step || 0}</div>
+                  </div>
+                  <div className="bg-neutral-50 rounded-lg p-3">
+                    <div className="text-[10px] text-neutral-400">Dernier envoi</div>
+                    <div className="font-bold text-neutral-900">{selectedWarmProspect.last_email_sent_at ? new Date(selectedWarmProspect.last_email_sent_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}</div>
+                  </div>
+                  {selectedWarmProspect.last_email_opened_at && (
+                    <div className="bg-green-50 rounded-lg p-3">
+                      <div className="text-[10px] text-green-600">Ouvert</div>
+                      <div className="font-bold text-green-700">{new Date(selectedWarmProspect.last_email_opened_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
+                    </div>
+                  )}
+                  {selectedWarmProspect.last_email_clicked_at && (
+                    <div className="bg-blue-50 rounded-lg p-3">
+                      <div className="text-[10px] text-blue-600">Cliqué</div>
+                      <div className="font-bold text-blue-700">{new Date(selectedWarmProspect.last_email_clicked_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
+                    </div>
+                  )}
+                </div>
+                {selectedWarmProspect.last_email_opened_at && !selectedWarmProspect.last_email_clicked_at && (
+                  <div className="mt-3 px-3 py-2 bg-green-50 border border-green-200 rounded-lg text-xs text-green-700 font-medium">
+                    📞 Ce prospect a ouvert le mail mais pas cliqué — bon moment pour appeler !
+                  </div>
+                )}
+              </div>
+
+              {/* Activity timeline */}
+              <div className="px-6 py-4">
+                <h3 className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-3">Historique d&apos;activités</h3>
+                {warmActivitiesLoading ? (
+                  <div className="text-center text-neutral-400 text-xs py-4">Chargement...</div>
+                ) : warmActivities.length === 0 ? (
+                  <div className="text-center text-neutral-400 text-xs py-4">Aucune activité</div>
+                ) : (
+                  <div className="space-y-3">
+                    {warmActivities.map((a, i) => {
+                      const typeIcons: Record<string, string> = { email: '✉️', email_sent: '📤', email_opened: '📧', email_clicked: '🔗', email_replied: '💬', dm_sent: '📩', dm_replied: '💬', call: '📞', note: '📝', meeting: '📅', status_change: '🔄', webhook_opened: '👁️', webhook_clicked: '🖱️' };
+                      return (
+                        <div key={a.id || i} className="flex gap-3">
+                          <div className="flex flex-col items-center">
+                            <div className="w-7 h-7 rounded-full bg-neutral-100 flex items-center justify-center text-xs">{typeIcons[a.type] || '📌'}</div>
+                            {i < warmActivities.length - 1 && <div className="w-px flex-1 bg-neutral-200 mt-1" />}
+                          </div>
+                          <div className="flex-1 pb-3">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-semibold text-neutral-700">{a.type?.replace(/_/g, ' ')}</span>
+                              <span className="text-[10px] text-neutral-400">{new Date(a.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                            </div>
+                            {a.description && <p className="text-[11px] text-neutral-500 mt-0.5 leading-relaxed">{a.description.substring(0, 200)}</p>}
+                            {a.data && a.data.subject && <p className="text-[10px] text-purple-600 mt-0.5">Objet : {a.data.subject}</p>}
+                            {a.result && <p className="text-[10px] text-neutral-400 mt-0.5">Résultat : {a.result}</p>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== FOCUSED AGENT DETAIL VIEW ===== */}
+        {activeTab === 'fiches' && focusedAgent && (() => {
+          const fiche = AGENT_FICHES.find(f => f.id === focusedAgent);
+          if (!fiche) return null;
+          const ficheOrders = orders.filter(o => fiche.logAgents.includes(o.from_agent) || fiche.logAgents.includes(o.to_agent));
+          return (
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <button onClick={() => setFocusedAgent(null)} className="text-sm text-purple-600 hover:text-purple-800 font-medium">{'←'} Toutes les fiches</button>
+                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${fiche.gradient} flex items-center justify-center text-xl shadow-sm`}>{fiche.icon}</div>
+                <div>
+                  <h2 className="text-lg font-bold text-neutral-900">{fiche.name}</h2>
+                  <p className="text-xs text-neutral-500">{fiche.description}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className={`w-2.5 h-2.5 rounded-full ${agentStatuses[fiche.id]?.status === 'active' ? 'bg-green-500' : agentStatuses[fiche.id]?.status === 'error' ? 'bg-red-500' : 'bg-yellow-500'}`} />
+                <span className="text-xs text-neutral-500">{agentStatuses[fiche.id]?.count24h ?? 0} actions/24h</span>
+              </div>
+            </div>
+
+            {/* Agent metrics */}
+            {agentMetricsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : agentMetrics.length > 0 && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {agentMetrics.map((m, i) => (
+                  <div key={i} className="bg-white rounded-xl shadow-sm border border-neutral-200 p-4 hover:shadow-md transition-shadow">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-lg">{m.icon}</span>
+                      {m.trend && <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${m.trendUp ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>{m.trend}</span>}
+                    </div>
+                    <p className="text-xl font-bold text-neutral-900">{m.value}</p>
+                    <p className="text-[10px] text-neutral-500 mt-0.5">{m.label}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Sub-tabs */}
+            <div className="flex gap-1 bg-neutral-100 rounded-lg p-0.5">
+              {([
+                { key: 'overview', label: "Vue d'ensemble" },
+                { key: 'chat', label: 'Chat' },
+                { key: 'ordres', label: `Ordres (${ficheOrders.length})` },
+                { key: 'logs', label: 'Logs' },
+              ] as { key: FicheSubTab; label: string }[]).map(st => (
+                <button key={st.key} onClick={() => {
+                  setFicheSubTab(st.key);
+                  if (st.key === 'ordres') loadOrders();
+                  if (st.key === 'logs') { setLogFilter(fiche.logAgents[0]); loadLogs(0, fiche.logAgents[0]); }
+                }} className={`py-2 px-4 rounded-md text-xs font-medium transition-all ${ficheSubTab === st.key ? 'bg-white shadow-sm text-neutral-900' : 'text-neutral-500 hover:text-neutral-700'}`}>
+                  {st.label}
                 </button>
               ))}
             </div>
 
-            {/* Global metrics */}
-            {dashboardAgent === 'global' && (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {metrics.map((m, i) => {
-                  return (
-                  <div
-                    key={i}
-                    className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6 hover:shadow-md transition-shadow"
-                  >
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-2xl">{m.icon}</span>
-                      {m.trend && (
-                        <span
-                          className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                            m.trendUp
-                              ? 'bg-green-50 text-green-600'
-                              : 'bg-red-50 text-red-600'
-                          }`}
-                        >
-                          {m.trend}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-2xl font-bold text-neutral-900">{m.value}</p>
-                    <p className="text-xs text-neutral-500 mt-1">{m.label}</p>
-                  </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Mini Commercial Dashboard */}
-            {dashboardAgent === 'global' && (
-              <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-bold text-neutral-900 flex items-center gap-2">
-                    <span className="text-lg">📊</span> Apercu Commercial
-                  </h3>
-                  <div className="flex items-center gap-2">
-                    <button onClick={loadMiniCrmStats} className="text-[10px] text-purple-600 hover:underline">Actualiser</button>
-                    <Link href="/admin/crm" className="text-xs text-white bg-purple-600 hover:bg-purple-700 px-3 py-1 rounded-lg font-medium transition-all">
-                      Ouvrir CRM
-                    </Link>
-                  </div>
-                </div>
-
-                {miniCrmLoading ? (
-                  <div className="flex items-center justify-center py-6">
-                    <div className="w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
-                  </div>
-                ) : miniCrmStats ? (
+            {/* ── Sub-tab: Overview ── */}
+            {ficheSubTab === 'overview' && (
+              <div className="space-y-6">
+                {/* CEO: Briefs */}
+                {focusedAgent === 'ceo' && (
                   <div className="space-y-4">
-                    {/* Funnel résumé */}
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-bold text-neutral-900">Briefs CEO</h3>
+                      <button onClick={executeCeoBrief} disabled={executingCeo} className="px-3 py-1.5 bg-purple-600 text-white text-xs font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50">
+                        {executingCeo ? 'G\u00E9n\u00E9ration...' : 'G\u00E9n\u00E9rer brief'}
+                      </button>
+                    </div>
+                    {briefs.length === 0 ? (
+                      <div className="bg-white rounded-xl shadow-sm border p-6 text-center text-neutral-400 text-sm">Aucun brief.</div>
+                    ) : briefs.slice(0, 5).map(b => (
+                      <div key={b.id} className="bg-white rounded-xl shadow-sm border p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs text-neutral-400">{new Date(b.created_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                          <button onClick={() => setExpandedBrief(expandedBrief === b.id ? null : b.id)} className="text-xs text-purple-600 hover:underline">{expandedBrief === b.id ? 'Fermer' : 'D\u00E9tails'}</button>
+                        </div>
+                        {expandedBrief === b.id && <pre className="text-xs text-neutral-700 whitespace-pre-wrap bg-neutral-50 rounded p-3 mt-2 max-h-[400px] overflow-y-auto">{typeof b.data === 'string' ? b.data : JSON.stringify(b.data, null, 2)}</pre>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Commercial: Mini CRM */}
+                {focusedAgent === 'commercial' && miniCrmStats && (
+                  <div className="bg-white rounded-xl shadow-sm border p-5 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-bold text-neutral-900">Aper\u00E7u Commercial</h3>
+                      <Link href="/admin/crm" className="text-xs text-white bg-purple-600 hover:bg-purple-700 px-3 py-1 rounded-lg font-medium">Ouvrir CRM</Link>
+                    </div>
                     {miniCrmStats.funnel?.stages && (
                       <div className="flex flex-wrap gap-2">
                         {miniCrmStats.funnel.stages.map((s: any, i: number) => {
                           const nextRate = miniCrmStats.funnel.conversionRates?.[i];
                           return (
                             <div key={s.stage} className="flex items-center gap-1">
-                              <div className="text-center px-3 py-2 bg-neutral-50 rounded-lg border border-neutral-100 min-w-[80px]">
+                              <div className="text-center px-3 py-2 bg-neutral-50 rounded-lg border border-neutral-100 min-w-[70px]">
                                 <p className="text-[10px] text-neutral-500 font-medium">{s.stage}</p>
                                 <p className="text-lg font-bold text-neutral-900">{s.current}</p>
                               </div>
-                              {nextRate && (
-                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                                  nextRate.rate > 15 ? 'text-green-700 bg-green-50' : nextRate.rate >= 5 ? 'text-yellow-700 bg-yellow-50' : 'text-red-700 bg-red-50'
-                                }`}>
-                                  {nextRate.rate.toFixed(0)}%
-                                </span>
-                              )}
+                              {nextRate && <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${nextRate.rate > 15 ? 'text-green-700 bg-green-50' : nextRate.rate >= 5 ? 'text-yellow-700 bg-yellow-50' : 'text-red-700 bg-red-50'}`}>{nextRate.rate.toFixed(0)}%</span>}
                             </div>
                           );
                         })}
-                        {miniCrmStats.funnel.perdu > 0 && (
-                          <div className="text-center px-3 py-2 bg-red-50 rounded-lg border border-red-100 min-w-[80px]">
-                            <p className="text-[10px] text-red-500 font-medium">perdu</p>
-                            <p className="text-lg font-bold text-red-600">{miniCrmStats.funnel.perdu}</p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Email perf résumé */}
-                    {miniCrmStats.emailByCategory && miniCrmStats.emailByCategory.length > 0 && (
-                      <div>
-                        <p className="text-[10px] font-semibold text-neutral-500 uppercase mb-2">Performance Email par Categorie</p>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                          {miniCrmStats.emailByCategory.slice(0, 8).map((cat: any) => (
-                            <div key={cat.category} className="bg-neutral-50 rounded-lg border border-neutral-100 p-2">
-                              <p className="text-[10px] font-bold text-neutral-700 truncate">{cat.category}</p>
-                              <div className="flex items-center gap-2 mt-1">
-                                <span className="text-xs text-neutral-500">{cat.sent} env.</span>
-                                <span className={`text-xs font-bold ${cat.openRate >= 30 ? 'text-green-600' : cat.openRate >= 15 ? 'text-yellow-600' : 'text-neutral-400'}`}>
-                                  {cat.openRate.toFixed(0)}% OR
-                                </span>
-                              </div>
-                              {cat.replied > 0 && (
-                                <span className="text-[10px] text-green-600 font-medium">{cat.replied} rep.</span>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Best actions */}
-                    {miniCrmStats.bestActions && miniCrmStats.bestActions.length > 0 && (
-                      <div>
-                        <p className="text-[10px] font-semibold text-neutral-500 uppercase mb-2">Actions qui convertissent</p>
-                        <div className="flex flex-wrap gap-2">
-                          {miniCrmStats.bestActions.slice(0, 5).map((a: any) => (
-                            <div key={a.actionType} className="flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 rounded-lg border border-indigo-100">
-                              <span className="text-xs font-medium text-indigo-700">{a.actionType}</span>
-                              <span className="text-[10px] text-indigo-500">{a.conversionRate.toFixed(0)}%</span>
-                            </div>
-                          ))}
-                        </div>
                       </div>
                     )}
                   </div>
-                ) : (
-                  <p className="text-xs text-neutral-400 text-center py-4">Aucune donnee</p>
+                )}
+
+                {/* Email: Test + Reset */}
+                {focusedAgent === 'email' && (
+                  <div className="space-y-4">
+                    <div className="bg-white rounded-xl shadow-sm border p-5">
+                      <h3 className="text-sm font-bold text-neutral-900 mb-3">Tester un email</h3>
+                      <div className="flex flex-wrap gap-2 items-end">
+                        <input type="email" value={testEmail} onChange={(e) => setTestEmail(e.target.value)} placeholder="email@test.com" className="flex-1 min-w-[160px] px-3 py-1.5 border border-neutral-200 rounded-lg text-xs" />
+                        <select value={testCategory} onChange={(e) => setTestCategory(e.target.value)} className="px-2 py-1.5 border border-neutral-200 rounded-lg text-xs">
+                          <option value="restaurant">Restaurant</option><option value="boutique">Boutique</option><option value="coach">Coach</option><option value="agence">Agence</option>
+                        </select>
+                        <select value={testStep} onChange={(e) => setTestStep(Number(e.target.value))} className="px-2 py-1.5 border border-neutral-200 rounded-lg text-xs">
+                          <option value={1}>Step 1</option><option value={2}>Step 2</option><option value={3}>Step 3</option><option value={10}>Warm</option>
+                        </select>
+                        <button onClick={sendTestEmail} disabled={testSending || !testEmail.trim()} className="px-3 py-1.5 bg-purple-600 text-white text-xs font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50">
+                          {testSending ? 'Envoi...' : 'Tester'}
+                        </button>
+                      </div>
+                      {testResult && <div className={`mt-2 text-xs px-3 py-2 rounded-lg ${testResult.ok ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>{testResult.message}</div>}
+                    </div>
+                    <div className="bg-white rounded-xl shadow-sm border border-red-100 p-5">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-sm font-semibold text-neutral-900">Pipeline bloqu\u00E9 ?</h3>
+                          <p className="text-[10px] text-neutral-500 mt-1">Remet les prospects dead/perdu en circulation.</p>
+                        </div>
+                        <button onClick={resetDeadProspects} disabled={resettingDead} className="px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 disabled:opacity-50">
+                          {resettingDead ? 'Reset...' : 'Reset dead'}
+                        </button>
+                      </div>
+                      {resetResult && <div className={`mt-2 text-xs px-3 py-2 rounded-lg ${resetResult.ok ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>{resetResult.message}</div>}
+                    </div>
+                  </div>
+                )}
+
+                {/* SEO: Articles */}
+                {focusedAgent === 'seo' && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-neutral-500">{seoStats.total} articles ({seoStats.published} publi\u00E9s, {seoStats.drafts} brouillons)</span>
+                      <div className="flex gap-2">
+                        <button onClick={handleSeoGenerate} disabled={seoGenerating} className="px-3 py-1.5 bg-purple-600 text-white text-xs font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50">
+                          {seoGenerating ? 'G\u00E9n\u00E9ration...' : 'G\u00E9n\u00E9rer article'}
+                        </button>
+                        <button onClick={loadSeoData} className="text-xs text-purple-600 hover:underline">Actualiser</button>
+                      </div>
+                    </div>
+                    {seoArticles.length === 0 ? (
+                      <div className="bg-white rounded-xl shadow-sm border p-6 text-center text-neutral-400 text-sm">Aucun article.</div>
+                    ) : (
+                      <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+                        {seoArticles.map(a => (
+                          <div key={a.id} className="px-4 py-3 border-b border-neutral-100 last:border-0 hover:bg-neutral-50">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium text-neutral-900">{a.title}</span>
+                                <span className={`text-[10px] px-2 py-0.5 rounded-full ${a.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>{a.status}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] text-neutral-400">{a.views} vues</span>
+                                {a.status === 'draft' && <button onClick={() => handleSeoPublish(a.id)} disabled={seoPublishing === a.id} className="text-xs text-purple-600 hover:underline disabled:opacity-50">{seoPublishing === a.id ? 'Publication...' : 'Publier'}</button>}
+                              </div>
+                            </div>
+                            <div className="text-[10px] text-neutral-400 mt-1">{a.keywords_primary} — {new Date(a.created_at).toLocaleDateString('fr-FR')}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Onboarding */}
+                {focusedAgent === 'onboarding' && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-3 gap-3">
+                      {[
+                        { label: 'En attente', value: onboardingStats.pending, icon: '\u23F3', color: 'text-amber-600' },
+                        { label: 'Envoy\u00E9s', value: onboardingStats.sent, icon: '\u2705', color: 'text-green-600' },
+                        { label: 'Alertes', value: onboardingStats.alerts, icon: '\uD83D\uDEA8', color: 'text-red-600' },
+                      ].map((s, i) => (
+                        <div key={i} className="bg-white rounded-xl shadow-sm border p-3 text-center">
+                          <div className="text-lg mb-1">{s.icon}</div>
+                          <div className={`text-xl font-bold ${s.color}`}>{s.value}</div>
+                          <div className="text-[10px] text-neutral-500">{s.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button onClick={loadOnboardingData} className="text-xs text-purple-600 hover:underline">Actualiser</button>
+                      <select value={onboardingFilter} onChange={e => setOnboardingFilter(e.target.value)} className="text-xs border border-neutral-200 rounded-lg px-2 py-1">
+                        <option value="all">Tous</option><option value="pending">En attente</option><option value="sent">Envoy\u00E9s</option><option value="alert_sent">Alertes</option>
+                      </select>
+                    </div>
+                    {onboardingItems.filter(i => onboardingFilter === 'all' || i.status === onboardingFilter).length === 0 ? (
+                      <div className="bg-white rounded-xl shadow-sm border p-6 text-center text-neutral-400 text-sm">Aucun onboarding.</div>
+                    ) : (
+                      <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+                        {onboardingItems.filter(i => onboardingFilter === 'all' || i.status === onboardingFilter).map(item => (
+                          <div key={item.id} className="px-4 py-3 border-b border-neutral-100 last:border-0 hover:bg-neutral-50">
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium">{item.first_name || 'Client'}</span>
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">{item.plan}</span>
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#0c1a3a]/10 text-[#0c1a3a]">{item.step_key}</span>
+                                <span className={`text-[10px] px-2 py-0.5 rounded-full ${item.status === 'sent' ? 'bg-green-100 text-green-700' : item.status === 'pending' ? 'bg-amber-100 text-amber-700' : item.status === 'alert_sent' ? 'bg-red-100 text-red-700' : 'bg-neutral-100 text-neutral-600'}`}>{item.status}</span>
+                              </div>
+                              <span className="text-[10px] text-neutral-400">{new Date(item.scheduled_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                            </div>
+                            {item.message_text && <div className="text-xs text-neutral-600 bg-neutral-50 rounded p-2 mt-1 whitespace-pre-line">{item.message_text.substring(0, 200)}{item.message_text.length > 200 ? '...' : ''}</div>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Retention */}
+                {focusedAgent === 'retention' && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+                      {[
+                        { label: 'Actifs', value: retentionStats.green, color: 'bg-green-500', textColor: 'text-green-700' },
+                        { label: 'Baisse', value: retentionStats.yellow, color: 'bg-yellow-500', textColor: 'text-yellow-700' },
+                        { label: 'Inactifs', value: retentionStats.orange, color: 'bg-orange-500', textColor: 'text-orange-700' },
+                        { label: 'Danger', value: retentionStats.red, color: 'bg-red-500', textColor: 'text-red-700' },
+                        { label: 'MRR en jeu', value: `${retentionStats.mrrAtRisk}\u20AC`, color: 'bg-purple-500', textColor: 'text-purple-700' },
+                        { label: 'Total', value: retentionStats.totalClients, color: 'bg-neutral-500', textColor: 'text-neutral-700' },
+                      ].map((s, i) => (
+                        <div key={i} className="bg-white rounded-xl shadow-sm border p-3 text-center">
+                          <div className={`w-3 h-3 rounded-full ${s.color} mx-auto mb-1`} />
+                          <div className={`text-lg font-bold ${s.textColor}`}>{s.value}</div>
+                          <div className="text-[10px] text-neutral-500">{s.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <button onClick={loadRetentionData} className="text-xs text-purple-600 hover:underline">Actualiser</button>
+                    {retentionClients.length === 0 ? (
+                      <div className="bg-white rounded-xl shadow-sm border p-6 text-center text-neutral-400 text-sm">Aucun client \u00E0 risque.</div>
+                    ) : (
+                      <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+                        <div className="grid grid-cols-7 gap-2 px-4 py-2 bg-neutral-50 text-[10px] font-semibold text-neutral-500 uppercase">
+                          <span>Client</span><span>Plan</span><span>Score</span><span>Inactif</span><span>Cr\u00E9ations/sem</span><span>Renouvellement</span><span>Dernier msg</span>
+                        </div>
+                        {retentionClients.map(c => (
+                          <div key={c.user_id} className="grid grid-cols-7 gap-2 px-4 py-3 items-center border-b border-neutral-100 last:border-0 hover:bg-neutral-50">
+                            <div>
+                              <div className="text-sm font-medium">{c.first_name || 'Client'}</div>
+                              <div className="text-[10px] text-neutral-400">{c.business_type || ''}</div>
+                            </div>
+                            <span className="text-xs">{c.plan}</span>
+                            <div className="flex items-center gap-1">
+                              <div className={`w-2 h-2 rounded-full ${c.health_level === 'green' ? 'bg-green-500' : c.health_level === 'yellow' ? 'bg-yellow-500' : c.health_level === 'orange' ? 'bg-orange-500' : 'bg-red-500'}`} />
+                              <span className="text-xs font-medium">{c.health_score}/100</span>
+                            </div>
+                            <span className="text-xs">{c.days_since_login}j</span>
+                            <span className="text-xs">{c.weekly_generations}</span>
+                            <span className="text-xs">{c.days_to_renewal ? `${c.days_to_renewal}j` : '-'}</span>
+                            <span className="text-[10px] text-neutral-400">{c.last_message_type || '-'}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Contenu & Social */}
+                {focusedAgent === 'contenu_social' && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-4 gap-3">
+                      {[
+                        { label: 'Total', value: contentStats.total, icon: '\uD83D\uDCF1' },
+                        { label: 'Publi\u00E9s', value: contentStats.published, icon: '\u2705' },
+                        { label: 'Approuv\u00E9s', value: contentStats.approved, icon: '\uD83D\uDC4D' },
+                        { label: 'Brouillons', value: contentStats.drafts, icon: '\uD83D\uDCDD' },
+                      ].map((s, i) => (
+                        <div key={i} className="bg-white rounded-xl shadow-sm border p-3 text-center">
+                          <div className="text-lg mb-1">{s.icon}</div>
+                          <div className="text-xl font-bold text-neutral-900">{s.value}</div>
+                          <div className="text-[10px] text-neutral-500">{s.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="text-neutral-500">Par plateforme :</span>
+                      <span className="px-2 py-0.5 rounded bg-pink-100 text-pink-700">IG: {contentStats.byPlatform?.instagram || 0}</span>
+                      <span className="px-2 py-0.5 rounded bg-neutral-800 text-white">TK: {contentStats.byPlatform?.tiktok || 0}</span>
+                      <span className="px-2 py-0.5 rounded bg-[#0c1a3a]/10 text-[#0c1a3a]">LI: {contentStats.byPlatform?.linkedin || 0}</span>
+                    </div>
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <div className="flex items-center gap-1 bg-neutral-100 rounded-lg p-0.5">
+                        {(['all', 'instagram', 'tiktok', 'linkedin'] as const).map(val => (
+                          <button key={val} onClick={() => setContentPlatform(val)} className={`text-xs px-2.5 py-1 rounded-md transition-all ${contentPlatform === val ? 'bg-white shadow text-neutral-900 font-medium' : 'text-neutral-500 hover:text-neutral-700'}`}>
+                            {val === 'all' ? 'Tous' : val === 'instagram' ? 'Insta' : val === 'tiktok' ? 'TikTok' : 'LinkedIn'}
+                          </button>
+                        ))}
+                      </div>
+                      <button onClick={() => setContentDraftOnly(!contentDraftOnly)} className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${contentDraftOnly ? 'border-amber-300 bg-amber-50 text-amber-700' : 'border-green-300 bg-green-50 text-green-700'}`}>
+                        {contentDraftOnly ? 'Brouillon' : 'Publication directe'}
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <button onClick={() => handleContentGenerate('generate_weekly')} disabled={contentGenerating} className="bg-gradient-to-r from-purple-600 to-[#1e3a5f] text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:opacity-90 disabled:opacity-50">
+                        {contentGenerating ? 'G\u00E9n\u00E9ration...' : 'Planifier la semaine'}
+                      </button>
+                      <button onClick={() => handleContentGenerate('generate_post')} disabled={contentGenerating} className="text-xs text-purple-600 border border-purple-300 px-3 py-1.5 rounded-lg hover:bg-purple-50 disabled:opacity-50">Post du jour</button>
+                      <button onClick={handleFixCaptions} disabled={fixingCaptions} className="text-xs text-amber-600 border border-amber-300 px-3 py-1.5 rounded-lg hover:bg-amber-50 disabled:opacity-50">{fixingCaptions ? 'Reformatage...' : 'Fix Captions'}</button>
+                      <button onClick={loadContentData} className="text-xs text-purple-600 hover:underline">Actualiser</button>
+                    </div>
+                    {contentPosts.length === 0 ? (
+                      <div className="bg-white rounded-xl shadow-sm border p-6 text-center text-neutral-400 text-sm">Aucun contenu.</div>
+                    ) : (
+                      <div className="space-y-3">
+                        {contentPosts.filter(p => contentPlatform === 'all' || p.platform === contentPlatform).sort((a, b) => `${b.scheduled_date}T${b.scheduled_time}`.localeCompare(`${a.scheduled_date}T${a.scheduled_time}`)).slice(0, 10).map(post => (
+                          <div key={post.id} className="bg-white rounded-xl shadow-sm border p-4 cursor-pointer hover:shadow-md transition-shadow" onClick={() => setPreviewPost(post)}>
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${post.platform === 'instagram' ? 'bg-pink-100 text-pink-700' : post.platform === 'tiktok' ? 'bg-neutral-800 text-white' : 'bg-[#0c1a3a]/10 text-[#0c1a3a]'}`}>{post.platform}</span>
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-600">{post.format}</span>
+                                <span className={`text-[10px] px-2 py-0.5 rounded-full ${post.status === 'published' ? 'bg-green-100 text-green-700' : post.status === 'publish_failed' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>{post.status}</span>
+                              </div>
+                              <span className="text-[10px] text-neutral-400">{post.scheduled_date} {post.scheduled_time}</span>
+                            </div>
+                            {post.hook && <div className="text-sm font-semibold text-neutral-900 mb-1">{post.hook}</div>}
+                            <div className="text-xs text-neutral-600 whitespace-pre-line">{post.caption?.substring(0, 150)}{(post.caption?.length || 0) > 150 ? '...' : ''}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Marketing / Ops fallback */}
+                {(focusedAgent === 'marketing' || focusedAgent === 'ops') && agentMetrics.length === 0 && (
+                  <div className="bg-white rounded-xl shadow-sm border p-6 text-center text-neutral-400 text-sm">Cet agent s&apos;active automatiquement. Voir les logs pour le d\u00E9tail.</div>
                 )}
               </div>
             )}
 
-            {/* Per-agent metrics */}
-            {dashboardAgent !== 'global' && (
-              <div>
-                {agentMetricsLoading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
-                    <span className="ml-3 text-sm text-neutral-500">Chargement des metriques...</span>
+            {/* ── Sub-tab: Chat ── */}
+            {ficheSubTab === 'chat' && (
+              <div className="bg-white rounded-xl border border-neutral-200 shadow-sm overflow-hidden">
+                <div className={`bg-gradient-to-r ${fiche.gradient} px-4 py-3 text-white`}>
+                  <h3 className="font-semibold text-sm">{fiche.icon} Chat avec {fiche.name}</h3>
+                  <p className="text-xs text-white/70">Donne des ordres directs, pose des questions, demande des rapports</p>
+                </div>
+                <div className="h-[400px] overflow-y-auto p-4 space-y-3 bg-neutral-50">
+                  {(agentMessages[fiche.chatId] || []).length === 0 && (
+                    <div className="text-center text-neutral-400 text-sm py-8">Commence une conversation avec {fiche.name}</div>
+                  )}
+                  {(agentMessages[fiche.chatId] || []).map((msg, i) => (
+                    <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[80%] rounded-xl px-4 py-2 text-sm ${msg.role === 'user' ? 'bg-purple-600 text-white' : 'bg-white border border-neutral-200 text-neutral-800'}`}>
+                        <div className="whitespace-pre-wrap">{msg.content}</div>
+                      </div>
+                    </div>
+                  ))}
+                  {agentChatLoading && (
+                    <div className="flex justify-start">
+                      <div className="bg-white border border-neutral-200 rounded-xl px-4 py-2 text-sm text-neutral-500 animate-pulse">{fiche.name} r\u00E9fl\u00E9chit...</div>
+                    </div>
+                  )}
+                  <div ref={agentMessagesEndRef} />
+                </div>
+                <div className="p-3 border-t border-neutral-200 bg-white">
+                  <div className="flex gap-2">
+                    <input type="text" value={agentInput} onChange={e => setAgentInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { setSelectedAgent(fiche.chatId); setTimeout(sendAgentMessage, 0); } }} placeholder={`Message \u00E0 ${fiche.name}...`} className="flex-1 px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" disabled={agentChatLoading} />
+                    <button onClick={() => { setSelectedAgent(fiche.chatId); setTimeout(sendAgentMessage, 0); }} disabled={agentChatLoading || !agentInput.trim()} className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50">
+                      Envoyer
+                    </button>
                   </div>
-                ) : agentMetrics.length === 0 ? (
-                  <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-8 text-center text-neutral-400">
-                    Aucune metrique disponible pour cet agent.
-                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── Sub-tab: Ordres ── */}
+            {ficheSubTab === 'ordres' && (
+              <div className="space-y-4">
+                {ficheOrders.length === 0 ? (
+                  <div className="bg-white rounded-xl shadow-sm border p-6 text-center text-neutral-400 text-sm">Aucun ordre pour {fiche.name}.</div>
                 ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {agentMetrics.map((m, i) => (
-                      <div
-                        key={i}
-                        className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6 hover:shadow-md transition-shadow"
-                      >
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="text-2xl">{m.icon}</span>
-                          {m.trend && (
-                            <span
-                              className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                                m.trendUp
-                                  ? 'bg-green-50 text-green-600'
-                                  : 'bg-red-50 text-red-600'
-                              }`}
-                            >
-                              {m.trend}
-                            </span>
-                          )}
+                  <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+                    {ficheOrders.slice(0, 20).map(o => (
+                      <div key={o.id} className="px-4 py-3 border-b border-neutral-100 last:border-0 hover:bg-neutral-50">
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-2">
+                            {agentBadge(o.from_agent)} <span className="text-neutral-400">\u2192</span> {agentBadge(o.to_agent)}
+                            <span className="text-xs text-neutral-700">{o.action}</span>
+                            {statusBadge(o.status)}
+                            {priorityBadge(o.priority)}
+                          </div>
+                          <span className="text-[10px] text-neutral-400">{new Date(o.created_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
-                        <p className="text-2xl font-bold text-neutral-900">{m.value}</p>
-                        <p className="text-xs text-neutral-500 mt-1">{m.label}</p>
                       </div>
                     ))}
                   </div>
@@ -1701,125 +2316,43 @@ function AdminAgentsContent() {
               </div>
             )}
 
-            {/* Test email section - only in global view */}
-            {dashboardAgent === 'global' && (
-            <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
-              <h3 className="text-sm font-semibold text-neutral-900 mb-4">
-                Tester un email
-              </h3>
-              <div className="flex flex-wrap gap-3 items-end">
-                <div className="flex-1 min-w-[200px]">
-                  <label className="text-xs text-neutral-500 mb-1 block">Email</label>
-                  <input
-                    type="email"
-                    value={testEmail}
-                    onChange={(e) => setTestEmail(e.target.value)}
-                    placeholder="mrzirraro@gmail.com"
-                    className="w-full px-3 py-2 border border-neutral-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
-                  />
+            {/* ── Sub-tab: Logs ── */}
+            {ficheSubTab === 'logs' && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-neutral-700">Logs {fiche.name} ({logTotal})</span>
+                  <button onClick={() => loadLogs(0, fiche.logAgents[0])} className="text-xs text-purple-600 hover:underline">Actualiser</button>
                 </div>
-                <div>
-                  <label className="text-xs text-neutral-500 mb-1 block">Cat{'\u00E9'}gorie</label>
-                  <select
-                    value={testCategory}
-                    onChange={(e) => setTestCategory(e.target.value)}
-                    className="px-3 py-2 border border-neutral-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  >
-                    <option value="restaurant">Restaurant</option>
-                    <option value="boutique">Boutique</option>
-                    <option value="coach">Coach</option>
-                    <option value="coiffeur">Coiffeur</option>
-                    <option value="caviste">Caviste</option>
-                    <option value="fleuriste">Fleuriste</option>
-                    <option value="traiteur">Traiteur</option>
-                    <option value="freelance">Freelance</option>
-                    <option value="services">Services</option>
-                    <option value="professionnel">Professionnel</option>
-                    <option value="agence">Agence</option>
-                    <option value="pme">PME</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-neutral-500 mb-1 block">Step</label>
-                  <select
-                    value={testStep}
-                    onChange={(e) => setTestStep(Number(e.target.value))}
-                    className="px-3 py-2 border border-neutral-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  >
-                    <option value={1}>Email 1 (intro)</option>
-                    <option value={2}>Email 2 (relance)</option>
-                    <option value={3}>Email 3 (dernier)</option>
-                    <option value={10}>Email warm (chatbot)</option>
-                  </select>
-                </div>
-                <button
-                  onClick={sendTestEmail}
-                  disabled={testSending || !testEmail.trim()}
-                  className="px-5 py-2 bg-gradient-to-r from-purple-600 to-[#1e3a5f] text-white text-sm font-medium rounded-lg hover:from-purple-700 hover:to-[#1e3a5f] disabled:opacity-50 transition-all"
-                >
-                  {testSending ? (
-                    <span className="flex items-center gap-2">
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Envoi...
-                    </span>
-                  ) : (
-                    'Tester'
-                  )}
-                </button>
+                {logs.length === 0 ? (
+                  <div className="bg-white rounded-xl shadow-sm border p-6 text-center text-neutral-400 text-sm">Aucun log.</div>
+                ) : (
+                  <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+                    <div className="grid grid-cols-5 gap-2 px-4 py-2 bg-neutral-50 text-[10px] font-semibold text-neutral-500 uppercase">
+                      <span>Date</span><span>Agent</span><span>Action</span><span>Statut</span><span>Cible</span>
+                    </div>
+                    {logs.map(log => (
+                      <div key={log.id} className="grid grid-cols-5 gap-2 px-4 py-3 items-center border-b border-neutral-100 last:border-0 hover:bg-neutral-50">
+                        <span className="text-xs text-neutral-600">{new Date(log.created_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                        <span>{agentBadge(log.agent)}</span>
+                        <span className="text-xs text-neutral-700">{log.action}</span>
+                        <span>{statusBadge(log.status)}</span>
+                        <span className="text-xs text-neutral-600 truncate">{log.target || '-'}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {logTotal > 50 && (
+                  <div className="flex items-center justify-center gap-3">
+                    <button onClick={() => { const p = Math.max(0, logPage - 1); setLogPage(p); loadLogs(p, fiche.logAgents[0]); }} disabled={logPage === 0} className="text-sm px-3 py-1.5 border rounded-lg hover:bg-neutral-50 disabled:opacity-40">Pr\u00E9c\u00E9dent</button>
+                    <span className="text-sm text-neutral-500">Page {logPage + 1} / {Math.ceil(logTotal / 50)}</span>
+                    <button onClick={() => { const p = Math.min(Math.ceil(logTotal / 50) - 1, logPage + 1); setLogPage(p); loadLogs(p, fiche.logAgents[0]); }} disabled={logPage >= Math.ceil(logTotal / 50) - 1} className="text-sm px-3 py-1.5 border rounded-lg hover:bg-neutral-50 disabled:opacity-40">Suivant</button>
+                  </div>
+                )}
               </div>
-              {testResult && (
-                <div
-                  className={`mt-3 text-sm px-4 py-2.5 rounded-lg ${
-                    testResult.ok
-                      ? 'bg-green-50 text-green-700 border border-green-200'
-                      : 'bg-red-50 text-red-700 border border-red-200'
-                  }`}
-                >
-                  {testResult.message}
-                </div>
-              )}
-            </div>
             )}
-
-
-            {/* Reset dead prospects */}
-            {dashboardAgent === 'global' && (
-            <div className="bg-white rounded-xl shadow-sm border border-red-100 p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-semibold text-neutral-900">Pipeline bloqué ?</h3>
-                  <p className="text-xs text-neutral-500 mt-1">
-                    Remet les prospects dead/perdu en circulation pour relancer les séquences email et DM.
-                  </p>
-                </div>
-                <button
-                  onClick={resetDeadProspects}
-                  disabled={resettingDead}
-                  className="px-4 py-2 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 disabled:opacity-50 transition-all flex items-center gap-2"
-                >
-                  {resettingDead ? (
-                    <>
-                      <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Reset...
-                    </>
-                  ) : (
-                    'Reset prospects dead'
-                  )}
-                </button>
-              </div>
-              {resetResult && (
-                <div className={`mt-3 text-sm px-4 py-2.5 rounded-lg ${
-                  resetResult.ok ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
-                }`}>
-                  {resetResult.message}
-                </div>
-              )}
-            </div>
-            )}
-
           </div>
-        )}
-
+          );
+        })()}
         {/* ===== TAB CAMPAGNES ===== */}
         {activeTab === 'campagnes' && (
           <div className="space-y-6">
@@ -2313,391 +2846,6 @@ function AdminAgentsContent() {
           </div>
         )}
 
-        {/* ===== TAB SEO BLOG ===== */}
-        {activeTab === 'seo' && (
-          <div className="space-y-6">
-            {/* Stats */}
-            <div className="grid grid-cols-3 gap-4">
-              {[
-                { label: 'Articles total', value: seoStats.total, icon: '📝' },
-                { label: 'Publiés', value: seoStats.published, icon: '✅' },
-                { label: 'Brouillons', value: seoStats.drafts, icon: '📋' },
-              ].map((s, i) => (
-                <div key={i} className="bg-white rounded-xl shadow-sm border border-neutral-200 p-4 text-center">
-                  <div className="text-2xl mb-1">{s.icon}</div>
-                  <div className="text-2xl font-bold text-neutral-900">{s.value}</div>
-                  <div className="text-xs text-neutral-500">{s.label}</div>
-                </div>
-              ))}
-            </div>
-
-            {/* Actions + Filter */}
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={handleSeoGenerate}
-                  disabled={seoGenerating}
-                  className="bg-gradient-to-r from-purple-600 to-[#1e3a5f] text-white text-sm font-medium px-4 py-2 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
-                >
-                  {seoGenerating ? 'Generation...' : 'Generer un article'}
-                </button>
-                <button
-                  onClick={loadSeoData}
-                  className="text-sm text-purple-600 hover:underline"
-                >
-                  Actualiser
-                </button>
-              </div>
-              <select
-                value={seoStatusFilter}
-                onChange={(e) => setSeoStatusFilter(e.target.value)}
-                className="text-xs border border-neutral-200 rounded-lg px-3 py-1.5 bg-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              >
-                <option value="all">Tous les statuts</option>
-                <option value="published">Publiés</option>
-                <option value="draft">Brouillons</option>
-              </select>
-            </div>
-
-            {/* Articles list */}
-            {seoArticles.length === 0 ? (
-              <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-8 text-center text-neutral-400">
-                Aucun article. Clique sur &quot;Generer un article&quot; pour commencer.
-              </div>
-            ) : (
-              <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden">
-                <div className="grid grid-cols-6 gap-2 px-4 py-3 bg-neutral-50 border-b border-neutral-200 text-[11px] font-semibold text-neutral-500 uppercase">
-                  <span className="col-span-2">Titre</span>
-                  <span>Mot-cle</span>
-                  <span>Statut</span>
-                  <span>Date</span>
-                  <span>Actions</span>
-                </div>
-                {seoArticles.filter(a => seoStatusFilter === 'all' || a.status === seoStatusFilter).map((article) => (
-                  <div
-                    key={article.id}
-                    className="grid grid-cols-6 gap-2 px-4 py-3 items-center border-b border-neutral-100 last:border-0 hover:bg-neutral-50 transition-all"
-                  >
-                    <span className="col-span-2 text-sm font-medium text-neutral-900 truncate">
-                      {article.title}
-                    </span>
-                    <span className="text-xs text-neutral-600 truncate">
-                      {article.keywords_primary}
-                    </span>
-                    <span>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                        article.status === 'published'
-                          ? 'bg-green-100 text-green-700'
-                          : article.status === 'draft'
-                          ? 'bg-amber-100 text-amber-700'
-                          : 'bg-neutral-100 text-neutral-600'
-                      }`}>
-                        {article.status === 'published' ? 'Publie' : article.status === 'draft' ? 'Brouillon' : article.status}
-                      </span>
-                    </span>
-                    <span className="text-xs text-neutral-500">
-                      {new Date(article.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <Link
-                        href={`/admin/agents/campaign/seo-preview?article_id=${article.id}`}
-                        className="text-xs text-[#0c1a3a] hover:underline"
-                      >
-                        Aperçu
-                      </Link>
-                      {article.status === 'draft' && (
-                        <button
-                          onClick={() => handleSeoPublish(article.id)}
-                          disabled={seoPublishing === article.id}
-                          className="text-xs text-green-600 hover:underline disabled:opacity-50"
-                        >
-                          {seoPublishing === article.id ? '...' : 'Publier'}
-                        </button>
-                      )}
-                      {article.status === 'published' && (
-                        <a
-                          href={`/blog/${article.slug}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-purple-600 hover:underline"
-                        >
-                          Voir
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ===== TAB CHAT AGENTS ===== */}
-        {activeTab === 'agents_chat' && (
-          <div className="space-y-4">
-            {/* Agent selector */}
-            <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-              {CHAT_AGENTS.map(a => (
-                <button
-                  key={a.id}
-                  onClick={() => setSelectedAgent(a.id)}
-                  className={`shrink-0 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                    selectedAgent === a.id
-                      ? 'bg-purple-600 text-white shadow-md'
-                      : 'bg-white border border-neutral-200 text-neutral-600 hover:border-purple-300'
-                  }`}
-                >
-                  {a.icon} {a.name}
-                </button>
-              ))}
-            </div>
-
-            {/* Chat area */}
-            <div className="bg-white rounded-xl border border-neutral-200 shadow-sm overflow-hidden">
-              <div className="bg-gradient-to-r from-purple-600 to-[#1e3a5f] px-4 py-3 text-white">
-                <h3 className="font-semibold text-sm">
-                  {CHAT_AGENTS.find(a => a.id === selectedAgent)?.icon} Chat avec {CHAT_AGENTS.find(a => a.id === selectedAgent)?.name}
-                </h3>
-                <p className="text-xs text-white/70">Donne des ordres directs, pose des questions, demande des rapports</p>
-              </div>
-
-              <div className="h-[400px] overflow-y-auto p-4 space-y-3 bg-neutral-50">
-                {(agentMessages[selectedAgent] || []).length === 0 && (
-                  <div className="text-center text-neutral-400 text-sm py-8">
-                    Commence une conversation avec l&apos;agent {CHAT_AGENTS.find(a => a.id === selectedAgent)?.name}
-                  </div>
-                )}
-                {(agentMessages[selectedAgent] || []).map((msg, i) => (
-                  <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[80%] rounded-xl px-4 py-2 text-sm ${
-                      msg.role === 'user'
-                        ? 'bg-purple-600 text-white'
-                        : 'bg-white border border-neutral-200 text-neutral-800'
-                    }`}>
-                      <div className="whitespace-pre-wrap">{msg.content}</div>
-                    </div>
-                  </div>
-                ))}
-                {agentChatLoading && (
-                  <div className="flex justify-start">
-                    <div className="bg-white border border-neutral-200 rounded-xl px-4 py-2 text-sm text-neutral-500 animate-pulse">
-                      {CHAT_AGENTS.find(a => a.id === selectedAgent)?.name} réfléchit...
-                    </div>
-                  </div>
-                )}
-                <div ref={agentMessagesEndRef} />
-              </div>
-
-              <div className="p-3 border-t border-neutral-200 bg-white">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={agentInput}
-                    onChange={e => setAgentInput(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendAgentMessage()}
-                    placeholder={`Message à ${CHAT_AGENTS.find(a => a.id === selectedAgent)?.name}...`}
-                    className="flex-1 px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    disabled={agentChatLoading}
-                  />
-                  <button
-                    onClick={sendAgentMessage}
-                    disabled={agentChatLoading || !agentInput.trim()}
-                    className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Envoyer
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ===== TAB BRIEFS CEO ===== */}
-        {activeTab === 'briefs' && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-neutral-900">
-                Briefs CEO ({briefs.length})
-              </h2>
-              <button
-                onClick={executeCeoBrief}
-                disabled={executingCeo}
-                className="px-4 py-2 bg-gradient-to-r from-purple-600 to-[#1e3a5f] text-white text-sm font-medium rounded-lg hover:from-purple-700 hover:to-[#1e3a5f] disabled:opacity-50 transition-all"
-              >
-                {executingCeo ? (
-                  <span className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Ex\u00E9cution...
-                  </span>
-                ) : (
-                  'Ex\u00E9cuter maintenant'
-                )}
-              </button>
-            </div>
-
-            {briefs.length === 0 ? (
-              <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-8 text-center text-neutral-400">
-                Aucun brief CEO pour le moment
-              </div>
-            ) : (
-              briefs.map((brief) => {
-                const meta = brief.data || {};
-                const isExpanded = expandedBrief === brief.id;
-                // Support both new (brief_text) and legacy (brief object) format
-                const briefText = meta.brief_text || (typeof meta.brief === 'string' ? meta.brief : null);
-                const isNaturalLanguage = !!briefText;
-                // Extract preview: first non-empty, non-heading line
-                const previewLine = briefText
-                  ? briefText.split('\n').find((l: string) => l.trim() && !l.startsWith('##'))?.trim() || ''
-                  : meta.brief_fondateur || '';
-
-                return (
-                  <div
-                    key={brief.id}
-                    className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden"
-                  >
-                    <button
-                      onClick={() => setExpandedBrief(isExpanded ? null : brief.id)}
-                      className="w-full text-left p-5 hover:bg-neutral-50 transition-all"
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-3">
-                          <span className="text-sm font-semibold text-neutral-900">
-                            {new Date(brief.created_at).toLocaleDateString('fr-FR', {
-                              weekday: 'long',
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </span>
-                          {!isNaturalLanguage && performanceBadge(meta.performance_globale || meta.performance)}
-                        </div>
-                        <svg
-                          className={`w-5 h-5 text-neutral-400 transition-transform ${
-                            isExpanded ? 'rotate-180' : ''
-                          }`}
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 9l-7 7-7-7"
-                          />
-                        </svg>
-                      </div>
-
-                      {previewLine && (
-                        <p className="text-sm text-neutral-600 line-clamp-2">
-                          {previewLine}
-                        </p>
-                      )}
-                    </button>
-
-                    {isExpanded && (
-                      <div className="border-t border-neutral-100 p-5 bg-neutral-50">
-                        {/* Copy brief button */}
-                        <div className="flex justify-end mb-3">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const text = briefText || JSON.stringify(meta, null, 2);
-                              navigator.clipboard.writeText(text).then(() => {
-                                const btn = e.currentTarget;
-                                btn.textContent = '✅ Copié !';
-                                setTimeout(() => { btn.textContent = '📋 Copier le brief'; }, 2000);
-                              });
-                            }}
-                            className="px-3 py-1.5 text-xs font-medium bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors"
-                          >
-                            📋 Copier le brief
-                          </button>
-                        </div>
-                        {isNaturalLanguage ? (
-                          /* New natural language brief display */
-                          <div className="prose prose-sm max-w-none">
-                            <div className="text-sm text-neutral-800 leading-relaxed">
-                              {briefText.split('\n').map((line: string, i: number) => {
-                                if (line.startsWith('## ')) {
-                                  return <h4 key={i} className="text-sm font-bold text-purple-700 mt-4 mb-2 uppercase">{line.replace('## ', '')}</h4>;
-                                }
-                                if (line.startsWith('- ')) {
-                                  const content = line.substring(2);
-                                  return <p key={i} className="text-sm text-neutral-700 ml-3 my-0.5">&bull; {content}</p>;
-                                }
-                                if (line.trim() === '') return <div key={i} className="h-2" />;
-                                // Bold **text**
-                                const parts = line.split(/(\*\*.*?\*\*)/g);
-                                return (
-                                  <p key={i} className="text-sm text-neutral-700 my-0.5">
-                                    {parts.map((part, j) =>
-                                      part.startsWith('**') && part.endsWith('**')
-                                        ? <strong key={j} className="font-semibold text-neutral-900">{part.slice(2, -2)}</strong>
-                                        : part
-                                    )}
-                                  </p>
-                                );
-                              })}
-                            </div>
-
-                            {/* Metrics summary from stored data */}
-                            {meta.metrics_24h && (
-                              <details className="mt-4 text-xs">
-                                <summary className="text-neutral-500 cursor-pointer hover:text-neutral-700 font-semibold uppercase">Donnees brutes 24h</summary>
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
-                                  {Object.entries(meta.metrics_24h).filter(([k]) => typeof meta.metrics_24h[k] === 'number').map(([key, val]: [string, any]) => (
-                                    <div key={key} className="bg-white rounded-lg border p-2 text-center">
-                                      <p className="text-lg font-bold text-neutral-900">{val}</p>
-                                      <p className="text-[10px] text-neutral-500">{key.replace(/_/g, ' ')}</p>
-                                    </div>
-                                  ))}
-                                </div>
-                              </details>
-                            )}
-                          </div>
-                        ) : (
-                          /* Legacy JSON-based brief display (for old briefs) */
-                          <div className="space-y-4">
-                            {meta.metriques_resumees && (
-                              <div>
-                                <h4 className="text-xs font-semibold text-neutral-500 uppercase mb-2">KPIs 24h</h4>
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                  {Object.entries(meta.metriques_resumees).map(([key, val]: [string, any]) => (
-                                    <div key={key} className="bg-white rounded-lg border p-2 text-center">
-                                      <p className="text-lg font-bold text-neutral-900">{typeof val === 'number' ? val : String(val)}</p>
-                                      <p className="text-[10px] text-neutral-500">{key.replace(/_/g, ' ')}</p>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                            {meta.analyse && (
-                              <div>
-                                <h4 className="text-xs font-semibold text-neutral-500 uppercase mb-2">Analyse</h4>
-                                <p className="text-sm text-neutral-700 whitespace-pre-wrap">{typeof meta.analyse === 'string' ? meta.analyse : JSON.stringify(meta.analyse, null, 2)}</p>
-                              </div>
-                            )}
-                            <details className="text-xs">
-                              <summary className="text-neutral-500 cursor-pointer hover:text-neutral-700 font-semibold uppercase">JSON brut (debug)</summary>
-                              <pre className="text-neutral-600 bg-white p-3 rounded-lg border border-neutral-200 overflow-x-auto max-h-64 overflow-y-auto mt-2">
-                                {JSON.stringify(meta, null, 2)}
-                              </pre>
-                            </details>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })
-            )}
-          </div>
-        )}
-
         {/* ===== TAB ORDRES ===== */}
         {activeTab === 'ordres' && (
           <div className="space-y-4">
@@ -2949,284 +3097,6 @@ function AdminAgentsContent() {
         )}
 
         {/* ===== TAB LOGS ===== */}
-        {/* ===== TAB ONBOARDING ===== */}
-        {activeTab === 'onboarding' && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-3 gap-4">
-              {[
-                { label: 'En attente', value: onboardingStats.pending, icon: '⏳', color: 'text-amber-600' },
-                { label: 'Envoyés', value: onboardingStats.sent, icon: '✅', color: 'text-green-600' },
-                { label: 'Alertes fondateur', value: onboardingStats.alerts, icon: '🚨', color: 'text-red-600' },
-              ].map((s, i) => (
-                <div key={i} className="bg-white rounded-xl shadow-sm border border-neutral-200 p-4 text-center">
-                  <div className="text-2xl mb-1">{s.icon}</div>
-                  <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
-                  <div className="text-xs text-neutral-500">{s.label}</div>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex items-center gap-3">
-              <button onClick={loadOnboardingData} className="text-sm text-purple-600 hover:underline">Actualiser</button>
-              <select value={onboardingFilter} onChange={e => setOnboardingFilter(e.target.value)} className="text-xs border border-neutral-200 rounded-lg px-3 py-1.5">
-                <option value="all">Tous</option>
-                <option value="pending">En attente</option>
-                <option value="sent">Envoyés</option>
-                <option value="alert_sent">Alertes</option>
-                <option value="skipped">Ignorés</option>
-              </select>
-            </div>
-
-            {onboardingItems.length === 0 ? (
-              <div className="bg-white rounded-xl shadow-sm border p-8 text-center text-neutral-400">Aucun onboarding en cours.</div>
-            ) : (
-              <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-                {onboardingItems.filter(i => onboardingFilter === 'all' || i.status === onboardingFilter).map(item => (
-                  <div key={item.id} className="px-4 py-3 border-b border-neutral-100 last:border-0 hover:bg-neutral-50">
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">{item.first_name || 'Client'}</span>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">{item.plan}</span>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#0c1a3a]/10 text-[#0c1a3a]">{item.step_key}</span>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full ${
-                          item.status === 'sent' ? 'bg-green-100 text-green-700'
-                          : item.status === 'pending' ? 'bg-amber-100 text-amber-700'
-                          : item.status === 'alert_sent' ? 'bg-red-100 text-red-700'
-                          : 'bg-neutral-100 text-neutral-600'
-                        }`}>{item.status}</span>
-                      </div>
-                      <span className="text-[10px] text-neutral-400">
-                        {new Date(item.scheduled_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-                    {item.business_type && <div className="text-[10px] text-neutral-500 mb-1">{item.business_type}</div>}
-                    {item.message_text && (
-                      <div className="text-xs text-neutral-600 bg-neutral-50 rounded p-2 mt-1 whitespace-pre-line">{item.message_text.substring(0, 200)}{item.message_text.length > 200 ? '...' : ''}</div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ===== TAB RÉTENTION ===== */}
-        {activeTab === 'retention' && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-              {[
-                { label: 'Actifs', value: retentionStats.green, color: 'bg-green-500', textColor: 'text-green-700' },
-                { label: 'Baisse', value: retentionStats.yellow, color: 'bg-yellow-500', textColor: 'text-yellow-700' },
-                { label: 'Inactifs', value: retentionStats.orange, color: 'bg-orange-500', textColor: 'text-orange-700' },
-                { label: 'Danger', value: retentionStats.red, color: 'bg-red-500', textColor: 'text-red-700' },
-                { label: 'MRR en jeu', value: `${retentionStats.mrrAtRisk}€`, color: 'bg-purple-500', textColor: 'text-purple-700' },
-                { label: 'Total', value: retentionStats.totalClients, color: 'bg-neutral-500', textColor: 'text-neutral-700' },
-              ].map((s, i) => (
-                <div key={i} className="bg-white rounded-xl shadow-sm border p-3 text-center">
-                  <div className={`w-3 h-3 rounded-full ${s.color} mx-auto mb-1`} />
-                  <div className={`text-lg font-bold ${s.textColor}`}>{s.value}</div>
-                  <div className="text-[10px] text-neutral-500">{s.label}</div>
-                </div>
-              ))}
-            </div>
-
-            <button onClick={loadRetentionData} className="text-sm text-purple-600 hover:underline">Actualiser</button>
-
-            {retentionClients.length === 0 ? (
-              <div className="bg-white rounded-xl shadow-sm border p-8 text-center text-neutral-400">Aucun client à risque.</div>
-            ) : (
-              <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-                <div className="grid grid-cols-7 gap-2 px-4 py-2 bg-neutral-50 text-[10px] font-semibold text-neutral-500 uppercase">
-                  <span>Client</span><span>Plan</span><span>Score</span><span>Inactif</span><span>Créations/sem</span><span>Renouvellement</span><span>Dernier msg</span>
-                </div>
-                {retentionClients.map(c => (
-                  <div key={c.user_id} className="grid grid-cols-7 gap-2 px-4 py-3 items-center border-b border-neutral-100 last:border-0 hover:bg-neutral-50">
-                    <div>
-                      <div className="text-sm font-medium">{c.first_name || 'Client'}</div>
-                      <div className="text-[10px] text-neutral-400">{c.business_type || ''}</div>
-                    </div>
-                    <span className="text-xs">{c.plan}</span>
-                    <div className="flex items-center gap-1">
-                      <div className={`w-2 h-2 rounded-full ${
-                        c.health_level === 'green' ? 'bg-green-500' : c.health_level === 'yellow' ? 'bg-yellow-500' : c.health_level === 'orange' ? 'bg-orange-500' : 'bg-red-500'
-                      }`} />
-                      <span className="text-xs font-medium">{c.health_score}/100</span>
-                    </div>
-                    <span className="text-xs">{c.days_since_login}j</span>
-                    <span className="text-xs">{c.weekly_generations}</span>
-                    <span className="text-xs">{c.days_to_renewal ? `${c.days_to_renewal}j` : '-'}</span>
-                    <span className="text-[10px] text-neutral-400">{c.last_message_type || '-'}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ===== TAB CONTENU ===== */}
-        {activeTab === 'contenu' && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-4 gap-4">
-              {[
-                { label: 'Total', value: contentStats.total, icon: '📱', cls: '' },
-                { label: 'Publiés', value: contentStats.published, icon: '✅', cls: '' },
-                { label: 'Approuvés', value: contentStats.approved, icon: '👍', cls: '' },
-                { label: 'Brouillons', value: contentStats.drafts, icon: '📝', cls: '' },
-                ...((contentStats as any).failed > 0 ? [{ label: 'Echecs', value: (contentStats as any).failed, icon: '❌', cls: 'border-red-200 bg-red-50' }] : []),
-              ].map((s, i) => (
-                <div key={i} className={`bg-white rounded-xl shadow-sm border p-4 text-center ${s.cls}`}>
-                  <div className="text-2xl mb-1">{s.icon}</div>
-                  <div className="text-2xl font-bold text-neutral-900">{s.value}</div>
-                  <div className="text-xs text-neutral-500">{s.label}</div>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex items-center gap-2 text-xs">
-              <span className="text-neutral-500">Par plateforme :</span>
-              <span className="px-2 py-0.5 rounded bg-pink-100 text-pink-700">IG: {contentStats.byPlatform?.instagram || 0}</span>
-              <span className="px-2 py-0.5 rounded bg-neutral-800 text-white">TK: {contentStats.byPlatform?.tiktok || 0}</span>
-              <span className="px-2 py-0.5 rounded bg-[#0c1a3a]/10 text-[#0c1a3a]">LI: {contentStats.byPlatform?.linkedin || 0}</span>
-            </div>
-
-            {/* Platform & mode selectors */}
-            <div className="flex items-center gap-3 flex-wrap">
-              <div className="flex items-center gap-1 bg-neutral-100 rounded-lg p-0.5">
-                {([['all', 'Tous', '📱'], ['instagram', 'Insta', '📸'], ['tiktok', 'TikTok', '🎵'], ['linkedin', 'LinkedIn', '💼']] as const).map(([val, label, icon]) => (
-                  <button
-                    key={val}
-                    onClick={() => setContentPlatform(val)}
-                    className={`text-xs px-2.5 py-1 rounded-md transition-all ${contentPlatform === val ? 'bg-white shadow text-neutral-900 font-medium' : 'text-neutral-500 hover:text-neutral-700'}`}
-                  >
-                    {icon} {label}
-                  </button>
-                ))}
-              </div>
-              <button
-                onClick={() => setContentDraftOnly(!contentDraftOnly)}
-                className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${contentDraftOnly ? 'border-amber-300 bg-amber-50 text-amber-700' : 'border-green-300 bg-green-50 text-green-700'}`}
-              >
-                {contentDraftOnly ? '📝 Brouillon' : '🚀 Publication directe'}
-              </button>
-            </div>
-
-            <div className="flex items-center gap-3 flex-wrap">
-              <button
-                onClick={() => handleContentGenerate('generate_weekly')}
-                disabled={contentGenerating}
-                className="bg-gradient-to-r from-purple-600 to-[#1e3a5f] text-white text-sm font-medium px-4 py-2 rounded-lg hover:opacity-90 disabled:opacity-50"
-              >
-                {contentGenerating ? 'Génération...' : 'Planifier la semaine'}
-              </button>
-              <button
-                onClick={() => handleContentGenerate('generate_post')}
-                disabled={contentGenerating}
-                className="text-sm text-purple-600 border border-purple-300 px-4 py-2 rounded-lg hover:bg-purple-50 disabled:opacity-50"
-              >
-                Post du jour
-              </button>
-              <button
-                onClick={handleFixCaptions}
-                disabled={fixingCaptions}
-                className="text-sm text-amber-600 border border-amber-300 px-4 py-2 rounded-lg hover:bg-amber-50 disabled:opacity-50"
-              >
-                {fixingCaptions ? 'Reformatage...' : '✨ Fix Captions'}
-              </button>
-              <button onClick={loadContentData} className="text-sm text-purple-600 hover:underline">Actualiser</button>
-            </div>
-
-            {contentPosts.length === 0 ? (
-              <div className="bg-white rounded-xl shadow-sm border p-8 text-center text-neutral-400">Aucun contenu planifié. Clique sur &quot;Planifier la semaine&quot;.</div>
-            ) : (
-              <div className="space-y-3">
-                {contentPosts
-                  .filter(post => contentPlatform === 'all' || post.platform === contentPlatform)
-                  .sort((a, b) => {
-                    // Most recent first (by scheduled_date desc, then scheduled_time desc)
-                    const dateA = `${a.scheduled_date}T${a.scheduled_time}`;
-                    const dateB = `${b.scheduled_date}T${b.scheduled_time}`;
-                    return dateB.localeCompare(dateA);
-                  })
-                  .map(post => (
-                  <div key={post.id} className="bg-white rounded-xl shadow-sm border p-4 cursor-pointer hover:shadow-md transition-shadow" onClick={() => setPreviewPost(post)}>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                          post.platform === 'instagram' ? 'bg-pink-100 text-pink-700'
-                          : post.platform === 'tiktok' ? 'bg-neutral-800 text-white'
-                          : 'bg-[#0c1a3a]/10 text-[#0c1a3a]'
-                        }`}>{post.platform}</span>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-600">{post.format}</span>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-600">{post.pillar}</span>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full ${
-                          post.status === 'published' ? 'bg-green-100 text-green-700'
-                          : post.status === 'publish_failed' ? 'bg-red-100 text-red-700'
-                          : post.status === 'approved' ? 'bg-[#0c1a3a]/10 text-[#0c1a3a]'
-                          : post.status === 'skipped' ? 'bg-neutral-100 text-neutral-500'
-                          : post.status === 'video_generating' ? 'bg-purple-100 text-purple-700'
-                          : 'bg-amber-100 text-amber-700'
-                        }`}>{post.status === 'publish_failed' ? 'Echec' : post.status === 'video_generating' ? 'Video...' : post.status}</span>
-                      </div>
-                      <span className="text-[10px] text-neutral-400">{post.scheduled_date} {post.scheduled_time}</span>
-                    </div>
-                    {post.hook && <div className="text-sm font-semibold text-neutral-900 mb-1">{post.hook}</div>}
-                    <div className="text-xs text-neutral-600 whitespace-pre-line mb-2">{post.caption?.substring(0, 200)}{(post.caption?.length || 0) > 200 ? '...' : ''}</div>
-                    {post.visual_url && (
-                      <div className="mb-2">
-                        <a href={post.visual_url} target="_blank" rel="noopener noreferrer">
-                          <img src={post.visual_url} alt="Visuel du post" className="w-full max-w-xs rounded-lg border border-neutral-200 hover:opacity-90 transition-opacity" />
-                        </a>
-                      </div>
-                    )}
-                    {post.visual_description && (
-                      <div className="text-[10px] text-neutral-400 bg-neutral-50 rounded p-2 mb-2">Visuel : {post.visual_description}</div>
-                    )}
-                    {/* Publish error banner */}
-                    {post.publish_error && (
-                      <div className="bg-red-50 border border-red-200 rounded-lg p-2 mb-2 text-xs text-red-700" onClick={e => e.stopPropagation()}>
-                        <span className="font-semibold">Erreur :</span> {post.publish_error}
-                        {post.publish_diagnostic?.reason && <span className="ml-1 text-red-500">({post.publish_diagnostic.reason})</span>}
-                      </div>
-                    )}
-                    {/* Action buttons */}
-                    <div className="flex flex-wrap gap-2 mt-1" onClick={e => e.stopPropagation()}>
-                      {(post.status === 'draft' || post.status === 'approved' || post.status === 'publish_failed') && (
-                        <>
-                          {post.status === 'draft' && (
-                            <button onClick={() => handleContentAction(post.id, 'approve')} className="text-xs px-2 py-1 rounded bg-[#0c1a3a]/5 text-[#0c1a3a] hover:bg-[#0c1a3a]/10">Approuver</button>
-                          )}
-                          <button onClick={() => handleContentAction(post.id, 'publish', 'instagram')} className="text-xs px-2 py-1 rounded bg-pink-50 text-pink-600 hover:bg-pink-100">Publier Insta</button>
-                          <button onClick={() => handleContentAction(post.id, 'publish', 'tiktok')} className="text-xs px-2 py-1 rounded bg-black/5 text-neutral-800 hover:bg-black/10">Publier TikTok</button>
-                          <button onClick={() => handleContentAction(post.id, 'publish', 'all')} className="text-xs px-2 py-1 rounded bg-green-50 text-green-600 hover:bg-green-100">Publier Tous</button>
-                        </>
-                      )}
-                      {(post.status === 'draft' || post.status === 'approved') && (
-                        <>
-                          <button onClick={() => handleModifyPost(post.id)} disabled={modifyingPost === post.id} className="text-xs px-2 py-1 rounded bg-purple-50 text-purple-600 hover:bg-purple-100 disabled:opacity-50">{modifyingPost === post.id ? 'Modification...' : 'Modifier'}</button>
-                          <button onClick={() => handleDeletePost(post.id)} className="text-xs px-2 py-1 rounded bg-red-50 text-red-500 hover:bg-red-100">Supprimer</button>
-                          <button onClick={() => handleContentAction(post.id, 'skip')} className="text-xs px-2 py-1 rounded bg-neutral-50 text-neutral-400 hover:bg-neutral-100">Ignorer</button>
-                        </>
-                      )}
-                      {post.status === 'publish_failed' && (
-                        <button onClick={() => handleResetToDraft(post.id)} className="text-xs px-2 py-1 rounded bg-amber-50 text-amber-600 hover:bg-amber-100">Repasser en brouillon</button>
-                      )}
-                      {post.status === 'published' && !post.instagram_permalink && (
-                        <>
-                          <button onClick={() => handleContentAction(post.id, 'publish', 'instagram')} className="text-xs px-2 py-1 rounded bg-pink-50 text-pink-600 hover:bg-pink-100">Republier Insta</button>
-                          <button onClick={() => handleContentAction(post.id, 'publish', 'tiktok')} className="text-xs px-2 py-1 rounded bg-black/5 text-neutral-800 hover:bg-black/10">Republier TikTok</button>
-                        </>
-                      )}
-                      {post.status === 'published' && (
-                        <button onClick={() => handleResetToDraft(post.id)} className="text-xs px-2 py-1 rounded bg-amber-50 text-amber-600 hover:bg-amber-100">Repasser en brouillon</button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
         {activeTab === 'logs' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -3486,6 +3356,15 @@ function AdminAgentsContent() {
                   )}
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+        {/* ===== TAB AVATARS ===== */}
+        {activeTab === 'avatars' && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-neutral-900">Avatars & Personnalités</h2>
+            <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
+              <AvatarEditor />
             </div>
           </div>
         )}

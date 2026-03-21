@@ -4,7 +4,7 @@ import { getAuthUser } from '@/lib/auth-server';
 import { callGemini } from '@/lib/agents/gemini';
 import { getAmitSystemPrompt, getAmitAnalysisPrompt } from '@/lib/agents/amit-prompt';
 import { saveLearning, saveAgentFeedback, getAllAgentLearnings, getAgentFeedbacks } from '@/lib/agents/learning';
-import { loadSharedContext, formatContextForPrompt } from '@/lib/agents/shared-context';
+import { loadContextWithAvatar } from '@/lib/agents/shared-context';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

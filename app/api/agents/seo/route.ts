@@ -4,7 +4,7 @@ import { getAuthUser } from '@/lib/auth-server';
 import { getSeoWriterPrompt, getSeoCalendarPrompt } from '@/lib/agents/seo-prompt';
 import { KEYWORD_CLUSTERS, pickNextKeyword } from '@/lib/agents/seo-keywords';
 import { callGemini } from '@/lib/agents/gemini';
-import { loadSharedContext, formatContextForPrompt } from '@/lib/agents/shared-context';
+import { loadContextWithAvatar } from '@/lib/agents/shared-context';
 import { getGscReport } from '@/lib/agents/gsc';
 import { saveLearning, saveAgentFeedback } from '@/lib/agents/learning';
 
@@ -375,8 +375,7 @@ async function generateArticle(keyword: string | null): Promise<NextResponse> {
     console.log(`[SEOAgent] Generating article for: "${targetKeyword}"`);
 
     // Load shared CRM context for data-driven content
-    const sharedCtx = await loadSharedContext(supabase, 'seo');
-    const crmContext = formatContextForPrompt(sharedCtx);
+    const { prompt: crmContext } = await loadContextWithAvatar(supabase, 'seo');
 
     // Fetch Google Search Console data for data-driven SEO
     let gscContext = '';
@@ -410,7 +409,7 @@ Contexte supplementaire :
 - KeiroAI permet de generer des visuels marketing en quelques secondes grace a l'IA
 - La plateforme cible les commerces locaux et entrepreneurs (restaurants, boutiques, coaches, coiffeurs, freelances, artisans, pros, agences, PME)
 - URL du site : https://www.keiroai.com
-- Plans : Sprint 4.99€/3j, Pro 89€/mois, Fondateurs 149€/mois (offre limitée), Business 349€, Elite 999€
+- Plans : Essai gratuit 7j (sans carte bancaire), Pro 49€/mois, Fondateurs 149€/mois (offre limitée), Business 349€, Elite 999€
 - L'article sera publie sur le blog de KeiroAI
 - Date : ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
 

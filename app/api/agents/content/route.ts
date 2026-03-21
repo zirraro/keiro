@@ -9,7 +9,7 @@ import { createT2VTask, checkT2VTask } from '@/lib/kling';
 import { publishReelToInstagram } from '@/lib/meta';
 // Ken Burns + FFmpeg removed — doesn't work on Vercel serverless
 // Video pipeline now uses Seedance T2V / Kling T2V
-import { loadSharedContext, formatContextForPrompt, completeDirective } from '@/lib/agents/shared-context';
+import { completeDirective, loadContextWithAvatar } from '@/lib/agents/shared-context';
 import { decomposePromptIntoScenes, calculateSegments } from '@/lib/video-scenes';
 import { createVideoJob } from '@/lib/video-jobs-db';
 import { diagnosePublishFailure, sendPublishAlert } from '@/lib/agents/publish-diagnostics';
@@ -2373,8 +2373,8 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
   // Load shared intelligence pool (all agents' data + active directives)
   let sharedIntelligence = '';
   try {
-    const ctx = await loadSharedContext(supabase, 'content');
-    sharedIntelligence = formatContextForPrompt(ctx);
+    const { prompt: ctxPrompt } = await loadContextWithAvatar(supabase, 'content');
+    sharedIntelligence = ctxPrompt;
   } catch (e: any) {
     console.warn('[Content] Failed to load shared context:', e.message);
   }

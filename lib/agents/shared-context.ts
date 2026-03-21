@@ -14,6 +14,7 @@
 
 import { SupabaseClient } from '@supabase/supabase-js';
 import { getActiveLearnings, getAllAgentLearnings, getAgentFeedbacks, formatLearningsForPrompt, type AgentLearning, type AgentFeedback } from './learning';
+import { getAgentAvatar, formatAvatarForPrompt, type AgentAvatarConfig } from './avatar';
 
 interface AgentContext {
   crmStats: {
@@ -485,4 +486,25 @@ FUNNEL DE CONVERSION:
   }
 
   return text;
+}
+
+/**
+ * Load shared context + avatar in one call. Returns formatted prompt block
+ * with identity first, then shared data pool.
+ */
+export async function loadContextWithAvatar(
+  supabase: SupabaseClient,
+  agentName: string,
+): Promise<{ context: AgentContext; avatar: AgentAvatarConfig; prompt: string }> {
+  const [context, avatar] = await Promise.all([
+    loadSharedContext(supabase, agentName),
+    getAgentAvatar(supabase, agentName),
+  ]);
+  const avatarBlock = formatAvatarForPrompt(avatar);
+  const contextBlock = formatContextForPrompt(context);
+  return {
+    context,
+    avatar,
+    prompt: avatarBlock + '\n\n' + contextBlock,
+  };
 }

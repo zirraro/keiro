@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { getCeoSystemPrompt } from '@/lib/agents/ceo-prompt';
 import { callGemini, callGeminiChat } from '@/lib/agents/gemini';
-import { loadSharedContext, formatContextForPrompt, writeDirective } from '@/lib/agents/shared-context';
+import { writeDirective, loadContextWithAvatar } from '@/lib/agents/shared-context';
 import { saveLearning, saveAgentFeedback } from '@/lib/agents/learning';
 
 export const runtime = 'nodejs';
@@ -678,9 +678,8 @@ async function generateBrief(): Promise<NextResponse> {
 
     console.log('[CEOAgent] Metrics collected, loading shared context...');
 
-    // Load the full shared data pool (all agents' performance)
-    const sharedCtx = await loadSharedContext(supabase, 'ceo');
-    const sharedDataPool = formatContextForPrompt(sharedCtx);
+    // Load the full shared data pool + avatar personality
+    const { context: sharedCtx, prompt: sharedDataPool } = await loadContextWithAvatar(supabase, 'ceo');
 
     // --- Collect agent execution status (which agents ran in last 24h) ---
     const TRACKED_AGENTS = ['email', 'commercial', 'dm_instagram', 'tiktok_comments', 'seo', 'content', 'onboarding', 'retention', 'marketing', 'community'];

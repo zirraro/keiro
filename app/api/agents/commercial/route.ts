@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { getCommercialSystemPrompt } from '@/lib/agents/commercial-prompt';
 import { callGemini, callGeminiWithSearch } from '@/lib/agents/gemini';
-import { loadSharedContext, formatContextForPrompt } from '@/lib/agents/shared-context';
+import { loadContextWithAvatar } from '@/lib/agents/shared-context';
 import { saveLearning, saveAgentFeedback } from '@/lib/agents/learning';
 import { calculateScore, calculateTemperature } from '@/lib/agents/scoring';
 
@@ -358,8 +358,7 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
     }
 
     // Load shared context from all agents (see what email/DM/content agents have done)
-    const sharedCtx = await loadSharedContext(supabase, 'commercial');
-    const ctxText = formatContextForPrompt(sharedCtx);
+    const { context: sharedCtx, prompt: ctxText } = await loadContextWithAvatar(supabase, 'commercial');
     console.log(`[CommercialAgent] CRM: ${sharedCtx.crmStats.total} prospects, ${sharedCtx.crmStats.hot} hot, ${sharedCtx.crmStats.withInstagram} IG — mode: ${mode}`);
 
     const runPhase1 = mode === 'verify_crm' || mode === 'full';

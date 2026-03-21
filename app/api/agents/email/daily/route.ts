@@ -4,7 +4,7 @@ import { getEmailTemplate } from '@/lib/agents/email-templates';
 import { getSequenceForProspect } from '@/lib/agents/scoring';
 import { verifyProspectData, verifyCRMCoherence } from '@/lib/agents/business-timing';
 import { callGemini } from '@/lib/agents/gemini';
-import { loadSharedContext, formatContextForPrompt } from '@/lib/agents/shared-context';
+import { loadContextWithAvatar } from '@/lib/agents/shared-context';
 import { canSendEmail } from '@/lib/agents/email-dedup';
 import { saveLearning, saveAgentFeedback } from '@/lib/agents/learning';
 
@@ -35,8 +35,8 @@ interface SendResult {
  */
 async function loadAgentLearnings(): Promise<string> {
   const supabase = getSupabaseAdmin();
-  const ctx = await loadSharedContext(supabase, 'email');
-  let context = formatContextForPrompt(ctx);
+  const { prompt: contextPrompt } = await loadContextWithAvatar(supabase, 'email');
+  let context = contextPrompt;
 
   // Add email-specific performance data
   const { data: recentRuns } = await supabase
@@ -133,7 +133,7 @@ STEP 2 (relance douce, J+3) : "Je te relance vite fait..." + rappeler step 1 + s
 STEP 3 (valeur gratuite, J+5) : Donne un conseil concret et actionnable sans rien demander en retour. Genre "3 astuces pour tes stories" ou "ton erreur #1 sur Insta". Pas de CTA vente, juste de la valeur. Signe "Victor ✌️" et c'est tout.
 STEP 4 (FOMO concurrents, J+8) : "Tes concurrents postent déjà..." + montrer que le marché bouge + urgence naturelle + CTA direct
 STEP 5 (dernière chance, J+12) : Ultra direct et désarmant. "Pas de souci si c'est pas le moment" + dernière proposition + "je te laisse tranquille après"
-WARM (step 10) : "Suite à notre échange..." + très personnalisé + proposer Sprint 4.99€
+WARM (step 10) : "Suite à notre échange..." + très personnalisé + proposer essai gratuit 7 jours
 
 VÉRIFICATION BUSINESS OBLIGATOIRE :
 - AVANT d'écrire l'email, vérifie que le nom du commerce EST CRÉDIBLE. Un nom inventé/hallucinated = INTERDIT.
@@ -157,7 +157,7 @@ INTERDICTIONS ABSOLUES :
 - JAMAIS "n'hésitez pas" / "nous vous proposons" / "cher" / "cordialement" / "Bonjour"
 - JAMAIS plus de 6 lignes de corps
 - JAMAIS d'emoji dans l'objet (sauf ✌️ dans la signature)
-- JAMAIS mentionner le prix dans le step 1 (sauf Sprint 4.99€)
+- JAMAIS mentionner le prix dans le step 1 (sauf essai gratuit)
 - JAMAIS de "?" en tout début de ligne (la question doit commencer par des mots)
 - JAMAIS de nom de commerce qui sonne faux ou inventé — si le nom est bizarre, dis juste "ton commerce" ou "ton resto"
 - Signature : Victor de KeiroAI (JAMAIS Oussama, JAMAIS "l'équipe KeiroAI")
@@ -1183,7 +1183,14 @@ export async function GET(request: NextRequest) {
       // Send or draft all emails
       const drafts: Array<{ prospect_id: string; email: string; company: string; step: number; category: string; subject: string; body: string; ai_generated: boolean }> = [];
 
+      // Dedup: prevent same prospect from receiving 2 emails in same batch run
+      const sentInThisBatch = new Set<string>();
+
       for (const { prospect, category, step } of batchForAI) {
+        if (sentInThisBatch.has(prospect.id)) {
+          console.log(`[EmailDaily] Duplicate in batch: ${prospect.email} already processed, skipping`);
+          continue;
+        }
         // Quota guard: stop when daily Brevo limit reached
         if (remainingQuota <= 0) {
           console.log(`[EmailDaily] Daily quota exhausted (${DAILY_EMAIL_LIMIT}/day). Stopping cold batch.`);
@@ -1194,6 +1201,7 @@ export async function GET(request: NextRequest) {
           console.warn(`[EmailDaily] Send time guard: stopping after ${results.length} emails sent (${Math.round((Date.now() - runStart) / 1000)}s)`);
           break;
         }
+        sentInThisBatch.add(prospect.id);
         const aiEmail = aiEmails.get(prospect.id);
 
         // Fallback to template if AI failed

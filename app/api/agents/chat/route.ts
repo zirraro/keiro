@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { callGeminiChat } from '@/lib/agents/gemini';
-import { loadSharedContext, formatContextForPrompt } from '@/lib/agents/shared-context';
+import { loadContextWithAvatar } from '@/lib/agents/shared-context';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -202,8 +202,8 @@ TES CAPACITÉS ANALYTIQUES :
 
 CONTEXTE BUSINESS :
 - Cibles : restaurants, boutiques, coaches, barbershops, freelances, services, pros, agences, PME
-- Plans : Sprint 4.99€/3j, Pro 89€/mois, Fondateurs 149€/mois, Business 349€, Elite 999€
-- Séquence de vente : Fondateurs 149€ → Pro 89€ en repli → Sprint 4.99€ en filet
+- Plans : Essai gratuit 7j (3 visuels + 1 vidéo, sans carte), Pro 49€/mois, Fondateurs 149€/mois, Business 349€, Elite 999€
+- Séquence de vente : Fondateurs 149€ → Pro 49€ en repli → Essai gratuit 7 jours en filet
 - Objectif : 16 clients/mois, ARPU ~94€
 
 Quand le fondateur te demande une action, inclus une section ## ORDRES à exécuter.
@@ -293,9 +293,9 @@ export async function POST(request: NextRequest) {
       }).join('\n');
     }
 
-    // Shared CRM context (all agents see the same data)
-    const sharedCtx = await loadSharedContext(supabase, agent);
-    const statsContext = '\n\n' + formatContextForPrompt(sharedCtx) + `\n- Date: ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`;
+    // Shared CRM context + avatar personality (all agents see the same data)
+    const { prompt: sharedPrompt } = await loadContextWithAvatar(supabase, agent);
+    const statsContext = '\n\n' + sharedPrompt + `\n- Date: ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`;
 
     const systemPrompt = agentConfig.systemPrompt + activityContext + statsContext;
 
