@@ -107,7 +107,7 @@ export default function AssistantPage() {
 
   // ─── Load agents based on plan (AMI first as star) ──────
   useEffect(() => {
-    const visible = getVisibleAgents(userPlan);
+    const visible = getVisibleAgents(userPlan, isAdmin);
     // Put AMI (marketing) first as the star agent
     const amiIndex = visible.findIndex(a => a.id === 'marketing');
     if (amiIndex > 0) {
@@ -115,7 +115,7 @@ export default function AssistantPage() {
       visible.unshift(ami);
     }
     setAgents(visible);
-  }, [userPlan]);
+  }, [userPlan, isAdmin]);
 
   // ─── Load AMI dashboard stats ─────────────────────────
   useEffect(() => {
@@ -492,7 +492,7 @@ export default function AssistantPage() {
         )}
 
         {showTeams ? (
-          <AgentTeams agents={agents} userPlan={userPlan} />
+          <AgentTeams agents={agents} userPlan={userPlan} avatars={avatars} />
         ) : (
           /* Desktop: grid + chat side panel */
           <div className="flex gap-6">

@@ -283,7 +283,7 @@ export const CLIENT_AGENTS: ClientAgent[] = [
   },
 ];
 
-export function getVisibleAgents(plan: string): ClientAgent[] {
+export function getVisibleAgents(plan: string, isAdmin = false): ClientAgent[] {
   const planOrder = ['gratuit', 'sprint', 'solo', 'solo_promo', 'fondateurs', 'standard', 'business', 'elite'];
   const userPlanIndex = planOrder.indexOf(plan || 'gratuit');
 
@@ -291,10 +291,11 @@ export function getVisibleAgents(plan: string): ClientAgent[] {
     .filter(a => a.visibility !== 'background')
     .map(a => {
       const requiredIndex = planOrder.indexOf(a.minPlan);
-      const isAccessible = userPlanIndex >= requiredIndex;
+      const isAccessible = isAdmin || userPlanIndex >= requiredIndex;
       return {
         ...a,
-        visibility: a.visibility === 'coming_soon' ? 'coming_soon' : (isAccessible ? 'active' : 'coming_soon'),
+        // Admin sees all agents as active, regardless of coming_soon flag
+        visibility: isAdmin ? 'active' : (a.visibility === 'coming_soon' ? 'coming_soon' : (isAccessible ? 'active' : 'coming_soon')),
       } as ClientAgent;
     });
 }
