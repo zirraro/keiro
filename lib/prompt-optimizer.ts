@@ -9,8 +9,82 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import { createClient } from '@supabase/supabase-js';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+// ── Background Agent Intelligence ──────────────────────────
+// Content + Marketing agent learnings are injected into prompts
+// to improve image quality based on accumulated knowledge.
+
+let _cachedInsights: string | null = null;
+let _cachedAt = 0;
+const CACHE_TTL = 15 * 60 * 1000; // 15 min
+
+/**
+ * Load high-confidence visual learnings from Content + Marketing agents.
+ * Cached for 15 minutes to avoid DB hits on every generation.
+ */
+async function loadAgentVisualInsights(): Promise<string> {
+  if (_cachedInsights && Date.now() - _cachedAt < CACHE_TTL) return _cachedInsights;
+
+  try {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !key) return '';
+
+    const sb = createClient(url, key);
+
+    // Fetch top visual-relevant learnings from Content + Marketing (Rule+ = 65+)
+    const { data } = await sb
+      .from('agent_logs')
+      .select('data')
+      .in('agent', ['content', 'marketing', 'seo'])
+      .in('action', ['learning', 'learning_acquired'])
+      .order('created_at', { ascending: false })
+      .limit(300);
+
+    if (!data?.length) { _cachedInsights = ''; _cachedAt = Date.now(); return ''; }
+
+    // Filter to high-confidence visual-relevant learnings
+    const visualCategories = new Set([
+      'content_format_evolution', 'instagram_algorithm', 'instagram_history',
+      'visual_content_trends', 'video_length_optimization', 'posting_frequency',
+      'tiktok_algorithm', 'linkedin_algorithm', 'hashtag_evolution',
+      'ugc_creator_economy', 'content_repurposing', 'french_market',
+      'social_commerce', 'ugc_strategy', 'viral_acquisition',
+      'creative_fatigue', 'audience_targeting', 'roas_benchmarks',
+      'ai_content', 'social_seo',
+    ]);
+
+    const insights: string[] = [];
+    for (const row of data) {
+      const d = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
+      if (!d?.learning || !d?.confidence) continue;
+      if (d.confidence < 65) continue; // Rule+ only
+      const cat = d.category || '';
+      if (visualCategories.has(cat) || cat.includes('visual') || cat.includes('content') || cat.includes('instagram') || cat.includes('tiktok')) {
+        insights.push(d.learning.substring(0, 200));
+        if (insights.length >= 8) break; // Cap at 8 insights to avoid prompt bloat
+      }
+    }
+
+    _cachedInsights = insights.length > 0
+      ? `\nINTELLIGENCE AGENTS (tendances visuelles actuelles basees sur l'analyse de donnees):\n${insights.map((i, idx) => `${idx + 1}. ${i}`).join('\n')}`
+      : '';
+    _cachedAt = Date.now();
+
+    if (insights.length > 0) {
+      console.log(`[PromptOptimizer] Loaded ${insights.length} visual insights from agent learnings`);
+    }
+    return _cachedInsights;
+  } catch (err: any) {
+    console.warn('[PromptOptimizer] Agent insights load failed (non-fatal):', err?.message);
+    _cachedInsights = '';
+    _cachedAt = Date.now();
+    return '';
+  }
+}
 
 // Angles de caméra/composition — sélection aléatoire à chaque appel
 const CREATIVE_ANGLES = [
@@ -152,6 +226,9 @@ export async function optimizePromptForImage(rawPrompt: string, trendAnalysis?: 
   const angle = getRandomElement(CREATIVE_ANGLES);
   const mood = getRandomElement(CREATIVE_MOODS);
 
+  // Load background agent intelligence (Content + Marketing learnings)
+  const agentInsights = await loadAgentVisualInsights();
+
   try {
     const message = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
@@ -164,6 +241,7 @@ export async function optimizePromptForImage(rawPrompt: string, trendAnalysis?: 
 DIRECTION CREATIVE:
 - Camera: ${angle}
 - Lumiere: ${mood}
+${agentInsights}
 
 TACHE: Transforme ce prompt en DESCRIPTION VISUELLE PURE pour un modele d'image.
 

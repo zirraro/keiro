@@ -1,802 +1,446 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/client';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import ChatMarketingTab from './ChatMarketingTab';
-import ProfileEnrichmentModal, { shouldShowEnrichmentModal } from '@/components/ProfileEnrichmentModal';
-import FeedbackPopup from '@/components/FeedbackPopup';
-import FeedbackModal from '@/components/FeedbackModal';
-import { useFeedbackPopup } from '@/hooks/useFeedbackPopup';
-import { useLanguage } from '@/lib/i18n/context';
+import { getVisibleAgents, type ClientAgent } from '@/lib/agents/client-context';
+import AgentCard from './components/AgentCard';
+import AgentChatPanel, { type ChatMessage } from './components/AgentChatPanel';
+import DossierBanner from './components/DossierBanner';
+import ComingSoonBanner from './components/ComingSoonBanner';
+import AgentTeams from './components/AgentTeams';
+
+// ─── Types ─────────────────────────────────────────────────
+
+interface AvatarMap {
+  [agentId: string]: string | null;
+}
+
+// ─── Helpers ───────────────────────────────────────────────
+
+function generateId(): string {
+  return 'msg_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+}
+
+function useIsMobile(): boolean {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 1024);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+  return isMobile;
+}
+
+// ─── Coming Soon Mode ──────────────────────────────────────
+// Set to true to show everything as "coming soon"
+// Set to false when agents are ready to go live
+const COMING_SOON_MODE = true;
+
+// ─── Main Page ─────────────────────────────────────────────
 
 export default function AssistantPage() {
-  const feedback = useFeedbackPopup();
-  const { t } = useLanguage();
+  const isMobile = useIsMobile();
+
+  // Auth & profile
   const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<Record<string, any> | null>(null);
+  const [userPlan, setUserPlan] = useState<string>('gratuit');
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'formation' | 'chat'>('chat');
-  const [profile, setProfile] = useState<any>(null);
-  const [showEnrichmentModal, setShowEnrichmentModal] = useState(false);
 
-  // Analytics data
-  const [stats, setStats] = useState({
-    postsThisWeek: 0,
-    avgEngagement: 0,
-    avgViews: 0,
-    avgLikes: 0,
-    topCategory: '',
-    improvement: 0,
-    totalPosts: 0,
-    tableExists: false
-  });
+  // Agent grid
+  const [agents, setAgents] = useState<ClientAgent[]>([]);
+  const [avatars, setAvatars] = useState<AvatarMap>({});
 
-  const [chartData, setChartData] = useState<any>({
-    engagementTrend: [],
-    bestTimes: {},
-    topCategories: []
-  });
+  // Chat state
+  const [selectedAgent, setSelectedAgent] = useState<ClientAgent | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [chatLoading, setChatLoading] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState<string | null>(null);
 
+  // Notify modal state
+  const [showNotifyModal, setShowNotifyModal] = useState(false);
+  const [notifyEmail, setNotifyEmail] = useState('');
+  const [notifySubmitted, setNotifySubmitted] = useState(false);
+
+  // View mode
+  const [showTeams, setShowTeams] = useState(false);
+
+  // ─── Auth check ─────────────────────────────────────────
   useEffect(() => {
-    checkAuth();
+    async function init() {
+      const supabase = supabaseBrowser();
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+
+      if (user) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('subscription_plan, company_name, company_description, website, target_audience, main_products, brand_tone, social_goals_monthly, content_themes, competitors, posting_frequency')
+          .eq('id', user.id)
+          .single();
+
+        if (profileData) {
+          setProfile(profileData);
+          setUserPlan(profileData.subscription_plan || 'gratuit');
+        }
+      }
+
+      setLoading(false);
+    }
+    init();
   }, []);
 
+  // ─── Load agents based on plan ──────────────────────────
   useEffect(() => {
-    if (user) {
-      loadStats();
-    }
-  }, [user]);
+    const visible = getVisibleAgents(userPlan);
+    setAgents(visible);
+  }, [userPlan]);
 
-  async function checkAuth() {
-    const supabase = supabaseBrowser();
-    const { data: { user } } = await supabase.auth.getUser();
-    setUser(user);
-    setLoading(false);
-
-    if (user) {
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('company_name, website, business_since, team_size, social_networks, posting_frequency, main_goal, marketing_budget, target_audience, acquisition_source, company_description, brand_tone, main_products, competitors, content_themes, social_goals_monthly')
-        .eq('id', user.id)
-        .single();
-
-      if (profileData && shouldShowEnrichmentModal(profileData)) {
-        setProfile(profileData);
-        setShowEnrichmentModal(true);
+  // ─── Load avatars from admin API ────────────────────────
+  useEffect(() => {
+    async function loadAvatars() {
+      try {
+        const res = await fetch('/api/admin/avatars');
+        const data = await res.json();
+        if (data.avatars) {
+          const map: AvatarMap = {};
+          for (const a of data.avatars) {
+            map[a.id] = a.avatar_3d_url || a.avatar_url || null;
+          }
+          setAvatars(map);
+        }
+      } catch {
+        // Silent fail — cards will show emoji fallback
       }
     }
-  }
+    loadAvatars();
+  }, []);
 
-  async function loadStats() {
+  // ─── Load chat history when selecting an agent ──────────
+  useEffect(() => {
+    if (!selectedAgent || !user) return;
+    if (historyLoaded === selectedAgent.id) return;
+    if (COMING_SOON_MODE) return; // Skip loading in coming-soon mode
+
+    async function loadHistory() {
+      try {
+        const res = await fetch(`/api/agents/client-chat?agent_id=${selectedAgent!.id}`, {
+          credentials: 'include',
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.messages && Array.isArray(data.messages)) {
+            setMessages(data.messages.map((m: any, i: number) => ({
+              id: m.id || `hist_${i}`,
+              role: m.role,
+              content: m.content,
+              created_at: m.created_at || m.timestamp || new Date().toISOString(),
+            })));
+          }
+        }
+      } catch {
+        // History not available — start fresh
+      }
+      setHistoryLoaded(selectedAgent!.id);
+    }
+    loadHistory();
+  }, [selectedAgent, user, historyLoaded]);
+
+  // ─── Select agent ───────────────────────────────────────
+  const handleSelectAgent = useCallback((agent: ClientAgent) => {
+    if (COMING_SOON_MODE) {
+      // In coming-soon mode, show the chat panel with overlay
+      setSelectedAgent(agent);
+      setMessages([]);
+      return;
+    }
+    if (agent.visibility === 'coming_soon') return;
+    setSelectedAgent(agent);
+    setMessages([]);
+    setHistoryLoaded(null);
+  }, []);
+
+  const handleBack = useCallback(() => {
+    setSelectedAgent(null);
+    setMessages([]);
+    setHistoryLoaded(null);
+  }, []);
+
+  // ─── Send message ───────────────────────────────────────
+  const handleSendMessage = useCallback(async (text: string) => {
+    if (!selectedAgent || !text.trim()) return;
+
+    const userMsg: ChatMessage = {
+      id: generateId(),
+      role: 'user',
+      content: text,
+      created_at: new Date().toISOString(),
+    };
+    setMessages(prev => [...prev, userMsg]);
+    setChatLoading(true);
+
     try {
-      const res = await fetch('/api/assistant/stats');
-      const data = await res.json();
+      const res = await fetch('/api/agents/client-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          agent_id: selectedAgent.id,
+          message: text,
+        }),
+      });
 
-      if (data.ok) {
-        setStats(data.stats);
-        setChartData(data.chartData);
+      if (res.ok) {
+        const data = await res.json();
+        const assistantMsg: ChatMessage = {
+          id: generateId(),
+          role: 'assistant',
+          content: data.message || data.reply || 'Reponse recue.',
+          created_at: new Date().toISOString(),
+        };
+        setMessages(prev => [...prev, assistantMsg]);
       } else {
-        console.error('Error loading stats:', data.error);
+        // API doesn't exist yet or errored
+        const assistantMsg: ChatMessage = {
+          id: generateId(),
+          role: 'assistant',
+          content: `Merci pour ton message ! Cette fonctionnalite est en cours de deploiement. ${selectedAgent.displayName} sera bientot disponible pour t'aider.`,
+          created_at: new Date().toISOString(),
+        };
+        setMessages(prev => [...prev, assistantMsg]);
       }
-    } catch (error) {
-      console.error('Failed to load stats:', error);
+    } catch {
+      const assistantMsg: ChatMessage = {
+        id: generateId(),
+        role: 'assistant',
+        content: 'Oups, probleme de connexion. Verifie ta connexion internet et reessaie.',
+        created_at: new Date().toISOString(),
+      };
+      setMessages(prev => [...prev, assistantMsg]);
+    } finally {
+      setChatLoading(false);
     }
-  }
+  }, [selectedAgent]);
 
+  // ─── Notify handler ─────────────────────────────────────
+  const handleNotifySubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!notifyEmail.trim()) return;
+    try {
+      const stored = JSON.parse(localStorage.getItem('keiro_agent_notify_emails') || '[]');
+      if (!stored.includes(notifyEmail)) {
+        stored.push(notifyEmail);
+        localStorage.setItem('keiro_agent_notify_emails', JSON.stringify(stored));
+      }
+    } catch { /* silent */ }
+    setNotifySubmitted(true);
+    setTimeout(() => {
+      setShowNotifyModal(false);
+      setNotifySubmitted(false);
+      setNotifyEmail('');
+    }, 2000);
+  };
+
+  // ─── Loading state ──────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen page-studio-bg flex items-center justify-center">
+      <div className="min-h-screen bg-[#0c1a3a] flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0c1a3a] mx-auto mb-4"></div>
-          <p className="text-neutral-600">{t.assistant.loadingAssistant}</p>
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-400 mx-auto mb-4" />
+          <p className="text-white/60 text-sm">Chargement de votre equipe...</p>
         </div>
       </div>
     );
   }
 
+  // ─── Not logged in ──────────────────────────────────────
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-[#0c1a3a] flex items-center justify-center px-4">
+        <div className="text-center max-w-sm">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center mx-auto mb-4">
+            <span className="text-3xl">🤖</span>
+          </div>
+          <h1 className="text-white font-bold text-xl mb-2">Votre Equipe IA</h1>
+          <p className="text-white/60 text-sm mb-6">
+            Connectez-vous pour acceder a votre equipe d&apos;agents IA personnalises.
+          </p>
+          <a
+            href="/login"
+            className="inline-block px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all"
+          >
+            Se connecter
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  // Clara avatar for dossier banner
+  const claraAvatarUrl = avatars['onboarding'] || null;
+
+  // ─── Mobile: show chat full screen if agent selected ────
+  if (isMobile && selectedAgent) {
+    return (
+      <AgentChatPanel
+        agent={selectedAgent}
+        avatarUrl={avatars[selectedAgent.id] || null}
+        messages={messages}
+        onSendMessage={handleSendMessage}
+        isLoading={chatLoading}
+        onBack={handleBack}
+        isMobile={true}
+        comingSoonMode={COMING_SOON_MODE}
+      />
+    );
+  }
+
+  // ─── Main layout ────────────────────────────────────────
   return (
-    <div className="min-h-screen page-studio-bg">
-      <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="min-h-screen bg-[#0c1a3a]">
+      <div className="max-w-7xl mx-auto px-4 py-6 pb-24 lg:pb-8">
 
-        {/* Header intelligent personnalisé */}
-        <div className="bg-white rounded-2xl shadow-lg border border-[#0c1a3a]/8 p-4 md:p-6 mb-6">
-          <div className="flex flex-col gap-4">
-            <div className="flex-1">
-              <h1 className="text-2xl md:text-3xl font-bold mb-2 text-[#0c1a3a]">
-                👋 {t.assistant.greeting} {user?.user_metadata?.full_name || user?.email?.split('@')[0] || t.assistant.greetingDefault} !
-              </h1>
-              <p className="text-sm md:text-base text-neutral-600 mb-4">
-                {t.assistant.dashboardSubtitle}
-              </p>
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-white font-bold text-2xl lg:text-3xl mb-1">
+            Votre Equipe IA
+          </h1>
+          <p className="text-white/50 text-sm">
+            {COMING_SOON_MODE
+              ? `${agents.length} agents IA specialises pour votre business`
+              : `${agents.filter(a => a.visibility === 'active').length} agents disponibles pour vous accompagner`
+            }
+          </p>
+        </div>
 
-              {/* Stats résumé */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mt-4 md:mt-6">
-                <div className="bg-gradient-to-br from-[#0c1a3a]/5 to-[#0c1a3a]/10 rounded-lg p-4 md:p-6">
-                  <div className="text-xs md:text-sm text-[#0c1a3a] font-semibold mb-2">{t.assistant.thisWeek}</div>
-                  <div className="text-3xl md:text-4xl font-bold text-[#0c1a3a] mb-1">{stats.postsThisWeek}</div>
-                  <div className="text-xs md:text-sm text-[#0c1a3a] mb-2">{t.assistant.visualsGenerated}</div>
-                  {stats.improvement > 0 && (
-                    <div className="text-xs md:text-sm text-green-600 font-semibold flex items-center gap-1">
-                      <span>↗</span> +{stats.improvement}% {t.assistant.vsLastWeek}
-                    </div>
-                  )}
-                </div>
+        {/* Coming soon banner */}
+        {COMING_SOON_MODE && <ComingSoonBanner />}
 
-                <div className="bg-gradient-to-br from-[#0c1a3a]/5 to-[#0c1a3a]/10 rounded-lg p-4 md:p-6">
-                  <div className="text-xs md:text-sm text-[#0c1a3a] font-semibold mb-2">{t.assistant.avgEngagement}</div>
-                  <div className="text-3xl md:text-4xl font-bold text-[#0c1a3a] mb-1">{stats.avgEngagement}</div>
-                  <div className="text-xs md:text-sm text-[#0c1a3a] mb-2">{t.assistant.viewsPerPost}</div>
-                  <div className="text-xs text-[#0c1a3a] font-medium">
-                    {stats.avgLikes} {t.assistant.avgLikes}
-                  </div>
-                </div>
+        {/* Dossier banner (always shown — users can pre-fill their data) */}
+        <DossierBanner profile={profile} claraAvatarUrl={claraAvatarUrl} />
 
-                <div className="bg-gradient-to-br from-[#0c1a3a]/5 to-[#0c1a3a]/10 rounded-lg p-4 md:p-6">
-                  <div className="text-xs md:text-sm text-[#0c1a3a] font-semibold mb-2">{t.assistant.publishedContent}</div>
-                  <div className="text-3xl md:text-4xl font-bold text-[#0c1a3a] mb-1">{stats.totalPosts}</div>
-                  <div className="text-xs md:text-sm text-[#0c1a3a] mb-2">{t.assistant.totalPosts}</div>
-                  <div className="text-xs text-[#0c1a3a] font-medium">
-                    {t.assistant.topTheme} {stats.topCategory}
-                  </div>
-                </div>
+        {/* View toggle: Grid / Teams */}
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={() => setShowTeams(false)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              !showTeams ? 'bg-purple-600 text-white' : 'bg-white/10 text-white/60 hover:bg-white/20'
+            }`}
+          >
+            Tous les agents
+          </button>
+          <button
+            onClick={() => setShowTeams(true)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              showTeams ? 'bg-purple-600 text-white' : 'bg-white/10 text-white/60 hover:bg-white/20'
+            }`}
+          >
+            Par pack
+          </button>
+        </div>
 
-                <div className="bg-gradient-to-br from-[#0c1a3a]/5 to-[#0c1a3a]/10 rounded-lg p-4 md:p-6">
-                  <div className="text-xs md:text-sm text-[#0c1a3a] font-semibold mb-2">{t.assistant.nextPost}</div>
-                  <div className="text-lg md:text-xl font-bold text-[#0c1a3a] mb-1">{t.assistant.bestTime}</div>
-                  <div className="text-xs md:text-sm text-[#0c1a3a] mb-2">{t.assistant.bestMoment}</div>
-                  <div className="text-xs text-[#0c1a3a] font-medium">
-                    {t.assistant.basedOnData}
-                  </div>
-                </div>
+        {showTeams ? (
+          <AgentTeams agents={agents} userPlan={userPlan} />
+        ) : (
+          /* Desktop: grid + chat side panel */
+          <div className="flex gap-6">
+            {/* Agent grid */}
+            <div className={`${selectedAgent && !isMobile ? 'w-1/2' : 'w-full'} transition-all duration-300`}>
+              <div className={`grid ${selectedAgent && !isMobile ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-2 lg:grid-cols-3'} gap-3`}>
+                {agents.map((agent) => (
+                  <AgentCard
+                    key={agent.id}
+                    agent={agent}
+                    avatarUrl={avatars[agent.id] || null}
+                    isSelected={selectedAgent?.id === agent.id}
+                    onClick={() => handleSelectAgent(agent)}
+                    comingSoonMode={COMING_SOON_MODE}
+                    onNotifyClick={() => {
+                      if (COMING_SOON_MODE) {
+                        setShowNotifyModal(true);
+                      }
+                    }}
+                  />
+                ))}
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Navigation onglets */}
-        <div className="bg-white rounded-xl shadow border border-neutral-200 mb-6">
-          <div className="flex border-b border-neutral-200">
-            <button
-              onClick={() => setActiveTab('dashboard')}
-              className={`flex-1 px-6 py-4 font-semibold transition-colors ${
-                activeTab === 'dashboard'
-                  ? 'text-[#0c1a3a] border-b-2 border-[#0c1a3a] bg-[#0c1a3a]/5'
-                  : 'text-neutral-600 hover:text-neutral-900'
-              }`}
-            >
-              📊 {t.assistant.tabDashboard}
-            </button>
-            <button
-              onClick={() => setActiveTab('chat')}
-              className={`flex-1 px-6 py-4 font-semibold transition-colors ${
-                activeTab === 'chat'
-                  ? 'text-purple-600 border-b-2 border-purple-600 bg-purple-50'
-                  : 'text-neutral-600 hover:text-neutral-900'
-              }`}
-            >
-              💬 {t.assistant.tabChat}
-            </button>
-            <button
-              onClick={() => setActiveTab('formation')}
-              className={`flex-1 px-6 py-4 font-semibold transition-colors ${
-                activeTab === 'formation'
-                  ? 'text-[#0c1a3a] border-b-2 border-[#0c1a3a] bg-[#0c1a3a]/5'
-                  : 'text-neutral-600 hover:text-neutral-900'
-              }`}
-            >
-              📺 {t.assistant.tabMasterclass}
-            </button>
+            {/* Desktop chat panel */}
+            {selectedAgent && !isMobile && (
+              <div className="w-1/2">
+                <div className="sticky top-6">
+                  <AgentChatPanel
+                    agent={selectedAgent}
+                    avatarUrl={avatars[selectedAgent.id] || null}
+                    messages={messages}
+                    onSendMessage={handleSendMessage}
+                    isLoading={chatLoading}
+                    onBack={handleBack}
+                    isMobile={false}
+                    comingSoonMode={COMING_SOON_MODE}
+                  />
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-
-        {/* Contenu selon onglet */}
-        {activeTab === 'dashboard' ? (
-          <DashboardTab stats={stats} chartData={chartData} user={user} />
-        ) : activeTab === 'chat' ? (
-          <ChatMarketingTab user={user} />
-        ) : (
-          <FormationTab />
         )}
       </div>
 
-      {/* Modal enrichissement profil */}
-      {showEnrichmentModal && user && (
-        <ProfileEnrichmentModal
-          profile={profile}
-          userId={user.id}
-          onClose={() => setShowEnrichmentModal(false)}
-        />
-      )}
-
-      <FeedbackPopup show={feedback.showPopup} onAccept={feedback.handleAccept} onDismiss={feedback.handleDismiss} />
-      <FeedbackModal isOpen={feedback.showModal} onClose={feedback.handleModalClose} />
-    </div>
-  );
-}
-
-// Onglet Dashboard
-function DashboardTab({ stats, chartData, user }: any) {
-  const { t } = useLanguage();
-  // Données de démo pour afficher des graphiques d'exemple
-  const demoEngagementTrend = [
-    { date: '2026-01-01', views: 320, likes: 45, comments: 8 },
-    { date: '2026-01-05', views: 450, likes: 62, comments: 12 },
-    { date: '2026-01-10', views: 380, likes: 51, comments: 9 },
-    { date: '2026-01-15', views: 620, likes: 89, comments: 18 },
-    { date: '2026-01-20', views: 540, likes: 75, comments: 14 },
-    { date: '2026-01-23', views: 710, likes: 102, comments: 22 }
-  ];
-
-  const demoBestTimes = [
-    { label: t.assistant.demoTimeTuesday6pm, engagement: 850 },
-    { label: t.assistant.demoTimeThursday12pm, engagement: 720 },
-    { label: t.assistant.demoTimeMonday9am, engagement: 680 },
-    { label: t.assistant.demoTimeWednesday8pm, engagement: 650 },
-    { label: t.assistant.demoTimeFriday5pm, engagement: 580 }
-  ];
-
-  const demoTopCategories = [
-    { category: 'Tech', count: 8, avgEngagement: 450 },
-    { category: 'Business', count: 6, avgEngagement: 380 },
-    { category: 'Marketing', count: 5, avgEngagement: 520 },
-    { category: t.assistant.demoCategoryHealth, count: 4, avgEngagement: 310 }
-  ];
-
-  const demoConversionRate = [
-    { date: '01/01', taux: 2.1 },
-    { date: '05/01', taux: 2.8 },
-    { date: '10/01', taux: 2.3 },
-    { date: '15/01', taux: 3.5 },
-    { date: '20/01', taux: 3.2 },
-    { date: '23/01', taux: 4.1 }
-  ];
-
-  const demoFollowerGrowth = [
-    { date: '01/01', followers: 1200 },
-    { date: '05/01', followers: 1350 },
-    { date: '10/01', followers: 1480 },
-    { date: '15/01', followers: 1720 },
-    { date: '20/01', followers: 1950 },
-    { date: '23/01', followers: 2180 }
-  ];
-
-  const demoHourlyPerformance = [
-    { hour: '6h', engagement: 120 },
-    { hour: '9h', engagement: 380 },
-    { hour: '12h', engagement: 520 },
-    { hour: '15h', engagement: 410 },
-    { hour: '18h', engagement: 680 },
-    { hour: '21h', engagement: 450 },
-    { hour: '23h', engagement: 280 }
-  ];
-
-  // Utiliser les vraies données si disponibles, sinon données de démo
-  const hasRealData = stats.totalPosts > 0;
-  const displayEngagementTrend = hasRealData && chartData.engagementTrend?.length > 0
-    ? chartData.engagementTrend
-    : demoEngagementTrend;
-  const displayTopCategories = hasRealData && chartData.topCategories?.length > 0
-    ? chartData.topCategories
-    : demoTopCategories;
-
-  // Préparer les données pour le graphique des meilleurs moments
-  let displayBestTimes: Array<{ label: string; engagement: number }> = [];
-
-  if (hasRealData && chartData.bestTimes && Object.keys(chartData.bestTimes).length > 0) {
-    // Utiliser les vraies données
-    const allSlots: Array<{ day: string; hour: number; engagement: number }> = [];
-
-    Object.entries(chartData.bestTimes).forEach(([day, hours]: [string, any]) => {
-      Object.entries(hours).forEach(([hour, engagement]: [string, any]) => {
-        if (engagement > 0) {
-          allSlots.push({
-            day,
-            hour: parseInt(hour),
-            engagement: engagement as number
-          });
-        }
-      });
-    });
-
-    allSlots.sort((a, b) => b.engagement - a.engagement);
-
-    allSlots.slice(0, 7).forEach(slot => {
-      displayBestTimes.push({
-        label: `${slot.day} ${slot.hour}h`,
-        engagement: slot.engagement
-      });
-    });
-  } else {
-    // Utiliser les données de démo
-    displayBestTimes = demoBestTimes;
-  }
-
-  return (
-    <div className="space-y-6">
-      {/* Bannière démo si pas de vraies données */}
-      {!hasRealData && (
-        <div className="bg-[#0c1a3a]/5 border border-[#0c1a3a]/10 rounded-xl p-4">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <div className="flex items-start gap-3">
-              <span className="text-2xl">📊</span>
-              <div>
-                <h3 className="font-bold text-[#0c1a3a] mb-1">{t.assistant.sampleData}</h3>
-                <p className="text-sm text-[#0c1a3a]/80">
-                  {t.assistant.sampleDataDesc}
-                </p>
+      {/* Notify modal */}
+      {showNotifyModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#0f1f3d] border border-white/10 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+            <div className="text-center mb-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center mx-auto mb-3">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
               </div>
+              <h3 className="text-white font-bold text-base">Soyez prevenu du lancement</h3>
+              <p className="text-white/50 text-xs mt-1">
+                Recevez un email des que votre equipe IA sera disponible.
+              </p>
             </div>
-            <a
-              href="/generate"
-              className="shrink-0 px-6 py-2 bg-[#0c1a3a] text-white font-semibold rounded-lg hover:shadow-lg transition-all whitespace-nowrap"
-            >
-              {t.assistant.createVisual}
-            </a>
+
+            {!notifySubmitted ? (
+              <form onSubmit={handleNotifySubmit}>
+                <input
+                  type="email"
+                  value={notifyEmail}
+                  onChange={(e) => setNotifyEmail(e.target.value)}
+                  placeholder="votre@email.com"
+                  required
+                  autoFocus
+                  className="w-full px-3.5 py-2.5 bg-white/10 border border-white/20 rounded-xl text-sm text-white placeholder-white/40 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none mb-3"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowNotifyModal(false)}
+                    className="flex-1 py-2.5 bg-white/10 text-white/70 text-sm font-medium rounded-xl hover:bg-white/20 transition-colors"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm font-semibold rounded-xl hover:shadow-lg transition-all"
+                  >
+                    Me notifier
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="text-center py-4">
+                <svg className="w-8 h-8 text-green-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <p className="text-green-400 text-sm font-medium">On te previent des le lancement !</p>
+              </div>
+            )}
           </div>
         </div>
       )}
-
-      {/* Section Analytics */}
-      <div className="bg-white rounded-xl shadow border border-neutral-200 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold">📈 {t.assistant.yourPerformance}</h2>
-          {!hasRealData && (
-            <span className="px-3 py-1 bg-[#0c1a3a]/10 text-[#0c1a3a]/80 text-xs font-bold rounded-full">
-              {t.assistant.sampleBadge}
-            </span>
-          )}
-        </div>
-
-        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {/* Graphique 1: Évolution engagement */}
-          <div className="bg-neutral-50 rounded-lg p-4 h-80">
-            <h3 className="text-sm font-semibold mb-3 text-neutral-700">{t.assistant.engagementTrend}</h3>
-            <ResponsiveContainer width="100%" height="90%">
-              <LineChart data={displayEngagementTrend}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fontSize: 10 }}
-                    tickFormatter={(value) => {
-                      const date = new Date(value);
-                      return `${date.getDate()}/${date.getMonth() + 1}`;
-                    }}
-                  />
-                  <YAxis tick={{ fontSize: 10 }} />
-                  <Tooltip
-                    contentStyle={{ fontSize: 12 }}
-                    labelFormatter={(value) => {
-                      const date = new Date(value);
-                      return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
-                    }}
-                  />
-                  <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Line type="monotone" dataKey="views" stroke="#0c1a3a" strokeWidth={2} name={t.assistant.views} />
-                  <Line type="monotone" dataKey="likes" stroke="#ec4899" strokeWidth={2} name={t.assistant.likes} />
-                  <Line type="monotone" dataKey="comments" stroke="#8b5cf6" strokeWidth={2} name={t.assistant.comments} />
-                </LineChart>
-              </ResponsiveContainer>
-          </div>
-
-          {/* Graphique 2: Meilleurs moments */}
-          <div className="bg-neutral-50 rounded-lg p-4 h-80">
-            <h3 className="text-sm font-semibold mb-3 text-neutral-700">{t.assistant.bestPostingTimes}</h3>
-            <ResponsiveContainer width="100%" height="90%">
-              <BarChart data={displayBestTimes} layout="horizontal">
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis type="number" tick={{ fontSize: 10 }} />
-                  <YAxis type="category" dataKey="label" tick={{ fontSize: 9 }} width={80} />
-                  <Tooltip contentStyle={{ fontSize: 12 }} />
-                  <Bar dataKey="engagement" fill="#06b6d4" name="Engagement" />
-                </BarChart>
-              </ResponsiveContainer>
-          </div>
-
-          {/* Graphique 3: Top catégories */}
-          <div className="bg-neutral-50 rounded-lg p-4 h-80">
-            <h3 className="text-sm font-semibold mb-3 text-neutral-700">{t.assistant.topCategories}</h3>
-            <ResponsiveContainer width="100%" height="90%">
-              <BarChart data={displayTopCategories}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis
-                    dataKey="category"
-                    tick={{ fontSize: 9 }}
-                    angle={-45}
-                    textAnchor="end"
-                    height={80}
-                  />
-                  <YAxis tick={{ fontSize: 10 }} />
-                  <Tooltip contentStyle={{ fontSize: 12 }} />
-                  <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="count" fill="#0c1a3a" name={t.assistant.postCount} />
-                  <Bar dataKey="avgEngagement" fill="#10b981" name={t.assistant.avgEngagementChart} />
-                </BarChart>
-              </ResponsiveContainer>
-          </div>
-
-          {/* Graphique 4: Taux de conversion */}
-          <div className="bg-neutral-50 rounded-lg p-4 h-80">
-            <h3 className="text-sm font-semibold mb-3 text-neutral-700">{t.assistant.conversionRate}</h3>
-            <ResponsiveContainer width="100%" height="90%">
-              <LineChart data={demoConversionRate}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 10 }} />
-                <Tooltip contentStyle={{ fontSize: 12 }} />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Line type="monotone" dataKey="taux" stroke="#10b981" strokeWidth={3} name={t.assistant.ratePercent} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Graphique 5: Croissance d'abonnés */}
-          <div className="bg-neutral-50 rounded-lg p-4 h-80">
-            <h3 className="text-sm font-semibold mb-3 text-neutral-700">{t.assistant.followerGrowth}</h3>
-            <ResponsiveContainer width="100%" height="90%">
-              <LineChart data={demoFollowerGrowth}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 10 }} />
-                <Tooltip contentStyle={{ fontSize: 12 }} />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Line type="monotone" dataKey="followers" stroke="#9333ea" strokeWidth={3} name={t.assistant.followers} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Graphique 6: Performance par heure */}
-          <div className="bg-neutral-50 rounded-lg p-4 h-80">
-            <h3 className="text-sm font-semibold mb-3 text-neutral-700">{t.assistant.hourlyPerformance}</h3>
-            <ResponsiveContainer width="100%" height="90%">
-              <BarChart data={demoHourlyPerformance}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="hour" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 10 }} />
-                <Tooltip contentStyle={{ fontSize: 12 }} />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Bar dataKey="engagement" fill="#f59e0b" name="Engagement" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
-
-      {/* Section Insights personnalisés */}
-      <div className="bg-[#0c1a3a]/5 rounded-xl shadow border border-[#0c1a3a]/10 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold">🤖 {t.assistant.personalizedInsights}</h2>
-          {stats.totalPosts > 0 && (
-            <span className="text-xs px-3 py-1 bg-[#0c1a3a] text-white rounded-full font-bold">
-              {t.assistant.active}
-            </span>
-          )}
-        </div>
-
-        <div className="space-y-4 text-sm">
-          {/* Insight 1 : Recommandation stratégique business */}
-          <div className="bg-white rounded-lg p-5 border border-[#0c1a3a]/10 shadow-sm">
-            <div className="flex items-start gap-3">
-              <span className="text-3xl">🎯</span>
-              <div className="flex-1">
-                <p className="font-bold text-lg mb-2 text-[#0c1a3a]">{t.assistant.sectorStrategy}</p>
-                <p className="text-neutral-700 mb-3">
-                  {t.assistant.sectorStrategyPrefix} <strong>{user?.user_metadata?.business_type || 'Business'}</strong>{t.assistant.sectorStrategyMiddle} <strong>&quot;{stats.topCategory}&quot;</strong> {t.assistant.sectorStrategySuffix}
-                </p>
-                <div className="bg-[#0c1a3a]/5 p-3 rounded-lg">
-                  <p className="font-semibold text-[#0c1a3a] mb-1">💡 {t.assistant.recommendedAction}</p>
-                  <p className="text-[#0c1a3a]/80 text-xs">
-                    {t.assistant.recommendedActionPrefix}{stats.topCategory}{t.assistant.recommendedActionSuffix} <strong>{t.assistant.recommendedActionTime}</strong>.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Insight 2 : Optimisation horaire personnalisée */}
-          <div className="bg-white rounded-lg p-5 border border-[#0c1a3a]/10 shadow-sm">
-            <div className="flex items-start gap-3">
-              <span className="text-3xl">⏰</span>
-              <div className="flex-1">
-                <p className="font-bold text-lg mb-2 text-[#0c1a3a]">{t.assistant.optimalTiming}</p>
-                <p className="text-neutral-700 mb-3">
-                  {t.assistant.optimalTimingDesc}
-                </p>
-                <div className="bg-[#0c1a3a]/5 p-3 rounded-lg">
-                  <p className="font-semibold text-[#0c1a3a] mb-1">⚡ {t.assistant.immediateOpportunity}</p>
-                  <p className="text-[#0c1a3a]/80 text-xs">
-                    {t.assistant.immediateOpportunityText}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Insight 3 : Analyse concurrentielle */}
-          <div className="bg-white rounded-lg p-5 border border-[#0c1a3a]/10 shadow-sm">
-            <div className="flex items-start gap-3">
-              <span className="text-3xl">📈</span>
-              <div className="flex-1">
-                <p className="font-bold text-lg mb-2 text-[#0c1a3a]">{t.assistant.sectorBenchmark}</p>
-                <p className="text-neutral-700 mb-3">
-                  {t.assistant.sectorBenchmarkDesc}
-                </p>
-                <div className="bg-[#0c1a3a]/5 p-3 rounded-lg">
-                  <p className="font-semibold text-[#0c1a3a] mb-1">🚀 {t.assistant.actionPlan}</p>
-                  <ul className="text-[#0c1a3a]/80 text-xs space-y-1 list-disc list-inside">
-                    <li>{t.assistant.actionPlanItem1Prefix}{stats.topCategory}{t.assistant.actionPlanItem1Suffix}</li>
-                    <li>{t.assistant.actionPlanItem2}</li>
-                    <li>{t.assistant.actionPlanItem3}</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Insight 4 : Prédiction de croissance */}
-          <div className="bg-white rounded-lg p-5 border border-[#0c1a3a]/10 shadow-sm">
-            <div className="flex items-start gap-3">
-              <span className="text-3xl">🔮</span>
-              <div className="flex-1">
-                <p className="font-bold text-lg mb-2 text-[#0c1a3a]">{t.assistant.growthProjection}</p>
-                <p className="text-neutral-700 mb-3">
-                  {t.assistant.growthProjectionPrefix}{stats.postsThisWeek}{t.assistant.growthProjectionMiddle}
-                  <strong> {t.assistant.growthProjectionFollowers}</strong> {t.assistant.growthProjectionAnd} <strong>{t.assistant.growthProjectionViews}</strong> {t.assistant.growthProjectionSuffix}
-                </p>
-                <div className="bg-[#0c1a3a]/5 p-3 rounded-lg">
-                  <p className="font-semibold text-[#0c1a3a] mb-1">✨ {t.assistant.toAccelerate}</p>
-                  <p className="text-[#0c1a3a]/80 text-xs">
-                    {t.assistant.toAccelerateText} <strong>{t.assistant.toAccelerateGrowth}</strong> {t.assistant.toAccelerateEnd}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Note méthodologie */}
-          {stats.totalPosts === 0 ? (
-            <div className="text-sm bg-gradient-to-r from-[#0c1a3a]/5 to-[#1e3a5f]/5 border-2 border-[#0c1a3a]/20 p-4 rounded-xl">
-              <p className="font-bold text-[#0c1a3a] mb-2 flex items-center gap-2">
-                <span>💡</span> {t.assistant.sampleDataNote}
-              </p>
-              <p className="text-[#0c1a3a]/80 mb-3 text-xs leading-relaxed">
-                {t.assistant.sampleDataNoteP1} <strong>{t.assistant.sampleDataNoteP2}</strong> {t.assistant.sampleDataNoteP3} <strong>{t.assistant.sampleDataNoteP4}</strong>{t.assistant.sampleDataNoteP5}
-              </p>
-              <p className="text-[#0c1a3a] text-xs mb-3">
-                {t.assistant.sampleDataNoteP6}
-              </p>
-              <a
-                href="/generate"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white rounded-lg font-semibold text-xs hover:shadow-lg transition-all hover:scale-105"
-              >
-                {t.assistant.createFirstVisual}
-              </a>
-            </div>
-          ) : (
-            <div className="text-xs text-[#0c1a3a] bg-[#0c1a3a]/10 p-3 rounded-lg">
-              <p className="font-semibold mb-1">📊 {t.assistant.methodologyLabel}</p>
-              <p>
-                {t.assistant.methodologyPrefix} {stats.totalPosts} {t.assistant.methodologySuffix}
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
     </div>
   );
 }
-
-// Onglet Masterclass
-function FormationTab() {
-  const { t } = useLanguage();
-  const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
-
-  const videos = [
-    {
-      id: 1,
-      title: `🔥 ${t.assistant.videoTitle1}`,
-      thumbnail: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?q=80&w=800&auto=format&fit=crop',
-      duration: '12:45',
-      views: '250K',
-      badge: t.assistant.newBadge,
-      youtubeId: '5Z4yAgV5hOg',
-      description: t.assistant.videoDesc1,
-      level: t.assistant.levelBeginner,
-    },
-    {
-      id: 2,
-      title: `📊 ${t.assistant.videoTitle2}`,
-      thumbnail: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=800&auto=format&fit=crop',
-      duration: '18:30',
-      views: '180K',
-      badge: '',
-      youtubeId: 'XXXXXXX',
-      description: t.assistant.videoDesc2,
-      level: t.assistant.levelIntermediate,
-    },
-    {
-      id: 3,
-      title: `💰 ${t.assistant.videoTitle3}`,
-      thumbnail: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?q=80&w=800&auto=format&fit=crop',
-      duration: '25:12',
-      views: '320K',
-      badge: '',
-      youtubeId: 'XXXXXXX',
-      description: t.assistant.videoDesc3,
-      level: t.assistant.levelAdvanced,
-    },
-    {
-      id: 4,
-      title: `✍️ ${t.assistant.videoTitle4}`,
-      thumbnail: 'https://images.unsplash.com/photo-1542744094-3a31f272c490?q=80&w=800&auto=format&fit=crop',
-      duration: '14:28',
-      views: '150K',
-      badge: '',
-      youtubeId: 'XXXXXXX',
-      description: t.assistant.videoDesc4,
-      level: t.assistant.levelBeginner,
-    }
-  ];
-
-  return (
-    <div className="space-y-6">
-      {/* Header section */}
-      <div className="bg-[#0c1a3a]/5 rounded-xl border border-[#0c1a3a]/10 p-6">
-        <div className="flex items-start justify-between">
-          <div>
-            <h2 className="text-2xl font-bold mb-2 text-[#0c1a3a]">
-              📺 {t.assistant.masterclassTitle}
-            </h2>
-            <p className="text-neutral-700 text-sm">
-              {t.assistant.masterclassSubtitle}
-            </p>
-          </div>
-          <div className="bg-white px-4 py-2 rounded-lg shadow-sm">
-            <div className="text-2xl font-bold text-[#0c1a3a]">{videos.length}</div>
-            <div className="text-xs text-neutral-600">{t.assistant.videosCount}</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Note test */}
-      <div className="bg-[#0c1a3a]/5 border border-[#0c1a3a]/10 rounded-lg p-4 flex items-start gap-3">
-        <span className="text-xl">🧪</span>
-        <div className="text-sm">
-          <p className="font-semibold text-[#0c1a3a] mb-1">{t.assistant.testInProgress}</p>
-          <p className="text-[#0c1a3a]/80">
-            {t.assistant.testDesc}
-          </p>
-        </div>
-      </div>
-
-      {/* Vidéos grid */}
-      <div className="grid md:grid-cols-2 gap-6">
-        {videos.map((video) => (
-          <div
-            key={video.id}
-            onClick={() => video.youtubeId !== 'XXXXXXX' && setSelectedVideo(video.youtubeId)}
-            className={`bg-white rounded-xl shadow-lg border border-neutral-200 overflow-hidden transition-all ${
-              video.youtubeId !== 'XXXXXXX'
-                ? 'hover:shadow-xl cursor-pointer group'
-                : 'opacity-60 cursor-not-allowed'
-            }`}
-          >
-            {/* Thumbnail */}
-            <div className="relative">
-              <img
-                src={video.thumbnail}
-                alt={video.title}
-                className={`w-full h-48 object-cover ${video.youtubeId !== 'XXXXXXX' ? 'group-hover:scale-105' : ''} transition-transform`}
-              />
-
-              {/* Play button overlay */}
-              {video.youtubeId !== 'XXXXXXX' && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-colors">
-                  <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <svg className="w-8 h-8 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
-                  </div>
-                </div>
-              )}
-
-              {/* Status badge */}
-              {video.badge && (
-                <div className="absolute top-2 left-2 bg-green-500 text-white text-xs px-3 py-1 rounded-full font-bold">
-                  {video.badge}
-                </div>
-              )}
-
-              {/* En attente badge */}
-              {video.youtubeId === 'XXXXXXX' && (
-                <div className="absolute top-2 right-2 bg-[#0c1a3a]/50 text-white text-xs px-3 py-1 rounded-full font-bold">
-                  {t.assistant.pendingBadge}
-                </div>
-              )}
-            </div>
-
-            {/* Content */}
-            <div className="p-4">
-              <h3 className={`font-bold text-neutral-900 mb-2 line-clamp-2 ${video.youtubeId !== 'XXXXXXX' ? 'group-hover:text-[#0c1a3a]' : ''} transition-colors`}>
-                {video.title}
-              </h3>
-              <p className="text-sm text-neutral-600 mb-3 line-clamp-2">
-                {video.description}
-              </p>
-
-              {/* Meta info */}
-              <div className="flex items-center justify-between text-xs text-neutral-500 mb-3">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="px-2 py-1 bg-[#0c1a3a]/5 text-[#0c1a3a] rounded font-medium">
-                    {video.level}
-                  </span>
-                </div>
-              </div>
-
-              {/* CTA */}
-              {video.youtubeId !== 'XXXXXXX' ? (
-                <button className="w-full py-2 bg-gradient-to-r from-red-500 to-pink-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all">
-                  ▶️ {t.assistant.watchNow}
-                </button>
-              ) : (
-                <div className="w-full py-2 bg-neutral-200 text-neutral-500 font-semibold rounded-lg text-center">
-                  {t.assistant.comingSoon}
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* CTA final */}
-      <div className="bg-gradient-to-br from-[#0c1a3a]/5 to-[#1e3a5f]/5 rounded-xl border border-[#0c1a3a]/10 p-6 text-center">
-        <h3 className="text-xl font-bold mb-2">🚀 {t.assistant.readyForAction}</h3>
-        <p className="text-neutral-700 mb-4">
-          {t.assistant.putStrategiesIntoPractice}
-        </p>
-        <a
-          href="/generate"
-          className="inline-block px-6 py-3 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold rounded-xl hover:shadow-lg transition-all"
-        >
-          {t.assistant.createFirstViralVisual}
-        </a>
-      </div>
-
-      {/* Modal vidéo YouTube */}
-      {selectedVideo && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
-          onClick={() => setSelectedVideo(null)}
-        >
-          <div
-            className="relative w-full max-w-4xl bg-white rounded-xl overflow-hidden shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Bouton fermer */}
-            <button
-              onClick={() => setSelectedVideo(null)}
-              className="absolute top-4 right-4 z-10 w-10 h-10 bg-white/90 hover:bg-white rounded-full flex items-center justify-center transition-all shadow-lg"
-            >
-              <svg className="w-6 h-6 text-neutral-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-
-            {/* Vidéo YouTube embed */}
-            <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
-              <iframe
-                className="absolute inset-0 w-full h-full"
-                src={`https://www.youtube.com/embed/${selectedVideo}?autoplay=1`}
-                title="YouTube video player"
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-    </div>
-  );
-}
-

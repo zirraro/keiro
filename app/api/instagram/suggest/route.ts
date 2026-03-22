@@ -52,6 +52,39 @@ export async function POST(request: NextRequest) {
       ? `\nTENDANCES DU MOMENT (hashtags populaires à intégrer si pertinents): ${trendingKeywords.slice(0, 15).map((k: string) => `#${k}`).join(' ')}`
       : '';
 
+    // Background Agent Intelligence: load SEO + Content learnings for smarter captions
+    let agentInsightsContext = '';
+    try {
+      const { data: insights } = await supabase
+        .from('agent_logs')
+        .select('data')
+        .in('agent', ['seo', 'content', 'marketing'])
+        .in('action', ['learning', 'learning_acquired'])
+        .order('created_at', { ascending: false })
+        .limit(200);
+
+      if (insights?.length) {
+        const relevantCats = new Set([
+          'hashtag_evolution', 'instagram_algorithm', 'instagram_history',
+          'posting_frequency', 'content_format_evolution', 'french_market',
+          'linkedin_algorithm', 'ugc_creator_economy', 'social_seo',
+          'local_seo_france', 'keyword_evolution', 'ai_content',
+        ]);
+        const tips: string[] = [];
+        for (const row of insights) {
+          const d = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
+          if (!d?.learning || (d?.confidence || 0) < 75) continue;
+          if (relevantCats.has(d.category)) {
+            tips.push(d.learning.substring(0, 150));
+            if (tips.length >= 5) break;
+          }
+        }
+        if (tips.length > 0) {
+          agentInsightsContext = `\nINTELLIGENCE IA (tendances actuelles basées sur données agents):\n${tips.map((t, i) => `${i + 1}. ${t}`).join('\n')}`;
+        }
+      }
+    } catch { /* non-fatal */ }
+
     // Angles par plateforme
     const angleInstructions: Record<string, Record<string, string>> = {
       instagram: {
@@ -88,6 +121,7 @@ ${newsContext}${audioContext}${keywordsContext}${trendingContext}
 
 QUESTION CLÉ: Comment CE business peut se positionner comme expert/leader face à CETTE actualité ?
 Quel insight UNIQUE ce business peut apporter à son réseau professionnel ?
+${agentInsightsContext}
 
 ÉTAPE 2 — RÉDIGE LE POST LINKEDIN:
 Angle: ${contentAngle.toUpperCase()} — ${angleInstruction}
@@ -123,6 +157,7 @@ ${newsContext}${audioContext}${keywordsContext}${trendingContext}
 
 QUESTION CLÉ: Comment CE business attire ses clients en surfant sur CETTE actualité ?
 Quel BÉNÉFICE CONCRET le client retire de ce business face à cette situation ?
+${agentInsightsContext}
 
 ÉTAPE 2 — RÉDIGE LE POST INSTAGRAM:
 Angle: ${contentAngle.toUpperCase()} — ${angleInstruction}

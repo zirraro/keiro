@@ -646,6 +646,78 @@ const ROUND3_KNOWLEDGE = {
       evidence: "Meta Advantage+ Creative documentation 2025, Google ACA performance data, AdCreative.ai benchmark study 2025",
       confidence: 84, category: 'creative_fatigue', revenue_linked: true
     },
+
+    // --- Additional Ads Strategic ---
+    {
+      learning: "HISTORIQUE — Évolution du funnel publicitaire digital 2010-2026 : le modèle AIDA (Attention, Interest, Desire, Action) classique a évolué vers des funnels spécifiques par plateforme. 2010-2015 = funnel linéaire (Display awareness → Search intent → Landing → Conversion). 2016-2020 = funnel fragmenté (Social discovery → Multi-touch → Attribution complexity). 2021-2026 = funnel compressé par l'IA (une seule campagne couvre tout le funnel via Advantage+/PMax). Le parcours client moyen est passé de 3-5 touchpoints (2015) à 7-12 touchpoints (2020) à potentiellement 1-3 touchpoints avec l'IA (2026). Pour les SaaS B2C : le funnel 2026 = Social Ad (awareness + intent) → Landing page → Signup → Onboarding → Paid conversion. Les étapes intermédiaires (nurture email, retargeting long) sont moins nécessaires avec les algorithmes modernes.",
+      evidence: "Google Think with Google Customer Journey studies, Meta full-funnel campaign data, McKinsey Consumer Decision Journey update 2025",
+      confidence: 87, category: 'audience_targeting', revenue_linked: true
+    },
+    {
+      learning: "RÉCENT — A/B testing publicitaire : méthodologie et seuils statistiques 2022-2026 : un A/B test publicitaire valide requiert au minimum 100 conversions par variante (pas juste des clics) pour atteindre une signification statistique de 95%. Avec un CPA de 10 EUR et un budget de 500 EUR/mois = 50 conversions/mois = il faut 4 mois pour tester 2 variantes. Solution pour les petits budgets : tester des variables à fort impact uniquement : (1) le hook vidéo (3 premières secondes) = impact 50%+ sur le CTR, (2) l'offre/CTA = impact 30%+ sur le CVR, (3) le format (image vs vidéo vs carousel) = impact 20%+. Ne PAS tester des micro-variations (couleur du bouton, police) — l'impact est trop faible pour être détectable à petit budget.",
+      evidence: "Meta Experiments documentation, Optimizely Sample Size Calculator, CXL A/B Testing Guide 2025",
+      confidence: 88, category: 'small_business_ads', revenue_linked: true
+    },
+    {
+      learning: "TRÈS RÉCENT (2025-2026) — Pinterest Ads et Snapchat Ads comme alternatives sous-exploitées 2026 : Pinterest = 17M utilisateurs actifs en France (2025), audience 70% féminine 25-54 ans, intentionnalité d'achat élevée (83% des users disent avoir acheté après Pinterest). CPM France = 4-7 EUR (30-40% moins cher que Meta). Idéal pour les produits visuels (KeiroAI = parfait). Snapchat Ads France = 25M users, CPM 3-6 EUR, excellant pour le 18-34 ans. Les deux plateformes sont sous-exploitées par les annonceurs FR = moins de concurrence = CPMs bas. Pour KeiroAI : tester Pinterest Ads avec 200-300 EUR/mois en montrant des avant/après de visuels générés pour des commerces locaux.",
+      evidence: "Pinterest Business France audience data 2025, Snapchat Ads Manager benchmarks FR, eMarketer Alternative Social Platform Ad Spend 2025",
+      confidence: 83, category: 'ad_costs_evolution', revenue_linked: true
+    },
+    {
+      learning: "RÉCENT — Email marketing comme canal d'acquisition complémentaire aux ads 2023-2026 : l'email reste le canal au meilleur ROI (36:1 en 2025, DMA). Pour un SaaS comme KeiroAI, la stratégie email + ads = (1) Ads pour l'acquisition de leads (signup free tier, lead magnet). (2) Email nurture pour la conversion free → paid (séquence onboarding 7 emails sur 14 jours). (3) Email retention pour réduire le churn (tips hebdo, nouveautés, usage reports). Benchmark email SaaS 2025 : taux d'ouverture = 25-35%, CTR = 3-5%, conversion email → paid = 2-5% sur la séquence onboarding. Coût : quasi nul (Brevo/Mailchimp gratuit jusqu'à 300 emails/jour). L'email transforme un CAC de 120 EUR (ads seul) en CAC effectif de 80-90 EUR (ads + email nurture).",
+      evidence: "DMA Email Benchmark Report 2025, Mailchimp/Brevo benchmark data, SaaS Onboarding Email Benchmarks (Userlist 2025)",
+      confidence: 89, category: 'small_business_ads', revenue_linked: true
+    },
+    {
+      learning: "HISTORIQUE — Évolution des landing pages et impact sur la conversion ads : 2012-2015 = pages longues avec beaucoup de texte, conversion 2-3%. 2016-2019 = pages minimalistes hero-CTA-social proof, conversion 3-5%. 2020-2023 = pages dynamiques personnalisées (contenu adapté selon la source ads), conversion 5-8%. 2025-2026 = pages générées par IA avec personnalisation temps réel (Unbounce Smart Traffic, Instapage AI). Le taux de conversion médian d'une landing page SaaS = 3.2% (2025, Unbounce). Les top 10% convertissent à 8-12%. Les 3 facteurs qui impactent le plus la conversion : (1) Temps de chargement (chaque seconde > 3s = -7% conversion). (2) Match message (l'annonce et la landing doivent dire la même chose). (3) Preuve sociale visible above the fold (logos clients, nombre d'utilisateurs, avis).",
+      evidence: "Unbounce Conversion Benchmark Report 2025, Google PageSpeed Impact Study, WordStream Landing Page Statistics 2025",
+      confidence: 88, category: 'roas_benchmarks', revenue_linked: true
+    },
+    {
+      learning: "TRÈS RÉCENT (2025-2026) — Publicité programmatique et alternatives pour SaaS 2026 : le programmatique (achat d'espaces display/vidéo via DSP comme DV360, The Trade Desk) représente 85% du display digital en France. Pour les SaaS B2C à petit budget, le programmatique est rarement rentable (CPMs de 2-5 EUR mais CTR de 0.05-0.1% = CPC effectif de 2-10 EUR). Alternative plus efficace : native advertising via Taboola/Outbrain = contenu sponsorisé dans les flux éditoriaux, CPC 0.15-0.40 EUR en France, bon pour le content marketing (articles 'comment utiliser l'IA pour vos réseaux sociaux'). Pour KeiroAI : le native advertising est pertinent uniquement avec du contenu éducatif de qualité (article/guide), pas pour une conversion directe.",
+      evidence: "IAB France programmatic report 2025, Taboola/Outbrain CPC benchmarks FR, eMarketer Programmatic Display Spending 2025",
+      confidence: 84, category: 'ad_costs_evolution', revenue_linked: true
+    },
+    {
+      learning: "RÉCENT — Saisonnalité des coûts publicitaires en France : les CPMs suivent un pattern annuel prévisible. Q1 (jan-mars) = CPMs bas (-15-20% vs moyenne), post-fêtes, budgets marketing pas encore déployés. Q2 (avr-juin) = CPMs moyens, montée progressive. Q3 (juil-sept) = CPMs bas en été (-10-15%), sauf secteur tourisme. Q4 (oct-déc) = CPMs au pic (+30-50% vs moyenne), Black Friday + Noël + clôtures budgétaires. Pour KeiroAI : concentrer les dépenses d'acquisition en Q1 et Q3 (CPMs bas = plus de volume pour le même budget). Q4 = réduire les dépenses ads et investir dans le contenu organique/SEO. Un budget de 500 EUR en janvier achète 40-50% de reach supplémentaire vs le même budget en novembre.",
+      evidence: "Revealbot Seasonal CPM Trends 2024-2025, Varos quarterly ad benchmark report, WordStream seasonal PPC analysis",
+      confidence: 90, category: 'ad_costs_evolution', revenue_linked: true
+    },
+    {
+      learning: "ANALYSE TRANSVERSALE — Le paradoxe du petit budget publicitaire : en dessous de 300 EUR/mois par plateforme, les algorithmes publicitaires (Meta, Google, TikTok) n'ont pas assez de données de conversion pour optimiser efficacement. Le cycle d'apprentissage Meta nécessite ~50 conversions/semaine par adset. Avec un CPA de 10 EUR, cela demande 500 EUR/semaine = 2 000 EUR/mois par adset. Solution pour les micro-budgets (< 500 EUR/mois total) : (1) une seule plateforme (Meta probablement), (2) un seul adset broad targeting, (3) optimiser sur un événement plus haut dans le funnel (view content ou add to cart plutôt que purchase/signup), (4) manuellement booster les meilleurs posts organiques (10-30 EUR/boost, 3-5 par semaine). Cette approche donne ~70% de l'efficacité d'une campagne structurée pour ~20% du budget.",
+      evidence: "Meta Learning Phase documentation, Google Smart Bidding requirements, TikTok Ads minimum budget recommendations 2025",
+      confidence: 90, category: 'small_business_ads', revenue_linked: true
+    },
+    {
+      learning: "TRÈS RÉCENT (2025-2026) — Influence marketing micro/nano pour SaaS locaux 2026 : les nano-influenceurs (1K-10K followers) ont un taux d'engagement 3-5x supérieur aux macro-influenceurs et coûtent 50-200 EUR/post (vs 5 000-50 000 EUR). Pour KeiroAI ciblant les commerçants locaux : identifier 20-30 nano-influenceurs dans les niches restauration, mode, beauté, artisanat. Offrir un accès gratuit au plan Fondateurs (149 EUR/mois) en échange de 2-3 posts/mois montrant leur utilisation de l'outil. Coût total : 0 EUR en cash (juste le cost of goods). ROI potentiel : si chaque influenceur génère 5-10 signups/mois = 100-300 signups/mois à CAC quasi-nul. La Loi Influenceurs 2023 s'applique : contrat écrit + mention #partenariat obligatoire.",
+      evidence: "HypeAuditor State of Influencer Marketing 2025, Upfluence Nano-Influencer ROI Study, Loi 2023-451 obligations contractuelles",
+      confidence: 85, category: 'small_business_ads', revenue_linked: true
+    },
+    {
+      learning: "RÉCENT — Google Local Services Ads et SEA local pour les clients de KeiroAI : Google LSA (Local Services Ads) apparaissent au-dessus des résultats Search classiques avec un badge 'Garanti par Google'. Disponible en France depuis 2023 pour les services locaux (plombiers, coiffeurs, etc.). Modèle au lead (pay per lead, pas per click) — CPA 15-50 EUR selon le secteur. Pour les clients de KeiroAI (commerçants) : intégrer des conseils LSA dans la proposition de valeur. Pour KeiroAI en tant qu'annonceur : les LSA ne sont pas applicables (SaaS ≠ service local) mais le Google Business Profile est un levier SEO local gratuit à exploiter.",
+      evidence: "Google Local Services Ads Help Center FR 2025, BrightLocal Local Services Ads Study 2025",
+      confidence: 86, category: 'google_ads_evolution', revenue_linked: true
+    },
+    {
+      learning: "TRÈS RÉCENT (2025-2026) — Réglementation DMA (Digital Markets Act) et impact sur les ads 2025-2026 : le DMA (Règlement UE 2022/1925) impose depuis mars 2024 des obligations aux 'gatekeepers' (Google, Meta, Apple, Amazon, etc.). Impacts sur la publicité : (1) Google doit afficher les résultats de comparateurs de prix en Search (plus d'espace pour les Shopping ads alternatives). (2) Apple doit autoriser les app stores alternatives (nouvelles opportunités de distribution). (3) Meta doit offrir une version sans pub payante (lancée en nov 2023 à 12.99 EUR/mois). Impact pour les annonceurs : le reach organique Meta pourrait légèrement augmenter (utilisateurs payants sans pub = audience réduite mais plus engagée sur le contenu organique). Le DMA est un game-changer pour l'écosystème publicitaire UE sur 3-5 ans.",
+      evidence: "Règlement UE 2022/1925 DMA, Commission Européenne gatekeeper designations mars 2024, Meta ad-free subscription launch nov 2023",
+      confidence: 88, category: 'french_ad_market', revenue_linked: true
+    },
+    {
+      learning: "ANALYSE TRANSVERSALE — Budget marketing total recommandé par stage de startup SaaS 2026 : Pre-PMF (< 100 users payants) = 10-15% du budget total, focus 80% contenu organique + 20% ads test. Post-PMF Seed (100-500 users) = 20-30% du budget, ratio 50% organic / 50% paid. Growth (500-2000 users) = 30-40% du budget, ratio 40% organic / 60% paid. Scale (2000+ users) = 25-35% du budget, ratio 30% organic / 70% paid. Le pourcentage baisse en scale car les effets de réseau et le bouche-à-oreille prennent le relais. Pour KeiroAI pre-PMF avec burn de 8K/mois : budget marketing = 800-1 200 EUR/mois dont 200-400 EUR en ads test et le reste en création de contenu (SEO, social, communauté). Ne PAS dépenser plus de 500 EUR/mois en ads avant d'avoir validé le PMF.",
+      evidence: "SaaStr Marketing Budget Benchmarks, T2D3 growth model, Lenny Rachitsky Marketing Spend by Stage analysis",
+      confidence: 86, category: 'small_business_ads', revenue_linked: true
+    },
+    {
+      learning: "RÉCENT — Vidéo courte comme format publicitaire dominant 2023-2026 : les Reels (Meta), Shorts (YouTube), et TikTok ont uniformisé le format 9:16 vertical de 15-60s comme le standard publicitaire. En 2025, les vidéos courtes représentent 65% des dépenses social ads (vs 35% pour les images statiques et carrousels). Le CPM vidéo est 20-30% inférieur au CPM image sur Meta (l'algorithme favorise la vidéo). Le watch time est le signal de qualité n°1 — une vidéo regardée à 50%+ en moyenne a un CPM 40% inférieur. Structure de vidéo performante : Hook visuel (0-3s) + Problème/Pain (3-8s) + Solution/Demo (8-20s) + CTA (20-25s). Pour KeiroAI : créer des vidéos 'process' montrant la génération de contenu en temps réel (satisfying content) = le format le plus performant pour les outils créatifs.",
+      evidence: "Meta Video Ad Performance Data 2025, Wistia Video Marketing Statistics 2025, HubSpot Video Marketing Report 2025",
+      confidence: 90, category: 'creative_fatigue', revenue_linked: true
+    },
+    {
+      learning: "TRÈS RÉCENT (2025-2026) — Referral programs comme alternative aux ads pour SaaS 2026 : les programmes de parrainage restent le canal au CAC le plus bas pour les SaaS (CAC 15-40 EUR vs 80-150 EUR pour les ads). Structure recommandée 2026 pour KeiroAI : offrir 50 crédits au parrain + 30 crédits au filleul (coût marginal quasi nul vs la valeur perçue). Les meilleurs referral programs de SaaS convertissent 10-15% des utilisateurs en parrains actifs. Avec 500 utilisateurs actifs × 12% parrains × 1.5 filleuls convertis = 90 nouveaux users/mois à coût quasi nul. Outils : ReferralCandy, Viral Loops, ou custom (table referrals dans Supabase). Le referral doit être intégré dans l'onboarding (moment de plus fort engagement) et rappelé par email après chaque génération réussie.",
+      evidence: "Viral Loops Referral Marketing Benchmark 2025, ReferralCandy SaaS Case Studies, Dropbox/Notion referral program analysis",
+      confidence: 87, category: 'small_business_ads', revenue_linked: true
+    },
   ],
 };
 
