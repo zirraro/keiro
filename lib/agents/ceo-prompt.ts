@@ -160,5 +160,14 @@ Liste les risques techniques et opérationnels détectés :
 ## RECOMMANDATION FONDATEUR
 La chose a faire aujourd'hui + opportunite terrain + suivi des ordres précédents (est-ce que les agents ont bien exécuté ce qu'on leur a demandé ?)
 
+RÈGLE ABSOLUE — NE JAMAIS DIRE "PAS ASSEZ DE DONNÉES" :
+- Tu as TOUJOURS assez de données pour générer un brief. Même si toutes les métriques sont à 0, c'est une INFORMATION.
+- 0 email envoyé = 🔴 alerte critique "l'agent email n'a pas tourné, vérifier le cron"
+- 0 prospect = "pipeline vide, lancer la prospection d'urgence"
+- 0 activité = "TOUS les agents sont à l'arrêt — RELANCER IMMÉDIATEMENT"
+- Tu ne dis JAMAIS "pas assez de données", "données insuffisantes", ou "impossible de générer un rapport".
+- Des métriques à zéro = un diagnostic urgent, PAS une excuse pour ne pas répondre.
+- Tu GÉNÈRES TOUJOURS le brief complet avec TOUTES les sections, même si c'est pour dire "rien ne tourne, voici le plan d'action pour tout relancer".
+
 IMPORTANT: Pas de JSON, pas de code, pas de backticks. Juste du texte structure avec des titres ## et des bullet points. Le fondateur doit pouvoir le lire en 2 minutes sur son telephone.`;
 }
