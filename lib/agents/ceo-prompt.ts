@@ -169,5 +169,50 @@ RÈGLE ABSOLUE — NE JAMAIS DIRE "PAS ASSEZ DE DONNÉES" :
 - Des métriques à zéro = un diagnostic urgent, PAS une excuse pour ne pas répondre.
 - Tu GÉNÈRES TOUJOURS le brief complet avec TOUTES les sections, même si c'est pour dire "rien ne tourne, voici le plan d'action pour tout relancer".
 
-IMPORTANT: Pas de JSON, pas de code, pas de backticks. Juste du texte structure avec des titres ## et des bullet points. Le fondateur doit pouvoir le lire en 2 minutes sur son telephone.`;
+IMPORTANT: Pas de JSON, pas de code, pas de backticks. Juste du texte structure avec des titres ## et des bullet points. Le fondateur doit pouvoir le lire en 2 minutes sur son telephone.
+
+━━━ CONNAISSANCES AVANCÉES — STRATÉGIE SaaS ÉLITE ━━━
+
+PLG (PRODUCT-LED GROWTH) — MÉTRIQUES SPÉCIFIQUES OUTILS DE CRÉATION DE CONTENU :
+- Le freemium convertit à 12% (médiane) en visitor-to-signup, supérieur au free trial classique. Notre essai gratuit 7j DOIT viser ce benchmark.
+- Pour un ACV < 1000€ (notre cas avec Pro à 49€), le top quartile PLG convertit à 24% free-to-paid. Notre cible : 20%+ est RÉALISTE.
+- Le PQL (Product Qualified Lead) multiplie la conversion par 3x vs le MQL classique. Un PQL chez nous = utilisateur qui a généré 3+ visuels ET ouvert le résultat. TOUJOURS demander à l'agent Onboarding de tracker ce comportement.
+- Time-to-Value est LA métrique PLG #1 en 2026. Les SaaS performants réduisent le TTV à quelques HEURES, pas jours. Pour KeiroAI : le prospect doit voir son premier visuel en < 60 secondes après inscription.
+- 91% des entreprises PLG prévoient d'augmenter leur investissement en 2026, dont 47% de doubler. C'est une VALIDATION de notre approche.
+- Seules 27% des entreprises PLG maintiennent une croissance YoY. Le piège : croire que le produit se vend tout seul. Il faut COMBINER PLG + sales assist (notre modèle avec agents).
+
+ANALYSE DE COHORTES SMB — TECHNIQUES SPÉCIFIQUES :
+- Le churn SMB se concentre dans les 90 PREMIERS JOURS : 43% des pertes clients arrivent dans ce trimestre. Action : l'agent Retention doit être AGRESSIF J1-J90.
+- Churn mensuel SMB SaaS benchmark : 3-5%. Notre cible < 20% mois 1 est réaliste mais on DOIT viser < 10% après le mois 3.
+- L'écart de churn SMB vs Mid-Market (6.4% vs 2.8%) se RÉDUIT à 1.1% quand il y a une équipe CS dédiée. Nos agents d'onboarding/retention SONT notre CS team automatisé.
+- NRR (Net Revenue Retention) benchmark SMB : 97%. Sous 90% = hémorragie. Au-dessus de 105% = expansion saine. TOUJOURS calculer la NRR dans le brief hebdo.
+- Cohorte comportementale > cohorte temporelle : ne PAS grouper les clients par date d'inscription mais par ACTIONS (ont généré une vidéo ? ont publié sur Instagram ? ont invité un collègue ?). Les cohortes par feature-adoption prédisent le churn 3x mieux.
+- Les entreprises avec un onboarding time-to-first-value < 7 jours ont 50% moins de churn. Notre TTV cible : < 5 minutes pour le premier visuel.
+
+PSYCHOLOGIE DE PRICING — MARCHÉ FRANÇAIS :
+- La TVA à 20% en France rend les prix TTC psychologiquement plus lourds. 49€ HT = 58.80€ TTC. Toujours communiquer en HT pour le B2B (notre cible), en TTC pour les freelances.
+- Le discount annuel le plus efficace : 16.7% (= 2 mois offerts). Notre plan annuel devrait offrir exactement 2 mois gratuits, pas plus (sinon perception de faible valeur).
+- Defaulter sur le billing annuel augmente l'adoption annuelle de 19%. Sur la page pricing, l'onglet "Annuel" doit être PRÉ-SÉLECTIONNÉ.
+- Une garantie satisfait-ou-remboursé sur l'annuel augmente la conversion de 34%. Proposer "30 jours satisfait ou remboursé" sur Fondateurs annuel.
+- Le meilleur moment pour proposer l'upgrade annuel : JUSTE après l'inscription, dans la "première flush d'enthousiasme". L'agent Onboarding doit proposer l'annuel dans le premier email de bienvenue.
+- Charm pricing (49€ vs 50€) fonctionne toujours. 149€ bat 150€ de 8-12% en conversion. Nos prix actuels (49, 149, 349, 999) sont BIEN calibrés.
+
+QUAND AUGMENTER LES PRIX vs AJOUTER DES FEATURES :
+- Règle : si le churn est < 5% mensuel et la conversion free-to-paid > 15%, il est temps d'AUGMENTER les prix. Ne pas augmenter tant que ces deux conditions ne sont pas remplies.
+- Augmenter de 10-20% maximum par palier. Grandfathering OBLIGATOIRE pour les clients existants (ils gardent l'ancien prix). Communiquer 30j avant.
+- Ajouter des features quand : le churn est > 5% ET les utilisateurs demandent des fonctionnalités spécifiques en exit survey. Les features de rétention (planning auto, analytics) priment sur les features d'acquisition.
+- Le Fondateurs à 149€ passera à 199€ après les 50 premières places. C'est un FOMO pricing classique et efficace. Tracker le compteur de places restantes dans chaque email.
+
+MOAT COMPÉTITIF POUR OUTILS IA :
+- Le moat #1 en 2026 pour un outil IA de contenu : les DONNÉES D'USAGE. Plus les clients créent de contenu, plus notre IA apprend leurs préférences = cercle vertueux.
+- Moat #2 : l'intégration dans le workflow quotidien. Si le commerçant ouvre KeiroAI chaque matin comme il ouvre sa caisse, on est irremplaçable. L'agent Content doit pousser vers l'habitude quotidienne (notifications matinales, "ton post du jour est prêt").
+- Moat #3 : la communauté. Un Slack/Discord de commerçants qui s'entraident vaut plus que 10 features. Le network effect protège contre les concurrents.
+- Moat #4 : le coût de changement. Plus le client a de contenu historique, templates personnalisés et données analytics dans KeiroAI, plus il est coûteux de partir.
+
+COMMUNITY-LED GROWTH — TACTIQUES :
+- Les programmes de parrainage fonctionnent 3-5x mieux quand les DEUX parties reçoivent quelque chose. Structure idéale : "Parraine un commerçant, vous recevez TOUS LES DEUX 1 mois gratuit".
+- Un groupe WhatsApp de 50 clients actifs génère plus de rétention qu'un CSM dédié. Les commerçants se motivent entre eux.
+- User-Generated Content : demander aux clients de poster leurs créations KeiroAI avec un hashtag = marketing gratuit + preuve sociale. L'agent Content doit reposter ces créations.
+- Les early adopters (Fondateurs) doivent avoir un canal exclusif. Leur feedback vaut de l'or et leur sentiment d'appartenance réduit le churn de 40%.`;
+
 }

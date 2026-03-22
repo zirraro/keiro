@@ -19,6 +19,57 @@ function getSupabaseAdmin() {
   return createClient(supabaseUrl, supabaseServiceKey);
 }
 
+/**
+ * Auto-categorize a prospect based on company name and other signals.
+ * Returns the inferred business type, or null if unable to determine.
+ */
+function autoCategorizeProspect(prospect: any): string | null {
+  const company = (prospect.company || '').toLowerCase();
+  const email = (prospect.email || '').toLowerCase();
+
+  // Keywords → type mapping
+  const patterns: [RegExp, string][] = [
+    [/\b(resto|restaurant|brasserie|bistrot|pizza|sushi|burger|grill|cuisine|trattoria|kebab|thai|chinois|japonais|indien|libanais|mexicain)\b/i, 'restaurant'],
+    [/\b(traiteur|catering|banquet|réception)\b/i, 'traiteur'],
+    [/\b(boutique|magasin|shop|store|prêt[- ]à[- ]porter|vêtement|mode|fashion|bijou|accessoire)\b/i, 'boutique'],
+    [/\b(coach|coaching|fitness|sport|gym|musculation|yoga|pilates|crossfit|personal.?train)\b/i, 'coach'],
+    [/\b(coiff|barb[ie]|hair|salon de|beauté|esthéti|ongle|manucure|nail)\b/i, 'coiffeur'],
+    [/\b(cave|caviste|vin|wine|fromage|fromagerie|épicerie fine)\b/i, 'caviste'],
+    [/\b(fleur|florist|garden|jardin|pépinière)\b/i, 'fleuriste'],
+    [/\b(freelance|consultant|indépendant|auto[- ]?entrepreneur)\b/i, 'freelance'],
+    [/\b(avocat|notaire|cabinet|juridique|droit)\b/i, 'professionnel'],
+    [/\b(médecin|docteur|kiné|ostéo|dentiste|pharmacie|santé|clinique|thérapeute|psycho)\b/i, 'professionnel'],
+    [/\b(plomb|electri|chauffag|menuisi|artisan|maçon|peintre|carreleur|serrurier|couvreur)\b/i, 'services'],
+    [/\b(agence|agency|studio|digital|marketing|communication|web|design)\b/i, 'agence'],
+    [/\b(boulangerie|boulanger|pâtisserie|pâtissier)\b/i, 'restaurant'],
+    [/\b(café|coffee|tea|thé|bar\b|pub\b|lounge)\b/i, 'restaurant'],
+    [/\b(photo|vidéo|film|prod|création|créatif|graphi|illustrat)\b/i, 'freelance'],
+    [/\b(form|école|académ|institut|éducat|cours)\b/i, 'coach'],
+    [/\b(immobili|courtier|agent immobilier)\b/i, 'professionnel'],
+    [/\b(startup|sarl|sas|eurl|entreprise|société|group)\b/i, 'pme'],
+  ];
+
+  for (const [regex, type] of patterns) {
+    if (regex.test(company)) return type;
+  }
+
+  // Try email domain as fallback
+  const domain = email.split('@')[1] || '';
+  for (const [regex, type] of patterns) {
+    if (regex.test(domain)) return type;
+  }
+
+  // Smart fallback: never return null — assign best-fit based on context signals
+  // If has Instagram or Google rating, likely a local commerce → boutique (most generic local)
+  if (prospect.instagram || prospect.google_rating) return 'boutique';
+  // If has a website, likely a professional or PME
+  if (prospect.website) return 'pme';
+  // If source is chatbot, they're interested in content → boutique (most visual)
+  if (prospect.source === 'chatbot') return 'boutique';
+  // Ultimate fallback: PME (generic enough for any business)
+  return 'pme';
+}
+
 interface SendResult {
   prospect_id: string;
   email: string;
@@ -88,7 +139,8 @@ async function generateAIEmails(
 - Quartier: ${pr.quartier ? pr.quartier : 'INCONNU — ne mentionne PAS de quartier dans l\'email'}
 - Note Google: ${pr.note_google || pr.google_rating || 'non connue'}
 - Email: ${pr.email}
-- Step: ${p.step} (${p.step === 1 ? 'premier contact — question + valeur' : p.step === 2 ? 'relance douce — rappel + social proof' : p.step === 3 ? 'valeur gratuite — conseil concret sans rien demander' : p.step === 4 ? 'FOMO concurrents — tes concurrents postent deja' : p.step === 5 ? 'dernière chance — direct, désarmant' : 'warm follow-up'})
+- Step: ${p.step} (${p.step === 1 ? 'PREMIER CONTACT' : p.step === 2 ? 'RELANCE — change l\'angle si step 1 non ouvert' : p.step === 3 ? 'VALEUR GRATUITE — conseil concret, zéro CTA' : p.step === 4 ? 'FOMO — urgence naturelle, concurrents' : p.step === 5 ? 'DERNIÈRE CHANCE — break-up, désarmant' : 'WARM FOLLOW-UP'})
+- Engagement: ${pr.last_email_opened_at ? 'A OUVERT un email précédent' : 'N\'a JAMAIS ouvert'} ${pr.last_email_clicked_at ? '+ A CLIQUÉ' : ''} ${pr.last_email_replied_at ? '+ A RÉPONDU' : ''}
 - Score prospect: ${pr.score || 0}/100 (${pr.temperature || 'cold'})
 - Réseaux: ${socialInfo.length > 0 ? socialInfo.join(' | ') : 'aucun trouvé'}
 - Source: ${pr.source || 'import'}`;
@@ -106,6 +158,44 @@ PSYCHOLOGIE DE VENTE :
 - La question > l'affirmation (une question crée un engagement mental)
 - Le concret > l'abstrait ("5 clients en plus" > "booster votre visibilité")
 - L'urgence naturelle > la fausse rareté ("tes concurrents postent déjà" > "offre limitée")
+
+MATRICE STRATÉGIQUE — adapte l'angle selon le TYPE + le STEP + la TEMPÉRATURE :
+
+ANGLES PAR TYPE DE COMMERCE :
+- Restaurant/Traiteur : angle "couverts" — visuels de plats = +30% clics, stories quotidiennes, menu du jour
+- Boutique/Magasin : angle "passage" — vitrine digitale, lookbooks, promos saisonnières
+- Coach/Fitness : angle "agenda" — booking via contenu, avant/après, témoignages vidéo
+- Coiffeur/Barbier : angle "confiance" — galerie réalisations, avis clients, prise de RDV
+- Caviste/Fleuriste : angle "saison" — contenu saisonnier, événements, offres éphémères
+- Freelance/Consultant : angle "expertise" — personal branding, portfolio, thought leadership
+- Professionnel (avocat, médecin...) : angle "crédibilité" — image pro, contenu éducatif, confiance
+- Agence/Studio : angle "productivité" — automatisation contenu clients, scaling sans embaucher
+- PME/Startup : angle "marque" — communication corporate, marque employeur, visibilité
+
+STRATÉGIE PAR STEP × TEMPÉRATURE :
+Step 1 (premier contact) :
+  - Cold : Question + valeur — "j'ai vu ton [commerce], t'as du potentiel mais..."
+  - Warm (chatbot lead) : Référence à l'échange — "suite à ton message, voici ce que je peux faire..."
+
+Step 2 (relance J+4) :
+  - Si pas ouvert step 1 : Nouvel angle — change le sujet, essaie social proof
+  - Si ouvert mais pas cliqué : Rappel doux + valeur ajoutée — "je sais que t'es occupé, mais regarde ça..."
+
+Step 3 (valeur gratuite J+8) :
+  - Donne un conseil CONCRET et ACTIONNABLE adapté au type de commerce
+  - Restaurant : "3 erreurs sur tes stories food" / Boutique : "le secret des boutiques qui cartonnent sur Insta"
+  - Coach : "comment tes clients parlent de toi en story" / Artisan : "tes photos avant/après valent de l'or"
+  - AUCUN CTA de vente, juste de la valeur pure
+
+Step 4 (FOMO J+12) :
+  - Cold qui n'a jamais ouvert : Ultra-direct — "tes concurrents [type] sont déjà sur les réseaux, pas toi"
+  - Cold qui a ouvert : Urgence douce — "j'ai un créneau cette semaine pour te montrer..."
+  - Warm : Social proof ciblé — "[nombre] [types] utilisent déjà KeiroAI dans ta zone"
+
+Step 5 (dernière chance J+16) :
+  - Désarmant et honnête — "pas de pression, juste une dernière question..."
+  - Cold : Break-up email — "si c'est pas le moment je comprends, je te laisse tranquille"
+  - Warm/Hot : Offre directe — essai gratuit 7 jours, appel de 10 min
 
 PERSONNALISATION INTELLIGENTE :
 - Si le prospect a un Instagram : "j'ai vu ton compte @xxx, t'as du bon contenu mais..."
@@ -163,6 +253,54 @@ INTERDICTIONS ABSOLUES :
 - Signature : Victor de KeiroAI (JAMAIS Oussama, JAMAIS "l'équipe KeiroAI")
 
 ${learnings}
+
+━━━ CONNAISSANCES AVANCÉES — COLD EMAIL MASTERY ━━━
+
+DÉLIVRABILITÉ — CONFIGURATION DNS AVANCÉE :
+- SPF + DKIM + DMARC p=reject est le MINIMUM en 2026. Gmail rejette activement les emails non conformes depuis novembre 2025.
+- BIMI (Brand Indicators for Message Identification) : affiche le logo KeiroAI dans la boîte de réception. Nécessite un VMC (Verified Mark Certificate) + logo SVG. Booste l'open rate de 10-15% grâce à la confiance visuelle.
+- MTA-STS (Mail Transfer Agent Strict Transport Security) : force le chiffrement TLS pour les emails en transit. Signal de confiance pour Gmail/Microsoft.
+- Taux de plaintes spam : TOUJOURS < 0.1% (seuil critique). Au-dessus de 0.3% = risque de blacklist. UN SEUL signalement spam sur 1000 emails = problème.
+- MAX 20 emails froids par boîte d'envoi par jour pour un domaine neuf. Après 4 semaines de warm-up, monter progressivement à 50/jour max.
+
+ANTI-SPAM — TECHNIQUES DE VARIATION :
+- Jamais envoyer 2 emails identiques. Chaque email DOIT avoir des variations uniques : ordre des phrases, synonymes, longueur, ponctuation.
+- Spin syntax mental : pour chaque élément, avoir 3-4 variantes. Ex: "je suis tombé sur" / "j'ai découvert" / "j'ai vu" / "quelqu'un m'a parlé de". NE PAS utiliser des outils de spin automatique — l'IA DOIT créer du contenu unique organiquement.
+- Éviter les trigger words spam : "gratuit", "offre", "promotion", "cliquez ici", "urgent", "dernière chance" dans le sujet. Dans le corps, acceptable avec parcimonie.
+- Le ratio texte/HTML doit rester simple. Nos emails sont en texte quasi-pur avec signature HTML = parfait. Pas de gros blocs HTML, pas d'images dans le corps.
+- Varier les heures d'envoi : pas tous les emails à 8h00 pile. Répartir entre 7h-10h et 14h-16h avec un décalage aléatoire de 1-15 minutes.
+
+A/B TESTING — MÉTHODOLOGIE AVEC PETITS ÉCHANTILLONS :
+- Avec < 250 contacts par variante, les résultats ne sont PAS statistiquement significatifs. MAIS on peut quand même apprendre en combinant plusieurs signaux.
+- Métrique primaire : taux de RÉPONSE (pas l'open rate qui est biaisé par le tracking pixel). Un sujet qui génère des réponses > un sujet qui génère des ouvertures.
+- Durée minimale d'un test : 48h pour les ouvertures, 5-7 jours pour les réponses. Ne JAMAIS conclure en < 48h.
+- Tester UN SEUL élément à la fois : sujet OU corps OU CTA OU timing. Jamais 2 éléments en même temps.
+- Avec 50-100 contacts : observer la TENDANCE, pas le résultat absolu. 3 réponses vs 0 sur 50 contacts = signal fort même si pas "significatif" statistiquement.
+- Règle du "3x" : déclarer un gagnant seulement si une variante fait 3x mieux que l'autre. Ex: 6% réponse vs 2% = gagnant. 3% vs 2% = pas conclusif.
+
+INBOX PLACEMENT vs DELIVERY RATE :
+- Delivery rate = "l'email est arrivé quelque part" (boîte de réception OU spam). Viser 98%+.
+- Inbox placement = "l'email est arrivé dans la boîte de réception principale" (pas spam, pas promotions). Viser 85%+.
+- Un delivery rate de 98% avec un inbox placement de 40% = CATASTROPHE silencieuse. Les emails "arrivent" mais personne ne les voit.
+- Pour maximiser l'inbox placement : les RÉPONSES sont le signal #1. Un email qui reçoit des réponses = Gmail le met en boîte principale. D'où l'importance des questions ouvertes dans nos emails.
+- Warm-up moderne : ce n'est plus juste "envoyer progressivement plus". Il faut des ouvertures, des réponses, des "mark as important". Les outils de warm-up simulent ces interactions positives.
+
+RÉCUPÉRATION DE RÉPUTATION DE DOMAINE :
+- Si le domaine keiroai.com est blacklisté ou en mauvaise réputation : NE PAS insister. Acheter un domaine secondaire (ex: keiroai.fr, keiromail.com) et le warm-up pendant 2-4 semaines.
+- Le warm-up prend 2-4 semaines minimum. Commencer avec 5 emails/jour à des contacts connus (qui répondront), puis monter de 5/jour par semaine.
+- Signaux positifs à générer pendant le warm-up : ouvertures > 50%, réponses > 20%, "mark as important", déplacement de spam vers inbox.
+- Si la réputation est irrécupérable (historique de spam, blacklists multiples), il est PLUS EFFICACE de repartir sur un nouveau domaine que de tenter de récupérer.
+- Checker la réputation : Google Postmaster Tools (gratuit), MXToolbox, mail-tester.com (score /10, viser > 8).
+
+RGPD — CE QUI EST RÉELLEMENT AUTORISÉ EN B2B FRANCE :
+- Le cold email B2B est LÉGAL en France sous le RGPD. Base légale = intérêt légitime (pas besoin de consentement préalable pour du B2B).
+- CONDITION : l'email doit être une adresse PROFESSIONNELLE (contact@entreprise.com, prenom@entreprise.com). Les adresses perso (gmail, hotmail) d'un professionnel = zone grise, à éviter en cold.
+- OBLIGATION : lien de désinscription fonctionnel en 1 clic dans CHAQUE email. Pas de justification demandée, pas de "êtes-vous sûr ?".
+- OBLIGATION : pouvoir justifier l'ORIGINE de chaque contact. "Trouvé sur Google Maps" = valide. "Acheté une liste" = risqué. Documenter la source dans le CRM.
+- Le B2C bascule en opt-in strict le 11 août 2026. Le B2B reste en intérêt légitime. Mais si un prospect est un auto-entrepreneur (B2C/B2B hybride), traiter comme B2B si l'email est pro.
+- Sanctions CNIL : jusqu'à 20M€ ou 4% du CA. En pratique, les PME reçoivent d'abord un avertissement. Mais un signalement de prospect = enquête potentielle.
+- CONSEIL : dans chaque email, une phrase type "Je te contacte car j'ai vu [source] et je pense que KeiroAI peut t'aider" = justification de l'intérêt légitime.
+- MAX 3 emails de prospection par prospect (notre règle actuelle = conforme). Au-delà de 3 relances non sollicitées = harcèlement commercial.
 
 CONSIGNE : Pour chaque prospect, génère un email UNIQUE et personnalisé.
 Réponds en JSON — un tableau d'objets, un par prospect :
@@ -1003,6 +1141,19 @@ export async function GET(request: NextRequest) {
         }
 
         const category = getSequenceForProspect(prospect);
+
+        // Auto-categorize untyped prospects
+        if (!prospect.type || prospect.type.trim() === '') {
+          const inferredType = autoCategorizeProspect(prospect);
+          if (inferredType) {
+            await supabase.from('crm_prospects').update({
+              type: inferredType,
+              updated_at: nowISO,
+            }).eq('id', prospect.id);
+            prospect.type = inferredType;
+            console.log(`[EmailDaily] Auto-categorized ${prospect.company} → ${inferredType}`);
+          }
+        }
 
         // CRM coherence check — fix data issues before processing
         const { fixes, issues: crmIssues } = verifyCRMCoherence(prospect);

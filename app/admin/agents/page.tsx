@@ -6,7 +6,7 @@ import { supabaseBrowser } from '@/lib/supabase/client';
 import Link from 'next/link';
 import AvatarEditor from './components/AvatarEditor';
 
-type Tab = 'fiches' | 'campagnes' | 'ordres' | 'logs' | 'avatars';
+type Tab = 'fiches' | 'briefs' | 'campagnes' | 'ordres' | 'logs' | 'avatars';
 type FicheSubTab = 'overview' | 'chat' | 'ordres' | 'logs';
 
 type AgentFiche = {
@@ -255,6 +255,7 @@ function AdminAgentsContent() {
   const [contentGenerating, setContentGenerating] = useState(false);
   const [fixingCaptions, setFixingCaptions] = useState(false);
   const [contentDraftOnly, setContentDraftOnly] = useState(true);
+  const [publishMode, setPublishMode] = useState<'auto' | 'notify'>('auto');
   const [previewPost, setPreviewPost] = useState<ContentPost | null>(null);
 
   // Logs state
@@ -323,6 +324,9 @@ function AdminAgentsContent() {
         .single();
 
       if (!profileData?.is_admin) { router.push('/'); return; }
+      // Load publish mode preference from localStorage (fast) then sync from DB
+      const savedMode = typeof window !== 'undefined' ? localStorage.getItem('keiro_publish_mode') : null;
+      if (savedMode === 'notify') setPublishMode('notify');
       setLoading(false);
       loadDashboard();
       loadAgentStatuses();
@@ -1009,6 +1013,9 @@ function AdminAgentsContent() {
       const fiche = AGENT_FICHES.find(f => f.id === focusedAgent);
       if (fiche) loadAgentHistory(fiche.chatId);
     }
+    if (activeTab === 'briefs' && briefs.length === 0) {
+      loadBriefs();
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedAgent, activeTab]);
 
@@ -1403,6 +1410,7 @@ function AdminAgentsContent() {
           action: type,
           ...(contentPlatform !== 'all' && { platform: contentPlatform }),
           draftOnly: contentDraftOnly,
+          publish_mode: publishMode,
         }),
       });
       const data = await res.json();
@@ -1590,6 +1598,7 @@ function AdminAgentsContent() {
 
   const tabs: { key: Tab; label: string }[] = [
     { key: 'fiches', label: 'Agents' },
+    { key: 'briefs', label: 'Briefs CEO' },
     { key: 'campagnes', label: 'Campagnes' },
     { key: 'ordres', label: 'Ordres' },
     { key: 'logs', label: 'Logs' },
@@ -2255,6 +2264,9 @@ function AdminAgentsContent() {
                       <button onClick={() => setContentDraftOnly(!contentDraftOnly)} className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${contentDraftOnly ? 'border-amber-300 bg-amber-50 text-amber-700' : 'border-green-300 bg-green-50 text-green-700'}`}>
                         {contentDraftOnly ? 'Brouillon' : 'Publication directe'}
                       </button>
+                      <button onClick={async () => { const next = publishMode === 'auto' ? 'notify' : 'auto'; setPublishMode(next); localStorage.setItem('keiro_publish_mode', next); try { await fetch('/api/agents/content', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'set_publish_mode', publish_mode: next }) }); } catch {} }} className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${publishMode === 'notify' ? 'border-blue-300 bg-blue-50 text-blue-700' : 'border-neutral-200 bg-neutral-50 text-neutral-500'}`}>
+                        {publishMode === 'notify' ? 'Notification avant publi' : 'Auto-publish'}
+                      </button>
                     </div>
                     <div className="flex items-center gap-3 flex-wrap">
                       <button onClick={() => handleContentGenerate('generate_weekly')} disabled={contentGenerating} className="bg-gradient-to-r from-purple-600 to-[#1e3a5f] text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:opacity-90 disabled:opacity-50">
@@ -2392,6 +2404,36 @@ function AdminAgentsContent() {
           </div>
           );
         })()}
+        {/* ===== TAB BRIEFS CEO ===== */}
+        {activeTab === 'briefs' && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-neutral-900">Briefs CEO</h2>
+              <button onClick={executeCeoBrief} disabled={executingCeo} className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-700 text-white text-sm font-medium rounded-lg hover:opacity-90 disabled:opacity-50">
+                {executingCeo ? 'Génération...' : 'Générer brief'}
+              </button>
+            </div>
+            {briefs.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-sm border p-8 text-center text-neutral-400">Aucun brief CEO. Clique sur "Générer brief" pour lancer une analyse.</div>
+            ) : briefs.map(b => {
+              const d = typeof b.data === 'string' ? b.data : (b.data?.brief || b.data?.analysis || JSON.stringify(b.data, null, 2));
+              return (
+                <div key={b.id} className="bg-white rounded-xl shadow-sm border overflow-hidden">
+                  <div className="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-purple-50 to-indigo-50 border-b">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">🧠</span>
+                      <span className="text-sm font-semibold text-neutral-900">Brief du {new Date(b.created_at).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
+                    </div>
+                    <span className="text-xs text-neutral-400">{new Date(b.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
+                  </div>
+                  <div className="p-5">
+                    <pre className="text-sm text-neutral-700 whitespace-pre-wrap leading-relaxed max-h-[600px] overflow-y-auto">{d}</pre>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
         {/* ===== TAB CAMPAGNES ===== */}
         {activeTab === 'campagnes' && (
           <div className="space-y-6">

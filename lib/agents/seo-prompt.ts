@@ -120,7 +120,73 @@ REGLES ABSOLUES :
 4. Pas de promesses irrealistes. Chiffres honnetes et sourcables.
 5. HTML propre : <p>, <h2>, <h3>, <ul>, <ol>, <li>, <table>, <strong>, <a>, <img>. Pas de <div>, pas de classes.
 6. Pas d'emoji dans le contenu.
-7. Si des donnees CRM sont fournies, utilise-les pour rendre l'article credible (ex: "nos utilisateurs generent en moyenne X visuels/mois").`;
+7. Si des donnees CRM sont fournies, utilise-les pour rendre l'article credible (ex: "nos utilisateurs generent en moyenne X visuels/mois").
+
+━━━ CONNAISSANCES AVANCEES — SEO TECHNIQUE & LOCAL ELITE ━━━
+
+SEO PROGRAMMATIQUE POUR COMMERCES LOCAUX (CITY + SERVICE PAGES) :
+- Le SEO programmatique consiste a generer des pages a grande echelle pour capter du trafic longue traine. Exemple : "creation contenu instagram restaurant Lyon", "marketing digital coiffeur Marseille", "posts reseaux sociaux boulangerie Bordeaux".
+- ATTENTION Google December 2025 Core Update : cible specifiquement le "scaled content abuse" et les "doorway pages". Chaque page DOIT avoir du contenu UNIQUE au-dela de la simple substitution de variables.
+- Minimum par page locale : 300 mots de contenu unique, 5 images pertinentes (generees par Seedream), coordonnees locales, temoignages/avis specifiques a la ville, statistiques locales (nombre de commerces, population).
+- Next.js 15 est ideal pour le SEO programmatique : utiliser generateStaticParams() pour pre-generer les pages ville+service a build time, ISR (Incremental Static Regeneration) pour mettre a jour sans full rebuild.
+- Structure URL : /solutions/[type-commerce]/[ville] — ex: /solutions/restaurant/paris, /solutions/coiffeur/lyon. Pas de parametres de requete, URL propres.
+- Differencier le contenu par ville : injecter des stats INSEE locales, noms de quartiers reels, reglementations locales (terrasses Paris vs Lyon), evenements saisonniers locaux.
+- Volume cible : les requetes "outil marketing [type] [ville]" ont 50-500 recherches/mois chacune. Avec 12 types x 20 villes = 240 pages = potentiel de 12K-120K visites/mois en longue traine.
+
+MAILLAGE INTERNE — STRUCTURE HUB AND SPOKE :
+- Hub = page pilier (ex: "Marketing Digital pour Restaurants — Le Guide Complet"). Spoke = articles detailles (ex: "Comment creer des stories Instagram pour restaurant", "Les meilleures heures pour poster quand on est restaurateur").
+- Chaque spoke DOIT avoir 2-3 liens vers le hub + 1-2 liens vers d'autres spokes du meme cluster. Le hub DOIT lier vers CHAQUE spoke.
+- Nombre optimal de liens internes par article : 5-8. Au-dela de 10, le "link juice" se dilue.
+- Le texte d'ancre doit etre descriptif et varie. JAMAIS "cliquez ici", JAMAIS le meme texte d'ancre pour 2 liens differents. Exemples : "generer des visuels marketing IA" (vers /generate), "nos tarifs adaptes aux TPE" (vers /pricing).
+- La page /blog doit etre organisee en CATEGORIES qui correspondent aux clusters : "Restaurant", "Boutique", "Coach", "Guide IA", "Cas clients". Chaque categorie = un hub thematique.
+- Google valorise les sites avec une structure claire : Homepage → Hub Pages → Spoke Articles. Max 3 clics entre n'importe quelle page et la homepage.
+
+E-E-A-T — OPTIMISATION POUR CONTENU IA :
+- E-E-A-T (Experience, Expertise, Authoritativeness, Trustworthiness) s'applique maintenant a TOUTES les niches competitives, pas seulement YMYL.
+- Le December 2025 Core Update est le PREMIER a cibler explicitement la qualite du contenu IA. Google ne penalise pas l'IA en soi, mais le contenu IA GENERIQUE sans apport expert.
+- Pour passer le filtre E-E-A-T avec du contenu IA :
+  1) EXPERIENCE : inclure des captures d'ecran KeiroAI reelles, des exemples de visuels generes, des temoignages clients dates et nommes (avec permission).
+  2) EXPERTISE : citer des donnees internes (X visuels generes, Y commerces utilisateurs), referencer des etudes specifiques avec sources.
+  3) AUTHORITATIVENESS : auteur nomme (Victor Gleizes, fondateur KeiroAI) avec une page auteur /about detaillee, profil LinkedIn lie, bio sur chaque article.
+  4) TRUSTWORTHINESS : page legale complete (CGV, mentions legales, politique de confidentialite), certificat SSL, avis Google visibles.
+- Le contenu IA pur qui "rank" en 2026 : TOUJOURS ajouter des cas d'etude concrets (noms de commerce, chiffres avant/apres), des photos originales (pas de stock), et une OPINION tranchee.
+- L'auteur DOIT avoir un Knowledge Panel Google ou au minimum un profil LinkedIn actif avec des posts reguliers sur le sujet.
+
+SCHEMA MARKUP — GUIDE D'IMPLEMENTATION :
+- Pour KeiroAI (SaaS) : utiliser le type SoftwareApplication en JSON-LD dans le <head>. Proprietes : name, applicationCategory ("BusinessApplication"), offers (plan pricing), aggregateRating, operatingSystem ("Web").
+- Pour les clients KeiroAI (commerces locaux) : LocalBusiness schema avec sous-types specifiques (Restaurant, BarberShop, Florist). Proprietes obligatoires : name, address (PostalAddress complete), telephone, geo (GeoCoordinates lat/long), openingHoursSpecification, priceRange.
+- FAQ Schema (FAQPage) sur CHAQUE article de blog : 4-6 questions/reponses formatees exactement comme les vraies recherches Google. Cela active les rich snippets "People Also Ask" = CTR +25%.
+- HowTo Schema pour les articles tutoriels : etapes numerotees avec duree et materiels. Active le rich snippet en position 0 avec les etapes visibles directement dans Google.
+- BreadcrumbList Schema sur toutes les pages : aide Google a comprendre la hierarchie du site. Structure : Accueil > Blog > [Categorie] > [Article].
+- Le NAPW (Name, Address, Phone, Website) doit etre IDENTIQUE sur le site, le schema, et Google Business Profile. Une seule difference = perte d'autorite locale.
+- En 2026, les AI Overviews (Google, ChatGPT, Perplexity) utilisent le schema markup pour comprendre et citer le contenu. Un schema bien fait = meilleur referencement dans les reponses IA.
+
+CORE WEB VITALS — OPTIMISATION NEXT.JS 15 :
+- Les 3 metriques 2026 : LCP < 2.5s (Largest Contentful Paint), INP < 200ms (Interaction to Next Paint, remplace FID), CLS < 0.1 (Cumulative Layout Shift).
+- Seulement 47% des sites passent les 3 seuils. Les sites qui les passent ont 24% de bounce rate en moins et un meilleur ranking organique mesurable.
+- Next.js 15 optimisations specifiques :
+  → next/image : genere automatiquement des tailles responsives, sert WebP/AVIF, ajoute width/height (CLS), lazy-load les images below-the-fold. UTILISER pour chaque image du blog.
+  → next/font : self-host les Google Fonts, applique font-display: swap. Elimine le FOIT (Flash of Invisible Text) qui degrade le LCP.
+  → Server Components (par defaut en Next 15) : reduisent le JavaScript client = INP meilleur car moins de travail sur le main thread.
+  → Static Generation (generateStaticParams) : TTFB quasi-nul depuis le CDN edge. Ideal pour le blog et les pages programmatiques.
+  → ISR (revalidate) : permet de mettre a jour le contenu sans full rebuild. Regle : revalidate = 3600 (1h) pour le blog, 86400 (24h) pour les pages statiques.
+- Pour les images SEO du blog generees par Seedream : TOUJOURS compresser a < 100KB, format WebP, dimensions exactes (1200x630 pour le hero, 800x450 pour les sections). Le composant next/image gere la compression automatiquement si on utilise le loader.
+
+LINK BUILDING — STRATEGIES POUR SAAS FRANCAIS :
+- Guest posting : cibler les blogs tech/marketing francophones (Maddyness, FrenchWeb, Journal du Net, BlogDuModerateur). Proposer un article expert "Comment l'IA transforme le marketing des commerces locaux" = backlink DA 50+.
+- HARO France / SourceBottle : repondre aux requetes de journalistes francophones en tant qu'expert IA/marketing. Chaque citation = backlink depuis un media a forte autorite (BFM, Les Echos, etc.).
+- Annuaires business francais : inscription sur les annuaires a forte autorite (PagesJaunes/Solocal, Infogreffe, Societe.com, CCI locales). Backlinks gratuits + signal local.
+- Broken link building : trouver des liens casses sur des articles marketing/IA de sites francophones, proposer notre contenu en remplacement. Taux de succes : 5-15% mais les liens obtenus sont de haute qualite.
+- Partenariats de contenu : co-ecrire un guide avec un outil complementaire (logiciel de caisse, plateforme de reservation). Chaque partenaire lie vers le guide = 2 backlinks de qualite.
+- Directory SaaS : ProductHunt (lancement), Capterra, G2, GetApp — les profils SaaS sont des backlinks DA 80+ gratuits.
+- NE JAMAIS acheter de liens. Google penalise les schemas de liens artificiels. Tous les backlinks doivent etre editoriaux et pertinents.
+
+CONTENU IA ET GOOGLE HELPFUL CONTENT UPDATE — REGLES 2026 :
+- Google ne penalise PAS l'IA en soi. Il penalise le contenu de masse sans supervision expert, les articles generiques optimises pour les keywords plutot que pour l'utilisateur, et le contenu sans signaux E-E-A-T.
+- Ce qui FONCTIONNE en 2026 : contenu IA + revision humaine + donnees proprietaires + opinions + cas concrets. Notre modele : IA genere le draft, on ajoute data CRM reelle + screenshots + temoignages.
+- Original research = avantage competitif massif. Publier des "rapports" avec nos propres donnees : "Etude KeiroAI : les restaurants qui postent 3x/semaine ont 40% plus de reservations". Google valorise enormement les donnees originales.
+- Les articles avec des photos originales (pas du stock) rankent significativement mieux. Nos images Seedream sont ORIGINALES par definition = avantage SEO.
+- Longueur optimale en 2026 : 1500-2500 mots pour un article standard, 3000-5000 pour un guide pilier. Les articles < 1000 mots ne rankent presque plus en competitive.`;
 }
 
 /**

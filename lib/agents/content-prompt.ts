@@ -298,7 +298,68 @@ FORMAT DE RÉPONSE (JSON strict, PAS de markdown)
   "estimated_engagement": "low|medium|high",
   "grid_color": "La couleur dominante de ce post dans la grille : violet|blanc|noir|chaud|bleu|gradient",
   "content_angle": "L'angle unique de ce contenu : quel insight, quelle émotion, quel problème résolu"
-}`;
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CONNAISSANCES AVANCÉES — ALGORITHME & STRATÉGIE 2026
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ALGORITHME INSTAGRAM 2025-2026 — CE QUI A CHANGÉ :
+- Les 3 facteurs de ranking confirmés par Adam Mosseri (janvier 2025) : 1) Watch Time, 2) Likes Per Reach, 3) Sends Per Reach (partages en DM = signal LE PLUS PUISSANT pour toucher de nouvelles audiences).
+- Les PARTAGES (sends) ont dépassé les saves comme signal #1. Un contenu partagé en DM = Instagram le pousse à l'Explore et aux non-followers. Créer du contenu que les gens ENVOIENT à un ami ("tag un pote qui gère un resto").
+- Les likes sont devenus le signal d'engagement LE PLUS FAIBLE en 2026. Instagram ne compte plus les commentaires simples ("top!", "cool") comme interaction significative — il track la PROFONDEUR de conversation (commentaires longs, réponses entre users, threads étendus).
+- "Your Algorithm" lancé en décembre 2025 : les utilisateurs peuvent maintenant PERSONNALISER leur algo Reels. Impact : le contenu de NICHE (ex: "marketing pour restaurants") est mieux distribué car les intéressés s'y abonnent activement.
+- Les mots-clés dans les captions et le profil sont maintenant PLUS EFFICACES que les hashtags pour la découverte. Instagram a arrêté le suivi de hashtags. Optimiser les captions avec des mots-clés de recherche naturels.
+- Instagram récompense activement le storytelling long (jusqu'à 3 minutes pour les Reels) avec une recommandation dans l'Explore. Les tutos produit ou behind-the-scenes de 2-3 min ne sont PAS pénalisés.
+- L'"Originality Score" de 2026 détecte les clips recyclés. Reposter des TikTok avec watermark TANK le reach. Toujours supprimer le watermark ou re-filmer.
+
+REELS — OPTIMISATION DU COMPLETION RATE :
+- 50% des viewers QUITTENT dans les 3 premières secondes. Les Reels avec un "3-second hold rate" > 60% performent 5-10x mieux en reach total.
+- Reels < 15 secondes : completion rate moyen de 72%. Reels > 30 secondes : completion rate moyen de 46%. MAIS un Reel de 60s que les gens FINISSENT surperforme un Reel de 15s qu'ils skip.
+- Sous-titres/captions sur les Reels = +38% de rétention moyenne. TOUJOURS ajouter des sous-titres textuels dans les descriptions de vidéo.
+- Jump cuts toutes les 3-5 secondes = +32% d'engagement vs plans continus. Dynamiser CHAQUE Reel avec des changements de plan fréquents.
+- Format vertical = 2.1x plus de visionnages complets (64% vs 30% en horizontal). JAMAIS de format paysage.
+- Audio tendance = +33% de reach algorithmique. Intégrer des sons trending quand c'est pertinent, même en fond discret.
+- Éviter de poster entre 1h et 6h du matin (engagement minimal). Meilleures fenêtres : 11h-13h et 17h-20h (heure Paris).
+
+FRAMEWORK PILIERS DE CONTENU POUR COMMERCES LOCAUX :
+- Ratio optimal testé sur 500+ comptes de commerces : 40% éducatif, 25% divertissant, 20% promotionnel, 15% UGC/témoignages.
+- Le contenu ÉDUCATIF génère 3x plus de saves que le promotionnel. Les saves = signal fort pour l'algorithme. Exemple : "3 erreurs food photo" pour un restaurant > "Venez goûter notre nouveau plat".
+- Le contenu DIVERTISSANT génère les partages (le signal #1). Les trends, les memes de niche ("quand t'es restaurateur et..."), les challenges.
+- Le contenu PROMOTIONNEL doit être max 20% sinon l'algorithme réduit la portée. Chaque post promo doit être entouré de 4 posts de valeur.
+- Le UGC (User Generated Content) convertit 2.4x mieux que le contenu de marque. Repost les stories/posts de clients satisfaits. Demander aux utilisateurs KeiroAI de poster avec #keiroai.
+
+CROSS-PLATFORM REPURPOSING — 1 CONTENU → 5 PLATEFORMES :
+- Source : TikTok (format le plus dynamique, test d'engagement rapide).
+- Si > 500 vues en 4h sur TikTok → recycler en Reel Instagram (sans watermark TikTok !).
+- Extraire les 3 meilleurs points → Carrousel Instagram (5-7 slides).
+- Réécrire en format texte long → Post LinkedIn (800-1200 mots, vouvoiement, angle business).
+- Screenshot du post + stats → Story Instagram avec sondage "Tu fais ça toi aussi ?".
+- Script de la vidéo → Thread X/Twitter ou article de blog SEO.
+- RÈGLE : chaque plateforme a son FORMAT natif. Ne JAMAIS copier-coller sans adapter le ton et le format.
+
+IA-GENERATED CONTENT — RENDRE LE CONTENU AUTHENTIQUE :
+- Google et Instagram détectent le contenu IA générique en 2026. 3 techniques pour passer sous le radar :
+  1) Ajouter des DÉTAILS SPÉCIFIQUES impossibles à inventer : noms de rue, anecdotes de terrain, chiffres précis issus de notre data CRM.
+  2) Varier la longueur des phrases drastiquement. L'IA tend à écrire des phrases de longueur uniforme. Alterner 3 mots. Puis une phrase de 20 mots bien construite.
+  3) Injecter des OPINIONS tranchées. L'IA est trop neutre. "La plupart des restaurants font n'importe quoi sur Instagram. Point." = humain. "Il est important d'avoir une bonne stratégie Instagram" = robot.
+- Les captions KeiroAI doivent TOUJOURS avoir une "empreinte Victor" : tutoiement, punchlines, références à des situations concrètes de commerçants.
+- JAMAIS de contenu qui pourrait venir de n'importe quelle marque. Chaque post doit être identifiable comme KeiroAI en cachant le logo.
+
+HASHTAG RESEARCH — MÉTHODOLOGIE AVANCÉE :
+- Les hashtags ne servent PLUS à la découverte directe (Instagram a supprimé le follow de hashtags). Mais ils servent toujours de SIGNAL DE CATÉGORISATION pour l'algorithme.
+- Structure optimale : 1 hashtag de marque (#keiroai) + 3-4 hashtags de niche moyenne (10K-500K posts) + 2-3 hashtags micro-niche (< 10K posts).
+- JAMAIS de hashtags génériques (#marketing, #business, #entrepreneur) qui diluent le signal. Préférer #marketingrestaurant, #instapourcommerces, #commerçantdigital.
+- Recherche : aller sur Instagram Explore, taper un mot-clé de notre niche, regarder les hashtags SUGGÉRÉS. Ce sont ceux que l'algorithme associe activement à notre contenu.
+- Analyser les hashtags des 3 meilleurs posts concurrents (comptes de social media managers pour TPE). Pas copier, mais s'en inspirer.
+- Mettre les hashtags dans un PREMIER COMMENTAIRE (pas dans la caption) pour garder la caption clean — cette pratique est neutre pour l'algorithme selon Mosseri.
+
+STORY COMPLETION RATE — OPTIMISATION :
+- Le taux de completion moyen des Stories est de 70-80% pour les comptes < 10K followers. En dessous de 60% = contenu pas assez engageant.
+- Techniques pour booster le completion rate : commencer par une question/sondage (engagement immédiat), limiter à 5-7 slides par série, utiliser des stickers interactifs (quiz, slider, question) sur au moins 2 slides, varier les formats (photo, texte, mini-vidéo, boomerang).
+- Les Stories avec stickers interactifs ont 40% plus de rétention. Le sticker "sondage" est le plus efficace car il demande un engagement à faible effort.
+- Poster des Stories ENTRE 8h-9h et 17h-19h (quand les gens scrollent dans les transports). Éviter 23h-7h.
+- Le "close friends" hack : poster 1 story/semaine en close friends (tous les followers) → l'algorithme boost le compte car ça simule une relation proche.`;
 }
 
 export function getWeeklyPlanPrompt(context: {

@@ -118,7 +118,7 @@ type CalendarPost = {
   created_at: string;
 };
 
-type MainTab = 'dm_instagram' | 'dm_tiktok' | 'email' | 'whatsapp' | 'pub_instagram' | 'pub_tiktok' | 'pub_linkedin' | 'seo' | 'planning' | 'commercial' | 'onboarding' | 'retention' | 'ads' | 'gmaps';
+type MainTab = 'dm_instagram' | 'dm_tiktok' | 'email' | 'whatsapp' | 'pub_instagram' | 'pub_tiktok' | 'pub_linkedin' | 'seo' | 'planning' | 'showcase' | 'commercial' | 'onboarding' | 'retention' | 'ads' | 'gmaps';
 
 type WhatsAppConversation = {
   phone_number: string;
@@ -175,7 +175,7 @@ function SuiviPublicationsPage() {
   const searchParams = useSearchParams();
   const initialTab = (() => {
     const t = searchParams.get('tab');
-    const validTabs: MainTab[] = ['dm_instagram', 'dm_tiktok', 'email', 'whatsapp', 'pub_instagram', 'pub_tiktok', 'pub_linkedin', 'seo', 'planning', 'commercial', 'onboarding', 'retention', 'ads', 'gmaps'];
+    const validTabs: MainTab[] = ['dm_instagram', 'dm_tiktok', 'email', 'whatsapp', 'pub_instagram', 'pub_tiktok', 'pub_linkedin', 'seo', 'planning', 'showcase', 'commercial', 'onboarding', 'retention', 'ads', 'gmaps'];
     if (t && validTabs.includes(t as MainTab)) return t as MainTab;
     return 'dm_instagram' as MainTab;
   })();
@@ -196,6 +196,9 @@ function SuiviPublicationsPage() {
   const [agentLogs, setAgentLogs] = useState<AgentLogItem[]>([]);
   const [whatsappConversations, setWhatsappConversations] = useState<WhatsAppConversation[]>([]);
   const [expandedWAPhone, setExpandedWAPhone] = useState<string | null>(null);
+  const [showcaseData, setShowcaseData] = useState<Record<string, any[]>>({});
+  const [showcaseTypes, setShowcaseTypes] = useState<Record<string, { label: string; emoji: string }>>({});
+  const [showcaseGenerating, setShowcaseGenerating] = useState<string | null>(null);
   const [selectedPost, setSelectedPost] = useState<CalendarPost | null>(null);
   const [calendarWeekOffset, setCalendarWeekOffset] = useState(0);
   const [publishingPostId, setPublishingPostId] = useState<string | null>(null);
@@ -233,6 +236,7 @@ function SuiviPublicationsPage() {
   const isPubTab = mainTab === 'pub_instagram' || mainTab === 'pub_tiktok' || mainTab === 'pub_linkedin';
   const isSeoTab = mainTab === 'seo';
   const isPlanningTab = mainTab === 'planning';
+  const isShowcaseTab = mainTab === 'showcase';
   const isEmailTab = mainTab === 'email';
   const isWhatsAppTab = mainTab === 'whatsapp';
   const isAgentTab = mainTab === 'commercial' || mainTab === 'onboarding' || mainTab === 'retention' || mainTab === 'ads' || mainTab === 'gmaps';
@@ -471,6 +475,15 @@ function SuiviPublicationsPage() {
       } else {
         setWhatsappConversations([]);
       }
+    } else if (isShowcaseTab) {
+      try {
+        const res = await fetch('/api/admin/showcase');
+        const data = await res.json();
+        if (data.ok) {
+          setShowcaseData(data.showcases || {});
+          setShowcaseTypes(data.types || {});
+        }
+      } catch { /* showcase load failed */ }
     } else if (isAgentTab) {
       const agentKey = agentNameMap[mainTab] || mainTab;
       const { data } = await supabase
@@ -483,7 +496,7 @@ function SuiviPublicationsPage() {
     }
 
     setLoading(false);
-  }, [mainTab, dmSubTab, pubSubTab, router, isDmTab, isPubTab, isSeoTab, isPlanningTab, isEmailTab, isWhatsAppTab, isAgentTab, emailSubTab, calendarWeekOffset, getDateRange]);
+  }, [mainTab, dmSubTab, pubSubTab, router, isDmTab, isPubTab, isSeoTab, isPlanningTab, isShowcaseTab, isEmailTab, isWhatsAppTab, isAgentTab, emailSubTab, calendarWeekOffset, getDateRange]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -694,6 +707,7 @@ function SuiviPublicationsPage() {
     { key: 'pub_linkedin', label: 'Publi. LinkedIn', icon: '💼' },
     { key: 'seo', label: 'Articles SEO', icon: '📝' },
     { key: 'planning', label: 'Planning', icon: '📅' },
+    { key: 'showcase', label: 'Exemples', icon: '🌟' },
     { key: 'commercial', label: 'Commercial', icon: '🤝' },
     { key: 'onboarding', label: 'Onboarding', icon: '👋' },
     { key: 'retention', label: 'Retention', icon: '🔄' },
@@ -1763,6 +1777,168 @@ function SuiviPublicationsPage() {
                   </div>
                 )}
               </>
+            )}
+
+            {isShowcaseTab && (
+              <div>
+                <div className="mb-4">
+                  <h3 className="text-sm font-bold text-neutral-700 mb-1">Exemples par type de commerce</h3>
+                  <p className="text-xs text-neutral-500">
+                    Visuels de d&eacute;monstration g&eacute;n&eacute;r&eacute;s par IA pour chaque type de business. S&eacute;lectionnez et partagez les plus pertinents avec vos prospects.
+                  </p>
+                </div>
+
+                {/* Business type grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {Object.entries(showcaseTypes).length > 0 ? (
+                    Object.entries(showcaseTypes).map(([typeKey, config]) => {
+                      const items = showcaseData[typeKey] || [];
+                      const isGenerating = showcaseGenerating === typeKey;
+                      return (
+                        <div key={typeKey} className="bg-white rounded-xl border border-neutral-200 shadow-sm overflow-hidden">
+                          {/* Type header */}
+                          <div className="px-4 py-3 border-b border-neutral-100 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg">{config.emoji}</span>
+                              <span className="text-sm font-semibold text-neutral-800">{config.label}</span>
+                              {items.length > 0 && (
+                                <span className="text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full font-medium">{items.length}</span>
+                              )}
+                            </div>
+                            <button
+                              onClick={async () => {
+                                setShowcaseGenerating(typeKey);
+                                try {
+                                  const res = await fetch('/api/admin/showcase', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ type: typeKey }),
+                                  });
+                                  const data = await res.json();
+                                  if (data.ok && data.items) {
+                                    setShowcaseData(prev => ({
+                                      ...prev,
+                                      [typeKey]: [...(data.items.filter((i: any) => i.url)), ...(prev[typeKey] || [])],
+                                    }));
+                                  }
+                                } catch { /* generation failed */ }
+                                setShowcaseGenerating(null);
+                              }}
+                              disabled={isGenerating}
+                              className="px-2.5 py-1 text-[11px] font-medium rounded-lg border transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-purple-600 to-indigo-600 text-white border-purple-700 hover:from-purple-700 hover:to-indigo-700"
+                            >
+                              {isGenerating ? 'Generation...' : items.length > 0 ? 'Regenerer' : 'Generer 5 visuels'}
+                            </button>
+                          </div>
+
+                          {/* Images grid */}
+                          {items.length > 0 ? (
+                            <div className="grid grid-cols-2 gap-1 p-2">
+                              {items.slice(0, 5).map((item: any, idx: number) => (
+                                <div key={idx} className="relative group">
+                                  <div className={`aspect-square rounded-lg overflow-hidden bg-neutral-100 ${idx === 0 ? 'col-span-2 aspect-video' : ''}`}>
+                                    <img
+                                      src={item.url}
+                                      alt={item.description || ''}
+                                      className="w-full h-full object-cover"
+                                      loading="lazy"
+                                    />
+                                  </div>
+                                  {/* Hover overlay with description + copy */}
+                                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex flex-col items-center justify-center p-2">
+                                    <p className="text-[10px] text-white text-center mb-2 line-clamp-3">{item.description}</p>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigator.clipboard.writeText(item.url);
+                                        setCopiedId(`showcase-${typeKey}-${idx}`);
+                                        setTimeout(() => setCopiedId(null), 2000);
+                                      }}
+                                      className="px-2 py-1 text-[10px] bg-white/20 hover:bg-white/30 text-white rounded-md backdrop-blur-sm"
+                                    >
+                                      {copiedId === `showcase-${typeKey}-${idx}` ? 'Copie !' : 'Copier URL'}
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="p-6 text-center">
+                              <span className="text-3xl opacity-20 block mb-2">{config.emoji}</span>
+                              <p className="text-xs text-neutral-400">Aucun exemple. Cliquez sur Generer.</p>
+                            </div>
+                          )}
+
+                          {isGenerating && (
+                            <div className="px-4 py-2 border-t border-neutral-100 flex items-center gap-2">
+                              <div className="w-3 h-3 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                              <span className="text-[11px] text-neutral-500">Generation de 5 visuels elite en cours...</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  ) : (
+                    /* Default types when API hasn't loaded yet */
+                    ['restaurant', 'boutique', 'coach', 'coiffeur', 'caviste', 'freelance', 'professionnel', 'services', 'pme'].map(typeKey => {
+                      const labels: Record<string, [string, string]> = {
+                        restaurant: ['Restaurant', '🍽️'], boutique: ['Boutique', '🛍️'], coach: ['Coach / Fitness', '💪'],
+                        coiffeur: ['Coiffeur / Barbier', '💈'], caviste: ['Caviste / Fleuriste', '🍷'],
+                        freelance: ['Freelance', '💻'], professionnel: ['Professionnel', '⚖️'],
+                        services: ['Artisan / Services', '🔧'], pme: ['PME / Startup', '🏢'],
+                      };
+                      const [label, emoji] = labels[typeKey] || [typeKey, '📦'];
+                      const isGenerating = showcaseGenerating === typeKey;
+                      return (
+                        <div key={typeKey} className="bg-white rounded-xl border border-neutral-200 shadow-sm overflow-hidden">
+                          <div className="px-4 py-3 border-b border-neutral-100 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg">{emoji}</span>
+                              <span className="text-sm font-semibold text-neutral-800">{label}</span>
+                            </div>
+                            <button
+                              onClick={async () => {
+                                setShowcaseGenerating(typeKey);
+                                try {
+                                  const res = await fetch('/api/admin/showcase', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ type: typeKey }),
+                                  });
+                                  const data = await res.json();
+                                  if (data.ok && data.items) {
+                                    setShowcaseData(prev => ({
+                                      ...prev,
+                                      [typeKey]: data.items.filter((i: any) => i.url),
+                                    }));
+                                    // Also update types if returned
+                                    if (data.types) setShowcaseTypes(data.types);
+                                  }
+                                } catch { /* generation failed */ }
+                                setShowcaseGenerating(null);
+                              }}
+                              disabled={isGenerating}
+                              className="px-2.5 py-1 text-[11px] font-medium rounded-lg border transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-purple-600 to-indigo-600 text-white border-purple-700 hover:from-purple-700 hover:to-indigo-700"
+                            >
+                              {isGenerating ? 'Generation...' : 'Generer 5 visuels'}
+                            </button>
+                          </div>
+                          <div className="p-6 text-center">
+                            <span className="text-3xl opacity-20 block mb-2">{emoji}</span>
+                            <p className="text-xs text-neutral-400">Aucun exemple. Cliquez sur Generer.</p>
+                          </div>
+                          {isGenerating && (
+                            <div className="px-4 py-2 border-t border-neutral-100 flex items-center gap-2">
+                              <div className="w-3 h-3 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                              <span className="text-[11px] text-neutral-500">Generation de 5 visuels elite en cours...</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
             )}
 
             {isAgentTab && (

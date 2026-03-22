@@ -14,6 +14,7 @@ import { decomposePromptIntoScenes, calculateSegments } from '@/lib/video-scenes
 import { createVideoJob } from '@/lib/video-jobs-db';
 import { diagnosePublishFailure, sendPublishAlert } from '@/lib/agents/publish-diagnostics';
 import { saveLearning, saveAgentFeedback } from '@/lib/agents/learning';
+import { sendPublishNotification } from '@/lib/agents/publish-notification';
 
 // ──────────────────────────────────────
 // Claude Haiku for text generation (captions, hashtags, descriptions)
@@ -965,11 +966,6 @@ export async function GET(request: NextRequest) {
       .select('id, platform, format, status')
       .eq('scheduled_date', todayStr);
 
-    // If Sunday evening cron (or no posts planned this week), generate weekly plan
-    if (isCron && dayOfWeek === 0) {
-      return generateWeeklyPlan(supabase, undefined, undefined, orgId);
-    }
-
     // Check slot param for midday/evening content
     const slot = request.nextUrl.searchParams.get('slot');
 
@@ -981,13 +977,55 @@ export async function GET(request: NextRequest) {
 
     // Auto-publish: only 1 post per slot to spread publications throughout the day
     // Each content slot (morning, midday, evening) publishes max 1 post, avoiding 3 at once
+    // Publish mode: 'auto' = publish immediately, 'notify' = send email notification first (draft→notify→approve→publish)
+    // Read publish_mode from URL param (cron) or from stored admin preference
+    let publishMode = request.nextUrl.searchParams.get('publish_mode') || 'auto';
+    if (publishMode === 'auto') {
+      // Check if admin has set notify preference in agent_logs config
+      const { data: modeConfig } = await supabase
+        .from('agent_logs')
+        .select('data')
+        .eq('agent', 'content')
+        .eq('action', 'publish_mode_config')
+        .order('created_at', { ascending: false })
+        .limit(1);
+      if (modeConfig?.[0]?.data?.publish_mode === 'notify') {
+        publishMode = 'notify';
+      }
+    }
     const unpublished = todayPosts.filter((p: any) => p.status === 'draft' || p.status === 'approved');
     const maxPublishPerSlot = slot === 'tiktok' ? 2 : 1; // TikTok slot can do 2 (video + photo)
     if (unpublished.length > 0 && isCron) {
-      console.log(`[Content] ${unpublished.length} unpublished posts for today — auto-publishing (max ${maxPublishPerSlot} for slot: ${slot || 'default'})`);
+      console.log(`[Content] ${unpublished.length} unpublished posts for today — mode=${publishMode}, max ${maxPublishPerSlot} for slot: ${slot || 'default'}`);
       let published = 0;
+      let notified = 0;
       for (const post of unpublished.slice(0, maxPublishPerSlot)) {
         try {
+          // If notify mode and post is draft (not yet approved), send notification instead of publishing
+          if (publishMode === 'notify' && post.status === 'draft') {
+            const { data: fullPostForNotify } = await supabase.from('content_calendar').select('*').eq('id', post.id).single();
+            if (fullPostForNotify) {
+              // Generate visual if missing (so notification has the preview)
+              if (!fullPostForNotify.visual_url) {
+                const desc = fullPostForNotify.visual_description || fullPostForNotify.hook || fullPostForNotify.caption;
+                if (desc) {
+                  const url = await generateVisual(desc, fullPostForNotify.format || 'post');
+                  if (url) {
+                    const cached = await cacheImageToStorage(url, post.id);
+                    fullPostForNotify.visual_url = cached || url;
+                    await supabase.from('content_calendar').update({ visual_url: fullPostForNotify.visual_url, updated_at: new Date().toISOString() }).eq('id', post.id);
+                  }
+                }
+              }
+              const sent = await sendPublishNotification(fullPostForNotify, supabase);
+              if (sent) {
+                await supabase.from('content_calendar').update({ status: 'pending_approval', updated_at: new Date().toISOString() }).eq('id', post.id);
+                notified++;
+                console.log(`[Content] Notification sent for post ${post.id} — awaiting approval`);
+              }
+            }
+            continue;
+          }
           const { data: fullPost } = await supabase.from('content_calendar').select('*').eq('id', post.id).single();
           if (!fullPost) continue;
 
@@ -1068,7 +1106,13 @@ export async function GET(request: NextRequest) {
           console.error(`[Content] Auto-publish error for post ${post.id}:`, err);
         }
       }
-      console.log(`[Content] Auto-published ${published}/${Math.min(unpublished.length, 2)} posts`);
+      console.log(`[Content] Auto-published ${published}/${Math.min(unpublished.length, maxPublishPerSlot)} posts${notified > 0 ? `, notified ${notified}` : ''}`);
+    }
+
+    // If Sunday evening cron (or no posts planned this week), generate weekly plan
+    // Moved AFTER auto-publish so Sunday posts still get published
+    if (isCron && dayOfWeek === 0) {
+      return generateWeeklyPlan(supabase, undefined, undefined, orgId);
     }
 
     // AFTER auto-publish: generate new posts for midday/evening/tiktok slots
@@ -1142,6 +1186,17 @@ export async function POST(request: NextRequest) {
     const orgId = body?.org_id || null;
 
     switch (body.action) {
+      case 'set_publish_mode': {
+        const mode = body.publish_mode === 'notify' ? 'notify' : 'auto';
+        await supabase.from('agent_logs').insert({
+          agent: 'content',
+          action: 'publish_mode_config',
+          status: 'success',
+          data: { publish_mode: mode },
+        });
+        return NextResponse.json({ ok: true, publish_mode: mode });
+      }
+
       case 'generate_weekly':
         return generateWeeklyPlan(supabase, body.platform, body.draftOnly, orgId);
 
@@ -1317,6 +1372,63 @@ export async function POST(request: NextRequest) {
         }).eq('id', regenPost.id);
 
         return NextResponse.json({ ok: true, visual_url: newVisualUrl });
+      }
+
+      case 'publish_single': {
+        // Publish a single approved post immediately
+        if (!body.postId) return NextResponse.json({ ok: false, error: 'postId required' }, { status: 400 });
+        const { data: psPost } = await supabase.from('content_calendar').select('*').eq('id', body.postId).single();
+        if (!psPost) return NextResponse.json({ ok: false, error: 'Post not found' }, { status: 404 });
+
+        // Update status to approved if pending
+        if (psPost.status === 'pending_approval' || psPost.status === 'draft') {
+          await supabase.from('content_calendar').update({ status: 'approved', updated_at: new Date().toISOString() }).eq('id', body.postId);
+        }
+
+        // Delegate to republish_single logic
+        const psResult = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || `https://${process.env.VERCEL_URL}`}/api/agents/content`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${process.env.CRON_SECRET}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'republish_single', postId: body.postId }),
+        }).then(r => r.json()).catch(() => ({ ok: false }));
+
+        return NextResponse.json(psResult);
+      }
+
+      case 'regenerate_visual': {
+        // Regenerate visual with a NEW description + send new notification email
+        if (!body.postId) return NextResponse.json({ ok: false, error: 'postId required' }, { status: 400 });
+        const { data: rvPost } = await supabase.from('content_calendar').select('*').eq('id', body.postId).single();
+        if (!rvPost) return NextResponse.json({ ok: false, error: 'Post not found' }, { status: 404 });
+
+        // Generate a new visual (different seed = different result)
+        const rvDesc = rvPost.visual_description || rvPost.hook || rvPost.caption;
+        if (!rvDesc) return NextResponse.json({ ok: false, error: 'No visual description' }, { status: 400 });
+
+        const rvNewUrl = await generateVisual(rvDesc, rvPost.format || 'post');
+        if (!rvNewUrl) return NextResponse.json({ ok: false, error: 'Visual generation failed' }, { status: 500 });
+
+        const rvCached = await cacheImageToStorage(rvNewUrl, `regen-${body.postId}`);
+        const rvFinalUrl = rvCached || rvNewUrl;
+
+        await supabase.from('content_calendar').update({
+          visual_url: rvFinalUrl,
+          status: 'pending_approval',
+          updated_at: new Date().toISOString(),
+        }).eq('id', body.postId);
+
+        // Send new notification email with the regenerated visual
+        try {
+          const { sendPublishNotification } = await import('@/lib/agents/publish-notification');
+          const { data: updatedPost } = await supabase.from('content_calendar').select('*').eq('id', body.postId).single();
+          if (updatedPost) {
+            await sendPublishNotification(updatedPost, supabase);
+          }
+        } catch (notifErr) {
+          console.warn('[Content] Failed to send regenerate notification:', notifErr);
+        }
+
+        return NextResponse.json({ ok: true, visual_url: rvFinalUrl });
       }
 
       case 'fix_broken_images': {
