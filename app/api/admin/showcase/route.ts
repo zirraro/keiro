@@ -10,6 +10,7 @@ export const maxDuration = 120;
 
 const SEEDREAM_API_KEY = process.env.SEEDREAM_API_KEY || '341cd095-2c11-49da-82e7-dc2db23c565c';
 const SEEDREAM_API_URL = 'https://ark.ap-southeast.bytepluses.com/api/v3/images/generations';
+const SUPABASE_STORAGE_BUCKET = 'public-assets';
 
 function getSupabaseAdmin() {
   return createClient(
@@ -17,6 +18,49 @@ function getSupabaseAdmin() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
+}
+
+/**
+ * Cache a generated image to Supabase Storage for permanent URL.
+ * Seedream URLs expire in ~1h, so we must persist them.
+ */
+async function cacheImageToStorage(tempUrl: string, businessType: string, index: number): Promise<string | null> {
+  try {
+    const supabase = getSupabaseAdmin();
+    const imgResponse = await fetch(tempUrl);
+    if (!imgResponse.ok) return null;
+    const buffer = await imgResponse.arrayBuffer();
+    if (buffer.byteLength === 0) return null;
+
+    const contentType = imgResponse.headers.get('content-type') || 'image/png';
+    const ext = contentType.includes('jpeg') || contentType.includes('jpg') ? 'jpg' : 'png';
+    const fileName = `showcase/${businessType}/${index}-${Date.now()}.${ext}`;
+
+    const blob = new Blob([buffer], { type: contentType });
+
+    // Try to create the bucket if it doesn't exist
+    try {
+      await supabase.storage.createBucket(SUPABASE_STORAGE_BUCKET, { public: true });
+    } catch { /* bucket already exists */ }
+
+    const { error: uploadError } = await supabase.storage
+      .from(SUPABASE_STORAGE_BUCKET)
+      .upload(fileName, blob, { contentType, upsert: true });
+
+    if (uploadError) {
+      console.error('[Showcase] Storage upload error:', uploadError.message);
+      return null;
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from(SUPABASE_STORAGE_BUCKET)
+      .getPublicUrl(fileName);
+
+    return publicUrl || null;
+  } catch (e: any) {
+    console.error('[Showcase] Image caching failed:', e.message);
+    return null;
+  }
 }
 
 /** Business types with showcase descriptions */
@@ -155,6 +199,39 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Also check Supabase Storage for pre-generated showcase images
+    for (const typeKey of Object.keys(BUSINESS_TYPES)) {
+      try {
+        const { data: files } = await supabase.storage
+          .from(SUPABASE_STORAGE_BUCKET)
+          .list(`showcase/${typeKey}`, { limit: 10, sortBy: { column: 'created_at', order: 'desc' } });
+
+        if (files && files.length > 0) {
+          const storageItems = files
+            .filter(f => f.name.match(/\.(png|jpg|jpeg|webp)$/i))
+            .map(f => {
+              const { data: { publicUrl } } = supabase.storage
+                .from(SUPABASE_STORAGE_BUCKET)
+                .getPublicUrl(`showcase/${typeKey}/${f.name}`);
+              return {
+                url: publicUrl,
+                description: `Showcase ${BUSINESS_TYPES[typeKey].label}`,
+                generated_at: f.created_at || new Date().toISOString(),
+                source: 'storage',
+              };
+            });
+
+          if (storageItems.length > 0) {
+            // Merge storage items with log items, deduplicating by URL
+            const existing = showcases[typeKey] || [];
+            const existingUrls = new Set(existing.map((i: any) => i.url));
+            const newItems = storageItems.filter(i => !existingUrls.has(i.url));
+            showcases[typeKey] = [...existing, ...newItems];
+          }
+        }
+      } catch { /* storage listing failed, use logs only */ }
+    }
+
     return NextResponse.json({
       ok: true,
       types: BUSINESS_TYPES,
@@ -241,11 +318,15 @@ UNIQUEMENT du JSON valide.`,
       console.warn(`[Showcase] AI description failed for ${type}, using defaults:`, err);
     }
 
-    // Generate 5 images with Seedream
-    const items: { description: string; url: string | null; generated_at: string }[] = [];
+    // Generate 5 images with Seedream 4.5 (minimum 3,686,400 pixels required)
+    const items: { description: string; url: string | null; generated_at: string; error?: string }[] = [];
 
-    for (const desc of visualDescriptions) {
+    for (let i = 0; i < visualDescriptions.length; i++) {
+      const desc = visualDescriptions[i];
       try {
+        const fullPrompt = `Professional social media post photo for a ${bizConfig.label} business in France. ${desc}. Ultra high quality, photorealistic, no text, no watermark, no logo, no words.\nCRITICAL: Absolutely NO text, NO letters, NO words, NO numbers, NO writing anywhere in the image. Pure photographic visual only.`;
+        const prompt = fullPrompt.length > 2000 ? fullPrompt.substring(0, 2000) : fullPrompt;
+
         const res = await fetch(SEEDREAM_API_URL, {
           method: 'POST',
           headers: {
@@ -253,33 +334,44 @@ UNIQUEMENT du JSON valide.`,
             'Authorization': `Bearer ${SEEDREAM_API_KEY}`,
           },
           body: JSON.stringify({
-            model: 'seedream-3.0',
-            prompt: `Professional social media post photo for a ${bizConfig.label} business in France. ${desc}. Ultra high quality, photorealistic, no text, no watermark, no logo, no words.`,
-            negative_prompt: 'text, words, letters, watermark, logo, blurry, low quality, deformed, ugly, cartoon, anime, illustration, drawing, painting',
+            model: 'seedream-4-5-251128',
+            prompt,
+            negative_prompt: 'text, words, letters, numbers, writing, typography, signs, labels, captions, watermarks, logos, headlines, slogans, brand names, price tags, menus, screens with text, readable characters, digits',
             response_format: 'url',
             watermark: false,
-            size: '1024x1024',
+            size: '1920x1920',
             seed: -1,
           }),
         });
 
+        if (!res.ok) {
+          const errBody = await res.text().catch(() => '');
+          console.error(`[Showcase] Seedream HTTP error for ${type}:`, res.status, errBody.substring(0, 300));
+          items.push({ description: desc, url: null, generated_at: new Date().toISOString(), error: `Seedream HTTP ${res.status}` });
+          continue;
+        }
+
         const data = await res.json();
-        const url = data.data?.[0]?.url || null;
+        const tempUrl = data.data?.[0]?.url || null;
 
-        items.push({
-          description: desc,
-          url,
-          generated_at: new Date().toISOString(),
-        });
+        if (tempUrl) {
+          // Cache to Supabase Storage for permanent URL (Seedream URLs expire in ~1h)
+          const permanentUrl = await cacheImageToStorage(tempUrl, type, i);
+          const finalUrl = permanentUrl || tempUrl;
 
-        if (url) {
-          console.log(`[Showcase] Generated ${type}: ${desc.substring(0, 60)}...`);
+          items.push({
+            description: desc,
+            url: finalUrl,
+            generated_at: new Date().toISOString(),
+          });
+          console.log(`[Showcase] Generated ${type} [${i + 1}/5]: ${desc.substring(0, 60)}... → ${permanentUrl ? 'cached' : 'temp URL'}`);
         } else {
           console.warn(`[Showcase] No image returned for ${type}: ${JSON.stringify(data).substring(0, 200)}`);
+          items.push({ description: desc, url: null, generated_at: new Date().toISOString(), error: 'No image URL in response' });
         }
       } catch (err: any) {
         console.error(`[Showcase] Generation error for ${type}:`, err.message);
-        items.push({ description: desc, url: null, generated_at: new Date().toISOString() });
+        items.push({ description: desc, url: null, generated_at: new Date().toISOString(), error: err.message });
       }
 
       // Small delay between requests

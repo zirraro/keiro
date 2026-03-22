@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLanguage } from "@/lib/i18n/context";
@@ -10,10 +11,23 @@ export default function BottomNav() {
   const { t, locale, setLocale } = useLanguage();
   const { theme, toggleTheme } = useTheme();
   const isLight = theme === 'light';
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const settingsRef = useRef<HTMLDivElement>(null);
 
   const toggleLocale = () => {
     setLocale(locale === 'fr' ? 'en' : 'fr');
   };
+
+  // Close settings popover on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) {
+        setSettingsOpen(false);
+      }
+    };
+    if (settingsOpen) document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [settingsOpen]);
 
   const navItems = [
     {
@@ -79,40 +93,66 @@ export default function BottomNav() {
         ? 'bg-white/80 border-neutral-200/50'
         : 'bg-[#0c1a3a]/80 border-white/10'
     }`}>
-      {/* Language toggle + theme toggle — floating pills above bottom nav */}
-      <div className="absolute -top-10 right-3 flex items-center gap-1.5">
+      {/* Settings gear button — opens popover for theme + language */}
+      <div ref={settingsRef} className="absolute -top-12 right-3">
         <button
-          onClick={toggleTheme}
-          className={`flex items-center justify-center w-8 h-8 backdrop-blur-sm border rounded-full shadow-sm active:scale-95 transition-all ${
+          onClick={() => setSettingsOpen(!settingsOpen)}
+          className={`flex items-center justify-center w-9 h-9 backdrop-blur-sm border rounded-full shadow-md active:scale-95 transition-all ${
             isLight
-              ? 'bg-white/90 border-neutral-200 text-neutral-500 hover:bg-neutral-100'
-              : 'bg-[#0c1a3a]/90 border-white/10 text-white/70 hover:bg-white/10'
+              ? 'bg-white/95 border-neutral-200 text-neutral-500 hover:bg-neutral-100'
+              : 'bg-[#0c1a3a]/95 border-white/10 text-white/70 hover:bg-white/10'
           }`}
-          title={isLight ? 'Mode sombre' : 'Mode clair'}
+          title="Settings"
         >
-          {isLight ? (
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-            </svg>
-          ) : (
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
-          )}
-        </button>
-        <button
-          onClick={toggleLocale}
-          className={`flex items-center gap-1 px-2.5 py-1 backdrop-blur-sm border rounded-full shadow-sm text-[11px] font-medium active:scale-95 transition-all ${
-            isLight
-              ? 'bg-white/90 border-neutral-200 text-neutral-500 hover:bg-neutral-100'
-              : 'bg-[#0c1a3a]/90 border-white/10 text-white/70 hover:bg-white/10'
-          }`}
-        >
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.573-1.066z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
-          {locale === 'fr' ? 'EN' : 'FR'}
         </button>
+
+        {/* Popover */}
+        {settingsOpen && (
+          <div className={`absolute bottom-full right-0 mb-2 rounded-xl border shadow-xl p-3 min-w-[160px] ${
+            isLight
+              ? 'bg-white border-neutral-200'
+              : 'bg-[#0c1a3a] border-white/10'
+          }`}>
+            {/* Theme toggle */}
+            <button
+              onClick={() => { toggleTheme(); setSettingsOpen(false); }}
+              className={`flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                isLight
+                  ? 'text-neutral-700 hover:bg-neutral-100'
+                  : 'text-white/80 hover:bg-white/10'
+              }`}
+            >
+              {isLight ? (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              )}
+              {isLight ? 'Mode sombre' : 'Mode clair'}
+            </button>
+            {/* Language toggle */}
+            <button
+              onClick={() => { toggleLocale(); setSettingsOpen(false); }}
+              className={`flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                isLight
+                  ? 'text-neutral-700 hover:bg-neutral-100'
+                  : 'text-white/80 hover:bg-white/10'
+              }`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+              </svg>
+              {locale === 'fr' ? 'English' : 'Français'}
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="flex justify-around items-center px-2 py-2 pb-[env(safe-area-inset-bottom,0.5rem)]">
@@ -124,7 +164,7 @@ export default function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center justify-center min-w-[64px] px-3 py-2 rounded-lg transition-all ${
+              className={`relative flex flex-col items-center justify-center w-[60px] h-[56px] px-1 rounded-lg transition-all ${
                 isActive
                   ? (isLight ? 'text-neutral-900' : 'text-white')
                   : isHighlight
@@ -132,17 +172,17 @@ export default function BottomNav() {
                     : (isLight ? 'text-neutral-400' : 'text-white/60')
               } ${isLight ? 'hover:bg-neutral-100' : 'hover:bg-white/10'} active:scale-95`}
             >
-              <div className={`mb-1 ${isActive ? 'scale-110' : ''} transition-transform`}>
+              <div className={`mb-0.5 ${isActive ? 'scale-110' : ''} transition-transform`}>
                 {item.icon}
               </div>
-              <span className={`text-[10px] font-medium ${isActive ? 'font-semibold' : ''}`}>
+              <span className={`text-[10px] font-medium leading-tight text-center truncate max-w-full ${isActive ? 'font-semibold' : ''}`}>
                 {item.label}
               </span>
               {isActive && (
-                <div className={`mt-1 w-1 h-1 rounded-full ${isLight ? 'bg-neutral-900' : 'bg-white'}`} />
+                <div className={`mt-0.5 w-1 h-1 rounded-full ${isLight ? 'bg-neutral-900' : 'bg-white'}`} />
               )}
               {isHighlight && !isActive && (
-                <div className="absolute -top-1 right-1 flex h-2 w-2">
+                <div className="absolute top-0.5 right-0.5 flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
                 </div>

@@ -480,7 +480,7 @@ function LoginPageInner() {
             </div>
 
             {/* Année de création + Taille équipe */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">
                   {t.login.step2YearCreated}
@@ -615,7 +615,7 @@ function LoginPageInner() {
             </div>
 
             {/* Budget + Audience */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-1">
                   {t.login.step2MarketingBudget}
@@ -867,7 +867,7 @@ function LoginPageInner() {
         {/* Signup Form */}
         {mode === 'signup' && (
           <form onSubmit={handleSignup} className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 mb-2">
                   {t.login.step2FirstName}

@@ -199,6 +199,7 @@ function SuiviPublicationsPage() {
   const [showcaseData, setShowcaseData] = useState<Record<string, any[]>>({});
   const [showcaseTypes, setShowcaseTypes] = useState<Record<string, { label: string; emoji: string }>>({});
   const [showcaseGenerating, setShowcaseGenerating] = useState<string | null>(null);
+  const [showcaseError, setShowcaseError] = useState<string | null>(null);
   const [selectedPost, setSelectedPost] = useState<CalendarPost | null>(null);
   const [calendarWeekOffset, setCalendarWeekOffset] = useState(0);
   const [publishingPostId, setPublishingPostId] = useState<string | null>(null);
@@ -482,8 +483,12 @@ function SuiviPublicationsPage() {
         if (data.ok) {
           setShowcaseData(data.showcases || {});
           setShowcaseTypes(data.types || {});
+        } else {
+          setShowcaseError(data.error || 'Erreur chargement showcase');
         }
-      } catch { /* showcase load failed */ }
+      } catch (err: any) {
+        setShowcaseError('Erreur reseau lors du chargement des exemples');
+      }
     } else if (isAgentTab) {
       const agentKey = agentNameMap[mainTab] || mainTab;
       const { data } = await supabase
@@ -1788,6 +1793,24 @@ function SuiviPublicationsPage() {
                   </p>
                 </div>
 
+                {/* Loading state */}
+                {loading && (
+                  <div className="flex justify-center py-12">
+                    <div className="w-6 h-6 border-4 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
+
+                {/* Error banner */}
+                {showcaseError && (
+                  <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-xl flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-red-500 text-sm">&#x26A0;</span>
+                      <span className="text-xs text-red-700">{showcaseError}</span>
+                    </div>
+                    <button onClick={() => setShowcaseError(null)} className="text-red-400 hover:text-red-600 text-xs font-bold px-2">&#x2715;</button>
+                  </div>
+                )}
+
                 {/* Business type grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {Object.entries(showcaseTypes).length > 0 ? (
@@ -1808,6 +1831,7 @@ function SuiviPublicationsPage() {
                             <button
                               onClick={async () => {
                                 setShowcaseGenerating(typeKey);
+                                setShowcaseError(null);
                                 try {
                                   const res = await fetch('/api/admin/showcase', {
                                     method: 'POST',
@@ -1820,8 +1844,15 @@ function SuiviPublicationsPage() {
                                       ...prev,
                                       [typeKey]: [...(data.items.filter((i: any) => i.url)), ...(prev[typeKey] || [])],
                                     }));
+                                    if (data.successful === 0) {
+                                      setShowcaseError(`${config.label}: aucune image generee (API error)`);
+                                    }
+                                  } else {
+                                    setShowcaseError(`${config.label}: ${data.error || 'Erreur inconnue'}`);
                                   }
-                                } catch { /* generation failed */ }
+                                } catch (err: any) {
+                                  setShowcaseError(`${config.label}: ${err.message || 'Erreur reseau'}`);
+                                }
                                 setShowcaseGenerating(null);
                               }}
                               disabled={isGenerating}
@@ -1899,6 +1930,7 @@ function SuiviPublicationsPage() {
                             <button
                               onClick={async () => {
                                 setShowcaseGenerating(typeKey);
+                                setShowcaseError(null);
                                 try {
                                   const res = await fetch('/api/admin/showcase', {
                                     method: 'POST',
@@ -1911,10 +1943,16 @@ function SuiviPublicationsPage() {
                                       ...prev,
                                       [typeKey]: data.items.filter((i: any) => i.url),
                                     }));
-                                    // Also update types if returned
                                     if (data.types) setShowcaseTypes(data.types);
+                                    if (data.successful === 0) {
+                                      setShowcaseError(`${label}: aucune image generee (API error)`);
+                                    }
+                                  } else {
+                                    setShowcaseError(`${label}: ${data.error || 'Erreur inconnue'}`);
                                   }
-                                } catch { /* generation failed */ }
+                                } catch (err: any) {
+                                  setShowcaseError(`${label}: ${err.message || 'Erreur reseau'}`);
+                                }
                                 setShowcaseGenerating(null);
                               }}
                               disabled={isGenerating}

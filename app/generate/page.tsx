@@ -1381,11 +1381,20 @@ export default function GeneratePage() {
 
     console.log('[Generate] Admin check:', { userId: user?.id, email: user?.email, isAdmin });
 
-    // Freemium : 1ère gen gratuite, puis popup conversion (mais on génère quand même)
-    if (!isAdmin) {
-      console.log('[Generate] Freemium check:', { action: generationLimit.requiredAction, count: generationLimit.count });
-    } else {
-      console.log('[Generate] ✅ Admin user detected - bypassing ALL generation limits');
+    // Freemium : 1ère gen gratuite, 2ème = email gate, 3ème+ = signup gate
+    if (!isAdmin && !user) {
+      const action = generationLimit.requiredAction;
+      console.log('[Generate] Freemium check:', { action, count: generationLimit.count });
+      if (action === 'email_gate') {
+        setShowEditEmailGate(true);
+        return;
+      }
+      if (action === 'signup_gate') {
+        setShowConversionPopup(true);
+        return;
+      }
+    } else if (isAdmin) {
+      console.log('[Generate] Admin user detected - bypassing ALL generation limits');
     }
 
     setGenerating(true);
@@ -1937,12 +1946,6 @@ export default function GeneratePage() {
 
       // Incrémenter le compteur de génération pour le freemium
       generationLimit.incrementCount();
-
-      // Popup de conversion : après la 1ère gen gratuite, montrer le popup
-      if (!generationLimit.hasAccount && generationLimit.count === 0) {
-        // count === 0 car incrementCount vient de passer de 0 à 1
-        setShowConversionPopup(true);
-      }
 
       // Génération audio TTS si demandée
       if (addAudio) {
@@ -3395,22 +3398,22 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
         {wizardPhase === 'news-select' && (
           <div className="wizard-phase-enter">
             {/* Phase indicator — compact stepper */}
-            <div className="flex items-center gap-3 mb-5">
+            <div className="flex items-center gap-2 sm:gap-3 mb-5">
               <button
                 onClick={() => setWizardPhase('entry')}
-                className="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-700 transition-colors"
+                className="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-700 transition-colors flex-shrink-0"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
               </button>
-              <div className="flex items-center gap-2">
-                <span className="w-7 h-7 rounded-full bg-[#0c1a3a] text-white text-xs font-bold flex items-center justify-center">1</span>
-                <span className="text-xs font-semibold text-neutral-900">{locale === 'fr' ? 'Actualit\u00e9' : 'News'}</span>
-                <div className="w-6 h-0.5 bg-neutral-200"></div>
-                <span className="w-7 h-7 rounded-full bg-neutral-200 text-neutral-400 text-xs font-bold flex items-center justify-center">2</span>
-                <span className="text-xs text-neutral-400">{locale === 'fr' ? 'Contenu' : 'Content'}</span>
-                <div className="w-6 h-0.5 bg-neutral-200"></div>
-                <span className="w-7 h-7 rounded-full bg-neutral-200 text-neutral-400 text-xs font-bold flex items-center justify-center">3</span>
-                <span className="text-xs text-neutral-400">{locale === 'fr' ? 'G\u00e9n\u00e9rer' : 'Generate'}</span>
+              <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto">
+                <span className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-[#0c1a3a] text-white text-[10px] sm:text-xs font-bold flex items-center justify-center flex-shrink-0">1</span>
+                <span className="text-[10px] sm:text-xs font-semibold text-neutral-900 whitespace-nowrap">{locale === 'fr' ? 'Actualit\u00e9' : 'News'}</span>
+                <div className="w-4 sm:w-6 h-0.5 bg-neutral-200 flex-shrink-0"></div>
+                <span className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-neutral-200 text-neutral-400 text-[10px] sm:text-xs font-bold flex items-center justify-center flex-shrink-0">2</span>
+                <span className="text-[10px] sm:text-xs text-neutral-400 whitespace-nowrap">{locale === 'fr' ? 'Contenu' : 'Content'}</span>
+                <div className="w-4 sm:w-6 h-0.5 bg-neutral-200 flex-shrink-0"></div>
+                <span className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-neutral-200 text-neutral-400 text-[10px] sm:text-xs font-bold flex items-center justify-center flex-shrink-0">3</span>
+                <span className="text-[10px] sm:text-xs text-neutral-400 whitespace-nowrap">{locale === 'fr' ? 'G\u00e9n\u00e9rer' : 'Generate'}</span>
               </div>
             </div>
 
@@ -3442,9 +3445,9 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
             {/* === COLONNE GAUCHE : Tendances === */}
             <div className="flex flex-col">
             <div className="relative">
-              <div className="flex items-center gap-1 mb-2">
-                <span className="text-base mr-0.5">🔥</span>
-                <span className="text-xs font-bold text-neutral-800 mr-3">{locale === 'fr' ? 'Tendances' : 'Trending'}</span>
+              <div className="flex items-center gap-1 mb-2 overflow-x-auto">
+                <span className="text-base mr-0.5 flex-shrink-0">🔥</span>
+                <span className="text-xs font-bold text-neutral-800 mr-2 sm:mr-3 flex-shrink-0 whitespace-nowrap">{locale === 'fr' ? 'Tendances' : 'Trending'}</span>
                 {([
                   { key: 'instagram' as const, label: '📸 Instagram', bg: 'bg-pink-500', bgHover: 'hover:bg-pink-600' },
                   { key: 'tiktok' as const, label: '🎵 TikTok', bg: 'bg-[#0c1a3a]', bgHover: 'hover:bg-[#0c1a3a]' },
@@ -3727,28 +3730,28 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
         {wizardPhase === 'configure' && (
           <div className="wizard-phase-enter">
             {/* Phase indicator — compact stepper */}
-            <div className="flex items-center gap-3 mb-5">
+            <div className="flex items-center gap-2 sm:gap-3 mb-5">
               <button
                 onClick={() => setWizardPhase(useNewsMode ? 'news-select' : 'entry')}
-                className="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-700 transition-colors"
+                className="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-700 transition-colors flex-shrink-0"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
               </button>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto">
                 {useNewsMode && (
                   <>
-                    <button onClick={() => setWizardPhase('news-select')} className="flex items-center gap-1.5 hover:opacity-70 transition-opacity cursor-pointer">
-                      <span className="w-7 h-7 rounded-full bg-emerald-500 text-white text-xs font-bold flex items-center justify-center">✓</span>
-                      <span className="text-xs text-emerald-600">{locale === 'fr' ? 'Actualité' : 'News'}</span>
+                    <button onClick={() => setWizardPhase('news-select')} className="flex items-center gap-1.5 hover:opacity-70 transition-opacity cursor-pointer flex-shrink-0">
+                      <span className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-emerald-500 text-white text-[10px] sm:text-xs font-bold flex items-center justify-center">✓</span>
+                      <span className="text-[10px] sm:text-xs text-emerald-600 whitespace-nowrap">{locale === 'fr' ? 'Actualité' : 'News'}</span>
                     </button>
-                    <div className="w-6 h-0.5 bg-emerald-400"></div>
+                    <div className="w-4 sm:w-6 h-0.5 bg-emerald-400 flex-shrink-0"></div>
                   </>
                 )}
-                <span className="w-7 h-7 rounded-full bg-[#0c1a3a] text-white text-xs font-bold flex items-center justify-center">{useNewsMode ? '2' : '1'}</span>
-                <span className="text-xs font-semibold text-neutral-900">{locale === 'fr' ? 'Contenu' : 'Content'}</span>
-                <div className="w-6 h-0.5 bg-neutral-200"></div>
-                <span className="w-7 h-7 rounded-full bg-neutral-200 text-neutral-400 text-xs font-bold flex items-center justify-center">{useNewsMode ? '3' : '2'}</span>
-                <span className="text-xs text-neutral-400">{locale === 'fr' ? 'G\u00e9n\u00e9rer' : 'Generate'}</span>
+                <span className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-[#0c1a3a] text-white text-[10px] sm:text-xs font-bold flex items-center justify-center flex-shrink-0">{useNewsMode ? '2' : '1'}</span>
+                <span className="text-[10px] sm:text-xs font-semibold text-neutral-900 whitespace-nowrap">{locale === 'fr' ? 'Contenu' : 'Content'}</span>
+                <div className="w-4 sm:w-6 h-0.5 bg-neutral-200 flex-shrink-0"></div>
+                <span className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-neutral-200 text-neutral-400 text-[10px] sm:text-xs font-bold flex items-center justify-center flex-shrink-0">{useNewsMode ? '3' : '2'}</span>
+                <span className="text-[10px] sm:text-xs text-neutral-400 whitespace-nowrap">{locale === 'fr' ? 'G\u00e9n\u00e9rer' : 'Generate'}</span>
               </div>
             </div>
 
@@ -4853,6 +4856,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                       >
                         {t.generate.edit}
                       </button>
+                      {generationLimit.canDownload ? (
                       <a
                         href={selectedEditVersion || generatedImageUrl}
                         download
@@ -4860,14 +4864,24 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                       >
                         {t.generate.download}
                       </a>
+                      ) : (
                       <button
-                        onClick={saveToLibrary}
-                        disabled={savingToLibrary || imageSavedToLibrary}
+                        onClick={() => setShowConversionPopup(true)}
+                        className="flex-1 min-w-[120px] py-2.5 text-sm bg-neutral-900 text-white text-center rounded-lg hover:bg-neutral-800 transition-colors font-medium relative"
+                      >
+                        {t.generate.download} <span className="ml-1 text-xs opacity-70">🔒</span>
+                      </button>
+                      )}
+                      <button
+                        onClick={generationLimit.canDownload ? saveToLibrary : () => setShowConversionPopup(true)}
+                        disabled={generationLimit.canDownload && (savingToLibrary || imageSavedToLibrary)}
                         className={`flex-1 min-w-[120px] py-2.5 text-sm text-white rounded-lg transition-colors font-medium ${
                           imageSavedToLibrary ? 'bg-green-600 cursor-default' : savingToLibrary ? 'bg-[#0c1a3a]/70 cursor-wait' : 'bg-[#0c1a3a] hover:bg-[#1e3a5f]'
                         }`}
                       >
-                        {imageSavedToLibrary ? `✓ ${t.generate.saved}` : savingToLibrary ? t.generate.saving : t.generate.save}
+                        {!generationLimit.canDownload
+                          ? <>{t.generate.save} <span className="ml-1 text-xs opacity-70">🔒</span></>
+                          : imageSavedToLibrary ? `✓ ${t.generate.saved}` : savingToLibrary ? t.generate.saving : t.generate.save}
                       </button>
                       <button
                         onClick={() => { setGeneratedImageUrl(null); setOriginalImageUrl(null); setGeneratedPrompt(null); setImageSavedToLibrary(false); setGeneratedAudioUrl(null); setWizardPhase('entry'); }}
@@ -6871,12 +6885,13 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
           }}
         />
 
-        {/* Modal Email Gate pour édition (2ème édition) */}
+        {/* Modal Email Gate pour 2ème génération / édition */}
         <EmailGateModal
           isOpen={showEditEmailGate}
           onClose={() => setShowEditEmailGate(false)}
           onSubmit={(email) => {
             editLimit.setEmail(email);
+            generationLimit.setEmail(email);
             setShowEditEmailGate(false);
           }}
           type="edit"

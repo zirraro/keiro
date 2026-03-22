@@ -223,16 +223,18 @@ function HomeKeiroInner() {
                 {t.home.videoSubtitle}
               </p>
 
-              {/* Vidéo compacte */}
+              {/* Vidéo compacte — YouTube embed mobile-friendly */}
               <div className="bg-white rounded-lg shadow-md overflow-hidden">
-                <div className="relative bg-neutral-900 aspect-video flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="w-14 h-14 bg-red-600 rounded-full flex items-center justify-center mx-auto hover:scale-110 transition-transform cursor-pointer">
-                      <svg className="w-7 h-7 ml-0.5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M8 5v14l11-7z" />
-                      </svg>
-                    </div>
-                  </div>
+                <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                  <iframe
+                    className="absolute inset-0 w-full h-full"
+                    src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?playsinline=1&rel=0&modestbranding=1"
+                    title={t.home.videoTitle}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                    loading="lazy"
+                    style={{ border: 'none' }}
+                  />
                 </div>
               </div>
             </div>
@@ -277,11 +279,160 @@ function HomeKeiroInner() {
         </div>
       </section>
 
+      {/* ASSISTANT MARKETING INTELLIGENCE (AMI) — DARK SECTION — last step of "comment ca marche" */}
+      <div className="relative h-40 overflow-hidden" aria-hidden="true">
+        <div className={`absolute inset-0 bg-gradient-to-b ${isLight ? 'from-[#FAFBFC] via-[#FAFBFC]/80' : 'from-transparent via-transparent/80'} to-[#0B1120]`} />
+        <div className="absolute bottom-0 left-0 right-0 h-24 bg-[#0B1120]" style={{ clipPath: 'ellipse(70% 100% at 50% 100%)' }} />
+      </div>
+      <section className="relative bg-[#0B1120] overflow-hidden">
+        <AnimatedGradientBG variant="dark" />
+        <div className="relative mx-auto max-w-6xl px-6 py-12">
+          <FadeUp>
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-[#7fa0c4] text-xs font-medium mb-4">
+              <span className="h-2 w-2 rounded-full bg-[#1e3a5f] animate-pulse"></span>
+              {t.home.aiBadge}
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-bold text-white">{t.home.aiTitle}</h2>
+            <p className="mt-2 text-[#a4bdd4]">{t.home.aiSubtitle}</p>
+          </div>
+          </FadeUp>
+
+          <div className="grid lg:grid-cols-2 gap-8">
+            {/* AI Insights Preview */}
+            <SlideInLeft><div className="rounded-2xl border border-white/10 overflow-hidden bg-white/5 backdrop-blur-sm shadow-xl">
+              <div className="bg-white/10 p-5">
+                <h3 className="text-white font-bold text-lg flex items-center gap-2">
+                  <span>🎯</span> {t.home.aiStrategicTitle}
+                </h3>
+                <p className="text-[#7fa0c4] text-sm mt-1">{t.home.aiStrategicSub}</p>
+              </div>
+
+              <div className="p-5 space-y-3">
+                {/* Insight 1 */}
+                <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                  <div className="flex items-start gap-2 mb-2">
+                    <span className="text-2xl">🎯</span>
+                    <div className="flex-1">
+                      <p className="text-sm font-bold text-white mb-1">{t.home.aiInsight1Title}</p>
+                      <p className="text-xs text-[#a4bdd4] leading-relaxed mb-2" dangerouslySetInnerHTML={{ __html: t.home.aiInsight1Text }} />
+                      <div className="bg-white/10 rounded p-2">
+                        <p className="text-[10px] text-[#7fa0c4]" dangerouslySetInnerHTML={{ __html: t.home.aiInsight1Tip }} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Insight 2 */}
+                <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                  <div className="flex items-start gap-2 mb-2">
+                    <span className="text-2xl">⏰</span>
+                    <div className="flex-1">
+                      <p className="text-sm font-bold text-white mb-1">{t.home.aiInsight2Title}</p>
+                      <p className="text-xs text-[#a4bdd4] leading-relaxed mb-2" dangerouslySetInnerHTML={{ __html: t.home.aiInsight2Text }} />
+                      <div className="bg-white/10 rounded p-2">
+                        <p className="text-[10px] text-[#7fa0c4]" dangerouslySetInnerHTML={{ __html: t.home.aiInsight2Tip }} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Insight 3 */}
+                <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                  <div className="flex items-start gap-2 mb-2">
+                    <span className="text-2xl">🔮</span>
+                    <div className="flex-1">
+                      <p className="text-sm font-bold text-white mb-1">{t.home.aiInsight3Title}</p>
+                      <p className="text-xs text-[#a4bdd4] leading-relaxed mb-2" dangerouslySetInnerHTML={{ __html: t.home.aiInsight3Text }} />
+                      <div className="bg-white/10 rounded p-2">
+                        <p className="text-[10px] text-[#7fa0c4]" dangerouslySetInnerHTML={{ __html: t.home.aiInsight3Tip }} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div></SlideInLeft>
+
+            {/* Features list + key stats */}
+            <SlideInRight><div className="space-y-4">
+              {/* Quick stats — simplified, no graphs */}
+              <div className="rounded-2xl border border-white/10 overflow-hidden bg-white/5 backdrop-blur-sm shadow-xl">
+                <div className="bg-white/10 p-5">
+                  <h3 className="text-white font-bold text-lg flex items-center gap-2">
+                    <span>📊</span> {t.home.aiDashboardTitle}
+                  </h3>
+                  <p className="text-[#7fa0c4] text-sm mt-1">{t.home.aiDashboardSub}</p>
+                </div>
+                <div className="p-5">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                      <div className="text-xs text-[#7fa0c4] font-semibold mb-1">{t.home.aiThisWeek}</div>
+                      <div className="text-2xl font-bold text-white"><CountUp target={12} /></div>
+                      <div className="text-xs text-[#6b9fd4]">{t.home.aiVisualsGenerated}</div>
+                    </div>
+                    <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                      <div className="text-xs text-[#7fa0c4] font-semibold mb-1">{t.home.aiEngagement}</div>
+                      <div className="text-2xl font-bold text-white"><CountUp target={347} suffix="%" prefix="+" /></div>
+                      <div className="text-xs text-[#6b9fd4] font-semibold">↗ +40%</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Features list */}
+              <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-5 shadow-lg">
+                <h4 className="font-bold text-white mb-3 flex items-center gap-2">
+                  <span>✨</span> {t.home.aiFeaturesTitle}
+                </h4>
+                <ul className="space-y-2 text-sm">
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#6b9fd4] text-lg">✓</span>
+                    <span className="text-[#a4bdd4]" dangerouslySetInnerHTML={{ __html: t.home.aiFeature1 }} />
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#6b9fd4] text-lg">✓</span>
+                    <span className="text-[#a4bdd4]" dangerouslySetInnerHTML={{ __html: t.home.aiFeature2 }} />
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#6b9fd4] text-lg">✓</span>
+                    <span className="text-[#a4bdd4]" dangerouslySetInnerHTML={{ __html: t.home.aiFeature3 }} />
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#6b9fd4] text-lg">✓</span>
+                    <span className="text-[#a4bdd4]" dangerouslySetInnerHTML={{ __html: t.home.aiFeature4 }} />
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#6b9fd4] text-lg">✓</span>
+                    <span className="text-[#a4bdd4]" dangerouslySetInnerHTML={{ __html: t.home.aiFeature5 }} />
+                  </li>
+                </ul>
+              </div>
+            </div></SlideInRight>
+          </div>
+
+          {/* CTA */}
+          <FadeUp>
+          <div className="mt-10 text-center">
+            <a href="/assistant" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold text-lg hover:shadow-xl transition-all hover:-translate-y-0.5 cta-shimmer">
+              {t.home.aiCta}
+            </a>
+            <p className="mt-3 text-sm text-[#7fa0c4]">
+              {t.home.aiCtaSub}
+            </p>
+          </div>
+          </FadeUp>
+        </div>
+      </section>
+      <div className="relative h-40 overflow-hidden" aria-hidden="true">
+        <div className={`absolute inset-0 bg-gradient-to-b from-[#0B1120] via-[#0B1120]/80 ${isLight ? 'to-[#FAFBFC]' : 'to-transparent'}`} />
+        <div className="absolute top-0 left-0 right-0 h-24 bg-[#0B1120]" style={{ clipPath: 'ellipse(70% 100% at 50% 0%)' }} />
+      </div>
+
       {/* GALERIE & POSTS MULTI-PLATEFORME */}
       <section className="mx-auto max-w-6xl px-6 py-12">
         <FadeUp>
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-neutral-900">{t.home.galleryTitle}</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-neutral-900">{t.home.galleryTitle}</h2>
           <p className="mt-2 text-neutral-600">{t.home.gallerySubtitle}</p>
         </div>
         </FadeUp>
@@ -430,7 +581,7 @@ function HomeKeiroInner() {
       <section id="exemple" className="hp-light-island mx-auto max-w-6xl px-6 py-12">
         <FadeUp>
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold">{t.home.beforeAfterTitle}</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold">{t.home.beforeAfterTitle}</h2>
           <p className="mt-2 text-neutral-600">{t.home.beforeAfterSubtitle}</p>
         </div>
         </FadeUp>
@@ -563,199 +714,11 @@ function HomeKeiroInner() {
         </div>
       </section>
 
-      {/* ASSISTANT MARKETING INTELLIGENCE (AMI) — DARK SECTION */}
-      <div className="relative h-40 overflow-hidden" aria-hidden="true">
-        <div className={`absolute inset-0 bg-gradient-to-b ${isLight ? 'from-[#FAFBFC] via-[#FAFBFC]/80' : 'from-transparent via-transparent/80'} to-[#0B1120]`} />
-        <div className="absolute bottom-0 left-0 right-0 h-24 bg-[#0B1120]" style={{ clipPath: 'ellipse(70% 100% at 50% 100%)' }} />
-      </div>
-      <section className="relative bg-[#0B1120] overflow-hidden">
-        <AnimatedGradientBG variant="dark" />
-        <div className="relative mx-auto max-w-6xl px-6 py-12">
-          <FadeUp>
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-[#7fa0c4] text-xs font-medium mb-4">
-              <span className="h-2 w-2 rounded-full bg-[#1e3a5f] animate-pulse"></span>
-              {t.home.aiBadge}
-            </div>
-            <h2 className="text-3xl font-bold text-white">{t.home.aiTitle}</h2>
-            <p className="mt-2 text-[#a4bdd4]">{t.home.aiSubtitle}</p>
-          </div>
-          </FadeUp>
-
-          <div className="grid lg:grid-cols-2 gap-8">
-            {/* Analytics Dashboard Preview */}
-            <SlideInLeft><div className="rounded-2xl border border-white/10 overflow-hidden bg-white/5 backdrop-blur-sm shadow-xl">
-              <div className="bg-white/10 p-5">
-                <h3 className="text-white font-bold text-lg flex items-center gap-2">
-                  <span>📊</span> {t.home.aiDashboardTitle}
-                </h3>
-                <p className="text-[#7fa0c4] text-sm mt-1">{t.home.aiDashboardSub}</p>
-              </div>
-
-              <div className="p-5 space-y-4">
-                {/* Stats cards preview */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-white/5 rounded-lg p-4 border border-white/10">
-                    <div className="text-xs text-[#7fa0c4] font-semibold mb-1">{t.home.aiThisWeek}</div>
-                    <div className="text-2xl font-bold text-white"><CountUp target={12} /></div>
-                    <div className="text-xs text-[#6b9fd4]">{t.home.aiVisualsGenerated}</div>
-                  </div>
-                  <div className="bg-white/5 rounded-lg p-4 border border-white/10">
-                    <div className="text-xs text-[#7fa0c4] font-semibold mb-1">{t.home.aiEngagement}</div>
-                    <div className="text-2xl font-bold text-white"><CountUp target={347} suffix="%" prefix="+" /></div>
-                    <div className="text-xs text-[#6b9fd4] font-semibold">↗ +40%</div>
-                  </div>
-                </div>
-
-                {/* Charts preview */}
-                <div className="space-y-3">
-                  <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-                    <p className="text-xs font-semibold text-[#7fa0c4] mb-2">{t.home.aiEvolution}</p>
-                    <div className="h-20 bg-white/5 rounded flex items-end justify-around p-2">
-                      {[40, 60, 45, 80, 70, 95].map((h, i) => (
-                        <div key={i} className="bg-gradient-to-t from-[#0c1a3a] to-[#1e3a5f] rounded-t" style={{ height: `${h}%`, width: '12%' }}></div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-                    <p className="text-xs font-semibold text-[#7fa0c4] mb-2">{t.home.aiBestTimes}</p>
-                    <div className="h-16 bg-white/5 rounded flex items-center justify-center">
-                      <p className="text-xs text-[#7fa0c4] font-semibold">{t.home.aiBestTimesValue}</p>
-                    </div>
-                  </div>
-
-                  <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-                    <p className="text-xs font-semibold text-[#7fa0c4] mb-2">{t.home.aiTopCategories}</p>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <div className="h-2 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] rounded" style={{ width: '80%' }}></div>
-                        <span className="text-[10px] text-[#6b9fd4]">Tech</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="h-2 bg-gradient-to-r from-[#1e3a5f] to-cyan-300 rounded" style={{ width: '60%' }}></div>
-                        <span className="text-[10px] text-[#6b9fd4]">Business</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white/10 rounded-lg p-3 border border-white/10 text-center">
-                  <p className="text-xs text-[#7fa0c4] font-semibold">{t.home.aiMoreCharts}</p>
-                  <p className="text-[10px] text-[#6b9fd4] mt-1">{t.home.aiMoreChartsSub}</p>
-                </div>
-              </div>
-            </div></SlideInLeft>
-
-            {/* AI Insights Preview */}
-            <SlideInRight><div className="space-y-4">
-              <div className="rounded-2xl border border-white/10 overflow-hidden bg-white/5 backdrop-blur-sm shadow-xl">
-                <div className="bg-white/10 p-5">
-                  <h3 className="text-white font-bold text-lg flex items-center gap-2">
-                    <span>🎯</span> {t.home.aiStrategicTitle}
-                  </h3>
-                  <p className="text-[#7fa0c4] text-sm mt-1">{t.home.aiStrategicSub}</p>
-                </div>
-
-                <div className="p-5 space-y-3">
-                  {/* Insight 1 */}
-                  <div className="bg-white/5 rounded-lg p-4 border border-white/10">
-                    <div className="flex items-start gap-2 mb-2">
-                      <span className="text-2xl">🎯</span>
-                      <div className="flex-1">
-                        <p className="text-sm font-bold text-white mb-1">{t.home.aiInsight1Title}</p>
-                        <p className="text-xs text-[#a4bdd4] leading-relaxed mb-2" dangerouslySetInnerHTML={{ __html: t.home.aiInsight1Text }} />
-                        <div className="bg-white/10 rounded p-2">
-                          <p className="text-[10px] text-[#7fa0c4]" dangerouslySetInnerHTML={{ __html: t.home.aiInsight1Tip }} />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Insight 2 */}
-                  <div className="bg-white/5 rounded-lg p-4 border border-white/10">
-                    <div className="flex items-start gap-2 mb-2">
-                      <span className="text-2xl">⏰</span>
-                      <div className="flex-1">
-                        <p className="text-sm font-bold text-white mb-1">{t.home.aiInsight2Title}</p>
-                        <p className="text-xs text-[#a4bdd4] leading-relaxed mb-2" dangerouslySetInnerHTML={{ __html: t.home.aiInsight2Text }} />
-                        <div className="bg-white/10 rounded p-2">
-                          <p className="text-[10px] text-[#7fa0c4]" dangerouslySetInnerHTML={{ __html: t.home.aiInsight2Tip }} />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Insight 3 */}
-                  <div className="bg-white/5 rounded-lg p-4 border border-white/10">
-                    <div className="flex items-start gap-2 mb-2">
-                      <span className="text-2xl">🔮</span>
-                      <div className="flex-1">
-                        <p className="text-sm font-bold text-white mb-1">{t.home.aiInsight3Title}</p>
-                        <p className="text-xs text-[#a4bdd4] leading-relaxed mb-2" dangerouslySetInnerHTML={{ __html: t.home.aiInsight3Text }} />
-                        <div className="bg-white/10 rounded p-2">
-                          <p className="text-[10px] text-[#7fa0c4]" dangerouslySetInnerHTML={{ __html: t.home.aiInsight3Tip }} />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Features list */}
-              <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-5 shadow-lg">
-                <h4 className="font-bold text-white mb-3 flex items-center gap-2">
-                  <span>✨</span> {t.home.aiFeaturesTitle}
-                </h4>
-                <ul className="space-y-2 text-sm">
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#6b9fd4] text-lg">✓</span>
-                    <span className="text-[#a4bdd4]" dangerouslySetInnerHTML={{ __html: t.home.aiFeature1 }} />
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#6b9fd4] text-lg">✓</span>
-                    <span className="text-[#a4bdd4]" dangerouslySetInnerHTML={{ __html: t.home.aiFeature2 }} />
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#6b9fd4] text-lg">✓</span>
-                    <span className="text-[#a4bdd4]" dangerouslySetInnerHTML={{ __html: t.home.aiFeature3 }} />
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#6b9fd4] text-lg">✓</span>
-                    <span className="text-[#a4bdd4]" dangerouslySetInnerHTML={{ __html: t.home.aiFeature4 }} />
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#6b9fd4] text-lg">✓</span>
-                    <span className="text-[#a4bdd4]" dangerouslySetInnerHTML={{ __html: t.home.aiFeature5 }} />
-                  </li>
-                </ul>
-              </div>
-            </div></SlideInRight>
-          </div>
-
-          {/* CTA */}
-          <FadeUp>
-          <div className="mt-10 text-center">
-            <a href="/assistant" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold text-lg hover:shadow-xl transition-all hover:-translate-y-0.5 cta-shimmer">
-              {t.home.aiCta}
-            </a>
-            <p className="mt-3 text-sm text-[#7fa0c4]">
-              {t.home.aiCtaSub}
-            </p>
-          </div>
-          </FadeUp>
-        </div>
-      </section>
-      <div className="relative h-40 overflow-hidden" aria-hidden="true">
-        <div className={`absolute inset-0 bg-gradient-to-b from-[#0B1120] via-[#0B1120]/80 ${isLight ? 'to-[#FAFBFC]' : 'to-transparent'}`} />
-        <div className="absolute top-0 left-0 right-0 h-24 bg-[#0B1120]" style={{ clipPath: 'ellipse(70% 100% at 50% 0%)' }} />
-      </div>
-
       {/* TÉMOIGNAGES CLIENTS */}
       <section className="mx-auto max-w-6xl px-6 py-12">
         <BlurIn>
         <div className="text-center mb-10">
-          <h2 className="text-3xl font-bold mb-2">{t.home.testimonialsTitle}</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold mb-2">{t.home.testimonialsTitle}</h2>
           <p className="text-neutral-600">{t.home.testimonialsSub}</p>
         </div>
         </BlurIn>
@@ -1171,7 +1134,7 @@ function HomeKeiroInner() {
               <span className="h-2 w-2 rounded-full bg-white animate-pulse"></span>
               {t.home.pricingBadge}
             </div>
-            <h2 className="text-4xl font-bold mb-4">{t.home.pricingTitle}</h2>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4">{t.home.pricingTitle}</h2>
             <p className="text-lg text-neutral-600">
               {t.home.pricingSubtitle}
             </p>
@@ -1268,7 +1231,7 @@ function HomeKeiroInner() {
                 <h3 className="text-xl font-bold">🏆 {t.home.planEliteTitle}</h3>
                 <span className="px-3 py-0.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-bold rounded-full">PREMIUM</span>
               </div>
-              <div className="text-3xl font-black mb-1">{billingPeriod === 'annual' ? `9 990€ ${t.common.perYear}` : `999€ ${t.common.perMonth}`}</div>
+              <div className="text-2xl sm:text-3xl font-black mb-1">{billingPeriod === 'annual' ? `9 990€ ${t.common.perYear}` : `999€ ${t.common.perMonth}`}</div>
               {billingPeriod === 'annual' && <p className="text-sm text-green-600 font-semibold">{t.home.priceNoteElite}</p>}
               <p className="text-sm text-neutral-600 mb-4">{t.home.planEliteSubtitle}</p>
               <ul className="grid grid-cols-2 gap-2 mb-6 flex-1">
@@ -1301,7 +1264,7 @@ function HomeKeiroInner() {
       <section className="hp-light-island mx-auto max-w-6xl px-6 py-16 mt-12">
         <BlurIn>
         <div className="text-center mb-10">
-          <h2 className="text-3xl md:text-4xl font-bold mb-3">Concrètement, c&apos;est quoi la différence ?</h2>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3">Concrètement, c&apos;est quoi la différence ?</h2>
         </div>
         </BlurIn>
 
@@ -1563,7 +1526,7 @@ function QuizAndCalculator() {
   return (
     <section className="mx-auto max-w-6xl px-6 py-12">
       <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold mb-2">{t.home.quizTitle}</h2>
+        <h2 className="text-2xl sm:text-3xl font-bold mb-2">{t.home.quizTitle}</h2>
         <p className="text-neutral-600">{t.home.quizSubtitle}</p>
       </div>
 

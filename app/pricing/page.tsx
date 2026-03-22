@@ -83,7 +83,7 @@ function ContactFormPricing() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-3">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <input
             type="text"
             value={name}
@@ -168,10 +168,10 @@ function PricingPageInner() {
             </span>
             {t.pricing.badge}
           </div></ScaleIn>
-          <h1 className="text-5xl font-bold mb-6">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-6">
             <span dangerouslySetInnerHTML={{ __html: t.pricing.title }} />
           </h1>
-          <p className="text-xl text-neutral-600 max-w-3xl mx-auto">
+          <p className="text-base sm:text-lg md:text-xl text-neutral-600 max-w-3xl mx-auto">
             {t.pricing.subtitle}
           </p>
 
@@ -218,11 +218,11 @@ function PricingPageInner() {
               </span>
             </div>
             <div className="mb-6 pt-2">
-              <h3 className="text-2xl font-bold mb-2 flex items-center gap-2">
+              <h3 className="text-xl sm:text-2xl font-bold mb-2 flex items-center gap-2">
                 <span>🎁</span> {t.pricing.freeTrialTitle || 'Essai gratuit 7 jours'}
               </h3>
               <div className="flex items-baseline gap-2 mb-4">
-                <span className="text-5xl font-bold bg-gradient-to-r from-[#0c1a3a] to-purple-600 bg-clip-text text-transparent">0€</span>
+                <span className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-[#0c1a3a] to-purple-600 bg-clip-text text-transparent">0€</span>
                 <span className="text-neutral-500">/ 7 jours</span>
               </div>
               <p className="text-neutral-600 dark:text-neutral-300 text-sm font-medium">{t.pricing.freeTrialSubtitle || 'Teste Keiro sans engagement — aucune carte requise'}</p>
@@ -264,10 +264,10 @@ function PricingPageInner() {
 
           <div className="relative z-10 max-w-4xl mx-auto">
             <div className="text-center mb-6">
-              <h3 className="text-3xl font-bold mb-3 flex items-center justify-center gap-3">
-                <span className="text-4xl">🎵</span> {t.pricing.tiktokTitle}
+              <h3 className="text-xl sm:text-2xl md:text-3xl font-bold mb-3 flex items-center justify-center gap-3">
+                <span className="text-3xl sm:text-4xl">🎵</span> {t.pricing.tiktokTitle}
               </h3>
-              <p className="text-xl text-cyan-100 font-medium">
+              <p className="text-base sm:text-lg md:text-xl text-cyan-100 font-medium">
                 {t.pricing.tiktokSubtitle}
               </p>
             </div>
@@ -324,14 +324,14 @@ function PricingPageInner() {
               <div className="flex items-baseline gap-2 mb-2">
                 {billingPeriod === 'annual' ? (
                   <>
-                    <span className="text-4xl font-bold">890€</span>
+                    <span className="text-3xl sm:text-4xl font-bold">890€</span>
                     <span className="text-purple-200">{t.common.perYear}</span>
                     <span className="text-xs text-purple-200 font-semibold">soit 74€/mois</span>
                   </>
                 ) : (
                   <>
                     <span className="line-through text-purple-300 text-2xl">89€</span>
-                    <span className="text-4xl font-bold">49€</span>
+                    <span className="text-3xl sm:text-4xl font-bold">49€</span>
                     <span className="text-purple-200">{t.common.perMonth}</span>
                   </>
                 )}
@@ -386,7 +386,7 @@ function PricingPageInner() {
                 <span>⭐</span> {t.pricing.planFondateursTitle}
               </h3>
               <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-4xl font-bold">{billingPeriod === 'annual' ? '1 490€' : '149€'}</span>
+                <span className="text-3xl sm:text-4xl font-bold">{billingPeriod === 'annual' ? '1 490€' : '149€'}</span>
                 <span className="text-amber-100">{billingPeriod === 'annual' ? t.common.perYear : t.common.perMonth}</span>
                 {billingPeriod === 'annual' && <span className="text-xs text-yellow-200 font-semibold">soit 124€/mois</span>}
               </div>
@@ -423,7 +423,7 @@ function PricingPageInner() {
                 <span>🏢</span> {t.pricing.planBusinessTitle}
               </h3>
               <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-4xl font-bold">{billingPeriod === 'annual' ? '3 490€' : '349€'}</span>
+                <span className="text-3xl sm:text-4xl font-bold">{billingPeriod === 'annual' ? '3 490€' : '349€'}</span>
                 <span className="text-cyan-200">{billingPeriod === 'annual' ? t.common.perYear : t.common.perMonth}</span>
                 {billingPeriod === 'annual' && <span className="text-xs text-cyan-200 font-semibold">soit 290€/mois</span>}
               </div>
@@ -464,7 +464,7 @@ function PricingPageInner() {
                 <span>🏆</span> {t.pricing.planEliteTitle}
               </h3>
               <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-4xl font-bold">999€</span>
+                <span className="text-3xl sm:text-4xl font-bold">999€</span>
                 <span className="text-amber-100">{t.common.perMonth}</span>
               </div>
               <p className="text-amber-100 text-sm font-medium" dangerouslySetInnerHTML={{ __html: t.pricing.planEliteSubtitle }} />
@@ -562,7 +562,7 @@ function PricingPageInner() {
 
         {/* Comparatif rapide */}
         <div className="bg-white dark:bg-white/5 rounded-2xl border border-neutral-200 dark:border-white/10 p-8 mb-16">
-          <h3 className="text-2xl font-bold text-center mb-2">{t.pricing.comparisonTitle}</h3>
+          <h3 className="text-xl sm:text-2xl font-bold text-center mb-2">{t.pricing.comparisonTitle}</h3>
           <p className="text-center text-neutral-500 text-sm mb-8">{t.pricing.subtitle}</p>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -1194,11 +1194,11 @@ function PricingPageInner() {
 
         {/* CTA Final */}
         <FadeUp>
-        <div className="mt-20 text-center bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] rounded-3xl p-12">
-          <h2 className="text-4xl font-bold text-white mb-4">
+        <div className="mt-12 sm:mt-20 text-center bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] rounded-3xl p-6 sm:p-12">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-4">
             {t.pricing.ctaTitle}
           </h2>
-          <p className="text-xl text-[#0c1a3a]/60 mb-8 max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg md:text-xl text-[#0c1a3a]/60 mb-8 max-w-2xl mx-auto">
             {t.pricing.ctaSubtitle}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">

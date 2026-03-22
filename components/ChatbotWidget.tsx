@@ -256,7 +256,7 @@ export default function ChatbotWidget() {
             exit={{ scale: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={() => setIsOpen(true)}
-            className={`fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white shadow-lg hover:shadow-xl flex items-center justify-center transition-shadow ${
+            className={`fixed bottom-20 lg:bottom-6 right-4 lg:right-6 z-50 w-14 h-14 rounded-full bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white shadow-lg hover:shadow-xl flex items-center justify-center transition-shadow ${
               pulseAnimation ? 'animate-pulse' : ''
             }`}
             whileHover={{ scale: 1.08 }}
@@ -277,7 +277,7 @@ export default function ChatbotWidget() {
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.25, ease: 'easeOut' }}
             className="fixed z-50 bottom-0 right-0 w-full sm:bottom-6 sm:right-6 sm:w-[380px] flex flex-col bg-[#0f1f3d] shadow-2xl border border-white/10 rounded-t-2xl sm:rounded-2xl overflow-hidden"
-            style={{ height: '520px', maxHeight: 'calc(100vh - 40px)' }}
+            style={{ height: 'min(520px, calc(100dvh - 80px))' }}
           >
             {/* Header */}
             <div className="bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] px-4 py-3 flex items-center justify-between flex-shrink-0">

@@ -157,6 +157,9 @@ export function isFreemiumUser(
     }
   }
 
-  // Freemium = a fourni email OU créé compte, MAIS n'a pas de plan premium
-  return (hasEmail || hasAccount) && !hasPremiumPlan;
+  // Premium payant = pas de watermark
+  if (hasPremiumPlan) return false;
+
+  // Tout le monde sans plan premium a un watermark (y compris anonymes sans email/compte)
+  return true;
 }

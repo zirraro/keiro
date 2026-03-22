@@ -53,12 +53,21 @@ export function useGenerationLimit() {
     }
   };
 
-  // Nouveau flow : 1ère gen gratuite sans compte, puis popup conversion
-  const getRequiredAction = (): 'generate' | 'conversion_popup' | 'signup' => {
+  // Flow UX : 1ère gen gratuite (résultat visible avec watermark, download bloqué)
+  // 2ème gen : email gate
+  // 3ème+ : signup gate
+  const getRequiredAction = (): 'generate' | 'email_gate' | 'signup_gate' => {
     if (state.hasAccount) return 'generate'; // Compte créé = utilise ses crédits
     if (state.count === 0) return 'generate'; // 1ère génération gratuite
-    return 'conversion_popup'; // 2ème+ = popup de conversion (visuel généré mais bloqué)
+    if (state.count === 1 && !state.email) return 'email_gate'; // 2ème = email gate
+    if (state.count >= 2 && !state.hasAccount) return 'signup_gate'; // 3ème+ = signup gate
+    // Email fourni mais pas encore de compte = autoriser la 2ème gen
+    if (state.email && !state.hasAccount && state.count < 2) return 'generate';
+    return 'signup_gate';
   };
+
+  // Download gated: l'utilisateur doit avoir un compte pour télécharger
+  const canDownload = state.hasAccount;
 
   return {
     count: state.count,
@@ -70,5 +79,6 @@ export function useGenerationLimit() {
     reset,
     requiredAction: getRequiredAction(),
     canGenerate: getRequiredAction() === 'generate',
+    canDownload,
   };
 }

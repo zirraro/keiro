@@ -703,6 +703,30 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
         {/* NOUVEAU LAYOUT 3 COLONNES */}
         <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
 
+          {/* GALERIE - Mobile horizontal strip */}
+          <div className="md:hidden border-b border-neutral-200 bg-neutral-50 overflow-x-auto">
+            <div className="flex gap-2 p-2">
+              {activeTab === 'images' ? (
+                loadingImages ? [1,2,3,4].map(i => <div key={i} className="w-14 h-14 flex-shrink-0 bg-neutral-200 rounded animate-pulse" />) :
+                availableImages.map((img) => (
+                  <button key={img.id} onClick={() => setSelectedImage(img)}
+                    className={`w-14 h-14 flex-shrink-0 rounded-lg overflow-hidden transition-all ${selectedImage?.id === img.id ? 'ring-2 ring-pink-500 scale-105' : 'ring-1 ring-neutral-300'}`}>
+                    <img src={img.thumbnail_url || img.image_url} alt={img.title || 'Image'} className="w-full h-full object-cover" />
+                  </button>
+                ))
+              ) : (
+                loadingVideos ? [1,2,3,4].map(i => <div key={i} className="w-14 h-14 flex-shrink-0 bg-neutral-200 rounded animate-pulse" />) :
+                availableVideos.map((vid) => (
+                  <button key={vid.id} onClick={() => setSelectedVideo(vid)}
+                    className={`w-14 h-14 flex-shrink-0 rounded-lg overflow-hidden transition-all relative ${selectedVideo?.id === vid.id ? 'ring-2 ring-pink-500 scale-105' : 'ring-1 ring-neutral-300'}`}>
+                    <img src={vid.thumbnail_url || ''} alt={vid.title || 'Video'} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/20"><span className="text-white text-xs">▶</span></div>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+
           {/* GALERIE - SIDEBAR GAUCHE (Desktop seulement) */}
           <div className="hidden md:block md:w-24 lg:w-32 border-r border-neutral-200 overflow-y-auto bg-neutral-50">
             <div className="p-2 space-y-2">

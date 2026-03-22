@@ -302,8 +302,8 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-      <div className="bg-white w-full h-full md:w-[95vw] md:h-[90vh] md:max-w-6xl md:rounded-2xl overflow-hidden flex flex-col shadow-2xl">
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center">
+      <div className="bg-white w-full h-[95dvh] sm:h-auto md:w-[95vw] md:h-[90vh] md:max-w-6xl rounded-t-2xl sm:rounded-2xl overflow-hidden flex flex-col shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-neutral-200 bg-gradient-to-r from-[#0c1a3a]/5 to-sky-50">
           <div className="flex items-center gap-3">
