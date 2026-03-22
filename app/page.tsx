@@ -298,7 +298,7 @@ function HomeKeiroInner() {
           </div>
           </FadeUp>
 
-          <div className="grid lg:grid-cols-2 gap-8">
+          <div className="grid lg:grid-cols-2 gap-4 md:gap-8">
             {/* AI Insights Preview */}
             <SlideInLeft><div className="rounded-2xl border border-white/10 overflow-hidden bg-white/5 backdrop-blur-sm shadow-xl">
               <div className="bg-white/10 p-5">
@@ -1268,7 +1268,7 @@ function HomeKeiroInner() {
         </div>
         </BlurIn>
 
-        <div className="grid md:grid-cols-2 gap-8 mb-10">
+        <div className="grid md:grid-cols-2 gap-4 md:gap-8 mb-10">
           {/* Pro card */}
           <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl border border-purple-200 p-6">
             <h3 className="text-xl font-bold text-purple-900 mb-4">💎 Pro — Votre vitrine Instagram, professionnelle et autonome</h3>
@@ -1378,7 +1378,7 @@ function HomeKeiroInner() {
 
       <footer className="relative bg-neutral-900 text-white" style={{ zIndex: 2 }}>
         <div className="max-w-7xl mx-auto px-6 py-12">
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8">
             {/* Marque */}
             <div>
               <KeiroLockup size={28} color="#ffffff" className="mb-2" />

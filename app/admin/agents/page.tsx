@@ -1825,7 +1825,7 @@ function AdminAgentsContent() {
           <div className="fixed inset-0 z-50 flex justify-end" onClick={() => setSelectedWarmProspect(null)}>
             <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
             <div
-              className="relative w-full max-w-[480px] bg-white shadow-2xl overflow-y-auto"
+              className="relative w-full max-w-full sm:max-w-[480px] bg-white shadow-2xl overflow-y-auto"
               onClick={e => e.stopPropagation()}
             >
               {/* Header */}
@@ -3290,11 +3290,11 @@ function AdminAgentsContent() {
         {/* Post Preview Modal — Platform mockup */}
         {previewPost && (
           <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setPreviewPost(null)}>
-            <div className="relative flex gap-6 max-w-[820px] w-full items-start" onClick={e => e.stopPropagation()}>
+            <div className="relative flex flex-col sm:flex-row gap-4 sm:gap-6 max-w-[820px] w-full items-center sm:items-start" onClick={e => e.stopPropagation()}>
               <button onClick={() => setPreviewPost(null)} className="absolute -top-10 right-0 text-white text-2xl font-bold hover:opacity-70 z-10">✕</button>
 
               {/* Phone frame */}
-              <div className="w-[340px] shrink-0">
+              <div className="w-[280px] sm:w-[340px] shrink-0">
                 <div className={`rounded-[32px] shadow-2xl overflow-hidden border-[6px] border-neutral-800 ${previewPost.platform === 'tiktok' ? 'bg-black' : 'bg-white'}`} style={{ maxHeight: '680px' }}>
                   {/* Platform header */}
                   {previewPost.platform === 'tiktok' ? (

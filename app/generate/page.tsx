@@ -4830,7 +4830,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                         style={{ maxHeight: '60vh' }}
                       />
                     </div>
-                    <div className="mt-4 flex flex-wrap gap-2">
+                    <div className="mt-4 grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
                       <button
                         onClick={async () => {
                           setShowEditStudio(true);
@@ -4852,7 +4852,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                             try { const preview = await renderOverlaysOnImage(cleanBase, items); setTextPreviewUrl(preview); setVersionPreviews({ [cleanBase]: preview }); } catch {}
                           } else { setTextOverlayItems([]); setVersionPreviews({}); setEditingOverlayId(null); }
                         }}
-                        className="flex-1 min-w-[120px] py-2.5 text-sm bg-[#0c1a3a] text-white rounded-lg hover:bg-[#1e3a5f] transition-colors font-medium"
+                        className="flex-1 min-w-0 sm:min-w-[120px] py-2.5 text-sm bg-[#0c1a3a] text-white rounded-lg hover:bg-[#1e3a5f] transition-colors font-medium"
                       >
                         {t.generate.edit}
                       </button>
@@ -4860,14 +4860,14 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                       <a
                         href={selectedEditVersion || generatedImageUrl}
                         download
-                        className="flex-1 min-w-[120px] py-2.5 text-sm bg-neutral-900 text-white text-center rounded-lg hover:bg-neutral-800 transition-colors font-medium"
+                        className="flex-1 min-w-0 sm:min-w-[120px] py-2.5 text-sm bg-neutral-900 text-white text-center rounded-lg hover:bg-neutral-800 transition-colors font-medium"
                       >
                         {t.generate.download}
                       </a>
                       ) : (
                       <button
                         onClick={() => setShowConversionPopup(true)}
-                        className="flex-1 min-w-[120px] py-2.5 text-sm bg-neutral-900 text-white text-center rounded-lg hover:bg-neutral-800 transition-colors font-medium relative"
+                        className="flex-1 min-w-0 sm:min-w-[120px] py-2.5 text-sm bg-neutral-900 text-white text-center rounded-lg hover:bg-neutral-800 transition-colors font-medium relative"
                       >
                         {t.generate.download} <span className="ml-1 text-xs opacity-70">🔒</span>
                       </button>
@@ -4875,7 +4875,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                       <button
                         onClick={generationLimit.canDownload ? saveToLibrary : () => setShowConversionPopup(true)}
                         disabled={generationLimit.canDownload && (savingToLibrary || imageSavedToLibrary)}
-                        className={`flex-1 min-w-[120px] py-2.5 text-sm text-white rounded-lg transition-colors font-medium ${
+                        className={`flex-1 min-w-0 sm:min-w-[120px] py-2.5 text-sm text-white rounded-lg transition-colors font-medium ${
                           imageSavedToLibrary ? 'bg-green-600 cursor-default' : savingToLibrary ? 'bg-[#0c1a3a]/70 cursor-wait' : 'bg-[#0c1a3a] hover:bg-[#1e3a5f]'
                         }`}
                       >
@@ -4885,7 +4885,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                       </button>
                       <button
                         onClick={() => { setGeneratedImageUrl(null); setOriginalImageUrl(null); setGeneratedPrompt(null); setImageSavedToLibrary(false); setGeneratedAudioUrl(null); setWizardPhase('entry'); }}
-                        className="flex-1 min-w-[120px] py-2.5 text-sm border rounded-lg hover:bg-neutral-50 transition-colors font-medium"
+                        className="flex-1 min-w-0 sm:min-w-[120px] py-2.5 text-sm border rounded-lg hover:bg-neutral-50 transition-colors font-medium"
                       >
                         {t.generate.newGeneration}
                       </button>
@@ -4951,24 +4951,24 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                         );
                       })()}
                     </div>
-                    <div className="mt-4 flex flex-wrap gap-2">
+                    <div className="mt-4 grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
                       <button
                         onClick={() => setShowVideoEditor(!showVideoEditor)}
-                        className={`flex-1 min-w-[120px] py-2.5 text-sm text-white rounded-lg transition-colors font-medium ${showVideoEditor ? 'bg-purple-700' : 'bg-purple-600 hover:bg-purple-700'}`}
+                        className={`flex-1 min-w-0 sm:min-w-[120px] py-2.5 text-sm text-white rounded-lg transition-colors font-medium ${showVideoEditor ? 'bg-purple-700' : 'bg-purple-600 hover:bg-purple-700'}`}
                       >
                         {showVideoEditor ? `✕ ${t.generate.closeEditor}` : t.generate.edit}
                       </button>
                       <a
                         href={generatedVideoUrl}
                         download="keiro-video.mp4"
-                        className="flex-1 min-w-[120px] py-2.5 text-sm bg-neutral-900 text-white text-center rounded-lg hover:bg-neutral-800 transition-colors font-medium"
+                        className="flex-1 min-w-0 sm:min-w-[120px] py-2.5 text-sm bg-neutral-900 text-white text-center rounded-lg hover:bg-neutral-800 transition-colors font-medium"
                       >
                         {t.generate.download}
                       </a>
                       <button
                         onClick={saveVideoToLibrary}
                         disabled={videoSavedToLibrary || savingToLibrary}
-                        className={`flex-1 min-w-[120px] py-2.5 text-sm text-white rounded-lg transition-colors font-medium ${
+                        className={`flex-1 min-w-0 sm:min-w-[120px] py-2.5 text-sm text-white rounded-lg transition-colors font-medium ${
                           videoSavedToLibrary ? 'bg-green-600 cursor-default' : 'bg-cyan-600 hover:bg-cyan-700'
                         } disabled:opacity-50`}
                       >
@@ -4976,7 +4976,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                       </button>
                       <button
                         onClick={() => { setGeneratedVideoUrl(null); setShowVideoEditor(false); setWizardPhase('entry'); }}
-                        className="flex-1 min-w-[120px] py-2.5 text-sm border rounded-lg hover:bg-neutral-50 transition-colors font-medium"
+                        className="flex-1 min-w-0 sm:min-w-[120px] py-2.5 text-sm border rounded-lg hover:bg-neutral-50 transition-colors font-medium"
                       >
                         {t.generate.newGeneration}
                       </button>

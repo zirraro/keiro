@@ -314,7 +314,7 @@ function PricingPageInner() {
         <FadeUp><h3 className="text-2xl font-bold text-center mb-2">{t.pricing.comparisonTitle}</h3>
         <p className="text-center text-neutral-600 mb-8">{t.pricing.subtitle}</p></FadeUp>
 
-        <StaggerContainer className="grid md:grid-cols-3 gap-6 mb-16">
+        <StaggerContainer className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mb-16">
           {/* Pro 89€ */}
           <StaggerItem><div id="pro" className="bg-gradient-to-br from-purple-600 to-indigo-600 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col">
             <div className="mb-4 pt-2">
