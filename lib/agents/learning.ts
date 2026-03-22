@@ -45,6 +45,35 @@
 
 import { SupabaseClient } from '@supabase/supabase-js';
 
+// ── Service team definitions for team-level knowledge pools ──
+// Each team shares learnings at a lower threshold (Signal+ = 20+) vs cross-agent (Pattern+ = 40+)
+export const AGENT_TEAMS: Record<string, { name: string; agents: string[] }> = {
+  direction:         { name: 'Direction',           agents: ['ceo', 'marketing'] },
+  commercial:        { name: 'Commercial',          agents: ['commercial', 'email', 'ads'] },
+  marketing_contenu: { name: 'Marketing & Contenu', agents: ['content', 'seo'] },
+  client:            { name: 'Service Client',      agents: ['onboarding', 'retention'] },
+  support:           { name: 'Support & Admin',     agents: ['rh', 'comptable'] },
+};
+
+/**
+ * Resolve which team an agent belongs to. Returns team ID or null.
+ */
+export function getAgentTeam(agentId: string): string | null {
+  for (const [teamId, team] of Object.entries(AGENT_TEAMS)) {
+    if (team.agents.includes(agentId)) return teamId;
+  }
+  return null;
+}
+
+/**
+ * Get all teammate agent IDs (excluding the given agent).
+ */
+export function getTeammates(agentId: string): string[] {
+  const teamId = getAgentTeam(agentId);
+  if (!teamId) return [];
+  return AGENT_TEAMS[teamId].agents.filter(a => a !== agentId);
+}
+
 export type LearningCategory = 'email' | 'dm' | 'content' | 'prospection' | 'conversion' | 'general' | 'community' | 'retention' | 'seo';
 export type LearningPhase = 'noise' | 'signal' | 'pattern' | 'rule' | 'insight';
 
@@ -409,6 +438,60 @@ export async function getAllAgentLearnings(
 }
 
 /**
+ * Get learnings from the same SERVICE TEAM — shared at a lower threshold (Signal+ = 20+).
+ * Team pools allow tighter knowledge sharing between closely related agents.
+ * This enables future merging of agents within a team into generalists.
+ */
+export async function getTeamLearnings(
+  supabase: SupabaseClient,
+  agentName: string,
+  orgId?: string,
+): Promise<AgentLearning[]> {
+  const teammates = getTeammates(agentName);
+  if (teammates.length === 0) return [];
+
+  const now = new Date().toISOString();
+
+  let query = supabase
+    .from('agent_logs')
+    .select('id, agent, data, created_at')
+    .eq('action', 'learning')
+    .in('agent', teammates)
+    .order('created_at', { ascending: false })
+    .limit(40);
+
+  if (orgId) {
+    query = query.eq('org_id', orgId);
+  }
+
+  const { data } = await query;
+
+  return (data || [])
+    .filter((log: any) => {
+      const expiresAt = log.data?.expires_at;
+      const confidence = log.data?.confidence || 0;
+      // Team pool: share at Signal+ (score >= 20) — lower than cross-agent (40+)
+      return confidence >= 20 && (!expiresAt || expiresAt > now);
+    })
+    .map((log: any) => ({
+      id: log.id,
+      agent: log.agent,
+      category: log.data?.category || 'general',
+      learning: log.data?.learning || '',
+      evidence: log.data?.evidence || '',
+      confidence: log.data?.confidence || 20,
+      tier: scoreToPhase(log.data?.confidence || 20),
+      confirmations: log.data?.confirmations || 1,
+      contradictions: log.data?.contradictions || 0,
+      revenue_linked: log.data?.revenue_linked || false,
+      last_confirmed_at: log.data?.last_confirmed_at,
+      created_at: log.created_at,
+      expires_at: log.data?.expires_at || null,
+    }))
+    .sort((a: AgentLearning, b: AgentLearning) => b.confidence - a.confidence);
+}
+
+/**
  * Get ALL historical learnings (including expired) for AMIT deep analysis.
  * Unlike getActiveLearnings, this does NOT filter by expiry — all data is preserved.
  * AMIT uses this to detect long-term patterns across the full history.
@@ -654,8 +737,9 @@ export function formatLearningsForPrompt(
   ownLearnings: AgentLearning[],
   otherLearnings: AgentLearning[],
   feedbacks?: AgentFeedback[],
+  teamLearnings?: AgentLearning[],
 ): string {
-  if (ownLearnings.length === 0 && otherLearnings.length === 0 && (!feedbacks || feedbacks.length === 0)) return '';
+  if (ownLearnings.length === 0 && otherLearnings.length === 0 && (!feedbacks || feedbacks.length === 0) && (!teamLearnings || teamLearnings.length === 0)) return '';
 
   let text = '';
 
@@ -697,12 +781,33 @@ export function formatLearningsForPrompt(
 
   // NOISE (0-19) — not shown in prompts, too unreliable
 
-  // Cross-agent learnings (Pattern+ = score >= 40)
+  // Team learnings (Signal+ = score >= 20, same service team)
+  if (teamLearnings && teamLearnings.length > 0) {
+    // Exclude learnings already shown in own or cross-agent sections
+    const ownIds = new Set(ownLearnings.map(l => l.id));
+    const teamOnly = teamLearnings.filter(l => !ownIds.has(l.id));
+    if (teamOnly.length > 0) {
+      const teamId = getAgentTeam(teamOnly[0].agent);
+      const teamName = teamId ? AGENT_TEAMS[teamId]?.name : 'Équipe';
+      text += `\n\n🏢 POOL ÉQUIPE ${teamName.toUpperCase()} (coéquipiers, Signal+ score >= 20) :`;
+      for (const l of teamOnly.slice(0, 12)) {
+        const icon = l.confidence >= 85 ? '💎' : l.confidence >= 65 ? '📏' : l.confidence >= 40 ? '🎯' : '📡';
+        text += `\n- ${icon} [${l.agent}/${l.category}] ${l.learning} (score: ${l.confidence})`;
+      }
+    }
+  }
+
+  // Cross-agent learnings (Pattern+ = score >= 40, all agents outside team)
   if (otherLearnings.length > 0) {
-    text += `\n\n🔄 INTELLIGENCE CROSS-AGENT :`;
-    for (const l of otherLearnings.slice(0, 10)) {
-      const icon = l.confidence >= 85 ? '💎' : l.confidence >= 65 ? '📏' : '🎯';
-      text += `\n- ${icon} [${l.agent}/${l.category}] ${l.learning} (score: ${l.confidence})`;
+    // Filter out teammates to avoid duplicates with team pool
+    const teamAgentIds = teamLearnings ? new Set(teamLearnings.map(l => l.agent)) : new Set<string>();
+    const crossOnly = otherLearnings.filter(l => !teamAgentIds.has(l.agent));
+    if (crossOnly.length > 0) {
+      text += `\n\n🔄 INTELLIGENCE CROSS-AGENT (hors équipe) :`;
+      for (const l of crossOnly.slice(0, 10)) {
+        const icon = l.confidence >= 85 ? '💎' : l.confidence >= 65 ? '📏' : '🎯';
+        text += `\n- ${icon} [${l.agent}/${l.category}] ${l.learning} (score: ${l.confidence})`;
+      }
     }
   }
 

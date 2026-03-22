@@ -13,7 +13,7 @@
  */
 
 import { SupabaseClient } from '@supabase/supabase-js';
-import { getActiveLearnings, getAllAgentLearnings, getAgentFeedbacks, formatLearningsForPrompt, type AgentLearning, type AgentFeedback } from './learning';
+import { getActiveLearnings, getAllAgentLearnings, getTeamLearnings, getAgentFeedbacks, formatLearningsForPrompt, type AgentLearning, type AgentFeedback } from './learning';
 import { getAgentAvatar, formatAvatarForPrompt, type AgentAvatarConfig } from './avatar';
 import { getOrgContext, formatOrgContextForPrompt } from '../tenant';
 
@@ -76,6 +76,7 @@ interface AgentContext {
   allAgentLearnings: string[];
   structuredLearnings: AgentLearning[];
   structuredOtherLearnings: AgentLearning[];
+  teamLearnings: AgentLearning[];
   agentFeedbacks: AgentFeedback[];
   topProspects: Array<{ company: string; score: number; temperature: string; status: string }>;
 }
@@ -321,9 +322,10 @@ export async function loadSharedContext(
     .filter((l: string) => l && !l.endsWith('undefined'));
 
   // Structured learnings (hybrid 3-tier: signal/pattern/insight) + feedbacks
-  const [structuredLearnings, structuredOtherLearnings, agentFeedbacks] = await Promise.all([
+  const [structuredLearnings, structuredOtherLearnings, structuredTeamLearnings, agentFeedbacks] = await Promise.all([
     getActiveLearnings(supabase, agentName, undefined, orgId),
     getAllAgentLearnings(supabase, agentName, orgId),
+    getTeamLearnings(supabase, agentName, orgId),
     getAgentFeedbacks(supabase, agentName, undefined, orgId),
   ]);
 
@@ -381,6 +383,7 @@ export async function loadSharedContext(
     allAgentLearnings,
     structuredLearnings,
     structuredOtherLearnings,
+    teamLearnings: structuredTeamLearnings,
     agentFeedbacks,
     topProspects: (topProspectsData || []).map((p: any) => ({
       company: p.company || 'Inconnu',
@@ -498,7 +501,7 @@ FUNNEL DE CONVERSION:
   }
 
   // Structured learnings (new system) take priority
-  const structuredText = formatLearningsForPrompt(ctx.structuredLearnings, ctx.structuredOtherLearnings, ctx.agentFeedbacks);
+  const structuredText = formatLearningsForPrompt(ctx.structuredLearnings, ctx.structuredOtherLearnings, ctx.agentFeedbacks, ctx.teamLearnings);
   if (structuredText) {
     text += structuredText;
   }

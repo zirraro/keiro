@@ -69,6 +69,11 @@ const AGENTS = [
     name: 'Sara',
     prompt: `${BASE_STYLE} Scandinavian woman, early 30s, fair skin with rosy cheeks, soft strawberry-blonde hair in a loose elegant updo with wisps framing face, wearing a tailored dove-grey blazer with white lapel pin, composed and authoritative yet warm expression, grey-blue eyes, small pearl earrings. Cool slate-to-silver background with soft professional lighting.`,
   },
+  {
+    id: 'comptable',
+    name: 'Louis',
+    prompt: `${BASE_STYLE} French man, mid 30s, fair skin, neatly combed dark brown hair parted to the side, clean shaven with subtle stubble shadow, rectangular thin-frame glasses, wearing a navy blue fitted suit jacket over crisp white dress shirt with no tie, composed analytical expression with slight confident smile, light brown hazel eyes. Deep cyan-to-teal volumetric background with studio lighting.`,
+  },
 ];
 
 async function generateAvatar(agent) {

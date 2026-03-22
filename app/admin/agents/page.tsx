@@ -30,6 +30,23 @@ const AGENT_FICHES: AgentFiche[] = [
   { id: 'marketing', name: 'Ami — Marketing', icon: '📊', description: 'Intelligence marketing, analytics, stratégie', gradient: 'from-teal-600 to-green-600', logAgents: ['marketing'], chatId: 'marketing' },
   { id: 'ads', name: 'Félix — Publicité', icon: '🔥', description: 'Meta Ads, Google Ads, funnels, conversion', gradient: 'from-red-600 to-orange-600', logAgents: ['ads'], chatId: 'ads' },
   { id: 'rh', name: 'Sara — RH & Juridique', icon: '⚖️', description: 'Contrats, RGPD, CGV/CGU, conformité', gradient: 'from-slate-600 to-slate-700', logAgents: ['rh'], chatId: 'rh' },
+  { id: 'comptable', name: 'Louis — Comptable', icon: '💰', description: 'Finance, dépenses, prévisions, inventaire, marge', gradient: 'from-cyan-700 to-cyan-900', logAgents: ['comptable'], chatId: 'comptable' },
+];
+
+type ServiceTeam = {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  agents: string[]; // fiche IDs
+};
+
+const SERVICE_TEAMS: ServiceTeam[] = [
+  { id: 'direction', name: 'Direction', icon: '👔', color: 'from-purple-600 to-indigo-700', agents: ['ceo', 'marketing'] },
+  { id: 'commercial', name: 'Commercial', icon: '💼', color: 'from-blue-600 to-cyan-600', agents: ['commercial', 'email', 'ads'] },
+  { id: 'marketing_contenu', name: 'Marketing & Contenu', icon: '🎨', color: 'from-pink-600 to-rose-600', agents: ['contenu_social', 'seo'] },
+  { id: 'client', name: 'Service Client', icon: '🤝', color: 'from-cyan-600 to-blue-600', agents: ['onboarding', 'retention'] },
+  { id: 'support', name: 'Support & Admin', icon: '🏢', color: 'from-slate-600 to-slate-700', agents: ['rh', 'comptable'] },
 ];
 
 type MetricCard = {
@@ -156,6 +173,7 @@ function AdminAgentsContent() {
     { id: 'marketing', name: 'Ami', icon: '📊' },
     { id: 'ads', name: 'Félix', icon: '🔥' },
     { id: 'rh', name: 'Sara', icon: '⚖️' },
+    { id: 'comptable', name: 'Louis', icon: '💰' },
   ];
   const [selectedAgent, setSelectedAgent] = useState('ceo');
   const [agentMessages, setAgentMessages] = useState<Record<string, Array<{ role: 'user' | 'assistant'; content: string }>>>({});
@@ -1639,10 +1657,28 @@ function AdminAgentsContent() {
 
         {/* ===== TAB FICHES AGENTS ===== */}
         {activeTab === 'fiches' && !focusedAgent && (
-          <div className="space-y-6">
-            {/* Agent cards grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {AGENT_FICHES.map(fiche => {
+          <div className="space-y-8">
+            {/* Service teams with agent cards */}
+            {SERVICE_TEAMS.map(team => {
+              const teamFiches = AGENT_FICHES.filter(f => team.agents.includes(f.id));
+              const teamActive = teamFiches.some(f => agentStatuses[f.id]?.status === 'active');
+              const teamActions = teamFiches.reduce((sum, f) => sum + (agentStatuses[f.id]?.count24h || 0), 0);
+              return (
+                <div key={team.id} className="space-y-3">
+                  {/* Team header */}
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${team.color} flex items-center justify-center text-base shadow-sm`}>
+                      {team.icon}
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-neutral-900">{team.name}</h3>
+                      <p className="text-[10px] text-neutral-500">{teamFiches.length} agents &middot; {teamActions} actions/24h</p>
+                    </div>
+                    <div className={`ml-auto w-2 h-2 rounded-full ${teamActive ? 'bg-green-500' : 'bg-neutral-300'}`} />
+                  </div>
+                  {/* Agent cards within team */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pl-2 border-l-2 border-neutral-100">
+              {teamFiches.map(fiche => {
                 const st = agentStatuses[fiche.id];
                 const statusDot = st?.status === 'active' ? 'bg-green-500' : st?.status === 'idle' ? 'bg-yellow-500' : st?.status === 'error' ? 'bg-red-500' : 'bg-neutral-300';
                 const statusLabel = st?.status === 'active' ? 'Actif' : st?.status === 'idle' ? 'Inactif 24h+' : st?.status === 'error' ? 'Erreur' : 'Hors ligne';
@@ -1671,7 +1707,10 @@ function AdminAgentsContent() {
                   </div>
                 );
               })}
-            </div>
+                  </div>
+                </div>
+              );
+            })}
 
             {/* Global KPIs */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

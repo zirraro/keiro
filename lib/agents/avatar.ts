@@ -64,6 +64,7 @@ const DEFAULT_AVATARS: Record<string, Pick<AgentAvatarConfig, 'display_name' | '
   ops: { display_name: 'Jade', title: 'Pilote Publication Auto', gradient_from: '#525252', gradient_to: '#404040', badge_color: '#525252' },
   ads: { display_name: 'Félix', title: 'Expert Publicité & Funnels', gradient_from: '#dc2626', gradient_to: '#ea580c', badge_color: '#dc2626' },
   rh: { display_name: 'Sara', title: 'Spécialiste RH & Juridique', gradient_from: '#475569', gradient_to: '#334155', badge_color: '#475569' },
+  comptable: { display_name: 'Louis', title: 'Expert Comptable & Finance', gradient_from: '#0e7490', gradient_to: '#155e75', badge_color: '#0e7490' },
 };
 
 // ─── Cache ─────────────────────────────────────────────────────
