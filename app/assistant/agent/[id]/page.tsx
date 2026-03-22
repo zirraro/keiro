@@ -510,7 +510,7 @@ export default function AgentWorkspacePage() {
   // ─── Loading state ───────────────────────────────────────
   if (pageLoading) {
     return (
-      <div className="min-h-screen bg-[#0c1a3a] flex items-center justify-center">
+      <div className="fixed inset-0 bg-[#0c1a3a] flex items-center justify-center" style={{ height: '100dvh' }}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-400 mx-auto mb-4" />
           <p className="text-white/60 text-sm">Chargement de l&apos;espace de travail...</p>
@@ -521,63 +521,59 @@ export default function AgentWorkspacePage() {
 
   // ─── Sidebar content (shared between mobile/desktop) ─────
   const sidebarContent = (
-    <div className="flex flex-col h-full">
-      {/* Agent info card */}
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Agent info card — compact */}
       <div
-        className="p-5 flex-shrink-0"
+        className="p-3 flex-shrink-0"
         style={{ background: `linear-gradient(145deg, ${gradientFrom}, ${gradientTo})` }}
       >
-        {/* Avatar */}
-        <div className="w-20 h-20 rounded-2xl overflow-hidden mx-auto mb-3 bg-white/15 flex items-center justify-center shadow-lg">
-          {avatarUrl ? (
-            <img
-              src={avatarUrl}
-              alt={agentDisplayName}
-              className="w-full h-full object-cover"
-              style={{ objectPosition: 'top center' }}
-            />
-          ) : (
-            <span className="text-4xl">{agentIcon}</span>
-          )}
-        </div>
-
-        <h2 className="text-white font-bold text-lg text-center">{agentDisplayName}</h2>
-        <p className="text-white/70 text-xs text-center mt-0.5">{agentTitle}</p>
-
-        <div className="flex items-center justify-center gap-1.5 mt-2">
-          <div className="w-2 h-2 rounded-full bg-green-400" />
-          <span className="text-white/60 text-[11px]">En ligne</span>
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-xl overflow-hidden bg-white/15 flex items-center justify-center shadow-lg flex-shrink-0">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={agentDisplayName} className="w-full h-full object-cover" style={{ objectPosition: 'top center' }} />
+            ) : (
+              <span className="text-2xl">{agentIcon}</span>
+            )}
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-white font-bold text-sm leading-tight truncate">{agentDisplayName}</h2>
+            <p className="text-white/70 text-[11px] truncate">{agentTitle}</p>
+            <div className="flex items-center gap-1 mt-0.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
+              <span className="text-white/60 text-[10px]">En ligne</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Knowledge stats */}
-      <div className="px-4 py-3 border-b border-white/10 flex-shrink-0">
+      {/* Stats row */}
+      <div className="px-3 py-2 border-b border-white/10 flex-shrink-0">
         <div className="grid grid-cols-2 gap-2">
-          <div className="bg-white/5 rounded-lg p-2 text-center">
-            <div className="text-white font-bold text-sm">{messages.length}</div>
-            <div className="text-white/40 text-[10px]">Messages</div>
+          <div className="bg-white/5 rounded-lg px-2 py-1.5 text-center">
+            <div className="text-white font-bold text-xs">{messages.length}</div>
+            <div className="text-white/40 text-[9px]">Messages</div>
           </div>
-          <div className="bg-white/5 rounded-lg p-2 text-center">
-            <div className="text-white font-bold text-sm">{files.length}</div>
-            <div className="text-white/40 text-[10px]">Fichiers</div>
+          <div className="bg-white/5 rounded-lg px-2 py-1.5 text-center">
+            <div className="text-white font-bold text-xs">{files.length}</div>
+            <div className="text-white/40 text-[9px]">Fichiers</div>
           </div>
         </div>
       </div>
 
-      {/* Files section */}
-      <div className="px-4 py-3 flex-1 overflow-y-auto min-h-0">
-        <h3 className="text-white/60 text-[11px] font-semibold uppercase tracking-wider mb-2">
+      {/* Files section — scrollable */}
+      <div className="px-3 py-2 flex-1 overflow-y-auto min-h-0">
+        <h3 className="text-white/60 text-[10px] font-semibold uppercase tracking-wider mb-1.5">
           Fichiers
         </h3>
 
-        {/* Upload zone */}
+        {/* Upload zone — compact */}
         <div
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
           className={`
-            border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all mb-3
+            border-2 border-dashed rounded-lg p-2.5 text-center cursor-pointer transition-all mb-2
             ${dragOver
               ? 'border-purple-400 bg-purple-500/10'
               : 'border-white/15 hover:border-white/30 hover:bg-white/5'
@@ -593,32 +589,32 @@ export default function AgentWorkspacePage() {
           />
           {uploading ? (
             <div className="flex items-center justify-center gap-2">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-400" />
-              <span className="text-white/50 text-xs">Upload...</span>
+              <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-purple-400" />
+              <span className="text-white/50 text-[11px]">Upload...</span>
             </div>
           ) : (
-            <>
-              <svg className="w-6 h-6 text-white/30 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="flex items-center justify-center gap-2">
+              <svg className="w-4 h-4 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
               </svg>
-              <p className="text-white/40 text-[11px]">Glissez ou cliquez pour ajouter</p>
-            </>
+              <p className="text-white/40 text-[11px]">Ajouter un fichier</p>
+            </div>
           )}
         </div>
 
         {/* File list */}
-        <div className="space-y-1.5">
+        <div className="space-y-1">
           {files.map((file) => (
             <div
               key={file.id}
-              className="flex items-center gap-2 bg-white/5 rounded-lg px-2.5 py-2 group hover:bg-white/10 transition-colors"
+              className="flex items-center gap-2 bg-white/5 rounded-lg px-2 py-1.5 group hover:bg-white/10 transition-colors"
             >
-              <svg className="w-4 h-4 text-white/40 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5 text-white/40 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
               <div className="flex-1 min-w-0">
                 <p className="text-white/80 text-[11px] font-medium truncate">{file.name}</p>
-                <p className="text-white/30 text-[10px]">
+                <p className="text-white/30 text-[9px]">
                   {formatFileSize(file.size)} &middot; {formatDate(file.uploaded_at)}
                 </p>
               </div>
@@ -637,34 +633,31 @@ export default function AgentWorkspacePage() {
             </div>
           ))}
           {files.length === 0 && (
-            <p className="text-white/20 text-[11px] text-center py-2">Aucun fichier</p>
+            <p className="text-white/20 text-[10px] text-center py-1">Aucun fichier</p>
           )}
         </div>
       </div>
 
-      {/* Export section */}
-      <div className="px-4 py-3 border-t border-white/10 flex-shrink-0">
-        <h3 className="text-white/60 text-[11px] font-semibold uppercase tracking-wider mb-2">
-          Exporter
-        </h3>
-        <div className="space-y-2">
+      {/* Export section — compact */}
+      <div className="px-3 py-2 border-t border-white/10 flex-shrink-0">
+        <div className="flex gap-2">
           <button
             onClick={() => handleExport('pdf')}
-            className="w-full flex items-center gap-2.5 px-3 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm text-white/80 font-medium transition-all"
+            className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[11px] text-white/80 font-medium transition-all"
           >
-            <svg className="w-4 h-4 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-3.5 h-3.5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            Generer PDF
+            PDF
           </button>
           <button
             onClick={() => handleExport('xlsx')}
-            className="w-full flex items-center gap-2.5 px-3 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm text-white/80 font-medium transition-all"
+            className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[11px] text-white/80 font-medium transition-all"
           >
-            <svg className="w-4 h-4 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-3.5 h-3.5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
             </svg>
-            Generer Excel
+            Excel
           </button>
         </div>
       </div>
@@ -673,7 +666,7 @@ export default function AgentWorkspacePage() {
 
   // ─── Render ──────────────────────────────────────────────
   return (
-    <div className="h-screen bg-[#0c1a3a] flex overflow-hidden">
+    <div className="fixed inset-0 bg-[#0c1a3a] flex overflow-hidden" style={{ height: '100dvh' }}>
       {/* Mobile sidebar overlay */}
       {isMobile && sidebarOpen && (
         <div
@@ -682,25 +675,26 @@ export default function AgentWorkspacePage() {
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar — narrower on desktop, full slide on mobile */}
       <aside
         className={`
           bg-[#0a1628] border-r border-white/10 flex-shrink-0 flex flex-col z-50
           transition-transform duration-300 ease-in-out
           ${isMobile
-            ? `fixed inset-y-0 left-0 w-[280px] ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`
-            : 'w-[280px] relative'
+            ? `fixed inset-y-0 left-0 w-[260px] ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`
+            : 'w-[240px] relative'
           }
         `}
+        style={isMobile ? { height: '100dvh' } : undefined}
       >
         {sidebarContent}
       </aside>
 
       {/* Main chat area */}
-      <main className="flex-1 flex flex-col min-w-0">
-        {/* Header bar */}
+      <main className="flex-1 flex flex-col min-w-0 h-full">
+        {/* Header bar — compact */}
         <div
-          className="flex items-center gap-3 px-4 py-3 flex-shrink-0 border-b border-white/10"
+          className="flex items-center gap-2 px-3 py-2 flex-shrink-0 border-b border-white/10"
           style={{
             background: `linear-gradient(135deg, ${gradientFrom}20, ${gradientTo}20)`,
           }}
@@ -709,7 +703,7 @@ export default function AgentWorkspacePage() {
           {isMobile && (
             <button
               onClick={() => setSidebarOpen(true)}
-              className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors flex-shrink-0"
+              className="w-8 h-8 rounded-lg bg-white/10 active:bg-white/20 flex items-center justify-center transition-colors flex-shrink-0"
               aria-label="Ouvrir le panneau"
             >
               <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -721,7 +715,7 @@ export default function AgentWorkspacePage() {
           {/* Back button */}
           <button
             onClick={() => router.push('/assistant')}
-            className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors flex-shrink-0"
+            className="w-8 h-8 rounded-lg bg-white/10 active:bg-white/20 flex items-center justify-center transition-colors flex-shrink-0"
             aria-label="Retour"
           >
             <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -730,44 +724,46 @@ export default function AgentWorkspacePage() {
           </button>
 
           {/* Agent mini info */}
-          <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0 bg-white/10">
+          <div className="w-7 h-7 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0 bg-white/10">
             {avatarUrl ? (
               <img src={avatarUrl} alt={agentDisplayName} className="w-full h-full object-cover" style={{ objectPosition: 'top center' }} />
             ) : (
-              <span className="text-sm">{agentIcon}</span>
+              <span className="text-xs">{agentIcon}</span>
             )}
           </div>
           <div className="flex-1 min-w-0">
             <h1 className="text-white font-semibold text-sm leading-tight truncate">{agentDisplayName}</h1>
-            <p className="text-white/50 text-[11px] truncate">{agentTitle}</p>
+            <p className="text-white/50 text-[10px] truncate">{agentTitle}</p>
           </div>
 
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            <div className="w-2 h-2 rounded-full bg-green-400" />
-            <span className="text-white/50 text-[10px]">En ligne</span>
-          </div>
+          {!isMobile && (
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
+              <span className="text-white/50 text-[10px]">En ligne</span>
+            </div>
+          )}
         </div>
 
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-4">
+        {/* Messages — fills remaining space */}
+        <div className="flex-1 overflow-y-auto p-3 lg:p-5 space-y-3 min-h-0">
           {/* Empty state */}
           {messages.length === 0 && !isLoading && (
-            <div className="flex flex-col items-center justify-center h-full text-center px-4">
+            <div className="flex flex-col items-center justify-center h-full text-center px-3">
               <div
-                className="w-20 h-20 rounded-2xl flex items-center justify-center mb-4 shadow-lg"
+                className="w-16 h-16 lg:w-20 lg:h-20 rounded-2xl flex items-center justify-center mb-3 shadow-lg"
                 style={{ background: `linear-gradient(135deg, ${gradientFrom}50, ${gradientTo}50)` }}
               >
                 {avatarUrl ? (
                   <img src={avatarUrl} alt={agentDisplayName} className="w-full h-full rounded-2xl object-cover" style={{ objectPosition: 'top center' }} />
                 ) : (
-                  <span className="text-4xl">{agentIcon}</span>
+                  <span className="text-3xl lg:text-4xl">{agentIcon}</span>
                 )}
               </div>
-              <h2 className="text-white font-bold text-lg mb-1">Bienvenue dans l&apos;espace de {agentDisplayName}</h2>
-              <p className="text-white/50 text-sm max-w-md">
+              <h2 className="text-white font-bold text-base lg:text-lg mb-1">Bienvenue chez {agentDisplayName}</h2>
+              <p className="text-white/50 text-xs lg:text-sm max-w-md">
                 {agent?.description || `Posez vos questions et ${agentDisplayName} vous accompagnera.`}
               </p>
-              <div className="mt-6 flex flex-wrap gap-2 justify-center max-w-lg">
+              <div className="mt-4 flex flex-wrap gap-2 justify-center max-w-lg">
                 {[
                   `Que peux-tu faire pour moi ?`,
                   `Analyse mes performances`,
@@ -779,7 +775,7 @@ export default function AgentWorkspacePage() {
                       setInput(suggestion);
                       inputRef.current?.focus();
                     }}
-                    className="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-white/60 text-xs transition-all"
+                    className="px-3 py-1.5 bg-white/5 active:bg-white/15 border border-white/10 rounded-full text-white/60 text-xs transition-all"
                   >
                     {suggestion}
                   </button>
@@ -795,17 +791,17 @@ export default function AgentWorkspacePage() {
               className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               {msg.role === 'assistant' && (
-                <div className="w-7 h-7 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0 mr-2 mt-1 bg-white/10">
+                <div className="w-6 h-6 rounded-md overflow-hidden flex items-center justify-center flex-shrink-0 mr-2 mt-1 bg-white/10">
                   {avatarUrl ? (
                     <img src={avatarUrl} alt={agentDisplayName} className="w-full h-full object-cover" style={{ objectPosition: 'top center' }} />
                   ) : (
-                    <span className="text-xs">{agentIcon}</span>
+                    <span className="text-[10px]">{agentIcon}</span>
                   )}
                 </div>
               )}
-              <div className={`max-w-[75%] lg:max-w-[65%]`}>
+              <div className={`max-w-[85%] lg:max-w-[65%]`}>
                 <div
-                  className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                  className={`rounded-2xl px-3 py-2.5 text-[13px] leading-relaxed ${
                     msg.role === 'user'
                       ? 'bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-br-md'
                       : 'bg-white/[0.07] text-white/90 rounded-bl-md border border-white/5'
@@ -817,7 +813,7 @@ export default function AgentWorkspacePage() {
                     ))
                   )}
                 </div>
-                <p className={`text-[10px] mt-1 ${msg.role === 'user' ? 'text-right text-white/25' : 'text-white/25'}`}>
+                <p className={`text-[9px] mt-0.5 ${msg.role === 'user' ? 'text-right text-white/20' : 'text-white/20'}`}>
                   {new Date(msg.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                 </p>
               </div>
@@ -827,18 +823,18 @@ export default function AgentWorkspacePage() {
           {/* Typing indicator */}
           {isLoading && (
             <div className="flex justify-start">
-              <div className="w-7 h-7 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0 mr-2 mt-1 bg-white/10">
+              <div className="w-6 h-6 rounded-md overflow-hidden flex items-center justify-center flex-shrink-0 mr-2 mt-1 bg-white/10">
                 {avatarUrl ? (
                   <img src={avatarUrl} alt={agentDisplayName} className="w-full h-full object-cover" style={{ objectPosition: 'top center' }} />
                 ) : (
-                  <span className="text-xs">{agentIcon}</span>
+                  <span className="text-[10px]">{agentIcon}</span>
                 )}
               </div>
-              <div className="bg-white/[0.07] rounded-2xl rounded-bl-md px-4 py-3 border border-white/5">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" />
-                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.15s' }} />
-                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.3s' }} />
+              <div className="bg-white/[0.07] rounded-2xl rounded-bl-md px-3 py-2.5 border border-white/5">
+                <div className="flex items-center gap-1">
+                  <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" />
+                  <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.15s' }} />
+                  <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.3s' }} />
                 </div>
               </div>
             </div>
@@ -847,7 +843,7 @@ export default function AgentWorkspacePage() {
           {/* Error banner */}
           {error && (
             <div className="flex justify-center">
-              <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-2 text-red-400 text-xs">
+              <div className="bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-1.5 text-red-400 text-xs">
                 {error}
               </div>
             </div>
@@ -856,13 +852,13 @@ export default function AgentWorkspacePage() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input area */}
-        <div className={`border-t border-white/10 bg-[#0a1628] p-3 lg:p-4 flex-shrink-0 ${isMobile ? 'pb-6' : ''}`}>
-          <div className="flex items-end gap-2 max-w-4xl mx-auto">
+        {/* Input area — safe area padding for mobile bottom nav */}
+        <div className="border-t border-white/10 bg-[#0a1628] p-2 lg:p-3 flex-shrink-0" style={isMobile ? { paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' } : undefined}>
+          <div className="flex items-end gap-1.5 max-w-4xl mx-auto">
             {/* Paperclip file attach */}
             <button
               onClick={() => inlineFileInputRef.current?.click()}
-              className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition-all flex-shrink-0"
+              className="w-9 h-9 rounded-lg bg-white/5 active:bg-white/15 border border-white/10 flex items-center justify-center transition-all flex-shrink-0"
               aria-label="Joindre un fichier"
             >
               <svg className="w-4 h-4 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -886,8 +882,8 @@ export default function AgentWorkspacePage() {
                 onKeyDown={handleKeyDown}
                 placeholder={`Message a ${agentDisplayName}...`}
                 rows={1}
-                className="w-full px-4 py-2.5 border border-white/15 rounded-xl text-sm text-white placeholder-white/35 bg-white/5 focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 outline-none transition-all resize-none"
-                style={{ maxHeight: 120 }}
+                className="w-full px-3 py-2 border border-white/15 rounded-lg text-[13px] text-white placeholder-white/35 bg-white/5 focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 outline-none transition-all resize-none"
+                style={{ maxHeight: 100 }}
                 disabled={isLoading}
               />
             </div>
@@ -896,7 +892,7 @@ export default function AgentWorkspacePage() {
             <button
               onClick={handleSend}
               disabled={isLoading || !input.trim()}
-              className="w-10 h-10 rounded-xl bg-gradient-to-r from-purple-600 to-purple-700 text-white flex items-center justify-center hover:from-purple-500 hover:to-purple-600 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex-shrink-0 shadow-lg shadow-purple-500/20"
+              className="w-9 h-9 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 text-white flex items-center justify-center active:from-purple-500 active:to-purple-600 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex-shrink-0 shadow-lg shadow-purple-500/20"
               aria-label="Envoyer"
             >
               {isLoading ? (

@@ -6,6 +6,7 @@ import { checkCredits, deductCredits, isAdmin as checkIsAdmin } from '@/lib/cred
 import { getAgentAvatar } from '@/lib/agents/avatar';
 import { getClientPrompt } from '@/lib/agents/client-prompts';
 import { formatDossierForPrompt, loadBusinessDossier } from '@/lib/agents/client-context';
+import { enrichAgentContext } from '@/lib/agents/enrich-context';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -139,8 +140,25 @@ export async function POST(request: NextRequest) {
     const avatar = await getAgentAvatar(supabase, agent_id);
     const agentName = avatar.display_name || agent_id;
 
-    // 7. Build system prompt using client-facing prompt
-    const systemPrompt = getClientPrompt(agent_id, dossierContext, agentName);
+    // 6b. Enrich context with sector knowledge + live API data
+    let enrichedContext = '';
+    try {
+      const dossier = await loadBusinessDossier(supabase, user.id);
+      const enrichment = await enrichAgentContext(
+        agent_id,
+        profile.business_type || dossier?.business_type || null,
+        dossier?.google_maps_url || null,
+      );
+      const enrichParts: string[] = [];
+      if (enrichment.sectorContext) enrichParts.push(enrichment.sectorContext);
+      if (enrichment.liveDataContext) enrichParts.push(enrichment.liveDataContext);
+      if (enrichParts.length) enrichedContext = '\n\n=== DONNEES SECTORIELLES & LIVE ===\n' + enrichParts.join('\n\n');
+    } catch (e: any) {
+      console.warn('[ClientChat] Enrichment failed (non-fatal):', e?.message);
+    }
+
+    // 7. Build system prompt using client-facing prompt + enriched context
+    const systemPrompt = getClientPrompt(agent_id, dossierContext, agentName) + enrichedContext;
 
     // 8. Load last 20 messages from client_agent_chats for conversation history
     const { data: chatRow } = await supabase
