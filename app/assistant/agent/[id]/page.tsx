@@ -2,8 +2,16 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import type { ClientAgent } from '@/lib/agents/client-context';
 import { CLIENT_AGENTS } from '@/lib/agents/client-context';
+
+// Lazy-load dashboard components
+const CrmDashboard = dynamic(() => import('./components/CrmDashboard'), { ssr: false });
+const AgentDashboard = dynamic(() => import('./components/AgentDashboard'), { ssr: false });
+
+// Agents that have dashboards
+const AGENTS_WITH_DASHBOARD = ['marketing', 'commercial', 'email', 'content', 'seo', 'ads', 'comptable'];
 
 // ─── Types ─────────────────────────────────────────────────
 
@@ -222,6 +230,12 @@ export default function AgentWorkspacePage() {
   // Sidebar
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Dashboard tab
+  const hasDashboard = AGENTS_WITH_DASHBOARD.includes(agentId);
+  const [activeTab, setActiveTab] = useState<'chat' | 'dashboard'>('chat');
+  const [dashboardData, setDashboardData] = useState<any>(null);
+  const [dashboardLoading, setDashboardLoading] = useState(false);
+
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -299,6 +313,29 @@ export default function AgentWorkspacePage() {
     }
     if (agent) loadAvatar();
   }, [agent, agentId, agentInfo]);
+
+  // ─── Load dashboard data when tab switches ─────────────
+  useEffect(() => {
+    if (activeTab !== 'dashboard' || !hasDashboard || dashboardData) return;
+
+    async function loadDashboard() {
+      setDashboardLoading(true);
+      try {
+        const res = await fetch(`/api/agents/dashboard?agent_id=${agentId}`, {
+          credentials: 'include',
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setDashboardData(data);
+        }
+      } catch {
+        // Silent — dashboard will show empty state
+      } finally {
+        setDashboardLoading(false);
+      }
+    }
+    loadDashboard();
+  }, [activeTab, agentId, hasDashboard, dashboardData]);
 
   // ─── Auto-scroll ─────────────────────────────────────────
   useEffect(() => {
@@ -736,6 +773,32 @@ export default function AgentWorkspacePage() {
             <p className="text-white/50 text-[10px] truncate">{agentTitle}</p>
           </div>
 
+          {/* Tab switcher */}
+          {hasDashboard && (
+            <div className="flex items-center bg-white/5 rounded-lg p-0.5 flex-shrink-0">
+              <button
+                onClick={() => setActiveTab('chat')}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
+                  activeTab === 'chat'
+                    ? 'bg-white/15 text-white'
+                    : 'text-white/50 hover:text-white/70'
+                }`}
+              >
+                Chat
+              </button>
+              <button
+                onClick={() => setActiveTab('dashboard')}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
+                  activeTab === 'dashboard'
+                    ? 'bg-white/15 text-white'
+                    : 'text-white/50 hover:text-white/70'
+                }`}
+              >
+                {agentId === 'commercial' ? 'CRM' : 'Stats'}
+              </button>
+            </div>
+          )}
+
           {!isMobile && (
             <div className="flex items-center gap-1.5 flex-shrink-0">
               <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
@@ -744,8 +807,32 @@ export default function AgentWorkspacePage() {
           )}
         </div>
 
-        {/* Messages — fills remaining space */}
-        <div className="flex-1 overflow-y-auto p-3 lg:p-5 space-y-3 min-h-0">
+        {/* Dashboard view */}
+        {activeTab === 'dashboard' && hasDashboard && (
+          <div className="flex-1 overflow-y-auto min-h-0">
+            {dashboardLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400 mx-auto mb-3" />
+                  <p className="text-white/50 text-sm">Chargement du tableau de bord...</p>
+                </div>
+              </div>
+            ) : agentId === 'commercial' ? (
+              <CrmDashboard data={dashboardData || { prospects: [], activities: [], pipeline: {}, stats: { total: 0, hot: 0, warm: 0, cold: 0, converted: 0, conversionRate: 0 } }} />
+            ) : (
+              <AgentDashboard
+                agentId={agentId}
+                agentName={agentDisplayName}
+                gradientFrom={gradientFrom}
+                gradientTo={gradientTo}
+                data={dashboardData || {}}
+              />
+            )}
+          </div>
+        )}
+
+        {/* Chat view — Messages */}
+        <div className={`flex-1 overflow-y-auto p-3 lg:p-5 space-y-3 min-h-0 ${activeTab !== 'chat' ? 'hidden' : ''}`}>
           {/* Empty state */}
           {messages.length === 0 && !isLoading && (
             <div className="flex flex-col items-center justify-center h-full text-center px-3">
@@ -852,8 +939,8 @@ export default function AgentWorkspacePage() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input area — safe area padding for mobile bottom nav */}
-        <div className="border-t border-white/10 bg-[#0a1628] p-2 lg:p-3 flex-shrink-0" style={isMobile ? { paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' } : undefined}>
+        {/* Input area — safe area padding for mobile bottom nav (hidden on dashboard) */}
+        <div className={`border-t border-white/10 bg-[#0a1628] p-2 lg:p-3 flex-shrink-0 ${activeTab !== 'chat' ? 'hidden' : ''}`} style={isMobile ? { paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' } : undefined}>
           <div className="flex items-end gap-1.5 max-w-4xl mx-auto">
             {/* Paperclip file attach */}
             <button
