@@ -222,9 +222,12 @@ Le profil @keiroai doit donner une impression PREMIUM et COHÉRENTE quand on le 
    - Posts image : Composition créative et VARIÉE (voir styles ci-dessus)
    - Stories : Fond gradient violet, texte blanc, éléments interactifs (sondage, question)
 
-   RÈGLE CRITIQUE : Ne PAS toujours mettre un téléphone/smartphone dans le visuel !
-   Les mockups de téléphone sont OK max 1 post sur 5. Privilégie les scènes de vie,
-   les illustrations conceptuelles, et les compositions graphiques originales.
+   RÈGLE CRITIQUE — ZÉRO TÉLÉPHONE PAR DÉFAUT :
+   INTERDIT de mettre un téléphone, smartphone, écran, mockup, device dans le visuel.
+   Exception : MAX 1 post sur 10, et UNIQUEMENT si le sujet l'exige (ex: démo app).
+   Privilégie TOUJOURS : scènes de vie réelles de commerçants, illustrations conceptuelles,
+   compositions graphiques originales, objets métier (plats, bouquets, vitrines, coiffures),
+   formes abstraites, personnages stylisés, scènes isométriques.
 
 3. ÉLÉMENTS RÉCURRENTS :
    - Logo KeiroAI discret en bas à droite (watermark de marque)
@@ -286,7 +289,7 @@ FORMAT DE RÉPONSE (JSON strict, PAS de markdown)
   "hook": "Les 3-8 premiers mots qui STOPPENT le scroll (pattern interrupt, chiffre choc, ou question provocante)",
   "caption": "Texte AÉRÉ et PERCUTANT avec des \\n pour les sauts de ligne. Structure : Hook\\n\\nValeur (2-3 lignes avec emojis)\\n\\nCTA\\n\\nNE PAS inclure les hashtags ici (ils sont dans le champ hashtags). Instagram max 800 chars, TikTok max 500 chars. Tutoiement. Max 3-5 emojis. DOIT être cohérent avec le visual_description.",
   "hashtags": ["#keiroai", "#tag2", "#tag3", "...max 10 hashtags de niche pertinents"],
-  "visual_description": "Description détaillée du visuel principal : composition, couleurs (palette KeiroAI), style (isométrique/photo réaliste/minimaliste/illustration moderne/3D soft clay/collage/gradient art/flat design), éléments visuels, ambiance. VARIE le style à chaque post. PAS de téléphone/smartphone sauf 1 post sur 5 max. AUCUN texte dans l'image.",
+  "visual_description": "Description détaillée du visuel principal EN ANGLAIS : composition, couleurs (palette KeiroAI), style (isométrique/photo réaliste/minimaliste/illustration moderne/3D soft clay/collage/gradient art/flat design), éléments visuels, ambiance. VARIE le style à chaque post. ZÉRO téléphone/smartphone/écran/device (interdit sauf 1 post sur 10). AUCUN texte dans l'image.",
   "thumbnail_description": "Description EXACTE de ce que la miniature 100x100px montre dans la grille : couleur de fond dominante, forme centrale, contraste. Doit être LISIBLE en petit et DISTINCT des posts adjacents.",
   "slides": [{"text": "Texte de la slide", "visual": "Description visuelle de la slide", "style": "cover|tip|example|stat|quote|recap|cta"}],
   "script": "Script vidéo avec timing : [0-3s] Hook... [3-15s] Contenu... [15-25s] Démo... [25-30s] CTA",

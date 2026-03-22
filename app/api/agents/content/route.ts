@@ -95,11 +95,19 @@ FOR SOCIAL MEDIA THUMBNAILS:
 
 ABSOLUTELY FORBIDDEN:
 - Any text, letters, numbers, writing, signs, watermarks, logos
+- Smartphones, phones, tablets, screens, devices, mockups, UI screenshots (unless explicitly requested)
 - Hex color codes (like #7C3AED) — use color names instead (deep violet, soft purple, amber)
 - Aspect ratios or technical specs (like 9:16, 1:1, 4K) — describe the feeling not the format
 - Cluttered compositions with too many elements
 - Stock photo aesthetic (generic, lifeless)
 - Low contrast or muddy colors
+
+PREFERRED SUBJECTS (vary creatively):
+- Real-life scenes: merchants working, cooking, arranging flowers, styling hair, serving customers
+- Conceptual illustrations: abstract shapes, isometric scenes, geometric compositions
+- Objects: artisan products, food, flowers, storefronts, workshops, tools of the trade
+- People: stylized characters, silhouettes, creative portraits (NOT behind screens)
+- Environments: cozy shops, vibrant markets, modern boutiques, sunny terraces
 
 Output ONLY the optimized English prompt — pure visual description, no technical jargon. Nothing else.`;
 
@@ -2601,7 +2609,12 @@ STRATÉGIE GLOBALE :
 RÈGLES :
 - Plateformes autorisées : instagram, tiktok, linkedin
 - Tu DOIS fournir un champ "visual_description" ULTRA DÉTAILLÉ — c'est un PROMPT SEEDREAM complet EN ANGLAIS pour générer un visuel professionnel
-- Exemple de bon visual_description : "Professional flat design illustration of a smartphone showing a social media marketing dashboard, deep violet gradient background, clean minimalist composition, studio lighting, sharp details, no text no letters no words"
+- INTERDIT : téléphone, smartphone, écran, mockup, device dans le visuel (sauf 1 post sur 10 max)
+- Exemples de BONS visual_description :
+  * "Isometric 3D scene of a cozy French bakery with fresh croissants on display, warm golden lighting, deep violet accents, miniature people walking by, clean render, no text no letters"
+  * "Cinematic photo of a florist arranging a vibrant bouquet in a sunlit workshop, shallow depth of field, warm amber tones with violet shadows, editorial style, no text"
+  * "Bold flat design composition with abstract geometric shapes in violet and amber, a stylized chef hat as central element, asymmetric layout, studio lighting, no text no letters no words"
+  * "3D clay render of a small boutique storefront with pastel colors, soft rounded objects, warm lighting, miniature scene, premium feel, no text"
 - AUCUN texte/lettre/mot dans les visuels (Seedream ne gère pas le texte)
 - Le champ "hashtags" DOIT contenir 5-10 hashtags pertinents dont #keiroai en premier (NE PAS les mettre dans caption)
 - Pense à la MINIATURE dans la grille (carrée, lisible en petit)
