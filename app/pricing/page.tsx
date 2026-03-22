@@ -219,22 +219,22 @@ function PricingPageInner() {
             </div>
             <div className="mb-6 pt-2">
               <h3 className="text-xl sm:text-2xl font-bold mb-2 flex items-center gap-2">
-                <span>🎁</span> {t.pricing.freeTrialTitle || 'Essai gratuit 7 jours'}
+                <span>🎁</span> {t.pricing.freeTrialTitle || 'Essai gratuit 30 jours'}
               </h3>
               <div className="flex items-baseline gap-2 mb-4">
                 <span className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-[#0c1a3a] to-purple-600 bg-clip-text text-transparent">0€</span>
-                <span className="text-neutral-500">/ 7 jours</span>
+                <span className="text-neutral-500">/ 30 jours</span>
               </div>
-              <p className="text-neutral-600 dark:text-neutral-300 text-sm font-medium">{t.pricing.freeTrialSubtitle || 'Teste Keiro sans engagement — aucune carte requise'}</p>
+              <p className="text-neutral-600 dark:text-neutral-300 text-sm font-medium">{t.pricing.freeTrialSubtitle || 'Tous les agents débloqués — carte requise, aucun débit'}</p>
             </div>
 
             <ul className="space-y-4 mb-8">
               {[
-                '<strong>3 visuels IA</strong> professionnels',
-                '<strong>1 vidéo IA</strong> offerte',
+                '<strong>Tous les agents IA</strong> débloqués pendant 30 jours',
+                '<strong>Vidéos IA</strong> + images + audio narration',
                 'Publication Instagram, LinkedIn, TikTok',
                 'Assistant marketing IA inclus',
-                'Aucune carte bancaire requise',
+                'Carte bancaire requise — <strong>0€ débité</strong>',
               ].map((bullet, i) => (
                 <li key={i} className="flex items-start gap-3">
                   <svg className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -249,9 +249,9 @@ function PricingPageInner() {
               href="/generate"
               className="block w-full py-3 px-6 text-center rounded-xl bg-gradient-to-r from-[#0c1a3a] to-purple-700 text-white font-bold hover:shadow-lg transition-all hover:scale-105"
             >
-              {t.pricing.freeTrialCta || '→ Créer mon 1er visuel gratuitement'}
+              {t.pricing.freeTrialCta || '→ Essai gratuit 30 jours'}
             </Link>
-            <p className="text-xs text-center text-neutral-500 mt-2">{t.pricing.freeTrialNote || 'Sans engagement • Sans carte bancaire'}</p>
+            <p className="text-xs text-center text-neutral-500 mt-2">{t.pricing.freeTrialNote || '0€ pendant 30 jours • Carte requise • Annulation à tout moment'}</p>
           </div>
           </FadeUp>
         </div>
@@ -314,9 +314,12 @@ function PricingPageInner() {
         <FadeUp><h3 className="text-2xl font-bold text-center mb-2">{t.pricing.comparisonTitle}</h3>
         <p className="text-center text-neutral-600 mb-8">{t.pricing.subtitle}</p></FadeUp>
 
-        <StaggerContainer className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mb-16">
+        <StaggerContainer className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mb-16">
           {/* Créateur 49€ */}
           <StaggerItem><div id="createur" className="bg-gradient-to-br from-purple-600 to-indigo-600 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col">
+            <div className="absolute -top-3 right-4">
+              <span className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">30 jours gratuits</span>
+            </div>
             <div className="mb-4 pt-2">
               <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
                 <span>💎</span> {t.pricing.planCreateurTitle}
@@ -370,6 +373,55 @@ function PricingPageInner() {
             <p className="text-xs text-center text-purple-200 mt-2">{t.pricing.planCreateurNote}</p>
           </div></StaggerItem>
 
+          {/* Pro 99€ */}
+          <StaggerItem><div id="pro" className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col">
+            <div className="absolute -top-3 right-4">
+              <span className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">30 jours gratuits</span>
+            </div>
+            <div className="mb-4 pt-2">
+              <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
+                <span>🚀</span> {t.pricing.planProTitle}
+              </h3>
+              <div className="flex items-baseline gap-2 mb-2">
+                <span className="text-3xl sm:text-4xl font-bold">{billingPeriod === 'annual' ? '990€' : '99€'}</span>
+                <span className="text-blue-200">{billingPeriod === 'annual' ? t.common.perYear : t.common.perMonth}</span>
+                {billingPeriod === 'annual' && <span className="text-xs text-blue-200 font-semibold">{t.home.priceNotePro}</span>}
+              </div>
+              <p className="text-blue-200 text-sm font-medium" dangerouslySetInnerHTML={{ __html: t.pricing.planProSubtitle }} />
+            </div>
+
+            <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3 mb-4 border border-white/30">
+              <p className="text-xs font-semibold">{t.pricing.planProBullets[1]}</p>
+            </div>
+
+            <ul className="space-y-3 mb-4 text-sm flex-1">
+              {t.pricing.planProBullets.map((bullet: string, i: number) => (
+                <li key={i} className={`flex gap-2 ${i >= 2 ? 'items-start' : ''}`}>
+                  <span className={`${i >= 2 ? 'text-cyan-300 flex-shrink-0' : 'text-blue-300'}`}>{i >= 2 ? '★' : '✓'}</span>
+                  <span dangerouslySetInnerHTML={{ __html: bullet }} />
+                </li>
+              ))}
+            </ul>
+
+            {/* NON INCLUS */}
+            <div className="border-t border-white/20 pt-3 mb-4">
+              <p className="text-xs font-bold text-blue-300 mb-2 uppercase">Non inclus</p>
+              <ul className="space-y-1.5 text-xs">
+                {t.pricing.planProNotIncluded.map((item: string, i: number) => (
+                  <li key={i} className="flex gap-2 text-blue-300/70">
+                    <span className="text-red-400 flex-shrink-0">✗</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <button onClick={() => startCheckout(billingPeriod === 'annual' ? 'pro_annual' : 'pro')} className="block w-full py-3 text-center rounded-xl bg-white text-blue-600 font-bold hover:bg-blue-50 transition-all shadow-lg mt-auto">
+              {billingPeriod === 'annual' ? `${t.pricing.planProTitle} ${t.common.annual.toLowerCase()} (${t.common.annualDiscount})` : t.pricing.planProCta}
+            </button>
+            <p className="text-xs text-center text-blue-200 mt-2">{t.pricing.planProNote}</p>
+          </div></StaggerItem>
+
           {/* Fondateurs Pro 149€ - POPULAIRE */}
           <StaggerItem><div id="fondateurs" className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col animate-glow">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2">
@@ -413,6 +465,9 @@ function PricingPageInner() {
               <span className="bg-[#0c1a3a] text-cyan-200 px-4 py-1 rounded-full text-xs font-bold shadow-lg">
                 PME & Multi-activité
               </span>
+            </div>
+            <div className="absolute -top-3 right-4">
+              <span className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">30 jours gratuits</span>
             </div>
             <div className="mb-4 pt-2">
               <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
@@ -516,7 +571,7 @@ function PricingPageInner() {
             {/* Créateur card */}
             <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl border-2 border-purple-200 p-6">
               <h4 className="text-lg font-bold text-purple-900 mb-1">{"Votre vitrine Instagram, professionnelle et autonome"}</h4>
-              <p className="text-sm text-purple-600 font-semibold mb-4">Créateur 49€/mois</p>
+              <p className="text-sm text-purple-600 font-semibold mb-4">Créateur — 49€/mois après essai</p>
               <ul className="space-y-3 text-sm text-neutral-700">
                 <li><span className="font-semibold text-purple-700">{"C'est comme..."}</span> Un flyer distribué à 5 000 personnes — pro, ciblé et mesurable</li>
                 <li><span className="font-semibold text-purple-700">{"Ça remplace..."}</span> Le neveu qui poste 1x/mois + Canva</li>
@@ -528,7 +583,7 @@ function PricingPageInner() {
             {/* Fondateurs card */}
             <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl border-2 border-amber-300 p-6 shadow-lg">
               <h4 className="text-lg font-bold text-amber-900 mb-1">{"Accès Business complet, prix verrouillé à vie"}</h4>
-              <p className="text-sm text-amber-600 font-semibold mb-4">Fondateurs Pro 149€/mois ⭐</p>
+              <p className="text-sm text-amber-600 font-semibold mb-4">Fondateurs Pro — 149€/mois après essai ⭐</p>
               <ul className="space-y-3 text-sm text-neutral-700">
                 <li><span className="font-semibold text-amber-700">{"C'est comme..."}</span> Avoir un directeur marketing à temps partiel</li>
                 <li><span className="font-semibold text-amber-700">{"Ça remplace..."}</span> Un graphiste (800€) + un CM (1 500€) + stats (100€) + Canva Pro (12€)</li>
@@ -557,15 +612,15 @@ function PricingPageInner() {
               <p className="text-[11px] text-purple-200">AMI (basique) + CLARA</p>
             </div>
             <div className="bg-white/10 rounded-lg p-3 border border-white/10">
-              <p className="text-xs font-bold text-purple-300 mb-1">Créateur — 49€/mois</p>
+              <p className="text-xs font-bold text-purple-300 mb-1">Créateur — 49€/mois après essai</p>
               <p className="text-[11px] text-purple-200">+ LÉNA, JADE</p>
             </div>
             <div className="bg-white/10 rounded-lg p-3 border border-white/10">
-              <p className="text-xs font-bold text-blue-300 mb-1">Pro — 99€/mois</p>
+              <p className="text-xs font-bold text-blue-300 mb-1">Pro — 99€/mois après essai</p>
               <p className="text-[11px] text-purple-200">+ HUGO, FÉLIX, Branding</p>
             </div>
             <div className="bg-white/10 rounded-lg p-3 border border-white/10">
-              <p className="text-xs font-bold text-amber-300 mb-1">Business — 199€/mois</p>
+              <p className="text-xs font-bold text-amber-300 mb-1">Business — 199€/mois après essai</p>
               <p className="text-[11px] text-purple-200">+ OSCAR, SARA, CRM, Multi-comptes</p>
             </div>
           </div>
@@ -616,10 +671,10 @@ function PricingPageInner() {
               <thead>
                 <tr className="border-b">
                   <th className="text-left py-3 px-2">Fonctionnalité</th>
-                  <th className="text-center py-3 px-2">Créateur 49€</th>
-                  <th className="text-center py-3 px-2">Pro 99€</th>
-                  <th className="text-center py-3 px-2 bg-amber-50 font-bold">Fondateurs 149€ ⭐</th>
-                  <th className="text-center py-3 px-2">Business 199€</th>
+                  <th className="text-center py-3 px-2">Créateur</th>
+                  <th className="text-center py-3 px-2">Pro</th>
+                  <th className="text-center py-3 px-2 bg-amber-50 font-bold">Fondateurs ⭐</th>
+                  <th className="text-center py-3 px-2">Business</th>
                   <th className="text-center py-3 px-2 bg-yellow-50 font-bold">Elite 999€</th>
                 </tr>
               </thead>
@@ -809,7 +864,7 @@ function PricingPageInner() {
             <div className="bg-gradient-to-br from-[#0c1a3a]/5 to-purple-50 rounded-2xl border-2 border-[#0c1a3a]/20 p-5 shadow-lg">
               <h4 className="font-bold text-[#0c1a3a] mb-3 flex items-center gap-1">⭐ KeiroAI</h4>
               <div className="space-y-2 text-sm">
-                <p><span className="font-semibold text-[#0c1a3a]">{"Coût :"}</span> à partir de 49€ le 1er mois</p>
+                <p><span className="font-semibold text-[#0c1a3a]">{"Coût :"}</span> 30 jours gratuits, puis à partir de 49€/mois</p>
                 <p><span className="font-semibold text-[#0c1a3a]">{"Résultat :"}</span> 3 à 6 posts pro par semaine, brandés, liés à l{"'"}actu</p>
                 <p><span className="font-semibold text-[#0c1a3a]">{"Clients :"}</span> {"Le calcul est simple ↓"}</p>
               </div>
@@ -893,7 +948,7 @@ function PricingPageInner() {
                   </div>
                   <div>
                     <h4 className="font-bold text-sm">KeiroAI</h4>
-                    <p className="text-lg font-bold text-cyan-400">à partir de 49€<span className="text-xs font-normal text-slate-400">/mois</span></p>
+                    <p className="text-lg font-bold text-cyan-400">30 jours gratuits<span className="text-xs font-normal text-slate-400"> puis 49€/mois</span></p>
                   </div>
                 </div>
                 <ul className="space-y-2 text-sm text-slate-200">
@@ -947,8 +1002,8 @@ function PricingPageInner() {
                     <th className="text-left py-3 px-3 font-semibold text-neutral-700">Fonctionnalité</th>
                     <th className="text-center py-3 px-3 text-neutral-500 font-medium">ChatGPT/Claude Gratuit</th>
                     <th className="text-center py-3 px-3 text-neutral-500 font-medium">ChatGPT/Claude Pro (20€)</th>
-                    <th className="text-center py-3 px-3 font-bold text-purple-700 bg-purple-50 rounded-t-lg">KeiroAI Créateur (49€)</th>
-                    <th className="text-center py-3 px-3 font-bold text-amber-700 bg-amber-50 rounded-t-lg">KeiroAI Fondateurs (149€)</th>
+                    <th className="text-center py-3 px-3 font-bold text-purple-700 bg-purple-50 rounded-t-lg">KeiroAI Créateur</th>
+                    <th className="text-center py-3 px-3 font-bold text-amber-700 bg-amber-50 rounded-t-lg">KeiroAI Fondateurs</th>
                   </tr>
                 </thead>
                 <tbody>
