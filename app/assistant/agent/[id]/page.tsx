@@ -10,8 +10,11 @@ import { CLIENT_AGENTS } from '@/lib/agents/client-context';
 const CrmDashboard = dynamic(() => import('./components/CrmDashboard'), { ssr: false });
 const AgentDashboard = dynamic(() => import('./components/AgentDashboard'), { ssr: false });
 
-// Agents that have dashboards
-const AGENTS_WITH_DASHBOARD = ['marketing', 'commercial', 'email', 'content', 'seo', 'ads', 'comptable'];
+// All 13 agents have dashboards (per brief)
+const AGENTS_WITH_DASHBOARD = [
+  'marketing', 'commercial', 'email', 'content', 'seo', 'ads', 'comptable',
+  'rh', 'onboarding', 'dm_instagram', 'tiktok_comments', 'gmaps', 'chatbot',
+];
 
 // ─── Types ─────────────────────────────────────────────────
 

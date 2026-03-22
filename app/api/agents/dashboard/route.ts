@@ -39,6 +39,7 @@ async function getRecentChats(
 async function getMarketingData(
   supabase: ReturnType<typeof getSupabaseAdmin>,
   userId: string,
+  orgId: string | null,
 ) {
   // Total messages exchanged
   const { data: chatRow } = await supabase
@@ -70,10 +71,88 @@ async function getMarketingData(
     .order('created_at', { ascending: false })
     .limit(5);
 
+  // --- GLOBAL DASHBOARD: cross-agent overview ---
+
+  // Commercial domain: prospects this week, conversions, estimated revenue
+  const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const prospectQuery = supabase
+    .from('crm_prospects')
+    .select('id, status, temperature, created_at');
+  if (orgId) {
+    prospectQuery.eq('org_id', orgId);
+  } else {
+    prospectQuery.eq('user_id', userId);
+  }
+  const { data: allProspects } = await prospectQuery;
+  const prospectList = allProspects ?? [];
+
+  const prospectsThisWeek = prospectList.filter(
+    (p) => p.created_at && p.created_at >= oneWeekAgo,
+  ).length;
+  const clientCount = prospectList.filter(
+    (p) => p.status === 'client' || p.status === 'converted' || p.status === 'won',
+  ).length;
+
+  const commercialDomain = {
+    totalProspects: prospectList.length,
+    prospectsThisWeek,
+    conversions: clientCount,
+    conversionRate:
+      prospectList.length > 0
+        ? Math.round((clientCount / prospectList.length) * 100)
+        : 0,
+  };
+
+  // Visibility domain: logs from content/seo/gmaps/tiktok_comments
+  const visibilityAgents = ['content', 'seo', 'gmaps', 'tiktok_comments'];
+  const { count: visibilityCount } = await supabase
+    .from('agent_logs')
+    .select('id', { count: 'exact', head: true })
+    .in('agent', visibilityAgents)
+    .eq('user_id', userId);
+
+  // Finance domain: logs from ads/comptable
+  const financeAgents = ['ads', 'comptable'];
+  const { count: financeCount } = await supabase
+    .from('agent_logs')
+    .select('id', { count: 'exact', head: true })
+    .in('agent', financeAgents)
+    .eq('user_id', userId);
+
+  // Team activity feed: last 5 logs across ALL agents
+  const { data: teamActivity } = await supabase
+    .from('agent_logs')
+    .select('id, agent, action, result, created_at')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(5);
+
+  // Generate recommendation based on data
+  let recommendation = 'Continuez sur votre lancée !';
+  if (prospectList.length === 0) {
+    recommendation =
+      'Aucun prospect détecté. Activez vos agents Commercial et DM Instagram pour générer des leads.';
+  } else if (clientCount === 0 && prospectList.length > 5) {
+    recommendation =
+      'Vous avez des prospects mais aucune conversion. Vérifiez vos séquences email et relancez les prospects chauds.';
+  } else if ((visibilityCount ?? 0) < 5) {
+    recommendation =
+      'Votre visibilité est faible. Publiez plus de contenu et activez les agents SEO et TikTok.';
+  }
+
+  const globalStats = {
+    commercial: commercialDomain,
+    visibility: { totalActions: visibilityCount ?? 0 },
+    finance: { totalActions: financeCount ?? 0 },
+    teamActivity: teamActivity ?? [],
+    recommendation,
+  };
+
   return {
     totalMessages,
     logsCount: logsCount ?? 0,
     recommendations: recommendations ?? [],
+    globalStats,
   };
 }
 
@@ -338,6 +417,299 @@ async function getComptableData(
   };
 }
 
+async function getRhData(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  userId: string,
+) {
+  const { data: rhLogs } = await supabase
+    .from('agent_logs')
+    .select('id, action, result, created_at')
+    .eq('agent', 'rh')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  const logs = rhLogs ?? [];
+
+  const docsGenerated = logs.filter(
+    (l) =>
+      typeof l.action === 'string' &&
+      (l.action.includes('document') || l.action.includes('contrat')),
+  ).length;
+
+  const questionsAnswered = logs.filter(
+    (l) =>
+      typeof l.action === 'string' &&
+      (l.action.includes('question') || l.action.includes('answer') || l.action.includes('réponse')),
+  ).length;
+
+  const activeContracts = logs.filter(
+    (l) =>
+      typeof l.action === 'string' &&
+      l.action.includes('contrat') &&
+      !l.action.includes('archiv'),
+  ).length;
+
+  return {
+    rhStats: {
+      docsGenerated,
+      questionsAnswered,
+      activeContracts,
+      totalActions: logs.length,
+      recentLogs: logs.slice(0, 10),
+    },
+  };
+}
+
+async function getOnboardingData(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  userId: string,
+) {
+  // Check business dossier completeness
+  const { data: dossier } = await supabase
+    .from('business_dossiers')
+    .select('id, completeness_score, created_at, updated_at')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  const completenessScore =
+    dossier && typeof dossier.completeness_score === 'number'
+      ? dossier.completeness_score
+      : 0;
+
+  // Check which agents the user has chatted with
+  const { data: agentChats } = await supabase
+    .from('client_agent_chats')
+    .select('agent_id')
+    .eq('user_id', userId);
+
+  const chattedAgents = (agentChats ?? []).map(
+    (c) => c.agent_id as string,
+  );
+
+  const allAgents = [
+    'marketing', 'commercial', 'email', 'content', 'seo',
+    'ads', 'comptable', 'rh', 'onboarding', 'dm_instagram',
+    'tiktok_comments', 'gmaps', 'chatbot',
+  ];
+
+  const stepsCompleted = {
+    dossierFilled: completenessScore >= 50,
+    dossierComplete: completenessScore >= 100,
+    firstAgentChat: chattedAgents.length > 0,
+    multipleAgents: chattedAgents.length >= 3,
+    allAgentsDiscovered: chattedAgents.length >= allAgents.length,
+    chattedAgents,
+  };
+
+  return {
+    onboardingStats: {
+      completenessScore,
+      hasDossier: !!dossier,
+      agentsDiscovered: chattedAgents.length,
+      totalAgents: allAgents.length,
+      stepsCompleted,
+    },
+  };
+}
+
+async function getDmInstagramData(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  userId: string,
+  orgId: string | null,
+) {
+  const { data: dmLogs } = await supabase
+    .from('agent_logs')
+    .select('id, action, result, created_at')
+    .eq('agent', 'dm_instagram')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  const logs = dmLogs ?? [];
+
+  const dmsSent = logs.filter(
+    (l) =>
+      typeof l.action === 'string' &&
+      (l.action.includes('send') || l.action.includes('dm') || l.action.includes('message')),
+  ).length;
+
+  const responses = logs.filter(
+    (l) =>
+      typeof l.action === 'string' &&
+      (l.action.includes('response') || l.action.includes('reply') || l.action.includes('réponse')),
+  ).length;
+
+  const rdvGenerated = logs.filter(
+    (l) =>
+      typeof l.action === 'string' &&
+      (l.action.includes('rdv') || l.action.includes('rendez-vous') || l.action.includes('appointment')),
+  ).length;
+
+  // CRM prospects sourced from DM Instagram
+  const prospectQuery = supabase
+    .from('crm_prospects')
+    .select('id', { count: 'exact', head: true })
+    .eq('source', 'dm_instagram');
+  if (orgId) {
+    prospectQuery.eq('org_id', orgId);
+  } else {
+    prospectQuery.eq('user_id', userId);
+  }
+  const { count: dmProspects } = await prospectQuery;
+
+  return {
+    dmStats: {
+      dmsSent,
+      responses,
+      rdvGenerated,
+      responseRate: dmsSent > 0 ? Math.round((responses / dmsSent) * 100) : 0,
+      prospectsGenerated: dmProspects ?? 0,
+      totalActions: logs.length,
+      recentLogs: logs.slice(0, 10),
+    },
+  };
+}
+
+async function getTiktokCommentsData(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  userId: string,
+) {
+  const { data: tiktokLogs } = await supabase
+    .from('agent_logs')
+    .select('id, action, result, created_at')
+    .eq('agent', 'tiktok_comments')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  const logs = tiktokLogs ?? [];
+
+  const commentsPosted = logs.filter(
+    (l) =>
+      typeof l.action === 'string' &&
+      (l.action.includes('comment') || l.action.includes('post') || l.action.includes('reply')),
+  ).length;
+
+  // Extract engagement metrics from results
+  let totalLikes = 0;
+  let totalReplies = 0;
+  for (const log of logs) {
+    if (log.result && typeof log.result === 'object') {
+      const r = log.result as Record<string, unknown>;
+      if (typeof r.likes === 'number') totalLikes += r.likes;
+      if (typeof r.replies === 'number') totalReplies += r.replies;
+    }
+  }
+
+  return {
+    tiktokStats: {
+      commentsPosted,
+      totalLikes,
+      totalReplies,
+      totalActions: logs.length,
+      recentLogs: logs.slice(0, 10),
+    },
+  };
+}
+
+async function getGmapsData(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  userId: string,
+) {
+  const { data: gmapsLogs } = await supabase
+    .from('agent_logs')
+    .select('id, action, result, created_at')
+    .eq('agent', 'gmaps')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  const logs = gmapsLogs ?? [];
+
+  const reviewsAnswered = logs.filter(
+    (l) =>
+      typeof l.action === 'string' &&
+      (l.action.includes('review') || l.action.includes('avis') || l.action.includes('reply')),
+  ).length;
+
+  // Extract rating data from results
+  let latestRating: number | null = null;
+  let totalReviews: number | null = null;
+  for (const log of logs) {
+    if (log.result && typeof log.result === 'object') {
+      const r = log.result as Record<string, unknown>;
+      if (typeof r.rating === 'number' && latestRating === null) {
+        latestRating = r.rating;
+      }
+      if (typeof r.total_reviews === 'number' && totalReviews === null) {
+        totalReviews = r.total_reviews;
+      }
+    }
+  }
+
+  return {
+    gmapsStats: {
+      reviewsAnswered,
+      googleRating: latestRating,
+      totalGoogleReviews: totalReviews,
+      totalActions: logs.length,
+      recentLogs: logs.slice(0, 10),
+    },
+  };
+}
+
+async function getChatbotData(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  userId: string,
+  orgId: string | null,
+) {
+  // Query chatbot_sessions
+  const sessionQuery = supabase
+    .from('chatbot_sessions')
+    .select('id, visitor_email, created_at, updated_at');
+  if (orgId) {
+    sessionQuery.eq('org_id', orgId);
+  } else {
+    sessionQuery.eq('user_id', userId);
+  }
+
+  const { data: sessions } = await sessionQuery;
+  const sessionList = sessions ?? [];
+
+  const totalVisitors = sessionList.length;
+  const leadsWithEmail = sessionList.filter(
+    (s) => typeof s.visitor_email === 'string' && s.visitor_email.length > 0,
+  ).length;
+  const conversionRate =
+    totalVisitors > 0 ? Math.round((leadsWithEmail / totalVisitors) * 100) : 0;
+
+  // Recent sessions
+  const recentSessions = sessionList
+    .sort((a, b) => {
+      const da = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const db = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return db - da;
+    })
+    .slice(0, 10)
+    .map((s) => ({
+      id: s.id,
+      hasEmail: !!(s.visitor_email && s.visitor_email.length > 0),
+      created_at: s.created_at,
+    }));
+
+  return {
+    chatbotStats: {
+      totalVisitors,
+      leadsWithEmail,
+      conversionRate,
+      recentSessions,
+    },
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Main handler
 // ---------------------------------------------------------------------------
@@ -350,6 +722,12 @@ const AGENTS_WITH_DASHBOARDS = new Set([
   'seo',
   'ads',
   'comptable',
+  'rh',
+  'onboarding',
+  'dm_instagram',
+  'tiktok_comments',
+  'gmaps',
+  'chatbot',
 ]);
 
 export async function GET(request: NextRequest) {
@@ -384,7 +762,7 @@ export async function GET(request: NextRequest) {
 
     switch (agentId) {
       case 'marketing':
-        agentData = await getMarketingData(supabase, user.id);
+        agentData = await getMarketingData(supabase, user.id, orgId);
         break;
       case 'commercial':
         agentData = await getCommercialData(supabase, user.id, orgId);
@@ -403,6 +781,24 @@ export async function GET(request: NextRequest) {
         break;
       case 'comptable':
         agentData = await getComptableData(supabase, user.id);
+        break;
+      case 'rh':
+        agentData = await getRhData(supabase, user.id);
+        break;
+      case 'onboarding':
+        agentData = await getOnboardingData(supabase, user.id);
+        break;
+      case 'dm_instagram':
+        agentData = await getDmInstagramData(supabase, user.id, orgId);
+        break;
+      case 'tiktok_comments':
+        agentData = await getTiktokCommentsData(supabase, user.id);
+        break;
+      case 'gmaps':
+        agentData = await getGmapsData(supabase, user.id);
+        break;
+      case 'chatbot':
+        agentData = await getChatbotData(supabase, user.id, orgId);
         break;
     }
 
