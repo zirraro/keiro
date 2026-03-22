@@ -254,6 +254,9 @@ export interface Translations {
     planFreeSubtitle: string;
     planFreeBullets: string[];
     planFreeCta: string;
+    planCreateurTitle: string;
+    planCreateurSubtitle: string;
+    planCreateurBullets: string[];
     planProTitle: string;
     planProSubtitle: string;
     planProBullets: string[];
@@ -266,6 +269,9 @@ export interface Translations {
     planEliteTitle: string;
     planEliteSubtitle: string;
     planEliteBullets: string[];
+    planAgenceTitle: string;
+    planAgenceSubtitle: string;
+    planAgenceBullets: string[];
     // Quiz
     quizTitle: string;
     quizSubtitle: string;
@@ -338,6 +344,7 @@ export interface Translations {
     afterHashtags: string;
     afterImageAlt: string;
     // Pricing CTAs
+    ctaCreateurAnnual: string;
     ctaProAnnual: string;
     ctaUnlockTikTok: string;
     ctaFondateursAnnual: string;
@@ -346,6 +353,7 @@ export interface Translations {
     ctaChooseBusiness: string;
     ctaEliteAnnual: string;
     ctaChooseElite: string;
+    priceNoteCreateur: string;
     priceNotePro: string;
     priceNoteFondateurs: string;
     priceNoteBusiness: string;
@@ -376,7 +384,14 @@ export interface Translations {
     freeTrialSubtitle: string;
     freeTrialCta: string;
     freeTrialNote: string;
+    planCreateurTitle: string;
+    planCreateurSubtitle: string;
+    planCreateurBullets: string[];
+    planCreateurCta: string;
+    planCreateurNote: string;
+    planCreateurNotIncluded: string[];
     planProTitle: string;
+    planProBadge: string;
     planProSubtitle: string;
     planProBullets: string[];
     planProCta: string;

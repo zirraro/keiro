@@ -96,20 +96,21 @@ export interface ClientAgent {
   title: string;
   description: string;
   visibility: AgentVisibility;
-  minPlan: string; // 'gratuit' | 'solo' | 'fondateurs' | 'business'
+  minPlan: string; // 'gratuit' | 'createur' | 'pro' | 'fondateurs' | 'business' | 'elite' | 'agence'
   gradientFrom: string;
   gradientTo: string;
   icon: string; // emoji
 }
 
-// ── Pack structure ──────────────────────────────────────────
-// Pack Starter (gratuit): Ami only (chat) — ALL agents run in background
-// Pack Pro (solo 49EUR): + agents réseaux sociaux (Content, SEO, GMaps, DM, TikTok, Chatbot)
-// Pack Fondateurs (149EUR): ALL agents accessible (chat + actions)
+// ── Pack structure (new pricing mars 2026) ─────────────────
+// Créateur (49EUR): LÉNA, JADE, AMI (basique), CLARA, Vidéos IA, Trend surfing
+// Pro (99EUR): Tout Créateur + HUGO, FÉLIX, Branding mémorisé, LEO, AXEL
+// Business (199EUR) / Fondateurs (149EUR = Business complet): Tout Pro + OSCAR, SARA, CRM, Multi-comptes 1+5, THEO, MAX, LOUIS
+// Agence (sur devis): Tout Business + Illimité + Marque blanche
 // Background: ALL agents optimize KeiroAI invisibly for ALL plans
 
 export const CLIENT_AGENTS: ClientAgent[] = [
-  // ── PACK STARTER (gratuit) ─── Chat: Ami only ───
+  // ── GRATUIT ─── Ami (basique) + Clara ───
   {
     id: 'marketing',
     displayName: 'Ami',
@@ -133,39 +134,17 @@ export const CLIENT_AGENTS: ClientAgent[] = [
     icon: '\u{1F680}',
   },
 
-  // ── PACK PRO (solo 49EUR) ─── Agents reseaux sociaux ───
+  // ── CRÉATEUR (49EUR) ─── LÉNA + JADE ───
   {
     id: 'content',
     displayName: 'Lena',
     title: 'Publication & Contenu',
     description: 'Publie automatiquement sur vos reseaux, genere vos posts, legendes, scripts video et calendrier editorial',
     visibility: 'coming_soon',
-    minPlan: 'solo',
+    minPlan: 'createur',
     gradientFrom: '#8b5cf6',
     gradientTo: '#6d28d9',
     icon: '\u2728',
-  },
-  {
-    id: 'seo',
-    displayName: 'Oscar',
-    title: 'Expert SEO & Visibilite',
-    description: 'Optimise automatiquement votre SEO, redige des articles blog, ameliore votre visibilite Google',
-    visibility: 'coming_soon',
-    minPlan: 'solo',
-    gradientFrom: '#f59e0b',
-    gradientTo: '#d97706',
-    icon: '\u{1F50D}',
-  },
-  {
-    id: 'gmaps',
-    displayName: 'Theo',
-    title: 'Expert Google Maps',
-    description: 'Gere automatiquement votre fiche Google Maps, repond aux avis, booste votre visibilite locale',
-    visibility: 'coming_soon',
-    minPlan: 'solo',
-    gradientFrom: '#22c55e',
-    gradientTo: '#16a34a',
-    icon: '\u{1F4CD}',
   },
   {
     id: 'dm_instagram',
@@ -173,53 +152,20 @@ export const CLIENT_AGENTS: ClientAgent[] = [
     title: 'Experte DM Instagram',
     description: 'Envoie automatiquement des DMs strategiques, engage vos followers, convertit par message prive',
     visibility: 'coming_soon',
-    minPlan: 'solo',
+    minPlan: 'createur',
     gradientFrom: '#e11d48',
     gradientTo: '#be123c',
     icon: '\u{1F4AC}',
   },
-  {
-    id: 'tiktok_comments',
-    displayName: 'Axel',
-    title: 'Expert TikTok Engagement',
-    description: 'Commente automatiquement sur TikTok, engage votre communaute, genere du trafic vers votre profil',
-    visibility: 'coming_soon',
-    minPlan: 'solo',
-    gradientFrom: '#000000',
-    gradientTo: '#1a1a2e',
-    icon: '\u{1F3B5}',
-  },
-  {
-    id: 'chatbot',
-    displayName: 'Max',
-    title: 'Chatbot Site Web',
-    description: 'Accueille automatiquement les visiteurs de votre site, capture les leads, qualifie les prospects 24/7',
-    visibility: 'coming_soon',
-    minPlan: 'solo',
-    gradientFrom: '#7c3aed',
-    gradientTo: '#5b21b6',
-    icon: '\u{1F916}',
-  },
 
-  // ── PACK FONDATEURS (149EUR) ─── Tous les agents ───
-  {
-    id: 'commercial',
-    displayName: 'Leo',
-    title: 'Assistant Prospection',
-    description: 'Prospecte automatiquement, qualifie les leads, relance les prospects et gere votre pipeline CRM',
-    visibility: 'coming_soon',
-    minPlan: 'fondateurs',
-    gradientFrom: '#3b82f6',
-    gradientTo: '#2563eb',
-    icon: '\u{1F91D}',
-  },
+  // ── PRO (99EUR) ─── + HUGO, FÉLIX, LEO, AXEL ───
   {
     id: 'email',
     displayName: 'Hugo',
     title: 'Expert Email Marketing',
     description: 'Lance automatiquement vos sequences email, relance les prospects, envoie des newsletters personnalisees',
     visibility: 'coming_soon',
-    minPlan: 'fondateurs',
+    minPlan: 'pro',
     gradientFrom: '#06b6d4',
     gradientTo: '#0891b2',
     icon: '\u{1F4E7}',
@@ -230,21 +176,45 @@ export const CLIENT_AGENTS: ClientAgent[] = [
     title: 'Expert Publicite',
     description: 'Cree et optimise automatiquement vos campagnes Meta Ads et Google Ads, maximise votre ROAS',
     visibility: 'coming_soon',
-    minPlan: 'fondateurs',
+    minPlan: 'pro',
     gradientFrom: '#ef4444',
     gradientTo: '#dc2626',
     icon: '\u{1F4E2}',
   },
   {
-    id: 'comptable',
-    displayName: 'Louis',
-    title: 'Expert Finance',
-    description: 'Suit automatiquement votre tresorerie, genere des previsions, alerte sur les anomalies financieres',
+    id: 'commercial',
+    displayName: 'Leo',
+    title: 'Assistant Prospection',
+    description: 'Prospecte automatiquement, qualifie les leads, relance les prospects et gere votre pipeline CRM',
     visibility: 'coming_soon',
-    minPlan: 'fondateurs',
-    gradientFrom: '#0e7490',
-    gradientTo: '#155e75',
-    icon: '\u{1F4B0}',
+    minPlan: 'pro',
+    gradientFrom: '#3b82f6',
+    gradientTo: '#2563eb',
+    icon: '\u{1F91D}',
+  },
+  {
+    id: 'tiktok_comments',
+    displayName: 'Axel',
+    title: 'Expert TikTok Engagement',
+    description: 'Commente automatiquement sur TikTok, engage votre communaute, genere du trafic vers votre profil',
+    visibility: 'coming_soon',
+    minPlan: 'pro',
+    gradientFrom: '#000000',
+    gradientTo: '#1a1a2e',
+    icon: '\u{1F3B5}',
+  },
+
+  // ── BUSINESS (199EUR) / FONDATEURS (149EUR) ─── + OSCAR, SARA, THEO, MAX, LOUIS ───
+  {
+    id: 'seo',
+    displayName: 'Oscar',
+    title: 'Expert SEO & Visibilite',
+    description: 'Optimise automatiquement votre SEO, redige des articles blog, ameliore votre visibilite Google',
+    visibility: 'coming_soon',
+    minPlan: 'business',
+    gradientFrom: '#f59e0b',
+    gradientTo: '#d97706',
+    icon: '\u{1F50D}',
   },
   {
     id: 'rh',
@@ -252,10 +222,43 @@ export const CLIENT_AGENTS: ClientAgent[] = [
     title: 'Expert Juridique & RH',
     description: 'Genere automatiquement vos contrats, verifie la conformite RGPD, alerte sur les obligations legales',
     visibility: 'coming_soon',
-    minPlan: 'fondateurs',
+    minPlan: 'business',
     gradientFrom: '#d946ef',
     gradientTo: '#a21caf',
     icon: '\u2696\uFE0F',
+  },
+  {
+    id: 'gmaps',
+    displayName: 'Theo',
+    title: 'Expert Google Maps',
+    description: 'Gere automatiquement votre fiche Google Maps, repond aux avis, booste votre visibilite locale',
+    visibility: 'coming_soon',
+    minPlan: 'business',
+    gradientFrom: '#22c55e',
+    gradientTo: '#16a34a',
+    icon: '\u{1F4CD}',
+  },
+  {
+    id: 'chatbot',
+    displayName: 'Max',
+    title: 'Chatbot Site Web',
+    description: 'Accueille automatiquement les visiteurs de votre site, capture les leads, qualifie les prospects 24/7',
+    visibility: 'coming_soon',
+    minPlan: 'business',
+    gradientFrom: '#7c3aed',
+    gradientTo: '#5b21b6',
+    icon: '\u{1F916}',
+  },
+  {
+    id: 'comptable',
+    displayName: 'Louis',
+    title: 'Expert Finance',
+    description: 'Suit automatiquement votre tresorerie, genere des previsions, alerte sur les anomalies financieres',
+    visibility: 'coming_soon',
+    minPlan: 'business',
+    gradientFrom: '#0e7490',
+    gradientTo: '#155e75',
+    icon: '\u{1F4B0}',
   },
 
   // ── BACKGROUND AGENTS ─── Optimisent KeiroAI pour TOUS les plans ───
@@ -284,7 +287,7 @@ export const CLIENT_AGENTS: ClientAgent[] = [
 ];
 
 export function getVisibleAgents(plan: string, isAdmin = false): ClientAgent[] {
-  const planOrder = ['gratuit', 'sprint', 'solo', 'solo_promo', 'fondateurs', 'standard', 'business', 'elite'];
+  const planOrder = ['gratuit', 'free', 'sprint', 'solo', 'solo_promo', 'createur', 'pro', 'pro_promo', 'fondateurs', 'standard', 'business', 'elite', 'agence'];
   const userPlanIndex = planOrder.indexOf(plan || 'gratuit');
 
   return CLIENT_AGENTS

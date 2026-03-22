@@ -315,39 +315,35 @@ function PricingPageInner() {
         <p className="text-center text-neutral-600 mb-8">{t.pricing.subtitle}</p></FadeUp>
 
         <StaggerContainer className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mb-16">
-          {/* Pro 89€ */}
-          <StaggerItem><div id="pro" className="bg-gradient-to-br from-purple-600 to-indigo-600 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col">
+          {/* Créateur 49€ */}
+          <StaggerItem><div id="createur" className="bg-gradient-to-br from-purple-600 to-indigo-600 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col">
             <div className="mb-4 pt-2">
               <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
-                <span>💎</span> {t.pricing.planProTitle}
+                <span>💎</span> {t.pricing.planCreateurTitle}
               </h3>
               <div className="flex items-baseline gap-2 mb-2">
                 {billingPeriod === 'annual' ? (
                   <>
-                    <span className="text-3xl sm:text-4xl font-bold">890€</span>
+                    <span className="text-3xl sm:text-4xl font-bold">490€</span>
                     <span className="text-purple-200">{t.common.perYear}</span>
-                    <span className="text-xs text-purple-200 font-semibold">soit 74€/mois</span>
+                    <span className="text-xs text-purple-200 font-semibold">{t.home.priceNoteCreateur}</span>
                   </>
                 ) : (
                   <>
-                    <span className="line-through text-purple-300 text-2xl">89€</span>
                     <span className="text-3xl sm:text-4xl font-bold">49€</span>
                     <span className="text-purple-200">{t.common.perMonth}</span>
                   </>
                 )}
               </div>
-              {billingPeriod !== 'annual' && (
-                <p className="text-purple-200 text-xs font-medium">puis 89€/mois</p>
-              )}
-              <p className="text-purple-200 text-sm font-medium mt-1" dangerouslySetInnerHTML={{ __html: t.pricing.planProSubtitle }} />
+              <p className="text-purple-200 text-sm font-medium mt-1" dangerouslySetInnerHTML={{ __html: t.pricing.planCreateurSubtitle }} />
             </div>
 
             <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3 mb-4 border border-white/30">
-              <p className="text-xs font-semibold">{t.pricing.planProBullets[1]}</p>
+              <p className="text-xs font-semibold">{t.pricing.planCreateurBullets[1]}</p>
             </div>
 
             <ul className="space-y-3 mb-4 text-sm flex-1">
-              {t.pricing.planProBullets.map((bullet, i) => (
+              {t.pricing.planCreateurBullets.map((bullet, i) => (
                 <li key={i} className={`flex gap-2 ${i >= 2 ? 'items-start' : ''}`}>
                   <span className={`${i >= 2 ? 'text-cyan-300 flex-shrink-0' : 'text-purple-300'}`}>{i >= 2 ? '★' : '✓'}</span>
                   <span dangerouslySetInnerHTML={{ __html: bullet }} />
@@ -359,7 +355,7 @@ function PricingPageInner() {
             <div className="border-t border-white/20 pt-3 mb-4">
               <p className="text-xs font-bold text-purple-300 mb-2 uppercase">Non inclus</p>
               <ul className="space-y-1.5 text-xs">
-                {t.pricing.planProNotIncluded.map((item, i) => (
+                {t.pricing.planCreateurNotIncluded.map((item, i) => (
                   <li key={i} className="flex gap-2 text-purple-300/70">
                     <span className="text-red-400 flex-shrink-0">✗</span>
                     <span>{item}</span>
@@ -368,10 +364,10 @@ function PricingPageInner() {
               </ul>
             </div>
 
-            <button onClick={() => startCheckout(billingPeriod === 'annual' ? 'pro_annual' : 'pro')} className="block w-full py-3 text-center rounded-xl bg-white text-purple-600 font-bold hover:bg-purple-50 transition-all shadow-lg mt-auto">
-              {billingPeriod === 'annual' ? `${t.pricing.planProTitle} ${t.common.annual.toLowerCase()} (${t.common.annualDiscount})` : t.pricing.planProCta}
+            <button onClick={() => startCheckout(billingPeriod === 'annual' ? 'createur_annual' : 'createur')} className="block w-full py-3 text-center rounded-xl bg-white text-purple-600 font-bold hover:bg-purple-50 transition-all shadow-lg mt-auto">
+              {billingPeriod === 'annual' ? `${t.pricing.planCreateurTitle} ${t.common.annual.toLowerCase()} (${t.common.annualDiscount})` : t.pricing.planCreateurCta}
             </button>
-            <p className="text-xs text-center text-purple-200 mt-2">{t.pricing.planProNote}</p>
+            <p className="text-xs text-center text-purple-200 mt-2">{t.pricing.planCreateurNote}</p>
           </div></StaggerItem>
 
           {/* Fondateurs Pro 149€ - POPULAIRE */}
@@ -388,7 +384,7 @@ function PricingPageInner() {
               <div className="flex items-baseline gap-2 mb-2">
                 <span className="text-3xl sm:text-4xl font-bold">{billingPeriod === 'annual' ? '1 490€' : '149€'}</span>
                 <span className="text-amber-100">{billingPeriod === 'annual' ? t.common.perYear : t.common.perMonth}</span>
-                {billingPeriod === 'annual' && <span className="text-xs text-yellow-200 font-semibold">soit 124€/mois</span>}
+                {billingPeriod === 'annual' && <span className="text-xs text-yellow-200 font-semibold">{t.home.priceNoteFondateurs}</span>}
               </div>
               <p className="text-amber-100 text-sm font-medium" dangerouslySetInnerHTML={{ __html: t.pricing.planFondateursSubtitle }} />
             </div>
@@ -411,11 +407,11 @@ function PricingPageInner() {
             <p className="text-xs text-center text-amber-200 mt-2">{t.pricing.planFondateursNote}</p>
           </div></StaggerItem>
 
-          {/* Business 349€ */}
+          {/* Business 199€ */}
           <StaggerItem><div className="bg-gradient-to-br from-[#0c1a3a] to-[#1e3a5f] rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2">
               <span className="bg-[#0c1a3a] text-cyan-200 px-4 py-1 rounded-full text-xs font-bold shadow-lg">
-                Agences & Teams
+                PME & Multi-activité
               </span>
             </div>
             <div className="mb-4 pt-2">
@@ -423,9 +419,9 @@ function PricingPageInner() {
                 <span>🏢</span> {t.pricing.planBusinessTitle}
               </h3>
               <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-3xl sm:text-4xl font-bold">{billingPeriod === 'annual' ? '3 490€' : '349€'}</span>
+                <span className="text-3xl sm:text-4xl font-bold">{billingPeriod === 'annual' ? '1 990€' : '199€'}</span>
                 <span className="text-cyan-200">{billingPeriod === 'annual' ? t.common.perYear : t.common.perMonth}</span>
-                {billingPeriod === 'annual' && <span className="text-xs text-cyan-200 font-semibold">soit 290€/mois</span>}
+                {billingPeriod === 'annual' && <span className="text-xs text-cyan-200 font-semibold">{t.home.priceNoteBusiness}</span>}
               </div>
               <p className="text-cyan-200 text-sm" dangerouslySetInnerHTML={{ __html: t.pricing.planBusinessSubtitle }} />
             </div>
@@ -448,6 +444,23 @@ function PricingPageInner() {
             <p className="text-center text-cyan-200 text-xs mt-2">{t.pricing.supportCallDesc}</p>
           </div></StaggerItem>
         </StaggerContainer>
+
+        {/* Agence — Sur devis */}
+        <FadeUp>
+        <div className="max-w-2xl mx-auto mb-10">
+          <div className="bg-gradient-to-r from-slate-800 to-slate-700 rounded-2xl p-6 text-white text-center hover:shadow-xl transition-all">
+            <h3 className="text-xl font-bold mb-2 flex items-center justify-center gap-2">
+              <span>🏗️</span> Agence — Sur devis
+            </h3>
+            <p className="text-slate-300 text-sm mb-4">
+              Réseau & distributeur — Crédits illimités, multi-comptes illimités, marque blanche
+            </p>
+            <a href="https://calendly.com/contact-keiroai/demo-keiroai-15-minutes" target="_blank" rel="noopener noreferrer" className="inline-block py-3 px-8 rounded-xl bg-white text-slate-800 font-bold hover:bg-slate-100 transition-all shadow-lg">
+              Nous contacter
+            </a>
+          </div>
+        </div>
+        </FadeUp>
 
 
         {/* Elite - Plan complet */}
@@ -500,27 +513,27 @@ function PricingPageInner() {
         <div className="mb-16">
           <h3 className="text-2xl font-bold text-center mb-8">{"Concrètement, c'est quoi la différence ?"}</h3>
           <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
-            {/* Pro card */}
+            {/* Créateur card */}
             <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl border-2 border-purple-200 p-6">
               <h4 className="text-lg font-bold text-purple-900 mb-1">{"Votre vitrine Instagram, professionnelle et autonome"}</h4>
-              <p className="text-sm text-purple-600 font-semibold mb-4">Pro 89€/mois</p>
+              <p className="text-sm text-purple-600 font-semibold mb-4">Créateur 49€/mois</p>
               <ul className="space-y-3 text-sm text-neutral-700">
                 <li><span className="font-semibold text-purple-700">{"C'est comme..."}</span> Un flyer distribué à 5 000 personnes — pro, ciblé et mesurable</li>
                 <li><span className="font-semibold text-purple-700">{"Ça remplace..."}</span> Le neveu qui poste 1x/mois + Canva</li>
-                <li><span className="font-semibold text-purple-700">{"En concret..."}</span> ~3 posts pro/semaine sur Instagram, avec texte et hashtags</li>
+                <li><span className="font-semibold text-purple-700">{"En concret..."}</span> LÉNA + JADE + AMI basique + vidéos IA + trend surfing</li>
                 <li><span className="font-semibold text-purple-700">{"Ça coûte..."}</span> Le prix de 2 dîners au restaurant</li>
                 <li><span className="font-semibold text-purple-700">{"C'est rentabilisé si..."}</span> 1 vente en plus (boutique) / 5 couverts (resto)</li>
               </ul>
             </div>
             {/* Fondateurs card */}
             <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl border-2 border-amber-300 p-6 shadow-lg">
-              <h4 className="text-lg font-bold text-amber-900 mb-1">{"Votre marque partout, sur Instagram ET TikTok, en 3 formats"}</h4>
+              <h4 className="text-lg font-bold text-amber-900 mb-1">{"Accès Business complet, prix verrouillé à vie"}</h4>
               <p className="text-sm text-amber-600 font-semibold mb-4">Fondateurs Pro 149€/mois ⭐</p>
               <ul className="space-y-3 text-sm text-neutral-700">
                 <li><span className="font-semibold text-amber-700">{"C'est comme..."}</span> Avoir un directeur marketing à temps partiel</li>
                 <li><span className="font-semibold text-amber-700">{"Ça remplace..."}</span> Un graphiste (800€) + un CM (1 500€) + stats (100€) + Canva Pro (12€)</li>
-                <li><span className="font-semibold text-amber-700">{"En concret..."}</span> ~5-6 posts/semaine, VOTRE logo, post + Story + Reel, Instagram ET TikTok</li>
-                <li><span className="font-semibold text-amber-700">{"Ça coûte..."}</span> Le prix de 5 dîners au restaurant</li>
+                <li><span className="font-semibold text-amber-700">{"En concret..."}</span> Tous les agents IA, CRM intégré, multi-comptes 1+5, 2 000 crédits/mois</li>
+                <li><span className="font-semibold text-amber-700">{"Ça coûte..."}</span> 50€ de moins que Business (199€) — prix verrouillé à vie</li>
                 <li><span className="font-semibold text-amber-700">{"C'est rentabilisé si..."}</span> 2 ventes en plus (boutique) / 7 couverts (resto)</li>
               </ul>
             </div>
@@ -538,18 +551,22 @@ function PricingPageInner() {
           <p className="text-purple-200 text-sm mb-4 relative z-10">
             Pas un chatbot. Des agents qui <strong>executent</strong> les taches a votre place, 24/7.
           </p>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 relative z-10">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 relative z-10">
             <div className="bg-white/10 rounded-lg p-3 border border-white/10">
-              <p className="text-xs font-bold text-green-300 mb-1">Pack Starter — Gratuit</p>
-              <p className="text-[11px] text-purple-200">Ami (Coach Marketing) + Clara (Onboarding)</p>
+              <p className="text-xs font-bold text-green-300 mb-1">Gratuit</p>
+              <p className="text-[11px] text-purple-200">AMI (basique) + CLARA</p>
             </div>
             <div className="bg-white/10 rounded-lg p-3 border border-white/10">
-              <p className="text-xs font-bold text-purple-300 mb-1">Pack Pro — 49€/mois</p>
-              <p className="text-[11px] text-purple-200">+ Contenu, SEO, Google Maps, DMs, TikTok, Chatbot</p>
+              <p className="text-xs font-bold text-purple-300 mb-1">Créateur — 49€/mois</p>
+              <p className="text-[11px] text-purple-200">+ LÉNA, JADE</p>
             </div>
             <div className="bg-white/10 rounded-lg p-3 border border-white/10">
-              <p className="text-xs font-bold text-amber-300 mb-1">Pack Complet — 149€/mois</p>
-              <p className="text-[11px] text-purple-200">+ Commercial, Email, Ads, Comptable, RH & Juridique</p>
+              <p className="text-xs font-bold text-blue-300 mb-1">Pro — 99€/mois</p>
+              <p className="text-[11px] text-purple-200">+ HUGO, FÉLIX, Branding</p>
+            </div>
+            <div className="bg-white/10 rounded-lg p-3 border border-white/10">
+              <p className="text-xs font-bold text-amber-300 mb-1">Business — 199€/mois</p>
+              <p className="text-[11px] text-purple-200">+ OSCAR, SARA, CRM, Multi-comptes</p>
             </div>
           </div>
           <p className="text-[10px] text-purple-300 mt-3 relative z-10">
@@ -599,9 +616,10 @@ function PricingPageInner() {
               <thead>
                 <tr className="border-b">
                   <th className="text-left py-3 px-2">Fonctionnalité</th>
-                  <th className="text-center py-3 px-2">Pro 89€</th>
+                  <th className="text-center py-3 px-2">Créateur 49€</th>
+                  <th className="text-center py-3 px-2">Pro 99€</th>
                   <th className="text-center py-3 px-2 bg-amber-50 font-bold">Fondateurs 149€ ⭐</th>
-                  <th className="text-center py-3 px-2">Business 349€</th>
+                  <th className="text-center py-3 px-2">Business 199€</th>
                   <th className="text-center py-3 px-2 bg-yellow-50 font-bold">Elite 999€</th>
                 </tr>
               </thead>
@@ -609,21 +627,80 @@ function PricingPageInner() {
                 {/* Crédits */}
                 <tr className="border-b bg-[#0c1a3a]/5/30">
                   <td className="py-3 px-2 font-medium">Crédits</td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><strong>750/mois</strong></td>
-                  <td className="text-center py-3 px-2"><strong>1 900/mois</strong></td>
+                  <td className="text-center py-3 px-2"><strong>400/mois</strong></td>
+                  <td className="text-center py-3 px-2"><strong>800/mois</strong></td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><strong>2 000/mois</strong></td>
+                  <td className="text-center py-3 px-2"><strong>2 000/mois</strong></td>
                   <td className="text-center py-3 px-2 bg-yellow-50"><strong>6 000/mois</strong></td>
                 </tr>
-                {/* En concret */}
+                {/* LÉNA Contenu & Trend */}
                 <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">En concret</td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><strong>~5-6/sem</strong></td>
-                  <td className="text-center py-3 px-2"><strong>Quotidien</strong></td>
-                  <td className="text-center py-3 px-2 bg-yellow-50"><strong>Illimité</strong></td>
-                </tr>
-                {/* Images IA */}
-                <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">Images IA</td>
+                  <td className="py-3 px-2 font-medium">LÉNA Contenu & Trend</td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
+                </tr>
+                {/* JADE DM Instagram */}
+                <tr className="border-b">
+                  <td className="py-3 px-2 font-medium">JADE DM Instagram</td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
+                </tr>
+                {/* AMI Coach Analytics */}
+                <tr className="border-b">
+                  <td className="py-3 px-2 font-medium">AMI Coach Analytics</td>
+                  <td className="text-center py-3 px-2">Basique</td>
+                  <td className="text-center py-3 px-2"><strong>Complet</strong></td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><strong>Complet</strong></td>
+                  <td className="text-center py-3 px-2"><strong>Complet</strong></td>
+                  <td className="text-center py-3 px-2 bg-yellow-50"><strong>Complet</strong></td>
+                </tr>
+                {/* CLARA Guide Démarrage */}
+                <tr className="border-b">
+                  <td className="py-3 px-2 font-medium">CLARA Guide Démarrage</td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
+                </tr>
+                {/* FÉLIX Publicité */}
+                <tr className="border-b bg-cyan-50/30">
+                  <td className="py-3 px-2 font-medium">FÉLIX Publicité</td>
+                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
+                </tr>
+                {/* HUGO Email Marketing */}
+                <tr className="border-b">
+                  <td className="py-3 px-2 font-medium">HUGO Email Marketing</td>
+                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
+                </tr>
+                {/* OSCAR SEO */}
+                <tr className="border-b bg-cyan-50/30">
+                  <td className="py-3 px-2 font-medium">OSCAR SEO</td>
+                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
+                </tr>
+                {/* SARA RH & Juridique */}
+                <tr className="border-b">
+                  <td className="py-3 px-2 font-medium">SARA RH & Juridique</td>
+                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
                   <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
@@ -632,94 +709,25 @@ function PricingPageInner() {
                 <tr className="border-b">
                   <td className="py-3 px-2 font-medium">Vidéos IA</td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
                 </tr>
-                {/* Audio narration */}
+                {/* Trend surfing */}
                 <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">Audio narration</td>
+                  <td className="py-3 px-2 font-medium">Trend surfing</td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
                 </tr>
-                {/* AMI */}
-                <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">AMI</td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
-                </tr>
-                {/* Instagram Posts */}
-                <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">Instagram Posts</td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
-                </tr>
-                {/* Instagram Stories */}
-                <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">Instagram Stories</td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
-                </tr>
-                {/* LinkedIn */}
-                <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">LinkedIn</td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
-                </tr>
-                {/* TikTok */}
+                {/* Branding mémorisé */}
                 <tr className="border-b bg-cyan-50/30">
-                  <td className="py-3 px-2 font-medium">🎵 TikTok</td>
+                  <td className="py-3 px-2 font-medium">Branding mémorisé</td>
                   <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
-                </tr>
-                {/* Branding */}
-                <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">Branding (logo+couleurs)</td>
-                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
-                </tr>
-                {/* Multi-format */}
-                <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">Multi-format (3 en 1)</td>
-                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
-                </tr>
-                {/* Calendrier */}
-                <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">Calendrier</td>
-                  <td className="text-center py-3 px-2">Manuel</td>
-                  <td className="text-center py-3 px-2 bg-amber-50">Manuel</td>
-                  <td className="text-center py-3 px-2"><strong>Collaboratif</strong></td>
-                  <td className="text-center py-3 px-2 bg-yellow-50"><strong>Collaboratif</strong></td>
-                </tr>
-                {/* Stats Instagram */}
-                <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">Stats Instagram</td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
-                </tr>
-                {/* Stats multi-plateforme */}
-                <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">Stats multi-plateforme</td>
-                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
                   <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
                   <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
@@ -728,39 +736,36 @@ function PricingPageInner() {
                 <tr className="border-b">
                   <td className="py-3 px-2 font-medium">Multi-comptes</td>
                   <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-neutral-400">—</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><strong>1+5</strong></td>
                   <td className="text-center py-3 px-2"><strong>1+5</strong></td>
                   <td className="text-center py-3 px-2 bg-yellow-50"><strong>Illimité</strong></td>
                 </tr>
-                {/* Support */}
+                {/* Marque blanche */}
                 <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">Support</td>
-                  <td className="text-center py-3 px-2">Email 48h</td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><strong>Prioritaire 12h</strong></td>
-                  <td className="text-center py-3 px-2"><strong>Premium 4h</strong></td>
-                  <td className="text-center py-3 px-2 bg-yellow-50"><strong>Dédié</strong></td>
-                </tr>
-                {/* Appel onboarding */}
-                <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">Appel onboarding</td>
+                  <td className="py-3 px-2 font-medium">Marque blanche</td>
                   <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><strong className="text-green-600">✓ Offert</strong></td>
-                  <td className="text-center py-3 px-2"><strong className="text-green-600">✓ Offert</strong></td>
-                  <td className="text-center py-3 px-2 bg-yellow-50"><strong className="text-green-600">✓ Réguliers</strong></td>
-                </tr>
-                {/* Prix verrouillé */}
-                <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">Prix verrouillé à vie</td>
                   <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><strong className="text-green-600">✓ (50 places)</strong></td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-neutral-400">—</span></td>
                   <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
                   <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-neutral-400">—</span></td>
+                </tr>
+                {/* CRM intégré */}
+                <tr className="border-b bg-cyan-50/30">
+                  <td className="py-3 px-2 font-medium">CRM intégré</td>
+                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
+                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
+                  <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
                 </tr>
                 {/* Prix */}
                 <tr>
                   <td className="py-3 px-2 font-medium">{t.pricing.compPrice}</td>
+                  <td className="text-center py-3 px-2 font-bold text-purple-600">49€</td>
+                  <td className="text-center py-3 px-2 font-bold text-blue-600">99€</td>
                   <td className="text-center py-3 px-2 bg-amber-50 font-bold text-amber-600">149€*</td>
-                  <td className="text-center py-3 px-2 font-bold text-[#0c1a3a]">349€</td>
+                  <td className="text-center py-3 px-2 font-bold text-[#0c1a3a]">199€</td>
                   <td className="text-center py-3 px-2 bg-yellow-50 font-bold text-amber-700">999€</td>
                 </tr>
               </tbody>
@@ -942,7 +947,7 @@ function PricingPageInner() {
                     <th className="text-left py-3 px-3 font-semibold text-neutral-700">Fonctionnalité</th>
                     <th className="text-center py-3 px-3 text-neutral-500 font-medium">ChatGPT/Claude Gratuit</th>
                     <th className="text-center py-3 px-3 text-neutral-500 font-medium">ChatGPT/Claude Pro (20€)</th>
-                    <th className="text-center py-3 px-3 font-bold text-purple-700 bg-purple-50 rounded-t-lg">KeiroAI Pro (89€)</th>
+                    <th className="text-center py-3 px-3 font-bold text-purple-700 bg-purple-50 rounded-t-lg">KeiroAI Créateur (49€)</th>
                     <th className="text-center py-3 px-3 font-bold text-amber-700 bg-amber-50 rounded-t-lg">KeiroAI Fondateurs (149€)</th>
                   </tr>
                 </thead>

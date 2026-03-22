@@ -21,41 +21,57 @@ export const CREDIT_COSTS = {
   marketing_chat: 1,
 } as const;
 
-// Crédits par plan (~10% de marge sur usage réaliste)
+// Crédits par plan — Nouvelle grille tarifaire mars 2026
 export const PLAN_CREDITS: Record<string, number> = {
   free: 20,
-  sprint: 120,
-  pro: 250,
-  pro_promo: 250,
-  fondateurs: 750,
-  standard: 950,
-  business: 1900,
+  // New plans
+  createur: 400,
+  pro: 800,
+  fondateurs: 2000,   // = Business complet, 50 places, prix verrouillé à vie
+  business: 2000,
   elite: 6000,
+  agence: 999999,
   admin: 999999,
+  // Deprecated plans (kept for existing user data)
+  sprint: 120,
+  pro_promo: 250,
+  standard: 950,
+  solo: 250,
+  solo_promo: 250,
 };
 
 // Prix des plans
 export const PLAN_PRICES: Record<string, string> = {
   free: '0€',
-  sprint: '4,99€',
-  pro: '89€',
-  pro_promo: '89€',
+  createur: '49€',
+  pro: '99€',
   fondateurs: '149€',
-  standard: '199€',
-  business: '349€',
+  business: '199€',
   elite: '999€',
+  agence: 'Sur devis',
+  // Deprecated
+  sprint: '4,99€',
+  pro_promo: '89€',
+  standard: '199€',
+  solo: '49€',
+  solo_promo: '49€',
 };
 
 // Noms affichés
 export const PLAN_NAMES: Record<string, string> = {
   free: 'Gratuit',
-  sprint: 'Sprint Fondateur',
+  createur: 'Créateur',
   pro: 'Pro',
-  pro_promo: 'Pro (Promo)',
   fondateurs: 'Fondateurs Pro',
-  standard: 'Standard',
   business: 'Business',
   elite: 'Elite',
+  agence: 'Agence',
+  // Deprecated
+  sprint: 'Sprint Fondateur',
+  pro_promo: 'Pro (Promo)',
+  standard: 'Standard',
+  solo: 'Solo',
+  solo_promo: 'Solo (Promo)',
 };
 
 // Labels lisibles pour l'historique
