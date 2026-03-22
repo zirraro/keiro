@@ -86,85 +86,79 @@ function HomeKeiroInner() {
             </FadeUp>
           </div>
           <SlideInRight delay={0.4} className="lg:col-span-5">
-            {/* AMI Preview Card */}
+            {/* Agents IA Team Preview */}
             <FloatUp amplitude={6} duration={5}>
-            <GlowPulse color="rgba(59, 130, 246, 0.12)">
+            <GlowPulse color="rgba(124, 58, 237, 0.12)">
             <div className="rounded-2xl overflow-hidden bg-white/5 backdrop-blur-sm border border-white/10">
-              <div className="p-5 border-b border-white/10 bg-white/5">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-full bg-[#0c1a3a]/20 border border-[#1e3a5f]/30 flex items-center justify-center text-white text-xl">
-                    🤖
+              <div className="p-4 border-b border-white/10 bg-white/5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white text-xl">
+                      🤖
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-white text-sm">{locale === 'fr' ? '15 Agents IA' : '15 AI Agents'}</h3>
+                      <p className="text-[11px] text-[#7fa0c4]/60">{locale === 'fr' ? 'Automatisent votre business 24/7' : 'Automate your business 24/7'}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-white">{t.home.heroCardTitle}</h3>
-                    <p className="text-xs text-[#7fa0c4]/60">{t.home.heroCardSubtitle}</p>
-                  </div>
+                  <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-[10px] font-bold rounded-full">{locale === 'fr' ? 'Actifs' : 'Active'}</span>
                 </div>
               </div>
 
-              <div className="p-5 space-y-3">
-                {/* Stats cards mini */}
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-                    <div className="text-xs text-[#7fa0c4]/70 font-medium">{t.home.heroCardEngagement}</div>
-                    <div className="text-xl font-bold text-white"><CountUp target={347} suffix="%" prefix="+" duration={2.5} /></div>
-                    <div className="text-[10px] text-cyan-400/60 flex items-center gap-1">
-                      <span>↗ +28%</span><span>/</span><span>{locale === 'fr' ? 'semaine' : 'week'}</span>
+              <div className="p-4 space-y-2.5">
+                {/* Agent grid — 5 highlighted agents */}
+                {[
+                  { icon: '🎯', name: 'Ami', role: locale === 'fr' ? 'Publie auto sur vos reseaux' : 'Auto-publishes on social media', color: 'from-pink-500/20 to-rose-500/20' },
+                  { icon: '✨', name: 'Lena', role: locale === 'fr' ? 'Cree contenu + calendrier editorial' : 'Creates content + editorial calendar', color: 'from-purple-500/20 to-violet-500/20' },
+                  { icon: '🔍', name: 'Oscar', role: locale === 'fr' ? 'Optimise votre SEO + articles blog' : 'Optimizes SEO + blog articles', color: 'from-amber-500/20 to-orange-500/20' },
+                  { icon: '🤝', name: 'Leo', role: locale === 'fr' ? 'Prospecte et relance automatiquement' : 'Auto prospecting + follow-ups', color: 'from-blue-500/20 to-cyan-500/20' },
+                  { icon: '📧', name: 'Hugo', role: locale === 'fr' ? 'Envoie vos sequences email' : 'Sends email sequences', color: 'from-green-500/20 to-emerald-500/20' },
+                ].map((agent) => (
+                  <div key={agent.name} className={`flex items-center gap-3 bg-gradient-to-r ${agent.color} rounded-xl px-3 py-2.5 border border-white/5`}>
+                    <span className="text-lg">{agent.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-white font-semibold text-xs">{agent.name}</span>
+                      <p className="text-[10px] text-[#a4bdd4]/60 truncate">{agent.role}</p>
                     </div>
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-400 flex-shrink-0 animate-pulse" />
                   </div>
-                  <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-                    <div className="text-xs text-[#7fa0c4]/70 font-medium">{t.home.heroCardPosts}</div>
-                    <div className="text-xl font-bold text-white"><CountUp target={24} duration={1.5} /></div>
-                    <div className="text-[10px] text-cyan-400/60">{t.home.heroCardCharts}</div>
-                  </div>
-                </div>
+                ))}
 
-                {/* Mini sparkline graph — animated draw */}
-                <div className="bg-white/5 rounded-lg p-2 border border-white/10">
-                  <svg viewBox="0 0 200 40" className="w-full h-8" preserveAspectRatio="none">
-                    <defs>
-                      <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="rgb(34,211,238)" stopOpacity="0.3" />
-                        <stop offset="100%" stopColor="rgb(34,211,238)" stopOpacity="0" />
-                      </linearGradient>
-                      <clipPath id="sparkClip">
-                        <rect x="0" y="0" width="200" height="40">
-                          <animate attributeName="width" from="0" to="200" dur="2.5s" begin="0.5s" fill="freeze" />
-                        </rect>
-                      </clipPath>
-                    </defs>
-                    <g clipPath="url(#sparkClip)">
-                      <path d="M0,35 L25,30 L50,32 L75,25 L100,20 L125,22 L150,12 L175,8 L200,5" fill="none" stroke="rgb(34,211,238)" strokeWidth="2" strokeLinecap="round" />
-                      <path d="M0,35 L25,30 L50,32 L75,25 L100,20 L125,22 L150,12 L175,8 L200,5 L200,40 L0,40 Z" fill="url(#sparkGrad)" />
-                    </g>
-                  </svg>
-                  <div className="flex justify-between text-[9px] text-[#7fa0c4]/50 mt-0.5 px-1">
-                    <span>{locale === 'fr' ? 'Lun' : 'Mon'}</span>
-                    <span>{locale === 'fr' ? 'Mer' : 'Wed'}</span>
-                    <span>{locale === 'fr' ? 'Ven' : 'Fri'}</span>
-                    <span>{locale === 'fr' ? 'Dim' : 'Sun'}</span>
-                  </div>
-                </div>
-
-                {/* Insight preview */}
-                <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-                  <div className="flex items-start gap-2">
-                    <span className="text-lg">🎯</span>
-                    <div className="flex-1">
-                      <p className="text-xs font-semibold text-white mb-1">{t.home.heroCardRecommendation}</p>
-                      <p className="text-[11px] text-[#a4bdd4]/60 leading-relaxed" dangerouslySetInnerHTML={{ __html: t.home.heroCardRecommendationText }} />
+                {/* +10 more agents */}
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {[
+                    { icon: '📍', name: 'Theo' },
+                    { icon: '💬', name: 'Jade' },
+                    { icon: '🎵', name: 'Axel' },
+                    { icon: '🤖', name: 'Max' },
+                    { icon: '📢', name: 'Felix' },
+                    { icon: '💰', name: 'Louis' },
+                    { icon: '⚖️', name: 'Sara' },
+                    { icon: '🚀', name: 'Clara' },
+                    { icon: '🧠', name: 'Noah' },
+                    { icon: '💎', name: 'Theo R.' },
+                  ].map((a) => (
+                    <div key={a.name} className="flex items-center gap-1 bg-white/5 rounded-lg px-2 py-1 border border-white/5">
+                      <span className="text-[10px]">{a.icon}</span>
+                      <span className="text-[10px] text-white/60 font-medium">{a.name}</span>
                     </div>
-                  </div>
+                  ))}
                 </div>
 
-                <div className="bg-[#0c1a3a]/20 border border-[#1e3a5f]/20 rounded-lg p-3 text-center">
-                  <p className="text-xs font-bold text-[#a4bdd4]">✨ {t.home.heroCardInsights}</p>
+                {/* Differentiator */}
+                <div className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-xl p-3 text-center">
+                  <p className="text-[11px] font-semibold text-white/80">
+                    {locale === 'fr' ? '⚡ Pas un chatbot — vos agents executent les taches' : '⚡ Not a chatbot — your agents execute tasks'}
+                  </p>
+                  <p className="text-[9px] text-[#a4bdd4]/50 mt-0.5">
+                    {locale === 'fr' ? 'Publication, prospection, SEO, emails, compta — en automatique' : 'Publishing, prospecting, SEO, emails, accounting — automatically'}
+                  </p>
                 </div>
               </div>
 
               <div className="p-3 bg-white/5 border-t border-white/10 text-center">
-                <a href="/assistant" className="text-xs text-[#7fa0c4] hover:text-[#a4bdd4] font-medium">
-                  {t.home.heroCardDiscover}
+                <a href="/assistant" className="text-xs text-purple-300 hover:text-purple-200 font-medium">
+                  {locale === 'fr' ? 'Decouvrir vos 15 agents IA →' : 'Discover your 15 AI agents →'}
                 </a>
               </div>
             </div>
