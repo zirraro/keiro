@@ -1,27 +1,27 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Votre Equipe IA - Keiro",
-  description: "Discutez avec votre equipe d'agents IA specialises : marketing, contenu, SEO, onboarding et plus. Chaque agent est personnalise pour votre business.",
+  title: "Agents IA - Automatisation Business - Keiro",
+  description: "15 agents IA qui automatisent votre business : publication, SEO, prospection, emails, comptabilite. Pas un chatbot — des agents qui executent.",
   keywords: [
-    "agents IA",
-    "equipe IA",
-    "assistant marketing",
-    "coach contenu",
-    "SEO IA",
-    "chatbot business",
+    "agents IA automatisation",
+    "automatisation business",
+    "publication automatique",
+    "prospection IA",
+    "SEO automatique",
+    "agents marketing",
     "KeiroAI"
   ],
   openGraph: {
-    title: "Votre Equipe IA - Keiro",
-    description: "Discutez avec votre equipe d'agents IA specialises pour votre business.",
+    title: "Agents IA - Automatisation Business - Keiro",
+    description: "15 agents IA qui automatisent votre business : publication, SEO, prospection, emails, comptabilite.",
     url: "https://www.keiroai.com/assistant",
     type: "website"
   },
   twitter: {
     card: "summary_large_image",
-    title: "Votre Equipe IA - Keiro",
-    description: "Votre equipe d'agents IA personnalises"
+    title: "Agents IA - Automatisation Business - Keiro",
+    description: "15 agents IA qui executent vos taches automatiquement"
   },
   alternates: {
     canonical: "/assistant"

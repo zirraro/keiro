@@ -428,6 +428,67 @@ function HomeKeiroInner() {
         <div className="absolute top-0 left-0 right-0 h-24 bg-[#0B1120]" style={{ clipPath: 'ellipse(70% 100% at 50% 0%)' }} />
       </div>
 
+      {/* AGENTS IA — AUTOMATISATION (pas juste du chat) */}
+      <section className="section-light section-divider">
+        <div className="mx-auto max-w-6xl px-6 py-12">
+          <FadeUp>
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-xs font-semibold mb-3">
+              <span className="h-2 w-2 rounded-full bg-purple-500 animate-pulse"></span>
+              15 agents IA specialises
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-bold">{locale === 'fr' ? 'Vos agents IA automatisent votre business' : 'Your AI agents automate your business'}</h2>
+            <p className="mt-2 text-neutral-600 max-w-2xl mx-auto">
+              {locale === 'fr'
+                ? 'Pas un chatbot de plus. Vos agents executent les taches a votre place : publication, prospection, SEO, emails, comptabilite — automatiquement, 24/7.'
+                : 'Not just another chatbot. Your agents execute tasks for you: publishing, prospecting, SEO, emails, accounting — automatically, 24/7.'}
+            </p>
+          </div>
+          </FadeUp>
+
+          <StaggerContainer className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-8" staggerDelay={0.08}>
+            {[
+              { icon: '🎯', name: 'Ami', role: locale === 'fr' ? 'Publication auto' : 'Auto publishing', color: 'from-pink-500 to-rose-500' },
+              { icon: '✨', name: 'Lena', role: locale === 'fr' ? 'Creation contenu' : 'Content creation', color: 'from-purple-500 to-violet-600' },
+              { icon: '🔍', name: 'Oscar', role: locale === 'fr' ? 'SEO & articles' : 'SEO & articles', color: 'from-amber-500 to-orange-500' },
+              { icon: '📬', name: 'Hugo', role: locale === 'fr' ? 'Emails auto' : 'Auto emails', color: 'from-cyan-500 to-blue-500' },
+              { icon: '🤝', name: 'Leo', role: locale === 'fr' ? 'Prospection CRM' : 'CRM prospecting', color: 'from-blue-500 to-indigo-500' },
+              { icon: '📍', name: 'Theo', role: locale === 'fr' ? 'Google Maps' : 'Google Maps', color: 'from-green-500 to-emerald-500' },
+              { icon: '💬', name: 'Jade', role: locale === 'fr' ? 'DMs Instagram' : 'Instagram DMs', color: 'from-rose-500 to-pink-600' },
+              { icon: '🎵', name: 'Axel', role: locale === 'fr' ? 'TikTok engage.' : 'TikTok engage.', color: 'from-gray-700 to-gray-900' },
+              { icon: '🤖', name: 'Max', role: locale === 'fr' ? 'Chatbot 24/7' : 'Chatbot 24/7', color: 'from-violet-500 to-purple-600' },
+              { icon: '📢', name: 'Felix', role: locale === 'fr' ? 'Pub auto' : 'Auto ads', color: 'from-red-500 to-orange-500' },
+            ].map((agent) => (
+              <StaggerItem key={agent.name}>
+                <div className={`bg-gradient-to-br ${agent.color} rounded-xl p-3 text-white text-center hover:scale-105 transition-transform cursor-default`}>
+                  <div className="text-2xl mb-1">{agent.icon}</div>
+                  <div className="font-bold text-sm">{agent.name}</div>
+                  <div className="text-white/70 text-[10px]">{agent.role}</div>
+                </div>
+              </StaggerItem>
+            ))}
+          </StaggerContainer>
+
+          <FadeUp>
+          <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-2xl border border-purple-200 p-6 text-center">
+            <p className="text-sm text-neutral-700 mb-1 font-semibold">
+              {locale === 'fr'
+                ? '🚀 ChatGPT repond a vos questions. Nos agents executent vos taches.'
+                : '🚀 ChatGPT answers questions. Our agents execute tasks.'}
+            </p>
+            <p className="text-xs text-neutral-500 mb-4">
+              {locale === 'fr'
+                ? 'Publication, prospection, SEO, emails, comptabilite — tout tourne en automatique pendant que vous gerez votre business.'
+                : 'Publishing, prospecting, SEO, emails, accounting — everything runs automatically while you manage your business.'}
+            </p>
+            <a href="/assistant" className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all text-sm">
+              {locale === 'fr' ? 'Decouvrir vos agents IA' : 'Discover your AI agents'} →
+            </a>
+          </div>
+          </FadeUp>
+        </div>
+      </section>
+
       {/* GALERIE & POSTS MULTI-PLATEFORME */}
       <section className="mx-auto max-w-6xl px-6 py-12">
         <FadeUp>

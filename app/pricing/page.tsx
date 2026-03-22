@@ -528,6 +528,36 @@ function PricingPageInner() {
         </div>
         </FadeUp>
 
+        {/* Agents IA — Automatisation */}
+        <FadeUp>
+        <div className="bg-gradient-to-br from-[#0c1a3a] to-purple-900 rounded-2xl border border-purple-500/20 p-6 mb-10 text-white relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full -mr-24 -mt-24"></div>
+          <h3 className="text-lg font-bold mb-2 flex items-center gap-2 relative z-10">
+            <span>🤖</span> Agents IA — Automatisation incluse
+          </h3>
+          <p className="text-purple-200 text-sm mb-4 relative z-10">
+            Pas un chatbot. Des agents qui <strong>executent</strong> les taches a votre place, 24/7.
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 relative z-10">
+            <div className="bg-white/10 rounded-lg p-3 border border-white/10">
+              <p className="text-xs font-bold text-green-300 mb-1">Pack Starter — Gratuit</p>
+              <p className="text-[11px] text-purple-200">Ami (Coach Marketing) + Clara (Onboarding)</p>
+            </div>
+            <div className="bg-white/10 rounded-lg p-3 border border-white/10">
+              <p className="text-xs font-bold text-purple-300 mb-1">Pack Pro — 49€/mois</p>
+              <p className="text-[11px] text-purple-200">+ Contenu, SEO, Google Maps, DMs, TikTok, Chatbot</p>
+            </div>
+            <div className="bg-white/10 rounded-lg p-3 border border-white/10">
+              <p className="text-xs font-bold text-amber-300 mb-1">Pack Complet — 149€/mois</p>
+              <p className="text-[11px] text-purple-200">+ Commercial, Email, Ads, Comptable, RH & Juridique</p>
+            </div>
+          </div>
+          <p className="text-[10px] text-purple-300 mt-3 relative z-10">
+            Tous les agents optimisent votre KeiroAI en arriere-plan, quel que soit votre plan.
+          </p>
+        </div>
+        </FadeUp>
+
         {/* Inclus gratuitement */}
         <div className="bg-gradient-to-r from-[#0c1a3a]/5 to-purple-50 dark:from-[#0c1a3a] dark:to-purple-900/20 rounded-2xl border border-purple-200 dark:border-purple-500/20 p-6 mb-10">
           <h3 className="text-lg font-bold text-neutral-900 dark:text-white mb-3 flex items-center gap-2">

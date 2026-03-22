@@ -6,7 +6,7 @@ export const en: Translations = {
     generate: 'Generate',
     studio: 'Editing Studio',
     gallery: 'Gallery & Posts',
-    assistant: 'My Assistant',
+    assistant: 'AI Agents',
     pricing: 'Pricing',
     contact: 'Contact',
     myAccount: 'My Account',

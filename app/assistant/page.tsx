@@ -33,9 +33,9 @@ function useIsMobile(): boolean {
 }
 
 // ─── Coming Soon Mode ──────────────────────────────────────
-// Set to true to show everything as "coming soon"
-// Set to false when agents are ready to go live
-const COMING_SOON_MODE = true;
+// Set to true to show everything as "coming soon" for regular users
+// Admins bypass this automatically
+const COMING_SOON_MODE_DEFAULT = true;
 
 // ─── Main Page ─────────────────────────────────────────────
 
@@ -46,7 +46,11 @@ export default function AssistantPage() {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<Record<string, any> | null>(null);
   const [userPlan, setUserPlan] = useState<string>('gratuit');
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Admin bypasses coming-soon mode
+  const COMING_SOON_MODE = COMING_SOON_MODE_DEFAULT && !isAdmin;
 
   // Agent grid
   const [agents, setAgents] = useState<ClientAgent[]>([]);
@@ -66,6 +70,15 @@ export default function AssistantPage() {
   // View mode
   const [showTeams, setShowTeams] = useState(false);
 
+  // AMI dashboard stats
+  const [amiStats, setAmiStats] = useState<{
+    postsThisWeek: number; avgEngagement: number; avgViews: number;
+    avgLikes: number; topCategory: string; improvement: number; totalPosts: number;
+  } | null>(null);
+  const [amiChartData, setAmiChartData] = useState<{
+    engagementTrend: { date: string; views: number; likes: number; engagement: number }[];
+  } | null>(null);
+
   // ─── Auth check ─────────────────────────────────────────
   useEffect(() => {
     async function init() {
@@ -76,13 +89,14 @@ export default function AssistantPage() {
       if (user) {
         const { data: profileData } = await supabase
           .from('profiles')
-          .select('subscription_plan, company_name, company_description, website, target_audience, main_products, brand_tone, social_goals_monthly, content_themes, competitors, posting_frequency')
+          .select('subscription_plan, company_name, company_description, website, target_audience, main_products, brand_tone, social_goals_monthly, content_themes, competitors, posting_frequency, is_admin')
           .eq('id', user.id)
           .single();
 
         if (profileData) {
           setProfile(profileData);
           setUserPlan(profileData.subscription_plan || 'gratuit');
+          if (profileData.is_admin) setIsAdmin(true);
         }
       }
 
@@ -91,11 +105,35 @@ export default function AssistantPage() {
     init();
   }, []);
 
-  // ─── Load agents based on plan ──────────────────────────
+  // ─── Load agents based on plan (AMI first as star) ──────
   useEffect(() => {
     const visible = getVisibleAgents(userPlan);
+    // Put AMI (marketing) first as the star agent
+    const amiIndex = visible.findIndex(a => a.id === 'marketing');
+    if (amiIndex > 0) {
+      const ami = visible.splice(amiIndex, 1)[0];
+      visible.unshift(ami);
+    }
     setAgents(visible);
   }, [userPlan]);
+
+  // ─── Load AMI dashboard stats ─────────────────────────
+  useEffect(() => {
+    if (!user) return;
+    async function loadStats() {
+      try {
+        const res = await fetch('/api/assistant/stats', { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.ok) {
+            setAmiStats(data.stats);
+            setAmiChartData(data.chartData);
+          }
+        }
+      } catch { /* silent */ }
+    }
+    loadStats();
+  }, [user]);
 
   // ─── Load avatars from admin API ────────────────────────
   useEffect(() => {
@@ -303,13 +341,20 @@ export default function AssistantPage() {
 
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-white font-bold text-2xl lg:text-3xl mb-1">
-            Votre Equipe IA
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-white font-bold text-2xl lg:text-3xl mb-1">
+              Votre Equipe IA
+            </h1>
+            {isAdmin && (
+              <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-[10px] font-bold rounded-full border border-green-500/30">
+                ADMIN
+              </span>
+            )}
+          </div>
           <p className="text-white/50 text-sm">
             {COMING_SOON_MODE
-              ? `${agents.length} agents IA specialises pour votre business`
-              : `${agents.filter(a => a.visibility === 'active').length} agents disponibles pour vous accompagner`
+              ? `${agents.length} agents IA qui automatisent votre business`
+              : `${agents.filter(a => a.visibility === 'active').length} agents actifs — automatisation & intelligence`
             }
           </p>
         </div>
@@ -339,6 +384,112 @@ export default function AssistantPage() {
             Par pack
           </button>
         </div>
+
+        {/* AMI Dashboard — Star Agent */}
+        {!showTeams && agents.length > 0 && agents[0]?.id === 'marketing' && (
+          <div className="mb-6">
+            <div
+              className="rounded-2xl overflow-hidden border border-white/15"
+              style={{ background: 'linear-gradient(145deg, #ec4899, #f43f5e)' }}
+            >
+              <div className="p-4 lg:p-5">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-12 h-12 rounded-xl overflow-hidden bg-white/15 flex items-center justify-center flex-shrink-0">
+                    {avatars['marketing'] ? (
+                      <img src={avatars['marketing']} alt="Ami" className="w-full h-full object-cover" style={{ objectPosition: 'top center' }} />
+                    ) : (
+                      <span className="text-2xl">{agents[0].icon}</span>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <h2 className="text-white font-bold text-lg">Ami — Coach Marketing IA</h2>
+                    <p className="text-white/70 text-xs">Votre agent star : strategie, contenu, publication automatique</p>
+                  </div>
+                  <button
+                    onClick={() => handleSelectAgent(agents[0])}
+                    className="hidden lg:flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 text-white text-sm font-semibold rounded-xl transition-all"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                    Parler a Ami
+                  </button>
+                </div>
+
+                {/* Stats grid */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-3">
+                  <div className="bg-white/10 rounded-xl p-3 border border-white/10">
+                    <div className="text-white/60 text-[10px] font-medium uppercase">Cette semaine</div>
+                    <div className="text-white font-bold text-xl">{amiStats?.postsThisWeek ?? 0}</div>
+                    <div className="text-white/50 text-[10px]">posts publies</div>
+                  </div>
+                  <div className="bg-white/10 rounded-xl p-3 border border-white/10">
+                    <div className="text-white/60 text-[10px] font-medium uppercase">Engagement</div>
+                    <div className="text-white font-bold text-xl">+{amiStats?.avgEngagement ?? 0}</div>
+                    <div className="text-white/50 text-[10px]">vues moyennes</div>
+                  </div>
+                  <div className="bg-white/10 rounded-xl p-3 border border-white/10">
+                    <div className="text-white/60 text-[10px] font-medium uppercase">Progression</div>
+                    <div className={`font-bold text-xl ${(amiStats?.improvement ?? 0) >= 0 ? 'text-green-300' : 'text-red-300'}`}>
+                      {(amiStats?.improvement ?? 0) >= 0 ? '+' : ''}{amiStats?.improvement ?? 0}%
+                    </div>
+                    <div className="text-white/50 text-[10px]">vs semaine prec.</div>
+                  </div>
+                  <div className="bg-white/10 rounded-xl p-3 border border-white/10">
+                    <div className="text-white/60 text-[10px] font-medium uppercase">Top categorie</div>
+                    <div className="text-white font-bold text-sm truncate">{amiStats?.topCategory ?? '—'}</div>
+                    <div className="text-white/50 text-[10px]">{amiStats?.totalPosts ?? 0} posts total</div>
+                  </div>
+                </div>
+
+                {/* Mini sparkline */}
+                {amiChartData?.engagementTrend && amiChartData.engagementTrend.length > 0 && (
+                  <div className="mt-3 bg-white/10 rounded-xl p-3 border border-white/10">
+                    <div className="text-white/60 text-[10px] font-medium uppercase mb-2">Tendance 30 jours</div>
+                    <svg viewBox="0 0 300 50" className="w-full h-10" preserveAspectRatio="none">
+                      <defs>
+                        <linearGradient id="amiGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="rgba(255,255,255,0.3)" />
+                          <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+                        </linearGradient>
+                      </defs>
+                      {(() => {
+                        const data = amiChartData.engagementTrend;
+                        const maxVal = Math.max(...data.map(d => d.engagement), 1);
+                        const points = data.map((d, i) => {
+                          const x = (i / (data.length - 1)) * 300;
+                          const y = 48 - (d.engagement / maxVal) * 44;
+                          return `${x},${y}`;
+                        }).join(' ');
+                        const areaPoints = points + ` 300,50 0,50`;
+                        return (
+                          <>
+                            <polygon points={areaPoints} fill="url(#amiGrad)" />
+                            <polyline points={points} fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          </>
+                        );
+                      })()}
+                    </svg>
+                  </div>
+                )}
+
+                {/* What AMI does — AUTOMATION focus */}
+                <div className="mt-3 grid grid-cols-2 lg:grid-cols-4 gap-2 text-[11px]">
+                  <div className="flex items-center gap-1.5 text-white/70">
+                    <span className="text-white/50">⚡</span> Publication auto
+                  </div>
+                  <div className="flex items-center gap-1.5 text-white/70">
+                    <span className="text-white/50">📊</span> Analyse performance
+                  </div>
+                  <div className="flex items-center gap-1.5 text-white/70">
+                    <span className="text-white/50">📅</span> Calendrier editorial
+                  </div>
+                  <div className="flex items-center gap-1.5 text-white/70">
+                    <span className="text-white/50">🎯</span> Strategie contenu
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {showTeams ? (
           <AgentTeams agents={agents} userPlan={userPlan} />
