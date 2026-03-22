@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import type { ClientAgent } from '@/lib/agents/client-context';
 
 interface AgentTeamPack {
@@ -22,7 +23,7 @@ const TEAM_PACKS: AgentTeamPack[] = [
     gradientFrom: '#10b981',
     gradientTo: '#059669',
     minPlan: 'gratuit',
-    description: 'Publication automatique + onboarding guide',
+    description: 'Strategie marketing + onboarding guide',
   },
   {
     name: 'Pack Pro — Reseaux Sociaux',
@@ -32,7 +33,7 @@ const TEAM_PACKS: AgentTeamPack[] = [
     gradientFrom: '#8b5cf6',
     gradientTo: '#6d28d9',
     minPlan: 'solo',
-    description: 'Automatisation complete de vos reseaux sociaux et visibilite',
+    description: 'Publication auto, SEO, reseaux sociaux et chatbot',
   },
   {
     name: 'Pack Complet — Tout le Business',
@@ -54,7 +55,7 @@ interface ServiceTeam {
 }
 
 const SERVICE_TEAMS: ServiceTeam[] = [
-  { name: 'Marketing & Publication', icon: '📊', agentIds: ['marketing', 'content', 'seo'], color: 'from-pink-500 to-rose-500' },
+  { name: 'Strategie & Contenu', icon: '📊', agentIds: ['marketing', 'content', 'seo'], color: 'from-pink-500 to-rose-500' },
   { name: 'Reseaux Sociaux', icon: '📱', agentIds: ['dm_instagram', 'tiktok_comments', 'gmaps', 'chatbot'], color: 'from-purple-500 to-violet-600' },
   { name: 'Commercial & Acquisition', icon: '💼', agentIds: ['commercial', 'email', 'ads'], color: 'from-blue-500 to-cyan-500' },
   { name: 'Admin & Support', icon: '🏢', agentIds: ['comptable', 'rh', 'onboarding'], color: 'from-amber-500 to-orange-500' },
@@ -70,13 +71,33 @@ interface AgentTeamsProps {
 
 export default function AgentTeams({ agents, userPlan, avatars = {} }: AgentTeamsProps) {
   const userPlanIndex = PLAN_ORDER.indexOf(userPlan || 'gratuit');
+  const [view, setView] = useState<'packs' | 'teams'>('packs');
 
   return (
     <div className="space-y-6">
-      {/* Packs par offre */}
-      <div>
-        <h2 className="text-white font-semibold text-lg mb-3">Packs par offre</h2>
-        <div className="space-y-3">
+      {/* View toggle */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => setView('packs')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            view === 'packs' ? 'bg-purple-600 text-white' : 'bg-white/10 text-white/60 hover:bg-white/20'
+          }`}
+        >
+          Packs par offre
+        </button>
+        <button
+          onClick={() => setView('teams')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            view === 'teams' ? 'bg-purple-600 text-white' : 'bg-white/10 text-white/60 hover:bg-white/20'
+          }`}
+        >
+          Equipes par service
+        </button>
+      </div>
+
+      {view === 'packs' ? (
+        /* ─── Packs par offre ─── */
+        <div className="space-y-4">
           {TEAM_PACKS.map((pack) => {
             const packPlanIndex = PLAN_ORDER.indexOf(pack.minPlan);
             const isUnlocked = userPlanIndex >= packPlanIndex;
@@ -97,7 +118,7 @@ export default function AgentTeams({ agents, userPlan, avatars = {} }: AgentTeam
                 <div
                   className="px-4 py-3 flex items-center justify-between"
                   style={{
-                    background: `linear-gradient(135deg, ${pack.gradientFrom}20, ${pack.gradientTo}20)`,
+                    background: `linear-gradient(135deg, ${pack.gradientFrom}25, ${pack.gradientTo}25)`,
                   }}
                 >
                   <div>
@@ -105,7 +126,7 @@ export default function AgentTeams({ agents, userPlan, avatars = {} }: AgentTeam
                     <p className="text-white/50 text-xs">{pack.planLabel} — {pack.description}</p>
                   </div>
                   {isUnlocked ? (
-                    <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-[10px] font-semibold rounded-full flex-shrink-0">
+                    <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-[10px] font-semibold rounded-full flex-shrink-0 border border-green-500/20">
                       Inclus
                     </span>
                   ) : (
@@ -118,30 +139,42 @@ export default function AgentTeams({ agents, userPlan, avatars = {} }: AgentTeam
                   )}
                 </div>
 
-                {/* Agents in pack */}
-                <div className="px-4 py-3 flex flex-wrap gap-2">
+                {/* Agents in pack — better avatar display */}
+                <div className="px-4 py-3 grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {packAgents.map((agent) => (
                     <div
                       key={agent.id}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm ${
-                        isUnlocked ? 'bg-white/10 text-white/90' : 'bg-white/5 text-white/40'
-                      }`}
-                      style={{ background: isUnlocked ? `linear-gradient(135deg, ${agent.gradientFrom}30, ${agent.gradientTo}30)` : undefined }}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl ${
+                        isUnlocked ? 'bg-gray-900/50 hover:bg-gray-900/70' : 'bg-white/[0.03]'
+                      } transition-colors`}
                     >
-                      {avatars[agent.id] ? (
-                        <img src={avatars[agent.id]!} alt={agent.displayName} className="w-6 h-6 rounded-full object-cover" style={{ objectPosition: 'top center' }} />
-                      ) : (
-                        <span className="text-base">{agent.icon}</span>
-                      )}
-                      <div>
-                        <span className="font-semibold text-xs">{agent.displayName}</span>
-                        <span className="text-white/40 text-[10px] ml-1.5">{agent.title}</span>
+                      {/* Avatar with gradient ring */}
+                      <div
+                        className="w-10 h-10 rounded-full flex-shrink-0"
+                        style={{
+                          background: `linear-gradient(135deg, ${agent.gradientFrom}, ${agent.gradientTo})`,
+                          padding: '2px',
+                        }}
+                      >
+                        <div className="w-full h-full rounded-full overflow-hidden bg-gray-900 flex items-center justify-center">
+                          {avatars[agent.id] ? (
+                            <img
+                              src={avatars[agent.id]!}
+                              alt={agent.displayName}
+                              className="w-full h-full object-cover scale-[1.15]"
+                              style={{ objectPosition: 'center 15%' }}
+                            />
+                          ) : (
+                            <span className="text-base">{agent.icon}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-white font-semibold text-xs">{agent.displayName}</div>
+                        <div className="text-gray-400 text-[10px] truncate">{agent.title}</div>
                       </div>
                     </div>
                   ))}
-                  {packAgents.length === 0 && (
-                    <p className="text-white/30 text-xs">Agents inclus dans ce pack</p>
-                  )}
                 </div>
 
                 {/* Locked overlay */}
@@ -152,12 +185,9 @@ export default function AgentTeams({ agents, userPlan, avatars = {} }: AgentTeam
             );
           })}
         </div>
-      </div>
-
-      {/* Equipes par service */}
-      <div>
-        <h2 className="text-white font-semibold text-lg mb-3">Equipes par service</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+      ) : (
+        /* ─── Equipes par service ─── */
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {SERVICE_TEAMS.map((team) => {
             const teamAgents = team.agentIds
               .map(id => agents.find(a => a.id === id))
@@ -166,35 +196,51 @@ export default function AgentTeams({ agents, userPlan, avatars = {} }: AgentTeam
             return (
               <div
                 key={team.name}
-                className="rounded-2xl border border-white/15 bg-white/5 overflow-hidden"
+                className="rounded-2xl border border-white/15 bg-gray-900/30 overflow-hidden"
               >
-                <div className={`px-4 py-2.5 bg-gradient-to-r ${team.color} bg-opacity-20`} style={{ background: `linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))` }}>
+                <div className={`px-4 py-3 bg-gradient-to-r ${team.color}`}>
                   <h3 className="text-white font-bold text-sm flex items-center gap-2">
                     <span>{team.icon}</span> {team.name}
                   </h3>
                 </div>
-                <div className="p-3 space-y-1.5">
+                <div className="p-3 space-y-2">
                   {teamAgents.map((agent) => (
                     <div
                       key={agent.id}
-                      className="flex items-center gap-3 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] transition-colors"
                     >
-                      {avatars[agent.id] ? (
-                        <img src={avatars[agent.id]!} alt={agent.displayName} className="w-8 h-8 rounded-lg object-cover flex-shrink-0" style={{ objectPosition: 'top center' }} />
-                      ) : (
-                        <div
-                          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                          style={{ background: `linear-gradient(135deg, ${agent.gradientFrom}, ${agent.gradientTo})` }}
-                        >
-                          <span className="text-sm">{agent.icon}</span>
+                      {/* Avatar — circular with gradient ring */}
+                      <div
+                        className="w-11 h-11 rounded-full flex-shrink-0"
+                        style={{
+                          background: `linear-gradient(135deg, ${agent.gradientFrom}, ${agent.gradientTo})`,
+                          padding: '2px',
+                        }}
+                      >
+                        <div className="w-full h-full rounded-full overflow-hidden bg-gray-900 flex items-center justify-center">
+                          {avatars[agent.id] ? (
+                            <img
+                              src={avatars[agent.id]!}
+                              alt={agent.displayName}
+                              className="w-full h-full object-cover scale-[1.15]"
+                              style={{ objectPosition: 'center 15%' }}
+                            />
+                          ) : (
+                            <div
+                              className="w-full h-full flex items-center justify-center"
+                              style={{ background: `linear-gradient(135deg, ${agent.gradientFrom}, ${agent.gradientTo})` }}
+                            >
+                              <span className="text-lg">{agent.icon}</span>
+                            </div>
+                          )}
                         </div>
-                      )}
+                      </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-white font-semibold text-xs">{agent.displayName}</div>
-                        <div className="text-white/40 text-[10px] truncate">{agent.description}</div>
+                        <div className="text-gray-400 text-[10px] truncate">{agent.description}</div>
                       </div>
                       <div
-                        className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                        className="w-2 h-2 rounded-full flex-shrink-0"
                         style={{ background: agent.visibility === 'active' ? '#22c55e' : '#6366f1' }}
                       />
                     </div>
@@ -204,15 +250,15 @@ export default function AgentTeams({ agents, userPlan, avatars = {} }: AgentTeam
             );
           })}
         </div>
-      </div>
+      )}
 
       {/* Background agents note */}
-      <div className="rounded-xl bg-white/5 border border-white/10 p-4">
+      <div className="rounded-xl bg-gray-900/30 border border-white/10 p-4">
         <div className="flex items-start gap-2">
           <span className="text-sm">🧠</span>
           <div>
             <p className="text-white/70 text-xs font-semibold">Agents en arriere-plan</p>
-            <p className="text-white/40 text-[10px] mt-0.5">
+            <p className="text-gray-500 text-[10px] mt-0.5">
               Noah (Orchestrateur IA) et Theo (Retention) optimisent invisiblement KeiroAI pour tous les plans, sans action de votre part.
             </p>
           </div>

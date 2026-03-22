@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { getVisibleAgents, type ClientAgent } from '@/lib/agents/client-context';
 import AgentCard from './components/AgentCard';
@@ -41,6 +42,7 @@ const COMING_SOON_MODE_DEFAULT = true;
 
 export default function AssistantPage() {
   const isMobile = useIsMobile();
+  const router = useRouter();
 
   // Auth & profile
   const [user, setUser] = useState<any>(null);
@@ -78,6 +80,9 @@ export default function AssistantPage() {
   const [amiChartData, setAmiChartData] = useState<{
     engagementTrend: { date: string; views: number; likes: number; engagement: number }[];
   } | null>(null);
+
+  // Publishing streak
+  const [streak, setStreak] = useState(0);
 
   // ─── Auth check ─────────────────────────────────────────
   useEffect(() => {
@@ -133,6 +138,21 @@ export default function AssistantPage() {
       } catch { /* silent */ }
     }
     loadStats();
+  }, [user]);
+
+  // ─── Load publishing streak ──────────────────────────
+  useEffect(() => {
+    if (!user) return;
+    async function loadStreak() {
+      try {
+        const res = await fetch('/api/assistant/streak', { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.ok) setStreak(data.streak || 0);
+        }
+      } catch { /* silent */ }
+    }
+    loadStreak();
   }, [user]);
 
   // ─── Load avatars from admin API ────────────────────────
@@ -194,10 +214,9 @@ export default function AssistantPage() {
       return;
     }
     if (agent.visibility === 'coming_soon') return;
-    setSelectedAgent(agent);
-    setMessages([]);
-    setHistoryLoaded(null);
-  }, []);
+    // Navigate to dedicated agent workspace
+    router.push(`/assistant/agent/${agent.id}`);
+  }, [COMING_SOON_MODE, router]);
 
   const handleBack = useCallback(() => {
     setSelectedAgent(null);
@@ -357,6 +376,15 @@ export default function AssistantPage() {
               : `${agents.filter(a => a.visibility === 'active').length} agents actifs — automatisation & intelligence`
             }
           </p>
+
+          {/* Publishing streak — Duolingo-style */}
+          {streak > 0 && !COMING_SOON_MODE && (
+            <div className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-orange-500/20 to-amber-500/20 border border-orange-500/30 rounded-full">
+              <span className="text-base">🔥</span>
+              <span className="text-orange-300 text-xs font-bold">{streak} jour{streak > 1 ? 's' : ''} consecutif{streak > 1 ? 's' : ''}</span>
+              {streak >= 7 && <span className="text-amber-400 text-[10px]">Serie en feu!</span>}
+            </div>
+          )}
         </div>
 
         {/* Coming soon banner */}
@@ -402,8 +430,8 @@ export default function AssistantPage() {
                     )}
                   </div>
                   <div className="flex-1">
-                    <h2 className="text-white font-bold text-lg">Ami — Coach Marketing IA</h2>
-                    <p className="text-white/70 text-xs">Votre agent star : strategie, contenu, publication automatique</p>
+                    <h2 className="text-white font-bold text-lg">Ami — Directrice Strategie Marketing</h2>
+                    <p className="text-white/70 text-xs">Analyse, recommande et optimise — coordonne vos agents operationnels</p>
                   </div>
                   <button
                     onClick={() => handleSelectAgent(agents[0])}
@@ -474,16 +502,16 @@ export default function AssistantPage() {
                 {/* What AMI does — AUTOMATION focus */}
                 <div className="mt-3 grid grid-cols-2 lg:grid-cols-4 gap-2 text-[11px]">
                   <div className="flex items-center gap-1.5 text-white/70">
-                    <span className="text-white/50">⚡</span> Publication auto
-                  </div>
-                  <div className="flex items-center gap-1.5 text-white/70">
                     <span className="text-white/50">📊</span> Analyse performance
                   </div>
                   <div className="flex items-center gap-1.5 text-white/70">
-                    <span className="text-white/50">📅</span> Calendrier editorial
+                    <span className="text-white/50">🎯</span> Recommandations
                   </div>
                   <div className="flex items-center gap-1.5 text-white/70">
-                    <span className="text-white/50">🎯</span> Strategie contenu
+                    <span className="text-white/50">⚡</span> Optimisation campagnes
+                  </div>
+                  <div className="flex items-center gap-1.5 text-white/70">
+                    <span className="text-white/50">🧠</span> Coordination agents
                   </div>
                 </div>
               </div>

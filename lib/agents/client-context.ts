@@ -113,8 +113,8 @@ export const CLIENT_AGENTS: ClientAgent[] = [
   {
     id: 'marketing',
     displayName: 'Ami',
-    title: 'Coach Marketing',
-    description: 'Publie automatiquement sur vos reseaux, analyse les performances, optimise votre strategie marketing',
+    title: 'Directrice Strategie Marketing',
+    description: 'Analyse vos performances, recommande des strategies, optimise vos campagnes et coordonne les agents operationnels',
     visibility: 'coming_soon', // coming_soon until launch
     minPlan: 'gratuit',
     gradientFrom: '#ec4899',
@@ -137,8 +137,8 @@ export const CLIENT_AGENTS: ClientAgent[] = [
   {
     id: 'content',
     displayName: 'Lena',
-    title: 'Creatrice de Contenu',
-    description: 'Genere et planifie automatiquement vos posts, legendes, scripts video et calendrier editorial',
+    title: 'Publication & Contenu',
+    description: 'Publie automatiquement sur vos reseaux, genere vos posts, legendes, scripts video et calendrier editorial',
     visibility: 'coming_soon',
     minPlan: 'solo',
     gradientFrom: '#8b5cf6',

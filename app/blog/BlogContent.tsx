@@ -17,71 +17,109 @@ interface BlogPost {
 
 type Tab = 'articles' | 'masterclass';
 
-const MASTERCLASS_MODULES = [
+// Curated YouTube videos — selected for small business owners
+// Replace youtubeId with real IDs when ready
+const CURATED_VIDEOS = [
   {
-    id: 'mc-1',
-    title: 'Automatiser sa publication Instagram & TikTok',
-    description: 'Apprenez a configurer vos agents IA pour publier automatiquement du contenu professionnel sur vos reseaux sociaux, sans y passer des heures.',
-    icon: '📱',
-    duration: '45 min',
+    id: 'v-1',
+    title: 'Comment EXPLOSER sur Instagram en 2026',
+    description: 'Strategies completes pour faire exploser votre compte Instagram : algorithme, contenus viraux et engagement.',
+    youtubeId: '', // placeholder
+    category: 'Instagram',
+    duration: '18 min',
     level: 'Debutant',
-    topics: ['Publication automatique', 'Calendrier editorial', 'Formats optimaux', 'Hashtags intelligents'],
     color: 'from-pink-500 to-rose-500',
+    tags: ['Algorithme', 'Reels', 'Engagement'],
   },
   {
-    id: 'mc-2',
-    title: 'SEO local : dominer Google Maps et le referencement',
-    description: 'Votre fiche Google Maps est votre vitrine numerique. Decouvrez comment l\'agent SEO optimise automatiquement votre visibilite locale.',
-    icon: '🔍',
-    duration: '35 min',
-    level: 'Debutant',
-    topics: ['Fiche Google My Business', 'Avis clients', 'Mots-cles locaux', 'Schema markup'],
-    color: 'from-amber-500 to-orange-500',
-  },
-  {
-    id: 'mc-3',
-    title: 'Prospection automatique : de 0 a 50 leads/mois',
-    description: 'Configurez vos agents Commercial et Email pour prospecter automatiquement, qualifier les leads et relancer les prospects tides.',
-    icon: '🤝',
-    duration: '50 min',
-    level: 'Intermediaire',
-    topics: ['Lead scraping', 'Sequences email', 'Scoring prospects', 'DMs strategiques'],
-    color: 'from-blue-500 to-cyan-500',
-  },
-  {
-    id: 'mc-4',
-    title: 'Creer du contenu IA qui convertit',
-    description: 'Images, videos, legendes — comment utiliser Keiro pour generer du contenu professionnel qui engage votre audience et genere des ventes.',
-    icon: '✨',
-    duration: '40 min',
-    level: 'Debutant',
-    topics: ['Prompts efficaces', 'Visuels Instagram', 'Videos TikTok', 'Legendes qui convertissent'],
-    color: 'from-purple-500 to-violet-600',
-  },
-  {
-    id: 'mc-5',
-    title: 'Email marketing automatise pour TPE',
-    description: 'Newsletters, sequences de bienvenue, relances panier abandonne — tout automatise avec l\'agent Hugo.',
-    icon: '📧',
-    duration: '30 min',
-    level: 'Intermediaire',
-    topics: ['Templates email', 'Sequences automatiques', 'Segmentation', 'A/B testing'],
-    color: 'from-green-500 to-emerald-500',
-  },
-  {
-    id: 'mc-6',
-    title: 'Gestion financiere simplifiee avec l\'IA',
-    description: 'Tresorerie, previsions, alertes — comment l\'agent Louis surveille vos finances et vous alerte sur les anomalies.',
-    icon: '💰',
+    id: 'v-2',
+    title: 'Strategie Instagram Complete pour 2026',
+    description: 'Guide complet : Reels, Stories, Posts, Hashtags — tout pour reussir sur Instagram.',
+    youtubeId: '',
+    category: 'Instagram',
     duration: '25 min',
+    level: 'Debutant',
+    color: 'from-purple-500 to-violet-600',
+    tags: ['Stories', 'Hashtags', 'Calendrier'],
+  },
+  {
+    id: 'v-3',
+    title: 'Vendre avec Instagram : La Methode Complete',
+    description: 'Transformez votre compte Instagram en machine a vendre : strategie de A a Z.',
+    youtubeId: '',
+    category: 'Vente',
+    duration: '32 min',
     level: 'Intermediaire',
-    topics: ['Suivi tresorerie', 'Previsions', 'Obligations fiscales', 'Metriques cles'],
-    color: 'from-cyan-600 to-blue-700',
+    color: 'from-amber-500 to-orange-500',
+    tags: ['Tunnel de vente', 'DMs', 'Conversion'],
+  },
+  {
+    id: 'v-4',
+    title: 'Copywriting Instagram : Legendes qui Vendent',
+    description: 'Formules, accroches et appels a l\'action qui convertissent vraiment sur Instagram.',
+    youtubeId: '',
+    category: 'Copywriting',
+    duration: '22 min',
+    level: 'Intermediaire',
+    color: 'from-blue-500 to-cyan-500',
+    tags: ['Accroches', 'AIDA', 'CTA'],
+  },
+  {
+    id: 'v-5',
+    title: 'TikTok pour les Commercants : Guide Debutant',
+    description: 'Comment les petits commerces utilisent TikTok pour attirer des clients locaux.',
+    youtubeId: '',
+    category: 'TikTok',
+    duration: '15 min',
+    level: 'Debutant',
+    color: 'from-gray-700 to-gray-900',
+    tags: ['Videos courtes', 'Tendances', 'Local'],
+  },
+  {
+    id: 'v-6',
+    title: 'Google Maps : Optimiser sa Fiche pour Etre N1',
+    description: 'Les techniques pour dominer Google Maps dans votre zone et attirer des clients en magasin.',
+    youtubeId: '',
+    category: 'SEO Local',
+    duration: '20 min',
+    level: 'Debutant',
+    color: 'from-green-500 to-emerald-500',
+    tags: ['Google Maps', 'Avis', 'Visibilite'],
+  },
+  {
+    id: 'v-7',
+    title: 'Email Marketing : Sequences qui Convertissent',
+    description: 'Creer des sequences email automatiques qui transforment vos prospects en clients fideles.',
+    youtubeId: '',
+    category: 'Email',
+    duration: '28 min',
+    level: 'Intermediaire',
+    color: 'from-cyan-500 to-blue-600',
+    tags: ['Automation', 'Sequences', 'Newsletter'],
+  },
+  {
+    id: 'v-8',
+    title: 'Publicite Meta Ads pour Petit Budget',
+    description: 'Comment lancer des campagnes Facebook/Instagram Ads efficaces avec moins de 10EUR/jour.',
+    youtubeId: '',
+    category: 'Publicite',
+    duration: '35 min',
+    level: 'Intermediaire',
+    color: 'from-red-500 to-orange-500',
+    tags: ['Meta Ads', 'Budget', 'Ciblage'],
   },
 ];
 
+const CATEGORIES = ['Tous', ...Array.from(new Set(CURATED_VIDEOS.map(v => v.category)))];
+
 export default function BlogContent({ posts }: { posts: BlogPost[] }) {
   const [activeTab, setActiveTab] = useState<Tab>('articles');
+  const [videoCategory, setVideoCategory] = useState('Tous');
+  const [playingVideo, setPlayingVideo] = useState<string | null>(null);
+
+  const filteredVideos = videoCategory === 'Tous'
+    ? CURATED_VIDEOS
+    : CURATED_VIDEOS.filter(v => v.category === videoCategory);
 
   return (
     <main className="min-h-screen page-studio-bg">
@@ -90,7 +128,7 @@ export default function BlogContent({ posts }: { posts: BlogPost[] }) {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
           <h1 className="text-4xl sm:text-5xl font-bold mb-4">Blog & Masterclass</h1>
           <p className="text-lg text-white/90 max-w-2xl mx-auto">
-            Guides pratiques, masterclass et strategies pour automatiser le marketing de ton business avec l&apos;IA.
+            Articles, videos selectionnees et strategies pour automatiser le marketing de ton business avec l&apos;IA.
           </p>
 
           {/* Tabs */}
@@ -113,7 +151,7 @@ export default function BlogContent({ posts }: { posts: BlogPost[] }) {
                   : 'text-white/70 hover:text-white'
               }`}
             >
-              Masterclass
+              Masterclass Video
             </button>
           </div>
         </div>
@@ -138,7 +176,7 @@ export default function BlogContent({ posts }: { posts: BlogPost[] }) {
                   onClick={() => setActiveTab('masterclass')}
                   className="text-purple-600 font-semibold hover:underline text-sm"
                 >
-                  Voir les masterclass en attendant →
+                  Voir les videos masterclass en attendant →
                 </button>
               </div>
             ) : (
@@ -203,76 +241,119 @@ export default function BlogContent({ posts }: { posts: BlogPost[] }) {
             )}
           </>
         ) : (
-          /* ─── MASTERCLASS TAB ─── */
+          /* ─── MASTERCLASS VIDEO TAB ─── */
           <>
+            {/* Header */}
             <div className="mb-8">
-              <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-2xl border border-purple-200 p-6 flex flex-col md:flex-row items-center gap-4">
-                <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-blue-500 rounded-2xl flex items-center justify-center flex-shrink-0">
-                  <span className="text-2xl">🎓</span>
+              <div className="bg-gradient-to-r from-red-50 to-purple-50 rounded-2xl border border-red-200/50 p-6 flex flex-col md:flex-row items-center gap-4">
+                <div className="w-14 h-14 bg-gradient-to-br from-red-500 to-rose-600 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg shadow-red-500/20">
+                  <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
                 </div>
                 <div className="flex-1 text-center md:text-left">
-                  <h2 className="text-lg font-bold text-neutral-900">Masterclass Keiro — Automatisation Marketing</h2>
+                  <h2 className="text-lg font-bold text-neutral-900">Masterclass Video — Marketing pour Commercants</h2>
                   <p className="text-sm text-neutral-600 mt-1">
-                    Apprenez a configurer et utiliser vos 15 agents IA pour automatiser 100% de votre marketing. Des modules courts et actionables.
+                    Selection de videos pour maitriser Instagram, TikTok, SEO, email marketing et publicite. Regardez, apprenez, et laissez vos agents IA executer.
                   </p>
                 </div>
                 <div className="text-center flex-shrink-0">
-                  <div className="text-2xl font-bold text-purple-600">6</div>
-                  <div className="text-[10px] text-neutral-500 font-medium">modules</div>
+                  <div className="text-2xl font-bold text-red-600">{CURATED_VIDEOS.length}</div>
+                  <div className="text-[10px] text-neutral-500 font-medium">videos selectionnees</div>
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {MASTERCLASS_MODULES.map((module, index) => (
+            {/* Category filter */}
+            <div className="flex flex-wrap gap-2 mb-6">
+              {CATEGORIES.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setVideoCategory(cat)}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                    videoCategory === cat
+                      ? 'bg-purple-600 text-white shadow-md'
+                      : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+
+            {/* Video grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {filteredVideos.map((video) => (
                 <div
-                  key={module.id}
+                  key={video.id}
                   className="bg-white rounded-xl border border-neutral-200 overflow-hidden hover:shadow-lg hover:border-purple-200 transition-all duration-200 group"
                 >
-                  {/* Module header with gradient */}
-                  <div className={`bg-gradient-to-r ${module.color} p-4 flex items-center gap-3`}>
-                    <span className="text-2xl">{module.icon}</span>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-white/80 text-[10px] font-bold uppercase">Module {index + 1}</span>
-                        <span className="bg-white/20 text-white text-[10px] px-2 py-0.5 rounded-full">{module.duration}</span>
-                        <span className="bg-white/20 text-white text-[10px] px-2 py-0.5 rounded-full">{module.level}</span>
-                      </div>
+                  {/* Video player / placeholder */}
+                  <div className="relative aspect-video">
+                    {playingVideo === video.id && video.youtubeId ? (
+                      <iframe
+                        src={`https://www.youtube-nocookie.com/embed/${video.youtubeId}?autoplay=1`}
+                        title={video.title}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="absolute inset-0 w-full h-full"
+                      />
+                    ) : (
+                      <button
+                        onClick={() => video.youtubeId ? setPlayingVideo(video.id) : undefined}
+                        className={`w-full h-full bg-gradient-to-br ${video.color} flex flex-col items-center justify-center gap-3 ${video.youtubeId ? 'cursor-pointer' : 'cursor-default'}`}
+                      >
+                        <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
+                          <svg className="w-8 h-8 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z" />
+                          </svg>
+                        </div>
+                        {!video.youtubeId && (
+                          <span className="text-white/70 text-xs font-medium bg-black/20 px-3 py-1 rounded-full">
+                            Bientot disponible
+                          </span>
+                        )}
+                      </button>
+                    )}
+
+                    {/* Badges */}
+                    <div className="absolute top-2 left-2 flex gap-1.5">
+                      <span className="bg-black/60 text-white text-[10px] font-medium px-2 py-0.5 rounded-full backdrop-blur-sm">
+                        {video.category}
+                      </span>
+                      <span className="bg-black/60 text-white text-[10px] font-medium px-2 py-0.5 rounded-full backdrop-blur-sm">
+                        {video.level}
+                      </span>
+                    </div>
+                    <div className="absolute bottom-2 right-2 bg-black/70 text-white text-[10px] font-semibold px-2 py-0.5 rounded backdrop-blur-sm">
+                      {video.duration}
                     </div>
                   </div>
 
-                  <div className="p-5">
-                    <h3 className="font-bold text-neutral-900 mb-2 group-hover:text-purple-700 transition-colors">
-                      {module.title}
+                  <div className="p-4">
+                    <h3 className="font-bold text-neutral-900 text-sm mb-1.5 group-hover:text-purple-700 transition-colors line-clamp-2">
+                      {video.title}
                     </h3>
-                    <p className="text-sm text-neutral-600 mb-4">
-                      {module.description}
+                    <p className="text-xs text-neutral-500 mb-3 line-clamp-2">
+                      {video.description}
                     </p>
-
-                    {/* Topics */}
-                    <div className="flex flex-wrap gap-1.5 mb-4">
-                      {module.topics.map((topic) => (
-                        <span key={topic} className="bg-neutral-100 text-neutral-600 text-[11px] px-2 py-0.5 rounded-full">
-                          {topic}
+                    <div className="flex flex-wrap gap-1.5">
+                      {video.tags.map((tag) => (
+                        <span key={tag} className="bg-purple-50 text-purple-600 text-[10px] font-medium px-2 py-0.5 rounded-full">
+                          {tag}
                         </span>
                       ))}
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="bg-purple-100 text-purple-700 text-xs font-semibold px-3 py-1 rounded-full">
-                        A venir prochainement
-                      </span>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* Notify */}
-            <div className="mt-8 bg-gradient-to-r from-[#0c1a3a] to-purple-900 rounded-2xl p-6 text-center text-white">
-              <h3 className="font-bold text-lg mb-2">Soyez prevenu du lancement des masterclass</h3>
+            {/* CTA - let Keiro agents handle it */}
+            <div className="mt-10 bg-gradient-to-r from-[#0c1a3a] to-purple-900 rounded-2xl p-6 text-center text-white">
+              <h3 className="font-bold text-lg mb-2">Tu as appris les strategies — maintenant automatise-les</h3>
               <p className="text-purple-200 text-sm mb-4">
-                Les masterclass seront disponibles gratuitement pour tous les plans payants.
+                Vos 15 agents IA executent ces strategies a votre place : publication, SEO, prospection, emails — tout en automatique.
               </p>
               <Link
                 href="/assistant"

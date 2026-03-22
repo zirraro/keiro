@@ -108,8 +108,8 @@ function HomeKeiroInner() {
               <div className="p-4 space-y-2.5">
                 {/* Agent grid — 5 highlighted agents */}
                 {[
-                  { icon: '🎯', name: 'Ami', role: locale === 'fr' ? 'Publie auto sur vos reseaux' : 'Auto-publishes on social media', color: 'from-pink-500/20 to-rose-500/20' },
-                  { icon: '✨', name: 'Lena', role: locale === 'fr' ? 'Cree contenu + calendrier editorial' : 'Creates content + editorial calendar', color: 'from-purple-500/20 to-violet-500/20' },
+                  { icon: '🎯', name: 'Ami', role: locale === 'fr' ? 'Strategie & optimisation marketing' : 'Marketing strategy & optimization', color: 'from-pink-500/20 to-rose-500/20' },
+                  { icon: '✨', name: 'Lena', role: locale === 'fr' ? 'Publie auto + creation contenu' : 'Auto-publishes + content creation', color: 'from-purple-500/20 to-violet-500/20' },
                   { icon: '🔍', name: 'Oscar', role: locale === 'fr' ? 'Optimise votre SEO + articles blog' : 'Optimizes SEO + blog articles', color: 'from-amber-500/20 to-orange-500/20' },
                   { icon: '🤝', name: 'Leo', role: locale === 'fr' ? 'Prospecte et relance automatiquement' : 'Auto prospecting + follow-ups', color: 'from-blue-500/20 to-cyan-500/20' },
                   { icon: '📧', name: 'Hugo', role: locale === 'fr' ? 'Envoie vos sequences email' : 'Sends email sequences', color: 'from-green-500/20 to-emerald-500/20' },
@@ -442,8 +442,8 @@ function HomeKeiroInner() {
 
           <StaggerContainer className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-8" staggerDelay={0.08}>
             {[
-              { icon: '🎯', name: 'Ami', role: locale === 'fr' ? 'Publication auto' : 'Auto publishing', color: 'from-pink-500 to-rose-500' },
-              { icon: '✨', name: 'Lena', role: locale === 'fr' ? 'Creation contenu' : 'Content creation', color: 'from-purple-500 to-violet-600' },
+              { icon: '🎯', name: 'Ami', role: locale === 'fr' ? 'Strategie marketing' : 'Marketing strategy', color: 'from-pink-500 to-rose-500' },
+              { icon: '✨', name: 'Lena', role: locale === 'fr' ? 'Publication auto' : 'Auto publishing', color: 'from-purple-500 to-violet-600' },
               { icon: '🔍', name: 'Oscar', role: locale === 'fr' ? 'SEO & articles' : 'SEO & articles', color: 'from-amber-500 to-orange-500' },
               { icon: '📬', name: 'Hugo', role: locale === 'fr' ? 'Emails auto' : 'Auto emails', color: 'from-cyan-500 to-blue-500' },
               { icon: '🤝', name: 'Leo', role: locale === 'fr' ? 'Prospection CRM' : 'CRM prospecting', color: 'from-blue-500 to-indigo-500' },

@@ -143,6 +143,14 @@
     {
       "path": "/api/cron/scheduler?slot=publish_scheduled",
       "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/agents/monthly-recap",
+      "schedule": "0 7 1 * *"
+    },
+    {
+      "path": "/api/agents/weekly-trends",
+      "schedule": "0 7 * * 1"
     }
   ]
 }

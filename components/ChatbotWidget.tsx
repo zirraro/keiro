@@ -68,9 +68,9 @@ export default function ChatbotWidget() {
     fetch('/api/admin/avatars')
       .then(r => r.json())
       .then(data => {
-        const commercial = data.avatars?.find((a: any) => a.id === 'commercial');
-        if (commercial) {
-          setAvatarInfo({ name: commercial.display_name, avatarUrl: commercial.avatar_url });
+        const chatbotAgent = data.avatars?.find((a: any) => a.id === 'chatbot');
+        if (chatbotAgent) {
+          setAvatarInfo({ name: chatbotAgent.display_name || 'Max', avatarUrl: chatbotAgent.avatar_3d_url || chatbotAgent.avatar_url });
         }
       })
       .catch(() => {}); // Silent fail — defaults to "Keiro"
