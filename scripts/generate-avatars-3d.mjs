@@ -16,7 +16,7 @@ const SEEDREAM_API_URL = 'https://ark.ap-southeast.bytepluses.com/api/v3/images/
 const OUTPUT_DIR = path.join(process.cwd(), 'public', 'avatars-3d');
 
 // KeiroAI style: cinematic 3D render with real depth and perspective
-const BASE_STYLE = `Cinematic 3D rendered portrait with strong depth of field, volumetric lighting, dramatic shadows. Realistic skin texture, subsurface scattering, studio-quality render. Upper body and shoulders visible, natural 3/4 pose, looking at camera. Smooth gradient background that blends seamlessly into the figure lighting. No flat look, strong parallax and depth layers between foreground subject and background. Ultra high quality, 8K render, photorealistic details, no text, no watermark, no logo.`;
+const BASE_STYLE = `Cinematic 3D rendered portrait with strong depth of field, volumetric lighting, dramatic shadows. Realistic skin texture, subsurface scattering, studio-quality render. Upper body and shoulders visible, natural 3/4 pose, looking at camera. Smooth gradient background that blends seamlessly into the figure lighting. No flat look, strong parallax and depth layers between foreground subject and background. Ultra high quality, 8K render, photorealistic details, no text, no watermark, no logo. IMPORTANT: Natural realistic eye colors only (brown, dark brown, hazel, grey-blue, light brown). NO bright green eyes, NO neon blue eyes, NO anime-style eyes. Eyes must look natural and human, never oversaturated or glowing. Face proportions must be realistic, NOT anime or cartoon-like.`;
 
 const AGENTS = [
   {
@@ -27,7 +27,7 @@ const AGENTS = [
   {
     id: 'commercial',
     name: 'Leo',
-    prompt: `${BASE_STYLE} Nordic man, late 20s, light skin with freckles, sandy blonde medium-length hair swept to one side, strong cheekbones, clean shaven, wearing a premium blue fitted polo shirt, warm genuine smile showing teeth, bright blue eyes. Soft blue-to-cyan ambient background glow.`,
+    prompt: `${BASE_STYLE} Nordic man, late 20s, light skin with freckles, sandy blonde medium-length hair swept to one side, strong cheekbones, clean shaven, wearing a premium blue fitted polo shirt, warm genuine smile showing teeth, natural grey-blue eyes. Soft blue-to-cyan ambient background glow.`,
   },
   {
     id: 'email',
@@ -37,7 +37,7 @@ const AGENTS = [
   {
     id: 'content',
     name: 'Lena',
-    prompt: `${BASE_STYLE} Latina woman, mid 20s, warm golden-brown skin, long wavy dark auburn hair falling past shoulders, bright hazel-green eyes, wearing a stylish dusty rose blazer over white top, radiant energetic smile, delicate gold necklace. Warm magenta-to-rose background with soft light flares.`,
+    prompt: `${BASE_STYLE} Latina woman, mid 20s, warm golden-brown skin, long wavy dark auburn hair falling past shoulders, natural warm brown eyes, wearing a stylish dusty rose blazer over white top, radiant energetic smile, delicate gold necklace. Warm magenta-to-rose background with soft light flares.`,
   },
   {
     id: 'seo',

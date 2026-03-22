@@ -5,48 +5,17 @@ import { CSSProperties, useCallback, useEffect, useRef, useState } from 'react';
 // ─── Animation keyframes (injected once globally) ────────────────────────────
 
 const ANIMATION_STYLES = `
-@keyframes avatar-3d-idle {
-  0%, 100% { transform: rotateY(0deg) rotateX(0deg); }
-  25% { transform: rotateY(3deg) rotateX(-1deg); }
-  50% { transform: rotateY(0deg) rotateX(1deg); }
-  75% { transform: rotateY(-3deg) rotateX(-1deg); }
-}
-@keyframes avatar-3d-wave {
-  0%, 100% { transform: rotateY(0deg) rotateZ(0deg); }
-  15% { transform: rotateY(5deg) rotateZ(3deg); }
-  30% { transform: rotateY(-3deg) rotateZ(-2deg); }
-  45% { transform: rotateY(5deg) rotateZ(3deg); }
-  60% { transform: rotateY(-2deg) rotateZ(-1deg); }
-  75% { transform: rotateY(4deg) rotateZ(2deg); }
-}
-@keyframes avatar-3d-thinking {
-  0%, 100% { transform: rotateX(0deg) rotateY(0deg) translateY(0); }
-  25% { transform: rotateX(2deg) rotateY(-3deg) translateY(-2px); }
-  50% { transform: rotateX(-1deg) rotateY(0deg) translateY(-4px); }
-  75% { transform: rotateX(1deg) rotateY(3deg) translateY(-2px); }
-}
-@keyframes avatar-3d-talking {
-  0%, 100% { transform: scale(1) rotateY(0deg); }
-  10% { transform: scale(1.02) rotateY(1deg); }
-  20% { transform: scale(0.99) rotateY(-1deg); }
-  30% { transform: scale(1.01) rotateY(1deg); }
-  40% { transform: scale(0.995) rotateY(0deg); }
-}
 @keyframes ring-glow {
-  0%, 100% { opacity: 0.4; transform: scale(1); }
-  50% { opacity: 0.8; transform: scale(1.05); }
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.7; }
 }
 @keyframes ring-spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
-@keyframes reflection-shimmer {
-  0%, 100% { opacity: 0.15; transform: scaleY(1) translateY(0); }
-  50% { opacity: 0.25; transform: scaleY(1.02) translateY(1px); }
-}
 @keyframes glow-pulse {
-  0%, 100% { box-shadow: 0 0 20px rgba(255,255,255,0.08); }
-  50% { box-shadow: 0 0 35px rgba(255,255,255,0.18); }
+  0%, 100% { box-shadow: 0 0 15px rgba(255,255,255,0.06); }
+  50% { box-shadow: 0 0 30px rgba(255,255,255,0.14); }
 }
 @keyframes float-badge {
   0%, 100% { transform: translateY(0px); }
@@ -74,14 +43,6 @@ function useAvatarStyles() {
 
 type AnimationType = 'idle' | 'wave' | 'thinking' | 'talking' | 'none';
 
-const ANIMATION_MAP: Record<AnimationType, string> = {
-  idle: 'avatar-3d-idle 5s ease-in-out infinite',
-  wave: 'avatar-3d-wave 2.5s ease-in-out infinite',
-  thinking: 'avatar-3d-thinking 4s ease-in-out infinite',
-  talking: 'avatar-3d-talking 1.5s ease-in-out infinite',
-  none: 'none',
-};
-
 interface Avatar3DCardProps {
   name: string;
   title: string;
@@ -107,15 +68,15 @@ export default function Avatar3DCard({
 
   const cardRef = useRef<HTMLDivElement>(null);
   const imageUrl = avatar3dUrl || avatarUrl;
-  const animationCSS = ANIMATION_MAP[animation as AnimationType] || ANIMATION_MAP.idle;
   const [imgError, setImgError] = useState(false);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const [isHovered, setIsHovered] = useState(false);
 
+  // Uniform sizes — fixed aspect ratio cards
   const sizes = {
-    sm: { card: 'w-32', imgW: 112, imgH: 112, nameSize: 'text-xs', titleSize: 'text-[11px]', emoji: 'text-2xl', ringSize: 120 },
-    md: { card: 'w-44', imgW: 144, imgH: 144, nameSize: 'text-sm', titleSize: 'text-xs', emoji: 'text-4xl', ringSize: 152 },
-    lg: { card: 'w-56', imgW: 176, imgH: 176, nameSize: 'text-base', titleSize: 'text-sm', emoji: 'text-5xl', ringSize: 184 },
+    sm: { w: 140, h: 180, imgH: 130, nameSize: 'text-xs', titleSize: 'text-[10px]', emoji: 'text-2xl', ringSize: 100 },
+    md: { w: 180, h: 240, imgH: 180, nameSize: 'text-sm', titleSize: 'text-xs', emoji: 'text-4xl', ringSize: 130 },
+    lg: { w: 220, h: 300, imgH: 230, nameSize: 'text-base', titleSize: 'text-sm', emoji: 'text-5xl', ringSize: 160 },
   };
   const s = sizes[size];
 
@@ -125,7 +86,7 @@ export default function Avatar3DCard({
     const rect = cardRef.current.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width - 0.5;
     const y = (e.clientY - rect.top) / rect.height - 0.5;
-    setTilt({ x: y * -20, y: x * 20 });
+    setTilt({ x: y * -15, y: x * 15 });
   }, []);
 
   const handleMouseLeave = useCallback(() => {
@@ -133,15 +94,7 @@ export default function Avatar3DCard({
     setIsHovered(false);
   }, []);
 
-  const handleMouseEnter = useCallback(() => {
-    setIsHovered(true);
-  }, []);
-
-  const cardStyle: CSSProperties = {
-    background: `linear-gradient(135deg, ${gradientFrom}, ${gradientTo})`,
-    animation: 'glow-pulse 4s ease-in-out infinite',
-    perspective: '800px',
-  };
+  const handleMouseEnter = useCallback(() => setIsHovered(true), []);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if ((e.key === 'Enter' || e.key === ' ') && onClick) {
@@ -153,8 +106,8 @@ export default function Avatar3DCard({
   const showFallback = !imageUrl || imgError;
 
   // Dynamic shadow based on tilt
-  const shadowX = tilt.y * 0.8;
-  const shadowY = 8 + tilt.x * 0.5;
+  const shadowX = tilt.y * 0.6;
+  const shadowY = 6 + tilt.x * 0.4;
 
   return (
     <div
@@ -168,154 +121,126 @@ export default function Avatar3DCard({
       tabIndex={onClick ? 0 : undefined}
       aria-label={`${name}, ${title}`}
       aria-pressed={onClick ? selected : undefined}
-      className={`avatar-animated ${s.card} rounded-2xl p-2 pb-3 flex flex-col items-center gap-1 cursor-pointer group relative overflow-hidden ${
-        selected ? 'ring-2 ring-white/60 shadow-2xl scale-105' : ''
+      className={`avatar-animated rounded-2xl flex flex-col items-center cursor-pointer group relative overflow-hidden ${
+        selected ? 'ring-2 ring-white/60 shadow-2xl' : ''
       }`}
-      style={cardStyle}
+      style={{
+        width: s.w,
+        height: s.h,
+        background: `linear-gradient(145deg, ${gradientFrom}, ${gradientTo})`,
+        animation: 'glow-pulse 4s ease-in-out infinite',
+        perspective: '600px',
+        transform: isHovered
+          ? `rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) scale(1.04)`
+          : selected ? 'scale(1.03)' : 'scale(1)',
+        transition: 'transform 0.2s ease-out, box-shadow 0.2s ease-out',
+        willChange: 'transform',
+        boxShadow: isHovered
+          ? `${shadowX}px ${shadowY}px 25px rgba(0,0,0,0.4), 0 0 20px ${gradientFrom}30`
+          : '0 4px 15px rgba(0,0,0,0.3)',
+      }}
     >
 
       {/* Status dot */}
       {statusDot && (
-        <div className="absolute top-2 right-2 z-10 flex items-center gap-1" role="status" aria-label={statusLabel || 'Status'}>
+        <div className="absolute top-2 right-2 z-20 flex items-center gap-1" role="status" aria-label={statusLabel || 'Status'}>
           <div className={`w-2 h-2 rounded-full ${statusDot}`} />
           {statusLabel && <span className="text-[9px] text-white/60">{statusLabel}</span>}
         </div>
       )}
 
-      {/* 3D perspective container */}
-      <div
-        className="relative z-10"
-        style={{
-          transformStyle: 'preserve-3d',
-          transform: isHovered
-            ? `rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) scale(1.05)`
-            : undefined,
-          animation: isHovered ? 'none' : animationCSS,
-          transition: 'transform 0.15s ease-out',
-          willChange: 'transform',
-        }}
-      >
+      {/* Avatar image — cropped to bust, uniform size */}
+      <div className="relative z-10 w-full flex-1 overflow-hidden rounded-t-xl">
         {!showFallback ? (
-          <>
-            {/* Main avatar image */}
-            <img
-              src={imageUrl!}
-              alt={`${name}, ${title}`}
-              width={s.imgW}
-              height={s.imgH}
-              className="object-cover rounded-xl"
-              style={{
-                filter: `drop-shadow(${shadowX}px ${shadowY}px 16px rgba(0,0,0,0.4))`,
-                transform: 'translateZ(20px)',
-              }}
-              loading="lazy"
-              onError={() => setImgError(true)}
-            />
-
-            {/* Reflection under avatar */}
-            <div
-              style={{
-                position: 'absolute',
-                bottom: -s.imgH * 0.35,
-                left: '50%',
-                transform: 'translateX(-50%) scaleY(-1)',
-                width: s.imgW,
-                height: s.imgH * 0.35,
-                overflow: 'hidden',
-                borderRadius: '0 0 12px 12px',
-                animation: 'reflection-shimmer 4s ease-in-out infinite',
-                pointerEvents: 'none',
-              }}
-            >
-              <img
-                src={imageUrl!}
-                alt=""
-                width={s.imgW}
-                height={s.imgH}
-                className="object-cover rounded-xl"
-                style={{
-                  opacity: 0.2,
-                  filter: 'blur(2px)',
-                  maskImage: 'linear-gradient(to top, rgba(0,0,0,0.3), transparent)',
-                  WebkitMaskImage: 'linear-gradient(to top, rgba(0,0,0,0.3), transparent)',
-                }}
-              />
-            </div>
-          </>
+          <img
+            src={imageUrl!}
+            alt={`${name}, ${title}`}
+            className="w-full h-full object-cover"
+            style={{
+              objectPosition: 'top center',
+              height: s.imgH,
+              filter: isHovered
+                ? 'brightness(1.08) contrast(1.02)'
+                : 'brightness(1)',
+              transition: 'filter 0.3s ease',
+            }}
+            loading="lazy"
+            onError={() => setImgError(true)}
+          />
         ) : (
           <div
-            className="rounded-full bg-white/20 backdrop-blur-sm border-2 border-white/30 flex items-center justify-center"
-            style={{ width: s.imgW, height: s.imgH, transform: 'translateZ(20px)' }}
+            className="w-full flex items-center justify-center bg-white/10 backdrop-blur-sm"
+            style={{ height: s.imgH }}
           >
             <span className={s.emoji}>{icon || '🤖'}</span>
           </div>
         )}
 
-        {/* Glow ring around avatar */}
+        {/* Gradient fade at bottom of image into card */}
         <div
+          className="absolute bottom-0 left-0 right-0 pointer-events-none"
           style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            width: s.ringSize,
-            height: s.ringSize,
-            marginTop: -s.ringSize / 2,
-            marginLeft: -s.ringSize / 2,
-            borderRadius: '50%',
-            border: `2px solid ${gradientFrom}`,
-            animation: 'ring-glow 3s ease-in-out infinite',
-            pointerEvents: 'none',
-            transform: 'translateZ(-5px)',
+            height: '40%',
+            background: `linear-gradient(to top, ${gradientTo}, transparent)`,
           }}
         />
 
-        {/* Spinning accent arc */}
-        <svg
-          width={s.ringSize + 16}
-          height={s.ringSize + 16}
-          style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            marginTop: -(s.ringSize + 16) / 2,
-            marginLeft: -(s.ringSize + 16) / 2,
-            animation: 'ring-spin 8s linear infinite',
-            pointerEvents: 'none',
-            transform: 'translateZ(-8px)',
-          }}
-        >
-          <circle
-            cx={(s.ringSize + 16) / 2}
-            cy={(s.ringSize + 16) / 2}
-            r={(s.ringSize + 8) / 2}
-            fill="none"
-            stroke={gradientFrom}
-            strokeWidth="1.5"
-            strokeDasharray="20 60"
-            strokeLinecap="round"
-            opacity="0.4"
-          />
-        </svg>
+        {/* Spinning accent arc (only on hover) */}
+        {isHovered && (
+          <svg
+            width={s.ringSize}
+            height={s.ringSize}
+            className="absolute pointer-events-none"
+            style={{
+              top: '50%',
+              left: '50%',
+              marginTop: -s.ringSize / 2,
+              marginLeft: -s.ringSize / 2,
+              animation: 'ring-spin 6s linear infinite',
+              opacity: 0.5,
+            }}
+          >
+            <circle
+              cx={s.ringSize / 2}
+              cy={s.ringSize / 2}
+              r={s.ringSize / 2 - 4}
+              fill="none"
+              stroke="white"
+              strokeWidth="1.5"
+              strokeDasharray="15 45"
+              strokeLinecap="round"
+            />
+          </svg>
+        )}
       </div>
 
-      {/* Name — floating text */}
+      {/* Name + Title — over gradient fade */}
       <div
-        className="relative z-10 text-center mt-1"
-        style={{ animation: 'float-badge 3s ease-in-out infinite' }}
+        className="relative z-10 text-center px-2 pb-3 pt-1"
+        style={{ animation: 'float-badge 4s ease-in-out infinite' }}
       >
         <span
-          className={`font-bold text-white ${s.nameSize}`}
-          style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5), 0 1px 3px rgba(0,0,0,0.3)' }}
+          className={`font-bold text-white block ${s.nameSize}`}
+          style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}
         >
           {name}
         </span>
         <p
-          className={`text-white/90 ${s.titleSize} leading-tight`}
-          style={{ textShadow: '0 1px 6px rgba(0,0,0,0.4)' }}
+          className={`text-white/80 ${s.titleSize} leading-tight mt-0.5`}
+          style={{ textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}
         >
           {title}
         </p>
       </div>
+
+      {/* Bottom glow line */}
+      <div
+        className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full"
+        style={{
+          background: `linear-gradient(90deg, transparent, ${gradientFrom}, transparent)`,
+          animation: 'ring-glow 3s ease-in-out infinite',
+        }}
+      />
     </div>
   );
 }
@@ -331,32 +256,15 @@ export function Avatar3DInline({
 }) {
   useAvatarStyles();
 
-  const containerRef = useRef<HTMLDivElement>(null);
   const imageUrl = avatar3dUrl || avatarUrl;
-  const animationCSS = ANIMATION_MAP[animation as AnimationType] || ANIMATION_MAP.idle;
   const [imgError, setImgError] = useState(false);
-  const [tilt, setTilt] = useState({ x: 0, y: 0 });
-
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width - 0.5;
-    const y = (e.clientY - rect.top) / rect.height - 0.5;
-    setTilt({ x: y * -15, y: x * 15 });
-  }, []);
-
-  const handleMouseLeave = useCallback(() => setTilt({ x: 0, y: 0 }), []);
 
   return (
     <div
-      ref={containerRef}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
       className="avatar-animated rounded-full flex items-center justify-center overflow-hidden flex-shrink-0"
       style={{
         width: size, height: size,
         background: `linear-gradient(135deg, ${gradientFrom}, ${gradientTo})`,
-        perspective: '400px',
       }}
     >
       {imageUrl && !imgError ? (
@@ -364,14 +272,7 @@ export function Avatar3DInline({
           src={imageUrl}
           alt={name}
           className="w-full h-full object-cover"
-          style={{
-            animation: tilt.x === 0 && tilt.y === 0 ? animationCSS : 'none',
-            transform: tilt.x !== 0 || tilt.y !== 0
-              ? `rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) scale(1.05)`
-              : undefined,
-            transition: 'transform 0.15s ease-out',
-            willChange: 'transform',
-          }}
+          style={{ objectPosition: 'top center' }}
           loading="lazy"
           onError={() => setImgError(true)}
         />

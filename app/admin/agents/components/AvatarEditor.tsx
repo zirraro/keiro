@@ -37,11 +37,8 @@ const AGENT_ICONS: Record<string, string> = {
 };
 
 const ANIMATION_OPTIONS = [
-  { value: 'idle', label: 'Respiration (idle)', desc: 'Mouvement doux de haut en bas' },
-  { value: 'wave', label: 'Salut (wave)', desc: 'Petit mouvement de salutation' },
-  { value: 'thinking', label: 'Réflexion', desc: 'Balancement pensif' },
-  { value: 'talking', label: 'Discussion', desc: 'Pulsation de conversation' },
-  { value: 'none', label: 'Statique', desc: 'Pas d\'animation' },
+  { value: 'idle', label: 'Standard', desc: 'Hover 3D parallax + glow' },
+  { value: 'none', label: 'Statique', desc: 'Pas d\'effet' },
 ];
 
 const PRESET_GRADIENTS = [
