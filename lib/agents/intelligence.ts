@@ -12,6 +12,7 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { saveLearning } from './learning';
 import { fetchAllTrends } from '../trends';
+import { fetchNews as fetchNewsArticles } from '../newsProviders';
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -167,27 +168,67 @@ async function fetchWeather(city: string = 'Paris'): Promise<WeatherData | null>
   } catch { return null; }
 }
 
-// ─── News API ───────────────────────────────────────────────
+// ─── News (uses existing lib/newsProviders) ────────────────
 
-async function fetchNews(query: string = 'marketing digital PME'): Promise<NewsItem[]> {
-  const NEWS_KEY = process.env.NEWS_API_KEY;
-  if (!NEWS_KEY) return [];
-
+async function fetchExistingNews(): Promise<NewsItem[]> {
   try {
-    const res = await fetch(
-      `https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&language=fr&sortBy=publishedAt&pageSize=5&apiKey=${NEWS_KEY}`
-    );
-    if (!res.ok) return [];
-
-    const data = await res.json();
-    return (data.articles || []).map((a: any) => ({
+    const articles = await fetchNewsArticles('fr');
+    return articles.slice(0, 8).map(a => ({
       title: a.title,
-      source: a.source?.name || '',
+      source: a.source,
       url: a.url,
-      publishedAt: a.publishedAt,
-      relevance: 0.7,
+      publishedAt: a.date || new Date().toISOString(),
+      relevance: 0.8,
     }));
   } catch { return []; }
+}
+
+// ─── Instagram Insights (P2: timing optimal reel) ───────────
+
+async function fetchInstagramInsights(supabase: SupabaseClient): Promise<{ bestHour?: number; bestDay?: number } | null> {
+  try {
+    // Get admin profile with Instagram token
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('instagram_business_account_id, facebook_page_access_token')
+      .eq('is_admin', true)
+      .not('instagram_business_account_id', 'is', null)
+      .limit(1)
+      .maybeSingle();
+
+    if (!profile?.instagram_business_account_id || !profile?.facebook_page_access_token) return null;
+
+    // Fetch recent media insights to determine best posting times
+    const res = await fetch(
+      `https://graph.facebook.com/v20.0/${profile.instagram_business_account_id}/media?fields=timestamp,like_count,comments_count&limit=50&access_token=${profile.facebook_page_access_token}`
+    );
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    const posts = data.data || [];
+    if (posts.length < 5) return null;
+
+    // Analyze which hours get the most engagement
+    const hourEngagement: Record<number, { total: number; count: number }> = {};
+    for (const post of posts) {
+      if (!post.timestamp) continue;
+      const hour = new Date(post.timestamp).getHours();
+      const engagement = (post.like_count || 0) + (post.comments_count || 0) * 3;
+      if (!hourEngagement[hour]) hourEngagement[hour] = { total: 0, count: 0 };
+      hourEngagement[hour].total += engagement;
+      hourEngagement[hour].count++;
+    }
+
+    // Find best hour by average engagement
+    let bestHour = 12;
+    let bestAvg = 0;
+    for (const [hour, data] of Object.entries(hourEngagement)) {
+      const avg = data.total / data.count;
+      if (avg > bestAvg) { bestAvg = avg; bestHour = parseInt(hour); }
+    }
+
+    return { bestHour };
+  } catch { return null; }
 }
 
 // ─── Timing Engine ──────────────────────────────────────────
@@ -357,6 +398,16 @@ async function generatePredictions(
   return predictions;
 }
 
+// ─── Meta Ads Library (P3: spy concurrents) ─────────────────
+
+async function fetchCompetitorAds(competitors: string[]): Promise<string[]> {
+  if (!competitors.length) return [];
+  // Meta Ad Library is accessible via Graph API (public, no special key needed for search)
+  // But requires a page access token. For now, return empty — will be enhanced with token
+  // The competitive intelligence comes from the learnings + content analysis instead
+  return [];
+}
+
 // ─── Dynamic Scoring Engine ─────────────────────────────────
 
 /**
@@ -417,17 +468,20 @@ export async function loadRealTimeIntelligence(
   const dayOfWeek = now.getUTCDay();
   const hourUtc = now.getUTCHours();
 
-  // Parallel fetch all intelligence sources (uses existing trends system + APIs)
-  const [trendsData, weather, externalNews] = await Promise.all([
+  // Parallel fetch all intelligence sources (uses existing systems)
+  const [trendsData, weather, existingNews] = await Promise.all([
     fetchTrendsData().catch(() => ({ trends: [] as TrendData[], news: [] as NewsItem[] })),
     fetchWeather(clientCity || 'Paris').catch(() => null),
-    fetchNews('marketing digital entrepreneur').catch(() => [] as NewsItem[]),
+    fetchExistingNews().catch(() => [] as NewsItem[]),
   ]);
 
   const trends = trendsData.trends;
-  const news = [...trendsData.news, ...externalNews].slice(0, 8);
+  const news = [...existingNews, ...trendsData.news].slice(0, 10);
 
-  const timing = calculateTimingRecommendation(dayOfWeek, hourUtc);
+  // Instagram insights for real timing data
+  const igInsights = await fetchInstagramInsights(supabase).catch(() => null);
+
+  const timing = calculateTimingRecommendation(dayOfWeek, hourUtc, igInsights ? { bestPostHour: igInsights.bestHour } : undefined);
   const events = getUpcomingEvents();
   const predictions = await generatePredictions(supabase, events, weather);
 
@@ -477,6 +531,9 @@ export function formatIntelligenceForPrompt(intel: RealTimeIntelligence): string
       text += `\n- [${Math.round(p.confidence * 100)}%] ${p.description} → ${p.action_suggested} (deadline: ${p.deadline})`;
     }
   }
+
+  // Flywheel status
+  text += `\n\nFLYWHEEL: L'intelligence collective grandit a chaque action. Plus de clients = plus de data = agents meilleurs = plus de clients.`;
 
   text += '\n━━━ FIN INTELLIGENCE ━━━';
   return text;
