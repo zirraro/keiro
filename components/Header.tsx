@@ -498,7 +498,7 @@ export default function Header() {
                           </button>
                         </div>
                       ) : (
-                        <Link
+                        <a
                           href="/api/auth/instagram-oauth"
                           className={`flex items-center gap-2 transition-colors ${isLight ? 'text-neutral-500 hover:text-neutral-900' : 'text-white/60 hover:text-white'}`}
                           onClick={() => setShowMenu(false)}
@@ -510,7 +510,7 @@ export default function Header() {
                             <span className="font-medium">{t.nav.connectInstagram}</span>
                             <span className="text-xs">{t.nav.autoPublish}</span>
                           </div>
-                        </Link>
+                        </a>
                       )}
                     </div>
 
@@ -545,7 +545,7 @@ export default function Header() {
                           </button>
                         </div>
                       ) : (
-                        <Link
+                        <a
                           href="/api/auth/tiktok-oauth"
                           className={`flex items-center gap-2 transition-colors ${isLight ? 'text-neutral-500 hover:text-neutral-900' : 'text-white/60 hover:text-white'}`}
                           onClick={() => setShowMenu(false)}
@@ -557,7 +557,7 @@ export default function Header() {
                             <span className="font-medium">{t.nav.connectTikTok}</span>
                             <span className="text-xs">{t.nav.autoPublish}</span>
                           </div>
-                        </Link>
+                        </a>
                       )}
                     </div>
 
@@ -592,7 +592,7 @@ export default function Header() {
                           </button>
                         </div>
                       ) : (
-                        <Link
+                        <a
                           href="/api/auth/linkedin-oauth"
                           className={`flex items-center gap-2 transition-colors ${isLight ? 'text-neutral-500 hover:text-neutral-900' : 'text-white/60 hover:text-white'}`}
                           onClick={() => setShowMenu(false)}
@@ -604,7 +604,7 @@ export default function Header() {
                             <span className="font-medium">{t.nav.connectLinkedIn}</span>
                             <span className="text-xs">{t.nav.directPublish}</span>
                           </div>
-                        </Link>
+                        </a>
                       )}
                     </div>
 

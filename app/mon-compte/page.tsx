@@ -800,9 +800,9 @@ function MonComptePage() {
                     Déconnecter
                   </button>
                 ) : (
-                  <Link href="/api/auth/instagram-oauth" className="px-4 py-2 text-xs font-medium bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:shadow-lg transition-all">
+                  <a href="/api/auth/instagram-oauth" className="px-4 py-2 text-xs font-medium bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:shadow-lg transition-all">
                     Connecter
-                  </Link>
+                  </a>
                 )}
               </div>
             </div>
@@ -831,9 +831,9 @@ function MonComptePage() {
                 {profile?.tiktok_username ? (
                   <span className="px-3 py-1.5 text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg">Actif</span>
                 ) : (
-                  <Link href="/api/auth/tiktok-oauth" className="px-4 py-2 text-xs font-medium bg-black text-white rounded-lg hover:shadow-lg transition-all">
+                  <a href="/api/auth/tiktok-oauth" className="px-4 py-2 text-xs font-medium bg-black text-white rounded-lg hover:shadow-lg transition-all">
                     Connecter
-                  </Link>
+                  </a>
                 )}
               </div>
             </div>
@@ -862,9 +862,9 @@ function MonComptePage() {
                 {profile?.linkedin_username ? (
                   <span className="px-3 py-1.5 text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg">Actif</span>
                 ) : (
-                  <Link href="/api/auth/linkedin-oauth" className="px-4 py-2 text-xs font-medium bg-[#0077B5] text-white rounded-lg hover:shadow-lg transition-all">
+                  <a href="/api/auth/linkedin-oauth" className="px-4 py-2 text-xs font-medium bg-[#0077B5] text-white rounded-lg hover:shadow-lg transition-all">
                     Connecter
-                  </Link>
+                  </a>
                 )}
               </div>
             </div>
