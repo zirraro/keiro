@@ -419,28 +419,8 @@ export default function AssistantPage() {
     );
   }
 
-  // ─── Not logged in ────────────────────────────────────
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-[#0c1a3a] pt-16 flex items-center justify-center px-4">
-        <div className="text-center max-w-sm">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center mx-auto mb-4">
-            <span className="text-3xl">{'\uD83E\uDD16'}</span>
-          </div>
-          <h1 className="text-white font-bold text-xl mb-2">Votre Espace de Travail IA</h1>
-          <p className="text-white/60 text-sm mb-6">
-            Connectez-vous pour acceder a votre espace de travail et votre equipe d&apos;agents IA.
-          </p>
-          <a
-            href="/login"
-            className="inline-block px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all"
-          >
-            Se connecter
-          </a>
-        </div>
-      </div>
-    );
-  }
+  // ─── Visitor mode (not logged in) — show agents in demo ──
+  const isVisitor = !user;
 
   const claraAvatarUrl = avatars['onboarding'] || null;
 
@@ -464,6 +444,14 @@ export default function AssistantPage() {
             </div>
             {/* Quick actions */}
             <div className="flex items-center gap-2">
+              {isVisitor && (
+                <a
+                  href="/login"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600/20 to-blue-600/20 border border-purple-500/30 rounded-lg text-purple-300 text-xs font-medium transition-colors hover:bg-purple-600/30"
+                >
+                  Se connecter
+                </a>
+              )}
               {isAdmin && (
                 <button
                   onClick={() => router.push('/admin/agents')}
@@ -476,15 +464,17 @@ export default function AssistantPage() {
                   Admin
                 </button>
               )}
-              <button
-                onClick={() => router.push('/assistant/dossier')}
-                className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-white/60 text-xs transition-colors"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Mon dossier
-              </button>
+              {!isVisitor && (
+                <button
+                  onClick={() => router.push('/assistant/dossier')}
+                  className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-white/60 text-xs transition-colors"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Mon dossier
+                </button>
+              )}
             </div>
           </div>
           <p className="text-white/50 text-sm">
@@ -495,7 +485,7 @@ export default function AssistantPage() {
           </p>
 
           {/* Publishing streak */}
-          {streak > 0 && !COMING_SOON_MODE && (
+          {streak > 0 && !COMING_SOON_MODE && !isVisitor && (
             <div className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-orange-500/20 to-amber-500/20 border border-orange-500/30 rounded-full">
               <span className="text-base">{'\uD83D\uDD25'}</span>
               <span className="text-orange-300 text-xs font-bold">{streak} jour{streak > 1 ? 's' : ''} consecutif{streak > 1 ? 's' : ''}</span>
@@ -503,8 +493,30 @@ export default function AssistantPage() {
           )}
         </div>
 
+        {/* ═══ VISITOR BANNER ═══ */}
+        {isVisitor && (
+          <div className="mb-6 rounded-2xl border border-purple-500/30 bg-gradient-to-r from-purple-600/10 to-blue-600/10 p-5">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div>
+                <h2 className="text-white font-bold text-base mb-1">
+                  {'\uD83D\uDC4B'} Mode decouverte — Explorez votre future equipe IA
+                </h2>
+                <p className="text-white/50 text-xs">
+                  Decouvrez les agents qui automatisent votre business. Connectez-vous pour activer votre espace personnalise.
+                </p>
+              </div>
+              <a
+                href="/login"
+                className="flex-shrink-0 px-5 py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm font-semibold rounded-xl hover:shadow-lg hover:shadow-purple-500/30 transition-all"
+              >
+                Se connecter
+              </a>
+            </div>
+          </div>
+        )}
+
         {/* ═══ KPI CARDS — Vue d'ensemble rapide ═══ */}
-        {!COMING_SOON_MODE && (
+        {!COMING_SOON_MODE && !isVisitor && (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
             <div className="rounded-xl bg-white/[0.04] border border-white/10 p-4">
               <div className="flex items-center gap-2 mb-2">
@@ -561,7 +573,7 @@ export default function AssistantPage() {
         )}
 
         {/* ═══ AMI Performance Widget ═══ */}
-        {amiStats && !COMING_SOON_MODE && (
+        {amiStats && !COMING_SOON_MODE && !isVisitor && (
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 mb-6">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-white font-bold text-sm flex items-center gap-2">
@@ -711,14 +723,14 @@ export default function AssistantPage() {
                               className="flex items-center gap-3 flex-1 min-w-0 text-left"
                             >
                               <div
-                                className="w-10 h-10 rounded-full flex-shrink-0"
-                                style={{ background: `linear-gradient(135deg, ${agent.gradientFrom}, ${agent.gradientTo})`, padding: '2px' }}
+                                className="w-14 h-14 rounded-full flex-shrink-0"
+                                style={{ background: `linear-gradient(135deg, ${agent.gradientFrom}, ${agent.gradientTo})`, padding: '2.5px' }}
                               >
                                 <div className="w-full h-full rounded-full overflow-hidden bg-gray-900 flex items-center justify-center">
                                   {avatars[agent.id] ? (
                                     <img src={avatars[agent.id]!} alt={agent.displayName} className="w-full h-full object-cover scale-[1.15]" style={{ objectPosition: 'center 15%' }} />
                                   ) : (
-                                    <span className="text-base">{agent.icon}</span>
+                                    <span className="text-xl">{agent.icon}</span>
                                   )}
                                 </div>
                               </div>
@@ -764,12 +776,12 @@ export default function AssistantPage() {
                     })}
                   </div>
 
-                  {/* CRM interactif (Commercial team only) */}
+                  {/* CRM button (Commercial team only) — opens full screen */}
                   {isCommercial && (
                     <div className="border-t border-white/10">
                       <button
-                        onClick={() => setCrmExpanded(!crmExpanded)}
-                        className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-white/[0.03] transition-colors"
+                        onClick={() => setCrmExpanded(true)}
+                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-white/[0.03] transition-colors"
                       >
                         <span className="text-white font-bold text-xs flex items-center gap-2">
                           <span>{'\uD83D\uDCCA'}</span> CRM Pipeline
@@ -777,16 +789,8 @@ export default function AssistantPage() {
                             <span className="text-white/40 font-normal">{'\u2014'} {summary.crm.total} prospects, {summary.crm.clients} clients</span>
                           )}
                         </span>
-                        <svg className={`w-4 h-4 text-white/40 transition-transform ${crmExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
+                        <span className="text-purple-400 text-[10px] font-medium">Ouvrir {'\u2192'}</span>
                       </button>
-
-                      {crmExpanded && (
-                        <div className="px-4 pb-4">
-                          <WorkspaceCrm isAdmin={isAdmin} />
-                        </div>
-                      )}
                     </div>
                   )}
                 </div>
@@ -1006,6 +1010,41 @@ export default function AssistantPage() {
           }
         }
       `}</style>
+
+      {/* ═══ CRM FULL SCREEN MODAL ═══ */}
+      {crmExpanded && (
+        <div className="fixed inset-0 z-50 bg-[#0c1a3a] pt-16 overflow-y-auto">
+          <div className="max-w-5xl mx-auto px-4 py-6">
+            {/* CRM Header */}
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setCrmExpanded(false)}
+                  className="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors flex-shrink-0"
+                >
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <div>
+                  <h1 className="text-white font-bold text-xl lg:text-2xl">{'\uD83D\uDCCA'} CRM Pipeline Commercial</h1>
+                  <p className="text-white/40 text-sm">Gerez vos prospects et suivez votre pipeline</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setCrmExpanded(false)}
+                className="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+              >
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            {/* CRM Content */}
+            <WorkspaceCrm isAdmin={isAdmin} />
+          </div>
+        </div>
+      )}
 
       {/* Notify modal */}
       {showNotifyModal && (
