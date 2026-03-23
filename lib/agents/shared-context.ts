@@ -18,6 +18,7 @@ import { getAgentAvatar, formatAvatarForPrompt, type AgentAvatarConfig } from '.
 import { getOrgContext, formatOrgContextForPrompt } from '../tenant';
 import { getAgentKnowledgeContext } from './knowledge-rag';
 import { loadBusinessDossier, type BusinessDossier } from './client-context';
+import { loadRealTimeIntelligence, formatIntelligenceForPrompt, type RealTimeIntelligence } from './intelligence';
 
 // ─── KEIRO AI BRAND IDENTITY ─────────────────────────────────
 // First client profile — the foundational data that all agents use.
@@ -183,6 +184,7 @@ interface AgentContext {
   topProspects: Array<{ company: string; score: number; temperature: string; status: string }>;
   ragContext: string; // Knowledge from RAG pool
   brandContext: string; // KeiroAI brand identity + client dossier
+  intelligenceContext: string; // Real-time intelligence (trends, weather, timing, predictions)
 }
 
 /**
@@ -452,6 +454,16 @@ export async function loadSharedContext(
   }
   const brandContext = formatBrandContext(clientDossier);
 
+  // ─── Real-Time Intelligence (trends, weather, timing, predictions) ──
+  let intelligenceContext = '';
+  try {
+    const clientCity = clientDossier?.company_name ? undefined : 'Paris'; // TODO: extract city from dossier
+    const intel = await loadRealTimeIntelligence(supabase, clientCity);
+    intelligenceContext = formatIntelligenceForPrompt(intel);
+  } catch {
+    // Intelligence is optional
+  }
+
   return {
     crmStats: {
       total: total || 0,
@@ -517,6 +529,7 @@ export async function loadSharedContext(
     })),
     ragContext,
     brandContext,
+    intelligenceContext,
   };
 }
 
@@ -705,6 +718,11 @@ ADAPTATION & MÉMOIRE :
   // Multi-tenant: append org context when available
   if (orgContextBlock) {
     text += `\n\n${orgContextBlock}`;
+  }
+
+  // Real-time intelligence (trends, weather, timing, predictions)
+  if (ctx.intelligenceContext) {
+    text += ctx.intelligenceContext;
   }
 
   // RAG Knowledge Pool context
