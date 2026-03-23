@@ -126,7 +126,8 @@ export function detectPlanInterest(message: string): string | null {
     lowered.includes('gratuit') ||
     lowered.includes('essai') ||
     lowered.includes('tester') ||
-    lowered.includes('7 jours')
+    lowered.includes('7 jours') ||
+    lowered.includes('30 jours')
   ) {
     return 'free_trial';
   }

@@ -561,7 +561,7 @@ export default function AgentWorkspacePage() {
 
   // ─── Sidebar content (shared between mobile/desktop) ─────
   const sidebarContent = (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden" style={{ paddingTop: isMobile ? 'env(safe-area-inset-top)' : undefined }}>
       {/* Agent info card — compact */}
       <div
         className="p-3 flex-shrink-0"
@@ -710,7 +710,7 @@ export default function AgentWorkspacePage() {
       {/* Mobile sidebar overlay */}
       {isMobile && sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+          className="fixed inset-0 z-[55] bg-black/50 backdrop-blur-sm"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -718,11 +718,11 @@ export default function AgentWorkspacePage() {
       {/* Sidebar — narrower on desktop, full slide on mobile */}
       <aside
         className={`
-          bg-[#0a1628] border-r border-white/10 flex-shrink-0 flex flex-col z-50
+          bg-[#0a1628] border-r border-white/10 flex-shrink-0 flex flex-col
           transition-transform duration-300 ease-in-out
           ${isMobile
-            ? `fixed inset-y-0 left-0 w-[260px] ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`
-            : 'w-[240px] relative'
+            ? `fixed inset-y-0 left-0 w-[260px] z-[60] ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`
+            : 'w-[240px] relative z-50'
           }
         `}
         style={isMobile ? { height: '100dvh' } : undefined}
@@ -778,24 +778,26 @@ export default function AgentWorkspacePage() {
 
           {/* Tab switcher */}
           {hasDashboard && (
-            <div className="flex items-center bg-white/5 rounded-lg p-0.5 flex-shrink-0">
+            <div className="flex items-center bg-white/10 rounded-xl p-1 flex-shrink-0 border border-white/10">
               <button
                 onClick={() => setActiveTab('chat')}
-                className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                   activeTab === 'chat'
-                    ? 'bg-white/15 text-white'
-                    : 'text-white/50 hover:text-white/70'
+                    ? 'text-white shadow-md'
+                    : 'text-white/50 hover:text-white/70 hover:bg-white/5'
                 }`}
+                style={activeTab === 'chat' ? { background: `linear-gradient(135deg, ${gradientFrom}, ${gradientTo})` } : undefined}
               >
                 Chat
               </button>
               <button
                 onClick={() => setActiveTab('dashboard')}
-                className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                   activeTab === 'dashboard'
-                    ? 'bg-white/15 text-white'
-                    : 'text-white/50 hover:text-white/70'
+                    ? 'text-white shadow-md'
+                    : 'text-white/50 hover:text-white/70 hover:bg-white/5'
                 }`}
+                style={activeTab === 'dashboard' ? { background: `linear-gradient(135deg, ${gradientFrom}, ${gradientTo})` } : undefined}
               >
                 {agentId === 'commercial' ? 'CRM' : 'Stats'}
               </button>

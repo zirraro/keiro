@@ -69,8 +69,7 @@ export default function AssistantPage() {
   const [notifyEmail, setNotifyEmail] = useState('');
   const [notifySubmitted, setNotifySubmitted] = useState(false);
 
-  // View mode
-  const [showTeams, setShowTeams] = useState(false);
+  // View mode (removed — both grid and teams shown together)
 
   // AMI dashboard stats
   const [amiStats, setAmiStats] = useState<{
@@ -393,28 +392,10 @@ export default function AssistantPage() {
         {/* Dossier banner (always shown — users can pre-fill their data) */}
         <DossierBanner profile={profile} claraAvatarUrl={claraAvatarUrl} />
 
-        {/* View toggle: Grid / Teams */}
-        <div className="flex gap-2 mb-4">
-          <button
-            onClick={() => setShowTeams(false)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-              !showTeams ? 'bg-purple-600 text-white' : 'bg-white/10 text-white/60 hover:bg-white/20'
-            }`}
-          >
-            Tous les agents
-          </button>
-          <button
-            onClick={() => setShowTeams(true)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-              showTeams ? 'bg-purple-600 text-white' : 'bg-white/10 text-white/60 hover:bg-white/20'
-            }`}
-          >
-            Par pack
-          </button>
-        </div>
+        {/* No toggle — both grid and teams shown together */}
 
         {/* AMI Dashboard — Star Agent */}
-        {!showTeams && agents.length > 0 && agents[0]?.id === 'marketing' && (
+        {agents.length > 0 && agents[0]?.id === 'marketing' && (
           <div className="mb-6">
             <div
               className="rounded-2xl overflow-hidden border border-white/15"
@@ -519,51 +500,53 @@ export default function AssistantPage() {
           </div>
         )}
 
-        {showTeams ? (
-          <AgentTeams agents={agents} userPlan={userPlan} avatars={avatars} />
-        ) : (
-          /* Desktop: grid + chat side panel */
-          <div className="flex gap-6">
-            {/* Agent grid */}
-            <div className={`${selectedAgent && !isMobile ? 'w-1/2' : 'w-full'} transition-all duration-300`}>
-              <div className={`grid ${selectedAgent && !isMobile ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-2 lg:grid-cols-3'} gap-3`}>
-                {agents.map((agent) => (
-                  <AgentCard
-                    key={agent.id}
-                    agent={agent}
-                    avatarUrl={avatars[agent.id] || null}
-                    isSelected={selectedAgent?.id === agent.id}
-                    onClick={() => handleSelectAgent(agent)}
-                    comingSoonMode={COMING_SOON_MODE}
-                    onNotifyClick={() => {
-                      if (COMING_SOON_MODE) {
-                        setShowNotifyModal(true);
-                      }
-                    }}
-                  />
-                ))}
+        {/* Agent grid + chat side panel */}
+        <div className="flex gap-6">
+          {/* Agent grid */}
+          <div className={`${selectedAgent && !isMobile ? 'w-1/2' : 'w-full'} transition-all duration-300`}>
+            <div className={`grid ${selectedAgent && !isMobile ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-2 lg:grid-cols-3'} gap-3`}>
+              {agents.map((agent) => (
+                <AgentCard
+                  key={agent.id}
+                  agent={agent}
+                  avatarUrl={avatars[agent.id] || null}
+                  isSelected={selectedAgent?.id === agent.id}
+                  onClick={() => handleSelectAgent(agent)}
+                  comingSoonMode={COMING_SOON_MODE}
+                  onNotifyClick={() => {
+                    if (COMING_SOON_MODE) {
+                      setShowNotifyModal(true);
+                    }
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Desktop chat panel */}
+          {selectedAgent && !isMobile && (
+            <div className="w-1/2">
+              <div className="sticky top-6">
+                <AgentChatPanel
+                  agent={selectedAgent}
+                  avatarUrl={avatars[selectedAgent.id] || null}
+                  messages={messages}
+                  onSendMessage={handleSendMessage}
+                  isLoading={chatLoading}
+                  onBack={handleBack}
+                  isMobile={false}
+                  comingSoonMode={COMING_SOON_MODE}
+                />
               </div>
             </div>
+          )}
+        </div>
 
-            {/* Desktop chat panel */}
-            {selectedAgent && !isMobile && (
-              <div className="w-1/2">
-                <div className="sticky top-6">
-                  <AgentChatPanel
-                    agent={selectedAgent}
-                    avatarUrl={avatars[selectedAgent.id] || null}
-                    messages={messages}
-                    onSendMessage={handleSendMessage}
-                    isLoading={chatLoading}
-                    onBack={handleBack}
-                    isMobile={false}
-                    comingSoonMode={COMING_SOON_MODE}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+        {/* Packs & Teams section — shown below agent grid */}
+        <div className="mt-8">
+          <h2 className="text-white font-bold text-lg mb-4">Packs & Equipes</h2>
+          <AgentTeams agents={agents} userPlan={userPlan} avatars={avatars} />
+        </div>
       </div>
 
       {/* Notify modal */}

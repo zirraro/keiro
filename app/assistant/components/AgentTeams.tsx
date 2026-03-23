@@ -16,34 +16,34 @@ interface AgentTeamPack {
 
 const TEAM_PACKS: AgentTeamPack[] = [
   {
-    name: 'Pack Starter',
-    planLabel: 'Gratuit',
-    price: '0 EUR',
-    agentIds: ['marketing', 'onboarding'],
-    gradientFrom: '#10b981',
-    gradientTo: '#059669',
-    minPlan: 'gratuit',
-    description: 'Strategie marketing + onboarding guide',
-  },
-  {
-    name: 'Pack Pro — Reseaux Sociaux',
-    planLabel: 'Solo 49EUR',
-    price: '49 EUR/mois',
-    agentIds: ['content', 'seo', 'gmaps', 'dm_instagram', 'tiktok_comments', 'chatbot'],
+    name: 'Pack Createur',
+    planLabel: 'Createur 49\u20AC',
+    price: '49\u20AC/mois',
+    agentIds: ['marketing', 'onboarding', 'content', 'dm_instagram'],
     gradientFrom: '#8b5cf6',
     gradientTo: '#6d28d9',
-    minPlan: 'solo',
-    description: 'Publication auto, SEO, reseaux sociaux et chatbot',
+    minPlan: 'createur',
+    description: 'AMI basique + Lena + Jade + Clara — contenu & publication',
   },
   {
-    name: 'Pack Complet — Tout le Business',
-    planLabel: 'Fondateurs 149EUR',
-    price: '149 EUR/mois',
-    agentIds: ['commercial', 'email', 'ads', 'comptable', 'rh'],
-    gradientFrom: '#f59e0b',
-    gradientTo: '#d97706',
-    minPlan: 'fondateurs',
-    description: 'Prospection, emails, pub, finance, juridique — tout automatise',
+    name: 'Pack Pro',
+    planLabel: 'Pro 99\u20AC',
+    price: '99\u20AC/mois',
+    agentIds: ['email', 'ads', 'commercial', 'tiktok_comments'],
+    gradientFrom: '#3b82f6',
+    gradientTo: '#2563eb',
+    minPlan: 'pro',
+    description: 'Tout Createur + Hugo + Felix + Leo + Axel — croissance',
+  },
+  {
+    name: 'Pack Business',
+    planLabel: 'Business 199\u20AC',
+    price: '199\u20AC/mois',
+    agentIds: ['seo', 'rh', 'gmaps', 'chatbot', 'comptable'],
+    gradientFrom: '#0c1a3a',
+    gradientTo: '#1e3a5f',
+    minPlan: 'business',
+    description: 'Tout Pro + Oscar + Sara + Theo + Max + Louis + CRM',
   },
 ];
 
@@ -61,7 +61,7 @@ const SERVICE_TEAMS: ServiceTeam[] = [
   { name: 'Admin & Support', icon: '🏢', agentIds: ['comptable', 'rh', 'onboarding'], color: 'from-amber-500 to-orange-500' },
 ];
 
-const PLAN_ORDER = ['gratuit', 'sprint', 'solo', 'solo_promo', 'fondateurs', 'standard', 'business', 'elite'];
+const PLAN_ORDER = ['gratuit', 'sprint', 'solo', 'solo_promo', 'createur', 'pro', 'fondateurs', 'standard', 'business', 'elite'];
 
 interface AgentTeamsProps {
   agents: ClientAgent[];

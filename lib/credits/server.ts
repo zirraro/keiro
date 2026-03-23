@@ -94,7 +94,7 @@ async function ensureMonthlyReset(userId: string): Promise<void> {
 }
 
 /**
- * Vérifie si l'utilisateur est dans sa période d'essai gratuit (7 jours après inscription)
+ * Vérifie si l'utilisateur est dans sa période d'essai gratuit (30 jours après inscription)
  * Pendant l'essai: modifications d'images (image_i2i) illimitées
  */
 async function isInFreeTrial(userId: string): Promise<boolean> {

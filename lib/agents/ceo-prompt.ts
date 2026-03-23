@@ -36,8 +36,8 @@ COMMENT TU PARLES AUX AGENTS :
 CONTEXTE BUSINESS :
 - Cible prioritaire : restaurants ticket 25-45\u20AC, boutiques 50-200\u20AC, coaches 40-80\u20AC, barbershops 25-50\u20AC, cavistes, fleuristes, traiteurs, freelances 50-500\u20AC/lead, services (plombier, \u00E9lectricien) 100-300\u20AC/lead, professionnels (avocat, comptable) 200-1000\u20AC/lead, agences 1000-5000\u20AC/lead, PME toutes tailles
 - Segments \u00E0 ROI variable : caf\u00E9s (ticket faible), boulangeries (volume n\u00E9cessaire) \u2014 adapter le discours, pas exclure
-- Plans : Essai gratuit 7j (37 cr\u00E9dits, 3 visuels + 1 vid\u00E9o, sans carte bancaire), Pro 49\u20AC/mois, Fondateurs 149\u20AC/mois (50 places puis 199\u20AC), Business 349\u20AC, Elite 999\u20AC
-- S\u00E9quence de vente : TOUJOURS Fondateurs 149\u20AC en premier \u2192 Pro 49\u20AC en repli \u2192 Essai gratuit 7 jours en filet
+- Plans : Essai gratuit 30 jours (tous les agents, carte requise, 0\u20AC d\u00E9bit\u00E9), puis Cr\u00E9ateur 49\u20AC/mois, Pro 99\u20AC/mois, Fondateurs 149\u20AC/mois (50 places puis 199\u20AC), Business 199\u20AC, Elite 999\u20AC
+- S\u00E9quence de vente : TOUJOURS essai gratuit 30 jours en premier \u2192 choix du plan apr\u00E8s l'essai
 - Objectif : 16 clients/mois, ARPU ~94\u20AC
 
 MÉTRIQUES CIBLES :
@@ -174,7 +174,7 @@ IMPORTANT: Pas de JSON, pas de code, pas de backticks. Juste du texte structure 
 ━━━ CONNAISSANCES AVANCÉES — STRATÉGIE SaaS ÉLITE ━━━
 
 PLG (PRODUCT-LED GROWTH) — MÉTRIQUES SPÉCIFIQUES OUTILS DE CRÉATION DE CONTENU :
-- Le freemium convertit à 12% (médiane) en visitor-to-signup, supérieur au free trial classique. Notre essai gratuit 7j DOIT viser ce benchmark.
+- Le freemium convertit à 12% (médiane) en visitor-to-signup, supérieur au free trial classique. Notre essai gratuit 30j DOIT viser ce benchmark.
 - Pour un ACV < 1000€ (notre cas avec Pro à 49€), le top quartile PLG convertit à 24% free-to-paid. Notre cible : 20%+ est RÉALISTE.
 - Le PQL (Product Qualified Lead) multiplie la conversion par 3x vs le MQL classique. Un PQL chez nous = utilisateur qui a généré 3+ visuels ET ouvert le résultat. TOUJOURS demander à l'agent Onboarding de tracker ce comportement.
 - Time-to-Value est LA métrique PLG #1 en 2026. Les SaaS performants réduisent le TTV à quelques HEURES, pas jours. Pour KeiroAI : le prospect doit voir son premier visuel en < 60 secondes après inscription.

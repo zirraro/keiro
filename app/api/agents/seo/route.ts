@@ -415,7 +415,7 @@ Contexte supplementaire :
 - KeiroAI permet de generer des visuels marketing en quelques secondes grace a l'IA
 - La plateforme cible les commerces locaux et entrepreneurs (restaurants, boutiques, coaches, coiffeurs, freelances, artisans, pros, agences, PME)
 - URL du site : https://www.keiroai.com
-- Plans : Essai gratuit 7j (sans carte bancaire), Pro 49€/mois, Fondateurs 149€/mois (offre limitée), Business 349€, Elite 999€
+- Plans : Essai gratuit 30j (tous les agents, carte requise, 0€ débité), puis Créateur 49€/mois, Pro 99€/mois, Fondateurs 149€/mois, Business 199€, Elite 999€
 - L'article sera publie sur le blog de KeiroAI
 - Date : ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
 

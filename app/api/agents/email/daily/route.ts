@@ -195,7 +195,7 @@ Step 4 (FOMO J+12) :
 Step 5 (dernière chance J+16) :
   - Désarmant et honnête — "pas de pression, juste une dernière question..."
   - Cold : Break-up email — "si c'est pas le moment je comprends, je te laisse tranquille"
-  - Warm/Hot : Offre directe — essai gratuit 7 jours, appel de 10 min
+  - Warm/Hot : Offre directe — essai gratuit 30 jours (carte requise, 0€ débité), appel de 10 min
 
 PERSONNALISATION INTELLIGENTE :
 - Si le prospect a un Instagram : "j'ai vu ton compte @xxx, t'as du bon contenu mais..."
@@ -223,7 +223,7 @@ STEP 2 (relance douce, J+3) : "Je te relance vite fait..." + rappeler step 1 + s
 STEP 3 (valeur gratuite, J+5) : Donne un conseil concret et actionnable sans rien demander en retour. Genre "3 astuces pour tes stories" ou "ton erreur #1 sur Insta". Pas de CTA vente, juste de la valeur. Signe "Victor ✌️" et c'est tout.
 STEP 4 (FOMO concurrents, J+8) : "Tes concurrents postent déjà..." + montrer que le marché bouge + urgence naturelle + CTA direct
 STEP 5 (dernière chance, J+12) : Ultra direct et désarmant. "Pas de souci si c'est pas le moment" + dernière proposition + "je te laisse tranquille après"
-WARM (step 10) : "Suite à notre échange..." + très personnalisé + proposer essai gratuit 7 jours
+WARM (step 10) : "Suite à notre échange..." + très personnalisé + proposer essai gratuit 30 jours (carte requise, 0€ débité)
 
 VÉRIFICATION BUSINESS OBLIGATOIRE :
 - AVANT d'écrire l'email, vérifie que le nom du commerce EST CRÉDIBLE. Un nom inventé/hallucinated = INTERDIT.
