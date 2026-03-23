@@ -84,11 +84,14 @@ export default function AssistantPage() {
   const [streak, setStreak] = useState(0);
 
   // View tab (must be before any conditional returns)
-  const [viewTab, setViewTab] = useState<'dashboard' | 'equipe' | 'agent' | 'offre'>('dashboard');
+  const [viewTab, setViewTab] = useState<'equipe' | 'agent' | 'offre'>('equipe');
 
-  // Dashboard data
-  const [dashboardData, setDashboardData] = useState<any>(null);
-  const [dashboardLoading, setDashboardLoading] = useState(false);
+  // Dashboard summary data (all agents + CRM)
+  const [summary, setSummary] = useState<any>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+
+  // CRM expanded state
+  const [crmExpanded, setCrmExpanded] = useState(false);
 
   // ─── Auth check ─────────────────────────────────────────
   useEffect(() => {
@@ -161,22 +164,21 @@ export default function AssistantPage() {
     loadStreak();
   }, [user]);
 
-  // ─── Load dashboard data ───────────────────────────────
+  // ─── Load dashboard summary (all agents + CRM) ─────────
   useEffect(() => {
     if (!user) return;
-    async function loadDashboard() {
-      setDashboardLoading(true);
+    async function loadSummary() {
+      setSummaryLoading(true);
       try {
-        // Load global dashboard (marketing agent has global stats)
-        const res = await fetch('/api/agents/dashboard?agent_id=marketing', { credentials: 'include' });
+        const res = await fetch('/api/agents/dashboard/summary', { credentials: 'include' });
         if (res.ok) {
           const data = await res.json();
-          setDashboardData(data);
+          if (data.ok) setSummary(data);
         }
       } catch { /* silent */ }
-      setDashboardLoading(false);
+      setSummaryLoading(false);
     }
-    loadDashboard();
+    loadSummary();
   }, [user]);
 
   // ─── Load avatars from admin API ────────────────────────
@@ -436,7 +438,6 @@ export default function AssistantPage() {
           {/* Tabs */}
           <div className="flex items-center gap-1 bg-white/5 rounded-xl p-1 border border-white/10">
             {([
-              { key: 'dashboard' as const, label: 'Dashboard' },
               { key: 'equipe' as const, label: 'Par equipe' },
               { key: 'agent' as const, label: 'Par agent' },
               { key: 'offre' as const, label: 'Par offre' },
@@ -470,257 +471,258 @@ export default function AssistantPage() {
         {/* Dossier banner */}
         <DossierBanner profile={profile} claraAvatarUrl={claraAvatarUrl} />
 
-        {/* ═══ TAB: Dashboard ═══ */}
-        {viewTab === 'dashboard' && (
-          <div className="space-y-4">
-            {/* KPI Cards */}
-            {dashboardLoading ? (
-              <div className="flex items-center justify-center py-12">
+        {/* ═══ TAB: Par équipe (avec dashboards + CRM) ═══ */}
+        {viewTab === 'equipe' && (
+          <div className="space-y-5">
+            {summaryLoading && (
+              <div className="flex items-center justify-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400" />
               </div>
-            ) : (
-              <>
-                {/* Top KPI row */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                  {[
-                    {
-                      label: 'Prospects',
-                      value: dashboardData?.globalStats?.commercial?.totalProspects ?? 0,
-                      sub: `+${dashboardData?.globalStats?.commercial?.prospectsThisWeek ?? 0} cette semaine`,
-                      icon: '🎯',
-                      color: 'from-blue-600 to-cyan-600',
-                    },
-                    {
-                      label: 'Conversions',
-                      value: dashboardData?.globalStats?.commercial?.conversions ?? 0,
-                      sub: `${dashboardData?.globalStats?.commercial?.conversionRate ?? 0}% taux`,
-                      icon: '💰',
-                      color: 'from-green-600 to-emerald-600',
-                    },
-                    {
-                      label: 'Actions visibilite',
-                      value: dashboardData?.globalStats?.visibility?.totalActions ?? 0,
-                      sub: 'contenu, SEO, social',
-                      icon: '📱',
-                      color: 'from-purple-600 to-violet-600',
-                    },
-                    {
-                      label: 'Actions finance',
-                      value: dashboardData?.globalStats?.finance?.totalActions ?? 0,
-                      sub: 'pub, compta',
-                      icon: '🏦',
-                      color: 'from-amber-600 to-orange-600',
-                    },
-                  ].map((kpi) => (
-                    <div key={kpi.label} className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-lg">{kpi.icon}</span>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full bg-gradient-to-r ${kpi.color} text-white`}>
-                          {kpi.label}
-                        </span>
-                      </div>
-                      <div className="text-2xl font-bold text-white">{kpi.value}</div>
-                      <div className="text-[11px] text-white/40 mt-0.5">{kpi.sub}</div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* CRM Pipeline mini */}
-                {(dashboardData?.globalStats?.commercial?.totalProspects ?? 0) > 0 && (
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden">
-                    <div className="px-4 py-3 bg-gradient-to-r from-blue-600 to-cyan-600">
-                      <h3 className="text-white font-bold text-sm flex items-center gap-2">
-                        <span>📊</span> Pipeline CRM
-                      </h3>
-                    </div>
-                    <div className="p-4">
-                      <div className="flex items-end gap-1 h-24">
-                        {(() => {
-                          const pipeline = [
-                            { label: 'Prospect', count: dashboardData?.crmData?.pipeline?.identifie ?? dashboardData?.globalStats?.commercial?.totalProspects ?? 0, color: 'bg-slate-500' },
-                            { label: 'Contact', count: dashboardData?.crmData?.pipeline?.contacte ?? 0, color: 'bg-blue-500' },
-                            { label: 'Interet', count: dashboardData?.crmData?.pipeline?.interesse ?? 0, color: 'bg-cyan-500' },
-                            { label: 'Demo', count: dashboardData?.crmData?.pipeline?.demo ?? 0, color: 'bg-purple-500' },
-                            { label: 'Client', count: dashboardData?.globalStats?.commercial?.conversions ?? 0, color: 'bg-green-500' },
-                          ];
-                          const maxCount = Math.max(...pipeline.map(s => s.count), 1);
-                          return pipeline.map((stage) => (
-                            <div key={stage.label} className="flex-1 flex flex-col items-center gap-1">
-                              <span className="text-white text-xs font-bold">{stage.count}</span>
-                              <div
-                                className={`w-full rounded-t-md ${stage.color} transition-all`}
-                                style={{ height: `${Math.max((stage.count / maxCount) * 64, 4)}px` }}
-                              />
-                              <span className="text-white/40 text-[9px] text-center leading-tight">{stage.label}</span>
-                            </div>
-                          ));
-                        })()}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Team performance by domain */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                  {TEAMS.map((team) => {
-                    const teamAgents = team.agentIds
-                      .map(id => agents.find(a => a.id === id))
-                      .filter(Boolean) as ClientAgent[];
-
-                    return (
-                      <div key={team.name} className="rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden">
-                        <div className={`px-4 py-2.5 bg-gradient-to-r ${team.color}`}>
-                          <h3 className="text-white font-bold text-xs flex items-center gap-2">
-                            <span>{team.icon}</span> {team.name}
-                            <span className="ml-auto text-white/70 text-[10px]">{teamAgents.length} agents</span>
-                          </h3>
-                        </div>
-                        <div className="p-3 space-y-2">
-                          {teamAgents.map((agent) => (
-                            <button
-                              key={agent.id}
-                              onClick={() => { setViewTab('agent'); handleSelectAgent(agent); }}
-                              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg bg-white/[0.04] hover:bg-white/[0.1] transition-all text-left"
-                            >
-                              <div
-                                className="w-8 h-8 rounded-full flex-shrink-0"
-                                style={{ background: `linear-gradient(135deg, ${agent.gradientFrom}, ${agent.gradientTo})`, padding: '2px' }}
-                              >
-                                <div className="w-full h-full rounded-full overflow-hidden bg-gray-900 flex items-center justify-center">
-                                  {avatars[agent.id] ? (
-                                    <img src={avatars[agent.id]!} alt={agent.displayName} className="w-full h-full object-cover scale-[1.15]" style={{ objectPosition: 'center 15%' }} />
-                                  ) : (
-                                    <span className="text-sm">{agent.icon}</span>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <div className="text-white font-semibold text-xs">{agent.displayName}</div>
-                                <div className="text-gray-400 text-[10px] truncate">{agent.title}</div>
-                              </div>
-                              <div className="flex items-center gap-1.5">
-                                <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
-                                <span className="text-green-400/70 text-[9px]">actif</span>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* AI Recommendation */}
-                {dashboardData?.globalStats?.recommendation && (
-                  <div className="rounded-xl border border-purple-500/30 bg-purple-500/10 p-4">
-                    <div className="flex items-start gap-3">
-                      <span className="text-lg">🧠</span>
-                      <div>
-                        <div className="text-purple-300 text-xs font-bold mb-1">Recommandation IA</div>
-                        <p className="text-white/70 text-sm">{dashboardData.globalStats.recommendation}</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Recent team activity */}
-                {(dashboardData?.globalStats?.teamActivity?.length ?? 0) > 0 && (
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden">
-                    <div className="px-4 py-3 border-b border-white/10">
-                      <h3 className="text-white font-bold text-sm flex items-center gap-2">
-                        <span>⚡</span> Activite recente
-                      </h3>
-                    </div>
-                    <div className="divide-y divide-white/5">
-                      {(dashboardData.globalStats.teamActivity as Array<{ id: string; agent: string; action: string; result: any; created_at: string }>).map((activity) => {
-                        const agentInfo = agents.find(a => a.id === activity.agent);
-                        return (
-                          <div key={activity.id} className="px-4 py-2.5 flex items-center gap-3">
-                            <div
-                              className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-xs"
-                              style={{ background: agentInfo ? `linear-gradient(135deg, ${agentInfo.gradientFrom}, ${agentInfo.gradientTo})` : '#4B5563' }}
-                            >
-                              {agentInfo?.icon || '🤖'}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <span className="text-white text-xs font-medium">{agentInfo?.displayName || activity.agent}</span>
-                              <span className="text-white/40 text-xs ml-2">{activity.action}</span>
-                            </div>
-                            <span className="text-white/30 text-[10px] flex-shrink-0">
-                              {new Date(activity.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* Empty state */}
-                {!dashboardData?.globalStats && (
-                  <div className="text-center py-12">
-                    <div className="text-4xl mb-3">📊</div>
-                    <h3 className="text-white font-bold text-lg mb-1">Dashboard de votre equipe</h3>
-                    <p className="text-white/50 text-sm max-w-md mx-auto">
-                      Vos agents sont prets a travailler. Commencez par echanger avec eux pour voir les resultats ici.
-                    </p>
-                  </div>
-                )}
-              </>
             )}
-          </div>
-        )}
 
-        {/* ═══ TAB: Par équipe ═══ */}
-        {viewTab === 'equipe' && (
-          <div className="space-y-4">
             {TEAMS.map((team) => {
               const teamAgents = team.agentIds
                 .map(id => agents.find(a => a.id === id))
                 .filter(Boolean) as ClientAgent[];
+              const teamKey = team.name === 'Commercial' ? 'commercial'
+                : team.name === 'Visibilite' ? 'visibilite'
+                : team.name === 'Finance & Admin' ? 'finance' : 'strategie';
+              const teamStats = summary?.teams?.[teamKey];
+              const isCommercial = team.name === 'Commercial';
 
               return (
                 <div key={team.name} className="rounded-2xl border border-white/15 bg-white/[0.03] overflow-hidden">
-                  {/* Team header */}
+                  {/* ── Team header with KPIs ── */}
                   <div className={`px-4 py-3 bg-gradient-to-r ${team.color}`}>
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mb-1">
                       <h3 className="text-white font-bold text-sm flex items-center gap-2">
                         <span>{team.icon}</span> {team.name}
                       </h3>
                       <span className="text-white/70 text-[10px]">{team.description}</span>
                     </div>
+                    {/* Team KPIs inline */}
+                    {teamStats && (
+                      <div className="flex items-center gap-3 mt-1.5">
+                        <span className="text-white/90 text-[11px] font-medium">{teamStats.totalActions ?? 0} actions</span>
+                        {isCommercial && (
+                          <>
+                            <span className="text-white/50 text-[10px]">|</span>
+                            <span className="text-white/90 text-[11px]">{teamStats.prospects ?? 0} prospects</span>
+                            <span className="text-white/50 text-[10px]">|</span>
+                            <span className="text-emerald-200 text-[11px] font-bold">{teamStats.clients ?? 0} clients ({teamStats.conversionRate ?? 0}%)</span>
+                          </>
+                        )}
+                        {teamKey === 'visibilite' && (
+                          <>
+                            <span className="text-white/50 text-[10px]">|</span>
+                            <span className="text-white/90 text-[11px]">{teamStats.contentPublished ?? 0} publiés</span>
+                            <span className="text-white/50 text-[10px]">|</span>
+                            <span className="text-white/90 text-[11px]">{teamStats.seoArticles ?? 0} articles SEO</span>
+                          </>
+                        )}
+                        {teamKey === 'finance' && teamStats.adSpend > 0 && (
+                          <>
+                            <span className="text-white/50 text-[10px]">|</span>
+                            <span className="text-white/90 text-[11px]">{teamStats.adSpend}€ dépensés</span>
+                          </>
+                        )}
+                        {teamKey === 'strategie' && (
+                          <>
+                            <span className="text-white/50 text-[10px]">|</span>
+                            <span className="text-white/90 text-[11px]">Dossier {teamStats.dossierScore ?? 0}%</span>
+                            <span className="text-white/50 text-[10px]">|</span>
+                            <span className="text-white/90 text-[11px]">{teamStats.agentsDiscovered ?? 0} agents actifs</span>
+                          </>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  {/* Team agents */}
-                  <div className="p-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-                    {teamAgents.map((agent) => (
-                      <button
-                        key={agent.id}
-                        onClick={() => handleSelectAgent(agent)}
-                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.1] transition-all text-left"
-                      >
-                        <div
-                          className="w-10 h-10 rounded-full flex-shrink-0"
-                          style={{ background: `linear-gradient(135deg, ${agent.gradientFrom}, ${agent.gradientTo})`, padding: '2px' }}
+
+                  {/* ── Agent cards with mini dashboards ── */}
+                  <div className="p-3 space-y-2">
+                    {teamAgents.map((agent) => {
+                      const agentStats = summary?.agents?.[agent.id];
+                      return (
+                        <button
+                          key={agent.id}
+                          onClick={() => handleSelectAgent(agent)}
+                          className="w-full rounded-xl bg-white/[0.04] hover:bg-white/[0.08] transition-all text-left overflow-hidden"
                         >
-                          <div className="w-full h-full rounded-full overflow-hidden bg-gray-900 flex items-center justify-center">
-                            {avatars[agent.id] ? (
-                              <img src={avatars[agent.id]!} alt={agent.displayName} className="w-full h-full object-cover scale-[1.15]" style={{ objectPosition: 'center 15%' }} />
-                            ) : (
-                              <span className="text-base">{agent.icon}</span>
-                            )}
+                          <div className="flex items-center gap-3 px-3 py-2.5">
+                            <div
+                              className="w-10 h-10 rounded-full flex-shrink-0"
+                              style={{ background: `linear-gradient(135deg, ${agent.gradientFrom}, ${agent.gradientTo})`, padding: '2px' }}
+                            >
+                              <div className="w-full h-full rounded-full overflow-hidden bg-gray-900 flex items-center justify-center">
+                                {avatars[agent.id] ? (
+                                  <img src={avatars[agent.id]!} alt={agent.displayName} className="w-full h-full object-cover scale-[1.15]" style={{ objectPosition: 'center 15%' }} />
+                                ) : (
+                                  <span className="text-base">{agent.icon}</span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="text-white font-semibold text-xs">{agent.displayName}</div>
+                              <div className="text-gray-400 text-[10px] truncate">{agent.title}</div>
+                            </div>
+                            <div className="w-2 h-2 rounded-full flex-shrink-0 bg-green-400" />
                           </div>
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="text-white font-semibold text-xs">{agent.displayName}</div>
-                          <div className="text-gray-400 text-[10px] truncate">{agent.title}</div>
-                        </div>
-                        <div className="w-2 h-2 rounded-full flex-shrink-0 bg-green-400" />
-                      </button>
-                    ))}
+                          {/* Mini dashboard metrics */}
+                          {agentStats?.metrics && agentStats.metrics.length > 0 && (
+                            <div className="px-3 pb-2.5 flex items-center gap-3 flex-wrap">
+                              {(agentStats.metrics as Array<{ label: string; value: string | number; icon: string }>).map((m, i) => (
+                                <div key={i} className="flex items-center gap-1">
+                                  <span className="text-[10px]">{m.icon}</span>
+                                  <span className="text-white/80 text-[10px] font-bold">{m.value}</span>
+                                  <span className="text-white/30 text-[9px]">{m.label}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
+
+                  {/* ── CRM Panel (Commercial team only) ── */}
+                  {isCommercial && summary?.crm && (
+                    <div className="border-t border-white/10">
+                      <button
+                        onClick={() => setCrmExpanded(!crmExpanded)}
+                        className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-white/[0.03] transition-colors"
+                      >
+                        <span className="text-white font-bold text-xs flex items-center gap-2">
+                          <span>📊</span> CRM Pipeline
+                          <span className="text-white/40 font-normal">— {summary.crm.total} prospects, {summary.crm.clients} clients</span>
+                        </span>
+                        <svg className={`w-4 h-4 text-white/40 transition-transform ${crmExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+
+                      {crmExpanded && (
+                        <div className="px-4 pb-4 space-y-4">
+                          {/* Pipeline bar chart */}
+                          <div>
+                            <div className="flex items-end gap-1.5 h-20">
+                              {(() => {
+                                const stages = [
+                                  { key: 'identifie', label: 'Identifie', color: 'bg-slate-500' },
+                                  { key: 'contacte', label: 'Contacte', color: 'bg-blue-500' },
+                                  { key: 'interesse', label: 'Interesse', color: 'bg-cyan-500' },
+                                  { key: 'demo', label: 'Demo', color: 'bg-purple-500' },
+                                  { key: 'sprint', label: 'Trial', color: 'bg-amber-500' },
+                                  { key: 'client', label: 'Client', color: 'bg-green-500' },
+                                ];
+                                const pip = summary.crm.pipeline || {};
+                                const maxVal = Math.max(...stages.map(s => pip[s.key] || 0), 1);
+                                return stages.map(stage => {
+                                  const count = pip[stage.key] || 0;
+                                  return (
+                                    <div key={stage.key} className="flex-1 flex flex-col items-center gap-0.5">
+                                      <span className="text-white text-[10px] font-bold">{count}</span>
+                                      <div
+                                        className={`w-full rounded-t ${stage.color}`}
+                                        style={{ height: `${Math.max((count / maxVal) * 52, 3)}px` }}
+                                      />
+                                      <span className="text-white/30 text-[8px] text-center leading-tight">{stage.label}</span>
+                                    </div>
+                                  );
+                                });
+                              })()}
+                            </div>
+                          </div>
+
+                          {/* Temperature breakdown */}
+                          <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-2 h-2 rounded-full bg-red-500" />
+                              <span className="text-white/60 text-[10px]">{summary.crm.temperature?.hot ?? 0} chauds</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-2 h-2 rounded-full bg-amber-500" />
+                              <span className="text-white/60 text-[10px]">{summary.crm.temperature?.warm ?? 0} tiedes</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-2 h-2 rounded-full bg-blue-400" />
+                              <span className="text-white/60 text-[10px]">{summary.crm.temperature?.cold ?? 0} froids</span>
+                            </div>
+                            <span className="ml-auto text-green-400 text-[10px] font-bold">{summary.crm.conversionRate}% conversion</span>
+                          </div>
+
+                          {/* Recent prospects */}
+                          {summary.crm.recentProspects?.length > 0 && (
+                            <div>
+                              <div className="text-white/40 text-[10px] font-bold uppercase tracking-wider mb-1.5">Derniers prospects</div>
+                              <div className="space-y-1">
+                                {(summary.crm.recentProspects as Array<{ company: string; status: string; temperature: string; created_at: string }>).map((p, i) => (
+                                  <div key={i} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-white/[0.03]">
+                                    <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                                      p.temperature === 'hot' ? 'bg-red-500' : p.temperature === 'warm' ? 'bg-amber-500' : 'bg-blue-400'
+                                    }`} />
+                                    <span className="text-white text-[11px] font-medium flex-1 truncate">{p.company}</span>
+                                    <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${
+                                      p.status === 'client' ? 'bg-green-500/20 text-green-400'
+                                      : p.status === 'sprint' ? 'bg-amber-500/20 text-amber-400'
+                                      : p.status === 'contacte' ? 'bg-blue-500/20 text-blue-400'
+                                      : 'bg-white/10 text-white/40'
+                                    }`}>{p.status}</span>
+                                    <span className="text-white/20 text-[9px]">
+                                      {new Date(p.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Link to full CRM */}
+                          {isAdmin && (
+                            <button
+                              onClick={() => router.push('/admin/crm')}
+                              className="w-full py-2 text-center text-[11px] text-purple-400 hover:text-purple-300 font-medium transition-colors"
+                            >
+                              Voir le CRM complet →
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}
+
+            {/* Activity feed */}
+            {summary?.activityFeed?.length > 0 && (
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden">
+                <div className="px-4 py-2.5 border-b border-white/10">
+                  <h3 className="text-white font-bold text-xs flex items-center gap-2">
+                    <span>⚡</span> Activite recente de l&apos;equipe
+                  </h3>
+                </div>
+                <div className="divide-y divide-white/5">
+                  {(summary.activityFeed as Array<{ agent: string; action: string; date: string }>).map((a, i) => {
+                    const agentInfo = agents.find(ag => ag.id === a.agent);
+                    return (
+                      <div key={i} className="px-4 py-2 flex items-center gap-2.5">
+                        <div
+                          className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-[10px]"
+                          style={{ background: agentInfo ? `linear-gradient(135deg, ${agentInfo.gradientFrom}, ${agentInfo.gradientTo})` : '#4B5563' }}
+                        >
+                          {agentInfo?.icon || '🤖'}
+                        </div>
+                        <span className="text-white text-[11px] font-medium">{agentInfo?.displayName || a.agent}</span>
+                        <span className="text-white/30 text-[10px] flex-1 truncate">{a.action}</span>
+                        <span className="text-white/20 text-[9px] flex-shrink-0">
+                          {new Date(a.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
