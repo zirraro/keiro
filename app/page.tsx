@@ -402,57 +402,205 @@ function HomeKeiroInner() {
         <div className="absolute top-0 left-0 right-0 h-24 bg-[#0B1120]" style={{ clipPath: 'ellipse(70% 100% at 50% 0%)' }} />
       </div>
 
-      {/* AGENTS IA — AUTOMATISATION (pas juste du chat) */}
-      <section className="section-light section-divider">
-        <div className="mx-auto max-w-6xl px-6 py-12">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-xs font-semibold mb-3">
-              <span className="h-2 w-2 rounded-full bg-purple-500 animate-pulse"></span>
-              15 agents IA specialises
+      {/* AGENTS IA — PAR OBJECTIF BUSINESS */}
+      <section className="relative bg-[#0c1a3a] overflow-hidden">
+        {/* Subtle grid background */}
+        <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '40px 40px' }} />
+        <div className="relative mx-auto max-w-6xl px-6 py-16">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-300 text-xs font-semibold mb-4">
+              <span className="h-2 w-2 rounded-full bg-purple-400 animate-pulse" />
+              {locale === 'fr' ? '17 agents IA ultra-elite' : '17 ultra-elite AI agents'}
             </div>
-            <h2 className="text-2xl sm:text-3xl font-bold">{locale === 'fr' ? 'Vos agents IA automatisent votre business' : 'Your AI agents automate your business'}</h2>
-            <p className="mt-2 text-neutral-600 max-w-2xl mx-auto">
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-3">
+              {locale === 'fr' ? 'Une equipe complete qui travaille pour vous' : 'A complete team working for you'}
+            </h2>
+            <p className="text-white/50 max-w-2xl mx-auto">
               {locale === 'fr'
-                ? 'Pas un chatbot de plus. Vos agents executent les taches a votre place : publication, prospection, SEO, emails, comptabilite — automatiquement, 24/7.'
-                : 'Not just another chatbot. Your agents execute tasks for you: publishing, prospecting, SEO, emails, accounting — automatically, 24/7.'}
+                ? 'Chaque equipe a un objectif clair. Vos agents executent, apprennent et s\'ameliorent automatiquement — 24/7.'
+                : 'Each team has a clear objective. Your agents execute, learn, and improve automatically — 24/7.'}
             </p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-8">
-            {[
-              { icon: '🎯', name: 'Ami', role: locale === 'fr' ? 'Strategie marketing' : 'Marketing strategy', color: 'from-pink-500 to-rose-500' },
-              { icon: '✨', name: 'Lena', role: locale === 'fr' ? 'Publication auto' : 'Auto publishing', color: 'from-purple-500 to-violet-600' },
-              { icon: '🔍', name: 'Oscar', role: locale === 'fr' ? 'SEO & articles' : 'SEO & articles', color: 'from-amber-500 to-orange-500' },
-              { icon: '📬', name: 'Hugo', role: locale === 'fr' ? 'Emails auto' : 'Auto emails', color: 'from-cyan-500 to-blue-500' },
-              { icon: '🤝', name: 'Leo', role: locale === 'fr' ? 'Prospection CRM' : 'CRM prospecting', color: 'from-blue-500 to-indigo-500' },
-              { icon: '📍', name: 'Theo', role: locale === 'fr' ? 'Google Maps' : 'Google Maps', color: 'from-green-500 to-emerald-500' },
-              { icon: '💬', name: 'Jade', role: locale === 'fr' ? 'DMs Instagram' : 'Instagram DMs', color: 'from-rose-500 to-pink-600' },
-              { icon: '🎵', name: 'Axel', role: locale === 'fr' ? 'TikTok engage.' : 'TikTok engage.', color: 'from-gray-700 to-gray-900' },
-              { icon: '🤖', name: 'Max', role: locale === 'fr' ? 'Chatbot 24/7' : 'Chatbot 24/7', color: 'from-violet-500 to-purple-600' },
-              { icon: '📢', name: 'Felix', role: locale === 'fr' ? 'Pub auto' : 'Auto ads', color: 'from-red-500 to-orange-500' },
-            ].map((agent) => (
-                <div key={agent.name} className={`bg-gradient-to-br ${agent.color} rounded-xl p-3 text-white text-center hover:scale-105 transition-transform cursor-default`}>
-                  <div className="text-2xl mb-1">{agent.icon}</div>
-                  <div className="font-bold text-sm">{agent.name}</div>
-                  <div className="text-white/70 text-[10px]">{agent.role}</div>
+          {/* Teams grid — by business objective */}
+          <div className="grid md:grid-cols-2 gap-5 mb-10">
+            {/* TEAM 1: Vendre plus */}
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-sm overflow-hidden hover:border-blue-500/30 transition-all group">
+              <div className="bg-gradient-to-r from-blue-600 to-cyan-500 px-5 py-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-white font-bold text-lg">{locale === 'fr' ? 'Vendre plus' : 'Sell more'}</h3>
+                    <p className="text-white/70 text-xs">{locale === 'fr' ? 'Prospection, emails, DMs, chatbot, WhatsApp' : 'Prospecting, emails, DMs, chatbot, WhatsApp'}</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-white font-bold text-2xl">5</div>
+                    <div className="text-white/60 text-[10px]">agents</div>
+                  </div>
                 </div>
-            ))}
+              </div>
+              <div className="p-4">
+                <div className="grid grid-cols-3 gap-2 mb-3">
+                  {[
+                    { icon: '\uD83E\uDD1D', name: 'Leo', role: locale === 'fr' ? 'Prospection CRM' : 'CRM Prospecting' },
+                    { icon: '\uD83D\uDCE7', name: 'Hugo', role: locale === 'fr' ? 'Emails auto' : 'Auto emails' },
+                    { icon: '\uD83D\uDCAC', name: 'Jade', role: 'DMs Instagram' },
+                    { icon: '\uD83D\uDCF2', name: 'Stella', role: 'WhatsApp' },
+                    { icon: '\uD83E\uDD16', name: 'Max', role: 'Chatbot 24/7' },
+                  ].map(a => (
+                    <div key={a.name} className="flex items-center gap-2 bg-white/5 rounded-lg px-2.5 py-2">
+                      <span className="text-base">{a.icon}</span>
+                      <div className="min-w-0"><div className="text-white text-xs font-semibold">{a.name}</div><div className="text-white/30 text-[9px] truncate">{a.role}</div></div>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center gap-3 text-[10px]">
+                  <span className="text-blue-400 font-semibold">{locale === 'fr' ? 'Resultat' : 'Result'}</span>
+                  <span className="text-white/40">{locale === 'fr' ? 'Prospects qualifies \u2192 Emails auto \u2192 Relances \u2192 Conversion client' : 'Qualified leads \u2192 Auto emails \u2192 Follow-ups \u2192 Client conversion'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* TEAM 2: Etre visible */}
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-sm overflow-hidden hover:border-purple-500/30 transition-all group">
+              <div className="bg-gradient-to-r from-purple-600 to-violet-500 px-5 py-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-white font-bold text-lg">{locale === 'fr' ? 'Etre visible partout' : 'Be visible everywhere'}</h3>
+                    <p className="text-white/70 text-xs">{locale === 'fr' ? 'Contenu, SEO, TikTok, Google Maps, Pub' : 'Content, SEO, TikTok, Google Maps, Ads'}</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-white font-bold text-2xl">5</div>
+                    <div className="text-white/60 text-[10px]">agents</div>
+                  </div>
+                </div>
+              </div>
+              <div className="p-4">
+                <div className="grid grid-cols-3 gap-2 mb-3">
+                  {[
+                    { icon: '\u2728', name: 'Lena', role: locale === 'fr' ? 'Publication auto' : 'Auto-publish' },
+                    { icon: '\uD83D\uDD0D', name: 'Oscar', role: locale === 'fr' ? 'SEO & articles' : 'SEO & articles' },
+                    { icon: '\uD83C\uDFB5', name: 'Axel', role: 'TikTok' },
+                    { icon: '\uD83D\uDCCD', name: 'Theo', role: 'Google Maps' },
+                    { icon: '\uD83D\uDCE2', name: 'Felix', role: locale === 'fr' ? 'Pub & acquisition' : 'Ads & acquisition' },
+                  ].map(a => (
+                    <div key={a.name} className="flex items-center gap-2 bg-white/5 rounded-lg px-2.5 py-2">
+                      <span className="text-base">{a.icon}</span>
+                      <div className="min-w-0"><div className="text-white text-xs font-semibold">{a.name}</div><div className="text-white/30 text-[9px] truncate">{a.role}</div></div>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center gap-3 text-[10px]">
+                  <span className="text-purple-400 font-semibold">{locale === 'fr' ? 'Resultat' : 'Result'}</span>
+                  <span className="text-white/40">{locale === 'fr' ? '3 posts/jour + SEO + avis Google + pub = visibilite maximale' : '3 posts/day + SEO + Google reviews + ads = max visibility'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* TEAM 3: Gerer l'admin */}
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-sm overflow-hidden hover:border-amber-500/30 transition-all group">
+              <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-5 py-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-white font-bold text-lg">{locale === 'fr' ? 'Zero paperasse' : 'Zero paperwork'}</h3>
+                    <p className="text-white/70 text-xs">{locale === 'fr' ? 'Comptabilite, RH, juridique, onboarding' : 'Accounting, HR, legal, onboarding'}</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-white font-bold text-2xl">3</div>
+                    <div className="text-white/60 text-[10px]">agents</div>
+                  </div>
+                </div>
+              </div>
+              <div className="p-4">
+                <div className="grid grid-cols-3 gap-2 mb-3">
+                  {[
+                    { icon: '\uD83D\uDCB0', name: 'Louis', role: locale === 'fr' ? 'Finance & compta' : 'Finance' },
+                    { icon: '\u2696\uFE0F', name: 'Sara', role: locale === 'fr' ? 'RH & juridique' : 'HR & legal' },
+                    { icon: '\uD83D\uDE80', name: 'Clara', role: locale === 'fr' ? 'Onboarding' : 'Onboarding' },
+                  ].map(a => (
+                    <div key={a.name} className="flex items-center gap-2 bg-white/5 rounded-lg px-2.5 py-2">
+                      <span className="text-base">{a.icon}</span>
+                      <div className="min-w-0"><div className="text-white text-xs font-semibold">{a.name}</div><div className="text-white/30 text-[9px] truncate">{a.role}</div></div>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center gap-3 text-[10px]">
+                  <span className="text-amber-400 font-semibold">{locale === 'fr' ? 'Resultat' : 'Result'}</span>
+                  <span className="text-white/40">{locale === 'fr' ? 'Tresorerie suivie, contrats generes, espace configure' : 'Cash flow tracked, contracts generated, space configured'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* TEAM 4: Piloter — Noah + Ami en vedette */}
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-sm overflow-hidden hover:border-pink-500/30 transition-all group">
+              <div className="bg-gradient-to-r from-pink-500 to-rose-500 px-5 py-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-white font-bold text-lg">{locale === 'fr' ? 'Pilotage & strategie' : 'Strategy & management'}</h3>
+                    <p className="text-white/70 text-xs">{locale === 'fr' ? 'Direction globale, marketing, retention, amelioration continue' : 'Global direction, marketing, retention, improvement'}</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-white font-bold text-2xl">4</div>
+                    <div className="text-white/60 text-[10px]">agents</div>
+                  </div>
+                </div>
+              </div>
+              <div className="p-4">
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  {[
+                    { icon: '\uD83E\uDDE0', name: 'Noah', role: locale === 'fr' ? 'CEO IA \u2014 pilote la strategie globale de l\'entreprise' : 'AI CEO \u2014 drives global business strategy' },
+                    { icon: '\uD83C\uDFAF', name: 'Ami', role: locale === 'fr' ? 'Directrice marketing \u2014 coordonne tous les agents' : 'Marketing director \u2014 coordinates all agents' },
+                    { icon: '\uD83D\uDD04', name: 'Theo R.', role: locale === 'fr' ? 'Retention \u2014 garde vos clients actifs' : 'Retention \u2014 keeps clients active' },
+                    { icon: '\u2699\uFE0F', name: 'Ops', role: locale === 'fr' ? 'Diagnostic \u2014 sante du systeme 24/7' : 'Diagnostic \u2014 system health 24/7' },
+                  ].map(a => (
+                    <div key={a.name} className="flex items-center gap-2 bg-white/5 rounded-lg px-2.5 py-2">
+                      <span className="text-base">{a.icon}</span>
+                      <div className="min-w-0"><div className="text-white text-xs font-semibold">{a.name}</div><div className="text-white/30 text-[9px] truncate">{a.role}</div></div>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center gap-3 text-[10px]">
+                  <span className="text-pink-400 font-semibold">{locale === 'fr' ? 'Resultat' : 'Result'}</span>
+                  <span className="text-white/40">{locale === 'fr' ? 'Intelligence collective : les agents apprennent et s\'ameliorent a chaque action' : 'Collective intelligence: agents learn and improve with every action'}</span>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-2xl border border-purple-200 p-6 text-center">
-            <p className="text-sm text-neutral-700 mb-1 font-semibold">
-              {locale === 'fr'
-                ? '🚀 ChatGPT repond a vos questions. Nos agents executent vos taches.'
-                : '🚀 ChatGPT answers questions. Our agents execute tasks.'}
-            </p>
-            <p className="text-xs text-neutral-500 mb-4">
-              {locale === 'fr'
-                ? 'Publication, prospection, SEO, emails, comptabilite — tout tourne en automatique pendant que vous gerez votre business.'
-                : 'Publishing, prospecting, SEO, emails, accounting — everything runs automatically while you manage your business.'}
-            </p>
-            <a href="/assistant" className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all text-sm">
-              {locale === 'fr' ? 'Decouvrir vos agents IA' : 'Discover your AI agents'} →
-            </a>
+          {/* Differentiator bar */}
+          <div className="rounded-2xl border border-purple-500/20 bg-gradient-to-r from-purple-600/10 to-blue-600/10 backdrop-blur-sm p-6">
+            <div className="flex flex-col md:flex-row items-center gap-6 md:gap-10">
+              <div className="flex items-center gap-8 flex-wrap justify-center">
+                <div className="text-center">
+                  <div className="text-white font-bold text-3xl">17</div>
+                  <div className="text-white/40 text-[10px] uppercase tracking-wider">{locale === 'fr' ? 'Agents IA' : 'AI Agents'}</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-white font-bold text-3xl">24/7</div>
+                  <div className="text-white/40 text-[10px] uppercase tracking-wider">{locale === 'fr' ? 'Actifs' : 'Active'}</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-white font-bold text-3xl">2500+</div>
+                  <div className="text-white/40 text-[10px] uppercase tracking-wider">{locale === 'fr' ? 'Apprentissages' : 'Learnings'}</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-white font-bold text-3xl">10h</div>
+                  <div className="text-white/40 text-[10px] uppercase tracking-wider">{locale === 'fr' ? 'Gagnees/sem' : 'Saved/week'}</div>
+                </div>
+              </div>
+              <div className="flex-1 text-center md:text-left">
+                <p className="text-white font-semibold text-sm mb-1">
+                  {locale === 'fr' ? 'Pas un chatbot. Une equipe qui execute.' : 'Not a chatbot. A team that executes.'}
+                </p>
+                <p className="text-white/40 text-xs mb-3">
+                  {locale === 'fr'
+                    ? 'Vos agents publient, prospectent, relancent, optimisent — pendant que vous gerez votre business.'
+                    : 'Your agents publish, prospect, follow-up, optimize — while you run your business.'}
+                </p>
+                <a href="/assistant" className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-purple-500/30 transition-all text-sm">
+                  {locale === 'fr' ? 'Decouvrir vos agents IA' : 'Discover your AI agents'} →
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       </section>
