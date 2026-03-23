@@ -309,7 +309,7 @@ export default function DossierPage() {
   // ─── Loading ──────────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0c1a3a] flex items-center justify-center">
+      <div className="min-h-screen bg-[#0c1a3a] pt-16 flex items-center justify-center">
         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-400" />
       </div>
     );
@@ -318,7 +318,7 @@ export default function DossierPage() {
   // ─── Not logged in ────────────────────────────────────
   if (!user) {
     return (
-      <div className="min-h-screen bg-[#0c1a3a] flex items-center justify-center px-4">
+      <div className="min-h-screen bg-[#0c1a3a] pt-16 flex items-center justify-center px-4">
         <div className="text-center max-w-sm">
           <h1 className="text-white font-bold text-xl mb-2">Dossier Business</h1>
           <p className="text-white/60 text-sm mb-6">Connectez-vous pour remplir votre dossier business.</p>
@@ -331,7 +331,7 @@ export default function DossierPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0c1a3a] pb-24 lg:pb-8">
+    <div className="min-h-screen bg-[#0c1a3a] pt-16 pb-24 lg:pb-8">
       <div className="max-w-2xl mx-auto px-4 py-6">
 
         {/* Header */}

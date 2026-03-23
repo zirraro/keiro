@@ -410,7 +410,7 @@ export default function AssistantPage() {
   // ─── Loading state ────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0c1a3a] flex items-center justify-center">
+      <div className="min-h-screen bg-[#0c1a3a] pt-16 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-400 mx-auto mb-4" />
           <p className="text-white/60 text-sm">Chargement de votre espace de travail...</p>
@@ -422,7 +422,7 @@ export default function AssistantPage() {
   // ─── Not logged in ────────────────────────────────────
   if (!user) {
     return (
-      <div className="min-h-screen bg-[#0c1a3a] flex items-center justify-center px-4">
+      <div className="min-h-screen bg-[#0c1a3a] pt-16 flex items-center justify-center px-4">
         <div className="text-center max-w-sm">
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center mx-auto mb-4">
             <span className="text-3xl">{'\uD83E\uDD16'}</span>
@@ -446,7 +446,7 @@ export default function AssistantPage() {
 
   // ─── Main workspace layout ────────────────────────────
   return (
-    <div className="min-h-screen bg-[#0c1a3a]">
+    <div className="min-h-screen bg-[#0c1a3a] pt-16">
       <div className="max-w-7xl mx-auto px-4 py-6 pb-24 lg:pb-8">
 
         {/* ═══ WORKSPACE HEADER ═══ */}
