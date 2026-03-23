@@ -70,6 +70,83 @@ function useIsMobile(): boolean {
   return isMobile;
 }
 
+// ─── Agent-specific suggestions ──────────────────────────────
+
+function getAgentSuggestions(agentId: string): string[] {
+  const suggestions: Record<string, string[]> = {
+    marketing: [
+      'Analyse mes KPIs et recommande des actions',
+      'Quel agent dois-je activer en priorite ?',
+      'Cree-moi un plan marketing ce mois-ci',
+    ],
+    commercial: [
+      'Montre-moi mes prospects chauds a relancer',
+      'Lance une campagne de prospection',
+      'Analyse mon taux de conversion pipeline',
+    ],
+    email: [
+      'Lance une sequence email pour mes prospects froids',
+      'Redige une newsletter pour cette semaine',
+      'Analyse les taux d\'ouverture de mes campagnes',
+    ],
+    content: [
+      'Genere mon calendrier editorial de la semaine',
+      'Propose 5 idees de posts Instagram',
+      'Redige une legende engageante pour mon dernier visuel',
+    ],
+    seo: [
+      'Analyse le SEO de mon site et donne-moi un score',
+      'Redige un article blog optimise pour mon secteur',
+      'Quels mots-cles cibler en priorite ?',
+    ],
+    ads: [
+      'Cree une campagne Meta Ads pour mon offre',
+      'Analyse mes performances publicitaires',
+      'Optimise mon budget ads pour un meilleur ROAS',
+    ],
+    comptable: [
+      'Fais un point sur ma tresorerie du mois',
+      'Alerte-moi sur les factures en retard',
+      'Genere une prevision financiere a 3 mois',
+    ],
+    rh: [
+      'Genere un contrat de prestation',
+      'Verifie ma conformite RGPD',
+      'Quelles obligations legales dois-je respecter ?',
+    ],
+    onboarding: [
+      'Guide-moi pour configurer mon espace',
+      'Quels agents activer pour mon business ?',
+      'Aide-moi a remplir mon dossier entreprise',
+    ],
+    dm_instagram: [
+      'Lance une campagne de DMs sur mes derniers followers',
+      'Propose-moi des messages d\'approche',
+      'Analyse mes taux de reponse DM',
+    ],
+    tiktok_comments: [
+      'Engage ma communaute sur mes dernieres videos',
+      'Propose des commentaires strategiques a poster',
+      'Analyse l\'engagement de mon profil TikTok',
+    ],
+    gmaps: [
+      'Analyse ma fiche Google Maps et note',
+      'Reponds aux derniers avis clients',
+      'Comment ameliorer ma visibilite locale ?',
+    ],
+    chatbot: [
+      'Montre-moi les leads captures aujourd\'hui',
+      'Analyse le taux de conversion du chatbot',
+      'Optimise mes reponses automatiques',
+    ],
+  };
+  return suggestions[agentId] || [
+    'Que peux-tu faire pour moi ?',
+    'Analyse mes performances',
+    'Propose-moi une strategie',
+  ];
+}
+
 // ─── Markdown-like renderer ────────────────────────────────
 
 function renderContent(content: string) {
@@ -706,7 +783,7 @@ export default function AgentWorkspacePage() {
 
   // ─── Render ──────────────────────────────────────────────
   return (
-    <div className="fixed inset-0 bg-[#0c1a3a] flex overflow-hidden" style={{ height: '100dvh' }}>
+    <div className="fixed inset-0 bg-[#0c1a3a] flex overflow-hidden z-[45]" style={{ height: '100dvh' }}>
       {/* Mobile sidebar overlay */}
       {isMobile && sidebarOpen && (
         <div
@@ -856,11 +933,7 @@ export default function AgentWorkspacePage() {
                 {agent?.description || `Posez vos questions et ${agentDisplayName} vous accompagnera.`}
               </p>
               <div className="mt-4 flex flex-wrap gap-2 justify-center max-w-lg">
-                {[
-                  `Que peux-tu faire pour moi ?`,
-                  `Analyse mes performances`,
-                  `Propose-moi une strategie`,
-                ].map((suggestion) => (
+                {getAgentSuggestions(agentId).map((suggestion) => (
                   <button
                     key={suggestion}
                     onClick={() => {
