@@ -352,15 +352,50 @@ export default function AssistantPage() {
     );
   }
 
+  // ─── View tab ──────────────────────────────────────────
+  const [viewTab, setViewTab] = useState<'equipe' | 'agent' | 'offre'>('equipe');
+
+  // Team definitions aligned with CRM architecture
+  const TEAMS = [
+    {
+      name: 'Commercial',
+      icon: '💼',
+      color: 'from-blue-500 to-cyan-500',
+      description: 'Prospection, emails, DMs, chatbot',
+      agentIds: ['commercial', 'email', 'dm_instagram', 'chatbot'],
+    },
+    {
+      name: 'Visibilite',
+      icon: '📱',
+      color: 'from-purple-500 to-violet-600',
+      description: 'Contenu, SEO, TikTok, Google Maps',
+      agentIds: ['content', 'seo', 'tiktok_comments', 'gmaps'],
+    },
+    {
+      name: 'Finance & Admin',
+      icon: '🏦',
+      color: 'from-amber-500 to-orange-500',
+      description: 'Compta, RH, publicite',
+      agentIds: ['comptable', 'rh', 'ads'],
+    },
+    {
+      name: 'Strategie',
+      icon: '🧠',
+      color: 'from-pink-500 to-rose-500',
+      description: 'Direction marketing & onboarding',
+      agentIds: ['marketing', 'onboarding'],
+    },
+  ];
+
   // ─── Main layout ────────────────────────────────────────
   return (
     <div className="min-h-screen bg-[#0c1a3a]">
       <div className="max-w-7xl mx-auto px-4 py-6 pb-24 lg:pb-8">
 
-        {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center gap-3">
-            <h1 className="text-white font-bold text-2xl lg:text-3xl mb-1">
+        {/* Header + Tabs */}
+        <div className="mb-4">
+          <div className="flex items-center gap-3 mb-1">
+            <h1 className="text-white font-bold text-2xl lg:text-3xl">
               Votre Equipe IA
             </h1>
             {isAdmin && (
@@ -369,19 +404,39 @@ export default function AssistantPage() {
               </span>
             )}
           </div>
-          <p className="text-white/50 text-sm">
+          <p className="text-white/50 text-sm mb-3">
             {COMING_SOON_MODE
               ? `${agents.length} agents IA qui automatisent votre business`
               : `${agents.filter(a => a.visibility === 'active').length} agents actifs — automatisation & intelligence`
             }
           </p>
 
-          {/* Publishing streak — Duolingo-style */}
+          {/* Tabs: Par équipe / Par agent / Par offre */}
+          <div className="flex items-center gap-1 bg-white/5 rounded-xl p-1 border border-white/10">
+            {([
+              { key: 'equipe' as const, label: 'Par equipe' },
+              { key: 'agent' as const, label: 'Par agent' },
+              { key: 'offre' as const, label: 'Par offre' },
+            ]).map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setViewTab(tab.key)}
+                className={`flex-1 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+                  viewTab === tab.key
+                    ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md'
+                    : 'text-white/50 hover:text-white/70 hover:bg-white/5'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Publishing streak */}
           {streak > 0 && !COMING_SOON_MODE && (
             <div className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-orange-500/20 to-amber-500/20 border border-orange-500/30 rounded-full">
               <span className="text-base">🔥</span>
               <span className="text-orange-300 text-xs font-bold">{streak} jour{streak > 1 ? 's' : ''} consecutif{streak > 1 ? 's' : ''}</span>
-              {streak >= 7 && <span className="text-amber-400 text-[10px]">Serie en feu!</span>}
             </div>
           )}
         </div>
@@ -389,164 +444,110 @@ export default function AssistantPage() {
         {/* Coming soon banner */}
         {COMING_SOON_MODE && <ComingSoonBanner />}
 
-        {/* Dossier banner (always shown — users can pre-fill their data) */}
+        {/* Dossier banner */}
         <DossierBanner profile={profile} claraAvatarUrl={claraAvatarUrl} />
 
-        {/* No toggle — both grid and teams shown together */}
+        {/* ═══ TAB: Par équipe ═══ */}
+        {viewTab === 'equipe' && (
+          <div className="space-y-4">
+            {TEAMS.map((team) => {
+              const teamAgents = team.agentIds
+                .map(id => agents.find(a => a.id === id))
+                .filter(Boolean) as ClientAgent[];
 
-        {/* AMI Dashboard — Star Agent */}
-        {agents.length > 0 && agents[0]?.id === 'marketing' && (
-          <div className="mb-6">
-            <div
-              className="rounded-2xl overflow-hidden border border-white/15"
-              style={{ background: 'linear-gradient(145deg, #ec4899, #f43f5e)' }}
-            >
-              <div className="p-4 lg:p-5">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-12 h-12 rounded-xl overflow-hidden bg-white/15 flex items-center justify-center flex-shrink-0">
-                    {avatars['marketing'] ? (
-                      <img src={avatars['marketing']} alt="Ami" className="w-full h-full object-cover" style={{ objectPosition: 'top center' }} />
-                    ) : (
-                      <span className="text-2xl">{agents[0].icon}</span>
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <h2 className="text-white font-bold text-lg">Ami — Directrice Strategie Marketing</h2>
-                    <p className="text-white/70 text-xs">Analyse, recommande et optimise — coordonne vos agents operationnels</p>
-                  </div>
-                  <button
-                    onClick={() => handleSelectAgent(agents[0])}
-                    className="hidden lg:flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 text-white text-sm font-semibold rounded-xl transition-all"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-                    Parler a Ami
-                  </button>
-                </div>
-
-                {/* Stats grid */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-3">
-                  <div className="bg-white/10 rounded-xl p-3 border border-white/10">
-                    <div className="text-white/60 text-[10px] font-medium uppercase">Cette semaine</div>
-                    <div className="text-white font-bold text-xl">{amiStats?.postsThisWeek ?? 0}</div>
-                    <div className="text-white/50 text-[10px]">posts publies</div>
-                  </div>
-                  <div className="bg-white/10 rounded-xl p-3 border border-white/10">
-                    <div className="text-white/60 text-[10px] font-medium uppercase">Engagement</div>
-                    <div className="text-white font-bold text-xl">+{amiStats?.avgEngagement ?? 0}</div>
-                    <div className="text-white/50 text-[10px]">vues moyennes</div>
-                  </div>
-                  <div className="bg-white/10 rounded-xl p-3 border border-white/10">
-                    <div className="text-white/60 text-[10px] font-medium uppercase">Progression</div>
-                    <div className={`font-bold text-xl ${(amiStats?.improvement ?? 0) >= 0 ? 'text-green-300' : 'text-red-300'}`}>
-                      {(amiStats?.improvement ?? 0) >= 0 ? '+' : ''}{amiStats?.improvement ?? 0}%
+              return (
+                <div key={team.name} className="rounded-2xl border border-white/15 bg-white/[0.03] overflow-hidden">
+                  {/* Team header */}
+                  <div className={`px-4 py-3 bg-gradient-to-r ${team.color}`}>
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-white font-bold text-sm flex items-center gap-2">
+                        <span>{team.icon}</span> {team.name}
+                      </h3>
+                      <span className="text-white/70 text-[10px]">{team.description}</span>
                     </div>
-                    <div className="text-white/50 text-[10px]">vs semaine prec.</div>
                   </div>
-                  <div className="bg-white/10 rounded-xl p-3 border border-white/10">
-                    <div className="text-white/60 text-[10px] font-medium uppercase">Top categorie</div>
-                    <div className="text-white font-bold text-sm truncate">{amiStats?.topCategory ?? '—'}</div>
-                    <div className="text-white/50 text-[10px]">{amiStats?.totalPosts ?? 0} posts total</div>
-                  </div>
-                </div>
-
-                {/* Mini sparkline */}
-                {amiChartData?.engagementTrend && amiChartData.engagementTrend.length > 0 && (
-                  <div className="mt-3 bg-white/10 rounded-xl p-3 border border-white/10">
-                    <div className="text-white/60 text-[10px] font-medium uppercase mb-2">Tendance 30 jours</div>
-                    <svg viewBox="0 0 300 50" className="w-full h-10" preserveAspectRatio="none">
-                      <defs>
-                        <linearGradient id="amiGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="rgba(255,255,255,0.3)" />
-                          <stop offset="100%" stopColor="rgba(255,255,255,0)" />
-                        </linearGradient>
-                      </defs>
-                      {(() => {
-                        const data = amiChartData.engagementTrend;
-                        const maxVal = Math.max(...data.map(d => d.engagement), 1);
-                        const points = data.map((d, i) => {
-                          const x = (i / (data.length - 1)) * 300;
-                          const y = 48 - (d.engagement / maxVal) * 44;
-                          return `${x},${y}`;
-                        }).join(' ');
-                        const areaPoints = points + ` 300,50 0,50`;
-                        return (
-                          <>
-                            <polygon points={areaPoints} fill="url(#amiGrad)" />
-                            <polyline points={points} fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                          </>
-                        );
-                      })()}
-                    </svg>
-                  </div>
-                )}
-
-                {/* What AMI does — AUTOMATION focus */}
-                <div className="mt-3 grid grid-cols-2 lg:grid-cols-4 gap-2 text-[11px]">
-                  <div className="flex items-center gap-1.5 text-white/70">
-                    <span className="text-white/50">📊</span> Analyse performance
-                  </div>
-                  <div className="flex items-center gap-1.5 text-white/70">
-                    <span className="text-white/50">🎯</span> Recommandations
-                  </div>
-                  <div className="flex items-center gap-1.5 text-white/70">
-                    <span className="text-white/50">⚡</span> Optimisation campagnes
-                  </div>
-                  <div className="flex items-center gap-1.5 text-white/70">
-                    <span className="text-white/50">🧠</span> Coordination agents
+                  {/* Team agents */}
+                  <div className="p-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                    {teamAgents.map((agent) => (
+                      <button
+                        key={agent.id}
+                        onClick={() => handleSelectAgent(agent)}
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.1] transition-all text-left"
+                      >
+                        <div
+                          className="w-10 h-10 rounded-full flex-shrink-0"
+                          style={{ background: `linear-gradient(135deg, ${agent.gradientFrom}, ${agent.gradientTo})`, padding: '2px' }}
+                        >
+                          <div className="w-full h-full rounded-full overflow-hidden bg-gray-900 flex items-center justify-center">
+                            {avatars[agent.id] ? (
+                              <img src={avatars[agent.id]!} alt={agent.displayName} className="w-full h-full object-cover scale-[1.15]" style={{ objectPosition: 'center 15%' }} />
+                            ) : (
+                              <span className="text-base">{agent.icon}</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-white font-semibold text-xs">{agent.displayName}</div>
+                          <div className="text-gray-400 text-[10px] truncate">{agent.title}</div>
+                        </div>
+                        <div className="w-2 h-2 rounded-full flex-shrink-0 bg-green-400" />
+                      </button>
+                    ))}
                   </div>
                 </div>
-              </div>
-            </div>
+              );
+            })}
           </div>
         )}
 
-        {/* Agent grid + chat side panel */}
-        <div className="flex gap-6">
-          {/* Agent grid */}
-          <div className={`${selectedAgent && !isMobile ? 'w-1/2' : 'w-full'} transition-all duration-300`}>
-            <div className={`grid ${selectedAgent && !isMobile ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-2 lg:grid-cols-3'} gap-3`}>
-              {agents.map((agent) => (
-                <AgentCard
-                  key={agent.id}
-                  agent={agent}
-                  avatarUrl={avatars[agent.id] || null}
-                  isSelected={selectedAgent?.id === agent.id}
-                  onClick={() => handleSelectAgent(agent)}
-                  comingSoonMode={COMING_SOON_MODE}
-                  onNotifyClick={() => {
-                    if (COMING_SOON_MODE) {
-                      setShowNotifyModal(true);
-                    }
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Desktop chat panel */}
-          {selectedAgent && !isMobile && (
-            <div className="w-1/2">
-              <div className="sticky top-6">
-                <AgentChatPanel
-                  agent={selectedAgent}
-                  avatarUrl={avatars[selectedAgent.id] || null}
-                  messages={messages}
-                  onSendMessage={handleSendMessage}
-                  isLoading={chatLoading}
-                  onBack={handleBack}
-                  isMobile={false}
-                  comingSoonMode={COMING_SOON_MODE}
-                />
+        {/* ═══ TAB: Par agent ═══ */}
+        {viewTab === 'agent' && (
+          <div className="flex gap-6">
+            {/* Agent grid */}
+            <div className={`${selectedAgent && !isMobile ? 'w-1/2' : 'w-full'} transition-all duration-300`}>
+              <div className={`grid ${selectedAgent && !isMobile ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-2 lg:grid-cols-3'} gap-3`}>
+                {agents.map((agent) => (
+                  <AgentCard
+                    key={agent.id}
+                    agent={agent}
+                    avatarUrl={avatars[agent.id] || null}
+                    isSelected={selectedAgent?.id === agent.id}
+                    onClick={() => handleSelectAgent(agent)}
+                    comingSoonMode={COMING_SOON_MODE}
+                    onNotifyClick={() => {
+                      if (COMING_SOON_MODE) {
+                        setShowNotifyModal(true);
+                      }
+                    }}
+                  />
+                ))}
               </div>
             </div>
-          )}
-        </div>
 
-        {/* Packs & Teams section — shown below agent grid */}
-        <div className="mt-8">
-          <h2 className="text-white font-bold text-lg mb-4">Packs & Equipes</h2>
+            {/* Desktop chat panel */}
+            {selectedAgent && !isMobile && (
+              <div className="w-1/2">
+                <div className="sticky top-6">
+                  <AgentChatPanel
+                    agent={selectedAgent}
+                    avatarUrl={avatars[selectedAgent.id] || null}
+                    messages={messages}
+                    onSendMessage={handleSendMessage}
+                    isLoading={chatLoading}
+                    onBack={handleBack}
+                    isMobile={false}
+                    comingSoonMode={COMING_SOON_MODE}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ═══ TAB: Par offre ═══ */}
+        {viewTab === 'offre' && (
           <AgentTeams agents={agents} userPlan={userPlan} avatars={avatars} />
-        </div>
+        )}
       </div>
 
       {/* Notify modal */}
