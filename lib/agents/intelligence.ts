@@ -11,6 +11,7 @@
 
 import { SupabaseClient } from '@supabase/supabase-js';
 import { saveLearning } from './learning';
+import { fetchAllTrends } from '../trends';
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -70,29 +71,58 @@ interface Prediction {
   deadline: string;
 }
 
-// ─── Google Trends ──────────────────────────────────────────
+// ─── Trends (uses existing lib/trends system) ──────────────
 
-async function fetchTrends(country: string = 'FR'): Promise<TrendData[]> {
-  // Google Trends doesn't have an official API
-  // Use SerpAPI or fallback to curated trending topics
+async function fetchTrendsData(): Promise<{ trends: TrendData[]; news: NewsItem[] }> {
   try {
-    const SERP_KEY = process.env.SERPAPI_KEY;
-    if (SERP_KEY) {
-      const res = await fetch(`https://serpapi.com/search.json?engine=google_trends_trending_now&geo=${country}&api_key=${SERP_KEY}`);
-      if (res.ok) {
-        const data = await res.json();
-        return (data.trending_searches || []).slice(0, 10).map((t: any) => ({
-          keyword: t.query || t.title,
-          region: country,
-          interest: t.traffic ? parseInt(t.traffic.replace(/[^0-9]/g, '')) : 50,
-          rising: true,
-        }));
-      }
-    }
-  } catch { /* silent */ }
+    const data = await fetchAllTrends(false, 'fr');
 
-  // Fallback: return empty (agents will use their existing knowledge)
-  return [];
+    const trends: TrendData[] = [
+      // Google Trends
+      ...data.googleTrends.slice(0, 8).map(t => ({
+        keyword: t.title,
+        region: 'FR',
+        interest: 80,
+        rising: true,
+      })),
+      // Instagram hashtags
+      ...data.instagramHashtags.slice(0, 5).map((h: any) => ({
+        keyword: `#${h.tag || h.name || h}`,
+        region: 'FR',
+        interest: 70,
+        rising: true,
+      })),
+      // TikTok hashtags
+      ...data.tiktokRealHashtags.slice(0, 5).map((h: any) => ({
+        keyword: `#${h.tag || h.hashtag_name || h}`,
+        region: 'FR',
+        interest: 75,
+        rising: true,
+      })),
+    ];
+
+    // Convert social trends to news items
+    const news: NewsItem[] = [
+      ...(data.instagramTrends || []).slice(0, 3).map((t: any) => ({
+        title: t.title || t.description || '',
+        source: 'Instagram Trends',
+        url: t.link || '',
+        publishedAt: t.pubDate || new Date().toISOString(),
+        relevance: 0.8,
+      })),
+      ...(data.linkedinTrends || []).slice(0, 2).map((t: any) => ({
+        title: t.title || t.description || '',
+        source: 'LinkedIn Trends',
+        url: t.link || '',
+        publishedAt: t.pubDate || new Date().toISOString(),
+        relevance: 0.7,
+      })),
+    ];
+
+    return { trends, news };
+  } catch {
+    return { trends: [], news: [] };
+  }
 }
 
 // ─── Weather API (OpenWeather) ──────────────────────────────
@@ -196,21 +226,57 @@ function getUpcomingEvents(): CalendarEvent[] {
 
   const events: CalendarEvent[] = [];
 
-  // Commercial events (France)
-  const commercialCalendar: Array<{ name: string; month: number; day?: number; range?: [number, number]; type: CalendarEvent['type'] }> = [
-    { name: 'Soldes d\'hiver', month: 1, range: [10, 31], type: 'commercial' },
-    { name: 'Saint-Valentin', month: 2, day: 14, type: 'commercial' },
-    { name: 'Journee de la femme', month: 3, day: 8, type: 'commercial' },
-    { name: 'Paques', month: 4, range: [1, 20], type: 'holiday' },
-    { name: 'Fete des meres', month: 5, range: [25, 31], type: 'commercial' },
-    { name: 'Fete des peres', month: 6, range: [15, 21], type: 'commercial' },
-    { name: 'Soldes d\'ete', month: 6, range: [25, 30], type: 'commercial' },
-    { name: 'French Days', month: 9, range: [25, 30], type: 'commercial' },
-    { name: 'Halloween', month: 10, day: 31, type: 'commercial' },
-    { name: 'Black Friday', month: 11, range: [20, 30], type: 'commercial' },
-    { name: 'Cyber Monday', month: 12, day: 2, type: 'commercial' },
-    { name: 'Noel', month: 12, range: [1, 25], type: 'commercial' },
-    { name: 'Nouvel An', month: 12, range: [26, 31], type: 'commercial' },
+  // Complete commercial + holiday calendar (France)
+  const commercialCalendar: Array<{ name: string; month: number; day?: number; range?: [number, number]; type: CalendarEvent['type']; action?: string }> = [
+    // Janvier
+    { name: 'Nouvel An', month: 1, day: 1, type: 'holiday', action: 'Post voeux + offre nouveau depart' },
+    { name: 'Soldes d\'hiver', month: 1, range: [10, 31], type: 'commercial', action: 'Campagne promo + emails soldes + pubs geolocalisees' },
+    { name: 'Galette des rois', month: 1, range: [1, 15], type: 'seasonal', action: 'Contenu gourmand pour restaurants/boulangers' },
+    // Fevrier
+    { name: 'Chandeleur', month: 2, day: 2, type: 'seasonal', action: 'Contenu crepes/gourmandise' },
+    { name: 'Saint-Valentin', month: 2, day: 14, type: 'commercial', action: 'Campagne offres duo/couple, emailing romantique, pubs ciblees' },
+    { name: 'Vacances fevrier', month: 2, range: [15, 28], type: 'holiday', action: 'Contenu detente/loisirs' },
+    // Mars
+    { name: 'Journee de la femme', month: 3, day: 8, type: 'commercial', action: 'Offres speciales femmes, contenu empowerment' },
+    { name: 'Printemps (equinoxe)', month: 3, day: 20, type: 'seasonal', action: 'Renouveau visuel, contenus frais/nature' },
+    { name: 'French Days printemps', month: 3, range: [25, 31], type: 'commercial', action: 'Promos flash 4 jours, emails urgence' },
+    // Avril
+    { name: 'Poisson d\'avril', month: 4, day: 1, type: 'seasonal', action: 'Post humoristique/engagement' },
+    { name: 'Paques', month: 4, range: [10, 21], type: 'commercial', action: 'Offres chocolat/cadeaux, jeux concours' },
+    { name: 'Vacances Paques', month: 4, range: [12, 28], type: 'holiday', action: 'Contenu famille/loisirs' },
+    // Mai
+    { name: 'Fete du travail', month: 5, day: 1, type: 'holiday', action: 'Post repos/bien-etre' },
+    { name: 'Victoire 1945', month: 5, day: 8, type: 'holiday' },
+    { name: 'Ascension', month: 5, range: [28, 30], type: 'holiday', action: 'Pont = weekend long, contenu voyage/sortie' },
+    { name: 'Fete des meres', month: 5, range: [25, 31], type: 'commercial', action: 'Campagne cadeaux maman, emailing, pubs Instagram' },
+    // Juin
+    { name: 'Fete des peres', month: 6, range: [15, 21], type: 'commercial', action: 'Campagne cadeaux papa' },
+    { name: 'Fete de la musique', month: 6, day: 21, type: 'event', action: 'Contenu musical, stories live, engagement' },
+    { name: 'Soldes d\'ete', month: 6, range: [25, 30], type: 'commercial', action: 'Campagne soldes ete, promos, emails' },
+    // Juillet
+    { name: 'Fete nationale', month: 7, day: 14, type: 'holiday', action: 'Post patriotique/festif, offres tricolores' },
+    { name: 'Vacances ete', month: 7, range: [1, 31], type: 'seasonal', action: 'Contenu ete/terrasse/vacances, horaires adaptes' },
+    // Aout
+    { name: 'Assomption', month: 8, day: 15, type: 'holiday' },
+    { name: 'Pre-rentree', month: 8, range: [20, 31], type: 'seasonal', action: 'Teasing rentree, preparation campagnes septembre' },
+    // Septembre
+    { name: 'Rentree', month: 9, range: [1, 10], type: 'seasonal', action: 'Campagne nouveau depart, offres rentree, relance clients inactifs' },
+    { name: 'Journees du patrimoine', month: 9, range: [16, 18], type: 'event', action: 'Contenu local/heritage' },
+    { name: 'French Days automne', month: 9, range: [25, 30], type: 'commercial', action: 'Promos flash, emails urgence' },
+    // Octobre
+    { name: 'Octobre rose', month: 10, range: [1, 31], type: 'event', action: 'Contenu solidaire, engagement cause' },
+    { name: 'Vacances Toussaint', month: 10, range: [19, 31], type: 'holiday' },
+    { name: 'Halloween', month: 10, day: 31, type: 'commercial', action: 'Contenu fun/effrayant, offres speciales, jeux' },
+    // Novembre
+    { name: 'Toussaint', month: 11, day: 1, type: 'holiday' },
+    { name: 'Armistice', month: 11, day: 11, type: 'holiday' },
+    { name: 'Singles Day', month: 11, day: 11, type: 'commercial', action: 'Promos solo, offres e-commerce' },
+    { name: 'Black Friday', month: 11, range: [22, 29], type: 'commercial', action: 'MEGA campagne: contenu J-14, emails teasing, pubs, countdown, offres flash' },
+    { name: 'Cyber Monday', month: 11, day: 30, type: 'commercial', action: 'Prolongation Black Friday en ligne' },
+    // Decembre
+    { name: 'Calendrier Avent', month: 12, range: [1, 24], type: 'commercial', action: 'Offre du jour, contenu quotidien, engagement stories' },
+    { name: 'Noel', month: 12, day: 25, type: 'commercial', action: 'Campagne cadeaux J-21, emailing, pubs ciblees, contenu festif' },
+    { name: 'Saint-Sylvestre', month: 12, day: 31, type: 'commercial', action: 'Retrospective annee, voeux, offres nouvel an' },
   ];
 
   for (const evt of commercialCalendar) {
@@ -218,10 +284,11 @@ function getUpcomingEvents(): CalendarEvent[] {
     if (daysUntil >= 0 && daysUntil <= 21) { // 3 weeks ahead
       events.push({
         name: evt.name,
-        date: `dans ${daysUntil} jours`,
+        date: daysUntil === 0 ? 'aujourd\'hui' : `dans ${daysUntil} jours`,
         type: evt.type,
-        relevance: daysUntil <= 7 ? 0.95 : daysUntil <= 14 ? 0.7 : 0.5,
-      });
+        relevance: daysUntil <= 3 ? 0.98 : daysUntil <= 7 ? 0.95 : daysUntil <= 14 ? 0.7 : 0.5,
+        ...(evt.action ? { action: evt.action } : {}),
+      } as any);
     }
   }
 
@@ -250,14 +317,15 @@ async function generatePredictions(
 ): Promise<Prediction[]> {
   const predictions: Prediction[] = [];
 
-  // Event-based predictions
+  // Event-based predictions with specific actions
   for (const evt of events) {
-    if (evt.relevance >= 0.7 && evt.type === 'commercial') {
+    if (evt.relevance >= 0.5) {
+      const action = (evt as any).action || `Preparer campagne ${evt.name}`;
       predictions.push({
-        type: 'commercial_event',
-        description: `${evt.name} approche (${evt.date}). Preparer campagne: contenu thematique + email sequence + budget pub.`,
+        type: evt.type === 'commercial' ? 'commercial_event' : evt.type === 'seasonal' ? 'seasonal' : 'calendar_event',
+        description: `${evt.name} (${evt.date}) — ${action}`,
         confidence: evt.relevance,
-        action_suggested: `Lena: calendrier contenu ${evt.name}. Hugo: sequence email. Felix: budget pub.`,
+        action_suggested: action,
         agent: 'ceo',
         deadline: evt.date,
       });
@@ -349,12 +417,15 @@ export async function loadRealTimeIntelligence(
   const dayOfWeek = now.getUTCDay();
   const hourUtc = now.getUTCHours();
 
-  // Parallel fetch all intelligence sources
-  const [trends, weather, news] = await Promise.all([
-    fetchTrends('FR').catch(() => [] as TrendData[]),
+  // Parallel fetch all intelligence sources (uses existing trends system + APIs)
+  const [trendsData, weather, externalNews] = await Promise.all([
+    fetchTrendsData().catch(() => ({ trends: [] as TrendData[], news: [] as NewsItem[] })),
     fetchWeather(clientCity || 'Paris').catch(() => null),
     fetchNews('marketing digital entrepreneur').catch(() => [] as NewsItem[]),
   ]);
+
+  const trends = trendsData.trends;
+  const news = [...trendsData.news, ...externalNews].slice(0, 8);
 
   const timing = calculateTimingRecommendation(dayOfWeek, hourUtc);
   const events = getUpcomingEvents();
@@ -381,9 +452,12 @@ export function formatIntelligenceForPrompt(intel: RealTimeIntelligence): string
     }
   }
 
-  // Events
+  // Events with actions
   if (intel.events.length > 0) {
-    text += `\nEVENEMENTS: ${intel.events.map(e => `${e.name} (${e.date}, pertinence ${Math.round(e.relevance * 100)}%)`).join(' | ')}`;
+    text += '\nCALENDRIER:';
+    for (const e of intel.events.slice(0, 6)) {
+      text += `\n- ${e.name} (${e.date}, ${Math.round(e.relevance * 100)}%)${(e as any).action ? ` → ${(e as any).action}` : ''}`;
+    }
   }
 
   // Trends
