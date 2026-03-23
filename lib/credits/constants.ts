@@ -121,7 +121,7 @@ export const PROMO_CODE_CREDITS = 750;
 export const SIGNUP_BONUS_CREDITS = 49;
 
 // Durée de l'essai gratuit en jours
-export const FREE_TRIAL_DAYS = 30;
+export const FREE_TRIAL_DAYS = 14;
 
 // Limite mode gratuit (avant inscription)
 export const FREE_MONTHLY_LIMIT = 1; // 1 visuel gratuit sans compte, puis popup

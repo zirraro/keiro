@@ -36,8 +36,8 @@ COMMENT TU PARLES AUX AGENTS :
 CONTEXTE BUSINESS :
 - Cible prioritaire : restaurants ticket 25-45\u20AC, boutiques 50-200\u20AC, coaches 40-80\u20AC, barbershops 25-50\u20AC, cavistes, fleuristes, traiteurs, freelances 50-500\u20AC/lead, services (plombier, \u00E9lectricien) 100-300\u20AC/lead, professionnels (avocat, comptable) 200-1000\u20AC/lead, agences 1000-5000\u20AC/lead, PME toutes tailles
 - Segments \u00E0 ROI variable : caf\u00E9s (ticket faible), boulangeries (volume n\u00E9cessaire) \u2014 adapter le discours, pas exclure
-- Plans : Essai gratuit 30 jours (tous les agents, carte requise, 0\u20AC d\u00E9bit\u00E9), puis Cr\u00E9ateur 49\u20AC/mois, Pro 99\u20AC/mois, Fondateurs 149\u20AC/mois (50 places puis 199\u20AC), Business 199\u20AC, Elite 999\u20AC
-- S\u00E9quence de vente : TOUJOURS essai gratuit 30 jours en premier \u2192 choix du plan apr\u00E8s l'essai
+- Plans : Essai gratuit 14 jours (tous les agents, carte requise, 0\u20AC d\u00E9bit\u00E9), puis Cr\u00E9ateur 49\u20AC/mois, Pro 99\u20AC/mois, Fondateurs 149\u20AC/mois (50 places puis 199\u20AC), Business 199\u20AC, Elite 999\u20AC
+- S\u00E9quence de vente : TOUJOURS essai gratuit 14 jours en premier \u2192 choix du plan apr\u00E8s l'essai
 - Objectif : 16 clients/mois, ARPU ~94\u20AC
 
 MÉTRIQUES CIBLES :
@@ -193,7 +193,7 @@ PSYCHOLOGIE DE PRICING — MARCHÉ FRANÇAIS :
 - La TVA à 20% en France rend les prix TTC psychologiquement plus lourds. 49€ HT = 58.80€ TTC. Toujours communiquer en HT pour le B2B (notre cible), en TTC pour les freelances.
 - Le discount annuel le plus efficace : 16.7% (= 2 mois offerts). Notre plan annuel devrait offrir exactement 2 mois gratuits, pas plus (sinon perception de faible valeur).
 - Defaulter sur le billing annuel augmente l'adoption annuelle de 19%. Sur la page pricing, l'onglet "Annuel" doit être PRÉ-SÉLECTIONNÉ.
-- Une garantie satisfait-ou-remboursé sur l'annuel augmente la conversion de 34%. Proposer "30 jours satisfait ou remboursé" sur Fondateurs annuel.
+- Une garantie satisfait-ou-remboursé sur l'annuel augmente la conversion de 34%. Proposer "14 jours satisfait ou remboursé" sur Fondateurs annuel.
 - Le meilleur moment pour proposer l'upgrade annuel : JUSTE après l'inscription, dans la "première flush d'enthousiasme". L'agent Onboarding doit proposer l'annuel dans le premier email de bienvenue.
 - Charm pricing (49€ vs 50€) fonctionne toujours. 149€ bat 150€ de 8-12% en conversion. Nos prix actuels (49, 149, 349, 999) sont BIEN calibrés.
 

@@ -84,7 +84,11 @@ export default function AssistantPage() {
   const [streak, setStreak] = useState(0);
 
   // View tab (must be before any conditional returns)
-  const [viewTab, setViewTab] = useState<'equipe' | 'agent' | 'offre'>('equipe');
+  const [viewTab, setViewTab] = useState<'dashboard' | 'equipe' | 'agent' | 'offre'>('dashboard');
+
+  // Dashboard data
+  const [dashboardData, setDashboardData] = useState<any>(null);
+  const [dashboardLoading, setDashboardLoading] = useState(false);
 
   // ─── Auth check ─────────────────────────────────────────
   useEffect(() => {
@@ -155,6 +159,24 @@ export default function AssistantPage() {
       } catch { /* silent */ }
     }
     loadStreak();
+  }, [user]);
+
+  // ─── Load dashboard data ───────────────────────────────
+  useEffect(() => {
+    if (!user) return;
+    async function loadDashboard() {
+      setDashboardLoading(true);
+      try {
+        // Load global dashboard (marketing agent has global stats)
+        const res = await fetch('/api/agents/dashboard?agent_id=marketing', { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          setDashboardData(data);
+        }
+      } catch { /* silent */ }
+      setDashboardLoading(false);
+    }
+    loadDashboard();
   }, [user]);
 
   // ─── Load avatars from admin API ────────────────────────
@@ -411,9 +433,10 @@ export default function AssistantPage() {
             }
           </p>
 
-          {/* Tabs: Par équipe / Par agent / Par offre */}
+          {/* Tabs */}
           <div className="flex items-center gap-1 bg-white/5 rounded-xl p-1 border border-white/10">
             {([
+              { key: 'dashboard' as const, label: 'Dashboard' },
               { key: 'equipe' as const, label: 'Par equipe' },
               { key: 'agent' as const, label: 'Par agent' },
               { key: 'offre' as const, label: 'Par offre' },
@@ -446,6 +469,207 @@ export default function AssistantPage() {
 
         {/* Dossier banner */}
         <DossierBanner profile={profile} claraAvatarUrl={claraAvatarUrl} />
+
+        {/* ═══ TAB: Dashboard ═══ */}
+        {viewTab === 'dashboard' && (
+          <div className="space-y-4">
+            {/* KPI Cards */}
+            {dashboardLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400" />
+              </div>
+            ) : (
+              <>
+                {/* Top KPI row */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  {[
+                    {
+                      label: 'Prospects',
+                      value: dashboardData?.globalStats?.commercial?.totalProspects ?? 0,
+                      sub: `+${dashboardData?.globalStats?.commercial?.prospectsThisWeek ?? 0} cette semaine`,
+                      icon: '🎯',
+                      color: 'from-blue-600 to-cyan-600',
+                    },
+                    {
+                      label: 'Conversions',
+                      value: dashboardData?.globalStats?.commercial?.conversions ?? 0,
+                      sub: `${dashboardData?.globalStats?.commercial?.conversionRate ?? 0}% taux`,
+                      icon: '💰',
+                      color: 'from-green-600 to-emerald-600',
+                    },
+                    {
+                      label: 'Actions visibilite',
+                      value: dashboardData?.globalStats?.visibility?.totalActions ?? 0,
+                      sub: 'contenu, SEO, social',
+                      icon: '📱',
+                      color: 'from-purple-600 to-violet-600',
+                    },
+                    {
+                      label: 'Actions finance',
+                      value: dashboardData?.globalStats?.finance?.totalActions ?? 0,
+                      sub: 'pub, compta',
+                      icon: '🏦',
+                      color: 'from-amber-600 to-orange-600',
+                    },
+                  ].map((kpi) => (
+                    <div key={kpi.label} className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-lg">{kpi.icon}</span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full bg-gradient-to-r ${kpi.color} text-white`}>
+                          {kpi.label}
+                        </span>
+                      </div>
+                      <div className="text-2xl font-bold text-white">{kpi.value}</div>
+                      <div className="text-[11px] text-white/40 mt-0.5">{kpi.sub}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* CRM Pipeline mini */}
+                {(dashboardData?.globalStats?.commercial?.totalProspects ?? 0) > 0 && (
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden">
+                    <div className="px-4 py-3 bg-gradient-to-r from-blue-600 to-cyan-600">
+                      <h3 className="text-white font-bold text-sm flex items-center gap-2">
+                        <span>📊</span> Pipeline CRM
+                      </h3>
+                    </div>
+                    <div className="p-4">
+                      <div className="flex items-end gap-1 h-24">
+                        {(() => {
+                          const pipeline = [
+                            { label: 'Prospect', count: dashboardData?.crmData?.pipeline?.identifie ?? dashboardData?.globalStats?.commercial?.totalProspects ?? 0, color: 'bg-slate-500' },
+                            { label: 'Contact', count: dashboardData?.crmData?.pipeline?.contacte ?? 0, color: 'bg-blue-500' },
+                            { label: 'Interet', count: dashboardData?.crmData?.pipeline?.interesse ?? 0, color: 'bg-cyan-500' },
+                            { label: 'Demo', count: dashboardData?.crmData?.pipeline?.demo ?? 0, color: 'bg-purple-500' },
+                            { label: 'Client', count: dashboardData?.globalStats?.commercial?.conversions ?? 0, color: 'bg-green-500' },
+                          ];
+                          const maxCount = Math.max(...pipeline.map(s => s.count), 1);
+                          return pipeline.map((stage) => (
+                            <div key={stage.label} className="flex-1 flex flex-col items-center gap-1">
+                              <span className="text-white text-xs font-bold">{stage.count}</span>
+                              <div
+                                className={`w-full rounded-t-md ${stage.color} transition-all`}
+                                style={{ height: `${Math.max((stage.count / maxCount) * 64, 4)}px` }}
+                              />
+                              <span className="text-white/40 text-[9px] text-center leading-tight">{stage.label}</span>
+                            </div>
+                          ));
+                        })()}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Team performance by domain */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                  {TEAMS.map((team) => {
+                    const teamAgents = team.agentIds
+                      .map(id => agents.find(a => a.id === id))
+                      .filter(Boolean) as ClientAgent[];
+
+                    return (
+                      <div key={team.name} className="rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden">
+                        <div className={`px-4 py-2.5 bg-gradient-to-r ${team.color}`}>
+                          <h3 className="text-white font-bold text-xs flex items-center gap-2">
+                            <span>{team.icon}</span> {team.name}
+                            <span className="ml-auto text-white/70 text-[10px]">{teamAgents.length} agents</span>
+                          </h3>
+                        </div>
+                        <div className="p-3 space-y-2">
+                          {teamAgents.map((agent) => (
+                            <button
+                              key={agent.id}
+                              onClick={() => { setViewTab('agent'); handleSelectAgent(agent); }}
+                              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg bg-white/[0.04] hover:bg-white/[0.1] transition-all text-left"
+                            >
+                              <div
+                                className="w-8 h-8 rounded-full flex-shrink-0"
+                                style={{ background: `linear-gradient(135deg, ${agent.gradientFrom}, ${agent.gradientTo})`, padding: '2px' }}
+                              >
+                                <div className="w-full h-full rounded-full overflow-hidden bg-gray-900 flex items-center justify-center">
+                                  {avatars[agent.id] ? (
+                                    <img src={avatars[agent.id]!} alt={agent.displayName} className="w-full h-full object-cover scale-[1.15]" style={{ objectPosition: 'center 15%' }} />
+                                  ) : (
+                                    <span className="text-sm">{agent.icon}</span>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="text-white font-semibold text-xs">{agent.displayName}</div>
+                                <div className="text-gray-400 text-[10px] truncate">{agent.title}</div>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
+                                <span className="text-green-400/70 text-[9px]">actif</span>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* AI Recommendation */}
+                {dashboardData?.globalStats?.recommendation && (
+                  <div className="rounded-xl border border-purple-500/30 bg-purple-500/10 p-4">
+                    <div className="flex items-start gap-3">
+                      <span className="text-lg">🧠</span>
+                      <div>
+                        <div className="text-purple-300 text-xs font-bold mb-1">Recommandation IA</div>
+                        <p className="text-white/70 text-sm">{dashboardData.globalStats.recommendation}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Recent team activity */}
+                {(dashboardData?.globalStats?.teamActivity?.length ?? 0) > 0 && (
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden">
+                    <div className="px-4 py-3 border-b border-white/10">
+                      <h3 className="text-white font-bold text-sm flex items-center gap-2">
+                        <span>⚡</span> Activite recente
+                      </h3>
+                    </div>
+                    <div className="divide-y divide-white/5">
+                      {(dashboardData.globalStats.teamActivity as Array<{ id: string; agent: string; action: string; result: any; created_at: string }>).map((activity) => {
+                        const agentInfo = agents.find(a => a.id === activity.agent);
+                        return (
+                          <div key={activity.id} className="px-4 py-2.5 flex items-center gap-3">
+                            <div
+                              className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-xs"
+                              style={{ background: agentInfo ? `linear-gradient(135deg, ${agentInfo.gradientFrom}, ${agentInfo.gradientTo})` : '#4B5563' }}
+                            >
+                              {agentInfo?.icon || '🤖'}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <span className="text-white text-xs font-medium">{agentInfo?.displayName || activity.agent}</span>
+                              <span className="text-white/40 text-xs ml-2">{activity.action}</span>
+                            </div>
+                            <span className="text-white/30 text-[10px] flex-shrink-0">
+                              {new Date(activity.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Empty state */}
+                {!dashboardData?.globalStats && (
+                  <div className="text-center py-12">
+                    <div className="text-4xl mb-3">📊</div>
+                    <h3 className="text-white font-bold text-lg mb-1">Dashboard de votre equipe</h3>
+                    <p className="text-white/50 text-sm max-w-md mx-auto">
+                      Vos agents sont prets a travailler. Commencez par echanger avec eux pour voir les resultats ici.
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
 
         {/* ═══ TAB: Par équipe ═══ */}
         {viewTab === 'equipe' && (

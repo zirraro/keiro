@@ -204,7 +204,7 @@ TES CAPACITÉS ANALYTIQUES :
 CONTEXTE BUSINESS :
 - Cibles : restaurants, boutiques, coaches, barbershops, freelances, services, pros, agences, PME
 - Plans : Essai gratuit 30j (tous les agents, carte requise, 0€ débité), puis Créateur 49€/mois, Pro 99€/mois, Fondateurs 149€/mois, Business 199€, Elite 999€
-- Séquence de vente : Essai gratuit 30 jours en premier → choix du plan après l'essai
+- Séquence de vente : Essai gratuit 14 jours en premier → choix du plan après l'essai
 - Objectif : 16 clients/mois, ARPU ~94€
 
 Quand le fondateur te demande une action, inclus une section ## ORDRES à exécuter.

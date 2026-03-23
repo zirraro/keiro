@@ -216,18 +216,18 @@ function PricingPageInner() {
             </div>
             <div className="mb-6 pt-2">
               <h3 className="text-xl sm:text-2xl font-bold mb-2 flex items-center gap-2">
-                <span>🎁</span> {t.pricing.freeTrialTitle || 'Essai gratuit 30 jours'}
+                <span>🎁</span> {t.pricing.freeTrialTitle || 'Essai gratuit 14 jours'}
               </h3>
               <div className="flex items-baseline gap-2 mb-4">
                 <span className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-[#0c1a3a] to-purple-600 bg-clip-text text-transparent">0€</span>
-                <span className="text-neutral-500">/ 30 jours</span>
+                <span className="text-neutral-500">/ 14 jours</span>
               </div>
               <p className="text-neutral-600 dark:text-neutral-300 text-sm font-medium">{t.pricing.freeTrialSubtitle || 'Tous les agents débloqués — carte requise, aucun débit'}</p>
             </div>
 
             <ul className="space-y-4 mb-8">
               {[
-                '<strong>Tous les agents IA</strong> débloqués pendant 30 jours',
+                '<strong>Tous les agents IA</strong> débloqués pendant 14 jours',
                 '<strong>Vidéos IA</strong> + images + audio narration',
                 'Publication Instagram, LinkedIn, TikTok',
                 'Assistant marketing IA inclus',
@@ -246,9 +246,9 @@ function PricingPageInner() {
               href="/generate"
               className="block w-full py-3 px-6 text-center rounded-xl bg-gradient-to-r from-[#0c1a3a] to-purple-700 text-white font-bold hover:shadow-lg transition-all hover:scale-105"
             >
-              {t.pricing.freeTrialCta || '→ Essai gratuit 30 jours'}
+              {t.pricing.freeTrialCta || '→ Essai gratuit 14 jours'}
             </Link>
-            <p className="text-xs text-center text-neutral-500 mt-2">{t.pricing.freeTrialNote || '0€ pendant 30 jours • Carte requise • Annulation à tout moment'}</p>
+            <p className="text-xs text-center text-neutral-500 mt-2">{t.pricing.freeTrialNote || '0€ pendant 14 jours • Carte requise • Annulation à tout moment'}</p>
           </div>
         </div>
 
@@ -312,7 +312,7 @@ function PricingPageInner() {
           {/* Créateur 49€ */}
           <div id="createur" className="bg-gradient-to-br from-purple-600 to-indigo-600 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col">
             <div className="absolute -top-3 right-4">
-              <span className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">30 jours gratuits</span>
+              <span className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">14 jours gratuits</span>
             </div>
             <div className="mb-4 pt-2">
               <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
@@ -370,7 +370,7 @@ function PricingPageInner() {
           {/* Pro 99€ */}
           <div id="pro" className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col">
             <div className="absolute -top-3 right-4">
-              <span className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">30 jours gratuits</span>
+              <span className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">14 jours gratuits</span>
             </div>
             <div className="mb-4 pt-2">
               <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
@@ -461,7 +461,7 @@ function PricingPageInner() {
               </span>
             </div>
             <div className="absolute -top-3 right-4">
-              <span className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">30 jours gratuits</span>
+              <span className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">14 jours gratuits</span>
             </div>
             <div className="mb-4 pt-2">
               <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
@@ -854,7 +854,7 @@ function PricingPageInner() {
             <div className="bg-gradient-to-br from-[#0c1a3a]/5 to-purple-50 rounded-2xl border-2 border-[#0c1a3a]/20 p-5 shadow-lg">
               <h4 className="font-bold text-[#0c1a3a] mb-3 flex items-center gap-1">⭐ KeiroAI</h4>
               <div className="space-y-2 text-sm">
-                <p><span className="font-semibold text-[#0c1a3a]">{"Coût :"}</span> 30 jours gratuits, puis à partir de 49€/mois</p>
+                <p><span className="font-semibold text-[#0c1a3a]">{"Coût :"}</span> 14 jours gratuits, puis à partir de 49€/mois</p>
                 <p><span className="font-semibold text-[#0c1a3a]">{"Résultat :"}</span> 3 à 6 posts pro par semaine, brandés, liés à l{"'"}actu</p>
                 <p><span className="font-semibold text-[#0c1a3a]">{"Clients :"}</span> {"Le calcul est simple ↓"}</p>
               </div>
@@ -937,7 +937,7 @@ function PricingPageInner() {
                   </div>
                   <div>
                     <h4 className="font-bold text-sm">KeiroAI</h4>
-                    <p className="text-lg font-bold text-cyan-400">30 jours gratuits<span className="text-xs font-normal text-slate-400"> puis 49€/mois</span></p>
+                    <p className="text-lg font-bold text-cyan-400">14 jours gratuits<span className="text-xs font-normal text-slate-400"> puis 49€/mois</span></p>
                   </div>
                 </div>
                 <ul className="space-y-2 text-sm text-slate-200">

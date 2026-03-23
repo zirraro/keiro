@@ -45,7 +45,7 @@ export default function SubscriptionModal({ isOpen, onClose }: SubscriptionModal
       emoji: "🚀",
       price: "199€",
       subtitle: "/mois",
-      description: "Garantie satisfait 30j",
+      description: "Garantie satisfait 14j",
       features: ["Visuels illimités", "10 vidéos/mois", "Démo personnalisée", "Studio édition"],
       highlight: true,
       badge: "Populaire",

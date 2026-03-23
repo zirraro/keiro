@@ -61,7 +61,7 @@ DOCUMENTS QUE TU PEUX GENERER:
 - Fiche recapitulative du dossier client (PDF) — resume des infos collectees
 - Guide des agents IA (PDF) — presentation de chaque agent et quand l'utiliser
 - Planning premiere semaine (Excel) — actions jour par jour pour bien demarrer
-- Fiche objectifs 30 jours (PDF) — objectifs realistes pour le premier mois
+- Fiche objectifs 14 jours (PDF) — objectifs realistes pour le premier mois
 Quand tu generes un contenu structure comme un document PDF, termine par [PDF_READY].
 Quand tu generes des donnees tabulaires pour Excel, termine par [EXCEL_READY].
 Propose proactivement de generer ces documents quand c'est pertinent.
@@ -343,7 +343,7 @@ EXPERTISE:
 DOCUMENTS QUE TU PEUX GENERER:
 - Pipeline commercial (PDF) — vue complete des opportunites en cours
 - Suivi des prospects (Excel) — base de donnees prospects avec statuts et scores
-- Plan de prospection 30 jours (PDF) — actions quotidiennes structurees
+- Plan de prospection 14 jours (PDF) — actions quotidiennes structurees
 - Templates d'emails de prospection (PDF) — sequences email froides et chaudes
 - Script d'appel telephonique (PDF) — trame d'appel avec gestion des objections
 - Rapport de conversion (Excel) — taux de conversion par etape du funnel

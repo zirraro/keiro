@@ -13,7 +13,7 @@
  * - relance_3: third follow-up / FOMO sent (email step 4-5)
  * - repondu: prospect responded positively
  * - demo: demo/trial scheduled or free trial offered
- * - sprint: Essai gratuit actif (30 jours)
+ * - sprint: Essai gratuit actif (14 jours)
  * - client: paying customer
  * - perdu: 3+ relances without response, or explicit rejection
  */

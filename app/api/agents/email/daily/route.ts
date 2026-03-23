@@ -177,25 +177,29 @@ Step 1 (premier contact) :
   - Cold : Question + valeur — "j'ai vu ton [commerce], t'as du potentiel mais..."
   - Warm (chatbot lead) : Référence à l'échange — "suite à ton message, voici ce que je peux faire..."
 
-Step 2 (relance J+4) :
+Step 2 (rapport 48h J+2) :
+  - Montre la valeur déjà créée — "en 48h, LÉNA a déjà préparé X visuels pour toi..."
   - Si pas ouvert step 1 : Nouvel angle — change le sujet, essaie social proof
-  - Si ouvert mais pas cliqué : Rappel doux + valeur ajoutée — "je sais que t'es occupé, mais regarde ça..."
+  - Si ouvert mais pas cliqué : Rappel doux + valeur ajoutée — "je sais que t'es occupé, mais regarde ce qu'on a fait..."
 
-Step 3 (valeur gratuite J+8) :
-  - Donne un conseil CONCRET et ACTIONNABLE adapté au type de commerce
-  - Restaurant : "3 erreurs sur tes stories food" / Boutique : "le secret des boutiques qui cartonnent sur Insta"
-  - Coach : "comment tes clients parlent de toi en story" / Artisan : "tes photos avant/après valent de l'or"
-  - AUCUN CTA de vente, juste de la valeur pure
+Step 3 (mi-parcours J+7) :
+  - Stats semaine 1 — crée l'attachement avec des résultats concrets
+  - Restaurant : "en 7 jours, 3 visuels publiés, +X vues" / Boutique : "tes produits en story ont eu X vues"
+  - Coach : "ton personal branding prend forme" / Artisan : "tes photos avant/après cartonnent"
+  - Montre les métriques réelles si disponibles
 
-Step 4 (FOMO J+12) :
-  - Cold qui n'a jamais ouvert : Ultra-direct — "tes concurrents [type] sont déjà sur les réseaux, pas toi"
-  - Cold qui a ouvert : Urgence douce — "j'ai un créneau cette semaine pour te montrer..."
-  - Warm : Social proof ciblé — "[nombre] [types] utilisent déjà KeiroAI dans ta zone"
+Step 4 (J-4 avant fin trial J+10) :
+  - LE PLUS IMPORTANT — l'email qui convertit le plus
+  - Bilan complet personnalisé : "Il te reste 4 jours. En 10 jours LÉNA a créé X visuels, JADE a envoyé Y DMs, tu as gagné Z abonnés"
+  - Projection 90 jours : "si tu continues à ce rythme, dans 90 jours tu as +400 abonnés et une présence Instagram pro"
+  - Urgence douce — "choisis ton plan avant [date]"
+  - Les chiffres sont personnalisés depuis les vraies données du compte
 
-Step 5 (dernière chance J+16) :
-  - Désarmant et honnête — "pas de pression, juste une dernière question..."
-  - Cold : Break-up email — "si c'est pas le moment je comprends, je te laisse tranquille"
-  - Warm/Hot : Offre directe — essai gratuit 30 jours (carte requise, 0€ débité), appel de 10 min
+Step 5 (dernier jour J+13) :
+  - Urgence forte + offre spéciale
+  - "C'est ton dernier jour d'accès complet à ton équipe IA"
+  - Récapitulatif de tout ce qui a été fait pendant l'essai
+  - Warm/Hot : Offre directe — choix du plan avec réduction early bird
 
 PERSONNALISATION INTELLIGENTE :
 - Si le prospect a un Instagram : "j'ai vu ton compte @xxx, t'as du bon contenu mais..."
@@ -223,7 +227,7 @@ STEP 2 (relance douce, J+3) : "Je te relance vite fait..." + rappeler step 1 + s
 STEP 3 (valeur gratuite, J+5) : Donne un conseil concret et actionnable sans rien demander en retour. Genre "3 astuces pour tes stories" ou "ton erreur #1 sur Insta". Pas de CTA vente, juste de la valeur. Signe "Victor ✌️" et c'est tout.
 STEP 4 (FOMO concurrents, J+8) : "Tes concurrents postent déjà..." + montrer que le marché bouge + urgence naturelle + CTA direct
 STEP 5 (dernière chance, J+12) : Ultra direct et désarmant. "Pas de souci si c'est pas le moment" + dernière proposition + "je te laisse tranquille après"
-WARM (step 10) : "Suite à notre échange..." + très personnalisé + proposer essai gratuit 30 jours (carte requise, 0€ débité)
+WARM (step 10) : "Suite à notre échange..." + très personnalisé + proposer essai gratuit 14 jours (carte requise, 0€ débité)
 
 VÉRIFICATION BUSINESS OBLIGATOIRE :
 - AVANT d'écrire l'email, vérifie que le nom du commerce EST CRÉDIBLE. Un nom inventé/hallucinated = INTERDIT.
@@ -1112,9 +1116,10 @@ export async function GET(request: NextRequest) {
       const MIN_HOURS_BEFORE_FIRST_EMAIL = isManualTrigger ? 0 : 0; // No delay — send immediately
       // For manual triggers: send immediately (no multi-day gaps)
       // For cron: respect normal spacing between steps (min 3 days between any email to same prospect)
+      // Séquence 14 jours : J+0, J+2, J+7, J+10, J+13
       const STEP_GAP_DAYS = forceMode ? { 1: 0, 2: 0, 3: 0, 4: 0 } :
         isManualTrigger ? { 1: 0.5, 2: 0.5, 3: 0.5, 4: 0.5 } :
-        { 1: 4, 2: 4, 3: 5, 4: 5 };
+        { 1: 2, 2: 5, 3: 3, 4: 3 };
       // Per-prospect rate limit: never send more than 1 email per 3 days regardless of step
       const MIN_DAYS_BETWEEN_ANY_EMAIL = forceMode ? 0 : isManualTrigger ? 0.5 : 3;
       prospectCount = prospects.length;
