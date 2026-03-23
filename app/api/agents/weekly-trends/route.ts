@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
+import { loadContextWithAvatar } from '@/lib/agents/shared-context';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -43,6 +44,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ok: true, message: 'No users' });
     }
 
+    // Load shared context
+    const { prompt: sharedPrompt } = await loadContextWithAvatar(supabase, 'weekly_trends', undefined);
+
     // Group users by business_type for batch trend generation
     const businessTypes = new Set(users.map(u => u.business_type || 'general').filter(Boolean));
 
@@ -58,6 +62,7 @@ export async function GET(request: NextRequest) {
       const response = await anthropic.messages.create({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 1024,
+        system: sharedPrompt,
         messages: [{
           role: 'user',
           content: `Tu es Lena, agent Publication & Contenu chez KeiroAI.

@@ -5,6 +5,7 @@ import { getRetentionSystemPrompt, getRetentionMessagePrompt } from '@/lib/agent
 import { callGemini } from '@/lib/agents/gemini';
 import { canSendEmail } from '@/lib/agents/email-dedup';
 import { saveLearning, saveAgentFeedback } from '@/lib/agents/learning';
+import { loadContextWithAvatar } from '@/lib/agents/shared-context';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -100,6 +101,9 @@ export async function GET(request: NextRequest) {
     if (!clients || clients.length === 0) {
       return NextResponse.json({ ok: true, processed: 0, message: 'No paying clients found' });
     }
+
+    // Load shared context
+    const { prompt: sharedPrompt } = await loadContextWithAvatar(supabase, 'retention', orgId || undefined);
 
     let greenCount = 0, yellowCount = 0, orangeCount = 0, redCount = 0;
     let messagesSent = 0;
@@ -269,7 +273,7 @@ export async function GET(request: NextRequest) {
         // Generate message via Claude
         const prompt = getRetentionMessagePrompt(messageType, msgContext);
         const messageText = (await callGemini({
-          system: getRetentionSystemPrompt(),
+          system: getRetentionSystemPrompt() + '\n\n' + sharedPrompt,
           message: prompt,
           maxTokens: 300,
         })).trim();

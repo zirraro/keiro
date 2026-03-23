@@ -5,6 +5,7 @@ import { getComptableSystemPrompt, getComptableMessagePrompt } from '@/lib/agent
 import { callGemini } from '@/lib/agents/gemini';
 import { saveLearning, saveAgentFeedback } from '@/lib/agents/learning';
 import { getAvatarPromptBlock } from '@/lib/agents/avatar';
+import { loadContextWithAvatar } from '@/lib/agents/shared-context';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -94,8 +95,9 @@ export async function GET(request: NextRequest) {
       .lt('amount', 0);
 
     // 5. Generate financial summary via AI
+    const { prompt: sharedPrompt } = await loadContextWithAvatar(supabase, 'comptable', undefined);
     const avatarBlock = await getAvatarPromptBlock(supabase, 'comptable');
-    const systemPrompt = avatarBlock + '\n\n' + getComptableSystemPrompt();
+    const systemPrompt = avatarBlock + '\n\n' + getComptableSystemPrompt() + '\n\n' + sharedPrompt;
 
     const messagePrompt = getComptableMessagePrompt('daily_summary', {
       mrr,
@@ -211,8 +213,9 @@ export async function POST(request: NextRequest) {
   }
 
   if (action === 'forecast') {
+    const { prompt: sharedPrompt } = await loadContextWithAvatar(supabase, 'comptable', undefined);
     const avatarBlock = await getAvatarPromptBlock(supabase, 'comptable');
-    const systemPrompt = avatarBlock + '\n\n' + getComptableSystemPrompt();
+    const systemPrompt = avatarBlock + '\n\n' + getComptableSystemPrompt() + '\n\n' + sharedPrompt;
     const messagePrompt = getComptableMessagePrompt('forecast', {
       mrr: body.mrr,
       totalClients: body.totalClients,

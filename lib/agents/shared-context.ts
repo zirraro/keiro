@@ -726,9 +726,24 @@ export async function loadContextWithAvatar(
   supabase: SupabaseClient,
   agentName: string,
   orgId?: string,
+  userId?: string,
 ): Promise<{ context: AgentContext; avatar: AgentAvatarConfig; prompt: string }> {
+  // If no userId provided, try to find the admin/founder user for brand context
+  let resolvedUserId = userId;
+  if (!resolvedUserId) {
+    try {
+      const { data: adminProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('is_admin', true)
+        .limit(1)
+        .maybeSingle();
+      if (adminProfile) resolvedUserId = adminProfile.id;
+    } catch { /* silent */ }
+  }
+
   const [context, avatar, orgContext] = await Promise.all([
-    loadSharedContext(supabase, agentName, orgId),
+    loadSharedContext(supabase, agentName, orgId, resolvedUserId),
     getAgentAvatar(supabase, agentName, orgId),
     orgId ? getOrgContext(supabase, orgId) : Promise.resolve(null),
   ]);

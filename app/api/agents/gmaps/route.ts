@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { saveLearning, saveAgentFeedback } from '@/lib/agents/learning';
+import { loadContextWithAvatar } from '@/lib/agents/shared-context';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -230,6 +231,9 @@ async function runGMapsScan(orgId: string | null = null): Promise<NextResponse> 
 
   const supabase = getSupabaseAdmin();
   const now = new Date().toISOString();
+
+  // Load shared context
+  const { prompt: sharedPrompt } = await loadContextWithAvatar(supabase, 'gmaps', orgId || undefined);
 
   // Rotate zones: scan 5 zones per run for higher volume
   const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);

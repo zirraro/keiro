@@ -5,6 +5,7 @@ import { getOnboardingSystemPrompt, getOnboardingStepPrompt } from '@/lib/agents
 import { callGemini } from '@/lib/agents/gemini';
 import { canSendEmail } from '@/lib/agents/email-dedup';
 import { saveLearning, saveAgentFeedback } from '@/lib/agents/learning';
+import { loadContextWithAvatar } from '@/lib/agents/shared-context';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -50,6 +51,9 @@ export async function GET(request: NextRequest) {
   const now = new Date().toISOString();
 
   try {
+    // Load shared context
+    const { prompt: sharedPrompt } = await loadContextWithAvatar(supabase, 'onboarding', orgId || undefined);
+
     // ──────────────────────────────────────
     // Phase 0: Detect milestones & high usage for Sprint users (schedule dynamic steps)
     // ──────────────────────────────────────
@@ -214,7 +218,7 @@ export async function GET(request: NextRequest) {
         const stepPrompt = getOnboardingStepPrompt(item.step_key, context);
 
         const messageText = (await callGemini({
-          system: getOnboardingSystemPrompt(),
+          system: getOnboardingSystemPrompt() + '\n\n' + sharedPrompt,
           message: stepPrompt,
           maxTokens: 500,
         })).trim();

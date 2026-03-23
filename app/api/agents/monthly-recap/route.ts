@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
+import { loadContextWithAvatar } from '@/lib/agents/shared-context';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -44,6 +45,9 @@ export async function GET(request: NextRequest) {
     if (!users || users.length === 0) {
       return NextResponse.json({ ok: true, message: 'No active users', results: [] });
     }
+
+    // Load shared context
+    const { prompt: sharedPrompt } = await loadContextWithAvatar(supabase, 'monthly_recap', undefined);
 
     const now = new Date();
     const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -121,6 +125,7 @@ Tutoie le client. Sois enthousiaste mais pro. Max 400 mots.`;
           const response = await anthropic.messages.create({
             model: 'claude-haiku-4-5-20251001',
             max_tokens: 2048,
+            system: sharedPrompt,
             messages: [{ role: 'user', content: recapPrompt }],
           });
           emailHtml = response.content[0].type === 'text' ? response.content[0].text : '';

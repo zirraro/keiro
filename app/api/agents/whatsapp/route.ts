@@ -4,6 +4,7 @@ import {
   sendWhatsAppMessage,
   sendWhatsAppTemplate,
 } from '@/lib/whatsapp';
+import { loadContextWithAvatar } from '@/lib/agents/shared-context';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -34,6 +35,9 @@ export async function POST(request: NextRequest) {
 
   const supabase = getSupabaseAdmin();
   const now = new Date().toISOString();
+
+  // Load shared context
+  const { prompt: sharedPrompt } = await loadContextWithAvatar(supabase, 'whatsapp', undefined);
 
   try {
     const body = await request.json();

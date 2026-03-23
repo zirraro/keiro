@@ -4,6 +4,7 @@ import { getAuthUser } from '@/lib/auth-server';
 import { getOpsSystemPrompt } from '@/lib/agents/ops-prompt';
 import { saveLearning, saveAgentFeedback } from '@/lib/agents/learning';
 import { callGemini } from '@/lib/agents/gemini';
+import { loadContextWithAvatar } from '@/lib/agents/shared-context';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -90,6 +91,10 @@ interface HealthReport {
 async function runHealthCheck(orgId: string | null = null): Promise<HealthReport> {
   const supabase = getSupabaseAdmin();
   const now = new Date();
+
+  // Load shared context
+  const { prompt: sharedPrompt } = await loadContextWithAvatar(supabase, 'ops', orgId || undefined);
+
   const fortyEightHoursAgo = new Date(now.getTime() - 48 * 3600000).toISOString();
   const twentyFourHoursAgo = new Date(now.getTime() - 24 * 3600000).toISOString();
 
@@ -234,7 +239,7 @@ Agents down: ${downAgentNames.join(', ')}
 Réponds UNIQUEMENT avec une liste de recommandations, une par ligne, commençant par "- ".`;
 
         const diagnosticResponse = await callGemini({
-          system: getOpsSystemPrompt(),
+          system: getOpsSystemPrompt() + '\n\n' + sharedPrompt,
           message: diagnosticPrompt,
           maxTokens: 500,
         });
