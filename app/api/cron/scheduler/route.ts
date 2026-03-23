@@ -276,10 +276,16 @@ export async function GET(request: NextRequest) {
           console.log(`[Scheduler/ceo] Event pipeline: ${eventResult.actions} actions dispatched`);
         } catch (e: any) { console.error('[Scheduler/ceo] Event pipeline error:', e.message?.substring(0, 200)); }
         await delay(5000);
-        // 2. CEO brief
+        // 2. Daily improvement report (echecs, failles, recommandations code)
+        await callEndpoint('CEO Improvement Report', '/api/agents/ceo-reports?type=improvement', 'POST');
+        await delay(10000);
+        // 3. Status report (etat des taches matin)
+        await callEndpoint('CEO Status Report AM', '/api/agents/ceo-reports?type=status', 'POST');
+        await delay(10000);
+        // 4. CEO brief
         await callEndpoint('CEO Brief', '/api/agents/ceo');
         await delay(15000);
-        // 3. Execute orders (including newly dispatched ones)
+        // 5. Execute orders (including newly dispatched ones)
         await callEndpoint('Execute Orders', '/api/agents/orders');
         await delay(15000);
         // Community: early prep — staggered
@@ -287,7 +293,7 @@ export async function GET(request: NextRequest) {
         await delay(15000);
         await callEndpoint('Community Follow Targets IG (early)', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'instagram', count: 10 });
       });
-      results.push({ task: 'CEO Brief + Orders + Community', ok: true, data: { status: 'dispatched_background' } });
+      results.push({ task: 'CEO Brief + Reports + Orders + Community', ok: true, data: { status: 'dispatched_background' } });
       break;
 
     case 'trends':
@@ -339,13 +345,15 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'ceo_evening':
-      // 15:00 UTC — CEO: process events → brief → execute orders (afternoon cycle)
+      // 15:00 UTC — CEO: events → status report PM → brief → orders
       fireBackground(async () => {
         try {
           const eventResult = await processEventPipeline(aiSupabase);
           console.log(`[Scheduler/ceo_evening] Event pipeline: ${eventResult.actions} actions dispatched`);
         } catch (e: any) { console.error('[Scheduler/ceo_evening] Event pipeline error:', e.message?.substring(0, 200)); }
         await delay(5000);
+        await callEndpoint('CEO Status Report PM', '/api/agents/ceo-reports?type=status', 'POST');
+        await delay(10000);
         await callEndpoint('CEO Brief (afternoon)', '/api/agents/ceo');
         await callEndpoint('Execute Orders', '/api/agents/orders');
       });
