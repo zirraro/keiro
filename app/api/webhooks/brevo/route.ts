@@ -317,48 +317,193 @@ export async function POST(request: NextRequest) {
         }
 
         case 'replied': {
-          // Don't downgrade temperature if already hot
-          const replyTemp = prospect.temperature === 'hot' ? 'hot' : 'hot';
-          await supabase
-            .from('crm_prospects')
-            .update({
-              temperature: replyTemp,
-              status: 'repondu',
-              updated_at: now,
-            })
-            .eq('id', prospect.id);
+          // Extract reply content from Brevo event (if available)
+          const replyContent = event.content || event.text || event.subject || '';
+
+          // ─── CLASSIFY REPLY WITH CLAUDE ───────────────────
+          let classification: { intent: string; sentiment: string; autoReply: string | null; newStatus: string; newTemp: string } = {
+            intent: 'unknown', sentiment: 'neutral', autoReply: null, newStatus: 'repondu', newTemp: 'hot',
+          };
+
+          const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
+          if (ANTHROPIC_KEY && replyContent) {
+            try {
+              const classifyRes = await fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: {
+                  'x-api-key': ANTHROPIC_KEY,
+                  'anthropic-version': '2023-06-01',
+                  'content-type': 'application/json',
+                },
+                body: JSON.stringify({
+                  model: 'claude-haiku-4-5-20251001',
+                  max_tokens: 1024,
+                  system: `Tu es un analyste commercial expert. Tu analyses les reponses email de prospects pour KeiroAI (plateforme de marketing IA pour commercants/entrepreneurs).
+
+Tu dois classifier la reponse ET generer une auto-reponse naturelle si pertinent.
+
+Reponds UNIQUEMENT en JSON valide sans markdown:
+{
+  "intent": "interested" | "question" | "closed_business" | "unsubscribe" | "negative" | "positive" | "out_of_office" | "other",
+  "sentiment": "positive" | "neutral" | "negative",
+  "summary": "resume en 1 phrase",
+  "auto_reply": null ou une reponse email courte (3-5 phrases max), ultra naturelle, tutoiement, tournee CTA (proposer un rdv/demo/appel), signee "Victor de KeiroAI". Si le prospect est ferme, desabonne ou negatif, auto_reply = null (on ne relance pas).
+  "new_status": "repondu" | "demo" | "interesse" | "perdu",
+  "new_temperature": "hot" | "warm" | "dead",
+  "stop_sequence": true | false
+}
+
+Regles:
+- "je suis ferme", "on a ferme", "plus en activite" → intent=closed_business, status=perdu, temp=dead, stop_sequence=true, auto_reply=null
+- "desabonnez-moi", "stop", "arretez", "plus de mail" → intent=unsubscribe, status=perdu, temp=dead, stop_sequence=true, auto_reply=null
+- "pas interesse", "non merci" → intent=negative, status=perdu, temp=dead, stop_sequence=true, auto_reply=null
+- "combien ca coute", "c'est quoi", question → intent=question, status=repondu, temp=hot, auto_reply avec reponse + CTA rdv
+- "oui", "interesse", "ok", "pourquoi pas" → intent=positive/interested, status=interesse, temp=hot, auto_reply avec CTA rdv/demo
+- "absence", "vacances", "out of office" → intent=out_of_office, status=repondu, temp=warm, auto_reply=null, stop_sequence=false
+- Tout positif → CTA = proposer un creneau d'appel de 15min ou demo gratuite`,
+                  messages: [{
+                    role: 'user',
+                    content: `Prospect: ${prospect.company || 'Inconnu'} (${prospect.type || 'N/A'}, ${prospect.quartier || 'N/A'})
+Prenom: ${prospect.first_name || 'Inconnu'}
+Email step: ${prospect.email_sequence_step || 1}
+Score: ${prospect.score || 0}/100
+
+Reponse du prospect:
+"""
+${replyContent.substring(0, 2000)}
+"""`
+                  }],
+                }),
+              });
+
+              if (classifyRes.ok) {
+                const aiData = await classifyRes.json();
+                const aiText = aiData.content?.[0]?.text || '';
+                try {
+                  const parsed = JSON.parse(aiText);
+                  classification = {
+                    intent: parsed.intent || 'unknown',
+                    sentiment: parsed.sentiment || 'neutral',
+                    autoReply: parsed.auto_reply || null,
+                    newStatus: parsed.new_status || 'repondu',
+                    newTemp: parsed.new_temperature || 'hot',
+                  };
+                  console.log(`[BrevoWebhook] Reply classified: intent=${classification.intent}, status=${classification.newStatus}`);
+                } catch { console.warn('[BrevoWebhook] Failed to parse AI classification'); }
+              }
+            } catch (aiErr: any) {
+              console.error('[BrevoWebhook] AI classification error:', aiErr.message?.substring(0, 200));
+            }
+          }
+
+          // ─── UPDATE PROSPECT ──────────────────────────────
+          const updateData: Record<string, any> = {
+            temperature: classification.newTemp,
+            status: classification.newStatus,
+            updated_at: now,
+          };
+          // Stop email sequence for negative intents
+          if (['closed_business', 'unsubscribe', 'negative'].includes(classification.intent)) {
+            updateData.email_sequence_status = 'stopped';
+          }
+
+          await supabase.from('crm_prospects').update(updateData).eq('id', prospect.id);
 
           await supabase.from('crm_activities').insert({
             prospect_id: prospect.id,
             type: 'email_replied',
-            description: `Reponse recue de ${prospect.email} !`,
-            data: {},
+            description: `Reponse recue de ${prospect.email} — Intent: ${classification.intent}, Sentiment: ${classification.sentiment}`,
+            data: {
+              reply_content: replyContent.substring(0, 500),
+              intent: classification.intent,
+              sentiment: classification.sentiment,
+              auto_reply_sent: !!classification.autoReply,
+              new_status: classification.newStatus,
+              new_temperature: classification.newTemp,
+            },
             created_at: now,
           });
 
-          // --- Send URGENT alert to founder via Resend ---
+          // ─── SEND AUTO-REPLY (if positive/question) ───────
           const RESEND_API_KEY = process.env.RESEND_API_KEY;
-          if (RESEND_API_KEY) {
+          if (classification.autoReply && RESEND_API_KEY) {
             try {
+              const replySubject = `Re: ${prospect.company || 'Votre message'} — KeiroAI`;
+              const replyHtml = `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;margin:0;padding:20px;">
+                <div style="max-width:600px;margin:0 auto;">
+                  ${classification.autoReply.split('\n').map(line => `<p style="margin:8px 0;">${line}</p>`).join('')}
+                  <div style="margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:14px;color:#6b7280;">
+                    <p style="margin:0;">Victor</p>
+                    <p style="margin:2px 0;color:#0c1a3a;font-weight:bold;">KeiroAI</p>
+                    <p style="margin:2px 0;font-size:13px;">contact@keiroai.com</p>
+                  </div>
+                </div>
+              </body></html>`;
+
               await fetch('https://api.resend.com/emails', {
                 method: 'POST',
-                headers: {
-                  'Authorization': `Bearer ${RESEND_API_KEY}`,
-                  'Content-Type': 'application/json',
-                },
+                headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  from: 'Victor de KeiroAI <contact@keiroai.com>',
+                  to: [prospect.email],
+                  reply_to: 'contact@keiroai.com',
+                  subject: replySubject,
+                  html: replyHtml,
+                  text: classification.autoReply,
+                  headers: { 'X-Mailin-custom': prospect.id },
+                }),
+              });
+              console.log(`[BrevoWebhook] Auto-reply sent to ${prospect.email} (intent: ${classification.intent})`);
+
+              await supabase.from('crm_activities').insert({
+                prospect_id: prospect.id,
+                type: 'email',
+                description: `Auto-reponse envoyee (intent: ${classification.intent})`,
+                data: { auto_reply: true, intent: classification.intent, reply_preview: classification.autoReply.substring(0, 200) },
+                created_at: now,
+              });
+            } catch (replyErr: any) {
+              console.error('[BrevoWebhook] Auto-reply send error:', replyErr.message?.substring(0, 200));
+            }
+          }
+
+          // ─── ALERT FOUNDER ────────────────────────────────
+          if (RESEND_API_KEY) {
+            try {
+              const alertEmoji = classification.intent === 'closed_business' ? '\u274C'
+                : classification.intent === 'unsubscribe' ? '\uD83D\uDEAB'
+                : classification.intent === 'negative' ? '\uD83D\uDC4E'
+                : classification.intent === 'positive' || classification.intent === 'interested' ? '\uD83D\uDD25'
+                : classification.intent === 'question' ? '\u2753'
+                : '\uD83D\uDCE9';
+              const alertStatus = ['closed_business', 'unsubscribe', 'negative'].includes(classification.intent)
+                ? 'SORTI DU PIPE' : 'PROSPECT CHAUD';
+
+              await fetch('https://api.resend.com/emails', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   from: 'KeiroAI Agents <contact@keiroai.com>',
                   to: ['contact@keiroai.com'],
-                  subject: `PROSPECT CHAUD — ${prospect.company || prospect.email} a repondu !`,
-                  html: `<h2>Prospect chaud !</h2><p><strong>${prospect.company || 'Inconnu'}</strong> (${prospect.type || 'N/A'}, ${prospect.quartier || 'N/A'}) a repondu a votre email !</p><p>Action : Repondez dans l'heure avec un visuel personnalise.</p><p>Email : ${prospect.email}<br>Note Google : ${prospect.note_google ?? 'N/A'}/5<br>Score : ${prospect.score ?? 0}/100</p>`,
+                  subject: `${alertEmoji} ${alertStatus} — ${prospect.company || prospect.email} a repondu`,
+                  html: `<h2>${alertEmoji} ${alertStatus}</h2>
+                    <p><strong>${prospect.company || 'Inconnu'}</strong> (${prospect.type || 'N/A'}, ${prospect.quartier || 'N/A'})</p>
+                    <table style="border-collapse:collapse;margin:12px 0;">
+                      <tr><td style="padding:4px 12px 4px 0;color:#888;">Intent</td><td style="padding:4px 0;font-weight:bold;">${classification.intent}</td></tr>
+                      <tr><td style="padding:4px 12px 4px 0;color:#888;">Sentiment</td><td style="padding:4px 0;">${classification.sentiment}</td></tr>
+                      <tr><td style="padding:4px 12px 4px 0;color:#888;">Nouveau statut</td><td style="padding:4px 0;font-weight:bold;">${classification.newStatus}</td></tr>
+                      <tr><td style="padding:4px 12px 4px 0;color:#888;">Temperature</td><td style="padding:4px 0;">${classification.newTemp}</td></tr>
+                      <tr><td style="padding:4px 12px 4px 0;color:#888;">Score</td><td style="padding:4px 0;">${prospect.score ?? 0}/100</td></tr>
+                      <tr><td style="padding:4px 12px 4px 0;color:#888;">Auto-reponse</td><td style="padding:4px 0;">${classification.autoReply ? 'Oui, envoyee' : 'Non (intent negatif)'}</td></tr>
+                    </table>
+                    ${replyContent ? `<div style="background:#f9fafb;padding:12px;border-radius:8px;margin:12px 0;border-left:3px solid #6b7280;"><strong>Message du prospect:</strong><br/>${replyContent.substring(0, 500).replace(/\n/g, '<br/>')}</div>` : ''}
+                    ${classification.autoReply ? `<div style="background:#f0fdf4;padding:12px;border-radius:8px;margin:12px 0;border-left:3px solid #22c55e;"><strong>Auto-reponse envoyee:</strong><br/>${classification.autoReply.replace(/\n/g, '<br/>')}</div>` : ''}`,
                 }),
               });
-              console.log('[BrevoWebhook] Alert email sent for reply from:', prospect.email);
+              console.log('[BrevoWebhook] Alert sent for reply from:', prospect.email);
             } catch (alertError: any) {
-              console.error('[BrevoWebhook] Failed to send alert email:', alertError.message?.substring(0, 200));
+              console.error('[BrevoWebhook] Alert email failed:', alertError.message?.substring(0, 200));
             }
-          } else {
-            console.warn('[BrevoWebhook] No RESEND_API_KEY, skipping alert for reply from:', prospect.email);
           }
           break;
         }
