@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { waitUntil } from '@vercel/functions';
+import { createClient } from '@supabase/supabase-js';
+import { autoImprove } from '@/lib/agents/auto-improve';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -91,18 +93,48 @@ export async function GET(request: NextRequest) {
 
   const results: { task: string; ok: boolean; data?: any; error?: string }[] = [];
 
+  // Supabase for auto-improve logging
+  const aiSupabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  );
+
   async function callEndpoint(name: string, path: string, method: 'GET' | 'POST' = 'GET', body?: any) {
+    const startMs = Date.now();
     try {
       console.log(`[Scheduler/${slot}] → ${name}: ${method} ${path}`);
       const opts: RequestInit = { method, headers };
       if (body && method === 'POST') opts.body = JSON.stringify(body);
       const res = await fetch(`${baseUrl}${path}`, opts);
       const data = await res.json().catch(() => ({ ok: false }));
+      const duration = Date.now() - startMs;
       results.push({ task: name, ok: data.ok ?? res.ok, data });
-      console.log(`[Scheduler/${slot}] ← ${name}: ${data.ok ? 'OK' : 'FAIL'}`);
+      console.log(`[Scheduler/${slot}] ← ${name}: ${data.ok ? 'OK' : 'FAIL'} (${duration}ms)`);
+
+      // Auto-improve: log result for learning
+      const agentName = path.split('/agents/')[1]?.split(/[?/]/)[0] || name.toLowerCase();
+      waitUntil(autoImprove(aiSupabase, {
+        agent: agentName,
+        action: `cron_${slot}_${name.toLowerCase().replace(/\s+/g, '_')}`,
+        success: !!(data.ok ?? res.ok),
+        error: data.ok ? undefined : (data.error || data.message || `HTTP ${res.status}`),
+        details: `Duration: ${duration}ms, slot: ${slot}`,
+        metrics: typeof data === 'object' ? { duration, ...(data.sent != null ? { sent: data.sent } : {}), ...(data.published != null ? { published: data.published } : {}) } : { duration },
+      }).catch(() => {}));
     } catch (e: any) {
+      const duration = Date.now() - startMs;
       results.push({ task: name, ok: false, error: e.message });
-      console.error(`[Scheduler/${slot}] ✗ ${name}: ${e.message}`);
+      console.error(`[Scheduler/${slot}] ✗ ${name}: ${e.message} (${duration}ms)`);
+
+      // Auto-improve: log failure
+      const agentName = path.split('/agents/')[1]?.split(/[?/]/)[0] || name.toLowerCase();
+      waitUntil(autoImprove(aiSupabase, {
+        agent: agentName,
+        action: `cron_${slot}_${name.toLowerCase().replace(/\s+/g, '_')}`,
+        success: false,
+        error: e.message,
+        details: `Crashed after ${duration}ms, slot: ${slot}`,
+      }).catch(() => {}));
     }
   }
 

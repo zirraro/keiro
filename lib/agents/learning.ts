@@ -75,7 +75,7 @@ export function getTeammates(agentId: string): string[] {
   return AGENT_TEAMS[teamId].agents.filter(a => a !== agentId);
 }
 
-export type LearningCategory = 'email' | 'dm' | 'content' | 'prospection' | 'conversion' | 'general' | 'community' | 'retention' | 'seo';
+export type LearningCategory = 'email' | 'dm' | 'content' | 'prospection' | 'conversion' | 'general' | 'community' | 'retention' | 'seo' | 'execution';
 export type LearningPhase = 'noise' | 'signal' | 'pattern' | 'rule' | 'insight';
 
 // Backward compat — old code may reference LearningTier
