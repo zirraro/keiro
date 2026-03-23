@@ -1,10 +1,43 @@
 'use client';
 
-import { Suspense, useEffect, useState, useMemo, useRef } from 'react';
+import { Component, Suspense, useEffect, useState, useMemo, useRef } from 'react';
+import type { ReactNode, ErrorInfo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import Link from 'next/link';
 import AvatarEditor from './components/AvatarEditor';
+
+// Error boundary to catch render crashes (React #310, hydration, etc.)
+class AgentErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: Error | null }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error('[Admin Agents] Render error:', error, info.componentStack);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+          <div className="bg-white rounded-xl shadow-lg border p-8 max-w-md text-center">
+            <div className="text-4xl mb-4">⚠️</div>
+            <h2 className="text-lg font-bold text-neutral-900 mb-2">Erreur de chargement</h2>
+            <p className="text-sm text-neutral-500 mb-4">La page Agents IA a rencontré une erreur. Essaie de recharger.</p>
+            <p className="text-xs text-red-500 mb-4 font-mono bg-red-50 p-2 rounded">{this.state.error?.message}</p>
+            <button onClick={() => { this.setState({ hasError: false, error: null }); window.location.reload(); }} className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700">
+              Recharger la page
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 type Tab = 'fiches' | 'briefs' | 'campagnes' | 'ordres' | 'logs' | 'avatars';
 type FicheSubTab = 'overview' | 'chat' | 'ordres' | 'logs';
@@ -312,30 +345,38 @@ function AdminAgentsContent() {
   };
 
   // ─── Auth check ────────────────────────────────────────
+  const initRef = useRef(false);
   useEffect(() => {
+    if (initRef.current) return;
+    initRef.current = true;
     const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) { router.push('/login'); return; }
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) { router.push('/login'); return; }
 
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
 
-      if (!profileData?.is_admin) { router.push('/'); return; }
-      // Load publish mode preference from localStorage (fast) then sync from DB
-      const savedMode = typeof window !== 'undefined' ? localStorage.getItem('keiro_publish_mode') : null;
-      if (savedMode === 'notify') setPublishMode('notify');
-      setLoading(false);
-      loadDashboard();
-      loadAgentStatuses();
-      loadMiniCrmStats();
-      loadWarmProspects();
+        if (!profileData?.is_admin) { router.push('/'); return; }
+        // Load publish mode preference from localStorage (fast) then sync from DB
+        const savedMode = typeof window !== 'undefined' ? localStorage.getItem('keiro_publish_mode') : null;
+        if (savedMode === 'notify') setPublishMode('notify');
+        setLoading(false);
+        loadDashboard();
+        loadAgentStatuses();
+        loadMiniCrmStats();
+        loadWarmProspects();
+      } catch (err) {
+        console.error('[Admin Agents] Init error:', err);
+        setLoading(false);
+      }
     };
     init();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [supabase, router]);
+  }, []);
 
   // Auto-scroll CEO chat to latest message
   useEffect(() => {
@@ -2029,7 +2070,8 @@ function AdminAgentsContent() {
                     {briefs.length === 0 ? (
                       <div className="bg-white rounded-xl shadow-sm border p-6 text-center text-neutral-400 text-sm">Aucun brief.</div>
                     ) : briefs.slice(0, 5).map(b => {
-                      const briefRaw = typeof b.data === 'string' ? b.data : (b.data?.brief_text || b.data?.brief || JSON.stringify(b.data, null, 2));
+                      const briefRawVal = typeof b.data === 'string' ? b.data : (b.data?.brief_text || b.data?.brief || null);
+                      const briefRaw = typeof briefRawVal === 'string' ? briefRawVal : JSON.stringify(b.data ?? '', null, 2);
                       const renderInlineBrief = (text: string) => text
                         .replace(/^### (.*)/gm, '<h4 class="text-xs font-bold text-[#0c1a3a] mt-3 mb-1">$1</h4>')
                         .replace(/^## (.*)/gm, '<h3 class="text-sm font-bold text-[#0c1a3a] mt-4 mb-1 pb-1 border-b border-neutral-100">$1</h3>')
@@ -2432,7 +2474,8 @@ function AdminAgentsContent() {
             {briefs.length === 0 ? (
               <div className="bg-white rounded-xl shadow-sm border p-8 text-center text-neutral-400">Aucun brief CEO. Clique sur "Générer brief" pour lancer une analyse.</div>
             ) : briefs.map(b => {
-              const raw = typeof b.data === 'string' ? b.data : (b.data?.brief_text || b.data?.brief || b.data?.analysis || JSON.stringify(b.data, null, 2));
+              const rawVal = typeof b.data === 'string' ? b.data : (b.data?.brief_text || b.data?.brief || b.data?.analysis || null);
+              const raw = typeof rawVal === 'string' ? rawVal : JSON.stringify(b.data ?? '', null, 2);
               // Render markdown-like brief as email-style HTML
               const renderBriefHtml = (text: string) => {
                 return text
@@ -3489,8 +3532,10 @@ function AdminAgentsContent() {
 
 export default function AdminAgentsPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-neutral-50 flex items-center justify-center"><div className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>}>
-      <AdminAgentsContent />
-    </Suspense>
+    <AgentErrorBoundary>
+      <Suspense fallback={<div className="min-h-screen bg-neutral-50 flex items-center justify-center"><div className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>}>
+        <AdminAgentsContent />
+      </Suspense>
+    </AgentErrorBoundary>
   );
 }

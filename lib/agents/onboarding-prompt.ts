@@ -30,7 +30,7 @@ ROI PAR TYPE DE COMMERCE (utilise ces arguments) :
 - Agence : "12 posts clients/mois au lieu de 4 = clients fidélisés"
 
 PLANS :
-- Essai gratuit : 0€/7j, 37 crédits (3 visuels + 1 vidéo), sans carte bancaire
+- Essai gratuit : 0€/30 jours, accès COMPLET à tous les agents et toutes les fonctionnalités, carte requise mais AUCUN débit pendant l'essai
 - Pro : 49€/mois, 220 crédits — LE PLAN CIBLE pour les essais gratuits (ex "Solo")
 - Fondateurs : 149€/mois, 660 crédits, branding, TikTok, 3 formats
 - Standard : 199€/mois, 880 crédits — pour agences/multi-marques

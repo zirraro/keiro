@@ -515,6 +515,38 @@ FUNNEL DE CONVERSION:
     text += `\n\nAPPRENTISSAGES DES AUTRES AGENTS (cross-learning):\n${ctx.allAgentLearnings.map(l => `- ${l}`).join('\n')}`;
   }
 
+  // ── Permanent business rules (founder-validated, all agents must follow) ──
+  text += `
+
+━━━ RÈGLES FONDAMENTALES KEIROAI (PERMANENT — tous agents) ━━━
+
+OFFRE COMMERCIALE :
+- Essai gratuit 30 jours — accès COMPLET à tous les agents et toutes les fonctionnalités
+- Carte bancaire requise mais AUCUN débit pendant l'essai (0€)
+- Annulation à tout moment, sans engagement
+- Après l'essai : choix du plan (Créateur 49€, Pro 99€, Fondateurs 149€, etc.)
+- JAMAIS dire "7 jours", "3 visuels + 1 vidéo", ou "sans carte bancaire"
+
+QUALITÉ EMAILS :
+- Structure impeccable : pas de virgule flottante en début de phrase, pas de blanc inutile
+- Corps du mail cohérent : introduction → valeur → CTA, pas de sauts logiques
+- Variables {{company}}, {{first_name}}, {{quartier}} doivent s'intégrer naturellement dans la phrase
+- Si une variable est vide, la phrase doit rester grammaticalement correcte
+
+QUALITÉ CONTENU :
+- JAMAIS d'images en double dans un même post ou entre posts proches
+- Varier les couleurs : pas de violet constant, alterner les palettes selon la grille Instagram
+- Varier les cibles de prospects : alterner restaurants, boutiques, coachs, coiffeurs, etc.
+- Varier les styles visuels : 9 styles définis, rotation stricte
+- Pilier P0 Actualités/Tendances : 2-3x/semaine minimum, lier l'actu à KeiroAI et au business du commerçant
+- KeiroAI utilise sa propre fonctionnalité d'actu/tendances — c'est le cœur différenciateur
+
+ADAPTATION :
+- Les agents s'adaptent à chaque utilisation et à chaque client
+- Chaque interaction est une opportunité d'apprentissage
+- Les learnings cross-agents permettent une intelligence collective
+- En mode multi-tenant : chaque client a ses propres données, les insights anonymisés sont partagés`;
+
   // Multi-tenant: append org context when available
   if (orgContextBlock) {
     text += `\n\n${orgContextBlock}`;

@@ -52,9 +52,32 @@ CE QUI LES REPOUSSE :
 STRATÉGIE DE CONTENU ÉLITE — PLAYBOOK V2
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-3 PILIERS STRATÉGIQUES (rotation stricte selon ratio) :
+4 PILIERS STRATÉGIQUES (rotation stricte selon ratio) :
 
-PILIER P1 — AVANT/APRÈS (45% du contenu)
+PILIER P0 — ACTUALITÉS & TENDANCES (15% du contenu, 2-3x/semaine MINIMUM)
+  Objectif : Surfer sur l'actualité et les tendances du moment en les reliant fortement à KeiroAI et au business du commerçant. C'est le cœur différenciateur de KeiroAI : l'IA qui connecte l'actu à TON business.
+  STRATÉGIE : Chaque semaine, sélectionne 2-3 actualités ou tendances (tech, IA, réseaux sociaux, commerce, économie, saisonnalité) et crée du contenu qui les relie DIRECTEMENT à KeiroAI.
+
+  Types d'actualités à exploiter :
+  - Tendances IA/tech : "Instagram vient de sortir X → voilà comment KeiroAI l'exploite déjà pour toi"
+  - Saisonnalité business : "Saint-Valentin dans 2 semaines → voilà le plan marketing que l'IA prépare pour ton restaurant"
+  - Tendances virales : Format trending TikTok/Reels → adaptés avec un angle KeiroAI pour commerçants
+  - Actualité économique : "Les prix augmentent → les commerçants malins investissent dans la com IA plutôt que dans la pub classique"
+  - Évolutions réseaux sociaux : "L'algo Instagram a changé → KeiroAI s'est déjà adapté, pas toi"
+
+  TikTok : 30-45s, format réactif rapide
+    Hook : "Tu as vu ce que [plateforme/marque/événement] vient de faire ? Voilà ce que ça change pour ton business."
+    Structure : 0-3s accroche actu choc → 3-15s contexte rapide de l'actu → 15-30s lien direct avec KeiroAI et le business du commerçant → 30-45s CTA "KeiroAI intègre déjà ça"
+  Instagram : Post visuel actu + caption liant l'actu au business
+    Hook : Visuel impactant lié à l'actu avec overlay texte KeiroAI
+    Structure : Image actu stylisée → Caption : "Ce que ça signifie pour ton business" → Comment KeiroAI y répond → CTA
+  LinkedIn : Article de fond ou post long format
+    Hook : Analyse de tendance marché + comment l'IA transforme le commerce local
+    Structure : Contexte marché → Analyse → Comment KeiroAI se positionne → CTA pro
+
+  RÈGLE CRITIQUE : Le lien avec KeiroAI doit être FORT et NATUREL, pas forcé. L'actu sert de porte d'entrée, KeiroAI est la solution qui en découle logiquement. C'est ce qui différencie KeiroAI de tout autre outil : on connecte l'actualité directement au business du commerçant via l'IA.
+
+PILIER P1 — AVANT/APRÈS (35% du contenu)
   Objectif : Preuve tangible. Montrer un vrai résultat KeiroAI vs la situation initiale du commerçant.
   TikTok : Split-screen ou cut rapide, 30-45s
     Hook : "Ce coiffeur postait des selfies flous. Regarde ce qu'on a fait en 60 secondes."
@@ -65,7 +88,7 @@ PILIER P1 — AVANT/APRÈS (45% du contenu)
     Structure : Reel identique à TikTok (recyclé) + Carrousel 5 slides (Avant → Process → Résultat → Stats → CTA) + Caption longue avec storytelling
     Tips : Caption > 300 mots = boost algorithme. Sauvegarde = KPI clé. Tag le commerce local.
 
-PILIER P2 — ÉDUCATION/CONSEIL (35% du contenu)
+PILIER P2 — ÉDUCATION/CONSEIL (30% du contenu)
   Objectif : Autorité & confiance. Enseigner pourquoi leur com ne marche pas et comment l'IA change la donne.
   TikTok : Face cam ou screen record, 45-60s
     Hook : "3 erreurs que font 90% des restaurants sur Instagram" ou "Pourquoi ton concurrent a 10x plus d'abonnés"
@@ -76,6 +99,7 @@ PILIER P2 — ÉDUCATION/CONSEIL (35% du contenu)
     Tips : Carrousels = 3x plus de portée que les posts image. Slide 1 = couverture à A/B tester.
 
 PILIER P3 — SOCIAL PROOF (20% du contenu)
+  NOTE : KeiroAI utilise sa propre fonctionnalité d'actualités/tendances (P0) pour son propre contenu. C'est la meilleure preuve que ça marche.
   Objectif : Conversion directe. Témoignages, résultats chiffrés, montée en puissance visible.
   TikTok : Interview client ou screen résultats, 30-45s
     Hook : "Ce restaurant a gagné 200 abonnés en 3 semaines. Voilà comment."
@@ -88,13 +112,13 @@ PILIER P3 — SOCIAL PROOF (20% du contenu)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 CALENDRIER ÉDITORIAL 7j/7
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Lundi : TikTok P2 Éducation (carrousel repurposé en vidéo) + Reel P2 recyclé TikTok + Story conseil du jour
+Lundi : TikTok P0 Actu/Tendance de la semaine + Reel P0 recyclé TikTok + Story "L'actu du moment"
 Mardi : TikTok P1 Avant/Après client + Carrousel P1 (5 slides) + Story behind the scenes
-Mercredi : TikTok réponse commentaire (stitch/duet) + Post P3 Social Proof + Story Poll "Quel secteur ?"
+Mercredi : TikTok P0 Tendance virale + angle KeiroAI + Post P2 Éducation + Story Poll "Quel secteur ?"
 Jeudi : TikTok P2 Éducation face cam + Reel P2 + carrousel éducatif + Story témoignage client
 Vendredi : TikTok P1 Avant/Après + teaser weekend + Reel P1 + caption longue + Story teaser
-Samedi : TikTok P3 terrain live (publié le soir) + Stories live toute la journée + LIVE prospection + Q&A
-Dimanche : OFF ou republication best performer + Reel best-of samedi + Story recap semaine
+Samedi : TikTok P3 Social Proof (publié le soir) + Stories live + LIVE prospection + Q&A
+Dimanche : OFF ou P0 recap tendances de la semaine + Reel best-of + Story recap semaine
 
 RÈGLE D'OR : TikTok poste d'abord → si la vidéo dépasse 500 vues en 4h, elle est recyclée en Reel Instagram le lendemain. Les vidéos sous 200 vues sont retravaillées (hook différent, même contenu).
 
@@ -374,16 +398,17 @@ export function getWeeklyPlanPrompt(context: {
 
 OBJECTIF STRATÉGIQUE : Chaque post doit faire progresser vers les 1000 abonnés Instagram. Priorité = engagement (saves + partages > likes).
 
-CALENDRIER ÉDITORIAL (PLAYBOOK V2) :
-Lundi : TikTok P2 Éducation (carrousel repurposé en vidéo) + Reel P2 recyclé TikTok + Story conseil du jour
+CALENDRIER ÉDITORIAL (PLAYBOOK V3) :
+Lundi : TikTok P0 Actu/Tendance de la semaine + Reel P0 recyclé TikTok + Story "L'actu du moment"
 Mardi : TikTok P1 Avant/Après client + Carrousel Instagram P1 (5 slides) + Story behind the scenes
-Mercredi : TikTok réponse commentaire (stitch/duet) + Post Instagram P3 Social Proof + Story Poll
+Mercredi : TikTok P0 Tendance virale + angle KeiroAI + Post Instagram P2 Éducation + Story Poll
 Jeudi : TikTok P2 Éducation face cam + Reel P2 + carrousel éducatif + Story témoignage client
 Vendredi : TikTok P1 Avant/Après + teaser weekend + Reel P1 + caption longue + Story teaser
-Samedi : TikTok P3 terrain live (publié le soir) + Stories live toute la journée
-Dimanche : OFF ou republication best performer + Reel best-of samedi + Story recap semaine
+Samedi : TikTok P3 Social Proof (publié le soir) + Stories live toute la journée
+Dimanche : OFF ou P0 recap tendances de la semaine + Reel best-of + Story recap semaine
 
-RATIO PILIERS : P1 Avant/Après 45% · P2 Éducation 35% · P3 Social Proof 20%
+RATIO PILIERS : P0 Actu/Tendances 15% · P1 Avant/Après 35% · P2 Éducation 30% · P3 Social Proof 20%
+RÈGLE P0 : Au minimum 2 posts P0 (actualité/tendance) par semaine. Chaque post P0 DOIT lier fortement l'actualité à KeiroAI et au business du commerçant cible. C'est le cœur différenciateur de KeiroAI.
 RÈGLE : TikTok poste d'abord → si 500+ vues en 4h → recyclé en Reel Instagram le lendemain. Sous 200 vues → retravaillé (hook différent).
 
 CONTRAINTE GRILLE : Les posts Instagram (Lundi, Mercredi, Vendredi, Dimanche) doivent alterner les couleurs dominantes dans cet ordre : violet → sombre → clair → coloré. Vérifie que 2 posts consécutifs dans la grille ne se ressemblent JAMAIS.
