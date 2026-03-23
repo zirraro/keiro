@@ -129,13 +129,13 @@ export default function WorkspaceCrm({ isAdmin }: WorkspaceCrmProps) {
   });
   const [editLoading, setEditLoading] = useState(false);
 
-  // ─── Fetch data ───────────────────────────────────────
+  // ─── Fetch data (prospects + activities in one call) ────
   const fetchData = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/crm?limit=100', { credentials: 'include' });
+      const res = await fetch('/api/crm', { credentials: 'include' });
       if (!res.ok) {
         if (res.status === 403 || res.status === 401) {
-          setError('Acces restreint. Contactez votre administrateur.');
+          setError('Connectez-vous pour acceder a votre CRM.');
           setLoading(false);
           return;
         }
@@ -143,6 +143,7 @@ export default function WorkspaceCrm({ isAdmin }: WorkspaceCrmProps) {
       }
       const data = await res.json();
       setProspects(data.prospects || []);
+      setActivities(data.activities || []);
       setError(null);
     } catch {
       setError('Impossible de charger les prospects');
@@ -153,27 +154,6 @@ export default function WorkspaceCrm({ isAdmin }: WorkspaceCrmProps) {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
-
-  // ─── Load activities for expanded prospect ────────────
-  useEffect(() => {
-    if (!expandedId) return;
-    // Activities come from the same API if available
-    const fetchActivities = async () => {
-      try {
-        const res = await fetch(`/api/admin/crm?prospect_id=${expandedId}&type=activities`, {
-          credentials: 'include',
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setActivities(prev => {
-            const filtered = prev.filter(a => a.prospect_id !== expandedId);
-            return [...filtered, ...(data.activities || [])];
-          });
-        }
-      } catch { /* silent */ }
-    };
-    fetchActivities();
-  }, [expandedId]);
 
   // ─── Pipeline stats ───────────────────────────────────
   const pipeline = useMemo(() => {
@@ -221,7 +201,7 @@ export default function WorkspaceCrm({ isAdmin }: WorkspaceCrmProps) {
     if (!newProspect.first_name.trim() && !newProspect.company.trim()) return;
     setAddLoading(true);
     try {
-      const res = await fetch('/api/admin/crm', {
+      const res = await fetch('/api/crm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -247,7 +227,7 @@ export default function WorkspaceCrm({ isAdmin }: WorkspaceCrmProps) {
     if (!activityForm.type) return;
     setActivityLoading(true);
     try {
-      const res = await fetch('/api/admin/crm', {
+      const res = await fetch('/api/crm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -282,11 +262,11 @@ export default function WorkspaceCrm({ isAdmin }: WorkspaceCrmProps) {
   const handleSaveEdit = async (prospectId: string) => {
     setEditLoading(true);
     try {
-      const res = await fetch(`/api/admin/crm/${prospectId}`, {
+      const res = await fetch('/api/crm', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify(editForm),
+        body: JSON.stringify({ id: prospectId, ...editForm }),
       });
       if (res.ok) {
         setEditingProspect(null);

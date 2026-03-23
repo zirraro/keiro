@@ -89,12 +89,16 @@ export default function AssistantPage() {
   const [agents, setAgents] = useState<ClientAgent[]>([]);
   const [avatars, setAvatars] = useState<AvatarMap>({});
 
-  // Chat state — panel fermé par défaut
-  const [chatOpen, setChatOpen] = useState(false);
-  const [selectedAgent, setSelectedAgent] = useState<ClientAgent | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [chatLoading, setChatLoading] = useState(false);
-  const [historyLoaded, setHistoryLoaded] = useState<string | null>(null);
+  // Multi-chat state
+  interface ChatInstance {
+    agent: ClientAgent;
+    messages: ChatMessage[];
+    isLoading: boolean;
+    historyLoaded: boolean;
+    minimized: boolean;
+  }
+  const [chats, setChats] = useState<Record<string, ChatInstance>>({});
+  const [activeChatId, setActiveChatId] = useState<string | null>(null); // agent id of open chat
 
   // Notify modal state
   const [showNotifyModal, setShowNotifyModal] = useState(false);
@@ -228,40 +232,40 @@ export default function AssistantPage() {
     loadAvatars();
   }, []);
 
-  // ─── Load chat history when selecting an agent ──────────
-  useEffect(() => {
-    if (!selectedAgent || !user) return;
-    if (historyLoaded === selectedAgent.id) return;
-    if (COMING_SOON_MODE) return;
-
-    async function loadHistory() {
-      try {
-        const res = await fetch(`/api/agents/client-chat?agent_id=${selectedAgent!.id}`, {
-          credentials: 'include',
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.messages && Array.isArray(data.messages)) {
-            setMessages(data.messages.map((m: any, i: number) => ({
-              id: m.id || `hist_${i}`,
-              role: m.role,
-              content: m.content,
-              created_at: m.created_at || m.timestamp || new Date().toISOString(),
-            })));
-          }
+  // ─── Load chat history for a chat instance ─────────────
+  const loadChatHistory = useCallback(async (agentId: string) => {
+    if (COMING_SOON_MODE || !user) return;
+    try {
+      const res = await fetch(`/api/agents/client-chat?agent_id=${agentId}`, {
+        credentials: 'include',
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.messages && Array.isArray(data.messages)) {
+          const msgs: ChatMessage[] = data.messages.map((m: any, i: number) => ({
+            id: m.id || `hist_${i}`,
+            role: m.role,
+            content: m.content,
+            created_at: m.created_at || m.timestamp || new Date().toISOString(),
+          }));
+          setChats(prev => ({
+            ...prev,
+            [agentId]: prev[agentId] ? { ...prev[agentId], messages: msgs, historyLoaded: true } : prev[agentId],
+          }));
         }
-      } catch { /* silent */ }
-      setHistoryLoaded(selectedAgent!.id);
-    }
-    loadHistory();
-  }, [selectedAgent, user, historyLoaded]);
+      }
+    } catch { /* silent */ }
+  }, [COMING_SOON_MODE, user]);
 
   // ─── Select agent (navigate to workspace) ─────────────
   const handleSelectAgent = useCallback((agent: ClientAgent) => {
     if (COMING_SOON_MODE) {
-      setSelectedAgent(agent);
-      setMessages([]);
-      setChatOpen(true);
+      // Open chat in coming-soon mode
+      setChats(prev => ({
+        ...prev,
+        [agent.id]: prev[agent.id] || { agent, messages: [], isLoading: false, historyLoaded: false, minimized: false },
+      }));
+      setActiveChatId(agent.id);
       return;
     }
     if (agent.visibility === 'coming_soon') return;
@@ -270,28 +274,61 @@ export default function AssistantPage() {
 
   // ─── Open chat with agent ─────────────────────────────
   const handleOpenChat = useCallback((agent: ClientAgent) => {
-    setSelectedAgent(agent);
-    if (historyLoaded !== agent.id) {
-      setMessages([]);
-      setHistoryLoaded(null);
+    const existing = chats[agent.id];
+    if (existing) {
+      // Re-open existing chat
+      setChats(prev => ({ ...prev, [agent.id]: { ...prev[agent.id], minimized: false } }));
+      setActiveChatId(agent.id);
+    } else {
+      // Create new chat instance
+      setChats(prev => ({
+        ...prev,
+        [agent.id]: { agent, messages: [], isLoading: false, historyLoaded: false, minimized: false },
+      }));
+      setActiveChatId(agent.id);
+      loadChatHistory(agent.id);
     }
-    setChatOpen(true);
-  }, [historyLoaded]);
+  }, [chats, loadChatHistory]);
 
-  const handleCloseChat = useCallback(() => {
-    setChatOpen(false);
+  // ─── Minimize chat ────────────────────────────────────
+  const handleMinimizeChat = useCallback((agentId: string) => {
+    setChats(prev => ({
+      ...prev,
+      [agentId]: { ...prev[agentId], minimized: true },
+    }));
+    setActiveChatId(null);
+  }, []);
+
+  // ─── Close chat (remove it) ───────────────────────────
+  const handleCloseChat = useCallback((agentId: string) => {
+    setChats(prev => {
+      const next = { ...prev };
+      delete next[agentId];
+      return next;
+    });
+    if (activeChatId === agentId) setActiveChatId(null);
+  }, [activeChatId]);
+
+  // ─── Restore minimized chat ───────────────────────────
+  const handleRestoreChat = useCallback((agentId: string) => {
+    setChats(prev => ({
+      ...prev,
+      [agentId]: { ...prev[agentId], minimized: false },
+    }));
+    setActiveChatId(agentId);
   }, []);
 
   const handleBack = useCallback(() => {
-    setChatOpen(false);
-    setSelectedAgent(null);
-    setMessages([]);
-    setHistoryLoaded(null);
-  }, []);
+    if (activeChatId) {
+      handleCloseChat(activeChatId);
+    }
+  }, [activeChatId, handleCloseChat]);
 
   // ─── Send message ─────────────────────────────────────
   const handleSendMessage = useCallback(async (text: string) => {
-    if (!selectedAgent || !text.trim()) return;
+    if (!activeChatId || !text.trim()) return;
+    const chat = chats[activeChatId];
+    if (!chat) return;
 
     const userMsg: ChatMessage = {
       id: generateId(),
@@ -299,8 +336,11 @@ export default function AssistantPage() {
       content: text,
       created_at: new Date().toISOString(),
     };
-    setMessages(prev => [...prev, userMsg]);
-    setChatLoading(true);
+
+    setChats(prev => ({
+      ...prev,
+      [activeChatId]: { ...prev[activeChatId], messages: [...prev[activeChatId].messages, userMsg], isLoading: true },
+    }));
 
     try {
       const res = await fetch('/api/agents/client-chat', {
@@ -308,41 +348,36 @@ export default function AssistantPage() {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          agent_id: selectedAgent.id,
+          agent_id: activeChatId,
           message: text,
         }),
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        const assistantMsg: ChatMessage = {
-          id: generateId(),
-          role: 'assistant',
-          content: data.message || data.reply || 'Reponse recue.',
-          created_at: new Date().toISOString(),
-        };
-        setMessages(prev => [...prev, assistantMsg]);
-      } else {
-        const assistantMsg: ChatMessage = {
-          id: generateId(),
-          role: 'assistant',
-          content: `Merci pour ton message ! Cette fonctionnalite est en cours de deploiement. ${selectedAgent.displayName} sera bientot disponible pour t'aider.`,
-          created_at: new Date().toISOString(),
-        };
-        setMessages(prev => [...prev, assistantMsg]);
-      }
-    } catch {
       const assistantMsg: ChatMessage = {
+        id: generateId(),
+        role: 'assistant',
+        content: res.ok
+          ? ((await res.json()).message || 'Reponse recue.')
+          : `Merci pour ton message ! ${chat.agent.displayName} sera bientot disponible.`,
+        created_at: new Date().toISOString(),
+      };
+      setChats(prev => ({
+        ...prev,
+        [activeChatId]: { ...prev[activeChatId], messages: [...prev[activeChatId].messages, assistantMsg], isLoading: false },
+      }));
+    } catch {
+      const errorMsg: ChatMessage = {
         id: generateId(),
         role: 'assistant',
         content: 'Oups, probleme de connexion. Verifie ta connexion internet et reessaie.',
         created_at: new Date().toISOString(),
       };
-      setMessages(prev => [...prev, assistantMsg]);
-    } finally {
-      setChatLoading(false);
+      setChats(prev => ({
+        ...prev,
+        [activeChatId]: { ...prev[activeChatId], messages: [...prev[activeChatId].messages, errorMsg], isLoading: false },
+      }));
     }
-  }, [selectedAgent]);
+  }, [activeChatId, chats]);
 
   // ─── Notify handler ───────────────────────────────────
   const handleNotifySubmit = (e: React.FormEvent) => {
@@ -799,7 +834,7 @@ export default function AssistantPage() {
                 key={agent.id}
                 agent={agent}
                 avatarUrl={avatars[agent.id] || null}
-                isSelected={selectedAgent?.id === agent.id}
+                isSelected={!!chats[agent.id]}
                 onClick={() => handleSelectAgent(agent)}
                 comingSoonMode={COMING_SOON_MODE}
                 onNotifyClick={() => {
@@ -818,66 +853,145 @@ export default function AssistantPage() {
         )}
       </div>
 
-      {/* ═══ FLOATING CHAT BUTTON ═══ */}
-      {!chatOpen && (
-        <button
-          onClick={() => {
-            if (selectedAgent) {
-              setChatOpen(true);
-            } else {
-              // Default to AMI if no agent selected
-              const ami = agents.find(a => a.id === 'marketing');
-              if (ami) {
-                handleOpenChat(ami);
-              }
-            }
-          }}
-          className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-2xl shadow-purple-500/30 hover:shadow-purple-500/50 hover:scale-105 flex items-center justify-center transition-all lg:bottom-8 lg:right-8"
-          title="Discuter avec un agent"
-        >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-          </svg>
-          {/* Notification dot if there's an active agent */}
-          {selectedAgent && (
-            <div className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-green-400 border-2 border-[#0c1a3a] flex items-center justify-center">
-              <span className="text-[7px] text-green-900 font-bold">1</span>
-            </div>
-          )}
-        </button>
-      )}
+      {/* ═══ MINIMIZED CHAT BUBBLES ═══ */}
+      {(() => {
+        const minimizedChats = Object.entries(chats).filter(([, c]) => c.minimized);
+        const chatCount = Object.keys(chats).length;
+        return (
+          <div className="fixed bottom-6 right-6 z-40 flex flex-col-reverse items-end gap-2 lg:bottom-8 lg:right-8">
+            {/* Minimized chat bubbles */}
+            {minimizedChats.map(([agentId, chat]) => (
+              <button
+                key={agentId}
+                onClick={() => handleRestoreChat(agentId)}
+                className="group relative w-12 h-12 rounded-full shadow-xl hover:scale-110 transition-all flex items-center justify-center"
+                style={{ background: `linear-gradient(135deg, ${chat.agent.gradientFrom}, ${chat.agent.gradientTo})` }}
+                title={`Ouvrir le chat avec ${chat.agent.displayName}`}
+              >
+                {avatars[agentId] ? (
+                  <img src={avatars[agentId]!} alt={chat.agent.displayName} className="w-full h-full rounded-full object-cover" />
+                ) : (
+                  <span className="text-lg">{chat.agent.icon}</span>
+                )}
+                {/* Close mini button */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleCloseChat(agentId); }}
+                  className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+                {/* Unread dot */}
+                {chat.messages.length > 0 && (
+                  <div className="absolute -top-0.5 -left-0.5 w-3 h-3 rounded-full bg-green-400 border-2 border-[#0c1a3a]" />
+                )}
+              </button>
+            ))}
 
-      {/* ═══ CHAT SLIDE-OVER PANEL ═══ */}
-      {chatOpen && selectedAgent && (
-        <>
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:bg-transparent lg:backdrop-blur-none lg:pointer-events-none"
-            onClick={handleCloseChat}
-          />
-
-          {/* Chat panel */}
-          <div
-            className={`fixed z-50 ${
-              isMobile
-                ? 'inset-0'
-                : 'top-4 right-4 bottom-4 w-[420px] rounded-2xl shadow-2xl shadow-black/50'
-            }`}
-            style={{ animation: 'slideInRight 0.25s ease-out' }}
-          >
-            <AgentChatPanel
-              agent={selectedAgent}
-              avatarUrl={avatars[selectedAgent.id] || null}
-              messages={messages}
-              onSendMessage={handleSendMessage}
-              isLoading={chatLoading}
-              onBack={handleBack}
-              isMobile={isMobile}
-              comingSoonMode={COMING_SOON_MODE}
-            />
+            {/* Main chat floating button (show when no active full-size chat) */}
+            {!activeChatId && (
+              <button
+                onClick={() => {
+                  const ami = agents.find(a => a.id === 'marketing');
+                  if (ami) handleOpenChat(ami);
+                }}
+                className="w-14 h-14 rounded-full bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-2xl shadow-purple-500/30 hover:shadow-purple-500/50 hover:scale-105 flex items-center justify-center transition-all"
+                title="Discuter avec un agent"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                {chatCount > 0 && (
+                  <div className="absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full bg-green-400 border-2 border-[#0c1a3a] flex items-center justify-center">
+                    <span className="text-[8px] text-green-900 font-bold">{chatCount}</span>
+                  </div>
+                )}
+              </button>
+            )}
           </div>
-        </>
-      )}
+        );
+      })()}
+
+      {/* ═══ ACTIVE CHAT PANEL (slide-over) ═══ */}
+      {activeChatId && chats[activeChatId] && !chats[activeChatId].minimized && (() => {
+        const chat = chats[activeChatId];
+        return (
+          <>
+            {/* Backdrop (mobile only) */}
+            {isMobile && (
+              <div
+                className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+                onClick={() => handleMinimizeChat(activeChatId)}
+              />
+            )}
+
+            {/* Chat panel with custom header for minimize/close */}
+            <div
+              className={`fixed z-50 flex flex-col ${
+                isMobile
+                  ? 'inset-0'
+                  : 'top-4 right-4 bottom-4 w-[420px] rounded-2xl shadow-2xl shadow-black/50 overflow-hidden'
+              }`}
+              style={{ animation: 'slideInRight 0.25s ease-out' }}
+            >
+              {/* Custom header with minimize + close buttons */}
+              <div
+                className="flex items-center gap-3 px-4 py-3 flex-shrink-0"
+                style={{ background: `linear-gradient(135deg, ${chat.agent.gradientFrom}, ${chat.agent.gradientTo})` }}
+              >
+                <div className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 bg-white/15">
+                  {avatars[activeChatId] ? (
+                    <img src={avatars[activeChatId]!} alt={chat.agent.displayName} className="w-full h-full object-cover" style={{ objectPosition: 'top center' }} />
+                  ) : (
+                    <span className="text-lg">{chat.agent.icon}</span>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-white font-semibold text-sm leading-tight">{chat.agent.displayName}</h3>
+                  <p className="text-white/70 text-xs">{chat.agent.title}</p>
+                </div>
+                <div className="flex items-center gap-1">
+                  {/* Minimize button */}
+                  <button
+                    onClick={() => handleMinimizeChat(activeChatId)}
+                    className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors"
+                    title="Reduire"
+                  >
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {/* Close button */}
+                  <button
+                    onClick={() => handleCloseChat(activeChatId)}
+                    className="w-8 h-8 rounded-full bg-white/15 hover:bg-red-500/50 flex items-center justify-center transition-colors"
+                    title="Fermer"
+                  >
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              {/* Chat body using AgentChatPanel but without its header */}
+              <div className="flex-1 flex flex-col bg-[#0a1628] overflow-hidden">
+                <AgentChatPanel
+                  agent={chat.agent}
+                  avatarUrl={avatars[activeChatId] || null}
+                  messages={chat.messages}
+                  onSendMessage={handleSendMessage}
+                  isLoading={chat.isLoading}
+                  onBack={() => handleMinimizeChat(activeChatId)}
+                  isMobile={isMobile}
+                  comingSoonMode={COMING_SOON_MODE}
+                />
+              </div>
+            </div>
+          </>
+        );
+      })()}
 
       {/* Slide-in animation */}
       <style jsx>{`
