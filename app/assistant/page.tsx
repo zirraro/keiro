@@ -83,6 +83,9 @@ export default function AssistantPage() {
   // Publishing streak
   const [streak, setStreak] = useState(0);
 
+  // View tab (must be before any conditional returns)
+  const [viewTab, setViewTab] = useState<'equipe' | 'agent' | 'offre'>('equipe');
+
   // ─── Auth check ─────────────────────────────────────────
   useEffect(() => {
     async function init() {
@@ -351,9 +354,6 @@ export default function AssistantPage() {
       />
     );
   }
-
-  // ─── View tab ──────────────────────────────────────────
-  const [viewTab, setViewTab] = useState<'equipe' | 'agent' | 'offre'>('equipe');
 
   // Team definitions aligned with CRM architecture
   const TEAMS = [
