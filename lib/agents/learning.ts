@@ -44,6 +44,7 @@
  */
 
 import { SupabaseClient } from '@supabase/supabase-js';
+import { saveKnowledge } from './knowledge-rag';
 
 // ── Service team definitions for team-level knowledge pools ──
 // Each team shares learnings at a lower threshold (Signal+ = 20+) vs cross-agent (Pattern+ = 40+)
@@ -233,6 +234,19 @@ export async function saveLearning(
         },
       })
       .eq('id', similar.id);
+
+    // Sync to RAG knowledge pool (fire and forget)
+    saveKnowledge(supabase, {
+      content: currentData.learning || learning.learning,
+      summary: `[${newPhase}] ${learning.category} — ${(currentData.learning || learning.learning).substring(0, 80)}`,
+      agent: learning.agent,
+      category: newConfidence >= 65 ? 'best_practice' : 'learning',
+      source: 'learning_sync',
+      confidence: newConfidence / 100,
+      business_type: currentData.business_type,
+      org_id: learning.orgId || undefined,
+    }).catch(() => {}); // Non-blocking
+
     return;
   }
 
@@ -257,6 +271,17 @@ export async function saveLearning(
     created_at: new Date().toISOString(),
     ...(learning.orgId ? { org_id: learning.orgId } : {}),
   });
+
+  // Sync to RAG knowledge pool (fire and forget)
+  saveKnowledge(supabase, {
+    content: learning.learning,
+    summary: `[${phase}] ${learning.category} — ${learning.learning.substring(0, 80)}`,
+    agent: learning.agent,
+    category: initialScore >= 65 ? 'best_practice' : 'learning',
+    source: 'learning_sync',
+    confidence: initialScore / 100,
+    org_id: learning.orgId || undefined,
+  }).catch(() => {}); // Non-blocking
 }
 
 /**

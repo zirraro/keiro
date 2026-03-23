@@ -93,19 +93,23 @@ BEGIN
 END;
 $$;
 
--- Seed initial knowledge from existing learnings
--- (This migrates high-confidence learnings into the RAG system)
+-- Seed initial knowledge from existing learnings (agent_logs with action='learning')
+-- This migrates ALL learnings with confidence >= 30 into the RAG system
 INSERT INTO agent_knowledge (content, summary, agent, category, confidence, source, created_by)
 SELECT
-  data->>'content',
-  data->>'summary',
+  COALESCE(data->>'learning', data->>'content'),
+  LEFT(COALESCE(data->>'learning', data->>'content', ''), 100),
   agent,
-  'learning',
-  COALESCE((data->>'confidence')::REAL, 0.5),
-  'migration_from_learnings',
+  CASE
+    WHEN COALESCE((data->>'confidence')::REAL, 50) >= 65 THEN 'best_practice'
+    WHEN COALESCE((data->>'confidence')::REAL, 50) >= 40 THEN 'pattern'
+    ELSE 'learning'
+  END,
+  LEAST(COALESCE((data->>'confidence')::REAL, 50) / 100.0, 1.0),
+  'migration_from_agent_logs',
   'system'
 FROM agent_logs
-WHERE action = 'learning_saved'
-  AND data->>'content' IS NOT NULL
-  AND (data->>'confidence')::REAL >= 0.4
+WHERE action IN ('learning', 'learning_saved')
+  AND COALESCE(data->>'learning', data->>'content') IS NOT NULL
+  AND COALESCE((data->>'confidence')::REAL, 50) >= 30
 ON CONFLICT DO NOTHING;
