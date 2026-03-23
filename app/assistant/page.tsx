@@ -931,7 +931,7 @@ export default function AssistantPage() {
               className={`fixed z-50 flex flex-col ${
                 isMobile
                   ? 'inset-0'
-                  : 'top-4 right-4 bottom-4 w-[420px] rounded-2xl shadow-2xl shadow-black/50 overflow-hidden'
+                  : 'top-20 right-4 bottom-4 w-[420px] rounded-2xl shadow-2xl shadow-black/50 overflow-hidden'
               }`}
               style={{ animation: 'slideInRight 0.25s ease-out' }}
             >
