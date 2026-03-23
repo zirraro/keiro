@@ -17,6 +17,106 @@ import { getActiveLearnings, getAllAgentLearnings, getTeamLearnings, getAllHisto
 import { getAgentAvatar, formatAvatarForPrompt, type AgentAvatarConfig } from './avatar';
 import { getOrgContext, formatOrgContextForPrompt } from '../tenant';
 import { getAgentKnowledgeContext } from './knowledge-rag';
+import { loadBusinessDossier, type BusinessDossier } from './client-context';
+
+// ─── KEIRO AI BRAND IDENTITY ─────────────────────────────────
+// First client profile — the foundational data that all agents use.
+// This is KeiroAI's own brand, injected into every agent's context.
+const KEIROAI_BRAND = {
+  company_name: 'KeiroAI',
+  tagline: 'Marketing IA pour entrepreneurs et PME',
+  mission: 'Automatiser le marketing digital des commercants et entrepreneurs grace a une equipe d\'agents IA ultra-performants, pour leur faire gagner du temps et booster leur chiffre d\'affaires.',
+  founder: 'Victor',
+  website: 'https://keiroai.com',
+  tone: 'Amical, tutoiement naturel, expert mais accessible, jamais corporate. On parle comme un ami entrepreneur qui partage ses hacks.',
+  values: [
+    'Simplicite — tout doit etre facile a utiliser, zero friction',
+    'Resultats concrets — on parle en CA genere, temps gagne, clients convertis',
+    'Proximite — on est des entrepreneurs qui parlent a des entrepreneurs',
+    'Innovation — on utilise l\'IA la plus avancee pour des resultats elite',
+  ],
+  target_audience: [
+    'Commercants locaux (restaurants, coiffeurs, boutiques, fleuristes, cavistes)',
+    'Coaches, consultants, freelances',
+    'PME et agences',
+    'Entrepreneurs solos qui veulent automatiser leur marketing',
+  ],
+  products: [
+    'Generation de contenu IA (images, videos, textes)',
+    'Publication automatique Instagram, TikTok, LinkedIn',
+    'Equipe de 14+ agents IA (email, DM, SEO, ads, chatbot, WhatsApp, etc.)',
+    'CRM intelligent avec prospection automatisee',
+    'Analyse de performance et recommandations strategiques',
+  ],
+  differentiators: [
+    'Equipe complete d\'agents IA specialises (pas juste un chatbot)',
+    'Tout-en-un : generation + publication + prospection + CRM',
+    'IA qui apprend et s\'ameliore avec chaque client (RAG + learnings)',
+    'Prix accessibles a partir de 49EUR/mois',
+    'Interface simple, resultats visibles en 48h',
+  ],
+  competitors: ['Hootsuite', 'Buffer', 'Jasper', 'Copy.ai', 'Manychat'],
+  pricing_tiers: ['Gratuit (15 credits)', 'Createur 49EUR', 'Pro 99EUR', 'Business 199EUR', 'Elite 999EUR'],
+  social: {
+    instagram: '@keiroai',
+    tiktok: '@keiroai',
+    linkedin: 'KeiroAI',
+  },
+  content_pillars: [
+    'Actualites/Tendances IA + marketing (2-3x/semaine)',
+    'Cas clients et resultats concrets',
+    'Tips marketing actionables pour commercants',
+    'Behind the scenes de l\'equipe IA',
+    'Comparatifs et ROI par type de business',
+  ],
+  email_style: 'Court, percutant, tutoiement, signe "Victor de KeiroAI". Pas de jargon. CTA clair vers demo/essai gratuit.',
+  dm_style: 'Ultra-naturel, comme un message d\'ami entrepreneur. 2-3 lignes max. Emojis doses.',
+};
+
+/**
+ * Format the KeiroAI brand identity + optional client dossier for agent prompts.
+ */
+function formatBrandContext(clientDossier?: BusinessDossier | null): string {
+  let text = `
+━━━ IDENTITE KEIROAI (Profil Fondateur) ━━━
+Entreprise : ${KEIROAI_BRAND.company_name} — ${KEIROAI_BRAND.tagline}
+Mission : ${KEIROAI_BRAND.mission}
+Fondateur : ${KEIROAI_BRAND.founder}
+Site : ${KEIROAI_BRAND.website}
+Ton de marque : ${KEIROAI_BRAND.tone}
+
+VALEURS : ${KEIROAI_BRAND.values.join(' | ')}
+CIBLES : ${KEIROAI_BRAND.target_audience.join(', ')}
+PRODUITS : ${KEIROAI_BRAND.products.join(' | ')}
+DIFFERENCIATEURS : ${KEIROAI_BRAND.differentiators.join(' | ')}
+CONCURRENTS : ${KEIROAI_BRAND.competitors.join(', ')}
+PILIERS CONTENU : ${KEIROAI_BRAND.content_pillars.join(' | ')}
+
+STYLE EMAIL : ${KEIROAI_BRAND.email_style}
+STYLE DM : ${KEIROAI_BRAND.dm_style}
+RESEAUX : Instagram ${KEIROAI_BRAND.social.instagram} | TikTok ${KEIROAI_BRAND.social.tiktok} | LinkedIn ${KEIROAI_BRAND.social.linkedin}
+OFFRES : ${KEIROAI_BRAND.pricing_tiers.join(' | ')}`;
+
+  if (clientDossier) {
+    text += `
+
+━━━ DOSSIER CLIENT ━━━
+${clientDossier.company_name ? `Entreprise client : ${clientDossier.company_name}` : ''}
+${clientDossier.company_description ? `Description : ${clientDossier.company_description}` : ''}
+${clientDossier.business_type ? `Type : ${clientDossier.business_type}` : ''}
+${clientDossier.target_audience ? `Audience cible : ${clientDossier.target_audience}` : ''}
+${clientDossier.brand_tone ? `Ton souhaite : ${clientDossier.brand_tone}` : ''}
+${clientDossier.main_products ? `Produits/Services : ${clientDossier.main_products}` : ''}
+${clientDossier.competitors ? `Concurrents : ${clientDossier.competitors}` : ''}
+${clientDossier.unique_selling_points ? `Points forts : ${clientDossier.unique_selling_points}` : ''}
+${clientDossier.business_goals ? `Objectifs : ${clientDossier.business_goals}` : ''}
+${clientDossier.instagram_handle ? `Instagram : ${clientDossier.instagram_handle}` : ''}
+${clientDossier.website_url ? `Site : ${clientDossier.website_url}` : ''}
+${clientDossier.ai_summary ? `Resume IA : ${clientDossier.ai_summary}` : ''}`.replace(/\n{2,}/g, '\n');
+  }
+
+  return text;
+}
 
 interface AgentContext {
   crmStats: {
@@ -82,6 +182,7 @@ interface AgentContext {
   agentFeedbacks: AgentFeedback[];
   topProspects: Array<{ company: string; score: number; temperature: string; status: string }>;
   ragContext: string; // Knowledge from RAG pool
+  brandContext: string; // KeiroAI brand identity + client dossier
 }
 
 /**
@@ -108,6 +209,7 @@ export async function loadSharedContext(
   supabase: SupabaseClient,
   agentName: string,
   orgId?: string,
+  userId?: string,
 ): Promise<AgentContext> {
   const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
@@ -343,6 +445,13 @@ export async function loadSharedContext(
     // RAG is optional — don't break agent if it fails
   }
 
+  // ─── Brand Identity + Client Dossier ──────────────────────
+  let clientDossier: BusinessDossier | null = null;
+  if (userId) {
+    try { clientDossier = await loadBusinessDossier(supabase, userId); } catch {}
+  }
+  const brandContext = formatBrandContext(clientDossier);
+
   return {
     crmStats: {
       total: total || 0,
@@ -407,6 +516,7 @@ export async function loadSharedContext(
       status: p.status || 'new',
     })),
     ragContext,
+    brandContext,
   };
 }
 
@@ -586,6 +696,11 @@ ADAPTATION & MÉMOIRE :
 - MÉMOIRE HISTORIQUE : toutes les connaissances confirmées (score 65+) sont PERMANENTES et JAMAIS perdues
 - Les optimisations, améliorations et adaptations passées restent TOUJOURS dans le pool partagé
 - En mode multi-tenant : chaque client a ses propres données, les insights anonymisés sont partagés`;
+
+  // Brand Identity + Client Dossier (ALWAYS injected)
+  if (ctx.brandContext) {
+    text += `\n\n${ctx.brandContext}`;
+  }
 
   // Multi-tenant: append org context when available
   if (orgContextBlock) {
