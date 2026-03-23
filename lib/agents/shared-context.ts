@@ -16,6 +16,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { getActiveLearnings, getAllAgentLearnings, getTeamLearnings, getAllHistoricalLearnings, getAgentFeedbacks, formatLearningsForPrompt, type AgentLearning, type AgentFeedback } from './learning';
 import { getAgentAvatar, formatAvatarForPrompt, type AgentAvatarConfig } from './avatar';
 import { getOrgContext, formatOrgContextForPrompt } from '../tenant';
+import { getAgentKnowledgeContext } from './knowledge-rag';
 
 interface AgentContext {
   crmStats: {
@@ -80,6 +81,7 @@ interface AgentContext {
   historicalLearnings: AgentLearning[];
   agentFeedbacks: AgentFeedback[];
   topProspects: Array<{ company: string; score: number; temperature: string; status: string }>;
+  ragContext: string; // Knowledge from RAG pool
 }
 
 /**
@@ -333,6 +335,14 @@ export async function loadSharedContext(
     getAllHistoricalLearnings(supabase, { minConfidence: 65, limit: 100, orgId: orgId || null }),
   ]);
 
+  // ─── RAG Knowledge Pool (non-blocking) ──────────────────
+  let ragContext = '';
+  try {
+    ragContext = await getAgentKnowledgeContext(supabase, agentName, `Agent ${agentName} preparing next action`, { orgId });
+  } catch {
+    // RAG is optional — don't break agent if it fails
+  }
+
   return {
     crmStats: {
       total: total || 0,
@@ -396,6 +406,7 @@ export async function loadSharedContext(
       temperature: p.temperature || 'cold',
       status: p.status || 'new',
     })),
+    ragContext,
   };
 }
 
@@ -579,6 +590,11 @@ ADAPTATION & MÉMOIRE :
   // Multi-tenant: append org context when available
   if (orgContextBlock) {
     text += `\n\n${orgContextBlock}`;
+  }
+
+  // RAG Knowledge Pool context
+  if (ctx.ragContext) {
+    text += ctx.ragContext;
   }
 
   return text;
