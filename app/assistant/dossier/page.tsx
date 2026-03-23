@@ -94,6 +94,7 @@ export default function DossierPage() {
   const [googleMapsUrl, setGoogleMapsUrl] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [dossierExtra, setDossierExtra] = useState<Record<string, string>>({});
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -541,8 +542,81 @@ export default function DossierPage() {
           />
         </FormField>
 
+        {/* ─── Section: Direction Artistique ─── */}
+        <SectionTitle title="Direction Artistique (DA)" icon="palette" />
+
+        <div className="bg-gradient-to-r from-purple-600/10 to-blue-600/10 border border-purple-500/20 rounded-xl p-4 mb-4">
+          <p className="text-purple-300 text-xs font-semibold mb-1">{'\uD83C\uDFA8'} Pourquoi c&apos;est important ?</p>
+          <p className="text-white/40 text-[11px]">Vos agents utilisent ces informations pour creer du contenu fidele a votre marque : posts Instagram, emails, visuels publicitaires, etc.</p>
+        </div>
+
+        <FormField label="Couleurs de marque (codes hex)">
+          <input
+            type="text"
+            value={(dossierExtra as any).brand_colors || ''}
+            onChange={(e) => { setDossierExtra(prev => ({ ...prev, brand_colors: e.target.value })); triggerAutoSave(); }}
+            placeholder="Ex: #FF5733, #2E86AB, #FFFFFF"
+            className="form-input-dark"
+          />
+        </FormField>
+
+        <FormField label="Polices / Typographie">
+          <input
+            type="text"
+            value={(dossierExtra as any).brand_fonts || ''}
+            onChange={(e) => { setDossierExtra(prev => ({ ...prev, brand_fonts: e.target.value })); triggerAutoSave(); }}
+            placeholder="Ex: Montserrat pour les titres, Open Sans pour le texte"
+            className="form-input-dark"
+          />
+        </FormField>
+
+        <FormField label="Style visuel prefere">
+          <div className="flex flex-wrap gap-2">
+            {['Minimaliste', 'Moderne/Tech', 'Luxe/Elegant', 'Coloré/Fun', 'Nature/Organique', 'Retro/Vintage', 'Photo realiste', 'Illustration'].map(style => (
+              <button
+                key={style}
+                onClick={() => { setDossierExtra(prev => ({ ...prev, visual_style: style })); triggerAutoSave(); }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                  (dossierExtra as any).visual_style === style
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-white/10 text-white/60 hover:bg-white/20'
+                }`}
+              >
+                {style}
+              </button>
+            ))}
+          </div>
+        </FormField>
+
         {/* ─── Section: Logo & Documents ─── */}
         <SectionTitle title="Logo & Documents" icon="upload" />
+
+        {/* Recommended documents */}
+        <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4 mb-4">
+          <p className="text-white/60 text-xs font-semibold mb-2">{'\uD83D\uDCCB'} Documents recommandes pour une personnalisation optimale :</p>
+          <div className="space-y-1.5">
+            {[
+              { doc: 'Logo (PNG/SVG haute resolution)', priority: 'Essentiel', icon: '\uD83C\uDFA8' },
+              { doc: 'Charte graphique / Brand book', priority: 'Recommande', icon: '\uD83D\uDCD6' },
+              { doc: 'Photos de vos produits/services', priority: 'Recommande', icon: '\uD83D\uDCF8' },
+              { doc: 'Menu / Catalogue / Tarifs', priority: 'Utile', icon: '\uD83D\uDCCB' },
+              { doc: 'Photos de votre equipe/local', priority: 'Utile', icon: '\uD83C\uDFE2' },
+              { doc: 'Exemples de posts que vous aimez', priority: 'Bonus', icon: '\u2B50' },
+              { doc: 'Temoignages clients', priority: 'Bonus', icon: '\uD83D\uDCAC' },
+            ].map(item => (
+              <div key={item.doc} className="flex items-center gap-2 text-[11px]">
+                <span>{item.icon}</span>
+                <span className="text-white/70 flex-1">{item.doc}</span>
+                <span className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${
+                  item.priority === 'Essentiel' ? 'bg-red-500/20 text-red-400'
+                  : item.priority === 'Recommande' ? 'bg-purple-500/20 text-purple-300'
+                  : item.priority === 'Utile' ? 'bg-blue-500/20 text-blue-300'
+                  : 'bg-white/10 text-white/40'
+                }`}>{item.priority}</span>
+              </div>
+            ))}
+          </div>
+        </div>
 
         {/* Logo upload */}
         <FormField label="Logo de l'entreprise">
@@ -697,6 +771,11 @@ function SectionTitle({ title, icon }: { title: string; icon: string }) {
     upload: (
       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+      </svg>
+    ),
+    palette: (
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
       </svg>
     ),
   };
