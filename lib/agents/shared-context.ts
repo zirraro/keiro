@@ -13,7 +13,7 @@
  */
 
 import { SupabaseClient } from '@supabase/supabase-js';
-import { getActiveLearnings, getAllAgentLearnings, getTeamLearnings, getAgentFeedbacks, formatLearningsForPrompt, type AgentLearning, type AgentFeedback } from './learning';
+import { getActiveLearnings, getAllAgentLearnings, getTeamLearnings, getAllHistoricalLearnings, getAgentFeedbacks, formatLearningsForPrompt, type AgentLearning, type AgentFeedback } from './learning';
 import { getAgentAvatar, formatAvatarForPrompt, type AgentAvatarConfig } from './avatar';
 import { getOrgContext, formatOrgContextForPrompt } from '../tenant';
 
@@ -77,6 +77,7 @@ interface AgentContext {
   structuredLearnings: AgentLearning[];
   structuredOtherLearnings: AgentLearning[];
   teamLearnings: AgentLearning[];
+  historicalLearnings: AgentLearning[];
   agentFeedbacks: AgentFeedback[];
   topProspects: Array<{ company: string; score: number; temperature: string; status: string }>;
 }
@@ -321,12 +322,15 @@ export async function loadSharedContext(
     .map((m: any) => `[${m.agent}] ${m.data?.learning}`)
     .filter((l: string) => l && !l.endsWith('undefined'));
 
-  // Structured learnings (hybrid 3-tier: signal/pattern/insight) + feedbacks
-  const [structuredLearnings, structuredOtherLearnings, structuredTeamLearnings, agentFeedbacks] = await Promise.all([
+  // Structured learnings (hybrid 3-tier: signal/pattern/insight) + feedbacks + historical memory
+  const [structuredLearnings, structuredOtherLearnings, structuredTeamLearnings, agentFeedbacks, historicalLearnings] = await Promise.all([
     getActiveLearnings(supabase, agentName, undefined, orgId),
     getAllAgentLearnings(supabase, agentName, orgId),
     getTeamLearnings(supabase, agentName, orgId),
     getAgentFeedbacks(supabase, agentName, undefined, orgId),
+    // Load ALL historical learnings at Rule+ (score >= 65) regardless of expiry
+    // This ensures optimization/adaptation knowledge is NEVER lost
+    getAllHistoricalLearnings(supabase, { minConfidence: 65, limit: 100, orgId: orgId || null }),
   ]);
 
   return {
@@ -384,6 +388,7 @@ export async function loadSharedContext(
     structuredLearnings,
     structuredOtherLearnings,
     teamLearnings: structuredTeamLearnings,
+    historicalLearnings,
     agentFeedbacks,
     topProspects: (topProspectsData || []).map((p: any) => ({
       company: p.company || 'Inconnu',
@@ -506,6 +511,28 @@ FUNNEL DE CONVERSION:
     text += structuredText;
   }
 
+  // ── MÉMOIRE HISTORIQUE — confirmed knowledge that NEVER expires ──
+  // Includes ALL learnings at Rule+ (score >= 65) regardless of expiry date
+  // This is the permanent optimization/adaptation knowledge base
+  if (ctx.historicalLearnings && ctx.historicalLearnings.length > 0) {
+    // Deduplicate: exclude learnings already shown in structured sections
+    const shownIds = new Set([
+      ...ctx.structuredLearnings.map(l => l.id),
+      ...ctx.structuredOtherLearnings.map(l => l.id),
+      ...(ctx.teamLearnings || []).map(l => l.id),
+    ]);
+    const historicalOnly = ctx.historicalLearnings.filter(l => l.id && !shownIds.has(l.id));
+    if (historicalOnly.length > 0) {
+      text += `\n\n📚 MÉMOIRE HISTORIQUE (connaissances confirmées, score 65+, JAMAIS perdues) :`;
+      text += `\n→ Ces learnings sont le fruit de l'amélioration, l'optimisation et l'adaptation continues. APPLIQUE-LES TOUJOURS.`;
+      for (const l of historicalOnly.slice(0, 30)) {
+        const icon = l.confidence >= 85 ? '💎' : '📏';
+        const expired = l.expires_at && new Date(l.expires_at) < new Date() ? ' [historique]' : '';
+        text += `\n- ${icon} [${l.agent}/${l.category}] ${l.learning} (score: ${l.confidence}, ${l.confirmations} conf.${l.revenue_linked ? ', CA réel' : ''}${expired})`;
+      }
+    }
+  }
+
   // Legacy learnings (backward compatible, will be phased out)
   if (ctx.learnings.length > 0 && ctx.structuredLearnings.length === 0) {
     text += `\n\nTES APPRENTISSAGES:\n${ctx.learnings.map(l => `- ${l}`).join('\n')}`;
@@ -541,10 +568,12 @@ QUALITÉ CONTENU :
 - Pilier P0 Actualités/Tendances : 2-3x/semaine minimum, lier l'actu à KeiroAI et au business du commerçant
 - KeiroAI utilise sa propre fonctionnalité d'actu/tendances — c'est le cœur différenciateur
 
-ADAPTATION :
+ADAPTATION & MÉMOIRE :
 - Les agents s'adaptent à chaque utilisation et à chaque client
 - Chaque interaction est une opportunité d'apprentissage
 - Les learnings cross-agents permettent une intelligence collective
+- MÉMOIRE HISTORIQUE : toutes les connaissances confirmées (score 65+) sont PERMANENTES et JAMAIS perdues
+- Les optimisations, améliorations et adaptations passées restent TOUJOURS dans le pool partagé
 - En mode multi-tenant : chaque client a ses propres données, les insights anonymisés sont partagés`;
 
   // Multi-tenant: append org context when available
