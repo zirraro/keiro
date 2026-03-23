@@ -80,79 +80,65 @@ function HomeKeiroInner() {
             </ul>
           </div>
           <div className="lg:col-span-5">
-            {/* Agents IA Team Preview */}
+            {/* Agents IA Team Preview — Visual grid */}
             <div className="rounded-2xl overflow-hidden bg-white/5 backdrop-blur-sm border border-white/10">
-              <div className="p-4 border-b border-white/10 bg-white/5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white text-xl">
-                      🤖
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-white text-sm">{locale === 'fr' ? '15 Agents IA' : '15 AI Agents'}</h3>
-                      <p className="text-[11px] text-[#7fa0c4]/60">{locale === 'fr' ? 'Automatisent votre business 24/7' : 'Automate your business 24/7'}</p>
-                    </div>
+              <div className="p-4 pb-2">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <h3 className="font-bold text-white text-sm">{locale === 'fr' ? '17 Agents IA' : '17 AI Agents'}</h3>
+                    <p className="text-[10px] text-white/40">{locale === 'fr' ? 'Votre equipe travaille 24/7' : 'Your team works 24/7'}</p>
                   </div>
-                  <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-[10px] font-bold rounded-full">{locale === 'fr' ? 'Actifs' : 'Active'}</span>
+                  <div className="flex items-center gap-1.5 px-2 py-0.5 bg-green-500/20 rounded-full">
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                    <span className="text-green-400 text-[9px] font-bold">{locale === 'fr' ? 'Actifs' : 'Active'}</span>
+                  </div>
                 </div>
-              </div>
 
-              <div className="p-4 space-y-2.5">
-                {/* Agent grid — 5 highlighted agents */}
-                {[
-                  { icon: '🎯', name: 'Ami', role: locale === 'fr' ? 'Strategie & optimisation marketing' : 'Marketing strategy & optimization', color: 'from-pink-500/20 to-rose-500/20' },
-                  { icon: '✨', name: 'Lena', role: locale === 'fr' ? 'Publie auto + creation contenu' : 'Auto-publishes + content creation', color: 'from-purple-500/20 to-violet-500/20' },
-                  { icon: '🔍', name: 'Oscar', role: locale === 'fr' ? 'Optimise votre SEO + articles blog' : 'Optimizes SEO + blog articles', color: 'from-amber-500/20 to-orange-500/20' },
-                  { icon: '🤝', name: 'Leo', role: locale === 'fr' ? 'Prospecte et relance automatiquement' : 'Auto prospecting + follow-ups', color: 'from-blue-500/20 to-cyan-500/20' },
-                  { icon: '📧', name: 'Hugo', role: locale === 'fr' ? 'Envoie vos sequences email' : 'Sends email sequences', color: 'from-green-500/20 to-emerald-500/20' },
-                ].map((agent) => (
-                  <div key={agent.name} className={`flex items-center gap-3 bg-gradient-to-r ${agent.color} rounded-xl px-3 py-2.5 border border-white/5`}>
-                    <span className="text-lg">{agent.icon}</span>
-                    <div className="flex-1 min-w-0">
-                      <span className="text-white font-semibold text-xs">{agent.name}</span>
-                      <p className="text-[10px] text-[#a4bdd4]/60 truncate">{agent.role}</p>
-                    </div>
-                    <div className="w-1.5 h-1.5 rounded-full bg-green-400 flex-shrink-0 animate-pulse" />
-                  </div>
-                ))}
-
-                {/* +10 more agents */}
-                <div className="flex flex-wrap gap-1.5 pt-1">
+                {/* Agent avatar grid — 4 columns, visual */}
+                <div className="grid grid-cols-4 gap-2 mb-3">
                   {[
-                    { icon: '📍', name: 'Theo' },
-                    { icon: '💬', name: 'Jade' },
-                    { icon: '🎵', name: 'Axel' },
-                    { icon: '🤖', name: 'Max' },
-                    { icon: '📢', name: 'Felix' },
-                    { icon: '💰', name: 'Louis' },
-                    { icon: '⚖️', name: 'Sara' },
-                    { icon: '🚀', name: 'Clara' },
-                    { icon: '🧠', name: 'Noah' },
-                    { icon: '💎', name: 'Theo R.' },
-                  ].map((a) => (
-                    <div key={a.name} className="flex items-center gap-1 bg-white/5 rounded-lg px-2 py-1 border border-white/5">
-                      <span className="text-[10px]">{a.icon}</span>
-                      <span className="text-[10px] text-white/60 font-medium">{a.name}</span>
+                    { icon: '\uD83E\uDDE0', name: 'Noah', color: 'from-indigo-500 to-blue-600', role: 'CEO' },
+                    { icon: '\uD83C\uDFAF', name: 'Ami', color: 'from-pink-500 to-rose-500', role: 'Marketing' },
+                    { icon: '\u2728', name: 'Lena', color: 'from-purple-500 to-violet-600', role: 'Contenu' },
+                    { icon: '\uD83E\uDD1D', name: 'Leo', color: 'from-blue-500 to-cyan-500', role: 'Commercial' },
+                    { icon: '\uD83D\uDCE7', name: 'Hugo', color: 'from-cyan-500 to-blue-500', role: 'Email' },
+                    { icon: '\uD83D\uDCAC', name: 'Jade', color: 'from-rose-500 to-pink-600', role: 'DM' },
+                    { icon: '\uD83D\uDD0D', name: 'Oscar', color: 'from-amber-500 to-orange-500', role: 'SEO' },
+                    { icon: '\uD83D\uDCE2', name: 'Felix', color: 'from-red-500 to-orange-500', role: 'Pub' },
+                    { icon: '\uD83D\uDCF2', name: 'Stella', color: 'from-green-500 to-emerald-600', role: 'WhatsApp' },
+                    { icon: '\uD83E\uDD16', name: 'Max', color: 'from-violet-500 to-purple-600', role: 'Chatbot' },
+                    { icon: '\uD83C\uDFB5', name: 'Axel', color: 'from-gray-600 to-gray-800', role: 'TikTok' },
+                    { icon: '\uD83D\uDCCD', name: 'Theo', color: 'from-green-500 to-teal-500', role: 'Maps' },
+                  ].map(a => (
+                    <div key={a.name} className="text-center group cursor-default">
+                      <div className={`w-10 h-10 mx-auto rounded-full bg-gradient-to-br ${a.color} flex items-center justify-center text-base shadow-lg group-hover:scale-110 transition-transform`}>
+                        {a.icon}
+                      </div>
+                      <div className="text-white text-[9px] font-bold mt-1">{a.name}</div>
+                      <div className="text-white/25 text-[7px]">{a.role}</div>
                     </div>
                   ))}
                 </div>
 
-                {/* Differentiator */}
-                <div className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-xl p-3 text-center">
-                  <p className="text-[11px] font-semibold text-white/80">
-                    {locale === 'fr' ? '⚡ Pas un chatbot — vos agents executent les taches' : '⚡ Not a chatbot — your agents execute tasks'}
-                  </p>
-                  <p className="text-[9px] text-[#a4bdd4]/50 mt-0.5">
-                    {locale === 'fr' ? 'Publication, prospection, SEO, emails, compta — en automatique' : 'Publishing, prospecting, SEO, emails, accounting — automatically'}
-                  </p>
+                {/* +5 more */}
+                <div className="flex items-center justify-center gap-1 mb-2">
+                  {['\uD83D\uDCB0', '\u2696\uFE0F', '\uD83D\uDE80', '\uD83D\uDD04', '\u2699\uFE0F'].map((icon, i) => (
+                    <div key={i} className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-[8px]">{icon}</div>
+                  ))}
+                  <span className="text-white/30 text-[9px] ml-1">+5</span>
+                </div>
+
+                {/* Stats bar */}
+                <div className="flex items-center justify-center gap-4 py-2 border-t border-white/5">
+                  <div className="text-center"><div className="text-white font-bold text-xs">17</div><div className="text-white/25 text-[7px]">Agents</div></div>
+                  <div className="text-center"><div className="text-white font-bold text-xs">24/7</div><div className="text-white/25 text-[7px]">Actifs</div></div>
+                  <div className="text-center"><div className="text-white font-bold text-xs">2600+</div><div className="text-white/25 text-[7px]">Learnings</div></div>
                 </div>
               </div>
 
-              <div className="p-3 bg-white/5 border-t border-white/10 text-center">
-                <a href="/assistant" className="text-xs text-purple-300 hover:text-purple-200 font-medium">
-                  {locale === 'fr' ? 'Decouvrir vos 15 agents IA →' : 'Discover your 15 AI agents →'}
-                </a>
-              </div>
+              <a href="/assistant" className="block p-3 bg-gradient-to-r from-purple-600/20 to-blue-600/20 border-t border-white/10 text-center hover:from-purple-600/30 hover:to-blue-600/30 transition-all">
+                <span className="text-xs text-purple-300 font-semibold">{locale === 'fr' ? 'Decouvrir votre equipe IA \u2192' : 'Discover your AI team \u2192'}</span>
+              </a>
             </div>
           </div>
         </div>
@@ -201,18 +187,16 @@ function HomeKeiroInner() {
                 {t.home.videoSubtitle}
               </p>
 
-              {/* Vidéo compacte — YouTube embed mobile-friendly */}
-              <div className="bg-white rounded-lg shadow-md overflow-hidden">
-                <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
-                  <iframe
-                    className="absolute inset-0 w-full h-full"
-                    src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?playsinline=1&rel=0&modestbranding=1"
-                    title={t.home.videoTitle}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowFullScreen
-                    loading="lazy"
-                    style={{ border: 'none' }}
-                  />
+              {/* Video placeholder — presentation a venir */}
+              <div className="bg-gradient-to-br from-[#0c1a3a] to-[#1e3a5f] rounded-lg shadow-md overflow-hidden">
+                <div className="relative w-full flex items-center justify-center" style={{ paddingBottom: '56.25%' }}>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
+                    <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mb-3">
+                      <svg className="w-8 h-8 text-purple-400" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                    </div>
+                    <p className="text-white font-bold text-sm mb-1">{locale === 'fr' ? 'Presentation video' : 'Video Presentation'}</p>
+                    <p className="text-white/40 text-xs">{locale === 'fr' ? 'Bientot disponible' : 'Coming soon'}</p>
+                  </div>
                 </div>
               </div>
             </div>

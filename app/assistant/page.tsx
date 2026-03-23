@@ -118,7 +118,7 @@ export default function AssistantPage() {
   const [streak, setStreak] = useState(0);
 
   // View tab
-  const [viewTab, setViewTab] = useState<'equipe' | 'agent' | 'offre'>('equipe');
+  const [viewTab, setViewTab] = useState<'suivi' | 'equipe' | 'agent' | 'pipeline' | 'offre'>('suivi');
 
   // Dashboard summary data
   const [summary, setSummary] = useState<any>(null);
@@ -622,25 +622,160 @@ export default function AssistantPage() {
         <DossierBanner profile={profile} claraAvatarUrl={claraAvatarUrl} />
 
         {/* ═══ TABS ═══ */}
-        <div className="flex items-center gap-1 bg-white/5 rounded-xl p-1 border border-white/10 mb-5">
+        <div className="flex items-center gap-1 bg-white/5 rounded-xl p-1 border border-white/10 mb-5 overflow-x-auto">
           {([
-            { key: 'equipe' as const, label: 'Par equipe' },
-            { key: 'agent' as const, label: 'Par agent' },
-            { key: 'offre' as const, label: 'Par offre' },
+            { key: 'suivi' as const, label: '\uD83D\uDCCB Suivi central', shortLabel: 'Suivi' },
+            { key: 'equipe' as const, label: '\uD83D\uDC65 Par equipe', shortLabel: 'Equipes' },
+            { key: 'agent' as const, label: '\uD83E\uDD16 Par agent', shortLabel: 'Agents' },
+            { key: 'pipeline' as const, label: '\uD83D\uDCCA Pipeline', shortLabel: 'Pipeline' },
+            { key: 'offre' as const, label: '\uD83D\uDCB0 Par offre', shortLabel: 'Offres' },
           ]).map((tab) => (
             <button
               key={tab.key}
               onClick={() => setViewTab(tab.key)}
-              className={`flex-1 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+              className={`flex-shrink-0 px-3 lg:px-4 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
                 viewTab === tab.key
                   ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md'
                   : 'text-white/50 hover:text-white/70 hover:bg-white/5'
               }`}
             >
-              {tab.label}
+              <span className="hidden lg:inline">{tab.label}</span>
+              <span className="lg:hidden">{tab.shortLabel}</span>
             </button>
           ))}
         </div>
+
+        {/* ═══ TAB: SUIVI CENTRAL ═══ */}
+        {viewTab === 'suivi' && (
+          <div className="space-y-5">
+            {/* Activity Feed — all agents combined */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+              {/* Left: Recent activity feed */}
+              <div className="lg:col-span-2 space-y-4">
+                <h3 className="text-white font-bold text-sm flex items-center gap-2">
+                  {'\u26A1'} Activite de votre equipe IA
+                  <span className="text-white/30 text-[10px] font-normal">Temps reel</span>
+                </h3>
+
+                {summary?.activityFeed?.length > 0 ? (
+                  <div className="space-y-2">
+                    {(summary.activityFeed as Array<{ agent: string; action: string; date: string }>).slice(0, 15).map((a, i) => {
+                      const agentInfo = agents.find(ag => ag.id === a.agent);
+                      const isRecent = (Date.now() - new Date(a.date).getTime()) < 6 * 60 * 60 * 1000;
+                      return (
+                        <div key={i} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isRecent ? 'bg-purple-600/10 border border-purple-500/20' : 'bg-white/[0.03] border border-white/5'}`}>
+                          <div
+                            className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-sm"
+                            style={{ background: agentInfo ? `linear-gradient(135deg, ${agentInfo.gradientFrom}, ${agentInfo.gradientTo})` : '#4B5563' }}
+                          >
+                            {avatars[a.agent] ? (
+                              <img src={avatars[a.agent]!} alt="" className="w-full h-full rounded-full object-cover" />
+                            ) : (
+                              agentInfo?.icon || '\uD83E\uDD16'
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-white text-xs font-semibold">{agentInfo?.displayName || a.agent}</span>
+                              {isRecent && <span className="px-1.5 py-0.5 bg-green-500/20 text-green-400 text-[8px] rounded-full font-medium">Recent</span>}
+                            </div>
+                            <p className="text-white/40 text-[11px] truncate">{a.action}</p>
+                          </div>
+                          <span className="text-white/20 text-[10px] flex-shrink-0">
+                            {new Date(a.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : summaryLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400" />
+                  </div>
+                ) : (
+                  <div className="text-center py-12 bg-white/[0.02] rounded-2xl border border-white/10">
+                    <p className="text-white/30 text-sm">Aucune activite recente</p>
+                    <p className="text-white/15 text-xs mt-1">Vos agents commenceront a agir des leur prochain cycle</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Right: Quick stats + agent status */}
+              <div className="space-y-4">
+                {/* Agent status grid */}
+                <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+                  <h3 className="text-white/50 text-[10px] font-semibold uppercase tracking-wider mb-3">Status agents</h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    {agents.filter(a => a.visibility !== 'background').slice(0, 8).map(agent => (
+                      <button
+                        key={agent.id}
+                        onClick={() => handleSelectAgent(agent)}
+                        className="flex items-center gap-2 bg-white/5 hover:bg-white/10 rounded-lg px-2.5 py-2 transition-all text-left"
+                      >
+                        <div className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-[10px]"
+                          style={{ background: `linear-gradient(135deg, ${agent.gradientFrom}, ${agent.gradientTo})` }}>
+                          {avatars[agent.id] ? (
+                            <img src={avatars[agent.id]!} alt="" className="w-full h-full rounded-full object-cover" />
+                          ) : agent.icon}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-white text-[10px] font-semibold truncate">{agent.displayName}</div>
+                          <div className="text-white/25 text-[8px] truncate">{agent.title}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                  {agents.filter(a => a.visibility !== 'background').length > 8 && (
+                    <button
+                      onClick={() => setViewTab('agent')}
+                      className="w-full mt-2 text-center text-purple-400 text-[10px] font-medium hover:text-purple-300 transition-colors"
+                    >
+                      Voir les {agents.filter(a => a.visibility !== 'background').length} agents {'\u2192'}
+                    </button>
+                  )}
+                </div>
+
+                {/* Quick CRM stats */}
+                {summary?.crm && (
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+                    <h3 className="text-white/50 text-[10px] font-semibold uppercase tracking-wider mb-3">Pipeline CRM</h3>
+                    <div className="grid grid-cols-2 gap-2 mb-3">
+                      <div className="bg-white/5 rounded-lg px-3 py-2 text-center">
+                        <div className="text-white font-bold text-lg">{summary.crm.total}</div>
+                        <div className="text-white/30 text-[9px]">Prospects</div>
+                      </div>
+                      <div className="bg-white/5 rounded-lg px-3 py-2 text-center">
+                        <div className="text-green-400 font-bold text-lg">{summary.crm.clients}</div>
+                        <div className="text-white/30 text-[9px]">Clients</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden flex">
+                        <div className="bg-red-500 h-full" style={{ width: `${summary.crm.temperature?.hot ? (summary.crm.temperature.hot / Math.max(summary.crm.total, 1)) * 100 : 0}%` }} />
+                        <div className="bg-amber-500 h-full" style={{ width: `${summary.crm.temperature?.warm ? (summary.crm.temperature.warm / Math.max(summary.crm.total, 1)) * 100 : 0}%` }} />
+                        <div className="bg-blue-400 h-full" style={{ width: `${summary.crm.temperature?.cold ? (summary.crm.temperature.cold / Math.max(summary.crm.total, 1)) * 100 : 0}%` }} />
+                      </div>
+                      <span className="text-green-400 text-[10px] font-bold">{summary.crm.conversionRate}%</span>
+                    </div>
+                    <button
+                      onClick={() => setViewTab('pipeline')}
+                      className="w-full text-center text-purple-400 text-[10px] font-medium hover:text-purple-300 transition-colors"
+                    >
+                      Ouvrir le pipeline complet {'\u2192'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ═══ TAB: PIPELINE CRM CENTRALISE ═══ */}
+        {viewTab === 'pipeline' && (
+          <div className="space-y-5">
+            <WorkspaceCrm isAdmin={isAdmin} />
+          </div>
+        )}
 
         {/* ═══ TAB: Par equipe (avec dashboards + CRM) ═══ */}
         {viewTab === 'equipe' && (
