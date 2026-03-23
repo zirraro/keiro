@@ -243,11 +243,105 @@ ${history ? `\nHISTORIQUE:\n${history}` : ''}`;
         }
 
         // ─── Update prospect ────────────────────────────
+        const newScore = Math.min(100, (prospect.score || 0) + 15);
+        const newTemp = newScore >= 60 ? 'hot' : 'warm';
         await supabase.from('crm_prospects').update({
-          temperature: 'warm',
-          score: Math.min(100, (prospect.score || 0) + 15),
+          temperature: newTemp,
+          score: newScore,
           updated_at: now,
         }).eq('id', prospect.id);
+
+        // ─── HANDOVER: Notify client when prospect is hot ──
+        // Count exchange rounds (inbound messages from this prospect)
+        const { count: exchangeCount } = await supabase
+          .from('agent_logs')
+          .select('id', { count: 'exact', head: true })
+          .eq('agent', 'dm_instagram')
+          .eq('action', 'webhook_dm_received')
+          .contains('data', { prospect_id: prospect.id });
+
+        // After 3+ exchanges OR score >= 60: prospect is warm/hot → notify client to close
+        if ((exchangeCount && exchangeCount >= 3) || newScore >= 60) {
+          // Check if we already notified for this prospect
+          const { data: alreadyNotified } = await supabase
+            .from('agent_logs')
+            .select('id')
+            .eq('agent', 'dm_instagram')
+            .eq('action', 'handover_notification')
+            .contains('data', { prospect_id: prospect.id })
+            .limit(1)
+            .maybeSingle();
+
+          if (!alreadyNotified) {
+            // Find the client (owner of this IG account) to notify
+            const { data: ownerProfile } = await supabase
+              .from('profiles')
+              .select('id, email, company_name')
+              .eq('instagram_business_account_id', recipientId)
+              .limit(1)
+              .maybeSingle();
+
+            if (ownerProfile?.email) {
+              const RESEND_KEY = process.env.RESEND_API_KEY;
+              if (RESEND_KEY) {
+                try {
+                  await fetch('https://api.resend.com/emails', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      from: 'KeiroAI Agents <contact@keiroai.com>',
+                      to: [ownerProfile.email],
+                      subject: `🔥 Prospect chaud sur Instagram — Reprenez la main !`,
+                      html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
+                        <div style="background:linear-gradient(135deg,#e11d48,#be123c);color:white;padding:20px;border-radius:12px 12px 0 0;">
+                          <h2 style="margin:0;">🔥 Un prospect est pret a closer !</h2>
+                        </div>
+                        <div style="background:white;padding:20px;border:1px solid #e5e7eb;border-top:none;">
+                          <p><strong>Prospect :</strong> ${prospect.company || prospect.first_name || senderId}</p>
+                          <p><strong>Score :</strong> ${newScore}/100 (${newTemp})</p>
+                          <p><strong>Echanges :</strong> ${exchangeCount || 0} messages</p>
+                          <p><strong>Dernier message :</strong> "${messageText.substring(0, 150)}"</p>
+                          <hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0;"/>
+                          <p style="color:#6b7280;">Jade (votre agent DM) a chauffe ce prospect. Il est maintenant pret pour une conversation humaine. <strong>Reprenez la main sur Instagram pour closer !</strong></p>
+                          <div style="text-align:center;margin-top:20px;">
+                            <a href="https://www.instagram.com/direct/inbox/" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,#e11d48,#be123c);color:white;text-decoration:none;border-radius:8px;font-weight:bold;">Ouvrir mes DMs Instagram →</a>
+                          </div>
+                        </div>
+                        <div style="background:#f9fafb;padding:12px;text-align:center;color:#9ca3af;font-size:12px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;">
+                          KeiroAI — Votre equipe IA
+                        </div>
+                      </div>`,
+                    }),
+                  });
+                  console.log(`[InstagramWebhook] Handover notification sent to ${ownerProfile.email} for prospect ${prospect.id}`);
+                } catch (notifErr: any) {
+                  console.error('[InstagramWebhook] Handover notification error:', notifErr.message?.substring(0, 200));
+                }
+              }
+            }
+
+            // Log handover
+            await supabase.from('agent_logs').insert({
+              agent: 'dm_instagram',
+              action: 'handover_notification',
+              status: 'ok',
+              data: {
+                prospect_id: prospect.id,
+                prospect_company: prospect.company || prospect.first_name,
+                score: newScore,
+                exchanges: exchangeCount,
+                client_email: ownerProfile?.email,
+              },
+              created_at: now,
+            });
+
+            // Update dm_queue status if exists
+            await supabase.from('dm_queue')
+              .update({ status: 'responded', response_type: 'interested' })
+              .eq('prospect_id', prospect.id)
+              .in('status', ['pending', 'sent']);
+          }
+        }
       }
     }
 
