@@ -2363,15 +2363,21 @@ async function generateWeekWithVisuals(supabase: any, publishAll: boolean, orgId
 
   console.log(`[Content] generate_week: starting (publishAll=${publishAll})`);
 
-  // Get last 10 published posts for context
+  // Get last 10 published posts for context (including visual_description for dedup)
   const { data: recentPosts } = await supabase
     .from('content_calendar')
-    .select('platform, format, pillar, hook, caption, scheduled_date')
-    .eq('status', 'published')
-    .order('published_at', { ascending: false })
+    .select('platform, format, pillar, hook, caption, visual_description, scheduled_date')
+    .in('status', ['draft', 'approved', 'published'])
+    .order('scheduled_date', { ascending: false })
     .limit(10);
 
   const existingPlanned = recentPosts?.map((p: any) => `${p.scheduled_date} ${p.platform} ${p.pillar}: ${p.hook || p.caption?.substring(0, 50)}`).join('\n') || '';
+
+  // Extract recent visuals for anti-duplication
+  const recentVisualDescs = recentPosts?.map((p: any) => (p.visual_description || '').substring(0, 100)).filter((v: string) => v.length > 10) || [];
+  const visualDedupContext = recentVisualDescs.length > 0
+    ? `\nVISUELS RÉCENTS (INTERDIT de réutiliser ces concepts/scènes/couleurs) :\n${recentVisualDescs.map((v: string, i: number) => `${i + 1}. ${v}`).join('\n')}\n→ Chaque visual_description de la semaine doit être UNIQUE et DIFFÉRENT de tous ces visuels ET différent des autres posts de la semaine.\n→ VARIE les couleurs dominantes : max 1 post violet sur 5, alterne ambre/bleu/vert/corail/noir/blanc.\n→ VARIE les cibles prospects : restaurant, coiffeur, boutique, coach, fleuriste, freelance... pas le même 2 fois de suite.\n`
+    : '';
 
   // Calculate next Monday
   const mondayDate = new Date(now);
@@ -2379,7 +2385,7 @@ async function generateWeekWithVisuals(supabase: any, publishAll: boolean, orgId
   const daysUntilMonday = currentDay === 0 ? 1 : (8 - currentDay);
   mondayDate.setDate(mondayDate.getDate() + daysUntilMonday);
 
-  const prompt = getWeeklyPlanPrompt({ existingPlanned });
+  const prompt = getWeeklyPlanPrompt({ existingPlanned }) + visualDedupContext;
   const systemPrompt = getContentSystemPrompt();
 
   let rawText: string;
@@ -2687,6 +2693,40 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
     return 'other';
   }).filter(Boolean) || [];
 
+  // ── ANTI-DUPLICATE: Extract recent visual descriptions to prevent repetition ──
+  const recentVisuals = recentGrid?.map((p: any) => (p.visual_description || '').substring(0, 120)).filter((v: string) => v.length > 10) || [];
+
+  // ── COLOR ROTATION: Detect dominant colors to force variety ──
+  const recentColors: string[] = [];
+  for (const p of (recentGrid || []).slice(0, 5)) {
+    const desc = ((p as any).visual_description || '').toLowerCase();
+    if (desc.includes('violet') || desc.includes('purple')) recentColors.push('violet');
+    else if (desc.includes('amber') || desc.includes('gold') || desc.includes('warm')) recentColors.push('ambre');
+    else if (desc.includes('blue') || desc.includes('navy') || desc.includes('bleu')) recentColors.push('bleu');
+    else if (desc.includes('green') || desc.includes('emerald') || desc.includes('sage')) recentColors.push('vert');
+    else if (desc.includes('coral') || desc.includes('terracotta') || desc.includes('pink') || desc.includes('rose')) recentColors.push('corail');
+    else if (desc.includes('black') || desc.includes('dark') || desc.includes('noir')) recentColors.push('noir');
+    else if (desc.includes('white') || desc.includes('cream') || desc.includes('light')) recentColors.push('blanc');
+    else recentColors.push('autre');
+  }
+  const lastColor = recentColors[0] || 'aucun';
+  const violetCount = recentColors.filter(c => c === 'violet').length;
+  const colorWarning = violetCount >= 2
+    ? `⚠️ TROP DE VIOLET (${violetCount}/5 derniers posts) ! Utilise une AUTRE couleur dominante : ambre, bleu nuit, vert sauge, corail, noir profond, blanc crème.`
+    : lastColor !== 'aucun' ? `La dernière couleur dominante était "${lastColor}". Choisis une couleur DIFFÉRENTE.` : '';
+
+  // ── TARGET ROTATION: Detect recent prospect targets ──
+  const TARGET_TYPES = ['restaurant', 'coiffeur', 'boutique', 'coach', 'fleuriste', 'caviste', 'boulanger', 'freelance', 'artisan', 'commerçant'];
+  const recentTargets: string[] = [];
+  for (const p of (recentGrid || []).slice(0, 5)) {
+    const text = `${(p as any).caption || ''} ${(p as any).hook || ''}`.toLowerCase();
+    for (const t of TARGET_TYPES) {
+      if (text.includes(t)) { recentTargets.push(t); break; }
+    }
+  }
+  const avoidTarget = recentTargets[0] || '';
+  const targetWarning = avoidTarget ? `Le dernier post ciblait "${avoidTarget}". Cible un AUTRE type de commerce cette fois (${TARGET_TYPES.filter(t => t !== avoidTarget).slice(0, 4).join(', ')}...).` : '';
+
   const enhancedPrompt = `Génère 1 post ÉLITE pour aujourd'hui (${todayStr}).
 
 ${sharedIntelligence ? `━━━ INTELLIGENCE PARTAGÉE (données de TOUS les agents) ━━━\n${sharedIntelligence}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` : ''}
@@ -2696,6 +2736,16 @@ Pilier suggéré : ${pillar}${avoidPillar ? `\nATTENTION : Le pilier "${avoidPil
 
 CONTEXTE FEED (les derniers posts, du plus récent) :
 ${gridContext}
+
+━━━ ANTI-DUPLICATION VISUELLE (CRITIQUE) ━━━
+Les visual_description des derniers posts sont :
+${recentVisuals.map((v: string, i: number) => `${i + 1}. ${v}`).join('\n') || '(aucun post récent)'}
+→ Ton visual_description DOIT être COMPLÈTEMENT DIFFÉRENT de TOUS ces visuels.
+→ Change le SUJET, le STYLE, la COULEUR DOMINANTE et la COMPOSITION.
+→ INTERDIT de réutiliser la même scène ou le même concept même avec des mots différents.
+${colorWarning ? `\n${colorWarning}` : ''}
+${targetWarning ? `\n${targetWarning}` : ''}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 CTA RÉCENTS UTILISÉS : ${[...new Set(recentCTAs)].join(', ') || 'aucun'}
 → VARIE le CTA ! Si "save" a été fait, utilise "tag un ami" ou "commente" ou "lien en bio".

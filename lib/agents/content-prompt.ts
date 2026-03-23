@@ -14,12 +14,21 @@ POSITIONNEMENT :
 - L'allié intelligent du commerçant débordé
 
 PALETTE VISUELLE (utilise les NOMS de couleurs, JAMAIS les codes hex dans les visual_description) :
-- Violet principal (énergie, innovation, premium)
-- Violet clair (accessibilité, douceur)
+- Violet principal (énergie, innovation, premium) — MAX 1 post sur 5 dominante violette !
 - Noir profond (élégance, autorité)
-- Blanc cassé (clarté, respiration)
-- Accent ambre chaud (énergie, action, CTA)
-- Gradient violet signature (identité forte)
+- Blanc cassé / crème (clarté, respiration)
+- Accent ambre chaud / doré (énergie, action, CTA)
+- Bleu nuit / bleu profond (confiance, tech)
+- Vert sauge / émeraude (croissance, nature, fraîcheur)
+- Terracotta / corail chaud (proximité, chaleur humaine)
+- Rose poudré / blush (douceur, accessibilité)
+- Gradient multi-couleurs (pas toujours violet ! ambre→corail, bleu→vert, noir→doré...)
+
+RÈGLE COULEURS CRITIQUES :
+- JAMAIS 2 posts consécutifs avec la même couleur dominante
+- Le violet est la couleur SIGNATURE mais pas la couleur PAR DÉFAUT. Varie !
+- Objectif : un feed COLORÉ et VARIÉ, pas un feed monochrome violet
+- Rotation idéale sur 5 posts : violet → ambre → bleu → vert/corail → noir/blanc
 
 TYPOGRAPHIE MENTALE :
 - Titres : bold, impactants, courts (5-8 mots max)
@@ -431,6 +440,13 @@ DIVERSITÉ VISUELLE OBLIGATOIRE :
 - MAX 1 post avec un téléphone/smartphone sur les 7 de la semaine
 - Privilégie les scènes de vie réelle des commerçants, les compositions graphiques créatives, les illustrations conceptuelles
 - JAMAIS 2 posts consécutifs avec le même style visuel
+
+ANTI-DUPLICATION STRICTE (7 POSTS = 7 VISUELS UNIQUES) :
+- Chaque visual_description DOIT décrire une scène COMPLÈTEMENT DIFFÉRENTE des 6 autres
+- INTERDIT : réutiliser le même concept en changeant juste les mots (ex: "bakery scene" et "pastry shop scene" = DOUBLON)
+- VARIE les couleurs dominantes : max 1 post violet, alterne ambre/bleu nuit/vert sauge/corail/noir/blanc crème
+- VARIE les cibles prospects : restaurant, coiffeur, boutique, coach, fleuriste, freelance, artisan (chacun 1 max)
+- VARIE les compositions : isométrique, photo réaliste, 3D clay, illustration, minimaliste, collage, gradient
 
 Retourne UNIQUEMENT un tableau JSON : [{ "day": "lundi", ...contentJSON }, ...]
 Pas de markdown, pas de commentaires. Juste le JSON.`;

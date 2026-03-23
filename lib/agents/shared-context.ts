@@ -534,10 +534,10 @@ QUALITÉ EMAILS :
 - Si une variable est vide, la phrase doit rester grammaticalement correcte
 
 QUALITÉ CONTENU :
-- JAMAIS d'images en double dans un même post ou entre posts proches
-- Varier les couleurs : pas de violet constant, alterner les palettes selon la grille Instagram
-- Varier les cibles de prospects : alterner restaurants, boutiques, coachs, coiffeurs, etc.
-- Varier les styles visuels : 9 styles définis, rotation stricte
+- JAMAIS d'images en double : chaque visual_description doit être UNIQUE (scène, style, couleur, sujet)
+- Couleurs : MAX 1 post violet sur 5. Alterner ambre, bleu nuit, vert sauge, corail, noir, blanc crème
+- Cibles prospects : ROTATION obligatoire — restaurant, coiffeur, boutique, coach, fleuriste, freelance, artisan (pas 2 posts de suite sur la même cible)
+- Styles visuels : 9 styles définis (isométrique, photo réaliste, minimaliste, illustration, 3D clay, collage, gradient, flat design), rotation stricte
 - Pilier P0 Actualités/Tendances : 2-3x/semaine minimum, lier l'actu à KeiroAI et au business du commerçant
 - KeiroAI utilise sa propre fonctionnalité d'actu/tendances — c'est le cœur différenciateur
 
