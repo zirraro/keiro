@@ -2028,15 +2028,31 @@ function AdminAgentsContent() {
                     </div>
                     {briefs.length === 0 ? (
                       <div className="bg-white rounded-xl shadow-sm border p-6 text-center text-neutral-400 text-sm">Aucun brief.</div>
-                    ) : briefs.slice(0, 5).map(b => (
-                      <div key={b.id} className="bg-white rounded-xl shadow-sm border p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs text-neutral-400">{new Date(b.created_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
-                          <button onClick={() => setExpandedBrief(expandedBrief === b.id ? null : b.id)} className="text-xs text-purple-600 hover:underline">{expandedBrief === b.id ? 'Fermer' : 'D\u00E9tails'}</button>
+                    ) : briefs.slice(0, 5).map(b => {
+                      const briefRaw = typeof b.data === 'string' ? b.data : (b.data?.brief_text || b.data?.brief || JSON.stringify(b.data, null, 2));
+                      const renderInlineBrief = (text: string) => text
+                        .replace(/^### (.*)/gm, '<h4 class="text-xs font-bold text-[#0c1a3a] mt-3 mb-1">$1</h4>')
+                        .replace(/^## (.*)/gm, '<h3 class="text-sm font-bold text-[#0c1a3a] mt-4 mb-1 pb-1 border-b border-neutral-100">$1</h3>')
+                        .replace(/^# (.*)/gm, '<h2 class="text-sm font-bold text-[#0c1a3a] mt-3 mb-1">$1</h2>')
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/^- \[DIRECTIVE (\w+)\] (.*)/gm, '<div class="flex items-start gap-1.5 my-0.5 ml-1"><span class="px-1 py-0 bg-purple-100 text-purple-700 text-[9px] font-bold rounded flex-shrink-0">$1</span><span>$2</span></div>')
+                        .replace(/^- (.*)/gm, '<li class="ml-3 my-0.5 list-disc">$1</li>')
+                        .replace(/\n\n/g, '<br/>')
+                        .replace(/\n(?!<)/g, '<br/>');
+                      return (
+                        <div key={b.id} className="bg-white rounded-xl shadow-sm border overflow-hidden">
+                          <div className="flex items-center justify-between px-4 py-2 bg-gradient-to-r from-purple-50 to-indigo-50 border-b">
+                            <span className="text-xs text-neutral-500">{new Date(b.created_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                            <button onClick={() => setExpandedBrief(expandedBrief === b.id ? null : b.id)} className="text-xs text-purple-600 hover:underline">{expandedBrief === b.id ? 'Fermer' : 'Lire le brief'}</button>
+                          </div>
+                          {expandedBrief === b.id && (
+                            <div className="px-4 py-3 max-h-[400px] overflow-y-auto">
+                              <div className="text-xs text-neutral-700 leading-relaxed" dangerouslySetInnerHTML={{ __html: renderInlineBrief(briefRaw) }} />
+                            </div>
+                          )}
                         </div>
-                        {expandedBrief === b.id && <pre className="text-xs text-neutral-700 whitespace-pre-wrap bg-neutral-50 rounded p-3 mt-2 max-h-[400px] overflow-y-auto">{typeof b.data === 'string' ? b.data : JSON.stringify(b.data, null, 2)}</pre>}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
 
@@ -2416,7 +2432,21 @@ function AdminAgentsContent() {
             {briefs.length === 0 ? (
               <div className="bg-white rounded-xl shadow-sm border p-8 text-center text-neutral-400">Aucun brief CEO. Clique sur "Générer brief" pour lancer une analyse.</div>
             ) : briefs.map(b => {
-              const d = typeof b.data === 'string' ? b.data : (b.data?.brief || b.data?.analysis || JSON.stringify(b.data, null, 2));
+              const raw = typeof b.data === 'string' ? b.data : (b.data?.brief_text || b.data?.brief || b.data?.analysis || JSON.stringify(b.data, null, 2));
+              // Render markdown-like brief as email-style HTML
+              const renderBriefHtml = (text: string) => {
+                return text
+                  .replace(/^### (.*)/gm, '<h4 class="text-sm font-bold text-[#0c1a3a] mt-4 mb-1">$1</h4>')
+                  .replace(/^## (.*)/gm, '<h3 class="text-base font-bold text-[#0c1a3a] mt-5 mb-2 pb-1 border-b border-neutral-200">$1</h3>')
+                  .replace(/^# (.*)/gm, '<h2 class="text-lg font-bold text-[#0c1a3a] mt-5 mb-2">$1</h2>')
+                  .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-neutral-900">$1</strong>')
+                  .replace(/^- \[DIRECTIVE (\w+)\] (.*)/gm, '<div class="flex items-start gap-2 my-1 ml-2"><span class="px-1.5 py-0.5 bg-purple-100 text-purple-700 text-[10px] font-bold rounded flex-shrink-0 mt-0.5">$1</span><span>$2</span></div>')
+                  .replace(/^- (.*)/gm, '<li class="ml-4 my-0.5 text-neutral-700 list-disc">$1</li>')
+                  .replace(/^(\d+)\. (.*)/gm, '<li class="ml-4 my-0.5 text-neutral-700 list-decimal">$2</li>')
+                  .replace(/([✅⚠️❌🔥🟢🟡🔴📊📧💬🎯📈📉🧠💡⚡🏆])/g, '<span class="mr-1">$1</span>')
+                  .replace(/\n\n/g, '<br/><br/>')
+                  .replace(/\n(?!<)/g, '<br/>');
+              };
               return (
                 <div key={b.id} className="bg-white rounded-xl shadow-sm border overflow-hidden">
                   <div className="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-purple-50 to-indigo-50 border-b">
@@ -2426,8 +2456,11 @@ function AdminAgentsContent() {
                     </div>
                     <span className="text-xs text-neutral-400">{new Date(b.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
                   </div>
-                  <div className="p-5">
-                    <pre className="text-sm text-neutral-700 whitespace-pre-wrap leading-relaxed max-h-[600px] overflow-y-auto">{d}</pre>
+                  <div className="px-6 py-5 max-h-[600px] overflow-y-auto">
+                    <div
+                      className="text-sm text-neutral-700 leading-relaxed prose-compact"
+                      dangerouslySetInnerHTML={{ __html: renderBriefHtml(raw) }}
+                    />
                   </div>
                 </div>
               );
