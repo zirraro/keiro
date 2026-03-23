@@ -44,7 +44,7 @@ const TEAMS = [
     icon: '\uD83D\uDCBC',
     color: 'from-blue-500 to-cyan-500',
     description: 'Prospection, emails, DMs, chatbot',
-    agentIds: ['commercial', 'email', 'dm_instagram', 'chatbot'],
+    agentIds: ['commercial', 'email', 'dm_instagram', 'chatbot', 'whatsapp'],
   },
   {
     name: 'Visibilite',

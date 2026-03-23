@@ -11,7 +11,7 @@ const AgentDashboard = dynamic(() => import('./components/AgentDashboard'), { ss
 
 const AGENTS_WITH_DASHBOARD = [
   'marketing', 'commercial', 'email', 'content', 'seo', 'ads', 'comptable',
-  'rh', 'onboarding', 'dm_instagram', 'tiktok_comments', 'gmaps', 'chatbot',
+  'rh', 'onboarding', 'dm_instagram', 'tiktok_comments', 'gmaps', 'chatbot', 'whatsapp',
 ];
 
 // ─── Types ─────────────────────────────────────────────────
@@ -69,6 +69,15 @@ function getAgentSettings(agentId: string): SettingField[] {
       { key: 'greeting', label: 'Message d\'accueil', type: 'select', options: [{ value: 'default', label: 'Standard' }, { value: 'promo', label: 'Avec offre promo' }, { value: 'minimal', label: 'Minimal' }], default: 'default', description: 'Premier message affiche aux visiteurs' },
       { key: 'collect_email', label: 'Collecter email', type: 'toggle', default: true, description: 'Demander l\'email dans la conversation' },
     ],
+    whatsapp: [
+      { key: 'send_hour', label: 'Heure d\'envoi', type: 'time', default: '10:00', description: 'Heure optimale pour les messages WhatsApp' },
+      { key: 'max_messages_day', label: 'Max messages/jour', type: 'number', default: 30, description: 'Limite de messages WhatsApp par jour' },
+      { key: 'auto_reply', label: 'Reponse auto', type: 'toggle', default: true, description: 'Repondre automatiquement aux messages recus' },
+      { key: 'reply_delay', label: 'Delai reponse (min)', type: 'number', default: 2, description: 'Delai avant reponse auto (plus naturel)' },
+      { key: 'tone', label: 'Ton', type: 'select', options: [{ value: 'friendly', label: 'Amical (tutoiement)' }, { value: 'formal', label: 'Professionnel' }, { value: 'casual', label: 'Decontracte + emojis' }], default: 'casual', description: 'Style des messages WhatsApp' },
+      { key: 'auto_followup', label: 'Relance auto', type: 'toggle', default: true, description: 'Relancer les prospects sans reponse apres 48h' },
+      { key: 'collect_info', label: 'Collecter infos', type: 'toggle', default: true, description: 'Detecter et sauvegarder email, type business, etc.' },
+    ],
   };
   return [...common, ...(byAgent[agentId] || [])];
 }
@@ -101,6 +110,7 @@ function getAgentSuggestions(agentId: string): string[] {
     tiktok_comments: ['Engager communaute', 'Engagement TikTok'],
     gmaps: ['Fiche Google Maps', 'Repondre avis clients'],
     chatbot: ['Leads captures', 'Optimiser reponses auto'],
+    whatsapp: ['Envoie un message a mes prospects chauds', 'Analyse mes conversations WhatsApp'],
   };
   return s[agentId] || ['Que peux-tu faire ?', 'Analyse performances'];
 }

@@ -88,6 +88,15 @@ interface AgentDashboardProps {
       conversionRate: number;
       recentSessions: Array<{ visitor: string; outcome: string; date: string }>;
     };
+    // Stella (whatsapp)
+    whatsappStats?: {
+      messagesSent: number;
+      messagesReceived: number;
+      responseRate: number;
+      leadsGenerated: number;
+      conversationsActive: number;
+      recentConversations: Array<{ contact: string; lastMessage: string; status: string; date: string }>;
+    };
     // Ami global dashboard
     globalStats?: {
       commercial: { leadsWeek: number; conversions: number; estimatedRevenue: number };
@@ -1332,6 +1341,67 @@ function GenericPanel({
 }
 
 /* ------------------------------------------------------------------ */
+/*  WhatsApp Panel (Stella)                                            */
+/* ------------------------------------------------------------------ */
+
+function WhatsAppPanel({
+  data,
+  agentName,
+  gradientFrom,
+  gradientTo,
+}: {
+  data: AgentDashboardProps['data'];
+  agentName: string;
+  gradientFrom: string;
+  gradientTo: string;
+}) {
+  const stats = data.whatsappStats;
+  if (!stats) return <EmptyState agentName={agentName} />;
+
+  const statusColors: Record<string, string> = {
+    active: '#34d399',
+    replied: '#60a5fa',
+    converted: '#e879f9',
+    waiting: '#fbbf24',
+  };
+
+  return (
+    <>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <KpiCard label="Messages envoyes" value={fmt(stats.messagesSent)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label="Messages recus" value={fmt(stats.messagesReceived)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label="Taux reponse" value={fmtPercent(stats.responseRate)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label="Leads generes" value={fmt(stats.leadsGenerated)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+      </div>
+
+      {/* Active conversations */}
+      <SectionTitle>Conversations actives ({stats.conversationsActive})</SectionTitle>
+      {stats.recentConversations && stats.recentConversations.length > 0 ? (
+        <div className="space-y-2">
+          {stats.recentConversations.map((conv, i) => (
+            <div key={i} className="bg-white/5 rounded-xl border border-white/10 p-3 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-[#25D366]/20 flex items-center justify-center flex-shrink-0">
+                <span className="text-sm">{'\uD83D\uDCF2'}</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium text-white truncate">{conv.contact}</div>
+                <div className="text-xs text-white/40 truncate">{conv.lastMessage}</div>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: statusColors[conv.status] || '#6b7280' }} />
+                <span className="text-[10px] text-white/40">{new Date(conv.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-6 text-white/30 text-sm">Aucune conversation recente</div>
+      )}
+    </>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  Mapping agentId -> panel + subtitle                                */
 /* ------------------------------------------------------------------ */
 
@@ -1348,6 +1418,7 @@ const AGENT_CONFIG: Record<string, { subtitle: string; Panel: typeof MarketingPa
   tiktok_comments: { subtitle: 'Expert TikTok Engagement', Panel: TiktokCommentsPanel },
   gmaps: { subtitle: 'Expert Google Maps', Panel: GmapsPanel },
   chatbot: { subtitle: 'Chatbot Site Web', Panel: ChatbotPanel },
+  whatsapp: { subtitle: 'WhatsApp Business', Panel: WhatsAppPanel },
 };
 
 /* ------------------------------------------------------------------ */

@@ -250,6 +250,17 @@ export const CLIENT_AGENTS: ClientAgent[] = [
     icon: '\u{1F916}',
   },
   {
+    id: 'whatsapp',
+    displayName: 'Stella',
+    title: 'Experte WhatsApp Business',
+    description: 'Envoie et repond aux messages WhatsApp, relance les prospects chauds, convertit par conversation privee, gere les campagnes WhatsApp automatiquement',
+    visibility: 'coming_soon',
+    minPlan: 'business',
+    gradientFrom: '#25D366',
+    gradientTo: '#128C7E',
+    icon: '\u{1F4F2}',
+  },
+  {
     id: 'comptable',
     displayName: 'Louis',
     title: 'Expert Finance',

@@ -15,6 +15,7 @@ import {
 import {
   getChatbotSystemPrompt,
 } from '@/lib/agents/chatbot-prompt';
+import { getWhatsAppSystemPrompt } from '@/lib/agents/whatsapp-prompt';
 import { calculateScore, calculateTemperature } from '@/lib/agents/scoring';
 import { callGeminiChat } from '@/lib/agents/gemini';
 
@@ -330,17 +331,14 @@ async function handleIncomingMessage(
     await supabase.from('crm_prospects').update(updates).eq('id', prospect.id);
   }
 
-  // ── 5. Build prompt and call AI ──
-  const systemPrompt = getChatbotSystemPrompt();
-  const whatsappContext = `\n\nCANAL : WhatsApp (messages courts, informels, rapide).
-RÈGLES WHATSAPP :
-- Réponds en 1-2 phrases MAX. WhatsApp = concis.
-- Pas de liens longs, pas de mise en forme markdown.
-- Émojis OK (1-2 max).
-- Le prospect a contacté via WhatsApp → il est probablement mobile, presse.
-- Son numéro : ${senderPhone}
-- Nom/entreprise connu : ${prospect.company || prospect.first_name || 'Non'}
-- Type d'activité connu : ${prospect.type || 'Non'}`;
+  // ── 5. Build elite WhatsApp prompt ──
+  const systemPrompt = getWhatsAppSystemPrompt({
+    companyName: 'KeiroAI',
+    prospectName: prospect.first_name || undefined,
+    prospectCompany: prospect.company || undefined,
+    prospectType: prospect.type || undefined,
+  });
+  const whatsappContext = '';
 
   let assistantMessage: string;
   try {
