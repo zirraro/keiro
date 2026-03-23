@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { calculateTemperature, getSequenceForProspect } from '@/lib/agents/scoring';
 import { getEmailTemplate } from '@/lib/agents/email-templates';
+import { Events } from '@/lib/agents/event-bus';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -205,6 +206,8 @@ export async function POST(request: NextRequest) {
               }
             }
           }
+          // Emit event for CEO
+          Events.emailClicked(supabase, prospect.id, prospect.company || prospect.email, clickedUrl || '', undefined).catch(() => {});
           break;
         }
 
@@ -505,6 +508,8 @@ ${replyContent.substring(0, 2000)}
               console.error('[BrevoWebhook] Alert email failed:', alertError.message?.substring(0, 200));
             }
           }
+          // Emit event for CEO decision engine
+          Events.prospectReplied(supabase, prospect.id, prospect.company || prospect.email, classification.intent, 'email', undefined).catch(() => {});
           break;
         }
 

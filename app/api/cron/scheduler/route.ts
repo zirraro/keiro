@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { waitUntil } from '@vercel/functions';
 import { createClient } from '@supabase/supabase-js';
 import { autoImprove } from '@/lib/agents/auto-improve';
+import { processEventPipeline } from '@/lib/agents/event-bus';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -267,12 +268,18 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'ceo':
-      // 05:00 UTC — CEO brief + execute orders + Community morning prep
-      // Uses waitUntil to avoid 300s timeout (CEO brief can take 2-4 min)
-      // All staggered with delays to avoid resource contention
+      // 05:00 UTC — CEO: process events → brief → execute orders → Community
       fireBackground(async () => {
+        // 1. CEO processes all pending events and dispatches actions
+        try {
+          const eventResult = await processEventPipeline(aiSupabase);
+          console.log(`[Scheduler/ceo] Event pipeline: ${eventResult.actions} actions dispatched`);
+        } catch (e: any) { console.error('[Scheduler/ceo] Event pipeline error:', e.message?.substring(0, 200)); }
+        await delay(5000);
+        // 2. CEO brief
         await callEndpoint('CEO Brief', '/api/agents/ceo');
         await delay(15000);
+        // 3. Execute orders (including newly dispatched ones)
         await callEndpoint('Execute Orders', '/api/agents/orders');
         await delay(15000);
         // Community: early prep — staggered
@@ -332,8 +339,13 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'ceo_evening':
-      // 15:00 UTC — CEO brief #2 (afternoon review) + execute orders
+      // 15:00 UTC — CEO: process events → brief → execute orders (afternoon cycle)
       fireBackground(async () => {
+        try {
+          const eventResult = await processEventPipeline(aiSupabase);
+          console.log(`[Scheduler/ceo_evening] Event pipeline: ${eventResult.actions} actions dispatched`);
+        } catch (e: any) { console.error('[Scheduler/ceo_evening] Event pipeline error:', e.message?.substring(0, 200)); }
+        await delay(5000);
         await callEndpoint('CEO Brief (afternoon)', '/api/agents/ceo');
         await callEndpoint('Execute Orders', '/api/agents/orders');
       });
