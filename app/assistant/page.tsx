@@ -9,6 +9,7 @@ import AgentChatPanel, { type ChatMessage } from './components/AgentChatPanel';
 import DossierBanner from './components/DossierBanner';
 import ComingSoonBanner from './components/ComingSoonBanner';
 import AgentTeams from './components/AgentTeams';
+import WorkspaceCrm from './components/WorkspaceCrm';
 
 // ─── Types ─────────────────────────────────────────────────
 
@@ -34,9 +35,39 @@ function useIsMobile(): boolean {
 }
 
 // ─── Coming Soon Mode ──────────────────────────────────────
-// Set to true to show everything as "coming soon" for regular users
-// Admins bypass this automatically
 const COMING_SOON_MODE_DEFAULT = true;
+
+// ─── Team definitions ──────────────────────────────────────
+const TEAMS = [
+  {
+    name: 'Commercial',
+    icon: '\uD83D\uDCBC',
+    color: 'from-blue-500 to-cyan-500',
+    description: 'Prospection, emails, DMs, chatbot',
+    agentIds: ['commercial', 'email', 'dm_instagram', 'chatbot'],
+  },
+  {
+    name: 'Visibilite',
+    icon: '\uD83D\uDCF1',
+    color: 'from-purple-500 to-violet-600',
+    description: 'Contenu, SEO, TikTok, Google Maps',
+    agentIds: ['content', 'seo', 'tiktok_comments', 'gmaps'],
+  },
+  {
+    name: 'Finance & Admin',
+    icon: '\uD83C\uDFE6',
+    color: 'from-amber-500 to-orange-500',
+    description: 'Compta, RH, publicite',
+    agentIds: ['comptable', 'rh', 'ads'],
+  },
+  {
+    name: 'Strategie',
+    icon: '\uD83E\uDDE0',
+    color: 'from-pink-500 to-rose-500',
+    description: 'Direction marketing & onboarding',
+    agentIds: ['marketing', 'onboarding'],
+  },
+];
 
 // ─── Main Page ─────────────────────────────────────────────
 
@@ -58,7 +89,8 @@ export default function AssistantPage() {
   const [agents, setAgents] = useState<ClientAgent[]>([]);
   const [avatars, setAvatars] = useState<AvatarMap>({});
 
-  // Chat state
+  // Chat state — panel fermé par défaut
+  const [chatOpen, setChatOpen] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<ClientAgent | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatLoading, setChatLoading] = useState(false);
@@ -68,8 +100,6 @@ export default function AssistantPage() {
   const [showNotifyModal, setShowNotifyModal] = useState(false);
   const [notifyEmail, setNotifyEmail] = useState('');
   const [notifySubmitted, setNotifySubmitted] = useState(false);
-
-  // View mode (removed — both grid and teams shown together)
 
   // AMI dashboard stats
   const [amiStats, setAmiStats] = useState<{
@@ -83,10 +113,10 @@ export default function AssistantPage() {
   // Publishing streak
   const [streak, setStreak] = useState(0);
 
-  // View tab (must be before any conditional returns)
+  // View tab
   const [viewTab, setViewTab] = useState<'equipe' | 'agent' | 'offre'>('equipe');
 
-  // Dashboard summary data (all agents + CRM)
+  // Dashboard summary data
   const [summary, setSummary] = useState<any>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
 
@@ -119,10 +149,9 @@ export default function AssistantPage() {
     init();
   }, []);
 
-  // ─── Load agents based on plan (AMI first as star) ──────
+  // ─── Load agents based on plan ──────────────────────────
   useEffect(() => {
     const visible = getVisibleAgents(userPlan, isAdmin);
-    // Put AMI (marketing) first as the star agent
     const amiIndex = visible.findIndex(a => a.id === 'marketing');
     if (amiIndex > 0) {
       const ami = visible.splice(amiIndex, 1)[0];
@@ -131,7 +160,7 @@ export default function AssistantPage() {
     setAgents(visible);
   }, [userPlan, isAdmin]);
 
-  // ─── Load AMI dashboard stats ─────────────────────────
+  // ─── Load AMI dashboard stats ───────────────────────────
   useEffect(() => {
     if (!user) return;
     async function loadStats() {
@@ -149,7 +178,7 @@ export default function AssistantPage() {
     loadStats();
   }, [user]);
 
-  // ─── Load publishing streak ──────────────────────────
+  // ─── Load publishing streak ─────────────────────────────
   useEffect(() => {
     if (!user) return;
     async function loadStreak() {
@@ -164,7 +193,7 @@ export default function AssistantPage() {
     loadStreak();
   }, [user]);
 
-  // ─── Load dashboard summary (all agents + CRM) ─────────
+  // ─── Load dashboard summary ─────────────────────────────
   useEffect(() => {
     if (!user) return;
     async function loadSummary() {
@@ -181,7 +210,7 @@ export default function AssistantPage() {
     loadSummary();
   }, [user]);
 
-  // ─── Load avatars from admin API ────────────────────────
+  // ─── Load avatars ───────────────────────────────────────
   useEffect(() => {
     async function loadAvatars() {
       try {
@@ -194,9 +223,7 @@ export default function AssistantPage() {
           }
           setAvatars(map);
         }
-      } catch {
-        // Silent fail — cards will show emoji fallback
-      }
+      } catch { /* silent */ }
     }
     loadAvatars();
   }, []);
@@ -205,7 +232,7 @@ export default function AssistantPage() {
   useEffect(() => {
     if (!selectedAgent || !user) return;
     if (historyLoaded === selectedAgent.id) return;
-    if (COMING_SOON_MODE) return; // Skip loading in coming-soon mode
+    if (COMING_SOON_MODE) return;
 
     async function loadHistory() {
       try {
@@ -223,34 +250,46 @@ export default function AssistantPage() {
             })));
           }
         }
-      } catch {
-        // History not available — start fresh
-      }
+      } catch { /* silent */ }
       setHistoryLoaded(selectedAgent!.id);
     }
     loadHistory();
   }, [selectedAgent, user, historyLoaded]);
 
-  // ─── Select agent ───────────────────────────────────────
+  // ─── Select agent (navigate to workspace) ─────────────
   const handleSelectAgent = useCallback((agent: ClientAgent) => {
     if (COMING_SOON_MODE) {
-      // In coming-soon mode, show the chat panel with overlay
       setSelectedAgent(agent);
       setMessages([]);
+      setChatOpen(true);
       return;
     }
     if (agent.visibility === 'coming_soon') return;
-    // Navigate to dedicated agent workspace
     router.push(`/assistant/agent/${agent.id}`);
   }, [COMING_SOON_MODE, router]);
 
+  // ─── Open chat with agent ─────────────────────────────
+  const handleOpenChat = useCallback((agent: ClientAgent) => {
+    setSelectedAgent(agent);
+    if (historyLoaded !== agent.id) {
+      setMessages([]);
+      setHistoryLoaded(null);
+    }
+    setChatOpen(true);
+  }, [historyLoaded]);
+
+  const handleCloseChat = useCallback(() => {
+    setChatOpen(false);
+  }, []);
+
   const handleBack = useCallback(() => {
+    setChatOpen(false);
     setSelectedAgent(null);
     setMessages([]);
     setHistoryLoaded(null);
   }, []);
 
-  // ─── Send message ───────────────────────────────────────
+  // ─── Send message ─────────────────────────────────────
   const handleSendMessage = useCallback(async (text: string) => {
     if (!selectedAgent || !text.trim()) return;
 
@@ -284,7 +323,6 @@ export default function AssistantPage() {
         };
         setMessages(prev => [...prev, assistantMsg]);
       } else {
-        // API doesn't exist yet or errored
         const assistantMsg: ChatMessage = {
           id: generateId(),
           role: 'assistant',
@@ -306,7 +344,7 @@ export default function AssistantPage() {
     }
   }, [selectedAgent]);
 
-  // ─── Notify handler ─────────────────────────────────────
+  // ─── Notify handler ───────────────────────────────────
   const handleNotifySubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!notifyEmail.trim()) return;
@@ -325,29 +363,38 @@ export default function AssistantPage() {
     }, 2000);
   };
 
-  // ─── Loading state ──────────────────────────────────────
+  // ─── Computed values ──────────────────────────────────
+  const activeAgents = agents.filter(a => a.visibility === 'active').length;
+  const totalActions = summary?.teams
+    ? Object.values(summary.teams).reduce((sum: number, t: any) => sum + (t?.totalActions ?? 0), 0)
+    : 0;
+  const totalProspects = summary?.crm?.total ?? 0;
+  const totalClients = summary?.crm?.clients ?? 0;
+  const conversionRate = summary?.crm?.conversionRate ?? 0;
+
+  // ─── Loading state ────────────────────────────────────
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0c1a3a] flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-400 mx-auto mb-4" />
-          <p className="text-white/60 text-sm">Chargement de votre equipe...</p>
+          <p className="text-white/60 text-sm">Chargement de votre espace de travail...</p>
         </div>
       </div>
     );
   }
 
-  // ─── Not logged in ──────────────────────────────────────
+  // ─── Not logged in ────────────────────────────────────
   if (!user) {
     return (
       <div className="min-h-screen bg-[#0c1a3a] flex items-center justify-center px-4">
         <div className="text-center max-w-sm">
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center mx-auto mb-4">
-            <span className="text-3xl">🤖</span>
+            <span className="text-3xl">{'\uD83E\uDD16'}</span>
           </div>
-          <h1 className="text-white font-bold text-xl mb-2">Votre Equipe IA</h1>
+          <h1 className="text-white font-bold text-xl mb-2">Votre Espace de Travail IA</h1>
           <p className="text-white/60 text-sm mb-6">
-            Connectez-vous pour acceder a votre equipe d&apos;agents IA personnalises.
+            Connectez-vous pour acceder a votre espace de travail et votre equipe d&apos;agents IA.
           </p>
           <a
             href="/login"
@@ -360,110 +407,166 @@ export default function AssistantPage() {
     );
   }
 
-  // Clara avatar for dossier banner
   const claraAvatarUrl = avatars['onboarding'] || null;
 
-  // ─── Mobile: show chat full screen if agent selected ────
-  if (isMobile && selectedAgent) {
-    return (
-      <AgentChatPanel
-        agent={selectedAgent}
-        avatarUrl={avatars[selectedAgent.id] || null}
-        messages={messages}
-        onSendMessage={handleSendMessage}
-        isLoading={chatLoading}
-        onBack={handleBack}
-        isMobile={true}
-        comingSoonMode={COMING_SOON_MODE}
-      />
-    );
-  }
-
-  // Team definitions aligned with CRM architecture
-  const TEAMS = [
-    {
-      name: 'Commercial',
-      icon: '💼',
-      color: 'from-blue-500 to-cyan-500',
-      description: 'Prospection, emails, DMs, chatbot',
-      agentIds: ['commercial', 'email', 'dm_instagram', 'chatbot'],
-    },
-    {
-      name: 'Visibilite',
-      icon: '📱',
-      color: 'from-purple-500 to-violet-600',
-      description: 'Contenu, SEO, TikTok, Google Maps',
-      agentIds: ['content', 'seo', 'tiktok_comments', 'gmaps'],
-    },
-    {
-      name: 'Finance & Admin',
-      icon: '🏦',
-      color: 'from-amber-500 to-orange-500',
-      description: 'Compta, RH, publicite',
-      agentIds: ['comptable', 'rh', 'ads'],
-    },
-    {
-      name: 'Strategie',
-      icon: '🧠',
-      color: 'from-pink-500 to-rose-500',
-      description: 'Direction marketing & onboarding',
-      agentIds: ['marketing', 'onboarding'],
-    },
-  ];
-
-  // ─── Main layout ────────────────────────────────────────
+  // ─── Main workspace layout ────────────────────────────
   return (
     <div className="min-h-screen bg-[#0c1a3a]">
       <div className="max-w-7xl mx-auto px-4 py-6 pb-24 lg:pb-8">
 
-        {/* Header + Tabs */}
-        <div className="mb-4">
-          <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-white font-bold text-2xl lg:text-3xl">
-              Votre Equipe IA
-            </h1>
-            {isAdmin && (
-              <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-[10px] font-bold rounded-full border border-green-500/30">
-                ADMIN
-              </span>
-            )}
+        {/* ═══ WORKSPACE HEADER ═══ */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-3">
+              <h1 className="text-white font-bold text-2xl lg:text-3xl">
+                Espace de travail
+              </h1>
+              {isAdmin && (
+                <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-[10px] font-bold rounded-full border border-green-500/30">
+                  ADMIN
+                </span>
+              )}
+            </div>
+            {/* Quick actions */}
+            <div className="flex items-center gap-2">
+              {isAdmin && (
+                <button
+                  onClick={() => router.push('/admin/agents')}
+                  className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-white/60 text-xs transition-colors"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  Admin
+                </button>
+              )}
+              <button
+                onClick={() => router.push('/assistant/dossier')}
+                className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-white/60 text-xs transition-colors"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Mon dossier
+              </button>
+            </div>
           </div>
-          <p className="text-white/50 text-sm mb-3">
+          <p className="text-white/50 text-sm">
             {COMING_SOON_MODE
               ? `${agents.length} agents IA qui automatisent votre business`
-              : `${agents.filter(a => a.visibility === 'active').length} agents actifs — automatisation & intelligence`
+              : `${activeAgents} agents actifs — automatisation & intelligence`
             }
           </p>
-
-          {/* Tabs */}
-          <div className="flex items-center gap-1 bg-white/5 rounded-xl p-1 border border-white/10">
-            {([
-              { key: 'equipe' as const, label: 'Par equipe' },
-              { key: 'agent' as const, label: 'Par agent' },
-              { key: 'offre' as const, label: 'Par offre' },
-            ]).map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setViewTab(tab.key)}
-                className={`flex-1 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
-                  viewTab === tab.key
-                    ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md'
-                    : 'text-white/50 hover:text-white/70 hover:bg-white/5'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
 
           {/* Publishing streak */}
           {streak > 0 && !COMING_SOON_MODE && (
             <div className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-orange-500/20 to-amber-500/20 border border-orange-500/30 rounded-full">
-              <span className="text-base">🔥</span>
+              <span className="text-base">{'\uD83D\uDD25'}</span>
               <span className="text-orange-300 text-xs font-bold">{streak} jour{streak > 1 ? 's' : ''} consecutif{streak > 1 ? 's' : ''}</span>
             </div>
           )}
         </div>
+
+        {/* ═══ KPI CARDS — Vue d'ensemble rapide ═══ */}
+        {!COMING_SOON_MODE && (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+            <div className="rounded-xl bg-white/[0.04] border border-white/10 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+                <span className="text-white/40 text-[10px] uppercase tracking-wider font-semibold">Agents actifs</span>
+              </div>
+              <div className="text-white text-2xl font-bold">{activeAgents}</div>
+              <div className="text-white/30 text-[10px] mt-0.5">sur {agents.length} agents</div>
+            </div>
+
+            <div className="rounded-xl bg-white/[0.04] border border-white/10 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </div>
+                <span className="text-white/40 text-[10px] uppercase tracking-wider font-semibold">Actions</span>
+              </div>
+              <div className="text-white text-2xl font-bold">{totalActions}</div>
+              <div className="text-white/30 text-[10px] mt-0.5">cette semaine</div>
+            </div>
+
+            <div className="rounded-xl bg-white/[0.04] border border-white/10 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+                <span className="text-white/40 text-[10px] uppercase tracking-wider font-semibold">Prospects</span>
+              </div>
+              <div className="text-white text-2xl font-bold">{totalProspects}</div>
+              <div className="text-white/30 text-[10px] mt-0.5">dans le pipeline</div>
+            </div>
+
+            <div className="rounded-xl bg-white/[0.04] border border-white/10 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <span className="text-white/40 text-[10px] uppercase tracking-wider font-semibold">Clients</span>
+              </div>
+              <div className="text-white text-2xl font-bold">{totalClients}</div>
+              <div className="text-green-400/70 text-[10px] mt-0.5 font-medium">{conversionRate}% conversion</div>
+            </div>
+          </div>
+        )}
+
+        {/* ═══ AMI Performance Widget ═══ */}
+        {amiStats && !COMING_SOON_MODE && (
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-white font-bold text-sm flex items-center gap-2">
+                <span>{'\uD83C\uDFAF'}</span> Performance AMI
+              </h3>
+              <button
+                onClick={() => {
+                  const ami = agents.find(a => a.id === 'marketing');
+                  if (ami) handleOpenChat(ami);
+                }}
+                className="text-purple-400 text-[10px] font-medium hover:text-purple-300 transition-colors"
+              >
+                Discuter avec AMI {'\u2192'}
+              </button>
+            </div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="bg-white/[0.04] rounded-lg px-3 py-2">
+                <div className="text-white/40 text-[10px]">Posts cette semaine</div>
+                <div className="text-white font-bold text-lg">{amiStats.postsThisWeek}</div>
+              </div>
+              <div className="bg-white/[0.04] rounded-lg px-3 py-2">
+                <div className="text-white/40 text-[10px]">Engagement moy.</div>
+                <div className="text-white font-bold text-lg">{amiStats.avgEngagement}%</div>
+              </div>
+              <div className="bg-white/[0.04] rounded-lg px-3 py-2">
+                <div className="text-white/40 text-[10px]">Vues moy.</div>
+                <div className="text-white font-bold text-lg">{amiStats.avgViews}</div>
+              </div>
+              <div className="bg-white/[0.04] rounded-lg px-3 py-2">
+                <div className="text-white/40 text-[10px]">Categorie top</div>
+                <div className="text-white font-bold text-sm mt-0.5">{amiStats.topCategory}</div>
+              </div>
+            </div>
+            {amiStats.improvement > 0 && (
+              <div className="mt-2 text-green-400/80 text-[11px] font-medium">
+                {'\u2191'} +{amiStats.improvement}% d&apos;amelioration depuis le debut
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Coming soon banner */}
         {COMING_SOON_MODE && <ComingSoonBanner />}
@@ -471,7 +574,28 @@ export default function AssistantPage() {
         {/* Dossier banner */}
         <DossierBanner profile={profile} claraAvatarUrl={claraAvatarUrl} />
 
-        {/* ═══ TAB: Par équipe (avec dashboards + CRM) ═══ */}
+        {/* ═══ TABS ═══ */}
+        <div className="flex items-center gap-1 bg-white/5 rounded-xl p-1 border border-white/10 mb-5">
+          {([
+            { key: 'equipe' as const, label: 'Par equipe' },
+            { key: 'agent' as const, label: 'Par agent' },
+            { key: 'offre' as const, label: 'Par offre' },
+          ]).map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setViewTab(tab.key)}
+              className={`flex-1 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+                viewTab === tab.key
+                  ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md'
+                  : 'text-white/50 hover:text-white/70 hover:bg-white/5'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* ═══ TAB: Par equipe (avec dashboards + CRM) ═══ */}
         {viewTab === 'equipe' && (
           <div className="space-y-5">
             {summaryLoading && (
@@ -492,7 +616,7 @@ export default function AssistantPage() {
 
               return (
                 <div key={team.name} className="rounded-2xl border border-white/15 bg-white/[0.03] overflow-hidden">
-                  {/* ── Team header with KPIs ── */}
+                  {/* Team header with KPIs */}
                   <div className={`px-4 py-3 bg-gradient-to-r ${team.color}`}>
                     <div className="flex items-center justify-between mb-1">
                       <h3 className="text-white font-bold text-sm flex items-center gap-2">
@@ -500,7 +624,6 @@ export default function AssistantPage() {
                       </h3>
                       <span className="text-white/70 text-[10px]">{team.description}</span>
                     </div>
-                    {/* Team KPIs inline */}
                     {teamStats && (
                       <div className="flex items-center gap-3 mt-1.5">
                         <span className="text-white/90 text-[11px] font-medium">{teamStats.totalActions ?? 0} actions</span>
@@ -515,7 +638,7 @@ export default function AssistantPage() {
                         {teamKey === 'visibilite' && (
                           <>
                             <span className="text-white/50 text-[10px]">|</span>
-                            <span className="text-white/90 text-[11px]">{teamStats.contentPublished ?? 0} publiés</span>
+                            <span className="text-white/90 text-[11px]">{teamStats.contentPublished ?? 0} publies</span>
                             <span className="text-white/50 text-[10px]">|</span>
                             <span className="text-white/90 text-[11px]">{teamStats.seoArticles ?? 0} articles SEO</span>
                           </>
@@ -523,7 +646,7 @@ export default function AssistantPage() {
                         {teamKey === 'finance' && teamStats.adSpend > 0 && (
                           <>
                             <span className="text-white/50 text-[10px]">|</span>
-                            <span className="text-white/90 text-[11px]">{teamStats.adSpend}€ dépensés</span>
+                            <span className="text-white/90 text-[11px]">{teamStats.adSpend}{'\u20AC'} depenses</span>
                           </>
                         )}
                         {teamKey === 'strategie' && (
@@ -538,35 +661,57 @@ export default function AssistantPage() {
                     )}
                   </div>
 
-                  {/* ── Agent cards with mini dashboards ── */}
+                  {/* Agent cards with mini dashboards + chat button */}
                   <div className="p-3 space-y-2">
                     {teamAgents.map((agent) => {
                       const agentStats = summary?.agents?.[agent.id];
                       return (
-                        <button
+                        <div
                           key={agent.id}
-                          onClick={() => handleSelectAgent(agent)}
-                          className="w-full rounded-xl bg-white/[0.04] hover:bg-white/[0.08] transition-all text-left overflow-hidden"
+                          className="rounded-xl bg-white/[0.04] hover:bg-white/[0.08] transition-all overflow-hidden"
                         >
                           <div className="flex items-center gap-3 px-3 py-2.5">
-                            <div
-                              className="w-10 h-10 rounded-full flex-shrink-0"
-                              style={{ background: `linear-gradient(135deg, ${agent.gradientFrom}, ${agent.gradientTo})`, padding: '2px' }}
+                            <button
+                              onClick={() => handleSelectAgent(agent)}
+                              className="flex items-center gap-3 flex-1 min-w-0 text-left"
                             >
-                              <div className="w-full h-full rounded-full overflow-hidden bg-gray-900 flex items-center justify-center">
-                                {avatars[agent.id] ? (
-                                  <img src={avatars[agent.id]!} alt={agent.displayName} className="w-full h-full object-cover scale-[1.15]" style={{ objectPosition: 'center 15%' }} />
-                                ) : (
-                                  <span className="text-base">{agent.icon}</span>
-                                )}
+                              <div
+                                className="w-10 h-10 rounded-full flex-shrink-0"
+                                style={{ background: `linear-gradient(135deg, ${agent.gradientFrom}, ${agent.gradientTo})`, padding: '2px' }}
+                              >
+                                <div className="w-full h-full rounded-full overflow-hidden bg-gray-900 flex items-center justify-center">
+                                  {avatars[agent.id] ? (
+                                    <img src={avatars[agent.id]!} alt={agent.displayName} className="w-full h-full object-cover scale-[1.15]" style={{ objectPosition: 'center 15%' }} />
+                                  ) : (
+                                    <span className="text-base">{agent.icon}</span>
+                                  )}
+                                </div>
                               </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="text-white font-semibold text-xs">{agent.displayName}</div>
+                                <div className="text-gray-400 text-[10px] truncate">{agent.title}</div>
+                              </div>
+                            </button>
+
+                            {/* Chat button + status */}
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenChat(agent);
+                                }}
+                                className="flex items-center gap-1 px-2.5 py-1.5 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 rounded-lg text-purple-300 text-[10px] font-medium transition-all"
+                                title={`Discuter avec ${agent.displayName}`}
+                              >
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                </svg>
+                                Chat
+                              </button>
+                              <div className="w-2 h-2 rounded-full flex-shrink-0 bg-green-400" />
                             </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="text-white font-semibold text-xs">{agent.displayName}</div>
-                              <div className="text-gray-400 text-[10px] truncate">{agent.title}</div>
-                            </div>
-                            <div className="w-2 h-2 rounded-full flex-shrink-0 bg-green-400" />
                           </div>
+
                           {/* Mini dashboard metrics */}
                           {agentStats?.metrics && agentStats.metrics.length > 0 && (
                             <div className="px-3 pb-2.5 flex items-center gap-3 flex-wrap">
@@ -579,21 +724,23 @@ export default function AssistantPage() {
                               ))}
                             </div>
                           )}
-                        </button>
+                        </div>
                       );
                     })}
                   </div>
 
-                  {/* ── CRM Panel (Commercial team only) ── */}
-                  {isCommercial && summary?.crm && (
+                  {/* CRM interactif (Commercial team only) */}
+                  {isCommercial && (
                     <div className="border-t border-white/10">
                       <button
                         onClick={() => setCrmExpanded(!crmExpanded)}
                         className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-white/[0.03] transition-colors"
                       >
                         <span className="text-white font-bold text-xs flex items-center gap-2">
-                          <span>📊</span> CRM Pipeline
-                          <span className="text-white/40 font-normal">— {summary.crm.total} prospects, {summary.crm.clients} clients</span>
+                          <span>{'\uD83D\uDCCA'}</span> CRM Pipeline
+                          {summary?.crm && (
+                            <span className="text-white/40 font-normal">{'\u2014'} {summary.crm.total} prospects, {summary.crm.clients} clients</span>
+                          )}
                         </span>
                         <svg className={`w-4 h-4 text-white/40 transition-transform ${crmExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -601,90 +748,8 @@ export default function AssistantPage() {
                       </button>
 
                       {crmExpanded && (
-                        <div className="px-4 pb-4 space-y-4">
-                          {/* Pipeline bar chart */}
-                          <div>
-                            <div className="flex items-end gap-1.5 h-20">
-                              {(() => {
-                                const stages = [
-                                  { key: 'identifie', label: 'Identifie', color: 'bg-slate-500' },
-                                  { key: 'contacte', label: 'Contacte', color: 'bg-blue-500' },
-                                  { key: 'interesse', label: 'Interesse', color: 'bg-cyan-500' },
-                                  { key: 'demo', label: 'Demo', color: 'bg-purple-500' },
-                                  { key: 'sprint', label: 'Trial', color: 'bg-amber-500' },
-                                  { key: 'client', label: 'Client', color: 'bg-green-500' },
-                                ];
-                                const pip = summary.crm.pipeline || {};
-                                const maxVal = Math.max(...stages.map(s => pip[s.key] || 0), 1);
-                                return stages.map(stage => {
-                                  const count = pip[stage.key] || 0;
-                                  return (
-                                    <div key={stage.key} className="flex-1 flex flex-col items-center gap-0.5">
-                                      <span className="text-white text-[10px] font-bold">{count}</span>
-                                      <div
-                                        className={`w-full rounded-t ${stage.color}`}
-                                        style={{ height: `${Math.max((count / maxVal) * 52, 3)}px` }}
-                                      />
-                                      <span className="text-white/30 text-[8px] text-center leading-tight">{stage.label}</span>
-                                    </div>
-                                  );
-                                });
-                              })()}
-                            </div>
-                          </div>
-
-                          {/* Temperature breakdown */}
-                          <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-1.5">
-                              <div className="w-2 h-2 rounded-full bg-red-500" />
-                              <span className="text-white/60 text-[10px]">{summary.crm.temperature?.hot ?? 0} chauds</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <div className="w-2 h-2 rounded-full bg-amber-500" />
-                              <span className="text-white/60 text-[10px]">{summary.crm.temperature?.warm ?? 0} tiedes</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <div className="w-2 h-2 rounded-full bg-blue-400" />
-                              <span className="text-white/60 text-[10px]">{summary.crm.temperature?.cold ?? 0} froids</span>
-                            </div>
-                            <span className="ml-auto text-green-400 text-[10px] font-bold">{summary.crm.conversionRate}% conversion</span>
-                          </div>
-
-                          {/* Recent prospects */}
-                          {summary.crm.recentProspects?.length > 0 && (
-                            <div>
-                              <div className="text-white/40 text-[10px] font-bold uppercase tracking-wider mb-1.5">Derniers prospects</div>
-                              <div className="space-y-1">
-                                {(summary.crm.recentProspects as Array<{ company: string; status: string; temperature: string; created_at: string }>).map((p, i) => (
-                                  <div key={i} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-white/[0.03]">
-                                    <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-                                      p.temperature === 'hot' ? 'bg-red-500' : p.temperature === 'warm' ? 'bg-amber-500' : 'bg-blue-400'
-                                    }`} />
-                                    <span className="text-white text-[11px] font-medium flex-1 truncate">{p.company}</span>
-                                    <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${
-                                      p.status === 'client' ? 'bg-green-500/20 text-green-400'
-                                      : p.status === 'sprint' ? 'bg-amber-500/20 text-amber-400'
-                                      : p.status === 'contacte' ? 'bg-blue-500/20 text-blue-400'
-                                      : 'bg-white/10 text-white/40'
-                                    }`}>{p.status}</span>
-                                    <span className="text-white/20 text-[9px]">
-                                      {new Date(p.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Link to full CRM */}
-                          {isAdmin && (
-                            <button
-                              onClick={() => router.push('/admin/crm')}
-                              className="w-full py-2 text-center text-[11px] text-purple-400 hover:text-purple-300 font-medium transition-colors"
-                            >
-                              Voir le CRM complet →
-                            </button>
-                          )}
+                        <div className="px-4 pb-4">
+                          <WorkspaceCrm isAdmin={isAdmin} />
                         </div>
                       )}
                     </div>
@@ -698,7 +763,7 @@ export default function AssistantPage() {
               <div className="rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden">
                 <div className="px-4 py-2.5 border-b border-white/10">
                   <h3 className="text-white font-bold text-xs flex items-center gap-2">
-                    <span>⚡</span> Activite recente de l&apos;equipe
+                    <span>{'\u26A1'}</span> Activite recente de l&apos;equipe
                   </h3>
                 </div>
                 <div className="divide-y divide-white/5">
@@ -710,7 +775,7 @@ export default function AssistantPage() {
                           className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-[10px]"
                           style={{ background: agentInfo ? `linear-gradient(135deg, ${agentInfo.gradientFrom}, ${agentInfo.gradientTo})` : '#4B5563' }}
                         >
-                          {agentInfo?.icon || '🤖'}
+                          {agentInfo?.icon || '\uD83E\uDD16'}
                         </div>
                         <span className="text-white text-[11px] font-medium">{agentInfo?.displayName || a.agent}</span>
                         <span className="text-white/30 text-[10px] flex-1 truncate">{a.action}</span>
@@ -728,45 +793,22 @@ export default function AssistantPage() {
 
         {/* ═══ TAB: Par agent ═══ */}
         {viewTab === 'agent' && (
-          <div className="flex gap-6">
-            {/* Agent grid */}
-            <div className={`${selectedAgent && !isMobile ? 'w-1/2' : 'w-full'} transition-all duration-300`}>
-              <div className={`grid ${selectedAgent && !isMobile ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-2 lg:grid-cols-3'} gap-3`}>
-                {agents.map((agent) => (
-                  <AgentCard
-                    key={agent.id}
-                    agent={agent}
-                    avatarUrl={avatars[agent.id] || null}
-                    isSelected={selectedAgent?.id === agent.id}
-                    onClick={() => handleSelectAgent(agent)}
-                    comingSoonMode={COMING_SOON_MODE}
-                    onNotifyClick={() => {
-                      if (COMING_SOON_MODE) {
-                        setShowNotifyModal(true);
-                      }
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Desktop chat panel */}
-            {selectedAgent && !isMobile && (
-              <div className="w-1/2">
-                <div className="sticky top-6">
-                  <AgentChatPanel
-                    agent={selectedAgent}
-                    avatarUrl={avatars[selectedAgent.id] || null}
-                    messages={messages}
-                    onSendMessage={handleSendMessage}
-                    isLoading={chatLoading}
-                    onBack={handleBack}
-                    isMobile={false}
-                    comingSoonMode={COMING_SOON_MODE}
-                  />
-                </div>
-              </div>
-            )}
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+            {agents.map((agent) => (
+              <AgentCard
+                key={agent.id}
+                agent={agent}
+                avatarUrl={avatars[agent.id] || null}
+                isSelected={selectedAgent?.id === agent.id}
+                onClick={() => handleSelectAgent(agent)}
+                comingSoonMode={COMING_SOON_MODE}
+                onNotifyClick={() => {
+                  if (COMING_SOON_MODE) {
+                    setShowNotifyModal(true);
+                  }
+                }}
+              />
+            ))}
           </div>
         )}
 
@@ -775,6 +817,81 @@ export default function AssistantPage() {
           <AgentTeams agents={agents} userPlan={userPlan} avatars={avatars} />
         )}
       </div>
+
+      {/* ═══ FLOATING CHAT BUTTON ═══ */}
+      {!chatOpen && (
+        <button
+          onClick={() => {
+            if (selectedAgent) {
+              setChatOpen(true);
+            } else {
+              // Default to AMI if no agent selected
+              const ami = agents.find(a => a.id === 'marketing');
+              if (ami) {
+                handleOpenChat(ami);
+              }
+            }
+          }}
+          className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-2xl shadow-purple-500/30 hover:shadow-purple-500/50 hover:scale-105 flex items-center justify-center transition-all lg:bottom-8 lg:right-8"
+          title="Discuter avec un agent"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+          {/* Notification dot if there's an active agent */}
+          {selectedAgent && (
+            <div className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-green-400 border-2 border-[#0c1a3a] flex items-center justify-center">
+              <span className="text-[7px] text-green-900 font-bold">1</span>
+            </div>
+          )}
+        </button>
+      )}
+
+      {/* ═══ CHAT SLIDE-OVER PANEL ═══ */}
+      {chatOpen && selectedAgent && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:bg-transparent lg:backdrop-blur-none lg:pointer-events-none"
+            onClick={handleCloseChat}
+          />
+
+          {/* Chat panel */}
+          <div
+            className={`fixed z-50 ${
+              isMobile
+                ? 'inset-0'
+                : 'top-4 right-4 bottom-4 w-[420px] rounded-2xl shadow-2xl shadow-black/50'
+            }`}
+            style={{ animation: 'slideInRight 0.25s ease-out' }}
+          >
+            <AgentChatPanel
+              agent={selectedAgent}
+              avatarUrl={avatars[selectedAgent.id] || null}
+              messages={messages}
+              onSendMessage={handleSendMessage}
+              isLoading={chatLoading}
+              onBack={handleBack}
+              isMobile={isMobile}
+              comingSoonMode={COMING_SOON_MODE}
+            />
+          </div>
+        </>
+      )}
+
+      {/* Slide-in animation */}
+      <style jsx>{`
+        @keyframes slideInRight {
+          from {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+      `}</style>
 
       {/* Notify modal */}
       {showNotifyModal && (
