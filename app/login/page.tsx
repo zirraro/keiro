@@ -3,7 +3,6 @@
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/client';
-import { ScaleIn } from '@/components/ui/motion';
 import { AnimatedGradientBG } from '@/components/ui/animated-gradient-bg';
 import { KeiroLogo } from '@/components/ui/keiro-logo';
 import { useLanguage } from '@/lib/i18n/context';
@@ -399,7 +398,7 @@ function LoginPageInner() {
     return (
       <div className="relative min-h-screen bg-gradient-to-br from-neutral-50 via-white to-cyan-50/30 flex items-center justify-center px-4 py-12 overflow-hidden">
         <AnimatedGradientBG variant="hero" />
-        <ScaleIn className="relative w-full max-w-lg">
+        <div className="relative w-full max-w-lg">
         <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl w-full p-8">
           {/* Header */}
           <div className="text-center mb-6">
@@ -722,7 +721,7 @@ function LoginPageInner() {
             </button>
           </div>
         </div>
-        </ScaleIn>
+        </div>
       </div>
     );
   }
@@ -730,7 +729,7 @@ function LoginPageInner() {
   return (
     <div className="login-page relative min-h-screen bg-gradient-to-br from-neutral-50 via-white to-cyan-50/30 flex items-center justify-center px-4 py-12 overflow-hidden">
       <AnimatedGradientBG variant="hero" />
-      <ScaleIn className="relative w-full max-w-md">
+      <div className="relative w-full max-w-md">
       <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl w-full p-8">
         {/* Logo / Titre */}
         <div className="text-center mb-8">
@@ -989,7 +988,7 @@ function LoginPageInner() {
           </form>
         )}
       </div>
-      </ScaleIn>
+      </div>
     </div>
   );
 }

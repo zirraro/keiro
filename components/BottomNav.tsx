@@ -88,7 +88,7 @@ export default function BottomNav() {
   ];
 
   return (
-    <nav className={`lg:hidden fixed bottom-0 left-0 right-0 z-40 backdrop-blur-lg border-t safe-area-inset-bottom transition-colors duration-300 ${
+    <nav className={`lg:hidden fixed bottom-0 left-0 right-0 z-50 backdrop-blur-lg border-t safe-area-inset-bottom transition-colors duration-300 ${
       isLight
         ? 'bg-white/80 border-neutral-200/50'
         : 'bg-[#0c1a3a]/80 border-white/10'

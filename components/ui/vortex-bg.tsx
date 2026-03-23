@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
 /**
  * VortexBackground — Living, breathing background for KeiroAI.
@@ -12,13 +12,18 @@ import { useEffect, useRef, useState } from 'react';
  * All GPU-accelerated via will-change: transform.
  */
 export function VortexBackground() {
-  const [scrollY, setScrollY] = useState(0);
+  const layer1Ref = useRef<HTMLDivElement>(null);
+  const layer2Ref = useRef<HTMLDivElement>(null);
+  const layer3Ref = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number>(0);
 
   useEffect(() => {
     const onScroll = () => {
       rafRef.current = requestAnimationFrame(() => {
-        setScrollY(window.scrollY);
+        const y = window.scrollY;
+        if (layer1Ref.current) layer1Ref.current.style.transform = `translateY(${y * 0.03}px)`;
+        if (layer2Ref.current) layer2Ref.current.style.transform = `translateY(${y * -0.02}px)`;
+        if (layer3Ref.current) layer3Ref.current.style.transform = `translateY(${y * 0.015}px)`;
       });
     };
     window.addEventListener('scroll', onScroll, { passive: true });
@@ -27,10 +32,6 @@ export function VortexBackground() {
       cancelAnimationFrame(rafRef.current);
     };
   }, []);
-
-  const p1 = scrollY * 0.03;
-  const p2 = scrollY * -0.02;
-  const p3 = scrollY * 0.015;
 
   return (
     <>
@@ -227,7 +228,7 @@ export function VortexBackground() {
         }} />
 
         {/* === LAYER 4: Floating particles with scroll parallax — larger, more visible === */}
-        <div style={{ position: 'absolute', inset: 0, transform: `translateY(${p1}px)`, willChange: 'transform' }}>
+        <div ref={layer1Ref} style={{ position: 'absolute', inset: 0, willChange: 'transform' }}>
           {[
             { l: '8%', t: '10%', s: 5 },
             { l: '22%', t: '30%', s: 4 },
@@ -251,7 +252,7 @@ export function VortexBackground() {
             }} />
           ))}
         </div>
-        <div style={{ position: 'absolute', inset: 0, transform: `translateY(${p2}px)`, willChange: 'transform' }}>
+        <div ref={layer2Ref} style={{ position: 'absolute', inset: 0, willChange: 'transform' }}>
           {[
             { l: '18%', t: '18%', s: 4 },
             { l: '38%', t: '42%', s: 5 },
@@ -273,7 +274,7 @@ export function VortexBackground() {
             }} />
           ))}
         </div>
-        <div style={{ position: 'absolute', inset: 0, transform: `translateY(${p3}px)`, willChange: 'transform' }}>
+        <div ref={layer3Ref} style={{ position: 'absolute', inset: 0, willChange: 'transform' }}>
           {[
             { l: '12%', t: '40%', s: 4 },
             { l: '35%', t: '72%', s: 5 },

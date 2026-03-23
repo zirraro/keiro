@@ -6,7 +6,7 @@ import FeedbackPopup from '@/components/FeedbackPopup';
 import FeedbackModal from '@/components/FeedbackModal';
 import { useFeedbackPopup } from '@/hooks/useFeedbackPopup';
 import { startCheckout } from '@/lib/stripe/checkout';
-import { FadeUp, ScaleIn, StaggerContainer, StaggerItem } from '@/components/ui/motion';
+
 import { AnimatedGradientBG } from '@/components/ui/animated-gradient-bg';
 import { useLanguage } from '@/lib/i18n/context';
 
@@ -159,15 +159,14 @@ function PricingPageInner() {
 
       <main className="relative max-w-7xl mx-auto px-4 py-16">
         {/* Hero Section */}
-        <FadeUp>
         <div className="text-center mb-16">
-          <ScaleIn><div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 border border-neutral-200 text-neutral-800 text-sm font-medium mb-6 shadow-sm backdrop-blur-sm">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 border border-neutral-200 text-neutral-800 text-sm font-medium mb-6 shadow-sm backdrop-blur-sm">
             <span className="flex h-2 w-2 relative">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500/60 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
             {t.pricing.badge}
-          </div></ScaleIn>
+          </div>
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-6">
             <span dangerouslySetInnerHTML={{ __html: t.pricing.title }} />
           </h1>
@@ -206,11 +205,9 @@ function PricingPageInner() {
             <p className="mt-3 text-sm text-green-600 font-medium">{t.common.freeMonthsAnnual}</p>
           )}
         </div>
-        </FadeUp>
 
         {/* Essai gratuit highlight */}
         <div className="max-w-lg mx-auto mb-10">
-          <FadeUp>
           <div className="bg-white dark:bg-[#0c1a3a] rounded-2xl border-2 border-purple-200 dark:border-purple-500/30 p-6 relative hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
             <div className="absolute -top-3 left-4">
               <span className="bg-gradient-to-r from-[#0c1a3a] to-purple-700 text-white px-3 py-1 rounded-full text-xs font-bold">
@@ -253,11 +250,9 @@ function PricingPageInner() {
             </Link>
             <p className="text-xs text-center text-neutral-500 mt-2">{t.pricing.freeTrialNote || '0€ pendant 30 jours • Carte requise • Annulation à tout moment'}</p>
           </div>
-          </FadeUp>
         </div>
 
         {/* TikTok Unlock Highlight */}
-        <FadeUp>
         <div className="bg-gradient-to-br from-cyan-500 via-[#0c1a3a] to-purple-600 rounded-2xl p-8 mb-10 text-white relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 animate-float-slow"></div>
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-24 -mb-24 animate-float-medium"></div>
@@ -308,15 +303,14 @@ function PricingPageInner() {
             </div>
           </div>
         </div>
-        </FadeUp>
 
         {/* Premium Plans */}
-        <FadeUp><h3 className="text-2xl font-bold text-center mb-2">{t.pricing.comparisonTitle}</h3>
-        <p className="text-center text-neutral-600 mb-8">{t.pricing.subtitle}</p></FadeUp>
+        <h3 className="text-2xl font-bold text-center mb-2">{t.pricing.comparisonTitle}</h3>
+        <p className="text-center text-neutral-600 mb-8">{t.pricing.subtitle}</p>
 
-        <StaggerContainer className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mb-16">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mb-16">
           {/* Créateur 49€ */}
-          <StaggerItem><div id="createur" className="bg-gradient-to-br from-purple-600 to-indigo-600 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col">
+          <div id="createur" className="bg-gradient-to-br from-purple-600 to-indigo-600 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col">
             <div className="absolute -top-3 right-4">
               <span className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">30 jours gratuits</span>
             </div>
@@ -371,10 +365,10 @@ function PricingPageInner() {
               {billingPeriod === 'annual' ? `${t.pricing.planCreateurTitle} ${t.common.annual.toLowerCase()} (${t.common.annualDiscount})` : t.pricing.planCreateurCta}
             </button>
             <p className="text-xs text-center text-purple-200 mt-2">{t.pricing.planCreateurNote}</p>
-          </div></StaggerItem>
+          </div>
 
           {/* Pro 99€ */}
-          <StaggerItem><div id="pro" className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col">
+          <div id="pro" className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col">
             <div className="absolute -top-3 right-4">
               <span className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">30 jours gratuits</span>
             </div>
@@ -420,10 +414,10 @@ function PricingPageInner() {
               {billingPeriod === 'annual' ? `${t.pricing.planProTitle} ${t.common.annual.toLowerCase()} (${t.common.annualDiscount})` : t.pricing.planProCta}
             </button>
             <p className="text-xs text-center text-blue-200 mt-2">{t.pricing.planProNote}</p>
-          </div></StaggerItem>
+          </div>
 
           {/* Fondateurs Pro 149€ - POPULAIRE */}
-          <StaggerItem><div id="fondateurs" className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col animate-glow">
+          <div id="fondateurs" className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col animate-glow">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2">
               <span className="bg-amber-900 text-amber-100 px-4 py-1 rounded-full text-xs font-bold shadow-lg">
                 ⭐ Populaire
@@ -457,10 +451,10 @@ function PricingPageInner() {
               {billingPeriod === 'annual' ? `${t.pricing.planFondateursTitle} ${t.common.annual.toLowerCase()} (${t.common.annualDiscount})` : t.pricing.planFondateursCta}
             </button>
             <p className="text-xs text-center text-amber-200 mt-2">{t.pricing.planFondateursNote}</p>
-          </div></StaggerItem>
+          </div>
 
           {/* Business 199€ */}
-          <StaggerItem><div className="bg-gradient-to-br from-[#0c1a3a] to-[#1e3a5f] rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col">
+          <div className="bg-gradient-to-br from-[#0c1a3a] to-[#1e3a5f] rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2">
               <span className="bg-[#0c1a3a] text-cyan-200 px-4 py-1 rounded-full text-xs font-bold shadow-lg">
                 PME & Multi-activité
@@ -497,11 +491,11 @@ function PricingPageInner() {
               {billingPeriod === 'annual' ? `${t.pricing.planBusinessTitle} ${t.common.annual.toLowerCase()} (${t.common.annualDiscount})` : t.pricing.planBusinessCta}
             </button>
             <p className="text-center text-cyan-200 text-xs mt-2">{t.pricing.supportCallDesc}</p>
-          </div></StaggerItem>
-        </StaggerContainer>
+          </div>
+        </div>
 
         {/* Agence — Sur devis */}
-        <FadeUp>
+
         <div className="max-w-2xl mx-auto mb-10">
           <div className="bg-gradient-to-r from-slate-800 to-slate-700 rounded-2xl p-6 text-white text-center hover:shadow-xl transition-all">
             <h3 className="text-xl font-bold mb-2 flex items-center justify-center gap-2">
@@ -515,11 +509,10 @@ function PricingPageInner() {
             </a>
           </div>
         </div>
-        </FadeUp>
 
 
         {/* Elite - Plan complet */}
-        <FadeUp>
+
         <div className="max-w-lg mx-auto mb-16">
           <div className="bg-gradient-to-br from-amber-600 to-yellow-700 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2">
@@ -561,10 +554,9 @@ function PricingPageInner() {
             </div>
           </div>
         </div>
-        </FadeUp>
 
         {/* Concrètement, c'est quoi la différence ? */}
-        <FadeUp>
+
         <div className="mb-16">
           <h3 className="text-2xl font-bold text-center mb-8">{"Concrètement, c'est quoi la différence ?"}</h3>
           <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
@@ -594,10 +586,9 @@ function PricingPageInner() {
             </div>
           </div>
         </div>
-        </FadeUp>
 
         {/* Agents IA — Automatisation */}
-        <FadeUp>
+
         <div className="bg-gradient-to-br from-[#0c1a3a] to-purple-900 rounded-2xl border border-purple-500/20 p-6 mb-10 text-white relative overflow-hidden">
           <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full -mr-24 -mt-24"></div>
           <h3 className="text-lg font-bold mb-2 flex items-center gap-2 relative z-10">
@@ -628,7 +619,6 @@ function PricingPageInner() {
             Tous les agents optimisent votre KeiroAI en arriere-plan, quel que soit votre plan.
           </p>
         </div>
-        </FadeUp>
 
         {/* Inclus gratuitement */}
         <div className="bg-gradient-to-r from-[#0c1a3a]/5 to-purple-50 dark:from-[#0c1a3a] dark:to-purple-900/20 rounded-2xl border border-purple-200 dark:border-purple-500/20 p-6 mb-10">
@@ -830,7 +820,7 @@ function PricingPageInner() {
         </div>
 
         {/* Le vrai coût de ne rien faire */}
-        <FadeUp>
+
         <div className="mb-16">
           <div className="text-center mb-10">
             <h3 className="text-2xl md:text-3xl font-bold text-neutral-900 mb-3">{"Vous n'avez pas de graphiste ni de CM ? Le vrai coût, c'est l'invisibilité."}</h3>
@@ -873,10 +863,9 @@ function PricingPageInner() {
           </div>
 
         </div>
-        </FadeUp>
 
         {/* Comparateur Keiro vs. Prestataires - 3 colonnes */}
-        <FadeUp>
+
         <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-8 md:p-12 mb-16 text-white relative overflow-hidden">
           <div className="absolute top-0 right-0 w-72 h-72 bg-[#0c1a3a]/10 rounded-full -mr-36 -mt-36 blur-3xl"></div>
           <div className="absolute bottom-0 left-0 w-56 h-56 bg-cyan-500/10 rounded-full -ml-28 -mb-28 blur-3xl"></div>
@@ -974,10 +963,9 @@ function PricingPageInner() {
             </div>
           </div>
         </div>
-        </FadeUp>
 
         {/* KeiroAI vs ChatGPT — Comparaison détaillée */}
-        <FadeUp>
+
         <div className="mb-16">
           <h3 className="text-2xl md:text-3xl font-bold text-center mb-8">
             {"KeiroAI vs outils IA gratuits — comparaison détaillée"}
@@ -1166,10 +1154,9 @@ function PricingPageInner() {
             </div>
           </div>
         </div>
-        </FadeUp>
 
         {/* FAQ Section */}
-        <FadeUp>
+
         <div className="max-w-3xl mx-auto">
           <h2 className="text-3xl font-bold text-center mb-10">{t.pricing.faqTitle}</h2>
           <div className="space-y-4">
@@ -1211,10 +1198,9 @@ function PricingPageInner() {
           </div>
         </div>
 
-        </FadeUp>
 
         {/* Section Support */}
-        <FadeUp>
+
         <div className="mt-16 bg-gradient-to-br from-purple-50 via-[#0c1a3a]/5 to-cyan-50 rounded-3xl border-2 border-purple-200 p-8 md:p-12">
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-purple-600 to-[#0c1a3a] rounded-full mb-4">
@@ -1280,10 +1266,9 @@ function PricingPageInner() {
           </div>
         </div>
         <p className="text-xs text-center text-neutral-400 mt-2">Retours basés sur des tests utilisateurs</p>
-        </FadeUp>
 
         {/* CTA Final */}
-        <FadeUp>
+
         <div className="mt-12 sm:mt-20 text-center bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] rounded-3xl p-6 sm:p-12">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-4">
             {t.pricing.ctaTitle}
@@ -1310,7 +1295,6 @@ function PricingPageInner() {
           </div>
           <p className="text-[#0c1a3a]/60 text-sm mt-4">{t.pricing.foundersNote}</p>
         </div>
-        </FadeUp>
       </main>
 
       <FeedbackPopup show={feedback.showPopup} onAccept={feedback.handleAccept} onDismiss={feedback.handleDismiss} />

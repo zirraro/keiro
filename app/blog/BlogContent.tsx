@@ -122,7 +122,7 @@ export default function BlogContent({ posts }: { posts: BlogPost[] }) {
     : CURATED_VIDEOS.filter(v => v.category === videoCategory);
 
   return (
-    <main className="min-h-screen page-studio-bg">
+    <main className="min-h-screen page-studio-bg pb-24 lg:pb-0">
       {/* Header */}
       <div className="bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white py-16">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">

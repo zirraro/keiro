@@ -11,8 +11,8 @@ export function FadeUp({
   children,
   className,
   delay = 0,
-  duration = 0.6,
-  y = 32,
+  duration = 0.25,
+  y = 20,
 }: {
   children: ReactNode;
   className?: string;
@@ -43,7 +43,7 @@ export function FadeIn({
   children,
   className,
   delay = 0,
-  duration = 0.8,
+  duration = 0.25,
 }: {
   children: ReactNode;
   className?: string;
@@ -73,7 +73,7 @@ export function ScaleIn({
   children,
   className,
   delay = 0,
-  duration = 0.5,
+  duration = 0.25,
 }: {
   children: ReactNode;
   className?: string;
@@ -88,7 +88,7 @@ export function ScaleIn({
     <motion.div
       ref={ref}
       className={className}
-      initial={shouldReduce ? { opacity: 1 } : { opacity: 0, scale: 0.85 }}
+      initial={shouldReduce ? { opacity: 1 } : { opacity: 0, scale: 0.92 }}
       animate={isInView ? { opacity: 1, scale: 1 } : {}}
       transition={{ duration, delay, ease: EASE_OUT_EXPO }}
     >
@@ -102,7 +102,7 @@ export function SlideInLeft({
   children,
   className,
   delay = 0,
-  duration = 0.7,
+  duration = 0.3,
 }: {
   children: ReactNode;
   className?: string;
@@ -117,7 +117,7 @@ export function SlideInLeft({
     <motion.div
       ref={ref}
       className={className}
-      initial={shouldReduce ? { opacity: 1 } : { opacity: 0, x: -48 }}
+      initial={shouldReduce ? { opacity: 1 } : { opacity: 0, x: -24 }}
       animate={isInView ? { opacity: 1, x: 0 } : {}}
       transition={{ duration, delay, ease: EASE_OUT_EXPO }}
     >
@@ -130,7 +130,7 @@ export function SlideInRight({
   children,
   className,
   delay = 0,
-  duration = 0.7,
+  duration = 0.3,
 }: {
   children: ReactNode;
   className?: string;
@@ -145,7 +145,7 @@ export function SlideInRight({
     <motion.div
       ref={ref}
       className={className}
-      initial={shouldReduce ? { opacity: 1 } : { opacity: 0, x: 48 }}
+      initial={shouldReduce ? { opacity: 1 } : { opacity: 0, x: 24 }}
       animate={isInView ? { opacity: 1, x: 0 } : {}}
       transition={{ duration, delay, ease: EASE_OUT_EXPO }}
     >
@@ -163,18 +163,18 @@ const staggerContainerVariants = {
 };
 
 const staggerItemVariants = {
-  hidden: { opacity: 0, y: 24 },
+  hidden: { opacity: 0, y: 14 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.5, ease: EASE_OUT_EXPO },
+    transition: { duration: 0.2, ease: EASE_OUT_EXPO },
   },
 };
 
 export function StaggerContainer({
   children,
   className,
-  staggerDelay = 0.1,
+  staggerDelay = 0.04,
 }: {
   children: ReactNode;
   className?: string;
@@ -297,11 +297,11 @@ export function HeroTextReveal({
           <motion.span
             key={i}
             className={`inline-block ${isHighlight && highlightClassName ? highlightClassName : ''}`}
-            initial={shouldReduce ? { opacity: 1 } : { opacity: 0, y: 20 }}
+            initial={shouldReduce ? { opacity: 1 } : { opacity: 0, y: 12 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{
-              duration: 0.4,
-              delay: shouldReduce ? 0 : i * 0.06,
+              duration: 0.2,
+              delay: shouldReduce ? 0 : i * 0.03,
               ease: EASE_OUT_EXPO,
             }}
           >
@@ -371,7 +371,7 @@ export function BlurIn({
   children,
   className,
   delay = 0,
-  duration = 0.8,
+  duration = 0.3,
 }: {
   children: ReactNode;
   className?: string;
