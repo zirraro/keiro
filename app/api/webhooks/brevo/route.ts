@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { calculateTemperature, getSequenceForProspect } from '@/lib/agents/scoring';
 import { getEmailTemplate } from '@/lib/agents/email-templates';
 import { Events } from '@/lib/agents/event-bus';
+import { analyzeSentiment, handleReply as hugoHandleReply, isBlacklisted } from '@/lib/agents/hugo-engine';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
