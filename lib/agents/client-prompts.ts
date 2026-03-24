@@ -534,5 +534,24 @@ REGLES:
 
   };
 
-  return prompts[agentId] || prompts.marketing;
+  const basePrompt = prompts[agentId] || prompts.marketing;
+
+  // Add settings detection capability to ALL agents
+  const settingsBlock = `
+
+CAPACITE PARAMETRAGE:
+Si le client demande de changer un parametre (heure d'envoi, frequence, ton, cible, budget, etc.), tu peux le faire directement.
+Quand tu detectes une demande de changement de parametre, inclus a la FIN de ta reponse un bloc JSON sur une seule ligne:
+[SETTING_UPDATE:{"key":"setting_key","value":"new_value"}]
+
+Exemples:
+- "Change l'heure d'envoi a 10h" → reponds normalement puis ajoute: [SETTING_UPDATE:{"key":"send_hour","value":"10:00"}]
+- "Passe en mode automatique" → [SETTING_UPDATE:{"key":"mode","value":"auto"}]
+- "Augmente a 5 posts par semaine" → [SETTING_UPDATE:{"key":"posts_per_week","value":"5"}]
+- "Change le ton en professionnel" → [SETTING_UPDATE:{"key":"tone","value":"formal"}]
+- "Desactive les relances" → [SETTING_UPDATE:{"key":"auto_relance","value":"false"}]
+
+N'ajoute le bloc [SETTING_UPDATE] que si le client demande EXPLICITEMENT un changement. Pas pour les questions ou discussions normales.`;
+
+  return basePrompt + settingsBlock;
 }

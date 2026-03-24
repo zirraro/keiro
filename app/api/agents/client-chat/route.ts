@@ -193,10 +193,32 @@ export async function POST(request: NextRequest) {
       messages: claudeMessages,
     });
 
-    const reply =
+    let reply =
       response.content[0].type === 'text' ? response.content[0].text : '';
 
     console.log(`[ClientChat] Response received (${response.usage.input_tokens + response.usage.output_tokens} tokens):`, reply.substring(0, 100));
+
+    // 9.5 Detect and apply setting updates from agent response
+    const settingMatch = reply.match(/\[SETTING_UPDATE:\{.*?\}\]/);
+    if (settingMatch) {
+      try {
+        const jsonStr = settingMatch[0].replace('[SETTING_UPDATE:', '').replace(']', '');
+        const setting = JSON.parse(jsonStr);
+        if (setting.key && setting.value !== undefined) {
+          // Save to localStorage via client response (agent_logs for server-side tracking)
+          await supabase.from('agent_logs').insert({
+            agent: agent_id,
+            action: 'setting_updated',
+            status: 'ok',
+            data: { key: setting.key, value: setting.value, updated_by: 'chat', agent_name: agentName },
+            created_at: new Date().toISOString(),
+          });
+          console.log(`[ClientChat] Setting update: ${setting.key} = ${setting.value}`);
+        }
+      } catch { /* silent */ }
+      // Remove the setting block from the visible reply
+      reply = reply.replace(/\[SETTING_UPDATE:\{.*?\}\]/, '').trim();
+    }
 
     // 10. Save both user message and agent reply to client_agent_chats
     const now = new Date().toISOString();
@@ -233,11 +255,21 @@ export async function POST(request: NextRequest) {
       newBalance = result.newBalance;
     }
 
+    // Extract setting update for frontend
+    const settingUpdate = settingMatch ? (() => {
+      try {
+        const jsonStr = settingMatch[0].replace('[SETTING_UPDATE:', '').replace(']', '');
+        return JSON.parse(jsonStr);
+      } catch { return null; }
+    })() : null;
+
     return NextResponse.json({
       ok: true,
       reply,
+      message: reply, // alias for compatibility
       agent_name: agentName,
       newBalance,
+      ...(settingUpdate ? { setting_update: settingUpdate } : {}),
     });
   } catch (error: any) {
     console.error('[ClientChat] Error:', error?.message, error?.stack?.slice(0, 500));
