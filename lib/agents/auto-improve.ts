@@ -13,6 +13,7 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { saveLearning } from './learning';
 import { learnFromAction } from './knowledge-rag';
+import { Events } from './event-bus';
 
 interface AgentResult {
   agent: string;
@@ -149,6 +150,49 @@ Reponds en JSON: {"cause": "...", "solution": "...", "learning": "..."}`,
           details: result.details,
           orgId: result.orgId,
         });
+      }
+    }
+    // ─── 4. On repeated failure: notify client + mark as adjusting ──
+    if (!result.success && result.error) {
+      // Check if this agent has failed 3+ times in last 24h
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { count: recentFailures } = await supabase
+        .from('agent_logs')
+        .select('id', { count: 'exact', head: true })
+        .eq('agent', result.agent)
+        .eq('action', 'execution_failure')
+        .gte('created_at', twentyFourHoursAgo);
+
+      if (recentFailures && recentFailures >= 3) {
+        // Check if we already notified for this agent today
+        const { data: alreadyNotified } = await supabase
+          .from('agent_logs')
+          .select('id')
+          .eq('agent', result.agent)
+          .eq('action', 'client_bug_notification')
+          .gte('created_at', twentyFourHoursAgo)
+          .limit(1)
+          .maybeSingle();
+
+        if (!alreadyNotified) {
+          // Log the notification
+          await supabase.from('agent_logs').insert({
+            agent: result.agent,
+            action: 'client_bug_notification',
+            status: 'ok',
+            data: {
+              message: `L'agent ${result.agent} rencontre un probleme temporaire. Nos equipes sont notifiees et travaillent a le resoudre. Cette fonctionnalite sera retablie automatiquement.`,
+              failures: recentFailures,
+              last_error: result.error?.substring(0, 200),
+            },
+            created_at: new Date().toISOString(),
+          });
+
+          // Emit event for CEO to handle
+          await Events.agentFailed(supabase, result.agent, result.error || 'Unknown', result.orgId).catch(() => {});
+
+          console.log(`[AutoImprove] Client notified: ${result.agent} has ${recentFailures} failures in 24h`);
+        }
       }
     }
   } catch (err: any) {
