@@ -95,6 +95,15 @@ export default function DossierPage() {
   const [logoUrl, setLogoUrl] = useState('');
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [dossierExtra, setDossierExtra] = useState<Record<string, string>>({});
+  const [currentStep, setCurrentStep] = useState(0);
+
+  const STEPS = [
+    { title: 'Votre entreprise', icon: '\uD83C\uDFE2', description: 'Nom, type et description de votre activite' },
+    { title: 'Cible & positionnement', icon: '\uD83C\uDFAF', description: 'Public cible, ton et avantages concurrentiels' },
+    { title: 'Presence en ligne', icon: '\uD83C\uDF10', description: 'Reseaux sociaux et site web' },
+    { title: 'Direction artistique', icon: '\uD83C\uDFA8', description: 'Couleurs, polices et style visuel' },
+    { title: 'Logo & Documents', icon: '\uD83D\uDCC1', description: 'Votre logo et documents utiles (charte, menu, catalogue...)' },
+  ];
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -336,47 +345,54 @@ export default function DossierPage() {
       <div className="max-w-2xl mx-auto px-4 py-6">
 
         {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
+        <div className="flex items-center gap-3 mb-4">
           <button
-            onClick={() => router.push('/assistant')}
+            onClick={() => currentStep > 0 ? setCurrentStep(currentStep - 1) : router.push('/assistant')}
             className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors flex-shrink-0"
           >
             <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <div>
+          <div className="flex-1">
             <h1 className="text-white font-bold text-xl">Dossier Business</h1>
-            <p className="text-white/50 text-xs">Plus votre dossier est complet, meilleurs sont les conseils IA</p>
+            <p className="text-white/50 text-xs">
+              {saving ? 'Sauvegarde...' : saved ? '\u2705 Sauvegarde !' : `Etape ${currentStep + 1}/${STEPS.length} — ${STEPS[currentStep].title}`}
+            </p>
+          </div>
+          <span className="text-white font-bold text-sm">{completeness}%</span>
+        </div>
+
+        {/* Step indicators */}
+        <div className="flex items-center gap-1 mb-6">
+          {STEPS.map((step, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrentStep(i)}
+              className="flex-1 group"
+              title={step.title}
+            >
+              <div className={`h-1.5 rounded-full transition-all ${
+                i < currentStep ? 'bg-green-500' : i === currentStep ? 'bg-purple-500' : 'bg-white/10'
+              }`} />
+              <div className={`text-center mt-1 hidden sm:block ${i === currentStep ? 'text-white/70' : 'text-white/20'}`}>
+                <span className="text-[9px]">{step.icon}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* Step title card */}
+        <div className="bg-gradient-to-r from-purple-600/10 to-blue-600/10 border border-purple-500/20 rounded-xl px-4 py-3 mb-6 flex items-center gap-3">
+          <span className="text-2xl">{STEPS[currentStep].icon}</span>
+          <div>
+            <div className="text-white font-bold text-sm">{STEPS[currentStep].title}</div>
+            <div className="text-white/40 text-xs">{STEPS[currentStep].description}</div>
           </div>
         </div>
 
-        {/* Progress bar */}
-        <div className="bg-white/5 rounded-2xl p-4 mb-6 border border-white/10">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-white/70 text-sm font-medium">Completude du dossier</span>
-            <div className="flex items-center gap-2">
-              {saving && <span className="text-white/40 text-xs">Sauvegarde...</span>}
-              {saved && <span className="text-green-400 text-xs">Sauvegarde !</span>}
-              <span className="text-white font-bold text-sm">{completeness}%</span>
-            </div>
-          </div>
-          <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-500"
-              style={{
-                width: `${completeness}%`,
-                background: completeness < 50
-                  ? 'linear-gradient(90deg, #ef4444, #f59e0b)'
-                  : completeness < 80
-                    ? 'linear-gradient(90deg, #f59e0b, #22c55e)'
-                    : 'linear-gradient(90deg, #22c55e, #10b981)',
-              }}
-            />
-          </div>
-        </div>
-
-        {/* ─── Section: Informations generales ─── */}
+        {/* ═══ STEP 0: Informations generales ═══ */}
+        {currentStep === 0 && (<>
         <SectionTitle title="Informations generales" icon="building" />
 
         <FormField label="Nom de l'entreprise" required>
@@ -422,7 +438,10 @@ export default function DossierPage() {
           />
         </FormField>
 
-        {/* ─── Section: Cible & Positionnement ─── */}
+        </>)}
+
+        {/* ═══ STEP 1: Cible & Positionnement ═══ */}
+        {currentStep === 1 && (<>
         <SectionTitle title="Cible & Positionnement" icon="target" />
 
         <FormField label="Public cible" required>
@@ -483,7 +502,10 @@ export default function DossierPage() {
           />
         </FormField>
 
-        {/* ─── Section: Presence en ligne ─── */}
+        </>)}
+
+        {/* ═══ STEP 2: Presence en ligne ═══ */}
+        {currentStep === 2 && (<>
         <SectionTitle title="Presence en ligne" icon="globe" />
 
         <FormField label="Compte Instagram">
@@ -542,7 +564,10 @@ export default function DossierPage() {
           />
         </FormField>
 
-        {/* ─── Section: Direction Artistique ─── */}
+        </>)}
+
+        {/* ═══ STEP 3: Direction Artistique ═══ */}
+        {currentStep === 3 && (<>
         <SectionTitle title="Direction Artistique (DA)" icon="palette" />
 
         <div className="bg-gradient-to-r from-purple-600/10 to-blue-600/10 border border-purple-500/20 rounded-xl p-4 mb-4">
@@ -588,7 +613,10 @@ export default function DossierPage() {
           </div>
         </FormField>
 
-        {/* ─── Section: Logo & Documents ─── */}
+        </>)}
+
+        {/* ═══ STEP 4: Logo & Documents ═══ */}
+        {currentStep === 4 && (<>
         <SectionTitle title="Logo & Documents" icon="upload" />
 
         {/* Recommended documents */}
@@ -708,15 +736,34 @@ export default function DossierPage() {
           )}
         </FormField>
 
-        {/* Save button */}
-        <div className="mt-8">
-          <button
-            onClick={saveDossier}
-            disabled={saving}
-            className="w-full py-3.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-purple-500/20 disabled:opacity-60 transition-all text-sm"
-          >
-            {saving ? 'Sauvegarde en cours...' : saved ? 'Sauvegarde !' : 'Sauvegarder le dossier'}
-          </button>
+        </>)}
+
+        {/* Navigation buttons */}
+        <div className="mt-8 flex gap-3">
+          {currentStep > 0 && (
+            <button
+              onClick={() => setCurrentStep(currentStep - 1)}
+              className="flex-1 py-3.5 bg-white/10 text-white/70 font-semibold rounded-xl hover:bg-white/20 transition-all text-sm"
+            >
+              {'\u2190'} Precedent
+            </button>
+          )}
+          {currentStep < STEPS.length - 1 ? (
+            <button
+              onClick={() => { saveDossier(); setCurrentStep(currentStep + 1); }}
+              className="flex-1 py-3.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-purple-500/20 transition-all text-sm"
+            >
+              Suivant {'\u2192'}
+            </button>
+          ) : (
+            <button
+              onClick={() => { saveDossier(); router.push('/assistant'); }}
+              disabled={saving}
+              className="flex-1 py-3.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-green-500/20 disabled:opacity-60 transition-all text-sm"
+            >
+              {saving ? 'Sauvegarde...' : '\u2705 Terminer et lancer mes agents'}
+            </button>
+          )}
         </div>
       </div>
 
