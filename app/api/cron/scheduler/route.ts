@@ -268,32 +268,36 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'ceo':
-      // 05:00 UTC — CEO: process events → brief → execute orders → Community
+      // 05:00 UTC — CEO: events + reports + brief + orders (SPLIT to avoid 300s timeout)
+      // Phase 1: Event pipeline + reports (background, non-blocking)
       fireBackground(async () => {
-        // 1. CEO processes all pending events and dispatches actions
         try {
           const eventResult = await processEventPipeline(aiSupabase);
           console.log(`[Scheduler/ceo] Event pipeline: ${eventResult.actions} actions dispatched`);
         } catch (e: any) { console.error('[Scheduler/ceo] Event pipeline error:', e.message?.substring(0, 200)); }
-        await delay(5000);
-        // 2. Daily improvement report (echecs, failles, recommandations code)
+        await delay(3000);
         await callEndpoint('CEO Improvement Report', '/api/agents/ceo-reports?type=improvement', 'POST');
-        await delay(10000);
-        // 3. Status report (etat des taches matin)
+        await delay(5000);
         await callEndpoint('CEO Status Report AM', '/api/agents/ceo-reports?type=status', 'POST');
-        await delay(10000);
-        // 4. CEO brief
+      });
+      // Phase 2: CEO brief + orders (separate background to avoid timeout)
+      fireBackground(async () => {
+        await delay(60000); // Wait 60s for reports to finish
         await callEndpoint('CEO Brief', '/api/agents/ceo');
-        await delay(15000);
-        // 5. Execute orders (including newly dispatched ones)
+        await delay(10000);
         await callEndpoint('Execute Orders', '/api/agents/orders');
-        await delay(15000);
-        // Community: early prep — staggered
+      });
+      results.push({ task: 'CEO Brief + Reports + Orders', ok: true, data: { status: 'dispatched_background' } });
+      break;
+
+    case 'ceo_community':
+      // 05:15 UTC — Community early prep (split from CEO to avoid timeout)
+      fireBackground(async () => {
         await callEndpoint('Community Comments (early)', '/api/agents/marketing', 'POST', { action: 'prepare_comments', count: 10 });
         await delay(15000);
         await callEndpoint('Community Follow Targets IG (early)', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'instagram', count: 10 });
       });
-      results.push({ task: 'CEO Brief + Reports + Orders + Community', ok: true, data: { status: 'dispatched_background' } });
+      results.push({ task: 'CEO Community', ok: true, data: { status: 'dispatched_background' } });
       break;
 
     case 'trends':
@@ -457,6 +461,21 @@ export async function GET(request: NextRequest) {
     case 'ops':
       // 22:00 UTC — Ops Health Check (end-of-day system diagnostic)
       await callEndpoint('Ops Health Check', '/api/agents/ops', 'POST', { action: 'health_check' });
+      break;
+
+    case 'gmaps':
+      // 10:30 UTC — Google Maps: scan reviews + respond
+      await callEndpoint('Google Maps Scan', '/api/agents/gmaps');
+      break;
+
+    case 'comptable':
+      // 08:15 UTC — Comptable: daily finance check
+      await callEndpoint('Comptable Daily', '/api/agents/comptable');
+      break;
+
+    case 'whatsapp_followup':
+      // 10:15 UTC — WhatsApp: follow-up prospects chauds
+      await callEndpoint('WhatsApp Followup', '/api/agents/whatsapp', 'POST', { action: 'send_followup' });
       break;
 
     default:

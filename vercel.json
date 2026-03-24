@@ -13,6 +13,10 @@
       "schedule": "0 5 * * *"
     },
     {
+      "path": "/api/cron/scheduler?slot=ceo_community",
+      "schedule": "15 5 * * *"
+    },
+    {
       "path": "/api/cron/scheduler?slot=trends",
       "schedule": "30 5 * * *"
     },
@@ -33,6 +37,10 @@
       "schedule": "45 7 * * *"
     },
     {
+      "path": "/api/cron/scheduler?slot=comptable",
+      "schedule": "15 8 * * *"
+    },
+    {
       "path": "/api/cron/scheduler?slot=morning",
       "schedule": "0 8 * * *"
     },
@@ -51,6 +59,14 @@
     {
       "path": "/api/cron/scheduler?slot=content_linkedin_1",
       "schedule": "45 9 * * *"
+    },
+    {
+      "path": "/api/cron/scheduler?slot=whatsapp_followup",
+      "schedule": "15 10 * * *"
+    },
+    {
+      "path": "/api/cron/scheduler?slot=gmaps",
+      "schedule": "30 10 * * *"
     },
     {
       "path": "/api/cron/scheduler?slot=midday",

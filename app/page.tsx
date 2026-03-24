@@ -132,7 +132,7 @@ function HomeKeiroInner() {
                 <div className="flex items-center justify-center gap-4 py-2 border-t border-white/5">
                   <div className="text-center"><div className="text-white font-bold text-xs">17</div><div className="text-white/25 text-[7px]">Agents</div></div>
                   <div className="text-center"><div className="text-white font-bold text-xs">24/7</div><div className="text-white/25 text-[7px]">Actifs</div></div>
-                  <div className="text-center"><div className="text-white font-bold text-xs">2600+</div><div className="text-white/25 text-[7px]">Learnings</div></div>
+                  <div className="text-center"><div className="text-white font-bold text-xs">{'\u{1F52E}'}</div><div className="text-white/25 text-[7px]">Super entraines</div></div>
                 </div>
               </div>
 
@@ -563,8 +563,8 @@ function HomeKeiroInner() {
                   <div className="text-white/40 text-[10px] uppercase tracking-wider">{locale === 'fr' ? 'Actifs' : 'Active'}</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-white font-bold text-3xl">2500+</div>
-                  <div className="text-white/40 text-[10px] uppercase tracking-wider">{locale === 'fr' ? 'Apprentissages' : 'Learnings'}</div>
+                  <div className="text-white font-bold text-3xl">{'\u{1F52E}'}</div>
+                  <div className="text-white/40 text-[10px] uppercase tracking-wider">{locale === 'fr' ? 'Super entraines' : 'Super trained'}</div>
                 </div>
                 <div className="text-center">
                   <div className="text-white font-bold text-3xl">10h</div>
