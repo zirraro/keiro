@@ -645,128 +645,134 @@ export default function AssistantPage() {
           ))}
         </div>
 
-        {/* ═══ TAB: SUIVI CENTRAL ═══ */}
+        {/* ═══ TAB: SUIVI CENTRAL — Supra-elite visual ═══ */}
         {viewTab === 'suivi' && (
           <div className="space-y-5">
-            {/* Activity Feed — all agents combined */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-              {/* Left: Recent activity feed */}
-              <div className="lg:col-span-2 space-y-4">
-                <h3 className="text-white font-bold text-sm flex items-center gap-2">
-                  {'\u26A1'} Activite de votre equipe IA
-                  <span className="text-white/30 text-[10px] font-normal">Temps reel</span>
-                </h3>
-
-                {summary?.activityFeed?.length > 0 ? (
-                  <div className="space-y-2">
-                    {(summary.activityFeed as Array<{ agent: string; action: string; date: string }>).slice(0, 15).map((a, i) => {
-                      const agentInfo = agents.find(ag => ag.id === a.agent);
-                      const isRecent = (Date.now() - new Date(a.date).getTime()) < 6 * 60 * 60 * 1000;
-                      return (
-                        <div key={i} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isRecent ? 'bg-purple-600/10 border border-purple-500/20' : 'bg-white/[0.03] border border-white/5'}`}>
-                          <div
-                            className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-sm"
-                            style={{ background: agentInfo ? `linear-gradient(135deg, ${agentInfo.gradientFrom}, ${agentInfo.gradientTo})` : '#4B5563' }}
-                          >
-                            {avatars[a.agent] ? (
-                              <img src={avatars[a.agent]!} alt="" className="w-full h-full rounded-full object-cover" />
-                            ) : (
-                              agentInfo?.icon || '\uD83E\uDD16'
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="text-white text-xs font-semibold">{agentInfo?.displayName || a.agent}</span>
-                              {isRecent && <span className="px-1.5 py-0.5 bg-green-500/20 text-green-400 text-[8px] rounded-full font-medium">Recent</span>}
-                            </div>
-                            <p className="text-white/40 text-[11px] truncate">{a.action}</p>
-                          </div>
-                          <span className="text-white/20 text-[10px] flex-shrink-0">
-                            {new Date(a.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : summaryLoading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400" />
-                  </div>
-                ) : (
-                  <div className="text-center py-12 bg-white/[0.02] rounded-2xl border border-white/10">
-                    <p className="text-white/30 text-sm">Aucune activite recente</p>
-                    <p className="text-white/15 text-xs mt-1">Vos agents commenceront a agir des leur prochain cycle</p>
-                  </div>
-                )}
+            {summaryLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-400" />
               </div>
-
-              {/* Right: Quick stats + agent status */}
-              <div className="space-y-4">
-                {/* Agent status grid */}
-                <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
-                  <h3 className="text-white/50 text-[10px] font-semibold uppercase tracking-wider mb-3">Status agents</h3>
-                  <div className="grid grid-cols-2 gap-2">
-                    {agents.filter(a => a.visibility !== 'background').slice(0, 8).map(agent => (
+            ) : (
+              <>
+                {/* Agent cards — visual grid with KPIs per agent */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {agents.filter(a => a.visibility !== 'background').map(agent => {
+                    const agentStats = summary?.agents?.[agent.id];
+                    const metrics = agentStats?.metrics as Array<{ label: string; value: string | number; icon: string }> | undefined;
+                    return (
                       <button
                         key={agent.id}
                         onClick={() => handleSelectAgent(agent)}
-                        className="flex items-center gap-2 bg-white/5 hover:bg-white/10 rounded-lg px-2.5 py-2 transition-all text-left"
+                        className="rounded-2xl bg-white/[0.03] border border-white/10 hover:border-white/25 hover:bg-white/[0.06] transition-all text-left overflow-hidden group"
                       >
-                        <div className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-[10px]"
-                          style={{ background: `linear-gradient(135deg, ${agent.gradientFrom}, ${agent.gradientTo})` }}>
-                          {avatars[agent.id] ? (
-                            <img src={avatars[agent.id]!} alt="" className="w-full h-full rounded-full object-cover" />
-                          ) : agent.icon}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="text-white text-[10px] font-semibold truncate">{agent.displayName}</div>
-                          <div className="text-white/25 text-[8px] truncate">{agent.title}</div>
+                        {/* Gradient top bar */}
+                        <div className="h-1" style={{ background: `linear-gradient(90deg, ${agent.gradientFrom}, ${agent.gradientTo})` }} />
+
+                        <div className="p-3">
+                          {/* Avatar + name */}
+                          <div className="flex items-center gap-2.5 mb-2.5">
+                            <div className="w-10 h-10 rounded-full flex-shrink-0 overflow-hidden" style={{ background: `linear-gradient(135deg, ${agent.gradientFrom}, ${agent.gradientTo})`, padding: '2px' }}>
+                              <div className="w-full h-full rounded-full overflow-hidden bg-gray-900 flex items-center justify-center">
+                                {avatars[agent.id] ? (
+                                  <img src={avatars[agent.id]!} alt={agent.displayName} className="w-full h-full object-cover scale-[1.15]" style={{ objectPosition: 'center 15%' }} />
+                                ) : (
+                                  <span className="text-base">{agent.icon}</span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="text-white font-bold text-xs truncate">{agent.displayName}</div>
+                              <div className="text-white/30 text-[9px] truncate">{agent.title}</div>
+                            </div>
+                            <div className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0 opacity-60 group-hover:opacity-100 transition-opacity" />
+                          </div>
+
+                          {/* Mini KPIs */}
+                          {metrics && metrics.length > 0 ? (
+                            <div className="flex flex-wrap gap-x-3 gap-y-1">
+                              {metrics.slice(0, 3).map((m, i) => (
+                                <div key={i} className="flex items-center gap-1">
+                                  <span className="text-[9px]">{m.icon}</span>
+                                  <span className="text-white/70 text-[10px] font-bold">{m.value}</span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-white/15 text-[9px]">Cliquer pour voir le detail</div>
+                          )}
                         </div>
                       </button>
-                    ))}
-                  </div>
-                  {agents.filter(a => a.visibility !== 'background').length > 8 && (
-                    <button
-                      onClick={() => setViewTab('agent')}
-                      className="w-full mt-2 text-center text-purple-400 text-[10px] font-medium hover:text-purple-300 transition-colors"
-                    >
-                      Voir les {agents.filter(a => a.visibility !== 'background').length} agents {'\u2192'}
-                    </button>
-                  )}
+                    );
+                  })}
                 </div>
 
-                {/* Quick CRM stats */}
-                {summary?.crm && (
+                {/* Bottom section: CRM snapshot + Activity feed */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                  {/* CRM snapshot */}
+                  {summary?.crm && (
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-white font-bold text-sm">{'\uD83D\uDCCA'} Pipeline</h3>
+                        <button onClick={() => setViewTab('pipeline')} className="text-purple-400 text-[10px] font-medium hover:text-purple-300">Voir tout {'\u2192'}</button>
+                      </div>
+                      <div className="grid grid-cols-4 gap-2 mb-3">
+                        <div className="bg-white/5 rounded-lg px-2 py-2 text-center">
+                          <div className="text-white font-bold text-base">{summary.crm.total}</div>
+                          <div className="text-white/25 text-[8px]">Prospects</div>
+                        </div>
+                        <div className="bg-red-500/10 rounded-lg px-2 py-2 text-center">
+                          <div className="text-red-400 font-bold text-base">{summary.crm.temperature?.hot ?? 0}</div>
+                          <div className="text-white/25 text-[8px]">Chauds</div>
+                        </div>
+                        <div className="bg-amber-500/10 rounded-lg px-2 py-2 text-center">
+                          <div className="text-amber-400 font-bold text-base">{summary.crm.temperature?.warm ?? 0}</div>
+                          <div className="text-white/25 text-[8px]">Tiedes</div>
+                        </div>
+                        <div className="bg-green-500/10 rounded-lg px-2 py-2 text-center">
+                          <div className="text-green-400 font-bold text-base">{summary.crm.clients}</div>
+                          <div className="text-white/25 text-[8px]">Clients</div>
+                        </div>
+                      </div>
+                      {/* Pipeline bar */}
+                      <div className="flex h-3 rounded-full overflow-hidden bg-white/5">
+                        <div className="bg-red-500 transition-all" style={{ width: `${(summary.crm.temperature?.hot || 0) / Math.max(summary.crm.total, 1) * 100}%` }} />
+                        <div className="bg-amber-500 transition-all" style={{ width: `${(summary.crm.temperature?.warm || 0) / Math.max(summary.crm.total, 1) * 100}%` }} />
+                        <div className="bg-blue-400 transition-all" style={{ width: `${(summary.crm.temperature?.cold || 0) / Math.max(summary.crm.total, 1) * 100}%` }} />
+                        <div className="bg-green-500 transition-all" style={{ width: `${(summary.crm.clients || 0) / Math.max(summary.crm.total, 1) * 100}%` }} />
+                      </div>
+                      <div className="text-right mt-1"><span className="text-green-400 text-[10px] font-bold">{summary.crm.conversionRate}% conversion</span></div>
+                    </div>
+                  )}
+
+                  {/* Activity feed — compact */}
                   <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
-                    <h3 className="text-white/50 text-[10px] font-semibold uppercase tracking-wider mb-3">Pipeline CRM</h3>
-                    <div className="grid grid-cols-2 gap-2 mb-3">
-                      <div className="bg-white/5 rounded-lg px-3 py-2 text-center">
-                        <div className="text-white font-bold text-lg">{summary.crm.total}</div>
-                        <div className="text-white/30 text-[9px]">Prospects</div>
+                    <h3 className="text-white font-bold text-sm mb-3">{'\u26A1'} Activite recente</h3>
+                    {summary?.activityFeed?.length > 0 ? (
+                      <div className="space-y-1.5 max-h-[280px] overflow-y-auto pr-1">
+                        {(summary.activityFeed as Array<{ agent: string; action: string; date: string }>).slice(0, 12).map((a, i) => {
+                          const agentInfo = agents.find(ag => ag.id === a.agent);
+                          return (
+                            <div key={i} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/[0.03] transition-colors">
+                              <div className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-[9px] overflow-hidden"
+                                style={{ background: agentInfo ? `linear-gradient(135deg, ${agentInfo.gradientFrom}, ${agentInfo.gradientTo})` : '#4B5563' }}>
+                                {avatars[a.agent] ? <img src={avatars[a.agent]!} alt="" className="w-full h-full object-cover" /> : (agentInfo?.icon || '\uD83E\uDD16')}
+                              </div>
+                              <span className="text-white text-[10px] font-medium min-w-[50px]">{agentInfo?.displayName || a.agent}</span>
+                              <span className="text-white/30 text-[10px] flex-1 truncate">{a.action}</span>
+                              <span className="text-white/15 text-[9px] flex-shrink-0">
+                                {new Date(a.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                          );
+                        })}
                       </div>
-                      <div className="bg-white/5 rounded-lg px-3 py-2 text-center">
-                        <div className="text-green-400 font-bold text-lg">{summary.crm.clients}</div>
-                        <div className="text-white/30 text-[9px]">Clients</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden flex">
-                        <div className="bg-red-500 h-full" style={{ width: `${summary.crm.temperature?.hot ? (summary.crm.temperature.hot / Math.max(summary.crm.total, 1)) * 100 : 0}%` }} />
-                        <div className="bg-amber-500 h-full" style={{ width: `${summary.crm.temperature?.warm ? (summary.crm.temperature.warm / Math.max(summary.crm.total, 1)) * 100 : 0}%` }} />
-                        <div className="bg-blue-400 h-full" style={{ width: `${summary.crm.temperature?.cold ? (summary.crm.temperature.cold / Math.max(summary.crm.total, 1)) * 100 : 0}%` }} />
-                      </div>
-                      <span className="text-green-400 text-[10px] font-bold">{summary.crm.conversionRate}%</span>
-                    </div>
-                    <button
-                      onClick={() => setViewTab('pipeline')}
-                      className="w-full text-center text-purple-400 text-[10px] font-medium hover:text-purple-300 transition-colors"
-                    >
-                      Ouvrir le pipeline complet {'\u2192'}
-                    </button>
+                    ) : (
+                      <p className="text-white/20 text-xs text-center py-6">Aucune activite recente</p>
+                    )}
                   </div>
-                )}
-              </div>
-            </div>
+                </div>
+              </>
+            )}
           </div>
         )}
 
