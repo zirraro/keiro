@@ -627,48 +627,7 @@ export default function AssistantPage() {
           </div>
         )}
 
-        {/* ═══ AMI Performance Widget ═══ */}
-        {amiStats && !COMING_SOON_MODE && !isVisitor && (
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 mb-6">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-white font-bold text-sm flex items-center gap-2">
-                <span>{'\uD83C\uDFAF'}</span> Performance AMI
-              </h3>
-              <button
-                onClick={() => {
-                  const ami = agents.find(a => a.id === 'marketing');
-                  if (ami) handleOpenChat(ami);
-                }}
-                className="text-purple-400 text-[10px] font-medium hover:text-purple-300 transition-colors"
-              >
-                Discuter avec AMI {'\u2192'}
-              </button>
-            </div>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <div className="bg-white/[0.04] rounded-lg px-3 py-2">
-                <div className="text-white/40 text-[10px]">Posts cette semaine</div>
-                <div className="text-white font-bold text-lg">{amiStats.postsThisWeek}</div>
-              </div>
-              <div className="bg-white/[0.04] rounded-lg px-3 py-2">
-                <div className="text-white/40 text-[10px]">Engagement moy.</div>
-                <div className="text-white font-bold text-lg">{amiStats.avgEngagement}%</div>
-              </div>
-              <div className="bg-white/[0.04] rounded-lg px-3 py-2">
-                <div className="text-white/40 text-[10px]">Vues moy.</div>
-                <div className="text-white font-bold text-lg">{amiStats.avgViews}</div>
-              </div>
-              <div className="bg-white/[0.04] rounded-lg px-3 py-2">
-                <div className="text-white/40 text-[10px]">Categorie top</div>
-                <div className="text-white font-bold text-sm mt-0.5">{amiStats.topCategory}</div>
-              </div>
-            </div>
-            {amiStats.improvement > 0 && (
-              <div className="mt-2 text-green-400/80 text-[11px] font-medium">
-                {'\u2191'} +{amiStats.improvement}% d&apos;amelioration depuis le debut
-              </div>
-            )}
-          </div>
-        )}
+        {/* AMI Performance: moved to agent workspace /assistant/agent/marketing */}
 
         {/* Coming soon banner */}
         {COMING_SOON_MODE && <ComingSoonBanner />}

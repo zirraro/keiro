@@ -209,6 +209,73 @@ function ActionButton({
   );
 }
 
+// ─── Visual chart components ─────────────────────────────
+
+function DonutChart({ segments, size = 100, label }: {
+  segments: Array<{ value: number; color: string; label: string }>;
+  size?: number;
+  label?: string;
+}) {
+  const total = segments.reduce((s, seg) => s + seg.value, 0);
+  if (total === 0) return <div className="text-white/20 text-xs text-center py-4">Pas de donnees</div>;
+
+  let offset = 0;
+  const r = 36;
+  const circumference = 2 * Math.PI * r;
+
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <svg width={size} height={size} viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r={r} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="12" />
+        {segments.map((seg, i) => {
+          const pct = seg.value / total;
+          const dashLength = circumference * pct;
+          const dashOffset = circumference * offset;
+          offset += pct;
+          return (
+            <circle
+              key={i}
+              cx="50" cy="50" r={r}
+              fill="none"
+              stroke={seg.color}
+              strokeWidth="12"
+              strokeDasharray={`${dashLength} ${circumference - dashLength}`}
+              strokeDashoffset={-dashOffset}
+              strokeLinecap="round"
+              transform="rotate(-90 50 50)"
+              className="transition-all duration-500"
+            />
+          );
+        })}
+        {label && <text x="50" y="50" textAnchor="middle" dy="0.35em" className="fill-white text-[10px] font-bold">{label}</text>}
+      </svg>
+      <div className="flex flex-wrap justify-center gap-2">
+        {segments.filter(s => s.value > 0).map((seg, i) => (
+          <div key={i} className="flex items-center gap-1">
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: seg.color }} />
+            <span className="text-[9px] text-white/50">{seg.label} ({seg.value})</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ProgressBar({ value, max, color, label }: { value: number; max: number; color: string; label: string }) {
+  const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between text-[10px]">
+        <span className="text-white/50">{label}</span>
+        <span className="text-white/70 font-bold">{value}/{max}</span>
+      </div>
+      <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: color }} />
+      </div>
+    </div>
+  );
+}
+
 function ActivityFeed({
   items,
   agentName,
@@ -347,6 +414,29 @@ function MarketingPanel({
             </div>
           </>
         )}
+
+        {/* Visual charts */}
+        <SectionTitle>Vue d&apos;ensemble</SectionTitle>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="rounded-xl border border-white/10 p-4 bg-white/[0.02]">
+            <h4 className="text-white/50 text-[10px] uppercase tracking-wider mb-3 text-center">Repartition activite</h4>
+            <DonutChart
+              segments={[
+                { value: gs.commercial.leadsWeek, color: '#3b82f6', label: 'Leads' },
+                { value: gs.commercial.conversions, color: '#22c55e', label: 'Conversions' },
+                { value: gs.visibility.traffic, color: '#a855f7', label: 'Trafic' },
+                { value: gs.visibility.followers, color: '#f59e0b', label: 'Followers' },
+              ]}
+              label={`${gs.commercial.leadsWeek + gs.commercial.conversions + gs.visibility.traffic + gs.visibility.followers}`}
+            />
+          </div>
+          <div className="rounded-xl border border-white/10 p-4 bg-white/[0.02] space-y-3">
+            <h4 className="text-white/50 text-[10px] uppercase tracking-wider mb-1">Objectifs</h4>
+            <ProgressBar value={gs.commercial.conversions} max={Math.max(gs.commercial.leadsWeek, 1)} color="#22c55e" label="Taux conversion" />
+            <ProgressBar value={Math.round(gs.visibility.googleRating * 20)} max={100} color="#f59e0b" label={`Note Google (${gs.visibility.googleRating}/5)`} />
+            <ProgressBar value={Math.min(Math.round(gs.finance.roas * 33), 100)} max={100} color="#a855f7" label={`ROAS (${gs.finance.roas}x)`} />
+          </div>
+        </div>
 
         {/* Feed equipe temps reel */}
         <SectionTitle>Feed equipe temps reel</SectionTitle>
