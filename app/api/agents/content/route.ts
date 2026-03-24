@@ -2289,7 +2289,7 @@ async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftO
           const postVisualUrl = await generateVisual(postVisualDesc, post.format || 'post');
           if (postVisualUrl) {
             await supabase.from('content_calendar')
-              .update({ visual_url: postVisualUrl, status: 'published', published_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+              .update({ visual_url: postVisualUrl, status: 'approved', updated_at: new Date().toISOString() })
               .eq('scheduled_date', scheduledDate)
               .eq('platform', postPlatform)
               .eq('status', 'approved')
