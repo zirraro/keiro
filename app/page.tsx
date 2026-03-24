@@ -113,7 +113,7 @@ function HomeKeiroInner() {
                     { id: 'gmaps', name: 'Theo', color: 'from-green-500 to-teal-500', role: 'Maps', icon: '\uD83D\uDCCD' },
                   ];
                   return (
-                    <div className="grid grid-cols-4 gap-3 mb-3">
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 sm:gap-3 mb-3">
                       {agents.map(a => (
                         <div key={a.name} className="text-center group cursor-default">
                           <div className={`w-14 h-14 mx-auto rounded-full bg-gradient-to-br ${a.color} p-[2px] shadow-lg group-hover:scale-110 transition-transform`}>
@@ -452,7 +452,7 @@ function HomeKeiroInner() {
                 </div>
               </div>
               <div className="p-4">
-                <div className="grid grid-cols-3 gap-2 mb-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
                   {[
                     { icon: '\uD83E\uDD1D', name: 'Leo', role: locale === 'fr' ? 'Prospection CRM' : 'CRM Prospecting' },
                     { icon: '\uD83D\uDCE7', name: 'Hugo', role: locale === 'fr' ? 'Emails auto' : 'Auto emails' },
@@ -488,7 +488,7 @@ function HomeKeiroInner() {
                 </div>
               </div>
               <div className="p-4">
-                <div className="grid grid-cols-3 gap-2 mb-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
                   {[
                     { icon: '\u2728', name: 'Lena', role: locale === 'fr' ? 'Publication auto' : 'Auto-publish' },
                     { icon: '\uD83D\uDD0D', name: 'Oscar', role: locale === 'fr' ? 'SEO & articles' : 'SEO & articles' },
@@ -524,7 +524,7 @@ function HomeKeiroInner() {
                 </div>
               </div>
               <div className="p-4">
-                <div className="grid grid-cols-3 gap-2 mb-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
                   {[
                     { icon: '\uD83D\uDCB0', name: 'Louis', role: locale === 'fr' ? 'Finance & compta' : 'Finance' },
                     { icon: '\u2696\uFE0F', name: 'Sara', role: locale === 'fr' ? 'RH & juridique' : 'HR & legal' },

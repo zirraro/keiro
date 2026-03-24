@@ -520,7 +520,7 @@ export default function WorkspaceCrm({ isAdmin }: WorkspaceCrmProps) {
                 {isExpanded && (
                   <div className="border-t border-white/5 px-3 py-3 space-y-3">
                     {/* Contact info */}
-                    <div className="grid grid-cols-2 gap-2 text-[10px]">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px]">
                       {p.email && (
                         <div>
                           <span className="text-white/30">Email: </span>
@@ -557,7 +557,7 @@ export default function WorkspaceCrm({ isAdmin }: WorkspaceCrmProps) {
                     {/* Edit form */}
                     {isEditing ? (
                       <div className="space-y-2 bg-white/[0.03] rounded-lg p-3">
-                        <div className="grid grid-cols-3 gap-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                           <div>
                             <label className="text-white/30 text-[9px] uppercase tracking-wider">Statut</label>
                             <select

@@ -164,7 +164,7 @@ export default function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className={`relative flex flex-col items-center justify-center w-[60px] h-[56px] px-1 rounded-lg transition-all ${
+              className={`relative flex flex-col items-center justify-center flex-1 min-w-0 h-[56px] px-1 rounded-lg transition-all ${
                 isActive
                   ? (isLight ? 'text-neutral-900' : 'text-white')
                   : isHighlight

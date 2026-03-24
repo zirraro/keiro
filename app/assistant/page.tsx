@@ -715,22 +715,22 @@ export default function AssistantPage() {
                         <h3 className="text-white font-bold text-sm">{'\uD83D\uDCCA'} Pipeline</h3>
                         <button onClick={() => setViewTab('pipeline')} className="text-purple-400 text-[10px] font-medium hover:text-purple-300">Voir tout {'\u2192'}</button>
                       </div>
-                      <div className="grid grid-cols-4 gap-2 mb-3">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
                         <div className="bg-white/5 rounded-lg px-2 py-2 text-center">
                           <div className="text-white font-bold text-base">{summary.crm.total}</div>
-                          <div className="text-white/25 text-[8px]">Prospects</div>
+                          <div className="text-white/25 text-[9px] sm:text-[8px]">Prospects</div>
                         </div>
                         <div className="bg-red-500/10 rounded-lg px-2 py-2 text-center">
                           <div className="text-red-400 font-bold text-base">{summary.crm.temperature?.hot ?? 0}</div>
-                          <div className="text-white/25 text-[8px]">Chauds</div>
+                          <div className="text-white/25 text-[9px] sm:text-[8px]">Chauds</div>
                         </div>
                         <div className="bg-amber-500/10 rounded-lg px-2 py-2 text-center">
                           <div className="text-amber-400 font-bold text-base">{summary.crm.temperature?.warm ?? 0}</div>
-                          <div className="text-white/25 text-[8px]">Tiedes</div>
+                          <div className="text-white/25 text-[9px] sm:text-[8px]">Tiedes</div>
                         </div>
                         <div className="bg-green-500/10 rounded-lg px-2 py-2 text-center">
                           <div className="text-green-400 font-bold text-base">{summary.crm.clients}</div>
-                          <div className="text-white/25 text-[8px]">Clients</div>
+                          <div className="text-white/25 text-[9px] sm:text-[8px]">Clients</div>
                         </div>
                       </div>
                       {/* Pipeline bar */}
@@ -1003,7 +1003,7 @@ export default function AssistantPage() {
         const minimizedChats = Object.entries(chats).filter(([, c]) => c.minimized);
         const chatCount = Object.keys(chats).length;
         return (
-          <div className="fixed bottom-6 right-6 z-40 flex flex-col-reverse items-end gap-2 lg:bottom-8 lg:right-8">
+          <div className="fixed bottom-20 right-4 z-40 flex flex-col-reverse items-end gap-2 lg:bottom-8 lg:right-8">
             {/* Minimized chat bubbles */}
             {minimizedChats.map(([agentId, chat]) => (
               <button
