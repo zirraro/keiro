@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
-      // --- Retrieve category from original email activity ---
+      // --- Retrieve category from original email activity OR prospect type ---
       let emailCategory: string | null = null;
       {
         const { data: originalEmail } = await supabase
@@ -104,6 +104,11 @@ export async function POST(request: NextRequest) {
           .limit(1)
           .maybeSingle();
         emailCategory = originalEmail?.data?.category || null;
+
+        // Fallback: use prospect's business type as category
+        if (!emailCategory || emailCategory === 'autre' || emailCategory === 'unknown') {
+          emailCategory = prospect.type || null;
+        }
       }
 
       // --- Process event ---
@@ -132,7 +137,7 @@ export async function POST(request: NextRequest) {
             prospect_id: prospect.id,
             type: 'email_opened',
             description: `Email step ${step} ouvert (+${scoreBonus} score) — ${opensCount} ouvertures total`,
-            data: { score_before: currentScore, score_after: newScore, temperature: newTemp, category: emailCategory, step, opens_count: opensCount },
+            data: { score_before: currentScore, score_after: newScore, temperature: newTemp, category: emailCategory, prospect_type: prospect.type || null, step, opens_count: opensCount },
             created_at: now,
           });
           break;
@@ -161,7 +166,7 @@ export async function POST(request: NextRequest) {
             prospect_id: prospect.id,
             type: 'email_clicked',
             description: `Lien clique dans email step ${prospect.email_sequence_step ?? 1} (+${clickScoreBonus} score) — ${clicksCount} clics total`,
-            data: { score_before: currentScore, score_after: newScore, url: clickedUrl, category: emailCategory, step: prospect.email_sequence_step, clicks_count: clicksCount },
+            data: { score_before: currentScore, score_after: newScore, url: clickedUrl, category: emailCategory, prospect_type: prospect.type || null, step: prospect.email_sequence_step, clicks_count: clicksCount },
             created_at: now,
           });
 
