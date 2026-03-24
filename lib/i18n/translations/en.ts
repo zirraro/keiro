@@ -234,7 +234,7 @@ export const en: Translations = {
     pricingBadge: '14 days free — all agents unlocked',
     pricingTitle: 'Plans & Pricing',
     pricingSubtitle: 'Choose the plan that fits your needs',
-    pricingFoundersNote: '*Founders Pro: €149/month for the first 50 sign-ups, then €199/month',
+    pricingFoundersNote: '*Founders Pro: €149/month for the first 50 sign-ups, then €349/month (Business)',
     sprintTrialTitle: '14-day free trial',
     sprintTrialDesc: 'All agents unlocked — card required, no charge for 14 days',
     sprintTrialNote: '€0 for 14 days • Card required • Cancel anytime',
@@ -535,7 +535,7 @@ export const en: Translations = {
     comparatorKeiroPrice: 'from €49/month',
     comparatorSavings: 'Save up to 95% on your content creation costs',
     comparisonTitle: 'Detailed plan comparison',
-    comparisonHeaders: ['Feature', 'Creator €49', 'Pro €99', 'Founders €149 ⭐', 'Business €199'],
+    comparisonHeaders: ['Feature', 'Creator €49', 'Pro €99', 'Founders €149 ⭐', 'Business €349'],
     comparisonRows: [
       'Credits/month',
       'AI Images',

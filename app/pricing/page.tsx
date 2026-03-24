@@ -311,9 +311,6 @@ function PricingPageInner() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mb-16">
           {/* Créateur 49€ */}
           <div id="createur" className="bg-gradient-to-br from-purple-600 to-indigo-600 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col">
-            <div className="absolute -top-3 right-4">
-              <span className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">14 jours gratuits</span>
-            </div>
             <div className="mb-4 pt-2">
               <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
                 <span>💎</span> {t.pricing.planCreateurTitle}
@@ -369,9 +366,6 @@ function PricingPageInner() {
 
           {/* Pro 99€ */}
           <div id="pro" className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col">
-            <div className="absolute -top-3 right-4">
-              <span className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">14 jours gratuits</span>
-            </div>
             <div className="mb-4 pt-2">
               <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
                 <span>🚀</span> {t.pricing.planProTitle}
@@ -459,9 +453,6 @@ function PricingPageInner() {
               <span className="bg-[#0c1a3a] text-cyan-200 px-4 py-1 rounded-full text-xs font-bold shadow-lg">
                 PME & Multi-activité
               </span>
-            </div>
-            <div className="absolute -top-3 right-4">
-              <span className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">14 jours gratuits</span>
             </div>
             <div className="mb-4 pt-2">
               <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
@@ -611,7 +602,7 @@ function PricingPageInner() {
               <p className="text-[11px] text-purple-200">+ HUGO, FÉLIX, Branding</p>
             </div>
             <div className="bg-white/10 rounded-lg p-3 border border-white/10">
-              <p className="text-xs font-bold text-amber-300 mb-1">Business — 199€/mois après essai</p>
+              <p className="text-xs font-bold text-amber-300 mb-1">Business — 349€/mois après essai</p>
               <p className="text-[11px] text-purple-200">+ OSCAR, SARA, CRM, Multi-comptes</p>
             </div>
           </div>
@@ -810,7 +801,7 @@ function PricingPageInner() {
                   <td className="text-center py-3 px-2 font-bold text-purple-600">49€</td>
                   <td className="text-center py-3 px-2 font-bold text-blue-600">99€</td>
                   <td className="text-center py-3 px-2 bg-amber-50 font-bold text-amber-600">149€*</td>
-                  <td className="text-center py-3 px-2 font-bold text-[#0c1a3a]">199€</td>
+                  <td className="text-center py-3 px-2 font-bold text-[#0c1a3a]">349€</td>
                   <td className="text-center py-3 px-2 bg-yellow-50 font-bold text-amber-700">999€</td>
                 </tr>
               </tbody>
