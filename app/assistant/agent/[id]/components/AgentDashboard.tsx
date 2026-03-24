@@ -151,10 +151,12 @@ function KpiCard({
   gradientTo: string;
 }) {
   return (
-    <div className="bg-white/5 rounded-xl border border-white/10 p-4 flex flex-col gap-1">
-      <span className="text-xs text-white/50 uppercase tracking-wider">{label}</span>
+    <div className="rounded-xl border border-white/10 p-4 flex flex-col gap-1.5 relative overflow-hidden">
+      {/* Subtle gradient background */}
+      <div className="absolute inset-0 opacity-[0.07]" style={{ background: `linear-gradient(135deg, ${gradientFrom}, ${gradientTo})` }} />
+      <span className="relative text-[10px] text-white/50 uppercase tracking-wider font-semibold">{label}</span>
       <span
-        className="text-2xl font-bold bg-clip-text text-transparent"
+        className="relative text-2xl font-bold bg-clip-text text-transparent"
         style={{ backgroundImage: `linear-gradient(135deg, ${gradientFrom}, ${gradientTo})` }}
       >
         {value}
@@ -164,14 +166,23 @@ function KpiCard({
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h3 className="text-sm font-semibold text-white/70 uppercase tracking-wider mt-6 mb-3">{children}</h3>;
+  return (
+    <div className="flex items-center gap-2 mt-8 mb-4">
+      <div className="h-px flex-1 bg-white/10" />
+      <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider px-2">{children}</h3>
+      <div className="h-px flex-1 bg-white/10" />
+    </div>
+  );
 }
 
 function EmptyState({ agentName }: { agentName: string }) {
   return (
-    <div className="bg-white/5 rounded-xl border border-white/10 p-6 text-center">
-      <p className="text-white/50 text-sm">Aucune donnee pour le moment.</p>
-      <p className="text-white/40 text-xs mt-1">Discutez avec {agentName} pour commencer !</p>
+    <div className="rounded-2xl border border-white/10 p-8 text-center bg-white/[0.02]">
+      <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-3">
+        <svg className="w-6 h-6 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+      </div>
+      <p className="text-white/40 text-sm">Aucune donnee pour le moment.</p>
+      <p className="text-white/25 text-xs mt-1">Discutez avec {agentName} pour commencer !</p>
     </div>
   );
 }
@@ -1315,25 +1326,36 @@ function GenericPanel({
 }) {
   return (
     <>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <KpiCard label="Messages echanges" value={fmt(data.totalMessages)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        <KpiCard label="Derniere interaction" value="--" gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label="Recommandations" value={fmt(data.recommendations?.length)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label="Score engagement" value={data.recentChats ? `${data.recentChats}` : '--'} gradientFrom={gradientFrom} gradientTo={gradientTo} />
       </div>
 
-      <div className="bg-white/5 rounded-xl border border-white/10 p-6 text-center mt-6">
-        <div
-          className="w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center"
-          style={{ background: `linear-gradient(135deg, ${gradientFrom}, ${gradientTo})` }}
-        >
-          <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
+      <SectionTitle>Recommandations recentes</SectionTitle>
+
+      {data.recommendations && data.recommendations.length > 0 ? (
+        <div className="space-y-2">
+          {data.recommendations.slice(0, 5).map((rec, i) => (
+            <div key={i} className="rounded-xl border border-white/10 p-3 flex items-start gap-3" style={{ background: `linear-gradient(135deg, ${gradientFrom}08, ${gradientTo}05)` }}>
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: `linear-gradient(135deg, ${gradientFrom}30, ${gradientTo}30)` }}>
+                <svg className="w-4 h-4 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-white/80 text-xs">{rec.action}</p>
+                <p className="text-white/30 text-[10px] mt-0.5">{fmtDate(rec.created_at)}</p>
+              </div>
+            </div>
+          ))}
         </div>
-        <p className="text-sm text-white/60 font-medium">Dashboard en preparation</p>
-        <p className="text-xs text-white/40 mt-1">
-          Le tableau de bord de {agentName} sera bientot disponible.
-          <br />
-          En attendant, discutez directement avec l&apos;agent !
+      ) : (
+        <EmptyState agentName={agentName} />
+      )}
+
+      {/* Weekly summary */}
+      <div className="mt-4 rounded-xl border border-white/10 p-4" style={{ background: `linear-gradient(135deg, ${gradientFrom}08, transparent)` }}>
+        <p className="text-white/40 text-xs italic">
+          {agentName} a analyse {fmt(data.totalMessages || 0)} donnees cette semaine.
         </p>
       </div>
     </>
@@ -1432,19 +1454,23 @@ export default function AgentDashboard({ agentId, agentName, gradientFrom, gradi
 
   return (
     <div className="overflow-y-auto w-full">
-      {/* Header */}
-      <div className="mb-6">
-        <h2 className="text-lg font-bold text-white">{agentName}</h2>
-        <p
-          className="text-sm font-medium bg-clip-text text-transparent"
-          style={{ backgroundImage: `linear-gradient(135deg, ${gradientFrom}, ${gradientTo})` }}
-        >
-          {subtitle}
-        </p>
+      {/* Agent identity band */}
+      <div className="rounded-t-2xl px-5 py-4 mb-0" style={{ background: `linear-gradient(135deg, ${gradientFrom}25, ${gradientTo}15)`, borderBottom: `2px solid ${gradientFrom}40` }}>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-white">{agentName}</h2>
+            <p className="text-sm font-medium" style={{ color: gradientFrom }}>{subtitle}</p>
+          </div>
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${gradientFrom}30, ${gradientTo}30)` }}>
+            <div className="w-2.5 h-2.5 rounded-full animate-pulse" style={{ backgroundColor: gradientFrom }} />
+          </div>
+        </div>
       </div>
 
-      {/* Agent panel */}
-      <Panel data={data} agentName={agentName} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+      {/* Dashboard content with padding */}
+      <div className="p-5">
+        <Panel data={data} agentName={agentName} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+      </div>
     </div>
   );
 }
