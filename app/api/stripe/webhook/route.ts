@@ -53,6 +53,9 @@ export async function POST(request: NextRequest) {
       case 'subscription_schedule.canceled':
         await handleScheduleCanceled(event.data.object as any);
         break;
+      case 'customer.subscription.trial_will_end':
+        await handleTrialWillEnd(event.data.object as Stripe.Subscription);
+        break;
       default:
         console.log('[Stripe Webhook] Unhandled event type:', event.type);
     }
@@ -841,6 +844,122 @@ async function handleLegacyPlanActivation(userId: string, planKey: string, custo
   });
 
   console.log('[Webhook] Legacy plan activated:', { userId, planKey, credits });
+}
+
+// ====================================================================
+// TRIAL WILL END — Email de prevenance 3 jours avant prelevement
+// ====================================================================
+async function handleTrialWillEnd(subscription: Stripe.Subscription) {
+  const supabase = getSupabaseAdmin();
+
+  // Find user
+  let profileId = subscription.metadata?.userId;
+  if (!profileId) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('stripe_subscription_id', subscription.id)
+      .single();
+    profileId = profile?.id;
+  }
+
+  if (!profileId) {
+    console.log('[Webhook] No profile for trial_will_end:', subscription.id);
+    return;
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('email, subscription_plan, company_name')
+    .eq('id', profileId)
+    .single();
+
+  if (!profile?.email) return;
+
+  const planKey = profile.subscription_plan || 'pro';
+  const planLabels: Record<string, { name: string; price: string }> = {
+    pro: { name: 'Createur', price: '49' },
+    fondateurs: { name: 'Fondateurs', price: '149' },
+    standard: { name: 'Standard', price: '199' },
+    business: { name: 'Business', price: '199' },
+    elite: { name: 'Elite', price: '999' },
+  };
+  const plan = planLabels[planKey] || { name: planKey, price: '49' };
+
+  const trialEnd = subscription.trial_end ? new Date(subscription.trial_end * 1000) : new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+  const dateStr = trialEnd.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  const RESEND_KEY = process.env.RESEND_API_KEY;
+  const BREVO_KEY = process.env.BREVO_API_KEY;
+
+  const html = `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;color:#333;margin:0;padding:0;">
+<div style="max-width:540px;margin:0 auto;padding:20px;">
+  <div style="background:linear-gradient(135deg,#0c1a3a,#1e3a5f);color:white;padding:24px;border-radius:12px 12px 0 0;text-align:center;">
+    <h2 style="margin:0;">Votre essai gratuit se termine bientot</h2>
+  </div>
+  <div style="background:white;padding:24px;border:1px solid #e5e7eb;border-top:none;">
+    <p>Bonjour${profile.company_name ? ` ${profile.company_name}` : ''},</p>
+    <p>Votre essai gratuit de 14 jours sur KeiroAI arrive a sa fin le <strong>${dateStr}</strong>.</p>
+    <p>A partir de cette date, votre abonnement <strong>${plan.name}</strong> sera active au tarif de <strong>${plan.price}\u20AC/mois</strong>.</p>
+    <div style="background:#f0fdf4;border-left:3px solid #22c55e;padding:12px;margin:16px 0;border-radius:0 8px 8px 0;">
+      <p style="margin:0;font-size:14px;"><strong>Ce qui est inclus dans votre plan :</strong></p>
+      <ul style="margin:8px 0 0;padding-left:16px;font-size:13px;color:#374151;">
+        <li>Vos 17 agents IA actifs 24/7</li>
+        <li>Publication auto Instagram, TikTok, LinkedIn</li>
+        <li>Prospection email + DM automatique</li>
+        <li>CRM intelligent + pipeline</li>
+      </ul>
+    </div>
+    <p>Si vous souhaitez annuler avant le prelevement, vous pouvez le faire depuis votre <a href="https://keiroai.com/mon-compte?section=billing" style="color:#7c3aed;font-weight:bold;">espace facturation</a>.</p>
+    <p style="color:#6b7280;font-size:12px;margin-top:24px;">Si vous ne faites rien, votre abonnement sera active automatiquement. Vous pouvez annuler a tout moment.</p>
+  </div>
+  <div style="background:#f9fafb;padding:12px;text-align:center;color:#9ca3af;font-size:11px;border-radius:0 0 12px 12px;border:1px solid #e5e7eb;border-top:none;">
+    KeiroAI — Votre equipe IA
+  </div>
+</div></body></html>`;
+
+  // Send via Resend or Brevo
+  if (RESEND_KEY) {
+    try {
+      await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: 'KeiroAI <contact@keiroai.com>',
+          to: [profile.email],
+          subject: `Votre essai gratuit se termine le ${dateStr} — KeiroAI`,
+          html,
+        }),
+      });
+      console.log('[Webhook] Trial ending email sent to:', profile.email);
+    } catch (e: any) {
+      console.error('[Webhook] Trial ending email error:', e.message);
+    }
+  } else if (BREVO_KEY) {
+    try {
+      await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: { 'accept': 'application/json', 'api-key': BREVO_KEY, 'content-type': 'application/json' },
+        body: JSON.stringify({
+          sender: { name: 'KeiroAI', email: 'contact@keiroai.com' },
+          to: [{ email: profile.email }],
+          subject: `Votre essai gratuit se termine le ${dateStr} — KeiroAI`,
+          htmlContent: html,
+        }),
+      });
+      console.log('[Webhook] Trial ending email sent via Brevo to:', profile.email);
+    } catch (e: any) {
+      console.error('[Webhook] Trial ending Brevo error:', e.message);
+    }
+  }
+
+  // Notify founder too
+  await notifyFounderPayment({
+    email: profile.email,
+    plan: planKey,
+    type: 'new',
+    userId: profileId,
+  });
 }
 
 async function handleLegacyPackPurchase(userId: string, currentBalance: number, credits: number, customerId: string) {

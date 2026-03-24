@@ -83,7 +83,11 @@ export async function POST(request: NextRequest) {
         mode: 'subscription' as const,
         line_items: [{ price: priceId, quantity: 1 }],
         metadata: subMetadata,
-        subscription_data: { metadata: subMetadata },
+        subscription_data: {
+          metadata: subMetadata,
+          trial_period_days: 14, // 14 jours gratuits — carte capturee mais pas chargee
+        },
+        payment_method_collection: 'always' as const, // Toujours demander la carte
         success_url: successUrl,
         cancel_url: cancelUrl,
         ...(applyFirstMonthDiscount
