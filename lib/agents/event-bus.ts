@@ -333,3 +333,31 @@ export const Events = {
   clientConverted: (supabase: SupabaseClient, prospectId: string, company: string, plan: string, orgId?: string) =>
     emitEvent(supabase, { agent: 'commercial', type: EVENT_TYPES.CLIENT_CONVERTED, data: { prospect_id: prospectId, company, plan }, priority: 'critical', requires_action: true, org_id: orgId }),
 };
+
+// ─── Agent Questions to Client ──────────────────────────────
+
+/**
+ * An agent needs clarification from the client.
+ * Creates a notification that the client sees on their dashboard.
+ * The client can respond via chat with the agent.
+ */
+export async function askClient(
+  supabase: SupabaseClient,
+  agentId: string,
+  agentName: string,
+  question: string,
+  context?: string,
+): Promise<void> {
+  await supabase.from('agent_logs').insert({
+    agent: agentId,
+    action: 'question_to_client',
+    status: 'pending', // Will be 'answered' when client responds
+    data: {
+      question,
+      context: context || null,
+      agent_name: agentName,
+      asked_at: new Date().toISOString(),
+    },
+    created_at: new Date().toISOString(),
+  });
+}

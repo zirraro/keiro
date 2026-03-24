@@ -124,6 +124,9 @@ export default function AssistantPage() {
   const [summary, setSummary] = useState<any>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
 
+  // Agent questions/notifications
+  const [agentQuestions, setAgentQuestions] = useState<Array<{ agent: string; agent_name: string; question: string; id: string }>>([]);
+
   // CRM expanded state
   const [crmExpanded, setCrmExpanded] = useState(false);
 
@@ -212,6 +215,32 @@ export default function AssistantPage() {
       setSummaryLoading(false);
     }
     loadSummary();
+  }, [user]);
+
+  // ─── Load agent questions (notifications) ──────────────
+  useEffect(() => {
+    if (!user) return;
+    async function loadQuestions() {
+      try {
+        const supabase = (await import('@/lib/supabase/client')).supabaseBrowser();
+        const { data } = await supabase
+          .from('agent_logs')
+          .select('id, agent, data')
+          .eq('action', 'question_to_client')
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false })
+          .limit(5);
+        if (data) {
+          setAgentQuestions(data.map((q: any) => ({
+            id: q.id,
+            agent: q.agent,
+            agent_name: q.data?.agent_name || q.agent,
+            question: q.data?.question || '',
+          })));
+        }
+      } catch { /* silent */ }
+    }
+    loadQuestions();
   }, [user]);
 
   // ─── Load avatars ───────────────────────────────────────
@@ -512,6 +541,37 @@ export default function AssistantPage() {
                 Se connecter
               </a>
             </div>
+          </div>
+        )}
+
+        {/* ═══ AGENT QUESTIONS (notifications) ═══ */}
+        {agentQuestions.length > 0 && (
+          <div className="mb-4 space-y-2">
+            {agentQuestions.map(q => {
+              const agentInfo = agents.find(a => a.id === q.agent);
+              return (
+                <button
+                  key={q.id}
+                  onClick={() => {
+                    if (agentInfo) handleOpenChat(agentInfo);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500/15 transition-all text-left"
+                >
+                  <div className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden"
+                    style={{ background: agentInfo ? `linear-gradient(135deg, ${agentInfo.gradientFrom}, ${agentInfo.gradientTo})` : '#f59e0b' }}>
+                    {avatars[q.agent] ? <img src={avatars[q.agent]!} alt="" className="w-full h-full object-cover" /> : <span className="text-sm">{agentInfo?.icon || '\uD83E\uDD16'}</span>}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-amber-400 text-xs font-bold">{q.agent_name} a besoin de vous</span>
+                      <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                    </div>
+                    <p className="text-white/60 text-[11px] truncate">{q.question}</p>
+                  </div>
+                  <span className="text-amber-400/60 text-[10px] flex-shrink-0">Repondre {'\u2192'}</span>
+                </button>
+              );
+            })}
           </div>
         )}
 
