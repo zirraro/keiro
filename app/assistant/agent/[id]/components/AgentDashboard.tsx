@@ -625,6 +625,26 @@ function ContentPanel({
         <KpiCard label="Streak publication" value="--" gradientFrom={gradientFrom} gradientTo={gradientTo} />
       </div>
 
+      {/* Visual: content type distribution */}
+      <SectionTitle>Repartition du contenu</SectionTitle>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="rounded-xl border border-white/10 p-4 bg-white/[0.02]">
+          <DonutChart
+            segments={[
+              { value: stats.recentContent.filter(c => c.type === 'Reel' || c.type === 'reel').length, color: '#e879f9', label: 'Reels' },
+              { value: stats.recentContent.filter(c => c.type === 'Carousel' || c.type === 'carrousel').length, color: '#60a5fa', label: 'Carrousels' },
+              { value: stats.recentContent.filter(c => c.type === 'Post' || c.type === 'post').length, color: '#34d399', label: 'Posts' },
+              { value: stats.recentContent.filter(c => c.type === 'Story' || c.type === 'story').length, color: '#fbbf24', label: 'Stories' },
+            ]}
+            label={`${stats.postsGenerated}`}
+          />
+        </div>
+        <div className="rounded-xl border border-white/10 p-4 bg-white/[0.02] space-y-3">
+          <ProgressBar value={stats.postsGenerated} max={Math.max(stats.postsGenerated + stats.scheduledPosts, 1)} color={gradientFrom} label="Generes" />
+          <ProgressBar value={stats.scheduledPosts} max={Math.max(stats.postsGenerated + stats.scheduledPosts, 1)} color={gradientTo} label="Programmes" />
+        </div>
+      </div>
+
       <SectionTitle>Contenu recent</SectionTitle>
       {stats.recentContent.length === 0 ? (
         <EmptyState agentName={agentName} />
@@ -748,6 +768,28 @@ function AdsPanel({
         <KpiCard label="Campagnes actives" value={fmt(stats.campaigns)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
         <KpiCard label="Budget total" value={fmtCurrency(stats.totalSpend)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
         <KpiCard label="ROAS moyen" value={`${stats.avgRoas.toLocaleString('fr-FR', { maximumFractionDigits: 1 })}x`} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+      </div>
+
+      {/* Visual: budget & ROAS */}
+      <SectionTitle>Performance visuelle</SectionTitle>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="rounded-xl border border-white/10 p-4 bg-white/[0.02]">
+          <DonutChart
+            segments={stats.recentCampaigns.slice(0, 5).map((c, i) => ({
+              value: c.spend,
+              color: ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#a855f7'][i % 5],
+              label: c.name.substring(0, 15),
+            }))}
+            label={fmtCurrency(stats.totalSpend)}
+          />
+        </div>
+        <div className="rounded-xl border border-white/10 p-4 bg-white/[0.02] space-y-3">
+          <ProgressBar value={Math.min(Math.round(stats.avgRoas * 33), 100)} max={100} color="#22c55e" label={`ROAS moyen (${stats.avgRoas}x)`} />
+          <ProgressBar value={stats.campaigns} max={10} color={gradientFrom} label="Campagnes actives" />
+          {stats.recentCampaigns.slice(0, 3).map((c, i) => (
+            <ProgressBar key={i} value={Math.round(c.roas * 33)} max={100} color={['#3b82f6', '#22c55e', '#f59e0b'][i]} label={`${c.name.substring(0, 20)} (${c.roas}x)`} />
+          ))}
+        </div>
       </div>
 
       <SectionTitle>Campagnes</SectionTitle>
@@ -1099,7 +1141,25 @@ function DmInstagramPanel({
         <KpiCard label="RDV generes" value={fmt(stats.rdvGenerated)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
       </div>
 
-      {/* Response rate visual */}
+      {/* Funnel visual */}
+      <SectionTitle>Entonnoir DM</SectionTitle>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="rounded-xl border border-white/10 p-4 bg-white/[0.02]">
+          <DonutChart
+            segments={[
+              { value: stats.dmsSent - stats.responses, color: '#60a5fa', label: 'En attente' },
+              { value: stats.responses - stats.rdvGenerated, color: '#fbbf24', label: 'Reponses' },
+              { value: stats.rdvGenerated, color: '#22c55e', label: 'RDV' },
+            ]}
+            label={`${stats.responseRate}%`}
+          />
+        </div>
+        <div className="rounded-xl border border-white/10 p-4 bg-white/[0.02] space-y-3">
+          <ProgressBar value={stats.responses} max={Math.max(stats.dmsSent, 1)} color="#fbbf24" label="Taux reponse" />
+          <ProgressBar value={stats.rdvGenerated} max={Math.max(stats.responses, 1)} color="#22c55e" label="Conversion RDV" />
+        </div>
+      </div>
+
       <SectionTitle>Taux de reponse</SectionTitle>
       <div className="flex justify-center">
         <CircularProgress
@@ -1479,11 +1539,31 @@ function WhatsAppPanel({
 
   return (
     <>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <KpiCard label="Messages envoyes" value={fmt(stats.messagesSent)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
         <KpiCard label="Messages recus" value={fmt(stats.messagesReceived)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
         <KpiCard label="Taux reponse" value={fmtPercent(stats.responseRate)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
         <KpiCard label="Leads generes" value={fmt(stats.leadsGenerated)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+      </div>
+
+      {/* Performance visuelle */}
+      <SectionTitle>Performance</SectionTitle>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="rounded-xl border border-white/10 p-4 bg-white/[0.02]">
+          <DonutChart
+            segments={[
+              { value: stats.messagesSent, color: '#25D366', label: 'Envoyes' },
+              { value: stats.messagesReceived, color: '#128C7E', label: 'Recus' },
+              { value: stats.leadsGenerated, color: '#fbbf24', label: 'Leads' },
+            ]}
+            label={`${stats.responseRate}%`}
+          />
+        </div>
+        <div className="rounded-xl border border-white/10 p-4 bg-white/[0.02] space-y-3">
+          <ProgressBar value={stats.messagesReceived} max={Math.max(stats.messagesSent, 1)} color="#25D366" label="Taux reponse" />
+          <ProgressBar value={stats.leadsGenerated} max={Math.max(stats.messagesReceived, 1)} color="#fbbf24" label="Conversion leads" />
+          <ProgressBar value={stats.conversationsActive} max={Math.max(stats.messagesSent, 1)} color="#128C7E" label="Conversations actives" />
+        </div>
       </div>
 
       {/* Active conversations */}
