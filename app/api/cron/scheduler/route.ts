@@ -52,7 +52,7 @@ export const maxDuration = 300;
  * 21:00  amit              → AMIT: analyse stratégique
  * 22:00  ops               → Ops: diagnostic système
  * every20m video_poll      → Poll vidéos async (toutes les 20 min)
- * every15m publish_scheduled→ Publication auto posts programmés
+ * 3x/day  publish_scheduled→ Publication posts programmés (9h, 13h, 18h UTC)
  */
 export async function GET(request: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
@@ -193,8 +193,18 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'content_tiktok':
-      // 18:30 UTC — Content: daily TikTok video (1/day)
-      await callEndpoint('Content (TikTok)', '/api/agents/content?slot=tiktok');
+      // 18:15 UTC — Content: TikTok video #1 (soir, prime time)
+      await callEndpoint('Content (TikTok #1)', '/api/agents/content?slot=tiktok');
+      break;
+
+    case 'content_tiktok_2':
+      // 13:30 UTC — Content: TikTok video #2 (apres-midi)
+      await callEndpoint('Content (TikTok #2)', '/api/agents/content?slot=tiktok');
+      break;
+
+    case 'content_tiktok_3':
+      // 17:00 UTC — Content: TikTok video #3 (fin journee)
+      await callEndpoint('Content (TikTok #3)', '/api/agents/content?slot=tiktok');
       break;
 
     case 'content_linkedin_1':
@@ -203,8 +213,13 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'content_linkedin_2':
-      // 14:00 UTC — LinkedIn: 2nd post of the day (afternoon professional)
+      // 14:20 UTC — LinkedIn: 2nd post (afternoon professional)
       await callEndpoint('Content (LinkedIn PM)', '/api/agents/content?slot=linkedin_2');
+      break;
+
+    case 'content_linkedin_3':
+      // 16:00 UTC — LinkedIn: 3rd post (fin de journee pro)
+      await callEndpoint('Content (LinkedIn #3)', '/api/agents/content?slot=linkedin_1');
       break;
 
     case 'discovery_6':
