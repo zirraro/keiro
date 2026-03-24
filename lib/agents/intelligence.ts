@@ -402,19 +402,26 @@ function getUpcomingEvents(): CalendarEvent[] {
   for (const evt of commercialCalendar) {
     const daysUntil = calculateDaysUntil(month, day, evt.month, evt.day, evt.range);
 
-    // Future events: up to 14 days ahead (pertinent, pas trop en avance)
-    if (daysUntil >= 0 && daysUntil <= 14) {
+    // Future events: adapt anticipation to event size
+    // Big events (Black Friday, Noel, Soldes) → 14j ahead
+    // Medium events (Fete meres, Saint-Valentin) → 7j ahead
+    // Small events (Chandeleur, Poisson avril) → 3j ahead
+    const isBigEvent = ['Black Friday', 'Noel', 'Soldes', 'Calendrier Avent', 'Cyber Monday'].some(k => evt.name.includes(k));
+    const isMediumEvent = evt.type === 'commercial';
+    const maxAhead = isBigEvent ? 14 : isMediumEvent ? 7 : 3;
+
+    if (daysUntil >= 0 && daysUntil <= maxAhead) {
       events.push({
         name: evt.name,
-        date: daysUntil === 0 ? 'aujourd\'hui' : `dans ${daysUntil} jours`,
+        date: daysUntil === 0 ? 'aujourd\'hui' : daysUntil === 1 ? 'demain' : `dans ${daysUntil} jours`,
         type: evt.type,
-        relevance: daysUntil <= 3 ? 0.98 : daysUntil <= 7 ? 0.95 : daysUntil <= 14 ? 0.7 : 0.5,
+        relevance: daysUntil <= 1 ? 0.99 : daysUntil <= 3 ? 0.95 : daysUntil <= 7 ? 0.8 : 0.6,
         ...(evt.action ? { action: evt.action } : {}),
       } as any);
     }
 
-    // Recently passed events (< 3 days ago): still surfable with retrospective content
-    if (daysUntil < 0 && daysUntil >= -3) {
+    // Recently passed (< 2 days): brief retrospective only
+    if (daysUntil < 0 && daysUntil >= -2) {
       events.push({
         name: `${evt.name} (TERMINE)`,
         date: `termine il y a ${Math.abs(daysUntil)} jour${Math.abs(daysUntil) > 1 ? 's' : ''}`,
