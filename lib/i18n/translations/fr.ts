@@ -6,7 +6,7 @@ export const fr: Translations = {
     generate: 'Générer',
     studio: 'Studio Édition',
     gallery: 'Galerie & Posts',
-    assistant: 'Agents IA',
+    assistant: 'Agents',
     pricing: 'Tarifs',
     contact: 'Contact',
     myAccount: 'Mon compte',

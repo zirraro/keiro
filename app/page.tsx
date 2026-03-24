@@ -94,37 +94,66 @@ function HomeKeiroInner() {
                   </div>
                 </div>
 
-                {/* Agent avatar grid — 4 columns, visual */}
-                <div className="grid grid-cols-4 gap-2 mb-3">
-                  {[
-                    { icon: '\uD83E\uDDE0', name: 'Noah', color: 'from-indigo-500 to-blue-600', role: 'CEO' },
-                    { icon: '\uD83C\uDFAF', name: 'Ami', color: 'from-pink-500 to-rose-500', role: 'Marketing' },
-                    { icon: '\u2728', name: 'Lena', color: 'from-purple-500 to-violet-600', role: 'Contenu' },
-                    { icon: '\uD83E\uDD1D', name: 'Leo', color: 'from-blue-500 to-cyan-500', role: 'Commercial' },
-                    { icon: '\uD83D\uDCE7', name: 'Hugo', color: 'from-cyan-500 to-blue-500', role: 'Email' },
-                    { icon: '\uD83D\uDCAC', name: 'Jade', color: 'from-rose-500 to-pink-600', role: 'DM' },
-                    { icon: '\uD83D\uDD0D', name: 'Oscar', color: 'from-amber-500 to-orange-500', role: 'SEO' },
-                    { icon: '\uD83D\uDCE2', name: 'Felix', color: 'from-red-500 to-orange-500', role: 'Pub' },
-                    { icon: '\uD83D\uDCF2', name: 'Stella', color: 'from-green-500 to-emerald-600', role: 'WhatsApp' },
-                    { icon: '\uD83E\uDD16', name: 'Max', color: 'from-violet-500 to-purple-600', role: 'Chatbot' },
-                    { icon: '\uD83C\uDFB5', name: 'Axel', color: 'from-gray-600 to-gray-800', role: 'TikTok' },
-                    { icon: '\uD83D\uDCCD', name: 'Theo', color: 'from-green-500 to-teal-500', role: 'Maps' },
-                  ].map(a => (
-                    <div key={a.name} className="text-center group cursor-default">
-                      <div className={`w-10 h-10 mx-auto rounded-full bg-gradient-to-br ${a.color} flex items-center justify-center text-base shadow-lg group-hover:scale-110 transition-transform`}>
-                        {a.icon}
-                      </div>
-                      <div className="text-white text-[9px] font-bold mt-1">{a.name}</div>
-                      <div className="text-white/25 text-[7px]">{a.role}</div>
+                {/* Agent avatar grid — 4 columns, real avatars */}
+                {(() => {
+                  const SB = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+                  const avatarBase = `${SB}/storage/v1/object/public/public-assets/agent-avatars`;
+                  const agents = [
+                    { id: 'ceo', name: 'Noah', color: 'from-indigo-500 to-blue-600', role: 'CEO', icon: '\uD83E\uDDE0' },
+                    { id: 'marketing', name: 'Ami', color: 'from-pink-500 to-rose-500', role: 'Marketing', icon: '\uD83C\uDFAF' },
+                    { id: 'content', name: 'Lena', color: 'from-purple-500 to-violet-600', role: 'Contenu', icon: '\u2728' },
+                    { id: 'commercial', name: 'Leo', color: 'from-blue-500 to-cyan-500', role: 'Commercial', icon: '\uD83E\uDD1D' },
+                    { id: 'email', name: 'Hugo', color: 'from-cyan-500 to-blue-500', role: 'Email', icon: '\uD83D\uDCE7' },
+                    { id: 'dm_instagram', name: 'Jade', color: 'from-rose-500 to-pink-600', role: 'DM', icon: '\uD83D\uDCAC' },
+                    { id: 'seo', name: 'Oscar', color: 'from-amber-500 to-orange-500', role: 'SEO', icon: '\uD83D\uDD0D' },
+                    { id: 'ads', name: 'Felix', color: 'from-red-500 to-orange-500', role: 'Pub', icon: '\uD83D\uDCE2' },
+                    { id: 'whatsapp', name: 'Stella', color: 'from-green-500 to-emerald-600', role: 'WhatsApp', icon: '\uD83D\uDCF2' },
+                    { id: 'chatbot', name: 'Max', color: 'from-violet-500 to-purple-600', role: 'Chatbot', icon: '\uD83E\uDD16' },
+                    { id: 'tiktok_comments', name: 'Axel', color: 'from-gray-600 to-gray-800', role: 'TikTok', icon: '\uD83C\uDFB5' },
+                    { id: 'gmaps', name: 'Theo', color: 'from-green-500 to-teal-500', role: 'Maps', icon: '\uD83D\uDCCD' },
+                  ];
+                  return (
+                    <div className="grid grid-cols-4 gap-3 mb-3">
+                      {agents.map(a => (
+                        <div key={a.name} className="text-center group cursor-default">
+                          <div className={`w-14 h-14 mx-auto rounded-full bg-gradient-to-br ${a.color} p-[2px] shadow-lg group-hover:scale-110 transition-transform`}>
+                            <div className="w-full h-full rounded-full overflow-hidden bg-gray-900 flex items-center justify-center">
+                              <img
+                                src={`${avatarBase}/${a.id}-3d.png`}
+                                alt={a.name}
+                                className="w-full h-full object-cover scale-[1.15]"
+                                style={{ objectPosition: 'center 15%' }}
+                                loading="lazy"
+                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }}
+                              />
+                              <span className="hidden text-xl">{a.icon}</span>
+                            </div>
+                          </div>
+                          <div className="text-white text-[9px] font-bold mt-1.5">{a.name}</div>
+                          <div className="text-white/30 text-[7px]">{a.role}</div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  );
+                })()}
 
-                {/* +5 more */}
-                <div className="flex items-center justify-center gap-1 mb-2">
-                  {['\uD83D\uDCB0', '\u2696\uFE0F', '\uD83D\uDE80', '\uD83D\uDD04', '\u2699\uFE0F'].map((icon, i) => (
-                    <div key={i} className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-[8px]">{icon}</div>
-                  ))}
+                {/* +5 more agents */}
+                <div className="flex items-center justify-center gap-1.5 mb-2">
+                  {[
+                    { id: 'comptable', icon: '\uD83D\uDCB0' },
+                    { id: 'rh', icon: '\u2696\uFE0F' },
+                    { id: 'onboarding', icon: '\uD83D\uDE80' },
+                    { id: 'retention', icon: '\uD83D\uDD04' },
+                    { id: 'ops', icon: '\u2699\uFE0F' },
+                  ].map(a => {
+                    const SB = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+                    return (
+                      <div key={a.id} className="w-7 h-7 rounded-full bg-white/10 overflow-hidden flex items-center justify-center">
+                        <img src={`${SB}/storage/v1/object/public/public-assets/agent-avatars/${a.id}-3d.png`} alt="" className="w-full h-full object-cover" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                        <span className="text-[9px]">{a.icon}</span>
+                      </div>
+                    );
+                  })}
                   <span className="text-white/30 text-[9px] ml-1">+5</span>
                 </div>
 
