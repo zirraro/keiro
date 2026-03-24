@@ -700,11 +700,11 @@ async function sendEmail(
             htmlContent: template.htmlBody,
             textContent: template.textBody,
             headers: {
-              'X-Mailin-custom': prospect.id,
+              'X-Mailin-custom': JSON.stringify({ pid: prospect.id, cat: category, type: prospect.type || '', step }),
               'List-Unsubscribe': '<https://keiroai.com/unsubscribe>',
               'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
             },
-            tags: ['cold-sequence', `step-${step}`, category],
+            tags: ['cold-sequence', `step-${step}`, category, prospect.type || 'unknown'],
           }),
         });
 
@@ -742,6 +742,7 @@ async function sendEmail(
               { name: 'type', value: 'cold-sequence' },
               { name: 'step', value: String(step) },
               { name: 'category', value: category },
+              { name: 'prospect_type', value: prospect.type || 'unknown' },
               { name: 'prospect_id', value: prospect.id },
             ],
           }),

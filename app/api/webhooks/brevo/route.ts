@@ -70,8 +70,15 @@ export async function POST(request: NextRequest) {
       prospect = prospectByEmail;
 
       if (!prospect) {
-        const prospectIdFromHeader = event['X-Mailin-custom'] || event.headers?.['X-Mailin-custom'];
-        if (prospectIdFromHeader) {
+        const rawHeader = event['X-Mailin-custom'] || event.headers?.['X-Mailin-custom'];
+        if (rawHeader) {
+          // Support both old format (just prospect_id) and new format (JSON with pid)
+          let prospectIdFromHeader = rawHeader;
+          try {
+            const parsed = JSON.parse(rawHeader);
+            if (parsed.pid) prospectIdFromHeader = parsed.pid;
+          } catch { /* old format: raw UUID */ }
+
           const { data } = await supabase
             .from('crm_prospects')
             .select('*')
@@ -92,22 +99,38 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
-      // --- Retrieve category from original email activity OR prospect type ---
+      // --- Retrieve category: 1. X-Mailin-custom header, 2. crm_activities, 3. prospect.type ---
       let emailCategory: string | null = null;
+      let prospectType: string | null = prospect.type || null;
       {
-        const { data: originalEmail } = await supabase
-          .from('crm_activities')
-          .select('data')
-          .eq('prospect_id', prospect.id)
-          .eq('type', 'email')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        emailCategory = originalEmail?.data?.category || null;
+        // Try to parse enriched header first (most reliable)
+        const customHeader = event['X-Mailin-custom'] || event.headers?.['X-Mailin-custom'];
+        if (customHeader) {
+          try {
+            const parsed = JSON.parse(customHeader);
+            if (parsed.cat) emailCategory = parsed.cat;
+            if (parsed.type) prospectType = parsed.type;
+          } catch {
+            // Old format: just prospect_id string — ignore
+          }
+        }
 
-        // Fallback: use prospect's business type as category
+        // Fallback: lookup from crm_activities
+        if (!emailCategory) {
+          const { data: originalEmail } = await supabase
+            .from('crm_activities')
+            .select('data')
+            .eq('prospect_id', prospect.id)
+            .eq('type', 'email')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          emailCategory = originalEmail?.data?.category || null;
+        }
+
+        // Final fallback: prospect business type
         if (!emailCategory || emailCategory === 'autre' || emailCategory === 'unknown') {
-          emailCategory = prospect.type || null;
+          emailCategory = prospectType || null;
         }
       }
 
@@ -137,7 +160,7 @@ export async function POST(request: NextRequest) {
             prospect_id: prospect.id,
             type: 'email_opened',
             description: `Email step ${step} ouvert (+${scoreBonus} score) — ${opensCount} ouvertures total`,
-            data: { score_before: currentScore, score_after: newScore, temperature: newTemp, category: emailCategory, prospect_type: prospect.type || null, step, opens_count: opensCount },
+            data: { score_before: currentScore, score_after: newScore, temperature: newTemp, category: emailCategory, prospect_type: prospectType || prospect.type || null, step, opens_count: opensCount },
             created_at: now,
           });
           break;
@@ -166,7 +189,7 @@ export async function POST(request: NextRequest) {
             prospect_id: prospect.id,
             type: 'email_clicked',
             description: `Lien clique dans email step ${prospect.email_sequence_step ?? 1} (+${clickScoreBonus} score) — ${clicksCount} clics total`,
-            data: { score_before: currentScore, score_after: newScore, url: clickedUrl, category: emailCategory, prospect_type: prospect.type || null, step: prospect.email_sequence_step, clicks_count: clicksCount },
+            data: { score_before: currentScore, score_after: newScore, url: clickedUrl, category: emailCategory, prospect_type: prospectType || prospect.type || null, step: prospect.email_sequence_step, clicks_count: clicksCount },
             created_at: now,
           });
 
