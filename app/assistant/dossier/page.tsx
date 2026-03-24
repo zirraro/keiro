@@ -96,14 +96,133 @@ export default function DossierPage() {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [dossierExtra, setDossierExtra] = useState<Record<string, string>>({});
   const [currentStep, setCurrentStep] = useState(0);
+  const [conversationMode, setConversationMode] = useState(true); // Start with conversation
+  const [conversationAnswers, setConversationAnswers] = useState<string[]>([]);
+  const [currentAnswer, setCurrentAnswer] = useState('');
+  const [isListening, setIsListening] = useState(false);
+  const [aiProcessing, setAiProcessing] = useState(false);
+  const [setupComplete, setSetupComplete] = useState(false);
+
+  const CONVERSATION_QUESTIONS = [
+    { question: 'Comment s\'appelle votre entreprise et que faites-vous ?', placeholder: 'Ex: Je suis boulanger a Lyon, je vends du pain artisanal et des viennoiseries...', icon: '\uD83C\uDFE2' },
+    { question: 'Qui sont vos clients ideaux ?', placeholder: 'Ex: Les familles du quartier, les gens qui aiment le bio, les 25-55 ans...', icon: '\uD83C\uDFAF' },
+    { question: 'Qu\'est-ce qui vous differencie de vos concurrents ?', placeholder: 'Ex: On utilise que du levain naturel, on livre a velo, on a 4.8 sur Google...', icon: '\u2B50' },
+    { question: 'Ou etes-vous present en ligne ? (Instagram, site web, Google Maps...)', placeholder: 'Ex: Instagram @maboulangerie, site maboulangerie.fr, Google Maps...', icon: '\uD83C\uDF10' },
+    { question: 'Quel est votre objectif principal avec KeiroAI ?', placeholder: 'Ex: Plus de clients, publier regulierement sur les reseaux, automatiser ma prospection...', icon: '\uD83D\uDE80' },
+  ];
 
   const STEPS = [
-    { title: 'Votre entreprise', icon: '\uD83C\uDFE2', description: 'Nom, type et description de votre activite' },
-    { title: 'Cible & positionnement', icon: '\uD83C\uDFAF', description: 'Public cible, ton et avantages concurrentiels' },
+    { title: 'Parlez-nous de vous', icon: '\uD83D\uDCAC', description: 'Repondez a 5 questions rapides (ecrit ou vocal)' },
+    { title: 'Votre entreprise', icon: '\uD83C\uDFE2', description: 'Verifiez et completez les infos' },
+    { title: 'Cible & positionnement', icon: '\uD83C\uDFAF', description: 'Public cible et ton de communication' },
     { title: 'Presence en ligne', icon: '\uD83C\uDF10', description: 'Reseaux sociaux et site web' },
     { title: 'Direction artistique', icon: '\uD83C\uDFA8', description: 'Couleurs, polices et style visuel' },
-    { title: 'Logo & Documents', icon: '\uD83D\uDCC1', description: 'Votre logo et documents utiles (charte, menu, catalogue...)' },
+    { title: 'Logo & Documents', icon: '\uD83D\uDCC1', description: 'Logo et documents utiles' },
   ];
+
+  // Voice-to-text using Web Speech API
+  const startListening = () => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      alert('La reconnaissance vocale n\'est pas supportee par votre navigateur. Utilisez Chrome.');
+      return;
+    }
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'fr-FR';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = () => setIsListening(true);
+    recognition.onend = () => setIsListening(false);
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setCurrentAnswer(prev => prev ? `${prev} ${transcript}` : transcript);
+    };
+    recognition.onerror = () => setIsListening(false);
+    recognition.start();
+  };
+
+  // Submit conversation answer and move to next question
+  const submitAnswer = () => {
+    if (!currentAnswer.trim()) return;
+    const newAnswers = [...conversationAnswers, currentAnswer.trim()];
+    setConversationAnswers(newAnswers);
+    setCurrentAnswer('');
+
+    if (newAnswers.length >= CONVERSATION_QUESTIONS.length) {
+      // All questions answered — AI processes answers to fill dossier
+      processConversation(newAnswers);
+    }
+  };
+
+  // AI processes the 5 answers to auto-fill the dossier
+  const processConversation = async (answers: string[]) => {
+    setAiProcessing(true);
+    try {
+      const res = await fetch('/api/agents/client-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          agent_id: 'onboarding',
+          message: `ONBOARDING AUTO-SETUP. Voici les reponses du client aux 5 questions d'onboarding. Analyse et extrais les informations pour remplir son profil business.
+
+Q1 (Entreprise): ${answers[0]}
+Q2 (Clients ideaux): ${answers[1]}
+Q3 (Differenciateurs): ${answers[2]}
+Q4 (Presence en ligne): ${answers[3]}
+Q5 (Objectif): ${answers[4]}
+
+Reponds en JSON strict:
+{
+  "company_name": "...",
+  "company_description": "...",
+  "business_type": "...",
+  "target_audience": "...",
+  "brand_tone": "chaleureux|professionnel|decontracte|luxe|fun",
+  "main_products": "...",
+  "unique_selling_points": "...",
+  "business_goals": "...",
+  "instagram_handle": "..." ou null,
+  "website_url": "..." ou null,
+  "google_maps_url": "..." ou null,
+  "recommended_agents": ["agent_id_1", "agent_id_2", "agent_id_3"]
+}`,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const reply = data.message || '';
+        // Try to parse JSON from reply
+        try {
+          const jsonMatch = reply.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            // Auto-fill the dossier fields
+            if (parsed.company_name) setCompanyName(parsed.company_name);
+            if (parsed.company_description) setCompanyDescription(parsed.company_description);
+            if (parsed.business_type) setBusinessType(parsed.business_type);
+            if (parsed.target_audience) setTargetAudience(parsed.target_audience);
+            if (parsed.brand_tone) setBrandTone(parsed.brand_tone);
+            if (parsed.main_products) setMainProducts(parsed.main_products);
+            if (parsed.unique_selling_points) setUniqueSellingPoints(parsed.unique_selling_points);
+            if (parsed.business_goals) setBusinessGoals(parsed.business_goals);
+            if (parsed.instagram_handle) setInstagramHandle(parsed.instagram_handle.replace('@', ''));
+            if (parsed.website_url) setWebsiteUrl(parsed.website_url);
+            if (parsed.google_maps_url) setGoogleMapsUrl(parsed.google_maps_url);
+          }
+        } catch { /* AI didn't return valid JSON, that's OK */ }
+      }
+    } catch { /* silent */ }
+
+    setAiProcessing(false);
+    setSetupComplete(true);
+    setConversationMode(false);
+    setCurrentStep(1); // Go to verification step
+    // Auto-save
+    setTimeout(() => saveDossier(), 500);
+  };
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -391,8 +510,115 @@ export default function DossierPage() {
           </div>
         </div>
 
-        {/* ═══ STEP 0: Informations generales ═══ */}
-        {currentStep === 0 && (<>
+        {/* ═══ STEP 0: Conversation onboarding ═══ */}
+        {currentStep === 0 && conversationMode && (
+          <div className="space-y-4">
+            {/* Previous answers */}
+            {conversationAnswers.map((answer, i) => (
+              <div key={i} className="space-y-2">
+                <div className="flex items-start gap-3">
+                  <span className="text-lg">{CONVERSATION_QUESTIONS[i].icon}</span>
+                  <p className="text-white/60 text-sm font-medium">{CONVERSATION_QUESTIONS[i].question}</p>
+                </div>
+                <div className="ml-9 bg-purple-600/10 border border-purple-500/20 rounded-xl px-4 py-3">
+                  <p className="text-white text-sm">{answer}</p>
+                </div>
+              </div>
+            ))}
+
+            {/* Current question */}
+            {conversationAnswers.length < CONVERSATION_QUESTIONS.length && !aiProcessing && (
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">{CONVERSATION_QUESTIONS[conversationAnswers.length].icon}</span>
+                  <div>
+                    <p className="text-white font-bold text-base">{CONVERSATION_QUESTIONS[conversationAnswers.length].question}</p>
+                    <p className="text-white/30 text-xs mt-0.5">Question {conversationAnswers.length + 1}/{CONVERSATION_QUESTIONS.length}</p>
+                  </div>
+                </div>
+
+                <div className="relative">
+                  <textarea
+                    value={currentAnswer}
+                    onChange={(e) => setCurrentAnswer(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitAnswer(); } }}
+                    placeholder={CONVERSATION_QUESTIONS[conversationAnswers.length].placeholder}
+                    rows={3}
+                    className="w-full px-4 py-3 bg-white/5 border border-white/15 rounded-xl text-white text-sm placeholder-white/25 focus:ring-2 focus:ring-purple-500/50 focus:border-transparent outline-none resize-none pr-24"
+                    autoFocus
+                  />
+                  <div className="absolute right-2 bottom-2 flex items-center gap-1.5">
+                    {/* Voice button */}
+                    <button
+                      onClick={startListening}
+                      className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
+                        isListening
+                          ? 'bg-red-500 text-white animate-pulse'
+                          : 'bg-white/10 text-white/50 hover:bg-white/20'
+                      }`}
+                      title="Dicter votre reponse"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                      </svg>
+                    </button>
+                    {/* Send button */}
+                    <button
+                      onClick={submitAnswer}
+                      disabled={!currentAnswer.trim()}
+                      className="w-10 h-10 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 text-white flex items-center justify-center disabled:opacity-30 transition-all"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                {isListening && (
+                  <div className="flex items-center gap-2 text-red-400 text-xs">
+                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                    Ecoute en cours... parlez maintenant
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* AI Processing */}
+            {aiProcessing && (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-400 mx-auto mb-4" />
+                <p className="text-white font-semibold text-sm">Clara analyse vos reponses...</p>
+                <p className="text-white/40 text-xs mt-1">Configuration automatique de votre espace en cours</p>
+              </div>
+            )}
+
+            {/* Setup complete */}
+            {setupComplete && (
+              <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-6 text-center">
+                <div className="text-3xl mb-2">{'\u2705'}</div>
+                <p className="text-green-400 font-bold text-base">Espace configure automatiquement !</p>
+                <p className="text-white/40 text-xs mt-1">Verifiez et completez les informations ci-dessous</p>
+                <button onClick={() => { setConversationMode(false); setCurrentStep(1); }} className="mt-4 px-6 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold rounded-xl text-sm">
+                  Verifier mon profil {'\u2192'}
+                </button>
+              </div>
+            )}
+
+            {/* Skip conversation */}
+            {!aiProcessing && !setupComplete && (
+              <button
+                onClick={() => { setConversationMode(false); setCurrentStep(1); }}
+                className="w-full text-center text-white/30 text-xs hover:text-white/50 transition-colors py-2"
+              >
+                Passer et remplir manuellement {'\u2192'}
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* ═══ STEP 1: Informations generales ═══ */}
+        {currentStep === 1 && (<>
         <SectionTitle title="Informations generales" icon="building" />
 
         <FormField label="Nom de l'entreprise" required>
@@ -440,8 +666,8 @@ export default function DossierPage() {
 
         </>)}
 
-        {/* ═══ STEP 1: Cible & Positionnement ═══ */}
-        {currentStep === 1 && (<>
+        {/* ═══ STEP 2: Cible & Positionnement ═══ */}
+        {currentStep === 2 && (<>
         <SectionTitle title="Cible & Positionnement" icon="target" />
 
         <FormField label="Public cible" required>
@@ -504,8 +730,8 @@ export default function DossierPage() {
 
         </>)}
 
-        {/* ═══ STEP 2: Presence en ligne ═══ */}
-        {currentStep === 2 && (<>
+        {/* ═══ STEP 3: Presence en ligne ═══ */}
+        {currentStep === 3 && (<>
         <SectionTitle title="Presence en ligne" icon="globe" />
 
         <FormField label="Compte Instagram">
@@ -566,8 +792,8 @@ export default function DossierPage() {
 
         </>)}
 
-        {/* ═══ STEP 3: Direction Artistique ═══ */}
-        {currentStep === 3 && (<>
+        {/* ═══ STEP 4: Direction Artistique ═══ */}
+        {currentStep === 4 && (<>
         <SectionTitle title="Direction Artistique (DA)" icon="palette" />
 
         <div className="bg-gradient-to-r from-purple-600/10 to-blue-600/10 border border-purple-500/20 rounded-xl p-4 mb-4">
@@ -615,8 +841,8 @@ export default function DossierPage() {
 
         </>)}
 
-        {/* ═══ STEP 4: Logo & Documents ═══ */}
-        {currentStep === 4 && (<>
+        {/* ═══ STEP 5: Logo & Documents ═══ */}
+        {currentStep === 5 && (<>
         <SectionTitle title="Logo & Documents" icon="upload" />
 
         {/* Recommended documents */}
