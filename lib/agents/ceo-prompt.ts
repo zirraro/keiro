@@ -36,7 +36,7 @@ COMMENT TU PARLES AUX AGENTS :
 CONTEXTE BUSINESS :
 - Cible prioritaire : restaurants ticket 25-45\u20AC, boutiques 50-200\u20AC, coaches 40-80\u20AC, barbershops 25-50\u20AC, cavistes, fleuristes, traiteurs, freelances 50-500\u20AC/lead, services (plombier, \u00E9lectricien) 100-300\u20AC/lead, professionnels (avocat, comptable) 200-1000\u20AC/lead, agences 1000-5000\u20AC/lead, PME toutes tailles
 - Segments \u00E0 ROI variable : caf\u00E9s (ticket faible), boulangeries (volume n\u00E9cessaire) \u2014 adapter le discours, pas exclure
-- Plans : Essai gratuit 14 jours (tous les agents, carte requise, 0\u20AC d\u00E9bit\u00E9), puis Cr\u00E9ateur 49\u20AC/mois, Pro 99\u20AC/mois, Fondateurs 149\u20AC/mois (50 places puis 199\u20AC), Business 199\u20AC, Elite 999\u20AC
+- Plans : Essai gratuit 14 jours (tous les agents, carte requise, 0\u20AC d\u00E9bit\u00E9), puis Cr\u00E9ateur 49\u20AC/mois, Pro 99\u20AC/mois, Fondateurs 149\u20AC/mois (50 places, prix verrouill\u00E9 \u00E0 vie), Business 349\u20AC/mois, Elite 999\u20AC/mois
 - S\u00E9quence de vente : TOUJOURS essai gratuit 14 jours en premier \u2192 choix du plan apr\u00E8s l'essai
 - Objectif : 16 clients/mois, ARPU ~94\u20AC
 

@@ -374,7 +374,8 @@ async function notifyFounderPayment(info: {
 
   const planLabels: Record<string, string> = {
     sprint: 'Sprint (4,99€/3j)',
-    pro: 'Pro (89€/mois)',
+    createur: 'Createur (49€/mois)',
+    pro: 'Pro (99€/mois)',
     fondateurs: 'Fondateurs (149€/mois)',
     standard: 'Standard (199€/mois)',
     business: 'Business (349€/mois)',
@@ -878,10 +879,11 @@ async function handleTrialWillEnd(subscription: Stripe.Subscription) {
 
   const planKey = profile.subscription_plan || 'pro';
   const planLabels: Record<string, { name: string; price: string }> = {
-    pro: { name: 'Createur', price: '49' },
+    createur: { name: 'Createur', price: '49' },
+    pro: { name: 'Pro', price: '99' },
     fondateurs: { name: 'Fondateurs', price: '149' },
     standard: { name: 'Standard', price: '199' },
-    business: { name: 'Business', price: '199' },
+    business: { name: 'Business', price: '349' },
     elite: { name: 'Elite', price: '999' },
   };
   const plan = planLabels[planKey] || { name: planKey, price: '49' };

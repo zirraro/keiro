@@ -232,7 +232,7 @@ export const fr: Translations = {
     pricingBadge: '14 jours gratuits — tous les agents débloqués',
     pricingTitle: 'Offres & Tarifs',
     pricingSubtitle: 'Choisissez le plan qui correspond à vos besoins',
-    pricingFoundersNote: '*Fondateurs Pro : 149€/mois pour les 50 premiers inscrits, ensuite 199€/mois',
+    pricingFoundersNote: '*Fondateurs Pro : 149€/mois pour les 50 premiers inscrits, ensuite 349€/mois (Business)',
     sprintTrialTitle: 'Essai gratuit 14 jours',
     sprintTrialDesc: 'Tous les agents débloqués — carte requise, aucun débit pendant 14 jours',
     sprintTrialNote: '0€ pendant 14 jours • Carte requise • Annulation à tout moment',

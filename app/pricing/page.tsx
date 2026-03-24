@@ -453,7 +453,7 @@ function PricingPageInner() {
             <p className="text-xs text-center text-amber-200 mt-2">{t.pricing.planFondateursNote}</p>
           </div>
 
-          {/* Business 199€ */}
+          {/* Business 349€ */}
           <div className="bg-gradient-to-br from-[#0c1a3a] to-[#1e3a5f] rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2">
               <span className="bg-[#0c1a3a] text-cyan-200 px-4 py-1 rounded-full text-xs font-bold shadow-lg">
@@ -468,7 +468,7 @@ function PricingPageInner() {
                 <span>🏢</span> {t.pricing.planBusinessTitle}
               </h3>
               <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-3xl sm:text-4xl font-bold">{billingPeriod === 'annual' ? '1 990€' : '199€'}</span>
+                <span className="text-3xl sm:text-4xl font-bold">{billingPeriod === 'annual' ? '3 490€' : '349€'}</span>
                 <span className="text-cyan-200">{billingPeriod === 'annual' ? t.common.perYear : t.common.perMonth}</span>
                 {billingPeriod === 'annual' && <span className="text-xs text-cyan-200 font-semibold">{t.home.priceNoteBusiness}</span>}
               </div>
@@ -580,7 +580,7 @@ function PricingPageInner() {
                 <li><span className="font-semibold text-amber-700">{"C'est comme..."}</span> Avoir un directeur marketing à temps partiel</li>
                 <li><span className="font-semibold text-amber-700">{"Ça remplace..."}</span> Un graphiste (800€) + un CM (1 500€) + stats (100€) + Canva Pro (12€)</li>
                 <li><span className="font-semibold text-amber-700">{"En concret..."}</span> Tous les agents IA, CRM intégré, multi-comptes 1+5, 2 000 crédits/mois</li>
-                <li><span className="font-semibold text-amber-700">{"Ça coûte..."}</span> 50€ de moins que Business (199€) — prix verrouillé à vie</li>
+                <li><span className="font-semibold text-amber-700">{"Ça coûte..."}</span> 200€ de moins que Business (349€) — prix verrouillé à vie</li>
                 <li><span className="font-semibold text-amber-700">{"C'est rentabilisé si..."}</span> 2 ventes en plus (boutique) / 7 couverts (resto)</li>
               </ul>
             </div>
