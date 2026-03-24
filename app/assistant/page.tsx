@@ -1135,48 +1135,8 @@ export default function AssistantPage() {
               }`}
               style={{ animation: 'slideInRight 0.25s ease-out' }}
             >
-              {/* Custom header with minimize + close buttons */}
-              <div
-                className="flex items-center gap-3 px-4 py-3 flex-shrink-0"
-                style={{ background: `linear-gradient(135deg, ${chat.agent.gradientFrom}, ${chat.agent.gradientTo})` }}
-              >
-                <div className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 bg-white/15">
-                  {avatars[activeChatId] ? (
-                    <img src={avatars[activeChatId]!} alt={chat.agent.displayName} className="w-full h-full object-cover" style={{ objectPosition: 'top center' }} />
-                  ) : (
-                    <span className="text-lg">{chat.agent.icon}</span>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-white font-semibold text-sm leading-tight">{chat.agent.displayName}</h3>
-                  <p className="text-white/70 text-xs">{chat.agent.title}</p>
-                </div>
-                <div className="flex items-center gap-1">
-                  {/* Minimize button */}
-                  <button
-                    onClick={() => handleMinimizeChat(activeChatId)}
-                    className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors"
-                    title="Reduire"
-                  >
-                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                  {/* Close button */}
-                  <button
-                    onClick={() => handleCloseChat(activeChatId)}
-                    className="w-8 h-8 rounded-full bg-white/15 hover:bg-red-500/50 flex items-center justify-center transition-colors"
-                    title="Fermer"
-                  >
-                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-
-              {/* Chat body using AgentChatPanel but without its header */}
-              <div className="flex-1 flex flex-col bg-[#0a1628] overflow-hidden">
+              {/* Single header — AgentChatPanel handles it */}
+              <div className="flex-1 flex flex-col overflow-hidden">
                 <AgentChatPanel
                   agent={chat.agent}
                   avatarUrl={avatars[activeChatId] || null}
