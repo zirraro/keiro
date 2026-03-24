@@ -515,6 +515,61 @@ export default function AssistantPage() {
           </div>
         )}
 
+        {/* ═══ NOAH + AMI — Conseillers dedies ═══ */}
+        {!isVisitor && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+            {/* NOAH — Conseiller strategique */}
+            <div className="rounded-2xl border border-indigo-500/20 overflow-hidden">
+              <div className="bg-gradient-to-r from-indigo-600/20 to-blue-600/15 px-4 py-3 flex items-center gap-3">
+                <div className="w-11 h-11 rounded-full overflow-hidden flex-shrink-0" style={{ background: 'linear-gradient(135deg, #6366f1, #3b82f6)', padding: '2px' }}>
+                  <div className="w-full h-full rounded-full overflow-hidden bg-gray-900 flex items-center justify-center">
+                    {avatars['ceo'] ? <img src={avatars['ceo']} alt="Noah" className="w-full h-full object-cover scale-[1.15]" style={{ objectPosition: 'center 15%' }} /> : <span className="text-lg">{'\uD83E\uDDE0'}</span>}
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-white font-bold text-sm">Noah — Votre Strategiste</div>
+                  <div className="text-indigo-300/60 text-[10px]">Conseille sur les priorites du jour et la strategie globale</div>
+                </div>
+                <button onClick={() => { const ceo = agents.find(a => a.id === 'ceo'); if (ceo) handleOpenChat(ceo); }} className="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 rounded-lg text-indigo-300 text-[10px] font-medium transition-all flex-shrink-0">
+                  Consulter
+                </button>
+              </div>
+              <div className="px-4 py-3 bg-white/[0.02]">
+                {summary?.activityFeed?.find((a: any) => a.agent === 'ceo') ? (
+                  <p className="text-white/50 text-xs leading-relaxed">{'\uD83C\uDFAF'} {(summary.activityFeed.find((a: any) => a.agent === 'ceo') as any)?.action || 'Analyse en cours...'}</p>
+                ) : (
+                  <p className="text-white/30 text-xs italic">Noah prepare votre brief strategique du jour...</p>
+                )}
+              </div>
+            </div>
+
+            {/* AMI — Analyste campagnes */}
+            <div className="rounded-2xl border border-pink-500/20 overflow-hidden">
+              <div className="bg-gradient-to-r from-pink-600/20 to-rose-600/15 px-4 py-3 flex items-center gap-3">
+                <div className="w-11 h-11 rounded-full overflow-hidden flex-shrink-0" style={{ background: 'linear-gradient(135deg, #ec4899, #f43f5e)', padding: '2px' }}>
+                  <div className="w-full h-full rounded-full overflow-hidden bg-gray-900 flex items-center justify-center">
+                    {avatars['marketing'] ? <img src={avatars['marketing']} alt="Ami" className="w-full h-full object-cover scale-[1.15]" style={{ objectPosition: 'center 15%' }} /> : <span className="text-lg">{'\uD83C\uDFAF'}</span>}
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-white font-bold text-sm">Ami — Votre Analyste Marketing</div>
+                  <div className="text-pink-300/60 text-[10px]">Analyse les resultats et adapte la strategie de vos agents</div>
+                </div>
+                <button onClick={() => { const ami = agents.find(a => a.id === 'marketing'); if (ami) handleOpenChat(ami); }} className="px-3 py-1.5 bg-pink-600/20 hover:bg-pink-600/30 border border-pink-500/30 rounded-lg text-pink-300 text-[10px] font-medium transition-all flex-shrink-0">
+                  Consulter
+                </button>
+              </div>
+              <div className="px-4 py-3 bg-white/[0.02]">
+                {summary?.activityFeed?.find((a: any) => a.agent === 'marketing') ? (
+                  <p className="text-white/50 text-xs leading-relaxed">{'\uD83D\uDCCA'} {(summary.activityFeed.find((a: any) => a.agent === 'marketing') as any)?.action || 'Analyse en cours...'}</p>
+                ) : (
+                  <p className="text-white/30 text-xs italic">Ami analyse les performances de vos campagnes...</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ═══ KPI CARDS — Vue d'ensemble rapide ═══ */}
         {!COMING_SOON_MODE && !isVisitor && (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
