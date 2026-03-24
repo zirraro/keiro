@@ -401,13 +401,26 @@ function getUpcomingEvents(): CalendarEvent[] {
 
   for (const evt of commercialCalendar) {
     const daysUntil = calculateDaysUntil(month, day, evt.month, evt.day, evt.range);
-    if (daysUntil >= 0 && daysUntil <= 21) { // 3 weeks ahead
+
+    // Future events: up to 21 days ahead
+    if (daysUntil >= 0 && daysUntil <= 21) {
       events.push({
         name: evt.name,
         date: daysUntil === 0 ? 'aujourd\'hui' : `dans ${daysUntil} jours`,
         type: evt.type,
         relevance: daysUntil <= 3 ? 0.98 : daysUntil <= 7 ? 0.95 : daysUntil <= 14 ? 0.7 : 0.5,
         ...(evt.action ? { action: evt.action } : {}),
+      } as any);
+    }
+
+    // Recently passed events (< 5 days ago): still surfable with retrospective content
+    if (daysUntil < 0 && daysUntil >= -5) {
+      events.push({
+        name: `${evt.name} (TERMINE)`,
+        date: `termine il y a ${Math.abs(daysUntil)} jour${Math.abs(daysUntil) > 1 ? 's' : ''}`,
+        type: evt.type,
+        relevance: 0.3,
+        ...(evt.action ? { action: `RETROSPECTIVE: bilan ${evt.name}, contenu recap, resultats` } : {}),
       } as any);
     }
   }
