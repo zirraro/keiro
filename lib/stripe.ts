@@ -32,13 +32,15 @@ export const AMOUNT_TO_PACK: Record<number, number> = {
 // ====== NOUVEAU: Mapping Price ID → plan (abonnements récurrents) ======
 
 // Plans qui sont des abonnements récurrents (mensuel ou annuel)
-export const SUBSCRIPTION_PLANS = ['pro', 'fondateurs', 'standard', 'business', 'elite'];
+export const SUBSCRIPTION_PLANS = ['createur', 'pro', 'fondateurs', 'standard', 'business', 'elite'];
 // Les variantes annuelles utilisent le même plan mais un Price ID annuel
 export const ANNUAL_PLAN_SUFFIX = '_annual';
 
 // Mapping planKey → Stripe Price ID mensuel
+// 'createur' = alias pour 'pro' (même Price ID, plan Createur à 49€/mois)
 export function getPlanToPrice(): Record<string, string | undefined> {
   return {
+    createur: process.env.STRIPE_PRICE_CREATEUR || process.env.STRIPE_PRICE_PRO,
     pro: process.env.STRIPE_PRICE_PRO,
     fondateurs: process.env.STRIPE_PRICE_FONDATEURS,
     standard: process.env.STRIPE_PRICE_STANDARD,
@@ -50,6 +52,7 @@ export function getPlanToPrice(): Record<string, string | undefined> {
 // Mapping planKey → Stripe Price ID annuel
 export function getPlanToPriceAnnual(): Record<string, string | undefined> {
   return {
+    createur: process.env.STRIPE_PRICE_CREATEUR_ANNUAL || process.env.STRIPE_PRICE_PRO_ANNUAL,
     pro: process.env.STRIPE_PRICE_PRO_ANNUAL,
     fondateurs: process.env.STRIPE_PRICE_FONDATEURS_ANNUAL,
     standard: process.env.STRIPE_PRICE_STANDARD_ANNUAL,
@@ -62,6 +65,7 @@ export function getPlanToPriceAnnual(): Record<string, string | undefined> {
 export function getPriceToPlan(): Record<string, string> {
   const map: Record<string, string> = {};
   // Mensuel
+  if (process.env.STRIPE_PRICE_CREATEUR) map[process.env.STRIPE_PRICE_CREATEUR] = 'createur';
   if (process.env.STRIPE_PRICE_PRO) map[process.env.STRIPE_PRICE_PRO] = 'pro';
   if (process.env.STRIPE_PRICE_FONDATEURS) map[process.env.STRIPE_PRICE_FONDATEURS] = 'fondateurs';
   if (process.env.STRIPE_PRICE_STANDARD) map[process.env.STRIPE_PRICE_STANDARD] = 'standard';
