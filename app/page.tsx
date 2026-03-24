@@ -130,7 +130,7 @@ function HomeKeiroInner() {
                             </div>
                           </div>
                           <div className="text-white text-[9px] font-bold mt-1.5">{a.name}</div>
-                          <div className="text-white/30 text-[7px]">{a.role}</div>
+                          <div className="text-white/30 text-[9px]">{a.role}</div>
                         </div>
                       ))}
                     </div>
@@ -159,9 +159,9 @@ function HomeKeiroInner() {
 
                 {/* Stats bar */}
                 <div className="flex items-center justify-center gap-4 py-2 border-t border-white/5">
-                  <div className="text-center"><div className="text-white font-bold text-xs">17</div><div className="text-white/25 text-[7px]">Agents</div></div>
-                  <div className="text-center"><div className="text-white font-bold text-xs">24/7</div><div className="text-white/25 text-[7px]">Actifs</div></div>
-                  <div className="text-center"><div className="text-white font-bold text-xs">{'\u{1F52E}'}</div><div className="text-white/25 text-[7px]">Super entraines</div></div>
+                  <div className="text-center"><div className="text-white font-bold text-xs">17</div><div className="text-white/30 text-[9px]">Agents</div></div>
+                  <div className="text-center"><div className="text-white font-bold text-xs">24/7</div><div className="text-white/30 text-[9px]">Actifs</div></div>
+                  <div className="text-center"><div className="text-white font-bold text-xs">{'\u{1F52E}'}</div><div className="text-white/30 text-[9px]">Super entraines</div></div>
                 </div>
               </div>
 
@@ -634,7 +634,7 @@ function HomeKeiroInner() {
               </h3>
             </div>
             <div className="p-5">
-              <div className="grid grid-cols-3 gap-2 mb-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
                 <div className="aspect-square rounded-lg overflow-hidden border border-[#0c1a3a]/10 shadow-sm">
                   <img
                     src="https://images.unsplash.com/photo-1611162616305-c69b3fa7fbe0?q=80&w=400&auto=format&fit=crop"
