@@ -2224,6 +2224,10 @@ async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftO
   // Map day names to dates
   const dayMap: Record<string, number> = { lundi: 1, mardi: 2, mercredi: 3, jeudi: 4, vendredi: 5, samedi: 6, dimanche: 0 };
 
+  // Get admin user id for content ownership
+  const { data: contentOwner } = await supabase.from('profiles').select('id').eq('is_admin', true).limit(1).maybeSingle();
+  const contentUserId = contentOwner?.id || null;
+
   let inserted = 0;
   for (const post of weekPlan) {
     const dayNum = dayMap[(post.day || '').toLowerCase()] ?? null;
@@ -2271,6 +2275,7 @@ async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftO
       scheduled_time: scheduledTime,
       status: draftOnly ? 'draft' : 'approved',
       ai_generated: true,
+      ...(contentUserId ? { user_id: contentUserId } : {}),
     });
 
     if (insertError) {
