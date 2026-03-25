@@ -801,6 +801,63 @@ export default function WorkspaceCrm({ isAdmin }: { isAdmin: boolean }) {
   const [selectedProspect, setSelectedProspect] = useState<Prospect | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
 
+  // ─── Export Excel ────
+  const exportToExcel = useCallback(async (data: Prospect[]) => {
+    try {
+      const XLSX = await import('xlsx');
+      const rows = data.map(p => ({
+        Nom: prospectName(p), Email: p.email, Telephone: p.phone, Entreprise: p.company,
+        Type: p.type, Statut: p.status, Temperature: p.temperature, Score: p.score,
+        Priorite: p.priorite, Source: p.source, Instagram: p.instagram, TikTok: p.tiktok,
+        Quartier: p.quartier, 'Note Google': p.note_google, 'Avis Google': p.avis_google,
+        Notes: p.notes, Tags: p.tags?.join(', '), 'Cree le': p.created_at?.split('T')[0],
+      }));
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Prospects');
+      XLSX.writeFile(wb, `prospects_${new Date().toISOString().split('T')[0]}.xlsx`);
+    } catch { alert('Erreur lors de l\'export'); }
+  }, []);
+
+  // ─── Import Excel/CSV ────
+  const importFromExcel = useCallback(async (file: File) => {
+    try {
+      const XLSX = await import('xlsx');
+      const data = await file.arrayBuffer();
+      const wb = XLSX.read(data);
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json<any>(ws);
+
+      let imported = 0;
+      for (const row of rows) {
+        const prospect: any = {};
+        if (row['Nom'] || row['first_name'] || row['nom']) {
+          const nameParts = (row['Nom'] || row['nom'] || '').split(' ');
+          prospect.first_name = row['first_name'] || row['prenom'] || row['Prenom'] || nameParts[0] || '';
+          prospect.last_name = row['last_name'] || nameParts.slice(1).join(' ') || '';
+        }
+        prospect.email = row['Email'] || row['email'] || row['E-mail'] || '';
+        prospect.phone = row['Telephone'] || row['phone'] || row['Tel'] || row['tel'] || '';
+        prospect.company = row['Entreprise'] || row['company'] || row['societe'] || row['Societe'] || '';
+        prospect.type = row['Type'] || row['type'] || '';
+        prospect.source = row['Source'] || row['source'] || 'import';
+        prospect.notes = row['Notes'] || row['notes'] || '';
+        prospect.instagram = row['Instagram'] || row['instagram'] || row['ig'] || '';
+
+        if (prospect.first_name || prospect.email || prospect.company) {
+          await fetch('/api/crm', {
+            method: 'POST', credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(prospect),
+          });
+          imported++;
+        }
+      }
+      alert(`${imported} prospect(s) importes avec succes`);
+      window.location.reload();
+    } catch { alert('Erreur lors de l\'import. Verifiez le format du fichier.'); }
+  }, []);
+
   // ─── Fetch ────
   const fetchData = useCallback(async () => {
     try {
@@ -901,6 +958,16 @@ export default function WorkspaceCrm({ isAdmin }: { isAdmin: boolean }) {
             className="bg-blue-500 text-white text-xs font-bold px-4 py-2 rounded-xl hover:bg-blue-600 transition whitespace-nowrap">
             + Prospect
           </button>
+          {/* Import/Export */}
+          <button onClick={() => exportToExcel(filtered)} title="Exporter Excel"
+            className="text-neutral-400 hover:text-green-500 text-xs px-2 py-2 rounded-xl border border-neutral-200 hover:border-green-300 transition">
+            📥 Export
+          </button>
+          <label title="Importer Excel/CSV"
+            className="text-neutral-400 hover:text-blue-500 text-xs px-2 py-2 rounded-xl border border-neutral-200 hover:border-blue-300 transition cursor-pointer">
+            📤 Import
+            <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={e => { if (e.target.files?.[0]) importFromExcel(e.target.files[0]); e.target.value = ''; }} />
+          </label>
         </div>
       </div>
 
