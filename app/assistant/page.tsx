@@ -35,13 +35,16 @@ function SortableAgentCard({ agent, avatars, summary, onClick }: {
 
   return (
     <div ref={setNodeRef} style={style} {...attributes}>
-      <button
-        onClick={onClick}
-        className="w-full rounded-2xl bg-white/[0.03] border border-white/10 hover:border-white/25 hover:bg-white/[0.06] transition-all text-left overflow-hidden group cursor-grab active:cursor-grabbing"
-        {...listeners}
-      >
-        <div className="h-1" style={{ background: `linear-gradient(90deg, ${agent.gradientFrom}, ${agent.gradientTo})` }} />
-        <div className="p-3">
+      <div className="w-full rounded-2xl bg-white/[0.03] border border-white/10 hover:border-white/25 hover:bg-white/[0.06] transition-all text-left overflow-hidden group relative">
+        {/* Drag handle — top gradient bar */}
+        <div
+          className="h-2 cursor-grab active:cursor-grabbing hover:h-3 transition-all"
+          style={{ background: `linear-gradient(90deg, ${agent.gradientFrom}, ${agent.gradientTo})` }}
+          {...listeners}
+          title="Glisser pour deplacer"
+        />
+        {/* Clickable content → opens agent */}
+        <button onClick={onClick} className="w-full text-left p-3">
           <div className="flex items-center gap-2.5 mb-2.5">
             <div className="w-10 h-10 rounded-full flex-shrink-0 overflow-hidden" style={{ background: `linear-gradient(135deg, ${agent.gradientFrom}, ${agent.gradientTo})`, padding: '2px' }}>
               <div className="w-full h-full rounded-full overflow-hidden bg-gray-900 flex items-center justify-center">
@@ -68,10 +71,10 @@ function SortableAgentCard({ agent, avatars, summary, onClick }: {
               ))}
             </div>
           ) : (
-            <div className="text-white/15 text-[9px]">Glissez pour reorganiser</div>
+            <div className="text-white/15 text-[9px]">↕ Glissez la barre pour reorganiser</div>
           )}
-        </div>
-      </button>
+        </button>
+      </div>
     </div>
   );
 }
