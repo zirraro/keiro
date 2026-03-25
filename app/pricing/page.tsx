@@ -565,13 +565,13 @@ function PricingPageInner() {
             </div>
             {/* Fondateurs card */}
             <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl border-2 border-amber-300 p-6 shadow-lg">
-              <h4 className="text-lg font-bold text-amber-900 mb-1">{"Accès Business complet, prix verrouillé à vie"}</h4>
+              <h4 className="text-lg font-bold text-amber-900 mb-1">{"Accès Business complet, prix verrouille jusqu au 25 mai 2026"}</h4>
               <p className="text-sm text-amber-600 font-semibold mb-4">Fondateurs Pro — 149€/mois après essai ⭐</p>
               <ul className="space-y-3 text-sm text-neutral-700">
                 <li><span className="font-semibold text-amber-700">{"C'est comme..."}</span> Avoir un directeur marketing à temps partiel</li>
                 <li><span className="font-semibold text-amber-700">{"Ça remplace..."}</span> Un graphiste (800€) + un CM (1 500€) + stats (100€) + Canva Pro (12€)</li>
                 <li><span className="font-semibold text-amber-700">{"En concret..."}</span> Tous les agents IA, CRM intégré, multi-comptes 1+5, 2 000 crédits/mois</li>
-                <li><span className="font-semibold text-amber-700">{"Ça coûte..."}</span> 200€ de moins que Business (349€) — prix verrouillé à vie</li>
+                <li><span className="font-semibold text-amber-700">{"Ça coûte..."}</span> 200€ de moins que Business (349€) — prix verrouille jusqu au 25 mai 2026</li>
                 <li><span className="font-semibold text-amber-700">{"C'est rentabilisé si..."}</span> 2 ventes en plus (boutique) / 7 couverts (resto)</li>
               </ul>
             </div>

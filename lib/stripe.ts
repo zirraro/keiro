@@ -37,22 +37,22 @@ export const SUBSCRIPTION_PLANS = ['createur', 'pro', 'fondateurs', 'standard', 
 export const ANNUAL_PLAN_SUFFIX = '_annual';
 
 // Mapping planKey → Stripe Price ID mensuel
-// 'createur' = alias pour 'pro' (même Price ID, plan Createur à 49€/mois)
+// CHAQUE plan a son propre Price ID — pas de fallback pour eviter les erreurs de tarif
 export function getPlanToPrice(): Record<string, string | undefined> {
   return {
-    createur: process.env.STRIPE_PRICE_CREATEUR || process.env.STRIPE_PRICE_PRO,
-    pro: process.env.STRIPE_PRICE_PRO,
-    fondateurs: process.env.STRIPE_PRICE_FONDATEURS,
+    createur: process.env.STRIPE_PRICE_CREATEUR,   // 49€/mois — price_1T3yBKBHEPG6p3au7pMCUeAL
+    pro: process.env.STRIPE_PRICE_PRO,              // 99€/mois — price_1TEasVBHEPG6p3auZVsNdo9t
+    fondateurs: process.env.STRIPE_PRICE_FONDATEURS, // 149€/mois — price_1T3y7QBHEPG6p3au0ODGBtvg
     standard: process.env.STRIPE_PRICE_STANDARD,
-    business: process.env.STRIPE_PRICE_BUSINESS,
-    elite: process.env.STRIPE_PRICE_ELITE,
+    business: process.env.STRIPE_PRICE_BUSINESS,    // 349€/mois — price_1T3yDuBHEPG6p3auEqX61jg8
+    elite: process.env.STRIPE_PRICE_ELITE,          // 999€/mois — price_1T3y9OBHEPG6p3audGOfSvEA
   };
 }
 
 // Mapping planKey → Stripe Price ID annuel
 export function getPlanToPriceAnnual(): Record<string, string | undefined> {
   return {
-    createur: process.env.STRIPE_PRICE_CREATEUR_ANNUAL || process.env.STRIPE_PRICE_PRO_ANNUAL,
+    createur: process.env.STRIPE_PRICE_CREATEUR_ANNUAL,
     pro: process.env.STRIPE_PRICE_PRO_ANNUAL,
     fondateurs: process.env.STRIPE_PRICE_FONDATEURS_ANNUAL,
     standard: process.env.STRIPE_PRICE_STANDARD_ANNUAL,

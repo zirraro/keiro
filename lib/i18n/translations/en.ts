@@ -234,7 +234,7 @@ export const en: Translations = {
     pricingBadge: '14 days free — all agents unlocked',
     pricingTitle: 'Plans & Pricing',
     pricingSubtitle: 'Choose the plan that fits your needs',
-    pricingFoundersNote: '*Founders Pro: €149/month for the first 50 sign-ups, then €349/month (Business)',
+    pricingFoundersNote: '*Founders Pro: €149/month for the sign-ups before May 25, 2026, then €349/month (Business)',
     sprintTrialTitle: '14-day free trial',
     sprintTrialDesc: 'All agents unlocked — card required, no charge for 14 days',
     sprintTrialNote: '€0 for 14 days • Card required • Cancel anytime',
@@ -567,7 +567,7 @@ export const en: Translations = {
     ctaTitle: 'Ready to transform your marketing?',
     ctaSubtitle: 'Join the first entrepreneurs automating their content with AI',
     ctaCta: 'Start for free →',
-    foundersNote: '*Founders Pro: €149/month = full Business access for the first 50 sign-ups. Price locked for life.',
+    foundersNote: '*Founders Pro: €149/month = full Business access for the sign-ups before May 25, 2026. Price locked for life.',
     // TikTok stats
     tiktokStat1Desc: 'More organic reach than Instagram',
     tiktokStat2Desc: 'Free views on 1 viral video',
