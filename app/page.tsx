@@ -1358,15 +1358,24 @@ function HomeKeiroInner() {
             </div>
           </div>
 
-          {/* Plans Grid — 3 plans principaux */}
-          <div className="grid md:grid-cols-3 gap-6 mb-6">
+          {/* Plans Grid — 4 plans principaux */}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <Plan
-              title={`💎 ${t.home.planProTitle}`}
-              price={billingPeriod === 'annual' ? `890€ ${t.common.perYear}` : `99€ ${t.common.perMonth}`}
+              title={`\uD83D\uDC8E ${locale === 'fr' ? 'Createur' : 'Creator'}`}
+              price={billingPeriod === 'annual' ? `490\u20AC ${t.common.perYear}` : `49\u20AC ${t.common.perMonth}`}
+              subtitle={locale === 'fr' ? 'Freelance & createur solo' : 'Freelance & solo creator'}
+              bullets={[locale === 'fr' ? '400 credits/mois' : '400 credits/month', locale === 'fr' ? 'Publication auto Instagram' : 'Auto-publish Instagram', locale === 'fr' ? 'Agent contenu + DM' : 'Content + DM agent']}
+              ctaLabel={locale === 'fr' ? 'Essai gratuit 14 jours' : 'Free trial 14 days'}
+              ctaOnClick={() => startCheckout(billingPeriod === 'annual' ? 'createur_annual' : 'createur')}
+            />
+
+            <Plan
+              title={`\uD83D\uDE80 ${t.home.planProTitle}`}
+              price={billingPeriod === 'annual' ? `990\u20AC ${t.common.perYear}` : `99\u20AC ${t.common.perMonth}`}
               priceNote={billingPeriod === 'annual' ? t.home.priceNotePro : undefined}
               subtitle={t.home.planProSubtitle}
               bullets={t.home.planProBullets}
-              ctaLabel={billingPeriod === 'annual' ? t.home.ctaProAnnual : 'Essai gratuit 14 jours'}
+              ctaLabel={billingPeriod === 'annual' ? t.home.ctaProAnnual : locale === 'fr' ? 'Essai gratuit 14 jours' : 'Free trial 14 days'}
               ctaOnClick={() => startCheckout(billingPeriod === 'annual' ? 'pro_annual' : 'pro')}
             />
 
