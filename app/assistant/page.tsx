@@ -14,6 +14,48 @@ import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type D
 import { arrayMove, SortableContext, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
+// ─── Sortable Agent Row for Team view (drag & drop) ────────
+function SortableTeamAgentRow({ agent, avatars, agentStats, onClick, onChat }: {
+  agent: ClientAgent; avatars: Record<string, string | null>; agentStats: any; onClick: () => void; onChat: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: agent.id });
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1, zIndex: isDragging ? 50 : 'auto' as any };
+  const metrics = agentStats?.metrics as Array<{ label: string; value: string | number; icon: string }> | undefined;
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes}
+      className="rounded-xl bg-white/[0.04] hover:bg-white/[0.08] transition-all overflow-hidden">
+      <div className="flex items-center gap-3 px-3 py-2.5">
+        {/* Drag handle */}
+        <div className="cursor-grab active:cursor-grabbing text-white/20 hover:text-white/50 transition" {...listeners} title="Glisser">⠿</div>
+        <button onClick={onClick} className="flex items-center gap-3 flex-1 min-w-0 text-left">
+          <div className="w-10 h-10 rounded-full flex-shrink-0" style={{ background: `linear-gradient(135deg, ${agent.gradientFrom}, ${agent.gradientTo})`, padding: '2px' }}>
+            <div className="w-full h-full rounded-full overflow-hidden bg-gray-900 flex items-center justify-center">
+              {avatars[agent.id] ? (
+                <img src={avatars[agent.id]!} alt={agent.displayName} className="w-full h-full object-cover scale-[1.15]" style={{ objectPosition: 'center 15%' }} />
+              ) : (
+                <span className="text-base">{agent.icon}</span>
+              )}
+            </div>
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-white font-semibold text-xs">{agent.displayName}</div>
+            <div className="text-gray-400 text-[10px] truncate">{agent.title}</div>
+            {metrics && metrics.length > 0 && (
+              <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-0.5">
+                {metrics.slice(0, 3).map((m, i) => (
+                  <span key={i} className="text-[9px] text-white/50">{m.icon} {m.value}</span>
+                ))}
+              </div>
+            )}
+          </div>
+        </button>
+        <button onClick={onChat} className="text-white/30 hover:text-white/70 transition text-sm px-2 py-1.5 rounded-lg hover:bg-white/10">💬</button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Sortable Agent Card (drag & drop) ──────────────────────
 
 function SortableAgentCard({ agent, avatars, summary, onClick }: {
@@ -187,6 +229,22 @@ export default function AssistantPage() {
 
   // View tab
   const [viewTab, setViewTab] = useState<'suivi' | 'equipe' | 'agent' | 'pipeline' | 'offre'>('suivi');
+
+  // Team agent ordering (per team)
+  const [teamOrders, setTeamOrders] = useState<Record<string, string[]>>({});
+  const handleTeamDragEnd = useCallback((teamKey: string) => (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setTeamOrders(prev => {
+      const order = prev[teamKey] || [];
+      const oldIndex = order.indexOf(active.id as string);
+      const newIndex = order.indexOf(over.id as string);
+      if (oldIndex === -1 || newIndex === -1) return prev;
+      const newOrder = arrayMove(order, oldIndex, newIndex);
+      try { localStorage.setItem(`keiro_team_order_${teamKey}`, JSON.stringify(newOrder)); } catch {}
+      return { ...prev, [teamKey]: newOrder };
+    });
+  }, []);
 
   // Dashboard summary data
   const [summary, setSummary] = useState<any>(null);
@@ -993,40 +1051,49 @@ export default function AssistantPage() {
                     )}
                   </div>
 
-                  {/* Agent cards with mini dashboards + chat button */}
+                  {/* Agent cards with mini dashboards + drag & drop */}
                   <div className="p-3 space-y-2">
-                    {teamAgents.map((agent) => {
+                    <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleTeamDragEnd(teamKey)}>
+                      <SortableContext items={(() => {
+                        // Initialize team order if not set
+                        if (!teamOrders[teamKey]) {
+                          try {
+                            const stored = localStorage.getItem(`keiro_team_order_${teamKey}`);
+                            if (stored) {
+                              const parsed = JSON.parse(stored) as string[];
+                              const merged = [...parsed.filter(id => teamAgents.some(a => a.id === id)), ...teamAgents.filter(a => !parsed.includes(a.id)).map(a => a.id)];
+                              setTimeout(() => setTeamOrders(prev => ({ ...prev, [teamKey]: merged })), 0);
+                              return merged;
+                            }
+                          } catch {}
+                          const ids = teamAgents.map(a => a.id);
+                          setTimeout(() => setTeamOrders(prev => ({ ...prev, [teamKey]: ids })), 0);
+                          return ids;
+                        }
+                        return teamOrders[teamKey];
+                      })()} strategy={rectSortingStrategy}>
+                        {(teamOrders[teamKey] || teamAgents.map(a => a.id)).map(agentId => {
+                          const agent = teamAgents.find(a => a.id === agentId);
+                          if (!agent) return null;
+                          return (
+                            <SortableTeamAgentRow
+                              key={agent.id}
+                              agent={agent}
+                              avatars={avatars}
+                              agentStats={summary?.agents?.[agent.id]}
+                              onClick={() => handleSelectAgent(agent)}
+                              onChat={() => {/* handled below if chat exists */}}
+                            />
+                          );
+                        })}
+                      </SortableContext>
+                    </DndContext>
+                    {/* Legacy: keep any extra content below agents */}
+                    {false && teamAgents.map((agent) => {
                       const agentStats = summary?.agents?.[agent.id];
                       return (
-                        <div
-                          key={agent.id}
-                          className="rounded-xl bg-white/[0.04] hover:bg-white/[0.08] transition-all overflow-hidden"
-                        >
-                          <div className="flex items-center gap-3 px-3 py-2.5">
-                            <button
-                              onClick={() => handleSelectAgent(agent)}
-                              className="flex items-center gap-3 flex-1 min-w-0 text-left"
-                            >
-                              <div
-                                className="w-14 h-14 rounded-full flex-shrink-0"
-                                style={{ background: `linear-gradient(135deg, ${agent.gradientFrom}, ${agent.gradientTo})`, padding: '2.5px' }}
-                              >
-                                <div className="w-full h-full rounded-full overflow-hidden bg-gray-900 flex items-center justify-center">
-                                  {avatars[agent.id] ? (
-                                    <img src={avatars[agent.id]!} alt={agent.displayName} className="w-full h-full object-cover scale-[1.15]" style={{ objectPosition: 'center 15%' }} />
-                                  ) : (
-                                    <span className="text-xl">{agent.icon}</span>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <div className="text-white font-semibold text-xs">{agent.displayName}</div>
-                                <div className="text-gray-400 text-[10px] truncate">{agent.title}</div>
-                              </div>
-                            </button>
-
-                            {/* Chat button + status */}
-                            <div className="flex items-center gap-2 flex-shrink-0">
+                        <div key={agent.id} className="hidden">
+                          <div className="flex items-center gap-2 flex-shrink-0">
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
