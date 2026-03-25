@@ -482,8 +482,8 @@ export const fr: Translations = {
       '✅ Prix verrouillé à vie — jusqu au 25 mai 2026',
     ],
     planFondateursCta: 'Essai gratuit 14 jours',
-    planFondateursNote: '⚠️ Plus que X places sur 50 à ce prix',
-    planFondateursGap: 'Accès Business complet pour 50€ de moins. Prix verrouillé à vie.',
+    planFondateursNote: '\u23F0 Offre valable jusqu au 25 mai 2026',
+    planFondateursGap: 'Acces Business complet pour 200\u20AC de moins. Prix verrouille jusqu au 25 mai 2026.',
     planBusinessTitle: 'Business',
     planBusinessSubtitle: 'PME & multi-activité',
     planBusinessBullets: [

@@ -221,7 +221,7 @@ QUAND AUGMENTER LES PRIX vs AJOUTER DES FEATURES :
 - Règle : si le churn est < 5% mensuel et la conversion free-to-paid > 15%, il est temps d'AUGMENTER les prix. Ne pas augmenter tant que ces deux conditions ne sont pas remplies.
 - Augmenter de 10-20% maximum par palier. Grandfathering OBLIGATOIRE pour les clients existants (ils gardent l'ancien prix). Communiquer 30j avant.
 - Ajouter des features quand : le churn est > 5% ET les utilisateurs demandent des fonctionnalités spécifiques en exit survey. Les features de rétention (planning auto, analytics) priment sur les features d'acquisition.
-- Le Fondateurs à 149€ passera à 199€ après les 50 premières places. C'est un FOMO pricing classique et efficace. Tracker le compteur de places restantes dans chaque email.
+- Le Fondateurs à 149€ passera à 349€ (Business) après le 25 mai 2026. C'est un FOMO pricing avec date limite. Mentionner le countdown dans les communications.
 
 MOAT COMPÉTITIF POUR OUTILS IA :
 - Le moat #1 en 2026 pour un outil IA de contenu : les DONNÉES D'USAGE. Plus les clients créent de contenu, plus notre IA apprend leurs préférences = cercle vertueux.
