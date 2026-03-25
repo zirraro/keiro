@@ -23,7 +23,7 @@ interface AgentTask { id: string; type: string; description: string; status: str
 
 // ─── Agent settings config per role ─────────────────────────
 
-interface SettingField { key: string; label: string; type: 'toggle' | 'select' | 'time' | 'number'; options?: { value: string; label: string }[]; default: any; description: string; }
+interface SettingField { key: string; label: string; type: 'toggle' | 'select' | 'time' | 'number' | 'text'; options?: { value: string; label: string }[]; default: any; description: string; }
 
 function getAgentSettings(agentId: string): SettingField[] {
   const common: SettingField[] = [
@@ -44,7 +44,8 @@ function getAgentSettings(agentId: string): SettingField[] {
       { key: 'reactivation_days', label: 'Reactivation apres (jours)', type: 'number', default: 30, description: 'Jours avant de reactiver un prospect sans reponse' },
       // Style
       { key: 'tone', label: 'Ton d\'ecriture', type: 'select', options: [{ value: 'friendly', label: 'Amical (tutoiement)' }, { value: 'formal', label: 'Professionnel (vouvoiement)' }, { value: 'casual', label: 'Decontracte' }, { value: 'premium', label: 'Premium/Luxe' }], default: 'friendly', description: 'Style d\'ecriture des emails' },
-      { key: 'signature', label: 'Signature', type: 'select', options: [{ value: 'founder', label: 'Nom du fondateur' }, { value: 'company', label: 'Nom de l\'entreprise' }, { value: 'team', label: 'L\'equipe + entreprise' }], default: 'founder', description: 'Comment signer les emails' },
+      { key: 'signature', label: 'Type de signature', type: 'select', options: [{ value: 'custom', label: 'Nom personnalise' }, { value: 'founder', label: 'Nom du fondateur (profil)' }, { value: 'company', label: 'Nom de l\'entreprise' }, { value: 'team', label: 'L\'equipe + entreprise' }], default: 'founder', description: 'Comment signer les emails' },
+      { key: 'signature_name', label: 'Nom de signature personnalise', type: 'text', default: '', description: 'Ex: Marie de MonBusiness. Utilise quand le type est "Nom personnalise"' },
       // Ciblage
       { key: 'target_types', label: 'Types de commerce cibles', type: 'select', options: [{ value: 'all', label: 'Tous' }, { value: 'restaurant', label: 'Restaurants' }, { value: 'boutique', label: 'Boutiques' }, { value: 'coach', label: 'Coaches' }, { value: 'beauty', label: 'Beaute/Coiffure' }], default: 'all', description: 'Cibler un type specifique de prospect' },
       { key: 'min_score', label: 'Score minimum', type: 'number', default: 0, description: 'N\'envoyer qu\'aux prospects avec ce score minimum' },
@@ -707,6 +708,16 @@ export default function AgentWorkspacePage() {
                         onChange={e => setSettings(prev => ({ ...prev, [field.key]: parseInt(e.target.value) || 0 }))}
                         className="bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-[11px] text-white/70 focus:outline-none focus:ring-1 focus:ring-purple-500/50 flex-shrink-0 w-20 text-center"
                         min={0}
+                      />
+                    )}
+
+                    {field.type === 'text' && (
+                      <input
+                        type="text"
+                        value={settings[field.key] ?? field.default}
+                        onChange={e => setSettings(prev => ({ ...prev, [field.key]: e.target.value }))}
+                        placeholder={field.description}
+                        className="bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-[11px] text-white/70 focus:outline-none focus:ring-1 focus:ring-purple-500/50 flex-1 min-w-[150px]"
                       />
                     )}
                   </div>
