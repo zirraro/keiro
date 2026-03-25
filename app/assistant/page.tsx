@@ -1093,44 +1093,7 @@ export default function AssistantPage() {
                         })}
                       </SortableContext>
                     </DndContext>
-                    {/* Legacy: keep any extra content below agents */}
-                    {false && teamAgents.map((agent) => {
-                      const agentStats = summary?.agents?.[agent.id];
-                      return (
-                        <div key={agent.id} className="hidden">
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleOpenChat(agent);
-                                }}
-                                className="flex items-center gap-1 px-2.5 py-1.5 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 rounded-lg text-purple-300 text-[10px] font-medium transition-all"
-                                title={`Discuter avec ${agent.displayName}`}
-                              >
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                                </svg>
-                                Chat
-                              </button>
-                              <div className="w-2 h-2 rounded-full flex-shrink-0 bg-green-400" />
-                            </div>
-                          </div>
-
-                          {/* Mini dashboard metrics */}
-                          {agentStats?.metrics && agentStats.metrics.length > 0 && (
-                            <div className="px-3 pb-2.5 flex items-center gap-3 flex-wrap">
-                              {(agentStats.metrics as Array<{ label: string; value: string | number; icon: string }>).map((m, i) => (
-                                <div key={i} className="flex items-center gap-1">
-                                  <span className="text-[10px]">{m.icon}</span>
-                                  <span className="text-white/80 text-[10px] font-bold">{m.value}</span>
-                                  <span className="text-white/30 text-[9px]">{m.label}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                    {/* Agent cards rendered by SortableTeamAgentRow above */}
                   </div>
 
                   {/* CRM button (Commercial team only) — opens full screen */}
