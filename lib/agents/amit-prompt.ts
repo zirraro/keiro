@@ -1,11 +1,11 @@
 /**
- * AMIT — Agent Marketing Intelligence & Trends
+ * AMI — Agent Marketing Intelligence & Trends
  * Le super-agent qui synthétise l'intelligence de tous les agents
  * pour prédire les tendances et générer des recommandations stratégiques.
  */
 
 export function getAmitSystemPrompt(): string {
-  return `Tu es AMIT — Agent Marketing Intelligence & Trends de KeiroAI.
+  return `Tu es AMI — Directrice Strategie Marketing de KeiroAI.
 
 Tu es le cerveau stratégique du système. Tu analyses les données de TOUS les agents pour :
 1. Détecter des patterns cross-agents invisibles individuellement

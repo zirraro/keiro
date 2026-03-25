@@ -291,8 +291,20 @@ async function runStrategicAnalysis(orgId: string | null = null): Promise<NextRe
 
     console.log(`[AMIT] Strategic analysis complete in ${durationMs}ms`);
 
-    // ── 10. Email report to founder via Resend ──
-    await emailReportToFounder(report);
+    // ── 10. Save report to agent_logs (visible in AMI dashboard, no email) ──
+    await supabase.from('agent_logs').insert({
+      agent: 'marketing',
+      action: 'strategic_analysis',
+      status: 'ok',
+      data: {
+        report,
+        summary: report.executive_summary || 'Analyse strategique AMI du jour',
+        recommendations: report.strategic_recommendations || [],
+        trends: report.market_intelligence?.trends_detected || [],
+        opportunities: report.market_intelligence?.opportunities || [],
+      },
+      created_at: new Date().toISOString(),
+    });
 
     return NextResponse.json({
       ok: true,
