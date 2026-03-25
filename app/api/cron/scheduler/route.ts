@@ -185,13 +185,15 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'content_2':
-      // 13:30 UTC — Content: 2nd post of the day (midday pillar)
+      // 13:30 UTC — Content: 2nd post of the day (midday pillar) + PUBLISH
       await callEndpoint('Content (midday)', '/api/agents/content?slot=midday');
+      await callEndpoint('Publish midday content', '/api/agents/content', 'POST', { action: 'execute_publication' });
       break;
 
     case 'content_3':
-      // 17:30 UTC — Content: 3rd post of the day (evening pillar)
+      // 17:30 UTC — Content: 3rd post of the day (evening pillar) + PUBLISH
       await callEndpoint('Content (evening)', '/api/agents/content?slot=evening');
+      await callEndpoint('Publish evening content', '/api/agents/content', 'POST', { action: 'execute_publication' });
       break;
 
     case 'content_tiktok':
@@ -356,13 +358,15 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'morning_prep':
-      // 07:00 UTC — DM prep (IG only) + SEO + Content (staggered to avoid resource contention)
+      // 07:00 UTC — DM prep (IG only) + SEO + Content matin + PUBLISH
       fireBackground(async () => {
         await callEndpoint('DM Instagram (morning)', '/api/agents/dm-instagram?slot=morning', 'POST');
         await delay(15000);
         await callEndpoint('SEO', '/api/agents/seo');
         await delay(15000);
-        await callEndpoint('Content', '/api/agents/content?slot=morning');
+        await callEndpoint('Content (morning)', '/api/agents/content?slot=morning');
+        await delay(10000);
+        await callEndpoint('Publish morning content', '/api/agents/content', 'POST', { action: 'execute_publication' });
       });
       results.push({ task: 'Morning Prep', ok: true, data: { status: 'dispatched_background' } });
       break;
