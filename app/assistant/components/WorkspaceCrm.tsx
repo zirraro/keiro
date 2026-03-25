@@ -275,7 +275,7 @@ function ProspectRow({ prospect, activities, onSelect, isSelected }: {
 function ProspectDetail({ prospect, activities, onClose, onUpdate }: {
   prospect: Prospect; activities: Activity[]; onClose: () => void; onUpdate: () => void;
 }) {
-  const [tab, setTab] = useState<'timeline' | 'info' | 'emails' | 'social'>('timeline');
+  const [tab, setTab] = useState<'timeline' | 'info' | 'emails' | 'social' | 'agents'>('timeline');
   const [addingActivity, setAddingActivity] = useState(false);
   const [actForm, setActForm] = useState({ type: 'note', description: '', resultat: '' });
   const [saving, setSaving] = useState(false);
@@ -324,6 +324,7 @@ function ProspectDetail({ prospect, activities, onClose, onUpdate }: {
     { key: 'info', label: 'Infos', icon: '👤' },
     { key: 'emails', label: 'Emails', icon: '📧' },
     { key: 'social', label: 'Social', icon: '📱' },
+    { key: 'agents', label: 'Agents', icon: '🤖' },
   ];
 
   return (
@@ -615,6 +616,63 @@ function ProspectDetail({ prospect, activities, onClose, onUpdate }: {
               {!prospect.instagram && !prospect.tiktok && !prospect.website && (
                 <p className="text-center text-sm text-neutral-400 py-8">Aucun reseau social renseigne</p>
               )}
+            </div>
+          )}
+
+          {/* ── AGENTS TAB ── */}
+          {tab === 'agents' && (
+            <div className="space-y-4">
+              <h4 className="text-xs font-bold text-neutral-400 uppercase">Actions des agents sur ce prospect</h4>
+              {/* Group activities by agent */}
+              {(() => {
+                const byAgent: Record<string, Activity[]> = {};
+                prospectActivities.forEach(act => {
+                  const agent = act.data?.agent || act.type || 'autre';
+                  if (!byAgent[agent]) byAgent[agent] = [];
+                  byAgent[agent].push(act);
+                });
+
+                const agents = Object.entries(byAgent);
+                if (agents.length === 0) return <p className="text-center text-sm text-neutral-400 py-8">Aucune action d agent enregistree</p>;
+
+                return agents.map(([agent, acts]) => (
+                  <div key={agent} className="bg-neutral-50 dark:bg-neutral-800 rounded-xl p-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-sm">{ACTIVITY_TYPES.find(t => t.key === agent)?.icon || '🤖'}</span>
+                      <span className="text-xs font-bold text-neutral-700 dark:text-neutral-200 capitalize">{agent.replace(/_/g, ' ')}</span>
+                      <span className="text-[10px] bg-neutral-200 dark:bg-neutral-700 px-1.5 py-0.5 rounded-full text-neutral-500">{acts.length}</span>
+                    </div>
+                    <div className="space-y-1">
+                      {acts.slice(0, 5).map(act => (
+                        <div key={act.id} className="text-xs text-neutral-500 flex items-center gap-2">
+                          <span className="text-neutral-300">{timeAgo(act.date_activite || act.created_at)}</span>
+                          <span className="flex-1 truncate">{act.description || act.resultat || '-'}</span>
+                          {act.resultat && (
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded shrink-0 ${
+                              act.resultat === 'interesse' || act.resultat === 'rdv_pris' ? 'bg-green-100 text-green-700' :
+                              act.resultat === 'pas_interesse' ? 'bg-red-100 text-red-600' : 'bg-neutral-100 text-neutral-500'
+                            }`}>{act.resultat.replace(/_/g, ' ')}</span>
+                          )}
+                        </div>
+                      ))}
+                      {acts.length > 5 && <p className="text-[10px] text-neutral-400">+{acts.length - 5} autres actions...</p>}
+                    </div>
+                  </div>
+                ));
+              })()}
+
+              {/* Agent interaction summary */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-3">
+                <h5 className="text-xs font-bold text-blue-600 dark:text-blue-400 mb-2">Resume interactions</h5>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div><span className="text-neutral-400">Emails envoyes:</span> <span className="font-bold">{prospectActivities.filter(a => a.type === 'email').length}</span></div>
+                  <div><span className="text-neutral-400">DMs envoyes:</span> <span className="font-bold">{prospectActivities.filter(a => a.type === 'dm_instagram').length}</span></div>
+                  <div><span className="text-neutral-400">Appels:</span> <span className="font-bold">{prospectActivities.filter(a => a.type === 'appel').length}</span></div>
+                  <div><span className="text-neutral-400">Relances:</span> <span className="font-bold">{prospectActivities.filter(a => a.type === 'relance').length}</span></div>
+                  <div><span className="text-neutral-400">Total actions:</span> <span className="font-bold">{prospectActivities.length}</span></div>
+                  <div><span className="text-neutral-400">Derniere:</span> <span className="font-bold">{prospectActivities[0] ? timeAgo(prospectActivities[0].date_activite || prospectActivities[0].created_at) : '-'}</span></div>
+                </div>
+              </div>
             </div>
           )}
         </div>
