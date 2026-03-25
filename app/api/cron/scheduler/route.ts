@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import { autoImprove } from '@/lib/agents/auto-improve';
 import { processEventPipeline } from '@/lib/agents/event-bus';
 import { analyzeAndFix } from '@/lib/agents/auto-fix';
+import { sendCeoGroupReport } from '@/lib/agents/ceo-group';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -317,6 +318,12 @@ export async function GET(request: NextRequest) {
             if (fixes.length > 0) console.log(`[Scheduler/ceo] Auto-fix: ${fixes.filter(f => f.success).length}/${fixes.length} fixes applied`);
           }
         } catch (e: any) { console.error('[Scheduler/ceo] Auto-fix error:', e.message?.substring(0, 200)); }
+
+        // Phase 1.6: CEO Group report — aggregate all client reports → admin code recommendations
+        try {
+          await sendCeoGroupReport(aiSupabase);
+          console.log('[Scheduler/ceo] CEO Group report sent to admin');
+        } catch (e: any) { console.error('[Scheduler/ceo] CEO Group error:', e.message?.substring(0, 200)); }
       });
       // Phase 2: CEO brief + orders (separate background to avoid timeout)
       fireBackground(async () => {
@@ -395,11 +402,14 @@ export async function GET(request: NextRequest) {
         } catch (e: any) { console.error('[Scheduler/ceo_evening] Event pipeline error:', e.message?.substring(0, 200)); }
         await delay(5000);
         await callEndpoint('CEO Status Report PM', '/api/agents/ceo-reports?type=status', 'POST');
+        await delay(5000);
+        // CEO Group report PM
+        try { await sendCeoGroupReport(aiSupabase); } catch {}
         await delay(10000);
         await callEndpoint('CEO Brief (afternoon)', '/api/agents/ceo');
         await callEndpoint('Execute Orders', '/api/agents/orders');
       });
-      results.push({ task: 'CEO Brief PM + Orders', ok: true, data: { status: 'dispatched_background' } });
+      results.push({ task: 'CEO Brief PM + Orders + Group', ok: true, data: { status: 'dispatched_background' } });
       break;
 
     case 'evening':
@@ -497,8 +507,12 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'ops':
-      // 22:00 UTC — Ops Health Check (end-of-day system diagnostic)
+      // 22:00 UTC — Ops Health Check + CEO Group evening report
       await callEndpoint('Ops Health Check', '/api/agents/ops', 'POST', { action: 'health_check' });
+      // 3eme rapport CEO Group de la journee (bilan complet)
+      fireBackground(async () => {
+        try { await sendCeoGroupReport(aiSupabase); } catch {}
+      });
       break;
 
     case 'gmaps':
