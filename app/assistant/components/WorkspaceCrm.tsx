@@ -912,8 +912,85 @@ export default function WorkspaceCrm({ isAdmin }: { isAdmin: boolean }) {
   if (loading) return <div className="flex items-center justify-center py-20"><div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full" /></div>;
   if (error) return <div className="text-center py-16"><p className="text-neutral-400 mb-4">{error}</p><button onClick={fetchData} className="text-blue-500 text-sm hover:underline">Reessayer</button></div>;
 
+  // CRM view toggle
+  const [crmView, setCrmView] = useState<'prospects' | 'tasks'>('prospects');
+
   return (
     <div className="space-y-4">
+      {/* ─── CRM View Toggle ─── */}
+      <div className="flex items-center gap-1 bg-neutral-100 dark:bg-neutral-800 rounded-xl p-1">
+        <button onClick={() => setCrmView('prospects')}
+          className={`flex-1 py-2 rounded-lg text-xs font-semibold transition ${crmView === 'prospects' ? 'bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white shadow-sm' : 'text-neutral-400'}`}>
+          👥 Prospects ({stats.total})
+        </button>
+        <button onClick={() => setCrmView('tasks')}
+          className={`flex-1 py-2 rounded-lg text-xs font-semibold transition ${crmView === 'tasks' ? 'bg-white dark:bg-neutral-700 text-neutral-900 dark:text-white shadow-sm' : 'text-neutral-400'}`}>
+          📋 Taches agents
+        </button>
+      </div>
+
+      {/* ─── TASKS VIEW ─── */}
+      {crmView === 'tasks' && (
+        <div className="space-y-3">
+          <p className="text-xs text-neutral-400">Activites recentes de vos agents (24h)</p>
+          {activities.length === 0 ? (
+            <p className="text-center text-sm text-neutral-400 py-8">Aucune activite recente</p>
+          ) : (
+            <div className="space-y-2">
+              {/* Group by agent */}
+              {(() => {
+                const byAgent: Record<string, Activity[]> = {};
+                activities.slice(0, 100).forEach(act => {
+                  const agent = act.data?.agent || act.type || 'autre';
+                  if (!byAgent[agent]) byAgent[agent] = [];
+                  byAgent[agent].push(act);
+                });
+                return Object.entries(byAgent).map(([agent, acts]) => (
+                  <div key={agent} className="bg-white dark:bg-neutral-900 rounded-xl border border-neutral-200 dark:border-neutral-800 overflow-hidden">
+                    <div className="px-3 py-2 bg-neutral-50 dark:bg-neutral-800/50 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm">{ACTIVITY_TYPES.find(t => t.key === agent)?.icon || '🤖'}</span>
+                        <span className="text-xs font-bold text-neutral-700 dark:text-neutral-200 capitalize">{agent.replace(/_/g, ' ')}</span>
+                      </div>
+                      <span className="text-[10px] bg-blue-100 dark:bg-blue-900/30 text-blue-600 px-2 py-0.5 rounded-full">{acts.length} actions</span>
+                    </div>
+                    <div className="divide-y divide-neutral-50 dark:divide-neutral-800">
+                      {acts.slice(0, 5).map(act => {
+                        const prospect = prospects.find(p => p.id === act.prospect_id);
+                        return (
+                          <div key={act.id} className="px-3 py-2 flex items-center gap-3 hover:bg-neutral-50 dark:hover:bg-neutral-800/30 transition">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-neutral-700 dark:text-neutral-300 truncate">{act.description || '-'}</span>
+                                {act.resultat && (
+                                  <span className={`text-[9px] px-1.5 py-0.5 rounded shrink-0 ${
+                                    act.resultat === 'interesse' || act.resultat === 'rdv_pris' ? 'bg-green-100 text-green-700' :
+                                    act.resultat === 'pas_interesse' ? 'bg-red-100 text-red-600' : 'bg-neutral-100 text-neutral-500'
+                                  }`}>{act.resultat.replace(/_/g, ' ')}</span>
+                                )}
+                              </div>
+                              {prospect && (
+                                <button onClick={() => setSelectedProspect(prospect)} className="text-[10px] text-blue-500 hover:underline mt-0.5">
+                                  → {prospectName(prospect)}
+                                </button>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-neutral-400 shrink-0">{timeAgo(act.date_activite || act.created_at)}</span>
+                          </div>
+                        );
+                      })}
+                      {acts.length > 5 && <div className="px-3 py-1.5 text-[10px] text-neutral-400 text-center">+{acts.length - 5} autres</div>}
+                    </div>
+                  </div>
+                ));
+              })()}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── PROSPECTS VIEW ─── */}
+      {crmView === 'prospects' && <>
       {/* ─── KPI Row ─── */}
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
         <KpiCard label="Total" value={stats.total} sub={`+${stats.thisWeek} cette semaine`} icon="👥" color="#3b82f6"
@@ -1022,7 +1099,9 @@ export default function WorkspaceCrm({ isAdmin }: { isAdmin: boolean }) {
         </div>
       )}
 
-      {/* ─── Prospect Detail Slide ─── */}
+      </>}
+
+      {/* ─── Prospect Detail Slide (visible in both views) ─── */}
       {selectedProspect && (
         <ProspectDetail
           prospect={selectedProspect}
