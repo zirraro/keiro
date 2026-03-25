@@ -10,6 +10,71 @@ import DossierBanner from './components/DossierBanner';
 import ComingSoonBanner from './components/ComingSoonBanner';
 import AgentTeams from './components/AgentTeams';
 import WorkspaceCrm from './components/WorkspaceCrm';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+// ─── Sortable Agent Card (drag & drop) ──────────────────────
+
+function SortableAgentCard({ agent, avatars, summary, onClick }: {
+  agent: ClientAgent;
+  avatars: Record<string, string | null>;
+  summary: any;
+  onClick: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: agent.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 50 : 'auto' as any,
+  };
+
+  const agentStats = summary?.agents?.[agent.id];
+  const metrics = agentStats?.metrics as Array<{ label: string; value: string | number; icon: string }> | undefined;
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes}>
+      <button
+        onClick={onClick}
+        className="w-full rounded-2xl bg-white/[0.03] border border-white/10 hover:border-white/25 hover:bg-white/[0.06] transition-all text-left overflow-hidden group cursor-grab active:cursor-grabbing"
+        {...listeners}
+      >
+        <div className="h-1" style={{ background: `linear-gradient(90deg, ${agent.gradientFrom}, ${agent.gradientTo})` }} />
+        <div className="p-3">
+          <div className="flex items-center gap-2.5 mb-2.5">
+            <div className="w-10 h-10 rounded-full flex-shrink-0 overflow-hidden" style={{ background: `linear-gradient(135deg, ${agent.gradientFrom}, ${agent.gradientTo})`, padding: '2px' }}>
+              <div className="w-full h-full rounded-full overflow-hidden bg-gray-900 flex items-center justify-center">
+                {avatars[agent.id] ? (
+                  <img src={avatars[agent.id]!} alt={agent.displayName} className="w-full h-full object-cover scale-[1.15]" style={{ objectPosition: 'center 15%' }} />
+                ) : (
+                  <span className="text-base">{agent.icon}</span>
+                )}
+              </div>
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-white font-bold text-xs truncate">{agent.displayName}</div>
+              <div className="text-white/30 text-[9px] truncate">{agent.title}</div>
+            </div>
+            <div className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0 opacity-60 group-hover:opacity-100 transition-opacity" />
+          </div>
+          {metrics && metrics.length > 0 ? (
+            <div className="flex flex-wrap gap-x-3 gap-y-1">
+              {metrics.slice(0, 3).map((m, i) => (
+                <div key={i} className="flex items-center gap-1">
+                  <span className="text-[9px]">{m.icon}</span>
+                  <span className="text-white/70 text-[10px] font-bold">{m.value}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-white/15 text-[9px]">Glissez pour reorganiser</div>
+          )}
+        </div>
+      </button>
+    </div>
+  );
+}
 
 // ─── Types ─────────────────────────────────────────────────
 
@@ -126,6 +191,39 @@ export default function AssistantPage() {
 
   // Agent questions/notifications
   const [agentQuestions, setAgentQuestions] = useState<Array<{ agent: string; agent_name: string; question: string; id: string }>>([]);
+
+  // Agent order (drag & drop)
+  const [agentOrder, setAgentOrder] = useState<string[]>([]);
+  const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+
+  // Init agent order from agents list or localStorage
+  useEffect(() => {
+    if (agents.length === 0) return;
+    const visible = agents.filter(a => a.visibility !== 'background');
+    try {
+      const stored = localStorage.getItem('keiro_agent_order');
+      if (stored) {
+        const parsed = JSON.parse(stored) as string[];
+        // Merge: keep stored order, add new agents at end
+        const merged = [...parsed.filter(id => visible.some(a => a.id === id)), ...visible.filter(a => !parsed.includes(a.id)).map(a => a.id)];
+        setAgentOrder(merged);
+        return;
+      }
+    } catch {}
+    setAgentOrder(visible.map(a => a.id));
+  }, [agents]);
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setAgentOrder(prev => {
+      const oldIndex = prev.indexOf(active.id as string);
+      const newIndex = prev.indexOf(over.id as string);
+      const newOrder = arrayMove(prev, oldIndex, newIndex);
+      try { localStorage.setItem('keiro_agent_order', JSON.stringify(newOrder)); } catch {}
+      return newOrder;
+    });
+  }, []);
 
   // CRM expanded state
   const [crmExpanded, setCrmExpanded] = useState(false);
@@ -728,57 +826,26 @@ export default function AssistantPage() {
               </div>
             ) : (
               <>
-                {/* Agent cards — visual grid with KPIs per agent */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {agents.filter(a => a.visibility !== 'background').map(agent => {
-                    const agentStats = summary?.agents?.[agent.id];
-                    const metrics = agentStats?.metrics as Array<{ label: string; value: string | number; icon: string }> | undefined;
-                    return (
-                      <button
-                        key={agent.id}
-                        onClick={() => handleSelectAgent(agent)}
-                        className="rounded-2xl bg-white/[0.03] border border-white/10 hover:border-white/25 hover:bg-white/[0.06] transition-all text-left overflow-hidden group"
-                      >
-                        {/* Gradient top bar */}
-                        <div className="h-1" style={{ background: `linear-gradient(90deg, ${agent.gradientFrom}, ${agent.gradientTo})` }} />
-
-                        <div className="p-3">
-                          {/* Avatar + name */}
-                          <div className="flex items-center gap-2.5 mb-2.5">
-                            <div className="w-10 h-10 rounded-full flex-shrink-0 overflow-hidden" style={{ background: `linear-gradient(135deg, ${agent.gradientFrom}, ${agent.gradientTo})`, padding: '2px' }}>
-                              <div className="w-full h-full rounded-full overflow-hidden bg-gray-900 flex items-center justify-center">
-                                {avatars[agent.id] ? (
-                                  <img src={avatars[agent.id]!} alt={agent.displayName} className="w-full h-full object-cover scale-[1.15]" style={{ objectPosition: 'center 15%' }} />
-                                ) : (
-                                  <span className="text-base">{agent.icon}</span>
-                                )}
-                              </div>
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="text-white font-bold text-xs truncate">{agent.displayName}</div>
-                              <div className="text-white/30 text-[9px] truncate">{agent.title}</div>
-                            </div>
-                            <div className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0 opacity-60 group-hover:opacity-100 transition-opacity" />
-                          </div>
-
-                          {/* Mini KPIs */}
-                          {metrics && metrics.length > 0 ? (
-                            <div className="flex flex-wrap gap-x-3 gap-y-1">
-                              {metrics.slice(0, 3).map((m, i) => (
-                                <div key={i} className="flex items-center gap-1">
-                                  <span className="text-[9px]">{m.icon}</span>
-                                  <span className="text-white/70 text-[10px] font-bold">{m.value}</span>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="text-white/15 text-[9px]">Cliquer pour voir le detail</div>
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
+                {/* Agent cards — drag & drop grid */}
+                <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                  <SortableContext items={agentOrder} strategy={rectSortingStrategy}>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                      {agentOrder.map(agentId => {
+                        const agent = agents.find(a => a.id === agentId);
+                        if (!agent || agent.visibility === 'background') return null;
+                        return (
+                          <SortableAgentCard
+                            key={agent.id}
+                            agent={agent}
+                            avatars={avatars}
+                            summary={summary}
+                            onClick={() => handleSelectAgent(agent)}
+                          />
+                        );
+                      })}
+                    </div>
+                  </SortableContext>
+                </DndContext>
 
                 {/* Bottom section: CRM snapshot + Activity feed */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
