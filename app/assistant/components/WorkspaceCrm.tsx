@@ -18,9 +18,21 @@ interface Prospect {
   priorite: string;
   source: string;
   instagram: string;
+  tiktok: string;
+  website: string;
   notes: string;
   tags: string[];
+  quartier: string;
+  note_google: number;
+  avis_google: number;
+  abonnes: number;
+  email_sequence_step: number;
+  email_opens_count: number;
+  email_clicks_count: number;
+  last_email_sent_at: string;
+  last_email_opened_at: string;
   created_at: string;
+  updated_at: string;
 }
 
 interface Activity {
@@ -30,43 +42,43 @@ interface Activity {
   description: string;
   resultat: string;
   date_activite: string;
+  data: any;
+  created_at: string;
 }
 
-interface WorkspaceCrmProps {
-  isAdmin: boolean;
-}
+type CrmView = 'dashboard' | 'pipeline' | 'list' | 'prospect';
 
 // ─── Constants ──────────────────────────────────────────
 
 const PIPELINE_STAGES = [
-  { key: 'identifie', label: 'Identifie', color: 'bg-slate-500' },
-  { key: 'contacte', label: 'Contacte', color: 'bg-blue-500' },
-  { key: 'repondu', label: 'Repondu', color: 'bg-emerald-500' },
-  { key: 'demo', label: 'Demo', color: 'bg-violet-500' },
-  { key: 'sprint', label: 'Sprint', color: 'bg-purple-500' },
-  { key: 'client', label: 'Client', color: 'bg-green-500' },
-  { key: 'perdu', label: 'Perdu', color: 'bg-red-500/70' },
+  { key: 'identifie', label: 'Identifie', color: '#64748b', emoji: '🔍' },
+  { key: 'contacte', label: 'Contacte', color: '#3b82f6', emoji: '📤' },
+  { key: 'relance_1', label: 'Relance 1', color: '#f59e0b', emoji: '🔄' },
+  { key: 'relance_2', label: 'Relance 2', color: '#f97316', emoji: '🔄' },
+  { key: 'relance_3', label: 'Relance 3', color: '#ef4444', emoji: '🔄' },
+  { key: 'repondu', label: 'Repondu', color: '#10b981', emoji: '✅' },
+  { key: 'demo', label: 'Demo', color: '#8b5cf6', emoji: '🎯' },
+  { key: 'sprint', label: 'Essai', color: '#a855f7', emoji: '🚀' },
+  { key: 'client', label: 'Client', color: '#22c55e', emoji: '💎' },
+  { key: 'perdu', label: 'Perdu', color: '#ef4444', emoji: '❌' },
 ];
 
-const TEMP_CONFIG: Record<string, { emoji: string; label: string; bg: string; text: string }> = {
-  hot:  { emoji: '\uD83D\uDD25', label: 'Hot',  bg: 'bg-red-500/20',    text: 'text-red-400' },
-  warm: { emoji: '\uD83C\uDF21\uFE0F', label: 'Warm', bg: 'bg-orange-500/20', text: 'text-orange-400' },
-  cold: { emoji: '\u2744\uFE0F', label: 'Cold', bg: 'bg-blue-500/20',   text: 'text-blue-400' },
-  dead: { emoji: '\uD83D\uDC80', label: 'Dead', bg: 'bg-gray-500/20',   text: 'text-gray-400' },
+const TEMP_CONFIG: Record<string, { emoji: string; label: string; color: string; bg: string }> = {
+  hot:  { emoji: '🔥', label: 'Hot',  color: '#ef4444', bg: 'bg-red-500/10' },
+  warm: { emoji: '🌡️', label: 'Warm', color: '#f59e0b', bg: 'bg-amber-500/10' },
+  cold: { emoji: '❄️', label: 'Cold', color: '#3b82f6', bg: 'bg-blue-500/10' },
+  dead: { emoji: '💀', label: 'Dead', color: '#6b7280', bg: 'bg-gray-500/10' },
 };
 
-const SOURCES = [
-  'dm_instagram', 'email', 'telephone', 'linkedin', 'terrain',
-  'facebook', 'tiktok', 'recommandation', 'other',
-];
-
 const ACTIVITY_TYPES = [
-  { key: 'appel', label: 'Appel', icon: '\uD83D\uDCDE' },
-  { key: 'email', label: 'Email', icon: '\uD83D\uDCE7' },
-  { key: 'dm_instagram', label: 'DM Instagram', icon: '\uD83D\uDCF8' },
-  { key: 'rdv', label: 'RDV', icon: '\uD83D\uDCC5' },
-  { key: 'relance', label: 'Relance', icon: '\uD83D\uDD04' },
-  { key: 'note', label: 'Note', icon: '\uD83D\uDCDD' },
+  { key: 'appel', label: 'Appel', icon: '📞' },
+  { key: 'email', label: 'Email', icon: '📧' },
+  { key: 'dm_instagram', label: 'DM Instagram', icon: '📸' },
+  { key: 'rdv', label: 'RDV', icon: '📅' },
+  { key: 'relance', label: 'Relance', icon: '🔄' },
+  { key: 'note', label: 'Note', icon: '📝' },
+  { key: 'visite', label: 'Visite', icon: '🏪' },
+  { key: 'message', label: 'Message', icon: '💬' },
 ];
 
 const RESULT_OPTIONS = [
@@ -77,7 +89,11 @@ const RESULT_OPTIONS = [
   { key: 'pas_de_reponse', label: 'Pas de reponse' },
   { key: 'rappeler', label: 'A rappeler' },
   { key: 'pas_interesse', label: 'Pas interesse' },
+  { key: 'mauvais_moment', label: 'Mauvais moment' },
 ];
+
+const SOURCES = ['dm_instagram', 'email', 'telephone', 'linkedin', 'terrain', 'facebook', 'tiktok', 'recommandation', 'import', 'other'];
+const SOURCE_LABELS: Record<string, string> = { dm_instagram: 'DM Instagram', email: 'Email', telephone: 'Telephone', linkedin: 'LinkedIn', terrain: 'Terrain', facebook: 'Facebook', tiktok: 'TikTok', recommandation: 'Recommandation', import: 'Import', other: 'Autre' };
 
 // ─── Helpers ────────────────────────────────────────────
 
@@ -85,669 +101,786 @@ function timeAgo(iso: string): string {
   if (!iso) return '';
   const diffMs = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diffMs / 60000);
-  if (mins < 60) return `${mins}m`;
+  if (mins < 60) return `${mins}min`;
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs}h`;
   const days = Math.floor(hrs / 24);
-  return `${days}j`;
+  if (days < 30) return `${days}j`;
+  return `${Math.floor(days / 30)}m`;
 }
 
-// ─── Component ──────────────────────────────────────────
+function formatDate(iso: string): string {
+  if (!iso) return '-';
+  return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: undefined });
+}
 
-export default function WorkspaceCrm({ isAdmin }: WorkspaceCrmProps) {
+function prospectName(p: Prospect): string {
+  const name = [p.first_name, p.last_name].filter(Boolean).join(' ');
+  return name || p.company || p.email || 'Sans nom';
+}
+
+function prospectInitials(p: Prospect): string {
+  const f = p.first_name?.[0] || p.company?.[0] || '?';
+  const l = p.last_name?.[0] || '';
+  return (f + l).toUpperCase();
+}
+
+// ─── Sub-components ─────────────────────────────────────
+
+/* ── KPI Card ── */
+function KpiCard({ label, value, sub, icon, color, onClick }: {
+  label: string; value: number | string; sub?: string; icon: string; color: string; onClick?: () => void;
+}) {
+  return (
+    <button onClick={onClick} className={`flex-1 min-w-[120px] rounded-xl p-3 sm:p-4 text-left transition-all hover:scale-[1.02] hover:shadow-md ${onClick ? 'cursor-pointer' : 'cursor-default'}`}
+      style={{ background: `${color}12`, borderLeft: `3px solid ${color}` }}>
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-lg">{icon}</span>
+        <span className="text-xs text-neutral-500 font-medium">{label}</span>
+      </div>
+      <div className="text-2xl font-bold" style={{ color }}>{value}</div>
+      {sub && <div className="text-[11px] text-neutral-400 mt-0.5">{sub}</div>}
+    </button>
+  );
+}
+
+/* ── Pipeline Funnel ── */
+function PipelineFunnel({ prospects, onStageClick, activeStage }: {
+  prospects: Prospect[]; onStageClick: (stage: string | null) => void; activeStage: string | null;
+}) {
+  const counts = useMemo(() => {
+    const c: Record<string, number> = {};
+    PIPELINE_STAGES.forEach(s => c[s.key] = 0);
+    prospects.forEach(p => { if (c[p.status] !== undefined) c[p.status]++; });
+    return c;
+  }, [prospects]);
+
+  const total = prospects.length || 1;
+
+  return (
+    <div className="bg-white dark:bg-neutral-900 rounded-xl border border-neutral-200 dark:border-neutral-800 p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-bold text-sm text-neutral-700 dark:text-neutral-200">Pipeline</h3>
+        {activeStage && (
+          <button onClick={() => onStageClick(null)} className="text-xs text-blue-500 hover:underline">Voir tout</button>
+        )}
+      </div>
+      {/* Desktop: horizontal funnel */}
+      <div className="hidden sm:flex gap-1 items-end h-20">
+        {PIPELINE_STAGES.filter(s => s.key !== 'perdu').map(stage => {
+          const count = counts[stage.key] || 0;
+          const pct = Math.max((count / total) * 100, 4);
+          const isActive = activeStage === stage.key;
+          return (
+            <button key={stage.key} onClick={() => onStageClick(isActive ? null : stage.key)}
+              className={`flex flex-col items-center flex-1 transition-all rounded-lg hover:opacity-80 ${isActive ? 'ring-2 ring-offset-1' : ''}`}
+              style={{ ['--tw-ring-color' as any]: stage.color }}>
+              <div className="w-full rounded-t-lg transition-all" style={{ height: `${pct}%`, minHeight: 8, background: stage.color, opacity: isActive ? 1 : 0.7 }} />
+              <div className="text-[10px] font-bold mt-1" style={{ color: stage.color }}>{count}</div>
+              <div className="text-[9px] text-neutral-400 truncate max-w-full">{stage.label}</div>
+            </button>
+          );
+        })}
+      </div>
+      {/* Mobile: stacked bars */}
+      <div className="sm:hidden space-y-1.5">
+        {PIPELINE_STAGES.filter(s => s.key !== 'perdu').map(stage => {
+          const count = counts[stage.key] || 0;
+          const pct = Math.max((count / total) * 100, 2);
+          const isActive = activeStage === stage.key;
+          return (
+            <button key={stage.key} onClick={() => onStageClick(isActive ? null : stage.key)}
+              className={`w-full flex items-center gap-2 text-left rounded-lg p-1.5 transition ${isActive ? 'bg-neutral-100 dark:bg-neutral-800' : ''}`}>
+              <span className="text-xs w-16 truncate" style={{ color: stage.color }}>{stage.emoji} {stage.label}</span>
+              <div className="flex-1 h-3 bg-neutral-100 dark:bg-neutral-800 rounded-full overflow-hidden">
+                <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: stage.color }} />
+              </div>
+              <span className="text-xs font-bold w-6 text-right" style={{ color: stage.color }}>{count}</span>
+            </button>
+          );
+        })}
+      </div>
+      {/* Perdu count */}
+      {counts.perdu > 0 && (
+        <button onClick={() => onStageClick(activeStage === 'perdu' ? null : 'perdu')}
+          className="mt-2 text-xs text-neutral-400 hover:text-red-400 transition">
+          ❌ {counts.perdu} perdu(s)
+        </button>
+      )}
+    </div>
+  );
+}
+
+/* ── Prospect Row ── */
+function ProspectRow({ prospect, activities, onSelect, isSelected }: {
+  prospect: Prospect; activities: Activity[]; onSelect: () => void; isSelected: boolean;
+}) {
+  const temp = TEMP_CONFIG[prospect.temperature] || TEMP_CONFIG.cold;
+  const stage = PIPELINE_STAGES.find(s => s.key === prospect.status);
+  const lastActivity = activities
+    .filter(a => a.prospect_id === prospect.id)
+    .sort((a, b) => new Date(b.date_activite || b.created_at).getTime() - new Date(a.date_activite || a.created_at).getTime())[0];
+
+  return (
+    <button onClick={onSelect}
+      className={`w-full text-left p-3 rounded-xl border transition-all hover:shadow-md ${isSelected
+        ? 'border-blue-400 bg-blue-50/50 dark:bg-blue-900/20 shadow-sm'
+        : 'border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 hover:border-neutral-300'}`}>
+      <div className="flex items-center gap-3">
+        {/* Avatar */}
+        <div className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
+          style={{ background: stage?.color || '#64748b' }}>
+          {prospectInitials(prospect)}
+        </div>
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-sm text-neutral-800 dark:text-white truncate">{prospectName(prospect)}</span>
+            <span className="text-xs">{temp.emoji}</span>
+            {prospect.priorite && (
+              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                prospect.priorite === 'A' ? 'bg-green-100 text-green-700' :
+                prospect.priorite === 'B' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-500'
+              }`}>{prospect.priorite}</span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 text-[11px] text-neutral-400 mt-0.5">
+            {prospect.company && <span>{prospect.company}</span>}
+            {prospect.type && <span className="px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-800 rounded text-neutral-500">{prospect.type}</span>}
+          </div>
+        </div>
+        {/* Right side */}
+        <div className="text-right shrink-0">
+          <div className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={{ background: `${stage?.color}20`, color: stage?.color }}>
+            {stage?.label || prospect.status}
+          </div>
+          {lastActivity && (
+            <div className="text-[10px] text-neutral-400 mt-1">{timeAgo(lastActivity.date_activite || lastActivity.created_at)}</div>
+          )}
+        </div>
+      </div>
+      {/* Quick stats row */}
+      <div className="flex items-center gap-3 mt-2 text-[10px] text-neutral-400">
+        {prospect.email_opens_count > 0 && <span>📧 {prospect.email_opens_count} ouvert{prospect.email_opens_count > 1 ? 's' : ''}</span>}
+        {prospect.email_clicks_count > 0 && <span>🔗 {prospect.email_clicks_count} clic{prospect.email_clicks_count > 1 ? 's' : ''}</span>}
+        {prospect.instagram && <span>📸 @{prospect.instagram}</span>}
+        {prospect.score > 0 && <span>⭐ {prospect.score}/20</span>}
+        {prospect.note_google > 0 && <span>⭐ Google {prospect.note_google}</span>}
+      </div>
+    </button>
+  );
+}
+
+/* ── Prospect Detail Panel ── */
+function ProspectDetail({ prospect, activities, onClose, onUpdate }: {
+  prospect: Prospect; activities: Activity[]; onClose: () => void; onUpdate: () => void;
+}) {
+  const [tab, setTab] = useState<'timeline' | 'info' | 'emails' | 'social'>('timeline');
+  const [addingActivity, setAddingActivity] = useState(false);
+  const [actForm, setActForm] = useState({ type: 'note', description: '', resultat: '' });
+  const [saving, setSaving] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editData, setEditData] = useState({ status: prospect.status, temperature: prospect.temperature, notes: prospect.notes || '', priorite: prospect.priorite || '' });
+
+  const prospectActivities = activities
+    .filter(a => a.prospect_id === prospect.id)
+    .sort((a, b) => new Date(b.date_activite || b.created_at).getTime() - new Date(a.date_activite || a.created_at).getTime());
+
+  const temp = TEMP_CONFIG[prospect.temperature] || TEMP_CONFIG.cold;
+  const stage = PIPELINE_STAGES.find(s => s.key === prospect.status);
+
+  const saveActivity = async () => {
+    if (!actForm.description.trim()) return;
+    setSaving(true);
+    try {
+      await fetch('/api/crm', {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'add_activity', prospect_id: prospect.id, ...actForm }),
+      });
+      setAddingActivity(false);
+      setActForm({ type: 'note', description: '', resultat: '' });
+      onUpdate();
+    } catch { /* ignore */ }
+    setSaving(false);
+  };
+
+  const saveEdit = async () => {
+    setSaving(true);
+    try {
+      await fetch('/api/crm', {
+        method: 'PUT', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: prospect.id, ...editData }),
+      });
+      setEditMode(false);
+      onUpdate();
+    } catch { /* ignore */ }
+    setSaving(false);
+  };
+
+  const tabs = [
+    { key: 'timeline', label: 'Timeline', icon: '📋' },
+    { key: 'info', label: 'Infos', icon: '👤' },
+    { key: 'emails', label: 'Emails', icon: '📧' },
+    { key: 'social', label: 'Social', icon: '📱' },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-50 flex">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      {/* Panel */}
+      <div className="relative ml-auto w-full max-w-lg bg-white dark:bg-neutral-900 shadow-2xl overflow-y-auto animate-in slide-in-from-right">
+        {/* Header */}
+        <div className="sticky top-0 z-10 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800">
+          <div className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <button onClick={onClose} className="text-neutral-400 hover:text-neutral-600 text-lg">←</button>
+              <div className="flex items-center gap-2">
+                {!editMode ? (
+                  <button onClick={() => setEditMode(true)} className="text-xs text-blue-500 hover:underline">Modifier</button>
+                ) : (
+                  <div className="flex gap-2">
+                    <button onClick={saveEdit} disabled={saving} className="text-xs bg-blue-500 text-white px-3 py-1 rounded-lg">{saving ? '...' : 'Sauver'}</button>
+                    <button onClick={() => setEditMode(false)} className="text-xs text-neutral-400">Annuler</button>
+                  </div>
+                )}
+              </div>
+            </div>
+            {/* Prospect header */}
+            <div className="flex items-center gap-3">
+              <div className="w-14 h-14 rounded-xl flex items-center justify-center text-lg font-bold text-white"
+                style={{ background: stage?.color || '#64748b' }}>
+                {prospectInitials(prospect)}
+              </div>
+              <div className="flex-1">
+                <h2 className="text-lg font-bold text-neutral-800 dark:text-white">{prospectName(prospect)}</h2>
+                <div className="flex items-center gap-2 flex-wrap mt-1">
+                  {editMode ? (
+                    <>
+                      <select value={editData.status} onChange={e => setEditData({ ...editData, status: e.target.value })}
+                        className="text-xs border rounded px-2 py-1">
+                        {PIPELINE_STAGES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
+                      </select>
+                      <select value={editData.temperature} onChange={e => setEditData({ ...editData, temperature: e.target.value })}
+                        className="text-xs border rounded px-2 py-1">
+                        {Object.entries(TEMP_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.emoji} {v.label}</option>)}
+                      </select>
+                      <select value={editData.priorite} onChange={e => setEditData({ ...editData, priorite: e.target.value })}
+                        className="text-xs border rounded px-2 py-1">
+                        <option value="">-</option>
+                        <option value="A">A</option>
+                        <option value="B">B</option>
+                        <option value="C">C</option>
+                      </select>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ background: `${stage?.color}20`, color: stage?.color }}>
+                        {stage?.emoji} {stage?.label}
+                      </span>
+                      <span className="text-[11px]">{temp.emoji} {temp.label}</span>
+                      {prospect.priorite && <span className="text-[11px] font-bold">P{prospect.priorite}</span>}
+                      {prospect.score > 0 && <span className="text-[11px]">⭐ {prospect.score}/20</span>}
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <div className="flex border-t border-neutral-100 dark:border-neutral-800">
+            {tabs.map(t => (
+              <button key={t.key} onClick={() => setTab(t.key as any)}
+                className={`flex-1 py-2 text-xs font-medium transition ${tab === t.key
+                  ? 'text-blue-600 border-b-2 border-blue-600' : 'text-neutral-400 hover:text-neutral-600'}`}>
+                {t.icon} {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Tab content */}
+        <div className="p-4">
+          {/* ── TIMELINE TAB ── */}
+          {tab === 'timeline' && (
+            <div>
+              {/* Add activity button */}
+              {!addingActivity ? (
+                <button onClick={() => setAddingActivity(true)}
+                  className="w-full py-2.5 rounded-xl border-2 border-dashed border-neutral-200 text-sm text-neutral-400 hover:border-blue-300 hover:text-blue-500 transition mb-4">
+                  + Ajouter une activite
+                </button>
+              ) : (
+                <div className="bg-neutral-50 dark:bg-neutral-800 rounded-xl p-3 mb-4 space-y-2">
+                  <div className="flex gap-2 flex-wrap">
+                    {ACTIVITY_TYPES.map(at => (
+                      <button key={at.key} onClick={() => setActForm({ ...actForm, type: at.key })}
+                        className={`text-xs px-2 py-1 rounded-lg transition ${actForm.type === at.key ? 'bg-blue-500 text-white' : 'bg-white dark:bg-neutral-700 text-neutral-600'}`}>
+                        {at.icon} {at.label}
+                      </button>
+                    ))}
+                  </div>
+                  <textarea value={actForm.description} onChange={e => setActForm({ ...actForm, description: e.target.value })}
+                    placeholder="Description..." rows={2} className="w-full text-sm border rounded-lg p-2 resize-none" />
+                  <div className="flex gap-2">
+                    <select value={actForm.resultat} onChange={e => setActForm({ ...actForm, resultat: e.target.value })}
+                      className="text-xs border rounded-lg px-2 py-1.5 flex-1">
+                      {RESULT_OPTIONS.map(r => <option key={r.key} value={r.key}>{r.label}</option>)}
+                    </select>
+                    <button onClick={saveActivity} disabled={saving} className="bg-blue-500 text-white text-xs px-4 py-1.5 rounded-lg hover:bg-blue-600">
+                      {saving ? '...' : 'Ajouter'}
+                    </button>
+                    <button onClick={() => setAddingActivity(false)} className="text-xs text-neutral-400">✕</button>
+                  </div>
+                </div>
+              )}
+
+              {/* Timeline */}
+              {prospectActivities.length === 0 ? (
+                <p className="text-center text-sm text-neutral-400 py-8">Aucune activite pour le moment</p>
+              ) : (
+                <div className="space-y-1">
+                  {prospectActivities.map(act => {
+                    const actType = ACTIVITY_TYPES.find(t => t.key === act.type);
+                    return (
+                      <div key={act.id} className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition">
+                        <div className="text-base mt-0.5">{actType?.icon || '📋'}</div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">{actType?.label || act.type}</span>
+                            {act.resultat && (
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                                act.resultat === 'interesse' || act.resultat === 'rdv_pris' ? 'bg-green-100 text-green-700' :
+                                act.resultat === 'pas_interesse' ? 'bg-red-100 text-red-600' : 'bg-neutral-100 text-neutral-500'
+                              }`}>{act.resultat.replace(/_/g, ' ')}</span>
+                            )}
+                          </div>
+                          {act.description && <p className="text-xs text-neutral-500 mt-0.5 line-clamp-2">{act.description}</p>}
+                        </div>
+                        <span className="text-[10px] text-neutral-400 shrink-0">{timeAgo(act.date_activite || act.created_at)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── INFO TAB ── */}
+          {tab === 'info' && (
+            <div className="space-y-4">
+              {/* Contact */}
+              <div className="bg-neutral-50 dark:bg-neutral-800 rounded-xl p-4">
+                <h4 className="text-xs font-bold text-neutral-400 uppercase mb-3">Contact</h4>
+                <div className="space-y-2 text-sm">
+                  {prospect.email && <div className="flex items-center gap-2"><span className="text-neutral-400 w-5">📧</span><span className="text-neutral-700 dark:text-neutral-200">{prospect.email}</span></div>}
+                  {prospect.phone && <div className="flex items-center gap-2"><span className="text-neutral-400 w-5">📞</span><span>{prospect.phone}</span></div>}
+                  {prospect.company && <div className="flex items-center gap-2"><span className="text-neutral-400 w-5">🏢</span><span>{prospect.company}</span></div>}
+                  {prospect.quartier && <div className="flex items-center gap-2"><span className="text-neutral-400 w-5">📍</span><span>{prospect.quartier}</span></div>}
+                  {prospect.website && <div className="flex items-center gap-2"><span className="text-neutral-400 w-5">🌐</span><a href={prospect.website} target="_blank" rel="noopener" className="text-blue-500 hover:underline truncate">{prospect.website}</a></div>}
+                </div>
+              </div>
+              {/* Business */}
+              <div className="bg-neutral-50 dark:bg-neutral-800 rounded-xl p-4">
+                <h4 className="text-xs font-bold text-neutral-400 uppercase mb-3">Business</h4>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  {prospect.type && <div><span className="text-neutral-400 text-xs block">Type</span><span className="font-medium">{prospect.type}</span></div>}
+                  {prospect.source && <div><span className="text-neutral-400 text-xs block">Source</span><span className="font-medium">{SOURCE_LABELS[prospect.source] || prospect.source}</span></div>}
+                  {prospect.note_google > 0 && <div><span className="text-neutral-400 text-xs block">Google</span><span className="font-medium">⭐ {prospect.note_google} ({prospect.avis_google} avis)</span></div>}
+                  {prospect.abonnes > 0 && <div><span className="text-neutral-400 text-xs block">Abonnes IG</span><span className="font-medium">{prospect.abonnes.toLocaleString()}</span></div>}
+                </div>
+              </div>
+              {/* Notes */}
+              <div className="bg-neutral-50 dark:bg-neutral-800 rounded-xl p-4">
+                <h4 className="text-xs font-bold text-neutral-400 uppercase mb-3">Notes</h4>
+                {editMode ? (
+                  <textarea value={editData.notes} onChange={e => setEditData({ ...editData, notes: e.target.value })}
+                    rows={4} className="w-full text-sm border rounded-lg p-2 resize-none" />
+                ) : (
+                  <p className="text-sm text-neutral-600 dark:text-neutral-300 whitespace-pre-wrap">{prospect.notes || 'Aucune note'}</p>
+                )}
+              </div>
+              {/* Tags */}
+              {prospect.tags?.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {prospect.tags.map(tag => (
+                    <span key={tag} className="text-[11px] px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">{tag}</span>
+                  ))}
+                </div>
+              )}
+              {/* Meta */}
+              <div className="text-[10px] text-neutral-400 space-y-0.5">
+                <div>Cree le {formatDate(prospect.created_at)}</div>
+                {prospect.updated_at && <div>Mis a jour {timeAgo(prospect.updated_at)}</div>}
+              </div>
+            </div>
+          )}
+
+          {/* ── EMAILS TAB ── */}
+          {tab === 'emails' && (
+            <div className="space-y-4">
+              {/* Email stats */}
+              <div className="grid grid-cols-3 gap-2">
+                <div className="bg-neutral-50 dark:bg-neutral-800 rounded-xl p-3 text-center">
+                  <div className="text-lg font-bold text-blue-500">{prospect.email_sequence_step || 0}</div>
+                  <div className="text-[10px] text-neutral-400">Etape sequence</div>
+                </div>
+                <div className="bg-neutral-50 dark:bg-neutral-800 rounded-xl p-3 text-center">
+                  <div className="text-lg font-bold text-green-500">{prospect.email_opens_count || 0}</div>
+                  <div className="text-[10px] text-neutral-400">Ouvertures</div>
+                </div>
+                <div className="bg-neutral-50 dark:bg-neutral-800 rounded-xl p-3 text-center">
+                  <div className="text-lg font-bold text-purple-500">{prospect.email_clicks_count || 0}</div>
+                  <div className="text-[10px] text-neutral-400">Clics</div>
+                </div>
+              </div>
+              {/* Email activities */}
+              <h4 className="text-xs font-bold text-neutral-400 uppercase">Historique emails</h4>
+              {prospectActivities.filter(a => a.type === 'email' || a.type === 'email_opened').length === 0 ? (
+                <p className="text-center text-sm text-neutral-400 py-4">Aucun email envoye</p>
+              ) : (
+                <div className="space-y-1">
+                  {prospectActivities.filter(a => a.type === 'email' || a.type === 'email_opened' || a.type === 'email_replied').map(act => (
+                    <div key={act.id} className="p-2.5 rounded-lg bg-neutral-50 dark:bg-neutral-800">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium">{act.type === 'email' ? '📤 Envoye' : act.type === 'email_opened' ? '📬 Ouvert' : '💬 Repondu'}</span>
+                        <span className="text-[10px] text-neutral-400">{formatDate(act.date_activite || act.created_at)}</span>
+                      </div>
+                      {act.description && <p className="text-xs text-neutral-500 mt-1">{act.description}</p>}
+                      {act.data?.subject && <p className="text-xs text-blue-500 mt-0.5">Sujet: {act.data.subject}</p>}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {/* Last email dates */}
+              <div className="text-[10px] text-neutral-400 space-y-0.5">
+                {prospect.last_email_sent_at && <div>Dernier email envoye: {formatDate(prospect.last_email_sent_at)}</div>}
+                {prospect.last_email_opened_at && <div>Derniere ouverture: {formatDate(prospect.last_email_opened_at)}</div>}
+              </div>
+            </div>
+          )}
+
+          {/* ── SOCIAL TAB ── */}
+          {tab === 'social' && (
+            <div className="space-y-4">
+              {/* Instagram */}
+              {prospect.instagram && (
+                <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-lg">📸</span>
+                    <span className="font-bold text-sm">Instagram</span>
+                  </div>
+                  <a href={`https://instagram.com/${prospect.instagram}`} target="_blank" rel="noopener"
+                    className="text-sm text-purple-600 hover:underline">@{prospect.instagram}</a>
+                  {prospect.abonnes > 0 && <p className="text-xs text-neutral-500 mt-1">{prospect.abonnes.toLocaleString()} abonnes</p>}
+                  {/* DM activities */}
+                  {prospectActivities.filter(a => a.type === 'dm_instagram').length > 0 && (
+                    <div className="mt-3 space-y-1">
+                      <h5 className="text-[10px] font-bold text-neutral-400 uppercase">DMs envoyes</h5>
+                      {prospectActivities.filter(a => a.type === 'dm_instagram').map(act => (
+                        <div key={act.id} className="text-xs bg-white/50 dark:bg-neutral-800/50 rounded-lg p-2">
+                          <p className="text-neutral-600">{act.description}</p>
+                          <span className="text-[10px] text-neutral-400">{timeAgo(act.date_activite || act.created_at)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              {/* TikTok */}
+              {prospect.tiktok && (
+                <div className="bg-neutral-50 dark:bg-neutral-800 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-lg">🎵</span>
+                    <span className="font-bold text-sm">TikTok</span>
+                  </div>
+                  <a href={`https://tiktok.com/@${prospect.tiktok}`} target="_blank" rel="noopener"
+                    className="text-sm text-neutral-600 hover:underline">@{prospect.tiktok}</a>
+                </div>
+              )}
+              {/* Website */}
+              {prospect.website && (
+                <div className="bg-neutral-50 dark:bg-neutral-800 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-lg">🌐</span>
+                    <span className="font-bold text-sm">Site web</span>
+                  </div>
+                  <a href={prospect.website} target="_blank" rel="noopener"
+                    className="text-sm text-blue-500 hover:underline truncate block">{prospect.website}</a>
+                </div>
+              )}
+              {!prospect.instagram && !prospect.tiktok && !prospect.website && (
+                <p className="text-center text-sm text-neutral-400 py-8">Aucun reseau social renseigne</p>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Add Prospect Modal ── */
+function AddProspectModal({ onClose, onSave }: { onClose: () => void; onSave: () => void }) {
+  const [form, setForm] = useState({
+    first_name: '', last_name: '', email: '', phone: '',
+    company: '', type: '', source: 'other', notes: '', instagram: '',
+  });
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!form.first_name && !form.company && !form.email) return;
+    setSaving(true);
+    try {
+      await fetch('/api/crm', {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      onSave();
+      onClose();
+    } catch { /* ignore */ }
+    setSaving(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl max-w-md w-full p-5 max-h-[85vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-bold text-lg">Nouveau prospect</h3>
+          <button onClick={onClose} className="text-neutral-400 hover:text-neutral-600">✕</button>
+        </div>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-2">
+            <input placeholder="Prenom" value={form.first_name} onChange={e => setForm({ ...form, first_name: e.target.value })}
+              className="text-sm border rounded-lg px-3 py-2" />
+            <input placeholder="Nom" value={form.last_name} onChange={e => setForm({ ...form, last_name: e.target.value })}
+              className="text-sm border rounded-lg px-3 py-2" />
+          </div>
+          <input placeholder="Email" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
+            className="w-full text-sm border rounded-lg px-3 py-2" />
+          <input placeholder="Telephone" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })}
+            className="w-full text-sm border rounded-lg px-3 py-2" />
+          <input placeholder="Entreprise" value={form.company} onChange={e => setForm({ ...form, company: e.target.value })}
+            className="w-full text-sm border rounded-lg px-3 py-2" />
+          <input placeholder="Instagram (@handle)" value={form.instagram} onChange={e => setForm({ ...form, instagram: e.target.value })}
+            className="w-full text-sm border rounded-lg px-3 py-2" />
+          <div className="grid grid-cols-2 gap-2">
+            <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}
+              className="text-sm border rounded-lg px-3 py-2 text-neutral-500">
+              <option value="">Type de commerce</option>
+              {['restaurant', 'boutique', 'coach', 'coiffeur', 'fleuriste', 'boulangerie', 'traiteur', 'caviste', 'spa', 'garage', 'autre'].map(t => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
+            <select value={form.source} onChange={e => setForm({ ...form, source: e.target.value })}
+              className="text-sm border rounded-lg px-3 py-2 text-neutral-500">
+              {SOURCES.map(s => <option key={s} value={s}>{SOURCE_LABELS[s] || s}</option>)}
+            </select>
+          </div>
+          <textarea placeholder="Notes..." value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })}
+            rows={2} className="w-full text-sm border rounded-lg px-3 py-2 resize-none" />
+        </div>
+        <button onClick={handleSave} disabled={saving}
+          className="w-full mt-4 py-2.5 rounded-xl bg-blue-500 text-white font-semibold hover:bg-blue-600 transition">
+          {saving ? 'Ajout en cours...' : 'Ajouter le prospect'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════
+// MAIN CRM COMPONENT
+// ═══════════════════════════════════════════════════════
+
+export default function WorkspaceCrm({ isAdmin }: { isAdmin: boolean }) {
   // Data
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // UI state
+  // UI
   const [search, setSearch] = useState('');
   const [stageFilter, setStageFilter] = useState<string | null>(null);
   const [tempFilter, setTempFilter] = useState('');
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [showActivityForm, setShowActivityForm] = useState<string | null>(null); // prospect id
-  const [editingProspect, setEditingProspect] = useState<string | null>(null);
+  const [sourceFilter, setSourceFilter] = useState('');
+  const [sortBy, setSortBy] = useState<'recent' | 'score' | 'name'>('recent');
+  const [selectedProspect, setSelectedProspect] = useState<Prospect | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
 
-  // Add prospect form
-  const [newProspect, setNewProspect] = useState({
-    first_name: '', last_name: '', email: '', phone: '',
-    company: '', source: 'other', notes: '',
-  });
-  const [addLoading, setAddLoading] = useState(false);
-
-  // Activity form
-  const [activityForm, setActivityForm] = useState({
-    type: 'appel', description: '', resultat: '',
-  });
-  const [activityLoading, setActivityLoading] = useState(false);
-
-  // Edit form
-  const [editForm, setEditForm] = useState({
-    status: '', temperature: '', notes: '', priorite: '',
-  });
-  const [editLoading, setEditLoading] = useState(false);
-
-  // ─── Fetch data (prospects + activities in one call) ────
+  // ─── Fetch ────
   const fetchData = useCallback(async () => {
     try {
       const res = await fetch('/api/crm', { credentials: 'include' });
       if (!res.ok) {
-        if (res.status === 403 || res.status === 401) {
-          setError('Connectez-vous pour acceder a votre CRM.');
-          setLoading(false);
-          return;
-        }
+        if (res.status === 403 || res.status === 401) { setError('Connectez-vous pour acceder a votre CRM.'); setLoading(false); return; }
         throw new Error('Erreur serveur');
       }
       const data = await res.json();
       setProspects(data.prospects || []);
       setActivities(data.activities || []);
       setError(null);
-    } catch {
-      setError('Impossible de charger les prospects');
-    }
+    } catch { setError('Impossible de charger les prospects'); }
     setLoading(false);
   }, []);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
-  // ─── Pipeline stats ───────────────────────────────────
-  const pipeline = useMemo(() => {
-    const map: Record<string, number> = {};
-    for (const p of prospects) {
-      map[p.status] = (map[p.status] || 0) + 1;
+  // ─── Computed ────
+  const filtered = useMemo(() => {
+    let result = [...prospects];
+    if (search) {
+      const q = search.toLowerCase();
+      result = result.filter(p =>
+        [p.first_name, p.last_name, p.company, p.email, p.type, p.instagram].some(f => f?.toLowerCase().includes(q))
+      );
     }
-    return map;
-  }, [prospects]);
+    if (stageFilter) result = result.filter(p => p.status === stageFilter);
+    if (tempFilter) result = result.filter(p => p.temperature === tempFilter);
+    if (sourceFilter) result = result.filter(p => p.source === sourceFilter);
 
+    // Sort
+    if (sortBy === 'score') result.sort((a, b) => (b.score || 0) - (a.score || 0));
+    else if (sortBy === 'name') result.sort((a, b) => prospectName(a).localeCompare(prospectName(b)));
+    else result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    return result;
+  }, [prospects, search, stageFilter, tempFilter, sourceFilter, sortBy]);
+
+  // Stats
   const stats = useMemo(() => {
     const total = prospects.length;
     const hot = prospects.filter(p => p.temperature === 'hot').length;
     const warm = prospects.filter(p => p.temperature === 'warm').length;
     const clients = prospects.filter(p => p.status === 'client').length;
-    return { total, hot, warm, clients, conversionRate: total > 0 ? Math.round((clients / total) * 100) : 0 };
+    const conversion = total > 0 ? ((clients / total) * 100).toFixed(1) : '0';
+    const thisWeek = prospects.filter(p => Date.now() - new Date(p.created_at).getTime() < 7 * 86400000).length;
+    return { total, hot, warm, clients, conversion, thisWeek };
   }, [prospects]);
 
-  // ─── Filtered prospects ───────────────────────────────
-  const filtered = useMemo(() => {
-    let list = [...prospects];
-    if (stageFilter) list = list.filter(p => p.status === stageFilter);
-    if (tempFilter) list = list.filter(p => p.temperature === tempFilter);
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      list = list.filter(p =>
-        `${p.first_name} ${p.last_name}`.toLowerCase().includes(q) ||
-        (p.company && p.company.toLowerCase().includes(q)) ||
-        (p.email && p.email.toLowerCase().includes(q))
-      );
-    }
-    const tempOrder: Record<string, number> = { hot: 0, warm: 1, cold: 2, dead: 3 };
-    list.sort((a, b) => {
-      const ta = tempOrder[a.temperature] ?? 2;
-      const tb = tempOrder[b.temperature] ?? 2;
-      if (ta !== tb) return ta - tb;
-      return b.score - a.score;
-    });
-    return list;
-  }, [prospects, stageFilter, tempFilter, search]);
+  // ─── Render ────
+  if (loading) return <div className="flex items-center justify-center py-20"><div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full" /></div>;
+  if (error) return <div className="text-center py-16"><p className="text-neutral-400 mb-4">{error}</p><button onClick={fetchData} className="text-blue-500 text-sm hover:underline">Reessayer</button></div>;
 
-  // ─── Add prospect ─────────────────────────────────────
-  const handleAddProspect = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newProspect.first_name.trim() && !newProspect.company.trim()) return;
-    setAddLoading(true);
-    try {
-      const res = await fetch('/api/crm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          ...newProspect,
-          status: 'identifie',
-          temperature: 'cold',
-          priorite: 'C',
-          score: 0,
-        }),
-      });
-      if (res.ok) {
-        setNewProspect({ first_name: '', last_name: '', email: '', phone: '', company: '', source: 'other', notes: '' });
-        setShowAddForm(false);
-        await fetchData();
-      }
-    } catch { /* silent */ }
-    setAddLoading(false);
-  };
-
-  // ─── Add activity ─────────────────────────────────────
-  const handleAddActivity = async (prospectId: string) => {
-    if (!activityForm.type) return;
-    setActivityLoading(true);
-    try {
-      const res = await fetch('/api/crm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          action: 'add_activity',
-          prospect_id: prospectId,
-          type: activityForm.type,
-          description: activityForm.description,
-          resultat: activityForm.resultat || undefined,
-        }),
-      });
-      if (res.ok) {
-        setActivityForm({ type: 'appel', description: '', resultat: '' });
-        setShowActivityForm(null);
-        await fetchData();
-      }
-    } catch { /* silent */ }
-    setActivityLoading(false);
-  };
-
-  // ─── Edit prospect ────────────────────────────────────
-  const handleStartEdit = (p: Prospect) => {
-    setEditingProspect(p.id);
-    setEditForm({
-      status: p.status,
-      temperature: p.temperature,
-      notes: p.notes || '',
-      priorite: p.priorite || 'C',
-    });
-  };
-
-  const handleSaveEdit = async (prospectId: string) => {
-    setEditLoading(true);
-    try {
-      const res = await fetch('/api/crm', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ id: prospectId, ...editForm }),
-      });
-      if (res.ok) {
-        setEditingProspect(null);
-        await fetchData();
-      }
-    } catch { /* silent */ }
-    setEditLoading(false);
-  };
-
-  // ─── Loading / Error states ───────────────────────────
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-400" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-6">
-        <p className="text-white/40 text-xs">{error}</p>
-      </div>
-    );
-  }
-
-  // ─── Render ───────────────────────────────────────────
   return (
     <div className="space-y-4">
-      {/* Header + Add button */}
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h3 className="text-white font-bold text-sm">{'\uD83D\uDCCA'} CRM — Pipeline Commercial</h3>
-          <p className="text-white/40 text-[10px] mt-0.5">
-            {stats.total} prospects {'\u00B7'} {stats.hot} chauds {'\u00B7'} {stats.clients} clients ({stats.conversionRate}%)
-          </p>
-        </div>
-        <button
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 rounded-lg text-purple-300 text-[11px] font-medium transition-all"
-        >
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={showAddForm ? 'M6 18L18 6M6 6l12 12' : 'M12 4v16m8-8H4'} />
-          </svg>
-          {showAddForm ? 'Annuler' : 'Nouveau prospect'}
-        </button>
+      {/* ─── KPI Row ─── */}
+      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+        <KpiCard label="Total" value={stats.total} sub={`+${stats.thisWeek} cette semaine`} icon="👥" color="#3b82f6"
+          onClick={() => { setStageFilter(null); setTempFilter(''); }} />
+        <KpiCard label="Hot" value={stats.hot} icon="🔥" color="#ef4444"
+          onClick={() => setTempFilter(tempFilter === 'hot' ? '' : 'hot')} />
+        <KpiCard label="Warm" value={stats.warm} icon="🌡️" color="#f59e0b"
+          onClick={() => setTempFilter(tempFilter === 'warm' ? '' : 'warm')} />
+        <KpiCard label="Clients" value={stats.clients} sub={`${stats.conversion}% conversion`} icon="💎" color="#22c55e"
+          onClick={() => setStageFilter(stageFilter === 'client' ? null : 'client')} />
       </div>
 
-      {/* Add prospect form */}
-      {showAddForm && (
-        <form onSubmit={handleAddProspect} className="bg-white/[0.04] border border-white/10 rounded-xl p-4 space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <input
-              type="text"
-              placeholder="Prenom"
-              value={newProspect.first_name}
-              onChange={e => setNewProspect(prev => ({ ...prev, first_name: e.target.value }))}
-              className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
-            />
-            <input
-              type="text"
-              placeholder="Nom"
-              value={newProspect.last_name}
-              onChange={e => setNewProspect(prev => ({ ...prev, last_name: e.target.value }))}
-              className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <input
-              type="email"
-              placeholder="Email"
-              value={newProspect.email}
-              onChange={e => setNewProspect(prev => ({ ...prev, email: e.target.value }))}
-              className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
-            />
-            <input
-              type="tel"
-              placeholder="Telephone"
-              value={newProspect.phone}
-              onChange={e => setNewProspect(prev => ({ ...prev, phone: e.target.value }))}
-              className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <input
-              type="text"
-              placeholder="Entreprise"
-              value={newProspect.company}
-              onChange={e => setNewProspect(prev => ({ ...prev, company: e.target.value }))}
-              className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
-            />
-            <select
-              value={newProspect.source}
-              onChange={e => setNewProspect(prev => ({ ...prev, source: e.target.value }))}
-              className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white/70 focus:outline-none focus:ring-2 focus:ring-purple-500/50 appearance-none"
-            >
-              {SOURCES.map(s => (
-                <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>
-              ))}
-            </select>
-          </div>
-          <textarea
-            placeholder="Notes (optionnel)"
-            value={newProspect.notes}
-            onChange={e => setNewProspect(prev => ({ ...prev, notes: e.target.value }))}
-            rows={2}
-            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-purple-500/50 resize-none"
-          />
-          <button
-            type="submit"
-            disabled={addLoading || (!newProspect.first_name.trim() && !newProspect.company.trim())}
-            className="w-full py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-40"
-          >
-            {addLoading ? 'Ajout en cours...' : 'Ajouter le prospect'}
-          </button>
-        </form>
-      )}
+      {/* ─── Pipeline Funnel ─── */}
+      <PipelineFunnel prospects={prospects} onStageClick={setStageFilter} activeStage={stageFilter} />
 
-      {/* Mini pipeline bar */}
-      {stats.total > 0 && (
-        <div className="flex h-3 rounded-full overflow-hidden bg-white/5">
-          {PIPELINE_STAGES.map(stage => {
-            const count = pipeline[stage.key] || 0;
-            if (count === 0) return null;
-            const pct = (count / stats.total) * 100;
-            return (
-              <button
-                key={stage.key}
-                onClick={() => setStageFilter(stageFilter === stage.key ? null : stage.key)}
-                className={`${stage.color} transition-all hover:brightness-125 ${stageFilter === stage.key ? 'ring-1 ring-white ring-inset' : ''}`}
-                style={{ width: `${Math.max(pct, 3)}%` }}
-                title={`${stage.label}: ${count}`}
-              />
-            );
-          })}
+      {/* ─── Search + Filters + Actions ─── */}
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="relative flex-1">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-sm">🔍</span>
+          <input value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Rechercher un prospect..."
+            className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-700 text-sm bg-white dark:bg-neutral-900" />
         </div>
-      )}
+        <div className="flex gap-2">
+          <select value={tempFilter} onChange={e => setTempFilter(e.target.value)}
+            className="text-xs border rounded-xl px-3 py-2 bg-white dark:bg-neutral-900">
+            <option value="">Temperature</option>
+            {Object.entries(TEMP_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.emoji} {v.label}</option>)}
+          </select>
+          <select value={sourceFilter} onChange={e => setSourceFilter(e.target.value)}
+            className="text-xs border rounded-xl px-3 py-2 bg-white dark:bg-neutral-900">
+            <option value="">Source</option>
+            {SOURCES.map(s => <option key={s} value={s}>{SOURCE_LABELS[s] || s}</option>)}
+          </select>
+          <select value={sortBy} onChange={e => setSortBy(e.target.value as any)}
+            className="text-xs border rounded-xl px-3 py-2 bg-white dark:bg-neutral-900">
+            <option value="recent">Plus recents</option>
+            <option value="score">Score</option>
+            <option value="name">Nom</option>
+          </select>
+          <button onClick={() => setShowAddModal(true)}
+            className="bg-blue-500 text-white text-xs font-bold px-4 py-2 rounded-xl hover:bg-blue-600 transition whitespace-nowrap">
+            + Prospect
+          </button>
+        </div>
+      </div>
 
-      {/* Pipeline legend */}
-      {stats.total > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {PIPELINE_STAGES.map(stage => {
-            const count = pipeline[stage.key] || 0;
-            if (count === 0) return null;
-            return (
-              <button
-                key={stage.key}
-                onClick={() => setStageFilter(stageFilter === stage.key ? null : stage.key)}
-                className={`flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-full transition-all ${
-                  stageFilter === stage.key ? 'bg-white/15 text-white' : 'text-white/40 hover:text-white/60'
-                }`}
-              >
-                <div className={`w-1.5 h-1.5 rounded-full ${stage.color}`} />
-                {stage.label} ({count})
-              </button>
-            );
-          })}
+      {/* ─── Active Filters ─── */}
+      {(stageFilter || tempFilter || sourceFilter || search) && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[10px] text-neutral-400">Filtres:</span>
           {stageFilter && (
-            <button
-              onClick={() => setStageFilter(null)}
-              className="text-[9px] text-purple-400 hover:text-purple-300 ml-1"
-            >
-              Effacer
+            <button onClick={() => setStageFilter(null)} className="text-[11px] bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded-full flex items-center gap-1">
+              {PIPELINE_STAGES.find(s => s.key === stageFilter)?.emoji} {stageFilter} <span className="text-neutral-400">×</span>
             </button>
           )}
+          {tempFilter && (
+            <button onClick={() => setTempFilter('')} className="text-[11px] bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded-full flex items-center gap-1">
+              {TEMP_CONFIG[tempFilter]?.emoji} {tempFilter} <span className="text-neutral-400">×</span>
+            </button>
+          )}
+          {sourceFilter && (
+            <button onClick={() => setSourceFilter('')} className="text-[11px] bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded-full flex items-center gap-1">
+              {SOURCE_LABELS[sourceFilter]} <span className="text-neutral-400">×</span>
+            </button>
+          )}
+          {search && (
+            <button onClick={() => setSearch('')} className="text-[11px] bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded-full flex items-center gap-1">
+              "{search}" <span className="text-neutral-400">×</span>
+            </button>
+          )}
+          <button onClick={() => { setStageFilter(null); setTempFilter(''); setSourceFilter(''); setSearch(''); }}
+            className="text-[10px] text-red-400 hover:text-red-500">Tout effacer</button>
         </div>
       )}
 
-      {/* Search + filter */}
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <input
-            type="text"
-            placeholder="Rechercher..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded-lg pl-8 pr-3 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
-          />
+      {/* ─── Results count ─── */}
+      <div className="text-xs text-neutral-400">
+        {filtered.length} prospect{filtered.length > 1 ? 's' : ''} {(stageFilter || tempFilter || sourceFilter || search) ? '(filtre)' : ''}
+      </div>
+
+      {/* ─── Prospect List ─── */}
+      {filtered.length === 0 ? (
+        <div className="text-center py-12">
+          <div className="text-4xl mb-3">📋</div>
+          <p className="text-neutral-400 text-sm mb-3">Aucun prospect{search ? ' trouve' : ''}</p>
+          <button onClick={() => setShowAddModal(true)} className="text-blue-500 text-sm hover:underline">+ Ajouter un prospect</button>
         </div>
-        <select
-          value={tempFilter}
-          onChange={e => setTempFilter(e.target.value)}
-          className="bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-xs text-white/60 focus:outline-none focus:ring-2 focus:ring-purple-500/50 appearance-none"
-        >
-          <option value="">Temp.</option>
-          <option value="hot">Hot</option>
-          <option value="warm">Warm</option>
-          <option value="cold">Cold</option>
-        </select>
-      </div>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map(p => (
+            <ProspectRow key={p.id} prospect={p} activities={activities}
+              onSelect={() => setSelectedProspect(p)}
+              isSelected={selectedProspect?.id === p.id} />
+          ))}
+        </div>
+      )}
 
-      {/* Prospect list */}
-      <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
-        {filtered.length === 0 ? (
-          <div className="text-center py-6">
-            <p className="text-white/30 text-xs">Aucun prospect trouve</p>
-          </div>
-        ) : (
-          filtered.map(p => {
-            const isExpanded = expandedId === p.id;
-            const isEditing = editingProspect === p.id;
-            const prospectActivities = activities.filter(a => a.prospect_id === p.id);
-            const tempCfg = TEMP_CONFIG[p.temperature] || TEMP_CONFIG.cold;
-            const statusStage = PIPELINE_STAGES.find(s => s.key === p.status);
+      {/* ─── Prospect Detail Slide ─── */}
+      {selectedProspect && (
+        <ProspectDetail
+          prospect={selectedProspect}
+          activities={activities}
+          onClose={() => setSelectedProspect(null)}
+          onUpdate={() => { fetchData(); }}
+        />
+      )}
 
-            return (
-              <div key={p.id} className="bg-white/[0.04] border border-white/10 rounded-xl overflow-hidden">
-                {/* Prospect row */}
-                <button
-                  onClick={() => setExpandedId(isExpanded ? null : p.id)}
-                  className="w-full text-left px-3 py-2.5 flex items-center gap-2.5 hover:bg-white/[0.03] transition-colors"
-                >
-                  {/* Temperature dot */}
-                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                    p.temperature === 'hot' ? 'bg-red-500' : p.temperature === 'warm' ? 'bg-orange-500' : p.temperature === 'dead' ? 'bg-gray-500' : 'bg-blue-400'
-                  }`} />
-
-                  {/* Name + company */}
-                  <div className="flex-1 min-w-0">
-                    <div className="text-white text-xs font-medium truncate">
-                      {p.first_name} {p.last_name}
-                    </div>
-                    {p.company && (
-                      <div className="text-white/30 text-[10px] truncate">{p.company}</div>
-                    )}
-                  </div>
-
-                  {/* Status pill */}
-                  <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
-                    statusStage?.key === 'client' ? 'bg-green-500/20 text-green-400'
-                    : statusStage?.key === 'perdu' ? 'bg-red-500/20 text-red-400'
-                    : statusStage?.key === 'demo' || statusStage?.key === 'sprint' ? 'bg-purple-500/20 text-purple-300'
-                    : 'bg-white/10 text-white/50'
-                  }`}>
-                    {statusStage?.label || p.status}
-                  </span>
-
-                  {/* Score */}
-                  <span className="text-white/30 text-[10px] w-6 text-right">{p.score}</span>
-
-                  {/* Chevron */}
-                  <svg className={`w-3.5 h-3.5 text-white/20 transition-transform flex-shrink-0 ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-
-                {/* Expanded details */}
-                {isExpanded && (
-                  <div className="border-t border-white/5 px-3 py-3 space-y-3">
-                    {/* Contact info */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px]">
-                      {p.email && (
-                        <div>
-                          <span className="text-white/30">Email: </span>
-                          <span className="text-white/70">{p.email}</span>
-                        </div>
-                      )}
-                      {p.phone && (
-                        <div>
-                          <span className="text-white/30">Tel: </span>
-                          <span className="text-white/70">{p.phone}</span>
-                        </div>
-                      )}
-                      {p.instagram && (
-                        <div>
-                          <span className="text-white/30">IG: </span>
-                          <span className="text-purple-400">@{p.instagram}</span>
-                        </div>
-                      )}
-                      {p.source && (
-                        <div>
-                          <span className="text-white/30">Source: </span>
-                          <span className="text-white/70 capitalize">{p.source.replace(/_/g, ' ')}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Notes */}
-                    {p.notes && !isEditing && (
-                      <div className="bg-white/[0.03] rounded-lg p-2">
-                        <p className="text-white/50 text-[10px] leading-relaxed">{p.notes}</p>
-                      </div>
-                    )}
-
-                    {/* Edit form */}
-                    {isEditing ? (
-                      <div className="space-y-2 bg-white/[0.03] rounded-lg p-3">
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                          <div>
-                            <label className="text-white/30 text-[9px] uppercase tracking-wider">Statut</label>
-                            <select
-                              value={editForm.status}
-                              onChange={e => setEditForm(prev => ({ ...prev, status: e.target.value }))}
-                              className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-[10px] text-white/70 focus:outline-none focus:ring-1 focus:ring-purple-500/50 appearance-none mt-0.5"
-                            >
-                              {PIPELINE_STAGES.map(s => (
-                                <option key={s.key} value={s.key}>{s.label}</option>
-                              ))}
-                            </select>
-                          </div>
-                          <div>
-                            <label className="text-white/30 text-[9px] uppercase tracking-wider">Temp.</label>
-                            <select
-                              value={editForm.temperature}
-                              onChange={e => setEditForm(prev => ({ ...prev, temperature: e.target.value }))}
-                              className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-[10px] text-white/70 focus:outline-none focus:ring-1 focus:ring-purple-500/50 appearance-none mt-0.5"
-                            >
-                              <option value="hot">Hot</option>
-                              <option value="warm">Warm</option>
-                              <option value="cold">Cold</option>
-                              <option value="dead">Dead</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label className="text-white/30 text-[9px] uppercase tracking-wider">Priorite</label>
-                            <select
-                              value={editForm.priorite}
-                              onChange={e => setEditForm(prev => ({ ...prev, priorite: e.target.value }))}
-                              className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-[10px] text-white/70 focus:outline-none focus:ring-1 focus:ring-purple-500/50 appearance-none mt-0.5"
-                            >
-                              <option value="A">A - Haute</option>
-                              <option value="B">B - Moyenne</option>
-                              <option value="C">C - Basse</option>
-                            </select>
-                          </div>
-                        </div>
-                        <textarea
-                          placeholder="Notes..."
-                          value={editForm.notes}
-                          onChange={e => setEditForm(prev => ({ ...prev, notes: e.target.value }))}
-                          rows={2}
-                          className="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-[10px] text-white placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-purple-500/50 resize-none"
-                        />
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => setEditingProspect(null)}
-                            className="flex-1 py-1.5 bg-white/5 text-white/50 text-[10px] rounded-lg hover:bg-white/10 transition-colors"
-                          >
-                            Annuler
-                          </button>
-                          <button
-                            onClick={() => handleSaveEdit(p.id)}
-                            disabled={editLoading}
-                            className="flex-1 py-1.5 bg-purple-600/30 text-purple-300 text-[10px] font-medium rounded-lg hover:bg-purple-600/40 transition-colors disabled:opacity-40"
-                          >
-                            {editLoading ? 'Sauvegarde...' : 'Sauvegarder'}
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      /* Action buttons */
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleStartEdit(p)}
-                          className="flex items-center gap-1 px-2 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-white/50 text-[10px] transition-colors"
-                        >
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                          Modifier
-                        </button>
-                        <button
-                          onClick={() => setShowActivityForm(showActivityForm === p.id ? null : p.id)}
-                          className="flex items-center gap-1 px-2 py-1.5 bg-purple-600/15 hover:bg-purple-600/25 border border-purple-500/20 rounded-lg text-purple-300 text-[10px] transition-colors"
-                        >
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                          </svg>
-                          Activite
-                        </button>
-                        {p.phone && (
-                          <a
-                            href={`tel:${p.phone}`}
-                            className="flex items-center gap-1 px-2 py-1.5 bg-green-600/15 hover:bg-green-600/25 border border-green-500/20 rounded-lg text-green-300 text-[10px] transition-colors"
-                          >
-                            {'\uD83D\uDCDE'} Appeler
-                          </a>
-                        )}
-                        {p.email && (
-                          <a
-                            href={`mailto:${p.email}`}
-                            className="flex items-center gap-1 px-2 py-1.5 bg-blue-600/15 hover:bg-blue-600/25 border border-blue-500/20 rounded-lg text-blue-300 text-[10px] transition-colors"
-                          >
-                            {'\uD83D\uDCE7'} Email
-                          </a>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Activity form */}
-                    {showActivityForm === p.id && (
-                      <div className="bg-white/[0.03] border border-white/10 rounded-lg p-3 space-y-2">
-                        <div className="text-white/40 text-[10px] font-semibold uppercase tracking-wider mb-1">
-                          Nouvelle activite
-                        </div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {ACTIVITY_TYPES.map(at => (
-                            <button
-                              key={at.key}
-                              onClick={() => setActivityForm(prev => ({ ...prev, type: at.key }))}
-                              className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] transition-all ${
-                                activityForm.type === at.key
-                                  ? 'bg-purple-600/30 text-purple-300 border border-purple-500/30'
-                                  : 'bg-white/5 text-white/40 hover:bg-white/10'
-                              }`}
-                            >
-                              {at.icon} {at.label}
-                            </button>
-                          ))}
-                        </div>
-                        <input
-                          type="text"
-                          placeholder="Description..."
-                          value={activityForm.description}
-                          onChange={e => setActivityForm(prev => ({ ...prev, description: e.target.value }))}
-                          className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-[11px] text-white placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-purple-500/50"
-                        />
-                        <select
-                          value={activityForm.resultat}
-                          onChange={e => setActivityForm(prev => ({ ...prev, resultat: e.target.value }))}
-                          className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-[11px] text-white/60 focus:outline-none focus:ring-1 focus:ring-purple-500/50 appearance-none"
-                        >
-                          {RESULT_OPTIONS.map(r => (
-                            <option key={r.key} value={r.key}>{r.label}</option>
-                          ))}
-                        </select>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => setShowActivityForm(null)}
-                            className="flex-1 py-1.5 bg-white/5 text-white/50 text-[10px] rounded-lg hover:bg-white/10 transition-colors"
-                          >
-                            Annuler
-                          </button>
-                          <button
-                            onClick={() => handleAddActivity(p.id)}
-                            disabled={activityLoading}
-                            className="flex-1 py-1.5 bg-purple-600/30 text-purple-300 text-[10px] font-medium rounded-lg hover:bg-purple-600/40 transition-colors disabled:opacity-40"
-                          >
-                            {activityLoading ? 'Envoi...' : 'Enregistrer'}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Activity history */}
-                    {prospectActivities.length > 0 && (
-                      <div className="space-y-1.5">
-                        <div className="text-white/30 text-[9px] uppercase tracking-wider font-semibold">Historique</div>
-                        {prospectActivities.slice(0, 5).map(act => (
-                          <div key={act.id} className="flex items-start gap-2 text-[10px]">
-                            <span>{ACTIVITY_TYPES.find(at => at.key === act.type)?.icon || '\uD83D\uDCDD'}</span>
-                            <div className="flex-1 min-w-0">
-                              <span className="text-white/60">{act.description || act.type.replace(/_/g, ' ')}</span>
-                              {act.resultat && (
-                                <span className="text-purple-300/70 ml-1">{'\u2192'} {act.resultat.replace(/_/g, ' ')}</span>
-                              )}
-                            </div>
-                            <span className="text-white/20 flex-shrink-0">{timeAgo(act.date_activite)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })
-        )}
-      </div>
-
-      {/* Full CRM link for admin */}
-      {isAdmin && (
-        <a
-          href="/admin/crm"
-          className="block text-center text-[11px] text-purple-400 hover:text-purple-300 font-medium transition-colors py-2"
-        >
-          Ouvrir le CRM complet {'\u2192'}
-        </a>
+      {/* ─── Add Prospect Modal ─── */}
+      {showAddModal && (
+        <AddProspectModal onClose={() => setShowAddModal(false)} onSave={fetchData} />
       )}
     </div>
   );
