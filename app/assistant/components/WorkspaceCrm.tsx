@@ -328,16 +328,16 @@ function ProspectDetail({ prospect, activities, onClose, onUpdate }: {
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex">
+    <div className="fixed inset-x-0 top-0 bottom-0 z-[60] flex" style={{ paddingTop: '56px' }}>
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       {/* Panel */}
-      <div className="relative ml-auto w-full max-w-lg bg-white dark:bg-neutral-900 shadow-2xl overflow-y-auto animate-in slide-in-from-right">
+      <div className="relative ml-auto w-full max-w-lg bg-white dark:bg-neutral-900 shadow-2xl overflow-y-auto">
         {/* Header */}
         <div className="sticky top-0 z-10 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800">
-          <div className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <button onClick={onClose} className="text-neutral-400 hover:text-neutral-600 text-lg">←</button>
+          <div className="p-4 pb-2">
+            <div className="flex items-center justify-between mb-2">
+              <button onClick={onClose} className="text-neutral-400 hover:text-neutral-600 text-lg">← Retour</button>
               <div className="flex items-center gap-2">
                 {!editMode ? (
                   <button onClick={() => setEditMode(true)} className="text-xs text-blue-500 hover:underline">Modifier</button>
@@ -351,25 +351,25 @@ function ProspectDetail({ prospect, activities, onClose, onUpdate }: {
             </div>
             {/* Prospect header */}
             <div className="flex items-center gap-3">
-              <div className="w-14 h-14 rounded-xl flex items-center justify-center text-lg font-bold text-white"
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center text-base font-bold text-white shrink-0"
                 style={{ background: stage?.color || '#64748b' }}>
                 {prospectInitials(prospect)}
               </div>
-              <div className="flex-1">
-                <h2 className="text-lg font-bold text-neutral-800 dark:text-white">{prospectName(prospect)}</h2>
-                <div className="flex items-center gap-2 flex-wrap mt-1">
+              <div className="flex-1 min-w-0">
+                <h2 className="text-base font-bold text-neutral-800 dark:text-white truncate">{prospectName(prospect)}</h2>
+                <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
                   {editMode ? (
                     <>
                       <select value={editData.status} onChange={e => setEditData({ ...editData, status: e.target.value })}
-                        className="text-xs border rounded px-2 py-1">
+                        className="text-[10px] border rounded px-1.5 py-0.5">
                         {PIPELINE_STAGES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
                       </select>
                       <select value={editData.temperature} onChange={e => setEditData({ ...editData, temperature: e.target.value })}
-                        className="text-xs border rounded px-2 py-1">
+                        className="text-[10px] border rounded px-1.5 py-0.5">
                         {Object.entries(TEMP_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.emoji} {v.label}</option>)}
                       </select>
                       <select value={editData.priorite} onChange={e => setEditData({ ...editData, priorite: e.target.value })}
-                        className="text-xs border rounded px-2 py-1">
+                        className="text-[10px] border rounded px-1.5 py-0.5">
                         <option value="">-</option>
                         <option value="A">A</option>
                         <option value="B">B</option>
@@ -388,6 +388,35 @@ function ProspectDetail({ prospect, activities, onClose, onUpdate }: {
                   )}
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* ── Conversion Progress Bar ── */}
+          <div className="px-4 py-2 bg-neutral-50 dark:bg-neutral-800/50">
+            <div className="flex items-center gap-1">
+              {PIPELINE_STAGES.filter(s => s.key !== 'perdu').map((s, i) => {
+                const currentIdx = PIPELINE_STAGES.findIndex(ps => ps.key === prospect.status);
+                const thisIdx = PIPELINE_STAGES.findIndex(ps => ps.key === s.key);
+                const isCompleted = thisIdx <= currentIdx && prospect.status !== 'perdu';
+                const isCurrent = s.key === prospect.status;
+                return (
+                  <div key={s.key} className="flex items-center flex-1">
+                    <div className={`h-1.5 flex-1 rounded-full transition-all ${isCompleted ? '' : 'bg-neutral-200 dark:bg-neutral-700'}`}
+                      style={isCompleted ? { background: s.color } : undefined}
+                    />
+                    {isCurrent && (
+                      <div className="w-3 h-3 rounded-full border-2 shrink-0 -mx-0.5" style={{ borderColor: s.color, background: s.color }} />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex items-center justify-between mt-1">
+              <span className="text-[9px] text-neutral-400">{stage?.emoji} {stage?.label}</span>
+              <span className="text-[9px] text-neutral-400">
+                {prospect.source && `Source: ${SOURCE_LABELS[prospect.source] || prospect.source}`}
+                {prospect.created_at && ` · ${formatDate(prospect.created_at)}`}
+              </span>
             </div>
           </div>
 
