@@ -34,10 +34,10 @@ export default function SubscriptionModal({ isOpen, onClose }: SubscriptionModal
       emoji: "⭐",
       price: "149€",
       subtitle: "/mois",
-      description: "50 places - Prix verrouillé à vie",
+      description: "Offre limitee — jusqu'au 25 mai 2026",
       features: ["Visuels illimités", "Vidéo illimitée", "Démo personnalisée", "Support prioritaire"],
       highlight: true,
-      badge: "50 places",
+      badge: "Offre limitee",
       special: true,
     },
     {

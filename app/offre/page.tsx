@@ -200,7 +200,7 @@ export default function OffrePage() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-amber-500 mt-0.5">&#10003;</span>
-                    <span>Prix verrouill&eacute; &agrave; vie (50 places)</span>
+                    <span>Prix verrouill&eacute; — offre valable jusqu&apos;au 25 mai 2026</span>
                   </li>
                 </ul>
                 <button

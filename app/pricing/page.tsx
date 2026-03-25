@@ -410,14 +410,39 @@ function PricingPageInner() {
             <p className="text-xs text-center text-blue-200 mt-2">{t.pricing.planProNote}</p>
           </div>
 
-          {/* Fondateurs Pro 149€ - POPULAIRE */}
+          {/* Fondateurs Pro 149€ - POPULAIRE + CHRONO */}
           <div id="fondateurs" className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col animate-glow">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2">
               <span className="bg-amber-900 text-amber-100 px-4 py-1 rounded-full text-xs font-bold shadow-lg">
-                ⭐ Populaire
+                {'\u2B50'} Populaire
               </span>
             </div>
-            <div className="mb-4 pt-2">
+            {/* Countdown timer */}
+            <div className="bg-amber-900/40 backdrop-blur-sm rounded-xl px-3 py-2 mb-3 mt-2 text-center border border-amber-300/20">
+              <p className="text-amber-100 text-[10px] uppercase tracking-wider font-semibold mb-1">{'\u23F0'} Offre limitee</p>
+              {(() => {
+                const deadline = new Date('2026-05-25T23:59:59');
+                const now = new Date();
+                const diff = deadline.getTime() - now.getTime();
+                const days = Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
+                const hours = Math.max(0, Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)));
+                return (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="bg-amber-900/60 rounded-lg px-2 py-1 min-w-[40px]">
+                      <div className="text-white font-bold text-lg leading-tight">{days}</div>
+                      <div className="text-amber-200/60 text-[8px]">jours</div>
+                    </div>
+                    <span className="text-amber-200 font-bold">:</span>
+                    <div className="bg-amber-900/60 rounded-lg px-2 py-1 min-w-[40px]">
+                      <div className="text-white font-bold text-lg leading-tight">{hours}</div>
+                      <div className="text-amber-200/60 text-[8px]">heures</div>
+                    </div>
+                    <span className="text-amber-200/40 text-[9px] ml-1">avant fin de l&apos;offre</span>
+                  </div>
+                );
+              })()}
+            </div>
+            <div className="mb-4">
               <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
                 <span>⭐</span> {t.pricing.planFondateursTitle}
               </h3>

@@ -27,7 +27,7 @@ export const PLAN_CREDITS: Record<string, number> = {
   // New plans
   createur: 400,
   pro: 800,
-  fondateurs: 2000,   // = Business complet, 50 places, prix verrouillé à vie
+  fondateurs: 2000,   // = Business complet, offre jusqu'au 25 mai 2026
   business: 2000,
   elite: 6000,
   agence: 999999,
