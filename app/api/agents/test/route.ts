@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json();
   const orgId = body?.org_id || null;
-  const testEmail = body.email || 'mrzirraro@gmail.com';
+  const testEmail = body.email || 'contact@keiroai.com';
   const testType = body.type || 'restaurant';
   const testCompany = body.company || 'Restaurant Test KeiroAI';
   const action = body.action || 'all';

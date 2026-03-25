@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
       if (!prospect.email) continue;
 
       // Skip admin emails
-      const ADMIN_EMAILS = ['mrzirraro@gmail.com', 'contact@keiroai.com'];
+      const ADMIN_EMAILS = ['contact@keiroai.com'];
       if (ADMIN_EMAILS.includes(prospect.email.toLowerCase())) continue;
 
       const { data: matchedProfile } = await supabase

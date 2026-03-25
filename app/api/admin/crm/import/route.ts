@@ -563,7 +563,7 @@ export async function POST(req: NextRequest) {
       };
 
       // Auto-match email with profiles (in-memory, skip admin emails)
-      const ADMIN_EMAILS = ['mrzirraro@gmail.com', 'contact@keiroai.com'];
+      const ADMIN_EMAILS = ['contact@keiroai.com'];
       if (record.email && !ADMIN_EMAILS.includes(record.email.toLowerCase().trim())) {
         const matchedProfile = profilesByEmail.get(record.email.toLowerCase().trim());
         if (matchedProfile && !matchedProfile.is_admin) {

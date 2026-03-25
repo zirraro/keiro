@@ -370,7 +370,7 @@ async function notifyFounderPayment(info: {
 }) {
   const RESEND_API_KEY = process.env.RESEND_API_KEY;
   const BREVO_API_KEY = process.env.BREVO_API_KEY;
-  const FOUNDER_EMAILS = (process.env.FOUNDER_EMAIL || 'mrzirraro@gmail.com,contact@keiroai.com').split(',').map(e => e.trim());
+  const FOUNDER_EMAILS = (process.env.FOUNDER_EMAIL || 'contact@keiroai.com').split(',').map(e => e.trim());
 
   const planLabels: Record<string, string> = {
     sprint: 'Sprint (4,99€/3j)',

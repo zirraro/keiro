@@ -17,7 +17,7 @@ function getSupabaseAdmin() {
   return createClient(supabaseUrl, supabaseServiceKey);
 }
 
-const FOUNDER_EMAILS = ['mrzirraro@gmail.com', 'contact@keiroai.com'];
+const FOUNDER_EMAILS = ['contact@keiroai.com'];
 
 const KNOWN_AGENTS = [
   'ceo', 'commercial', 'email', 'marketing', 'content', 'seo',

@@ -62,7 +62,7 @@ export async function PUT(
     const updateData: any = { ...body, updated_at: new Date().toISOString() };
 
     if (body.email !== undefined) {
-      const ADMIN_EMAILS = ['mrzirraro@gmail.com', 'contact@keiroai.com'];
+      const ADMIN_EMAILS = ['contact@keiroai.com'];
       if (body.email && !ADMIN_EMAILS.includes(body.email.toLowerCase())) {
         const { data: matchedProfile } = await supabase
           .from('profiles')

@@ -173,7 +173,7 @@ export async function GET(request: NextRequest) {
               headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 from: 'KeiroAI Onboarding <contact@keiroai.com>',
-                to: ['mrzirraro@gmail.com'],
+                to: ['contact@keiroai.com'],
                 subject: `Onboarding: ${profile.first_name || 'Client'} (${item.plan}) — 0 visuels apres 6h`,
                 text: alertText,
               }),

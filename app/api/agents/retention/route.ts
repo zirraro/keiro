@@ -233,7 +233,7 @@ export async function GET(request: NextRequest) {
               headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 from: 'KeiroAI Retention <contact@keiroai.com>',
-                to: ['mrzirraro@gmail.com'],
+                to: ['contact@keiroai.com'],
                 subject: `🔴 Client en danger : ${client.first_name || 'Client'} (${client.plan}) — Score ${score}/100`,
                 text: alertText,
               }),
@@ -389,7 +389,7 @@ export async function GET(request: NextRequest) {
         headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           from: 'KeiroAI Retention <contact@keiroai.com>',
-          to: ['mrzirraro@gmail.com'],
+          to: ['contact@keiroai.com'],
           subject: `Rétention : 🟢${greenCount} 🟡${yellowCount} 🟠${orangeCount} 🔴${redCount} — ${messagesSent} messages`,
           text: `Rapport rétention quotidien\n\n🟢 Actifs : ${greenCount}\n🟡 Baisse : ${yellowCount}\n🟠 Inactifs : ${orangeCount}\n🔴 Danger : ${redCount}\n\nMessages envoyés : ${messagesSent}\nClients payants : ${clients.length}`,
         }),

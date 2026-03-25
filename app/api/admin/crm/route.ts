@@ -319,7 +319,7 @@ export async function POST(req: NextRequest) {
     };
 
     // Match prospect email to Keiro user (exclude admin emails)
-    const ADMIN_EMAILS = ['mrzirraro@gmail.com', 'contact@keiroai.com'];
+    const ADMIN_EMAILS = ['contact@keiroai.com'];
     if (email && !ADMIN_EMAILS.includes(email.toLowerCase())) {
       const { data: matchedProfile } = await supabase
         .from('profiles')

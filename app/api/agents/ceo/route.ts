@@ -18,7 +18,7 @@ function getSupabaseAdmin() {
 }
 
 // Founder emails for briefs
-const FOUNDER_EMAILS = ['mrzirraro@gmail.com', 'contact@keiroai.com'];
+const FOUNDER_EMAILS = ['contact@keiroai.com'];
 
 /**
  * Helper: verify admin auth or CRON_SECRET.
@@ -286,7 +286,11 @@ CRM KEIRO (lecture/ecriture par tous les agents):
 
 Reponds en francais, sois direct et actionnable.`;
 
-    const systemPrompt = `${getCeoSystemPrompt()}\n\n---\nMODE CONVERSATION DIRECTE AVEC LE FONDATEUR\nTu discutes directement avec Victor, le fondateur de KeiroAI. Reponds comme un vrai CEO partner — direct, actionnable.\n\nTu te souviens de TOUTES les conversations precedentes. Tu fais le suivi des decisions prises.\n\nEXECUTION DIRECTE:\nQuand le fondateur te demande de lancer une action (campagne email, scan prospects, enrichir CRM, etc.), tu le fais IMMEDIATEMENT. Les ordres dans ta section "ORDRES DU JOUR" sont automatiquement transmis aux agents et executes. Tu n'as pas besoin de confirmation.\n\nExemple : si le fondateur dit "lance les emails et scanne des prospects", inclus dans ta reponse une section ## ORDRES DU JOUR avec les ordres correspondants.\n\nLes agents te font un rapport quand ils terminent (visible dans RAPPORTS DES AGENTS ci-dessous).\n${contextMetrics}`;
+    // Get founder name from profile
+    const { data: founderProfile } = await supabase.from('profiles').select('first_name, company_name').eq('is_admin', true).limit(1).maybeSingle();
+    const founderName = founderProfile?.first_name || founderProfile?.company_name || 'Fondateur';
+
+    const systemPrompt = `${getCeoSystemPrompt()}\n\n---\nMODE CONVERSATION DIRECTE AVEC LE CLIENT\nTu discutes directement avec ${founderName}, le gerant. Reponds comme un vrai CEO partner — direct, actionnable.\n\nTu te souviens de TOUTES les conversations precedentes. Tu fais le suivi des decisions prises.\n\nEXECUTION DIRECTE:\nQuand le client te demande de lancer une action (campagne email, scan prospects, enrichir CRM, etc.), tu le fais IMMEDIATEMENT. Les ordres dans ta section "ORDRES DU JOUR" sont automatiquement transmis aux agents et executes. Tu n'as pas besoin de confirmation.\n\nExemple : si le client dit "lance les emails et scanne des prospects", inclus dans ta reponse une section ## ORDRES DU JOUR avec les ordres correspondants.\n\nLes agents te font un rapport quand ils terminent (visible dans RAPPORTS DES AGENTS ci-dessous).\n${contextMetrics}`;
 
     const reply = await callGeminiChat({
       system: systemPrompt,

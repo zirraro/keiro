@@ -2957,7 +2957,7 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
             headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
               from: 'KeiroAI Content <contact@keiroai.com>',
-              to: ['mrzirraro@gmail.com'],
+              to: ['contact@keiroai.com'],
               subject: `🎬 Vidéo TikTok 30s en cours — ${post.hook || 'Nouveau contenu'}`,
               html: `<div style="font-family:Arial,sans-serif;max-width:600px;">
                 <h2 style="color:#0c1a3a;">🎬 Vidéo TikTok 30s en génération</h2>
@@ -3062,7 +3062,7 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
       headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         from: 'KeiroAI Content <contact@keiroai.com>',
-        to: ['mrzirraro@gmail.com'],
+        to: ['contact@keiroai.com'],
         subject: `${isPublished ? '✅' : '📱'} Post ${isPublished ? 'publié' : 'prêt'} : ${postPlatform} ${postFormat} — ${post.hook || 'Nouveau contenu'}`,
         html: `<div style="font-family:Arial,sans-serif;max-width:600px;">
           <h2 style="color:#0c1a3a;">${isPublished ? '✅ Publié' : '📱 Prêt'} — ${postPlatform} ${postFormat}</h2>
