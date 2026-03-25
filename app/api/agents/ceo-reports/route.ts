@@ -36,6 +36,11 @@ export async function POST(req: NextRequest) {
 
   const supabase = getSupabase();
   const reportType = new URL(req.url).searchParams.get('type') || 'status';
+
+  // ─── Client brief: separate flow ─────────────────────
+  if (reportType === 'client_brief') {
+    return handleClientBrief(supabase);
+  }
   const now = new Date();
   const twelveHoursAgo = new Date(now.getTime() - 12 * 60 * 60 * 1000).toISOString();
   const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
@@ -278,4 +283,149 @@ Format HTML pour email. Sois direct et actionable.`,
   }).catch(() => {});
 
   return NextResponse.json({ ok: true, type: 'status', period, totalRuns, totalErrors, activeAgents: ALL_AGENTS.filter(a => agentData[a].runs > 0).length });
+}
+
+/**
+ * Generate and send CEO brief to individual clients
+ * Called by: scheduler slot or manually via ?type=client_brief
+ */
+async function handleClientBrief(supabase: any) {
+  const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
+  const RESEND_KEY = process.env.RESEND_API_KEY;
+
+  // Get all active clients with their profiles
+  const { data: clients } = await supabase
+    .from('profiles')
+    .select('id, email, first_name, plan')
+    .not('plan', 'is', null);
+
+  if (!clients || clients.length === 0) {
+    return NextResponse.json({ ok: true, type: 'client_brief', sent: 0 });
+  }
+
+  let sentCount = 0;
+
+  for (const client of clients) {
+    try {
+      // Check brief preferences
+      const { data: prefs } = await supabase
+        .from('client_brief_preferences')
+        .select('*')
+        .eq('user_id', client.id)
+        .single();
+
+      // Skip if disabled
+      if (prefs?.enabled === false) continue;
+
+      // Get client's agent activity (last 24h)
+      const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+      const { data: logs } = await supabase
+        .from('agent_logs')
+        .select('agent, action, data, created_at')
+        .eq('user_id', client.id)
+        .gte('created_at', since)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      // Get CRM stats
+      const { count: prospectCount } = await supabase
+        .from('crm_prospects')
+        .select('id', { count: 'exact', head: true })
+        .eq('created_by', client.id);
+
+      const { count: hotCount } = await supabase
+        .from('crm_prospects')
+        .select('id', { count: 'exact', head: true })
+        .eq('created_by', client.id)
+        .eq('temperature', 'hot');
+
+      // Generate brief with AI
+      const agentSummary = (logs || []).reduce((acc: Record<string, number>, log: any) => {
+        acc[log.agent] = (acc[log.agent] || 0) + 1;
+        return acc;
+      }, {});
+
+      const agentActivity = Object.entries(agentSummary)
+        .map(([agent, count]) => `${agent}: ${count} actions`)
+        .join(', ');
+
+      let briefHtml = '';
+      const clientName = client.first_name || 'cher client';
+
+      if (ANTHROPIC_KEY) {
+        try {
+          const res = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+            body: JSON.stringify({
+              model: 'claude-haiku-4-5-20251001',
+              max_tokens: 500,
+              system: `Tu es Noah, le CEO IA de KeiroAI. Tu envoies un brief quotidien au client ${clientName}.
+Ton brief doit etre:
+- COURT (5-7 lignes max)
+- ACTIONABLE (1-2 actions concretes que le client peut faire aujourd'hui)
+- POSITIF mais HONNETE
+- Tutoiement, ton direct et bienveillant
+- PAS de jargon technique
+- Format HTML simple (pas de tableaux)
+Ne mentionne JAMAIS KeiroAI dans le brief. Parle comme un conseiller business personnel.`,
+              messages: [{ role: 'user', content: `Activite agents 24h: ${agentActivity || 'aucune'}\nProspects total: ${prospectCount || 0}\nProspects HOT: ${hotCount || 0}\nPlan: ${client.plan}\n\nGenere le brief du jour en HTML.` }],
+            }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            briefHtml = data.content?.[0]?.text || '';
+          }
+        } catch { /* silent */ }
+      }
+
+      // Fallback if AI fails
+      if (!briefHtml) {
+        briefHtml = `<p>Bonjour ${clientName},</p>
+<p>Tes agents ont realise <strong>${Object.values(agentSummary).reduce((a: number, b: any) => a + (b as number), 0)} actions</strong> dans les dernieres 24h.</p>
+<p>Tu as <strong>${hotCount || 0} prospect(s) chaud(s)</strong> sur ${prospectCount || 0} total.</p>
+<p><strong>Action du jour:</strong> Verifie tes prospects chauds dans ton CRM et envoie un DM personnalise aux 3 plus prometteurs.</p>`;
+      }
+
+      // Save as in-app notification
+      if (prefs?.inapp_enabled !== false) {
+        await supabase.from('client_notifications').insert({
+          user_id: client.id,
+          agent: 'ceo',
+          type: 'brief',
+          title: 'Brief CEO du jour',
+          message: briefHtml.replace(/<[^>]*>/g, '').substring(0, 300),
+          data: { html: briefHtml, agentActivity: agentSummary, prospects: prospectCount, hot: hotCount },
+        });
+      }
+
+      // Send email
+      if (RESEND_KEY && prefs?.email_enabled !== false && client.email) {
+        await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from: 'Noah CEO IA <contact@keiroai.com>',
+            to: [client.email],
+            subject: `📋 Ton brief du jour — ${hotCount || 0} prospect(s) chaud(s)`,
+            html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
+              <div style="background:linear-gradient(135deg,#0c1a3a,#1e3a5f);color:white;padding:16px 20px;border-radius:12px 12px 0 0;">
+                <h2 style="margin:0;font-size:16px;">🧠 Brief CEO du jour</h2>
+              </div>
+              <div style="background:white;padding:20px;border:1px solid #e5e7eb;">
+                ${briefHtml}
+              </div>
+              <div style="background:#f9fafb;padding:12px;text-align:center;color:#9ca3af;font-size:11px;border-radius:0 0 12px 12px;">
+                Noah CEO IA — Votre assistant strategique
+              </div>
+            </div>`,
+          }),
+        }).catch(() => {});
+      }
+
+      sentCount++;
+    } catch { /* skip this client */ }
+  }
+
+  return NextResponse.json({ ok: true, type: 'client_brief', sent: sentCount });
 }

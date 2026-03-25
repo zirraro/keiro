@@ -10,6 +10,7 @@ import DossierBanner from './components/DossierBanner';
 import ComingSoonBanner from './components/ComingSoonBanner';
 import AgentTeams from './components/AgentTeams';
 import WorkspaceCrm from './components/WorkspaceCrm';
+import NotificationBell, { AgentNotifBadge } from './components/NotificationBell';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -854,8 +855,12 @@ export default function AssistantPage() {
         {/* Dossier banner */}
         <DossierBanner profile={profile} claraAvatarUrl={claraAvatarUrl} />
 
-        {/* ═══ TABS ═══ */}
+        {/* ═══ TABS + NOTIFICATION BELL ═══ */}
         <div className="flex items-center gap-1 bg-white/5 rounded-xl p-1 border border-white/10 mb-5 overflow-x-auto">
+          {/* Notification bell */}
+          <div className="flex-shrink-0 mr-1">
+            <NotificationBell />
+          </div>
           {([
             { key: 'suivi' as const, label: '\uD83D\uDCCB Suivi central', shortLabel: 'Suivi' },
             { key: 'equipe' as const, label: '\uD83D\uDC65 Par equipe', shortLabel: 'Equipes' },

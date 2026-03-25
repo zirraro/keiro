@@ -412,8 +412,11 @@ export async function GET(request: NextRequest) {
         await delay(10000);
         await callEndpoint('CEO Brief (afternoon)', '/api/agents/ceo');
         await callEndpoint('Execute Orders', '/api/agents/orders');
+        await delay(5000);
+        // Send CEO brief to each client (daily)
+        await callEndpoint('CEO Client Brief', '/api/agents/ceo-reports?type=client_brief', 'POST');
       });
-      results.push({ task: 'CEO Brief PM + Orders + Group', ok: true, data: { status: 'dispatched_background' } });
+      results.push({ task: 'CEO Brief PM + Orders + Group + Client Briefs', ok: true, data: { status: 'dispatched_background' } });
       break;
 
     case 'evening':
