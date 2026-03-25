@@ -20,10 +20,14 @@ export async function POST(request: NextRequest) {
     // 1. Auth optionnelle — fonctionne avec ou sans connexion
     const { user } = await getAuthUser();
 
-    const { planKey } = await request.json();
+    const { planKey, upsellFrom } = await request.json();
     if (!planKey) {
       return NextResponse.json({ error: 'planKey requis' }, { status: 400 });
     }
+
+    // Upsell: si le client vient du plan Créateur et upgrade vers Pro → coupon -40% 1er mois
+    const isUpsellProFromCreateur = planKey === 'pro' && upsellFrom === 'createur';
+    const PRO_UPSELL_COUPON = process.env.STRIPE_COUPON_PRO_UPSELL || 'FIRST_MONTH_40'; // Coupon Stripe -40% 1er mois
 
     const stripe = getStripe();
     let sessionParams: any;
@@ -75,10 +79,6 @@ export async function POST(request: NextRequest) {
       // Le planKey stocké dans metadata est toujours le basePlan (ex: pro, pas pro_annual)
       const subMetadata = { ...metadata, planKey: basePlan, billing: isAnnual ? 'annual' : 'monthly' };
 
-      // Appliquer le coupon 1er mois automatiquement pour le plan Pro mensuel
-      const firstMonthCoupon = process.env.STRIPE_COUPON_FIRST_MONTH;
-      const applyFirstMonthDiscount = basePlan === 'pro' && !isAnnual && firstMonthCoupon;
-
       sessionParams = {
         mode: 'subscription' as const,
         line_items: [{ price: priceId, quantity: 1 }],
@@ -88,13 +88,22 @@ export async function POST(request: NextRequest) {
           trial_period_days: 14, // 14 jours gratuits — carte capturee mais pas chargee
         },
         payment_method_collection: 'always' as const, // Toujours demander la carte
+        allow_promotion_codes: true, // Le client peut entrer un code promo manuellement
+        custom_text: {
+          submit: {
+            message: 'Annulation en 1 clic à tout moment. Aucun engagement, résiliez quand vous voulez.',
+          },
+        },
         success_url: successUrl,
         cancel_url: cancelUrl,
-        ...(applyFirstMonthDiscount
-          ? { discounts: [{ coupon: firstMonthCoupon }] }
-          : { allow_promotion_codes: true }
-        ),
       };
+
+      // Upsell Créateur → Pro : appliquer le coupon -40% sur le 1er mois
+      if (isUpsellProFromCreateur && PRO_UPSELL_COUPON) {
+        sessionParams.discounts = [{ coupon: PRO_UPSELL_COUPON }];
+        // Quand on utilise discounts, on ne peut pas utiliser allow_promotion_codes en même temps
+        delete sessionParams.allow_promotion_codes;
+      }
       if (customerId) sessionParams.customer = customerId;
 
     } else if (planKey === 'sprint') {
@@ -108,6 +117,11 @@ export async function POST(request: NextRequest) {
         mode: 'payment' as const,
         line_items: [{ price: sprintPriceId, quantity: 1 }],
         metadata,
+        custom_text: {
+          submit: {
+            message: 'Paiement unique sécurisé. Accès immédiat après paiement.',
+          },
+        },
         success_url: isAuthenticated ? `${SITE_URL}/generate?sprint=activated` : successUrlGuest,
         cancel_url: cancelUrl,
       };

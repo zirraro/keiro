@@ -17,6 +17,7 @@ function HomeKeiroInner() {
   const { theme } = useTheme();
   const isLight = theme === 'light';
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly');
+  const [showUpsellPro, setShowUpsellPro] = useState(false);
 
   return (
     <main className="relative min-h-dvh">
@@ -188,7 +189,7 @@ function HomeKeiroInner() {
               <span className="text-xl">🎁</span>
               <div>
                 <p className="font-semibold">{t.home.freeTrialTitle || 'Essai gratuit 14 jours'}</p>
-                <p className="text-xs text-purple-200">{t.home.freeTrialSubtitle || 'Tous les agents débloqués — carte requise, aucun débit'}</p>
+                <p className="text-xs text-purple-200">{t.home.freeTrialSubtitle || 'Carte requise, aucun debit. Annulation en 1 clic a tout moment.'}</p>
               </div>
             </div>
             <Link href="/generate" className="px-7 py-3 rounded-xl bg-white text-[#0c1a3a] font-extrabold hover:bg-purple-50 transition-all text-sm whitespace-nowrap shadow-lg hover:shadow-2xl hover:scale-105">
@@ -1366,7 +1367,13 @@ function HomeKeiroInner() {
               subtitle={locale === 'fr' ? 'Freelance & createur solo' : 'Freelance & solo creator'}
               bullets={[locale === 'fr' ? '400 credits/mois' : '400 credits/month', locale === 'fr' ? 'Publication auto Instagram' : 'Auto-publish Instagram', locale === 'fr' ? 'Agent contenu + DM' : 'Content + DM agent']}
               ctaLabel={locale === 'fr' ? 'Essai gratuit 14 jours' : 'Free trial 14 days'}
-              ctaOnClick={() => startCheckout(billingPeriod === 'annual' ? 'createur_annual' : 'createur')}
+              ctaOnClick={() => {
+                if (billingPeriod === 'monthly') {
+                  setShowUpsellPro(true);
+                } else {
+                  startCheckout('createur_annual');
+                }
+              }}
             />
 
             <Plan
@@ -1621,6 +1628,71 @@ function HomeKeiroInner() {
           </div>
         </div>
       </footer>
+      {/* ═══ POPUP UPSELL CRÉATEUR → PRO ═══ */}
+      {showUpsellPro && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setShowUpsellPro(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 relative" onClick={e => e.stopPropagation()}>
+            {/* Badge offre exclusive */}
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+              <span className="px-4 py-1 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs font-bold rounded-full uppercase tracking-wide shadow-lg">
+                Offre unique
+              </span>
+            </div>
+
+            <div className="text-center mt-4">
+              <div className="text-3xl mb-2">🚀</div>
+              <h3 className="text-xl font-bold text-neutral-900 mb-2">
+                Passez au Plan Pro pour seulement 10€ de plus !
+              </h3>
+              <p className="text-sm text-neutral-600 mb-4">
+                Pour <span className="font-bold text-green-600">59€/mois au lieu de 99€</span> le 1er mois
+                <br />(-40% de reduction exclusive)
+              </p>
+
+              {/* Comparaison rapide */}
+              <div className="bg-neutral-50 rounded-xl p-4 mb-4 text-left text-sm">
+                <p className="font-semibold text-neutral-800 mb-2">Le Plan Pro inclut en plus :</p>
+                <ul className="space-y-1.5 text-neutral-700">
+                  <li className="flex items-start gap-2"><span className="text-green-500 mt-0.5">✓</span> 1 200 credits/mois (3x plus)</li>
+                  <li className="flex items-start gap-2"><span className="text-green-500 mt-0.5">✓</span> Publication auto Instagram + TikTok + LinkedIn</li>
+                  <li className="flex items-start gap-2"><span className="text-green-500 mt-0.5">✓</span> Agent commercial + Email + WhatsApp</li>
+                  <li className="flex items-start gap-2"><span className="text-green-500 mt-0.5">✓</span> CRM integre + pipeline de vente</li>
+                </ul>
+              </div>
+
+              {/* Urgence */}
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-5 text-xs text-amber-800">
+                <strong>Cette offre est unique et ne sera plus proposee.</strong>
+                <br />C&apos;est votre seule chance d&apos;en profiter.
+              </div>
+
+              {/* CTA principal — upsell Pro */}
+              <button
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-base shadow-lg hover:opacity-90 transition"
+                onClick={() => {
+                  setShowUpsellPro(false);
+                  startCheckout('pro', 'createur');
+                }}
+              >
+                Oui, je prends le Pro a -40%
+              </button>
+              <p className="text-center text-[10px] text-neutral-400 mt-1.5 mb-3">0€ pendant 14 jours · Annulation en 1 clic a tout moment</p>
+
+              {/* CTA secondaire — continuer Créateur */}
+              <button
+                className="w-full py-2.5 rounded-xl border border-neutral-200 text-neutral-600 text-sm hover:bg-neutral-50 transition"
+                onClick={() => {
+                  setShowUpsellPro(false);
+                  startCheckout('createur');
+                }}
+              >
+                Non merci, je reste sur Createur
+              </button>
+              <p className="text-center text-[10px] text-neutral-400 mt-1.5">0€ pendant 14 jours · Annulation en 1 clic a tout moment</p>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
@@ -2007,6 +2079,7 @@ function Plan({
           {ctaLabel}
         </a>
       )}
+      <p className="text-center text-[10px] text-neutral-400 mt-1.5">0{'\u20AC'} pendant 14j {'\u00B7'} Annulation en 1 clic</p>
     </div>
   );
 }

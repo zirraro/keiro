@@ -6,7 +6,7 @@
  */
 import { supabaseBrowser } from '@/lib/supabase/client';
 
-export async function startCheckout(planKey: string): Promise<void> {
+export async function startCheckout(planKey: string, upsellFrom?: string): Promise<void> {
   try {
     // 1. Vérifier si connecté (optionnel)
     const supabase = supabaseBrowser();
@@ -20,10 +20,13 @@ export async function startCheckout(planKey: string): Promise<void> {
       headers['Authorization'] = `Bearer ${session.access_token}`;
     }
 
+    const body: Record<string, string> = { planKey };
+    if (upsellFrom) body.upsellFrom = upsellFrom;
+
     const res = await fetch('/api/stripe/create-checkout', {
       method: 'POST',
       headers,
-      body: JSON.stringify({ planKey }),
+      body: JSON.stringify(body),
     });
 
     const data = await res.json();
