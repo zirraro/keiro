@@ -19,6 +19,7 @@ import { getOrgContext, formatOrgContextForPrompt } from '../tenant';
 import { getAgentKnowledgeContext } from './knowledge-rag';
 import { loadBusinessDossier, type BusinessDossier } from './client-context';
 import { loadRealTimeIntelligence, formatIntelligenceForPrompt, type RealTimeIntelligence } from './intelligence';
+import { formatTimezoneContext } from './timezone';
 
 // ─── KEIRO AI BRAND IDENTITY ─────────────────────────────────
 // First client profile — the foundational data that all agents use.
@@ -185,6 +186,7 @@ interface AgentContext {
   ragContext: string; // Knowledge from RAG pool
   brandContext: string; // KeiroAI brand identity + client dossier
   intelligenceContext: string; // Real-time intelligence (trends, weather, timing, predictions)
+  timezoneContext: string; // Client timezone info
 }
 
 /**
@@ -454,6 +456,17 @@ export async function loadSharedContext(
   }
   const brandContext = formatBrandContext(clientDossier);
 
+  // ─── Client Timezone ──────────────────────────────────────
+  let timezoneContext = '';
+  if (userId) {
+    try {
+      const { data: tzProfile } = await supabase.from('profiles').select('timezone, country, city').eq('id', userId).single();
+      if (tzProfile) {
+        timezoneContext = formatTimezoneContext(tzProfile.timezone || 'Europe/Paris', tzProfile.country || 'FR', tzProfile.city);
+      }
+    } catch {}
+  }
+
   // ─── Real-Time Intelligence (trends, weather, timing, predictions) ──
   let intelligenceContext = '';
   try {
@@ -530,6 +543,7 @@ export async function loadSharedContext(
     ragContext,
     brandContext,
     intelligenceContext,
+    timezoneContext,
   };
 }
 
@@ -713,6 +727,11 @@ ADAPTATION & MÉMOIRE :
   // Brand Identity + Client Dossier (ALWAYS injected)
   if (ctx.brandContext) {
     text += `\n\n${ctx.brandContext}`;
+  }
+
+  // Client timezone
+  if (ctx.timezoneContext) {
+    text += `\n\n${ctx.timezoneContext}`;
   }
 
   // Multi-tenant: append org context when available
