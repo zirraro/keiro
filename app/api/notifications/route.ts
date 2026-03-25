@@ -1,0 +1,65 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getAuthUser } from '@/lib/auth-server';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+/**
+ * GET /api/notifications — Get client notifications (unread + recent)
+ * POST /api/notifications — Mark notification(s) as read
+ */
+export async function GET() {
+  const { user } = await getAuthUser();
+  if (!user) return NextResponse.json({ error: 'Non authentifie' }, { status: 401 });
+
+  // Get unread count + last 50 notifications
+  const { data: notifications } = await supabase
+    .from('client_notifications')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  const unreadCount = (notifications || []).filter(n => !n.read).length;
+
+  return NextResponse.json({
+    notifications: notifications || [],
+    unreadCount,
+  });
+}
+
+export async function POST(req: NextRequest) {
+  const { user } = await getAuthUser();
+  if (!user) return NextResponse.json({ error: 'Non authentifie' }, { status: 401 });
+
+  const { action, notificationId, notificationIds } = await req.json();
+
+  if (action === 'mark_read' && notificationId) {
+    await supabase
+      .from('client_notifications')
+      .update({ read: true })
+      .eq('id', notificationId)
+      .eq('user_id', user.id);
+  }
+
+  if (action === 'mark_all_read') {
+    await supabase
+      .from('client_notifications')
+      .update({ read: true })
+      .eq('user_id', user.id)
+      .eq('read', false);
+  }
+
+  if (action === 'mark_read_bulk' && notificationIds?.length) {
+    await supabase
+      .from('client_notifications')
+      .update({ read: true })
+      .in('id', notificationIds)
+      .eq('user_id', user.id);
+  }
+
+  return NextResponse.json({ ok: true });
+}
