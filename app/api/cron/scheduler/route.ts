@@ -3,6 +3,7 @@ import { waitUntil } from '@vercel/functions';
 import { createClient } from '@supabase/supabase-js';
 import { autoImprove } from '@/lib/agents/auto-improve';
 import { processEventPipeline } from '@/lib/agents/event-bus';
+import { analyzeAndFix } from '@/lib/agents/auto-fix';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -294,6 +295,28 @@ export async function GET(request: NextRequest) {
         await callEndpoint('CEO Improvement Report', '/api/agents/ceo-reports?type=improvement', 'POST');
         await delay(5000);
         await callEndpoint('CEO Status Report AM', '/api/agents/ceo-reports?type=status', 'POST');
+
+        // Phase 1.5: CEO auto-fix — analyze recent failures and fix configs
+        try {
+          const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+          const { data: recentFailures } = await aiSupabase
+            .from('agent_logs')
+            .select('agent, data')
+            .eq('action', 'execution_failure')
+            .gte('created_at', twentyFourHoursAgo);
+          if (recentFailures && recentFailures.length > 0) {
+            // Group by agent and count
+            const issueMap: Record<string, { error: string; count: number }> = {};
+            for (const f of recentFailures) {
+              const key = f.agent;
+              if (!issueMap[key]) issueMap[key] = { error: f.data?.error || 'unknown', count: 0 };
+              issueMap[key].count++;
+            }
+            const issues = Object.entries(issueMap).map(([agent, data]) => ({ agent, ...data }));
+            const fixes = await analyzeAndFix(aiSupabase, issues);
+            if (fixes.length > 0) console.log(`[Scheduler/ceo] Auto-fix: ${fixes.filter(f => f.success).length}/${fixes.length} fixes applied`);
+          }
+        } catch (e: any) { console.error('[Scheduler/ceo] Auto-fix error:', e.message?.substring(0, 200)); }
       });
       // Phase 2: CEO brief + orders (separate background to avoid timeout)
       fireBackground(async () => {
