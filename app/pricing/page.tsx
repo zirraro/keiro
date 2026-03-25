@@ -243,7 +243,7 @@ function PricingPageInner() {
             </ul>
 
             <Link
-              href="/generate"
+              href="/checkout/upsell?plan=createur"
               className="block w-full py-3 px-6 text-center rounded-xl bg-gradient-to-r from-[#0c1a3a] to-purple-700 text-white font-bold hover:shadow-lg transition-all hover:scale-105"
             >
               {t.pricing.freeTrialCta || '→ Essai gratuit 14 jours'}
@@ -1294,7 +1294,7 @@ function PricingPageInner() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              href="/generate"
+              href="/checkout/upsell?plan=createur"
               className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-[#0c1a3a] font-bold rounded-xl hover:bg-[#0c1a3a]/5 transition-all text-lg shadow-xl hover:shadow-2xl hover:scale-105"
             >
               {t.pricing.ctaCta}
@@ -1303,7 +1303,7 @@ function PricingPageInner() {
               </svg>
             </Link>
             <Link
-              href="/generate"
+              href="/checkout/upsell?plan=createur"
               className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-amber-500 text-white font-bold rounded-xl hover:bg-amber-600 transition-all text-lg shadow-xl hover:shadow-2xl hover:scale-105"
             >
               {t.pricing.planFondateursCta} ⭐

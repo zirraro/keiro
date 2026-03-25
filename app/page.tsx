@@ -59,7 +59,7 @@ function HomeKeiroInner() {
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <MagneticButton>
-              <a href="/generate" className="cta-keep-white inline-block px-5 py-3 rounded-xl bg-white font-semibold shadow-lg shadow-white/20 hover:shadow-xl hover:shadow-white/30 hover:-translate-y-0.5 transition-all" style={{ color: '#0c1a3a' }}>
+              <a href="/checkout/upsell?plan=createur" className="cta-keep-white inline-block px-5 py-3 rounded-xl bg-white font-semibold shadow-lg shadow-white/20 hover:shadow-xl hover:shadow-white/30 hover:-translate-y-0.5 transition-all" style={{ color: '#0c1a3a' }}>
                 {t.common.tryFree}
               </a>
               </MagneticButton>
@@ -192,7 +192,7 @@ function HomeKeiroInner() {
                 <p className="text-xs text-purple-200">{t.home.freeTrialSubtitle || 'Carte requise, aucun debit. Annulation en 1 clic a tout moment.'}</p>
               </div>
             </div>
-            <Link href="/generate" className="px-7 py-3 rounded-xl bg-white text-[#0c1a3a] font-extrabold hover:bg-purple-50 transition-all text-sm whitespace-nowrap shadow-lg hover:shadow-2xl hover:scale-105">
+            <Link href="/checkout/upsell?plan=createur" className="px-7 py-3 rounded-xl bg-white text-[#0c1a3a] font-extrabold hover:bg-purple-50 transition-all text-sm whitespace-nowrap shadow-lg hover:shadow-2xl hover:scale-105">
               {t.home.freeTrialCta || 'Essai gratuit 14 jours'} →
             </Link>
           </div>
@@ -757,7 +757,7 @@ function HomeKeiroInner() {
 
         {/* CTA après Galerie */}
         <div className="mt-10 text-center">
-          <a href="/generate" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold text-lg hover:shadow-xl transition-all hover:-translate-y-0.5">
+          <a href="/checkout/upsell?plan=createur" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold text-lg hover:shadow-xl transition-all hover:-translate-y-0.5">
             {t.home.galleryCta}
           </a>
           <p className="mt-3 text-sm text-neutral-600">
@@ -893,7 +893,7 @@ function HomeKeiroInner() {
 
         {/* CTA */}
         <div className="mt-10 text-center">
-          <a href="/generate" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold text-lg hover:shadow-xl transition-all hover:-translate-y-0.5">
+          <a href="/checkout/upsell?plan=createur" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold text-lg hover:shadow-xl transition-all hover:-translate-y-0.5">
             {t.home.generateFirstCta}
           </a>
         </div>
@@ -973,7 +973,7 @@ function HomeKeiroInner() {
 
         {/* CTA après témoignages */}
         <div className="mt-10 text-center">
-          <a href="/generate" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold text-lg hover:shadow-xl transition-all hover:-translate-y-0.5">
+          <a href="/checkout/upsell?plan=createur" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold text-lg hover:shadow-xl transition-all hover:-translate-y-0.5">
             {t.home.testimonialCta}
           </a>
           <p className="mt-3 text-sm text-neutral-600">
@@ -1139,7 +1139,7 @@ function HomeKeiroInner() {
 
         {/* CTA après Comparatif */}
         <div className="text-center">
-          <a href="/generate" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold text-lg hover:shadow-xl transition-all hover:-translate-y-0.5 cta-shimmer">
+          <a href="/checkout/upsell?plan=createur" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold text-lg hover:shadow-xl transition-all hover:-translate-y-0.5 cta-shimmer">
             {t.home.comparatorCta}
           </a>
           <p className="mt-3 text-sm text-neutral-500">
@@ -1351,7 +1351,7 @@ function HomeKeiroInner() {
                 <p className="text-[11px] text-purple-700 dark:text-purple-300 mt-0.5">{t.home.freeTrialPricingNote || '0€ pendant 14 jours • Carte requise • Annulation à tout moment'}</p>
               </div>
               <Link
-                href="/generate"
+                href="/checkout/upsell?plan=createur"
                 className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#0c1a3a] to-purple-700 text-white text-sm font-bold hover:shadow-lg transition-all hover:-translate-y-0.5 whitespace-nowrap flex-shrink-0"
               >
                 {t.home.freeTrialCta || 'Essai gratuit 14 jours'}
@@ -1536,7 +1536,7 @@ function HomeKeiroInner() {
           </div>
         </div>
         <div className="mt-10 text-center">
-          <a href="/generate" className="px-6 py-3 rounded-xl bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-medium hover:shadow-lg hover:-translate-y-0.5 transition-all">
+          <a href="/checkout/upsell?plan=createur" className="px-6 py-3 rounded-xl bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-medium hover:shadow-lg hover:-translate-y-0.5 transition-all">
             {t.home.tryNow}
           </a>
         </div>
@@ -1913,7 +1913,7 @@ function QuizAndCalculator() {
 
           <div className="flex gap-3">
             <a
-              href="/generate"
+              href="/checkout/upsell?plan=createur"
               className="flex-1 px-6 py-3 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold rounded-xl hover:shadow-lg transition-all text-center"
             >
               {t.home.quizStartWith} {getRecommendedPlan()} →
@@ -1994,7 +1994,7 @@ function QuizAndCalculator() {
           </div>
 
           <a
-            href="/generate"
+            href="/checkout/upsell?plan=createur"
             className="block w-full px-6 py-3 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold rounded-xl hover:shadow-lg transition-all text-center"
           >
             {t.home.calcCta} {savings.toLocaleString()}€{t.common.perMonth} →
@@ -2075,7 +2075,7 @@ function Plan({
           {ctaLabel}
         </button>
       ) : (
-        <a href={ctaHref || "/generate"} className={ctaClassName}>
+        <a href={ctaHref || "/checkout/upsell?plan=createur"} className={ctaClassName}>
           {ctaLabel}
         </a>
       )}
