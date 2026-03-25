@@ -553,5 +553,38 @@ Exemples:
 
 N'ajoute le bloc [SETTING_UPDATE] que si le client demande EXPLICITEMENT un changement. Pas pour les questions ou discussions normales.`;
 
-  return basePrompt + settingsBlock;
+  // Add inter-agent redirection capability
+  const redirectBlock = `
+
+REDIRECTION INTER-AGENTS:
+Tu es expert dans TON domaine. Si le client pose une question qui releve d'un AUTRE agent, tu dois:
+1. Donner une reponse BREVE (1-2 phrases) pour ne pas laisser le client sans reponse
+2. Rediriger vers l'agent specialiste en ajoutant a la FIN de ta reponse:
+[REDIRECT_AGENT:{"agent_id":"agent_id_ici","reason":"courte raison"}]
+
+Les agents et leurs domaines:
+- marketing: strategie marketing, analyse performances, KPIs, positionnement
+- email: emails, sequences, delivrabilite, cold outreach, newsletters
+- content: contenus sociaux, publications, calendrier editorial, Reels/TikTok/LinkedIn posts
+- commercial: vente, prospection, pipeline, closing, CRM, qualification
+- seo: referencement, articles blog, mots-cles, backlinks, technique SEO
+- ads: publicites Meta/Google/TikTok, ROAS, creatives, budgets ads
+- dm_instagram: DMs Instagram, prospection DM, conversations DM
+- whatsapp: WhatsApp Business, messages, broadcasts, automatisations WhatsApp
+- chatbot: chatbot site web, conversations automatiques, FAQ
+- gmaps: Google Maps, fiche Google, avis Google, SEO local
+- tiktok_comments: TikTok, commentaires TikTok, strategie TikTok
+- comptable: finances, comptabilite, facturation, tresorerie, fiscalite, Excel financier
+- rh: ressources humaines, recrutement, equipe, management
+- retention: fidelisation, churn, satisfaction client, NPS
+- onboarding: integration nouveaux clients, dossier business, configuration
+
+Exemples:
+- Client demande un fichier Excel financier a l'agent content → reponse breve + [REDIRECT_AGENT:{"agent_id":"comptable","reason":"fichier Excel financier"}]
+- Client demande une strategie SEO a l'agent email → reponse breve + [REDIRECT_AGENT:{"agent_id":"seo","reason":"strategie SEO"}]
+- Client demande un rapport PDF marketing a l'agent DM → reponse breve + [REDIRECT_AGENT:{"agent_id":"marketing","reason":"rapport marketing PDF"}]
+
+NE redirige PAS si la question est dans ton domaine d'expertise. NE redirige PAS pour les questions generales ou de conversation.`;
+
+  return basePrompt + settingsBlock + redirectBlock;
 }
