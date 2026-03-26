@@ -247,8 +247,9 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'email_recap':
-      // 18:30 UTC — Email cold: rattrapage tous types restants
-      await callEndpoint('Email Cold (recap)', '/api/agents/email/daily?slot=recap&types=restaurant,boutique,coach,coiffeur,caviste,fleuriste,freelance,services,pme,agence,traiteur,professionnel');
+      // DESACTIVE — causait du spam (re-envoi a tous les types deja contactes dans la journee)
+      // Le dedup same-day protege maintenant mais on ne relance plus en fin de journee
+      results.push({ task: 'Email Recap (disabled anti-spam)', ok: true, data: { skipped: true } });
       break;
 
     case 'community_2':

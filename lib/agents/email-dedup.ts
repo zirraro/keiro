@@ -32,6 +32,23 @@ export async function canSendEmail(
     userId?: string;
   },
 ): Promise<{ allowed: boolean; reason?: string; lastSentAt?: string; agent?: string }> {
+  // NEVER bypass the same-day check — even in force mode, max 1 email/day/prospect
+  const todayCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+  // Quick same-day check by email address (non-bypassable anti-spam)
+  if (opts?.prospectId) {
+    const { data: todayEmails } = await supabase
+      .from('crm_activities')
+      .select('id')
+      .eq('prospect_id', opts.prospectId)
+      .eq('type', 'email')
+      .gte('created_at', todayCutoff)
+      .limit(1);
+    if (todayEmails && todayEmails.length > 0) {
+      return { allowed: false, reason: 'Already emailed today (anti-spam)', agent: 'email' };
+    }
+  }
+
   if (opts?.force) return { allowed: true };
 
   const minDays = opts?.minDays ?? MIN_DAYS_BETWEEN_ANY_EMAIL;
