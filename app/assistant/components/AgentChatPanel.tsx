@@ -16,13 +16,28 @@ interface ActionCard {
   label: string;
 }
 
-function parseActionCards(content: string): { text: string; actions: ActionCard[] } {
+function parseActionCards(content: string): { text: string; actions: ActionCard[]; redirect?: { agent_id: string; reason: string } } {
   const actions: ActionCard[] = [];
-  const text = content.replace(/\[ACTION:([^|]+)\|([^\]]+)\]/g, (_, type, label) => {
+  let redirect: { agent_id: string; reason: string } | undefined;
+
+  let text = content.replace(/\[ACTION:([^|]+)\|([^\]]+)\]/g, (_, type, label) => {
     actions.push({ type: type.trim(), label: label.trim() });
     return '';
-  }).trim();
-  return { text, actions };
+  });
+
+  // Detect [REDIRECT_AGENT:{"agent_id":"x","reason":"y"}]
+  text = text.replace(/\[REDIRECT_AGENT:\s*(\{[^}]+\})\s*\]/g, (_, json) => {
+    try { redirect = JSON.parse(json); } catch {}
+    return '';
+  });
+
+  // Remove [SETTING_UPDATE:...] from displayed text (handled elsewhere)
+  text = text.replace(/\[SETTING_UPDATE:\s*\{[^}]+\}\s*\]/g, '');
+
+  // Remove [PDF_READY] [EXCEL_READY] tags
+  text = text.replace(/\[(PDF_READY|EXCEL_READY)\]/g, '');
+
+  return { text: text.trim(), actions, redirect };
 }
 
 interface AgentChatPanelProps {
@@ -137,9 +152,9 @@ export default function AgentChatPanel({
         )}
 
         {messages.map((msg) => {
-          const { text, actions } = msg.role === 'assistant'
+          const { text, actions, redirect } = msg.role === 'assistant'
             ? parseActionCards(msg.content)
-            : { text: msg.content, actions: [] };
+            : { text: msg.content, actions: [], redirect: undefined };
 
           return (
             <div
@@ -197,6 +212,18 @@ export default function AgentChatPanel({
                       );
                     })}
                   </div>
+                )}
+
+                {/* Redirect to another agent */}
+                {redirect && (
+                  <button
+                    onClick={() => window.location.href = `/assistant/agent/${redirect.agent_id}`}
+                    className="mt-2 w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium bg-blue-600/20 border border-blue-500/30 text-blue-300 hover:bg-blue-600/30 transition-all"
+                  >
+                    <span>🔀</span>
+                    <span>Parler a l&apos;agent specialiste →</span>
+                    <span className="ml-auto text-[10px] text-blue-400">{redirect.agent_id}</span>
+                  </button>
                 )}
               </div>
             </div>
