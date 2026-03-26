@@ -138,7 +138,7 @@ Format HTML pour email. Sois direct et actionable.`,
         return `<tr><td style="padding:4px 8px;">${icon} ${a}</td><td style="padding:4px 8px;">${d.runs}</td><td style="padding:4px 8px;color:${d.errors > 0 ? '#ef4444' : '#22c55e'}">${d.errors}</td><td style="padding:4px 8px;font-size:11px;color:#888;">${d.lastAction}</td></tr>`;
       }).join('');
 
-      await fetch('https://api.resend.com/emails', {
+      const emailRes = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -183,7 +183,13 @@ Format HTML pour email. Sois direct et actionable.`,
             <div style="background:#f9fafb;padding:12px;text-align:center;color:#9ca3af;font-size:11px;border-radius:0 0 12px 12px;">Noah CEO IA — KeiroAI</div>
           </div>`,
         }),
-      }).catch(() => {});
+      });
+      if (!emailRes.ok) {
+        const errText = await emailRes.text().catch(() => '');
+        console.error('[CEO Reports] Improvement email FAILED:', emailRes.status, errText);
+      } else {
+        console.log('[CEO Reports] Improvement email sent to', ADMIN_EMAIL);
+      }
     }
 
     // Save analysis to RAG for learning
@@ -234,7 +240,7 @@ Format HTML pour email. Sois direct et actionable.`,
       </div>`;
     }).filter(Boolean).join('');
 
-    await fetch('https://api.resend.com/emails', {
+    const statusEmailRes = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -268,7 +274,13 @@ Format HTML pour email. Sois direct et actionable.`,
           <div style="background:#f9fafb;padding:12px;text-align:center;color:#9ca3af;font-size:11px;border-radius:0 0 12px 12px;">Noah CEO IA — KeiroAI | Rapport automatique ${period}</div>
         </div>`,
       }),
-    }).catch(() => {});
+    });
+    if (!statusEmailRes.ok) {
+      const errText = await statusEmailRes.text().catch(() => '');
+      console.error('[CEO Reports] Status email FAILED:', statusEmailRes.status, errText);
+    } else {
+      console.log('[CEO Reports] Status email sent to', ADMIN_EMAIL);
+    }
   }
 
   // Save status to RAG
