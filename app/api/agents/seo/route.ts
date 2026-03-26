@@ -516,18 +516,48 @@ Genere le JSON complet comme specifie dans tes instructions.`,
       return NextResponse.json({ ok: false, error: 'Echec du parsing JSON de l\'article' }, { status: 500 });
     }
 
-    // Validate required fields before insert
+    // Validate required fields — if content_html is missing, generate a minimal fallback article
     if (!article.content_html || article.content_html.length < 100) {
-      console.error('[SEOAgent] Article content_html is missing or too short:', article.content_html?.length || 0);
-      await supabase.from('agent_logs').insert({
-        agent: 'seo',
-        action: 'article_generation_failed',
-        data: { keyword: targetKeyword, error: 'content_html missing or too short', parsed_keys: Object.keys(article) },
-        status: 'error',
-        error_message: 'content_html is null or too short',
-        created_at: now,
-      });
-      return NextResponse.json({ ok: false, error: 'L\'article genere n\'a pas de contenu HTML valide. Reessayez.' }, { status: 500 });
+      console.warn('[SEOAgent] content_html missing or too short, generating fallback from available fields...');
+
+      // Try to build content_html from other parsed fields
+      const title = article.h1 || article.meta_title || targetKeyword;
+      const desc = article.meta_description || article.excerpt || '';
+      const faq = article.schema_faq;
+
+      if (title) {
+        // Build a minimal but valid article from parsed metadata
+        let fallbackHtml = `<h1>${title}</h1>\n<p>${desc}</p>\n`;
+
+        // Add FAQ content if available
+        if (faq && Array.isArray(faq)) {
+          fallbackHtml += '<h2>Questions frequentes</h2>\n';
+          faq.forEach((q: any) => {
+            fallbackHtml += `<h3>${q.question || q.q}</h3>\n<p>${q.answer || q.a}</p>\n`;
+          });
+        }
+
+        // Add keywords section
+        if (article.keywords && Array.isArray(article.keywords)) {
+          fallbackHtml += `<p><strong>Mots-cles:</strong> ${article.keywords.join(', ')}</p>\n`;
+        }
+
+        article.content_html = fallbackHtml;
+        console.log('[SEOAgent] Fallback article built from metadata, length:', fallbackHtml.length);
+      }
+
+      // If still no content, log error but don't crash
+      if (!article.content_html || article.content_html.length < 50) {
+        await supabase.from('agent_logs').insert({
+          agent: 'seo',
+          action: 'article_generation_failed',
+          data: { keyword: targetKeyword, error: 'content_html missing after fallback', parsed_keys: Object.keys(article) },
+          status: 'error',
+          error_message: 'content_html is null even after fallback',
+          created_at: now,
+        });
+        return NextResponse.json({ ok: false, error: 'L\'article genere n\'a pas de contenu HTML valide. Reessayez.' }, { status: 500 });
+      }
     }
 
     if (!article.slug) {

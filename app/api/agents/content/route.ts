@@ -1634,11 +1634,11 @@ export async function POST(request: NextRequest) {
           .lte('scheduled_date', todayDate)
           .is('visual_url', null);
 
-        // Also get approved posts with visuals that aren't published yet
+        // Also get approved posts with visuals that aren't published yet + retry failed posts
         const { data: approvedWithVisuals } = await supabase
           .from('content_calendar')
           .select('*')
-          .in('status', ['approved', 'draft'])
+          .in('status', ['approved', 'draft', 'publish_failed'])
           .lte('scheduled_date', todayDate)
           .not('visual_url', 'is', null);
 
