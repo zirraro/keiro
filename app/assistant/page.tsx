@@ -231,8 +231,20 @@ export default function AssistantPage() {
   // View tab
   const [viewTab, setViewTab] = useState<'suivi' | 'equipe' | 'agent' | 'pipeline' | 'offre'>('suivi');
 
-  // Team agent ordering (per team)
+  // Team agent ordering (per team) — initialized from localStorage via useEffect
   const [teamOrders, setTeamOrders] = useState<Record<string, string[]>>({});
+  useEffect(() => {
+    if (agents.length === 0) return;
+    const TEAMS_KEYS = ['commercial', 'visibilite', 'finance', 'strategie'];
+    const newOrders: Record<string, string[]> = {};
+    TEAMS_KEYS.forEach(teamKey => {
+      try {
+        const stored = localStorage.getItem(`keiro_team_order_${teamKey}`);
+        if (stored) { newOrders[teamKey] = JSON.parse(stored); }
+      } catch {}
+    });
+    if (Object.keys(newOrders).length > 0) setTeamOrders(prev => ({ ...prev, ...newOrders }));
+  }, [agents]);
   const handleTeamDragEnd = useCallback((teamKey: string) => (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
@@ -1059,24 +1071,7 @@ export default function AssistantPage() {
                   {/* Agent cards with mini dashboards + drag & drop */}
                   <div className="p-3 space-y-2">
                     <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={handleTeamDragEnd(teamKey)}>
-                      <SortableContext items={(() => {
-                        // Initialize team order if not set
-                        if (!teamOrders[teamKey]) {
-                          try {
-                            const stored = localStorage.getItem(`keiro_team_order_${teamKey}`);
-                            if (stored) {
-                              const parsed = JSON.parse(stored) as string[];
-                              const merged = [...parsed.filter(id => teamAgents.some(a => a.id === id)), ...teamAgents.filter(a => !parsed.includes(a.id)).map(a => a.id)];
-                              setTimeout(() => setTeamOrders(prev => ({ ...prev, [teamKey]: merged })), 0);
-                              return merged;
-                            }
-                          } catch {}
-                          const ids = teamAgents.map(a => a.id);
-                          setTimeout(() => setTeamOrders(prev => ({ ...prev, [teamKey]: ids })), 0);
-                          return ids;
-                        }
-                        return teamOrders[teamKey];
-                      })()} strategy={rectSortingStrategy}>
+                      <SortableContext items={teamOrders[teamKey] || teamAgents.map(a => a.id)} strategy={rectSortingStrategy}>
                         {(teamOrders[teamKey] || teamAgents.map(a => a.id)).map(agentId => {
                           const agent = teamAgents.find(a => a.id === agentId);
                           if (!agent) return null;
