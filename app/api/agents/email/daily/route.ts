@@ -700,7 +700,7 @@ async function sendEmail(
             htmlContent: template.htmlBody,
             textContent: template.textBody,
             headers: {
-              'X-Mailin-custom': JSON.stringify({ pid: prospect.id, cat: category, type: prospect.type || '', step }),
+              'X-Mailin-custom': JSON.stringify({ pid: prospect.id, cat: category, type: prospect.type || autoCategorizeProspect(prospect) || 'pme', step }),
               'List-Unsubscribe': '<https://keiroai.com/unsubscribe>',
               'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
             },

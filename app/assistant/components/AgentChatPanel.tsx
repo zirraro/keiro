@@ -81,7 +81,7 @@ export default function AgentChatPanel({
           ? 'fixed inset-0 z-50'
           : 'rounded-2xl border border-white/10 overflow-hidden'
       }`}
-      style={isMobile ? undefined : { height: 'calc(100vh - 200px)', minHeight: 400 }}
+      style={isMobile ? undefined : { height: 'min(500px, calc(100vh - 250px))', minHeight: 350 }}
     >
       {/* Header */}
       <div
