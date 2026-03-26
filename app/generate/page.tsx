@@ -2083,6 +2083,26 @@ export default function GeneratePage() {
     }
   }
 
+  // Telecharger une image (cross-origin safe via fetch+blob)
+  async function handleDownloadImage(url: string, filename: string = 'keiro-visual.png') {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.error('[Download] Error:', err);
+      // Fallback: open in new tab
+      window.open(url, '_blank');
+    }
+  }
+
   // Sauvegarder l'image dans la galerie
   async function saveToLibrary() {
     const baseImage = selectedEditVersion || generatedImageUrl;
@@ -4857,13 +4877,12 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                         {t.generate.edit}
                       </button>
                       {generationLimit.canDownload ? (
-                      <a
-                        href={selectedEditVersion || generatedImageUrl}
-                        download
+                      <button
+                        onClick={() => handleDownloadImage(selectedEditVersion || generatedImageUrl || '', `keiro-visual-${Date.now()}.png`)}
                         className="flex-1 min-w-0 sm:min-w-[120px] py-2.5 text-sm bg-neutral-900 text-white text-center rounded-lg hover:bg-neutral-800 transition-colors font-medium"
                       >
                         {t.generate.download}
-                      </a>
+                      </button>
                       ) : (
                       <button
                         onClick={() => setShowConversionPopup(true)}
@@ -5946,14 +5965,12 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                                 💾 {t.generate.gallery}
                               </button>
                               <div className="flex gap-2">
-                                <a
-                                  href={version}
-                                  download={`keiro-v${idx + 1}.png`}
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleDownloadImage(version, `keiro-v${idx + 1}.png`); }}
                                   className="flex-1 py-2 text-sm bg-[#0c1a3a] text-white text-center rounded-lg font-medium min-h-[44px] hover:bg-[#1e3a5f] transition-colors flex items-center justify-center"
-                                  onClick={(e) => e.stopPropagation()}
                                 >
                                   {t.generate.downloadLabel}
-                                </a>
+                                </button>
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -6116,11 +6133,9 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                             💾 {t.generate.gallery}
                           </button>
                           <div className="flex gap-1.5">
-                            <a
-                              href={version}
-                              download={`keiro-v${idx + 1}.png`}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleDownloadImage(version, `keiro-v${idx + 1}.png`); }}
                               className="flex-1 py-1 text-[10px] bg-[#0c1a3a] text-white text-center rounded hover:bg-[#1e3a5f] font-medium transition-colors"
-                              onClick={(e) => e.stopPropagation()}
                             >
                               ⬇️
                             </a>
