@@ -29,7 +29,7 @@ function HomeKeiroInner() {
 
       {/* HERO — always dark, even in light mode */}
       <section className="relative bg-[#0c1a3a] px-4 sm:px-6 pt-10 sm:pt-16 pb-8 sm:pb-12">
-        <div className="relative mx-auto max-w-6xl grid lg:grid-cols-12 gap-8 items-center">
+        <div className="relative mx-auto max-w-6xl grid lg:grid-cols-12 gap-4 sm:gap-8 items-center">
           <div className="lg:col-span-7">
             <ScaleIn>
             <div className="inline-flex items-center gap-2 rounded-full border border-[#1e3a5f]/30 bg-[#0c1a3a]/10 px-3 py-1 text-xs text-[#93b4d4]">
@@ -39,7 +39,7 @@ function HomeKeiroInner() {
             </ScaleIn>
             <HeroTextReveal
               text={t.home.heroTitle}
-              className="mt-4 text-4xl/tight md:text-5xl/tight font-semibold text-white"
+              className="mt-3 text-2xl/tight sm:text-4xl/tight md:text-5xl/tight font-semibold text-white"
               highlightWords={locale === 'fr' ? ['contenu pro', '3 minutes'] : ['pro content', '3 minutes']}
               highlightClassName="gradient-text"
             />
@@ -181,15 +181,15 @@ function HomeKeiroInner() {
       <div className={`homepage-sections ${isLight ? 'text-neutral-900' : 'text-slate-200'}`}>
 
       {/* ESSAI GRATUIT 30 JOURS - MIS EN AVANT */}
-      <section className="py-6">
-        <div className="max-w-2xl mx-auto px-6">
-          <div className="bg-gradient-to-r from-[#0c1a3a] via-purple-900 to-indigo-900 rounded-2xl px-6 py-4 border border-purple-500/20">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-white">
-            <div className="flex items-center gap-3">
-              <span className="text-xl">🎁</span>
+      <section className="py-3 sm:py-6">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6">
+          <div className="bg-gradient-to-r from-[#0c1a3a] via-purple-900 to-indigo-900 rounded-xl sm:rounded-2xl px-4 sm:px-6 py-3 sm:py-4 border border-purple-500/20">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4 text-white">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <span className="text-lg sm:text-xl">🎁</span>
               <div>
-                <p className="font-semibold">{t.home.freeTrialTitle || 'Essai gratuit 14 jours'}</p>
-                <p className="text-xs text-purple-200">{t.home.freeTrialSubtitle || 'Carte requise, aucun debit. Annulation en 1 clic a tout moment.'}</p>
+                <p className="font-semibold text-sm sm:text-base">{t.home.freeTrialTitle || 'Essai gratuit 14 jours'}</p>
+                <p className="text-[10px] sm:text-xs text-purple-200">{t.home.freeTrialSubtitle || 'Carte requise, aucun debit. Annulation en 1 clic a tout moment.'}</p>
               </div>
             </div>
             <Link href="/checkout/upsell?plan=createur" className="px-7 py-3 rounded-xl bg-white text-[#0c1a3a] font-extrabold hover:bg-purple-50 transition-all text-sm whitespace-nowrap shadow-lg hover:shadow-2xl hover:scale-105">
@@ -420,13 +420,13 @@ function HomeKeiroInner() {
       <section className="relative bg-[#0c1a3a] overflow-hidden">
         {/* Subtle grid background */}
         <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '40px 40px' }} />
-        <div className="relative mx-auto max-w-6xl px-6 py-16">
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-300 text-xs font-semibold mb-4">
-              <span className="h-2 w-2 rounded-full bg-purple-400 animate-pulse" />
+        <div className="relative mx-auto max-w-6xl px-4 sm:px-6 py-8 sm:py-16">
+          <div className="text-center mb-6 sm:mb-12">
+            <div className="inline-flex items-center gap-2 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-300 text-[10px] sm:text-xs font-semibold mb-3 sm:mb-4">
+              <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-purple-400 animate-pulse" />
               {locale === 'fr' ? '17 agents IA ultra-elite' : '17 ultra-elite AI agents'}
             </div>
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-3">
+            <h2 className="text-xl sm:text-3xl md:text-4xl font-bold text-white mb-2 sm:mb-3">
               {locale === 'fr' ? 'Une equipe complete qui travaille pour vous' : 'A complete team working for you'}
             </h2>
             <p className="text-white/50 max-w-2xl mx-auto">
@@ -1303,14 +1303,14 @@ function HomeKeiroInner() {
 
       {/* PRICING */}
       <section className="hp-light-island section-divider section-light">
-        <div className="mx-auto max-w-7xl px-6 py-16">
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-white text-sm font-bold mb-6 shadow-lg">
-              <span className="h-2 w-2 rounded-full bg-white animate-pulse"></span>
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 py-8 sm:py-16">
+          <div className="text-center mb-6 sm:mb-12">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs sm:text-sm font-bold mb-4 sm:mb-6 shadow-lg">
+              <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-white animate-pulse"></span>
               {t.home.pricingBadge}
             </div>
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4">{t.home.pricingTitle}</h2>
-            <p className="text-lg text-neutral-600">
+            <h2 className="text-xl sm:text-3xl md:text-4xl font-bold mb-2 sm:mb-4">{t.home.pricingTitle}</h2>
+            <p className="text-sm sm:text-lg text-neutral-600">
               {t.home.pricingSubtitle}
             </p>
 
@@ -1360,7 +1360,7 @@ function HomeKeiroInner() {
           </div>
 
           {/* Plans Grid — 4 plans principaux */}
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6">
             <Plan
               title={`\uD83D\uDC8E ${locale === 'fr' ? 'Createur' : 'Creator'}`}
               price={billingPeriod === 'annual' ? `490\u20AC ${t.common.perYear}` : `49\u20AC ${t.common.perMonth}`}
