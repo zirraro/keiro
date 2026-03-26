@@ -28,7 +28,7 @@ function HomeKeiroInner() {
       <div className="relative" style={{ zIndex: 2 }}>
 
       {/* HERO — always dark, even in light mode */}
-      <section className="relative bg-[#0c1a3a] px-6 pt-16 pb-12">
+      <section className="relative bg-[#0c1a3a] px-4 sm:px-6 pt-10 sm:pt-16 pb-8 sm:pb-12">
         <div className="relative mx-auto max-w-6xl grid lg:grid-cols-12 gap-8 items-center">
           <div className="lg:col-span-7">
             <ScaleIn>
@@ -620,7 +620,7 @@ function HomeKeiroInner() {
       </section>
 
       {/* GALERIE & POSTS MULTI-PLATEFORME */}
-      <section className="mx-auto max-w-6xl px-6 py-12">
+      <section className="hidden sm:block mx-auto max-w-6xl px-6 py-12">
         <div className="text-center mb-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-neutral-900">{t.home.galleryTitle}</h2>
           <p className="mt-2 text-neutral-600">{t.home.gallerySubtitle}</p>
@@ -767,7 +767,7 @@ function HomeKeiroInner() {
       </section>
 
       {/* EXEMPLE CONCRET AVANT/APRÈS */}
-      <section id="exemple" className="hp-light-island mx-auto max-w-6xl px-6 py-12">
+      <section id="exemple" className="hidden sm:block hp-light-island mx-auto max-w-6xl px-6 py-12">
         <div className="text-center mb-8">
           <h2 className="text-2xl sm:text-3xl font-bold">{t.home.beforeAfterTitle}</h2>
           <p className="mt-2 text-neutral-600">{t.home.beforeAfterSubtitle}</p>
@@ -984,7 +984,7 @@ function HomeKeiroInner() {
       </section>
 
       {/* POURQUOI PUBLIER SUR L'ACTU */}
-      <section className="section-divider section-light">
+      <section className="hidden sm:block section-divider section-light">
         <div className="mx-auto max-w-6xl px-6 py-12">
           <h2 className="text-2xl font-semibold">{t.home.whyTitle}</h2>
           <div className="mt-6 grid md:grid-cols-3 gap-6 text-neutral-700">
@@ -996,7 +996,7 @@ function HomeKeiroInner() {
       </section>
 
       {/* LE VRAI COÛT DE NE RIEN FAIRE */}
-      <section className="mx-auto max-w-6xl px-6 py-16">
+      <section className="hidden sm:block mx-auto max-w-6xl px-6 py-16">
         <div className="text-center mb-10">
           <h2 className="text-3xl md:text-4xl font-bold mb-3">
             Vous n&apos;avez pas de graphiste ni de CM ?{' '}
@@ -1052,7 +1052,7 @@ function HomeKeiroInner() {
       </section>
 
       {/* COMPARATIF AU MOIS — IMPACTANT */}
-      <section className="hp-light-island mx-auto max-w-6xl px-6 py-16">
+      <section className="hidden sm:block hp-light-island mx-auto max-w-6xl px-6 py-16">
         <div className="text-center mb-10">
           <h2 className="text-3xl md:text-4xl font-bold mb-3">
             {t.home.comparatorTitle}
