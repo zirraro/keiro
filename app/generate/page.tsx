@@ -2353,7 +2353,7 @@ export default function GeneratePage() {
         const { error: upErr } = await supabaseClient.storage
           .from('generated-images')
           .upload(fname, blob, { contentType: 'image/png', upsert: false });
-        if (upErr) { console.warn('[AutoSave] Upload failed:', upErr); return; }
+        if (upErr) { console.error('[AutoSave] Upload failed:', upErr.message, upErr); alert('Erreur sauvegarde galerie: ' + upErr.message); return; }
         const { data: { publicUrl } } = supabaseClient.storage.from('generated-images').getPublicUrl(fname);
         finalUrl = publicUrl;
       }
