@@ -908,12 +908,12 @@ export default function WorkspaceCrm({ isAdmin }: { isAdmin: boolean }) {
     return { total, hot, warm, clients, conversion, thisWeek };
   }, [prospects]);
 
+  // CRM view toggle (must be before any conditional return)
+  const [crmView, setCrmView] = useState<'prospects' | 'tasks'>('prospects');
+
   // ─── Render ────
   if (loading) return <div className="flex items-center justify-center py-20"><div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full" /></div>;
   if (error) return <div className="text-center py-16"><p className="text-neutral-400 mb-4">{error}</p><button onClick={fetchData} className="text-blue-500 text-sm hover:underline">Reessayer</button></div>;
-
-  // CRM view toggle
-  const [crmView, setCrmView] = useState<'prospects' | 'tasks'>('prospects');
 
   return (
     <div className="space-y-4">
