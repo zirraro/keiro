@@ -911,6 +911,18 @@ export default function WorkspaceCrm({ isAdmin }: { isAdmin: boolean }) {
   // CRM view toggle (must be before any conditional return)
   const [crmView, setCrmView] = useState<'prospects' | 'tasks'>('prospects');
 
+  // CRM sections visibility (customizable by client)
+  const [visibleSections, setVisibleSections] = useState(() => {
+    try { const stored = localStorage.getItem('keiro_crm_sections'); if (stored) return JSON.parse(stored); } catch {}
+    return { kpis: true, pipeline: true, filters: true };
+  });
+  const [showSectionSettings, setShowSectionSettings] = useState(false);
+  const toggleSection = (key: string) => {
+    const updated = { ...visibleSections, [key]: !visibleSections[key] };
+    setVisibleSections(updated);
+    try { localStorage.setItem('keiro_crm_sections', JSON.stringify(updated)); } catch {}
+  };
+
   // ─── Render ────
   if (loading) return <div className="flex items-center justify-center py-20"><div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full" /></div>;
   if (error) return <div className="text-center py-16"><p className="text-neutral-400 mb-4">{error}</p><button onClick={fetchData} className="text-blue-500 text-sm hover:underline">Reessayer</button></div>;
@@ -991,7 +1003,34 @@ export default function WorkspaceCrm({ isAdmin }: { isAdmin: boolean }) {
 
       {/* ─── PROSPECTS VIEW ─── */}
       {crmView === 'prospects' && <>
+      {/* ─── Section Settings Toggle ─── */}
+      <div className="flex justify-end">
+        <div className="relative">
+          <button onClick={() => setShowSectionSettings(!showSectionSettings)}
+            className="text-[10px] text-neutral-400 hover:text-neutral-300 px-2 py-1 rounded-lg hover:bg-white/5 transition">
+            ⚙️ Personnaliser
+          </button>
+          {showSectionSettings && (
+            <div className="absolute right-0 top-8 z-20 bg-white dark:bg-neutral-900 rounded-xl shadow-xl border border-neutral-200 dark:border-neutral-700 p-3 w-48">
+              <p className="text-[10px] font-bold text-neutral-400 mb-2">Sections visibles</p>
+              {[
+                { key: 'kpis', label: '📊 KPIs' },
+                { key: 'pipeline', label: '📈 Pipeline' },
+                { key: 'filters', label: '🔍 Filtres' },
+              ].map(s => (
+                <label key={s.key} className="flex items-center gap-2 py-1 cursor-pointer">
+                  <input type="checkbox" checked={visibleSections[s.key] !== false}
+                    onChange={() => toggleSection(s.key)} className="rounded accent-blue-500" />
+                  <span className="text-xs text-neutral-600 dark:text-neutral-300">{s.label}</span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* ─── KPI Row ─── */}
+      {visibleSections.kpis !== false && (
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
         <KpiCard label="Total" value={stats.total} sub={`+${stats.thisWeek} cette semaine`} icon="👥" color="#3b82f6"
           onClick={() => { setStageFilter(null); setTempFilter(''); }} />
@@ -1003,10 +1042,15 @@ export default function WorkspaceCrm({ isAdmin }: { isAdmin: boolean }) {
           onClick={() => setStageFilter(stageFilter === 'client' ? null : 'client')} />
       </div>
 
+      )}
+
       {/* ─── Pipeline Funnel ─── */}
-      <PipelineFunnel prospects={prospects} onStageClick={setStageFilter} activeStage={stageFilter} />
+      {visibleSections.pipeline !== false && (
+        <PipelineFunnel prospects={prospects} onStageClick={setStageFilter} activeStage={stageFilter} />
+      )}
 
       {/* ─── Search + Filters + Actions ─── */}
+      {visibleSections.filters !== false && (
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-sm">🔍</span>
@@ -1075,6 +1119,8 @@ export default function WorkspaceCrm({ isAdmin }: { isAdmin: boolean }) {
           <button onClick={() => { setStageFilter(null); setTempFilter(''); setSourceFilter(''); setSearch(''); }}
             className="text-[10px] text-red-400 hover:text-red-500">Tout effacer</button>
         </div>
+      )}
+
       )}
 
       {/* ─── Results count ─── */}
