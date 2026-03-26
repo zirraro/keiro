@@ -1092,6 +1092,8 @@ export default function WorkspaceCrm({ isAdmin }: { isAdmin: boolean }) {
         </div>
       </div>
 
+      )}
+
       {/* ─── Active Filters ─── */}
       {(stageFilter || tempFilter || sourceFilter || search) && (
         <div className="flex items-center gap-2 flex-wrap">
@@ -1119,8 +1121,6 @@ export default function WorkspaceCrm({ isAdmin }: { isAdmin: boolean }) {
           <button onClick={() => { setStageFilter(null); setTempFilter(''); setSourceFilter(''); setSearch(''); }}
             className="text-[10px] text-red-400 hover:text-red-500">Tout effacer</button>
         </div>
-      )}
-
       )}
 
       {/* ─── Results count ─── */}

@@ -6138,7 +6138,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                               className="flex-1 py-1 text-[10px] bg-[#0c1a3a] text-white text-center rounded hover:bg-[#1e3a5f] font-medium transition-colors"
                             >
                               ⬇️
-                            </a>
+                            </button>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
