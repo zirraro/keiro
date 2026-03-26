@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
   const totalErrors = Object.values(agentData).reduce((s, a) => s + a.errors, 0);
   const errorRate = totalRuns > 0 ? Math.round((totalErrors / totalRuns) * 100) : 0;
 
-  const RESEND_KEY = process.env.RESEND_API_KEY;
+  const BREVO_KEY = process.env.BREVO_API_KEY;
 
   if (reportType === 'improvement') {
     // ═══ RAPPORT AMELIORATION AGENTS ═══
@@ -131,21 +131,21 @@ Format HTML pour email. Sois direct et actionable.`,
     }
 
     // Send email
-    if (RESEND_KEY) {
+    if (BREVO_KEY) {
       const agentStatusRows = ALL_AGENTS.map(a => {
         const d = agentData[a];
         const icon = d.runs === 0 ? '\u274C' : d.errors > 0 ? '\u26A0\uFE0F' : '\u2705';
         return `<tr><td style="padding:4px 8px;">${icon} ${a}</td><td style="padding:4px 8px;">${d.runs}</td><td style="padding:4px 8px;color:${d.errors > 0 ? '#ef4444' : '#22c55e'}">${d.errors}</td><td style="padding:4px 8px;font-size:11px;color:#888;">${d.lastAction}</td></tr>`;
       }).join('');
 
-      const emailRes = await fetch('https://api.resend.com/emails', {
+      const emailRes = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
+        headers: { 'accept': 'application/json', 'api-key': BREVO_KEY, 'content-type': 'application/json' },
         body: JSON.stringify({
-          from: 'Noah CEO IA <contact@keiroai.com>',
-          to: [ADMIN_EMAIL],
+          sender: { name: 'Noah CEO IA', email: 'contact@keiroai.com' },
+          to: [{ email: ADMIN_EMAIL }],
           subject: `${totalErrors > 0 ? '\u{1F6A8}' : '\u2705'} Rapport amelioration agents — ${totalErrors} echecs, ${errorRate}% error rate`,
-          html: `<div style="font-family:Arial,sans-serif;max-width:700px;margin:0 auto;">
+          htmlContent: `<div style="font-family:Arial,sans-serif;max-width:700px;margin:0 auto;">
             <div style="background:linear-gradient(135deg,#0c1a3a,#1e3a5f);color:white;padding:20px;border-radius:12px 12px 0 0;">
               <h2 style="margin:0;">\u{1F9E0} Noah — Rapport Amelioration Agents</h2>
               <p style="margin:4px 0 0;color:#a0aec0;font-size:13px;">${now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })} — Rapport quotidien</p>
@@ -228,7 +228,7 @@ Format HTML pour email. Sois direct et actionable.`,
     });
   }
 
-  if (RESEND_KEY) {
+  if (BREVO_KEY) {
     const activityHtml = ALL_AGENTS.map(a => {
       const d = agentData[a];
       const activities = agentActivities[a];
@@ -240,14 +240,14 @@ Format HTML pour email. Sois direct et actionable.`,
       </div>`;
     }).filter(Boolean).join('');
 
-    const statusEmailRes = await fetch('https://api.resend.com/emails', {
+    const statusEmailRes = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
+      headers: { 'accept': 'application/json', 'api-key': BREVO_KEY, 'content-type': 'application/json' },
       body: JSON.stringify({
-        from: 'Noah CEO IA <contact@keiroai.com>',
-        to: [ADMIN_EMAIL],
+        sender: { name: 'Noah CEO IA', email: 'contact@keiroai.com' },
+        to: [{ email: ADMIN_EMAIL }],
         subject: `\u{1F4CB} Etat des taches ${period} — ${totalRuns} actions, ${totalErrors} erreurs`,
-        html: `<div style="font-family:Arial,sans-serif;max-width:700px;margin:0 auto;">
+        htmlContent: `<div style="font-family:Arial,sans-serif;max-width:700px;margin:0 auto;">
           <div style="background:linear-gradient(135deg,#0c1a3a,#1e3a5f);color:white;padding:20px;border-radius:12px 12px 0 0;">
             <h2 style="margin:0;">\u{1F4CB} Etat des taches — ${period}</h2>
             <p style="margin:4px 0 0;color:#a0aec0;font-size:13px;">${now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })} ${now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
@@ -303,7 +303,7 @@ Format HTML pour email. Sois direct et actionable.`,
  */
 async function handleClientBrief(supabase: any) {
   const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
-  const RESEND_KEY = process.env.RESEND_API_KEY;
+  const BREVO_CLIENT_KEY = process.env.BREVO_API_KEY;
 
   // Get all active clients with their profiles
   const { data: clients } = await supabase
@@ -412,15 +412,15 @@ Ne mentionne JAMAIS KeiroAI dans le brief. Parle comme un conseiller business pe
       }
 
       // Send email
-      if (RESEND_KEY && prefs?.email_enabled !== false && client.email) {
-        await fetch('https://api.resend.com/emails', {
+      if (BREVO_CLIENT_KEY && prefs?.email_enabled !== false && client.email) {
+        await fetch('https://api.brevo.com/v3/smtp/email', {
           method: 'POST',
-          headers: { 'Authorization': `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
+          headers: { 'accept': 'application/json', 'api-key': BREVO_CLIENT_KEY, 'content-type': 'application/json' },
           body: JSON.stringify({
-            from: 'Noah CEO IA <contact@keiroai.com>',
-            to: [client.email],
+            sender: { name: 'Noah CEO IA', email: 'contact@keiroai.com' },
+            to: [{ email: client.email }],
             subject: `📋 Ton brief du jour — ${hotCount || 0} prospect(s) chaud(s)`,
-            html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
+            htmlContent: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
               <div style="background:linear-gradient(135deg,#0c1a3a,#1e3a5f);color:white;padding:16px 20px;border-radius:12px 12px 0 0;">
                 <h2 style="margin:0;font-size:16px;">🧠 Brief CEO du jour</h2>
               </div>
