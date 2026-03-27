@@ -20,7 +20,7 @@ interface GeminiOptions {
  * Call Gemini 2.5 Flash with a system prompt and user message.
  * Returns the text response or throws on error.
  */
-export async function callGemini({ system, message, maxTokens = 1000 }: GeminiOptions): Promise<string> {
+export async function callGemini({ system, message, maxTokens = 2000 }: GeminiOptions): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error('GEMINI_API_KEY non configurée');
