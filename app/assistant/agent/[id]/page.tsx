@@ -8,6 +8,7 @@ import { CLIENT_AGENTS } from '@/lib/agents/client-context';
 
 const CrmDashboard = dynamic(() => import('./components/CrmDashboard'), { ssr: false });
 const AgentDashboard = dynamic(() => import('./components/AgentDashboard'), { ssr: false });
+const OnboardingDossier = dynamic(() => import('./components/OnboardingDossier'), { ssr: false });
 
 const AGENTS_WITH_DASHBOARD = [
   'marketing', 'commercial', 'email', 'content', 'seo', 'ads', 'comptable',
@@ -480,6 +481,8 @@ export default function AgentWorkspacePage() {
                     <div className="flex items-center justify-center py-16"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400 mx-auto" /></div>
                   ) : agentId === 'commercial' ? (
                     <CrmDashboard data={dashboardData || { prospects: [], activities: [], pipeline: {}, stats: { total: 0, hot: 0, warm: 0, cold: 0, converted: 0, conversionRate: 0 } }} />
+                  ) : agentId === 'onboarding' ? (
+                    <OnboardingDossier />
                   ) : (
                     <AgentDashboard agentId={agentId} agentName={dn} gradientFrom={gf} gradientTo={gt} data={dashboardData || {}} />
                   )}
