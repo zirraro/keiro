@@ -308,8 +308,8 @@ export const CLIENT_AGENTS: ClientAgent[] = [
   {
     id: 'gmaps',
     displayName: 'Theo',
-    title: 'Expert Google Maps',
-    description: 'Gere automatiquement votre fiche Google Maps, repond aux avis, booste votre visibilite locale',
+    title: 'Reputation & Avis Clients',
+    description: 'Genere des avis Google 5 etoiles, repond aux avis automatiquement, fait apparaitre ton commerce en premier quand les gens cherchent pres de chez toi',
     visibility: 'coming_soon',
     minPlan: 'business',
     gradientFrom: '#22c55e',
@@ -397,8 +397,9 @@ export function getVisibleAgents(plan: string, isAdmin = false): ClientAgent[] {
       const isAccessible = isAdmin || userPlanIndex >= requiredIndex;
       return {
         ...a,
-        // Admin sees all agents as active, regardless of coming_soon flag
-        visibility: isAdmin ? 'active' : (a.visibility === 'coming_soon' ? 'coming_soon' : (isAccessible ? 'active' : 'coming_soon')),
+        // Admin or users with sufficient plan see agents as active
+        // coming_soon agents become active if user's plan meets minPlan requirement
+        visibility: isAdmin ? 'active' : (isAccessible ? 'active' : 'coming_soon'),
       } as ClientAgent;
     });
 }
