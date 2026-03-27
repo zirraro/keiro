@@ -3,6 +3,14 @@
 import { useState } from 'react';
 import type { ClientAgent } from '@/lib/agents/client-context';
 
+const PLAN_LABELS: Record<string, string> = {
+  createur: 'Createur (49\u20AC/mois)',
+  pro: 'Pro (99\u20AC/mois)',
+  fondateurs: 'Fondateurs Pro (149\u20AC/mois)',
+  business: 'Business (349\u20AC/mois)',
+  elite: 'Elite (999\u20AC/mois)',
+};
+
 interface AgentCardProps {
   agent: ClientAgent;
   avatarUrl: string | null;
@@ -43,28 +51,28 @@ export default function AgentCard({ agent, avatarUrl, isSelected, onClick, comin
         }}
       />
 
-      {/* Coming soon overlay */}
+      {/* Locked overlay — shows required plan */}
       {isLocked && (
-        <div className="absolute inset-0 z-20 bg-black/50 backdrop-blur-[2px] flex flex-col items-center justify-center gap-2">
+        <div className="absolute inset-0 z-20 bg-black/50 backdrop-blur-[2px] flex flex-col items-center justify-center gap-2 px-3">
           <svg className="w-5 h-5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
           </svg>
-          <span className="text-white/90 text-xs font-semibold">Automatisation a venir</span>
-          {onNotifyClick && (
-            <span className="text-purple-300 text-[10px] font-medium underline underline-offset-2">
-              Me notifier
-            </span>
-          )}
+          <span className="text-white/90 text-xs font-semibold text-center">
+            Passe au plan {PLAN_LABELS[agent.minPlan] || agent.minPlan}
+          </span>
+          <a href="/offre" className="px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-[10px] font-bold rounded-lg hover:opacity-90 transition-all">
+            Voir les offres
+          </a>
         </div>
       )}
 
       {/* Status badge */}
-      {isLocked && comingSoonMode && (
-        <div className="absolute top-3 right-3 z-10 flex items-center gap-1 px-2 py-0.5 bg-purple-500/30 backdrop-blur-sm rounded-full">
-          <svg className="w-2.5 h-2.5 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+      {isLocked && (
+        <div className="absolute top-3 right-3 z-30 flex items-center gap-1 px-2 py-0.5 bg-amber-500/30 backdrop-blur-sm rounded-full">
+          <svg className="w-2.5 h-2.5 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
           </svg>
-          <span className="text-[10px] text-purple-200 font-medium">Bientot</span>
+          <span className="text-[10px] text-amber-200 font-medium">{agent.minPlan === 'createur' ? 'Createur+' : agent.minPlan === 'pro' ? 'Pro+' : agent.minPlan === 'business' ? 'Business+' : 'Premium'}</span>
         </div>
       )}
       {!isLocked && (
