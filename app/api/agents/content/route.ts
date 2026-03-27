@@ -349,6 +349,24 @@ async function publishToInstagram(
 
     console.log(`[Content] Instagram publish success — media id: ${result.id}${result.permalink ? `, permalink: ${result.permalink}` : ''}`);
 
+    // Auto-save to instagram_posts table for instant gallery/thumbnail update
+    try {
+      await supabase.from('instagram_posts').upsert({
+        id: result.id,
+        user_id: (await supabase.from('profiles').select('id').eq('is_admin', true).single()).data?.id,
+        caption: fullCaption.substring(0, 2000),
+        permalink: result.permalink || `https://www.instagram.com/p/${result.id}/`,
+        media_type: format === 'reel' || format === 'video' ? 'VIDEO' : format === 'carrousel' ? 'CAROUSEL_ALBUM' : 'IMAGE',
+        posted_at: new Date().toISOString(),
+        original_media_url: post.video_url || post.visual_url || '',
+        cached_media_url: post.video_url || post.visual_url || '',
+        synced_at: new Date().toISOString(),
+      }, { onConflict: 'id' });
+      console.log('[Content] Post saved to instagram_posts for gallery auto-refresh');
+    } catch (e: any) {
+      console.warn('[Content] Failed to save to instagram_posts:', e.message);
+    }
+
     return { success: true, permalink: result.permalink };
   } catch (error: any) {
     console.error('[Content] Instagram publish error:', error.message || error);

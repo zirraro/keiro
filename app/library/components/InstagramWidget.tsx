@@ -78,7 +78,7 @@ export default function InstagramWidget({
           .select('*')
           .eq('user_id', user.id)
           .order('posted_at', { ascending: false })
-          .limit(6);
+          .limit(10);
 
         if (error) {
           console.error('[InstagramWidget] Error loading posts:', error);

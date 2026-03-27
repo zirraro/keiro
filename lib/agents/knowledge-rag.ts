@@ -123,7 +123,7 @@ export async function searchKnowledge(
     }
   }
 
-  // Fallback: text-based search
+  // Fallback: text-based search (with proper org_id filtering)
   let query_builder = supabase
     .from('agent_knowledge')
     .select('id, content, summary, agent, category, confidence, business_type')
@@ -134,6 +134,7 @@ export async function searchKnowledge(
   if (agent) query_builder = query_builder.or(`agent.eq.${agent},agent.is.null`);
   if (category) query_builder = query_builder.eq('category', category);
   if (businessType) query_builder = query_builder.or(`business_type.eq.${businessType},business_type.is.null`);
+  if (orgId) query_builder = query_builder.or(`org_id.eq.${orgId},org_id.is.null`);
 
   const { data: textResults } = await query_builder;
 
