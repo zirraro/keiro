@@ -591,7 +591,10 @@ function FilterBar({ search, onSearch, tempFilter, onTempFilter, sourceFilter, o
 /* ------------------------------------------------------------------ */
 
 export default function CrmDashboard({ data, onAddProspect }: CrmDashboardProps) {
-  const { prospects, activities, pipeline, stats } = data;
+  const prospects = data?.prospects || [];
+  const activities = data?.activities || [];
+  const pipeline = data?.pipeline || {};
+  const stats = data?.stats || {};
 
   const [search, setSearch] = useState('');
   const [tempFilter, setTempFilter] = useState('');
