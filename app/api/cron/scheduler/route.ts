@@ -265,15 +265,16 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'community':
-      // 09:30 UTC — Community Manager: staggered to avoid concurrent marketing agent calls
+      // 09:30 UTC — Community tasks (gérées par Lena/Content via endpoint marketing)
+      // Commentaires engagement + ciblage follow IG + ciblage follow TT
       fireBackground(async () => {
-        await callEndpoint('Community Comments', '/api/agents/marketing', 'POST', { action: 'prepare_comments', count: 15 });
+        await callEndpoint('Lena Community: Comments', '/api/agents/marketing', 'POST', { action: 'prepare_comments', count: 15 });
         await delay(15000);
-        await callEndpoint('Community Follow Targets IG', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'instagram', count: 15 });
+        await callEndpoint('Lena Community: Follow IG', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'instagram', count: 15 });
         await delay(15000);
-        await callEndpoint('Community Follow Targets TT', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'tiktok', count: 10 });
+        await callEndpoint('Lena Community: Follow TT', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'tiktok', count: 10 });
       });
-      results.push({ task: 'Community', ok: true, data: { status: 'dispatched_background' } });
+      results.push({ task: 'Lena Community (comments + follows)', ok: true, data: { status: 'dispatched_background' } });
       break;
 
     case 'marketing_prep':
