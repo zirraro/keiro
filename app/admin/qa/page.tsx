@@ -57,6 +57,55 @@ export default function QADashboard() {
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
   const [lastHistory, setLastHistory] = useState<Array<{ ran_at: string; status: string; summary: QASummary }>>([]);
+  const [copied, setCopied] = useState(false);
+
+  const generateReport = useCallback(() => {
+    if (!result) return '';
+    const lines: string[] = [];
+    lines.push(`# Rapport QA KeiroAI`);
+    lines.push(`Date: ${new Date(result.ran_at).toLocaleString('fr-FR')}`);
+    lines.push(`Status: ${result.status.toUpperCase()}`);
+    lines.push(`${result.summary.pass}/${result.summary.total} OK | ${result.summary.warn} warnings | ${result.summary.fail} echecs | ${result.summary.critical} critiques`);
+    lines.push(`Duree: ${result.summary.duration_ms}ms | ${result.summary.modules_run} modules\n`);
+
+    const byModule: Record<string, QACheck[]> = {};
+    for (const c of result.checks) {
+      if (!byModule[c.module]) byModule[c.module] = [];
+      byModule[c.module].push(c);
+    }
+
+    for (const [mod, checks] of Object.entries(byModule)) {
+      const worst = checks.reduce<string>((w, c) => {
+        const order = ['pass', 'warn', 'fail', 'critical'];
+        return order.indexOf(c.status) > order.indexOf(w) ? c.status : w;
+      }, 'pass');
+      const icon = worst === 'pass' ? 'OK' : worst === 'warn' ? 'WARN' : worst === 'fail' ? 'FAIL' : 'CRITICAL';
+      lines.push(`## [${icon}] ${mod}`);
+      for (const c of checks) {
+        const s = c.status === 'pass' ? 'v' : c.status === 'warn' ? '!' : c.status === 'fail' ? 'x' : '!!';
+        lines.push(`- [${s}] ${c.name}: ${c.message}`);
+        if (c.fix) lines.push(`  Fix: ${c.fix}`);
+      }
+      lines.push('');
+    }
+
+    if (result.module_errors && Object.keys(result.module_errors).length > 0) {
+      lines.push(`## Erreurs modules`);
+      for (const [mod, err] of Object.entries(result.module_errors)) {
+        lines.push(`- ${mod}: ${err}`);
+      }
+    }
+
+    return lines.join('\n');
+  }, [result]);
+
+  const copyReport = useCallback(() => {
+    const report = generateReport();
+    navigator.clipboard.writeText(report).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }, [generateReport]);
 
   const runQA = useCallback(async (group: string = selectedGroup) => {
     setLoading(true);
@@ -148,13 +197,23 @@ export default function QADashboard() {
               {g.icon} {g.label}
             </button>
           ))}
-          <button
-            onClick={() => runQA()}
-            disabled={loading}
-            className="ml-auto px-5 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-          >
-            {loading ? 'Tests en cours...' : 'Lancer les tests'}
-          </button>
+          <div className="ml-auto flex items-center gap-2">
+            {result && (
+              <button
+                onClick={copyReport}
+                className="px-4 py-2 bg-white text-neutral-700 text-sm font-medium rounded-lg border border-neutral-200 hover:bg-neutral-50 transition-all"
+              >
+                {copied ? 'Copie !' : 'Copier rapport'}
+              </button>
+            )}
+            <button
+              onClick={() => runQA()}
+              disabled={loading}
+              className="px-5 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              {loading ? 'Tests en cours...' : 'Lancer les tests'}
+            </button>
+          </div>
         </div>
 
         {error && (
