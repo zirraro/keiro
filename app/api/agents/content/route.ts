@@ -1089,16 +1089,23 @@ export async function GET(request: NextRequest) {
             } else {
               console.error(`[Content] TikTok publish FAILED for post ${post.id}: ${ttResult.error}`);
             }
+          } else if (fullPost.platform === 'linkedin') {
+            // LinkedIn: pas de publication API pour l'instant — garder en approved
+            console.log(`[Content] LinkedIn post ${post.id} — pas de publication API, reste en approved`);
+            platformSuccess = false;
+            updateFields.status = 'approved';
           } else {
-            platformSuccess = true;
+            // Plateforme inconnue — ne PAS marquer comme published
+            console.warn(`[Content] Unknown platform ${fullPost.platform} for post ${post.id}`);
+            platformSuccess = false;
           }
 
           if (platformSuccess) {
             updateFields.status = 'published';
             updateFields.published_at = new Date().toISOString();
             published++;
-          } else {
-            updateFields.status = 'approved';
+          } else if (!updateFields.status) {
+            updateFields.status = 'approved'; // Remettre en approved si pas publie
           }
 
           await supabase.from('content_calendar').update(updateFields).eq('id', post.id);
