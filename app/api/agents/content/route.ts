@@ -1090,10 +1090,38 @@ export async function GET(request: NextRequest) {
               console.error(`[Content] TikTok publish FAILED for post ${post.id}: ${ttResult.error}`);
             }
           } else if (fullPost.platform === 'linkedin') {
-            // LinkedIn: pas de publication API pour l'instant — garder en approved
-            console.log(`[Content] LinkedIn post ${post.id} — pas de publication API, reste en approved`);
-            platformSuccess = false;
-            updateFields.status = 'approved';
+            // LinkedIn: publier via l'API LinkedIn
+            try {
+              const liCaption = (fullPost.caption || fullPost.hook || '') + (fullPost.hashtags ? '\n\n' + fullPost.hashtags : '');
+              const liBody: any = {
+                caption: liCaption,
+                mediaType: visualUrl ? 'image' : 'text',
+                mediaUrl: visualUrl || undefined,
+                _scheduledPublish: true,
+                _userId: adminProfile?.id || '',
+              };
+              const cronSecret = process.env.CRON_SECRET;
+              const liRes = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://keiroai.com'}/api/library/linkedin/publish`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${cronSecret}` },
+                body: JSON.stringify(liBody),
+              });
+              if (liRes.ok) {
+                const liData = await liRes.json();
+                if (liData.postUrn || liData.id) {
+                  updateFields.linkedin_post_id = liData.postUrn || liData.id;
+                  platformSuccess = true;
+                  console.log(`[Content] LinkedIn published for post ${post.id}: ${liData.postUrn || liData.id}`);
+                } else {
+                  console.error(`[Content] LinkedIn publish no URN for post ${post.id}`);
+                }
+              } else {
+                const liErr = await liRes.text().catch(() => '');
+                console.error(`[Content] LinkedIn publish FAILED ${liRes.status}: ${liErr.substring(0, 200)}`);
+              }
+            } catch (liErr: any) {
+              console.error(`[Content] LinkedIn publish error for post ${post.id}: ${liErr.message}`);
+            }
           } else {
             // Plateforme inconnue — ne PAS marquer comme published
             console.warn(`[Content] Unknown platform ${fullPost.platform} for post ${post.id}`);
