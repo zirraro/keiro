@@ -840,22 +840,70 @@ export default function AgentWorkspacePage() {
             </div>
 
             {/* Integration section for embeddable agents */}
-            {['chatbot', 'onboarding'].includes(agentId) && (
-              <div className="mt-6 rounded-xl border border-white/10 bg-white/[0.03] p-5">
-                <h4 className="text-white font-bold text-sm mb-2 flex items-center gap-2">
-                  <span>{'\u{1F517}'}</span> Integrer {dn} sur ton site
-                </h4>
-                <p className="text-white/40 text-xs mb-4">
-                  Colle ce code juste avant la balise {'</body>'} de ton site. {dn} apparaitra en bas a {agentId === 'chatbot' ? 'droite' : 'droite'} et pourra discuter avec tes visiteurs.
-                </p>
-                <div className="bg-black/30 rounded-lg p-3 font-mono text-[11px] text-green-400 break-all select-all cursor-text">
-                  {`<script src="https://keiroai.com/embed/widget.js" data-key="VOTRE_CLE" data-agent="${agentId === 'chatbot' ? 'chatbot' : 'onboarding'}" data-color="${gf}"></script>`}
+            {/* Integration section for embeddable agents */}
+            {(() => {
+              const integrations: Record<string, { title: string; description: string; code: string; note?: string }> = {
+                chatbot: {
+                  title: 'Integrer Max (Chatbot) sur ton site',
+                  description: 'Max accueille tes visiteurs 24/7, repond a leurs questions et capture leurs coordonnees. Colle ce code avant </body> :',
+                  code: `<script src="https://keiroai.com/embed/widget.js" data-key="VOTRE_CLE" data-agent="chatbot" data-color="${gf}"></script>`,
+                },
+                onboarding: {
+                  title: 'Integrer Clara sur ton site e-commerce',
+                  description: 'Clara guide tes clients dans leur parcours d\'achat, recommande des produits et pousse a la conversion. Colle ce code avant </body> :',
+                  code: `<script src="https://keiroai.com/embed/widget.js" data-key="VOTRE_CLE" data-agent="onboarding" data-color="${gf}"></script>`,
+                },
+                email: {
+                  title: 'Formulaire de capture email',
+                  description: 'Ajoute un formulaire sur ton site pour capturer les emails de tes visiteurs. Hugo les ajoutera automatiquement a tes sequences email.',
+                  code: `<form action="https://keiroai.com/api/widget/lead" method="POST" style="display:flex;gap:8px">
+  <input type="hidden" name="widget_key" value="VOTRE_CLE" />
+  <input type="email" name="email" placeholder="Ton email" required style="padding:10px 16px;border:1px solid #ddd;border-radius:8px;flex:1" />
+  <button type="submit" style="padding:10px 20px;background:${gf};color:white;border:none;border-radius:8px;cursor:pointer">S'inscrire</button>
+</form>`,
+                },
+                whatsapp: {
+                  title: 'Bouton WhatsApp sur ton site',
+                  description: 'Ajoute un bouton WhatsApp flottant. Tes visiteurs peuvent te contacter directement et Stella repond automatiquement.',
+                  code: `<a href="https://wa.me/VOTRE_NUMERO?text=Bonjour%20!" target="_blank" style="position:fixed;bottom:20px;right:90px;z-index:9999;width:56px;height:56px;border-radius:50%;background:#25D366;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.3)">
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.955 9.955 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/></svg>
+</a>`,
+                  note: 'Remplace VOTRE_NUMERO par ton numero WhatsApp au format international (ex: 33612345678)',
+                },
+                gmaps: {
+                  title: 'QR Code pour les avis Google',
+                  description: 'Imprime ce QR code et affiche-le a la caisse, sur les tables ou sur les sacs. Tes clients scannent et laissent un avis Google en 30 secondes.',
+                  code: `<div style="text-align:center;padding:20px">
+  <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=VOTRE_LIEN_GOOGLE_AVIS" alt="QR Code Avis Google" style="width:200px;border-radius:12px" />
+  <p style="margin-top:8px;font-size:14px;color:#333">Scannez pour laisser un avis !</p>
+</div>`,
+                  note: 'Remplace VOTRE_LIEN_GOOGLE_AVIS par le lien de ta fiche Google Maps → "Ecrire un avis"',
+                },
+              };
+
+              const config = integrations[agentId];
+              if (!config) return null;
+
+              return (
+                <div className="mt-6 rounded-xl border border-white/10 bg-white/[0.03] p-5">
+                  <h4 className="text-white font-bold text-sm mb-2 flex items-center gap-2">
+                    <span>{'\u{1F517}'}</span> {config.title}
+                  </h4>
+                  <p className="text-white/40 text-xs mb-4">{config.description}</p>
+                  <div className="bg-black/30 rounded-lg p-3 font-mono text-[11px] text-green-400 break-all select-all cursor-text whitespace-pre-wrap">
+                    {config.code}
+                  </div>
+                  {config.note && (
+                    <p className="text-amber-400/70 text-[10px] mt-2 flex items-center gap-1">
+                      <span>{'\u26A0\uFE0F'}</span> {config.note}
+                    </p>
+                  )}
+                  <p className="text-white/30 text-[10px] mt-2">
+                    Pour obtenir ta cle unique, va dans Mon compte {'\u2192'} Integrations.
+                  </p>
                 </div>
-                <p className="text-white/30 text-[10px] mt-2">
-                  Pour obtenir ta cle unique, va dans Mon compte {'\u2192'} Integrations ou contacte-nous.
-                </p>
-              </div>
-            )}
+              );
+            })()}
           </div>
         )}
       </div>
