@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/client';
-import { getVisibleAgents, type ClientAgent } from '@/lib/agents/client-context';
+import { getVisibleAgents, CLIENT_AGENTS, type ClientAgent } from '@/lib/agents/client-context';
 import AgentCard from './components/AgentCard';
 import AgentChatPanel, { type ChatMessage } from './components/AgentChatPanel';
 import DossierBanner from './components/DossierBanner';
@@ -769,7 +769,7 @@ export default function AssistantPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
             {/* NOAH — Conseiller strategique */}
             <div className="rounded-2xl border border-indigo-500/20 overflow-hidden cursor-pointer hover:border-indigo-500/40 transition-all"
-              onClick={() => { const ceo = agents.find(a => a.id === 'ceo'); if (ceo) handleSelectAgent(ceo); }}>
+              onClick={() => { const ceo = CLIENT_AGENTS.find(a => a.id === 'ceo'); if (ceo) handleSelectAgent(ceo); }}>
               <div className="bg-gradient-to-r from-indigo-600/20 to-blue-600/15 px-4 py-3 flex items-center gap-3">
                 <div className="w-11 h-11 rounded-full overflow-hidden flex-shrink-0" style={{ background: 'linear-gradient(135deg, #6366f1, #3b82f6)', padding: '2px' }}>
                   <div className="w-full h-full rounded-full overflow-hidden bg-gray-900 flex items-center justify-center">
@@ -780,7 +780,7 @@ export default function AssistantPage() {
                   <div className="text-white font-bold text-sm">Noah — Votre Strategiste</div>
                   <div className="text-indigo-300/60 text-[10px]">Conseille sur les priorites du jour et la strategie globale</div>
                 </div>
-                <button onClick={(e) => { e.stopPropagation(); const ceo = agents.find(a => a.id === 'ceo'); if (ceo) handleOpenChat(ceo); }} className="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 rounded-lg text-indigo-300 text-[10px] font-medium transition-all flex-shrink-0">
+                <button onClick={(e) => { e.stopPropagation(); const ceo = CLIENT_AGENTS.find(a => a.id === 'ceo'); if (ceo) handleOpenChat(ceo); }} className="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 rounded-lg text-indigo-300 text-[10px] font-medium transition-all flex-shrink-0">
                   💬 Chat
                 </button>
               </div>

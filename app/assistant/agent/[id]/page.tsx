@@ -12,6 +12,7 @@ const AgentDashboard = dynamic(() => import('./components/AgentDashboard'), { ss
 const AGENTS_WITH_DASHBOARD = [
   'marketing', 'commercial', 'email', 'content', 'seo', 'ads', 'comptable',
   'rh', 'onboarding', 'dm_instagram', 'tiktok_comments', 'gmaps', 'chatbot', 'whatsapp',
+  'ceo', 'qa',
 ];
 
 // ─── Types ─────────────────────────────────────────────────
@@ -281,6 +282,11 @@ export default function AgentWorkspacePage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // ─── QA agent redirects to admin dashboard ────────────
+  useEffect(() => {
+    if (agentId === 'qa') { router.push('/admin/qa'); }
+  }, [agentId, router]);
 
   // ─── Init agent ────────────────────────────────────────
   useEffect(() => { const f = CLIENT_AGENTS.find(a => a.id === agentId); if (f) setAgent(f); }, [agentId]);

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getAuthUser } from '@/lib/auth-server';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; // 5 min max
@@ -10,6 +11,19 @@ const OPENAI_KEY = process.env.OPENAI_API_KEY!;
 
 function getSupabase() {
   return createClient(supabaseUrl, supabaseServiceKey);
+}
+
+async function verifyAuth(req: NextRequest) {
+  const cronSecret = process.env.CRON_SECRET;
+  const auth = req.headers.get('authorization');
+  if (cronSecret && auth === `Bearer ${cronSecret}`) return true;
+  try {
+    const { user, error } = await getAuthUser();
+    if (error || !user) return false;
+    const supabase = getSupabase();
+    const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single();
+    return profile?.is_admin === true;
+  } catch { return false; }
 }
 
 async function getEmbedding(text: string): Promise<number[] | null> {
@@ -28,14 +42,12 @@ async function getEmbedding(text: string): Promise<number[] | null> {
 
 /**
  * POST /api/agents/knowledge-backfill
- * Generate embeddings for all agent_knowledge entries that don't have one yet.
- * Auth: CRON_SECRET header required.
- * Query params: ?batch=50 (default 50, max 200)
+ * Generate embeddings for agent_knowledge entries without one.
+ * Auth: CRON_SECRET or admin user.
+ * Query params: ?batch=200 (default 200, max 200)
  */
 export async function POST(req: NextRequest) {
-  const cronSecret = process.env.CRON_SECRET;
-  const auth = req.headers.get('authorization');
-  if (!cronSecret || auth !== `Bearer ${cronSecret}`) {
+  if (!(await verifyAuth(req))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -44,14 +56,17 @@ export async function POST(req: NextRequest) {
   }
 
   const supabase = getSupabase();
-  const batchSize = Math.min(parseInt(new URL(req.url).searchParams.get('batch') || '50'), 200);
+  const batchSize = Math.min(parseInt(new URL(req.url).searchParams.get('batch') || '200'), 200);
+
+  const startTime = Date.now();
+  const MAX_DURATION_MS = 270_000; // Stop at 4.5 min to leave buffer
 
   // Get entries without embeddings
   const { data: entries, error } = await supabase
     .from('agent_knowledge')
     .select('id, content')
     .is('embedding', null)
-    .order('confidence', { ascending: false }) // Highest confidence first
+    .order('confidence', { ascending: false })
     .limit(batchSize);
 
   if (error) {
@@ -59,17 +74,21 @@ export async function POST(req: NextRequest) {
   }
 
   if (!entries || entries.length === 0) {
-    return NextResponse.json({ ok: true, message: 'All entries already have embeddings', processed: 0 });
+    return NextResponse.json({ ok: true, message: 'All entries already have embeddings', processed: 0, remaining: 0 });
   }
 
   let processed = 0;
   let failed = 0;
 
-  // Process in batches of 10 to avoid rate limits
+  // Process in sub-batches of 10 parallel
   for (let i = 0; i < entries.length; i += 10) {
+    if (Date.now() - startTime > MAX_DURATION_MS) {
+      console.log(`[Backfill] Stopping at ${processed} — approaching timeout`);
+      break;
+    }
+
     const batch = entries.slice(i, i + 10);
 
-    // Generate embeddings in parallel (10 at a time)
     const results = await Promise.allSettled(
       batch.map(async (entry) => {
         const embedding = await getEmbedding(entry.content);
@@ -89,7 +108,6 @@ export async function POST(req: NextRequest) {
       else failed++;
     }
 
-    // Small delay between batches to respect rate limits
     if (i + 10 < entries.length) {
       await new Promise(resolve => setTimeout(resolve, 500));
     }
@@ -101,25 +119,27 @@ export async function POST(req: NextRequest) {
     .select('id', { count: 'exact', head: true })
     .is('embedding', null);
 
+  const duration = Date.now() - startTime;
+
   return NextResponse.json({
     ok: true,
     processed,
     failed,
     remaining: remaining || 0,
+    duration_ms: duration,
     message: remaining && remaining > 0
-      ? `${processed} embeddings generes. ${remaining} restants — relancez le backfill.`
-      : `Termine ! Tous les ${processed} embeddings sont generes.`,
+      ? `${processed} embeddings generes en ${Math.round(duration / 1000)}s. ${remaining} restants — relancez le backfill.`
+      : `Termine ! ${processed} embeddings generes. Total 100% embedded.`,
   });
 }
 
 /**
  * GET /api/agents/knowledge-backfill
  * Check status: how many entries have/don't have embeddings.
+ * Auth: CRON_SECRET or admin user.
  */
 export async function GET(req: NextRequest) {
-  const cronSecret = process.env.CRON_SECRET;
-  const auth = req.headers.get('authorization');
-  if (!cronSecret || auth !== `Bearer ${cronSecret}`) {
+  if (!(await verifyAuth(req))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -135,11 +155,24 @@ export async function GET(req: NextRequest) {
     supabase.from('agent_knowledge').select('id', { count: 'exact', head: true }).is('embedding', null),
   ]);
 
+  // Per-agent breakdown
+  const { data: agentCounts } = await supabase
+    .from('agent_knowledge')
+    .select('agent')
+    .is('embedding', null);
+
+  const byAgent: Record<string, number> = {};
+  for (const row of agentCounts || []) {
+    const a = row.agent || 'shared';
+    byAgent[a] = (byAgent[a] || 0) + 1;
+  }
+
   return NextResponse.json({
     ok: true,
     total: total || 0,
     withEmbedding: withEmbedding || 0,
     withoutEmbedding: withoutEmbedding || 0,
     progress: total ? `${Math.round(((withEmbedding || 0) / total) * 100)}%` : '0%',
+    byAgent: Object.keys(byAgent).length > 0 ? byAgent : undefined,
   });
 }

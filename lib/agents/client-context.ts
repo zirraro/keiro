@@ -88,7 +88,7 @@ export function formatDossierForPrompt(dossier: BusinessDossier | null): string 
 }
 
 // Define which agents are visible to clients and their status
-export type AgentVisibility = 'active' | 'coming_soon' | 'background';
+export type AgentVisibility = 'active' | 'coming_soon' | 'background' | 'admin_only';
 
 export interface ClientAgent {
   id: string;
@@ -295,6 +295,17 @@ export const CLIENT_AGENTS: ClientAgent[] = [
     gradientTo: '#1e3a5f',
     icon: '\u{1F9E0}',
   },
+  {
+    id: 'qa',
+    displayName: 'QA Agent',
+    title: 'Testeur Qualite',
+    description: 'Teste toutes les fonctionnalites KeiroAI comme un vrai client — generation, publication, agents, checkout',
+    visibility: 'admin_only',
+    minPlan: 'gratuit',
+    gradientFrom: '#059669',
+    gradientTo: '#10b981',
+    icon: '\u{1F9EA}',
+  },
 ];
 
 export function getVisibleAgents(plan: string, isAdmin = false): ClientAgent[] {
@@ -302,7 +313,7 @@ export function getVisibleAgents(plan: string, isAdmin = false): ClientAgent[] {
   const userPlanIndex = planOrder.indexOf(plan || 'gratuit');
 
   return CLIENT_AGENTS
-    .filter(a => a.visibility !== 'background')
+    .filter(a => a.visibility !== 'background' && (a.visibility !== 'admin_only' || isAdmin))
     .map(a => {
       const requiredIndex = planOrder.indexOf(a.minPlan);
       const isAccessible = isAdmin || userPlanIndex >= requiredIndex;
