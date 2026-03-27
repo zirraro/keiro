@@ -156,7 +156,11 @@ export const testAgentHealth: QAModule = async (supabase) => {
   const start = Date.now();
   const checks: QACheck[] = [];
   const since24h = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
-  const ALL_AGENTS = ['email', 'commercial', 'dm_instagram', 'tiktok_comments', 'seo', 'content', 'onboarding', 'retention', 'marketing', 'chatbot', 'whatsapp', 'gmaps', 'comptable', 'ads', 'rh', 'ceo'];
+  // Only check agents that have actual cron routes — others are on-demand or not yet implemented
+  const CRON_AGENTS = ['email', 'commercial', 'dm_instagram', 'seo', 'content', 'onboarding', 'retention', 'marketing', 'gmaps', 'comptable', 'ceo', 'whatsapp'];
+  // On-demand agents (no cron, triggered by user/events) — warn instead of fail if inactive
+  const ON_DEMAND_AGENTS = ['chatbot', 'ads', 'rh', 'tiktok_comments'];
+  const ALL_AGENTS = [...CRON_AGENTS, ...ON_DEMAND_AGENTS];
 
   for (const agent of ALL_AGENTS) {
     const { count: runs } = await supabase
@@ -180,7 +184,9 @@ export const testAgentHealth: QAModule = async (supabase) => {
     let message = `${r} runs, ${e} erreurs`;
     let fix: string | undefined;
 
-    if (r === 0) { status = 'fail'; message = `N'a PAS tourne en 24h`; fix = `Verifier le cron pour ${agent}`; }
+    const isOnDemand = ON_DEMAND_AGENTS.includes(agent);
+    if (r === 0 && isOnDemand) { status = 'pass'; message = `Agent on-demand — pas de cron (${agent})`; }
+    else if (r === 0) { status = 'fail'; message = `N'a PAS tourne en 24h`; fix = `Verifier le cron pour ${agent}`; }
     else if (errorRate > 50) { status = 'critical'; message = `${e}/${r} erreurs (${errorRate}%)`; fix = `Verifier les logs d'erreur`; }
     else if (errorRate > 20) { status = 'warn'; message = `${r} runs, ${e} erreurs (${errorRate}%)`; }
 

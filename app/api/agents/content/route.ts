@@ -1814,13 +1814,21 @@ export async function POST(request: NextRequest) {
                 if (igResult.permalink) updateData.instagram_permalink = igResult.permalink;
               } else {
                 pubError = igResult.error;
-                console.warn(`[Content] Instagram publish failed for post ${post.id}: ${igResult.error}`);
-                const diag = diagnosePublishFailure('Instagram', igResult.error || '');
-                updateData.status = 'publish_failed';
-                updateData.publish_error = igResult.error || 'Unknown Instagram error';
-                updateData.publish_diagnostic = { platform: 'Instagram', reason: diag.reason, severity: diag.severity, detail: diag.detail, timestamp: new Date().toISOString() };
-                delete updateData.published_at;
-                await sendPublishAlert(diag, `Post ${post.id} — ${post.hook || post.caption?.substring(0, 60) || 'N/A'}`, supabase);
+                const isDuplicate = igResult.error?.includes('Duplicate');
+                if (isDuplicate) {
+                  console.log(`[Content] Duplicate detected for post ${post.id} — skipping`);
+                  updateData.status = 'skipped';
+                  updateData.publish_error = igResult.error;
+                  delete updateData.published_at;
+                } else {
+                  console.warn(`[Content] Instagram publish failed for post ${post.id}: ${igResult.error}`);
+                  const diag = diagnosePublishFailure('Instagram', igResult.error || '');
+                  updateData.status = 'publish_failed';
+                  updateData.publish_error = igResult.error || 'Unknown Instagram error';
+                  updateData.publish_diagnostic = { platform: 'Instagram', reason: diag.reason, severity: diag.severity, detail: diag.detail, timestamp: new Date().toISOString() };
+                  delete updateData.published_at;
+                  await sendPublishAlert(diag, `Post ${post.id} — ${post.hook || post.caption?.substring(0, 60) || 'N/A'}`, supabase);
+                }
               }
             }
           } else if (post.platform === 'tiktok' && (post.visual_url || videoUrl)) {
