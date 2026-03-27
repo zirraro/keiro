@@ -198,6 +198,26 @@ export async function POST(request: NextRequest) {
 
     console.log(`[ClientChat] Response received (${response.usage.input_tokens + response.usage.output_tokens} tokens):`, reply.substring(0, 100));
 
+    // 9.4 Detect and save dossier updates from Clara's onboarding interview
+    // Supports both <dossier_update>...</dossier_update> and [dossier_update]...[/dossier_update]
+    const dossierMatch = reply.match(/<dossier_update>\s*(\{[\s\S]*?\})\s*<\/dossier_update>/) ||
+                          reply.match(/\[dossier_update\]\s*(\{[\s\S]*?\})\s*\[\/dossier_update\]/);
+    if (dossierMatch) {
+      try {
+        const dossierUpdates = JSON.parse(dossierMatch[1]);
+        if (Object.keys(dossierUpdates).length > 0) {
+          const { upsertBusinessDossier } = await import('@/lib/agents/client-context');
+          await upsertBusinessDossier(supabase, user.id, dossierUpdates);
+          console.log(`[ClientChat] Dossier updated: ${Object.keys(dossierUpdates).join(', ')}`);
+        }
+      } catch (e: any) {
+        console.warn('[ClientChat] Dossier update parse error:', e.message);
+      }
+      // Remove the dossier block from visible reply
+      reply = reply.replace(/<dossier_update>[\s\S]*?<\/dossier_update>/, '')
+                    .replace(/\[dossier_update\][\s\S]*?\[\/dossier_update\]/, '').trim();
+    }
+
     // 9.5 Detect and apply setting updates from agent response
     const settingMatch = reply.match(/\[SETTING_UPDATE:\{.*?\}\]/);
     if (settingMatch) {

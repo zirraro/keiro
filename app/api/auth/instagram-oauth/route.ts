@@ -35,13 +35,13 @@ export async function GET(req: NextRequest) {
     console.log('[InstagramOAuth] Authenticated user:', user.id);
 
     // Permissions Instagram Business pour publier sur Instagram
+    // Note: instagram_manage_messages and pages_messaging require Meta approval
+    // and cause errors for non-approved apps — removed to fix OAuth flow
     const scopes = [
       'instagram_basic',
       'instagram_content_publish',
-      'instagram_manage_messages',
       'pages_show_list',
       'pages_read_engagement',
-      'pages_messaging',
       'instagram_manage_insights',
       'business_management',
     ].join(',');

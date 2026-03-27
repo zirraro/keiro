@@ -1,22 +1,52 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 
 export interface BusinessDossier {
+  // Identite
   company_name: string | null;
   company_description: string | null;
   business_type: string | null;
-  target_audience: string | null;
-  brand_tone: string | null;
+  legal_status: string | null;
+  founder_name: string | null;
+  creation_year: number | null;
+  employees_count: string | null;
+  // Localisation
+  city: string | null;
+  region: string | null;
+  country: string | null;
+  address: string | null;
+  catchment_area: string | null;
+  // Offre
   main_products: string | null;
-  competitors: string | null;
+  price_range: string | null;
   unique_selling_points: string | null;
+  competitors: string | null;
+  // Cible
+  target_audience: string | null;
+  ideal_customer_profile: string | null;
+  customer_pain_points: string | null;
+  // Communication
+  brand_tone: string | null;
+  visual_style: string | null;
+  brand_colors: string | null;
+  content_themes: string | null;
+  preferred_channels: string | null;
+  posting_frequency: string | null;
+  // Objectifs
   business_goals: string | null;
+  marketing_goals: string | null;
+  monthly_budget: string | null;
+  kpi_targets: string | null;
+  // Presence en ligne
   instagram_handle: string | null;
   tiktok_handle: string | null;
   linkedin_url: string | null;
   website_url: string | null;
   google_maps_url: string | null;
+  facebook_url: string | null;
+  // Assets
   logo_url: string | null;
   uploaded_files: Array<{ name: string; url: string; type: string; uploaded_at: string }>;
+  // IA
   ai_summary: string | null;
   completeness_score: number;
 }
@@ -39,16 +69,20 @@ export async function upsertBusinessDossier(
   updates: Partial<BusinessDossier>
 ): Promise<void> {
   // Calculate completeness
-  const fields = ['company_name', 'company_description', 'business_type', 'target_audience', 'brand_tone', 'main_products'];
-  const bonusFields = ['competitors', 'unique_selling_points', 'instagram_handle', 'logo_url', 'website_url'];
+  const coreFields = ['company_name', 'company_description', 'business_type', 'target_audience', 'brand_tone', 'main_products', 'city', 'unique_selling_points'];
+  const importantFields = ['founder_name', 'ideal_customer_profile', 'business_goals', 'marketing_goals', 'visual_style', 'content_themes', 'preferred_channels'];
+  const bonusFields = ['competitors', 'instagram_handle', 'logo_url', 'website_url', 'price_range', 'customer_pain_points', 'catchment_area', 'posting_frequency', 'brand_colors'];
 
   let score = 0;
   const allUpdates = { ...updates };
-  for (const f of fields) {
-    if ((allUpdates as Record<string, unknown>)[f]) score += 12; // 6 × 12 = 72
+  for (const f of coreFields) {
+    if ((allUpdates as Record<string, unknown>)[f]) score += 8; // 8 × 8 = 64
+  }
+  for (const f of importantFields) {
+    if ((allUpdates as Record<string, unknown>)[f]) score += 3; // 7 × 3 = 21
   }
   for (const f of bonusFields) {
-    if ((allUpdates as Record<string, unknown>)[f]) score += 5.6; // 5 × 5.6 = 28
+    if ((allUpdates as Record<string, unknown>)[f]) score += 1.67; // 9 × 1.67 = 15
   }
 
   await supabase.from('business_dossiers').upsert({
@@ -62,29 +96,73 @@ export async function upsertBusinessDossier(
 export function formatDossierForPrompt(dossier: BusinessDossier | null): string {
   if (!dossier) return '[Aucun dossier client disponible]';
 
-  const parts: string[] = [];
+  const sections: string[] = [];
 
-  if (dossier.company_name) parts.push(`Entreprise: ${dossier.company_name}`);
-  if (dossier.business_type) parts.push(`Type: ${dossier.business_type}`);
-  if (dossier.company_description) parts.push(`Description: ${dossier.company_description}`);
-  if (dossier.main_products) parts.push(`Produits/Services: ${dossier.main_products}`);
-  if (dossier.target_audience) parts.push(`Cible: ${dossier.target_audience}`);
-  if (dossier.brand_tone) parts.push(`Ton de communication: ${dossier.brand_tone}`);
-  if (dossier.unique_selling_points) parts.push(`Points forts: ${dossier.unique_selling_points}`);
-  if (dossier.competitors) parts.push(`Concurrents: ${dossier.competitors}`);
-  if (dossier.business_goals) parts.push(`Objectifs: ${dossier.business_goals}`);
+  // Identite
+  const identity: string[] = [];
+  if (dossier.company_name) identity.push(`Nom: ${dossier.company_name}`);
+  if (dossier.business_type) identity.push(`Type: ${dossier.business_type}`);
+  if (dossier.company_description) identity.push(`Description: ${dossier.company_description}`);
+  if (dossier.legal_status) identity.push(`Statut: ${dossier.legal_status}`);
+  if (dossier.founder_name) identity.push(`Fondateur: ${dossier.founder_name}`);
+  if (dossier.creation_year) identity.push(`Cree en: ${dossier.creation_year}`);
+  if (dossier.employees_count) identity.push(`Equipe: ${dossier.employees_count}`);
+  if (identity.length) sections.push(`IDENTITE:\n${identity.join('\n')}`);
 
-  const socialParts: string[] = [];
-  if (dossier.instagram_handle) socialParts.push(`Instagram: @${dossier.instagram_handle}`);
-  if (dossier.tiktok_handle) socialParts.push(`TikTok: @${dossier.tiktok_handle}`);
-  if (dossier.linkedin_url) socialParts.push(`LinkedIn: ${dossier.linkedin_url}`);
-  if (dossier.website_url) socialParts.push(`Site web: ${dossier.website_url}`);
-  if (dossier.google_maps_url) socialParts.push(`Google Maps: ${dossier.google_maps_url}`);
-  if (socialParts.length) parts.push(`Presenc en ligne:\n${socialParts.join('\n')}`);
+  // Localisation
+  const location: string[] = [];
+  if (dossier.city) location.push(`Ville: ${dossier.city}`);
+  if (dossier.region) location.push(`Region: ${dossier.region}`);
+  if (dossier.address) location.push(`Adresse: ${dossier.address}`);
+  if (dossier.catchment_area) location.push(`Zone de chalandise: ${dossier.catchment_area}`);
+  if (location.length) sections.push(`LOCALISATION:\n${location.join('\n')}`);
 
-  if (dossier.ai_summary) parts.push(`Resume IA: ${dossier.ai_summary}`);
+  // Offre
+  const offer: string[] = [];
+  if (dossier.main_products) offer.push(`Produits/Services: ${dossier.main_products}`);
+  if (dossier.price_range) offer.push(`Gamme de prix: ${dossier.price_range}`);
+  if (dossier.unique_selling_points) offer.push(`Points forts: ${dossier.unique_selling_points}`);
+  if (dossier.competitors) offer.push(`Concurrents: ${dossier.competitors}`);
+  if (offer.length) sections.push(`OFFRE:\n${offer.join('\n')}`);
 
-  return `=== DOSSIER CLIENT ===\n${parts.join('\n')}\nCompletude: ${dossier.completeness_score}%`;
+  // Cible
+  const target: string[] = [];
+  if (dossier.target_audience) target.push(`Audience: ${dossier.target_audience}`);
+  if (dossier.ideal_customer_profile) target.push(`Client ideal: ${dossier.ideal_customer_profile}`);
+  if (dossier.customer_pain_points) target.push(`Problemes clients: ${dossier.customer_pain_points}`);
+  if (target.length) sections.push(`CIBLE:\n${target.join('\n')}`);
+
+  // Communication
+  const comm: string[] = [];
+  if (dossier.brand_tone) comm.push(`Ton: ${dossier.brand_tone}`);
+  if (dossier.visual_style) comm.push(`Style visuel: ${dossier.visual_style}`);
+  if (dossier.brand_colors) comm.push(`Couleurs: ${dossier.brand_colors}`);
+  if (dossier.content_themes) comm.push(`Themes contenu: ${dossier.content_themes}`);
+  if (dossier.preferred_channels) comm.push(`Canaux: ${dossier.preferred_channels}`);
+  if (dossier.posting_frequency) comm.push(`Frequence: ${dossier.posting_frequency}`);
+  if (comm.length) sections.push(`COMMUNICATION:\n${comm.join('\n')}`);
+
+  // Objectifs
+  const goals: string[] = [];
+  if (dossier.business_goals) goals.push(`Business: ${dossier.business_goals}`);
+  if (dossier.marketing_goals) goals.push(`Marketing: ${dossier.marketing_goals}`);
+  if (dossier.monthly_budget) goals.push(`Budget: ${dossier.monthly_budget}`);
+  if (dossier.kpi_targets) goals.push(`KPIs: ${dossier.kpi_targets}`);
+  if (goals.length) sections.push(`OBJECTIFS:\n${goals.join('\n')}`);
+
+  // Presence en ligne
+  const social: string[] = [];
+  if (dossier.instagram_handle) social.push(`Instagram: @${dossier.instagram_handle}`);
+  if (dossier.tiktok_handle) social.push(`TikTok: @${dossier.tiktok_handle}`);
+  if (dossier.facebook_url) social.push(`Facebook: ${dossier.facebook_url}`);
+  if (dossier.linkedin_url) social.push(`LinkedIn: ${dossier.linkedin_url}`);
+  if (dossier.website_url) social.push(`Site web: ${dossier.website_url}`);
+  if (dossier.google_maps_url) social.push(`Google Maps: ${dossier.google_maps_url}`);
+  if (social.length) sections.push(`PRESENCE EN LIGNE:\n${social.join('\n')}`);
+
+  if (dossier.ai_summary) sections.push(`RESUME IA: ${dossier.ai_summary}`);
+
+  return `=== DOSSIER CLIENT (${dossier.completeness_score}% complet) ===\n${sections.join('\n\n')}`;
 }
 
 // Define which agents are visible to clients and their status
