@@ -390,6 +390,449 @@ export const testChatbot: QAModule = async (supabase) => {
 };
 
 // ═══════════════════════════════════════════
+// MODULE: Generate Video
+// ═══════════════════════════════════════════
+export const testGenerateVideo: QAModule = async (supabase) => {
+  const start = Date.now();
+  const checks: QACheck[] = [];
+
+  // Check if video generation endpoint responds
+  try {
+    const res = await fetch(`${SITE_URL}/api/seedream/t2v`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: 'QA test — ignore', test: true }),
+    });
+    checks.push({
+      name: 'Video API Reachable',
+      module: 'generate_video', agent: 'content',
+      status: res.status < 500 ? 'pass' : 'fail',
+      message: `Endpoint /api/seedream/t2v repond (HTTP ${res.status})`,
+      duration_ms: Date.now() - start,
+    });
+  } catch (err: any) {
+    checks.push({ name: 'Video API', module: 'generate_video', agent: 'content', status: 'fail', message: `Endpoint inaccessible: ${err.message}`, duration_ms: Date.now() - start });
+  }
+
+  // Check recent video jobs
+  const since48h = new Date(Date.now() - 48 * 3600 * 1000).toISOString();
+  const { data: recentJobs, count: jobCount } = await supabase
+    .from('video_jobs')
+    .select('id, status, final_video_url', { count: 'exact' })
+    .gte('created_at', since48h)
+    .order('created_at', { ascending: false })
+    .limit(10);
+
+  checks.push({
+    name: 'Recent Video Jobs',
+    module: 'generate_video', agent: 'content',
+    status: (jobCount || 0) === 0 ? 'warn' : 'pass',
+    message: `${jobCount || 0} video jobs dans les 48h`,
+    duration_ms: Date.now() - start,
+  });
+
+  // Check failed video jobs
+  const failedJobs = (recentJobs || []).filter((j: any) => j.status === 'failed' || j.status === 'error');
+  const completedJobs = (recentJobs || []).filter((j: any) => j.status === 'completed' && j.final_video_url);
+  if (failedJobs.length > 0) {
+    checks.push({
+      name: 'Video Job Failures',
+      module: 'generate_video', agent: 'content',
+      status: failedJobs.length > 3 ? 'critical' : 'warn',
+      message: `${failedJobs.length} jobs echoues, ${completedJobs.length} reussis`,
+      duration_ms: Date.now() - start,
+      fix: 'Verifier les logs video_jobs pour les erreurs',
+    });
+  }
+
+  return checks;
+};
+
+// ═══════════════════════════════════════════
+// MODULE: Edit Image (text overlay)
+// ═══════════════════════════════════════════
+export const testEditImage: QAModule = async (supabase) => {
+  const start = Date.now();
+  const checks: QACheck[] = [];
+
+  // Check if the generate endpoint responds (used for image editing/text overlay)
+  try {
+    const res = await fetch(`${SITE_URL}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: 'QA test edit — ignore', test: true, mode: 'edit' }),
+    });
+    checks.push({
+      name: 'Edit Image API Reachable',
+      module: 'edit_image', agent: 'content',
+      status: res.status < 500 ? 'pass' : 'fail',
+      message: `Endpoint /api/generate (edit mode) repond (HTTP ${res.status})`,
+      duration_ms: Date.now() - start,
+    });
+  } catch (err: any) {
+    checks.push({ name: 'Edit Image API', module: 'edit_image', agent: 'content', status: 'fail', message: `Endpoint inaccessible: ${err.message}`, duration_ms: Date.now() - start });
+  }
+
+  return checks;
+};
+
+// ═══════════════════════════════════════════
+// MODULE: Library Save (sauvegarde en galerie)
+// ═══════════════════════════════════════════
+export const testLibrarySave: QAModule = async (supabase) => {
+  const start = Date.now();
+  const checks: QACheck[] = [];
+
+  // Check recent saved images
+  const since24h = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+  const { count: recentSaves } = await supabase
+    .from('saved_images')
+    .select('id', { count: 'exact', head: true })
+    .gte('created_at', since24h);
+
+  checks.push({
+    name: 'Recent Saves',
+    module: 'library_save', agent: 'content',
+    status: (recentSaves || 0) === 0 ? 'warn' : 'pass',
+    message: `${recentSaves || 0} images sauvegardees dans les 24h`,
+    duration_ms: Date.now() - start,
+  });
+
+  // Check total saved images
+  const { count: totalSaved } = await supabase
+    .from('saved_images')
+    .select('id', { count: 'exact', head: true });
+
+  checks.push({
+    name: 'Library Total',
+    module: 'library_save', agent: 'content',
+    status: 'pass',
+    message: `${totalSaved || 0} images total en bibliotheque`,
+    duration_ms: Date.now() - start,
+  });
+
+  // Check Supabase Storage accessibility
+  try {
+    const { data: buckets, error } = await supabase.storage.listBuckets();
+    if (error) {
+      checks.push({ name: 'Storage Access', module: 'library_save', agent: 'content', status: 'fail', message: `Supabase Storage inaccessible: ${error.message}`, duration_ms: Date.now() - start, fix: 'Verifier les permissions Storage' });
+    } else {
+      checks.push({ name: 'Storage Access', module: 'library_save', agent: 'content', status: 'pass', message: `Supabase Storage OK — ${(buckets || []).length} buckets disponibles`, duration_ms: Date.now() - start });
+    }
+  } catch (err: any) {
+    checks.push({ name: 'Storage Access', module: 'library_save', agent: 'content', status: 'fail', message: `Erreur Storage: ${err.message}`, duration_ms: Date.now() - start });
+  }
+
+  return checks;
+};
+
+// ═══════════════════════════════════════════
+// MODULE: Library Manage (gestion bibliotheque)
+// ═══════════════════════════════════════════
+export const testLibraryManage: QAModule = async (supabase) => {
+  const start = Date.now();
+  const checks: QACheck[] = [];
+
+  // Check saved_images CRUD — verify table is queryable with different filters
+  try {
+    const { data: sample, error: selectErr } = await supabase
+      .from('saved_images')
+      .select('id, user_id, image_url, title, created_at')
+      .order('created_at', { ascending: false })
+      .limit(5);
+
+    if (selectErr) {
+      checks.push({ name: 'Library CRUD', module: 'library_manage', agent: 'content', status: 'fail', message: `Erreur lecture saved_images: ${selectErr.message}`, duration_ms: Date.now() - start, fix: 'Verifier les permissions RLS sur saved_images' });
+    } else {
+      const allHaveUrl = (sample || []).every((s: any) => s.image_url);
+      checks.push({
+        name: 'Library CRUD',
+        module: 'library_manage', agent: 'content',
+        status: allHaveUrl ? 'pass' : 'warn',
+        message: allHaveUrl ? `CRUD OK — ${(sample || []).length} images recentes lisibles` : `Certaines images sans URL`,
+        duration_ms: Date.now() - start,
+      });
+    }
+  } catch (err: any) {
+    checks.push({ name: 'Library CRUD', module: 'library_manage', agent: 'content', status: 'fail', message: `Erreur CRUD: ${err.message}`, duration_ms: Date.now() - start });
+  }
+
+  // Check folder structure — verify distinct user_ids have images
+  const { data: userCounts } = await supabase
+    .from('saved_images')
+    .select('user_id')
+    .limit(100);
+
+  const distinctUsers = new Set((userCounts || []).map((r: any) => r.user_id)).size;
+  checks.push({
+    name: 'Library Users',
+    module: 'library_manage', agent: 'content',
+    status: 'pass',
+    message: `${distinctUsers} utilisateurs avec des images sauvegardees`,
+    duration_ms: Date.now() - start,
+  });
+
+  return checks;
+};
+
+// ═══════════════════════════════════════════
+// MODULE: Publish Workflow (generation → publication)
+// ═══════════════════════════════════════════
+export const testPublishWorkflow: QAModule = async (supabase) => {
+  const start = Date.now();
+  const checks: QACheck[] = [];
+
+  // Check posts with both visual_url AND instagram_permalink (full pipeline success)
+  const since7d = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+  const { data: fullPipeline, count: fullCount } = await supabase
+    .from('content_calendar')
+    .select('id, status, visual_url, instagram_permalink, hook', { count: 'exact' })
+    .not('visual_url', 'is', null)
+    .not('instagram_permalink', 'is', null)
+    .gte('scheduled_date', since7d);
+
+  checks.push({
+    name: 'Full Pipeline Posts',
+    module: 'publish_workflow', agent: 'content',
+    status: (fullCount || 0) === 0 ? 'critical' : (fullCount || 0) < 3 ? 'warn' : 'pass',
+    message: `${fullCount || 0} posts avec visual + permalink (pipeline complete) en 7 jours`,
+    duration_ms: Date.now() - start,
+    fix: (fullCount || 0) === 0 ? 'Aucun post publie avec pipeline complete — verifier generate → publish flow' : undefined,
+  });
+
+  // Check draft → published pipeline
+  const { count: draftCount } = await supabase
+    .from('content_calendar')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'draft')
+    .not('visual_url', 'is', null);
+
+  const { count: publishedCount } = await supabase
+    .from('content_calendar')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'published')
+    .gte('scheduled_date', since7d);
+
+  checks.push({
+    name: 'Pipeline Draft→Published',
+    module: 'publish_workflow', agent: 'content',
+    status: 'pass',
+    message: `${draftCount || 0} drafts avec visuel prets, ${publishedCount || 0} published en 7j`,
+    duration_ms: Date.now() - start,
+  });
+
+  // Check posts stuck with visual but not published
+  const { count: stuckCount } = await supabase
+    .from('content_calendar')
+    .select('id', { count: 'exact', head: true })
+    .in('status', ['approved', 'draft'])
+    .not('visual_url', 'is', null)
+    .lt('scheduled_date', new Date().toISOString().split('T')[0]);
+
+  if ((stuckCount || 0) > 5) {
+    checks.push({
+      name: 'Pipeline Stuck Posts',
+      module: 'publish_workflow', agent: 'content',
+      status: 'warn',
+      message: `${stuckCount} posts avec visuel mais non publies (date passee)`,
+      duration_ms: Date.now() - start,
+      fix: 'Verifier pourquoi ces posts ne sont pas publies — peut-etre un probleme de cron ou de token IG',
+    });
+  }
+
+  return checks;
+};
+
+// ═══════════════════════════════════════════
+// MODULE: Agent Chat (test endpoints agents)
+// ═══════════════════════════════════════════
+export const testAgentChat: QAModule = async (supabase) => {
+  const start = Date.now();
+  const checks: QACheck[] = [];
+
+  const agentsToTest = ['content', 'commercial', 'email', 'seo', 'marketing', 'ceo'];
+
+  for (const agent of agentsToTest) {
+    try {
+      const res = await fetch(`${SITE_URL}/api/agents/${agent}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: 'QA test — ignore', test: true }),
+      });
+      checks.push({
+        name: `Chat ${agent}`,
+        module: 'agent_chat', agent,
+        status: res.status < 500 ? 'pass' : 'fail',
+        message: `Endpoint /api/agents/${agent} repond (HTTP ${res.status})`,
+        duration_ms: Date.now() - start,
+      });
+    } catch (err: any) {
+      checks.push({
+        name: `Chat ${agent}`,
+        module: 'agent_chat', agent,
+        status: 'fail',
+        message: `Endpoint /api/agents/${agent} inaccessible: ${err.message}`,
+        duration_ms: Date.now() - start,
+        fix: `Verifier le deploiement de l'agent ${agent}`,
+      });
+    }
+  }
+
+  return checks;
+};
+
+// ═══════════════════════════════════════════
+// MODULE: Agent Redirect (redirection inter-agents)
+// ═══════════════════════════════════════════
+export const testAgentRedirect: QAModule = async (supabase) => {
+  const start = Date.now();
+  const checks: QACheck[] = [];
+
+  // Check agent_logs for redirect events
+  const since24h = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+  const { data: redirectLogs, count: redirectCount } = await supabase
+    .from('agent_logs')
+    .select('id, agent, action, status, data', { count: 'exact' })
+    .eq('action', 'redirect')
+    .gte('created_at', since24h)
+    .order('created_at', { ascending: false })
+    .limit(20);
+
+  checks.push({
+    name: 'Redirect Events',
+    module: 'agent_redirect', agent: 'ceo',
+    status: (redirectCount || 0) === 0 ? 'warn' : 'pass',
+    message: `${redirectCount || 0} redirections inter-agents en 24h`,
+    duration_ms: Date.now() - start,
+  });
+
+  // Check for failed redirects
+  const failedRedirects = (redirectLogs || []).filter((l: any) => l.status === 'error');
+  if (failedRedirects.length > 0) {
+    checks.push({
+      name: 'Redirect Failures',
+      module: 'agent_redirect', agent: 'ceo',
+      status: failedRedirects.length > 5 ? 'critical' : 'warn',
+      message: `${failedRedirects.length} redirections echouees en 24h`,
+      duration_ms: Date.now() - start,
+      fix: 'Verifier les logs de redirection — agents cibles peut-etre down',
+      details: failedRedirects.slice(0, 5),
+    });
+  }
+
+  return checks;
+};
+
+// ═══════════════════════════════════════════
+// MODULE: Onboarding Flow
+// ═══════════════════════════════════════════
+export const testOnboardingFlow: QAModule = async (supabase) => {
+  const start = Date.now();
+  const checks: QACheck[] = [];
+
+  // Check profiles with onboarding completed
+  const { count: completedCount } = await supabase
+    .from('profiles')
+    .select('id', { count: 'exact', head: true })
+    .eq('onboarding_completed', true);
+
+  const { count: totalProfiles } = await supabase
+    .from('profiles')
+    .select('id', { count: 'exact', head: true });
+
+  const completionRate = totalProfiles ? Math.round(((completedCount || 0) / totalProfiles) * 100) : 0;
+
+  checks.push({
+    name: 'Onboarding Completion',
+    module: 'onboarding_flow', agent: 'onboarding',
+    status: completionRate < 50 ? 'warn' : 'pass',
+    message: `${completedCount || 0}/${totalProfiles || 0} profils ont complete l'onboarding (${completionRate}%)`,
+    duration_ms: Date.now() - start,
+  });
+
+  // Check onboarding endpoint
+  try {
+    const res = await fetch(`${SITE_URL}/api/onboarding`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ test: true }),
+    });
+    checks.push({
+      name: 'Onboarding API Reachable',
+      module: 'onboarding_flow', agent: 'onboarding',
+      status: res.status < 500 ? 'pass' : 'fail',
+      message: `Endpoint /api/onboarding repond (HTTP ${res.status})`,
+      duration_ms: Date.now() - start,
+    });
+  } catch (err: any) {
+    checks.push({ name: 'Onboarding API', module: 'onboarding_flow', agent: 'onboarding', status: 'fail', message: `Endpoint inaccessible: ${err.message}`, duration_ms: Date.now() - start, fix: 'Verifier le deploiement de /api/onboarding' });
+  }
+
+  return checks;
+};
+
+// ═══════════════════════════════════════════
+// MODULE: Checkout Flow (Stripe)
+// ═══════════════════════════════════════════
+export const testCheckoutFlow: QAModule = async (supabase) => {
+  const start = Date.now();
+  const checks: QACheck[] = [];
+
+  // Check checkout endpoint responds
+  try {
+    const res = await fetch(`${SITE_URL}/api/checkout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ test: true }),
+    });
+    checks.push({
+      name: 'Checkout API Reachable',
+      module: 'checkout_flow', agent: 'commercial',
+      status: res.status < 500 ? 'pass' : 'fail',
+      message: `Endpoint /api/checkout repond (HTTP ${res.status})`,
+      duration_ms: Date.now() - start,
+    });
+  } catch (err: any) {
+    checks.push({ name: 'Checkout API', module: 'checkout_flow', agent: 'commercial', status: 'fail', message: `Endpoint inaccessible: ${err.message}`, duration_ms: Date.now() - start, fix: 'Verifier le deploiement de /api/checkout' });
+  }
+
+  // Check subscriptions table
+  const { count: totalSubs } = await supabase
+    .from('subscriptions')
+    .select('id', { count: 'exact', head: true });
+
+  const { count: activeSubs } = await supabase
+    .from('subscriptions')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'active');
+
+  checks.push({
+    name: 'Subscriptions',
+    module: 'checkout_flow', agent: 'commercial',
+    status: 'pass',
+    message: `${activeSubs || 0} abonnements actifs sur ${totalSubs || 0} total`,
+    duration_ms: Date.now() - start,
+  });
+
+  // Check recent subscriptions
+  const since30d = new Date(Date.now() - 30 * 86400000).toISOString();
+  const { count: recentSubs } = await supabase
+    .from('subscriptions')
+    .select('id', { count: 'exact', head: true })
+    .gte('created_at', since30d);
+
+  checks.push({
+    name: 'Recent Subscriptions',
+    module: 'checkout_flow', agent: 'commercial',
+    status: (recentSubs || 0) === 0 ? 'warn' : 'pass',
+    message: `${recentSubs || 0} nouveaux abonnements en 30 jours`,
+    duration_ms: Date.now() - start,
+  });
+
+  return checks;
+};
+
+// ═══════════════════════════════════════════
 // REGISTRY: Tous les modules disponibles
 // ═══════════════════════════════════════════
 export const QA_MODULES: Record<string, QAModule> = {
@@ -402,14 +845,25 @@ export const QA_MODULES: Record<string, QAModule> = {
   generate_image: testGenerateImage,
   cron_health: testCronHealth,
   chatbot_test: testChatbot,
+  generate_video: testGenerateVideo,
+  edit_image: testEditImage,
+  library_save: testLibrarySave,
+  library_manage: testLibraryManage,
+  publish_workflow: testPublishWorkflow,
+  agent_chat: testAgentChat,
+  agent_redirect: testAgentRedirect,
+  onboarding_flow: testOnboardingFlow,
+  checkout_flow: testCheckoutFlow,
 };
 
 // Groupes de modules
 export const QA_GROUPS: Record<string, string[]> = {
   full: Object.keys(QA_MODULES),
   quick: ['instagram_token', 'publications', 'cron_health', 'rag_health'],
-  agents: ['agent_health'],
-  content: ['instagram_token', 'publications', 'generate_image'],
-  acquisition: ['email_health', 'crm_workflow', 'agent_health'],
-  infrastructure: ['rag_health', 'cron_health'],
+  agents: ['agent_health', 'agent_chat', 'agent_redirect'],
+  content: ['instagram_token', 'publications', 'generate_image', 'generate_video', 'edit_image', 'publish_workflow'],
+  library: ['library_save', 'library_manage'],
+  acquisition: ['email_health', 'crm_workflow', 'agent_health', 'checkout_flow'],
+  infrastructure: ['rag_health', 'cron_health', 'onboarding_flow'],
+  chatbot: ['chatbot_test', 'agent_chat'],
 };

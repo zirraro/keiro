@@ -1953,11 +1953,12 @@ export default function GeneratePage() {
         try {
           let textForAudio = '';
 
-          // Déterminer le texte à narrer
+          // Déterminer le texte à narrer (toujours en français)
           if (audioTextSource === 'ai') {
             // Générer automatiquement le texte depuis l'actualité ou le business
+            // Le texte sera traduit en français par condenseText côté serveur
             textForAudio = selectedNews
-              ? `${selectedNews.title}. ${selectedNews.description?.substring(0, 100) || ''}`
+              ? `[TRADUIRE EN FRANÇAIS SI NÉCESSAIRE] ${selectedNews.title}. ${selectedNews.description?.substring(0, 100) || ''}`
               : `${businessType}. ${businessDescription?.substring(0, 150) || ''}`;
           } else {
             // Utiliser le texte manuel

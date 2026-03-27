@@ -1074,6 +1074,38 @@ Date : ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric
 
               igSynced++;
             }
+
+            // Cross-reference with content_calendar to enrich with content characteristics
+            const { data: calendarPosts } = await supabase
+              .from('content_calendar')
+              .select('id, pillar, format, hook, visual_description, instagram_permalink')
+              .eq('status', 'published')
+              .eq('platform', 'instagram')
+              .not('instagram_permalink', 'is', null)
+              .order('published_at', { ascending: false })
+              .limit(50);
+
+            if (calendarPosts) {
+              for (const cp of calendarPosts) {
+                if (!cp.instagram_permalink) continue;
+                // Find matching publication_analytics entry
+                const matchingPub = igMedia.find((p: any) => p.permalink === cp.instagram_permalink);
+                if (matchingPub) {
+                  // Enrich publication_analytics with content characteristics
+                  await supabase.from('publication_analytics').update({
+                    content_category: cp.pillar || null,
+                    ai_analysis: {
+                      pillar: cp.pillar,
+                      format: cp.format,
+                      hook_text: cp.hook?.substring(0, 200),
+                      visual_style: cp.visual_description?.substring(0, 200),
+                      enriched_at: nowISO,
+                    },
+                  }).eq('post_id', matchingPub.id);
+                }
+              }
+              console.log(`[Marketing] Enriched ${calendarPosts.length} posts with content characteristics`);
+            }
           } catch (e: any) {
             errors.push(`Instagram: ${e.message?.substring(0, 100)}`);
             console.error('[Marketing] Instagram sync error:', e.message);
@@ -1343,7 +1375,8 @@ ${pastInsights || 'Premier run — pas encore d\'apprentissages publications.'}`
           console.error('[Marketing] Failed to parse publication analysis:', e);
         }
 
-        // Save learnings
+        // Save learnings to both agent_logs AND RAG knowledge pool (per org)
+        let learningsSaved = 0;
         if (pubAnalysis?.learnings) {
           for (const learning of pubAnalysis.learnings) {
             if (learning && learning.length > 10) {
@@ -1352,8 +1385,92 @@ ${pastInsights || 'Premier run — pas encore d\'apprentissages publications.'}`
                 action: 'memory',
                 data: { learning, source: 'publication_analysis', learned_at: nowISO },
                 created_at: nowISO,
+                ...(orgId ? { org_id: orgId } : {}),
               });
+              // Also save to RAG knowledge pool for cross-agent sharing
+              try {
+                await saveLearning(supabase, {
+                  agent: 'marketing',
+                  category: 'content',
+                  learning,
+                  evidence: `Analyse de ${pubs.length} publications sur ${daysBack} jours`,
+                  confidence: 35,
+                  orgId: orgId || undefined,
+                });
+                learningsSaved++;
+              } catch (e: any) {
+                console.warn('[Marketing] RAG learning save error:', e.message);
+              }
             }
+          }
+        }
+
+        // ── Per-content-type performance insights → RAG pool ──
+        // Identify what works best by content characteristics
+        const enrichedPubs = pubs.filter((p: any) => p.ai_analysis?.pillar || p.content_category);
+        if (enrichedPubs.length >= 3) {
+          // Group by pillar
+          const byPillar: Record<string, { count: number; totalEng: number; totalLikes: number; totalViews: number; examples: string[] }> = {};
+          for (const pub of enrichedPubs) {
+            const pillar = pub.ai_analysis?.pillar || pub.content_category || 'unknown';
+            if (!byPillar[pillar]) byPillar[pillar] = { count: 0, totalEng: 0, totalLikes: 0, totalViews: 0, examples: [] };
+            byPillar[pillar].count++;
+            byPillar[pillar].totalEng += pub.engagement_rate || 0;
+            byPillar[pillar].totalLikes += pub.like_count || 0;
+            byPillar[pillar].totalViews += pub.view_count || 0;
+            if (byPillar[pillar].examples.length < 2) {
+              byPillar[pillar].examples.push((pub.caption || '').substring(0, 80));
+            }
+          }
+
+          // Save best-performing pillar as structured learning
+          const bestPillar = Object.entries(byPillar)
+            .filter(([, s]) => s.count >= 2)
+            .sort((a, b) => (b[1].totalEng / b[1].count) - (a[1].totalEng / a[1].count))[0];
+
+          if (bestPillar) {
+            const avgEng = (bestPillar[1].totalEng / bestPillar[1].count).toFixed(2);
+            const avgLikes = Math.round(bestPillar[1].totalLikes / bestPillar[1].count);
+            try {
+              await saveLearning(supabase, {
+                agent: 'marketing',
+                category: 'content',
+                learning: `Pilier "${bestPillar[0]}" performe le mieux : ${avgEng}% engagement moyen, ${avgLikes} likes moyens sur ${bestPillar[1].count} posts. Exemples: ${bestPillar[1].examples.join(' | ')}`,
+                evidence: `${enrichedPubs.length} publications enrichies analysées sur ${daysBack} jours`,
+                confidence: Math.min(50, 20 + bestPillar[1].count * 5),
+                orgId: orgId || undefined,
+              });
+              learningsSaved++;
+            } catch {}
+          }
+
+          // Group by format (reel vs post vs carousel)
+          const byFormat: Record<string, { count: number; totalEng: number; totalLikes: number }> = {};
+          for (const pub of enrichedPubs) {
+            const fmt = pub.ai_analysis?.format || pub.media_type || 'unknown';
+            if (!byFormat[fmt]) byFormat[fmt] = { count: 0, totalEng: 0, totalLikes: 0 };
+            byFormat[fmt].count++;
+            byFormat[fmt].totalEng += pub.engagement_rate || 0;
+            byFormat[fmt].totalLikes += pub.like_count || 0;
+          }
+
+          const bestFormat = Object.entries(byFormat)
+            .filter(([, s]) => s.count >= 2)
+            .sort((a, b) => (b[1].totalEng / b[1].count) - (a[1].totalEng / a[1].count))[0];
+
+          if (bestFormat) {
+            const avgEng = (bestFormat[1].totalEng / bestFormat[1].count).toFixed(2);
+            try {
+              await saveLearning(supabase, {
+                agent: 'content',
+                category: 'content',
+                learning: `Format "${bestFormat[0]}" a le meilleur engagement (${avgEng}%) sur ${bestFormat[1].count} publications. Privilégier ce format pour maximiser l'engagement.`,
+                evidence: `Analyse comparative des formats sur ${enrichedPubs.length} posts enrichis`,
+                confidence: Math.min(45, 15 + bestFormat[1].count * 4),
+                orgId: orgId || undefined,
+              });
+              learningsSaved++;
+            } catch {}
           }
         }
 
@@ -1370,15 +1487,17 @@ ${pastInsights || 'Premier run — pas encore d\'apprentissages publications.'}`
               top_hashtags: topHashtags.slice(0, 5),
               best_days: bestDays.slice(0, 3),
               best_hours: bestHours.slice(0, 3),
+              enriched_posts: enrichedPubs?.length || 0,
             },
-            learnings_saved: pubAnalysis?.learnings?.length || 0,
+            learnings_saved: learningsSaved,
           },
           status: 'success',
           created_at: nowISO,
+          ...(orgId ? { org_id: orgId } : {}),
         });
 
         // Auto-learn from recent marketing performance
-        await autoLearnMarketing(supabase);
+        await autoLearnMarketing(supabase, orgId);
 
         return NextResponse.json({
           ok: true,

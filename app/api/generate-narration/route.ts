@@ -38,9 +38,9 @@ export async function POST(req: NextRequest) {
 
     console.log('[GenerateNarration] Script:', scriptText);
 
-    // STEP 2: Generate audio with ElevenLabs TTS
+    // STEP 2: Generate audio with ElevenLabs TTS (always French)
     const voiceId = voice || DEFAULT_VOICE_ID;
-    const audioUrl = await generateAudioWithElevenLabs(scriptText, voiceId);
+    const audioUrl = await generateAudioWithElevenLabs(scriptText, voiceId, 'fr');
     const estimatedDuration = estimateAudioDuration(scriptText);
 
     return NextResponse.json({

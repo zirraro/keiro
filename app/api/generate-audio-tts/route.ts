@@ -59,21 +59,29 @@ export async function POST(req: NextRequest) {
 
     let finalText = text.trim();
 
-    // If text is too long OR too short (less than 60% of target), adapt it
-    if (currentWords > targetWords * 1.2 || (currentWords < targetWords * 0.6 && targetDuration > 5)) {
+    // Strip translation hint prefix if present
+    finalText = finalText.replace(/^\[TRADUIRE EN FRANÇAIS SI NÉCESSAIRE\]\s*/i, '');
+
+    // Always run through condenseText to ensure French language + proper duration
+    // condenseText enforces French output even if input is in English
+    const needsAdaptation = currentWords > targetWords * 1.2 || (currentWords < targetWords * 0.6 && targetDuration > 5);
+    const looksEnglish = /^[a-zA-Z\s,.'":;!?-]+$/.test(finalText.substring(0, 100)) && !/[àâäéèêëïîôùûüÿçœæ]/i.test(finalText.substring(0, 200));
+
+    if (needsAdaptation || looksEnglish) {
+      const reason = looksEnglish ? 'translating to French +' : '';
       const action = currentWords > targetWords ? 'condensing' : 'expanding';
-      console.log(`[GenerateAudioTTS] Text needs ${action} (${currentWords} → ~${targetWords} words for ${targetDuration}s)...`);
+      console.log(`[GenerateAudioTTS] Text needs ${reason} ${action} (${currentWords} → ~${targetWords} words for ${targetDuration}s)...`);
       try {
-        finalText = await condenseText(text, targetWords, 'informative');
-        console.log(`[GenerateAudioTTS] Text ${action} done:`, finalText.substring(0, 100) + '...');
+        finalText = await condenseText(finalText, targetWords, 'informative');
+        console.log(`[GenerateAudioTTS] Text ${reason}${action} done:`, finalText.substring(0, 100) + '...');
       } catch (error: any) {
-        console.error(`[GenerateAudioTTS] Text ${action} failed:`, error);
+        console.error(`[GenerateAudioTTS] Text ${reason}${action} failed:`, error);
       }
     }
 
-    // 2. Generate audio with ElevenLabs TTS
-    console.log('[GenerateAudioTTS] Generating audio with ElevenLabs...');
-    const audioUrl = await generateAudioWithElevenLabs(finalText, voiceId);
+    // 2. Generate audio with ElevenLabs TTS (always French)
+    console.log('[GenerateAudioTTS] Generating audio with ElevenLabs (language: fr)...');
+    const audioUrl = await generateAudioWithElevenLabs(finalText, voiceId, 'fr');
 
     // 3. Estimate actual duration
     const estimatedDuration = estimateAudioDuration(finalText, speed);

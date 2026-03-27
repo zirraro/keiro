@@ -53,6 +53,7 @@ TEXTE ORIGINAL:
 ${text}
 
 CONTRAINTES:
+- OBLIGATOIRE : le texte final DOIT être en FRANÇAIS. Si le texte original est en anglais ou dans une autre langue, TRADUIS-LE en français naturel avant de le condenser/développer.
 - Objectif: ~${targetWords} mots pour ~${targetDuration} secondes de narration
 - ${styleInstructions[style] || styleInstructions.informative}
 - Phrases courtes (max 15 mots par phrase)
@@ -62,7 +63,7 @@ CONTRAINTES:
 - Adapté pour narration audio (pas de texte écrit)
 
 JAMAIS de préfixe comme "Script voix off:", "Narration:" — commence DIRECTEMENT par le texte parlé.
-Réponds UNIQUEMENT avec le texte ${action === 'CONDENSE' ? 'condensé' : 'développé'}, sans introduction ni explication.`;
+Réponds UNIQUEMENT avec le texte ${action === 'CONDENSE' ? 'condensé' : 'développé'} EN FRANÇAIS, sans introduction ni explication.`;
 
   console.log(`[Condense] Calling Claude to ${action} text (${currentWords} → ${targetWords} words)...`);
 
@@ -110,6 +111,7 @@ Génère 3 scripts de narration audio (~${targetWords} mots chacun, durée ~${ta
 3. STORYTELLING: Style narratif captivant. Commence par une situation concrète, crée du suspense, résolution surprenante. Ton intime comme si on racontait une histoire à un ami.
 
 RÈGLES CRITIQUES:
+- OBLIGATOIRE : les 3 scripts DOIVENT être en FRANÇAIS. Si le contexte est en anglais, traduis et adapte en français naturel.
 - JAMAIS commencer par "Script voix off", "Narration:", "Voix off:" ou tout autre préfixe méta — le texte commence DIRECTEMENT par le contenu parlé
 - Phrases courtes (max 15 mots par phrase)
 - Éviter les mots compliqués ou techniques

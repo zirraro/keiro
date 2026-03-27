@@ -69,6 +69,28 @@ export async function GET(request: NextRequest) {
         continue;
       }
 
+      // ── Dedup check: prevent publishing the same image twice ──
+      const since7d = new Date(Date.now() - 7 * 86400000).toISOString();
+      const { data: existingPub } = await supabase
+        .from('scheduled_posts')
+        .select('id, post_url')
+        .eq('status', 'published')
+        .eq('platform', post.platform)
+        .eq('saved_image_id', post.saved_image_id)
+        .gte('published_at', since7d)
+        .neq('id', post.id)
+        .limit(1);
+
+      if (existingPub && existingPub.length > 0) {
+        console.warn(`[PublishScheduled] DUPLICATE: image ${post.saved_image_id} already published as ${existingPub[0].id}`);
+        await supabase.from('scheduled_posts').update({
+          status: 'failed',
+          error_message: `Doublon: cette image a déjà été publiée (${existingPub[0].id})`,
+        }).eq('id', post.id);
+        results.push({ id: post.id, platform: post.platform, ok: false, error: 'Duplicate image' });
+        continue;
+      }
+
       // Get user tokens for this platform
       const { data: profile } = await supabase
         .from('profiles')

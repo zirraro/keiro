@@ -36,6 +36,7 @@ export const DEFAULT_VOICE_ID = 'onwK4e9ZLuTAKqWW03F9'; // Daniel — steady, na
 export async function generateAudioWithElevenLabs(
   text: string,
   voiceId: string = DEFAULT_VOICE_ID,
+  languageCode: string = 'fr',
 ): Promise<string> {
   const apiKey = process.env.ELEVENLABS_API_KEY;
   if (!apiKey) {
@@ -63,7 +64,7 @@ export async function generateAudioWithElevenLabs(
         style: 0.35,           // Higher = more emotional expressiveness
         use_speaker_boost: true,
       },
-      language_code: 'fr',
+      language_code: languageCode,
     }),
   });
 

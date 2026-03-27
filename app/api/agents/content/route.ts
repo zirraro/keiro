@@ -229,11 +229,62 @@ async function generateVisual(visualDescription: string, format: string): Promis
 // ──────────────────────────────────────
 // Publish to Instagram via Graph API
 // ──────────────────────────────────────
+/**
+ * Check if an image/video URL has already been published to Instagram recently.
+ * Prevents duplicate publications of the same visual.
+ */
+async function checkDuplicatePublication(
+  supabase: any,
+  visualUrl: string | undefined,
+  videoUrl: string | undefined,
+  platform: string = 'instagram',
+  daysBack: number = 7
+): Promise<{ isDuplicate: boolean; existingPostId?: string; existingPermalink?: string }> {
+  if (!visualUrl && !videoUrl) return { isDuplicate: false };
+
+  const since = new Date(Date.now() - daysBack * 86400000).toISOString().split('T')[0];
+
+  // Check content_calendar for same visual_url or video_url published recently
+  const conditions: string[] = [];
+  if (visualUrl) conditions.push(`visual_url.eq.${visualUrl}`);
+  if (videoUrl) conditions.push(`video_url.eq.${videoUrl}`);
+
+  const { data: existing } = await supabase
+    .from('content_calendar')
+    .select('id, instagram_permalink, visual_url, video_url, published_at')
+    .eq('status', 'published')
+    .eq('platform', platform)
+    .gte('scheduled_date', since)
+    .or(conditions.join(','))
+    .limit(1);
+
+  if (existing && existing.length > 0) {
+    console.warn(`[Content] DUPLICATE DETECTED: visual already published as post ${existing[0].id} on ${existing[0].published_at}`);
+    return {
+      isDuplicate: true,
+      existingPostId: existing[0].id,
+      existingPermalink: existing[0].instagram_permalink,
+    };
+  }
+
+  return { isDuplicate: false };
+}
+
 async function publishToInstagram(
-  post: { format?: string; caption?: string; hashtags?: string[]; visual_url?: string; video_url?: string },
+  post: { id?: string; format?: string; caption?: string; hashtags?: string[]; visual_url?: string; video_url?: string },
   supabase: any
 ): Promise<{ success: boolean; permalink?: string; error?: string }> {
   try {
+    // ── Dedup check: prevent publishing the same image twice ──
+    const dupCheck = await checkDuplicatePublication(supabase, post.visual_url, post.video_url, 'instagram');
+    if (dupCheck.isDuplicate) {
+      console.warn(`[Content] Skipping duplicate Instagram publication. Already published as ${dupCheck.existingPostId}`);
+      return {
+        success: false,
+        error: `Duplicate: cette image a déjà été publiée (post ${dupCheck.existingPostId}${dupCheck.existingPermalink ? `, ${dupCheck.existingPermalink}` : ''})`,
+      };
+    }
+
     // Find admin user's Instagram tokens
     const { data: adminProfile, error: profileError } = await supabase
       .from('profiles')
@@ -1101,7 +1152,7 @@ export async function GET(request: NextRequest) {
                 mediaType: visualUrl ? 'image' : 'text',
                 mediaUrl: visualUrl || undefined,
                 _scheduledPublish: true,
-                _userId: adminProfile?.id || '',
+                _userId: '',
               };
               const cronSecret = process.env.CRON_SECRET;
               const liRes = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://keiroai.com'}/api/library/linkedin/publish`, {
@@ -2523,10 +2574,38 @@ async function generateWeekWithVisuals(supabase: any, publishAll: boolean, orgId
       continue;
     }
 
-    // Generate visual with Seedream
+    // Generate visual with Seedream (with dedup check on visual_description)
     const visualDesc = post.thumbnail_description || post.visual_description || post.hook || post.caption;
     let visualUrl: string | null = null;
     if (visualDesc) {
+      // Check if a very similar visual_description was already used recently
+      const { data: similarPosts } = await supabase
+        .from('content_calendar')
+        .select('id, visual_description')
+        .eq('platform', platform)
+        .in('status', ['draft', 'approved', 'published'])
+        .not('visual_url', 'is', null)
+        .gte('scheduled_date', new Date(Date.now() - 14 * 86400000).toISOString().split('T')[0])
+        .neq('id', inserted?.id || '');
+
+      const isDuplicateDesc = (similarPosts || []).some((p: any) => {
+        if (!p.visual_description) return false;
+        const existing = p.visual_description.toLowerCase().trim();
+        const current = visualDesc.toLowerCase().trim();
+        // Exact match or >80% overlap (first 100 chars)
+        return existing === current || existing.substring(0, 100) === current.substring(0, 100);
+      });
+
+      if (isDuplicateDesc) {
+        console.warn(`[Content] Skipping visual generation — duplicate visual_description detected for ${post.day}`);
+        results.push({
+          day: post.day || '?', platform, format,
+          hook: post.hook || '', visual_url: null,
+          status: 'skipped_duplicate_visual',
+        });
+        continue;
+      }
+
       visualUrl = await generateVisual(visualDesc, format);
     }
 
