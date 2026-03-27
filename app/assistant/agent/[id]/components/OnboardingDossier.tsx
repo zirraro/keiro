@@ -5,69 +5,106 @@ import { useState, useEffect, useCallback } from 'react';
 interface DossierField {
   key: string;
   label: string;
-  section: string;
   placeholder: string;
-  type?: 'text' | 'textarea' | 'select';
-  options?: string[];
+  type?: 'text' | 'textarea';
 }
 
-const DOSSIER_FIELDS: DossierField[] = [
-  // Identite
-  { key: 'company_name', label: 'Nom du commerce', section: 'Identite', placeholder: 'Ex: Boulangerie Martin' },
-  { key: 'company_description', label: 'Description en 1 phrase', section: 'Identite', placeholder: 'Ex: Boulangerie artisanale bio a Paris 11e', type: 'textarea' },
-  { key: 'business_type', label: 'Type d\'activite', section: 'Identite', placeholder: 'Ex: restaurant, coach, boutique...' },
-  { key: 'founder_name', label: 'Fondateur / Gerant', section: 'Identite', placeholder: 'Prenom Nom' },
-  { key: 'employees_count', label: 'Taille equipe', section: 'Identite', placeholder: 'Ex: solo, 2-5, 5-10' },
-  // Localisation
-  { key: 'city', label: 'Ville', section: 'Localisation', placeholder: 'Ex: Paris' },
-  { key: 'address', label: 'Adresse', section: 'Localisation', placeholder: 'Adresse complete' },
-  { key: 'catchment_area', label: 'Zone de chalandise', section: 'Localisation', placeholder: 'Ex: 5km autour, tout Paris, national' },
-  // Offre
-  { key: 'main_products', label: 'Produits / Services principaux', section: 'Offre', placeholder: 'Ex: pain bio, viennoiseries, sandwichs midi', type: 'textarea' },
-  { key: 'price_range', label: 'Gamme de prix', section: 'Offre', placeholder: 'Ex: 2-15 EUR, premium, accessible' },
-  { key: 'unique_selling_points', label: 'Ce qui vous differencie', section: 'Offre', placeholder: 'Ex: 100% bio, cuisson au feu de bois', type: 'textarea' },
-  { key: 'competitors', label: 'Concurrents locaux', section: 'Offre', placeholder: 'Ex: Boulangerie Dupont, Paul' },
-  // Cible
-  { key: 'target_audience', label: 'Audience cible', section: 'Cible', placeholder: 'Ex: familles CSP+, 30-50 ans, quartier', type: 'textarea' },
-  { key: 'ideal_customer_profile', label: 'Client ideal', section: 'Cible', placeholder: 'Decris ton meilleur client type' },
-  { key: 'customer_pain_points', label: 'Problemes que tu resous', section: 'Cible', placeholder: 'Ex: manque de temps pour cuisiner, cherche du bio' },
-  // Communication
-  { key: 'brand_tone', label: 'Ton de communication', section: 'Communication', placeholder: 'Ex: chaleureux et familial, premium, fun' },
-  { key: 'visual_style', label: 'Style visuel', section: 'Communication', placeholder: 'Ex: epure, colorful, rustique, moderne' },
-  { key: 'brand_colors', label: 'Couleurs de marque', section: 'Communication', placeholder: 'Ex: marron, dore, blanc creme' },
-  { key: 'content_themes', label: 'Themes de contenu', section: 'Communication', placeholder: 'Ex: recettes, coulisses, temoignages clients', type: 'textarea' },
-  { key: 'preferred_channels', label: 'Canaux preferes', section: 'Communication', placeholder: 'Ex: Instagram, TikTok, Google Maps' },
-  { key: 'posting_frequency', label: 'Frequence souhaitee', section: 'Communication', placeholder: 'Ex: 1 post/jour, 3/semaine' },
-  // Objectifs
-  { key: 'business_goals', label: 'Objectif business #1', section: 'Objectifs', placeholder: 'Ex: doubler le CA en 6 mois' },
-  { key: 'marketing_goals', label: 'Objectif marketing', section: 'Objectifs', placeholder: 'Ex: 1000 followers IG, plus de reservations' },
-  { key: 'monthly_budget', label: 'Budget com mensuel', section: 'Objectifs', placeholder: 'Ex: 49 EUR/mois, 200 EUR/mois' },
-  // Presence en ligne
-  { key: 'instagram_handle', label: 'Instagram', section: 'Presence en ligne', placeholder: '@moncommerce' },
-  { key: 'tiktok_handle', label: 'TikTok', section: 'Presence en ligne', placeholder: '@moncommerce' },
-  { key: 'website_url', label: 'Site web', section: 'Presence en ligne', placeholder: 'https://...' },
-  { key: 'google_maps_url', label: 'Google Maps', section: 'Presence en ligne', placeholder: 'Lien fiche Google' },
-  { key: 'facebook_url', label: 'Facebook', section: 'Presence en ligne', placeholder: 'https://facebook.com/...' },
+const STEPS = [
+  {
+    id: 'identite',
+    title: 'Ton commerce',
+    icon: '\u{1F3E2}',
+    description: 'Parle-nous de ton business',
+    fields: [
+      { key: 'company_name', label: 'Nom du commerce', placeholder: 'Ex: Boulangerie Martin' },
+      { key: 'company_description', label: 'Description en 1 phrase', placeholder: 'Ex: Boulangerie artisanale bio a Paris 11e', type: 'textarea' as const },
+      { key: 'business_type', label: 'Type d\'activite', placeholder: 'Ex: restaurant, coach, boutique...' },
+      { key: 'founder_name', label: 'Ton prenom', placeholder: 'Prenom' },
+      { key: 'employees_count', label: 'Taille equipe', placeholder: 'Ex: solo, 2-5, 5-10' },
+    ],
+  },
+  {
+    id: 'localisation',
+    title: 'Ta zone',
+    icon: '\u{1F4CD}',
+    description: 'Ou se trouve ton business',
+    fields: [
+      { key: 'city', label: 'Ville', placeholder: 'Ex: Paris' },
+      { key: 'address', label: 'Adresse (optionnel)', placeholder: 'Adresse complete' },
+      { key: 'catchment_area', label: 'Tes clients viennent d\'ou ?', placeholder: 'Ex: quartier, 5km, tout Paris, national' },
+    ],
+  },
+  {
+    id: 'offre',
+    title: 'Ton offre',
+    icon: '\u{1F381}',
+    description: 'Ce que tu proposes',
+    fields: [
+      { key: 'main_products', label: 'Tes produits / services', placeholder: 'Ex: pain bio, viennoiseries, sandwichs midi', type: 'textarea' as const },
+      { key: 'price_range', label: 'Gamme de prix', placeholder: 'Ex: 2-15 EUR, premium, accessible' },
+      { key: 'unique_selling_points', label: 'Ce qui te differencie', placeholder: 'Ex: 100% bio, cuisson au feu de bois', type: 'textarea' as const },
+      { key: 'competitors', label: 'Tes concurrents (optionnel)', placeholder: 'Ex: Boulangerie Dupont, Paul' },
+    ],
+  },
+  {
+    id: 'cible',
+    title: 'Tes clients',
+    icon: '\u{1F3AF}',
+    description: 'Qui sont tes meilleurs clients',
+    fields: [
+      { key: 'target_audience', label: 'Qui sont tes clients ?', placeholder: 'Ex: familles 30-50 ans, CSP+, quartier', type: 'textarea' as const },
+      { key: 'ideal_customer_profile', label: 'Ton client ideal', placeholder: 'Decris ton meilleur client type' },
+      { key: 'customer_pain_points', label: 'Quel probleme tu resous ?', placeholder: 'Ex: manque de temps, cherche du bio' },
+    ],
+  },
+  {
+    id: 'communication',
+    title: 'Ton style',
+    icon: '\u{1F3A8}',
+    description: 'Comment tu communiques',
+    fields: [
+      { key: 'brand_tone', label: 'Ton de communication', placeholder: 'Ex: chaleureux, premium, fun, pro' },
+      { key: 'visual_style', label: 'Style visuel', placeholder: 'Ex: epure, colorful, rustique, moderne' },
+      { key: 'brand_colors', label: 'Couleurs de marque', placeholder: 'Ex: marron, dore, blanc creme' },
+      { key: 'content_themes', label: 'Themes de contenu', placeholder: 'Ex: recettes, coulisses, temoignages', type: 'textarea' as const },
+      { key: 'posting_frequency', label: 'Frequence souhaitee', placeholder: 'Ex: 1/jour, 3/semaine' },
+    ],
+  },
+  {
+    id: 'objectifs',
+    title: 'Tes objectifs',
+    icon: '\u{1F680}',
+    description: 'Ce que tu veux atteindre',
+    fields: [
+      { key: 'business_goals', label: 'Objectif business #1', placeholder: 'Ex: doubler le CA en 6 mois' },
+      { key: 'marketing_goals', label: 'Objectif marketing', placeholder: 'Ex: 1000 followers, plus de reservations' },
+      { key: 'monthly_budget', label: 'Budget com mensuel', placeholder: 'Ex: 49 EUR/mois' },
+    ],
+  },
+  {
+    id: 'presence',
+    title: 'En ligne',
+    icon: '\u{1F310}',
+    description: 'Tes reseaux et site web',
+    fields: [
+      { key: 'instagram_handle', label: 'Instagram', placeholder: '@moncommerce' },
+      { key: 'tiktok_handle', label: 'TikTok', placeholder: '@moncommerce' },
+      { key: 'website_url', label: 'Site web', placeholder: 'https://...' },
+      { key: 'google_maps_url', label: 'Google Maps', placeholder: 'Lien fiche Google' },
+      { key: 'facebook_url', label: 'Facebook', placeholder: 'https://facebook.com/...' },
+    ],
+  },
 ];
 
-const SECTION_ICONS: Record<string, string> = {
-  'Identite': '\u{1F3E2}',
-  'Localisation': '\u{1F4CD}',
-  'Offre': '\u{1F381}',
-  'Cible': '\u{1F3AF}',
-  'Communication': '\u{1F3A8}',
-  'Objectifs': '\u{1F680}',
-  'Presence en ligne': '\u{1F310}',
-};
+const ALL_FIELDS = STEPS.flatMap(s => s.fields);
 
 export default function OnboardingDossier() {
   const [dossier, setDossier] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [expandedSection, setExpandedSection] = useState<string | null>('Identite');
+  const [currentStep, setCurrentStep] = useState(0);
 
-  // Load dossier
   useEffect(() => {
     (async () => {
       try {
@@ -80,7 +117,6 @@ export default function OnboardingDossier() {
     })();
   }, []);
 
-  // Save dossier
   const handleSave = useCallback(async () => {
     setSaving(true);
     try {
@@ -95,24 +131,26 @@ export default function OnboardingDossier() {
     } catch {} finally { setSaving(false); }
   }, [dossier]);
 
-  // Update field
   const updateField = useCallback((key: string, value: string) => {
     setDossier(prev => ({ ...prev, [key]: value }));
   }, []);
 
-  // Completeness
-  const filledCount = DOSSIER_FIELDS.filter(f => {
-    const val = dossier[f.key];
-    return val && String(val).trim().length > 0;
-  }).length;
-  const completeness = Math.round((filledCount / DOSSIER_FIELDS.length) * 100);
+  const filledCount = ALL_FIELDS.filter(f => dossier[f.key] && String(dossier[f.key]).trim().length > 0).length;
+  const completeness = Math.round((filledCount / ALL_FIELDS.length) * 100);
 
-  // Group by section
-  const sections = DOSSIER_FIELDS.reduce<Record<string, DossierField[]>>((acc, f) => {
-    if (!acc[f.section]) acc[f.section] = [];
-    acc[f.section].push(f);
-    return acc;
-  }, {});
+  const step = STEPS[currentStep];
+  const stepFilled = step.fields.filter(f => dossier[f.key] && String(dossier[f.key]).trim().length > 0).length;
+  const isLastStep = currentStep === STEPS.length - 1;
+  const isFirstStep = currentStep === 0;
+
+  const goNext = async () => {
+    await handleSave();
+    if (!isLastStep) setCurrentStep(prev => prev + 1);
+  };
+
+  const goPrev = () => {
+    if (!isFirstStep) setCurrentStep(prev => prev - 1);
+  };
 
   if (loading) {
     return <div className="flex items-center justify-center py-16"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400" /></div>;
@@ -120,101 +158,104 @@ export default function OnboardingDossier() {
 
   return (
     <div className="p-5 space-y-5">
-      {/* Header with progress */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-white font-bold text-sm">Ton dossier business</h3>
-          <p className="text-white/40 text-xs mt-0.5">
-            {completeness}% complet — {filledCount}/{DOSSIER_FIELDS.length} champs remplis
-          </p>
-        </div>
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className={`px-4 py-2 text-xs font-semibold rounded-xl transition-all ${
-            saved ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-            : 'bg-gradient-to-r from-teal-600 to-blue-600 text-white shadow-lg'
-          }`}
-        >
-          {saved ? '\u2713 Sauvegarde !' : saving ? 'Sauvegarde...' : 'Sauvegarder'}
-        </button>
-      </div>
-
-      {/* Progress bar */}
-      <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-        <div
-          className="h-full rounded-full bg-gradient-to-r from-teal-500 to-blue-500 transition-all duration-500"
-          style={{ width: `${completeness}%` }}
-        />
-      </div>
-
-      {/* Sections */}
-      <div className="space-y-2">
-        {Object.entries(sections).map(([sectionName, fields]) => {
-          const isExpanded = expandedSection === sectionName;
-          const sectionFilled = fields.filter(f => dossier[f.key] && String(dossier[f.key]).trim().length > 0).length;
-          const sectionIcon = SECTION_ICONS[sectionName] || '\u{1F4CB}';
-
+      {/* Step indicators */}
+      <div className="flex items-center justify-between gap-1">
+        {STEPS.map((s, i) => {
+          const sFilled = s.fields.filter(f => dossier[f.key] && String(dossier[f.key]).trim().length > 0).length;
+          const isComplete = sFilled === s.fields.length;
+          const isCurrent = i === currentStep;
           return (
-            <div key={sectionName} className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden">
-              <button
-                onClick={() => setExpandedSection(isExpanded ? null : sectionName)}
-                className="w-full px-4 py-3 flex items-center justify-between hover:bg-white/[0.03] transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-sm">{sectionIcon}</span>
-                  <span className="text-white text-xs font-semibold">{sectionName}</span>
-                  <span className="text-white/30 text-[10px]">{sectionFilled}/{fields.length}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-16 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all ${sectionFilled === fields.length ? 'bg-green-500' : 'bg-teal-500'}`}
-                      style={{ width: `${(sectionFilled / fields.length) * 100}%` }}
-                    />
-                  </div>
-                  <svg className={`w-4 h-4 text-white/40 transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </button>
-
-              {isExpanded && (
-                <div className="px-4 pb-4 space-y-3 border-t border-white/5 pt-3">
-                  {fields.map(field => (
-                    <div key={field.key}>
-                      <label className="text-white/60 text-[10px] font-medium mb-1 block">{field.label}</label>
-                      {field.type === 'textarea' ? (
-                        <textarea
-                          value={dossier[field.key] || ''}
-                          onChange={e => updateField(field.key, e.target.value)}
-                          placeholder={field.placeholder}
-                          rows={2}
-                          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-xs placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-teal-500/50 resize-none"
-                        />
-                      ) : (
-                        <input
-                          type="text"
-                          value={dossier[field.key] || ''}
-                          onChange={e => updateField(field.key, e.target.value)}
-                          placeholder={field.placeholder}
-                          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-xs placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-teal-500/50"
-                        />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <button
+              key={s.id}
+              onClick={() => setCurrentStep(i)}
+              className={`flex-1 py-2 rounded-lg text-center transition-all ${
+                isCurrent ? 'bg-white/15 border border-white/20' :
+                isComplete ? 'bg-green-500/10 border border-green-500/20' :
+                'bg-white/5 border border-transparent hover:bg-white/10'
+              }`}
+            >
+              <div className="text-sm">{s.icon}</div>
+              <div className={`text-[9px] font-medium mt-0.5 ${isCurrent ? 'text-white' : isComplete ? 'text-green-400' : 'text-white/40'}`}>
+                {s.title}
+              </div>
+            </button>
           );
         })}
+      </div>
+
+      {/* Progress */}
+      <div className="flex items-center gap-3">
+        <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
+          <div className="h-full rounded-full bg-gradient-to-r from-teal-500 to-blue-500 transition-all duration-500" style={{ width: `${completeness}%` }} />
+        </div>
+        <span className="text-white/60 text-[10px] font-bold">{completeness}%</span>
+      </div>
+
+      {/* Current step content */}
+      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-2xl">{step.icon}</span>
+          <div>
+            <h3 className="text-white font-bold text-sm">Etape {currentStep + 1}/{STEPS.length} — {step.title}</h3>
+            <p className="text-white/40 text-xs">{step.description}</p>
+          </div>
+          <span className="ml-auto text-white/30 text-[10px]">{stepFilled}/{step.fields.length}</span>
+        </div>
+
+        <div className="space-y-4">
+          {step.fields.map(field => (
+            <div key={field.key}>
+              <label className="text-white/70 text-xs font-medium mb-1.5 block">{field.label}</label>
+              {field.type === 'textarea' ? (
+                <textarea
+                  value={dossier[field.key] || ''}
+                  onChange={e => updateField(field.key, e.target.value)}
+                  placeholder={field.placeholder}
+                  rows={2}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-white/20 focus:outline-none focus:ring-2 focus:ring-teal-500/50 resize-none"
+                />
+              ) : (
+                <input
+                  type="text"
+                  value={dossier[field.key] || ''}
+                  onChange={e => updateField(field.key, e.target.value)}
+                  placeholder={field.placeholder}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-white/20 focus:outline-none focus:ring-2 focus:ring-teal-500/50"
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Navigation */}
+      <div className="flex items-center justify-between">
+        <button
+          onClick={goPrev}
+          disabled={isFirstStep}
+          className="px-4 py-2.5 text-xs font-semibold rounded-xl bg-white/10 text-white/60 hover:bg-white/15 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+        >
+          {'\u2190'} Precedent
+        </button>
+
+        <button
+          onClick={goNext}
+          className={`px-5 py-2.5 text-xs font-semibold rounded-xl transition-all ${
+            saved ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+            : isLastStep
+              ? 'bg-gradient-to-r from-green-600 to-teal-600 text-white shadow-lg'
+              : 'bg-gradient-to-r from-teal-600 to-blue-600 text-white shadow-lg'
+          }`}
+        >
+          {saved ? '\u2713 Sauvegarde !' : isLastStep ? 'Terminer' : `Suivant \u2192`}
+        </button>
       </div>
 
       {/* Tip */}
       <div className="rounded-xl bg-teal-500/10 border border-teal-500/20 px-4 py-3 flex items-start gap-2">
         <span className="text-sm flex-shrink-0">{'\u{1F4AC}'}</span>
         <p className="text-teal-300/80 text-[11px]">
-          Tu peux aussi remplir ton dossier en discutant avec Clara dans le chat. Elle te posera les bonnes questions et remplira tout automatiquement !
+          Tu peux aussi remplir tout ca en discutant avec Clara dans le chat ! Clique sur le bouton chat en bas a droite.
         </p>
       </div>
     </div>

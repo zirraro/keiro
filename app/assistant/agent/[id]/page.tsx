@@ -252,8 +252,8 @@ export default function AgentWorkspacePage() {
   const [agentInfo, setAgentInfo] = useState<AgentInfo | null>(null);
   const [pageLoading, setPageLoading] = useState(true);
 
-  // Tabs: dashboard | planning | history | settings
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'planning' | 'history' | 'settings'>('dashboard');
+  // Tabs: dashboard | planning | history | settings | profile (Clara only)
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'planning' | 'history' | 'settings' | 'profile'>('dashboard');
 
   // Chat (slide-over)
   const [chatOpen, setChatOpen] = useState(false);
@@ -284,6 +284,11 @@ export default function AgentWorkspacePage() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Voice recording state
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recognitionRef = useRef<any>(null);
+
   // ─── QA agent redirects to admin dashboard ────────────
   useEffect(() => {
     if (agentId === 'qa') { router.push('/admin/qa'); }
@@ -291,6 +296,34 @@ export default function AgentWorkspacePage() {
 
   // ─── Init agent ────────────────────────────────────────
   useEffect(() => { const f = CLIENT_AGENTS.find(a => a.id === agentId); if (f) setAgent(f); }, [agentId]);
+
+  // ─── Clara: auto-open chat when profile is incomplete ──
+  useEffect(() => {
+    if (agentId !== 'onboarding' || pageLoading) return;
+    // Check dossier completeness
+    (async () => {
+      try {
+        const res = await fetch('/api/business-dossier', { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          const dossier = data.dossier;
+          const filled = dossier ? Object.values(dossier).filter((v: any) => v && String(v).trim().length > 0).length : 0;
+          if (filled < 10) {
+            // Profile incomplete — auto-open chat with intro message
+            setChatOpen(true);
+            if (messages.length === 0) {
+              setMessages([{
+                id: 'clara_intro',
+                role: 'assistant',
+                content: `Salut ! Je suis Clara, ton guide onboarding. Ton profil business n'est pas encore complet — discutons ensemble pour le remplir. Je te pose quelques questions et je m'occupe du reste. Tes 17 agents IA pourront ensuite travailler beaucoup mieux pour toi !\n\nCommençons : comment s'appelle ton commerce et quel est ton type d'activité ?`,
+                created_at: new Date().toISOString(),
+              }]);
+            }
+          }
+        }
+      } catch {}
+    })();
+  }, [agentId, pageLoading]);  // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Load chat + agent info ────────────────────────────
   useEffect(() => {
@@ -379,6 +412,46 @@ export default function AgentWorkspacePage() {
     finally { setIsLoading(false); }
   }, [input, isLoading, agentId]);
 
+  // ─── Voice input (Web Speech API) ────────────────────
+  const toggleVoiceInput = useCallback(() => {
+    if (isRecording) {
+      // Stop recording
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+        recognitionRef.current = null;
+      }
+      setIsRecording(false);
+      return;
+    }
+
+    // Start recording with Web Speech API
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('Ton navigateur ne supporte pas la reconnaissance vocale. Utilise Chrome.');
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'fr-FR';
+    recognition.interimResults = true;
+    recognition.continuous = true;
+
+    recognition.onresult = (event: any) => {
+      let transcript = '';
+      for (let i = 0; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
+      }
+      setInput(transcript);
+    };
+
+    recognition.onerror = () => { setIsRecording(false); };
+    recognition.onend = () => { setIsRecording(false); };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+    setIsRecording(true);
+  }, [isRecording]);
+
   // ─── File handlers ───────────────────────────────────
   const handleFileUpload = useCallback(async (fl: FileList | null) => {
     if (!fl?.length) return; setUploading(true);
@@ -452,6 +525,7 @@ export default function AgentWorkspacePage() {
         <div className="flex items-center gap-1 bg-white/5 rounded-xl p-1 border border-white/10 mb-6 overflow-x-auto">
           {([
             { key: 'dashboard' as const, label: 'Dashboard', icon: '\uD83D\uDCCA' },
+            ...(agentId === 'onboarding' ? [{ key: 'profile' as const, label: 'Mon profil', icon: '\uD83D\uDCCB' }] : []),
             { key: 'planning' as const, label: 'Planning', icon: '\uD83D\uDCC5' },
             { key: 'history' as const, label: 'Historique', icon: '\u26A1' },
             { key: 'settings' as const, label: 'Parametres', icon: '\u2699\uFE0F' },
@@ -643,6 +717,13 @@ export default function AgentWorkspacePage() {
           </div>
         )}
 
+        {/* ═══ TAB: MON PROFIL (Clara only) ═══ */}
+        {activeTab === 'profile' && agentId === 'onboarding' && (
+          <div className="rounded-2xl border border-white/10 bg-white/[0.02] overflow-hidden">
+            <OnboardingDossier />
+          </div>
+        )}
+
         {/* ═══ TAB: SETTINGS ═══ */}
         {activeTab === 'settings' && (
           <div className="max-w-5xl space-y-6">
@@ -787,6 +868,9 @@ export default function AgentWorkspacePage() {
             <div className="border-t border-white/10 bg-[#0f1f3d] p-3 flex-shrink-0">
               <div className="flex items-end gap-2">
                 <textarea ref={inputRef} value={input} onChange={e => { setInput(e.target.value); e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'; }} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} placeholder={`Message a ${dn}...`} rows={1} className="flex-1 px-3 py-2.5 border border-white/15 rounded-xl text-[13px] text-white placeholder-white/35 bg-white/5 focus:ring-2 focus:ring-purple-500/50 outline-none resize-none" style={{ maxHeight: 100 }} disabled={isLoading} />
+                <button onClick={toggleVoiceInput} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all flex-shrink-0 ${isRecording ? 'bg-red-500 animate-pulse' : 'bg-white/10 hover:bg-white/20'}`} title={isRecording ? 'Arreter' : 'Dicter'}>
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4M12 15a3 3 0 003-3V5a3 3 0 00-6 0v7a3 3 0 003 3z" /></svg>
+                </button>
                 <button onClick={handleSend} disabled={isLoading || !input.trim()} className="w-10 h-10 rounded-xl bg-gradient-to-r from-purple-600 to-purple-700 text-white flex items-center justify-center disabled:opacity-30 transition-all flex-shrink-0">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
                 </button>
