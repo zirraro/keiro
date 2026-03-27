@@ -5,10 +5,87 @@
  * - Gemini Flash: analytics, enrichment, scraping, monitoring (volume, Google Search)
  * - Claude Haiku: copywriting, emails, captions, DMs, strategy (quality français)
  *
+ * COST OPTIMIZATION:
+ * - System prompt caching: identical system prompts are cached in-memory
+ *   to avoid sending 3000+ tokens of identical context on every call.
+ *   Gemini cached input = 0.025€/1M tokens vs 0.25€/1M normal = 10x savings.
+ *
  * Each agent picks the right model for the right task.
  */
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+
+// ── System Prompt Cache ──
+// Hash system prompts and reuse cached content IDs to reduce input token costs.
+// Gemini's cached content costs 0.025€/1M tokens vs 0.25€/1M for normal input.
+const systemPromptCache = new Map<string, { cachedContentId: string; expiresAt: number }>();
+
+function hashPrompt(text: string): string {
+  // Simple hash for cache key (FNV-1a inspired)
+  let h = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0).toString(36);
+}
+
+async function getCachedSystemPrompt(apiKey: string, systemPrompt: string): Promise<string | null> {
+  const hash = hashPrompt(systemPrompt);
+  const cached = systemPromptCache.get(hash);
+
+  // Return cached ID if still valid (5 min TTL)
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.cachedContentId;
+  }
+
+  // Only cache prompts longer than 1000 chars (short ones aren't worth caching)
+  if (systemPrompt.length < 1000) return null;
+
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/cachedContents?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'models/gemini-2.5-flash',
+          contents: [{
+            role: 'user',
+            parts: [{ text: 'System context follows.' }],
+          }, {
+            role: 'model',
+            parts: [{ text: 'Understood. I will follow the system instructions.' }],
+          }],
+          systemInstruction: {
+            parts: [{ text: systemPrompt }],
+          },
+          ttl: '600s', // 10 min cache
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      // Cache creation failed — fall back to normal (no savings but no break)
+      return null;
+    }
+
+    const data = await response.json();
+    const cachedContentId = data.name;
+
+    if (cachedContentId) {
+      systemPromptCache.set(hash, {
+        cachedContentId,
+        expiresAt: Date.now() + 5 * 60 * 1000, // 5 min local TTL
+      });
+      return cachedContentId;
+    }
+  } catch {
+    // Silent fail — normal call will work fine
+  }
+
+  return null;
+}
 
 interface GeminiOptions {
   system: string;
@@ -18,6 +95,7 @@ interface GeminiOptions {
 
 /**
  * Call Gemini 2.5 Flash with a system prompt and user message.
+ * Uses cached system prompts when possible (10x cheaper input).
  * Returns the text response or throws on error.
  */
 export async function callGemini({ system, message, maxTokens = 2000 }: GeminiOptions): Promise<string> {
@@ -26,28 +104,45 @@ export async function callGemini({ system, message, maxTokens = 2000 }: GeminiOp
     throw new Error('GEMINI_API_KEY non configurée');
   }
 
+  // Try to use cached system prompt (10x cheaper)
+  const cachedId = await getCachedSystemPrompt(apiKey, system);
+
+  const body: any = {
+    contents: [
+      {
+        role: 'user',
+        parts: [{ text: message }],
+      },
+    ],
+    generationConfig: {
+      maxOutputTokens: maxTokens,
+      temperature: 0.7,
+    },
+  };
+
+  if (cachedId) {
+    // Use cached content — system prompt billed at cached rate (10x cheaper)
+    body.cachedContent = cachedId;
+  } else {
+    // Normal call — system prompt billed at full rate
+    body.system_instruction = {
+      parts: [{ text: system }],
+    };
+  }
+
   const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      system_instruction: {
-        parts: [{ text: system }],
-      },
-      contents: [
-        {
-          role: 'user',
-          parts: [{ text: message }],
-        },
-      ],
-      generationConfig: {
-        maxOutputTokens: maxTokens,
-        temperature: 0.7,
-      },
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {
     const errText = await response.text();
+    // If cached content expired/invalid, retry without cache
+    if (cachedId && (response.status === 400 || response.status === 404)) {
+      systemPromptCache.delete(hashPrompt(system));
+      return callGemini({ system, message, maxTokens });
+    }
     throw new Error(`Gemini API error ${response.status}: ${errText}`);
   }
 
@@ -58,6 +153,7 @@ export async function callGemini({ system, message, maxTokens = 2000 }: GeminiOp
 
 /**
  * Call Gemini with conversation history (for agent chat).
+ * Uses cached system prompts when possible.
  */
 export async function callGeminiChat({
   system,
@@ -87,23 +183,37 @@ export async function callGeminiChat({
     },
   ];
 
+  // Try cached system prompt
+  const cachedId = await getCachedSystemPrompt(apiKey, system);
+
+  const body: any = {
+    contents,
+    generationConfig: {
+      maxOutputTokens: maxTokens,
+      temperature: 0.7,
+    },
+  };
+
+  if (cachedId) {
+    body.cachedContent = cachedId;
+  } else {
+    body.system_instruction = {
+      parts: [{ text: system }],
+    };
+  }
+
   const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      system_instruction: {
-        parts: [{ text: system }],
-      },
-      contents,
-      generationConfig: {
-        maxOutputTokens: maxTokens,
-        temperature: 0.7,
-      },
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {
     const errText = await response.text();
+    if (cachedId && (response.status === 400 || response.status === 404)) {
+      systemPromptCache.delete(hashPrompt(system));
+      return callGeminiChat({ system, history, message, maxTokens });
+    }
     throw new Error(`Gemini Chat API error ${response.status}: ${errText}`);
   }
 
@@ -114,7 +224,6 @@ export async function callGeminiChat({
 
 /**
  * Call Gemini with Google Search grounding enabled.
- * Uses Gemini's built-in web search to find real-time data (social profiles, websites, Google Maps, etc.).
  */
 export async function callGeminiWithSearch({ system, message, maxTokens = 2000 }: GeminiOptions): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -149,7 +258,6 @@ export async function callGeminiWithSearch({ system, message, maxTokens = 2000 }
   }
 
   const data = await response.json();
-  // Google Search grounding may return multiple parts
   const text = data.candidates?.[0]?.content?.parts
     ?.filter((p: any) => p.text)
     .map((p: any) => p.text)
@@ -159,8 +267,6 @@ export async function callGeminiWithSearch({ system, message, maxTokens = 2000 }
 
 // ──────────────────────────────────────
 // Claude Haiku — for elite copywriting & strategic analysis
-// Use for: emails, captions, DMs, CEO strategy, anything requiring
-// nuanced French and persuasive writing
 // ──────────────────────────────────────
 
 const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
@@ -176,7 +282,6 @@ export async function callClaudeHaiku({
 }: GeminiOptions): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
 
-  // Fallback to Gemini if no Anthropic key
   if (!apiKey) {
     return callGemini({ system, message, maxTokens });
   }
@@ -199,7 +304,6 @@ export async function callClaudeHaiku({
   if (!response.ok) {
     const errText = await response.text();
     console.error(`[Claude] API error ${response.status}: ${errText}`);
-    // Fallback to Gemini on error
     return callGemini({ system, message, maxTokens });
   }
 
