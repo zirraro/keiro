@@ -178,6 +178,7 @@ export interface ClientAgent {
   gradientFrom: string;
   gradientTo: string;
   icon: string; // emoji
+  integrations?: string[]; // what the agent connects to
 }
 
 // ── Pack structure (new pricing mars 2026) ─────────────────
@@ -194,11 +195,12 @@ export const CLIENT_AGENTS: ClientAgent[] = [
     displayName: 'Ami',
     title: 'Directrice Strategie Marketing',
     description: 'Analyse vos performances, recommande des strategies, optimise vos campagnes et coordonne les agents operationnels',
-    visibility: 'coming_soon', // coming_soon until launch
+    visibility: 'coming_soon',
     minPlan: 'gratuit',
     gradientFrom: '#ec4899',
     gradientTo: '#f43f5e',
     icon: '\u{1F3AF}',
+    integrations: ['Instagram Insights', 'TikTok Analytics'],
   },
   {
     id: 'onboarding',
@@ -223,6 +225,7 @@ export const CLIENT_AGENTS: ClientAgent[] = [
     gradientFrom: '#8b5cf6',
     gradientTo: '#6d28d9',
     icon: '\u2728',
+    integrations: ['Instagram', 'TikTok', 'LinkedIn'],
   },
   {
     id: 'dm_instagram',
@@ -234,6 +237,7 @@ export const CLIENT_AGENTS: ClientAgent[] = [
     gradientFrom: '#e11d48',
     gradientTo: '#be123c',
     icon: '\u{1F4AC}',
+    integrations: ['Instagram DM'],
   },
 
   // ── PRO (99EUR) ─── + HUGO, FÉLIX, LEO, AXEL ───
@@ -247,6 +251,7 @@ export const CLIENT_AGENTS: ClientAgent[] = [
     gradientFrom: '#06b6d4',
     gradientTo: '#0891b2',
     icon: '\u{1F4E7}',
+    integrations: ['Votre boite email (Brevo)', 'CRM KeiroAI'],
   },
   {
     id: 'ads',
@@ -258,6 +263,7 @@ export const CLIENT_AGENTS: ClientAgent[] = [
     gradientFrom: '#ef4444',
     gradientTo: '#dc2626',
     icon: '\u{1F4E2}',
+    integrations: ['Meta Ads (Facebook/Instagram)', 'Google Ads'],
   },
   {
     id: 'commercial',
@@ -269,6 +275,7 @@ export const CLIENT_AGENTS: ClientAgent[] = [
     gradientFrom: '#3b82f6',
     gradientTo: '#2563eb',
     icon: '\u{1F91D}',
+    integrations: ['Google Maps', 'CRM KeiroAI', 'LinkedIn'],
   },
   {
     id: 'tiktok_comments',
@@ -280,6 +287,7 @@ export const CLIENT_AGENTS: ClientAgent[] = [
     gradientFrom: '#000000',
     gradientTo: '#1a1a2e',
     icon: '\u{1F3B5}',
+    integrations: ['TikTok'],
   },
 
   // ── BUSINESS (199EUR) / FONDATEURS (149EUR) ─── + OSCAR, SARA, THEO, MAX, LOUIS ───
@@ -293,6 +301,7 @@ export const CLIENT_AGENTS: ClientAgent[] = [
     gradientFrom: '#f59e0b',
     gradientTo: '#d97706',
     icon: '\u{1F50D}',
+    integrations: ['Votre site web / blog', 'Google Search Console'],
   },
   {
     id: 'rh',
@@ -315,6 +324,7 @@ export const CLIENT_AGENTS: ClientAgent[] = [
     gradientFrom: '#22c55e',
     gradientTo: '#16a34a',
     icon: '\u{1F4CD}',
+    integrations: ['Google Business Profile', 'Google Maps'],
   },
   {
     id: 'chatbot',
@@ -326,17 +336,19 @@ export const CLIENT_AGENTS: ClientAgent[] = [
     gradientFrom: '#7c3aed',
     gradientTo: '#5b21b6',
     icon: '\u{1F916}',
+    integrations: ['Votre site internet (widget)', 'CRM KeiroAI'],
   },
   {
     id: 'whatsapp',
     displayName: 'Stella',
     title: 'Experte WhatsApp Business',
-    description: 'Envoie et repond aux messages WhatsApp, relance les prospects chauds, convertit par conversation privee, gere les campagnes WhatsApp automatiquement',
+    description: 'Envoie et repond aux messages WhatsApp, relance les prospects chauds, convertit par conversation privee',
     visibility: 'coming_soon',
     minPlan: 'business',
     gradientFrom: '#25D366',
     gradientTo: '#128C7E',
     icon: '\u{1F4F2}',
+    integrations: ['WhatsApp Business'],
   },
   {
     id: 'comptable',
@@ -348,6 +360,7 @@ export const CLIENT_AGENTS: ClientAgent[] = [
     gradientFrom: '#0e7490',
     gradientTo: '#155e75',
     icon: '\u{1F4B0}',
+    integrations: ['Stripe', 'Facturation KeiroAI'],
   },
 
   // ── BACKGROUND AGENTS ─── Optimisent KeiroAI pour TOUS les plans ───
