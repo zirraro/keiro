@@ -10,6 +10,7 @@ import { publishReelToInstagram } from '@/lib/meta';
 // Ken Burns + FFmpeg removed — doesn't work on Vercel serverless
 // Video pipeline now uses Seedance T2V / Kling T2V
 import { completeDirective, loadContextWithAvatar } from '@/lib/agents/shared-context';
+import { escalateAgentError } from '@/lib/agents/error-escalation';
 import { decomposePromptIntoScenes, calculateSegments } from '@/lib/video-scenes';
 import { createVideoJob } from '@/lib/video-jobs-db';
 import { diagnosePublishFailure, sendPublishAlert } from '@/lib/agents/publish-diagnostics';
@@ -1079,6 +1080,7 @@ export async function GET(request: NextRequest) {
               console.log(`[Content] Instagram published for post ${post.id}: ${igResult.permalink}`);
             } else {
               console.error(`[Content] Instagram publish FAILED for post ${post.id}: ${igResult.error}`);
+              escalateAgentError({ agent: 'content', action: 'publish_instagram', error: igResult.error || 'Unknown IG error', platform: 'instagram', postId: post.id, context: `Hook: ${fullPost.hook?.substring(0, 80)}` }).catch(() => {});
             }
           } else if (fullPost.platform === 'tiktok') {
             const ttResult = await publishToTikTok(postWithMedia, supabase);
@@ -1088,6 +1090,7 @@ export async function GET(request: NextRequest) {
               console.log(`[Content] TikTok published for post ${post.id}: ${ttResult.publish_id}`);
             } else {
               console.error(`[Content] TikTok publish FAILED for post ${post.id}: ${ttResult.error}`);
+              escalateAgentError({ agent: 'content', action: 'publish_tiktok', error: ttResult.error || 'Unknown TT error', platform: 'tiktok', postId: post.id, context: `Hook: ${fullPost.hook?.substring(0, 80)}` }).catch(() => {});
             }
           } else if (fullPost.platform === 'linkedin') {
             // LinkedIn: publier via l'API LinkedIn
@@ -1118,6 +1121,7 @@ export async function GET(request: NextRequest) {
               } else {
                 const liErr = await liRes.text().catch(() => '');
                 console.error(`[Content] LinkedIn publish FAILED ${liRes.status}: ${liErr.substring(0, 200)}`);
+                escalateAgentError({ agent: 'content', action: 'publish_linkedin', error: `HTTP ${liRes.status}: ${liErr.substring(0, 200)}`, platform: 'linkedin', postId: post.id }).catch(() => {});
               }
             } catch (liErr: any) {
               console.error(`[Content] LinkedIn publish error for post ${post.id}: ${liErr.message}`);
