@@ -642,7 +642,7 @@ export default function AgentWorkspacePage() {
 
         {/* ═══ TAB: SETTINGS ═══ */}
         {activeTab === 'settings' && (
-          <div className="max-w-2xl space-y-6">
+          <div className="max-w-5xl space-y-6">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-white font-bold text-sm">{'\u2699\uFE0F'} Parametrage de {dn}</h3>
@@ -669,8 +669,8 @@ export default function AgentWorkspacePage() {
               </div>
             </div>
 
-            {/* Settings fields */}
-            <div className="space-y-3">
+            {/* Settings fields — 2 columns on desktop */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {settingFields.map(field => (
                 <div key={field.key} className="rounded-xl bg-white/[0.04] border border-white/10 px-4 py-3">
                   <div className="flex items-center justify-between gap-4">

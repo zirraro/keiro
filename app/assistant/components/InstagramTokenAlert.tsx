@@ -65,9 +65,9 @@ export default function InstagramTokenAlert() {
           </ul>
         </div>
 
-        {/* CTA */}
+        {/* CTA — direct Instagram OAuth connection */}
         <a
-          href="/mon-compte?section=integrations"
+          href="/api/auth/instagram-oauth"
           className="block w-full py-3 text-center rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold text-sm hover:opacity-90 transition"
         >
           {isNotConnected ? 'Connecter Instagram' : 'Reconnecter Instagram'}

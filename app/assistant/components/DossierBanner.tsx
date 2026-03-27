@@ -98,10 +98,10 @@ export default function DossierBanner({ profile, claraAvatarUrl }: DossierBanner
             </div>
 
             <a
-              href="/assistant/dossier"
+              href="/assistant/agent/onboarding"
               className="flex-shrink-0 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white text-[11px] font-semibold rounded-lg transition-colors"
             >
-              Completer
+              Completer avec Clara
             </a>
           </div>
         </div>
