@@ -468,14 +468,15 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'ceo_night':
-      // 20:00 UTC — CEO brief #3 (bilan de fin de journée) + execute orders
-      // Runs after marketing_learn (19:00), so CEO has full day data + agent performance analysis
-      // CEO reviews: all executed orders results, day metrics, plans tomorrow's priorities
+      // 20:00 UTC — CEO brief #3 (bilan de fin de journée) + execute orders + RAG embedding backfill
       fireBackground(async () => {
         await callEndpoint('CEO Brief (night)', '/api/agents/ceo');
         await callEndpoint('Execute Orders', '/api/agents/orders');
+        await delay(5000);
+        // Auto-backfill des embeddings RAG (pour les nouveaux learnings de la journee)
+        await callEndpoint('RAG Embedding Backfill', '/api/agents/knowledge-backfill?batch=200', 'POST');
       });
-      results.push({ task: 'CEO Brief Night + Orders', ok: true, data: { status: 'dispatched_background' } });
+      results.push({ task: 'CEO Brief Night + Orders + RAG Backfill', ok: true, data: { status: 'dispatched_background' } });
       break;
 
     case 'marketing_learn':
