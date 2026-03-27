@@ -11,6 +11,7 @@ import ComingSoonBanner from './components/ComingSoonBanner';
 import AgentTeams from './components/AgentTeams';
 import WorkspaceCrm from './components/WorkspaceCrm';
 import NotificationBell, { AgentNotifBadge } from './components/NotificationBell';
+import InstagramTokenAlert from './components/InstagramTokenAlert';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -868,6 +869,9 @@ export default function AssistantPage() {
 
         {/* Dossier banner */}
         <DossierBanner profile={profile} claraAvatarUrl={claraAvatarUrl} />
+
+        {/* Instagram token check — popup si expire */}
+        {!isVisitor && <InstagramTokenAlert />}
 
         {/* ═══ TABS + NOTIFICATION BELL ═══ */}
         <div className="flex items-center gap-1 bg-white/5 rounded-xl p-1 border border-white/10 mb-5 overflow-x-auto">
