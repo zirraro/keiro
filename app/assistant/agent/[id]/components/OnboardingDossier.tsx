@@ -105,17 +105,29 @@ export default function OnboardingDossier() {
   const [saved, setSaved] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch('/api/business-dossier', { credentials: 'include' });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.dossier) setDossier(data.dossier);
-        }
-      } catch {} finally { setLoading(false); }
-    })();
+  // Load dossier + auto-refresh every 10s to pick up changes from Clara chat
+  const loadDossier = useCallback(async () => {
+    try {
+      const res = await fetch('/api/business-dossier', { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.dossier) setDossier(prev => {
+          // Only update if data actually changed
+          const newJson = JSON.stringify(data.dossier);
+          const prevJson = JSON.stringify(prev);
+          return newJson !== prevJson ? data.dossier : prev;
+        });
+      }
+    } catch {} finally { setLoading(false); }
   }, []);
+
+  useEffect(() => { loadDossier(); }, [loadDossier]);
+
+  // Auto-refresh to pick up dossier updates from Clara chat
+  useEffect(() => {
+    const interval = setInterval(loadDossier, 10000);
+    return () => clearInterval(interval);
+  }, [loadDossier]);
 
   const handleSave = useCallback(async () => {
     setSaving(true);
