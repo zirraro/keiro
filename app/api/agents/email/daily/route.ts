@@ -896,10 +896,13 @@ export async function GET(request: NextRequest) {
   let prospectCount = 0;
 
   // ── DAILY EMAIL LIMITER ──
-  // Brevo free = 300/day + Resend overflow. Target: 280+ emails/day.
-  const DAILY_EMAIL_LIMIT = 300; // Brevo free max
+  // Brevo free = 300/day. Quota resets at midnight PARIS time (UTC+1 winter, UTC+2 summer).
+  const DAILY_EMAIL_LIMIT = 300;
+  // Calculate midnight Paris time (CET/CEST)
+  const parisOffset = now.getMonth() >= 2 && now.getMonth() <= 9 ? 2 : 1; // Simple DST: March-October = +2, else +1
   const todayStart = new Date(now);
-  todayStart.setUTCHours(0, 0, 0, 0);
+  todayStart.setUTCHours(-parisOffset, 0, 0, 0); // midnight Paris = UTC - offset
+  if (todayStart > now) todayStart.setDate(todayStart.getDate() - 1); // if future, go back 1 day
   const { count: emailsSentToday } = await supabase
     .from('crm_activities')
     .select('id', { count: 'exact', head: true })

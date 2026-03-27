@@ -12,7 +12,7 @@
  * different ID spaces (prospect UUID vs user UUID).
  */
 
-const MIN_DAYS_BETWEEN_ANY_EMAIL = 3;
+const MIN_DAYS_BETWEEN_ANY_EMAIL = 2; // Reduit de 3 a 2 pour permettre plus de volume tout en evitant le spam
 
 /**
  * Check whether we are allowed to send an email to `recipientEmail`.
