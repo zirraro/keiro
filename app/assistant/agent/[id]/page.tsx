@@ -838,6 +838,24 @@ export default function AgentWorkspacePage() {
                 </div>
               ))}
             </div>
+
+            {/* Integration section for embeddable agents */}
+            {['chatbot', 'onboarding'].includes(agentId) && (
+              <div className="mt-6 rounded-xl border border-white/10 bg-white/[0.03] p-5">
+                <h4 className="text-white font-bold text-sm mb-2 flex items-center gap-2">
+                  <span>{'\u{1F517}'}</span> Integrer {dn} sur ton site
+                </h4>
+                <p className="text-white/40 text-xs mb-4">
+                  Colle ce code juste avant la balise {'</body>'} de ton site. {dn} apparaitra en bas a {agentId === 'chatbot' ? 'droite' : 'droite'} et pourra discuter avec tes visiteurs.
+                </p>
+                <div className="bg-black/30 rounded-lg p-3 font-mono text-[11px] text-green-400 break-all select-all cursor-text">
+                  {`<script src="https://keiroai.com/embed/widget.js" data-key="VOTRE_CLE" data-agent="${agentId === 'chatbot' ? 'chatbot' : 'onboarding'}" data-color="${gf}"></script>`}
+                </div>
+                <p className="text-white/30 text-[10px] mt-2">
+                  Pour obtenir ta cle unique, va dans Mon compte {'\u2192'} Integrations ou contacte-nous.
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>
