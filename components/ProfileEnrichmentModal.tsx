@@ -121,6 +121,35 @@ export default function ProfileEnrichmentModal({ profile, userId, onClose }: Pro
         } else {
           console.log('[ProfileEnrichment] Profile updated successfully');
         }
+
+        // Also save to business_dossiers for Clara and all agents
+        const dossierData: Record<string, any> = {};
+        if (companyName) dossierData.company_name = companyName;
+        if (companyDescription) dossierData.company_description = companyDescription;
+        if (mainProducts) dossierData.main_products = mainProducts;
+        if (targetAudience) dossierData.target_audience = targetAudience;
+        if (brandTone) dossierData.brand_tone = brandTone;
+        if (competitors) dossierData.competitors = competitors;
+        if (website) dossierData.website_url = website;
+        if (mainGoal) dossierData.business_goals = mainGoal;
+        if (marketingBudget) dossierData.monthly_budget = marketingBudget;
+        if (postingFrequency) dossierData.posting_frequency = postingFrequency;
+        if (contentThemes.length > 0) dossierData.content_themes = contentThemes.join(', ');
+        if (teamSize) dossierData.employees_count = teamSize;
+
+        if (Object.keys(dossierData).length > 0) {
+          try {
+            await fetch('/api/business-dossier', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify(dossierData),
+            });
+            console.log('[ProfileEnrichment] Business dossier also updated');
+          } catch (e) {
+            console.warn('[ProfileEnrichment] Dossier sync failed (non-fatal)');
+          }
+        }
       }
     } catch (err) {
       console.error('[ProfileEnrichment] Error:', err);

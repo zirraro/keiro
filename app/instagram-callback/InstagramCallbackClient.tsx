@@ -73,8 +73,19 @@ function InstagramCallbackContent() {
           setStatus('success');
           setMessage('Compte Instagram connecté avec succès !');
 
-          // Full page reload to ensure session cookies are fresh
-          setTimeout(() => { window.location.href = '/library'; }, 2000);
+          // Restore Supabase session before redirecting
+          // This prevents the user from being logged out after Instagram OAuth redirect
+          try {
+            const sb = supabaseBrowser();
+            await sb.auth.refreshSession();
+            const { data: { session: currentSession } } = await sb.auth.getSession();
+            if (!currentSession) {
+              console.warn('[InstagramCallback] Session lost after OAuth, user may need to re-login');
+            }
+          } catch {}
+
+          // Redirect to assistant (not library) to keep user in their workspace
+          setTimeout(() => { window.location.href = '/assistant'; }, 2000);
         } else {
           throw new Error(data.error || 'Erreur lors de la connexion Instagram');
         }
