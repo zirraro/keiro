@@ -457,7 +457,31 @@ export default function AgentWorkspacePage() {
     if (!fl?.length) return; setUploading(true);
     for (let i = 0; i < fl.length; i++) {
       const fd = new FormData(); fd.append('file', fl[i]); fd.append('agent_id', agentId);
-      try { const r = await fetch('/api/agents/agent-files', { method: 'POST', credentials: 'include', body: fd }); if (r.ok) { const d = await r.json(); setFiles(p => [...p, { id: d.id || generateId(), name: fl[i].name, size: fl[i].size, uploaded_at: new Date().toISOString(), url: d.url }]); } } catch {}
+      try {
+        const r = await fetch('/api/agents/agent-files', { method: 'POST', credentials: 'include', body: fd });
+        if (r.ok) {
+          const d = await r.json();
+          setFiles(p => [...p, { id: d.id || generateId(), name: fl[i].name, size: fl[i].size, uploaded_at: new Date().toISOString(), url: d.file?.url || d.url }]);
+
+          // If dossier was auto-updated from file content, show confirmation in chat
+          if (d.dossier_updated && d.fields_extracted) {
+            const fieldLabels: Record<string, string> = {
+              company_name: 'nom', company_description: 'description', business_type: 'type', city: 'ville',
+              main_products: 'produits', target_audience: 'cible', brand_tone: 'ton', business_goals: 'objectifs',
+              unique_selling_points: 'points forts', competitors: 'concurrents', website_url: 'site web',
+              instagram_handle: 'Instagram', posting_frequency: 'frequence', monthly_budget: 'budget',
+            };
+            const extracted = d.fields_extracted.map((f: string) => fieldLabels[f] || f).join(', ');
+            setMessages(prev => [...prev, {
+              id: `file_${Date.now()}`,
+              role: 'assistant',
+              content: `J'ai analyse ton fichier "${fl[i].name}" et j'ai extrait ces infos pour ton profil : ${extracted}. Ton dossier a ete mis a jour automatiquement ! Les autres agents ont maintenant acces a ces informations.`,
+              created_at: new Date().toISOString(),
+            }]);
+            setChatOpen(true);
+          }
+        }
+      } catch {}
     } setUploading(false);
   }, [agentId]);
 
