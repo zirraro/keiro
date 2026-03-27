@@ -46,6 +46,8 @@ export interface BusinessDossier {
   // Assets
   logo_url: string | null;
   uploaded_files: Array<{ name: string; url: string; type: string; uploaded_at: string }>;
+  // Custom fields (Clara adds these dynamically based on conversation)
+  custom_fields: Record<string, string> | null;
   // IA
   ai_summary: string | null;
   completeness_score: number;
@@ -63,31 +65,68 @@ export async function loadBusinessDossier(
   return data;
 }
 
+const KNOWN_DOSSIER_FIELDS = new Set([
+  'company_name', 'company_description', 'business_type', 'legal_status', 'founder_name',
+  'creation_year', 'employees_count', 'city', 'region', 'country', 'address', 'catchment_area',
+  'main_products', 'price_range', 'unique_selling_points', 'competitors', 'target_audience',
+  'ideal_customer_profile', 'customer_pain_points', 'brand_tone', 'visual_style', 'brand_colors',
+  'content_themes', 'preferred_channels', 'posting_frequency', 'business_goals', 'marketing_goals',
+  'monthly_budget', 'kpi_targets', 'instagram_handle', 'tiktok_handle', 'linkedin_url',
+  'website_url', 'google_maps_url', 'facebook_url', 'logo_url', 'uploaded_files', 'ai_summary',
+]);
+
 export async function upsertBusinessDossier(
   supabase: SupabaseClient,
   userId: string,
-  updates: Partial<BusinessDossier>
+  updates: Record<string, any>
 ): Promise<void> {
+  // Separate known fields from custom fields
+  const knownUpdates: Record<string, any> = {};
+  const customUpdates: Record<string, string> = {};
+
+  for (const [key, value] of Object.entries(updates)) {
+    if (key === 'completeness_score' || key === 'custom_fields' || key === 'updated_at' || key === 'user_id') continue;
+    if (KNOWN_DOSSIER_FIELDS.has(key)) {
+      knownUpdates[key] = value;
+    } else if (value && String(value).trim().length > 0) {
+      // Custom field from Clara (horaires, specialite, ambiance, etc.)
+      customUpdates[key] = String(value);
+    }
+  }
+
+  // Load existing custom_fields to merge
+  if (Object.keys(customUpdates).length > 0) {
+    const { data: existing } = await supabase
+      .from('business_dossiers')
+      .select('custom_fields')
+      .eq('user_id', userId)
+      .single();
+
+    knownUpdates.custom_fields = {
+      ...(existing?.custom_fields || {}),
+      ...customUpdates,
+    };
+  }
+
   // Calculate completeness
   const coreFields = ['company_name', 'company_description', 'business_type', 'target_audience', 'brand_tone', 'main_products', 'city', 'unique_selling_points'];
   const importantFields = ['founder_name', 'ideal_customer_profile', 'business_goals', 'marketing_goals', 'visual_style', 'content_themes', 'preferred_channels'];
   const bonusFields = ['competitors', 'instagram_handle', 'logo_url', 'website_url', 'price_range', 'customer_pain_points', 'catchment_area', 'posting_frequency', 'brand_colors'];
 
   let score = 0;
-  const allUpdates = { ...updates };
   for (const f of coreFields) {
-    if ((allUpdates as Record<string, unknown>)[f]) score += 8; // 8 × 8 = 64
+    if (knownUpdates[f]) score += 8;
   }
   for (const f of importantFields) {
-    if ((allUpdates as Record<string, unknown>)[f]) score += 3; // 7 × 3 = 21
+    if (knownUpdates[f]) score += 3;
   }
   for (const f of bonusFields) {
-    if ((allUpdates as Record<string, unknown>)[f]) score += 1.67; // 9 × 1.67 = 15
+    if (knownUpdates[f]) score += 1.67;
   }
 
   await supabase.from('business_dossiers').upsert({
     user_id: userId,
-    ...updates,
+    ...knownUpdates,
     completeness_score: Math.min(100, Math.round(score)),
     updated_at: new Date().toISOString(),
   }, { onConflict: 'user_id' });
@@ -159,6 +198,14 @@ export function formatDossierForPrompt(dossier: BusinessDossier | null): string 
   if (dossier.website_url) social.push(`Site web: ${dossier.website_url}`);
   if (dossier.google_maps_url) social.push(`Google Maps: ${dossier.google_maps_url}`);
   if (social.length) sections.push(`PRESENCE EN LIGNE:\n${social.join('\n')}`);
+
+  // Custom fields (added by Clara during conversation)
+  if (dossier.custom_fields && typeof dossier.custom_fields === 'object') {
+    const customParts = Object.entries(dossier.custom_fields)
+      .filter(([, v]) => v && String(v).trim().length > 0)
+      .map(([k, v]) => `${k.replace(/_/g, ' ')}: ${v}`);
+    if (customParts.length) sections.push(`INFOS COMPLEMENTAIRES:\n${customParts.join('\n')}`);
+  }
 
   if (dossier.ai_summary) sections.push(`RESUME IA: ${dossier.ai_summary}`);
 
