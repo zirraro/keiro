@@ -192,10 +192,13 @@ export default function AssistantPage() {
   const [profile, setProfile] = useState<Record<string, any> | null>(null);
   const [userPlan, setUserPlan] = useState<string>('gratuit');
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isTrialActive, setIsTrialActive] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Admin bypasses coming-soon mode
-  const COMING_SOON_MODE = COMING_SOON_MODE_DEFAULT && !isAdmin;
+  // Coming soon only for free users without active trial
+  // Admin, paying users, and trial users all see active agents
+  const hasPaidPlan = !['gratuit', 'free', ''].includes(userPlan);
+  const COMING_SOON_MODE = COMING_SOON_MODE_DEFAULT && !isAdmin && !hasPaidPlan && !isTrialActive;
 
   // Agent grid
   const [agents, setAgents] = useState<ClientAgent[]>([]);
@@ -313,7 +316,7 @@ export default function AssistantPage() {
       if (user) {
         const { data: profileData } = await supabase
           .from('profiles')
-          .select('subscription_plan, company_name, company_description, website, target_audience, main_products, brand_tone, social_goals_monthly, content_themes, competitors, posting_frequency, is_admin')
+          .select('subscription_plan, company_name, company_description, website, target_audience, main_products, brand_tone, social_goals_monthly, content_themes, competitors, posting_frequency, is_admin, created_at, credits_expires_at')
           .eq('id', user.id)
           .single();
 
@@ -321,6 +324,15 @@ export default function AssistantPage() {
           setProfile(profileData);
           setUserPlan(profileData.subscription_plan || 'gratuit');
           if (profileData.is_admin) setIsAdmin(true);
+
+          // Check if user is in 14-day trial period
+          const createdAt = new Date(profileData.created_at);
+          const trialEnd = new Date(createdAt.getTime() + 14 * 24 * 60 * 60 * 1000);
+          const creditsExpiry = profileData.credits_expires_at ? new Date(profileData.credits_expires_at) : null;
+          const now = new Date();
+          if (now < trialEnd || (creditsExpiry && now < creditsExpiry)) {
+            setIsTrialActive(true);
+          }
         }
       }
 
@@ -330,15 +342,17 @@ export default function AssistantPage() {
   }, []);
 
   // ─── Load agents based on plan ──────────────────────────
+  // During trial: all agents unlocked. After trial: by plan.
   useEffect(() => {
-    const visible = getVisibleAgents(userPlan, isAdmin);
+    const allUnlocked = isAdmin || isTrialActive;
+    const visible = getVisibleAgents(allUnlocked ? 'agence' : userPlan, isAdmin);
     const amiIndex = visible.findIndex(a => a.id === 'marketing');
     if (amiIndex > 0) {
       const ami = visible.splice(amiIndex, 1)[0];
       visible.unshift(ami);
     }
     setAgents(visible);
-  }, [userPlan, isAdmin]);
+  }, [userPlan, isAdmin, isTrialActive]);
 
   // ─── Load AMI dashboard stats ───────────────────────────
   useEffect(() => {
