@@ -639,9 +639,25 @@ export default function AssistantPage() {
                 Espace de travail
               </h1>
               {isAdmin && (
-                <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-[10px] font-bold rounded-full border border-green-500/30">
-                  ADMIN
-                </span>
+                <>
+                  <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-[10px] font-bold rounded-full border border-green-500/30">
+                    ADMIN
+                  </span>
+                  <button
+                    onClick={async () => {
+                      try {
+                        const res = await fetch('/api/agents/qa?mode=full', { method: 'POST', headers: { 'Authorization': `Bearer ${process.env.NEXT_PUBLIC_CRON_SECRET || ''}` } });
+                        if (!res.ok) { alert('QA lancé via cron — vérifiez email'); return; }
+                        const data = await res.json();
+                        alert(`QA Score: ${data.score}/100 | ${data.summary?.critical || 0} critical, ${data.summary?.fail || 0} fail`);
+                      } catch { alert('QA check lancé — rapport par email'); }
+                    }}
+                    className="px-2 py-0.5 bg-blue-500/20 text-blue-400 text-[10px] font-bold rounded-full border border-blue-500/30 hover:bg-blue-500/30 transition cursor-pointer"
+                    title="Lancer un check QA complet"
+                  >
+                    🧪 QA
+                  </button>
+                </>
               )}
             </div>
             {/* Quick actions */}
