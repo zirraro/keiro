@@ -1,6 +1,112 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+
+// Live Instagram DM conversations component
+function DmConversationsLive() {
+  const [convs, setConvs] = useState<Array<{
+    id: string;
+    participant: { username: string };
+    messages: Array<{ message: string; from: string; fromMe: boolean; created_time: string }>;
+  }>>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedConv, setSelectedConv] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState('');
+  const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/agents/dm-instagram/conversations', { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => { if (d.conversations) setConvs(d.conversations); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div className="text-center py-4"><div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-400 mx-auto" /></div>;
+  if (convs.length === 0) return <div className="text-center py-4 text-white/30 text-xs">Aucune conversation Instagram</div>;
+
+  const selected = convs.find(c => c.id === selectedConv);
+
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden" style={{ maxHeight: 400 }}>
+      <div className="flex h-full" style={{ minHeight: 200 }}>
+        {/* Conversation list */}
+        <div className={`${selectedConv ? 'hidden sm:block' : ''} w-full sm:w-48 border-r border-white/5 overflow-y-auto`}>
+          {convs.map(conv => (
+            <button
+              key={conv.id}
+              onClick={() => setSelectedConv(conv.id)}
+              className={`w-full text-left px-3 py-2.5 border-b border-white/5 hover:bg-white/5 transition-colors ${selectedConv === conv.id ? 'bg-purple-500/10' : ''}`}
+            >
+              <div className="text-xs font-medium text-white">@{conv.participant.username}</div>
+              <div className="text-[10px] text-white/30 truncate mt-0.5">
+                {conv.messages[conv.messages.length - 1]?.message?.substring(0, 40) || '...'}
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* Messages */}
+        {selected ? (
+          <div className="flex-1 flex flex-col">
+            {/* Header */}
+            <div className="px-3 py-2 border-b border-white/5 flex items-center gap-2">
+              <button onClick={() => setSelectedConv(null)} className="sm:hidden text-white/40 text-xs">{'\u2190'}</button>
+              <span className="text-xs font-bold text-white">@{selected.participant.username}</span>
+              <span className="text-[9px] text-white/20 ml-auto">{selected.messages.length} messages</span>
+            </div>
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2" style={{ maxHeight: 280 }}>
+              {selected.messages.map((msg, i) => (
+                <div key={i} className={`flex ${msg.fromMe ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[80%] px-3 py-1.5 rounded-xl text-xs ${msg.fromMe ? 'bg-purple-600 text-white rounded-br-sm' : 'bg-white/10 text-white/80 rounded-bl-sm'}`}>
+                    {msg.message || <span className="italic text-white/30">[media]</span>}
+                    <div className={`text-[8px] mt-0.5 ${msg.fromMe ? 'text-purple-200' : 'text-white/20'}`}>
+                      {new Date(msg.created_time).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Reply input */}
+            <div className="border-t border-white/5 px-3 py-2 flex gap-2">
+              <input
+                type="text"
+                value={replyText}
+                onChange={e => setReplyText(e.target.value)}
+                placeholder="Repondre..."
+                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-purple-500/50"
+                onKeyDown={e => { if (e.key === 'Enter' && replyText.trim()) {
+                  setSending(true);
+                  fetch('/api/crm/reply', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ prospect_id: selected.participant.username, message: replyText, channel: 'dm_instagram' }) })
+                    .then(() => { setConvs(prev => prev.map(c => c.id === selected.id ? { ...c, messages: [...c.messages, { message: replyText, from: 'moi', fromMe: true, created_time: new Date().toISOString() }] } : c)); setReplyText(''); })
+                    .catch(() => {}).finally(() => setSending(false));
+                }}}
+              />
+              <button
+                onClick={() => {
+                  if (!replyText.trim()) return;
+                  setSending(true);
+                  fetch('/api/crm/reply', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ prospect_id: selected.participant.username, message: replyText, channel: 'dm_instagram' }) })
+                    .then(() => { setConvs(prev => prev.map(c => c.id === selected.id ? { ...c, messages: [...c.messages, { message: replyText, from: 'moi', fromMe: true, created_time: new Date().toISOString() }] } : c)); setReplyText(''); })
+                    .catch(() => {}).finally(() => setSending(false));
+                }}
+                disabled={sending || !replyText.trim()}
+                className="px-3 py-1.5 bg-purple-600 text-white text-xs rounded-lg disabled:opacity-40"
+              >
+                {sending ? '...' : 'Envoyer'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 flex items-center justify-center text-white/20 text-xs">
+            Selectionne une conversation
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 // Reply card for DMs and emails
 function DmCard({ dm, statusColors }: { dm: { target: string; status: string; message?: string; date: string }; statusColors: Record<string, string> }) {
@@ -1484,6 +1590,10 @@ function DmInstagramPanel({
           gradientTo={gradientTo}
         />
       </div>
+
+      {/* Live Instagram conversations */}
+      <SectionTitle>Conversations Instagram</SectionTitle>
+      <DmConversationsLive />
 
       {/* Recent DM activity feed with reply */}
       <SectionTitle>Activite recente</SectionTitle>
