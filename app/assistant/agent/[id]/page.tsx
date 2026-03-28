@@ -293,6 +293,18 @@ export default function AgentWorkspacePage() {
   const [qaResult, setQaResult] = useState<any>(null);
   const [qaRunning, setQaRunning] = useState(false);
 
+  // Widget key for integrations
+  const [widgetKey, setWidgetKey] = useState<string | null>(null);
+  useEffect(() => {
+    fetch('/api/widget/config', { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => {
+        if (d.widgets && d.widgets.length > 0) {
+          setWidgetKey(d.widgets[0].widget_key);
+        }
+      }).catch(() => {});
+  }, []);
+
   // ─── Init agent ────────────────────────────────────────
   useEffect(() => { const f = CLIENT_AGENTS.find(a => a.id === agentId); if (f) setAgent(f); }, [agentId]);
 
@@ -1126,6 +1138,9 @@ export default function AgentWorkspacePage() {
               const config = integrations[agentId];
               if (!config) return null;
 
+              // Replace VOTRE_CLE with actual widget key
+              const displayCode = widgetKey ? config.code.replace(/VOTRE_CLE/g, widgetKey) : config.code;
+
               return (
                 <div className="mt-6 rounded-xl border border-white/10 bg-white/[0.03] p-5">
                   <h4 className="text-white font-bold text-sm mb-2 flex items-center gap-2">
@@ -1133,16 +1148,34 @@ export default function AgentWorkspacePage() {
                   </h4>
                   <p className="text-white/40 text-xs mb-4">{config.description}</p>
                   <div className="bg-black/30 rounded-lg p-3 font-mono text-[11px] text-green-400 break-all select-all cursor-text whitespace-pre-wrap">
-                    {config.code}
+                    {displayCode}
                   </div>
                   {config.note && (
                     <p className="text-amber-400/70 text-[10px] mt-2 flex items-center gap-1">
                       <span>{'\u26A0\uFE0F'}</span> {config.note}
                     </p>
                   )}
-                  <p className="text-white/30 text-[10px] mt-2">
-                    Pour obtenir ta cle unique, va dans Mon compte {'\u2192'} Integrations.
-                  </p>
+                  {widgetKey && (
+                    <div className="mt-3 flex items-center gap-2">
+                      <span className="text-white/30 text-[10px]">Ta cle :</span>
+                      <code className="text-[10px] text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded font-mono select-all">{widgetKey}</code>
+                      <button onClick={() => navigator.clipboard.writeText(widgetKey)} className="text-[10px] text-white/40 hover:text-white/60">Copier</button>
+                    </div>
+                  )}
+                  {!widgetKey && (
+                    <button
+                      onClick={async () => {
+                        try {
+                          const res = await fetch('/api/widget/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ agent_type: agentId === 'onboarding' ? 'onboarding' : 'chatbot' }) });
+                          const d = await res.json();
+                          if (d.widget?.widget_key) setWidgetKey(d.widget.widget_key);
+                        } catch {}
+                      }}
+                      className="mt-3 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs font-semibold rounded-xl"
+                    >
+                      Generer ma cle d&apos;integration
+                    </button>
+                  )}
                 </div>
               );
             })()}
