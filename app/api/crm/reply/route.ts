@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
+import { graphPOST } from '@/lib/meta';
 
 export const runtime = 'nodejs';
 
@@ -14,7 +15,7 @@ export async function POST(req: NextRequest) {
   if (error || !user) return NextResponse.json({ error: 'Non autorise' }, { status: 401 });
 
   const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
-  const { prospect_id, message, channel = 'email' } = await req.json();
+  const { prospect_id, message, channel = 'email', recipient_id } = await req.json();
 
   if (!prospect_id || !message) {
     return NextResponse.json({ error: 'prospect_id et message requis' }, { status: 400 });
@@ -91,17 +92,67 @@ export async function POST(req: NextRequest) {
   }
 
   if (channel === 'dm_instagram') {
-    // DM Instagram — save as prepared DM (manual send via Instagram)
-    // Real API send requires instagram_manage_messages permission (pending Meta review)
-    await supabase.from('crm_activities').insert({
-      prospect_id,
-      type: 'dm_instagram',
-      description: `DM prepare: "${message.substring(0, 100)}"`,
-      data: { manual_dm: true, message, target: prospect.instagram || prospect.company, sent_by: user.id, status: 'prepared' },
-      created_at: new Date().toISOString(),
-    });
+    // Get user's IG credentials to send DM via Instagram API
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('instagram_business_account_id, facebook_page_access_token, instagram_access_token')
+      .eq('id', user.id)
+      .single();
 
-    return NextResponse.json({ ok: true, channel: 'dm_instagram', note: 'DM prepare — a envoyer manuellement via Instagram' });
+    const igToken = profile?.facebook_page_access_token || profile?.instagram_access_token;
+    const igUserId = profile?.instagram_business_account_id;
+
+    // recipient_id can be: Instagram-scoped user ID (from conversations) or prospect.instagram field
+    const recipientId = recipient_id || prospect.instagram_user_id || prospect.instagram;
+
+    if (igToken && igUserId && recipientId) {
+      try {
+        // Send DM via Instagram Messaging API
+        await graphPOST(`/${igUserId}/messages`, igToken, {
+          recipient: JSON.stringify({ id: recipientId }),
+          message: JSON.stringify({ text: message }),
+        } as any);
+
+        // Log success
+        await supabase.from('crm_activities').insert({
+          prospect_id,
+          type: 'dm_instagram',
+          description: `DM envoye via KeiroAI: "${message.substring(0, 100)}"`,
+          data: { manual_dm: false, message, target: prospect.instagram || prospect.company, sent_by: user.id, status: 'sent', recipient_id: recipientId },
+          created_at: new Date().toISOString(),
+        });
+
+        // Update prospect status
+        await supabase.from('crm_prospects').update({
+          status: 'repondu',
+          temperature: 'hot',
+          updated_at: new Date().toISOString(),
+        }).eq('id', prospect_id);
+
+        return NextResponse.json({ ok: true, channel: 'dm_instagram', sent: true });
+      } catch (e: any) {
+        console.error('[crm/reply] Instagram DM send failed:', e.message);
+        // Fallback: save as prepared if API fails
+        await supabase.from('crm_activities').insert({
+          prospect_id,
+          type: 'dm_instagram',
+          description: `DM echec API, prepare: "${message.substring(0, 100)}"`,
+          data: { manual_dm: true, message, target: prospect.instagram || prospect.company, sent_by: user.id, status: 'failed', error: e.message?.substring(0, 200) },
+          created_at: new Date().toISOString(),
+        });
+        return NextResponse.json({ ok: true, channel: 'dm_instagram', sent: false, note: 'Envoi echoue — DM sauvegarde' });
+      }
+    } else {
+      // No IG credentials — save as prepared
+      await supabase.from('crm_activities').insert({
+        prospect_id,
+        type: 'dm_instagram',
+        description: `DM prepare (IG non connecte): "${message.substring(0, 100)}"`,
+        data: { manual_dm: true, message, target: prospect.instagram || prospect.company, sent_by: user.id, status: 'prepared' },
+        created_at: new Date().toISOString(),
+      });
+      return NextResponse.json({ ok: true, channel: 'dm_instagram', sent: false, note: 'Instagram non connecte — DM sauvegarde' });
+    }
   }
 
   return NextResponse.json({ error: 'Channel non supporte' }, { status: 400 });

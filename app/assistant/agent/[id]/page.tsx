@@ -1172,26 +1172,31 @@ export default function AgentWorkspacePage() {
                       <span>{'\u26A0\uFE0F'}</span> {config.note}
                     </p>
                   )}
-                  {widgetKey && (
-                    <div className="mt-3 flex items-center gap-2">
-                      <span className="text-white/30 text-[10px]">Ta cle :</span>
-                      <code className="text-[10px] text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded font-mono select-all">{widgetKey}</code>
-                      <button onClick={() => navigator.clipboard.writeText(widgetKey)} className="text-[10px] text-white/40 hover:text-white/60">Copier</button>
-                    </div>
-                  )}
-                  {!widgetKey && (
-                    <button
-                      onClick={async () => {
-                        try {
-                          const res = await fetch('/api/widget/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ agent_type: agentId === 'onboarding' ? 'onboarding' : 'chatbot' }) });
-                          const d = await res.json();
-                          if (d.widget?.widget_key) setWidgetKey(d.widget.widget_key);
-                        } catch {}
-                      }}
-                      className="mt-3 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs font-semibold rounded-xl"
-                    >
-                      Generer ma cle d&apos;integration
-                    </button>
+                  {/* Only show widget key for embeddable agents (chatbot, onboarding, email, whatsapp, gmaps) */}
+                  {['chatbot', 'onboarding', 'email', 'whatsapp', 'gmaps'].includes(agentId) && (
+                    <>
+                      {widgetKey && (
+                        <div className="mt-3 flex items-center gap-2">
+                          <span className="text-white/30 text-[10px]">Ta cle :</span>
+                          <code className="text-[10px] text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded font-mono select-all">{widgetKey}</code>
+                          <button onClick={() => navigator.clipboard.writeText(widgetKey)} className="text-[10px] text-white/40 hover:text-white/60">Copier</button>
+                        </div>
+                      )}
+                      {!widgetKey && (
+                        <button
+                          onClick={async () => {
+                            try {
+                              const res = await fetch('/api/widget/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ agent_type: agentId === 'onboarding' ? 'onboarding' : 'chatbot' }) });
+                              const d = await res.json();
+                              if (d.widget?.widget_key) setWidgetKey(d.widget.widget_key);
+                            } catch {}
+                          }}
+                          className="mt-3 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs font-semibold rounded-xl"
+                        >
+                          Generer ma cle d&apos;integration
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               );

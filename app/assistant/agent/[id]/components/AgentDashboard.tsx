@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 
 // Hot prospects notification — shown directly in agent dashboard
 function HotProspectsAlert({ source, gradientFrom }: { source?: string; gradientFrom: string }) {
@@ -43,15 +43,17 @@ function HotProspectsAlert({ source, gradientFrom }: { source?: string; gradient
 function DmConversationsLive() {
   const [convs, setConvs] = useState<Array<{
     id: string;
-    participant: { username: string };
-    messages: Array<{ message: string; from: string; fromMe: boolean; created_time: string }>;
+    participant: { username: string; id: string };
+    updated_time?: string;
+    messages: Array<{ message: string; from: string; fromMe: boolean; created_time: string; status?: string }>;
   }>>([]);
   const [loading, setLoading] = useState(true);
   const [selectedConv, setSelectedConv] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
   const [sending, setSending] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  const fetchConversations = useCallback(() => {
     fetch('/api/agents/dm-instagram/conversations', { credentials: 'include' })
       .then(r => r.json())
       .then(d => { if (d.conversations) setConvs(d.conversations); })
@@ -59,84 +61,175 @@ function DmConversationsLive() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="text-center py-4"><div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-400 mx-auto" /></div>;
-  if (convs.length === 0) return <div className="text-center py-4 text-white/30 text-xs">Aucune conversation Instagram</div>;
+  // Initial load + auto-refresh every 15s
+  useEffect(() => {
+    fetchConversations();
+    const interval = setInterval(fetchConversations, 15000);
+    return () => clearInterval(interval);
+  }, [fetchConversations]);
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [selectedConv, convs]);
+
+  const sendReply = useCallback(async () => {
+    const selected = convs.find(c => c.id === selectedConv);
+    if (!selected || !replyText.trim()) return;
+    setSending(true);
+    const msgText = replyText;
+    setReplyText('');
+
+    // Optimistic UI update
+    setConvs(prev => prev.map(c => c.id === selected.id ? {
+      ...c,
+      messages: [...c.messages, { message: msgText, from: 'moi', fromMe: true, created_time: new Date().toISOString(), status: 'sending' }],
+    } : c));
+
+    try {
+      const res = await fetch('/api/crm/reply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          prospect_id: selected.participant.username,
+          recipient_id: selected.participant.id,
+          message: msgText,
+          channel: 'dm_instagram',
+        }),
+      });
+      const data = await res.json();
+
+      // Update message status
+      setConvs(prev => prev.map(c => c.id === selected.id ? {
+        ...c,
+        messages: c.messages.map((m, i) =>
+          i === c.messages.length - 1 && m.status === 'sending'
+            ? { ...m, status: data.sent ? 'sent' : 'prepared' }
+            : m
+        ),
+      } : c));
+    } catch {
+      setConvs(prev => prev.map(c => c.id === selected.id ? {
+        ...c,
+        messages: c.messages.map((m, i) =>
+          i === c.messages.length - 1 && m.status === 'sending'
+            ? { ...m, status: 'error' }
+            : m
+        ),
+      } : c));
+    } finally {
+      setSending(false);
+    }
+  }, [convs, selectedConv, replyText]);
+
+  if (loading) return <div className="text-center py-8"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-400 mx-auto" /><div className="text-white/30 text-[10px] mt-2">Chargement des conversations...</div></div>;
+  if (convs.length === 0) return <div className="text-center py-8 text-white/30 text-xs">Aucune conversation Instagram — les DMs apparaitront ici</div>;
 
   const selected = convs.find(c => c.id === selectedConv);
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden" style={{ maxHeight: 400 }}>
-      <div className="flex h-full" style={{ minHeight: 200 }}>
+    <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden" style={{ maxHeight: 480 }}>
+      <div className="flex h-full" style={{ minHeight: 280 }}>
         {/* Conversation list */}
-        <div className={`${selectedConv ? 'hidden sm:block' : ''} w-full sm:w-48 border-r border-white/5 overflow-y-auto`}>
-          {convs.map(conv => (
-            <button
-              key={conv.id}
-              onClick={() => setSelectedConv(conv.id)}
-              className={`w-full text-left px-3 py-2.5 border-b border-white/5 hover:bg-white/5 transition-colors ${selectedConv === conv.id ? 'bg-purple-500/10' : ''}`}
-            >
-              <div className="text-xs font-medium text-white">@{conv.participant.username}</div>
-              <div className="text-[10px] text-white/30 truncate mt-0.5">
-                {conv.messages[conv.messages.length - 1]?.message?.substring(0, 40) || '...'}
-              </div>
-            </button>
-          ))}
+        <div className={`${selectedConv ? 'hidden sm:block' : ''} w-full sm:w-56 border-r border-white/5 overflow-y-auto`}>
+          <div className="px-3 py-2 border-b border-white/5 bg-white/[0.02]">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-white/30">Conversations</span>
+          </div>
+          {convs.map(conv => {
+            const lastMsg = conv.messages[conv.messages.length - 1];
+            const isUnread = lastMsg && !lastMsg.fromMe;
+            return (
+              <button
+                key={conv.id}
+                onClick={() => setSelectedConv(conv.id)}
+                className={`w-full text-left px-3 py-3 border-b border-white/5 hover:bg-white/5 transition-colors ${selectedConv === conv.id ? 'bg-purple-500/10 border-l-2 border-l-purple-500' : ''}`}
+              >
+                <div className="flex items-center gap-2">
+                  {isUnread && <div className="w-2 h-2 rounded-full bg-purple-400 animate-pulse flex-shrink-0" />}
+                  <span className="text-xs font-medium text-white">@{conv.participant.username}</span>
+                </div>
+                <div className="text-[10px] text-white/30 truncate mt-0.5 pl-4">
+                  {lastMsg?.fromMe ? 'Toi: ' : ''}{lastMsg?.message?.substring(0, 50) || '...'}
+                </div>
+                {conv.updated_time && (
+                  <div className="text-[9px] text-white/15 mt-0.5 pl-4">
+                    {new Date(conv.updated_time).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
+                  </div>
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {/* Messages */}
         {selected ? (
           <div className="flex-1 flex flex-col">
             {/* Header */}
-            <div className="px-3 py-2 border-b border-white/5 flex items-center gap-2">
-              <button onClick={() => setSelectedConv(null)} className="sm:hidden text-white/40 text-xs">{'\u2190'}</button>
-              <span className="text-xs font-bold text-white">@{selected.participant.username}</span>
-              <span className="text-[9px] text-white/20 ml-auto">{selected.messages.length} messages</span>
+            <div className="px-3 py-2.5 border-b border-white/5 bg-white/[0.02] flex items-center gap-2">
+              <button onClick={() => setSelectedConv(null)} className="sm:hidden text-white/40 hover:text-white/60 text-sm">{'\u2190'}</button>
+              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-[10px] text-white font-bold">
+                {selected.participant.username[0]?.toUpperCase()}
+              </div>
+              <div>
+                <span className="text-xs font-bold text-white">@{selected.participant.username}</span>
+                <div className="text-[9px] text-white/20">{selected.messages.length} messages</div>
+              </div>
+              <div className="ml-auto flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
+                <span className="text-[9px] text-green-400/60">Direct</span>
+              </div>
             </div>
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2" style={{ maxHeight: 280 }}>
+            <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2.5" style={{ maxHeight: 340 }}>
               {selected.messages.map((msg, i) => (
                 <div key={i} className={`flex ${msg.fromMe ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[80%] px-3 py-1.5 rounded-xl text-xs ${msg.fromMe ? 'bg-purple-600 text-white rounded-br-sm' : 'bg-white/10 text-white/80 rounded-bl-sm'}`}>
+                  <div className={`max-w-[80%] px-3 py-2 rounded-2xl text-xs leading-relaxed ${
+                    msg.fromMe
+                      ? 'bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-br-md'
+                      : 'bg-white/10 text-white/80 rounded-bl-md'
+                  } ${msg.status === 'sending' ? 'opacity-60' : ''}`}>
                     {msg.message || <span className="italic text-white/30">[media]</span>}
-                    <div className={`text-[8px] mt-0.5 ${msg.fromMe ? 'text-purple-200' : 'text-white/20'}`}>
-                      {new Date(msg.created_time).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                    <div className={`flex items-center gap-1 mt-0.5 ${msg.fromMe ? 'justify-end' : ''}`}>
+                      <span className={`text-[8px] ${msg.fromMe ? 'text-purple-200/60' : 'text-white/20'}`}>
+                        {new Date(msg.created_time).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                      {msg.fromMe && msg.status === 'sending' && <span className="text-[8px] text-yellow-300/60">envoi...</span>}
+                      {msg.fromMe && msg.status === 'sent' && <span className="text-[8px] text-green-300/60">{'\u2713'} envoye</span>}
+                      {msg.fromMe && msg.status === 'prepared' && <span className="text-[8px] text-amber-300/60">prepare</span>}
+                      {msg.fromMe && msg.status === 'error' && <span className="text-[8px] text-red-300/60">echec</span>}
                     </div>
                   </div>
                 </div>
               ))}
+              <div ref={messagesEndRef} />
             </div>
             {/* Reply input */}
-            <div className="border-t border-white/5 px-3 py-2 flex gap-2">
+            <div className="border-t border-white/5 px-3 py-2.5 flex gap-2 bg-white/[0.02]">
               <input
                 type="text"
                 value={replyText}
                 onChange={e => setReplyText(e.target.value)}
-                placeholder="Repondre..."
-                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-purple-500/50"
-                onKeyDown={e => { if (e.key === 'Enter' && replyText.trim()) {
-                  setSending(true);
-                  fetch('/api/crm/reply', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ prospect_id: selected.participant.username, message: replyText, channel: 'dm_instagram' }) })
-                    .then(() => { setConvs(prev => prev.map(c => c.id === selected.id ? { ...c, messages: [...c.messages, { message: replyText, from: 'moi', fromMe: true, created_time: new Date().toISOString() }] } : c)); setReplyText(''); })
-                    .catch(() => {}).finally(() => setSending(false));
-                }}}
+                placeholder="Ecrire un message..."
+                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-purple-500/50 focus:border-purple-500/30"
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && replyText.trim()) { e.preventDefault(); sendReply(); } }}
               />
               <button
-                onClick={() => {
-                  if (!replyText.trim()) return;
-                  setSending(true);
-                  fetch('/api/crm/reply', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ prospect_id: selected.participant.username, message: replyText, channel: 'dm_instagram' }) })
-                    .then(() => { setConvs(prev => prev.map(c => c.id === selected.id ? { ...c, messages: [...c.messages, { message: replyText, from: 'moi', fromMe: true, created_time: new Date().toISOString() }] } : c)); setReplyText(''); })
-                    .catch(() => {}).finally(() => setSending(false));
-                }}
+                onClick={sendReply}
                 disabled={sending || !replyText.trim()}
-                className="px-3 py-1.5 bg-purple-600 text-white text-xs rounded-lg disabled:opacity-40"
+                className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white text-xs font-medium rounded-xl disabled:opacity-40 transition-all active:scale-95"
               >
-                {sending ? '...' : 'Envoyer'}
+                {sending ? (
+                  <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white" />
+                ) : (
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+                )}
               </button>
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-white/20 text-xs">
+          <div className="flex-1 flex flex-col items-center justify-center text-white/20 text-xs gap-2 py-8">
+            <svg className="w-8 h-8 text-white/10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
             Selectionne une conversation
           </div>
         )}
