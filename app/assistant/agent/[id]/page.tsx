@@ -252,8 +252,8 @@ export default function AgentWorkspacePage() {
   const [agentInfo, setAgentInfo] = useState<AgentInfo | null>(null);
   const [pageLoading, setPageLoading] = useState(true);
 
-  // Tabs: dashboard | planning | history | settings | profile (Clara only)
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'planning' | 'history' | 'settings' | 'profile'>('dashboard');
+  // Tabs
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'planning' | 'history' | 'campaigns' | 'settings' | 'profile'>('dashboard');
 
   // Chat (slide-over)
   const [chatOpen, setChatOpen] = useState(false);
@@ -550,6 +550,7 @@ export default function AgentWorkspacePage() {
           {([
             { key: 'dashboard' as const, label: 'Dashboard', icon: '\uD83D\uDCCA' },
             ...(agentId === 'onboarding' ? [{ key: 'profile' as const, label: 'Mon profil', icon: '\uD83D\uDCCB' }] : []),
+            { key: 'campaigns' as const, label: 'Campagnes', icon: '\u{1F3AF}' },
             { key: 'planning' as const, label: 'Planning', icon: '\uD83D\uDCC5' },
             { key: 'history' as const, label: 'Historique', icon: '\u26A1' },
             { key: 'settings' as const, label: 'Parametres', icon: '\u2699\uFE0F' },
@@ -748,6 +749,61 @@ export default function AgentWorkspacePage() {
           </div>
         )}
 
+        {/* ═══ TAB: CAMPAIGNS ═══ */}
+        {activeTab === 'campaigns' && (
+          <div className="max-w-5xl space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-white font-bold text-sm">{'\u{1F3AF}'} Campagnes de {dn}</h3>
+                <p className="text-white/40 text-xs mt-0.5">Lance des actions, suis leur progression</p>
+              </div>
+              <button
+                onClick={() => { setChatOpen(true); setInput(`Lance une nouvelle campagne pour `); }}
+                className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs font-semibold rounded-xl"
+              >
+                + Nouvelle campagne
+              </button>
+            </div>
+
+            {/* Active campaigns from agent_logs */}
+            <div className="space-y-3">
+              {tasks.length > 0 ? tasks.filter(t => t.type !== 'heartbeat').slice(0, 20).map((task, i) => (
+                <div key={task.id || i} className="rounded-xl bg-white/[0.03] border border-white/10 p-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-3 h-3 rounded-full flex-shrink-0 ${task.status === 'success' ? 'bg-emerald-400' : task.status === 'error' ? 'bg-red-400' : 'bg-amber-400 animate-pulse'}`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-xs font-medium">{task.description || task.type || 'Action'}</p>
+                      {task.result && <p className="text-white/40 text-[10px] mt-0.5 truncate">{task.result}</p>}
+                    </div>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full flex-shrink-0 ${
+                      task.status === 'success' ? 'bg-emerald-500/15 text-emerald-400' : task.status === 'error' ? 'bg-red-500/15 text-red-400' : 'bg-amber-500/15 text-amber-400'
+                    }`}>
+                      {task.status === 'success' ? 'Termine' : task.status === 'error' ? 'Echec' : 'En cours'}
+                    </span>
+                    <span className="text-white/20 text-[9px]">{task.created_at ? new Date(task.created_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}</span>
+                  </div>
+                </div>
+              )) : (
+                <div className="text-center py-12">
+                  <p className="text-4xl mb-3">{'\u{1F3AF}'}</p>
+                  <p className="text-white/50 text-sm">Aucune campagne en cours</p>
+                  <p className="text-white/30 text-xs mt-1">Demande a {dn} de lancer une action via le chat</p>
+                </div>
+              )}
+            </div>
+
+            {/* Quick actions */}
+            <div className="rounded-xl bg-gradient-to-r from-purple-600/10 to-blue-600/10 border border-purple-500/20 p-4">
+              <p className="text-purple-300 text-xs font-semibold mb-2">Actions rapides</p>
+              <div className="flex flex-wrap gap-2">
+                {getAgentSuggestions(agentId).map(s => (
+                  <button key={s} onClick={() => { setInput(s); setChatOpen(true); }} className="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-white/60 text-[10px] transition-all">{s}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ═══ TAB: SETTINGS ═══ */}
         {activeTab === 'settings' && (
           <div className="max-w-5xl space-y-6">
@@ -839,7 +895,41 @@ export default function AgentWorkspacePage() {
               ))}
             </div>
 
-            {/* Integration section for embeddable agents */}
+            {/* Customization section */}
+            <div className="mt-6 rounded-xl border border-white/10 bg-white/[0.03] p-5">
+              <h4 className="text-white font-bold text-sm mb-4 flex items-center gap-2">
+                <span>{'\u{1F3A8}'}</span> Personnaliser {dn}
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-white/60 text-[10px] font-medium mb-1.5 block">Nom personnalise</label>
+                  <input type="text" value={settings.custom_name || ''} onChange={e => setSettings(prev => ({ ...prev, custom_name: e.target.value }))} placeholder={dn} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-xs placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-purple-500/50" />
+                </div>
+                <div>
+                  <label className="text-white/60 text-[10px] font-medium mb-1.5 block">Couleur d&apos;accent</label>
+                  <div className="flex gap-2 flex-wrap">
+                    {['#8b5cf6', '#ec4899', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#0c1a3a'].map(c => (
+                      <button key={c} onClick={() => setSettings(prev => ({ ...prev, accent_color: c }))} className={`w-8 h-8 rounded-lg transition-all ${settings.accent_color === c ? 'ring-2 ring-white scale-110' : 'hover:scale-105'}`} style={{ background: c }} />
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-white/60 text-[10px] font-medium mb-1.5 block">Personnalite</label>
+                  <select value={settings.personality || 'default'} onChange={e => setSettings(prev => ({ ...prev, personality: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:ring-1 focus:ring-purple-500/50">
+                    <option value="default">Par defaut</option>
+                    <option value="formal">Professionnel (vouvoiement)</option>
+                    <option value="casual">Decontracte (tutoiement)</option>
+                    <option value="fun">Fun et energique</option>
+                    <option value="premium">Premium et sobre</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-white/60 text-[10px] font-medium mb-1.5 block">Emoji</label>
+                  <input type="text" value={settings.custom_emoji || ''} onChange={e => setSettings(prev => ({ ...prev, custom_emoji: e.target.value.slice(0, 2) }))} placeholder={icon} className="w-16 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-lg text-center focus:outline-none focus:ring-1 focus:ring-purple-500/50" maxLength={2} />
+                </div>
+              </div>
+            </div>
+
             {/* Integration section for embeddable agents */}
             {(() => {
               const integrations: Record<string, { title: string; description: string; code: string; note?: string }> = {
