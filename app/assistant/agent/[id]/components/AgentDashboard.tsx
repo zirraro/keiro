@@ -735,10 +735,30 @@ function ContentPanel({
 
   return (
     <>
+      {/* Instagram KPIs */}
+      <SectionTitle>Performance Instagram</SectionTitle>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <KpiCard label="Posts publies" value={fmt(stats.postsGenerated)} gradientFrom="#8b5cf6" gradientTo="#6d28d9" />
+        <KpiCard label="Likes total" value={fmt((data as any).igLikes || 0)} gradientFrom="#ec4899" gradientTo="#f43f5e" />
+        <KpiCard label="Reach moyen" value={fmt((data as any).igReach || 0)} gradientFrom="#06b6d4" gradientTo="#0891b2" />
+        <KpiCard label="Engagement" value={`${((data as any).igEngagement || 0).toFixed?.(1) || '0'}%`} gradientFrom="#10b981" gradientTo="#059669" />
+      </div>
+
+      {/* Quick actions */}
+      <div className="flex flex-wrap gap-2 mt-3">
+        <a href="/generate" className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs font-semibold rounded-xl hover:opacity-90 transition-all">
+          {'\u2728'} Creer un nouveau visuel
+        </a>
+        <a href="/library" className="px-4 py-2 bg-white/10 text-white/70 text-xs font-medium rounded-xl hover:bg-white/15">
+          {'\u{1F4DA}'} Ma galerie
+        </a>
+      </div>
+
+      <SectionTitle>Production</SectionTitle>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <KpiCard label="Posts generes" value={fmt(stats.postsGenerated)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        <KpiCard label="Posts programmes" value={fmt(stats.scheduledPosts)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        <KpiCard label="Streak publication" value="--" gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label="Programmes" value={fmt(stats.scheduledPosts)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label="Cette semaine" value={fmt(stats.recentContent.length)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
       </div>
 
       {/* Visual: content type distribution */}
@@ -1255,6 +1275,43 @@ function DmInstagramPanel({
         <KpiCard label="DMs envoyes" value={fmt(stats.dmsSent)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
         <KpiCard label="Reponses recues" value={fmt(stats.responses)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
         <KpiCard label="RDV generes" value={fmt(stats.rdvGenerated)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+      </div>
+
+      {/* Workflow visual — pipeline DM */}
+      <SectionTitle>Workflow DM</SectionTitle>
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+        <div className="flex items-center justify-between gap-1 text-center">
+          {[
+            { label: 'Prospects', value: stats.dmsSent + (stats.responses || 0), icon: '\u{1F465}', color: '#94a3b8' },
+            { label: 'DM envoye', value: stats.dmsSent, icon: '\u{1F4E8}', color: '#60a5fa' },
+            { label: 'Reponse', value: stats.responses, icon: '\u{1F4AC}', color: '#fbbf24' },
+            { label: 'RDV / Client', value: stats.rdvGenerated, icon: '\u{1F525}', color: '#22c55e' },
+          ].map((step, i) => (
+            <div key={step.label} className="flex items-center flex-1">
+              <div className="flex-1 text-center">
+                <div className="text-lg mb-1">{step.icon}</div>
+                <div className="text-sm font-bold text-white" style={{ color: step.color }}>{step.value}</div>
+                <div className="text-[9px] text-white/40 mt-0.5">{step.label}</div>
+              </div>
+              {i < 3 && <div className="text-white/20 text-xs mx-1">{'\u2192'}</div>}
+            </div>
+          ))}
+        </div>
+        {/* Escalade humaine */}
+        <div className="mt-3 pt-3 border-t border-white/5 flex items-center gap-2">
+          <span className="text-[10px] text-amber-400">{'\u26A0\uFE0F'}</span>
+          <span className="text-[10px] text-white/50">Les prospects <strong className="text-amber-400">chauds</strong> te sont signales pour que tu prennes le relais</span>
+        </div>
+      </div>
+
+      {/* Quick actions */}
+      <div className="flex flex-wrap gap-2 mt-3">
+        <a href="/generate" className="px-4 py-2 bg-gradient-to-r from-pink-600 to-rose-600 text-white text-xs font-semibold rounded-xl hover:opacity-90">
+          {'\u2728'} Creer un visuel pour DM
+        </a>
+        <a href="/assistant/crm" className="px-4 py-2 bg-white/10 text-white/70 text-xs font-medium rounded-xl hover:bg-white/15">
+          {'\u{1F4CA}'} Voir le CRM
+        </a>
       </div>
 
       {/* Funnel visual */}
