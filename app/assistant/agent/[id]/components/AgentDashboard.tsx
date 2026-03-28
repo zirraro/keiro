@@ -486,6 +486,15 @@ function MarketingPanel({
           <KpiCard label="Note Google" value={`${gs.visibility.googleRating.toLocaleString('fr-FR', { maximumFractionDigits: 1 })}/5`} gradientFrom={gradientFrom} gradientTo={gradientTo} />
         </div>
 
+        {/* Instagram engagement bloc */}
+        <SectionTitle>Instagram</SectionTitle>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <KpiCard label="Posts publies" value={fmt((gs.visibility as any)?.postsCount || gs.visibility.traffic || 0)} gradientFrom="#8b5cf6" gradientTo="#6d28d9" />
+          <KpiCard label="Likes total" value={fmt((gs.visibility as any)?.totalLikes || 0)} gradientFrom="#ec4899" gradientTo="#f43f5e" />
+          <KpiCard label="Reach moyen" value={fmt((gs.visibility as any)?.avgReach || 0)} gradientFrom="#06b6d4" gradientTo="#0891b2" />
+          <KpiCard label="Engagement" value={`${((gs.visibility as any)?.engagementRate || 0).toFixed?.(1) || '0'}%`} gradientFrom="#10b981" gradientTo="#059669" />
+        </div>
+
         {/* Finance bloc */}
         <SectionTitle>Finance</SectionTitle>
         <div className="grid grid-cols-3 gap-3">
@@ -1689,6 +1698,113 @@ function WhatsAppPanel({
 }
 
 /* ------------------------------------------------------------------ */
+/*  Instagram Comments Panel                                           */
+/* ------------------------------------------------------------------ */
+
+function InstagramCommentsPanel({ data, agentName, gradientFrom, gradientTo }: { data: AgentDashboardProps['data']; agentName: string; gradientFrom: string; gradientTo: string }) {
+  const [comments, setComments] = useState<Array<{ comment_id: string; text: string; username: string; timestamp: string; replied: boolean }>>([]);
+  const [loading, setLoading] = useState(true);
+  const [replying, setReplying] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState('');
+  const [autoReplying, setAutoReplying] = useState(false);
+
+  // Fetch comments on mount
+  useState(() => {
+    fetch('/api/agents/instagram-comments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ action: 'fetch_comments' }),
+    }).then(r => r.json()).then(d => {
+      if (d.comments) setComments(d.comments);
+    }).catch(() => {}).finally(() => setLoading(false));
+  });
+
+  const handleReply = async (commentId: string) => {
+    if (!replyText.trim()) return;
+    try {
+      await fetch('/api/agents/instagram-comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action: 'reply_comment', comment_id: commentId, message: replyText }),
+      });
+      setComments(prev => prev.map(c => c.comment_id === commentId ? { ...c, replied: true } : c));
+      setReplying(null);
+      setReplyText('');
+    } catch {}
+  };
+
+  const handleAutoReply = async () => {
+    setAutoReplying(true);
+    try {
+      const res = await fetch('/api/agents/instagram-comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action: 'auto_reply_all' }),
+      });
+      const d = await res.json();
+      if (d.replied > 0) {
+        setComments(prev => prev.map(c => ({ ...c, replied: true })));
+      }
+    } catch {} finally { setAutoReplying(false); }
+  };
+
+  const unreplied = comments.filter(c => !c.replied).length;
+
+  return (
+    <>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <KpiCard label="Commentaires" value={fmt(comments.length)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label="Sans reponse" value={fmt(unreplied)} gradientFrom={unreplied > 0 ? '#ef4444' : gradientFrom} gradientTo={unreplied > 0 ? '#dc2626' : gradientTo} />
+        <KpiCard label="Repondus" value={fmt(comments.length - unreplied)} gradientFrom="#22c55e" gradientTo="#16a34a" />
+      </div>
+
+      {unreplied > 0 && (
+        <button onClick={handleAutoReply} disabled={autoReplying} className="w-full py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs font-semibold rounded-xl mt-3 disabled:opacity-50">
+          {autoReplying ? 'Reponses IA en cours...' : `\u{1F916} Repondre automatiquement (${unreplied} en attente)`}
+        </button>
+      )}
+
+      <SectionTitle>Commentaires recents</SectionTitle>
+      {loading ? (
+        <div className="text-center py-8"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-400 mx-auto" /></div>
+      ) : comments.length === 0 ? (
+        <EmptyState agentName={agentName} />
+      ) : (
+        <div className="flex flex-col gap-2">
+          {comments.slice(0, 10).map(c => (
+            <div key={c.comment_id} className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
+              <div className="p-3 flex items-start gap-3">
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${c.replied ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                  {c.replied ? '\u2713' : 'NEW'}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <span className="text-xs text-white/50">@{c.username}</span>
+                  <p className="text-sm text-white/80 mt-0.5">{c.text}</p>
+                </div>
+                {!c.replied && (
+                  <button onClick={() => setReplying(replying === c.comment_id ? null : c.comment_id)} className="text-[10px] px-2 py-1 bg-white/10 rounded-lg text-white/60 hover:bg-white/15 shrink-0">
+                    Repondre
+                  </button>
+                )}
+              </div>
+              {replying === c.comment_id && (
+                <div className="px-3 pb-3 border-t border-white/5 pt-2 flex gap-2">
+                  <input type="text" value={replyText} onChange={e => setReplyText(e.target.value)} placeholder="Repondre au commentaire..." className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white placeholder-white/30 focus:outline-none" onKeyDown={e => { if (e.key === 'Enter') handleReply(c.comment_id); }} />
+                  <button onClick={() => handleReply(c.comment_id)} className="px-3 py-1.5 bg-purple-600 text-white text-xs rounded-lg">Envoyer</button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  Mapping agentId -> panel + subtitle                                */
 /* ------------------------------------------------------------------ */
 
@@ -1702,8 +1818,9 @@ const AGENT_CONFIG: Record<string, { subtitle: string; Panel: typeof MarketingPa
   rh: { subtitle: 'Expert Juridique & RH', Panel: RhPanel },
   onboarding: { subtitle: 'Guide de Demarrage', Panel: OnboardingPanel },
   dm_instagram: { subtitle: 'Experte DM Instagram', Panel: DmInstagramPanel },
+  instagram_comments: { subtitle: 'Commentaires Instagram', Panel: InstagramCommentsPanel },
   tiktok_comments: { subtitle: 'Expert TikTok Engagement', Panel: TiktokCommentsPanel },
-  gmaps: { subtitle: 'Expert Google Maps', Panel: GmapsPanel },
+  gmaps: { subtitle: 'Reputation & Avis Clients', Panel: GmapsPanel },
   chatbot: { subtitle: 'Chatbot Site Web', Panel: ChatbotPanel },
   whatsapp: { subtitle: 'WhatsApp Business', Panel: WhatsAppPanel },
 };
