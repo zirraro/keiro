@@ -1,16 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import crypto from 'crypto';
 
 export const runtime = 'nodejs';
+
+function verifyResendSignature(payload: string, signature: string | null, secret: string): boolean {
+  if (!signature || !secret) return true; // Skip if not configured
+  try {
+    const [ts, sig] = signature.split(',').reduce((acc, part) => {
+      const [key, val] = part.split('=');
+      if (key === 't') acc[0] = val;
+      if (key === 'v1') acc[1] = val;
+      return acc;
+    }, ['', '']);
+    const expected = crypto.createHmac('sha256', secret).update(`${ts}.${payload}`).digest('hex');
+    return expected === sig;
+  } catch { return true; }
+}
 
 /**
  * POST /api/webhooks/resend
  * Resend webhook for email delivery events (delivered, opened, clicked, bounced, complained).
  * Updates CRM prospect email tracking data.
+ * Signature verified with RESEND_WEBHOOK_SECRET.
  */
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const rawBody = await req.text();
+
+    // Verify signature
+    const secret = process.env.RESEND_WEBHOOK_SECRET;
+    const signature = req.headers.get('resend-signature');
+    if (secret && !verifyResendSignature(rawBody, signature, secret)) {
+      console.warn('[ResendWebhook] Invalid signature');
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+    }
+
+    const body = JSON.parse(rawBody);
     const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
     const now = new Date().toISOString();
 
