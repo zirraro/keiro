@@ -4,6 +4,7 @@ import { calculateTemperature, getSequenceForProspect } from '@/lib/agents/scori
 import { getEmailTemplate } from '@/lib/agents/email-templates';
 import { Events } from '@/lib/agents/event-bus';
 import { analyzeSentiment, handleReply as hugoHandleReply, isBlacklisted } from '@/lib/agents/hugo-engine';
+import { saveLearning } from '@/lib/agents/learning';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -455,6 +456,28 @@ ${replyContent.substring(0, 2000)}
             },
             created_at: now,
           });
+
+          // ─── SHARE LEARNING WITH ALL AGENTS (via RAG) ──────
+          try {
+            const prospectType = prospect.type || 'commerce';
+            if (classification.intent === 'positive' || classification.intent === 'interested') {
+              await saveLearning(supabase, {
+                agent: 'email',
+                category: 'content',
+                learning: `Reponse POSITIVE d'un ${prospectType}: "${replyContent.substring(0, 150)}". Step ${prospect.email_sequence_step || '?'}. Ce qui a converti: le message a ce step fonctionne pour les ${prospectType}.`,
+                evidence: `Prospect ${prospect.company || prospect.email} a repondu positivement`,
+                confidence: 40,
+              });
+            } else if (classification.intent === 'negative' || classification.intent === 'unsubscribe') {
+              await saveLearning(supabase, {
+                agent: 'email',
+                category: 'email',
+                learning: `Reponse NEGATIVE d'un ${prospectType} au step ${prospect.email_sequence_step || '?'}: "${replyContent.substring(0, 100)}". Ajuster le ton ou le timing pour ce type de commerce.`,
+                evidence: `Prospect ${prospect.company || prospect.email} s'est desabonne ou a refuse`,
+                confidence: 35,
+              });
+            }
+          } catch {}
 
           // ─── SEND AUTO-REPLY (if positive/question) ───────
           const RESEND_API_KEY = process.env.RESEND_API_KEY;

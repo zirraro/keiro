@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
+import { searchKnowledge } from '@/lib/agents/knowledge-rag';
+import { saveLearning } from '@/lib/agents/learning';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -95,6 +97,23 @@ export async function POST(req: NextRequest) {
       if (parts.length) visitorContext = `\n\nPROFIL VISITEUR:\n${parts.join('\n')}`;
     }
 
+    // Load cross-client intelligence from RAG
+    // Anonymized patterns from ALL KeiroAI clients benefit each individual client
+    let crossClientContext = '';
+    try {
+      const businessQuery = `${businessType} visiteur conversion achat recommandation`;
+      const ragResults = await searchKnowledge(supabase, businessQuery, {
+        category: 'content',
+        businessType: businessType || undefined,
+        threshold: 0.6,
+        limit: 5,
+      });
+      if (ragResults.length > 0) {
+        const insights = ragResults.map(r => `- ${r.content.substring(0, 200)}`).join('\n');
+        crossClientContext = `\n\nINSIGHTS CROSS-CLIENTS (anonymises, de commerces similaires):\n${insights}`;
+      }
+    } catch {}
+
     // Build system prompt
     const agentType = widgetConfig.agent_type || 'chatbot'; // 'chatbot' (Max) or 'onboarding' (Clara)
     const greeting = widgetConfig.greeting_message || `Bonjour ! Comment puis-je vous aider ?`;
@@ -122,7 +141,8 @@ REGLES:
 - JAMAIS de pression agressive — toujours subtil et naturel
 - Si le visiteur a vu une page produit, mentionne ce produit
 - Si le visiteur revient, reconnais-le et propose du nouveau
-- Reponds en francais`
+- Reponds en francais
+${crossClientContext}`
 
       : `Tu es Max, chatbot IA de ${orgName} (${businessType}). Tu accueilles les visiteurs, reponds a leurs questions et les guides vers l'achat ou le contact.
 
@@ -174,6 +194,23 @@ REGLES:
       last_message_at: new Date().toISOString(),
       message_count: newMessages.length,
     }, { onConflict: 'session_id' });
+
+    // Save visitor interaction as learning for cross-client intelligence (every 5th message)
+    if (newMessages.length > 0 && newMessages.length % 10 === 0 && visitor_profile) {
+      try {
+        const pagesStr = visitor_profile.pages_viewed?.slice(-5).join(', ') || '';
+        const productsStr = visitor_profile.products_viewed?.slice(-3).join(', ') || '';
+        const converted = visitor_profile.total_purchases > 0;
+        await saveLearning(supabase, {
+          agent: 'chatbot',
+          category: 'conversion',
+          learning: `Widget visiteur ${businessType}: ${visitor_profile.city || '?'}, ${visitor_profile.device || '?'}, ${visitor_profile.returning ? 'retour' : 'nouveau'}. Pages: ${pagesStr}. Produits vus: ${productsStr}. ${converted ? 'A ACHETE' : 'Pas encore converti'}. ${newMessages.length} messages echanges.`,
+          evidence: `Session widget ${sessionId}`,
+          confidence: converted ? 45 : 25,
+          orgId: orgId || undefined,
+        });
+      } catch {}
+    }
 
     // Extract email/phone if mentioned
     const emailMatch = message.match(/[\w.-]+@[\w.-]+\.\w+/);
