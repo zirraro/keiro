@@ -269,20 +269,32 @@ async function getEmailData(
     sequenceProgress[step] = (sequenceProgress[step] || 0) + 1;
   }
 
+  // Recent email activities (sent, opened, replied)
+  const activityQuery = supabase
+    .from('crm_activities')
+    .select('prospect_id, type, description, created_at, data')
+    .eq('type', 'email')
+    .order('created_at', { ascending: false })
+    .limit(15);
+
+  const { data: recentActivities } = await activityQuery;
+
+  const recentEmails = (recentActivities || []).map(a => ({
+    prospect: a.data?.company || a.data?.to_email || a.description?.substring(0, 60) || '?',
+    type: a.data?.auto_reply ? 'auto_reply' : a.data?.step ? `step_${a.data.step}` : 'email',
+    status: a.data?.opened ? 'ouvert' : a.data?.replied ? 'repondu' : 'envoye',
+    date: a.created_at,
+  }));
+
   return {
     statusCounts,
     totalProspects: prospectList.length,
     totalOpens,
     totalClicks,
-    openRate:
-      totalWithEmail > 0
-        ? Math.round((totalOpens / Math.max(totalWithEmail, 1)) * 100)
-        : 0,
-    clickRate:
-      totalWithEmail > 0
-        ? Math.round((totalClicks / Math.max(totalWithEmail, 1)) * 100)
-        : 0,
+    openRate: totalWithEmail > 0 ? Math.round((totalOpens / Math.max(totalWithEmail, 1)) * 100) : 0,
+    clickRate: totalWithEmail > 0 ? Math.round((totalClicks / Math.max(totalWithEmail, 1)) * 100) : 0,
     sequenceProgress,
+    recentEmails,
   };
 }
 
@@ -560,6 +572,20 @@ async function getDmInstagramData(
   }
   const { count: dmProspects } = await prospectQuery;
 
+  // Build recent DMs with target/status for the activity feed
+  const recentDms = logs.slice(0, 15).map(l => {
+    const result = l.result as Record<string, any> | null;
+    return {
+      target: result?.target || result?.username || result?.prospect || l.action?.replace('dm_', '') || '?',
+      status: l.action?.includes('reply') || l.action?.includes('response') ? 'repondu'
+        : l.action?.includes('rdv') ? 'rdv'
+        : l.action?.includes('send') || l.action?.includes('dm') ? 'envoye'
+        : 'en_cours',
+      message: result?.message?.substring?.(0, 100) || result?.preview?.substring?.(0, 100) || '',
+      date: l.created_at,
+    };
+  });
+
   return {
     dmStats: {
       dmsSent,
@@ -568,6 +594,7 @@ async function getDmInstagramData(
       responseRate: dmsSent > 0 ? Math.round((responses / dmsSent) * 100) : 0,
       prospectsGenerated: dmProspects ?? 0,
       totalActions: logs.length,
+      recentDms,
       recentLogs: logs.slice(0, 10),
     },
   };
