@@ -1041,6 +1041,50 @@ export default function AgentWorkspacePage() {
             {/* Integration section for embeddable agents */}
             {(() => {
               const integrations: Record<string, { title: string; description: string; code: string; note?: string }> = {
+                content: {
+                  title: 'Connecter Instagram & TikTok',
+                  description: 'Lena publie automatiquement sur tes reseaux. Connecte tes comptes pour activer la publication auto.',
+                  code: 'Va dans Mon compte → Reseaux sociaux → Connecter Instagram / TikTok',
+                  note: 'Une fois connecte, Lena publie 3x/jour automatiquement selon ton calendrier editorial',
+                },
+                dm_instagram: {
+                  title: 'Connecter Instagram pour les DMs',
+                  description: 'Jade envoie et recoit des DMs Instagram en ton nom. Connecte ton compte pour activer la prospection DM.',
+                  code: 'Va dans Mon compte → Reseaux sociaux → Connecter Instagram',
+                  note: 'Les DMs sont prepares par l\'IA et envoyes automatiquement. Tu peux repondre depuis KeiroAI.',
+                },
+                marketing: {
+                  title: 'Connecter Instagram & TikTok Analytics',
+                  description: 'Ami analyse tes performances sur tous tes reseaux. Connecte tes comptes pour des insights detailles.',
+                  code: 'Va dans Mon compte → Reseaux sociaux → Connecter Instagram / TikTok',
+                  note: 'Ami analyse automatiquement tes likes, reach, engagement et te donne des recommandations',
+                },
+                commercial: {
+                  title: 'Connecter Google Maps pour la prospection',
+                  description: 'Leo trouve des prospects sur Google Maps dans ta zone. Active la prospection automatique.',
+                  code: 'La prospection Google Maps est activee automatiquement. Configure ta zone dans les parametres ci-dessus.',
+                },
+                seo: {
+                  title: 'Connecter ton site web pour le SEO',
+                  description: 'Oscar optimise le referencement de ton site. Ajoute ton URL pour commencer.',
+                  code: 'Renseigne ton site web dans ton profil (Clara → Mon profil) et Oscar commencera a analyser ton SEO.',
+                },
+                ads: {
+                  title: 'Connecter Meta Ads & Google Ads',
+                  description: 'Felix cree et optimise tes campagnes publicitaires. Connecte tes comptes pub pour commencer.',
+                  code: 'Va dans Mon compte → Integrations → Connecter Meta Ads / Google Ads',
+                  note: 'Felix gere ton budget pub automatiquement et optimise ton ROAS',
+                },
+                tiktok_comments: {
+                  title: 'Connecter TikTok',
+                  description: 'Axel engage ta communaute TikTok automatiquement. Connecte ton compte pour activer.',
+                  code: 'Va dans Mon compte → Reseaux sociaux → Connecter TikTok',
+                },
+                comptable: {
+                  title: 'Connecter Stripe pour le suivi financier',
+                  description: 'Louis suit tes revenus et depenses automatiquement. Stripe est connecte par defaut avec ton abonnement.',
+                  code: 'Le suivi financier est actif automatiquement via ton abonnement KeiroAI.',
+                },
                 chatbot: {
                   title: 'Integrer Max (Chatbot) sur ton site',
                   description: 'Max accueille tes visiteurs 24/7, repond a leurs questions et capture leurs coordonnees. Colle ce code avant </body> :',
