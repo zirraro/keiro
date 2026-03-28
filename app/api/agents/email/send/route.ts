@@ -152,15 +152,44 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // --- Send via Resend (primary) or Brevo (fallback) ---
+    // --- Send via Brevo (primary for cold, 300/day free) then Resend (fallback, keep quota for transactional) ---
     console.log(`[EmailAgent] Sending step ${template_step} to ${prospect.email} (variant ${selectedVariant})`);
 
     let messageId = 'unknown';
-    let provider = 'resend';
+    let provider = 'brevo';
 
-    // Try Resend first
+    // Try Brevo first for cold emails (saves Resend quota for transactional emails)
     let sendSuccess = false;
-    if (process.env.RESEND_API_KEY) {
+    if (process.env.BREVO_API_KEY) {
+      try {
+        const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
+          method: 'POST',
+          headers: { 'api-key': process.env.BREVO_API_KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sender: { name: 'Victor de KeiroAI', email: 'contact@keiroai.com' },
+            to: [{ email: prospect.email, name: prospect.first_name || prospect.company || '' }],
+            replyTo: { email: 'contact@keiroai.com', name: 'Victor de KeiroAI' },
+            subject: template.subject,
+            htmlContent: template.htmlBody,
+            textContent: template.textBody,
+            headers: { 'X-Mailin-custom': prospect_id },
+            tags: ['cold-sequence', `step-${template_step}`, category],
+          }),
+        });
+        if (brevoRes.ok) {
+          const brevoData = await brevoRes.json();
+          messageId = brevoData.messageId || 'unknown';
+          provider = 'brevo';
+          sendSuccess = true;
+          console.log('[EmailAgent] Email sent via Brevo, messageId:', messageId);
+        }
+      } catch (brevoErr: any) {
+        console.warn('[EmailAgent] Brevo failed:', brevoErr.message);
+      }
+    }
+
+    // Fallback to Resend if Brevo fails or not configured
+    if (!sendSuccess && process.env.RESEND_API_KEY) {
       try {
         const resendResponse = await fetch('https://api.resend.com/emails', {
           method: 'POST',
@@ -199,41 +228,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Fallback to Brevo
-    if (!sendSuccess && process.env.BREVO_API_KEY) {
-      try {
-        const brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
-          method: 'POST',
-          headers: {
-            'api-key': process.env.BREVO_API_KEY,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            sender: { name: 'Victor de KeiroAI', email: 'contact@keiroai.com' },
-            to: [{ email: prospect.email, name: prospect.first_name || prospect.company || '' }],
-            replyTo: { email: 'contact@keiroai.com', name: 'Victor de KeiroAI' },
-            subject: template.subject,
-            htmlContent: template.htmlBody,
-            textContent: template.textBody,
-            headers: { 'X-Mailin-custom': prospect_id },
-            tags: ['cold-sequence', `step-${template_step}`, category],
-          }),
-        });
-
-        if (brevoResponse.ok) {
-          const brevoData = await brevoResponse.json();
-          messageId = brevoData.messageId || 'unknown';
-          provider = 'brevo';
-          sendSuccess = true;
-          console.log('[EmailAgent] Email sent via Brevo fallback, messageId:', messageId);
-        } else {
-          const errorText = await brevoResponse.text();
-          console.error('[EmailAgent] Brevo fallback also failed:', errorText);
-        }
-      } catch (brevoError: any) {
-        console.error('[EmailAgent] Brevo fallback error:', brevoError.message);
-      }
-    }
+    // (Brevo is now primary above, Resend is fallback — no need for double fallback)
 
     if (!sendSuccess) {
       return NextResponse.json(
