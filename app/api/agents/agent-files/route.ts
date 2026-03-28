@@ -25,14 +25,41 @@ async function extractTextFromFile(buffer: Buffer, ext: string): Promise<string 
     if (ext === 'docx' || ext === 'pptx') {
       // DOCX/PPTX are ZIP archives with XML inside
       const JSZip = (await import('jszip')).default;
-      const zip = await JSZip.loadAsync(buffer);
+      const uint8 = new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+      const zip = await JSZip.loadAsync(uint8);
 
       if (ext === 'docx') {
-        const docXml = await zip.file('word/document.xml')?.async('string');
-        if (!docXml) return null;
-        // Extract text from <w:t> tags
-        const texts = docXml.match(/<w:t[^>]*>([^<]*)<\/w:t>/g) || [];
-        return texts.map(t => t.replace(/<[^>]+>/g, '')).join(' ').substring(0, 15000);
+        // Try multiple XML paths (some DOCX have different structures)
+        const docFile = zip.file('word/document.xml') || zip.file('word/document2.xml');
+        const docXml = await docFile?.async('string');
+        if (!docXml) {
+          console.warn('[agent-files] DOCX: word/document.xml not found, trying raw text fallback');
+          // Fallback: extract all text from all XML files in the ZIP
+          const allTexts: string[] = [];
+          for (const [path, file] of Object.entries(zip.files)) {
+            if (path.endsWith('.xml') && !file.dir) {
+              try {
+                const xml = await file.async('string');
+                const texts = xml.match(/<[wa]:t[^>]*>([^<]*)<\/[wa]:t>/g) || [];
+                allTexts.push(...texts.map(t => t.replace(/<[^>]+>/g, '')));
+              } catch {}
+            }
+          }
+          const fallbackText = allTexts.join(' ').trim();
+          console.log(`[agent-files] DOCX fallback extracted ${fallbackText.length} chars`);
+          return fallbackText.length > 20 ? fallbackText.substring(0, 15000) : null;
+        }
+        // Primary: extract from <w:t> tags (handles xml:space="preserve" etc.)
+        const texts = docXml.match(/<w:t[^>]*>[^<]*<\/w:t>/g) || [];
+        const extracted = texts.map(t => t.replace(/<[^>]+>/g, '')).join(' ').trim();
+        console.log(`[agent-files] DOCX extracted ${extracted.length} chars from word/document.xml`);
+        if (extracted.length < 20) {
+          // Sometimes text is in <w:t> with newlines — try broader match
+          const allText = docXml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+          console.log(`[agent-files] DOCX broad extraction: ${allText.length} chars`);
+          return allText.length > 20 ? allText.substring(0, 15000) : null;
+        }
+        return extracted.substring(0, 15000);
       }
 
       if (ext === 'pptx') {
@@ -40,7 +67,7 @@ async function extractTextFromFile(buffer: Buffer, ext: string): Promise<string 
         for (const [path, file] of Object.entries(zip.files)) {
           if (path.startsWith('ppt/slides/slide') && path.endsWith('.xml')) {
             const xml = await file.async('string');
-            const texts = xml.match(/<a:t>([^<]*)<\/a:t>/g) || [];
+            const texts = xml.match(/<a:t>[^<]*<\/a:t>/g) || [];
             slides.push(texts.map(t => t.replace(/<[^>]+>/g, '')).join(' '));
           }
         }
@@ -50,7 +77,8 @@ async function extractTextFromFile(buffer: Buffer, ext: string): Promise<string 
 
     if (ext === 'xlsx' || ext === 'xls') {
       const JSZip = (await import('jszip')).default;
-      const zip = await JSZip.loadAsync(buffer);
+      const uint8 = new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+      const zip = await JSZip.loadAsync(uint8);
       // Read shared strings
       const sharedStringsXml = await zip.file('xl/sharedStrings.xml')?.async('string');
       if (!sharedStringsXml) return null;
@@ -300,10 +328,17 @@ export async function POST(req: NextRequest) {
     try {
       if (textExts.has(ext)) {
         // Text-based extraction (DOCX, XLSX, CSV, TXT, PPTX)
+        console.log(`[agent-files] Starting text extraction for ${ext}: ${safeName} (${buffer.length} bytes)`);
         const text = await extractTextFromFile(buffer, ext);
+        console.log(`[agent-files] Text extraction result: ${text ? text.length + ' chars' : 'NULL'}`);
         if (text && text.length > 20) {
-          console.log(`[agent-files] Extracted ${text.length} chars from ${safeName}`);
+          console.log(`[agent-files] Sending to AI for dossier extraction (${text.substring(0, 100)}...)`);
           extracted = await extractDossierFromText(text, file.name);
+          console.log(`[agent-files] AI extraction result: ${extracted ? Object.keys(extracted).length + ' fields' : 'NULL'}`);
+        } else {
+          console.warn(`[agent-files] Text too short or null for ${safeName}, trying vision fallback`);
+          // Fallback: try vision extraction for any file type
+          extracted = await extractDossierFromVision(buffer, ext === 'docx' ? 'pdf' : ext, file.name);
         }
       } else if (visionExts.has(ext)) {
         // Vision-based extraction (PDF, images)

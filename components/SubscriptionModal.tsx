@@ -12,80 +12,59 @@ export default function SubscriptionModal({ isOpen, onClose }: SubscriptionModal
 
   const plans = [
     {
-      name: "Gratuit",
-      emoji: "🎁",
-      price: "0€",
-      subtitle: "/toujours",
-      description: "Pour découvrir",
-      features: ["3 visuels avec watermark", "Accès aux actualités", "Export réseaux sociaux"],
-      highlight: false,
-    },
-    {
-      name: "Sprint Fondateur",
-      emoji: "💡",
-      price: "4,99€",
-      subtitle: "/3 jours",
-      description: "Testez pour le prix d'un café",
-      features: ["Fonctionnalités Starter", "Visuels illimités", "Génération vidéo", "Bascule auto Starter"],
-      highlight: false,
-    },
-    {
-      name: "Fondateurs",
-      emoji: "⭐",
-      price: "149€",
-      subtitle: "/mois",
-      description: "Offre limitee — jusqu'au 25 mai 2026",
-      features: ["Visuels illimités", "Vidéo illimitée", "Démo personnalisée", "Support prioritaire"],
-      highlight: true,
-      badge: "Offre limitee",
-      special: true,
-    },
-    {
       name: "Starter",
-      emoji: "🚀",
-      price: "199€",
+      emoji: "\u{1F680}",
+      price: "49\u20AC",
       subtitle: "/mois",
-      description: "Garantie satisfait 14j",
-      features: ["Visuels illimités", "10 vidéos/mois", "Démo personnalisée", "Studio édition"],
+      description: "Freelance & createur solo",
+      features: ["400 credits/mois", "Publication auto Instagram", "Agent contenu + DM", "Studio edition"],
       highlight: true,
       badge: "Populaire",
     },
     {
       name: "Pro",
-      emoji: "💼",
-      price: "349€",
+      emoji: "\u{1F4BC}",
+      price: "99\u20AC",
       subtitle: "/mois",
       description: "Onboarding premium",
-      features: ["Tout Starter", "30 vidéos/mois", "Calendrier contenus", "Kit de style"],
+      features: ["Tout Starter", "30 videos/mois", "Calendrier contenus", "Kit de style"],
       highlight: false,
     },
     {
-      name: "Business",
-      emoji: "🏆",
-      price: "599€",
+      name: "Fondateurs",
+      emoji: "\u2B50",
+      price: "149\u20AC",
       subtitle: "/mois",
-      description: "Stratégie mensuelle incluse",
-      features: ["Tout Pro", "Vidéo illimitée", "Équipe 5 users", "Analytics"],
+      description: "Offre limitee",
+      features: ["Visuels illimites", "Video illimitee", "Demo personnalisee", "Support prioritaire"],
+      highlight: false,
+      badge: "Offre limitee",
+      special: true,
+    },
+    {
+      name: "Business",
+      emoji: "\u{1F3C6}",
+      price: "349\u20AC",
+      subtitle: "/mois",
+      description: "Strategie mensuelle incluse",
+      features: ["Tout Pro", "Video illimitee", "Equipe 5 users", "Analytics avances"],
       highlight: false,
     },
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50" onClick={onClose}>
-      <div className="bg-white rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
-        <div className="flex justify-between items-start mb-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        {/* Header with trial banner */}
+        <div className="flex justify-between items-start mb-4">
           <div>
-            <h2 className="text-2xl font-bold text-neutral-900 mb-2">
-              Débloquez toutes les fonctionnalités
+            <h2 className="text-2xl font-bold text-neutral-900">
+              Debloquez toutes les fonctionnalites
             </h2>
-            <p className="text-neutral-600">
-              Enregistrez vos créations dans votre galerie et accédez à toutes les fonctionnalités premium
-            </p>
           </div>
           <button
             onClick={onClose}
-            className="text-neutral-400 hover:text-neutral-600 transition"
+            className="text-neutral-400 hover:text-neutral-600 transition p-1"
           >
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -93,22 +72,35 @@ export default function SubscriptionModal({ isOpen, onClose }: SubscriptionModal
           </button>
         </div>
 
+        {/* Trial banner — prominent */}
+        <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-2xl p-4 sm:p-5 mb-6 text-center">
+          <div className="text-3xl sm:text-4xl font-black text-green-700 mb-1">
+            0{'\u20AC'} pendant 14 jours
+          </div>
+          <p className="text-sm sm:text-base text-green-600 font-medium">
+            Tous les agents IA debloques {'\u00B7'} Annulation en 1 clic a tout moment
+          </p>
+          <p className="text-xs text-green-500 mt-1">
+            Carte requise, aucun debit pendant l&apos;essai
+          </p>
+        </div>
+
         {/* Plans */}
-        <div className="grid md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {plans.map((plan) => (
             <div
               key={plan.name}
-              className={`rounded-xl border p-4 hover:shadow-lg transition-all transform hover:scale-105 relative ${
+              className={`rounded-2xl border p-5 hover:shadow-lg transition-all relative ${
                 plan.special
                   ? "border-2 border-amber-400 bg-gradient-to-br from-amber-50 to-orange-50"
                   : plan.highlight
-                  ? "border-2 border-[#0c1a3a]/20 bg-[#0c1a3a]/5"
+                  ? "border-2 border-[#0c1a3a]/20 bg-[#0c1a3a]/5 shadow-md"
                   : "border-neutral-200 bg-white"
               }`}
             >
               {plan.badge && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                  <span className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
                     plan.special
                       ? "bg-amber-500 text-white"
                       : "bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white"
@@ -134,15 +126,15 @@ export default function SubscriptionModal({ isOpen, onClose }: SubscriptionModal
               <ul className="space-y-1.5 mb-4">
                 {plan.features.map((feature, idx) => (
                   <li key={idx} className="flex items-start gap-1.5 text-xs">
-                    <span className={plan.special ? "text-amber-500" : "text-[#0c1a3a]"}>✓</span>
+                    <span className={plan.special ? "text-amber-500" : "text-[#0c1a3a]"}>{'\u2713'}</span>
                     <span className="text-neutral-700">{feature}</span>
                   </li>
                 ))}
               </ul>
 
               <Link
-                href="/pricing"
-                className={`block w-full py-2 text-center text-xs font-semibold rounded-lg transition ${
+                href="/checkout/upsell?plan=createur"
+                className={`block w-full py-2.5 text-center text-xs font-bold rounded-xl transition ${
                   plan.special
                     ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:shadow-lg"
                     : plan.highlight
@@ -150,17 +142,16 @@ export default function SubscriptionModal({ isOpen, onClose }: SubscriptionModal
                     : "bg-neutral-100 text-neutral-900 hover:bg-neutral-200"
                 }`}
               >
-                {plan.price === "0€" ? "Commencer" : "Choisir"}
+                Essai gratuit 14 jours
               </Link>
+              <p className="text-center text-[10px] text-neutral-400 mt-1.5">0{'\u20AC'} pendant 14j {'\u00B7'} Annulation en 1 clic</p>
             </div>
           ))}
         </div>
 
         {/* Footer */}
         <div className="mt-6 text-center text-sm text-neutral-500">
-          <p>
-            Besoin d'aide pour choisir ? <Link href="/pricing" className="text-[#0c1a3a] hover:underline">Voir la comparaison complète</Link>
-          </p>
+          <Link href="/pricing" className="text-[#0c1a3a] hover:underline font-medium">Voir la comparaison complete</Link>
         </div>
       </div>
     </div>

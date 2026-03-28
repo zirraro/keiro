@@ -1686,11 +1686,9 @@ function HomeKeiroInner() {
               >
                 Oui, je prends le Pro a -40%
               </button>
-              <p className="text-center text-[10px] text-neutral-400 mt-1.5 mb-3">0€ pendant 14 jours · Annulation en 1 clic a tout moment</p>
-
               {/* CTA secondaire — continuer Créateur */}
               <button
-                className="w-full py-2.5 rounded-xl border border-neutral-200 text-neutral-600 text-sm hover:bg-neutral-50 transition"
+                className="w-full py-2.5 rounded-xl border border-neutral-200 text-neutral-600 text-sm hover:bg-neutral-50 transition mt-3"
                 onClick={() => {
                   setShowUpsellPro(false);
                   startCheckout('createur');
@@ -1698,7 +1696,7 @@ function HomeKeiroInner() {
               >
                 Non merci, je reste sur Createur
               </button>
-              <p className="text-center text-[10px] text-neutral-400 mt-1.5">0€ pendant 14 jours · Annulation en 1 clic a tout moment</p>
+              <p className="text-center text-[10px] text-neutral-400 mt-2">0{'\u20AC'} pendant 14 jours {'\u00B7'} Annulation en 1 clic a tout moment</p>
             </div>
           </div>
         </div>

@@ -1642,9 +1642,14 @@ function DmInstagramPanel({
   gradientFrom: string;
   gradientTo: string;
 }) {
-  const stats = data.dmStats;
-
-  if (!stats) return <EmptyState agentName={agentName} />;
+  const stats = data.dmStats || {
+    dmsSent: 0,
+    responses: 0,
+    rdvGenerated: 0,
+    responseRate: 0,
+    prospectsGenerated: 0,
+    recentDms: [],
+  };
 
   const statusColors: Record<string, string> = {
     envoye: '#60a5fa',
@@ -1655,6 +1660,13 @@ function DmInstagramPanel({
 
   return (
     <>
+      {/* Live Instagram conversations — FIRST, most important */}
+      <SectionTitle>Conversations Instagram</SectionTitle>
+      <DmConversationsLive />
+
+      {/* Hot prospects alert — directly in agent space */}
+      <HotProspectsAlert source="dm_instagram" gradientFrom={gradientFrom} />
+
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <KpiCard label="DMs envoyes" value={fmt(stats.dmsSent)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
         <KpiCard label="Reponses recues" value={fmt(stats.responses)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
@@ -1726,13 +1738,6 @@ function DmInstagramPanel({
           gradientTo={gradientTo}
         />
       </div>
-
-      {/* Hot prospects alert — directly in agent space */}
-      <HotProspectsAlert source="dm_instagram" gradientFrom={gradientFrom} />
-
-      {/* Live Instagram conversations */}
-      <SectionTitle>Conversations Instagram</SectionTitle>
-      <DmConversationsLive />
 
       {/* Recent DM activity feed with reply */}
       <SectionTitle>Activite recente</SectionTitle>
