@@ -96,6 +96,46 @@ export async function POST(req: NextRequest) {
       updatedProfile.products_viewed = products.slice(-10);
     }
 
+    // Purchase tracking — feeds Louis (comptable) agent
+    if (event === 'purchase') {
+      updatedProfile.total_purchases = (currentProfile.total_purchases || 0) + 1;
+      updatedProfile.total_revenue = (currentProfile.total_revenue || 0) + (data?.amount || 0);
+      updatedProfile.last_purchase_at = new Date().toISOString();
+
+      // Log purchase for comptable agent
+      await supabase.from('agent_logs').insert({
+        agent: 'comptable',
+        action: 'purchase_tracked',
+        status: 'success',
+        data: {
+          amount: data?.amount || 0,
+          currency: data?.currency || 'EUR',
+          product: data?.product || null,
+          order_id: data?.order_id || null,
+          session_id,
+          source: 'widget_tracking',
+        },
+        created_at: new Date().toISOString(),
+        ...(config.org_id ? { org_id: config.org_id } : {}),
+      });
+
+      // Also log for marketing analytics
+      await supabase.from('agent_logs').insert({
+        agent: 'marketing',
+        action: 'conversion_tracked',
+        status: 'success',
+        data: {
+          amount: data?.amount,
+          product: data?.product,
+          source: 'widget',
+          visitor_pages: currentProfile.pages_viewed?.length || 0,
+          visitor_time: currentProfile.time_on_site || 0,
+        },
+        created_at: new Date().toISOString(),
+        ...(config.org_id ? { org_id: config.org_id } : {}),
+      });
+    }
+
     // Upsert
     await supabase.from('widget_conversations').upsert({
       session_id,

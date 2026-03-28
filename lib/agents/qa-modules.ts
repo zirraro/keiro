@@ -377,7 +377,7 @@ export const testChatbot: QAModule = async (supabase) => {
     const res = await fetch(`${SITE_URL}/api/chatbot/message`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: 'Bonjour, test QA', sessionId: 'qa-test-' + Date.now() }),
+      body: JSON.stringify({ message: 'Bonjour, test QA', visitorId: 'qa-test-visitor', sessionId: 'qa-test-' + Date.now() }),
     });
     const data = await res.json();
     const hasResponse = data.reply || data.message || data.content;

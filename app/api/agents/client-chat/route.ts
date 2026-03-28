@@ -157,8 +157,44 @@ export async function POST(request: NextRequest) {
       console.warn('[ClientChat] Enrichment failed (non-fatal):', e?.message);
     }
 
+    // 6.5 Detect URLs in message and scrape content
+    let scrapedContext = '';
+    const urlMatch = message.match(/https?:\/\/[^\s<>"']+/g);
+    if (urlMatch && urlMatch.length > 0) {
+      for (const url of urlMatch.slice(0, 2)) { // Max 2 URLs per message
+        try {
+          console.log(`[ClientChat] Scraping URL: ${url}`);
+          const scrapeRes = await fetch(url, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; KeiroAI/1.0)' },
+            signal: AbortSignal.timeout(8000),
+          });
+          if (scrapeRes.ok) {
+            const html = await scrapeRes.text();
+            // Extract text content from HTML (strip tags, scripts, styles)
+            const text = html
+              .replace(/<script[\s\S]*?<\/script>/gi, '')
+              .replace(/<style[\s\S]*?<\/style>/gi, '')
+              .replace(/<nav[\s\S]*?<\/nav>/gi, '')
+              .replace(/<footer[\s\S]*?<\/footer>/gi, '')
+              .replace(/<header[\s\S]*?<\/header>/gi, '')
+              .replace(/<[^>]+>/g, ' ')
+              .replace(/\s+/g, ' ')
+              .trim()
+              .substring(0, 5000);
+
+            if (text.length > 50) {
+              scrapedContext += `\n\n--- CONTENU DE ${url} ---\n${text}\n--- FIN ---\n`;
+              console.log(`[ClientChat] Scraped ${text.length} chars from ${url}`);
+            }
+          }
+        } catch (e: any) {
+          console.warn(`[ClientChat] Scrape failed for ${url}:`, e.message?.substring(0, 100));
+        }
+      }
+    }
+
     // 7. Build system prompt using client-facing prompt + enriched context
-    const systemPrompt = getClientPrompt(agent_id, dossierContext, agentName) + enrichedContext;
+    const systemPrompt = getClientPrompt(agent_id, dossierContext, agentName) + enrichedContext + scrapedContext;
 
     // 8. Load last 20 messages from client_agent_chats for conversation history
     const { data: chatRow } = await supabase
