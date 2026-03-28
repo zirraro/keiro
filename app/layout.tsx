@@ -7,6 +7,7 @@ import { LanguageProvider } from "@/lib/i18n/context";
 import { ThemeProvider } from "@/lib/theme/context";
 import NewsPrefetcher from "@/components/NewsPrefetcher";
 import ChatbotWidget from "@/components/ChatbotWidget";
+import GlobalNotifBubble from "@/components/GlobalNotifBubble";
 import { VortexBackground } from "@/components/ui/vortex-bg";
 
 export const metadata: Metadata = {
@@ -142,6 +143,7 @@ export default function RootLayout({
             {children}
           </main>
           <BottomNav />
+          <GlobalNotifBubble />
           <ChatbotWidget />
         </LanguageProvider>
         </ThemeProvider>

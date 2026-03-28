@@ -58,12 +58,34 @@ async function extractTextFromFile(buffer: Buffer, ext: string): Promise<string 
       return strings.map(t => t.replace(/<[^>]+>/g, '')).join(' | ').substring(0, 15000);
     }
 
-    return null; // Unsupported format for text extraction
+    // Old DOC/PPT binary formats — crude text extraction (grab readable strings)
+    if (ext === 'doc' || ext === 'ppt') {
+      const raw = buffer.toString('latin1');
+      const strings = raw.match(/[\x20-\x7E\xC0-\xFF]{4,}/g) || [];
+      const text = strings.join(' ').replace(/\s+/g, ' ').substring(0, 15000);
+      return text.length > 50 ? text : null;
+    }
+
+    return null;
   } catch (e: any) {
     console.warn('[agent-files] Text extraction failed:', e.message);
     return null;
   }
 }
+
+const DOSSIER_EXTRACTION_PROMPT = `Analyse ce document business et extrais TOUTES les informations pour remplir un dossier client. Retourne UNIQUEMENT un JSON avec les champs trouves (ignore les champs vides).
+
+Champs possibles:
+company_name, company_description, business_type, founder_name, employees_count,
+city, address, catchment_area, main_products, price_range, unique_selling_points, competitors,
+target_audience, ideal_customer_profile, customer_pain_points,
+brand_tone, visual_style, brand_colors, content_themes, preferred_channels, posting_frequency,
+business_goals, marketing_goals, monthly_budget,
+instagram_handle, tiktok_handle, website_url, google_maps_url, facebook_url,
+phone, email, horaires_ouverture, specialite, nombre_couverts, panier_moyen, certifications, langues_parlees, modes_paiement, livraison, reservation_en_ligne
+
+IMPORTANT: Extrais absolument TOUT ce que tu trouves, meme les champs custom. Sois exhaustif.
+Reponds UNIQUEMENT avec le JSON, rien d'autre.`;
 
 /**
  * Use Claude to extract business dossier fields from file text content.
@@ -77,23 +99,10 @@ async function extractDossierFromText(text: string, fileName: string): Promise<R
     const client = new Anthropic({ apiKey });
     const response = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1000,
+      max_tokens: 1500,
       messages: [{
         role: 'user',
-        content: `Analyse ce document business ("${fileName}") et extrais les informations pour remplir un dossier client. Retourne UNIQUEMENT un JSON avec les champs trouves (ignore les champs vides).
-
-Champs possibles:
-company_name, company_description, business_type, founder_name, employees_count,
-city, address, catchment_area, main_products, price_range, unique_selling_points, competitors,
-target_audience, ideal_customer_profile, customer_pain_points,
-brand_tone, visual_style, brand_colors, content_themes, preferred_channels, posting_frequency,
-business_goals, marketing_goals, monthly_budget,
-instagram_handle, tiktok_handle, website_url, google_maps_url, facebook_url
-
-DOCUMENT:
-${text.substring(0, 10000)}
-
-Reponds UNIQUEMENT avec le JSON, rien d'autre.`,
+        content: `Fichier: "${fileName}"\n\n${DOSSIER_EXTRACTION_PROMPT}\n\nDOCUMENT:\n${text.substring(0, 10000)}`,
       }],
     });
 
@@ -104,6 +113,58 @@ Reponds UNIQUEMENT avec le JSON, rien d'autre.`,
     }
   } catch (e: any) {
     console.warn('[agent-files] AI extraction failed:', e.message);
+  }
+  return null;
+}
+
+/**
+ * Use Claude Vision to extract dossier fields from PDF (base64) or images.
+ * Supports: PDF documents, PNG, JPG images.
+ */
+async function extractDossierFromVision(buffer: Buffer, ext: string, fileName: string): Promise<Record<string, string> | null> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return null;
+
+  try {
+    const client = new Anthropic({ apiKey });
+    const base64 = buffer.toString('base64');
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let content: any[];
+
+    if (ext === 'pdf') {
+      content = [
+        {
+          type: 'document',
+          source: { type: 'base64', media_type: 'application/pdf', data: base64 },
+        },
+        { type: 'text', text: `Fichier: "${fileName}"\n\n${DOSSIER_EXTRACTION_PROMPT}` },
+      ];
+    } else {
+      // Image (png, jpg, jpeg)
+      const mediaType = ext === 'png' ? 'image/png' : 'image/jpeg';
+      content = [
+        {
+          type: 'image',
+          source: { type: 'base64', media_type: mediaType, data: base64 },
+        },
+        { type: 'text', text: `Fichier: "${fileName}"\n\n${DOSSIER_EXTRACTION_PROMPT}\n\nExtrais toutes les informations visibles dans cette image (texte, logo, coordonnees, etc.).` },
+      ];
+    }
+
+    const response = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1500,
+      messages: [{ role: 'user', content }],
+    });
+
+    const reply = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
+    const jsonMatch = reply.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
+  } catch (e: any) {
+    console.warn('[agent-files] Vision extraction failed:', e.message);
   }
   return null;
 }
@@ -231,26 +292,33 @@ export async function POST(req: NextRequest) {
       // Table may not exist yet — not critical
     }
 
-    // ── Auto-extract text + update dossier for onboarding agent ──
+    // ── Auto-extract dossier from ANY uploaded file ──
     let extracted: Record<string, string> | null = null;
-    const textExts = new Set(['txt', 'csv', 'docx', 'pptx', 'xlsx', 'xls']);
-    if (textExts.has(ext)) {
-      try {
+    const textExts = new Set(['txt', 'csv', 'docx', 'pptx', 'xlsx', 'xls', 'doc', 'ppt']);
+    const visionExts = new Set(['pdf', 'png', 'jpg', 'jpeg']);
+
+    try {
+      if (textExts.has(ext)) {
+        // Text-based extraction (DOCX, XLSX, CSV, TXT, PPTX)
         const text = await extractTextFromFile(buffer, ext);
         if (text && text.length > 20) {
           console.log(`[agent-files] Extracted ${text.length} chars from ${safeName}`);
           extracted = await extractDossierFromText(text, file.name);
-          if (extracted && Object.keys(extracted).length > 0) {
-            console.log(`[agent-files] AI extracted ${Object.keys(extracted).length} dossier fields:`, Object.keys(extracted).join(', '));
-            // Save to business_dossiers
-            const { upsertBusinessDossier } = await import('@/lib/agents/client-context');
-            await upsertBusinessDossier(supabase, user.id, extracted);
-            console.log(`[agent-files] Dossier auto-updated from file ${safeName}`);
-          }
         }
-      } catch (e: any) {
-        console.warn('[agent-files] Auto-extract error (non-fatal):', e.message);
+      } else if (visionExts.has(ext)) {
+        // Vision-based extraction (PDF, images)
+        console.log(`[agent-files] Using vision extraction for ${ext} file: ${safeName}`);
+        extracted = await extractDossierFromVision(buffer, ext, file.name);
       }
+
+      if (extracted && Object.keys(extracted).length > 0) {
+        console.log(`[agent-files] AI extracted ${Object.keys(extracted).length} dossier fields:`, Object.keys(extracted).join(', '));
+        const { upsertBusinessDossier } = await import('@/lib/agents/client-context');
+        await upsertBusinessDossier(supabase, user.id, extracted);
+        console.log(`[agent-files] Dossier auto-updated from file ${safeName}`);
+      }
+    } catch (e: any) {
+      console.warn('[agent-files] Auto-extract error (non-fatal):', e.message);
     }
 
     return NextResponse.json({

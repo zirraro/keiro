@@ -18,9 +18,10 @@ interface AgentCardProps {
   onClick: () => void;
   comingSoonMode?: boolean;
   onNotifyClick?: () => void;
+  badgeCount?: number;
 }
 
-export default function AgentCard({ agent, avatarUrl, isSelected, onClick, comingSoonMode = false, onNotifyClick }: AgentCardProps) {
+export default function AgentCard({ agent, avatarUrl, isSelected, onClick, comingSoonMode = false, onNotifyClick, badgeCount = 0 }: AgentCardProps) {
   const [imgError, setImgError] = useState(false);
   const showImage = avatarUrl && !imgError;
   const isLocked = comingSoonMode || agent.visibility === 'coming_soon';
@@ -91,6 +92,12 @@ export default function AgentCard({ agent, avatarUrl, isSelected, onClick, comin
             padding: '2.5px',
           }}
         >
+          {/* Notification badge */}
+          {badgeCount > 0 && !isLocked && (
+            <div className="absolute -top-1 -right-1 z-30 min-w-[20px] h-5 px-1 rounded-full bg-red-500 border-2 border-gray-900 flex items-center justify-center animate-pulse">
+              <span className="text-[10px] font-bold text-white">{badgeCount > 9 ? '9+' : badgeCount}</span>
+            </div>
+          )}
           <div className="w-full h-full rounded-full overflow-hidden bg-gray-900 flex items-center justify-center">
             {showImage ? (
               <img

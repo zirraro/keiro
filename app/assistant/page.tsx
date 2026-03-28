@@ -202,6 +202,9 @@ export default function AssistantPage() {
 
   // Agent grid
   const [agents, setAgents] = useState<ClientAgent[]>([]);
+  // Notification badges per agent
+  const [notifBadges, setNotifBadges] = useState<Record<string, number>>({});
+  const [totalNotifs, setTotalNotifs] = useState(0);
   const [avatars, setAvatars] = useState<AvatarMap>({});
 
   // Multi-chat state
@@ -428,6 +431,22 @@ export default function AssistantPage() {
       } catch { /* silent */ }
     }
     loadQuestions();
+  }, [user]);
+
+  // ─── Load notification badges ────────────────────────────
+  useEffect(() => {
+    if (!user) return;
+    const loadNotifs = () => {
+      fetch('/api/notifications', { credentials: 'include' })
+        .then(r => r.json())
+        .then(d => {
+          if (d.badges) setNotifBadges(d.badges);
+          setTotalNotifs(d.totalPending || d.unreadCount || 0);
+        }).catch(() => {});
+    };
+    loadNotifs();
+    const interval = setInterval(loadNotifs, 30000); // Poll every 30s
+    return () => clearInterval(interval);
   }, [user]);
 
   // ─── Load avatars ───────────────────────────────────────
@@ -1237,6 +1256,7 @@ export default function AssistantPage() {
                 isSelected={!!chats[agent.id]}
                 onClick={() => handleSelectAgent(agent)}
                 comingSoonMode={COMING_SOON_MODE}
+                badgeCount={notifBadges[agent.id] || 0}
                 onNotifyClick={() => {
                   if (COMING_SOON_MODE) {
                     setShowNotifyModal(true);

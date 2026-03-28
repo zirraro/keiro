@@ -477,16 +477,33 @@ export default function AgentWorkspacePage() {
           // If dossier was auto-updated from file content, show confirmation in chat
           if (d.dossier_updated && d.fields_extracted) {
             const fieldLabels: Record<string, string> = {
-              company_name: 'nom', company_description: 'description', business_type: 'type', city: 'ville',
-              main_products: 'produits', target_audience: 'cible', brand_tone: 'ton', business_goals: 'objectifs',
-              unique_selling_points: 'points forts', competitors: 'concurrents', website_url: 'site web',
-              instagram_handle: 'Instagram', posting_frequency: 'frequence', monthly_budget: 'budget',
+              company_name: 'nom de l\'entreprise', company_description: 'description', business_type: 'type d\'activite',
+              founder_name: 'fondateur', employees_count: 'nb employes', city: 'ville', address: 'adresse',
+              catchment_area: 'zone', main_products: 'produits/services', price_range: 'gamme de prix',
+              unique_selling_points: 'points forts', competitors: 'concurrents', target_audience: 'cible',
+              ideal_customer_profile: 'profil client ideal', customer_pain_points: 'problemes clients',
+              brand_tone: 'ton de marque', visual_style: 'style visuel', brand_colors: 'couleurs',
+              business_goals: 'objectifs business', marketing_goals: 'objectifs marketing',
+              website_url: 'site web', instagram_handle: 'Instagram', tiktok_handle: 'TikTok',
+              facebook_url: 'Facebook', google_maps_url: 'Google Maps',
+              phone: 'telephone', email: 'email', horaires_ouverture: 'horaires',
+              specialite: 'specialite', posting_frequency: 'frequence', monthly_budget: 'budget',
             };
             const extracted = d.fields_extracted.map((f: string) => fieldLabels[f] || f).join(', ');
+            const count = d.fields_extracted.length;
             setMessages(prev => [...prev, {
               id: `file_${Date.now()}`,
               role: 'assistant',
-              content: `J'ai analyse ton fichier "${fl[i].name}" et j'ai extrait ces infos pour ton profil : ${extracted}. Ton dossier a ete mis a jour automatiquement ! Les autres agents ont maintenant acces a ces informations.`,
+              content: `\u2705 Parfait ! J'ai analyse ton fichier "${fl[i].name}" et j'ai rempli ${count} champs de ton profil :\n\n**${extracted}**\n\nTon dossier est a jour et tous les agents y ont acces immediatement !`,
+              created_at: new Date().toISOString(),
+            }]);
+            setChatOpen(true);
+          } else if (!d.dossier_updated) {
+            // File uploaded but nothing extracted — notify user
+            setMessages(prev => [...prev, {
+              id: `file_${Date.now()}`,
+              role: 'assistant',
+              content: `J'ai bien recu ton fichier "${fl[i].name}". Je n'ai pas pu en extraire d'infos pour ton profil — tu peux me les donner directement dans le chat !`,
               created_at: new Date().toISOString(),
             }]);
             setChatOpen(true);

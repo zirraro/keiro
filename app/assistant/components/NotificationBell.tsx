@@ -41,7 +41,21 @@ export default function NotificationBell() {
       if (!res.ok) return;
       const data = await res.json();
       setNotifications(data.notifications || []);
-      setUnreadCount(data.unreadCount || 0);
+      setUnreadCount(data.totalPending || data.unreadCount || 0);
+      // Add hot prospect notifications to the list
+      if (data.hotProspects?.length > 0) {
+        const hotNotifs = data.hotProspects.map((p: any) => ({
+          id: `hot_${p.id}`,
+          agent: 'commercial',
+          type: 'hot_prospect',
+          title: `${'\u{1F525}'} Prospect chaud : ${p.company}`,
+          message: `${p.type || 'Commerce'} — ${p.status}. A contacter en priorite !`,
+          data: p,
+          read: false,
+          created_at: new Date().toISOString(),
+        }));
+        setNotifications(prev => [...hotNotifs, ...prev.filter(n => !n.id.startsWith('hot_'))]);
+      }
     } catch { /* silent */ }
   }, []);
 

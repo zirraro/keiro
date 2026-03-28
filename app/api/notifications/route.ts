@@ -25,9 +25,40 @@ export async function GET() {
 
   const unreadCount = (notifications || []).filter(n => !n.read).length;
 
+  // Hot prospects needing human intervention
+  const { data: hotProspects } = await supabase
+    .from('crm_prospects')
+    .select('id, company, email, type, status, temperature')
+    .eq('temperature', 'hot')
+    .in('status', ['repondu', 'interesse', 'demo'])
+    .order('updated_at', { ascending: false })
+    .limit(10);
+
+  // Count badges per agent
+  const badges: Record<string, number> = {};
+  for (const n of (notifications || [])) {
+    if (!n.read && n.agent) badges[n.agent] = (badges[n.agent] || 0) + 1;
+  }
+  // Hot prospects add to DM + email + commercial badges
+  for (const p of (hotProspects || [])) {
+    badges['dm_instagram'] = (badges['dm_instagram'] || 0) + 1;
+    badges['email'] = (badges['email'] || 0) + 1;
+    badges['commercial'] = (badges['commercial'] || 0) + 1;
+  }
+
+  const totalPending = unreadCount + (hotProspects?.length || 0);
+
   return NextResponse.json({
     notifications: notifications || [],
     unreadCount,
+    totalPending,
+    badges,
+    hotProspects: (hotProspects || []).map(p => ({
+      id: p.id,
+      company: p.company || p.email,
+      type: p.type,
+      status: p.status,
+    })),
   });
 }
 
