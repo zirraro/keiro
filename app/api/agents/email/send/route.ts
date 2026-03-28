@@ -152,15 +152,30 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // --- Send via Resend (primary, best tracking) then Brevo (fallback, 300/day extra) ---
+    // --- Send via Resend (primary, 80/day cap to keep 20 for signups) then Brevo (fallback, 300/day) ---
+    // Total: 380 cold emails/day + 20 reserved for transactional = 400/day max
     console.log(`[EmailAgent] Sending step ${template_step} to ${prospect.email} (variant ${selectedVariant})`);
 
     let messageId = 'unknown';
     let provider = 'resend';
 
-    // Resend primary — meilleur tracking (opens, clicks, bounces via webhook)
+    // Check daily Resend usage (cap at 80 to keep 20 for signup verification emails)
+    let resendUsedToday = 0;
+    try {
+      const todayStart = new Date(); todayStart.setUTCHours(0, 0, 0, 0);
+      const { count } = await supabase
+        .from('agent_logs')
+        .select('id', { count: 'exact', head: true })
+        .eq('agent', 'email')
+        .gte('created_at', todayStart.toISOString())
+        .contains('data', { provider: 'resend' });
+      resendUsedToday = count || 0;
+    } catch {}
+    const resendAvailable = resendUsedToday < 80;
+
+    // Resend primary (if under daily cap)
     let sendSuccess = false;
-    if (process.env.RESEND_API_KEY) {
+    if (process.env.RESEND_API_KEY && resendAvailable) {
       try {
         const resendResponse = await fetch('https://api.resend.com/emails', {
           method: 'POST',
