@@ -482,8 +482,7 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'marketing_learn':
-      // 19:00 UTC — Marketing: sync analytics, analyze publications, full analysis + advise agents
-      // All sequential with stagger — same marketing agent route, can't run concurrently
+      // 19:00 UTC — Marketing: sync analytics, analyze publications, full analysis + advise agents + widget learning
       fireBackground(async () => {
         await callEndpoint('Sync Publication Analytics', '/api/agents/marketing', 'POST', { action: 'sync_publication_analytics' });
         await delay(15000);
@@ -492,8 +491,11 @@ export async function GET(request: NextRequest) {
         await callEndpoint('Marketing Analysis', '/api/agents/marketing');
         await delay(15000);
         await callEndpoint('Marketing Advise Agents', '/api/agents/marketing', 'POST', { action: 'advise_agents' });
+        await delay(10000);
+        // Analyze widget conversations → extract learnings → RAG
+        await callEndpoint('Widget Learning', '/api/widget/learn', 'POST');
       });
-      results.push({ task: 'Marketing Learn', ok: true, data: { status: 'dispatched_background' } });
+      results.push({ task: 'Marketing Learn + Widget Learning', ok: true, data: { status: 'dispatched_background' } });
       break;
 
     case 'video_poll':
