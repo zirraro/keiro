@@ -233,7 +233,7 @@ export default function AssistantPage() {
   const [streak, setStreak] = useState(0);
 
   // View tab
-  const [viewTab, setViewTab] = useState<'suivi' | 'equipe' | 'agent' | 'pipeline' | 'offre'>('suivi');
+  const [viewTab, setViewTab] = useState<'suivi' | 'equipe' | 'agent' | 'campagnes' | 'pipeline' | 'offre'>('suivi');
 
   // Team agent ordering (per team) — initialized from localStorage via useEffect
   const [teamOrders, setTeamOrders] = useState<Record<string, string[]>>({});
@@ -913,6 +913,7 @@ export default function AssistantPage() {
             { key: 'suivi' as const, label: '\uD83D\uDCCB Suivi central', shortLabel: 'Suivi' },
             { key: 'equipe' as const, label: '\uD83D\uDC65 Par equipe', shortLabel: 'Equipes' },
             { key: 'agent' as const, label: '\uD83E\uDD16 Par agent', shortLabel: 'Agents' },
+            { key: 'campagnes' as const, label: '\u{1F3AF} Campagnes', shortLabel: 'Campagnes' },
             { key: 'pipeline' as const, label: '\uD83D\uDCCA Mon CRM', shortLabel: 'CRM' },
             { key: 'offre' as const, label: '\uD83D\uDCB0 Par offre', shortLabel: 'Offres' },
           ]).map((tab) => (
@@ -1032,6 +1033,47 @@ export default function AssistantPage() {
         )}
 
         {/* ═══ TAB: PIPELINE CRM CENTRALISE ═══ */}
+        {viewTab === 'campagnes' && (
+          <div className="space-y-5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-white font-bold text-sm">{'\u{1F3AF}'} Campagnes actives</h2>
+              <span className="text-white/30 text-xs">Toutes les actions de tes agents</span>
+            </div>
+
+            {/* Agent activity cards */}
+            {agents.filter(a => a.visibility === 'active').map(agent => {
+              const agentLogs = summary?.activityFeed?.filter((l: any) => l.agent === agent.id) || [];
+              if (agentLogs.length === 0) return null;
+              return (
+                <div key={agent.id} className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden">
+                  <div className="px-4 py-2.5 border-b border-white/5 flex items-center gap-2" style={{ background: `linear-gradient(135deg, ${agent.gradientFrom}15, ${agent.gradientTo}15)` }}>
+                    <span className="text-sm">{agent.icon}</span>
+                    <span className="text-white text-xs font-bold">{agent.displayName}</span>
+                    <span className="text-white/30 text-[10px] ml-auto">{agentLogs.length} actions</span>
+                  </div>
+                  <div className="divide-y divide-white/5">
+                    {agentLogs.slice(0, 5).map((log: any, i: number) => (
+                      <div key={i} className="px-4 py-2.5 flex items-center gap-3">
+                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${log.status === 'success' || log.status === 'ok' ? 'bg-emerald-400' : log.status === 'error' ? 'bg-red-400' : 'bg-amber-400'}`} />
+                        <span className="text-white/70 text-xs flex-1 truncate">{log.action || log.message || 'Action'}</span>
+                        <span className="text-white/20 text-[9px] flex-shrink-0">{log.created_at ? new Date(log.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+
+            {(!summary?.activityFeed || summary.activityFeed.length === 0) && (
+              <div className="text-center py-12">
+                <p className="text-4xl mb-3">{'\u{1F3AF}'}</p>
+                <p className="text-white/50 text-sm">Aucune campagne en cours</p>
+                <p className="text-white/30 text-xs mt-1">Tes agents demarreront automatiquement</p>
+              </div>
+            )}
+          </div>
+        )}
+
         {viewTab === 'pipeline' && (
           <div className="text-center py-6">
             <p className="text-white/40 text-sm mb-4">Gerez vos prospects, importez vos fichiers Excel et suivez votre pipeline commercial</p>
