@@ -1244,7 +1244,7 @@ export function getEmailTemplate(
     const step4Subjects = [
       '{{first_name}}, on ferme le dossier {{company}} ?',
       'Dernier message \u2014 ensuite je vous laisse tranquille',
-      '{{company}} \u2014 3 cr\u00E9ations gratuites (derni\u00E8re chance)',
+      '{{company}} \u2014 14 jours d\u2019essai gratuit (derni\u00E8re chance)',
     ];
     subject = replaceVars(step4Subjects[subjectVariant % step4Subjects.length], vars);
   } else {
@@ -1259,4 +1259,19 @@ export function getEmailTemplate(
       ? replaceVars(body.attachmentName, vars)
       : undefined,
   };
+}
+
+/**
+ * Generate HTML block with showcase images for a business type.
+ * Used by email/DM agents to show "here's what we can do for you".
+ */
+export function getShowcaseImagesHtml(images: Array<{ image_url: string; title?: string }>): string {
+  if (!images || images.length === 0) return '';
+  const imgHtml = images.slice(0, 3).map(img =>
+    `<div style="flex:1;min-width:150px;max-width:200px;text-align:center;">
+      <img src="${img.image_url}" alt="${img.title || 'Exemple KeiroAI'}" style="width:100%;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.1);" />
+      ${img.title ? `<p style="font-size:11px;color:#888;margin:4px 0 0;">${img.title}</p>` : ''}
+    </div>`
+  ).join('');
+  return `<div style="margin:16px 0;"><p style="font-size:13px;font-weight:bold;margin-bottom:8px;">Exemples de ce qu'on peut creer pour vous :</p><div style="display:flex;gap:12px;flex-wrap:wrap;">${imgHtml}</div></div>`;
 }

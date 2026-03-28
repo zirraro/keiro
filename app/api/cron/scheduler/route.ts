@@ -297,9 +297,9 @@ export async function GET(request: NextRequest) {
           console.log(`[Scheduler/ceo] Event pipeline: ${eventResult.actions} actions dispatched`);
         } catch (e: any) { console.error('[Scheduler/ceo] Event pipeline error:', e.message?.substring(0, 200)); }
         await delay(3000);
+        // Only improvement report in the morning (includes stats + code reco)
+        // Status report removed to avoid double email
         await callEndpoint('CEO Improvement Report', '/api/agents/ceo-reports?type=improvement', 'POST');
-        await delay(5000);
-        await callEndpoint('CEO Status Report AM', '/api/agents/ceo-reports?type=status', 'POST');
 
         // Phase 1.5: CEO auto-fix — analyze recent failures and fix configs
         try {
@@ -329,12 +329,15 @@ export async function GET(request: NextRequest) {
           console.log('[Scheduler/ceo] CEO Group report sent to admin');
         } catch (e: any) { console.error('[Scheduler/ceo] CEO Group error:', e.message?.substring(0, 200)); }
       });
-      // Phase 2: CEO brief + orders (separate background to avoid timeout)
+      // Phase 2: CEO brief + orders + client briefs (separate background to avoid timeout)
       fireBackground(async () => {
         await delay(60000); // Wait 60s for reports to finish
         await callEndpoint('CEO Brief', '/api/agents/ceo');
         await delay(10000);
         await callEndpoint('Execute Orders', '/api/agents/orders');
+        await delay(5000);
+        // Send Noah brief to each client (morning — 7h Paris)
+        await callEndpoint('Noah Client Brief', '/api/agents/ceo-reports?type=client_brief', 'POST');
       });
       results.push({ task: 'CEO Brief + Reports + Orders', ok: true, data: { status: 'dispatched_background' } });
       break;
@@ -401,14 +404,12 @@ export async function GET(request: NextRequest) {
 
     case 'ceo_evening':
       // 15:00 UTC — CEO evening: SPLIT into 2 background tasks to avoid 300s timeout
-      // Phase 1: Events + reports (fast, < 60s)
+      // Phase 1: Events only (fast, < 60s) — no status report to avoid double email
       fireBackground(async () => {
         try {
           const eventResult = await processEventPipeline(aiSupabase);
           console.log(`[Scheduler/ceo_evening] Event pipeline: ${eventResult.actions} actions dispatched`);
         } catch (e: any) { console.error('[Scheduler/ceo_evening] Event pipeline error:', e.message?.substring(0, 200)); }
-        await delay(3000);
-        await callEndpoint('CEO Status Report PM', '/api/agents/ceo-reports?type=status', 'POST');
         try { await sendCeoGroupReport(aiSupabase); } catch {}
       });
       // Phase 2: Brief + orders (separate, can take up to 300s)
@@ -417,8 +418,6 @@ export async function GET(request: NextRequest) {
         await callEndpoint('CEO Brief (afternoon)', '/api/agents/ceo');
         await delay(5000);
         await callEndpoint('Execute Orders', '/api/agents/orders');
-        await delay(3000);
-        await callEndpoint('CEO Client Brief', '/api/agents/ceo-reports?type=client_brief', 'POST');
       });
       results.push({ task: 'CEO Evening (split)', ok: true, data: { status: 'dispatched_background' } });
       break;
