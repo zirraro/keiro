@@ -289,10 +289,9 @@ export default function AgentWorkspacePage() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recognitionRef = useRef<any>(null);
 
-  // ─── QA agent redirects to admin dashboard ────────────
-  useEffect(() => {
-    if (agentId === 'qa') { router.push('/admin/qa'); }
-  }, [agentId, router]);
+  // QA state
+  const [qaResult, setQaResult] = useState<any>(null);
+  const [qaRunning, setQaRunning] = useState(false);
 
   // ─── Init agent ────────────────────────────────────────
   useEffect(() => { const f = CLIENT_AGENTS.find(a => a.id === agentId); if (f) setAgent(f); }, [agentId]);
@@ -582,6 +581,90 @@ export default function AgentWorkspacePage() {
                     <CrmDashboard data={dashboardData || { prospects: [], activities: [], pipeline: {}, stats: { total: 0, hot: 0, warm: 0, cold: 0, converted: 0, conversionRate: 0 } }} />
                   ) : agentId === 'onboarding' ? (
                     <OnboardingDossier />
+                  ) : agentId === 'qa' ? (
+                    <div className="p-5 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-white font-bold text-sm">{'\u{1F9EA}'} QA Agent — Tests clients</h3>
+                        <div className="flex gap-2">
+                          <a href="/admin/qa" className="px-3 py-1.5 bg-white/10 text-white text-[10px] font-medium rounded-lg hover:bg-white/15">Dashboard QA</a>
+                        </div>
+                      </div>
+
+                      {/* Quick launch buttons */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        {[
+                          { group: 'full', label: 'Tout tester', icon: '\u{1F9EA}', color: 'from-purple-600 to-blue-600' },
+                          { group: 'quick', label: 'Test rapide', icon: '\u26A1', color: 'from-amber-600 to-orange-600' },
+                          { group: 'agents', label: 'Agents', icon: '\u{1F916}', color: 'from-green-600 to-emerald-600' },
+                          { group: 'content', label: 'Contenu', icon: '\u{1F3A8}', color: 'from-pink-600 to-rose-600' },
+                          { group: 'acquisition', label: 'Acquisition', icon: '\u{1F4C8}', color: 'from-blue-600 to-cyan-600' },
+                          { group: 'infrastructure', label: 'Infra', icon: '\u{1F527}', color: 'from-slate-600 to-neutral-600' },
+                          { group: 'library', label: 'Galerie', icon: '\u{1F4DA}', color: 'from-indigo-600 to-violet-600' },
+                        ].map(btn => (
+                          <button
+                            key={btn.group}
+                            onClick={async () => {
+                              setQaRunning(true);
+                              try {
+                                const res = await fetch(`/api/qa?group=${btn.group}`);
+                                const data = await res.json();
+                                setQaResult(data);
+                              } catch {} finally { setQaRunning(false); }
+                            }}
+                            disabled={qaRunning}
+                            className={`px-3 py-3 bg-gradient-to-r ${btn.color} text-white text-xs font-semibold rounded-xl hover:opacity-90 disabled:opacity-50 transition-all text-center`}
+                          >
+                            <span className="text-lg block mb-1">{btn.icon}</span>
+                            {btn.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {qaRunning && (
+                        <div className="text-center py-8">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400 mx-auto mb-3" />
+                          <p className="text-white/50 text-sm">Tests en cours...</p>
+                        </div>
+                      )}
+
+                      {qaResult && !qaRunning && (
+                        <>
+                          {/* Summary */}
+                          <div className={`rounded-xl p-4 ${qaResult.status === 'pass' ? 'bg-emerald-500/10 border border-emerald-500/20' : qaResult.status === 'warn' ? 'bg-amber-500/10 border border-amber-500/20' : 'bg-red-500/10 border border-red-500/20'}`}>
+                            <div className="flex items-center justify-between">
+                              <span className="text-white font-bold text-sm">{qaResult.status === 'pass' ? '\u2705' : qaResult.status === 'warn' ? '\u26A0\uFE0F' : '\u{1F6A8}'} {qaResult.status.toUpperCase()}</span>
+                              <span className="text-white/50 text-xs">{qaResult.summary.pass}/{qaResult.summary.total} OK | {qaResult.summary.duration_ms}ms</span>
+                            </div>
+                          </div>
+
+                          {/* Checks */}
+                          <div className="space-y-1 max-h-96 overflow-y-auto">
+                            {qaResult.checks.map((c: any, i: number) => (
+                              <div key={i} className={`flex items-start gap-2 px-3 py-2 rounded-lg text-xs ${c.status === 'pass' ? 'bg-white/[0.02]' : c.status === 'warn' ? 'bg-amber-500/5' : 'bg-red-500/5'}`}>
+                                <span className="flex-shrink-0">{c.status === 'pass' ? '\u2713' : c.status === 'warn' ? '!' : '\u2717'}</span>
+                                <div className="flex-1 min-w-0">
+                                  <span className="text-white/80 font-medium">{c.name}</span>
+                                  <span className="text-white/40 ml-2">{c.message}</span>
+                                  {c.fix && <p className="text-purple-400 text-[10px] mt-0.5">Fix: {c.fix}</p>}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Copy report button */}
+                          <button
+                            onClick={() => {
+                              const lines = [`# QA KeiroAI — ${qaResult.status.toUpperCase()}`, `${qaResult.summary.pass}/${qaResult.summary.total} OK | ${qaResult.summary.duration_ms}ms\n`];
+                              qaResult.checks.forEach((c: any) => { lines.push(`${c.status === 'pass' ? '[OK]' : c.status === 'warn' ? '[WARN]' : '[FAIL]'} ${c.name}: ${c.message}${c.fix ? ` | Fix: ${c.fix}` : ''}`); });
+                              navigator.clipboard.writeText(lines.join('\n'));
+                            }}
+                            className="w-full px-4 py-2 bg-white/10 text-white/70 text-xs font-medium rounded-xl hover:bg-white/15 transition-all"
+                          >
+                            {'\u{1F4CB}'} Copier le rapport
+                          </button>
+                        </>
+                      )}
+                    </div>
                   ) : (
                     <AgentDashboard agentId={agentId} agentName={dn} gradientFrom={gf} gradientTo={gt} data={dashboardData || {}} />
                   )}

@@ -58,6 +58,8 @@ export default function QADashboard() {
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
   const [lastHistory, setLastHistory] = useState<Array<{ ran_at: string; status: string; summary: QASummary }>>([]);
   const [copied, setCopied] = useState(false);
+  const [clientHealth, setClientHealth] = useState<any>(null);
+  const [loadingClients, setLoadingClients] = useState(false);
 
   const generateReport = useCallback(() => {
     if (!result) return '';
@@ -320,6 +322,47 @@ export default function QADashboard() {
                 ))}
               </div>
             )}
+
+            {/* Client health */}
+            <div className="bg-white rounded-xl border p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-neutral-900 text-sm">Sante clients</h3>
+                <button
+                  onClick={async () => {
+                    setLoadingClients(true);
+                    try {
+                      const res = await fetch('/api/qa/clients');
+                      if (res.ok) setClientHealth(await res.json());
+                    } catch {} finally { setLoadingClients(false); }
+                  }}
+                  disabled={loadingClients}
+                  className="px-3 py-1.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-lg hover:bg-purple-200 disabled:opacity-50"
+                >
+                  {loadingClients ? 'Analyse...' : 'Analyser les clients'}
+                </button>
+              </div>
+              {clientHealth && (
+                <div className="space-y-2">
+                  <div className="flex gap-3 text-xs text-neutral-500 mb-2">
+                    <span>{clientHealth.total} clients</span>
+                    <span className="text-emerald-600">{clientHealth.healthy} sains</span>
+                    <span className="text-red-600">{clientHealth.at_risk} a risque</span>
+                  </div>
+                  {clientHealth.clients?.slice(0, 10).map((c: any) => (
+                    <div key={c.client_id} className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs ${c.score >= 80 ? 'bg-emerald-50 border-emerald-100' : c.score >= 60 ? 'bg-amber-50 border-amber-100' : 'bg-red-50 border-red-100'}`}>
+                      <span className="font-bold w-8">{c.score}%</span>
+                      <span className="font-medium text-neutral-900 flex-1">{c.name} ({c.plan})</span>
+                      <span className="text-neutral-400">{c.email}</span>
+                      <div className="flex gap-1">
+                        {c.checks.map((ch: any, i: number) => (
+                          <span key={i} className={`w-2 h-2 rounded-full ${ch.status === 'pass' ? 'bg-emerald-400' : ch.status === 'warn' ? 'bg-amber-400' : 'bg-red-400'}`} title={`${ch.name}: ${ch.message}`} />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {/* Run history */}
             {lastHistory.length > 1 && (
