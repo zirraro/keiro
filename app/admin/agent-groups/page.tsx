@@ -22,7 +22,7 @@ const AGENT_NAMES: Record<string, string> = {
 };
 
 export default function AgentGroupDashboard() {
-  const [data, setData] = useState<{ groups: AgentGroup[]; totals: any } | null>(null);
+  const [data, setData] = useState<{ groups: AgentGroup[]; totals: any; cost_center?: any; client_activity?: any } | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedAgent, setExpandedAgent] = useState<string | null>(null);
 
@@ -71,10 +71,34 @@ export default function AgentGroupDashboard() {
             <p className="text-xs text-neutral-500">Clients actifs</p>
           </div>
           <div className="bg-white rounded-xl border p-4 text-center">
-            <p className="text-3xl font-bold text-blue-600">{totals.generations_7d}</p>
-            <p className="text-xs text-neutral-500">Generations 7j</p>
+            <p className="text-3xl font-bold text-blue-600">{data.cost_center?.total || 0}</p>
+            <p className="text-xs text-neutral-500">Credits 7j</p>
           </div>
         </div>
+
+        {/* Cost center */}
+        {data.cost_center && (
+          <div className="bg-white rounded-xl border p-4">
+            <h3 className="font-semibold text-neutral-900 text-sm mb-3">{'\u{1F4B0}'} Centre de couts (7 jours)</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {Object.entries(data.cost_center.by_agent || {}).sort((a: any, b: any) => b[1] - a[1]).map(([agent, credits]: any) => (
+                <div key={agent} className="bg-neutral-50 rounded-lg p-3 text-center">
+                  <p className="text-lg font-bold text-neutral-900">{credits}</p>
+                  <p className="text-[10px] text-neutral-500">{AGENT_NAMES[agent] || agent}</p>
+                </div>
+              ))}
+            </div>
+            {data.cost_center.by_feature && (
+              <div className="mt-3 flex flex-wrap gap-1">
+                {data.cost_center.by_feature.slice(0, 8).map(([feature, info]: any) => (
+                  <span key={feature} className="px-2 py-0.5 bg-purple-50 text-purple-700 text-[10px] rounded">
+                    {feature}: {info.count}x ({info.totalCredits} cr)
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Agent groups */}
         <div className="space-y-3">
@@ -124,6 +148,25 @@ export default function AgentGroupDashboard() {
                             <span className="text-red-300 ml-2">{new Date(e.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
                           </div>
                         ))}
+                      </div>
+                    )}
+
+                    {/* Per-client activity */}
+                    {data.client_activity?.[g.agent] && (
+                      <div className="bg-blue-50 rounded-lg p-2 text-xs text-blue-800">
+                        <span className="font-medium">{data.client_activity[g.agent].unique_clients} clients actifs</span>
+                        <span className="mx-2">|</span>
+                        <span>{data.client_activity[g.agent].total} actions</span>
+                        {data.client_activity[g.agent].errors > 0 && (
+                          <span className="text-red-600 ml-2">{data.client_activity[g.agent].errors} erreurs</span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Cost for this agent */}
+                    {data.cost_center?.by_agent?.[g.agent] && (
+                      <div className="text-xs text-neutral-400">
+                        Cout 7j: {data.cost_center.by_agent[g.agent]} credits
                       </div>
                     )}
 

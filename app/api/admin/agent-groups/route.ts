@@ -87,11 +87,55 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  // Total costs (credits consumed)
-  const { count: totalGenerations } = await supabase.from('credit_transactions').select('id', { count: 'exact', head: true }).gte('created_at', since7d);
+  // Cost center: credits consumed per feature (7 days)
+  const { data: creditLogs } = await supabase
+    .from('credit_transactions')
+    .select('feature, amount')
+    .gte('created_at', since7d)
+    .limit(5000);
+
+  const costByFeature: Record<string, { count: number; totalCredits: number }> = {};
+  let totalCreditsUsed = 0;
+  for (const t of creditLogs || []) {
+    const feature = t.feature || 'other';
+    if (!costByFeature[feature]) costByFeature[feature] = { count: 0, totalCredits: 0 };
+    costByFeature[feature].count++;
+    costByFeature[feature].totalCredits += Math.abs(t.amount || 0);
+    totalCreditsUsed += Math.abs(t.amount || 0);
+  }
+
+  // Map features to agents
+  const featureToAgent: Record<string, string> = {
+    image_generation: 'content', image_i2i: 'content', video_t2v: 'content', video_i2v: 'content',
+    audio_tts: 'content', music_generation: 'content',
+    promo_code: 'comptable', subscription: 'comptable',
+  };
+
+  const costByAgent: Record<string, number> = {};
+  for (const [feature, data] of Object.entries(costByFeature)) {
+    const agent = featureToAgent[feature] || 'other';
+    costByAgent[agent] = (costByAgent[agent] || 0) + data.totalCredits;
+  }
 
   // Total active clients
   const { count: activeClients } = await supabase.from('profiles').select('id', { count: 'exact', head: true }).not('subscription_plan', 'in', '(gratuit,free,)');
+
+  // Per-client agent activity (for drill-down)
+  const { data: clientAgentLogs } = await supabase
+    .from('agent_logs')
+    .select('agent, org_id, status')
+    .gte('created_at', since24h)
+    .not('org_id', 'is', null)
+    .limit(1000);
+
+  const clientsByAgent: Record<string, { total: number; errors: number; orgs: Set<string> }> = {};
+  for (const log of clientAgentLogs || []) {
+    if (!log.agent || !log.org_id) continue;
+    if (!clientsByAgent[log.agent]) clientsByAgent[log.agent] = { total: 0, errors: 0, orgs: new Set() };
+    clientsByAgent[log.agent].total++;
+    clientsByAgent[log.agent].orgs.add(log.org_id);
+    if (log.status === 'error') clientsByAgent[log.agent].errors++;
+  }
 
   return NextResponse.json({
     ok: true,
@@ -100,7 +144,15 @@ export async function GET(req: NextRequest) {
       runs_24h: groups.reduce((s, g) => s + g.runs_24h, 0),
       errors_24h: groups.reduce((s, g) => s + g.errors_24h, 0),
       active_clients: activeClients || 0,
-      generations_7d: totalGenerations || 0,
+      total_credits_used_7d: totalCreditsUsed,
     },
+    cost_center: {
+      by_feature: Object.entries(costByFeature).sort((a, b) => b[1].totalCredits - a[1].totalCredits),
+      by_agent: costByAgent,
+      total: totalCreditsUsed,
+    },
+    client_activity: Object.fromEntries(
+      Object.entries(clientsByAgent).map(([agent, data]) => [agent, { total: data.total, errors: data.errors, unique_clients: data.orgs.size }])
+    ),
   });
 }
