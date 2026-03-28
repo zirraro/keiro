@@ -1,6 +1,101 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
+
+// Reply card for DMs and emails
+function DmCard({ dm, statusColors }: { dm: { target: string; status: string; message?: string; date: string }; statusColors: Record<string, string> }) {
+  const [showReply, setShowReply] = useState(false);
+  const [replyText, setReplyText] = useState('');
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  const handleReply = useCallback(async () => {
+    if (!replyText.trim()) return;
+    setSending(true);
+    try {
+      await fetch('/api/crm/reply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ prospect_id: dm.target, message: replyText, channel: 'dm_instagram' }),
+      });
+      setSent(true);
+      setTimeout(() => { setSent(false); setShowReply(false); setReplyText(''); }, 2000);
+    } catch {} finally { setSending(false); }
+  }, [replyText, dm.target]);
+
+  return (
+    <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
+      <div className="p-3 sm:p-4 flex items-center gap-3">
+        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0" style={{ backgroundColor: `${statusColors[dm.status] ?? '#a78bfa'}22`, color: statusColors[dm.status] ?? '#a78bfa' }}>
+          {dm.status}
+        </span>
+        <div className="flex-1 min-w-0">
+          <span className="text-sm text-white/80 truncate block">@{dm.target}</span>
+          {dm.message && <span className="text-[10px] text-white/40 truncate block">{dm.message}</span>}
+        </div>
+        <button onClick={() => setShowReply(!showReply)} className="text-[10px] px-2 py-1 bg-white/10 rounded-lg text-white/60 hover:bg-white/15 shrink-0">
+          {showReply ? 'Fermer' : 'Repondre'}
+        </button>
+      </div>
+      {showReply && (
+        <div className="px-3 sm:px-4 pb-3 border-t border-white/5 pt-2 flex gap-2">
+          <input type="text" value={replyText} onChange={e => setReplyText(e.target.value)} placeholder="Ecrire une reponse..." className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-purple-500/50" onKeyDown={e => { if (e.key === 'Enter') handleReply(); }} />
+          <button onClick={handleReply} disabled={sending || !replyText.trim()} className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all shrink-0 ${sent ? 'bg-emerald-500/20 text-emerald-400' : 'bg-purple-600 text-white hover:bg-purple-700'} disabled:opacity-40`}>
+            {sent ? '\u2713' : sending ? '...' : 'Envoyer'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EmailCard({ email }: { email: { prospect: string; type: string; status: string; date: string } }) {
+  const [showReply, setShowReply] = useState(false);
+  const [replyText, setReplyText] = useState('');
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  const statusColors: Record<string, string> = { envoye: '#60a5fa', ouvert: '#fbbf24', repondu: '#34d399', auto_reply: '#a78bfa' };
+
+  const handleReply = useCallback(async () => {
+    if (!replyText.trim()) return;
+    setSending(true);
+    try {
+      await fetch('/api/crm/reply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ prospect_id: email.prospect, message: replyText, channel: 'email' }),
+      });
+      setSent(true);
+      setTimeout(() => { setSent(false); setShowReply(false); setReplyText(''); }, 2000);
+    } catch {} finally { setSending(false); }
+  }, [replyText, email.prospect]);
+
+  return (
+    <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
+      <div className="p-3 sm:p-4 flex items-center gap-3">
+        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0" style={{ backgroundColor: `${statusColors[email.status] ?? '#60a5fa'}22`, color: statusColors[email.status] ?? '#60a5fa' }}>
+          {email.status}
+        </span>
+        <span className="text-sm text-white/80 truncate flex-1">{email.prospect}</span>
+        <span className="text-[10px] text-white/30 shrink-0">{email.type?.replace('step_', 'Etape ')}</span>
+        <button onClick={() => setShowReply(!showReply)} className="text-[10px] px-2 py-1 bg-white/10 rounded-lg text-white/60 hover:bg-white/15 shrink-0">
+          {showReply ? 'Fermer' : 'Repondre'}
+        </button>
+      </div>
+      {showReply && (
+        <div className="px-3 sm:px-4 pb-3 border-t border-white/5 pt-2 flex gap-2">
+          <input type="text" value={replyText} onChange={e => setReplyText(e.target.value)} placeholder="Repondre par email..." className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-purple-500/50" onKeyDown={e => { if (e.key === 'Enter') handleReply(); }} />
+          <button onClick={handleReply} disabled={sending || !replyText.trim()} className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all shrink-0 ${sent ? 'bg-emerald-500/20 text-emerald-400' : 'bg-cyan-600 text-white hover:bg-cyan-700'} disabled:opacity-40`}>
+            {sent ? '\u2713' : sending ? '...' : 'Envoyer'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface AgentDashboardProps {
   agentId: string;
@@ -581,6 +676,18 @@ function EmailPanel({
           })}
         </div>
       </div>
+
+      {/* Recent emails with reply capability */}
+      {(data as any).recentEmails && (data as any).recentEmails.length > 0 && (
+        <>
+          <SectionTitle>Emails recents</SectionTitle>
+          <div className="flex flex-col gap-2">
+            {(data as any).recentEmails.slice(0, 8).map((email: any, i: number) => (
+              <EmailCard key={i} email={email} />
+            ))}
+          </div>
+        </>
+      )}
     </>
   );
 }
@@ -1170,26 +1277,14 @@ function DmInstagramPanel({
         />
       </div>
 
-      {/* Recent DM activity feed */}
+      {/* Recent DM activity feed with reply */}
       <SectionTitle>Activite recente</SectionTitle>
       {stats.recentDms.length === 0 ? (
         <EmptyState agentName={agentName} />
       ) : (
         <div className="flex flex-col gap-2">
-          {stats.recentDms.slice(0, 5).map((dm, i) => (
-            <div key={i} className="bg-white/5 rounded-xl border border-white/10 p-4 flex items-center gap-3">
-              <span
-                className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
-                style={{
-                  backgroundColor: `${statusColors[dm.status] ?? '#a78bfa'}22`,
-                  color: statusColors[dm.status] ?? '#a78bfa',
-                }}
-              >
-                {dm.status}
-              </span>
-              <span className="text-sm text-white/80 truncate flex-1">@{dm.target}</span>
-              <span className="text-xs text-white/40 shrink-0">{fmtDate(dm.date)}</span>
-            </div>
+          {stats.recentDms.slice(0, 8).map((dm, i) => (
+            <DmCard key={i} dm={dm} statusColors={statusColors} />
           ))}
         </div>
       )}

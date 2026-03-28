@@ -997,6 +997,31 @@ export default function AgentWorkspacePage() {
                   </div>
                 </div>
                 <div>
+                  <label className="text-white/60 text-[10px] font-medium mb-1.5 block">Avatar personnalise</label>
+                  <div className="flex items-center gap-3">
+                    {settings.custom_avatar ? (
+                      <img src={settings.custom_avatar} alt="Avatar" className="w-12 h-12 rounded-full object-cover border-2 border-white/20" />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-lg">{icon}</div>
+                    )}
+                    <label className="cursor-pointer px-3 py-1.5 bg-white/10 hover:bg-white/15 text-white/60 text-[10px] font-medium rounded-lg transition-all">
+                      Changer
+                      <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const reader = new FileReader();
+                        reader.onload = (ev) => {
+                          setSettings(prev => ({ ...prev, custom_avatar: ev.target?.result as string }));
+                        };
+                        reader.readAsDataURL(file);
+                      }} />
+                    </label>
+                    {settings.custom_avatar && (
+                      <button onClick={() => setSettings(prev => ({ ...prev, custom_avatar: undefined }))} className="text-[10px] text-red-400 hover:text-red-300">Retirer</button>
+                    )}
+                  </div>
+                </div>
+                <div>
                   <label className="text-white/60 text-[10px] font-medium mb-1.5 block">Personnalite</label>
                   <select value={settings.personality || 'default'} onChange={e => setSettings(prev => ({ ...prev, personality: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:ring-1 focus:ring-purple-500/50">
                     <option value="default">Par defaut</option>
