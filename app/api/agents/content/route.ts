@@ -272,7 +272,8 @@ async function checkDuplicatePublication(
 
 async function publishToInstagram(
   post: { id?: string; format?: string; caption?: string; hashtags?: string[]; visual_url?: string; video_url?: string },
-  supabase: any
+  supabase: any,
+  orgId?: string | null
 ): Promise<{ success: boolean; permalink?: string; error?: string }> {
   try {
     // ── Dedup check: prevent publishing the same image twice ──
@@ -285,20 +286,49 @@ async function publishToInstagram(
       };
     }
 
-    // Find admin user's Instagram tokens
-    const { data: adminProfile, error: profileError } = await supabase
-      .from('profiles')
-      .select('instagram_business_account_id, facebook_page_access_token, instagram_username')
-      .eq('is_admin', true)
-      .single();
+    // Multi-tenant: find IG tokens by org_id first, fallback to admin
+    let publishProfile: any = null;
 
-    if (profileError || !adminProfile) {
-      console.error('[Content] No admin profile found for Instagram publishing');
-      return { success: false, error: 'No admin profile found' };
+    if (orgId) {
+      // Try to find the org owner's IG tokens
+      const { data: orgMember } = await supabase
+        .from('organization_members')
+        .select('user_id')
+        .eq('org_id', orgId)
+        .eq('role', 'owner')
+        .single();
+
+      if (orgMember?.user_id) {
+        const { data: orgProfile } = await supabase
+          .from('profiles')
+          .select('instagram_business_account_id, facebook_page_access_token, instagram_username')
+          .eq('id', orgMember.user_id)
+          .single();
+
+        if (orgProfile?.instagram_business_account_id && orgProfile?.facebook_page_access_token) {
+          publishProfile = orgProfile;
+          console.log(`[Content] Using org owner's IG tokens (org: ${orgId})`);
+        }
+      }
     }
 
-    const igUserId = adminProfile.instagram_business_account_id;
-    const pageAccessToken = adminProfile.facebook_page_access_token;
+    // Fallback to admin profile
+    if (!publishProfile) {
+      const { data: adminProfile, error: profileError } = await supabase
+        .from('profiles')
+        .select('instagram_business_account_id, facebook_page_access_token, instagram_username')
+        .eq('is_admin', true)
+        .single();
+
+      if (profileError || !adminProfile) {
+        console.error('[Content] No profile found for Instagram publishing');
+        return { success: false, error: 'No Instagram profile found' };
+      }
+      publishProfile = adminProfile;
+    }
+
+    const igUserId = publishProfile.instagram_business_account_id;
+    const pageAccessToken = publishProfile.facebook_page_access_token;
 
     if (!igUserId || !pageAccessToken) {
       console.error('[Content] Admin has no Instagram tokens configured');
@@ -1142,7 +1172,7 @@ export async function GET(request: NextRequest) {
           let platformSuccess = false;
 
           if (fullPost.platform === 'instagram') {
-            const igResult = await publishToInstagram(postWithMedia, supabase);
+            const igResult = await publishToInstagram(postWithMedia, supabase, orgId);
             if (igResult.success && igResult.permalink) {
               updateFields.instagram_permalink = igResult.permalink;
               platformSuccess = true;
@@ -1352,7 +1382,7 @@ export async function POST(request: NextRequest) {
 
         // Publish to target platform
         if ((targetPlatform === 'instagram' || targetPlatform === 'all') && pubPost.visual_url) {
-          const igResult = await publishToInstagram(pubPost, supabase);
+          const igResult = await publishToInstagram(pubPost, supabase, orgId);
           if (igResult.success && igResult.permalink) {
             pubUpdate.instagram_permalink = igResult.permalink;
             pubPermalink = igResult.permalink;
@@ -1423,7 +1453,7 @@ export async function POST(request: NextRequest) {
 
         // Publish to Instagram
         if (singlePost.platform === 'instagram') {
-          const igResult = await publishToInstagram({ ...singlePost, visual_url: singleVisualUrl }, supabase);
+          const igResult = await publishToInstagram({ ...singlePost, visual_url: singleVisualUrl }, supabase, orgId);
           if (igResult.success) {
             await supabase.from('content_calendar').update({
               instagram_permalink: igResult.permalink,
@@ -1645,7 +1675,7 @@ export async function POST(request: NextRequest) {
           }
 
           // Publish to Instagram
-          const igResult = await publishToInstagram({ ...post, visual_url: visualUrl }, supabase);
+          const igResult = await publishToInstagram({ ...post, visual_url: visualUrl }, supabase, orgId);
           if (igResult.success) {
             await supabase.from('content_calendar').update({
               instagram_permalink: igResult.permalink,
@@ -1808,7 +1838,7 @@ export async function POST(request: NextRequest) {
               updateData.publish_diagnostic = { platform: 'Instagram', reason: 'token_invalid_pre_check', severity: 'critical', detail: pubError, timestamp: new Date().toISOString() };
               delete updateData.published_at;
             } else {
-              const igResult = await publishToInstagram(postWithVideo, supabase);
+              const igResult = await publishToInstagram(postWithVideo, supabase, orgId);
               if (igResult.success) {
                 igPermalink = igResult.permalink;
                 if (igResult.permalink) updateData.instagram_permalink = igResult.permalink;
@@ -1884,7 +1914,7 @@ export async function POST(request: NextRequest) {
                   updateData.publish_diagnostic = { platform: 'Instagram', reason: 'token_invalid_pre_check', severity: 'critical', detail: pubError2, timestamp: new Date().toISOString() };
                   delete updateData.published_at;
                 } else {
-                  const igResult = await publishToInstagram({ ...post, visual_url: visualUrl }, supabase);
+                  const igResult = await publishToInstagram({ ...post, visual_url: visualUrl }, supabase, orgId);
                   if (igResult.success) {
                     igPermalink2 = igResult.permalink;
                     if (igResult.permalink) updateData.instagram_permalink = igResult.permalink;
@@ -2654,7 +2684,7 @@ async function generateWeekWithVisuals(supabase: any, publishAll: boolean, orgId
       if (publishAll && platform === 'instagram') {
         const igResult = await publishToInstagram(
           { format, caption: post.caption, hashtags: post.hashtags, visual_url: visualUrl },
-          supabase
+          supabase, orgId
         );
 
         if (igResult.success) {
@@ -3167,7 +3197,7 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
         if (postPlatform === 'instagram') {
           const igResult = await publishToInstagram(
             { format: postFormat, caption: post.caption, hashtags: post.hashtags, visual_url: visualUrl || undefined, video_url: videoUrl || undefined },
-            supabase
+            supabase, orgId
           );
           if (igResult.success) {
             igPermalink = igResult.permalink;

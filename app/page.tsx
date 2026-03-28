@@ -200,8 +200,8 @@ function HomeKeiroInner() {
         </div>
       </section>
 
-      {/* QUIZ INTERACTIF + ROI CALCULATOR */}
-      <QuizAndCalculator />
+      {/* QUIZ INTERACTIF — hidden for cleaner UX */}
+      {false && <QuizAndCalculator />}
 
       {/* VIDÉO WORKFLOW - Compact version */}
       <section className="section-light section-divider">
@@ -271,7 +271,9 @@ function HomeKeiroInner() {
         </div>
       </section>
 
-      {/* ASSISTANT MARKETING INTELLIGENCE (AMI) — DARK SECTION — last step of "comment ca marche" */}
+      {/* ═══ HIDDEN SECTIONS — too long for landing, keeping code for future ═══ */}
+      <div className="hidden">
+      {/* ASSISTANT MARKETING INTELLIGENCE (AMI) */}
       <div className="relative h-40 overflow-hidden" aria-hidden="true">
         <div className={`absolute inset-0 bg-gradient-to-b ${isLight ? 'from-[#FAFBFC] via-[#FAFBFC]/80' : 'from-transparent via-transparent/80'} to-[#0B1120]`} />
         <div className="absolute bottom-0 left-0 right-0 h-24 bg-[#0B1120]" style={{ clipPath: 'ellipse(70% 100% at 50% 100%)' }} />
@@ -899,6 +901,9 @@ function HomeKeiroInner() {
         </div>
       </section>
 
+      </div>
+      {/* ═══ END HIDDEN SECTIONS ═══ */}
+
       {/* TÉMOIGNAGES CLIENTS */}
       <section className="mx-auto max-w-6xl px-6 py-12">
         <div className="text-center mb-10">
@@ -983,6 +988,8 @@ function HomeKeiroInner() {
         <p className="text-xs text-center text-neutral-400 mt-2 italic">Retours basés sur des tests utilisateurs</p>
       </section>
 
+      {/* ═══ MORE HIDDEN SECTIONS ═══ */}
+      <div className="hidden">
       {/* POURQUOI PUBLIER SUR L'ACTU */}
       <section className="hidden sm:block section-divider section-light">
         <div className="mx-auto max-w-6xl px-6 py-12">
@@ -1300,6 +1307,9 @@ function HomeKeiroInner() {
         </div>
 
       </section>
+
+      </div>
+      {/* ═══ END MORE HIDDEN SECTIONS ═══ */}
 
       {/* PRICING */}
       <section className="hp-light-island section-divider section-light">
