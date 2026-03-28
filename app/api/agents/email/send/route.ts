@@ -123,6 +123,35 @@ export async function POST(request: NextRequest) {
     };
     const template = getEmailTemplate(category, template_step, vars, selectedVariant);
 
+    // --- Inject showcase images for step 1 (first contact) ---
+    if (template_step === 1 && prospect.type) {
+      try {
+        const { data: showcaseImages } = await supabase
+          .from('showcase_images')
+          .select('image_url, title')
+          .eq('business_type', prospect.type)
+          .eq('is_active', true)
+          .order('usage_count', { ascending: true })
+          .limit(2);
+
+        if (showcaseImages && showcaseImages.length > 0) {
+          const { getShowcaseImagesHtml } = await import('@/lib/agents/email-templates');
+          const showcaseHtml = getShowcaseImagesHtml(showcaseImages);
+          // Insert before closing </div> of email body
+          template.htmlBody = template.htmlBody.replace(
+            /<\/div>\s*<\/body>/i,
+            `${showcaseHtml}</div></body>`
+          );
+          // Update usage count
+          for (const img of showcaseImages) {
+            supabase.from('showcase_images').update({ usage_count: 1 }).eq('image_url', img.image_url).then(() => {});
+          }
+        }
+      } catch (e: any) {
+        console.warn('[EmailAgent] Showcase images injection failed (non-fatal):', e.message);
+      }
+    }
+
     // --- Send via Resend (primary) or Brevo (fallback) ---
     console.log(`[EmailAgent] Sending step ${template_step} to ${prospect.email} (variant ${selectedVariant})`);
 

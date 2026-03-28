@@ -171,7 +171,7 @@ export default function OnboardingDossier() {
   return (
     <div className="p-5 space-y-5">
       {/* Step indicators */}
-      <div className="flex items-center justify-between gap-1">
+      <div className="flex items-center justify-between gap-0.5 sm:gap-1 overflow-x-auto">
         {STEPS.map((s, i) => {
           const sFilled = s.fields.filter(f => dossier[f.key] && String(dossier[f.key]).trim().length > 0).length;
           const isComplete = sFilled === s.fields.length;

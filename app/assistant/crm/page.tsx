@@ -50,11 +50,22 @@ export default function ClientCRM() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data } = await supabase
+      // Filter by user's org or user_id for data separation
+      let query = supabase
         .from('crm_prospects')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(2000);
+
+      // Try org_id first, fallback to created_by
+      const { data: orgMember } = await supabase.from('organization_members').select('org_id').eq('user_id', user.id).maybeSingle();
+      if (orgMember?.org_id) {
+        query = query.eq('org_id', orgMember.org_id);
+      } else {
+        query = query.eq('created_by', user.id);
+      }
+
+      const { data } = await query;
 
       setProspects(data || []);
       setLoading(false);
@@ -104,9 +115,8 @@ export default function ClientCRM() {
       setImportResult(data);
       if (data.ok) {
         // Reload prospects
-        const supabase = supabaseBrowser();
-        const { data: fresh } = await supabase.from('crm_prospects').select('*').order('created_at', { ascending: false }).limit(2000);
-        if (fresh) setProspects(fresh);
+        // Reload with proper filtering
+        window.location.reload();
       }
     } catch (e: any) {
       setImportResult({ ok: false, error: e.message });
@@ -126,15 +136,15 @@ export default function ClientCRM() {
             <h1 className="text-lg font-bold">Mon CRM</h1>
             <p className="text-white/40 text-xs">{stats.total} prospects | {stats.hot} chauds | {stats.clients} clients</p>
           </div>
-          <div className="flex items-center gap-2">
-            <button onClick={() => fileInputRef.current?.click()} disabled={importing} className="px-3 py-1.5 bg-emerald-600 text-white text-xs font-medium rounded-lg hover:bg-emerald-700 disabled:opacity-50">
-              {importing ? 'Import...' : '\u{1F4E5} Importer Excel'}
+          <div className="flex items-center gap-2 flex-wrap">
+            <button onClick={() => fileInputRef.current?.click()} disabled={importing} className="px-3 py-1.5 bg-emerald-600 text-white text-[10px] sm:text-xs font-medium rounded-lg hover:bg-emerald-700 disabled:opacity-50">
+              {importing ? 'Import...' : '\u{1F4E5} Importer'}
             </button>
             <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={e => handleImport(e.target.files)} />
-            <a href="/api/crm/export?format=csv" className="px-3 py-1.5 bg-white/10 text-white text-xs font-medium rounded-lg hover:bg-white/20">
-              {'\u{1F4E4}'} Exporter CSV
+            <a href="/api/crm/export?format=csv" className="px-3 py-1.5 bg-white/10 text-white text-[10px] sm:text-xs font-medium rounded-lg hover:bg-white/20">
+              {'\u{1F4E4}'} Exporter
             </a>
-            <a href="/assistant" className="text-xs text-purple-400 hover:text-purple-300">{'\u2190'} Retour</a>
+            <a href="/assistant" className="text-[10px] sm:text-xs text-purple-400 hover:text-purple-300">{'\u2190'}</a>
           </div>
         </div>
       </div>
@@ -263,9 +273,9 @@ export default function ClientCRM() {
               <span className="text-xs text-white/30 ml-auto">{filtered.length} resultats</span>
             </div>
 
-            {/* Table */}
+            {/* Table — scrollable on mobile */}
             <div className="rounded-xl bg-white/[0.02] border border-white/10 overflow-hidden">
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto -mx-4 sm:mx-0">
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="border-b border-white/10 bg-white/[0.03]">
