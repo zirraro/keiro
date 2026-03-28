@@ -76,6 +76,8 @@ export async function GET(request: NextRequest) {
       .limit(20);
 
     if (!pendingItems || pendingItems.length === 0) {
+      // Log heartbeat so QA agent detects this agent is running
+      try { await supabase.from('agent_logs').insert({ agent: 'onboarding', action: 'heartbeat', status: 'success', data: { message: 'No pending items', dynamicScheduled }, created_at: new Date().toISOString() }); } catch {}
       return NextResponse.json({ ok: true, processed: 0, dynamicScheduled, message: 'No pending onboarding items' });
     }
 

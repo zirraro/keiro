@@ -99,6 +99,7 @@ export async function GET(request: NextRequest) {
       .not('plan', 'eq', 'free');
 
     if (!clients || clients.length === 0) {
+      try { await supabase.from('agent_logs').insert({ agent: 'retention', action: 'heartbeat', status: 'success', data: { message: 'No paying clients' }, created_at: new Date().toISOString() }); } catch {}
       return NextResponse.json({ ok: true, processed: 0, message: 'No paying clients found' });
     }
 

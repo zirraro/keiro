@@ -400,25 +400,27 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'ceo_evening':
-      // 15:00 UTC — CEO: events → status report PM → brief → orders
+      // 15:00 UTC — CEO evening: SPLIT into 2 background tasks to avoid 300s timeout
+      // Phase 1: Events + reports (fast, < 60s)
       fireBackground(async () => {
         try {
           const eventResult = await processEventPipeline(aiSupabase);
           console.log(`[Scheduler/ceo_evening] Event pipeline: ${eventResult.actions} actions dispatched`);
         } catch (e: any) { console.error('[Scheduler/ceo_evening] Event pipeline error:', e.message?.substring(0, 200)); }
-        await delay(5000);
+        await delay(3000);
         await callEndpoint('CEO Status Report PM', '/api/agents/ceo-reports?type=status', 'POST');
-        await delay(5000);
-        // CEO Group report PM
         try { await sendCeoGroupReport(aiSupabase); } catch {}
-        await delay(10000);
+      });
+      // Phase 2: Brief + orders (separate, can take up to 300s)
+      fireBackground(async () => {
+        await delay(30000); // Wait 30s for phase 1
         await callEndpoint('CEO Brief (afternoon)', '/api/agents/ceo');
-        await callEndpoint('Execute Orders', '/api/agents/orders');
         await delay(5000);
-        // Send CEO brief to each client (daily)
+        await callEndpoint('Execute Orders', '/api/agents/orders');
+        await delay(3000);
         await callEndpoint('CEO Client Brief', '/api/agents/ceo-reports?type=client_brief', 'POST');
       });
-      results.push({ task: 'CEO Brief PM + Orders + Group + Client Briefs', ok: true, data: { status: 'dispatched_background' } });
+      results.push({ task: 'CEO Evening (split)', ok: true, data: { status: 'dispatched_background' } });
       break;
 
     case 'evening':
