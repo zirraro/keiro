@@ -2,6 +2,43 @@
 
 import { useState, useCallback, useEffect } from 'react';
 
+// Hot prospects notification — shown directly in agent dashboard
+function HotProspectsAlert({ source, gradientFrom }: { source?: string; gradientFrom: string }) {
+  const [prospects, setProspects] = useState<Array<{ id: string; company: string; email: string; temperature: string; status: string; type: string }>>([]);
+
+  useEffect(() => {
+    fetch('/api/crm/export?format=json', { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => {
+        const hot = (d.prospects || []).filter((p: any) => p.temperature === 'hot').slice(0, 5);
+        setProspects(hot);
+      }).catch(() => {});
+  }, []);
+
+  if (prospects.length === 0) return null;
+
+  return (
+    <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-lg">{'\u{1F525}'}</span>
+        <span className="text-xs font-bold text-amber-400">{prospects.length} prospect{prospects.length > 1 ? 's' : ''} chaud{prospects.length > 1 ? 's' : ''} — a contacter en priorite !</span>
+      </div>
+      <div className="space-y-2">
+        {prospects.map(p => (
+          <div key={p.id} className="flex items-center gap-3 bg-white/5 rounded-lg px-3 py-2">
+            <span className="text-xs text-amber-400">{'\u{1F525}'}</span>
+            <div className="flex-1 min-w-0">
+              <span className="text-xs font-medium text-white">{p.company || p.email}</span>
+              {p.type && <span className="text-[9px] text-white/30 ml-2">{p.type}</span>}
+            </div>
+            <span className="text-[9px] px-1.5 py-0.5 bg-amber-500/20 text-amber-400 rounded">{p.status}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // Live Instagram DM conversations component
 function DmConversationsLive() {
   const [convs, setConvs] = useState<Array<{
@@ -576,6 +613,9 @@ function MarketingPanel({
   if (gs) {
     return (
       <>
+        {/* Hot prospects alert */}
+        <HotProspectsAlert gradientFrom={gradientFrom} />
+
         {/* Commercial bloc */}
         <SectionTitle>Commercial</SectionTitle>
         <div className="grid grid-cols-3 gap-3">
@@ -863,6 +903,9 @@ function EmailPanel({
           })}
         </div>
       </div>
+
+      {/* Hot prospects — direct notification */}
+      <HotProspectsAlert source="email" gradientFrom={gradientFrom} />
 
       {/* Recent emails with reply capability */}
       {(data as any).recentEmails && (data as any).recentEmails.length > 0 && (
@@ -1590,6 +1633,9 @@ function DmInstagramPanel({
           gradientTo={gradientTo}
         />
       </div>
+
+      {/* Hot prospects alert — directly in agent space */}
+      <HotProspectsAlert source="dm_instagram" gradientFrom={gradientFrom} />
 
       {/* Live Instagram conversations */}
       <SectionTitle>Conversations Instagram</SectionTitle>
