@@ -614,54 +614,25 @@ export default function AgentWorkspacePage() {
 
         {/* ═══ TAB: DASHBOARD ═══ */}
         {activeTab === 'dashboard' && (
-          <div>
-            {/* Top bar: stats + file upload inline */}
-            <div className="flex items-center gap-3 mb-4 flex-wrap">
-              <div className="flex items-center gap-2 bg-white/5 rounded-lg px-3 py-1.5 border border-white/10">
-                <span className="text-white/40 text-[10px]">Messages</span>
-                <span className="text-white font-bold text-sm">{messages.length}</span>
-              </div>
-              <div className="flex items-center gap-2 bg-white/5 rounded-lg px-3 py-1.5 border border-white/10">
-                <span className="text-white/40 text-[10px]">Fichiers</span>
-                <span className="text-white font-bold text-sm">{files.length}</span>
-              </div>
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                onDragOver={e => { e.preventDefault(); setDragOver(true); }} onDragLeave={() => setDragOver(false)}
-                onDrop={e => { e.preventDefault(); setDragOver(false); handleFileUpload(e.dataTransfer.files); }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 border border-dashed rounded-lg cursor-pointer transition-all text-[10px] ${dragOver ? 'border-purple-400 bg-purple-500/10 text-purple-300' : 'border-white/20 hover:border-white/30 text-white/30 hover:text-white/50'}`}
-              >
-                <input ref={fileInputRef} type="file" className="hidden" multiple onChange={e => handleFileUpload(e.target.files)} />
-                <span className="text-sm">+</span>
-                {uploading ? 'Upload...' : 'Fichier'}
-              </div>
-              {files.length > 0 && (
-                <div className="flex items-center gap-1 overflow-x-auto">
-                  {files.slice(0, 3).map(f => (
-                    <span key={f.id} className="text-[9px] text-white/30 bg-white/5 px-2 py-0.5 rounded truncate max-w-[100px]">{f.name}</span>
-                  ))}
-                  {files.length > 3 && <span className="text-[9px] text-white/20">+{files.length - 3}</span>}
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_180px] gap-4">
+            <div className="space-y-4 min-w-0">
+              {/* Setup guide if agent not configured */}
+              {agentSetupDone === false && !['onboarding', 'qa', 'ceo', 'marketing'].includes(agentId) && (
+                <div className="mb-4">
+                  <AgentSetupGuide
+                    agentId={agentId}
+                    agentName={dn}
+                    gradientFrom={gf}
+                    gradientTo={gt}
+                    userPlan={userPlan}
+                    requiredPlan={agent?.minPlan || 'gratuit'}
+                    onComplete={() => setAgentSetupDone(true)}
+                  />
                 </div>
               )}
-            </div>
 
-            {/* Setup guide if agent not configured */}
-            {agentSetupDone === false && !['onboarding', 'qa', 'ceo', 'marketing'].includes(agentId) && (
-              <div className="mb-4">
-                <AgentSetupGuide
-                  agentId={agentId}
-                  agentName={dn}
-                  gradientFrom={gf}
-                  gradientTo={gt}
-                  userPlan={userPlan}
-                  requiredPlan={agent?.minPlan || 'gratuit'}
-                  onComplete={() => setAgentSetupDone(true)}
-                />
-              </div>
-            )}
-
-            {hasDashboard && (
-              <div className="rounded-2xl border border-white/10 bg-white/[0.02] overflow-hidden">
+              {hasDashboard && (
+                <div className="rounded-2xl border border-white/10 bg-white/[0.02] overflow-hidden">
                   {dashboardLoading ? (
                     <div className="flex items-center justify-center py-16"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400 mx-auto" /></div>
                   ) : agentId === 'commercial' ? (
@@ -769,6 +740,31 @@ export default function AgentWorkspacePage() {
                   ))}
                 </div>
               </div>
+            </div>
+            {/* Compact sidebar */}
+            <div className="hidden lg:block space-y-3">
+              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                <div className="text-center mb-2">
+                  <div className="text-white font-bold text-xl">{messages.length}</div>
+                  <div className="text-white/30 text-[9px]">Messages</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-white font-bold text-xl">{files.length}</div>
+                  <div className="text-white/30 text-[9px]">Fichiers</div>
+                </div>
+              </div>
+              <div
+                onDragOver={e => { e.preventDefault(); setDragOver(true); }} onDragLeave={() => setDragOver(false)}
+                onDrop={e => { e.preventDefault(); setDragOver(false); handleFileUpload(e.dataTransfer.files); }}
+                onClick={() => fileInputRef.current?.click()}
+                className="border border-dashed border-white/15 hover:border-white/30 rounded-xl p-2 text-center cursor-pointer transition-all"
+              >
+                <input ref={fileInputRef} type="file" className="hidden" multiple onChange={e => handleFileUpload(e.target.files)} />
+                <span className="text-white/30 text-[10px]">{uploading ? 'Upload...' : '+ Fichier'}</span>
+              </div>
+              {files.slice(0, 5).map(f => (
+                <div key={f.id} className="text-[9px] text-white/30 truncate px-1">{f.name}</div>
+              ))}
             </div>
           </div>
         )}
