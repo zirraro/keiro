@@ -97,23 +97,47 @@ export default function ProfileEnrichmentModal({ profile, userId, onClose }: Pro
       // 1. Direct save to business_dossiers as fallback (immediate, doesn't depend on Clara's response)
       const directData: Record<string, string> = {};
       if (answers[0].trim()) {
-        // Parse activite: try to extract business type and city
+        // Q1: "C'est quoi ton business" → company_description + try to extract type and city
         directData.company_description = answers[0].trim();
-        const cityMatch = answers[0].match(/(?:a|à)\s+([A-Z][a-zé]+(?:\s[A-Z][a-zé]+)?)/);
+        // Extract city (case insensitive: "a lyon", "à Paris", etc.)
+        const cityMatch = answers[0].match(/(?:a|à|sur)\s+([A-ZÀ-Ÿ][a-zà-ÿ]+(?:[\s-][A-ZÀ-Ÿ][a-zà-ÿ]+)*)/i);
         if (cityMatch) directData.city = cityMatch[1];
+        // Extract business type keywords
+        const typeKeywords: Record<string, string> = {
+          restaurant: 'restaurant', coiffeur: 'coiffeur', salon: 'salon', coach: 'coach',
+          boutique: 'boutique', fleuriste: 'fleuriste', boulangerie: 'boulangerie',
+          freelance: 'freelance', agence: 'agence', consultant: 'consultant',
+        };
+        const lowerQ1 = answers[0].toLowerCase();
+        for (const [kw, type] of Object.entries(typeKeywords)) {
+          if (lowerQ1.includes(kw)) { directData.business_type = type; break; }
+        }
       }
       if (answers[1].trim()) directData.business_goals = answers[1].trim();
       if (answers[2].trim()) directData.target_audience = answers[2].trim();
-      if (answers[3]?.trim()) directData.company_name = answers[3].trim();
+      if (answers[3]?.trim()) {
+        // Q4: champ libre — peut contenir nom, produits, etc.
+        const q4 = answers[3].trim();
+        if (!directData.company_description) directData.company_description = q4;
+        // Try to extract company name (first capitalized words)
+        const nameMatch = q4.match(/^([A-ZÀ-Ÿ][a-zà-ÿ]+(?:\s[A-ZÀ-Ÿ&][a-zà-ÿ]*)*)/);
+        if (nameMatch && nameMatch[1].length > 2) directData.company_name = nameMatch[1];
+      }
 
-      // Save directly to dossier
+      // Save directly to dossier — MUST await to ensure it saves before page changes
       if (Object.keys(directData).length > 0) {
-        fetch('/api/business-dossier', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify(directData),
-        }).catch(() => {});
+        try {
+          const saveRes = await fetch('/api/business-dossier', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(directData),
+          });
+          const saveData = await saveRes.json();
+          console.log('[Onboarding] Dossier saved:', saveData);
+        } catch (e) {
+          console.warn('[Onboarding] Dossier save failed:', e);
+        }
       }
 
       // 2. Also send to Clara for AI extraction (enriches with more fields)
