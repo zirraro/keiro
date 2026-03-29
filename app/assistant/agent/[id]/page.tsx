@@ -618,6 +618,21 @@ export default function AgentWorkspacePage() {
         {activeTab === 'dashboard' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
+              {/* Setup guide if agent not configured */}
+              {agentSetupDone === false && !['onboarding', 'qa', 'ceo', 'marketing'].includes(agentId) && (
+                <div className="mb-4">
+                  <AgentSetupGuide
+                    agentId={agentId}
+                    agentName={dn}
+                    gradientFrom={gf}
+                    gradientTo={gt}
+                    userPlan={userPlan}
+                    requiredPlan={agent?.minPlan || 'gratuit'}
+                    onComplete={() => setAgentSetupDone(true)}
+                  />
+                </div>
+              )}
+
               {hasDashboard && (
                 <div className="rounded-2xl border border-white/10 bg-white/[0.02] overflow-hidden">
                   {dashboardLoading ? (
