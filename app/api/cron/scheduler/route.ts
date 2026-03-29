@@ -605,10 +605,7 @@ export async function GET(request: NextRequest) {
     case 'ops':
       // 22:00 UTC — Ops Health Check + CEO Group evening report
       await callEndpoint('Ops Health Check', '/api/agents/ops', 'POST', { action: 'health_check' });
-      // 3eme rapport CEO Group de la journee (bilan complet)
-      fireBackground(async () => {
-        try { await sendCeoGroupReport(aiSupabase); } catch {}
-      });
+      // CEO Group: 2x/jour seulement (matin + soir), pas la nuit
       break;
 
     case 'gmaps':

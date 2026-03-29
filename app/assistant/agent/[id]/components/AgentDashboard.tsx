@@ -1041,8 +1041,8 @@ function MarketingPanel({
   if (gs) {
     return (
       <>
-        {/* Connect social networks */}
-        <SocialConnectBanners agentId="marketing" networks={['instagram', 'tiktok', 'linkedin']} />
+        {/* Connect social networks — hide if already connected */}
+        {!(data as any).connections?.instagram && <SocialConnectBanners agentId="marketing" networks={['instagram', 'tiktok', 'linkedin']} />}
 
         {/* Hot prospects alert */}
         <HotProspectsAlert gradientFrom={gradientFrom} />
@@ -1741,8 +1741,8 @@ function ContentPanel({
 
   return (
     <>
-      {/* Connect social networks */}
-      <SocialConnectBanners agentId="content" networks={['instagram', 'tiktok', 'linkedin']} />
+      {/* Connect social networks — hide if already connected */}
+      {!(data as any).connections?.instagram && <SocialConnectBanners agentId="content" networks={['instagram', 'tiktok', 'linkedin']} />}
 
       {/* Auto mode toggle */}
       <AutoModeToggle agentId="content" autoLabel="Publication automatique" manualLabel="Publication manuelle" autoDesc="Lena publie automatiquement 3x/jour selon ton calendrier" manualDesc="Tu valides chaque post avant publication" />
@@ -2515,10 +2515,10 @@ function DmInstagramPanel({
 
   return (
     <>
-      {/* Connect + Toggle inline */}
+      {/* Connect + Toggle inline — hide connect if already connected */}
       <div className="flex flex-col lg:flex-row gap-3 mb-3">
-        <div className="flex-1"><SocialConnectBanners agentId="dm_instagram" networks={['instagram']} /></div>
-        <div className="lg:w-72"><AutoModeToggle agentId="dm_instagram" autoLabel="DMs automatiques" manualLabel="DMs manuels" autoDesc="Jade repond auto aux DMs" manualDesc="Tu valides chaque DM" /></div>
+        {!(data as any).connections?.instagram && <div className="flex-1"><SocialConnectBanners agentId="dm_instagram" networks={['instagram']} /></div>}
+        <div className={!(data as any).connections?.instagram ? 'lg:w-72' : 'flex-1'}><AutoModeToggle agentId="dm_instagram" autoLabel="DMs automatiques" manualLabel="DMs manuels" autoDesc="Jade repond auto aux DMs" manualDesc="Tu valides chaque DM" /></div>
       </div>
 
       {/* Main: conversations + KPIs side by side on desktop */}

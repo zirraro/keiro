@@ -800,13 +800,20 @@ export async function GET(request: NextRequest) {
     const supabase = getSupabaseAdmin();
     const orgId = await resolveOrgId(supabase, user.id);
 
-    // Check if admin — admin sees cross-client data (supervision mode)
+    // Check if admin + connection status
     const { data: userProfile } = await supabase
       .from('profiles')
-      .select('is_admin')
+      .select('is_admin, instagram_business_account_id, instagram_access_token, facebook_page_id, google_business_location_id, subscription_plan')
       .eq('id', user.id)
       .single();
     const isAdmin = !!userProfile?.is_admin;
+
+    // Connection status — passed to frontend so panels know what's connected
+    const connections = {
+      instagram: !!(userProfile?.instagram_business_account_id && (userProfile?.instagram_access_token || userProfile?.facebook_page_id)),
+      google: !!userProfile?.google_business_location_id,
+      subscription_plan: userProfile?.subscription_plan || 'free',
+    };
 
     // For admin: pass null userId to get ALL clients data (supervision)
     // For client: pass their own userId to get their data only
@@ -907,6 +914,7 @@ export async function GET(request: NextRequest) {
       agent_id: agentId,
       data: agentData,
       recentChats,
+      connections,
     });
   } catch (error: unknown) {
     const message =

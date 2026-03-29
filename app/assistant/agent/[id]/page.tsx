@@ -616,20 +616,7 @@ export default function AgentWorkspacePage() {
         {activeTab === 'dashboard' && (
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_180px] gap-4">
             <div className="space-y-4 min-w-0">
-              {/* Setup guide if agent not configured */}
-              {agentSetupDone === false && !['onboarding', 'qa', 'ceo', 'marketing'].includes(agentId) && (
-                <div className="mb-4">
-                  <AgentSetupGuide
-                    agentId={agentId}
-                    agentName={dn}
-                    gradientFrom={gf}
-                    gradientTo={gt}
-                    userPlan={userPlan}
-                    requiredPlan={agent?.minPlan || 'gratuit'}
-                    onComplete={() => setAgentSetupDone(true)}
-                  />
-                </div>
-              )}
+              {/* Setup guide removed — PreviewBanner in each agent panel handles this */}
 
               {hasDashboard && (
                 <div className="rounded-2xl border border-white/10 bg-white/[0.02] overflow-hidden">
@@ -724,7 +711,7 @@ export default function AgentWorkspacePage() {
                       )}
                     </div>
                   ) : (
-                    <AgentDashboard agentId={agentId} agentName={dn} gradientFrom={gf} gradientTo={gt} data={dashboardData || {}} />
+                    <AgentDashboard agentId={agentId} agentName={dn} gradientFrom={gf} gradientTo={gt} data={{...(dashboardData?.data || dashboardData || {}), connections: dashboardData?.connections}} />
                   )}
                 </div>
               )}
@@ -741,30 +728,30 @@ export default function AgentWorkspacePage() {
                 </div>
               </div>
             </div>
-            {/* Compact sidebar */}
+            {/* Compact sidebar — messages count + file upload (only for Clara, Finance, Prospection, CEO, AMI) */}
             <div className="hidden lg:block space-y-3">
               <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                <div className="text-center mb-2">
+                <div className="text-center">
                   <div className="text-white font-bold text-xl">{messages.length}</div>
                   <div className="text-white/30 text-[9px]">Messages</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-white font-bold text-xl">{files.length}</div>
-                  <div className="text-white/30 text-[9px]">Fichiers</div>
-                </div>
               </div>
-              <div
-                onDragOver={e => { e.preventDefault(); setDragOver(true); }} onDragLeave={() => setDragOver(false)}
-                onDrop={e => { e.preventDefault(); setDragOver(false); handleFileUpload(e.dataTransfer.files); }}
-                onClick={() => fileInputRef.current?.click()}
-                className="border border-dashed border-white/15 hover:border-white/30 rounded-xl p-2 text-center cursor-pointer transition-all"
-              >
-                <input ref={fileInputRef} type="file" className="hidden" multiple onChange={e => handleFileUpload(e.target.files)} />
-                <span className="text-white/30 text-[10px]">{uploading ? 'Upload...' : '+ Fichier'}</span>
-              </div>
-              {files.slice(0, 5).map(f => (
-                <div key={f.id} className="text-[9px] text-white/30 truncate px-1">{f.name}</div>
-              ))}
+              {['onboarding', 'finance', 'comptable', 'commercial', 'ceo', 'marketing'].includes(agentId) && (
+                <>
+                  <div
+                    onDragOver={e => { e.preventDefault(); setDragOver(true); }} onDragLeave={() => setDragOver(false)}
+                    onDrop={e => { e.preventDefault(); setDragOver(false); handleFileUpload(e.dataTransfer.files); }}
+                    onClick={() => fileInputRef.current?.click()}
+                    className="border border-dashed border-white/20 hover:border-white/30 rounded-xl p-2 text-center cursor-pointer transition-all"
+                  >
+                    <input ref={fileInputRef} type="file" className="hidden" multiple onChange={e => handleFileUpload(e.target.files)} />
+                    <span className="text-white/30 text-[10px]">{uploading ? 'Upload...' : '+ Fichier'}</span>
+                  </div>
+                  {files.slice(0, 3).map(f => (
+                    <div key={f.id} className="text-[9px] text-white/30 truncate px-1">{f.name}</div>
+                  ))}
+                </>
+              )}
             </div>
           </div>
         )}

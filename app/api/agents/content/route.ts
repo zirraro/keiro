@@ -3115,8 +3115,9 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
           ...(orgId ? { org_id: orgId } : {}),
         });
 
-        // Notify founder
-        if (process.env.RESEND_API_KEY) {
+        // Admin email notification DISABLED — admin no longer publishes content
+        // Content notifications go through Noah+AMI daily brief to each client
+        if (false && process.env.RESEND_API_KEY) {
           await fetch('https://api.resend.com/emails', {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
@@ -3218,8 +3219,8 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
     }
   }
 
-  // Send notification to founder (post is ready/published)
-  if (process.env.RESEND_API_KEY) {
+  // Admin content email DISABLED — notifications go through Noah+AMI daily brief
+  if (false && process.env.RESEND_API_KEY) {
     const isPublished = (!!visualUrl || !!videoUrl) && !draftOnly;
     const publishLink = igPermalink || (tiktokPublishId ? `TikTok publish_id: ${tiktokPublishId}` : '');
     await fetch('https://api.resend.com/emails', {
