@@ -1346,6 +1346,115 @@ function EmailPanel({
   );
 }
 
+// ─── Campaign Creator (mini flow) ──────────────────────────────────
+function CampaignCreator() {
+  const [open, setOpen] = useState(false);
+  const [step, setStep] = useState(0);
+  const [target, setTarget] = useState('all_prospects');
+  const [subject, setSubject] = useState('');
+  const [body, setBody] = useState('');
+  const [generating, setGenerating] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  const generateEmail = useCallback(async () => {
+    setGenerating(true);
+    try {
+      const res = await fetch('/api/agents/client-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ agent_id: 'email', message: `Genere un email de campagne marketing pour ${target === 'hot' ? 'mes prospects chauds' : target === 'new' ? 'mes nouveaux contacts' : 'tous mes prospects'}. Objet accrocheur + corps court et percutant en francais. Format: OBJET: ...\n\nCORPS: ...` }),
+      });
+      if (res.ok) {
+        const d = await res.json();
+        const text = d.reply || '';
+        const subMatch = text.match(/OBJET:\s*(.*?)(\n|CORPS)/i);
+        const bodyMatch = text.match(/CORPS:\s*([\s\S]*)/i);
+        if (subMatch) setSubject(subMatch[1].trim());
+        if (bodyMatch) setBody(bodyMatch[1].trim());
+      }
+    } catch {} finally { setGenerating(false); }
+  }, [target]);
+
+  if (sent) {
+    return (
+      <div id="campaign-modal" className="rounded-xl border border-emerald-500/20 bg-emerald-900/10 p-4 mb-3 text-center">
+        <span className="text-lg">{'\u2705'}</span>
+        <p className="text-xs text-emerald-400 font-bold mt-1">Campagne planifiee !</p>
+        <button onClick={() => { setSent(false); setOpen(false); setStep(0); setSubject(''); setBody(''); }} className="text-[10px] text-white/40 mt-2 hover:text-white/60">Fermer</button>
+      </div>
+    );
+  }
+
+  if (!open) {
+    return (
+      <button onClick={() => setOpen(true)} className="w-full py-2.5 mb-3 rounded-xl border border-dashed border-cyan-500/30 bg-cyan-900/5 text-cyan-400 text-xs font-medium hover:bg-cyan-900/10 transition-all">
+        {'\u{1F4E7}'} Creer une nouvelle campagne email
+      </button>
+    );
+  }
+
+  return (
+    <div id="campaign-modal" className="rounded-xl border border-cyan-500/20 bg-cyan-900/10 p-4 mb-3">
+      <div className="flex items-center justify-between mb-3">
+        <h4 className="text-xs font-bold text-cyan-300">{'\u{1F4E7}'} Nouvelle campagne email</h4>
+        <button onClick={() => setOpen(false)} className="text-white/30 hover:text-white/60"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+      </div>
+
+      {step === 0 && (
+        <div className="space-y-2">
+          <label className="text-[10px] text-white/50">Cible</label>
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { key: 'all_prospects', label: 'Tous', icon: '\u{1F465}' },
+              { key: 'hot', label: 'Prospects chauds', icon: '\u{1F525}' },
+              { key: 'new', label: 'Nouveaux', icon: '\u2728' },
+            ].map(t => (
+              <button key={t.key} onClick={() => setTarget(t.key)} className={`p-2 rounded-lg text-[10px] font-medium text-center transition-all ${target === t.key ? 'bg-cyan-600 text-white' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}>
+                <div className="text-base mb-0.5">{t.icon}</div>{t.label}
+              </button>
+            ))}
+          </div>
+          <button onClick={() => { setStep(1); if (!subject) generateEmail(); }} className="w-full mt-2 py-2 bg-cyan-600 text-white text-xs font-bold rounded-lg">Suivant</button>
+        </div>
+      )}
+
+      {step === 1 && (
+        <div className="space-y-2">
+          <div>
+            <label className="text-[10px] text-white/50">Objet</label>
+            <input value={subject} onChange={e => setSubject(e.target.value)} placeholder={generating ? 'Generation IA...' : 'Objet de l\'email'} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-cyan-500/50 mt-1" />
+          </div>
+          <div>
+            <label className="text-[10px] text-white/50">Corps</label>
+            <textarea value={body} onChange={e => setBody(e.target.value)} placeholder={generating ? 'Generation IA en cours...' : 'Corps de l\'email'} rows={4} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-cyan-500/50 mt-1 resize-none" />
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => setStep(0)} className="px-3 py-2 bg-white/10 text-white/50 text-xs rounded-lg">Retour</button>
+            <button onClick={generateEmail} disabled={generating} className="px-3 py-2 bg-white/10 text-white/50 text-xs rounded-lg disabled:opacity-40">{generating ? '...' : '\u2728 Regenerer'}</button>
+            <button
+              onClick={async () => {
+                if (!subject.trim() || !body.trim()) return;
+                setSending(true);
+                try {
+                  await fetch('/api/agents/content', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'schedule_campaign', target, subject, body }) });
+                  setSent(true);
+                } catch {} finally { setSending(false); }
+              }}
+              disabled={sending || !subject.trim() || !body.trim()}
+              className="flex-1 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 text-white text-xs font-bold rounded-lg disabled:opacity-40"
+            >
+              {sending ? '...' : '\u{1F680} Lancer la campagne'}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+}
+
 // ─── Email Inbox Component ─────────────────────────────────────────
 function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: string }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -1476,10 +1585,11 @@ function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: str
             {tab.label}
           </button>
         ))}
-        <a href="/assistant?agent=email&action=campaign" className="px-3 py-1.5 bg-gradient-to-r from-cyan-600 to-blue-600 text-white text-[10px] sm:text-xs font-bold rounded-lg ml-auto whitespace-nowrap min-h-[32px] flex items-center">
-          {'\u{1F4E7}'} Nouvelle campagne
-        </a>
+        <span className="text-[10px] text-white/20 ml-auto">{'\u{1F4E7}'} Campagne: voir ci-dessous</span>
       </div>
+
+    {/* Campaign creation modal */}
+    <CampaignCreator />
 
     <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden h-[calc(55vh-60px)] md:h-[420px] mb-16 lg:mb-0">
       <div className="flex h-full">
@@ -1697,20 +1807,65 @@ function ContentPanel({
       )}
       <ContentWorkflow />
 
-      <SectionTitle>Activite (7 derniers jours)</SectionTitle>
-      <div className="bg-white/5 rounded-xl border border-white/10 p-4">
-        <div className="flex justify-between">
-          {last7.map((d, i) => (
-            <div key={i} className="flex flex-col items-center gap-2">
-              <div
-                className="w-6 h-6 rounded-full"
-                style={{
-                  background: d.hasActivity ? `linear-gradient(135deg, ${gradientFrom}, ${gradientTo})` : 'rgba(255,255,255,0.06)',
-                }}
-              />
-              <span className="text-[10px] text-white/40">{d.label}</span>
-            </div>
-          ))}
+      {/* Calendar view by platform — 7 days past + 7 days future */}
+      <SectionTitle>Calendrier editorial</SectionTitle>
+      <div className="bg-white/5 rounded-xl border border-white/10 p-3 sm:p-4 overflow-x-auto">
+        <div className="min-w-[500px]">
+          {/* Header: dates */}
+          <div className="grid grid-cols-[80px_repeat(14,1fr)] gap-0.5 mb-1">
+            <div />
+            {Array.from({ length: 14 }, (_, i) => {
+              const d = new Date(now);
+              d.setDate(d.getDate() - 7 + i);
+              const isToday = d.toISOString().slice(0, 10) === now.toISOString().slice(0, 10);
+              return (
+                <div key={i} className={`text-center text-[8px] sm:text-[9px] py-1 ${isToday ? 'text-purple-300 font-bold' : i < 7 ? 'text-white/30' : 'text-white/50'}`}>
+                  {d.toLocaleDateString('fr-FR', { weekday: 'narrow' })}{d.getDate()}
+                </div>
+              );
+            })}
+          </div>
+          {/* Rows: platforms */}
+          {['instagram', 'tiktok', 'linkedin'].map(platform => {
+            const platformIcon = platform === 'instagram' ? '\u{1F4F7}' : platform === 'tiktok' ? '\u{1F3B5}' : '\u{1F4BC}';
+            return (
+              <div key={platform} className="grid grid-cols-[80px_repeat(14,1fr)] gap-0.5 mb-0.5">
+                <div className="flex items-center gap-1 text-[10px] text-white/50 pr-1">
+                  <span>{platformIcon}</span>
+                  <span className="truncate capitalize">{platform}</span>
+                </div>
+                {Array.from({ length: 14 }, (_, i) => {
+                  const d = new Date(now);
+                  d.setDate(d.getDate() - 7 + i);
+                  const dayStr = d.toISOString().slice(0, 10);
+                  const isToday = dayStr === now.toISOString().slice(0, 10);
+                  const dayPosts = stats.recentContent.filter((c: any) => c.created_at?.slice(0, 10) === dayStr && (c.platform === platform || (!c.platform && platform === 'instagram')));
+                  const hasPost = dayPosts.length > 0;
+                  return (
+                    <div
+                      key={i}
+                      className={`h-6 sm:h-7 rounded-sm flex items-center justify-center text-[8px] font-bold ${
+                        hasPost
+                          ? 'bg-gradient-to-br from-purple-500/40 to-blue-500/40 text-white/80'
+                          : isToday
+                          ? 'bg-white/10 border border-purple-500/30'
+                          : 'bg-white/[0.03]'
+                      }`}
+                      title={hasPost ? `${dayPosts.length} post(s) ${platform}` : ''}
+                    >
+                      {hasPost ? dayPosts.length : ''}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+          {/* Legend */}
+          <div className="flex items-center gap-3 mt-2 pt-2 border-t border-white/5">
+            <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-sm bg-gradient-to-br from-purple-500/40 to-blue-500/40" /><span className="text-[9px] text-white/30">Publie</span></div>
+            <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-sm bg-white/10 border border-purple-500/30" /><span className="text-[9px] text-white/30">Aujourd&apos;hui</span></div>
+            <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-sm bg-white/[0.03]" /><span className="text-[9px] text-white/30">Vide</span></div>
+          </div>
         </div>
       </div>
     </>
@@ -3053,9 +3208,31 @@ const AGENT_CONFIG: Record<string, { subtitle: string; Panel: typeof MarketingPa
 /*  Main component                                                     */
 /* ------------------------------------------------------------------ */
 
+// Admin supervision names
+const ADMIN_NAMES: Record<string, { name: string; subtitle: string }> = {
+  marketing: { name: 'AMI Strategie Marketing Group', subtitle: 'Supervision Marketing — Tous clients' },
+  email: { name: 'Hugo Email Group', subtitle: 'Supervision Email — Tous clients' },
+  content: { name: 'Lena Contenu Group', subtitle: 'Supervision Contenu — Tous clients' },
+  dm_instagram: { name: 'Jade DM Group', subtitle: 'Supervision DM Instagram — Tous clients' },
+  commercial: { name: 'Leo Commercial Group', subtitle: 'Supervision Prospection — Tous clients' },
+  seo: { name: 'Oscar SEO Group', subtitle: 'Supervision SEO — Tous clients' },
+  ads: { name: 'Felix Ads Group', subtitle: 'Supervision Publicite — Tous clients' },
+  gmaps: { name: 'Theo Avis Group', subtitle: 'Supervision Avis Google — Tous clients' },
+  chatbot: { name: 'Max Chatbot Group', subtitle: 'Supervision Chatbot — Tous clients' },
+  whatsapp: { name: 'Stella WhatsApp Group', subtitle: 'Supervision WhatsApp — Tous clients' },
+  onboarding: { name: 'Clara Onboarding Group', subtitle: 'Supervision Onboarding — Tous clients' },
+  tiktok_comments: { name: 'Axel TikTok Group', subtitle: 'Supervision TikTok — Tous clients' },
+  instagram_comments: { name: 'Commentaires IG Group', subtitle: 'Supervision Commentaires — Tous clients' },
+  rh: { name: 'Sara RH Group', subtitle: 'Supervision Juridique — Tous clients' },
+  finance: { name: 'Louis Finance Group', subtitle: 'Supervision Finance — Tous clients' },
+};
+
 export default function AgentDashboard({ agentId, agentName, gradientFrom, gradientTo, data }: AgentDashboardProps) {
   const config = AGENT_CONFIG[agentId];
-  const subtitle = config?.subtitle ?? 'Tableau de bord';
+  const isAdmin = !!(data as any).supervision?.isAdmin;
+  const adminOverride = isAdmin ? ADMIN_NAMES[agentId] : null;
+  const displayName = adminOverride?.name || agentName;
+  const subtitle = adminOverride?.subtitle || config?.subtitle || 'Tableau de bord';
   const Panel = config?.Panel ?? GenericPanel;
 
   return (
@@ -3064,7 +3241,7 @@ export default function AgentDashboard({ agentId, agentName, gradientFrom, gradi
       <div className="rounded-t-2xl px-5 py-4 mb-0" style={{ background: `linear-gradient(135deg, ${gradientFrom}25, ${gradientTo}15)`, borderBottom: `2px solid ${gradientFrom}40` }}>
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold text-white">{agentName}</h2>
+            <h2 className="text-lg font-bold text-white">{displayName}</h2>
             <p className="text-sm font-medium" style={{ color: gradientFrom }}>{subtitle}</p>
           </div>
           <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${gradientFrom}30, ${gradientTo}30)` }}>
