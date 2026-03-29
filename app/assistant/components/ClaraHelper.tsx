@@ -94,9 +94,21 @@ export default function ClaraHelper() {
       credentials: 'include',
       body: JSON.stringify({ agent_id: agentId, auto_mode: true, setup_completed: true }),
     }).catch(() => {});
-    // Move to next
-    setCurrentWizardIndex(prev => prev + 1);
-  }, []);
+
+    // Save wizard state and navigate to agent page for tutorial
+    const nextIndex = currentWizardIndex + 1;
+    try {
+      sessionStorage.setItem('keiro_wizard_active', 'true');
+      sessionStorage.setItem('keiro_wizard_agent', agentId);
+      sessionStorage.setItem('keiro_wizard_next', String(nextIndex));
+      sessionStorage.setItem('keiro_wizard_total', String(inactiveAgents.length));
+      sessionStorage.setItem('keiro_wizard_agents', JSON.stringify(inactiveAgents.map(a => a.id)));
+    } catch {}
+
+    // Navigate to agent workspace
+    router.push('/assistant/agent/' + agentId);
+    setShow(false);
+  }, [currentWizardIndex, inactiveAgents, router]);
 
   const skipAgent = useCallback(() => {
     setCurrentWizardIndex(prev => prev + 1);

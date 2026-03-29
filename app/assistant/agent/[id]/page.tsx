@@ -10,6 +10,7 @@ const CrmDashboard = dynamic(() => import('./components/CrmDashboard'), { ssr: f
 const AgentDashboard = dynamic(() => import('./components/AgentDashboard'), { ssr: false });
 const OnboardingDossier = dynamic(() => import('./components/OnboardingDossier'), { ssr: false });
 const AgentSetupGuide = dynamic(() => import('../../components/AgentSetupGuide'), { ssr: false });
+const AgentTutorial = dynamic(() => import('./components/AgentTutorial'), { ssr: false });
 
 const AGENTS_WITH_DASHBOARD = [
   'marketing', 'commercial', 'email', 'content', 'seo', 'ads', 'comptable',
@@ -580,12 +581,31 @@ export default function AgentWorkspacePage() {
               <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
               <span className="text-green-300 text-[10px] font-medium">Actif</span>
             </div>
+            <button
+              onClick={() => {
+                try {
+                  sessionStorage.setItem('keiro_wizard_active', 'true');
+                  sessionStorage.setItem('keiro_wizard_agent', agentId);
+                  sessionStorage.setItem('keiro_wizard_next', '0');
+                  sessionStorage.setItem('keiro_wizard_total', '1');
+                  sessionStorage.setItem('keiro_wizard_agents', JSON.stringify([agentId]));
+                  window.location.reload();
+                } catch {}
+              }}
+              className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/40 hover:text-white/70 transition"
+              title="Voir le tutoriel"
+            >
+              <span className="text-[10px] font-bold">i</span>
+            </button>
             <button onClick={() => setChatOpen(true)} className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs font-semibold rounded-xl shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 transition-all">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
               Chat
             </button>
           </div>
         </div>
+
+        {/* Agent tutorial overlay (appears during wizard) */}
+        <AgentTutorial agentId={agentId} />
 
         {/* ═══ TABS ═══ */}
         <div className="flex items-center gap-1 bg-white/5 rounded-xl p-1 border border-white/10 mb-6 overflow-x-auto">
