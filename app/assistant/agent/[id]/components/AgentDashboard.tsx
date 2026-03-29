@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
+import PreviewBanner from './PreviewBanner';
+import { DEMO_DM_CONVERSATIONS, DEMO_EMAILS, DEMO_CONTENT_POSTS, DEMO_REVIEWS, DEMO_COMMENTS } from './AgentPreviewData';
 
 // ─── Social Connect Banners — shown in agent dashboards ─────────────
 const SOCIAL_NETWORKS = {
@@ -248,19 +250,32 @@ function DmConversationsLive() {
   }, [convs, selectedConv, replyText]);
 
   if (loading) return <div className="text-center py-8"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-400 mx-auto" /><div className="text-white/30 text-[10px] mt-2">Chargement des conversations...</div></div>;
-  if (convs.length === 0) return <div className="text-center py-8 text-white/30 text-xs">Aucune conversation Instagram — les DMs apparaitront ici</div>;
 
-  const selected = convs.find(c => c.id === selectedConv);
+  // Use demo data if no real conversations
+  const isDemo = convs.length === 0;
+  const displayConvs = isDemo ? DEMO_DM_CONVERSATIONS : convs;
+  const selected = displayConvs.find(c => c.id === selectedConv);
 
   return (
-    <div className="rounded-xl border-2 border-purple-500/20 bg-gradient-to-b from-purple-900/10 to-transparent overflow-hidden shadow-lg shadow-purple-500/5 h-[calc(60vh-60px)] md:h-[420px] mb-16 lg:mb-0">
+    <div>
+    {isDemo && (
+      <PreviewBanner
+        agentName="Jade"
+        connectLabel="Connecter Instagram"
+        connectUrl="/api/auth/instagram-oauth"
+        claraMessage="Voici a quoi ressembleront tes conversations DM une fois Instagram connecte. Jade repondra automatiquement et prospection en DM pour toi !"
+        gradientFrom="#e11d48"
+        gradientTo="#be123c"
+      />
+    )}
+    <div className={`rounded-xl border-2 ${isDemo ? 'border-amber-500/20 opacity-90' : 'border-purple-500/20'} bg-gradient-to-b from-purple-900/10 to-transparent overflow-hidden shadow-lg shadow-purple-500/5 h-[calc(60vh-60px)] md:h-[420px] mb-16 lg:mb-0`}>
       <div className="flex h-full">
         {/* Conversation list */}
         <div className={`${selectedConv ? 'hidden sm:block' : ''} w-full sm:w-56 border-r border-white/10 overflow-y-auto`}>
           <div className="px-3 py-2.5 border-b border-purple-500/20 bg-purple-900/20">
             <span className="text-[10px] font-semibold uppercase tracking-wider text-purple-300/60">{'\u{1F4AC}'} Conversations</span>
           </div>
-          {convs.map(conv => {
+          {displayConvs.map(conv => {
             const lastMsg = conv.messages[conv.messages.length - 1];
             const isUnread = lastMsg && !lastMsg.fromMe;
             return (
@@ -358,6 +373,7 @@ function DmConversationsLive() {
           </div>
         )}
       </div>
+    </div>
     </div>
   );
 }
@@ -1405,11 +1421,42 @@ function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: str
     } catch {} finally { setSending(false); }
   }, [replyText, threadProspect]);
 
-  if (emails.length === 0) {
-    return <div className="text-center py-6 text-white/30 text-xs">Aucun email pour le moment</div>;
-  }
+  const isDemo = emails.length === 0;
+  const displayEmails = isDemo ? DEMO_EMAILS : emails;
+
+  // Re-filter with demo data
+  const reFilteredEmails = displayEmails.filter((e: any) => {
+    if (inboxFilter === 'inbox') return e.direction === 'incoming';
+    if (inboxFilter === 'sent') return e.direction === 'outgoing' && !e.type?.includes('auto');
+    if (inboxFilter === 'auto') return e.type?.includes('auto') || e.type?.includes('step_');
+    return true;
+  });
+
+  // Re-group
+  const reByProspect = reFilteredEmails.reduce((acc: Record<string, any[]>, e: any) => {
+    const key = e.prospect_id || e.prospect || e.email || 'unknown';
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(e);
+    return acc;
+  }, {});
+  const reProspectList = Object.entries(reByProspect).map(([key, msgs]) => {
+    const latest = msgs[0];
+    const hasIncoming = msgs.some((m: any) => m.direction === 'incoming');
+    return { key, name: latest.prospect || key, email: latest.email, msgs, latest, hasIncoming, prospect_id: latest.prospect_id };
+  }).sort((a, b) => new Date(b.latest.date).getTime() - new Date(a.latest.date).getTime());
 
   return (
+    <div>
+    {isDemo && (
+      <PreviewBanner
+        agentName="Hugo"
+        connectLabel="Activer Hugo"
+        connectUrl="#"
+        claraMessage="Voici a quoi ressemblera ta boite email une fois Hugo active. Il enverra des sequences email personnalisees et tu pourras suivre les ouvertures, clics et reponses !"
+        gradientFrom="#06b6d4"
+        gradientTo="#0891b2"
+      />
+    )}
     <div>
       {/* Filter tabs + new campaign button */}
       <div className="flex items-center gap-1.5 mb-2 overflow-x-auto pb-1">
@@ -1439,9 +1486,9 @@ function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: str
         {/* Email list */}
         <div className={`${selectedId ? 'hidden sm:block' : ''} w-full sm:w-56 border-r border-white/5 overflow-y-auto`}>
           <div className="px-3 py-2 border-b border-white/5 bg-white/[0.02]">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-white/30">{prospectList.length} conversations</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-white/30">{(isDemo ? reProspectList : prospectList).length} conversations</span>
           </div>
-          {prospectList.map(p => (
+          {(isDemo ? reProspectList : prospectList).map(p => (
             <button
               key={p.key}
               onClick={() => p.prospect_id ? loadThread(p.prospect_id) : setSelectedId(p.key)}
@@ -1548,6 +1595,7 @@ function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: str
       </div>
     </div>
     </div>
+    </div>
   );
 }
 
@@ -1637,6 +1685,16 @@ function ContentPanel({
 
       {/* Content workflow: prepared → validate → scheduled → published */}
       <SectionTitle>File de contenu</SectionTitle>
+      {stats.postsGenerated === 0 && (
+        <PreviewBanner
+          agentName="Lena"
+          connectLabel="Connecter tes reseaux"
+          connectUrl="/api/auth/instagram-oauth"
+          claraMessage="Voici un apercu de ce que Lena preparera pour toi ! Des posts optimises avec hashtags, programmes automatiquement. Connecte Instagram pour demarrer."
+          gradientFrom="#8b5cf6"
+          gradientTo="#6d28d9"
+        />
+      )}
       <ContentWorkflow />
 
       <SectionTitle>Activite (7 derniers jours)</SectionTitle>
@@ -1691,7 +1749,9 @@ function ContentWorkflow() {
   }, []);
 
   if (loading) return <div className="text-center py-6"><div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-400 mx-auto" /></div>;
-  if (posts.length === 0) return <div className="text-center py-6 text-white/30 text-xs">Aucun post programme — Lena prepare ton contenu</div>;
+
+  const isDemo = posts.length === 0;
+  const displayPosts = isDemo ? DEMO_CONTENT_POSTS : posts;
 
   const statusConfig: Record<string, { color: string; label: string; icon: string }> = {
     draft: { color: '#fbbf24', label: 'A valider', icon: '\u{1F4DD}' },
@@ -1702,8 +1762,8 @@ function ContentWorkflow() {
   };
 
   // Status counts
-  const counts = posts.reduce((acc: Record<string, number>, p: any) => { acc[p.status] = (acc[p.status] || 0) + 1; return acc; }, {});
-  const filtered = filter === 'all' ? posts : posts.filter((p: any) => p.status === filter);
+  const counts = displayPosts.reduce((acc: Record<string, number>, p: any) => { acc[p.status] = (acc[p.status] || 0) + 1; return acc; }, {});
+  const filtered = filter === 'all' ? displayPosts : displayPosts.filter((p: any) => p.status === filter);
 
   return (
     <div>
@@ -2576,12 +2636,29 @@ function GmapsPanel({
       {/* Auto-reply toggle for Google reviews */}
       {googleConnected && <AutoModeToggle agentId="gmaps" autoLabel="Reponses automatiques" manualLabel="Reponses manuelles" autoDesc="Theo repond a chaque nouvel avis automatiquement" manualDesc="Tu choisis quand et quoi repondre" />}
 
-      {/* Google reviews (real API) */}
-      {googleReviews.length > 0 && (
+      {/* Google reviews (real API or demo) */}
+      {googleReviews.length > 0 ? (
         <>
           <SectionTitle>Avis Google ({googleReviews.length})</SectionTitle>
           <div className="flex flex-col gap-2">
             {googleReviews.slice(0, 10).map((review: any, i: number) => (
+              <ReviewCard key={i} review={review} gradientFrom={gradientFrom} />
+            ))}
+          </div>
+        </>
+      ) : (
+        <>
+          <PreviewBanner
+            agentName="Theo"
+            connectLabel="Connecter Google Business"
+            connectUrl="/api/auth/google-oauth"
+            claraMessage="Voici un apercu de tes avis Google. Theo generera des reponses IA personnalisees et les publiera automatiquement. Connecte Google Business pour commencer !"
+            gradientFrom="#f59e0b"
+            gradientTo="#d97706"
+          />
+          <SectionTitle>Avis Google (apercu)</SectionTitle>
+          <div className="flex flex-col gap-2">
+            {DEMO_REVIEWS.map((review: any, i: number) => (
               <ReviewCard key={i} review={review} gradientFrom={gradientFrom} />
             ))}
           </div>
@@ -2592,10 +2669,8 @@ function GmapsPanel({
       <div className="pb-16 lg:pb-0" />
 
       {/* Fallback: cached reviews from agent_logs */}
-      <SectionTitle>Avis recents</SectionTitle>
-      {(stats.recentReviews?.length || 0) === 0 ? (
-        <EmptyState agentName={agentName} />
-      ) : (
+      {(stats.recentReviews?.length || 0) > 0 && <SectionTitle>Avis recents</SectionTitle>}
+      {(stats.recentReviews?.length || 0) > 0 && (
         <div className="flex flex-col gap-2">
           {stats.recentReviews.slice(0, 5).map((review: any, i: number) => (
             <ReviewCard key={i} review={review} gradientFrom={gradientFrom} />
