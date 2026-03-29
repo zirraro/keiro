@@ -769,7 +769,7 @@ function HomeKeiroInner() {
       </section>
 
       {/* EXEMPLE CONCRET AVANT/APRÈS */}
-      <section id="exemple" className="hidden sm:block hp-light-island mx-auto max-w-6xl px-6 py-12">
+      <section id="exemple" className="hp-light-island mx-auto max-w-6xl px-4 sm:px-6 py-8 sm:py-12">
         <div className="text-center mb-8">
           <h2 className="text-2xl sm:text-3xl font-bold">{t.home.beforeAfterTitle}</h2>
           <p className="mt-2 text-neutral-600">{t.home.beforeAfterSubtitle}</p>
@@ -865,8 +865,100 @@ function HomeKeiroInner() {
           </div>
         </div>
 
+        {/* Exemples concrets par type de commerce */}
+        <div className="mt-8 sm:mt-12">
+          <h3 className="text-lg sm:text-xl font-bold text-center mb-4 sm:mb-6">
+            Des publications qui <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#0c1a3a] to-purple-600">convertissent vraiment</span>
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            {/* Exemple 1: Restaurant */}
+            <div className="rounded-xl border border-neutral-200 dark:border-white/10 overflow-hidden bg-white dark:bg-white/5">
+              <div className="relative aspect-square bg-gradient-to-br from-orange-100 to-red-50 dark:from-orange-900/30 dark:to-red-900/30 flex items-center justify-center">
+                <div className="text-center px-4">
+                  <div className="text-4xl mb-2">{'\u{1F35D}'}</div>
+                  <div className="bg-black/70 backdrop-blur-sm text-white px-4 py-2 rounded-lg text-sm font-bold">Les 5 plats que tout Paris s&apos;arrache cet hiver</div>
+                </div>
+                <div className="absolute top-2 right-2 bg-emerald-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full">KeiroAI</div>
+              </div>
+              <div className="p-3">
+                <p className="text-[11px] text-neutral-700 dark:text-white/70 leading-relaxed">
+                  <span className="font-bold">{'\u{1F525}'} Tendance food alert !</span> La truffe est de retour et on a cree un menu special...{'\n'}
+                  <span className="text-[10px] text-blue-500">#RestaurantParis #TruffeHiver #FoodParis #GastronomieIA</span>
+                </p>
+                <div className="flex items-center gap-3 mt-2 pt-2 border-t border-neutral-100 dark:border-white/5">
+                  <span className="text-[10px] text-neutral-400">{'\u2764\uFE0F'} 847</span>
+                  <span className="text-[10px] text-neutral-400">{'\u{1F4AC}'} 43</span>
+                  <span className="text-[10px] text-neutral-400">{'\u{1F4E9}'} 12 saves</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Exemple 2: Coiffeur */}
+            <div className="rounded-xl border border-neutral-200 dark:border-white/10 overflow-hidden bg-white dark:bg-white/5">
+              <div className="relative aspect-square bg-gradient-to-br from-pink-100 to-purple-50 dark:from-pink-900/30 dark:to-purple-900/30 flex items-center justify-center">
+                <div className="text-center px-4">
+                  <div className="text-4xl mb-2">{'\u2702\uFE0F'}</div>
+                  <div className="bg-black/70 backdrop-blur-sm text-white px-4 py-2 rounded-lg text-sm font-bold">Cette coupe fait fureur sur TikTok — voici pourquoi</div>
+                </div>
+                <div className="absolute top-2 right-2 bg-emerald-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full">KeiroAI</div>
+              </div>
+              <div className="p-3">
+                <p className="text-[11px] text-neutral-700 dark:text-white/70 leading-relaxed">
+                  <span className="font-bold">{'\u{1F4C8}'} +340% de vues sur ce type de Reel !</span> Le butterfly cut explose en ce moment...{'\n'}
+                  <span className="text-[10px] text-blue-500">#CoiffeurLyon #ButterflyCut #TendanceCoiffure #ReelCoiffure</span>
+                </p>
+                <div className="flex items-center gap-3 mt-2 pt-2 border-t border-neutral-100 dark:border-white/5">
+                  <span className="text-[10px] text-neutral-400">{'\u2764\uFE0F'} 1.2K</span>
+                  <span className="text-[10px] text-neutral-400">{'\u{1F4AC}'} 67</span>
+                  <span className="text-[10px] text-neutral-400">{'\u{1F4E9}'} 89 saves</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Exemple 3: Coach */}
+            <div className="rounded-xl border border-neutral-200 dark:border-white/10 overflow-hidden bg-white dark:bg-white/5 sm:col-span-2 lg:col-span-1">
+              <div className="relative aspect-square bg-gradient-to-br from-cyan-100 to-blue-50 dark:from-cyan-900/30 dark:to-blue-900/30 flex items-center justify-center">
+                <div className="text-center px-4">
+                  <div className="text-4xl mb-2">{'\u{1F4AA}'}</div>
+                  <div className="bg-black/70 backdrop-blur-sm text-white px-4 py-2 rounded-lg text-sm font-bold">L&apos;erreur n{'\u00B0'}1 qui vous empeche de progresser</div>
+                </div>
+                <div className="absolute top-2 right-2 bg-emerald-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full">KeiroAI</div>
+              </div>
+              <div className="p-3">
+                <p className="text-[11px] text-neutral-700 dark:text-white/70 leading-relaxed">
+                  <span className="font-bold">{'\u{1F9E0}'} Etude du jour :</span> 73% des debutants font cette erreur au squat. Voici comment la corriger...{'\n'}
+                  <span className="text-[10px] text-blue-500">#CoachSportif #Musculation #FitnessMotivation #ConseilSport</span>
+                </p>
+                <div className="flex items-center gap-3 mt-2 pt-2 border-t border-neutral-100 dark:border-white/5">
+                  <span className="text-[10px] text-neutral-400">{'\u2764\uFE0F'} 2.1K</span>
+                  <span className="text-[10px] text-neutral-400">{'\u{1F4AC}'} 156</span>
+                  <span className="text-[10px] text-neutral-400">{'\u{1F4E9}'} 234 saves</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Ce qui change */}
+          <div className="mt-4 sm:mt-6 bg-gradient-to-r from-[#0c1a3a]/5 to-purple-50 dark:from-[#0c1a3a]/20 dark:to-purple-900/20 rounded-xl border border-[#0c1a3a]/10 dark:border-purple-500/20 p-4 sm:p-5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-center">
+              <div>
+                <div className="text-2xl font-black text-[#0c1a3a] dark:text-purple-300">{'\u{1F4C8}'} x12</div>
+                <div className="text-xs text-neutral-600 dark:text-white/50">plus d&apos;engagement moyen</div>
+              </div>
+              <div>
+                <div className="text-2xl font-black text-[#0c1a3a] dark:text-purple-300">{'\u{1F525}'} Tendance</div>
+                <div className="text-xs text-neutral-600 dark:text-white/50">contenu lie a l&apos;actualite du jour</div>
+              </div>
+              <div>
+                <div className="text-2xl font-black text-[#0c1a3a] dark:text-purple-300">{'\u{1F3AF}'} #Hashtags</div>
+                <div className="text-xs text-neutral-600 dark:text-white/50">optimises IA pour votre niche</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Explication sous les images */}
-        <div className="mt-8 bg-neutral-50 dark:bg-white/5 rounded-2xl border border-neutral-200 dark:border-white/10 p-6">
+        <div className="mt-6 sm:mt-8 bg-neutral-50 dark:bg-white/5 rounded-2xl border border-neutral-200 dark:border-white/10 p-4 sm:p-6">
           <h3 className="text-lg font-bold text-neutral-900 dark:text-white mb-3">{t.home.changeTitle}</h3>
           <div className="grid md:grid-cols-3 gap-4">
             <div className="flex items-start gap-2">
