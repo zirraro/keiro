@@ -36,10 +36,13 @@ function InstagramCallbackContent() {
         // Extract userId from state parameter (set during OAuth initiation)
         const stateParam = searchParams.get('state');
         let userId: string | null = null;
+        let returnTo: string = '/assistant';
         if (stateParam) {
           try {
             const decoded = JSON.parse(atob(stateParam));
             userId = decoded.userId;
+            // Return to the page that initiated the OAuth
+            if (decoded.origin) returnTo = decoded.returnTo || '/assistant';
           } catch (e) {
             console.warn('[InstagramCallback] Could not decode state:', e);
           }
@@ -84,8 +87,8 @@ function InstagramCallbackContent() {
             }
           } catch {}
 
-          // Redirect to assistant (not library) to keep user in their workspace
-          setTimeout(() => { window.location.href = '/assistant'; }, 2000);
+          // Redirect back to where the user came from
+          setTimeout(() => { window.location.href = returnTo; }, 1500);
         } else {
           throw new Error(data.error || 'Erreur lors de la connexion Instagram');
         }

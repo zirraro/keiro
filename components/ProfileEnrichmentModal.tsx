@@ -94,6 +94,29 @@ export default function ProfileEnrichmentModal({ profile, userId, onClose }: Pro
     if (!combined) { onClose(); return; }
     setSending(true);
     try {
+      // 1. Direct save to business_dossiers as fallback (immediate, doesn't depend on Clara's response)
+      const directData: Record<string, string> = {};
+      if (answers[0].trim()) {
+        // Parse activite: try to extract business type and city
+        directData.company_description = answers[0].trim();
+        const cityMatch = answers[0].match(/(?:a|à)\s+([A-Z][a-zé]+(?:\s[A-Z][a-zé]+)?)/);
+        if (cityMatch) directData.city = cityMatch[1];
+      }
+      if (answers[1].trim()) directData.business_goals = answers[1].trim();
+      if (answers[2].trim()) directData.target_audience = answers[2].trim();
+      if (answers[3]?.trim()) directData.company_name = answers[3].trim();
+
+      // Save directly to dossier
+      if (Object.keys(directData).length > 0) {
+        fetch('/api/business-dossier', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(directData),
+        }).catch(() => {});
+      }
+
+      // 2. Also send to Clara for AI extraction (enriches with more fields)
       const res = await fetch('/api/agents/client-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -103,8 +126,15 @@ export default function ProfileEnrichmentModal({ profile, userId, onClose }: Pro
       if (res.ok) {
         setDone(true);
         setTimeout(() => onClose(), 1800);
-      } else { onClose(); }
-    } catch { onClose(); } finally { setSending(false); }
+      } else {
+        // Even if Clara fails, dossier was saved directly
+        setDone(true);
+        setTimeout(() => onClose(), 1800);
+      }
+    } catch {
+      setDone(true);
+      setTimeout(() => onClose(), 1800);
+    } finally { setSending(false); }
   };
 
   // Just close for this session — will show again next login until profile is filled
