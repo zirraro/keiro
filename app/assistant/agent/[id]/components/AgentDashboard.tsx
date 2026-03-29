@@ -1242,7 +1242,7 @@ function EmailPanel({
 
       {/* Email Inbox */}
       <SectionTitle>Boite de reception</SectionTitle>
-      <EmailInbox emails={(data as any).recentEmails || stats.recentEmails || []} gradientFrom={gradientFrom} />
+      <EmailInbox emails={(data as any).recentEmails || (stats as any).recentEmails || []} gradientFrom={gradientFrom} />
     </>
   );
 }

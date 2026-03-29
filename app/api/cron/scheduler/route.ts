@@ -94,6 +94,15 @@ export async function GET(request: NextRequest) {
   // For TikTok: Mon/Wed
   const isTiktokDay = [1, 3].includes(dayOfWeek);
 
+  // Guard: no emails between 22h-7h Paris time (UTC+2)
+  const parisHour = (now.getUTCHours() + 2) % 24;
+  const isNightParis = parisHour >= 22 || parisHour < 7;
+  const emailSlots = new Set(['early_morning', 'morning', 'midday', 'afternoon', 'evening', 'email_warm_2', 'email_recap', 'retention', 'onboarding']);
+  if (isNightParis && emailSlots.has(slot)) {
+    console.log(`[Scheduler] BLOCKED: slot=${slot} at ${parisHour}h Paris time (night guard)`);
+    return NextResponse.json({ ok: true, skipped: true, reason: `Night guard: ${parisHour}h Paris — no emails between 22h-7h` });
+  }
+
   const results: { task: string; ok: boolean; data?: any; error?: string }[] = [];
 
   // Supabase for auto-improve logging

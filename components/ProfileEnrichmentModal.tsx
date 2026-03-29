@@ -10,16 +10,9 @@ interface ProfileEnrichmentModalProps {
 
 export function shouldShowEnrichmentModal(profile: any): boolean {
   if (!profile) return false;
+  // Show until user has filled basic info (via popup, Clara, or dossier page)
   const hasBasicInfo = profile.company_name || profile.business_description || profile.company_description;
-  if (hasBasicInfo) return false;
-  try {
-    const dismissed = localStorage.getItem('keiro_onboarding_dismissed');
-    if (dismissed) {
-      const ts = parseInt(dismissed, 10);
-      if (Date.now() - ts < 7 * 24 * 60 * 60 * 1000) return false;
-    }
-  } catch {}
-  return true;
+  return !hasBasicInfo;
 }
 
 const QUESTIONS = [
@@ -28,26 +21,30 @@ const QUESTIONS = [
     label: 'Ton activite',
     question: 'C\'est quoi ton business ?',
     placeholder: 'Ex: Restaurant italien a Paris, salon de coiffure a Lyon, coach sportif...',
-    hint: 'Type de commerce, ville, specialite',
   },
   {
     emoji: '\u{1F3AF}',
     label: 'Ton objectif',
     question: 'Qu\'est-ce que tu veux accomplir ?',
     placeholder: 'Ex: Plus de clients via Instagram, remplir mes midis, vendre en ligne...',
-    hint: 'Objectif principal avec KeiroAI',
   },
   {
     emoji: '\u{1F465}',
     label: 'Tes clients',
     question: 'C\'est qui tes clients ideaux ?',
     placeholder: 'Ex: Jeunes actifs 25-40 ans, familles du quartier, pros en B2B...',
-    hint: 'Qui tu veux atteindre',
+  },
+  {
+    emoji: '\u{1F4AC}',
+    label: 'Autre chose',
+    question: 'Autre chose qu\'on devrait savoir ?',
+    placeholder: 'Dis ce que tu veux : horaires, specialites, ce qui te differencie, tes reseaux...',
+    free: true,
   },
 ];
 
 export default function ProfileEnrichmentModal({ profile, userId, onClose }: ProfileEnrichmentModalProps) {
-  const [answers, setAnswers] = useState(['', '', '']);
+  const [answers, setAnswers] = useState(['', '', '', '']);
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(false);
   const [listening, setListening] = useState(false);
@@ -110,10 +107,8 @@ export default function ProfileEnrichmentModal({ profile, userId, onClose }: Pro
     } catch { onClose(); } finally { setSending(false); }
   };
 
-  const handleSkip = () => {
-    try { localStorage.setItem('keiro_onboarding_dismissed', String(Date.now())); } catch {}
-    onClose();
-  };
+  // Just close for this session — will show again next login until profile is filled
+  const handleSkip = () => onClose();
 
   const filledCount = answers.filter(a => a.trim().length > 0).length;
 
@@ -133,10 +128,14 @@ export default function ProfileEnrichmentModal({ profile, userId, onClose }: Pro
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-[#0c1a3a] to-purple-900 px-6 pt-6 pb-4 text-center">
+        <div className="bg-gradient-to-r from-[#0c1a3a] to-purple-900 px-6 pt-6 pb-4 text-center relative">
+          {/* Close button */}
+          <button onClick={handleSkip} className="absolute top-3 right-3 text-white/30 hover:text-white/70 transition p-1">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
           <div className="text-3xl mb-2">{'\u{1F44B}'}</div>
           <h2 className="text-lg font-bold text-white mb-0.5">Bienvenue sur KeiroAI !</h2>
-          <p className="text-xs text-purple-200">3 questions rapides pour que tes agents IA demarrent du bon pied</p>
+          <p className="text-xs text-purple-200">Quelques infos rapides pour que tes agents IA demarrent du bon pied</p>
           {/* Progress dots */}
           <div className="flex justify-center gap-1.5 mt-3">
             {QUESTIONS.map((_, i) => (
@@ -190,23 +189,20 @@ export default function ProfileEnrichmentModal({ profile, userId, onClose }: Pro
           )}
         </div>
 
-        {/* Buttons */}
-        <div className="flex gap-3 px-6 pb-4">
-          <button type="button" onClick={handleSkip} className="flex-1 py-2.5 border-2 border-neutral-200 text-neutral-500 font-medium rounded-xl hover:bg-neutral-50 transition-all text-sm">
-            Plus tard
-          </button>
+        {/* Submit button */}
+        <div className="px-6 pb-4">
           <button
             type="button"
             onClick={handleSubmit}
             disabled={sending || filledCount === 0}
-            className="flex-1 py-2.5 bg-gradient-to-r from-[#0c1a3a] to-purple-700 text-white font-bold rounded-xl hover:shadow-lg transition-all disabled:opacity-40 text-sm"
+            className="w-full py-3 bg-gradient-to-r from-[#0c1a3a] to-purple-700 text-white font-bold rounded-xl hover:shadow-lg transition-all disabled:opacity-40 text-sm"
           >
             {sending ? (
               <span className="flex items-center justify-center gap-2">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
               </span>
             ) : (
-              `C'est parti ! (${filledCount}/3)`
+              `C'est parti ! (${filledCount}/4)`
             )}
           </button>
         </div>

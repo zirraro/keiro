@@ -33,7 +33,12 @@ export async function canSendEmail(
   },
 ): Promise<{ allowed: boolean; reason?: string; lastSentAt?: string; agent?: string }> {
   // NEVER bypass the same-day check — even in force mode, max 1 email/day/prospect
-  const todayCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  // Use start of today (Paris time, UTC+2) to prevent cross-midnight duplicates
+  const now = new Date();
+  const parisOffset = 2; // UTC+2 (CEST) — adjust to 1 for CET if needed
+  const todayParis = new Date(now);
+  todayParis.setUTCHours(-parisOffset, 0, 0, 0); // Midnight Paris in UTC
+  const todayCutoff = todayParis.toISOString();
 
   // Quick same-day check by email address (non-bypassable anti-spam)
   if (opts?.prospectId) {
