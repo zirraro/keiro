@@ -1227,7 +1227,7 @@ function EmailPanel({
   return (
     <>
       {/* Auto mode toggle */}
-      <AutoModeToggle agentId="email" autoLabel="Emails automatiques" manualLabel="Emails manuels" autoDesc="Hugo envoie les sequences email automatiquement" manualDesc="Tu valides chaque email avant envoi" />
+      <div data-tour="auto-toggle"><AutoModeToggle agentId="email" autoLabel="Emails automatiques" manualLabel="Emails manuels" autoDesc="Hugo envoie les sequences email automatiquement" manualDesc="Tu valides chaque email avant envoi" /></div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KpiCard label="Emails envoyes" value={fmt(stats.sent)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
@@ -1340,8 +1340,10 @@ function EmailPanel({
       <HotProspectsAlert source="email" gradientFrom={gradientFrom} />
 
       {/* Email Inbox */}
-      <SectionTitle>Boite de reception</SectionTitle>
-      <EmailInbox emails={(data as any).recentEmails || (stats as any).recentEmails || []} gradientFrom={gradientFrom} />
+      <div data-tour="email-inbox">
+        <SectionTitle>Boite de reception</SectionTitle>
+        <EmailInbox emails={(data as any).recentEmails || (stats as any).recentEmails || []} gradientFrom={gradientFrom} />
+      </div>
     </>
   );
 }
@@ -1745,7 +1747,7 @@ function ContentPanel({
       {!(data as any).connections?.instagram && <SocialConnectBanners agentId="content" networks={['instagram', 'tiktok', 'linkedin']} />}
 
       {/* Auto mode toggle */}
-      <AutoModeToggle agentId="content" autoLabel="Publication automatique" manualLabel="Publication manuelle" autoDesc="Lena publie automatiquement 3x/jour selon ton calendrier" manualDesc="Tu valides chaque post avant publication" />
+      <div data-tour="auto-toggle"><AutoModeToggle agentId="content" autoLabel="Publication automatique" manualLabel="Publication manuelle" autoDesc="Lena publie automatiquement selon ton calendrier" manualDesc="Tu valides chaque post avant publication" /></div>
 
       {/* Instagram KPIs */}
       <SectionTitle>Performance Instagram</SectionTitle>
@@ -1794,7 +1796,7 @@ function ContentPanel({
       </div>
 
       {/* Content workflow: prepared → validate → scheduled → published */}
-      <SectionTitle>File de contenu</SectionTitle>
+      <div data-tour="content-workflow"><SectionTitle>File de contenu</SectionTitle>
       {stats.postsGenerated === 0 && (
         <PreviewBanner
           agentName="Lena"
@@ -1807,9 +1809,11 @@ function ContentPanel({
       )}
       <ContentWorkflow />
 
+      </div>{/* close content-workflow data-tour */}
+
       {/* Calendar view by platform — 7 days past + 7 days future */}
       <SectionTitle>Calendrier editorial</SectionTitle>
-      <div className="bg-white/5 rounded-xl border border-white/10 p-3 sm:p-4 overflow-x-auto">
+      <div data-tour="content-calendar" className="bg-white/5 rounded-xl border border-white/10 p-3 sm:p-4 overflow-x-auto">
         <div className="min-w-[500px]">
           {/* Header: dates */}
           <div className="grid grid-cols-[80px_repeat(14,1fr)] gap-0.5 mb-1">
@@ -2525,11 +2529,11 @@ function DmInstagramPanel({
       {/* Connect + Toggle inline — hide connect if already connected */}
       <div className="flex flex-col lg:flex-row gap-3 mb-3">
         {!(data as any).connections?.instagram && <div className="flex-1"><SocialConnectBanners agentId="dm_instagram" networks={['instagram']} /></div>}
-        <div className={!(data as any).connections?.instagram ? 'lg:w-72' : 'flex-1'}><AutoModeToggle agentId="dm_instagram" autoLabel="DMs automatiques" manualLabel="DMs manuels" autoDesc="Jade repond auto aux DMs" manualDesc="Tu valides chaque DM" /></div>
+        <div data-tour="auto-toggle" className={!(data as any).connections?.instagram ? 'lg:w-72' : 'flex-1'}><AutoModeToggle agentId="dm_instagram" autoLabel="DMs automatiques" manualLabel="DMs manuels" autoDesc="Jade repond auto aux DMs" manualDesc="Tu valides chaque DM" /></div>
       </div>
 
       {/* KPIs + CRM link — horizontal bar */}
-      <div className="flex items-center gap-2 sm:gap-3 mb-3 flex-wrap">
+      <div data-tour="dm-stats" className="flex items-center gap-2 sm:gap-3 mb-3 flex-wrap">
         <div className="flex items-center gap-1.5 bg-white/5 rounded-lg px-3 py-2 border border-white/10">
           <span className="text-blue-400 font-bold text-sm">{fmt(stats.dmsSent)}</span>
           <span className="text-white/30 text-[10px]">DMs</span>
@@ -2553,7 +2557,9 @@ function DmInstagramPanel({
       <HotProspectsAlert source="dm_instagram" gradientFrom={gradientFrom} />
 
       {/* Conversations — full width */}
-      <DmConversationsLive />
+      <div data-tour="dm-conversations">
+        <DmConversationsLive />
+      </div>
 
       {/* Recent DM activity feed with reply */}
       <SectionTitle>Activite recente</SectionTitle>
@@ -2735,12 +2741,15 @@ function GmapsPanel({
       <AutoModeToggle agentId="gmaps" autoLabel="Reponses automatiques" manualLabel="Reponses manuelles" autoDesc="Theo repond a chaque nouvel avis automatiquement" manualDesc="Tu choisis quand et quoi repondre" />
 
       {/* Google reviews: real data or demo */}
+      <div data-tour="google-reviews">
       <SectionTitle>{googleConnected ? `Avis Google (${googleReviews.length})` : 'Avis Google (apercu)'}</SectionTitle>
       <div className={`flex flex-col gap-2 ${!googleConnected ? 'opacity-90' : ''}`}>
         {(googleConnected ? googleReviews : DEMO_REVIEWS).slice(0, 10).map((review: any, i: number) => (
           <ReviewCard key={i} review={review} gradientFrom={gradientFrom} />
         ))}
       </div>
+
+      </div>{/* close google-reviews data-tour */}
 
       {/* Bottom padding for mobile nav */}
       <div className="pb-16 lg:pb-0" />
@@ -3270,7 +3279,7 @@ export default function AgentDashboard({ agentId, agentName, gradientFrom, gradi
       )}
 
       {/* Dashboard content — compact, no scroll needed */}
-      <div className="p-3 sm:p-4">
+      <div data-tour="agent-dashboard" className="p-3 sm:p-4">
         <Panel data={data} agentName={agentName} gradientFrom={gradientFrom} gradientTo={gradientTo} />
       </div>
     </div>
