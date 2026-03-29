@@ -253,7 +253,7 @@ function DmConversationsLive() {
   const selected = convs.find(c => c.id === selectedConv);
 
   return (
-    <div className="rounded-xl border-2 border-purple-500/20 bg-gradient-to-b from-purple-900/10 to-transparent overflow-hidden shadow-lg shadow-purple-500/5 h-80 md:h-[420px]">
+    <div className="rounded-xl border-2 border-purple-500/20 bg-gradient-to-b from-purple-900/10 to-transparent overflow-hidden shadow-lg shadow-purple-500/5 h-[calc(60vh-60px)] md:h-[420px] mb-16 lg:mb-0">
       <div className="flex h-full">
         {/* Conversation list */}
         <div className={`${selectedConv ? 'hidden sm:block' : ''} w-full sm:w-56 border-r border-white/10 overflow-y-auto`}>
@@ -1434,7 +1434,7 @@ function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: str
         </a>
       </div>
 
-    <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden h-72 md:h-[420px]">
+    <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden h-[calc(55vh-60px)] md:h-[420px] mb-16 lg:mb-0">
       <div className="flex h-full">
         {/* Email list */}
         <div className={`${selectedId ? 'hidden sm:block' : ''} w-full sm:w-56 border-r border-white/5 overflow-y-auto`}>
@@ -2589,6 +2589,9 @@ function GmapsPanel({
           </div>
         </>
       )}
+
+      {/* Bottom padding for mobile nav */}
+      <div className="pb-16 lg:pb-0" />
 
       {/* Fallback: cached reviews from agent_logs */}
       <SectionTitle>Avis recents</SectionTitle>

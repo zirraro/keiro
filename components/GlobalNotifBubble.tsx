@@ -31,7 +31,7 @@ export default function GlobalNotifBubble() {
   const pathname = usePathname();
   const router = useRouter();
 
-  // Don't show on the assistant page (already has NotificationBell)
+  // Don't show on assistant/agent pages (avoid overlapping agent chat UIs)
   const isAssistantPage = pathname?.startsWith('/assistant');
 
   const fetchNotifs = useCallback(async () => {
