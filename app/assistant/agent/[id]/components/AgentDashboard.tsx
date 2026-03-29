@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import PreviewBanner from './PreviewBanner';
-import { DEMO_DM_CONVERSATIONS, DEMO_EMAILS, DEMO_CONTENT_POSTS, DEMO_REVIEWS, DEMO_COMMENTS } from './AgentPreviewData';
+import { DEMO_DM_CONVERSATIONS, DEMO_EMAILS, DEMO_CONTENT_POSTS, DEMO_REVIEWS, DEMO_COMMENTS, DEMO_ADS_STATS, DEMO_FINANCE_STATS, DEMO_RH_STATS, DEMO_CHATBOT_STATS, DEMO_WHATSAPP_STATS, DEMO_TIKTOK_STATS, DEMO_IG_COMMENTS } from './AgentPreviewData';
 
 // ─── Social Connect Banners — shown in agent dashboards ─────────────
 const SOCIAL_NETWORKS = {
@@ -1855,9 +1855,11 @@ function SeoPanel({
   gradientFrom: string;
   gradientTo: string;
 }) {
-  const stats = data.seoStats;
-
-  if (!stats) return <EmptyState agentName={agentName} />;
+  const isDemo = !data.seoStats;
+  const stats = data.seoStats || { pagesOptimized: 3, keywordsRanked: 8, avgPosition: 12.4, trafficIncrease: 15, recentActions: [
+    { type: 'audit', title: 'Audit SEO complet du site', created_at: new Date(Date.now() - 86400000).toISOString() },
+    { type: 'keyword', title: 'Optimisation mots-cles page accueil', created_at: new Date(Date.now() - 3 * 86400000).toISOString() },
+  ] };
 
   // Derive approximate counts for SEO workflow
   const seoIndexed = Math.round(stats.blogPosts * 0.8); // ~80% indexed
@@ -1947,9 +1949,7 @@ function AdsPanel({
   gradientFrom: string;
   gradientTo: string;
 }) {
-  const stats = data.adsStats;
-
-  if (!stats) return <EmptyState agentName={agentName} />;
+  const stats = data.adsStats || { totalSpend: DEMO_ADS_STATS.totalSpend, roas: DEMO_ADS_STATS.roas, totalConversions: DEMO_ADS_STATS.totalConversions, totalImpressions: DEMO_ADS_STATS.totalImpressions, recentCampaigns: DEMO_ADS_STATS.recentCampaigns };
 
   const totalSpend = stats.recentCampaigns.reduce((s, c) => s + c.spend, 0) || 1;
   const statusColors: Record<string, string> = {
@@ -2071,9 +2071,7 @@ function FinancePanel({
   gradientFrom: string;
   gradientTo: string;
 }) {
-  const stats = data.financeStats;
-
-  if (!stats) return <EmptyState agentName={agentName} />;
+  const stats = data.financeStats || { revenue: DEMO_FINANCE_STATS.revenue, expenses: DEMO_FINANCE_STATS.expenses, profit: DEMO_FINANCE_STATS.profit, profitMargin: DEMO_FINANCE_STATS.profitMargin, recentTransactions: DEMO_FINANCE_STATS.recentTransactions };
 
   const maxBar = Math.max(stats.revenue, stats.expenses, 1);
 
@@ -2179,9 +2177,7 @@ function RhPanel({
   gradientFrom: string;
   gradientTo: string;
 }) {
-  const stats = data.rhStats;
-
-  if (!stats) return <EmptyState agentName={agentName} />;
+  const stats = data.rhStats || { contractsGenerated: DEMO_RH_STATS.contractsGenerated, rgpdCompliant: true, alertsCount: 0, recentDocs: DEMO_RH_STATS.recentDocs };
 
   const docTypeBadge: Record<string, string> = {
     contrat: '#60a5fa',
@@ -2252,9 +2248,7 @@ function OnboardingPanel({
   gradientFrom: string;
   gradientTo: string;
 }) {
-  const stats = data.onboardingStats;
-
-  if (!stats) return <EmptyState agentName={agentName} />;
+  const stats = data.onboardingStats || { completionPercent: 25, agentsActivated: 2, totalAgents: 18, steps: [{ name: 'Profil business', completed: true }, { name: 'Connecter Instagram', completed: false }, { name: 'Premier post', completed: false }] };
 
   const defaultSteps = stats.steps.length > 0
     ? stats.steps
@@ -2483,9 +2477,7 @@ function TiktokCommentsPanel({
   gradientFrom: string;
   gradientTo: string;
 }) {
-  const stats = data.tiktokStats;
-
-  if (!stats) return <EmptyState agentName={agentName} />;
+  const stats = data.tiktokStats || { videosPosted: DEMO_TIKTOK_STATS.videosPosted, totalViews: DEMO_TIKTOK_STATS.totalViews, avgEngagement: DEMO_TIKTOK_STATS.avgEngagement, followers: DEMO_TIKTOK_STATS.followers, recentComments: DEMO_TIKTOK_STATS.recentComments || [] };
 
   return (
     <>
@@ -2683,9 +2675,7 @@ function ChatbotPanel({
   gradientFrom: string;
   gradientTo: string;
 }) {
-  const stats = data.chatbotStats;
-
-  if (!stats) return <EmptyState agentName={agentName} />;
+  const stats = data.chatbotStats || { totalVisitors: DEMO_CHATBOT_STATS.totalVisitors, leadsGenerated: DEMO_CHATBOT_STATS.leadsGenerated, avgSessionDuration: DEMO_CHATBOT_STATS.avgSessionDuration, conversionRate: DEMO_CHATBOT_STATS.conversionRate, recentSessions: DEMO_CHATBOT_STATS.recentSessions };
 
   // Conversion funnel mini visual
   const funnelSteps = [
@@ -2853,8 +2843,7 @@ function WhatsAppPanel({
   gradientFrom: string;
   gradientTo: string;
 }) {
-  const stats = data.whatsappStats;
-  if (!stats) return <EmptyState agentName={agentName} />;
+  const stats = data.whatsappStats || { conversations: DEMO_WHATSAPP_STATS.conversations, activeConversations: DEMO_WHATSAPP_STATS.activeConversations, leadsGenerated: DEMO_WHATSAPP_STATS.leadsGenerated, responseRate: DEMO_WHATSAPP_STATS.responseRate, recentChats: DEMO_WHATSAPP_STATS.recentChats || [] };
 
   const statusColors: Record<string, string> = {
     active: '#34d399',
@@ -3002,11 +2991,14 @@ function InstagramCommentsPanel({ data, agentName, gradientFrom, gradientTo }: {
       <SectionTitle>Commentaires recents</SectionTitle>
       {loading ? (
         <div className="text-center py-8"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-400 mx-auto" /></div>
-      ) : comments.length === 0 ? (
-        <EmptyState agentName={agentName} />
-      ) : (
+      ) : (comments.length === 0 ? DEMO_IG_COMMENTS : comments).length === 0 ? null : (
         <div className="flex flex-col gap-2">
-          {comments.slice(0, 10).map(c => (
+          {(comments.length === 0 ? (
+            <>
+              <PreviewBanner agentName="Commentaires IG" connectLabel="Connecter Instagram" connectUrl="/api/auth/instagram-oauth" claraMessage="Voici un apercu de tes commentaires Instagram. Tu pourras repondre automatiquement ou manuellement a chaque commentaire." gradientFrom="#e11d48" gradientTo="#be123c" />
+            </>
+          ) : null)}
+          {(comments.length === 0 ? DEMO_IG_COMMENTS : comments).slice(0, 10).map(c => (
             <div key={c.comment_id} className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
               <div className="p-3 flex items-start gap-3">
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${c.replied ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
@@ -3121,6 +3113,27 @@ export default function AgentDashboard({ agentId, agentName, gradientFrom, gradi
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Preview banner for agents that need setup — Clara guides */}
+      {!data[Object.keys(data).find(k => k.endsWith('Stats')) || ''] && !['marketing', 'onboarding'].includes(agentId) && !(data as any).supervision?.isAdmin && (
+        <div className="px-5 pt-3">
+          {(() => {
+            const previews: Record<string, { label: string; url: string; msg: string }> = {
+              seo: { label: 'Renseigner ton site web', url: '#', msg: 'Voici un apercu de ce qu\'Oscar peut faire pour ton SEO. Renseigne ton site web et il analysera tout automatiquement.' },
+              ads: { label: 'Connecter Meta Ads', url: '#', msg: 'Voici un apercu de Felix en action. Connecte tes comptes pub et il optimisera ton ROAS automatiquement.' },
+              finance: { label: 'Activer le suivi', url: '#', msg: 'Voici un apercu du suivi financier par Louis. Le suivi est actif automatiquement avec ton abonnement.' },
+              rh: { label: 'Activer Sara', url: '#', msg: 'Voici un apercu des documents que Sara peut generer : contrats, CGV, RGPD. Active-la pour commencer.' },
+              chatbot: { label: 'Installer Max sur ton site', url: '#', msg: 'Voici un apercu des conversations que Max aura avec tes visiteurs. Installe le widget sur ton site pour demarrer.' },
+              whatsapp: { label: 'Configurer WhatsApp', url: '#', msg: 'Voici un apercu de Stella en action. Configure ton numero WhatsApp pour activer les reponses automatiques.' },
+              tiktok_comments: { label: 'Connecter TikTok', url: '/api/auth/tiktok-oauth', msg: 'Voici un apercu de l\'engagement TikTok par Axel. Connecte TikTok pour activer.' },
+              instagram_comments: { label: 'Connecter Instagram', url: '/api/auth/instagram-oauth', msg: 'Voici un apercu des reponses automatiques a tes commentaires Instagram.' },
+            };
+            const cfg = previews[agentId];
+            if (!cfg) return null;
+            return <PreviewBanner agentName={agentName} connectLabel={cfg.label} connectUrl={cfg.url} claraMessage={cfg.msg} gradientFrom={gradientFrom} gradientTo={gradientTo} />;
+          })()}
         </div>
       )}
 

@@ -82,4 +82,65 @@ export const DEMO_SEO_STATS = {
 // ─── TikTok Comments (Axel) ───────────────────────────────────────
 export const DEMO_TIKTOK_STATS = {
   videosPosted: 12, totalViews: 45200, avgEngagement: 8.7, followers: 2340,
+  recentComments: [
+    { author: 'sarah_dance', text: 'Trop styleeee !!! Tu fais des cours ?', date: new Date(Date.now() - 3600000).toISOString() },
+    { author: 'fitness_bro', text: 'Ca donne envie de s\'y mettre', date: new Date(Date.now() - 7200000).toISOString() },
+  ],
 };
+
+// ─── Ads (Felix) ──────────────────────────────────────────────────
+export const DEMO_ADS_STATS = {
+  totalSpend: 450, totalImpressions: 28400, totalClicks: 1240, totalConversions: 18, roas: 3.2,
+  recentCampaigns: [
+    { name: 'Promo Hiver -30%', status: 'active', spend: 200, impressions: 15000, clicks: 680, conversions: 12 },
+    { name: 'Nouveaux clients zone', status: 'active', spend: 150, impressions: 8400, clicks: 360, conversions: 4 },
+    { name: 'Retargeting visiteurs', status: 'paused', spend: 100, impressions: 5000, clicks: 200, conversions: 2 },
+  ],
+};
+
+// ─── Finance (Louis) ──────────────────────────────────────────────
+export const DEMO_FINANCE_STATS = {
+  revenue: 12500, expenses: 3200, profit: 9300, profitMargin: 74.4,
+  recentTransactions: [
+    { description: 'Abonnement Starter x3', amount: 147, type: 'revenue', date: new Date(Date.now() - 86400000).toISOString() },
+    { description: 'Meta Ads', amount: -200, type: 'expense', date: new Date(Date.now() - 2 * 86400000).toISOString() },
+    { description: 'Abonnement Pro', amount: 99, type: 'revenue', date: new Date(Date.now() - 3 * 86400000).toISOString() },
+  ],
+};
+
+// ─── RH (Sara) ────────────────────────────────────────────────────
+export const DEMO_RH_STATS = {
+  contractsGenerated: 3, rgpdCompliant: true, alertsCount: 0,
+  recentDocs: [
+    { type: 'contrat', title: 'CGV Site E-commerce', date: new Date(Date.now() - 2 * 86400000).toISOString() },
+    { type: 'rgpd', title: 'Politique de confidentialite', date: new Date(Date.now() - 5 * 86400000).toISOString() },
+    { type: 'mention', title: 'Mentions legales', date: new Date(Date.now() - 7 * 86400000).toISOString() },
+  ],
+};
+
+// ─── Chatbot (Max) ────────────────────────────────────────────────
+export const DEMO_CHATBOT_STATS = {
+  totalVisitors: 340, leadsGenerated: 28, avgSessionDuration: 45, conversionRate: 8.2,
+  recentSessions: [
+    { visitor: 'Visiteur #847', messages: 5, leadCapture: true, date: new Date(Date.now() - 3600000).toISOString() },
+    { visitor: 'Visiteur #846', messages: 3, leadCapture: false, date: new Date(Date.now() - 7200000).toISOString() },
+    { visitor: 'Visiteur #845', messages: 8, leadCapture: true, date: new Date(Date.now() - 86400000).toISOString() },
+  ],
+};
+
+// ─── WhatsApp (Stella) ────────────────────────────────────────────
+export const DEMO_WHATSAPP_STATS = {
+  conversations: 15, activeConversations: 4, leadsGenerated: 6, responseRate: 92,
+  recentChats: [
+    { contact: '+33 6 12 34 56 78', lastMessage: 'Merci pour les infos, je prends rdv !', status: 'active', date: new Date(Date.now() - 3600000).toISOString() },
+    { contact: '+33 6 98 76 54 32', lastMessage: 'C\'est ouvert le dimanche ?', status: 'replied', date: new Date(Date.now() - 7200000).toISOString() },
+  ],
+};
+
+// ─── Instagram Comments ───────────────────────────────────────────
+export const DEMO_IG_COMMENTS = [
+  { comment_id: 'demo_1', text: 'Trop beau ! Vous etes ou ?', username: 'sarah_lifestyle', timestamp: new Date(Date.now() - 3600000).toISOString(), replied: false },
+  { comment_id: 'demo_2', text: 'Ca donne trop envie ! Je viens ce weekend', username: 'foodie_paris', timestamp: new Date(Date.now() - 7200000).toISOString(), replied: true },
+  { comment_id: 'demo_3', text: 'Incroyable le decor !! Follow back ?', username: 'deco_lover', timestamp: new Date(Date.now() - 86400000).toISOString(), replied: false },
+  { comment_id: 'demo_4', text: 'Je recommande a 100% !!!', username: 'marco_travel', timestamp: new Date(Date.now() - 2 * 86400000).toISOString(), replied: true },
+];
