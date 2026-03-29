@@ -410,6 +410,57 @@ function DmCard({ dm, statusColors }: { dm: { target: string; status: string; me
   );
 }
 
+// Toggle auto-reply for Google reviews
+function GoogleAutoReplyToggle() {
+  const [autoReply, setAutoReply] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/agents/google-reviews?check_auto=true', { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => { if (d.auto_reply !== undefined) setAutoReply(d.auto_reply); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const toggle = useCallback(async () => {
+    const newValue = !autoReply;
+    setAutoReply(newValue);
+    try {
+      await fetch('/api/agents/google-reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action: 'toggle_auto_reply', enabled: newValue }),
+      });
+    } catch { setAutoReply(!newValue); }
+  }, [autoReply]);
+
+  if (loading) return null;
+
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 mb-3 flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        <span className="text-sm">{autoReply ? '\u{1F916}' : '\u{270D}\uFE0F'}</span>
+        <div>
+          <div className="text-xs font-medium text-white/80">
+            {autoReply ? 'Reponses automatiques activees' : 'Reponses manuelles'}
+          </div>
+          <div className="text-[9px] text-white/40">
+            {autoReply ? 'Theo repond automatiquement a chaque nouvel avis' : 'Tu choisis quand et quoi repondre'}
+          </div>
+        </div>
+      </div>
+      <button
+        onClick={toggle}
+        className={`w-10 h-[22px] rounded-full relative transition-colors flex-shrink-0 ${autoReply ? 'bg-emerald-500' : 'bg-white/15'}`}
+      >
+        <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${autoReply ? 'right-0.5' : 'left-0.5'}`} />
+      </button>
+    </div>
+  );
+}
+
 // Review card with AI reply generation + direct Google reply for Google reviews
 function ReviewCard({ review, gradientFrom }: { review: { name?: string; author: string; rating: number; text: string; date: string; replied: boolean }; gradientFrom: string }) {
   const [showReply, setShowReply] = useState(false);
@@ -485,13 +536,13 @@ function ReviewCard({ review, gradientFrom }: { review: { name?: string; author:
       {showReply && (
         <div className="px-4 pb-4 border-t border-white/5 pt-3 space-y-2">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-[10px] text-white/40">Reponse IA generee :</span>
+            <span className="text-[10px] text-white/40">{replyText && !generating ? 'Modifie ou envoie :' : 'Reponse IA generee :'}</span>
             {generating && <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-purple-400" />}
           </div>
           <textarea
             value={replyText}
             onChange={e => setReplyText(e.target.value)}
-            placeholder={generating ? 'Generation en cours...' : 'Reponse a l\'avis...'}
+            placeholder={generating ? 'Generation en cours...' : 'Ecris ta reponse ou clique Regenerer pour une suggestion IA...'}
             className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-purple-500/50 resize-none"
             rows={3}
           />
@@ -2364,6 +2415,9 @@ function GmapsPanel({
           </div>
         </div>
       )}
+
+      {/* Auto-reply toggle for Google reviews */}
+      {googleConnected && <GoogleAutoReplyToggle />}
 
       {/* Google reviews (real API) */}
       {googleReviews.length > 0 && (

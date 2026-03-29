@@ -18,11 +18,18 @@ function getSupabase() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const { user, error } = await getAuthUser();
   if (error || !user) return NextResponse.json({ error: 'Non autorise' }, { status: 401 });
 
   const supabase = getSupabase();
+
+  // Check auto-reply setting
+  const checkAuto = new URL(req.url).searchParams.get('check_auto');
+  if (checkAuto) {
+    const { data: p } = await supabase.from('profiles').select('google_reviews_auto_reply').eq('id', user.id).single();
+    return NextResponse.json({ ok: true, auto_reply: !!p?.google_reviews_auto_reply });
+  }
 
   // Get user's Google Business location
   const { data: profile } = await supabase
@@ -69,7 +76,16 @@ export async function POST(req: NextRequest) {
   const { user, error } = await getAuthUser();
   if (error || !user) return NextResponse.json({ error: 'Non autorise' }, { status: 401 });
 
-  const { review_name, reply } = await req.json();
+  const body = await req.json();
+
+  // Toggle auto-reply setting
+  if (body.action === 'toggle_auto_reply') {
+    const supabase = getSupabase();
+    await supabase.from('profiles').update({ google_reviews_auto_reply: !!body.enabled }).eq('id', user.id);
+    return NextResponse.json({ ok: true, auto_reply: !!body.enabled });
+  }
+
+  const { review_name, reply } = body;
   if (!review_name || !reply?.trim()) {
     return NextResponse.json({ error: 'review_name et reply requis' }, { status: 400 });
   }
