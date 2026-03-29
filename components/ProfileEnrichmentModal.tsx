@@ -149,14 +149,17 @@ export default function ProfileEnrichmentModal({ profile, userId, onClose }: Pro
       });
       if (res.ok) {
         setDone(true);
+        // Trigger Clara wizard after popup closes
+        try { sessionStorage.setItem('keiro_start_wizard', 'true'); } catch {}
         setTimeout(() => onClose(), 1800);
       } else {
-        // Even if Clara fails, dossier was saved directly
         setDone(true);
+        try { sessionStorage.setItem('keiro_start_wizard', 'true'); } catch {}
         setTimeout(() => onClose(), 1800);
       }
     } catch {
       setDone(true);
+      try { sessionStorage.setItem('keiro_start_wizard', 'true'); } catch {}
       setTimeout(() => onClose(), 1800);
     } finally { setSending(false); }
   };

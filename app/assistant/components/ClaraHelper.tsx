@@ -43,17 +43,15 @@ export default function ClaraHelper() {
           if (d.connections) setConnections(d.connections);
         }
 
-        // Get which agents are setup
+        // Get which agents are setup — parallel requests for speed
         const setupAgents = new Set<string>();
-        for (const agent of AGENT_SETUP_ORDER) {
-          try {
-            const res = await fetch('/api/agents/settings?agent_id=' + agent.id, { credentials: 'include' });
-            if (res.ok) {
-              const d = await res.json();
-              if (d.settings?.setup_completed || d.settings?.auto_mode) setupAgents.add(agent.id);
-            }
-          } catch {}
-        }
+        const settingsPromises = AGENT_SETUP_ORDER.map(agent =>
+          fetch('/api/agents/settings?agent_id=' + agent.id, { credentials: 'include' })
+            .then(r => r.json())
+            .then(d => { if (d.settings?.setup_completed || d.settings?.auto_mode) setupAgents.add(agent.id); })
+            .catch(() => {})
+        );
+        await Promise.all(settingsPromises);
 
         const inactive = AGENT_SETUP_ORDER.filter(a => !setupAgents.has(a.id));
         setInactiveAgents(inactive);
@@ -63,7 +61,16 @@ export default function ClaraHelper() {
         const remaining = inactive.filter(a => !doneAgents.has(a.id));
         setInactiveAgents(remaining);
 
-        // Show bubble if there are inactive agents
+        // Show wizard immediately if coming from onboarding popup
+        const startWizardFlag = sessionStorage.getItem('keiro_start_wizard');
+        if (startWizardFlag && remaining.length > 0) {
+          sessionStorage.removeItem('keiro_start_wizard');
+          setMode('inactive');
+          setShow(true);
+          return;
+        }
+
+        // Show bubble if there are inactive agents (with delay)
         if (remaining.length > 0) {
           const shownKey = 'keiro_clara_inactive_shown';
           const lastShown = sessionStorage.getItem(shownKey);
@@ -71,7 +78,7 @@ export default function ClaraHelper() {
             setTimeout(() => {
               setMode('inactive');
               setShow(true);
-            }, 5000);
+            }, 2000); // Reduced from 5s to 2s
           }
         }
       } catch {}
@@ -121,10 +128,9 @@ export default function ClaraHelper() {
       return;
     }
 
-    // Navigate to agent workspace for tutorial
-    router.push('/assistant/agent/' + agent.id);
-    setShow(false);
-  }, [currentWizardIndex, inactiveAgents, connections, router]);
+    // Navigate to agent workspace — full reload to trigger tutorial
+    window.location.href = '/assistant/agent/' + agent.id;
+  }, [currentWizardIndex, inactiveAgents, connections]);
 
   const skipAgent = useCallback(() => {
     setCurrentWizardIndex(prev => prev + 1);
