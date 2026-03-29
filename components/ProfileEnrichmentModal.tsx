@@ -145,7 +145,7 @@ export default function ProfileEnrichmentModal({ profile, userId, onClose }: Pro
         </div>
 
         {/* Questions */}
-        <div className="px-6 py-4 space-y-3">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 space-y-3 max-h-[50vh] overflow-y-auto">
           {QUESTIONS.map((q, i) => (
             <div key={i}>
               <label className="flex items-center gap-1.5 text-sm font-semibold text-neutral-700 mb-1">
@@ -171,7 +171,7 @@ export default function ProfileEnrichmentModal({ profile, userId, onClose }: Pro
                 <button
                   type="button"
                   onClick={() => toggleVoice(i)}
-                  className={`absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center transition-all ${
+                  className={`absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full flex items-center justify-center transition-all ${
                     listening && activeField === i
                       ? 'bg-red-500 text-white animate-pulse'
                       : 'bg-neutral-100 text-neutral-400 hover:bg-purple-100 hover:text-purple-600'
@@ -190,7 +190,7 @@ export default function ProfileEnrichmentModal({ profile, userId, onClose }: Pro
         </div>
 
         {/* Submit button */}
-        <div className="px-6 pb-4">
+        <div className="px-4 sm:px-6 pb-4">
           <button
             type="button"
             onClick={handleSubmit}

@@ -63,7 +63,7 @@ export default function GlobalNotifBubble() {
     <div className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end gap-2">
       {/* Expanded panel */}
       {expanded && (
-        <div className="bg-gray-900/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl w-80 max-h-[400px] overflow-hidden animate-in slide-in-from-bottom-2 duration-200">
+        <div className="bg-gray-900/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl w-72 sm:w-80 max-h-[80vh] overflow-hidden animate-in slide-in-from-bottom-2 duration-200">
           <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
             <span className="text-white font-semibold text-sm">Actions en attente</span>
             <button onClick={() => setExpanded(false)} className="text-white/40 hover:text-white/70 transition">

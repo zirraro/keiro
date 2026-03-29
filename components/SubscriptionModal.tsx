@@ -134,7 +134,7 @@ export default function SubscriptionModal({ isOpen, onClose }: SubscriptionModal
 
               <Link
                 href="/checkout/upsell?plan=createur"
-                className={`block w-full py-2.5 text-center text-xs font-bold rounded-xl transition ${
+                className={`block w-full py-3 text-center text-sm font-bold rounded-xl transition min-h-[44px] ${
                   plan.special
                     ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:shadow-lg"
                     : plan.highlight
@@ -144,7 +144,7 @@ export default function SubscriptionModal({ isOpen, onClose }: SubscriptionModal
               >
                 Essai gratuit 14 jours
               </Link>
-              <p className="text-center text-[10px] text-neutral-400 mt-1.5">0{'\u20AC'} pendant 14j {'\u00B7'} Annulation en 1 clic</p>
+              <p className="text-center text-[10px] text-neutral-400 mt-1">0{'\u20AC'} pendant 14j {'\u00B7'} Annulation en 1 clic</p>
             </div>
           ))}
         </div>
