@@ -2617,53 +2617,28 @@ function GmapsPanel({
         </span>
       </div>
 
-      {/* Google Business connection */}
+      {/* Single preview banner if not connected */}
       {!googleConnected && !loadingReviews && (
-        <div className="rounded-xl border border-amber-500/20 bg-amber-900/10 p-4 mb-3">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-amber-500/20 flex items-center justify-center text-lg flex-shrink-0">{'\u{1F310}'}</div>
-            <div className="flex-1">
-              <div className="text-xs font-semibold text-white">Connecter Google Business</div>
-              <div className="text-[9px] text-white/40">Reponds aux avis Google directement depuis KeiroAI</div>
-            </div>
-            <a href="/api/auth/google-oauth" className="px-3 py-1.5 bg-gradient-to-r from-amber-600 to-yellow-600 text-white text-[10px] font-bold rounded-lg hover:opacity-90 transition flex-shrink-0">
-              Connecter
-            </a>
-          </div>
-        </div>
+        <PreviewBanner
+          agentName="Theo"
+          connectLabel="Connecter Google Business"
+          connectUrl="/api/auth/google-oauth"
+          claraMessage="Voici un apercu de ton espace avis Google. Tu pourras voir tes avis, repondre avec l'IA et meme activer les reponses automatiques. 1 clic et c'est parti !"
+          gradientFrom="#f59e0b"
+          gradientTo="#d97706"
+        />
       )}
 
-      {/* Auto-reply toggle for Google reviews */}
-      {googleConnected && <AutoModeToggle agentId="gmaps" autoLabel="Reponses automatiques" manualLabel="Reponses manuelles" autoDesc="Theo repond a chaque nouvel avis automatiquement" manualDesc="Tu choisis quand et quoi repondre" />}
+      {/* Auto-reply toggle — always visible (demo or real) */}
+      <AutoModeToggle agentId="gmaps" autoLabel="Reponses automatiques" manualLabel="Reponses manuelles" autoDesc="Theo repond a chaque nouvel avis automatiquement" manualDesc="Tu choisis quand et quoi repondre" />
 
-      {/* Google reviews (real API or demo) */}
-      {googleReviews.length > 0 ? (
-        <>
-          <SectionTitle>Avis Google ({googleReviews.length})</SectionTitle>
-          <div className="flex flex-col gap-2">
-            {googleReviews.slice(0, 10).map((review: any, i: number) => (
-              <ReviewCard key={i} review={review} gradientFrom={gradientFrom} />
-            ))}
-          </div>
-        </>
-      ) : (
-        <>
-          <PreviewBanner
-            agentName="Theo"
-            connectLabel="Connecter Google Business"
-            connectUrl="/api/auth/google-oauth"
-            claraMessage="Voici un apercu de tes avis Google. Theo generera des reponses IA personnalisees et les publiera automatiquement. Connecte Google Business pour commencer !"
-            gradientFrom="#f59e0b"
-            gradientTo="#d97706"
-          />
-          <SectionTitle>Avis Google (apercu)</SectionTitle>
-          <div className="flex flex-col gap-2">
-            {DEMO_REVIEWS.map((review: any, i: number) => (
-              <ReviewCard key={i} review={review} gradientFrom={gradientFrom} />
-            ))}
-          </div>
-        </>
-      )}
+      {/* Google reviews: real data or demo */}
+      <SectionTitle>{googleConnected ? `Avis Google (${googleReviews.length})` : 'Avis Google (apercu)'}</SectionTitle>
+      <div className={`flex flex-col gap-2 ${!googleConnected ? 'opacity-90' : ''}`}>
+        {(googleConnected ? googleReviews : DEMO_REVIEWS).slice(0, 10).map((review: any, i: number) => (
+          <ReviewCard key={i} review={review} gradientFrom={gradientFrom} />
+        ))}
+      </div>
 
       {/* Bottom padding for mobile nav */}
       <div className="pb-16 lg:pb-0" />
