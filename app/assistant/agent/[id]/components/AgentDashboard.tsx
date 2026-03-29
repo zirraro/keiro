@@ -194,9 +194,9 @@ function DmConversationsLive() {
     return () => clearInterval(interval);
   }, [fetchConversations]);
 
-  // Auto-scroll to bottom when messages change
+  // Auto-scroll to bottom of messages (within container, not page)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [selectedConv, convs]);
 
   const sendReply = useCallback(async () => {
@@ -213,15 +213,13 @@ function DmConversationsLive() {
     } : c));
 
     try {
-      const res = await fetch('/api/crm/reply', {
+      const res = await fetch('/api/agents/dm-instagram/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          prospect_id: selected.participant.username,
           recipient_id: selected.participant.id,
           message: msgText,
-          channel: 'dm_instagram',
         }),
       });
       const data = await res.json();
@@ -255,12 +253,12 @@ function DmConversationsLive() {
   const selected = convs.find(c => c.id === selectedConv);
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden" style={{ maxHeight: 480 }}>
-      <div className="flex h-full" style={{ minHeight: 280 }}>
+    <div className="rounded-xl border-2 border-purple-500/20 bg-gradient-to-b from-purple-900/10 to-transparent overflow-hidden shadow-lg shadow-purple-500/5" style={{ height: 420 }}>
+      <div className="flex h-full">
         {/* Conversation list */}
-        <div className={`${selectedConv ? 'hidden sm:block' : ''} w-full sm:w-56 border-r border-white/5 overflow-y-auto`}>
-          <div className="px-3 py-2 border-b border-white/5 bg-white/[0.02]">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-white/30">Conversations</span>
+        <div className={`${selectedConv ? 'hidden sm:block' : ''} w-full sm:w-56 border-r border-white/10 overflow-y-auto`}>
+          <div className="px-3 py-2.5 border-b border-purple-500/20 bg-purple-900/20">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-purple-300/60">{'\u{1F4AC}'} Conversations</span>
           </div>
           {convs.map(conv => {
             const lastMsg = conv.messages[conv.messages.length - 1];
@@ -307,7 +305,7 @@ function DmConversationsLive() {
               </div>
             </div>
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2.5" style={{ maxHeight: 340 }}>
+            <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2.5">
               {selected.messages.map((msg, i) => (
                 <div key={i} className={`flex ${msg.fromMe ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[80%] px-3 py-2 rounded-2xl text-xs leading-relaxed ${
