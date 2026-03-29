@@ -404,14 +404,13 @@ export async function GET(request: NextRequest) {
           console.log('[Scheduler/ceo] CEO Group report sent to admin');
         } catch (e: any) { console.error('[Scheduler/ceo] CEO Group error:', e.message?.substring(0, 200)); }
       });
-      // Phase 2: CEO brief + orders + client briefs (separate background to avoid timeout)
+      // Phase 2: Orders + client briefs only (CEO brief no longer sent to admin)
       fireBackground(async () => {
         await delay(60000); // Wait 60s for reports to finish
-        await callEndpoint('CEO Brief', '/api/agents/ceo');
-        await delay(10000);
+        // CEO Brief removed for admin — admin only gets CEO Group reco code report
         await callEndpoint('Execute Orders', '/api/agents/orders');
         await delay(5000);
-        // Send Noah brief to each client (morning — 7h Paris)
+        // Send Noah + AMI brief to each client (morning — 7h Paris)
         await callEndpoint('Noah Client Brief', '/api/agents/ceo-reports?type=client_brief', 'POST');
       });
       results.push({ task: 'CEO Brief + Reports + Orders', ok: true, data: { status: 'dispatched_background' } });
@@ -493,8 +492,7 @@ export async function GET(request: NextRequest) {
       // Phase 2: Brief + orders (separate, can take up to 300s)
       fireBackground(async () => {
         await delay(30000); // Wait 30s for phase 1
-        await callEndpoint('CEO Brief (afternoon)', '/api/agents/ceo');
-        await delay(5000);
+        // CEO Brief removed for admin — only orders
         await callEndpoint('Execute Orders', '/api/agents/orders');
       });
       results.push({ task: 'CEO Evening (split)', ok: true, data: { status: 'dispatched_background' } });
@@ -556,7 +554,7 @@ export async function GET(request: NextRequest) {
     case 'ceo_night':
       // 20:00 UTC — CEO brief #3 (bilan de fin de journée) + execute orders + RAG embedding backfill
       fireBackground(async () => {
-        await callEndpoint('CEO Brief (night)', '/api/agents/ceo');
+        // CEO Brief removed for admin — only orders + RAG
         await callEndpoint('Execute Orders', '/api/agents/orders');
         await delay(5000);
         // Auto-backfill des embeddings RAG (pour les nouveaux learnings de la journee)
