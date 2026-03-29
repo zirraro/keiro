@@ -612,8 +612,8 @@ export default function AgentWorkspacePage() {
           {([
             { key: 'dashboard' as const, label: 'Dashboard', icon: '\uD83D\uDCCA' },
             ...(agentId === 'onboarding' ? [{ key: 'profile' as const, label: 'Mon profil', icon: '\uD83D\uDCCB' }] : []),
-            { key: 'campaigns' as const, label: 'Campagnes', icon: '\u{1F3AF}' },
-            { key: 'planning' as const, label: 'Planning', icon: '\uD83D\uDCC5' },
+            ...(['email', 'ads', 'commercial', 'dm_instagram'].includes(agentId) ? [{ key: 'campaigns' as const, label: 'Campagnes', icon: '\u{1F3AF}' }] : []),
+            ...(['content', 'email'].includes(agentId) ? [{ key: 'planning' as const, label: 'Planning', icon: '\uD83D\uDCC5' }] : []),
             { key: 'history' as const, label: 'Historique', icon: '\u26A1' },
             { key: 'settings' as const, label: 'Parametres', icon: '\u2699\uFE0F' },
           ]).map(tab => (
