@@ -351,6 +351,22 @@ async function handleClientBrief(supabase: any) {
         .eq('created_by', client.id)
         .eq('temperature', 'hot');
 
+      // Load client dossier for personalization
+      const { data: dossier } = await supabase
+        .from('business_dossiers')
+        .select('company_name, company_description, business_type, target_audience, business_goals, marketing_goals, brand_tone, main_products, city, custom_fields')
+        .eq('user_id', client.id)
+        .maybeSingle();
+
+      // Load agent configs (auto/manual mode)
+      const { data: agentConfigs } = await supabase
+        .from('org_agent_configs')
+        .select('agent_id, config')
+        .eq('user_id', client.id);
+
+      const autoAgents = (agentConfigs || []).filter((c: any) => c.config?.auto_mode).map((c: any) => c.agent_id);
+      const manualAgents = (agentConfigs || []).filter((c: any) => c.config?.setup_completed && !c.config?.auto_mode).map((c: any) => c.agent_id);
+
       // Generate brief with AI
       const agentSummary = (logs || []).reduce((acc: Record<string, number>, log: any) => {
         acc[log.agent] = (acc[log.agent] || 0) + 1;
@@ -361,8 +377,21 @@ async function handleClientBrief(supabase: any) {
         .map(([agent, count]) => `${agent}: ${count} actions`)
         .join(', ');
 
+      // Build client context
+      const clientContext = [
+        dossier?.company_name ? `Business: ${dossier.company_name}` : '',
+        dossier?.business_type ? `Type: ${dossier.business_type}` : '',
+        dossier?.city ? `Ville: ${dossier.city}` : '',
+        dossier?.target_audience ? `Cible: ${dossier.target_audience}` : '',
+        dossier?.business_goals ? `Objectifs: ${dossier.business_goals}` : '',
+        dossier?.marketing_goals ? `Objectifs marketing: ${dossier.marketing_goals}` : '',
+        dossier?.main_products ? `Produits: ${dossier.main_products}` : '',
+        autoAgents.length > 0 ? `Agents en AUTO: ${autoAgents.join(', ')}` : '',
+        manualAgents.length > 0 ? `Agents en MANUEL: ${manualAgents.join(', ')}` : '',
+      ].filter(Boolean).join('\n');
+
       let briefHtml = '';
-      const clientName = client.first_name || 'cher client';
+      const clientName = client.first_name || dossier?.company_name || 'cher client';
 
       if (ANTHROPIC_KEY) {
         try {
@@ -371,32 +400,34 @@ async function handleClientBrief(supabase: any) {
             headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
             body: JSON.stringify({
               model: 'claude-haiku-4-5-20251001',
-              max_tokens: 500,
-              system: `Tu es Noah, conseiller strategique IA, et AMI, directrice marketing IA. Vous envoyez ensemble un brief quotidien a ${clientName}.
+              max_tokens: 700,
+              system: `Tu es Noah (stratege) et AMI (directrice marketing). Vous envoyez un brief quotidien PERSONNALISE a ${clientName}.
 
-STRUCTURE DU BRIEF (en HTML):
-1. NOAH — Strategie & Actions (3-4 lignes)
-   - Resume positif de l'activite des agents
-   - 1-2 actions concretes a faire AUJOURD'HUI
-   - Prospects chauds a contacter si il y en a
+CONTEXTE CLIENT:
+${clientContext || 'Nouveau client, pas encore de profil complet.'}
 
-2. AMI — Strategie Marketing (3-4 lignes)
-   - 1 recommandation marketing concrete (ex: type de contenu, heure de publication, cible)
-   - 1 tendance ou opportunite a saisir
-   - Conseil adapte au business du client
+STRUCTURE (HTML):
+1. <h4>Noah — Tes actions du jour</h4>
+   - Resume POSITIF de ce que les agents ont fait (adapte au business du client)
+   - Si agents en AUTO: rassure que tout tourne bien, mentionne les resultats
+   - Si agents en MANUEL: rappelle les actions a valider (posts a approuver, emails a envoyer)
+   - Si prospects chauds: nomme-les et dis quoi faire (appeler, DM, email)
+   - 1-2 actions CONCRETES adaptees au type de business
+
+2. <h4>AMI — Strategie marketing</h4>
+   - 1 recommandation CONCRETE adaptee au business (ex: "Pour un restaurant a ${dossier?.city || 'ta ville'}, publie un reel de la cuisine entre 12h-13h")
+   - 1 tendance ou opportunite du moment pour CE type de business
+   - Si le client a des objectifs marketing, lie tes conseils a ces objectifs
 
 REGLES:
-- COURT (8-10 lignes max total en HTML)
-- 100% POSITIF — JAMAIS d'echecs ou problemes techniques
-- Si un agent n'a rien fait, dis "prepare ta prochaine action"
-- Tutoiement, ton direct et bienveillant
-- PAS de jargon technique
-- Format HTML: utilise <h4> pour separer Noah et AMI, puis <p> et <ul/li>
+- COURT (10 lignes max HTML), tutoiement, positif, zero jargon technique
+- Adapte le ton au brand_tone du client (${dossier?.brand_tone || 'chaleureux'})
 - Commence par "Salut ${clientName}!"
-- Termine par une phrase motivante de AMI
+- Si rien ne s'est passe: "Tes agents preparent du contenu pour demain"
+- ACTIONABLE: chaque point doit donner une action claire
 
-INTERDIT: erreurs, echecs, taux d'erreur, jargon technique, "KeiroAI"`,
-              messages: [{ role: 'user', content: `Activite agents 24h: ${agentActivity || 'aucune'}\nProspects total: ${prospectCount || 0}\nProspects HOT: ${hotCount || 0}\nPlan: ${client.plan}\n\nGenere le brief Noah + AMI du jour en HTML.` }],
+INTERDIT: erreurs, echecs, "KeiroAI", jargon technique, taux d'erreur`,
+              messages: [{ role: 'user', content: `Activite agents 24h: ${agentActivity || 'aucune'}\nAgents AUTO: ${autoAgents.join(', ') || 'aucun'}\nAgents MANUEL: ${manualAgents.join(', ') || 'aucun'}\nProspects total: ${prospectCount || 0}\nProspects HOT: ${hotCount || 0}\nPlan: ${client.plan}\n\nGenere le brief Noah + AMI du jour.` }],
             }),
           });
           if (res.ok) {
@@ -451,14 +482,13 @@ INTERDIT: erreurs, echecs, taux d'erreur, jargon technique, "KeiroAI"`,
       }
 
       // ── Individual agent notifications (opt-in via agent settings) ──
-      // Check if client has enabled per-agent notifications
-      const { data: agentConfigs } = await supabase
+      const { data: perAgentConfigs } = await supabase
         .from('org_agent_configs')
         .select('agent_id, config')
         .eq('user_id', client.id);
 
-      if (agentConfigs && agentConfigs.length > 0) {
-        for (const cfg of agentConfigs) {
+      if (perAgentConfigs && perAgentConfigs.length > 0) {
+        for (const cfg of perAgentConfigs) {
           const wantsReport = cfg.config?.send_individual_report === true;
           if (!wantsReport) continue;
 
