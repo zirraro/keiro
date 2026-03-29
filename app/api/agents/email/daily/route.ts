@@ -878,8 +878,12 @@ export async function GET(request: NextRequest) {
   const forceMode = request.nextUrl.searchParams.get('force') === 'true';
   const draftMode = request.nextUrl.searchParams.get('draft') === 'true';
 
-  // Optional org_id passthrough for multi-tenant support
+  // Multi-tenant: filter by client user_id or org_id
   const orgId = request.nextUrl.searchParams.get('org_id') || null;
+  const clientUserId = request.nextUrl.searchParams.get('user_id') || null;
+  if (clientUserId) {
+    console.log(`[EmailDaily] Running for client user_id=${clientUserId}`);
+  }
 
   const supabase = getSupabaseAdmin();
   const now = new Date();
@@ -1038,9 +1042,10 @@ export async function GET(request: NextRequest) {
         .select('*')
         .not('email', 'is', null);
 
-      // If org_id is passed, filter by org
-      const orgId = new URL(request.url).searchParams.get('org_id');
-      if (orgId) {
+      // Multi-tenant: filter by client
+      if (clientUserId) {
+        prospectQuery.eq('user_id', clientUserId);
+      } else if (orgId) {
         prospectQuery.eq('org_id', orgId);
       }
 

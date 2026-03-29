@@ -157,13 +157,14 @@ export async function GET(request: NextRequest) {
   const { authorized, isCron } = await verifyAuth(request);
   if (!authorized) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 
-  // Optional org_id passthrough for multi-tenant support
+  // Multi-tenant: filter by client
   const orgId = request.nextUrl.searchParams.get('org_id') || null;
+  const clientUserId = request.nextUrl.searchParams.get('user_id') || null;
 
   if (isCron) {
     const url = new URL(request.url);
     const platform = url.searchParams.get('platform') === 'tiktok' ? 'tiktok' as const : 'instagram' as const;
-    return runDMPreparation(platform, orgId);
+    return runDMPreparation(platform, orgId, clientUserId);
   }
 
   const supabase = getSupabaseAdmin();
@@ -228,7 +229,7 @@ function verifyDMProspectData(prospect: any, platform: 'instagram' | 'tiktok' = 
   return { valid: issues.length === 0, issues };
 }
 
-async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram', orgId: string | null = null): Promise<NextResponse> {
+async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram', orgId: string | null = null, clientUserId: string | null = null): Promise<NextResponse> {
   const supabase = getSupabaseAdmin();
   const now = new Date().toISOString();
   const isTikTok = platform === 'tiktok';
@@ -236,10 +237,11 @@ async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram', 
   const channelName = isTikTok ? 'tiktok' : 'instagram';
   const agentName = isTikTok ? 'dm_tiktok' : 'dm_instagram';
 
+  if (clientUserId) console.log(`[DMAgent] Running for client user_id=${clientUserId}`);
   console.log(`[DMAgent] Preparing daily DMs for ${platform}...`);
 
   // Select prospects with handle that haven't been DMed yet
-  const { data: allWithHandle, error } = await supabase
+  const prospectQuery = supabase
     .from('crm_prospects')
     .select('*')
     .not(handleField, 'is', null)
@@ -247,6 +249,15 @@ async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram', 
     .neq(handleField, 'A_VERIFIER')
     .order('score', { ascending: false })
     .limit(500);
+
+  // Multi-tenant: filter by client
+  if (clientUserId) {
+    prospectQuery.eq('user_id', clientUserId);
+  } else if (orgId) {
+    prospectQuery.eq('org_id', orgId);
+  }
+
+  const { data: allWithHandle, error } = await prospectQuery;
 
   if (error) {
     console.error('[DMAgent] Fetch error:', error.message);
