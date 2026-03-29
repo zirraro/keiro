@@ -1,79 +1,185 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { usePathname } from 'next/navigation';
+import { useState, useEffect, useCallback } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 
 /**
- * ClaraHelper — floating Clara popup that appears after the client
- * visits a few agent pages, offering help and tutorial.
- * Shows once per session, dismissable.
+ * ClaraHelper — Smart Clara popup that:
+ * 1. After 2+ agent visits: offers help
+ * 2. Detects inactive agents and suggests activating them
+ * 3. Wizard mode: guides through agent setup sequentially
  */
+
+const AGENT_SETUP_ORDER = [
+  { id: 'content', name: 'Lena', role: 'Publication contenu', connectUrl: '/api/auth/instagram-oauth', connectLabel: 'Connecter Instagram', needsConnect: 'instagram' },
+  { id: 'dm_instagram', name: 'Jade', role: 'DMs Instagram', connectUrl: '/api/auth/instagram-oauth', connectLabel: 'Connecter Instagram', needsConnect: 'instagram' },
+  { id: 'email', name: 'Hugo', role: 'Email marketing', connectUrl: null, connectLabel: null, needsConnect: null },
+  { id: 'gmaps', name: 'Theo', role: 'Avis Google', connectUrl: '/api/auth/google-oauth', connectLabel: 'Connecter Google', needsConnect: 'google' },
+  { id: 'commercial', name: 'Leo', role: 'Prospection', connectUrl: null, connectLabel: null, needsConnect: null },
+  { id: 'seo', name: 'Oscar', role: 'SEO', connectUrl: null, connectLabel: null, needsConnect: null },
+  { id: 'instagram_comments', name: 'Commentaires', role: 'Commentaires IG', connectUrl: '/api/auth/instagram-oauth', connectLabel: 'Connecter Instagram', needsConnect: 'instagram' },
+];
+
 export default function ClaraHelper() {
   const [show, setShow] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const [mode, setMode] = useState<'help' | 'wizard' | 'inactive'>('help');
+  const [inactiveAgents, setInactiveAgents] = useState<typeof AGENT_SETUP_ORDER>([]);
+  const [currentWizardIndex, setCurrentWizardIndex] = useState(0);
+  const [connections, setConnections] = useState<Record<string, boolean>>({});
   const pathname = usePathname();
+  const router = useRouter();
 
+  // Load inactive agents + connections
   useEffect(() => {
-    // Only on agent pages
-    if (!pathname?.startsWith('/assistant/agent/')) return;
+    if (!pathname?.startsWith('/assistant')) return;
 
-    // Track visited agents in session
-    try {
-      const key = 'keiro_clara_visits';
-      const visits = JSON.parse(sessionStorage.getItem(key) || '[]');
-      if (!visits.includes(pathname)) {
-        visits.push(pathname);
-        sessionStorage.setItem(key, JSON.stringify(visits));
-      }
-
-      // Show after visiting 2+ agents
-      if (visits.length >= 2) {
-        const shownKey = 'keiro_clara_shown';
-        if (!sessionStorage.getItem(shownKey)) {
-          const timer = setTimeout(() => {
-            setShow(true);
-            sessionStorage.setItem(shownKey, 'true');
-          }, 3000);
-          return () => clearTimeout(timer);
+    const load = async () => {
+      try {
+        // Get connections
+        const dashRes = await fetch('/api/agents/dashboard?agent_id=marketing', { credentials: 'include' });
+        if (dashRes.ok) {
+          const d = await dashRes.json();
+          if (d.connections) setConnections(d.connections);
         }
-      }
-    } catch {}
+
+        // Get which agents are setup
+        const setupAgents = new Set<string>();
+        for (const agent of AGENT_SETUP_ORDER) {
+          try {
+            const res = await fetch('/api/agents/settings?agent_id=' + agent.id, { credentials: 'include' });
+            if (res.ok) {
+              const d = await res.json();
+              if (d.settings?.setup_completed || d.settings?.auto_mode) setupAgents.add(agent.id);
+            }
+          } catch {}
+        }
+
+        const inactive = AGENT_SETUP_ORDER.filter(a => !setupAgents.has(a.id));
+        setInactiveAgents(inactive);
+
+        // Show bubble if there are inactive agents
+        if (inactive.length > 0) {
+          const shownKey = 'keiro_clara_inactive_shown';
+          const lastShown = sessionStorage.getItem(shownKey);
+          if (!lastShown || Date.now() - parseInt(lastShown) > 300000) { // 5 min cooldown
+            setTimeout(() => {
+              setMode('inactive');
+              setShow(true);
+            }, 5000);
+          }
+        }
+      } catch {}
+    };
+
+    load();
   }, [pathname]);
+
+  const dismissAndCooldown = useCallback(() => {
+    setDismissed(true);
+    setShow(false);
+    try { sessionStorage.setItem('keiro_clara_inactive_shown', String(Date.now())); } catch {}
+  }, []);
+
+  const startWizard = useCallback(() => {
+    setMode('wizard');
+    setCurrentWizardIndex(0);
+  }, []);
+
+  const activateAgent = useCallback(async (agentId: string) => {
+    // Mark as setup + auto mode
+    await fetch('/api/agents/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ agent_id: agentId, auto_mode: true, setup_completed: true }),
+    }).catch(() => {});
+    // Move to next
+    setCurrentWizardIndex(prev => prev + 1);
+  }, []);
+
+  const skipAgent = useCallback(() => {
+    setCurrentWizardIndex(prev => prev + 1);
+  }, []);
 
   if (!show || dismissed) return null;
 
+  const currentAgent = mode === 'wizard' ? inactiveAgents[currentWizardIndex] : null;
+  const wizardDone = mode === 'wizard' && currentWizardIndex >= inactiveAgents.length;
+
   return (
     <div className="fixed bottom-20 lg:bottom-6 left-4 lg:left-6 z-50 animate-in slide-in-from-bottom-3 duration-300">
-      <div className="bg-gray-900/95 backdrop-blur-xl border border-emerald-500/20 rounded-2xl shadow-2xl shadow-emerald-500/10 p-4 max-w-xs">
-        <button
-          onClick={() => setDismissed(true)}
-          className="absolute top-2 right-2 text-white/20 hover:text-white/50 transition"
-        >
+      <div className="bg-gray-900/95 backdrop-blur-xl border border-emerald-500/20 rounded-2xl shadow-2xl shadow-emerald-500/10 p-4 w-72 sm:w-80">
+        <button onClick={dismissAndCooldown} className="absolute top-2 right-2 text-white/20 hover:text-white/50 transition">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
+
         <div className="flex items-start gap-3">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0 shadow-lg">
-            C
-          </div>
-          <div>
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0 shadow-lg">C</div>
+          <div className="flex-1 min-w-0">
             <div className="text-xs font-bold text-emerald-400 mb-1">Clara</div>
-            <p className="text-xs text-white/70 leading-relaxed mb-2">
-              Tout se passe bien ? Je peux t&apos;aider a configurer tes agents ou repondre a tes questions !
-            </p>
-            <div className="flex gap-2">
-              <a
-                href="/assistant/agent/onboarding"
-                className="px-3 py-1.5 bg-emerald-600 text-white text-[10px] font-bold rounded-lg hover:bg-emerald-500 transition"
-              >
-                Aide-moi
-              </a>
-              <button
-                onClick={() => setDismissed(true)}
-                className="px-3 py-1.5 bg-white/10 text-white/50 text-[10px] rounded-lg hover:bg-white/15 transition"
-              >
-                Ca va merci !
-              </button>
-            </div>
+
+            {/* Mode: inactive agents reminder */}
+            {mode === 'inactive' && (
+              <>
+                <p className="text-xs text-white/70 leading-relaxed mb-2">
+                  Tu as <strong className="text-emerald-300">{inactiveAgents.length} agent{inactiveAgents.length > 1 ? 's' : ''}</strong> pret{inactiveAgents.length > 1 ? 's' : ''} a bosser pour toi ! Active-les en 30 secondes chacun.
+                </p>
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {inactiveAgents.slice(0, 4).map(a => (
+                    <span key={a.id} className="text-[9px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded">{a.name}</span>
+                  ))}
+                  {inactiveAgents.length > 4 && <span className="text-[9px] text-white/30">+{inactiveAgents.length - 4}</span>}
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={startWizard} className="px-3 py-1.5 bg-emerald-600 text-white text-[10px] font-bold rounded-lg hover:bg-emerald-500 transition min-h-[32px]">
+                    {'\u26A1'} Activer maintenant
+                  </button>
+                  <button onClick={dismissAndCooldown} className="px-3 py-1.5 bg-white/10 text-white/50 text-[10px] rounded-lg hover:bg-white/15 transition min-h-[32px]">
+                    Plus tard
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* Mode: wizard */}
+            {mode === 'wizard' && !wizardDone && currentAgent && (
+              <>
+                <p className="text-[10px] text-white/40 mb-1">Agent {currentWizardIndex + 1}/{inactiveAgents.length}</p>
+                <p className="text-xs text-white/80 font-medium mb-0.5">{currentAgent.name} — {currentAgent.role}</p>
+                <div className="flex gap-1 mb-2">
+                  {inactiveAgents.map((_, i) => (
+                    <div key={i} className={`h-1 flex-1 rounded-full ${i < currentWizardIndex ? 'bg-emerald-400' : i === currentWizardIndex ? 'bg-white' : 'bg-white/15'}`} />
+                  ))}
+                </div>
+
+                {currentAgent.needsConnect && !connections[currentAgent.needsConnect] ? (
+                  <div className="flex gap-2">
+                    <a href={currentAgent.connectUrl || '#'} className="px-3 py-1.5 bg-emerald-600 text-white text-[10px] font-bold rounded-lg hover:bg-emerald-500 transition min-h-[32px]">
+                      {currentAgent.connectLabel}
+                    </a>
+                    <button onClick={skipAgent} className="px-3 py-1.5 bg-white/10 text-white/50 text-[10px] rounded-lg min-h-[32px]">Passer</button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <button onClick={() => activateAgent(currentAgent.id)} className="px-3 py-1.5 bg-emerald-600 text-white text-[10px] font-bold rounded-lg hover:bg-emerald-500 transition min-h-[32px]">
+                      {'\u2705'} Activer {currentAgent.name}
+                    </button>
+                    <button onClick={skipAgent} className="px-3 py-1.5 bg-white/10 text-white/50 text-[10px] rounded-lg min-h-[32px]">Passer</button>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Mode: wizard done */}
+            {wizardDone && (
+              <>
+                <p className="text-xs text-white/80 mb-2">{'\u{1F389}'} Bravo ! Tes agents sont prets a travailler pour toi !</p>
+                <button onClick={dismissAndCooldown} className="px-3 py-1.5 bg-emerald-600 text-white text-[10px] font-bold rounded-lg min-h-[32px]">
+                  C&apos;est parti !
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>

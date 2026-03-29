@@ -71,44 +71,47 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json().catch(() => ({}));
+    const supabase = getSupabaseAdmin();
 
-    // Calculate completeness score
+    // Load existing dossier to MERGE (don't overwrite with null)
+    const { data: existing } = await supabase
+      .from('business_dossiers')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    // Merge: only update fields that have a non-empty value in body
+    const allFields = ['company_name', 'company_description', 'business_type', 'target_audience', 'brand_tone', 'main_products', 'competitors', 'unique_selling_points', 'business_goals', 'marketing_goals', 'instagram_handle', 'tiktok_handle', 'linkedin_url', 'website_url', 'google_maps_url', 'logo_url', 'city', 'address', 'catchment_area', 'price_range', 'founder_name', 'employees_count', 'monthly_budget', 'posting_frequency'];
+    const merged: Record<string, any> = { user_id: user.id };
+    for (const f of allFields) {
+      const newVal = body[f];
+      const existingVal = existing?.[f];
+      merged[f] = (newVal && String(newVal).trim()) ? newVal : existingVal || null;
+    }
+    if (Array.isArray(body.uploaded_files)) merged.uploaded_files = body.uploaded_files;
+    else if (existing?.uploaded_files) merged.uploaded_files = existing.uploaded_files;
+
+    // Calculate completeness score from MERGED data
     const coreFields = ['company_name', 'company_description', 'business_type', 'target_audience', 'brand_tone', 'main_products'];
     const bonusFields = ['competitors', 'unique_selling_points', 'instagram_handle', 'logo_url', 'website_url', 'google_maps_url'];
-
     let score = 0;
     for (const f of coreFields) {
-      if (body[f] && String(body[f]).trim()) score += 12; // 6 x 12 = 72
+      if (merged[f] && String(merged[f]).trim()) score += 12;
     }
     for (const f of bonusFields) {
-      if (body[f] && String(body[f]).trim()) score += 4.67; // 6 x 4.67 = 28
+      if (merged[f] && String(merged[f]).trim()) score += 4.67;
+    }
+    // Extra points for non-core fields
+    for (const f of ['business_goals', 'city', 'founder_name', 'main_products', 'posting_frequency']) {
+      if (merged[f] && String(merged[f]).trim()) score += 3;
     }
 
-    const supabase = getSupabaseAdmin();
+    merged.completeness_score = Math.min(100, Math.round(score));
+    merged.updated_at = new Date().toISOString();
 
     const { error } = await supabase
       .from('business_dossiers')
-      .upsert({
-        user_id: user.id,
-        company_name: body.company_name || null,
-        company_description: body.company_description || null,
-        business_type: body.business_type || null,
-        target_audience: body.target_audience || null,
-        brand_tone: body.brand_tone || null,
-        main_products: body.main_products || null,
-        competitors: body.competitors || null,
-        unique_selling_points: body.unique_selling_points || null,
-        business_goals: body.business_goals || null,
-        instagram_handle: body.instagram_handle || null,
-        tiktok_handle: body.tiktok_handle || null,
-        linkedin_url: body.linkedin_url || null,
-        website_url: body.website_url || null,
-        google_maps_url: body.google_maps_url || null,
-        logo_url: body.logo_url || null,
-        uploaded_files: Array.isArray(body.uploaded_files) ? body.uploaded_files : [],
-        completeness_score: Math.min(100, Math.round(score)),
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'user_id' });
+      .upsert(merged, { onConflict: 'user_id' });
 
     if (error) {
       console.error('[BusinessDossier] PUT error:', error);
