@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import ClaraHelper from "./components/ClaraHelper";
 
 export const metadata: Metadata = {
   title: "Agents IA - Automatisation Business - Keiro",
@@ -33,5 +34,10 @@ export default function AssistantLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return children;
+  return (
+    <>
+      {children}
+      <ClaraHelper />
+    </>
+  );
 }
