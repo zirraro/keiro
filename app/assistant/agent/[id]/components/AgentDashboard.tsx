@@ -410,52 +410,58 @@ function DmCard({ dm, statusColors }: { dm: { target: string; status: string; me
   );
 }
 
-// Toggle auto-reply for Google reviews
-function GoogleAutoReplyToggle() {
-  const [autoReply, setAutoReply] = useState(false);
-  const [loading, setLoading] = useState(true);
+// Generic auto-mode toggle for any agent
+function AutoModeToggle({ agentId, autoLabel, manualLabel, autoDesc, manualDesc }: {
+  agentId: string;
+  autoLabel: string;
+  manualLabel: string;
+  autoDesc: string;
+  manualDesc: string;
+}) {
+  const storageKey = `keiro_auto_${agentId}`;
+  const [auto, setAuto] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    fetch('/api/agents/google-reviews?check_auto=true', { credentials: 'include' })
+    try { const saved = localStorage.getItem(storageKey); if (saved) setAuto(saved === 'true'); } catch {}
+    // Also check server
+    fetch(`/api/agents/settings?agent_id=${agentId}`, { credentials: 'include' })
       .then(r => r.json())
-      .then(d => { if (d.auto_reply !== undefined) setAutoReply(d.auto_reply); })
+      .then(d => { if (d.auto_mode !== undefined) setAuto(d.auto_mode); })
       .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+      .finally(() => setLoaded(true));
+  }, [agentId, storageKey]);
 
   const toggle = useCallback(async () => {
-    const newValue = !autoReply;
-    setAutoReply(newValue);
+    const newVal = !auto;
+    setAuto(newVal);
+    try { localStorage.setItem(storageKey, String(newVal)); } catch {}
     try {
-      await fetch('/api/agents/google-reviews', {
+      await fetch('/api/agents/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ action: 'toggle_auto_reply', enabled: newValue }),
+        body: JSON.stringify({ agent_id: agentId, auto_mode: newVal }),
       });
-    } catch { setAutoReply(!newValue); }
-  }, [autoReply]);
+    } catch { setAuto(!newVal); }
+  }, [auto, agentId, storageKey]);
 
-  if (loading) return null;
+  if (!loaded) return null;
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 mb-3 flex items-center justify-between">
-      <div className="flex items-center gap-2">
-        <span className="text-sm">{autoReply ? '\u{1F916}' : '\u{270D}\uFE0F'}</span>
-        <div>
-          <div className="text-xs font-medium text-white/80">
-            {autoReply ? 'Reponses automatiques activees' : 'Reponses manuelles'}
-          </div>
-          <div className="text-[9px] text-white/40">
-            {autoReply ? 'Theo repond automatiquement a chaque nouvel avis' : 'Tu choisis quand et quoi repondre'}
-          </div>
+    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 sm:p-4 mb-3 flex items-center justify-between gap-3">
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="text-base sm:text-lg">{auto ? '\u{1F916}' : '\u{270D}\uFE0F'}</span>
+        <div className="min-w-0">
+          <div className="text-xs sm:text-sm font-medium text-white/80">{auto ? autoLabel : manualLabel}</div>
+          <div className="text-[10px] text-white/40">{auto ? autoDesc : manualDesc}</div>
         </div>
       </div>
       <button
         onClick={toggle}
-        className={`w-12 h-7 rounded-full relative transition-colors flex-shrink-0 ${autoReply ? 'bg-emerald-500' : 'bg-white/15'}`}
+        className={`w-12 h-7 rounded-full relative transition-colors flex-shrink-0 ${auto ? 'bg-emerald-500' : 'bg-white/15'}`}
       >
-        <div className={`absolute top-0.5 w-6 h-6 rounded-full bg-white shadow transition-all ${autoReply ? 'right-0.5' : 'left-0.5'}`} />
+        <div className={`absolute top-0.5 w-6 h-6 rounded-full bg-white shadow transition-all ${auto ? 'right-0.5' : 'left-0.5'}`} />
       </button>
     </div>
   );
@@ -1204,6 +1210,9 @@ function EmailPanel({
 
   return (
     <>
+      {/* Auto mode toggle */}
+      <AutoModeToggle agentId="email" autoLabel="Emails automatiques" manualLabel="Emails manuels" autoDesc="Hugo envoie les sequences email automatiquement" manualDesc="Tu valides chaque email avant envoi" />
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KpiCard label="Emails envoyes" value={fmt(stats.sent)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
         <KpiCard label="Taux ouverture" value={fmtPercent(stats.openRate)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
@@ -1540,6 +1549,9 @@ function ContentPanel({
     <>
       {/* Connect social networks */}
       <SocialConnectBanners agentId="content" networks={['instagram', 'tiktok', 'linkedin']} />
+
+      {/* Auto mode toggle */}
+      <AutoModeToggle agentId="content" autoLabel="Publication automatique" manualLabel="Publication manuelle" autoDesc="Lena publie automatiquement 3x/jour selon ton calendrier" manualDesc="Tu valides chaque post avant publication" />
 
       {/* Instagram KPIs */}
       <SectionTitle>Performance Instagram</SectionTitle>
@@ -2155,6 +2167,9 @@ function DmInstagramPanel({
       {/* Connect Instagram if not connected */}
       <SocialConnectBanners agentId="dm_instagram" networks={['instagram']} />
 
+      {/* Auto mode toggle */}
+      <AutoModeToggle agentId="dm_instagram" autoLabel="DMs automatiques" manualLabel="DMs manuels" autoDesc="Jade repond automatiquement aux DMs et envoie des DMs de prospection" manualDesc="Tu valides chaque DM avant envoi" />
+
       {/* Live Instagram conversations — FIRST, most important */}
       <SectionTitle>Conversations Instagram</SectionTitle>
       <DmConversationsLive />
@@ -2417,7 +2432,7 @@ function GmapsPanel({
       )}
 
       {/* Auto-reply toggle for Google reviews */}
-      {googleConnected && <GoogleAutoReplyToggle />}
+      {googleConnected && <AutoModeToggle agentId="gmaps" autoLabel="Reponses automatiques" manualLabel="Reponses manuelles" autoDesc="Theo repond a chaque nouvel avis automatiquement" manualDesc="Tu choisis quand et quoi repondre" />}
 
       {/* Google reviews (real API) */}
       {googleReviews.length > 0 && (
