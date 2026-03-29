@@ -388,6 +388,119 @@ function DmCard({ dm, statusColors }: { dm: { target: string; status: string; me
   );
 }
 
+// Review card with AI reply generation for Google reviews
+function ReviewCard({ review, gradientFrom }: { review: { author: string; rating: number; text: string; date: string; replied: boolean }; gradientFrom: string }) {
+  const [showReply, setShowReply] = useState(false);
+  const [replyText, setReplyText] = useState('');
+  const [generating, setGenerating] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const generateReply = useCallback(async () => {
+    setGenerating(true);
+    try {
+      const res = await fetch('/api/agents/client-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          agent_id: 'gmaps',
+          message: `Genere une reponse professionnelle et chaleureuse a cet avis Google (${review.rating}/5 etoiles) de ${review.author}: "${review.text}". Reponse courte (2-3 phrases max), en francais, qui remercie et montre qu'on prend en compte le feedback. Pas de formule type, sois naturel.`,
+        }),
+      });
+      if (res.ok) {
+        const d = await res.json();
+        if (d.reply) setReplyText(d.reply);
+      }
+    } catch {} finally { setGenerating(false); }
+  }, [review]);
+
+  const copyReply = useCallback(() => {
+    navigator.clipboard.writeText(replyText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, [replyText]);
+
+  return (
+    <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
+      <div className="p-4">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-bold text-white/60">
+              {review.author?.[0]?.toUpperCase() || '?'}
+            </div>
+            <span className="text-sm text-white/80 font-medium">{review.author}</span>
+            <div className="flex gap-0.5">
+              {Array.from({ length: 5 }).map((_, s) => (
+                <svg key={s} className="w-3 h-3" viewBox="0 0 24 24" fill={s < review.rating ? '#fbbf24' : 'rgba(255,255,255,0.15)'}>
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                </svg>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span
+              className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
+              style={{
+                backgroundColor: review.replied ? 'rgba(52,211,153,0.15)' : 'rgba(251,191,36,0.15)',
+                color: review.replied ? '#34d399' : '#fbbf24',
+              }}
+            >
+              {review.replied ? 'Repondu' : 'En attente'}
+            </span>
+            {!review.replied && (
+              <button onClick={() => { setShowReply(!showReply); if (!showReply && !replyText) generateReply(); }} className="text-[10px] px-2 py-1 bg-white/10 rounded-lg text-white/60 hover:bg-white/15 shrink-0">
+                {showReply ? 'Fermer' : 'Repondre'}
+              </button>
+            )}
+          </div>
+        </div>
+        <p className="text-xs text-white/60 line-clamp-3">{review.text}</p>
+        <p className="text-[10px] text-white/30 mt-1">{fmtDate(review.date)}</p>
+      </div>
+
+      {showReply && (
+        <div className="px-4 pb-4 border-t border-white/5 pt-3 space-y-2">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[10px] text-white/40">Reponse IA generee :</span>
+            {generating && <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-purple-400" />}
+          </div>
+          <textarea
+            value={replyText}
+            onChange={e => setReplyText(e.target.value)}
+            placeholder={generating ? 'Generation en cours...' : 'Reponse a l\'avis...'}
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-purple-500/50 resize-none"
+            rows={3}
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={generateReply}
+              disabled={generating}
+              className="px-3 py-1.5 text-[10px] font-medium bg-white/10 text-white/60 rounded-lg hover:bg-white/15 disabled:opacity-40"
+            >
+              {generating ? 'Generation...' : '\u2728 Regenerer'}
+            </button>
+            <button
+              onClick={copyReply}
+              disabled={!replyText.trim()}
+              className={`px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all ${copied ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gradient-to-r from-amber-600 to-yellow-600 text-white hover:opacity-90'} disabled:opacity-40`}
+            >
+              {copied ? '\u2713 Copie !' : '\u{1F4CB} Copier la reponse'}
+            </button>
+            <a
+              href="https://business.google.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-1.5 text-[10px] font-medium bg-blue-600/20 text-blue-400 rounded-lg hover:bg-blue-600/30 ml-auto"
+            >
+              Ouvrir Google Business {'\u2197'}
+            </a>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function EmailCard({ email }: { email: { prospect: string; type: string; status: string; date: string } }) {
   const [showReply, setShowReply] = useState(false);
   const [replyText, setReplyText] = useState('');
@@ -982,9 +1095,7 @@ function EmailPanel({
   gradientFrom: string;
   gradientTo: string;
 }) {
-  const stats = data.emailStats;
-
-  if (!stats) return <EmptyState agentName={agentName} />;
+  const stats = data.emailStats || { sent: 0, opened: 0, clicked: 0, openRate: 0, clickRate: 0, sequences: {}, recentEmails: [] };
 
   const seqEntries = Object.entries(stats.sequences ?? {});
   const seqTotal = seqEntries.reduce((s, [, v]) => s + v, 0) || 1;
@@ -1948,9 +2059,7 @@ function GmapsPanel({
   gradientFrom: string;
   gradientTo: string;
 }) {
-  const stats = data.gmapsStats;
-
-  if (!stats) return <EmptyState agentName={agentName} />;
+  const stats = data.gmapsStats || { reviewsAnswered: 0, googleRating: 0, totalReviews: 0, gmbClicks: 0, recentReviews: [] };
 
   // Star rating visual
   const fullStars = Math.floor(stats.googleRating);
@@ -1999,38 +2108,14 @@ function GmapsPanel({
         </span>
       </div>
 
-      {/* Recent reviews feed */}
+      {/* Recent reviews feed with reply */}
       <SectionTitle>Avis recents</SectionTitle>
-      {stats.recentReviews.length === 0 ? (
+      {(stats.recentReviews?.length || 0) === 0 ? (
         <EmptyState agentName={agentName} />
       ) : (
         <div className="flex flex-col gap-2">
-          {stats.recentReviews.slice(0, 5).map((review, i) => (
-            <div key={i} className="bg-white/5 rounded-xl border border-white/10 p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-white/80 font-medium">{review.author}</span>
-                  <div className="flex gap-0.5">
-                    {Array.from({ length: 5 }).map((_, s) => (
-                      <svg key={s} className="w-3 h-3" viewBox="0 0 24 24" fill={s < review.rating ? '#fbbf24' : 'rgba(255,255,255,0.15)'}>
-                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                      </svg>
-                    ))}
-                  </div>
-                </div>
-                <span
-                  className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
-                  style={{
-                    backgroundColor: review.replied ? 'rgba(52,211,153,0.15)' : 'rgba(251,191,36,0.15)',
-                    color: review.replied ? '#34d399' : '#fbbf24',
-                  }}
-                >
-                  {review.replied ? 'Repondu' : 'En attente'}
-                </span>
-              </div>
-              <p className="text-xs text-white/60 line-clamp-2">{review.text}</p>
-              <p className="text-xs text-white/40 mt-1">{fmtDate(review.date)}</p>
-            </div>
+          {stats.recentReviews.slice(0, 5).map((review: any, i: number) => (
+            <ReviewCard key={i} review={review} gradientFrom={gradientFrom} />
           ))}
         </div>
       )}

@@ -37,13 +37,14 @@ export async function GET(req: NextRequest) {
     // Permissions Instagram Business
     // instagram_manage_messages + pages_messaging: needed for DM conversations
     // These work in dev mode for app admins/testers even before Meta approval
+    // pages_messaging is NOT a valid scope for Instagram — removed
+    // instagram_manage_messages works for IG DMs with IGAA tokens
     const scopes = [
       'instagram_basic',
       'instagram_content_publish',
       'instagram_manage_messages',
       'pages_show_list',
       'pages_read_engagement',
-      'pages_messaging',
       'instagram_manage_insights',
       'instagram_manage_comments',
       'business_management',
