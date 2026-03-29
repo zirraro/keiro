@@ -31,75 +31,99 @@ const SOCIAL_NETWORKS = {
 } as const;
 
 function SocialConnectBanners({ agentId, networks }: { agentId: string; networks: Array<keyof typeof SOCIAL_NETWORKS> }) {
-  const storageKey = `keiro_dismissed_socials_${agentId}`;
-  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const storageKey = `keiro_socials_${agentId}`;
+  const [hidden, setHidden] = useState(false);
+  const [enabled, setEnabled] = useState<Record<string, boolean>>({});
   const [connected, setConnected] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    // Load dismissed state
+    // Load saved state
     try {
       const saved = localStorage.getItem(storageKey);
-      if (saved) setDismissed(new Set(JSON.parse(saved)));
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed._hidden) { setHidden(true); return; }
+        setEnabled(parsed);
+      }
     } catch {}
-    // Check which networks are connected
-    fetch('/api/business-dossier', { credentials: 'include' })
-      .then(r => r.json())
-      .then(d => {
-        const c = new Set<string>();
-        if (d.instagram_handle || d.instagram_business_account_id) c.add('instagram');
-        if (d.tiktok_handle) c.add('tiktok');
-        if (d.linkedin_url) c.add('linkedin');
-        setConnected(c);
-      }).catch(() => {});
-    // Also check profile for IG connection
+    // Check connected networks
     fetch('/api/instagram/check-token', { credentials: 'include' })
       .then(r => r.json())
       .then(d => { if (d.valid || d.connected) setConnected(prev => new Set([...prev, 'instagram'])); })
       .catch(() => {});
   }, [storageKey]);
 
-  const dismiss = useCallback((network: string) => {
-    setDismissed(prev => {
-      const next = new Set([...prev, network]);
-      try { localStorage.setItem(storageKey, JSON.stringify([...next])); } catch {}
-      return next;
-    });
+  const save = useCallback((state: Record<string, boolean>) => {
+    try { localStorage.setItem(storageKey, JSON.stringify(state)); } catch {}
   }, [storageKey]);
 
-  const visibleNetworks = networks.filter(n => !dismissed.has(n) && !connected.has(n));
-  if (visibleNetworks.length === 0) return null;
+  const toggle = useCallback((key: string) => {
+    setEnabled(prev => {
+      const next = { ...prev, [key]: !prev[key] };
+      save(next);
+      return next;
+    });
+  }, [save]);
+
+  const hideAll = useCallback(() => {
+    setHidden(true);
+    try { localStorage.setItem(storageKey, JSON.stringify({ _hidden: true })); } catch {}
+  }, [storageKey]);
+
+  if (hidden) return null;
+  // If all networks are connected, don't show
+  if (networks.every(n => connected.has(n))) return null;
 
   return (
-    <div className="space-y-2 mb-4">
-      {visibleNetworks.map(networkKey => {
-        const net = SOCIAL_NETWORKS[networkKey];
-        return (
-          <div key={networkKey} className="relative rounded-xl border border-white/10 bg-white/[0.03] p-3 flex items-center gap-3 group">
-            {/* Dismiss button */}
-            <button
-              onClick={() => dismiss(networkKey)}
-              className="absolute top-2 right-2 text-white/20 hover:text-white/60 transition p-0.5"
-              title="Masquer"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
-
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center text-lg flex-shrink-0" style={{ background: `${net.color}20` }}>
-              {net.icon}
+    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 mb-4">
+      <div className="flex items-center justify-between mb-3">
+        <h4 className="text-xs font-bold text-white/70">Reseaux sociaux</h4>
+        <button onClick={hideAll} className="text-white/20 hover:text-white/50 transition" title="Masquer">
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
+      </div>
+      <div className="space-y-2">
+        {networks.map(key => {
+          const net = SOCIAL_NETWORKS[key];
+          const isConnected = connected.has(key);
+          const isEnabled = enabled[key] || isConnected;
+          return (
+            <div key={key} className="flex items-center gap-3 py-1.5">
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center text-sm flex-shrink-0" style={{ background: `${net.color}20` }}>
+                {net.icon}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-medium text-white/80">{net.name}</div>
+                <div className="text-[9px] text-white/30">{net.description}</div>
+              </div>
+              {isConnected ? (
+                <span className="text-[10px] font-bold text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded-full flex-shrink-0">
+                  {'\u2713'} Connecte
+                </span>
+              ) : isEnabled ? (
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <a href={net.oauthUrl} className={`px-2.5 py-1 bg-gradient-to-r ${net.gradient} text-white text-[10px] font-bold rounded-lg hover:opacity-90 transition`}>
+                    Connecter
+                  </a>
+                  <button onClick={() => toggle(key)} className="w-8 h-[18px] rounded-full bg-emerald-500 relative transition-colors flex-shrink-0" title="Desactiver">
+                    <div className="absolute right-0.5 top-0.5 w-3.5 h-3.5 rounded-full bg-white shadow transition-all" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className="text-[9px] text-white/20">Desactive</span>
+                  <button onClick={() => toggle(key)} className="w-8 h-[18px] rounded-full bg-white/15 relative transition-colors flex-shrink-0" title="Activer">
+                    <div className="absolute left-0.5 top-0.5 w-3.5 h-3.5 rounded-full bg-white/40 shadow transition-all" />
+                  </button>
+                </div>
+              )}
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-xs font-semibold text-white">{net.name}</div>
-              <div className="text-[10px] text-white/40">{net.description}</div>
-            </div>
-            <a
-              href={net.oauthUrl}
-              className={`px-3 py-1.5 bg-gradient-to-r ${net.gradient} text-white text-[10px] font-bold rounded-lg hover:opacity-90 transition flex-shrink-0`}
-            >
-              Connecter
-            </a>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
+      <p className="text-[9px] text-white/20 mt-3 text-center">
+        Pas encore de compte ? Active plus tard dans les parametres de l&apos;agent
+      </p>
     </div>
   );
 }
