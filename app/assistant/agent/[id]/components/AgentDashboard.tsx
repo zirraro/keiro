@@ -1951,7 +1951,7 @@ function AdsPanel({
 }) {
   const stats: any = data.adsStats || { campaigns: 3, totalSpend: DEMO_ADS_STATS.totalSpend, avgRoas: DEMO_ADS_STATS.roas, roas: DEMO_ADS_STATS.roas, totalConversions: DEMO_ADS_STATS.totalConversions, totalImpressions: DEMO_ADS_STATS.totalImpressions, recentCampaigns: DEMO_ADS_STATS.recentCampaigns };
 
-  const totalSpend = stats.recentCampaigns.reduce((s, c) => s + c.spend, 0) || 1;
+  const totalSpend = stats.recentCampaigns.reduce((s: number, c: any) => s + c.spend, 0) || 1;
   const statusColors: Record<string, string> = {
     active: '#34d399',
     paused: '#fbbf24',
@@ -1971,7 +1971,7 @@ function AdsPanel({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="rounded-xl border border-white/10 p-4 bg-white/[0.02]">
           <DonutChart
-            segments={stats.recentCampaigns.slice(0, 5).map((c, i) => ({
+            segments={stats.recentCampaigns.slice(0, 5).map((c: any, i: number) => ({
               value: c.spend,
               color: ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#a855f7'][i % 5],
               label: c.name.substring(0, 15),
@@ -1982,7 +1982,7 @@ function AdsPanel({
         <div className="rounded-xl border border-white/10 p-4 bg-white/[0.02] space-y-3">
           <ProgressBar value={Math.min(Math.round(stats.avgRoas * 33), 100)} max={100} color="#22c55e" label={`ROAS moyen (${stats.avgRoas}x)`} />
           <ProgressBar value={stats.campaigns} max={10} color={gradientFrom} label="Campagnes actives" />
-          {stats.recentCampaigns.slice(0, 3).map((c, i) => (
+          {stats.recentCampaigns.slice(0, 3).map((c: any, i: number) => (
             <ProgressBar key={i} value={Math.round(c.roas * 33)} max={100} color={['#3b82f6', '#22c55e', '#f59e0b'][i]} label={`${c.name.substring(0, 20)} (${c.roas}x)`} />
           ))}
         </div>
@@ -2003,7 +2003,7 @@ function AdsPanel({
         <EmptyState agentName={agentName} />
       ) : (
         <div className="flex flex-col gap-2">
-          {stats.recentCampaigns.slice(0, 8).map((c, i) => (
+          {stats.recentCampaigns.slice(0, 8).map((c: any, i: number) => (
             <div key={i} className="bg-white/5 rounded-xl border border-white/10 p-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-white/80 font-medium truncate flex-1 mr-2">{c.name}</span>
@@ -2033,7 +2033,7 @@ function AdsPanel({
         ) : (
           <>
             <div className="flex h-6 rounded-full overflow-hidden">
-              {stats.recentCampaigns.map((c, i) => (
+              {stats.recentCampaigns.map((c: any, i: number) => (
                 <div
                   key={i}
                   className="h-full"
@@ -2047,7 +2047,7 @@ function AdsPanel({
               ))}
             </div>
             <div className="flex flex-wrap gap-3 mt-3">
-              {stats.recentCampaigns.map((c, i) => (
+              {stats.recentCampaigns.map((c: any, i: number) => (
                 <span key={i} className="text-xs text-white/50">
                   {c.name}: <span className="text-white/80 font-medium">{fmtCurrency(c.spend)}</span>
                 </span>
@@ -2133,7 +2133,7 @@ function FinancePanel({
         <EmptyState agentName={agentName} />
       ) : (
         <div className="flex flex-col gap-2">
-          {stats.recentTransactions.slice(0, 10).map((t, i) => (
+          {stats.recentTransactions.slice(0, 10).map((t: any, i: number) => (
             <div key={i} className="bg-white/5 rounded-xl border border-white/10 p-4 flex items-center gap-3">
               <div
                 className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
