@@ -1950,11 +1950,18 @@ function ContentWorkflow() {
             <div key={post.id} className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
               <div className="p-3 sm:p-4">
                 <div className="flex items-start gap-3">
-                  {/* Visual thumbnail */}
+                  {/* Visual preview — larger for better visibility */}
                   {post.visual_url ? (
-                    <img src={post.visual_url} alt="" className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg object-cover flex-shrink-0" />
+                    <img src={post.visual_url} alt="" className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover flex-shrink-0 border border-white/10" />
+                  ) : post.video_url ? (
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-gradient-to-br from-purple-600/30 to-pink-600/30 flex items-center justify-center flex-shrink-0 border border-white/10">
+                      <span className="text-2xl">{'\u{1F3AC}'}</span>
+                    </div>
                   ) : (
-                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-white/10 flex items-center justify-center text-lg flex-shrink-0">{cfg.icon}</div>
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-gradient-to-br from-white/5 to-white/10 flex flex-col items-center justify-center flex-shrink-0 border border-dashed border-white/15">
+                      <span className="text-xl mb-1">{cfg.icon}</span>
+                      <span className="text-[8px] text-white/20">{post.platform || 'post'}</span>
+                    </div>
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -3251,7 +3258,7 @@ export default function AgentDashboard({ agentId, agentName, gradientFrom, gradi
       )}
 
       {/* Preview banner for agents that need setup — Clara guides */}
-      {!(data as any)[Object.keys(data).find(k => k.endsWith('Stats')) || ''] && !['marketing', 'onboarding'].includes(agentId) && !(data as any).supervision?.isAdmin && (
+      {!(data as any)[Object.keys(data).find(k => k.endsWith('Stats')) || ''] && !['marketing', 'onboarding', 'dm_instagram', 'email', 'content', 'gmaps', 'instagram_comments'].includes(agentId) && !(data as any).supervision?.isAdmin && !(data as any).connections?.instagram && (
         <div className="px-5 pt-3">
           {(() => {
             const previews: Record<string, { label: string; url: string; msg: string }> = {
