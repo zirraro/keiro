@@ -100,14 +100,16 @@ export async function POST(req: NextRequest) {
     const success = await replyToReview(accessToken, review_name, reply.trim());
     if (success) {
       // Log the reply
-      await supabase.from('agent_logs').insert({
-        agent: 'gmaps',
-        action: 'review_reply_sent',
-        user_id: user.id,
-        status: 'ok',
-        data: { review_name, reply: reply.substring(0, 200) },
-        created_at: new Date().toISOString(),
-      }).catch(() => {});
+      try {
+        await supabase.from('agent_logs').insert({
+          agent: 'gmaps',
+          action: 'review_reply_sent',
+          user_id: user.id,
+          status: 'ok',
+          data: { review_name, reply: reply.substring(0, 200) },
+          created_at: new Date().toISOString(),
+        });
+      } catch { /* non-fatal */ }
 
       return NextResponse.json({ ok: true, sent: true });
     } else {
