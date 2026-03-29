@@ -279,10 +279,28 @@ async function getEmailData(
 
   const { data: recentActivities } = await activityQuery;
 
-  const recentEmails = (recentActivities || []).map(a => ({
-    prospect: a.data?.company || a.data?.to_email || a.description?.substring(0, 60) || '?',
-    type: a.data?.auto_reply ? 'auto_reply' : a.data?.step ? `step_${a.data.step}` : 'email',
-    status: a.data?.opened ? 'ouvert' : a.data?.replied ? 'repondu' : 'envoye',
+  // Also fetch email_opened, email_replied, email_bounced activities
+  const allEmailQuery = supabase
+    .from('crm_activities')
+    .select('prospect_id, type, description, created_at, data')
+    .like('type', 'email%')
+    .order('created_at', { ascending: false })
+    .limit(30);
+
+  if (orgId) {
+    // Filter by org prospects
+  }
+
+  const { data: allEmailActivities } = await allEmailQuery;
+
+  const recentEmails = (allEmailActivities || []).map(a => ({
+    prospect_id: a.prospect_id,
+    prospect: (a.data as any)?.company || (a.data as any)?.to_email || a.description?.substring(0, 60) || '?',
+    email: (a.data as any)?.to_email || (a.data as any)?.from_email || '',
+    type: a.type === 'email_opened' ? 'ouvert' : a.type === 'email_replied' ? 'reponse_recue' : a.type === 'email_clicked' ? 'clic' : a.type === 'email_bounced' ? 'bounce' : (a.data as any)?.auto_reply ? 'auto_reply' : (a.data as any)?.step ? `step_${(a.data as any).step}` : 'email',
+    status: a.type === 'email_replied' ? 'repondu' : a.type === 'email_opened' ? 'ouvert' : a.type === 'email_clicked' ? 'clique' : a.type === 'email_bounced' ? 'bounce' : 'envoye',
+    message: (a.data as any)?.reply_content || (a.data as any)?.reply_preview || (a.data as any)?.message || a.description?.substring(0, 150) || '',
+    direction: a.type === 'email_replied' ? 'incoming' : 'outgoing',
     date: a.created_at,
   }));
 
