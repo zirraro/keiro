@@ -614,25 +614,54 @@ export default function AgentWorkspacePage() {
 
         {/* ═══ TAB: DASHBOARD ═══ */}
         {activeTab === 'dashboard' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="space-y-4">
-              {/* Setup guide if agent not configured */}
-              {agentSetupDone === false && !['onboarding', 'qa', 'ceo', 'marketing'].includes(agentId) && (
-                <div className="mb-4">
-                  <AgentSetupGuide
-                    agentId={agentId}
-                    agentName={dn}
-                    gradientFrom={gf}
-                    gradientTo={gt}
-                    userPlan={userPlan}
-                    requiredPlan={agent?.minPlan || 'gratuit'}
-                    onComplete={() => setAgentSetupDone(true)}
-                  />
+          <div>
+            {/* Top bar: stats + file upload inline */}
+            <div className="flex items-center gap-3 mb-4 flex-wrap">
+              <div className="flex items-center gap-2 bg-white/5 rounded-lg px-3 py-1.5 border border-white/10">
+                <span className="text-white/40 text-[10px]">Messages</span>
+                <span className="text-white font-bold text-sm">{messages.length}</span>
+              </div>
+              <div className="flex items-center gap-2 bg-white/5 rounded-lg px-3 py-1.5 border border-white/10">
+                <span className="text-white/40 text-[10px]">Fichiers</span>
+                <span className="text-white font-bold text-sm">{files.length}</span>
+              </div>
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={e => { e.preventDefault(); setDragOver(true); }} onDragLeave={() => setDragOver(false)}
+                onDrop={e => { e.preventDefault(); setDragOver(false); handleFileUpload(e.dataTransfer.files); }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 border border-dashed rounded-lg cursor-pointer transition-all text-[10px] ${dragOver ? 'border-purple-400 bg-purple-500/10 text-purple-300' : 'border-white/20 hover:border-white/30 text-white/30 hover:text-white/50'}`}
+              >
+                <input ref={fileInputRef} type="file" className="hidden" multiple onChange={e => handleFileUpload(e.target.files)} />
+                <span className="text-sm">+</span>
+                {uploading ? 'Upload...' : 'Fichier'}
+              </div>
+              {files.length > 0 && (
+                <div className="flex items-center gap-1 overflow-x-auto">
+                  {files.slice(0, 3).map(f => (
+                    <span key={f.id} className="text-[9px] text-white/30 bg-white/5 px-2 py-0.5 rounded truncate max-w-[100px]">{f.name}</span>
+                  ))}
+                  {files.length > 3 && <span className="text-[9px] text-white/20">+{files.length - 3}</span>}
                 </div>
               )}
+            </div>
 
-              {hasDashboard && (
-                <div className="rounded-2xl border border-white/10 bg-white/[0.02] overflow-hidden">
+            {/* Setup guide if agent not configured */}
+            {agentSetupDone === false && !['onboarding', 'qa', 'ceo', 'marketing'].includes(agentId) && (
+              <div className="mb-4">
+                <AgentSetupGuide
+                  agentId={agentId}
+                  agentName={dn}
+                  gradientFrom={gf}
+                  gradientTo={gt}
+                  userPlan={userPlan}
+                  requiredPlan={agent?.minPlan || 'gratuit'}
+                  onComplete={() => setAgentSetupDone(true)}
+                />
+              </div>
+            )}
+
+            {hasDashboard && (
+              <div className="rounded-2xl border border-white/10 bg-white/[0.02] overflow-hidden">
                   {dashboardLoading ? (
                     <div className="flex items-center justify-center py-16"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400 mx-auto" /></div>
                   ) : agentId === 'commercial' ? (
@@ -738,38 +767,6 @@ export default function AgentWorkspacePage() {
                   {getAgentSuggestions(agentId).map(s => (
                     <button key={s} onClick={() => { setInput(s); setChatOpen(true); }} className="px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white/60 text-xs transition-all">{s}</button>
                   ))}
-                </div>
-              </div>
-            </div>
-            {/* Sidebar */}
-            <div className="space-y-5">
-              <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
-                <h3 className="text-white/50 text-[10px] font-semibold uppercase tracking-wider mb-3">Stats</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="bg-white/5 rounded-lg px-3 py-2 text-center"><div className="text-white font-bold text-lg">{messages.length}</div><div className="text-white/40 text-[10px]">Messages</div></div>
-                  <div className="bg-white/5 rounded-lg px-3 py-2 text-center"><div className="text-white font-bold text-lg">{files.length}</div><div className="text-white/40 text-[10px]">Fichiers</div></div>
-                </div>
-              </div>
-              {/* Files */}
-              <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
-                <h3 className="text-white/50 text-[10px] font-semibold uppercase tracking-wider mb-3">Fichiers</h3>
-                <div
-                  onDragOver={e => { e.preventDefault(); setDragOver(true); }} onDragLeave={() => setDragOver(false)}
-                  onDrop={e => { e.preventDefault(); setDragOver(false); handleFileUpload(e.dataTransfer.files); }}
-                  onClick={() => fileInputRef.current?.click()}
-                  className={`border-2 border-dashed rounded-xl p-3 text-center cursor-pointer transition-all mb-3 ${dragOver ? 'border-purple-400 bg-purple-500/10' : 'border-white/15 hover:border-white/30'}`}
-                >
-                  <input ref={fileInputRef} type="file" className="hidden" multiple onChange={e => handleFileUpload(e.target.files)} />
-                  <span className="text-white/40 text-xs">{uploading ? 'Upload...' : 'Ajouter un fichier'}</span>
-                </div>
-                <div className="space-y-1.5">
-                  {files.map(f => (
-                    <div key={f.id} className="flex items-center gap-2 bg-white/5 rounded-lg px-2.5 py-2 group hover:bg-white/10">
-                      <div className="flex-1 min-w-0"><p className="text-white/80 text-[11px] font-medium truncate">{f.name}</p><p className="text-white/30 text-[9px]">{formatFileSize(f.size)}</p></div>
-                      <button onClick={() => handleDeleteFile(f.id)} className="opacity-0 group-hover:opacity-100 w-5 h-5 rounded flex items-center justify-center hover:bg-red-500/20"><svg className="w-3 h-3 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
-                    </div>
-                  ))}
-                  {files.length === 0 && <p className="text-white/20 text-[10px] text-center">Aucun fichier</p>}
                 </div>
               </div>
             </div>
