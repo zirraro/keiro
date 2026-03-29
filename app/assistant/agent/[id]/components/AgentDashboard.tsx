@@ -410,12 +410,14 @@ function DmCard({ dm, statusColors }: { dm: { target: string; status: string; me
   );
 }
 
-// Review card with AI reply generation for Google reviews
-function ReviewCard({ review, gradientFrom }: { review: { author: string; rating: number; text: string; date: string; replied: boolean }; gradientFrom: string }) {
+// Review card with AI reply generation + direct Google reply for Google reviews
+function ReviewCard({ review, gradientFrom }: { review: { name?: string; author: string; rating: number; text: string; date: string; replied: boolean }; gradientFrom: string }) {
   const [showReply, setShowReply] = useState(false);
   const [replyText, setReplyText] = useState('');
   const [generating, setGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
 
   const generateReply = useCallback(async () => {
     setGenerating(true);
@@ -493,7 +495,7 @@ function ReviewCard({ review, gradientFrom }: { review: { author: string; rating
             className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-purple-500/50 resize-none"
             rows={3}
           />
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={generateReply}
               disabled={generating}
@@ -501,12 +503,35 @@ function ReviewCard({ review, gradientFrom }: { review: { author: string; rating
             >
               {generating ? 'Generation...' : '\u2728 Regenerer'}
             </button>
+            {/* Direct reply via Google Business API */}
+            {review.name && (
+              <button
+                onClick={async () => {
+                  if (!replyText.trim()) return;
+                  setSending(true);
+                  try {
+                    const res = await fetch('/api/agents/google-reviews', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      credentials: 'include',
+                      body: JSON.stringify({ review_name: review.name, reply: replyText }),
+                    });
+                    const d = await res.json();
+                    if (d.sent) { setSent(true); setTimeout(() => { setSent(false); setShowReply(false); }, 2000); }
+                  } catch {} finally { setSending(false); }
+                }}
+                disabled={sending || !replyText.trim()}
+                className={`px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all ${sent ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gradient-to-r from-emerald-600 to-green-600 text-white hover:opacity-90'} disabled:opacity-40`}
+              >
+                {sent ? '\u2713 Publie !' : sending ? '...' : '\u{1F4E8} Publier sur Google'}
+              </button>
+            )}
             <button
               onClick={copyReply}
               disabled={!replyText.trim()}
               className={`px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all ${copied ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gradient-to-r from-amber-600 to-yellow-600 text-white hover:opacity-90'} disabled:opacity-40`}
             >
-              {copied ? '\u2713 Copie !' : '\u{1F4CB} Copier la reponse'}
+              {copied ? '\u2713 Copie !' : '\u{1F4CB} Copier'}
             </button>
             <a
               href="https://business.google.com"
@@ -514,7 +539,7 @@ function ReviewCard({ review, gradientFrom }: { review: { author: string; rating
               rel="noopener noreferrer"
               className="px-3 py-1.5 text-[10px] font-medium bg-blue-600/20 text-blue-400 rounded-lg hover:bg-blue-600/30 ml-auto"
             >
-              Ouvrir Google Business {'\u2197'}
+              Google Business {'\u2197'}
             </a>
           </div>
         </div>
@@ -2258,6 +2283,25 @@ function GmapsPanel({
 }) {
   const stats = data.gmapsStats || { reviewsAnswered: 0, googleRating: 0, totalReviews: 0, gmbClicks: 0, recentReviews: [] };
 
+  // Fetch real Google reviews if connected
+  const [googleReviews, setGoogleReviews] = useState<any[]>([]);
+  const [googleConnected, setGoogleConnected] = useState(false);
+  const [loadingReviews, setLoadingReviews] = useState(false);
+
+  useEffect(() => {
+    setLoadingReviews(true);
+    fetch('/api/agents/google-reviews', { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => {
+        if (d.connected && d.reviews?.length > 0) {
+          setGoogleReviews(d.reviews);
+          setGoogleConnected(true);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoadingReviews(false));
+  }, []);
+
   // Star rating visual
   const fullStars = Math.floor(stats.googleRating);
   const hasHalf = stats.googleRating - fullStars >= 0.25;
@@ -2305,7 +2349,35 @@ function GmapsPanel({
         </span>
       </div>
 
-      {/* Recent reviews feed with reply */}
+      {/* Google Business connection */}
+      {!googleConnected && !loadingReviews && (
+        <div className="rounded-xl border border-amber-500/20 bg-amber-900/10 p-4 mb-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-amber-500/20 flex items-center justify-center text-lg flex-shrink-0">{'\u{1F310}'}</div>
+            <div className="flex-1">
+              <div className="text-xs font-semibold text-white">Connecter Google Business</div>
+              <div className="text-[9px] text-white/40">Reponds aux avis Google directement depuis KeiroAI</div>
+            </div>
+            <a href="/api/auth/google-oauth" className="px-3 py-1.5 bg-gradient-to-r from-amber-600 to-yellow-600 text-white text-[10px] font-bold rounded-lg hover:opacity-90 transition flex-shrink-0">
+              Connecter
+            </a>
+          </div>
+        </div>
+      )}
+
+      {/* Google reviews (real API) */}
+      {googleReviews.length > 0 && (
+        <>
+          <SectionTitle>Avis Google ({googleReviews.length})</SectionTitle>
+          <div className="flex flex-col gap-2">
+            {googleReviews.slice(0, 10).map((review: any, i: number) => (
+              <ReviewCard key={i} review={review} gradientFrom={gradientFrom} />
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Fallback: cached reviews from agent_logs */}
       <SectionTitle>Avis recents</SectionTitle>
       {(stats.recentReviews?.length || 0) === 0 ? (
         <EmptyState agentName={agentName} />

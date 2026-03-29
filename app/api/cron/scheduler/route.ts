@@ -123,7 +123,7 @@ export async function GET(request: NextRequest) {
   // For action slots: get list of active non-admin client user_ids
   let clientUserIds: string[] = [];
   if (actionSlots.has(slot)) {
-    const supabaseForClients = getSupabaseAdmin();
+    const supabaseForClients = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
     const { data: clients } = await supabaseForClients
       .from('profiles')
       .select('id, email')
