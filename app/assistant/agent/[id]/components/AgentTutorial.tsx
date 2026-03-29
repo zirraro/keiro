@@ -15,19 +15,18 @@ import SpotlightTour, { TourStep } from './SpotlightTour';
 // Tour steps per agent — target matches data-tour="xxx" attributes on the page
 const AGENT_TOURS: Record<string, TourStep[]> = {
   content: [
-    { target: 'auto-toggle', title: 'Mode automatique', description: 'Active le mode auto pour que Lena publie selon ton calendrier, ou desactive pour valider chaque post manuellement.', position: 'bottom' },
-    { target: 'content-workflow', title: 'File de contenu', description: 'Ici apparaissent tes posts prepares. Tu peux valider, publier ou ignorer chacun.', position: 'bottom' },
-    { target: 'content-calendar', title: 'Calendrier editorial', description: 'Visualise tes publications passees et a venir par plateforme (Instagram, TikTok, LinkedIn).', position: 'top' },
+    { target: 'auto-toggle', title: 'Mode de publication', description: 'En AUTO, Lena publie selon ton calendrier. En MANUEL, tes posts apparaissent en brouillon et tu valides avant publication.', position: 'bottom' },
+    { target: 'content-workflow', title: 'Tes posts prepares', description: 'Ici apparaissent les posts generes par Lena avec leur visuel. Tu peux valider, publier maintenant ou ignorer. Filtre par statut : A valider, Programmes, Publies.', position: 'bottom' },
+    { target: 'content-calendar', title: 'Ton planning', description: 'Le calendrier montre tes publications sur 14 jours par plateforme : Instagram, TikTok, LinkedIn. Les cases colorees = posts publies.', position: 'top' },
   ],
   dm_instagram: [
-    { target: 'auto-toggle', title: 'Mode DM', description: 'En auto, Jade repond et prospecte en DM pour toi. En manuel, tu valides chaque message.', position: 'bottom' },
-    { target: 'dm-stats', title: 'Pipeline DM', description: 'Suis tes DMs envoyes, reponses recues et RDV generes. Clique CRM pour voir tes prospects.', position: 'bottom' },
-    { target: 'dm-conversations', title: 'Conversations', description: 'Tes conversations Instagram DM apparaissent ici. Clique pour lire et repondre directement.', position: 'top' },
+    { target: 'auto-toggle', title: 'Mode DM', description: 'En AUTO, Jade prospecte et repond aux DMs pour toi. En MANUEL, tu valides chaque message avant envoi.', position: 'bottom' },
+    { target: 'dm-stats', title: 'Ton pipeline', description: 'DMs envoyes → Reponses recues → RDV generes. Le bouton CRM ouvre ton pipeline de prospects complet.', position: 'bottom' },
+    { target: 'dm-conversations', title: 'Tes conversations', description: 'Toutes tes conversations DM Instagram s\'affichent ici. Clique sur un contact pour voir les messages et repondre directement depuis Keiro.', position: 'top' },
   ],
   email: [
-    { target: 'auto-toggle', title: 'Mode email', description: 'En auto, Hugo envoie les sequences email automatiquement. En manuel, tu valides chaque envoi.', position: 'bottom' },
-    { target: 'email-inbox', title: 'Boite de reception', description: 'Tes emails envoyes et recus apparaissent ici. Clique sur un prospect pour voir le fil complet et repondre.', position: 'top' },
-    { target: 'email-campaign', title: 'Campagnes', description: 'Cree des campagnes email ciblees : choisis ta cible, genere le contenu avec l\'IA et lance.', position: 'bottom' },
+    { target: 'auto-toggle', title: 'Mode email', description: 'En AUTO, Hugo envoie les sequences email a tes prospects. En MANUEL, tu valides chaque email avant envoi.', position: 'bottom' },
+    { target: 'email-inbox', title: 'Ta boite email', description: 'Filtre par Recus, Envoyes ou Sequences auto. Clique sur un prospect pour voir le fil complet et repondre directement. Les ouvertures et clics sont suivis en temps reel.', position: 'top' },
   ],
   gmaps: [
     { target: 'auto-toggle', title: 'Reponses auto', description: 'Active pour que Theo reponde automatiquement a chaque nouvel avis Google.', position: 'bottom' },
@@ -76,6 +75,16 @@ export default function AgentTutorial({ agentId }: { agentId: string }) {
 
   useEffect(() => {
     try {
+      // Check for "i" button replay — go directly to tour
+      const replay = sessionStorage.getItem('keiro_tour_replay');
+      if (replay === agentId) {
+        sessionStorage.removeItem('keiro_tour_replay');
+        // Small delay to let the page render data-tour elements
+        setTimeout(() => setPhase('tour'), 500);
+        return;
+      }
+
+      // Check for wizard flow
       const isWizard = sessionStorage.getItem('keiro_wizard_active');
       const currentAgent = sessionStorage.getItem('keiro_wizard_agent');
       if (isWizard === 'true' && currentAgent === agentId) {

@@ -1590,8 +1590,8 @@ function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: str
         <span className="text-[10px] text-white/20 ml-auto">{'\u{1F4E7}'} Campagne: voir ci-dessous</span>
       </div>
 
-    {/* Campaign creation modal */}
-    <CampaignCreator />
+    {/* Campaign creation */}
+    <div data-tour="email-campaign"><CampaignCreator /></div>
 
     <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden h-[calc(55vh-60px)] md:h-[420px] mb-16 lg:mb-0">
       <div className="flex h-full">

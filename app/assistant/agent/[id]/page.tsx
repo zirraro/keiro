@@ -584,11 +584,7 @@ export default function AgentWorkspacePage() {
             <button
               onClick={() => {
                 try {
-                  sessionStorage.setItem('keiro_wizard_active', 'true');
-                  sessionStorage.setItem('keiro_wizard_agent', agentId);
-                  sessionStorage.setItem('keiro_wizard_next', '0');
-                  sessionStorage.setItem('keiro_wizard_total', '1');
-                  sessionStorage.setItem('keiro_wizard_agents', JSON.stringify([agentId]));
+                  sessionStorage.setItem('keiro_tour_replay', agentId);
                   window.location.reload();
                 } catch {}
               }}
