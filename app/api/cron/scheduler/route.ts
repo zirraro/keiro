@@ -151,6 +151,22 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  // ── Helper: call endpoint for each client (action slots) ──────────
+  // Appends &user_id=<id> to the path for each active client
+  // For monitoring slots, call without user_id (global)
+  async function callForEachClient(name: string, path: string, method: 'GET' | 'POST' = 'GET', body?: any) {
+    if (clientUserIds.length === 0) {
+      // No clients — single global call (monitoring slots)
+      return callEndpoint(name, path, method, body);
+    }
+    // For action slots: call once per client
+    for (const uid of clientUserIds) {
+      const separator = path.includes('?') ? '&' : '?';
+      const clientPath = `${path}${separator}user_id=${uid}`;
+      await callEndpoint(`${name} [${uid.substring(0, 8)}]`, clientPath, method, body);
+    }
+  }
+
   // Supabase for auto-improve logging
   const aiSupabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -240,25 +256,29 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'content_2':
-      // 13:30 UTC — Content: 2nd post of the day (midday pillar) + PUBLISH
-      await callEndpoint('Content (midday)', '/api/agents/content?slot=midday');
-      await callEndpoint('Publish midday content', '/api/agents/content', 'POST', { action: 'execute_publication' });
+      // 13:30 UTC — Content: 2nd post — PER CLIENT
+      for (const uid of clientUserIds) {
+        await callEndpoint(`Content midday [${uid.substring(0, 8)}]`, `/api/agents/content?slot=midday&user_id=${uid}`);
+        await callEndpoint(`Publish midday [${uid.substring(0, 8)}]`, `/api/agents/content?user_id=${uid}`, 'POST', { action: 'execute_publication' });
+      }
       break;
 
     case 'content_3':
-      // 17:30 UTC — Content: 3rd post of the day (evening pillar) + PUBLISH
-      await callEndpoint('Content (evening)', '/api/agents/content?slot=evening');
-      await callEndpoint('Publish evening content', '/api/agents/content', 'POST', { action: 'execute_publication' });
+      // 17:30 UTC — Content: 3rd post — PER CLIENT
+      for (const uid of clientUserIds) {
+        await callEndpoint(`Content evening [${uid.substring(0, 8)}]`, `/api/agents/content?slot=evening&user_id=${uid}`);
+        await callEndpoint(`Publish evening [${uid.substring(0, 8)}]`, `/api/agents/content?user_id=${uid}`, 'POST', { action: 'execute_publication' });
+      }
       break;
 
     case 'content_tiktok':
-      // 18:15 UTC — Content: TikTok video #1 (soir, prime time)
-      await callEndpoint('Content (TikTok #1)', '/api/agents/content?slot=tiktok');
+      // 18:15 UTC — TikTok video — PER CLIENT
+      await callForEachClient('Content TikTok', '/api/agents/content?slot=tiktok');
       break;
 
     case 'content_tiktok_2':
-      // 13:30 UTC — Content: TikTok video #2 (apres-midi)
-      await callEndpoint('Content (TikTok #2)', '/api/agents/content?slot=tiktok');
+      // 13:30 UTC — TikTok video #2 — PER CLIENT
+      await callForEachClient('Content TikTok #2', '/api/agents/content?slot=tiktok');
       break;
 
     case 'content_tiktok_3':
@@ -290,8 +310,8 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'email_warm_2':
-      // 14:30 UTC — Email warm: follow-up batch 2 + Marketing afternoon (mid-day analysis for CEO evening at 15:00)
-      await callEndpoint('Email Warm #2', '/api/agents/email/daily?type=warm');
+      // 14:30 UTC — Email warm: follow-up batch 2 — PER CLIENT + Marketing afternoon (global)
+      await callForEachClient('Email Warm #2', '/api/agents/email/daily?type=warm');
       // Marketing afternoon: sequential to avoid concurrent marketing agent calls
       fireBackground(async () => {
         await callEndpoint('Marketing Sync Analytics (afternoon)', '/api/agents/marketing', 'POST', { action: 'sync_publication_analytics' });
@@ -413,48 +433,51 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'early_morning':
-      // 06:00 UTC — Restaurants/traiteurs (ouverture cuisine, check emails avant service)
-      await callEndpoint('Email Cold (restaurants)', '/api/agents/email/daily?slot=early_morning&types=restaurant,traiteur,caviste');
+      // 06:00 UTC — Restaurants/traiteurs — PER CLIENT
+      await callForEachClient('Email Cold (restaurants)', '/api/agents/email/daily?slot=early_morning&types=restaurant,traiteur,caviste');
       break;
 
     case 'morning_prep':
-      // 07:00 UTC — DM prep (IG only) + SEO + Content matin + PUBLISH
+      // 07:00 UTC — DM prep + SEO + Content — PER CLIENT
       fireBackground(async () => {
-        await callEndpoint('DM Instagram (morning)', '/api/agents/dm-instagram?slot=morning', 'POST');
-        await delay(15000);
+        for (const uid of clientUserIds) {
+          await callEndpoint(`DM Instagram [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram?slot=morning&user_id=${uid}`, 'POST');
+          await delay(5000);
+          await callEndpoint(`Content [${uid.substring(0, 8)}]`, `/api/agents/content?slot=morning&user_id=${uid}`);
+          await delay(5000);
+          await callEndpoint(`Publish [${uid.substring(0, 8)}]`, `/api/agents/content?user_id=${uid}`, 'POST', { action: 'execute_publication' });
+          await delay(5000);
+        }
+        // SEO runs once globally (shared analysis)
         await callEndpoint('SEO', '/api/agents/seo');
-        await delay(15000);
-        await callEndpoint('Content (morning)', '/api/agents/content?slot=morning');
-        await delay(10000);
-        await callEndpoint('Publish morning content', '/api/agents/content', 'POST', { action: 'execute_publication' });
       });
-      results.push({ task: 'Morning Prep', ok: true, data: { status: 'dispatched_background' } });
+      results.push({ task: 'Morning Prep', ok: true, data: { status: 'dispatched_background', clients: clientUserIds.length } });
       break;
 
     case 'morning':
-      // 08:00 UTC — Boutiques/coiffeurs/fleuristes (ouverture magasin) + onboarding (parallel)
-      await callParallel(
-        ['Email Cold (boutiques)', '/api/agents/email/daily?slot=morning&types=boutique,coiffeur,fleuriste'],
-        ['Onboarding', '/api/agents/onboarding'],
-      );
+      // 08:00 UTC — Boutiques/coiffeurs + onboarding — PER CLIENT
+      for (const uid of clientUserIds) {
+        await callEndpoint(`Email Cold [${uid.substring(0, 8)}]`, `/api/agents/email/daily?slot=morning&types=boutique,coiffeur,fleuriste&user_id=${uid}`);
+        await callEndpoint(`Onboarding [${uid.substring(0, 8)}]`, `/api/agents/onboarding?user_id=${uid}`);
+      }
       break;
 
     case 'midday':
-      // 10:00 UTC — Coachs/freelances/services (fin de séances matin) + warm (parallel)
-      await callParallel(
-        ['Email Cold (coachs)', '/api/agents/email/daily?slot=midday&types=coach,freelance,services,professionnel'],
-        ['Email Warm', '/api/agents/email/daily?type=warm'],
-      );
+      // 10:00 UTC — Coachs/freelances + warm — PER CLIENT
+      for (const uid of clientUserIds) {
+        await callEndpoint(`Email Cold [${uid.substring(0, 8)}]`, `/api/agents/email/daily?slot=midday&types=coach,freelance,services,professionnel&user_id=${uid}`);
+        await callEndpoint(`Email Warm [${uid.substring(0, 8)}]`, `/api/agents/email/daily?type=warm&user_id=${uid}`);
+      }
       break;
 
     case 'afternoon':
-      // 12:00 UTC — Restaurants (entre services) + PME/agences (pause déjeuner)
-      await callEndpoint('Email Cold (midi)', '/api/agents/email/daily?slot=afternoon&types=restaurant,traiteur,pme,agence');
+      // 12:00 UTC — Restaurants/PME — PER CLIENT
+      await callForEachClient('Email Cold (midi)', '/api/agents/email/daily?slot=afternoon&types=restaurant,traiteur,pme,agence');
       break;
 
     case 'retention':
-      // 09:00 UTC — Retention checks
-      await callEndpoint('Retention', '/api/agents/retention');
+      // 09:00 UTC — Retention checks — PER CLIENT
+      await callForEachClient('Retention', '/api/agents/retention');
       break;
 
     case 'ceo_evening':
@@ -478,44 +501,51 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'evening':
-      // 16:00 UTC — Restaurants/bars (avant service du soir) + tous les restants
-      await callEndpoint('Email Cold (soir)', '/api/agents/email/daily?slot=evening&types=restaurant,caviste,traiteur');
+      // 16:00 UTC — Restaurants/bars — PER CLIENT
+      await callForEachClient('Email Cold (soir)', '/api/agents/email/daily?slot=evening&types=restaurant,caviste,traiteur');
       break;
 
     case 'evening_prep':
-      // 17:00 UTC — Evening DM (IG only)
+      // 17:00 UTC — Evening DM — PER CLIENT
       fireBackground(async () => {
-        await callEndpoint('DM Instagram (evening)', '/api/agents/dm-instagram?slot=evening', 'POST');
+        for (const uid of clientUserIds) {
+          await callEndpoint(`DM Instagram [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram?slot=evening&user_id=${uid}`, 'POST');
+          await delay(5000);
+        }
       });
-      results.push({ task: 'Evening Prep', ok: true, data: { status: 'dispatched_background' } });
+      results.push({ task: 'Evening Prep', ok: true, data: { status: 'dispatched_background', clients: clientUserIds.length } });
       break;
 
     case 'tiktok_dm_morning':
-      // 07:30 UTC — TikTok DM preparation (morning batch, staggered)
+      // 07:30 UTC — TikTok DM — PER CLIENT
       fireBackground(async () => {
-        await callEndpoint('DM TikTok Batch 1', '/api/agents/dm-instagram?platform=tiktok&count=20', 'POST');
-        await delay(15000);
-        await callEndpoint('DM TikTok Batch 2', '/api/agents/dm-instagram?platform=tiktok&count=20', 'POST');
+        for (const uid of clientUserIds) {
+          await callEndpoint(`DM TikTok [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram?platform=tiktok&count=20&user_id=${uid}`, 'POST');
+          await delay(10000);
+        }
       });
-      results.push({ task: 'TikTok DM Morning', ok: true, data: { status: 'dispatched_background' } });
+      results.push({ task: 'TikTok DM Morning', ok: true, data: { status: 'dispatched_background', clients: clientUserIds.length } });
       break;
 
     case 'tiktok_dm_midday':
-      // 12:30 UTC — TikTok DM preparation (midday batch, staggered)
+      // 12:30 UTC — TikTok DM midday — PER CLIENT
       fireBackground(async () => {
-        await callEndpoint('DM TikTok Batch 3', '/api/agents/dm-instagram?platform=tiktok&count=20', 'POST');
-        await delay(15000);
-        await callEndpoint('DM TikTok Batch 4', '/api/agents/dm-instagram?platform=tiktok&count=20', 'POST');
+        for (const uid of clientUserIds) {
+          await callEndpoint(`DM TikTok [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram?platform=tiktok&count=20&user_id=${uid}`, 'POST');
+          await delay(10000);
+        }
       });
-      results.push({ task: 'TikTok DM Midday', ok: true, data: { status: 'dispatched_background' } });
+      results.push({ task: 'TikTok DM Midday', ok: true, data: { status: 'dispatched_background', clients: clientUserIds.length } });
       break;
 
     case 'tiktok_dm_evening':
-      // 17:30 UTC — TikTok DM preparation: evening batch
+      // 17:30 UTC — TikTok DM evening — PER CLIENT
       fireBackground(async () => {
-        await callEndpoint('DM TikTok Evening', '/api/agents/dm-instagram?platform=tiktok&count=20', 'POST');
+        for (const uid of clientUserIds) {
+          await callEndpoint(`DM TikTok [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram?platform=tiktok&count=20&user_id=${uid}`, 'POST');
+        }
       });
-      results.push({ task: 'TikTok DM Evening', ok: true, data: { status: 'dispatched_background' } });
+      results.push({ task: 'TikTok DM Evening', ok: true, data: { status: 'dispatched_background', clients: clientUserIds.length } });
       break;
 
     case 'discovery_7':
