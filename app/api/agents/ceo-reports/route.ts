@@ -444,6 +444,36 @@ INTERDIT:
         }).catch(() => {});
       }
 
+      // ── Individual agent notifications (opt-in via agent settings) ──
+      // Check if client has enabled per-agent notifications
+      const { data: agentConfigs } = await supabase
+        .from('org_agent_configs')
+        .select('agent_id, config')
+        .eq('user_id', client.id);
+
+      if (agentConfigs && agentConfigs.length > 0) {
+        for (const cfg of agentConfigs) {
+          const wantsReport = cfg.config?.send_individual_report === true;
+          if (!wantsReport) continue;
+
+          const agentLogs = (logs || []).filter((l: any) => l.agent === cfg.agent_id);
+          if (agentLogs.length === 0) continue;
+
+          const agentActions = agentLogs.length;
+          const agentErrors = agentLogs.filter((l: any) => l.data?.error).length;
+
+          // Save as in-app notification per agent
+          await supabase.from('client_notifications').insert({
+            user_id: client.id,
+            agent: cfg.agent_id,
+            type: 'agent_report',
+            title: `Rapport ${cfg.agent_id} — ${agentActions} actions`,
+            message: `${agentActions} actions executees${agentErrors > 0 ? `, ${agentErrors} probleme(s)` : ', tout OK'}`,
+            data: { actions: agentActions, errors: agentErrors, logs: agentLogs.slice(0, 5) },
+          }).catch(() => {});
+        }
+      }
+
       sentCount++;
     } catch { /* skip this client */ }
   }
