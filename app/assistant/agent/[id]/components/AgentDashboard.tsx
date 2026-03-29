@@ -1091,7 +1091,7 @@ function MarketingPanel({
         <div className="grid grid-cols-3 gap-3">
           <KpiCard label="Trafic" value={fmt(gs.visibility.traffic)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
           <KpiCard label="Followers" value={fmt(gs.visibility.followers)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-          <KpiCard label="Note Google" value={`${gs.visibility.googleRating.toLocaleString('fr-FR', { maximumFractionDigits: 1 })}/5`} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+          <KpiCard label="Note Google" value={`${(gs.visibility.googleRating || 0).toLocaleString('fr-FR', { maximumFractionDigits: 1 })}/5`} gradientFrom={gradientFrom} gradientTo={gradientTo} />
         </div>
 
         {/* Instagram engagement bloc */}
@@ -1107,7 +1107,7 @@ function MarketingPanel({
         <SectionTitle>Finance</SectionTitle>
         <div className="grid grid-cols-3 gap-3">
           <KpiCard label="Budget pub" value={fmtCurrency(gs.finance.adBudget)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-          <KpiCard label="ROAS" value={`${gs.finance.roas.toLocaleString('fr-FR', { maximumFractionDigits: 1 })}x`} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+          <KpiCard label="ROAS" value={`${(gs.finance.roas || 0).toLocaleString('fr-FR', { maximumFractionDigits: 1 })}x`} gradientFrom={gradientFrom} gradientTo={gradientTo} />
           <KpiCard label="Prevision tresorerie" value={fmtCurrency(gs.finance.forecast)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
         </div>
 
@@ -2129,7 +2129,7 @@ function AdsPanel({
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <KpiCard label="Campagnes actives" value={fmt(stats.campaigns)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
         <KpiCard label="Budget total" value={fmtCurrency(stats.totalSpend)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        <KpiCard label="ROAS moyen" value={`${stats.avgRoas.toLocaleString('fr-FR', { maximumFractionDigits: 1 })}x`} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label="ROAS moyen" value={`${(stats.avgRoas || 0).toLocaleString('fr-FR', { maximumFractionDigits: 1 })}x`} gradientFrom={gradientFrom} gradientTo={gradientTo} />
       </div>
 
       {/* Visual: budget & ROAS */}
@@ -2185,7 +2185,7 @@ function AdsPanel({
               </div>
               <div className="flex items-center gap-4 text-xs text-white/50">
                 <span>Depense: <span className="text-white/70 font-medium">{fmtCurrency(c.spend)}</span></span>
-                <span>ROAS: <span className="text-white/70 font-medium">{c.roas.toLocaleString('fr-FR', { maximumFractionDigits: 1 })}x</span></span>
+                <span>ROAS: <span className="text-white/70 font-medium">{(c.roas || 0).toLocaleString('fr-FR', { maximumFractionDigits: 1 })}x</span></span>
               </div>
             </div>
           ))}
@@ -2689,7 +2689,7 @@ function GmapsPanel({
         <KpiCard label="Avis repondus" value={fmt(stats.reviewsAnswered)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
         <KpiCard
           label="Note Google"
-          value={`${stats.googleRating.toLocaleString('fr-FR', { maximumFractionDigits: 1 })}/5`}
+          value={`${(stats.googleRating || 0).toLocaleString('fr-FR', { maximumFractionDigits: 1 })}/5`}
           gradientFrom={gradientFrom}
           gradientTo={gradientTo}
         />
@@ -2721,7 +2721,7 @@ function GmapsPanel({
           </svg>
         ))}
         <span className="ml-3 text-lg font-bold text-white/80">
-          {stats.googleRating.toLocaleString('fr-FR', { maximumFractionDigits: 1 })}
+          {(stats.googleRating || 0).toLocaleString('fr-FR', { maximumFractionDigits: 1 })}
         </span>
       </div>
 

@@ -68,7 +68,7 @@ const AGENT_TOURS: Record<string, TourStep[]> = {
 };
 
 export default function AgentTutorial({ agentId }: { agentId: string }) {
-  const [phase, setPhase] = useState<'none' | 'confirm' | 'tour'>('none');
+  const [phase, setPhase] = useState<'none' | 'confirm' | 'tour' | 'next_agent'>('none');
   const [wizardAgents, setWizardAgents] = useState<string[]>([]);
   const [nextIndex, setNextIndex] = useState(0);
   const router = useRouter();
@@ -99,34 +99,31 @@ export default function AgentTutorial({ agentId }: { agentId: string }) {
   const startTour = useCallback(() => setPhase('tour'), []);
 
   const finishTour = useCallback(() => {
-    setPhase('none');
-    // Check if more agents in wizard
+    // After tour, show "next agent" popup if there are more
     if (wizardAgents.length > 0 && nextIndex < wizardAgents.length) {
-      // Show "next agent" prompt after a short delay
-      setTimeout(() => {
-        const goNext = window.confirm('Agent suivant a activer ?');
-        if (goNext) {
-          const nextAgent = wizardAgents[nextIndex];
-          try {
-            sessionStorage.setItem('keiro_wizard_agent', nextAgent);
-            sessionStorage.setItem('keiro_wizard_next', String(nextIndex + 1));
-          } catch {}
-          fetch('/api/agents/settings', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({ agent_id: nextAgent, auto_mode: true, setup_completed: true }),
-          }).catch(() => {});
-          router.push('/assistant/agent/' + nextAgent);
-        } else {
-          try {
-            sessionStorage.removeItem('keiro_wizard_active');
-            sessionStorage.removeItem('keiro_wizard_agents');
-          } catch {}
-        }
-      }, 500);
+      setPhase('next_agent');
+    } else {
+      setPhase('none');
     }
-  }, [wizardAgents, nextIndex, router]);
+  }, [wizardAgents, nextIndex]);
+
+  const goToNextAgent = useCallback(() => {
+    const nextAgent = wizardAgents[nextIndex];
+    if (!nextAgent) { setPhase('none'); return; }
+    try {
+      sessionStorage.setItem('keiro_wizard_active', 'true');
+      sessionStorage.setItem('keiro_wizard_agent', nextAgent);
+      sessionStorage.setItem('keiro_wizard_next', String(nextIndex + 1));
+      sessionStorage.setItem('keiro_wizard_agents', JSON.stringify(wizardAgents.slice(nextIndex + 1)));
+    } catch {}
+    fetch('/api/agents/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ agent_id: nextAgent, auto_mode: true, setup_completed: true }),
+    }).catch(() => {});
+    window.location.href = '/assistant/agent/' + nextAgent;
+  }, [wizardAgents, nextIndex]);
 
   const finishAll = useCallback(() => {
     setPhase('none');
@@ -136,6 +133,60 @@ export default function AgentTutorial({ agentId }: { agentId: string }) {
     } catch {}
   }, []);
 
+  const agentNames: Record<string, string> = {
+    content: 'Lena', dm_instagram: 'Jade', email: 'Hugo', gmaps: 'Theo',
+    commercial: 'Leo', seo: 'Oscar', marketing: 'AMI', ads: 'Felix',
+    chatbot: 'Max', whatsapp: 'Stella', tiktok_comments: 'Axel',
+    instagram_comments: 'Commentaires IG', rh: 'Sara', comptable: 'Louis', onboarding: 'Clara',
+  };
+
+  // Next agent popup — Clara presents the next agent
+  if (phase === 'next_agent') {
+    const nextAgent = wizardAgents[nextIndex];
+    const nextName = agentNames[nextAgent] || nextAgent;
+    const agentDescs: Record<string, string> = {
+      content: 'Lena publie automatiquement sur Instagram, TikTok et LinkedIn. Elle genere des visuels et legendes optimises.',
+      dm_instagram: 'Jade prospecte en DM Instagram et repond automatiquement. Elle qualifie tes prospects et te signale les plus chauds.',
+      email: 'Hugo envoie des sequences email personnalisees a tes prospects et suit les ouvertures et clics.',
+      gmaps: 'Theo repond a tes avis Google avec des reponses IA personnalisees et ameliore ta reputation.',
+      commercial: 'Leo prospecte sur Google Maps, qualifie les leads et gere ton pipeline CRM.',
+      seo: 'Oscar analyse ton SEO, suit tes mots-cles et te donne des recommandations concretes.',
+      instagram_comments: 'Reponds automatiquement aux commentaires Instagram avec des reponses contextuelles.',
+      tiktok_comments: 'Axel engage ta communaute TikTok en commentant et interagissant automatiquement.',
+      chatbot: 'Max accueille tes visiteurs 24/7 sur ton site et capture leurs coordonnees.',
+      whatsapp: 'Stella repond a tes messages WhatsApp et qualifie les prospects automatiquement.',
+      ads: 'Felix cree et optimise tes campagnes Meta Ads et Google Ads.',
+      rh: 'Sara genere tes documents juridiques : CGV, RGPD, contrats.',
+      comptable: 'Louis suit tes revenus, depenses et marge automatiquement.',
+    };
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div className="bg-gray-900/95 backdrop-blur-xl border border-emerald-500/20 rounded-2xl shadow-2xl p-5 sm:p-6 max-w-sm w-full animate-in fade-in duration-200 relative">
+          <button onClick={finishAll} className="absolute top-3 right-3 text-white/20 hover:text-white/50 transition p-1">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+          <div className="flex items-start gap-3 mb-4">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold flex-shrink-0">C</div>
+            <div>
+              <div className="text-xs font-bold text-emerald-400 mb-0.5">Clara</div>
+              <p className="text-sm text-white/80">Super ! Maintenant activons <strong className="text-white">{nextName}</strong></p>
+            </div>
+          </div>
+          <div className="bg-white/5 rounded-xl p-3 mb-4">
+            <h4 className="text-xs font-bold text-white mb-1">{nextName}</h4>
+            <p className="text-[11px] text-white/50 leading-relaxed">{agentDescs[nextAgent] || 'Cet agent va automatiser une partie de ton business.'}</p>
+          </div>
+          <button onClick={goToNextAgent} className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-bold rounded-xl hover:shadow-lg transition min-h-[44px] mb-2">
+            {'\u26A1'} Activer {nextName}
+          </button>
+          <button onClick={finishAll} className="w-full py-2 text-white/30 text-[10px] hover:text-white/50 transition">
+            Je ferai plus tard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // Spotlight tour
   if (phase === 'tour') {
     const steps = AGENT_TOURS[agentId] || [{ target: 'agent-dashboard', title: 'Espace agent', description: 'Voici l\'espace de travail de cet agent. Explore les fonctionnalites !', position: 'bottom' as const }];
@@ -144,13 +195,6 @@ export default function AgentTutorial({ agentId }: { agentId: string }) {
 
   // Confirmation modal with action
   if (phase !== 'confirm') return null;
-
-  const agentNames: Record<string, string> = {
-    content: 'Lena', dm_instagram: 'Jade', email: 'Hugo', gmaps: 'Theo',
-    commercial: 'Leo', seo: 'Oscar', marketing: 'AMI', ads: 'Felix',
-    chatbot: 'Max', whatsapp: 'Stella', tiktok_comments: 'Axel',
-    instagram_comments: 'Commentaires IG', rh: 'Sara', comptable: 'Louis', onboarding: 'Clara',
-  };
 
   // What connection does this agent need?
   const agentConnections: Record<string, { label: string; url: string } | null> = {
