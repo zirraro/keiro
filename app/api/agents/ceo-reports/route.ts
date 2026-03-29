@@ -372,25 +372,31 @@ async function handleClientBrief(supabase: any) {
             body: JSON.stringify({
               model: 'claude-haiku-4-5-20251001',
               max_tokens: 500,
-              system: `Tu es Noah, le conseiller strategique IA personnel de ${clientName}. Tu envoies un brief quotidien.
+              system: `Tu es Noah, conseiller strategique IA, et AMI, directrice marketing IA. Vous envoyez ensemble un brief quotidien a ${clientName}.
 
-TON BRIEF DOIT ETRE:
-- COURT (5-7 lignes max en HTML)
-- 100% POSITIF — JAMAIS d'echecs, erreurs ou problemes techniques
-- Si un agent n'a rien fait, dis "en cours de reflexion" ou "prepare ta prochaine action"
-- ACTIONABLE: 1-2 actions concretes que le client peut faire AUJOURD'HUI
+STRUCTURE DU BRIEF (en HTML):
+1. NOAH — Strategie & Actions (3-4 lignes)
+   - Resume positif de l'activite des agents
+   - 1-2 actions concretes a faire AUJOURD'HUI
+   - Prospects chauds a contacter si il y en a
+
+2. AMI — Strategie Marketing (3-4 lignes)
+   - 1 recommandation marketing concrete (ex: type de contenu, heure de publication, cible)
+   - 1 tendance ou opportunite a saisir
+   - Conseil adapte au business du client
+
+REGLES:
+- COURT (8-10 lignes max total en HTML)
+- 100% POSITIF — JAMAIS d'echecs ou problemes techniques
+- Si un agent n'a rien fait, dis "prepare ta prochaine action"
 - Tutoiement, ton direct et bienveillant
-- PAS de jargon technique (pas de "cron", "API", "endpoint", "token")
-- Format HTML simple (p, strong, ul/li)
-- Commence par "Salut ${clientName}!" pas "Bonjour"
-- Termine par une phrase motivante
+- PAS de jargon technique
+- Format HTML: utilise <h4> pour separer Noah et AMI, puis <p> et <ul/li>
+- Commence par "Salut ${clientName}!"
+- Termine par une phrase motivante de AMI
 
-INTERDIT:
-- Mentionner des erreurs d'agents ou des echecs de publication
-- Mentionner KeiroAI (parle comme un conseiller personnel)
-- Afficher des taux d'erreur ou des problemes techniques
-- Dire "aucune activite" → dire plutot "tes agents preparent du contenu"`,
-              messages: [{ role: 'user', content: `Activite agents 24h: ${agentActivity || 'aucune'}\nProspects total: ${prospectCount || 0}\nProspects HOT: ${hotCount || 0}\nPlan: ${client.plan}\n\nGenere le brief du jour en HTML.` }],
+INTERDIT: erreurs, echecs, taux d'erreur, jargon technique, "KeiroAI"`,
+              messages: [{ role: 'user', content: `Activite agents 24h: ${agentActivity || 'aucune'}\nProspects total: ${prospectCount || 0}\nProspects HOT: ${hotCount || 0}\nPlan: ${client.plan}\n\nGenere le brief Noah + AMI du jour en HTML.` }],
             }),
           });
           if (res.ok) {
@@ -414,7 +420,7 @@ INTERDIT:
           user_id: client.id,
           agent: 'ceo',
           type: 'brief',
-          title: 'Brief CEO du jour',
+          title: 'Brief Noah & AMI du jour',
           message: briefHtml.replace(/<[^>]*>/g, '').substring(0, 300),
           data: { html: briefHtml, agentActivity: agentSummary, prospects: prospectCount, hot: hotCount },
         });
@@ -428,16 +434,16 @@ INTERDIT:
           body: JSON.stringify({
             sender: { name: 'Noah CEO IA', email: 'contact@keiroai.com' },
             to: [{ email: client.email }],
-            subject: `📋 Ton brief du jour — ${hotCount || 0} prospect(s) chaud(s)`,
+            subject: `\u{1F4CB} Noah & AMI — Ton brief du jour${(hotCount || 0) > 0 ? ` (${hotCount} prospect${hotCount > 1 ? 's' : ''} chaud${hotCount > 1 ? 's' : ''})` : ''}`,
             htmlContent: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
               <div style="background:linear-gradient(135deg,#0c1a3a,#1e3a5f);color:white;padding:16px 20px;border-radius:12px 12px 0 0;">
-                <h2 style="margin:0;font-size:16px;">🧠 Brief CEO du jour</h2>
+                <h2 style="margin:0;font-size:16px;">\u{1F9E0} Noah Stratege & AMI Marketing — Brief du jour</h2>
               </div>
               <div style="background:white;padding:20px;border:1px solid #e5e7eb;">
                 ${briefHtml}
               </div>
               <div style="background:#f9fafb;padding:12px;text-align:center;color:#9ca3af;font-size:11px;border-radius:0 0 12px 12px;">
-                Noah CEO IA — Votre assistant strategique
+                Noah Stratege & AMI Marketing — Votre equipe IA
               </div>
             </div>`,
           }),

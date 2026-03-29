@@ -1559,9 +1559,9 @@ function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: str
     {isDemo && (
       <PreviewBanner
         agentName="Hugo"
-        connectLabel="Activer Hugo"
-        connectUrl="#"
-        claraMessage="Voici a quoi ressemblera ta boite email une fois Hugo active. Il enverra des sequences email personnalisees et tu pourras suivre les ouvertures, clics et reponses !"
+        connectLabel="Importer des contacts"
+        connectUrl="/assistant/crm"
+        claraMessage="Hugo est deja configure ! Il envoie les emails depuis contact@keiroai.com en ton nom — pas besoin de connecter ta boite email. Importe tes contacts ou laisse Leo prospecter pour toi, et Hugo lancera les sequences automatiquement."
         gradientFrom="#06b6d4"
         gradientTo="#0891b2"
       />
