@@ -373,13 +373,11 @@ export default function AgentWorkspacePage() {
   useEffect(() => {
     fetch(`/api/agents/settings?agent_id=${agentId}`, { credentials: 'include' })
       .then(r => r.json())
-      .then(d => { setAgentSetupDone(!!d.settings?.setup_completed); })
-      .catch(() => setAgentSetupDone(true)); // Assume done if API fails
-    // Get user plan
-    fetch('/api/business-dossier', { credentials: 'include' })
-      .then(r => r.json())
-      .then(d => { if (d.subscription_plan) setUserPlan(d.subscription_plan); })
-      .catch(() => {});
+      .then(d => {
+        setAgentSetupDone(!!d.settings?.setup_completed);
+        if (d.subscription_plan) setUserPlan(d.subscription_plan);
+      })
+      .catch(() => setAgentSetupDone(true));
   }, [agentId]);
 
   // ─── Load dashboard ───────────────────────────────────

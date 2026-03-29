@@ -26,6 +26,13 @@ export async function GET(req: NextRequest) {
 
   const supabase = getSupabase();
 
+  // Get user plan
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('subscription_plan')
+    .eq('id', user.id)
+    .single();
+
   // Check org_agent_configs for per-agent settings
   const { data: config } = await supabase
     .from('org_agent_configs')
@@ -39,6 +46,7 @@ export async function GET(req: NextRequest) {
     agent_id: agentId,
     auto_mode: config?.config?.auto_mode ?? false,
     settings: config?.config || {},
+    subscription_plan: profile?.subscription_plan || 'free',
   });
 }
 
