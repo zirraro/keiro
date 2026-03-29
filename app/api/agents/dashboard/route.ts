@@ -800,23 +800,75 @@ export async function GET(request: NextRequest) {
     const supabase = getSupabaseAdmin();
     const orgId = await resolveOrgId(supabase, user.id);
 
+    // Check if admin — admin sees cross-client data (supervision mode)
+    const { data: userProfile } = await supabase
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', user.id)
+      .single();
+    const isAdmin = !!userProfile?.is_admin;
+
+    // For admin: pass null userId to get ALL clients data (supervision)
+    // For client: pass their own userId to get their data only
+    const dashboardUserId = isAdmin ? null : user.id;
+    const dashboardOrgId = isAdmin ? null : orgId;
+
     // Fetch recent chats in parallel with agent-specific data
     const recentChatsPromise = getRecentChats(supabase, user.id, agentId);
 
     let agentData: Record<string, unknown> = {};
 
+    // Admin supervision: add cross-client stats
+    if (isAdmin) {
+      // Get per-client breakdown for this agent
+      const { data: clientLogs } = await supabase
+        .from('agent_logs')
+        .select('user_id, status, created_at')
+        .eq('agent', agentId)
+        .gte('created_at', new Date(Date.now() - 24 * 3600 * 1000).toISOString())
+        .order('created_at', { ascending: false })
+        .limit(200);
+
+      const clientBreakdown: Record<string, { actions: number; errors: number }> = {};
+      for (const log of (clientLogs || [])) {
+        const uid = log.user_id || 'unknown';
+        if (!clientBreakdown[uid]) clientBreakdown[uid] = { actions: 0, errors: 0 };
+        clientBreakdown[uid].actions++;
+        if (log.status === 'error') clientBreakdown[uid].errors++;
+      }
+
+      // Get client names
+      const clientIds = Object.keys(clientBreakdown).filter(id => id !== 'unknown');
+      const { data: clientProfiles } = clientIds.length > 0
+        ? await supabase.from('profiles').select('id, email, first_name, company_name').in('id', clientIds)
+        : { data: [] };
+
+      const profileMap = new Map((clientProfiles || []).map((p: any) => [p.id, p]));
+
+      (agentData as any).supervision = {
+        isAdmin: true,
+        totalActions24h: (clientLogs || []).length,
+        totalErrors24h: (clientLogs || []).filter((l: any) => l.status === 'error').length,
+        clients: Object.entries(clientBreakdown).map(([uid, stats]) => ({
+          user_id: uid,
+          name: profileMap.get(uid)?.company_name || profileMap.get(uid)?.first_name || profileMap.get(uid)?.email || uid.substring(0, 8),
+          ...stats,
+        })),
+      };
+    }
+
     switch (agentId) {
       case 'marketing':
-        agentData = await getMarketingData(supabase, user.id, orgId);
+        agentData = { ...agentData, ...(await getMarketingData(supabase, dashboardUserId || user.id, dashboardOrgId)) };
         break;
       case 'commercial':
-        agentData = await getCommercialData(supabase, user.id, orgId);
+        agentData = { ...agentData, ...(await getCommercialData(supabase, dashboardUserId || user.id, dashboardOrgId)) };
         break;
       case 'email':
-        agentData = await getEmailData(supabase, user.id, orgId);
+        agentData = { ...agentData, ...(await getEmailData(supabase, dashboardUserId || user.id, dashboardOrgId)) };
         break;
       case 'content':
-        agentData = await getContentData(supabase, user.id);
+        agentData = { ...agentData, ...(await getContentData(supabase, dashboardUserId || user.id)) };
         break;
       case 'seo':
         agentData = await getSeoData(supabase, user.id);

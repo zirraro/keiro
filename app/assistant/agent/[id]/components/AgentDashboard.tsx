@@ -2745,6 +2745,49 @@ export default function AgentDashboard({ agentId, agentName, gradientFrom, gradi
         </div>
       </div>
 
+      {/* Admin supervision panel — cross-client view */}
+      {(data as any).supervision?.isAdmin && (
+        <div className="mx-5 mt-3 rounded-xl border border-indigo-500/20 bg-indigo-900/10 p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-sm">{'\u{1F6E1}\uFE0F'}</span>
+            <h3 className="text-xs font-bold text-indigo-300 uppercase tracking-wider">Supervision cross-clients</h3>
+            <span className="ml-auto text-[10px] text-indigo-400/50">24h</span>
+          </div>
+          <div className="grid grid-cols-3 gap-2 mb-3">
+            <div className="bg-indigo-900/20 rounded-lg p-2 text-center">
+              <div className="text-lg font-bold text-white">{(data as any).supervision.totalActions24h}</div>
+              <div className="text-[9px] text-indigo-300/60">Actions</div>
+            </div>
+            <div className="bg-indigo-900/20 rounded-lg p-2 text-center">
+              <div className={`text-lg font-bold ${(data as any).supervision.totalErrors24h > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                {(data as any).supervision.totalErrors24h}
+              </div>
+              <div className="text-[9px] text-indigo-300/60">Erreurs</div>
+            </div>
+            <div className="bg-indigo-900/20 rounded-lg p-2 text-center">
+              <div className="text-lg font-bold text-white">{(data as any).supervision.clients?.length || 0}</div>
+              <div className="text-[9px] text-indigo-300/60">Clients</div>
+            </div>
+          </div>
+          {(data as any).supervision.clients?.length > 0 && (
+            <div className="space-y-1">
+              {(data as any).supervision.clients.map((c: any) => (
+                <div key={c.user_id} className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-white/[0.03] hover:bg-white/[0.06] transition">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${c.errors > 0 ? 'bg-red-400' : 'bg-emerald-400'}`} />
+                    <span className="text-xs text-white/70">{c.name}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] text-white/40">{c.actions} actions</span>
+                    {c.errors > 0 && <span className="text-[10px] text-red-400 font-bold">{c.errors} err</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Dashboard content with padding */}
       <div className="p-5">
         <Panel data={data} agentName={agentName} gradientFrom={gradientFrom} gradientTo={gradientTo} />
