@@ -1562,9 +1562,7 @@ function ContentPanel({
   gradientFrom: string;
   gradientTo: string;
 }) {
-  const stats = data.contentStats;
-
-  if (!stats) return <EmptyState agentName={agentName} />;
+  const stats = data.contentStats || { postsGenerated: 0, scheduledPosts: 0, recentContent: [] };
 
   const typeBadgeColor: Record<string, string> = {
     Reel: '#e879f9',

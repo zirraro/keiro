@@ -9,6 +9,7 @@ import { CLIENT_AGENTS } from '@/lib/agents/client-context';
 const CrmDashboard = dynamic(() => import('./components/CrmDashboard'), { ssr: false });
 const AgentDashboard = dynamic(() => import('./components/AgentDashboard'), { ssr: false });
 const OnboardingDossier = dynamic(() => import('./components/OnboardingDossier'), { ssr: false });
+const AgentSetupGuide = dynamic(() => import('../../components/AgentSetupGuide'), { ssr: false });
 
 const AGENTS_WITH_DASHBOARD = [
   'marketing', 'commercial', 'email', 'content', 'seo', 'ads', 'comptable',
@@ -270,6 +271,8 @@ export default function AgentWorkspacePage() {
   const hasDashboard = AGENTS_WITH_DASHBOARD.includes(agentId);
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [dashboardLoading, setDashboardLoading] = useState(false);
+  const [agentSetupDone, setAgentSetupDone] = useState<boolean | null>(null);
+  const [userPlan, setUserPlan] = useState('free');
 
   // History (tasks done by agent)
   const [tasks, setTasks] = useState<AgentTask[]>([]);
@@ -365,6 +368,19 @@ export default function AgentWorkspacePage() {
       } catch {}
     })();
   }, [agent, agentId, agentInfo]);
+
+  // ─── Check agent setup status ─────────────────────────
+  useEffect(() => {
+    fetch(`/api/agents/settings?agent_id=${agentId}`, { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => { setAgentSetupDone(!!d.settings?.setup_completed); })
+      .catch(() => setAgentSetupDone(true)); // Assume done if API fails
+    // Get user plan
+    fetch('/api/business-dossier', { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => { if (d.subscription_plan) setUserPlan(d.subscription_plan); })
+      .catch(() => {});
+  }, [agentId]);
 
   // ─── Load dashboard ───────────────────────────────────
   useEffect(() => {
