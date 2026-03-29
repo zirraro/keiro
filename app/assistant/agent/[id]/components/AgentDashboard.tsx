@@ -2200,7 +2200,7 @@ function RhPanel({
         <EmptyState agentName={agentName} />
       ) : (
         <div className="flex flex-col gap-2">
-          {stats.recentDocs.slice(0, 5).map((doc, i) => (
+          {stats.recentDocs.slice(0, 5).map((doc: any, i: number) => (
             <div key={i} className="bg-white/5 rounded-xl border border-white/10 p-4 flex items-center gap-3">
               <span
                 className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
@@ -2300,7 +2300,7 @@ function OnboardingPanel({
       {/* Checklist */}
       <SectionTitle>Checklist</SectionTitle>
       <div className="bg-white/5 rounded-xl border border-white/10 p-4 flex flex-col gap-3">
-        {defaultSteps.map((step, i) => (
+        {defaultSteps.map((step: any, i: number) => (
           <div key={i} className="flex items-center gap-3">
             <div
               className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs font-bold"
@@ -2451,7 +2451,7 @@ function DmInstagramPanel({
         <EmptyState agentName={agentName} />
       ) : (
         <div className="flex flex-col gap-2">
-          {stats.recentDms.slice(0, 8).map((dm, i) => (
+          {stats.recentDms.slice(0, 8).map((dm: any, i: number) => (
             <DmCard key={i} dm={dm} statusColors={statusColors} />
           ))}
         </div>
@@ -2501,7 +2501,7 @@ function TiktokCommentsPanel({
       {/* Recent TikTok actions feed */}
       <SectionTitle>Actions recentes</SectionTitle>
       <ActivityFeed
-        items={(stats.recentActions ?? []).map((a) => ({
+        items={(stats.recentActions ?? []).map((a: any) => ({
           label: a.action,
           detail: a.target,
           date: a.date,
@@ -2732,7 +2732,7 @@ function ChatbotPanel({
         <EmptyState agentName={agentName} />
       ) : (
         <div className="flex flex-col gap-2">
-          {stats.recentSessions.slice(0, 5).map((session, i) => (
+          {stats.recentSessions.slice(0, 5).map((session: any, i: number) => (
             <div key={i} className="bg-white/5 rounded-xl border border-white/10 p-4 flex items-center gap-3">
               <span
                 className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
@@ -2885,7 +2885,7 @@ function WhatsAppPanel({
       <SectionTitle>Conversations actives ({stats.conversationsActive})</SectionTitle>
       {stats.recentConversations && stats.recentConversations.length > 0 ? (
         <div className="space-y-2">
-          {stats.recentConversations.map((conv, i) => (
+          {stats.recentConversations.map((conv: any, i: number) => (
             <div key={i} className="bg-white/5 rounded-xl border border-white/10 p-3 flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-[#25D366]/20 flex items-center justify-center flex-shrink-0">
                 <span className="text-sm">{'\uD83D\uDCF2'}</span>
@@ -3117,7 +3117,7 @@ export default function AgentDashboard({ agentId, agentName, gradientFrom, gradi
       )}
 
       {/* Preview banner for agents that need setup — Clara guides */}
-      {!data[Object.keys(data).find(k => k.endsWith('Stats')) || ''] && !['marketing', 'onboarding'].includes(agentId) && !(data as any).supervision?.isAdmin && (
+      {!(data as any)[Object.keys(data).find(k => k.endsWith('Stats')) || ''] && !['marketing', 'onboarding'].includes(agentId) && !(data as any).supervision?.isAdmin && (
         <div className="px-5 pt-3">
           {(() => {
             const previews: Record<string, { label: string; url: string; msg: string }> = {
