@@ -74,39 +74,43 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: true, conversations: [], message: 'Instagram non connecte' });
   }
 
-  console.log(`[DM-conversations] Using page_id=${pageId}, ig_account=${igUserId}, token_length=${pageToken.length}`);
+  // Keep both tokens — IGAA token works on graph.instagram.com, FB page token on graph.facebook.com
+  const igToken = userProfile?.instagram_access_token;
+  const fbToken = userProfile?.facebook_page_access_token;
+
+  console.log(`[DM-conversations] Using page_id=${pageId}, ig_account=${igUserId}, has_ig_token=${!!igToken}, has_fb_token=${!!fbToken}`);
 
   try {
-    // Instagram DM conversations use the Page token, not the IG user token
-    // Endpoint 1: Facebook Page conversations with platform=instagram filter
-    // Endpoint 2: IG Business Account conversations
-    // Endpoint 3: /me/conversations with page token
+    // Try endpoints in order of reliability
+    // 1. Instagram Graph API /me/conversations (works with IGAA token)
+    // 2. Facebook Page conversations with platform=instagram (works with FB page token)
+    // 3. IG user conversations on Facebook Graph (works with FB page token)
 
     const endpoints = [
-      // Try page-based conversations (most reliable for Instagram DMs)
-      pageId ? `https://graph.facebook.com/v21.0/${pageId}/conversations?platform=instagram&fields=id,participants,updated_time&access_token=${pageToken}` : null,
-      // Try IG user conversations
-      `https://graph.facebook.com/v21.0/${igUserId}/conversations?fields=id,participants,updated_time&access_token=${pageToken}`,
-      // Try /me/conversations
-      `https://graph.instagram.com/v21.0/me/conversations?fields=id,participants,updated_time&access_token=${pageToken}`,
-    ].filter(Boolean) as string[];
+      // Instagram API — works with IGAA tokens (most common for new IG API)
+      igToken ? { url: `https://graph.instagram.com/v21.0/me/conversations?fields=id,participants,updated_time&access_token=${igToken}`, label: 'Instagram /me/conversations', apiType: 'instagram', token: igToken } : null,
+      // Facebook Page conversations with platform=instagram filter
+      pageId && fbToken ? { url: `https://graph.facebook.com/v21.0/${pageId}/conversations?platform=instagram&fields=id,participants,updated_time&access_token=${fbToken}`, label: 'FB Page+platform=instagram', apiType: 'facebook', token: fbToken } : null,
+      // IG user conversations via Facebook Graph
+      fbToken ? { url: `https://graph.facebook.com/v21.0/${igUserId}/conversations?fields=id,participants,updated_time&access_token=${fbToken}`, label: 'FB IG user conversations', apiType: 'facebook', token: fbToken } : null,
+      // Retry Instagram API with FB token (some setups store FB token as IG token)
+      fbToken && fbToken !== igToken ? { url: `https://graph.instagram.com/v21.0/me/conversations?fields=id,participants,updated_time&access_token=${fbToken}`, label: 'Instagram /me with FB token', apiType: 'instagram', token: fbToken } : null,
+    ].filter(Boolean) as Array<{ url: string; label: string; apiType: string; token: string }>;
 
-    for (let i = 0; i < endpoints.length; i++) {
-      const label = ['Page+platform=instagram', 'IG user conversations', 'Instagram /me/conversations'][i];
-      console.log(`[DM-conversations] Trying ${label}...`);
+    for (const ep of endpoints) {
+      console.log(`[DM-conversations] Trying ${ep.label}...`);
 
-      const res = await fetch(endpoints[i]);
+      const res = await fetch(ep.url);
       if (res.ok) {
         const data = await res.json();
         const count = data.data?.length || 0;
-        console.log(`[DM-conversations] ${label} returned ${count} conversations`);
+        console.log(`[DM-conversations] ${ep.label} returned ${count} conversations`);
         if (count > 0) {
-          const apiType = i === 2 ? 'instagram' : 'facebook';
-          return await processConversations(data, pageToken, [igUserId, pageId || ''], apiType);
+          return await processConversations(data, ep.token, [igUserId, pageId || ''], ep.apiType);
         }
       } else {
         const errText = await res.text().catch(() => '');
-        console.warn(`[DM-conversations] ${label} failed (${res.status}): ${errText.substring(0, 200)}`);
+        console.warn(`[DM-conversations] ${ep.label} failed (${res.status}): ${errText.substring(0, 100)}`);
       }
     }
 
