@@ -1339,10 +1339,23 @@ function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: str
   const [replyText, setReplyText] = useState('');
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [inboxFilter, setInboxFilter] = useState<'all' | 'inbox' | 'sent' | 'auto'>('all');
   const threadEndRef = useRef<HTMLDivElement>(null);
 
+  // Filter emails by type
+  const filteredEmails = emails.filter(e => {
+    if (inboxFilter === 'inbox') return e.direction === 'incoming';
+    if (inboxFilter === 'sent') return e.direction === 'outgoing' && !e.type?.includes('auto');
+    if (inboxFilter === 'auto') return e.type?.includes('auto') || e.type?.includes('step_');
+    return true;
+  });
+
+  const inboxCount = emails.filter(e => e.direction === 'incoming').length;
+  const sentCount = emails.filter(e => e.direction === 'outgoing' && !e.type?.includes('auto')).length;
+  const autoCount = emails.filter(e => e.type?.includes('auto') || e.type?.includes('step_')).length;
+
   // Group emails by prospect
-  const byProspect = emails.reduce((acc: Record<string, any[]>, e: any) => {
+  const byProspect = filteredEmails.reduce((acc: Record<string, any[]>, e: any) => {
     const key = e.prospect_id || e.prospect || e.email || 'unknown';
     if (!acc[key]) acc[key] = [];
     acc[key].push(e);
@@ -1397,7 +1410,31 @@ function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: str
   }
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden h-80 md:h-[480px]">
+    <div>
+      {/* Filter tabs + new campaign button */}
+      <div className="flex items-center gap-1.5 mb-2 overflow-x-auto pb-1">
+        {[
+          { key: 'all', label: `Tous (${emails.length})` },
+          { key: 'inbox', label: `Recus (${inboxCount})` },
+          { key: 'sent', label: `Envoyes (${sentCount})` },
+          { key: 'auto', label: `Sequences (${autoCount})` },
+        ].map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => setInboxFilter(tab.key as any)}
+            className={`px-3 py-1.5 text-[10px] sm:text-xs font-medium rounded-lg whitespace-nowrap transition-all ${
+              inboxFilter === tab.key ? 'bg-cyan-600 text-white' : 'bg-white/5 text-white/40 hover:bg-white/10'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+        <a href="/assistant?agent=email&action=campaign" className="px-3 py-1.5 bg-gradient-to-r from-cyan-600 to-blue-600 text-white text-[10px] sm:text-xs font-bold rounded-lg ml-auto whitespace-nowrap min-h-[32px] flex items-center">
+          {'\u{1F4E7}'} Nouvelle campagne
+        </a>
+      </div>
+
+    <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden h-72 md:h-[420px]">
       <div className="flex h-full">
         {/* Email list */}
         <div className={`${selectedId ? 'hidden sm:block' : ''} w-full sm:w-56 border-r border-white/5 overflow-y-auto`}>
@@ -1510,6 +1547,7 @@ function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: str
         )}
       </div>
     </div>
+    </div>
   );
 }
 
@@ -1599,28 +1637,9 @@ function ContentPanel({
         </div>
       </div>
 
-      <SectionTitle>Contenu recent</SectionTitle>
-      {stats.recentContent.length === 0 ? (
-        <EmptyState agentName={agentName} />
-      ) : (
-        <div className="flex flex-col gap-2">
-          {stats.recentContent.slice(0, 8).map((c, i) => (
-            <div key={i} className="bg-white/5 rounded-xl border border-white/10 p-4 flex items-center gap-3">
-              <span
-                className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
-                style={{
-                  backgroundColor: `${typeBadgeColor[c.type] ?? '#a78bfa'}22`,
-                  color: typeBadgeColor[c.type] ?? '#a78bfa',
-                }}
-              >
-                {c.type}
-              </span>
-              <span className="text-sm text-white/80 truncate flex-1">{c.title}</span>
-              <span className="text-xs text-white/40 shrink-0">{fmtDate(c.created_at)}</span>
-            </div>
-          ))}
-        </div>
-      )}
+      {/* Content workflow: prepared → validate → scheduled → published */}
+      <SectionTitle>File de contenu</SectionTitle>
+      <ContentWorkflow />
 
       <SectionTitle>Activite (7 derniers jours)</SectionTitle>
       <div className="bg-white/5 rounded-xl border border-white/10 p-4">
@@ -1639,6 +1658,131 @@ function ContentPanel({
         </div>
       </div>
     </>
+  );
+}
+
+// Content workflow: fetch posts by status, allow approve/skip/schedule
+function ContentWorkflow() {
+  const [posts, setPosts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<string>('all');
+
+  useEffect(() => {
+    fetch('/api/agents/content?action=calendar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'calendar' }) })
+      .then(r => r.json())
+      .then(d => { if (d.posts || d.calendar) setPosts(d.posts || d.calendar || []); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleAction = useCallback(async (postId: string, action: string) => {
+    setPosts(prev => prev.map(p => p.id === postId ? { ...p, _loading: true } : p));
+    try {
+      await fetch('/api/agents/content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action, post_id: postId }),
+      });
+      // Update status locally
+      const newStatus = action === 'approve' ? 'approved' : action === 'skip' ? 'skipped' : action === 'publish_single' ? 'published' : 'draft';
+      setPosts(prev => prev.map(p => p.id === postId ? { ...p, status: newStatus, _loading: false } : p));
+    } catch {
+      setPosts(prev => prev.map(p => p.id === postId ? { ...p, _loading: false } : p));
+    }
+  }, []);
+
+  if (loading) return <div className="text-center py-6"><div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-400 mx-auto" /></div>;
+  if (posts.length === 0) return <div className="text-center py-6 text-white/30 text-xs">Aucun post programme — Lena prepare ton contenu</div>;
+
+  const statusConfig: Record<string, { color: string; label: string; icon: string }> = {
+    draft: { color: '#fbbf24', label: 'A valider', icon: '\u{1F4DD}' },
+    approved: { color: '#60a5fa', label: 'Programme', icon: '\u{1F4C5}' },
+    published: { color: '#34d399', label: 'Publie', icon: '\u2705' },
+    skipped: { color: '#94a3b8', label: 'Ignore', icon: '\u23ED\uFE0F' },
+    video_generating: { color: '#e879f9', label: 'Video en cours', icon: '\u{1F3AC}' },
+  };
+
+  // Status counts
+  const counts = posts.reduce((acc: Record<string, number>, p: any) => { acc[p.status] = (acc[p.status] || 0) + 1; return acc; }, {});
+  const filtered = filter === 'all' ? posts : posts.filter((p: any) => p.status === filter);
+
+  return (
+    <div>
+      {/* Status filter tabs */}
+      <div className="flex gap-1.5 mb-3 overflow-x-auto pb-1">
+        {[
+          { key: 'all', label: `Tous (${posts.length})` },
+          { key: 'draft', label: `A valider (${counts.draft || 0})` },
+          { key: 'approved', label: `Programmes (${counts.approved || 0})` },
+          { key: 'published', label: `Publies (${counts.published || 0})` },
+        ].map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => setFilter(tab.key)}
+            className={`px-3 py-1.5 text-[10px] sm:text-xs font-medium rounded-lg whitespace-nowrap transition-all ${
+              filter === tab.key ? 'bg-purple-600 text-white' : 'bg-white/5 text-white/40 hover:bg-white/10'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Post cards */}
+      <div className="space-y-2 max-h-[400px] overflow-y-auto">
+        {filtered.slice(0, 15).map((post: any) => {
+          const cfg = statusConfig[post.status] || statusConfig.draft;
+          return (
+            <div key={post.id} className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
+              <div className="p-3 sm:p-4">
+                <div className="flex items-start gap-3">
+                  {/* Visual thumbnail */}
+                  {post.visual_url ? (
+                    <img src={post.visual_url} alt="" className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg object-cover flex-shrink-0" />
+                  ) : (
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-white/10 flex items-center justify-center text-lg flex-shrink-0">{cfg.icon}</div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${cfg.color}22`, color: cfg.color }}>{cfg.label}</span>
+                      {post.platform && <span className="text-[9px] text-white/30">{post.platform}</span>}
+                      {post.format && <span className="text-[9px] text-white/20">{post.format}</span>}
+                    </div>
+                    <p className="text-xs text-white/70 line-clamp-2">{post.hook || post.caption?.substring(0, 80) || post.title || 'Sans titre'}</p>
+                    {post.scheduled_date && <p className="text-[10px] text-white/30 mt-1">{'\u{1F4C5}'} {post.scheduled_date} {post.scheduled_time || ''}</p>}
+                  </div>
+                </div>
+              </div>
+
+              {/* Action buttons for drafts */}
+              {post.status === 'draft' && (
+                <div className="px-3 sm:px-4 pb-3 flex gap-2 flex-wrap">
+                  <button onClick={() => handleAction(post.id, 'approve')} disabled={post._loading} className="px-3 py-1.5 bg-emerald-600 text-white text-[10px] sm:text-xs font-bold rounded-lg hover:bg-emerald-500 disabled:opacity-40 min-h-[32px]">
+                    {'\u2705'} Valider
+                  </button>
+                  <button onClick={() => handleAction(post.id, 'publish_single')} disabled={post._loading} className="px-3 py-1.5 bg-purple-600 text-white text-[10px] sm:text-xs font-bold rounded-lg hover:bg-purple-500 disabled:opacity-40 min-h-[32px]">
+                    {'\u{1F680}'} Publier maintenant
+                  </button>
+                  <button onClick={() => handleAction(post.id, 'skip')} disabled={post._loading} className="px-3 py-1.5 bg-white/10 text-white/50 text-[10px] sm:text-xs rounded-lg hover:bg-white/15 disabled:opacity-40 min-h-[32px]">
+                    Ignorer
+                  </button>
+                </div>
+              )}
+
+              {/* Published: show engagement */}
+              {post.status === 'published' && post.engagement_data && (
+                <div className="px-3 sm:px-4 pb-3 flex gap-3 text-[10px] text-white/40">
+                  {post.engagement_data.likes != null && <span>{'\u2764\uFE0F'} {post.engagement_data.likes}</span>}
+                  {post.engagement_data.comments != null && <span>{'\u{1F4AC}'} {post.engagement_data.comments}</span>}
+                  {post.engagement_data.shares != null && <span>{'\u{1F4E4}'} {post.engagement_data.shares}</span>}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
