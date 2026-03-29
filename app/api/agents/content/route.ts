@@ -312,19 +312,10 @@ async function publishToInstagram(
       }
     }
 
-    // Fallback to admin profile
+    // NO LONGER fallback to admin profile — each client must have their own IG connection
     if (!publishProfile) {
-      const { data: adminProfile, error: profileError } = await supabase
-        .from('profiles')
-        .select('instagram_business_account_id, facebook_page_access_token, instagram_username')
-        .eq('is_admin', true)
-        .single();
-
-      if (profileError || !adminProfile) {
-        console.error('[Content] No profile found for Instagram publishing');
-        return { success: false, error: 'No Instagram profile found' };
-      }
-      publishProfile = adminProfile;
+      console.warn('[Content] No client IG profile found for publishing — skipping (admin fallback disabled)');
+      return { success: false, error: 'Client Instagram non connecte. Aucune publication.' };
     }
 
     const igUserId = publishProfile.instagram_business_account_id;

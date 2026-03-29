@@ -1026,13 +1026,30 @@ export async function GET(request: NextRequest) {
 
       // Query eligible prospects: have email, not completed sequence, not dead/lost/client
       // Use separate filters to avoid PostgREST .or() parsing issues
-      const { data: allWithEmail, error: queryError } = await supabase
+      // Get admin user IDs to exclude their prospects from cold email
+      const { data: adminProfiles } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('is_admin', true);
+      const adminUserIds = new Set((adminProfiles || []).map((p: any) => p.id));
+
+      const prospectQuery = supabase
         .from('crm_prospects')
         .select('*')
         .not('email', 'is', null);
 
+      // If org_id is passed, filter by org
+      const orgId = new URL(request.url).searchParams.get('org_id');
+      if (orgId) {
+        prospectQuery.eq('org_id', orgId);
+      }
+
+      const { data: allWithEmail, error: queryError } = await prospectQuery;
+
       // Filter in JS for reliability (PostgREST .or() with .not.in. can be tricky)
       const prospects = (allWithEmail || []).filter(p => {
+        // EXCLUDE admin-owned prospects
+        if (p.user_id && adminUserIds.has(p.user_id)) return false;
         // email_sequence_status must be null, not_started, or in_progress (exclude completed, warm_sent, send_failed)
         const seq = p.email_sequence_status;
         const seqOk = !seq || seq === 'not_started' || seq === 'in_progress';

@@ -253,9 +253,18 @@ async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram', 
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   }
 
+  // Get admin user IDs to exclude their prospects
+  const { data: adminProfiles } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('is_admin', true);
+  const adminUserIds = new Set((adminProfiles || []).map((p: any) => p.id));
+
   // Filter in JS for reliability
   // For TikTok DMs, also check that we haven't already queued a TikTok DM for this prospect
   const prospects = (allWithHandle || []).filter(p => {
+    // EXCLUDE admin-owned prospects
+    if (p.user_id && adminUserIds.has(p.user_id)) return false;
     const dmOk = isTikTok ? true : (!p.dm_status || p.dm_status === 'none'); // TikTok DMs are separate from IG dm_status
     const tempOk = !p.temperature || p.temperature !== 'dead';
     const statusOk = !p.status || !['client', 'client_pro', 'client_fondateurs', 'lost', 'perdu', 'sprint'].includes(p.status);

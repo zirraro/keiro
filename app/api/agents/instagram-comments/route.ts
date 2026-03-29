@@ -31,14 +31,42 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const action = body.action || 'fetch_comments';
 
-  // Get admin IG tokens
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('instagram_business_account_id, facebook_page_access_token')
-    .eq('is_admin', true)
-    .single();
+  // Get IG tokens — prefer authenticated user, then user_id param, then admin fallback for monitoring only
+  let profile: any = null;
+  const targetUserId = body.user_id;
 
-  if (!profile?.instagram_business_account_id || !profile?.facebook_page_access_token) {
+  if (!isCron) {
+    const { user } = await getAuthUser().catch(() => ({ user: null }));
+    if (user) {
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('instagram_business_account_id, facebook_page_access_token, instagram_access_token')
+        .eq('id', user.id)
+        .single();
+      if (userProfile?.instagram_business_account_id) profile = userProfile;
+    }
+  }
+
+  if (!profile && targetUserId) {
+    const { data: targetProfile } = await supabase
+      .from('profiles')
+      .select('instagram_business_account_id, facebook_page_access_token, instagram_access_token')
+      .eq('id', targetUserId)
+      .single();
+    if (targetProfile?.instagram_business_account_id) profile = targetProfile;
+  }
+
+  // Admin fallback ONLY for fetch_comments (read-only), NOT for replying
+  if (!profile && action === 'fetch_comments') {
+    const { data: adminProfile } = await supabase
+      .from('profiles')
+      .select('instagram_business_account_id, facebook_page_access_token, instagram_access_token')
+      .eq('is_admin', true)
+      .single();
+    profile = adminProfile;
+  }
+
+  if (!profile?.instagram_business_account_id || !(profile?.facebook_page_access_token || profile?.instagram_access_token)) {
     return NextResponse.json({ error: 'Instagram non connecte' }, { status: 400 });
   }
 

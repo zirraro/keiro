@@ -105,6 +105,52 @@ export async function GET(request: NextRequest) {
 
   const results: { task: string; ok: boolean; data?: any; error?: string }[] = [];
 
+  // ── Multi-tenant: get active client accounts ──────────────────────
+  // Action slots (email, DM, content, publish, comments) run PER CLIENT only
+  // Monitoring slots (QA, CEO, marketing) run globally (all clients)
+  const actionSlots = new Set([
+    'early_morning', 'morning', 'midday', 'afternoon', 'evening',
+    'email_warm_2', 'email_recap',
+    'morning_prep', 'content_2', 'content_3', 'content_tiktok',
+    'content_tiktok_2', 'content_tiktok_3',
+    'content_linkedin_1', 'content_linkedin_2', 'content_linkedin_3',
+    'community', 'community_2',
+    'tiktok_dm_morning', 'tiktok_dm_midday',
+    'onboarding', 'retention',
+    'publish_scheduled',
+  ]);
+
+  // For action slots: get list of active non-admin client user_ids
+  let clientUserIds: string[] = [];
+  if (actionSlots.has(slot)) {
+    const supabaseForClients = getSupabaseAdmin();
+    const { data: clients } = await supabaseForClients
+      .from('profiles')
+      .select('id, email')
+      .or('is_admin.is.null,is_admin.eq.false')
+      .not('subscription_plan', 'is', null)
+      .not('subscription_plan', 'eq', 'free');
+
+    // Also include trial users (plan might be null but trial_ends_at in future)
+    const { data: trialClients } = await supabaseForClients
+      .from('profiles')
+      .select('id, email')
+      .or('is_admin.is.null,is_admin.eq.false')
+      .gt('trial_ends_at', now.toISOString());
+
+    const allClientIds = new Set<string>();
+    (clients || []).forEach(c => allClientIds.add(c.id));
+    (trialClients || []).forEach(c => allClientIds.add(c.id));
+    clientUserIds = [...allClientIds];
+
+    console.log(`[Scheduler] Action slot=${slot}: ${clientUserIds.length} active client(s)`);
+
+    if (clientUserIds.length === 0) {
+      console.log(`[Scheduler] No active clients — skipping action slot ${slot}`);
+      return NextResponse.json({ ok: true, skipped: true, reason: 'No active clients' });
+    }
+  }
+
   // Supabase for auto-improve logging
   const aiSupabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
