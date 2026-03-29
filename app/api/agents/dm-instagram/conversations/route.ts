@@ -16,97 +16,109 @@ export async function GET(req: NextRequest) {
 
   const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
-  // Get IG tokens — try user's profile first, then admin, then any connected profile
-  let igToken: string | null = null;
+  // Get IG tokens — need facebook_page_id + facebook_page_access_token for conversations API
+  // AND instagram_business_account_id to identify "my" messages
+  let pageToken: string | null = null;
+  let pageId: string | null = null;
   let igUserId: string | null = null;
 
   const { data: userProfile } = await supabase
     .from('profiles')
-    .select('instagram_business_account_id, instagram_access_token, facebook_page_access_token, email')
+    .select('instagram_business_account_id, instagram_access_token, facebook_page_access_token, facebook_page_id, email')
     .eq('id', user.id)
     .single();
 
-  console.log(`[DM-conversations] User ${userProfile?.email || user.id}: ig_account=${userProfile?.instagram_business_account_id || 'null'}, has_ig_token=${!!userProfile?.instagram_access_token}, has_fb_token=${!!userProfile?.facebook_page_access_token}`);
+  console.log(`[DM-conversations] User ${userProfile?.email || user.id}: ig_account=${userProfile?.instagram_business_account_id || 'null'}, page_id=${userProfile?.facebook_page_id || 'null'}, has_fb_token=${!!userProfile?.facebook_page_access_token}`);
 
-  igToken = userProfile?.instagram_access_token || userProfile?.facebook_page_access_token;
+  pageToken = userProfile?.facebook_page_access_token || userProfile?.instagram_access_token;
+  pageId = userProfile?.facebook_page_id;
   igUserId = userProfile?.instagram_business_account_id;
 
-  if (!igToken || !igUserId) {
+  if (!pageToken || !igUserId) {
     // Fallback: admin profile
     const { data: adminProfile } = await supabase
       .from('profiles')
-      .select('instagram_business_account_id, instagram_access_token, facebook_page_access_token')
+      .select('instagram_business_account_id, instagram_access_token, facebook_page_access_token, facebook_page_id')
       .eq('is_admin', true)
       .limit(1)
       .maybeSingle();
 
     if (adminProfile) {
-      igToken = adminProfile.instagram_access_token || adminProfile.facebook_page_access_token;
+      pageToken = adminProfile.facebook_page_access_token || adminProfile.instagram_access_token;
+      pageId = adminProfile.facebook_page_id;
       igUserId = adminProfile.instagram_business_account_id;
-      console.log(`[DM-conversations] Fallback to admin: ig_account=${igUserId || 'null'}, has_token=${!!igToken}`);
+      console.log(`[DM-conversations] Fallback to admin: page_id=${pageId}, ig_account=${igUserId}`);
     }
   }
 
-  if (!igToken || !igUserId) {
+  if (!pageToken || !igUserId) {
     // Last fallback: any profile with IG connected
     const { data: anyProfile } = await supabase
       .from('profiles')
-      .select('instagram_business_account_id, instagram_access_token, facebook_page_access_token')
+      .select('instagram_business_account_id, instagram_access_token, facebook_page_access_token, facebook_page_id')
       .not('instagram_business_account_id', 'is', null)
       .not('facebook_page_access_token', 'is', null)
       .limit(1)
       .maybeSingle();
 
     if (anyProfile) {
-      igToken = anyProfile.instagram_access_token || anyProfile.facebook_page_access_token;
+      pageToken = anyProfile.facebook_page_access_token || anyProfile.instagram_access_token;
+      pageId = anyProfile.facebook_page_id;
       igUserId = anyProfile.instagram_business_account_id;
-      console.log(`[DM-conversations] Fallback to any connected profile: ig_account=${igUserId}`);
+      console.log(`[DM-conversations] Fallback to any connected profile: page_id=${pageId}, ig_account=${igUserId}`);
     }
   }
 
-  if (!igToken || !igUserId) {
+  if (!pageToken || !igUserId) {
     console.warn(`[DM-conversations] No IG token found for user ${user.id}`);
     return NextResponse.json({ ok: true, conversations: [], message: 'Instagram non connecte' });
   }
 
-  console.log(`[DM-conversations] Using ig_account=${igUserId}, token_length=${igToken.length}`);
+  console.log(`[DM-conversations] Using page_id=${pageId}, ig_account=${igUserId}, token_length=${pageToken.length}`);
 
   try {
-    // Fetch conversations — try Facebook Graph API first
-    console.log(`[DM-conversations] Fetching from Facebook Graph API for ${igUserId}...`);
-    const convRes = await fetch(
-      `https://graph.facebook.com/v25.0/${igUserId}/conversations?fields=id,participants,updated_time&access_token=${igToken}`
-    );
+    // Instagram DM conversations use the Page token, not the IG user token
+    // Endpoint 1: Facebook Page conversations with platform=instagram filter
+    // Endpoint 2: IG Business Account conversations
+    // Endpoint 3: /me/conversations with page token
 
-    if (!convRes.ok) {
-      const fbError = await convRes.text().catch(() => 'unknown');
-      console.warn(`[DM-conversations] Facebook API failed (${convRes.status}): ${fbError.substring(0, 200)}`);
+    const endpoints = [
+      // Try page-based conversations (most reliable for Instagram DMs)
+      pageId ? `https://graph.facebook.com/v21.0/${pageId}/conversations?platform=instagram&fields=id,participants,updated_time&access_token=${pageToken}` : null,
+      // Try IG user conversations
+      `https://graph.facebook.com/v21.0/${igUserId}/conversations?fields=id,participants,updated_time&access_token=${pageToken}`,
+      // Try /me/conversations
+      `https://graph.instagram.com/v21.0/me/conversations?fields=id,participants,updated_time&access_token=${pageToken}`,
+    ].filter(Boolean) as string[];
 
-      // Try Instagram Graph API instead
-      console.log(`[DM-conversations] Trying Instagram Graph API...`);
-      const igConvRes = await fetch(
-        `https://graph.instagram.com/v25.0/me/conversations?fields=id,participants,updated_time&access_token=${igToken}`
-      );
-      if (!igConvRes.ok) {
-        const igError = await igConvRes.text().catch(() => 'unknown');
-        console.warn(`[DM-conversations] Instagram API also failed (${igConvRes.status}): ${igError.substring(0, 200)}`);
-        return NextResponse.json({ ok: true, conversations: [], message: 'API conversations non disponible', debug: { fbStatus: convRes.status, igStatus: igConvRes.status } });
+    for (let i = 0; i < endpoints.length; i++) {
+      const label = ['Page+platform=instagram', 'IG user conversations', 'Instagram /me/conversations'][i];
+      console.log(`[DM-conversations] Trying ${label}...`);
+
+      const res = await fetch(endpoints[i]);
+      if (res.ok) {
+        const data = await res.json();
+        const count = data.data?.length || 0;
+        console.log(`[DM-conversations] ${label} returned ${count} conversations`);
+        if (count > 0) {
+          const apiType = i === 2 ? 'instagram' : 'facebook';
+          return await processConversations(data, pageToken, [igUserId, pageId || ''], apiType);
+        }
+      } else {
+        const errText = await res.text().catch(() => '');
+        console.warn(`[DM-conversations] ${label} failed (${res.status}): ${errText.substring(0, 200)}`);
       }
-      const igConvData = await igConvRes.json();
-      console.log(`[DM-conversations] Instagram API returned ${igConvData.data?.length || 0} conversations`);
-      return await processConversations(igConvData, igToken, igUserId, 'instagram');
     }
 
-    const convData = await convRes.json();
-    console.log(`[DM-conversations] Facebook API returned ${convData.data?.length || 0} conversations`);
-    return await processConversations(convData, igToken, igUserId, 'facebook');
+    console.warn(`[DM-conversations] All endpoints returned 0 conversations`);
+    return NextResponse.json({ ok: true, conversations: [], message: 'Aucune conversation trouvee' });
   } catch (e: any) {
     console.error(`[DM-conversations] Error:`, e.message);
     return NextResponse.json({ ok: true, conversations: [], error: e.message });
   }
 }
 
-async function processConversations(convData: any, token: string, myId: string, apiType: string) {
+async function processConversations(convData: any, token: string, myIds: string[], apiType: string) {
   const conversations: Array<{
     id: string;
     participant: { username: string; id: string };
@@ -114,15 +126,20 @@ async function processConversations(convData: any, token: string, myId: string, 
     messages: Array<{ id: string; message: string; from: string; fromMe: boolean; created_time: string }>;
   }> = [];
 
+  // myIds contains all IDs that represent "me" (igUserId, pageId, etc.)
+  const myIdSet = new Set(myIds.filter(Boolean));
+
   for (const conv of (convData.data || []).slice(0, 10)) {
-    // Get the other participant
-    const otherParticipant = conv.participants?.data?.find((p: any) => p.id !== myId) || { username: 'inconnu', id: '?' };
+    // Get the other participant (not me)
+    const otherParticipant = conv.participants?.data?.find((p: any) => !myIdSet.has(p.id)) ||
+                             conv.participants?.data?.[0] ||
+                             { username: 'inconnu', id: '?' };
 
     // Fetch messages
     try {
       const domain = apiType === 'instagram' ? 'graph.instagram.com' : 'graph.facebook.com';
       const msgRes = await fetch(
-        `https://${domain}/v25.0/${conv.id}/messages?fields=id,message,from,created_time&limit=20&access_token=${token}`
+        `https://${domain}/v21.0/${conv.id}/messages?fields=id,message,from,created_time&limit=20&access_token=${token}`
       );
 
       let messages: any[] = [];
@@ -132,14 +149,17 @@ async function processConversations(convData: any, token: string, myId: string, 
           id: m.id,
           message: m.message || '',
           from: m.from?.username || m.from?.name || '?',
-          fromMe: m.from?.id === myId,
+          fromMe: myIdSet.has(m.from?.id),
           created_time: m.created_time,
         })).reverse(); // Chronological order
+      } else {
+        const errText = await msgRes.text().catch(() => '');
+        console.warn(`[DM-conversations] Message fetch failed for conv ${conv.id}: ${msgRes.status} ${errText.substring(0, 100)}`);
       }
 
       conversations.push({
         id: conv.id,
-        participant: { username: otherParticipant.username || otherParticipant.name, id: otherParticipant.id },
+        participant: { username: otherParticipant.username || otherParticipant.name || 'inconnu', id: otherParticipant.id },
         updated_time: conv.updated_time,
         messages,
       });
