@@ -142,7 +142,7 @@ export default function AgentTutorial({ agentId }: { agentId: string }) {
     return <SpotlightTour steps={steps} active={true} onFinish={finishTour} />;
   }
 
-  // Confirmation modal
+  // Confirmation modal with action
   if (phase !== 'confirm') return null;
 
   const agentNames: Record<string, string> = {
@@ -152,20 +152,58 @@ export default function AgentTutorial({ agentId }: { agentId: string }) {
     instagram_comments: 'Commentaires IG', rh: 'Sara', comptable: 'Louis', onboarding: 'Clara',
   };
 
+  // What connection does this agent need?
+  const agentConnections: Record<string, { label: string; url: string } | null> = {
+    content: { label: 'Connecter Instagram', url: '/api/auth/instagram-oauth' },
+    dm_instagram: { label: 'Connecter Instagram', url: '/api/auth/instagram-oauth' },
+    instagram_comments: { label: 'Connecter Instagram', url: '/api/auth/instagram-oauth' },
+    gmaps: { label: 'Connecter Google Business', url: '/api/auth/google-oauth' },
+    tiktok_comments: { label: 'Connecter TikTok', url: '/api/auth/tiktok-oauth' },
+    email: null, // Already configured
+    commercial: null,
+    seo: null,
+    marketing: null,
+    ads: null,
+    chatbot: null,
+    whatsapp: null,
+    rh: null,
+    comptable: null,
+    onboarding: null,
+  };
+
+  const connection = agentConnections[agentId];
+  const name = agentNames[agentId] || 'Agent';
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <div className="bg-gray-900/95 backdrop-blur-xl border border-emerald-500/20 rounded-2xl shadow-2xl p-5 sm:p-6 max-w-sm w-full animate-in zoom-in-95 duration-300 relative text-center">
         <button onClick={finishAll} className="absolute top-3 right-3 text-white/20 hover:text-white/50 transition p-1">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
-        <div className="text-4xl mb-3">{'\u{1F389}'}</div>
-        <h3 className="text-lg font-bold text-white mb-1">{agentNames[agentId] || 'Agent'} est active !</h3>
-        <p className="text-xs text-white/50 mb-4">Voyons les principales fonctionnalites</p>
-        <button onClick={startTour} className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-bold rounded-xl hover:shadow-lg transition min-h-[44px]">
-          {'\u{1F446}'} Montrer les fonctionnalites
-        </button>
-        <button onClick={finishAll} className="w-full mt-2 py-2 text-white/40 text-xs hover:text-white/60 transition">
-          Je connais deja, passer
+        <div className="text-4xl mb-3">{'\u26A1'}</div>
+        <h3 className="text-lg font-bold text-white mb-1">Activons {name} !</h3>
+
+        {connection ? (
+          <>
+            <p className="text-xs text-white/50 mb-4">Connecte-toi pour que {name} puisse travailler pour toi</p>
+            <a href={connection.url} className="block w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-bold rounded-xl hover:shadow-lg transition min-h-[44px] text-center mb-2">
+              {'\u{1F517}'} {connection.label}
+            </a>
+            <button onClick={startTour} className="w-full py-2 text-white/40 text-xs hover:text-white/60 transition">
+              Deja connecte ? Voir les fonctionnalites
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="text-xs text-white/50 mb-4">{name} est pret a travailler ! Decouvre ses fonctionnalites.</p>
+            <button onClick={startTour} className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-bold rounded-xl hover:shadow-lg transition min-h-[44px]">
+              {'\u{1F446}'} Voir les fonctionnalites
+            </button>
+          </>
+        )}
+
+        <button onClick={finishAll} className="w-full mt-2 py-2 text-white/30 text-[10px] hover:text-white/50 transition">
+          Passer
         </button>
       </div>
     </div>
