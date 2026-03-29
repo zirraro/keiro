@@ -1856,14 +1856,14 @@ function SeoPanel({
   gradientTo: string;
 }) {
   const isDemo = !data.seoStats;
-  const stats = data.seoStats || { pagesOptimized: 3, keywordsRanked: 8, avgPosition: 12.4, trafficIncrease: 15, recentActions: [
-    { type: 'audit', title: 'Audit SEO complet du site', created_at: new Date(Date.now() - 86400000).toISOString() },
-    { type: 'keyword', title: 'Optimisation mots-cles page accueil', created_at: new Date(Date.now() - 3 * 86400000).toISOString() },
+  const stats: any = data.seoStats || { blogPosts: 3, keywordsTracked: 8, pagesOptimized: 3, keywordsRanked: 8, avgPosition: 12.4, trafficIncrease: 15, recentActions: [
+    { type: 'audit', title: 'Audit SEO complet du site', action: 'Audit SEO complet du site', created_at: new Date(Date.now() - 86400000).toISOString() },
+    { type: 'keyword', title: 'Optimisation mots-cles page accueil', action: 'Optimisation mots-cles', created_at: new Date(Date.now() - 3 * 86400000).toISOString() },
   ] };
 
   // Derive approximate counts for SEO workflow
-  const seoIndexed = Math.round(stats.blogPosts * 0.8); // ~80% indexed
-  const seoTraffic = Math.round(seoIndexed * 12); // rough traffic estimate
+  const seoIndexed = Math.round((stats.blogPosts || 0) * 0.8);
+  const seoTraffic = Math.round(seoIndexed * 12);
 
   return (
     <>
@@ -1914,7 +1914,7 @@ function SeoPanel({
         <EmptyState agentName={agentName} />
       ) : (
         <div className="flex flex-col gap-2">
-          {stats.recentActions.slice(0, 8).map((a, i) => (
+          {stats.recentActions.slice(0, 8).map((a: any, i: number) => (
             <div key={i} className="bg-white/5 rounded-xl border border-white/10 p-4 flex items-start gap-3">
               <div
                 className="w-2 h-2 rounded-full mt-1.5 shrink-0"
@@ -1949,7 +1949,7 @@ function AdsPanel({
   gradientFrom: string;
   gradientTo: string;
 }) {
-  const stats = data.adsStats || { totalSpend: DEMO_ADS_STATS.totalSpend, roas: DEMO_ADS_STATS.roas, totalConversions: DEMO_ADS_STATS.totalConversions, totalImpressions: DEMO_ADS_STATS.totalImpressions, recentCampaigns: DEMO_ADS_STATS.recentCampaigns };
+  const stats: any = data.adsStats || { campaigns: 3, totalSpend: DEMO_ADS_STATS.totalSpend, avgRoas: DEMO_ADS_STATS.roas, roas: DEMO_ADS_STATS.roas, totalConversions: DEMO_ADS_STATS.totalConversions, totalImpressions: DEMO_ADS_STATS.totalImpressions, recentCampaigns: DEMO_ADS_STATS.recentCampaigns };
 
   const totalSpend = stats.recentCampaigns.reduce((s, c) => s + c.spend, 0) || 1;
   const statusColors: Record<string, string> = {
@@ -2071,7 +2071,7 @@ function FinancePanel({
   gradientFrom: string;
   gradientTo: string;
 }) {
-  const stats = data.financeStats || { revenue: DEMO_FINANCE_STATS.revenue, expenses: DEMO_FINANCE_STATS.expenses, profit: DEMO_FINANCE_STATS.profit, profitMargin: DEMO_FINANCE_STATS.profitMargin, recentTransactions: DEMO_FINANCE_STATS.recentTransactions };
+  const stats: any = data.financeStats || { revenue: DEMO_FINANCE_STATS.revenue, expenses: DEMO_FINANCE_STATS.expenses, profit: DEMO_FINANCE_STATS.profit, profitMargin: DEMO_FINANCE_STATS.profitMargin, recentTransactions: DEMO_FINANCE_STATS.recentTransactions };
 
   const maxBar = Math.max(stats.revenue, stats.expenses, 1);
 
@@ -2177,7 +2177,7 @@ function RhPanel({
   gradientFrom: string;
   gradientTo: string;
 }) {
-  const stats = data.rhStats || { contractsGenerated: DEMO_RH_STATS.contractsGenerated, rgpdCompliant: true, alertsCount: 0, recentDocs: DEMO_RH_STATS.recentDocs };
+  const stats: any = data.rhStats || { contractsGenerated: DEMO_RH_STATS.contractsGenerated, rgpdCompliant: true, alertsCount: 0, recentDocs: DEMO_RH_STATS.recentDocs };
 
   const docTypeBadge: Record<string, string> = {
     contrat: '#60a5fa',
@@ -2248,7 +2248,7 @@ function OnboardingPanel({
   gradientFrom: string;
   gradientTo: string;
 }) {
-  const stats = data.onboardingStats || { completionPercent: 25, agentsActivated: 2, totalAgents: 18, steps: [{ name: 'Profil business', completed: true }, { name: 'Connecter Instagram', completed: false }, { name: 'Premier post', completed: false }] };
+  const stats: any = data.onboardingStats || { completionPercent: 25, agentsActivated: 2, totalAgents: 18, steps: [{ name: 'Profil business', completed: true }, { name: 'Connecter Instagram', completed: false }, { name: 'Premier post', completed: false }] };
 
   const defaultSteps = stats.steps.length > 0
     ? stats.steps
@@ -2477,7 +2477,7 @@ function TiktokCommentsPanel({
   gradientFrom: string;
   gradientTo: string;
 }) {
-  const stats = data.tiktokStats || { videosPosted: DEMO_TIKTOK_STATS.videosPosted, totalViews: DEMO_TIKTOK_STATS.totalViews, avgEngagement: DEMO_TIKTOK_STATS.avgEngagement, followers: DEMO_TIKTOK_STATS.followers, recentComments: DEMO_TIKTOK_STATS.recentComments || [] };
+  const stats: any = data.tiktokStats || { videosPosted: DEMO_TIKTOK_STATS.videosPosted, totalViews: DEMO_TIKTOK_STATS.totalViews, avgEngagement: DEMO_TIKTOK_STATS.avgEngagement, followers: DEMO_TIKTOK_STATS.followers, recentComments: DEMO_TIKTOK_STATS.recentComments || [] };
 
   return (
     <>
@@ -2675,7 +2675,7 @@ function ChatbotPanel({
   gradientFrom: string;
   gradientTo: string;
 }) {
-  const stats = data.chatbotStats || { totalVisitors: DEMO_CHATBOT_STATS.totalVisitors, leadsGenerated: DEMO_CHATBOT_STATS.leadsGenerated, avgSessionDuration: DEMO_CHATBOT_STATS.avgSessionDuration, conversionRate: DEMO_CHATBOT_STATS.conversionRate, recentSessions: DEMO_CHATBOT_STATS.recentSessions };
+  const stats: any = data.chatbotStats || { totalVisitors: DEMO_CHATBOT_STATS.totalVisitors, leadsGenerated: DEMO_CHATBOT_STATS.leadsGenerated, avgSessionDuration: DEMO_CHATBOT_STATS.avgSessionDuration, conversionRate: DEMO_CHATBOT_STATS.conversionRate, recentSessions: DEMO_CHATBOT_STATS.recentSessions };
 
   // Conversion funnel mini visual
   const funnelSteps = [
@@ -2843,7 +2843,7 @@ function WhatsAppPanel({
   gradientFrom: string;
   gradientTo: string;
 }) {
-  const stats = data.whatsappStats || { conversations: DEMO_WHATSAPP_STATS.conversations, activeConversations: DEMO_WHATSAPP_STATS.activeConversations, leadsGenerated: DEMO_WHATSAPP_STATS.leadsGenerated, responseRate: DEMO_WHATSAPP_STATS.responseRate, recentChats: DEMO_WHATSAPP_STATS.recentChats || [] };
+  const stats: any = data.whatsappStats || { conversations: DEMO_WHATSAPP_STATS.conversations, activeConversations: DEMO_WHATSAPP_STATS.activeConversations, leadsGenerated: DEMO_WHATSAPP_STATS.leadsGenerated, responseRate: DEMO_WHATSAPP_STATS.responseRate, recentChats: DEMO_WHATSAPP_STATS.recentChats || [] };
 
   const statusColors: Record<string, string> = {
     active: '#34d399',

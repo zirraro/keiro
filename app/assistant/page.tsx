@@ -146,8 +146,8 @@ function useIsMobile(): boolean {
   return isMobile;
 }
 
-// ─── Coming Soon Mode ──────────────────────────────────────
-const COMING_SOON_MODE_DEFAULT = true;
+// ─── Coming Soon Mode OFF — all agents show preview data with connect CTA ───
+const COMING_SOON_MODE_DEFAULT = false;
 
 // ─── Team definitions ──────────────────────────────────────
 const TEAMS = [
@@ -503,7 +503,7 @@ export default function AssistantPage() {
       setActiveChatId(agent.id);
       return;
     }
-    if (agent.visibility === 'coming_soon') return;
+    // All agents navigate to workspace (preview mode handles unconnected state)
     router.push(`/assistant/agent/${agent.id}`);
   }, [COMING_SOON_MODE, router]);
 
@@ -593,7 +593,7 @@ export default function AssistantPage() {
         role: 'assistant',
         content: res.ok
           ? ((await res.json()).message || 'Reponse recue.')
-          : `Merci pour ton message ! ${chat.agent.displayName} sera bientot disponible.`,
+          : `Merci pour ton message ! Pour activer ${chat.agent.displayName}, demarre ton essai gratuit 14 jours sur keiroai.com/pricing`,
         created_at: new Date().toISOString(),
       };
       setChats(prev => ({

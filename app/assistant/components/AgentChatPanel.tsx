@@ -248,19 +248,24 @@ export default function AgentChatPanel({
 
       {/* Coming soon overlay */}
       {comingSoonMode && (
-        <div className="absolute inset-0 z-30 bg-[#0a1628]/80 backdrop-blur-sm flex flex-col items-center justify-center text-center px-6">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-600/30 to-blue-600/30 flex items-center justify-center mb-4">
-            <svg className="w-7 h-7 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+        <div className="absolute inset-0 z-30 bg-[#0a1628]/90 backdrop-blur-sm flex flex-col items-center justify-center text-center px-6">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500/30 to-cyan-500/30 flex items-center justify-center mb-4">
+            <span className="text-2xl">{'\u{1F680}'}</span>
           </div>
-          <h3 className="text-white font-bold text-base mb-1">A venir tres prochainement</h3>
-          <p className="text-white/50 text-sm mb-4 max-w-[260px]">
-            {agent.displayName} sera bientot disponible pour vous accompagner au quotidien.
+          <h3 className="text-white font-bold text-base mb-1">Decouvre {agent.displayName}</h3>
+          <p className="text-white/50 text-sm mb-4 max-w-[280px]">
+            {agent.displayName} et 17 autres agents IA sont prets a automatiser ton business. Essaie gratuitement pendant 14 jours.
           </p>
+          <a
+            href="/checkout/upsell?plan=createur"
+            className="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white text-sm font-bold rounded-xl hover:shadow-lg transition-all mb-2"
+          >
+            Essai gratuit 14 jours — 0{'\u20AC'}
+          </a>
+          <p className="text-[10px] text-white/30 mb-3">Carte requise, aucun debit. Annulation en 1 clic.</p>
           <button
             onClick={onBack}
-            className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-sm font-medium rounded-xl transition-colors"
+            className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-medium rounded-xl transition-colors"
           >
             Retour
           </button>
