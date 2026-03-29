@@ -58,11 +58,16 @@ export default function ClaraHelper() {
         const inactive = AGENT_SETUP_ORDER.filter(a => !setupAgents.has(a.id));
         setInactiveAgents(inactive);
 
+        // Filter out already-done agents from this wizard session
+        const doneAgents = new Set(JSON.parse(sessionStorage.getItem('keiro_wizard_done') || '[]'));
+        const remaining = inactive.filter(a => !doneAgents.has(a.id));
+        setInactiveAgents(remaining);
+
         // Show bubble if there are inactive agents
-        if (inactive.length > 0) {
+        if (remaining.length > 0) {
           const shownKey = 'keiro_clara_inactive_shown';
           const lastShown = sessionStorage.getItem(shownKey);
-          if (!lastShown || Date.now() - parseInt(lastShown) > 300000) { // 5 min cooldown
+          if (!lastShown || Date.now() - parseInt(lastShown) > 300000) {
             setTimeout(() => {
               setMode('inactive');
               setShow(true);
@@ -86,29 +91,40 @@ export default function ClaraHelper() {
     setCurrentWizardIndex(0);
   }, []);
 
-  const activateAgent = useCallback(async (agentId: string) => {
+  const activateAgent = useCallback(async (agent: typeof AGENT_SETUP_ORDER[0]) => {
     // Mark as setup + auto mode
     await fetch('/api/agents/settings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({ agent_id: agentId, auto_mode: true, setup_completed: true }),
+      body: JSON.stringify({ agent_id: agent.id, auto_mode: true, setup_completed: true }),
     }).catch(() => {});
 
-    // Save wizard state and navigate to agent page for tutorial
-    const nextIndex = currentWizardIndex + 1;
+    // Save wizard state for the tutorial overlay on the agent page
+    const remaining = inactiveAgents.slice(currentWizardIndex + 1);
     try {
       sessionStorage.setItem('keiro_wizard_active', 'true');
-      sessionStorage.setItem('keiro_wizard_agent', agentId);
-      sessionStorage.setItem('keiro_wizard_next', String(nextIndex));
+      sessionStorage.setItem('keiro_wizard_agent', agent.id);
+      sessionStorage.setItem('keiro_wizard_next', String(currentWizardIndex + 1));
       sessionStorage.setItem('keiro_wizard_total', String(inactiveAgents.length));
-      sessionStorage.setItem('keiro_wizard_agents', JSON.stringify(inactiveAgents.map(a => a.id)));
+      sessionStorage.setItem('keiro_wizard_agents', JSON.stringify(remaining.map(a => a.id)));
+      // Mark this agent as done to prevent loop
+      const doneKey = 'keiro_wizard_done';
+      const done = JSON.parse(sessionStorage.getItem(doneKey) || '[]');
+      done.push(agent.id);
+      sessionStorage.setItem(doneKey, JSON.stringify(done));
     } catch {}
 
-    // Navigate to agent workspace
-    router.push('/assistant/agent/' + agentId);
+    // If agent needs connection and not connected, go to OAuth first
+    if (agent.needsConnect && !connections[agent.needsConnect] && agent.connectUrl) {
+      window.location.href = agent.connectUrl;
+      return;
+    }
+
+    // Navigate to agent workspace for tutorial
+    router.push('/assistant/agent/' + agent.id);
     setShow(false);
-  }, [currentWizardIndex, inactiveAgents, router]);
+  }, [currentWizardIndex, inactiveAgents, connections, router]);
 
   const skipAgent = useCallback(() => {
     setCurrentWizardIndex(prev => prev + 1);
@@ -180,7 +196,7 @@ export default function ClaraHelper() {
                   </div>
                 ) : (
                   <div className="flex gap-2">
-                    <button onClick={() => activateAgent(currentAgent.id)} className="px-3 py-1.5 bg-emerald-600 text-white text-[10px] font-bold rounded-lg hover:bg-emerald-500 transition min-h-[32px]">
+                    <button onClick={() => activateAgent(currentAgent)} className="px-3 py-1.5 bg-emerald-600 text-white text-[10px] font-bold rounded-lg hover:bg-emerald-500 transition min-h-[32px]">
                       {'\u2705'} Activer {currentAgent.name}
                     </button>
                     <button onClick={skipAgent} className="px-3 py-1.5 bg-white/10 text-white/50 text-[10px] rounded-lg min-h-[32px]">Passer</button>

@@ -2528,41 +2528,32 @@ function DmInstagramPanel({
         <div className={!(data as any).connections?.instagram ? 'lg:w-72' : 'flex-1'}><AutoModeToggle agentId="dm_instagram" autoLabel="DMs automatiques" manualLabel="DMs manuels" autoDesc="Jade repond auto aux DMs" manualDesc="Tu valides chaque DM" /></div>
       </div>
 
-      {/* Main: conversations + KPIs side by side on desktop */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-3">
-        {/* Left: conversations */}
-        <div>
-          <DmConversationsLive />
+      {/* KPIs + CRM link — horizontal bar */}
+      <div className="flex items-center gap-2 sm:gap-3 mb-3 flex-wrap">
+        <div className="flex items-center gap-1.5 bg-white/5 rounded-lg px-3 py-2 border border-white/10">
+          <span className="text-blue-400 font-bold text-sm">{fmt(stats.dmsSent)}</span>
+          <span className="text-white/30 text-[10px]">DMs</span>
         </div>
-        {/* Right: KPIs + hot prospects */}
-        <div className="space-y-3">
-          <HotProspectsAlert source="dm_instagram" gradientFrom={gradientFrom} />
-
-      <div className="grid grid-cols-2 gap-2">
-        <KpiCard label="DMs envoyes" value={fmt(stats.dmsSent)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        <KpiCard label="Reponses recues" value={fmt(stats.responses)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        <KpiCard label="RDV generes" value={fmt(stats.rdvGenerated)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <span className="text-white/15 text-xs">{'\u2192'}</span>
+        <div className="flex items-center gap-1.5 bg-white/5 rounded-lg px-3 py-2 border border-white/10">
+          <span className="text-amber-400 font-bold text-sm">{fmt(stats.responses)}</span>
+          <span className="text-white/30 text-[10px]">Reponses</span>
+        </div>
+        <span className="text-white/15 text-xs">{'\u2192'}</span>
+        <div className="flex items-center gap-1.5 bg-white/5 rounded-lg px-3 py-2 border border-white/10">
+          <span className="text-emerald-400 font-bold text-sm">{fmt(stats.rdvGenerated)}</span>
+          <span className="text-white/30 text-[10px]">RDV</span>
+        </div>
+        <a href="/assistant/crm" className="ml-auto px-3 py-2 bg-purple-600/20 text-purple-300 text-xs font-medium rounded-lg hover:bg-purple-600/30 transition border border-purple-500/20">
+          {'\u{1F4CA}'} CRM
+        </a>
       </div>
 
-      {/* Quick pipeline */}
-      <div className="flex items-center gap-1 text-center mt-2">
-        {[
-          { label: 'DM', value: stats.dmsSent, color: '#60a5fa' },
-          { label: 'Rep', value: stats.responses, color: '#fbbf24' },
-          { label: 'RDV', value: stats.rdvGenerated, color: '#22c55e' },
-        ].map((s, i) => (
-          <div key={s.label} className="flex items-center flex-1">
-            <div className="flex-1 text-center">
-              <div className="text-sm font-bold" style={{ color: s.color }}>{s.value}</div>
-              <div className="text-[8px] text-white/30">{s.label}</div>
-            </div>
-            {i < 2 && <span className="text-white/15 text-[10px]">{'\u2192'}</span>}
-          </div>
-        ))}
-      </div>
-      <div className="text-center mt-2"><a href="/assistant/crm" className="text-[10px] text-purple-400 hover:text-purple-300">{'\u{1F4CA}'} CRM</a></div>
-      </div>{/* close right sidebar */}
-      </div>{/* close grid */}
+      {/* Hot prospects */}
+      <HotProspectsAlert source="dm_instagram" gradientFrom={gradientFrom} />
+
+      {/* Conversations — full width */}
+      <DmConversationsLive />
 
       {/* Recent DM activity feed with reply */}
       <SectionTitle>Activite recente</SectionTitle>

@@ -15,7 +15,7 @@ const AGENT_TUTORIALS: Record<string, {
   content: {
     title: 'Lena est activee !',
     features: [
-      { icon: '\u{1F4F8}', title: 'Posts automatiques', desc: 'Lena genere et publie 3 posts/jour sur tes reseaux' },
+      { icon: '\u{1F4F8}', title: 'Posts automatiques', desc: 'Lena genere et publie sur tes reseaux selon ta frequence' },
       { icon: '\u{1F4C5}', title: 'Calendrier editorial', desc: 'Visualise tes publications passees et a venir par plateforme' },
       { icon: '\u2705', title: 'Validation', desc: 'En mode manuel, tu valides chaque post avant publication' },
     ],
@@ -212,7 +212,11 @@ export default function AgentTutorial({ agentId }: { agentId: string }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-gray-900/95 backdrop-blur-xl border border-emerald-500/20 rounded-2xl shadow-2xl p-5 sm:p-6 max-w-md w-full animate-in zoom-in-95 duration-300">
+      <div className="bg-gray-900/95 backdrop-blur-xl border border-emerald-500/20 rounded-2xl shadow-2xl p-5 sm:p-6 max-w-md w-full animate-in zoom-in-95 duration-300 relative">
+        {/* Close button */}
+        <button onClick={finishWizard} className="absolute top-3 right-3 text-white/20 hover:text-white/50 transition p-1">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
         {/* Header */}
         <div className="text-center mb-4">
           <div className="text-3xl mb-2">{'\u{1F389}'}</div>
