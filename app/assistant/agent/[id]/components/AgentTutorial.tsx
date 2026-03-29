@@ -64,6 +64,79 @@ const AGENT_TUTORIALS: Record<string, {
     features: [
       { icon: '\u{1F4AC}', title: 'Commentaires', desc: 'Tes commentaires Instagram apparaissent ici' },
       { icon: '\u{1F916}', title: 'Reponses auto', desc: 'Reponses contextuelles generees par l\'IA' },
+      { icon: '\u{1F3AF}', title: 'Filtrage intelligent', desc: 'Les spams sont ignores, seuls les vrais commentaires recoivent une reponse' },
+    ],
+  },
+  marketing: {
+    title: 'AMI est activee !',
+    features: [
+      { icon: '\u{1F4CA}', title: 'Dashboard global', desc: 'Vue d\'ensemble de toutes les performances : prospects, contenu, engagement' },
+      { icon: '\u{1F9E0}', title: 'Strategie IA', desc: 'AMI analyse tes donnees et recommande les meilleures actions' },
+      { icon: '\u{1F465}', title: 'Coordination agents', desc: 'AMI supervise et optimise le travail de tous les autres agents' },
+    ],
+  },
+  ads: {
+    title: 'Felix est active !',
+    features: [
+      { icon: '\u{1F4B0}', title: 'Campagnes pub', desc: 'Felix cree et optimise tes campagnes Meta Ads et Google Ads' },
+      { icon: '\u{1F4C8}', title: 'ROAS optimise', desc: 'Maximise ton retour sur investissement publicitaire automatiquement' },
+      { icon: '\u{1F3AF}', title: 'Ciblage IA', desc: 'Ciblage intelligent base sur tes meilleurs clients' },
+    ],
+  },
+  tiktok_comments: {
+    title: 'Axel est active !',
+    features: [
+      { icon: '\u{1F3B5}', title: 'Engagement TikTok', desc: 'Axel commente et engage ta communaute TikTok automatiquement' },
+      { icon: '\u{1F4C8}', title: 'Stats videos', desc: 'Suivi des vues, likes et engagement de tes videos' },
+      { icon: '\u{1F525}', title: 'Tendances', desc: 'Axel repere les tendances et adapte tes contenus' },
+    ],
+  },
+  chatbot: {
+    title: 'Max est active !',
+    features: [
+      { icon: '\u{1F4AC}', title: 'Chatbot 24/7', desc: 'Max accueille tes visiteurs sur ton site et repond a leurs questions' },
+      { icon: '\u{1F4E5}', title: 'Capture de leads', desc: 'Recupere les emails et coordonnees de tes visiteurs' },
+      { icon: '\u{1F517}', title: 'Widget installable', desc: 'Un simple code a coller sur ton site avant la balise body' },
+    ],
+  },
+  whatsapp: {
+    title: 'Stella est activee !',
+    features: [
+      { icon: '\u{1F4F1}', title: 'WhatsApp Business', desc: 'Stella repond automatiquement a tes messages WhatsApp' },
+      { icon: '\u{1F91D}', title: 'Qualification', desc: 'Qualifie les prospects et programme des relances' },
+      { icon: '\u{1F4DE}', title: 'Bouton WhatsApp', desc: 'Ajoute un bouton flottant sur ton site pour etre contacte' },
+    ],
+  },
+  rh: {
+    title: 'Sara est activee !',
+    features: [
+      { icon: '\u{1F4DC}', title: 'Documents juridiques', desc: 'Sara genere tes CGV, mentions legales et politiques RGPD' },
+      { icon: '\u2696\uFE0F', title: 'Conformite', desc: 'Verifie la conformite de ton activite et t\'alerte sur les obligations' },
+      { icon: '\u{1F4CB}', title: 'Contrats', desc: 'Genere des contrats et documents personnalises' },
+    ],
+  },
+  comptable: {
+    title: 'Louis est active !',
+    features: [
+      { icon: '\u{1F4B5}', title: 'Suivi financier', desc: 'Louis suit tes revenus, depenses et marge automatiquement' },
+      { icon: '\u{1F4CA}', title: 'Tableau de bord', desc: 'Vue claire de ta tresorerie et rentabilite' },
+      { icon: '\u{1F4C4}', title: 'Transactions', desc: 'Historique de toutes tes transactions' },
+    ],
+  },
+  finance: {
+    title: 'Louis est active !',
+    features: [
+      { icon: '\u{1F4B5}', title: 'Suivi financier', desc: 'Louis suit tes revenus, depenses et marge automatiquement' },
+      { icon: '\u{1F4CA}', title: 'Tableau de bord', desc: 'Vue claire de ta tresorerie et rentabilite' },
+      { icon: '\u{1F4C4}', title: 'Transactions', desc: 'Historique de toutes tes transactions' },
+    ],
+  },
+  onboarding: {
+    title: 'Clara est activee !',
+    features: [
+      { icon: '\u{1F44B}', title: 'Guide de demarrage', desc: 'Clara t\'accompagne pour configurer ton espace et tes agents' },
+      { icon: '\u{1F4DD}', title: 'Dossier business', desc: 'Remplis ton profil pour que les agents travaillent mieux pour toi' },
+      { icon: '\u{1F4C1}', title: 'Upload documents', desc: 'Depose un fichier (Word, PDF, Excel) et Clara extrait les infos' },
     ],
   },
 };
