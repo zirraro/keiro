@@ -2515,90 +2515,47 @@ function DmInstagramPanel({
 
   return (
     <>
-      {/* Connect Instagram if not connected */}
-      <SocialConnectBanners agentId="dm_instagram" networks={['instagram']} />
+      {/* Connect + Toggle inline */}
+      <div className="flex flex-col lg:flex-row gap-3 mb-3">
+        <div className="flex-1"><SocialConnectBanners agentId="dm_instagram" networks={['instagram']} /></div>
+        <div className="lg:w-72"><AutoModeToggle agentId="dm_instagram" autoLabel="DMs automatiques" manualLabel="DMs manuels" autoDesc="Jade repond auto aux DMs" manualDesc="Tu valides chaque DM" /></div>
+      </div>
 
-      {/* Auto mode toggle */}
-      <AutoModeToggle agentId="dm_instagram" autoLabel="DMs automatiques" manualLabel="DMs manuels" autoDesc="Jade repond automatiquement aux DMs et envoie des DMs de prospection" manualDesc="Tu valides chaque DM avant envoi" />
+      {/* Main: conversations + KPIs side by side on desktop */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-3">
+        {/* Left: conversations */}
+        <div>
+          <DmConversationsLive />
+        </div>
+        {/* Right: KPIs + hot prospects */}
+        <div className="space-y-3">
+          <HotProspectsAlert source="dm_instagram" gradientFrom={gradientFrom} />
 
-      {/* Live Instagram conversations — FIRST, most important */}
-      <SectionTitle>Conversations Instagram</SectionTitle>
-      <DmConversationsLive />
-
-      {/* Hot prospects alert — directly in agent space */}
-      <HotProspectsAlert source="dm_instagram" gradientFrom={gradientFrom} />
-
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-2">
         <KpiCard label="DMs envoyes" value={fmt(stats.dmsSent)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
         <KpiCard label="Reponses recues" value={fmt(stats.responses)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
         <KpiCard label="RDV generes" value={fmt(stats.rdvGenerated)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
       </div>
 
-      {/* Workflow visual — pipeline DM */}
-      <SectionTitle>Workflow DM</SectionTitle>
-      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-        <div className="flex items-center justify-between gap-1 text-center">
-          {[
-            { label: 'Prospects', value: stats.dmsSent + (stats.responses || 0), icon: '\u{1F465}', color: '#94a3b8' },
-            { label: 'DM envoye', value: stats.dmsSent, icon: '\u{1F4E8}', color: '#60a5fa' },
-            { label: 'Reponse', value: stats.responses, icon: '\u{1F4AC}', color: '#fbbf24' },
-            { label: 'RDV / Client', value: stats.rdvGenerated, icon: '\u{1F525}', color: '#22c55e' },
-          ].map((step, i) => (
-            <div key={step.label} className="flex items-center flex-1">
-              <div className="flex-1 text-center">
-                <div className="text-lg mb-1">{step.icon}</div>
-                <div className="text-sm font-bold text-white" style={{ color: step.color }}>{step.value}</div>
-                <div className="text-[9px] text-white/40 mt-0.5">{step.label}</div>
-              </div>
-              {i < 3 && <div className="text-white/20 text-xs mx-1">{'\u2192'}</div>}
+      {/* Quick pipeline */}
+      <div className="flex items-center gap-1 text-center mt-2">
+        {[
+          { label: 'DM', value: stats.dmsSent, color: '#60a5fa' },
+          { label: 'Rep', value: stats.responses, color: '#fbbf24' },
+          { label: 'RDV', value: stats.rdvGenerated, color: '#22c55e' },
+        ].map((s, i) => (
+          <div key={s.label} className="flex items-center flex-1">
+            <div className="flex-1 text-center">
+              <div className="text-sm font-bold" style={{ color: s.color }}>{s.value}</div>
+              <div className="text-[8px] text-white/30">{s.label}</div>
             </div>
-          ))}
-        </div>
-        {/* Escalade humaine */}
-        <div className="mt-3 pt-3 border-t border-white/5 flex items-center gap-2">
-          <span className="text-[10px] text-amber-400">{'\u26A0\uFE0F'}</span>
-          <span className="text-[10px] text-white/50">Les prospects <strong className="text-amber-400">chauds</strong> te sont signales pour que tu prennes le relais</span>
-        </div>
+            {i < 2 && <span className="text-white/15 text-[10px]">{'\u2192'}</span>}
+          </div>
+        ))}
       </div>
-
-      {/* Quick actions */}
-      <div className="flex flex-wrap gap-2 mt-3">
-        <a href="/generate" className="px-4 py-2 bg-gradient-to-r from-pink-600 to-rose-600 text-white text-xs font-semibold rounded-xl hover:opacity-90">
-          {'\u2728'} Creer un visuel pour DM
-        </a>
-        <a href="/assistant/crm" className="px-4 py-2 bg-white/10 text-white/70 text-xs font-medium rounded-xl hover:bg-white/15">
-          {'\u{1F4CA}'} Voir le CRM
-        </a>
-      </div>
-
-      {/* Funnel visual */}
-      <SectionTitle>Entonnoir DM</SectionTitle>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="rounded-xl border border-white/10 p-4 bg-white/[0.02]">
-          <DonutChart
-            segments={[
-              { value: stats.dmsSent - stats.responses, color: '#60a5fa', label: 'En attente' },
-              { value: stats.responses - stats.rdvGenerated, color: '#fbbf24', label: 'Reponses' },
-              { value: stats.rdvGenerated, color: '#22c55e', label: 'RDV' },
-            ]}
-            label={`${stats.responseRate}%`}
-          />
-        </div>
-        <div className="rounded-xl border border-white/10 p-4 bg-white/[0.02] space-y-3">
-          <ProgressBar value={stats.responses} max={Math.max(stats.dmsSent, 1)} color="#fbbf24" label="Taux reponse" />
-          <ProgressBar value={stats.rdvGenerated} max={Math.max(stats.responses, 1)} color="#22c55e" label="Conversion RDV" />
-        </div>
-      </div>
-
-      <SectionTitle>Taux de reponse</SectionTitle>
-      <div className="flex justify-center">
-        <CircularProgress
-          value={stats.responseRate}
-          label="Taux de reponse"
-          gradientFrom={gradientFrom}
-          gradientTo={gradientTo}
-        />
-      </div>
+      <div className="text-center mt-2"><a href="/assistant/crm" className="text-[10px] text-purple-400 hover:text-purple-300">{'\u{1F4CA}'} CRM</a></div>
+      </div>{/* close right sidebar */}
+      </div>{/* close grid */}
 
       {/* Recent DM activity feed with reply */}
       <SectionTitle>Activite recente</SectionTitle>
@@ -3314,8 +3271,8 @@ export default function AgentDashboard({ agentId, agentName, gradientFrom, gradi
         </div>
       )}
 
-      {/* Dashboard content with padding */}
-      <div className="p-5">
+      {/* Dashboard content — compact, no scroll needed */}
+      <div className="p-3 sm:p-4">
         <Panel data={data} agentName={agentName} gradientFrom={gradientFrom} gradientTo={gradientTo} />
       </div>
     </div>
