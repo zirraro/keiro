@@ -826,7 +826,31 @@ export default function AssistantPage() {
               </div>
             </div>
 
-            {/* AMI removed from suivi central — accessible via Strategie team + agent grid */}
+            {/* AMI — Directrice Marketing */}
+            <div className="rounded-2xl border border-purple-500/20 overflow-hidden cursor-pointer hover:border-purple-500/40 transition-all"
+              onClick={() => { const ami = CLIENT_AGENTS.find(a => a.id === 'marketing'); if (ami) handleSelectAgent(ami); }}>
+              <div className="bg-gradient-to-r from-purple-600/20 to-pink-600/15 px-4 py-3 flex items-center gap-3">
+                <div className="w-11 h-11 rounded-full overflow-hidden flex-shrink-0" style={{ background: 'linear-gradient(135deg, #a855f7, #ec4899)', padding: '2px' }}>
+                  <div className="w-full h-full rounded-full overflow-hidden bg-gray-900 flex items-center justify-center">
+                    {avatars['marketing'] ? <img src={avatars['marketing']} alt="AMI" className="w-full h-full object-cover scale-[1.15]" style={{ objectPosition: 'center 15%' }} /> : <span className="text-lg">{'\u{1F4CA}'}</span>}
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-white font-bold text-sm">AMI — Directrice Marketing</div>
+                  <div className="text-purple-300/60 text-[10px]">Analyse les performances et optimise la strategie de tous les agents</div>
+                </div>
+                <button onClick={(e) => { e.stopPropagation(); const ami = CLIENT_AGENTS.find(a => a.id === 'marketing'); if (ami) handleOpenChat(ami); }} className="px-3 py-1.5 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 rounded-lg text-purple-300 text-[10px] font-medium transition-all flex-shrink-0">
+                  {'\u{1F4AC}'} Chat
+                </button>
+              </div>
+              <div className="px-4 py-3 bg-white/[0.02]">
+                {summary?.activityFeed?.find((a: any) => a.agent === 'marketing') ? (
+                  <p className="text-white/50 text-xs leading-relaxed">{'\u{1F4C8}'} {(summary.activityFeed.find((a: any) => a.agent === 'marketing') as any)?.action || 'Analyse en cours...'}</p>
+                ) : (
+                  <p className="text-white/30 text-xs italic">AMI analyse les performances de vos agents...</p>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
@@ -943,6 +967,8 @@ export default function AssistantPage() {
                       {agentOrder.map(agentId => {
                         const agent = agents.find(a => a.id === agentId);
                         if (!agent || agent.visibility === 'background') return null;
+                        // Noah + AMI are featured above — skip in grid
+                        if (agent.id === 'ceo' || agent.id === 'marketing') return null;
                         return (
                           <SortableAgentCard
                             key={agent.id}
