@@ -153,7 +153,7 @@ export default function SpotlightTour({ steps, active, onFinish }: SpotlightTour
 
       {/* Tooltip — follows element */}
       <div
-        className="z-[9999] bg-gray-900 border border-emerald-500/30 rounded-xl shadow-2xl p-4 w-72 sm:w-80"
+        className="z-[9999] bg-gray-900 border border-emerald-500/30 rounded-xl shadow-2xl p-3 sm:p-4 w-[calc(100vw-24px)] sm:w-80 max-w-sm"
         style={tooltipStyle}
         onClick={e => e.stopPropagation()}
       >

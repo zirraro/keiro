@@ -330,13 +330,13 @@ function DmConversationsLive() {
                   } ${msg.status === 'sending' ? 'opacity-60' : ''}`}>
                     {msg.message || <span className="italic text-white/30">[media]</span>}
                     <div className={`flex items-center gap-1 mt-0.5 ${msg.fromMe ? 'justify-end' : ''}`}>
-                      <span className={`text-[8px] ${msg.fromMe ? 'text-purple-200/60' : 'text-white/20'}`}>
+                      <span className={`text-[10px] ${msg.fromMe ? 'text-purple-200/60' : 'text-white/20'}`}>
                         {new Date(msg.created_time).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                       </span>
-                      {msg.fromMe && msg.status === 'sending' && <span className="text-[8px] text-yellow-300/60">envoi...</span>}
-                      {msg.fromMe && msg.status === 'sent' && <span className="text-[8px] text-green-300/60">{'\u2713'} envoye</span>}
-                      {msg.fromMe && msg.status === 'prepared' && <span className="text-[8px] text-amber-300/60">prepare</span>}
-                      {msg.fromMe && msg.status === 'error' && <span className="text-[8px] text-red-300/60">echec</span>}
+                      {msg.fromMe && msg.status === 'sending' && <span className="text-[10px] text-yellow-300/60">envoi...</span>}
+                      {msg.fromMe && msg.status === 'sent' && <span className="text-[10px] text-green-300/60">{'\u2713'} envoye</span>}
+                      {msg.fromMe && msg.status === 'prepared' && <span className="text-[10px] text-amber-300/60">prepare</span>}
+                      {msg.fromMe && msg.status === 'error' && <span className="text-[10px] text-red-300/60">echec</span>}
                     </div>
                   </div>
                 </div>
@@ -1665,7 +1665,7 @@ function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: str
                       {msg.direction === 'incoming' && <div className="text-[9px] text-cyan-300/60 mb-0.5">{'\u2709\uFE0F'} Reponse recue</div>}
                       {msg.auto && <div className="text-[9px] text-white/40 mb-0.5">{'\u{1F916}'} Auto</div>}
                       <div className="whitespace-pre-wrap">{msg.message || '[pas de contenu]'}</div>
-                      <div className={`text-[8px] mt-1 ${msg.direction === 'outgoing' ? 'text-cyan-200/50' : 'text-white/20'}`}>
+                      <div className={`text-[10px] mt-1 ${msg.direction === 'outgoing' ? 'text-cyan-200/50' : 'text-white/20'}`}>
                         {new Date(msg.date).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </div>
@@ -1814,7 +1814,7 @@ function ContentPanel({
       {/* Calendar view by platform — 7 days past + 7 days future */}
       <SectionTitle>Calendrier editorial</SectionTitle>
       <div data-tour="content-calendar" className="bg-white/5 rounded-xl border border-white/10 p-3 sm:p-4 overflow-x-auto">
-        <div className="min-w-[500px]">
+        <div className="min-w-[400px]">
           {/* Header: dates */}
           <div className="grid grid-cols-[80px_repeat(14,1fr)] gap-0.5 mb-1">
             <div />
@@ -1823,7 +1823,7 @@ function ContentPanel({
               d.setDate(d.getDate() - 7 + i);
               const isToday = d.toISOString().slice(0, 10) === now.toISOString().slice(0, 10);
               return (
-                <div key={i} className={`text-center text-[8px] sm:text-[9px] py-1 ${isToday ? 'text-purple-300 font-bold' : i < 7 ? 'text-white/30' : 'text-white/50'}`}>
+                <div key={i} className={`text-center text-[10px] sm:text-[9px] py-1 ${isToday ? 'text-purple-300 font-bold' : i < 7 ? 'text-white/30' : 'text-white/50'}`}>
                   {d.toLocaleDateString('fr-FR', { weekday: 'narrow' })}{d.getDate()}
                 </div>
               );
@@ -1848,7 +1848,7 @@ function ContentPanel({
                   return (
                     <div
                       key={i}
-                      className={`h-6 sm:h-7 rounded-sm flex items-center justify-center text-[8px] font-bold ${
+                      className={`h-6 sm:h-7 rounded-sm flex items-center justify-center text-[10px] font-bold ${
                         hasPost
                           ? 'bg-gradient-to-br from-purple-500/40 to-blue-500/40 text-white/80'
                           : isToday
@@ -1968,7 +1968,7 @@ function ContentWorkflow() {
                   ) : (
                     <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-gradient-to-br from-white/5 to-white/10 flex flex-col items-center justify-center flex-shrink-0 border border-dashed border-white/15">
                       <span className="text-xl mb-1">{cfg.icon}</span>
-                      <span className="text-[8px] text-white/20">{post.platform || 'post'}</span>
+                      <span className="text-[10px] text-white/20">{post.platform || 'post'}</span>
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
@@ -2043,13 +2043,13 @@ function LenaCommentsSection() {
       <div className="space-y-2 max-h-[250px] overflow-y-auto">
         {displayComments.slice(0, 6).map((c: any, i: number) => (
           <div key={i} className="bg-white/5 rounded-lg border border-white/10 p-3 flex items-start gap-2">
-            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center text-[8px] text-white font-bold flex-shrink-0">
+            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center text-[10px] text-white font-bold flex-shrink-0">
               {(c.username || '?')[0].toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-bold text-white/80">@{c.username}</span>
-                <span className={`text-[8px] px-1.5 py-0.5 rounded-full ${c.replied ? 'bg-emerald-400/15 text-emerald-400' : 'bg-amber-400/15 text-amber-400'}`}>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${c.replied ? 'bg-emerald-400/15 text-emerald-400' : 'bg-amber-400/15 text-amber-400'}`}>
                   {c.replied ? 'Repondu' : 'En attente'}
                 </span>
               </div>
@@ -2680,7 +2680,7 @@ function TiktokCommentsPanel({
       <div className="space-y-2 max-h-[200px] overflow-y-auto mb-3">
         {(stats.recentComments || DEMO_TIKTOK_STATS.recentComments || []).slice(0, 5).map((c: any, i: number) => (
           <div key={i} className="bg-white/5 rounded-lg border border-white/10 p-3 flex items-start gap-2">
-            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-cyan-500 to-black flex items-center justify-center text-[8px] text-white font-bold flex-shrink-0">
+            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-cyan-500 to-black flex items-center justify-center text-[10px] text-white font-bold flex-shrink-0">
               {(c.author || '?')[0].toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">

@@ -630,7 +630,7 @@ export default function AgentWorkspacePage() {
 
         {/* ═══ TAB: DASHBOARD ═══ */}
         {activeTab === 'dashboard' && (
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_180px] gap-4">
+          <div className="grid grid-cols-1 xl:grid-cols-[1fr_180px] gap-4">
             <div className="space-y-4 min-w-0">
               {/* Setup guide removed — PreviewBanner in each agent panel handles this */}
 
@@ -745,7 +745,7 @@ export default function AgentWorkspacePage() {
               </div>
             </div>
             {/* Compact sidebar — messages count + file upload (only for Clara, Finance, Prospection, CEO, AMI) */}
-            <div className="hidden lg:block space-y-3">
+            <div className="hidden xl:block space-y-3">
               <div className="rounded-xl border border-white/10 bg-white/5 p-3">
                 <div className="text-center">
                   <div className="text-white font-bold text-xl">{messages.length}</div>
@@ -803,7 +803,7 @@ export default function AgentWorkspacePage() {
                               {t.description?.substring(0, 30) || t.type || 'Tache'}
                             </div>
                           ))}
-                          {dayTasks.length > 3 && <div className="text-[8px] text-white/30 text-center">+{dayTasks.length - 3} autres</div>}
+                          {dayTasks.length > 3 && <div className="text-[10px] text-white/30 text-center">+{dayTasks.length - 3} autres</div>}
                         </div>
                       ) : (
                         <div className="text-[9px] text-white/15 text-center mt-2">{isPast ? 'Aucune' : '\u2014'}</div>
@@ -1234,7 +1234,7 @@ export default function AgentWorkspacePage() {
       {!chatOpen && (
         <button onClick={() => setChatOpen(true)} className="fixed bottom-20 right-4 z-40 w-14 h-14 rounded-full shadow-2xl hover:scale-105 flex items-center justify-center transition-all lg:bottom-8 lg:right-8" style={{ background: `linear-gradient(135deg, ${gf}, ${gt})` }}>
           <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-          {messages.length > 0 && <div className="absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full bg-green-400 border-2 border-[#0c1a3a] flex items-center justify-center"><span className="text-[8px] text-green-900 font-bold">{messages.length}</span></div>}
+          {messages.length > 0 && <div className="absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full bg-green-400 border-2 border-[#0c1a3a] flex items-center justify-center"><span className="text-[10px] text-green-900 font-bold">{messages.length}</span></div>}
         </button>
       )}
 

@@ -175,7 +175,7 @@ export default function ClaraHelper() {
 
   return (
     <div className={`${positionClass} animate-in ${isFirstTime ? 'zoom-in-95' : 'slide-in-from-bottom-3'} duration-300`}>
-      <div className="bg-gray-900/95 backdrop-blur-xl border border-emerald-500/20 rounded-2xl shadow-2xl shadow-emerald-500/10 p-4 sm:p-5 w-80 sm:w-96">
+      <div className="bg-gray-900/95 backdrop-blur-xl border border-emerald-500/20 rounded-2xl shadow-2xl shadow-emerald-500/10 p-3 sm:p-5 w-[calc(100vw-32px)] sm:w-96 max-w-sm">
         <button onClick={dismissAndCooldown} className="absolute top-2 right-2 text-white/20 hover:text-white/50 transition">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
@@ -269,7 +269,7 @@ export default function ClaraHelper() {
             {wizardDone && (
               <>
                 <p className="text-xs text-white/80 mb-2">{'\u{1F389}'} Bravo ! Tes agents sont prets a travailler pour toi !</p>
-                <button onClick={dismissAndCooldown} className="px-3 py-1.5 bg-emerald-600 text-white text-[10px] font-bold rounded-lg min-h-[32px]">
+                <button onClick={dismissAndCooldown} className="px-3 py-1.5 bg-emerald-600 text-white text-[10px] font-bold rounded-lg min-h-[40px]">
                   C&apos;est parti !
                 </button>
               </>
