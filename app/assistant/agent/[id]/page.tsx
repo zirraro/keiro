@@ -401,11 +401,12 @@ export default function AgentWorkspacePage() {
       window.history.replaceState({}, '', window.location.pathname);
 
       // Show success message in chat
-      const network = justConnected === 'instagram' ? 'Instagram' : justConnected === 'google' ? 'Google Business' : justConnected;
+      const network = justConnected === 'instagram' ? 'Instagram' : justConnected === 'google' ? 'Google Business' : justConnected === 'gmail' ? 'Gmail' : justConnected;
+      const gmailMsg = justConnected === 'gmail' ? 'Tes emails de prospection partiront maintenant de ton propre Gmail. Meilleur taux d\'ouverture garanti !' : '';
       setMessages(prev => [...prev, {
         id: `connected_${Date.now()}`,
         role: 'assistant',
-        content: `\u2705 ${network} connecte avec succes ! ${agentId === 'content' ? 'Je prepare ton premier post...' : agentId === 'dm_instagram' ? 'Tes conversations DM vont apparaitre ici.' : 'L\'agent est pret a travailler pour toi.'}`,
+        content: `\u2705 ${network} connecte avec succes ! ${gmailMsg || (agentId === 'content' ? 'Je prepare ton premier post...' : agentId === 'dm_instagram' ? 'Tes conversations DM vont apparaitre ici.' : 'L\'agent est pret a travailler pour toi.')}`,
         created_at: new Date().toISOString(),
       }]);
       setChatOpen(true);
