@@ -147,20 +147,14 @@ export default function ProfileEnrichmentModal({ profile, userId, onClose }: Pro
         credentials: 'include',
         body: JSON.stringify({ agent_id: 'onboarding', message: combined }),
       });
-      if (res.ok) {
-        setDone(true);
-        // Trigger Clara wizard after popup closes
-        try { sessionStorage.setItem('keiro_start_wizard', 'true'); } catch {}
-        setTimeout(() => onClose(), 1800);
-      } else {
-        setDone(true);
-        try { sessionStorage.setItem('keiro_start_wizard', 'true'); } catch {}
-        setTimeout(() => onClose(), 1800);
-      }
+      setDone(true);
+      try { sessionStorage.setItem('keiro_start_wizard', 'true'); } catch {}
+      // Redirect to agents page to start wizard
+      setTimeout(() => { window.location.href = '/assistant'; }, 1500);
     } catch {
       setDone(true);
       try { sessionStorage.setItem('keiro_start_wizard', 'true'); } catch {}
-      setTimeout(() => onClose(), 1800);
+      setTimeout(() => { window.location.href = '/assistant'; }, 1500);
     } finally { setSending(false); }
   };
 
