@@ -524,7 +524,7 @@ function MonComptePage() {
                       )}
                     </div>
                     <p className="text-sm text-neutral-600">
-                      {currentPlan.credits.toLocaleString()} crédits / mois
+                      {(currentPlan.credits || 0).toLocaleString()} crédits / mois
                     </p>
                   </div>
                   <div className="text-right">

@@ -1045,17 +1045,34 @@ export async function GET(request: NextRequest) {
   }
 
   const orgId = request.nextUrl.searchParams.get('org_id') || null;
+  const userId = request.nextUrl.searchParams.get('user_id') || null;
   const supabase = getSupabaseAdmin();
   const now = new Date();
   const todayStr = now.toISOString().split('T')[0];
   const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon, ...
 
+  // ── Load client settings from org_agent_configs (if per-client call) ──
+  let clientSettings: Record<string, any> = {};
+  if (userId) {
+    try {
+      const { data: cfg } = await supabase
+        .from('org_agent_configs')
+        .select('config')
+        .eq('user_id', userId)
+        .eq('agent_id', 'content')
+        .maybeSingle();
+      if (cfg?.config) clientSettings = cfg.config;
+    } catch {}
+  }
+
   try {
-    // Check if there's already a post for today
-    const { data: todayPosts } = await supabase
+    // Check if there's already a post for today (filter by user_id if per-client)
+    let todayQuery = supabase
       .from('content_calendar')
       .select('id, platform, format, status')
       .eq('scheduled_date', todayStr);
+    if (userId) todayQuery = todayQuery.eq('user_id', userId);
+    const { data: todayPosts } = await todayQuery;
 
     // Check slot param for midday/evening content
     const slot = request.nextUrl.searchParams.get('slot');
@@ -1063,7 +1080,7 @@ export async function GET(request: NextRequest) {
     // If no post for today, generate one on the fly
     if (!todayPosts || todayPosts.length === 0) {
       console.log('[Content] No posts for today — generating one now');
-      return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, undefined, undefined, orgId);
+      return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, undefined, undefined, orgId, userId, clientSettings);
     }
 
     // Auto-publish: only 1 post per slot to spread publications throughout the day
@@ -1254,34 +1271,34 @@ export async function GET(request: NextRequest) {
 
     if (slot === 'morning' && postCount < 1) {
       console.log('[Content] Morning slot — generating 1st post for today');
-      return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, '__morning__', undefined, orgId);
+      return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, '__morning__', undefined, orgId, userId, clientSettings);
     }
 
     if (slot === 'midday' && postCount < 2) {
       console.log('[Content] Midday slot — generating 2nd post for today');
-      return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, '__midday__', undefined, orgId);
+      return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, '__midday__', undefined, orgId, userId, clientSettings);
     }
 
     if (slot === 'evening' && postCount < 3) {
       console.log('[Content] Evening slot — generating 3rd post for today');
-      return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, '__evening__', undefined, orgId);
+      return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, '__evening__', undefined, orgId, userId, clientSettings);
     }
 
     const hasTiktokToday = (updatedPosts || todayPosts).some((p: any) => p.platform === 'tiktok');
     if (slot === 'tiktok' && !hasTiktokToday) {
       console.log('[Content] TikTok slot — generating daily TikTok video');
-      return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, '__tiktok__', undefined, orgId);
+      return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, '__tiktok__', undefined, orgId, userId, clientSettings);
     }
 
     // LinkedIn: 2 posts per day
     const linkedinPostsToday = (updatedPosts || todayPosts).filter((p: any) => p.platform === 'linkedin').length;
     if (slot === 'linkedin_1' && linkedinPostsToday < 1) {
       console.log('[Content] LinkedIn slot 1 — generating 1st LinkedIn post');
-      return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, '__linkedin_1__', undefined, orgId);
+      return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, '__linkedin_1__', undefined, orgId, userId, clientSettings);
     }
     if (slot === 'linkedin_2' && linkedinPostsToday < 2) {
       console.log('[Content] LinkedIn slot 2 — generating 2nd LinkedIn post');
-      return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, '__linkedin_2__', undefined, orgId);
+      return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, '__linkedin_2__', undefined, orgId, userId, clientSettings);
     }
 
     // Return today's content — flag as warning if 0 posts
@@ -1309,6 +1326,21 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = getSupabaseAdmin();
+  const userId = request.nextUrl.searchParams.get('user_id') || null;
+
+  // Load client settings for POST handler too
+  let clientSettings: Record<string, any> = {};
+  if (userId) {
+    try {
+      const { data: cfg } = await supabase
+        .from('org_agent_configs')
+        .select('config')
+        .eq('user_id', userId)
+        .eq('agent_id', 'content')
+        .maybeSingle();
+      if (cfg?.config) clientSettings = cfg.config;
+    } catch {}
+  }
 
   try {
     const body = await request.json().catch(() => ({}));
@@ -1332,7 +1364,7 @@ export async function POST(request: NextRequest) {
       case 'generate_post': {
         const todayStr = new Date().toISOString().split('T')[0];
         const dayOfWeek = new Date().getDay();
-        return generateDailyPost(supabase, todayStr, dayOfWeek, body.platform, body.pillar, body.draftOnly, orgId);
+        return generateDailyPost(supabase, todayStr, dayOfWeek, body.platform, body.pillar, body.draftOnly, orgId, userId, clientSettings);
       }
 
       case 'generate_week': {
@@ -1953,7 +1985,7 @@ export async function POST(request: NextRequest) {
         if (publishedCount === 0 && (!readyPosts || readyPosts.length === 0) && (!approvedWithVisuals || approvedWithVisuals.length === 0)) {
           console.log('[Content] No posts to publish — generating a fresh one now');
           const dayOfWeek = new Date().getDay();
-          return generateDailyPost(supabase, todayDate, dayOfWeek, undefined, undefined, undefined, orgId);
+          return generateDailyPost(supabase, todayDate, dayOfWeek, undefined, undefined, undefined, orgId, userId, clientSettings);
         }
 
         const nowISO = new Date().toISOString();
@@ -2752,7 +2784,7 @@ async function generateWeekWithVisuals(supabase: any, publishAll: boolean, orgId
 // ──────────────────────────────────────
 // Generate a single daily post
 // ──────────────────────────────────────
-async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: number, forcePlatform?: string, forcePillar?: string, draftOnly?: boolean, orgId: string | null = null) {
+async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: number, forcePlatform?: string, forcePillar?: string, draftOnly?: boolean, orgId: string | null = null, userId: string | null = null, clientSettings: Record<string, any> = {}) {
   const nowISO = new Date().toISOString();
 
   // Load shared intelligence pool (all agents' data + active directives)
@@ -2828,11 +2860,40 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
 
   // Determine which slot we're in
   const slotType = forcePillar === '__midday__' ? 'midday' : forcePillar === '__evening__' ? 'evening' : forcePillar === '__tiktok__' ? 'tiktok' : forcePillar === '__linkedin_1__' ? 'linkedin_1' : forcePillar === '__linkedin_2__' ? 'linkedin_2' : 'morning';
+
+  // ── CLIENT SETTINGS: skip slot if client reduced frequency or disabled platform ──
+  const postsPerDayIG = parseInt(clientSettings.posts_per_day_ig) || 3;
+  const postsPerDayTT = parseInt(clientSettings.posts_per_day_tt) || 3;
+  const postsPerDayLI = parseInt(clientSettings.posts_per_day_li) || 3;
+  const preferredFormats = clientSettings.formats || 'all'; // all, reels, stories, carousel, static
+
+  // Skip this slot based on client frequency settings
+  if (slotType === 'midday' && postsPerDayIG < 2) {
+    console.log(`[Content] Client ${userId || 'default'}: skipping midday (posts_per_day_ig=${postsPerDayIG})`);
+    return NextResponse.json({ ok: true, skipped: true, reason: 'Client frequency < 2 posts/day IG' });
+  }
+  if (slotType === 'evening' && postsPerDayIG < 3) {
+    console.log(`[Content] Client ${userId || 'default'}: skipping evening (posts_per_day_ig=${postsPerDayIG})`);
+    return NextResponse.json({ ok: true, skipped: true, reason: 'Client frequency < 3 posts/day IG' });
+  }
+  if ((slotType === 'linkedin_2') && postsPerDayLI < 2) {
+    return NextResponse.json({ ok: true, skipped: true, reason: 'Client frequency < 2 posts/day LinkedIn' });
+  }
+  if (slotType === 'tiktok' && postsPerDayTT < 1) {
+    return NextResponse.json({ ok: true, skipped: true, reason: 'Client disabled TikTok' });
+  }
+
   const activeSchedule = slotType === 'tiktok' ? tiktokSchedule : slotType === 'evening' ? eveningSchedule : slotType === 'midday' ? middaySchedule : slotType === 'linkedin_1' ? linkedinSchedule1 : slotType === 'linkedin_2' ? linkedinSchedule2 : morningSchedule;
   const schedule = activeSchedule[dayOfWeek] || morningSchedule[1];
   const platform = (forcePlatform && forcePlatform !== 'all') ? forcePlatform : schedule.platform;
   const rawForcePillar = (slotType !== 'morning' ? undefined : forcePillar);
   const pillar = (rawForcePillar && !rawForcePillar.startsWith('__')) ? rawForcePillar : schedule.pillar;
+
+  // Override format based on client preference (if they prefer reels/stories/carousel)
+  let format = schedule.format;
+  if (preferredFormats === 'reels' && platform === 'instagram') format = 'reel';
+  else if (preferredFormats === 'stories' && platform === 'instagram') format = 'story';
+  else if (preferredFormats === 'carousel' && platform === 'instagram') format = 'carousel';
 
   // Get recent posts for visual coherence + strategy context
   const { data: recentGrid } = await supabase
@@ -2901,8 +2962,8 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
 
 ${sharedIntelligence ? `━━━ INTELLIGENCE PARTAGÉE (données de TOUS les agents) ━━━\n${sharedIntelligence}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` : ''}
 Plateforme : ${platform}
-Format suggéré : ${schedule.format}
-Pilier suggéré : ${pillar}${avoidPillar ? `\nATTENTION : Le pilier "${avoidPillar}" a été trop utilisé récemment. CHANGE de pilier si possible.` : ''}
+Format suggéré : ${format}
+Pilier suggéré : ${pillar}${avoidPillar ? `\nATTENTION : Le pilier "${avoidPillar}" a été trop utilisé récemment. CHANGE de pilier si possible.` : ''}${preferredFormats !== 'all' ? `\nPRÉFÉRENCE CLIENT : Le client préfère les ${preferredFormats}. Adapte le format en conséquence.` : ''}
 
 CONTEXTE FEED (les derniers posts, du plus récent) :
 ${gridContext}

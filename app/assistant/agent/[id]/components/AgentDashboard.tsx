@@ -131,6 +131,63 @@ function SocialConnectBanners({ agentId, networks }: { agentId: string; networks
   );
 }
 
+// Email connection banner — encourage client to connect their Gmail/Outlook
+function EmailConnectBanner({ connections }: { connections?: Record<string, boolean> }) {
+  const [gmailConnected, setGmailConnected] = useState(false);
+  const [gmailEmail, setGmailEmail] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/agents/email/check-connection', { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => {
+        setGmailConnected(d.gmail_connected || false);
+        setGmailEmail(d.gmail_email || null);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return null;
+
+  if (gmailConnected) {
+    return (
+      <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 mb-3 flex items-center gap-3">
+        <span className="text-lg">{'\u2709\uFE0F'}</span>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-bold text-emerald-400">Email connecte</p>
+          <p className="text-[10px] text-white/50">Les emails partent de <strong className="text-white/80">{gmailEmail}</strong></p>
+        </div>
+        <span className="text-emerald-400 text-xs">{'\u2713'}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 mb-3">
+      <div className="flex items-start gap-3">
+        <span className="text-xl">{'\u{1F4E7}'}</span>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-bold text-white mb-1">Connecte ton email pour plus d&apos;impact</p>
+          <p className="text-[10px] text-white/50 mb-3 leading-relaxed">
+            Hugo envoie actuellement depuis contact@keiroai.com. Connecte ton Gmail ou Outlook pour que les emails partent de <strong className="text-white/70">ton propre email</strong> — meilleur taux d&apos;ouverture et plus de confiance.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <a href="/api/auth/gmail-oauth" className="inline-flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/15 text-white text-[10px] font-bold rounded-lg transition min-h-[36px]">
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24"><path fill="#EA4335" d="M5.266 9.765A7.077 7.077 0 0 1 12 4.909c1.69 0 3.218.6 4.418 1.582L19.91 3C17.782 1.145 15.055 0 12 0 7.27 0 3.198 2.698 1.24 6.65l4.026 3.115Z"/><path fill="#34A853" d="M16.04 18.013c-1.09.703-2.474 1.078-4.04 1.078a7.077 7.077 0 0 1-6.723-4.823l-4.04 3.067A11.965 11.965 0 0 0 12 24c2.933 0 5.735-1.043 7.834-3l-3.793-2.987Z"/><path fill="#4A90D9" d="M19.834 21c2.195-2.048 3.62-5.096 3.62-9 0-.71-.109-1.473-.272-2.182H12v4.637h6.436c-.317 1.559-1.17 2.766-2.395 3.558L19.834 21Z"/><path fill="#FBBC05" d="M5.277 14.268A7.12 7.12 0 0 1 4.909 12c0-.782.125-1.533.357-2.235L1.24 6.65A11.934 11.934 0 0 0 0 12c0 1.92.445 3.73 1.237 5.335l4.04-3.067Z"/></svg>
+              Connecter Gmail
+            </a>
+            <div className="text-[9px] text-white/30 self-center">Outlook bientot</div>
+          </div>
+          <p className="text-[9px] text-white/25 mt-2">
+            Pas de Gmail ? Tu peux aussi creer un gmail dedie a ta prospection (ex: contact@tonbusiness.com) ou <a href="https://cal.com" className="underline hover:text-white/40">prendre un RDV</a> pour qu&apos;on configure ton domaine custom.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Hot prospects notification — shown directly in agent dashboard
 function HotProspectsAlert({ source, gradientFrom }: { source?: string; gradientFrom: string }) {
   const [prospects, setProspects] = useState<Array<{ id: string; company: string; email: string; temperature: string; status: string; type: string }>>([]);
@@ -1283,6 +1340,9 @@ function EmailPanel({
       {/* Auto mode toggle */}
       <div data-tour="auto-toggle"><AutoModeToggle agentId="email" autoLabel="Emails automatiques" manualLabel="Emails manuels" autoDesc="Hugo envoie les sequences email automatiquement" manualDesc="Tu valides chaque email avant envoi" /></div>
 
+      {/* Email connection banner */}
+      <EmailConnectBanner connections={(data as any).connections} />
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KpiCard label="Emails envoyes" value={fmt(stats.sent)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
         <KpiCard label="Taux ouverture" value={fmtPercent(stats.openRate)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
@@ -1617,7 +1677,7 @@ function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: str
         agentName="Hugo"
         connectLabel="Importer des contacts"
         connectUrl="/assistant/crm"
-        claraMessage="Hugo est deja configure ! Il envoie les emails depuis contact@keiroai.com en ton nom — pas besoin de connecter ta boite email. Importe tes contacts ou laisse Leo prospecter pour toi, et Hugo lancera les sequences automatiquement."
+        claraMessage="Hugo peut envoyer les emails depuis ton propre Gmail pour plus d'impact ! Connecte ton email ci-dessus, ou il enverra depuis contact@keiroai.com en attendant."
         gradientFrom="#06b6d4"
         gradientTo="#0891b2"
       />

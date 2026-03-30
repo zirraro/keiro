@@ -484,21 +484,49 @@ export default function AgentWorkspacePage() {
     })();
   }, [activeTab, agentId, tasks.length]);
 
-  // ─── Load settings from localStorage ──────────────────
+  // ─── Load settings from SERVER (org_agent_configs) then localStorage fallback ──────
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(`keiro_agent_settings_${agentId}`);
-      if (stored) { setSettings(JSON.parse(stored)); return; }
-    } catch {}
-    // Init defaults
     const fields = getAgentSettings(agentId);
     const defaults: Record<string, any> = {};
     fields.forEach(f => { defaults[f.key] = f.default; });
-    setSettings(defaults);
+
+    fetch(`/api/agents/settings?agent_id=${agentId}`, { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => {
+        if (d.settings && Object.keys(d.settings).length > 0) {
+          // Merge server settings over defaults (server is source of truth)
+          setSettings({ ...defaults, ...d.settings });
+          return;
+        }
+        // Fallback: try localStorage (migration from old saves)
+        try {
+          const stored = localStorage.getItem(`keiro_agent_settings_${agentId}`);
+          if (stored) { setSettings({ ...defaults, ...JSON.parse(stored) }); return; }
+        } catch {}
+        setSettings(defaults);
+      })
+      .catch(() => {
+        // Offline fallback
+        try {
+          const stored = localStorage.getItem(`keiro_agent_settings_${agentId}`);
+          if (stored) { setSettings({ ...defaults, ...JSON.parse(stored) }); return; }
+        } catch {}
+        setSettings(defaults);
+      });
   }, [agentId]);
 
-  // ─── Save settings ───────────────────────────────────
-  const handleSaveSettings = useCallback(() => {
+  // ─── Save settings to SERVER + localStorage ───────────
+  const handleSaveSettings = useCallback(async () => {
+    // Save to server (org_agent_configs — source of truth)
+    try {
+      await fetch('/api/agents/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ agent_id: agentId, ...settings }),
+      });
+    } catch {}
+    // Also cache in localStorage for fast load
     try { localStorage.setItem(`keiro_agent_settings_${agentId}`, JSON.stringify(settings)); } catch {}
     setSettingsSaved(true);
     setTimeout(() => setSettingsSaved(false), 2000);

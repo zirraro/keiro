@@ -152,13 +152,82 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // --- Send via Resend (primary, 80/day cap to keep 20 for signups) then Brevo (fallback, 300/day) ---
-    // Total: 380 cold emails/day + 20 reserved for transactional = 400/day max
+    // --- Send email: Gmail (client's own email) > Resend > Brevo ---
     console.log(`[EmailAgent] Sending step ${template_step} to ${prospect.email} (variant ${selectedVariant})`);
 
     let messageId = 'unknown';
     let provider = 'resend';
+    let sendSuccess = false;
 
+    // Priority 1: Gmail API (client's own email) — if connected
+    const clientUserId = body?.user_id || prospect.user_id || null;
+    if (clientUserId) {
+      try {
+        const { getValidGmailToken, sendViaGmail } = await import('@/lib/gmail-oauth');
+        const gmailAuth = await getValidGmailToken(clientUserId);
+        if (gmailAuth) {
+          // Get client's display name
+          const { data: clientProfile } = await supabase
+            .from('profiles')
+            .select('full_name, company_name')
+            .eq('id', clientUserId)
+            .single();
+          const senderName = clientProfile?.full_name || clientProfile?.company_name || 'KeiroAI';
+
+          const result = await sendViaGmail(
+            gmailAuth.accessToken,
+            prospect.email,
+            template.subject,
+            template.htmlBody,
+            senderName,
+            gmailAuth.email,
+          );
+          if (result.sent) {
+            messageId = result.id;
+            provider = 'gmail';
+            sendSuccess = true;
+            console.log(`[EmailAgent] Email sent via Gmail (${gmailAuth.email}), messageId:`, messageId);
+          }
+        }
+      } catch (e: any) {
+        console.warn('[EmailAgent] Gmail send failed, falling back to Resend:', e.message);
+      }
+    }
+
+    // Priority 2: SMTP (client's custom domain) — if configured
+    if (!sendSuccess && clientUserId) {
+      try {
+        const { data: smtpProfile } = await supabase
+          .from('profiles')
+          .select('smtp_host, smtp_port, smtp_user, smtp_pass, smtp_from_email')
+          .eq('id', clientUserId)
+          .single();
+        if (smtpProfile?.smtp_host && smtpProfile?.smtp_user && smtpProfile?.smtp_pass) {
+          const nodemailer = await import('nodemailer');
+          const transport = nodemailer.default.createTransport({
+            host: smtpProfile.smtp_host,
+            port: smtpProfile.smtp_port || 587,
+            secure: (smtpProfile.smtp_port || 587) === 465,
+            auth: { user: smtpProfile.smtp_user, pass: smtpProfile.smtp_pass },
+          });
+          const info = await transport.sendMail({
+            from: smtpProfile.smtp_from_email || smtpProfile.smtp_user,
+            to: prospect.email,
+            subject: template.subject,
+            html: template.htmlBody,
+            text: template.textBody,
+          });
+          messageId = info.messageId || 'smtp';
+          provider = 'smtp';
+          sendSuccess = true;
+          console.log(`[EmailAgent] Email sent via SMTP (${smtpProfile.smtp_from_email})`);
+        }
+      } catch (e: any) {
+        console.warn('[EmailAgent] SMTP send failed:', e.message);
+      }
+    }
+
+    // Priority 3: Resend (KeiroAI fallback)
     // Check daily Resend usage (cap at 80 to keep 20 for signup verification emails)
     let resendUsedToday = 0;
     try {
@@ -173,9 +242,8 @@ export async function POST(request: NextRequest) {
     } catch {}
     const resendAvailable = resendUsedToday < 80;
 
-    // Resend primary (if under daily cap)
-    let sendSuccess = false;
-    if (process.env.RESEND_API_KEY && resendAvailable) {
+    // Resend (if Gmail/SMTP didn't work and under daily cap)
+    if (!sendSuccess && process.env.RESEND_API_KEY && resendAvailable) {
       try {
         const resendResponse = await fetch('https://api.resend.com/emails', {
           method: 'POST',
