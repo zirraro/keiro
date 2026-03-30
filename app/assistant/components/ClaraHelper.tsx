@@ -33,6 +33,16 @@ export default function ClaraHelper() {
   useEffect(() => {
     if (!pathname?.startsWith('/assistant')) return;
 
+    // Quick check: if coming from onboarding popup, show wizard immediately with all agents
+    const startFlag = sessionStorage.getItem('keiro_start_wizard');
+    if (startFlag) {
+      sessionStorage.removeItem('keiro_start_wizard');
+      setInactiveAgents([...AGENT_SETUP_ORDER]);
+      setMode('inactive');
+      setShow(true);
+      return; // Skip async loading — show wizard now
+    }
+
     const load = async () => {
       try {
         // Get connections — try multiple sources
@@ -73,14 +83,7 @@ export default function ClaraHelper() {
         const remaining = inactive.filter(a => !doneAgents.has(a.id));
         setInactiveAgents(remaining);
 
-        // Show wizard immediately if coming from onboarding popup
-        const startWizardFlag = sessionStorage.getItem('keiro_start_wizard');
-        if (startWizardFlag && remaining.length > 0) {
-          sessionStorage.removeItem('keiro_start_wizard');
-          setMode('inactive');
-          setShow(true);
-          return;
-        }
+        // Start wizard flag handled in early check above
 
         // Show bubble if there are inactive agents (with delay)
         if (remaining.length > 0) {

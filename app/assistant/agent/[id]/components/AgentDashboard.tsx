@@ -167,6 +167,46 @@ function HotProspectsAlert({ source, gradientFrom }: { source?: string; gradient
   );
 }
 
+// Jade tabs: DMs + Comments switch
+function JadeTabs({ gradientFrom, gradientTo }: { gradientFrom: string; gradientTo: string }) {
+  const [tab, setTab] = useState<'dms' | 'comments'>('dms');
+
+  return (
+    <div>
+      <div className="flex gap-1 bg-white/5 rounded-lg p-0.5 border border-white/10 mb-3">
+        <button
+          onClick={() => setTab('dms')}
+          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all ${
+            tab === 'dms' ? 'bg-white/10 text-white shadow' : 'text-white/40 hover:text-white/60'
+          }`}
+        >
+          {'\u{1F4AC}'} DMs
+        </button>
+        <button
+          onClick={() => setTab('comments')}
+          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all ${
+            tab === 'comments' ? 'bg-white/10 text-white shadow' : 'text-white/40 hover:text-white/60'
+          }`}
+        >
+          {'\u{1F4AC}'} Commentaires
+        </button>
+      </div>
+
+      {tab === 'dms' && (
+        <div data-tour="dm-conversations">
+          <DmConversationsLive />
+        </div>
+      )}
+
+      {tab === 'comments' && (
+        <div data-tour="dm-comments">
+          <LenaCommentsSection />
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Live Instagram DM conversations component
 function DmConversationsLive() {
   const [convs, setConvs] = useState<Array<{
@@ -2608,24 +2648,8 @@ function DmInstagramPanel({
       {/* Hot prospects */}
       <HotProspectsAlert source="dm_instagram" gradientFrom={gradientFrom} />
 
-      {/* Conversations — full width */}
-      <div data-tour="dm-conversations">
-        <DmConversationsLive />
-      </div>
-
-      {/* Recent DM activity feed with reply */}
-      <SectionTitle>Activite recente</SectionTitle>
-      {stats.recentDms.length === 0 ? (
-        <EmptyState agentName={agentName} />
-      ) : (
-        <div className="flex flex-col gap-2">
-          {stats.recentDms.slice(0, 8).map((dm: any, i: number) => (
-            <DmCard key={i} dm={dm} statusColors={statusColors} />
-          ))}
-        </div>
-      )}
-
-      <ActionButton label="Lancer une campagne DM" gradientFrom={gradientFrom} gradientTo={gradientTo} />
+      {/* DMs / Comments switch */}
+      <JadeTabs gradientFrom={gradientFrom} gradientTo={gradientTo} />
     </>
   );
 }
