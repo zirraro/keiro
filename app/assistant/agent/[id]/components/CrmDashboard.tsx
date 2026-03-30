@@ -312,7 +312,7 @@ function ActivityTimeline({ activities }: { activities: Activity[] }) {
           const icon = ACTIVITY_ICONS[act.type] || '\uD83D\uDCDD';
           return (
             <div key={act.id} className="relative">
-              <div className="absolute -left-5 top-0.5 w-3.5 h-3.5 rounded-full bg-[#0c1a3a] border-2 border-purple-500/50 flex items-center justify-center text-[8px]">
+              <div className="absolute -left-5 top-0.5 w-3.5 h-3.5 rounded-full bg-[#0c1a3a] border-2 border-purple-500/50 flex items-center justify-center text-[10px]">
                 {icon}
               </div>
               <div className="bg-white/5 rounded-lg p-3">
