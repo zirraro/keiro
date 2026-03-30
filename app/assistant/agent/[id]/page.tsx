@@ -577,15 +577,23 @@ export default function AgentWorkspacePage() {
             <p className="text-white/50 text-sm">{title}</p>
           </div>
           <div className="flex items-center gap-2">
-            <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 bg-green-500/15 border border-green-500/20 rounded-full">
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-green-500/15 border border-green-500/20 rounded-full">
               <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
               <span className="text-green-300 text-[10px] font-medium">Actif</span>
+            </div>
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className="hidden sm:flex items-center gap-1 px-2.5 py-1 bg-white/10 hover:bg-white/15 border border-white/10 rounded-full cursor-pointer transition"
+            >
+              <input ref={fileInputRef} type="file" className="hidden" multiple onChange={e => handleFileUpload(e.target.files)} />
+              <span className="text-white/40 text-[10px]">{uploading ? '...' : '+'} Fichier</span>
             </div>
             <button
               onClick={() => {
                 try {
                   sessionStorage.setItem('keiro_tour_replay', agentId);
-                  window.location.reload();
+                  // Dispatch event instead of reloading
+                  window.dispatchEvent(new CustomEvent('keiro-tour-replay', { detail: agentId }));
                 } catch {}
               }}
               className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/40 hover:text-white/70 transition"
@@ -630,7 +638,7 @@ export default function AgentWorkspacePage() {
 
         {/* ═══ TAB: DASHBOARD ═══ */}
         {activeTab === 'dashboard' && (
-          <div className="grid grid-cols-1 xl:grid-cols-[1fr_180px] gap-4">
+          <div>
             <div className="space-y-4 min-w-0">
               {/* Setup guide removed — PreviewBanner in each agent panel handles this */}
 
@@ -744,31 +752,7 @@ export default function AgentWorkspacePage() {
                 </div>
               </div>
             </div>
-            {/* Compact sidebar — messages count + file upload (only for Clara, Finance, Prospection, CEO, AMI) */}
-            <div className="hidden xl:block space-y-3">
-              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                <div className="text-center">
-                  <div className="text-white font-bold text-xl">{messages.length}</div>
-                  <div className="text-white/30 text-[9px]">Messages</div>
-                </div>
-              </div>
-              {['onboarding', 'finance', 'comptable', 'commercial', 'ceo', 'marketing'].includes(agentId) && (
-                <>
-                  <div
-                    onDragOver={e => { e.preventDefault(); setDragOver(true); }} onDragLeave={() => setDragOver(false)}
-                    onDrop={e => { e.preventDefault(); setDragOver(false); handleFileUpload(e.dataTransfer.files); }}
-                    onClick={() => fileInputRef.current?.click()}
-                    className="border border-dashed border-white/20 hover:border-white/30 rounded-xl p-2 text-center cursor-pointer transition-all"
-                  >
-                    <input ref={fileInputRef} type="file" className="hidden" multiple onChange={e => handleFileUpload(e.target.files)} />
-                    <span className="text-white/30 text-[10px]">{uploading ? 'Upload...' : '+ Fichier'}</span>
-                  </div>
-                  {files.slice(0, 3).map(f => (
-                    <div key={f.id} className="text-[9px] text-white/30 truncate px-1">{f.name}</div>
-                  ))}
-                </>
-              )}
-            </div>
+            {/* Sidebar removed — upload moved to header, messages count removed */}
           </div>
         )}
 

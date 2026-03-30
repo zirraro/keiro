@@ -82,10 +82,20 @@ export default function AgentTutorial({ agentId }: { agentId: string }) {
       const replay = sessionStorage.getItem('keiro_tour_replay');
       if (replay === agentId) {
         sessionStorage.removeItem('keiro_tour_replay');
-        // Small delay to let the page render data-tour elements
-        setTimeout(() => setPhase('tour'), 500);
+        setTimeout(() => setPhase('tour'), 200);
         return;
       }
+
+      // Listen for live replay event (no page reload needed)
+      const handler = (e: Event) => {
+        const detail = (e as CustomEvent).detail;
+        if (detail === agentId) {
+          sessionStorage.removeItem('keiro_tour_replay');
+          setPhase('tour');
+        }
+      };
+      window.addEventListener('keiro-tour-replay', handler);
+      return () => window.removeEventListener('keiro-tour-replay', handler);
 
       // Check for wizard flow
       const isWizard = sessionStorage.getItem('keiro_wizard_active');
