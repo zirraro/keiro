@@ -224,7 +224,18 @@ function DmConversationsLive() {
   const fetchConversations = useCallback(() => {
     fetch('/api/agents/dm-instagram/conversations', { credentials: 'include' })
       .then(r => r.json())
-      .then(d => { if (d.conversations) setConvs(d.conversations); })
+      .then(d => {
+        if (d.conversations) { setApiResponded(true); setConvs(d.conversations); }
+        if (d.conversations?.length === 0) {
+          // Retry after 3s in case token just got saved
+          setTimeout(() => {
+            fetch('/api/agents/dm-instagram/conversations', { credentials: 'include' })
+              .then(r2 => r2.json())
+              .then(d2 => { if (d2.conversations) setConvs(d2.conversations); })
+              .catch(() => {});
+          }, 3000);
+        }
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -291,8 +302,10 @@ function DmConversationsLive() {
 
   if (loading) return <div className="text-center py-8"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-400 mx-auto" /><div className="text-white/30 text-[10px] mt-2">Chargement des conversations...</div></div>;
 
-  // Use demo data if no real conversations
-  const isDemo = convs.length === 0;
+  const [apiResponded, setApiResponded] = useState(false);
+
+  // isDemo only if API didn't respond with conversations AND we haven't confirmed connectivity
+  const isDemo = convs.length === 0 && !apiResponded;
   const displayConvs = isDemo ? DEMO_DM_CONVERSATIONS : convs;
   const selected = displayConvs.find(c => c.id === selectedConv);
 

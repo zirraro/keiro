@@ -409,13 +409,14 @@ export default function AgentWorkspacePage() {
       }]);
       setChatOpen(true);
 
-      // For content agent: trigger first post generation
+      // For content agent: trigger first post generation + publish if auto mode
       if (agentId === 'content' && justConnected === 'instagram') {
+        // Generate first post via chat
         fetch('/api/agents/client-chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ agent_id: 'content', message: 'Genere mon premier post Instagram ! Un post accrocheur adapte a mon business, pret a publier.' }),
+          body: JSON.stringify({ agent_id: 'content', message: 'Genere mon premier post Instagram ! Un post accrocheur adapte a mon business, pret a publier. Inclus le visuel, la legende et les hashtags.' }),
         }).then(r => r.json()).then(d => {
           if (d.reply) {
             setMessages(prev => [...prev, {
@@ -426,6 +427,18 @@ export default function AgentWorkspacePage() {
             }]);
           }
         }).catch(() => {});
+
+        // Also trigger actual content generation via content agent API
+        fetch('/api/agents/content?slot=morning', {
+          credentials: 'include',
+          headers: { 'Authorization': 'Bearer ' + (typeof window !== 'undefined' ? document.cookie.split('sb-')[1]?.split('=')[0] || '' : '') },
+        }).catch(() => {});
+      }
+
+      // For DM agent: force reload conversations
+      if (agentId === 'dm_instagram' && justConnected === 'instagram') {
+        // Retry conversations fetch after token propagation
+        setTimeout(() => { window.location.reload(); }, 2000);
       }
 
       // Mark agent as setup completed
