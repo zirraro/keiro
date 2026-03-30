@@ -81,14 +81,38 @@ export async function PUT(request: NextRequest) {
       .maybeSingle();
 
     // Merge: only update fields that have a non-empty value in body
-    // Only include columns that exist in business_dossiers table
-    const allFields = ['company_name', 'company_description', 'business_type', 'target_audience', 'brand_tone', 'main_products', 'competitors', 'unique_selling_points', 'business_goals', 'instagram_handle', 'tiktok_handle', 'linkedin_url', 'website_url', 'google_maps_url', 'logo_url'];
+    // Known columns in business_dossiers table
+    const knownColumns = new Set(['company_name', 'company_description', 'business_type', 'target_audience', 'brand_tone', 'main_products', 'competitors', 'unique_selling_points', 'business_goals', 'instagram_handle', 'tiktok_handle', 'linkedin_url', 'website_url', 'google_maps_url', 'logo_url', 'uploaded_files', 'ai_summary', 'custom_fields', 'completeness_score']);
+
     const merged: Record<string, any> = { user_id: user.id };
-    for (const f of allFields) {
-      const newVal = body[f];
-      const existingVal = existing?.[f];
-      merged[f] = (newVal && String(newVal).trim()) ? newVal : existingVal || null;
+    const customUpdates: Record<string, string> = {};
+
+    // Merge known fields + collect custom fields
+    for (const [key, val] of Object.entries(body)) {
+      if (key === 'user_id' || key === 'completeness_score' || key === 'updated_at') continue;
+      if (knownColumns.has(key)) {
+        const newVal = val;
+        const existingVal = existing?.[key];
+        merged[key] = (newVal && String(newVal).trim()) ? newVal : existingVal || null;
+      } else if (val && String(val).trim()) {
+        // Unknown column → goes to custom_fields JSONB (Clara's dynamic fields)
+        customUpdates[key] = String(val);
+      }
     }
+
+    // Also preserve existing known fields not in body
+    for (const col of knownColumns) {
+      if (col === 'custom_fields' || col === 'completeness_score' || col === 'uploaded_files') continue;
+      if (!(col in merged) && existing?.[col]) {
+        merged[col] = existing[col];
+      }
+    }
+
+    // Merge custom_fields
+    if (Object.keys(customUpdates).length > 0 || existing?.custom_fields) {
+      merged.custom_fields = { ...(existing?.custom_fields || {}), ...customUpdates };
+    }
+
     if (Array.isArray(body.uploaded_files)) merged.uploaded_files = body.uploaded_files;
     else if (existing?.uploaded_files) merged.uploaded_files = existing.uploaded_files;
 
@@ -102,10 +126,10 @@ export async function PUT(request: NextRequest) {
     for (const f of bonusFields) {
       if (merged[f] && String(merged[f]).trim()) score += 4.67;
     }
-    // Extra points for non-core fields
-    for (const f of ['business_goals', 'main_products']) {
-      if (merged[f] && String(merged[f]).trim()) score += 3;
-    }
+    // Extra points for goals + custom fields (Clara's dynamic fields)
+    if (merged.business_goals && String(merged.business_goals).trim()) score += 5;
+    const customCount = Object.keys(merged.custom_fields || {}).length;
+    score += Math.min(15, customCount * 3); // Up to 15 bonus points for custom fields
 
     merged.completeness_score = Math.min(100, Math.round(score));
     merged.updated_at = new Date().toISOString();
