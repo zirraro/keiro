@@ -115,7 +115,7 @@ export default function SpotlightTour({ steps, active, onFinish }: SpotlightTour
             )}
           </mask>
         </defs>
-        <rect x="0" y="0" width="100%" height="100%" fill="rgba(0,0,0,0.45)" mask="url(#spot-mask)" />
+        <rect x="0" y="0" width="100%" height="100%" fill="rgba(0,0,0,0.3)" mask="url(#spot-mask)" />
       </svg>
 
       {/* Clear border around highlighted element */}
