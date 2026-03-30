@@ -762,9 +762,9 @@ export default function AgentWorkspacePage() {
                   {dashboardLoading ? (
                     <div className="flex items-center justify-center py-16"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400 mx-auto" /></div>
                   ) : agentId === 'commercial' ? (
-                    <CrmDashboard data={dashboardData || { prospects: [], activities: [], pipeline: {}, stats: { total: 0, hot: 0, warm: 0, cold: 0, converted: 0, conversionRate: 0 } }} />
+                    <div data-tour="agent-dashboard"><CrmDashboard data={dashboardData || { prospects: [], activities: [], pipeline: {}, stats: { total: 0, hot: 0, warm: 0, cold: 0, converted: 0, conversionRate: 0 } }} /></div>
                   ) : agentId === 'onboarding' ? (
-                    <OnboardingDossier />
+                    <div data-tour="agent-dashboard"><OnboardingDossier /></div>
                   ) : agentId === 'qa' ? (
                     <div className="p-5 space-y-4">
                       <div className="flex items-center justify-between">

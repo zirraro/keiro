@@ -300,9 +300,9 @@ function DmConversationsLive() {
     }
   }, [convs, selectedConv, replyText]);
 
-  if (loading) return <div className="text-center py-8"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-400 mx-auto" /><div className="text-white/30 text-[10px] mt-2">Chargement des conversations...</div></div>;
-
   const [apiResponded, setApiResponded] = useState(false);
+
+  if (loading) return <div className="text-center py-8"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-400 mx-auto" /><div className="text-white/30 text-[10px] mt-2">Chargement des conversations...</div></div>;
 
   // isDemo only if API didn't respond with conversations AND we haven't confirmed connectivity
   const isDemo = convs.length === 0 && !apiResponded;
