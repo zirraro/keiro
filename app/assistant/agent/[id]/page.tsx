@@ -253,6 +253,7 @@ export default function AgentWorkspacePage() {
   const [agent, setAgent] = useState<ClientAgent | null>(null);
   const [agentInfo, setAgentInfo] = useState<AgentInfo | null>(null);
   const [pageLoading, setPageLoading] = useState(true);
+  const [isVisitor, setIsVisitor] = useState(false);
 
   // Tabs
   const [activeTab, setActiveTab] = useState<'dashboard' | 'planning' | 'history' | 'campaigns' | 'settings' | 'profile'>('dashboard');
@@ -311,6 +312,16 @@ export default function AgentWorkspacePage() {
 
   // ─── Init agent ────────────────────────────────────────
   useEffect(() => { const f = CLIENT_AGENTS.find(a => a.id === agentId); if (f) setAgent(f); }, [agentId]);
+
+  // ─── Check if visitor (not logged in) ─────────────────
+  useEffect(() => {
+    import('@/lib/supabase/client').then(({ supabaseBrowser }) => {
+      const sb = supabaseBrowser();
+      sb.auth.getSession().then(({ data }) => {
+        if (!data.session) setIsVisitor(true);
+      });
+    }).catch(() => setIsVisitor(true));
+  }, []);
 
   // ─── Clara: auto-open chat when profile is incomplete ──
   useEffect(() => {
@@ -559,8 +570,24 @@ export default function AgentWorkspacePage() {
 
   // ─── RENDER ───────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#0c1a3a] pt-16">
-      <div className="max-w-7xl mx-auto px-4 py-6 pb-24 lg:pb-8">
+    <div className="min-h-screen bg-[#0c1a3a] pt-16 relative">
+      {/* Visitor overlay — blur + signup CTA */}
+      {isVisitor && (
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center pointer-events-none" style={{ top: 64 }}>
+          <div className="absolute inset-0 backdrop-blur-[2px] bg-black/10" />
+          <div className="relative pointer-events-auto bg-gray-900/95 backdrop-blur-xl border border-purple-500/20 rounded-t-2xl sm:rounded-2xl shadow-2xl p-5 sm:p-6 w-full sm:max-w-md mx-4 mb-0 sm:mb-0 text-center">
+            <div className="text-3xl mb-3">{'\u{1F512}'}</div>
+            <h3 className="text-lg font-bold text-white mb-1">Decouvre tes agents IA</h3>
+            <p className="text-xs text-white/50 mb-4">Cree ton compte gratuit pour acceder a l&apos;espace complet de tes 18 agents IA et automatiser ton business.</p>
+            <a href="/login" className="block w-full py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold text-sm rounded-xl hover:shadow-lg transition mb-2">
+              Essai gratuit 14 jours — 0{'\u20AC'}
+            </a>
+            <p className="text-[10px] text-white/30">Carte requise, aucun debit. Annulation en 1 clic.</p>
+          </div>
+        </div>
+      )}
+
+      <div className={`max-w-7xl mx-auto px-4 py-6 pb-24 lg:pb-8 ${isVisitor ? 'pointer-events-none select-none' : ''}`}>
 
         {/* ═══ HEADER ═══ */}
         <div className="flex items-center gap-4 mb-6">
