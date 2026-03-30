@@ -124,9 +124,10 @@ export default function ProfileEnrichmentModal({ profile, userId, onClose }: Pro
         if (nameMatch && nameMatch[1].length > 2) directData.company_name = nameMatch[1];
       }
 
-      // Save directly to dossier — MUST await to ensure it saves before page changes
+      // Save to business_dossiers AND profiles (so shouldShowEnrichmentModal detects it)
       if (Object.keys(directData).length > 0) {
         try {
+          // Save to business_dossiers
           const saveRes = await fetch('/api/business-dossier', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -135,8 +136,21 @@ export default function ProfileEnrichmentModal({ profile, userId, onClose }: Pro
           });
           const saveData = await saveRes.json();
           console.log('[Onboarding] Dossier saved:', saveData);
+
+          // Also update profiles table so popup doesn't show again
+          const { supabaseBrowser } = await import('@/lib/supabase/client');
+          const sb = supabaseBrowser();
+          const { data: { user: currentUser } } = await sb.auth.getUser();
+          if (currentUser) {
+            await sb.from('profiles').update({
+              company_name: directData.company_name || directData.company_description?.substring(0, 50) || 'Mon business',
+              business_description: directData.company_description || null,
+              business_type: directData.business_type || null,
+            }).eq('id', currentUser.id);
+            console.log('[Onboarding] Profile also updated');
+          }
         } catch (e) {
-          console.warn('[Onboarding] Dossier save failed:', e);
+          console.warn('[Onboarding] Save failed:', e);
         }
       }
 

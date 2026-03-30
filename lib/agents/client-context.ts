@@ -337,6 +337,19 @@ export const CLIENT_AGENTS: ClientAgent[] = [
     integrations: ['TikTok'],
   },
 
+  {
+    id: 'linkedin',
+    displayName: 'Emma',
+    title: 'Experte LinkedIn & Reseau Pro',
+    description: 'Publie du contenu optimise sur LinkedIn, commente et engage votre reseau professionnel, genere des leads B2B',
+    visibility: 'coming_soon',
+    minPlan: 'pro',
+    gradientFrom: '#0A66C2',
+    gradientTo: '#004182',
+    icon: '\u{1F4BC}',
+    integrations: ['LinkedIn'],
+  },
+
   // ── BUSINESS (199EUR) / FONDATEURS (149EUR) ─── + OSCAR, SARA, THEO, MAX, LOUIS ───
   {
     id: 'seo',

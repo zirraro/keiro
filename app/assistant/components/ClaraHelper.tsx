@@ -17,7 +17,6 @@ const AGENT_SETUP_ORDER = [
   { id: 'gmaps', name: 'Theo', icon: '\u2B50', role: 'Expert Avis Google & Reputation', desc: 'Repond a tous tes avis Google avec des reponses IA personnalisees. Ameliore ta note et ta visibilite locale.', benefit: 'Chaque avis repondu en 30 sec', connectUrl: '/api/auth/google-oauth', connectLabel: 'Connecter Google Business', needsConnect: 'google' },
   { id: 'commercial', name: 'Leo', icon: '\u{1F91D}', role: 'Assistant Prospection & CRM', desc: 'Prospecte sur Google Maps dans ta zone, qualifie les leads, gere ton pipeline commercial et relance automatiquement.', benefit: 'Pipeline commercial automatise', connectUrl: null, connectLabel: null, needsConnect: null },
   { id: 'seo', name: 'Oscar', icon: '\u{1F50D}', role: 'Expert SEO & Visibilite', desc: 'Analyse ton site, suit tes positions Google, identifie les opportunites de mots-cles et te donne des recommandations concretes.', benefit: 'Monte dans les resultats Google', connectUrl: null, connectLabel: null, needsConnect: null },
-  { id: 'instagram_comments', name: 'Commentaires IG', icon: '\u{1F4AC}', role: 'Reponses Commentaires Instagram', desc: 'Repond automatiquement aux commentaires sur tes posts avec des reponses contextuelles et personnalisees a ton business.', benefit: 'Engagement x3 sur tes posts', connectUrl: '/api/auth/instagram-oauth', connectLabel: 'Connecter Instagram', needsConnect: 'instagram' },
 ];
 
 export default function ClaraHelper() {
@@ -192,19 +191,24 @@ export default function ClaraHelper() {
                 <p className="text-xs text-white/70 leading-relaxed mb-3">
                   Tu as <strong className="text-emerald-300">{inactiveAgents.length} agent{inactiveAgents.length > 1 ? 's' : ''}</strong> pret{inactiveAgents.length > 1 ? 's' : ''} a travailler pour toi ! Chacun s&apos;active en 30 secondes.
                 </p>
-                <div className="space-y-1.5 mb-3 max-h-[200px] overflow-y-auto">
-                  {inactiveAgents.map(a => (
-                    <div key={a.id} className="flex items-center gap-2 bg-white/5 rounded-lg px-2.5 py-1.5">
-                      <span className="text-sm">{(a as any).icon || '\u{1F916}'}</span>
+                <div className="space-y-1.5 mb-3 max-h-[250px] overflow-y-auto">
+                  {inactiveAgents.map((a, i) => (
+                    <button
+                      key={a.id}
+                      onClick={() => { setCurrentWizardIndex(i); setMode('wizard'); }}
+                      className="w-full flex items-center gap-2.5 bg-white/5 hover:bg-white/10 rounded-lg px-3 py-2 transition text-left"
+                    >
+                      <span className="text-lg">{(a as any).icon || '\u{1F916}'}</span>
                       <div className="flex-1 min-w-0">
-                        <span className="text-[11px] font-bold text-white">{a.name}</span>
-                        <span className="text-[9px] text-white/40 ml-1.5">{a.role}</span>
+                        <div className="text-[11px] font-bold text-white">{a.name}</div>
+                        <div className="text-[9px] text-white/40">{a.role}</div>
                       </div>
-                    </div>
+                      <span className="text-emerald-400 text-[10px] font-bold">{'\u26A1'}</span>
+                    </button>
                   ))}
                 </div>
                 <button onClick={startWizard} className="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-bold rounded-xl hover:shadow-lg transition min-h-[40px] mb-1.5">
-                  {'\u26A1'} Activer mes agents — 30 sec chacun
+                  {'\u26A1'} Activer dans l&apos;ordre recommande
                 </button>
                 <button onClick={dismissAndCooldown} className="w-full py-1.5 text-white/30 text-[10px] hover:text-white/50 transition">
                   Plus tard
