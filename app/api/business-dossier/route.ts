@@ -81,7 +81,8 @@ export async function PUT(request: NextRequest) {
       .maybeSingle();
 
     // Merge: only update fields that have a non-empty value in body
-    const allFields = ['company_name', 'company_description', 'business_type', 'target_audience', 'brand_tone', 'main_products', 'competitors', 'unique_selling_points', 'business_goals', 'marketing_goals', 'instagram_handle', 'tiktok_handle', 'linkedin_url', 'website_url', 'google_maps_url', 'logo_url', 'city', 'address', 'catchment_area', 'price_range', 'founder_name', 'employees_count', 'monthly_budget', 'posting_frequency'];
+    // Only include columns that exist in business_dossiers table
+    const allFields = ['company_name', 'company_description', 'business_type', 'target_audience', 'brand_tone', 'main_products', 'competitors', 'unique_selling_points', 'business_goals', 'instagram_handle', 'tiktok_handle', 'linkedin_url', 'website_url', 'google_maps_url', 'logo_url'];
     const merged: Record<string, any> = { user_id: user.id };
     for (const f of allFields) {
       const newVal = body[f];
@@ -102,7 +103,7 @@ export async function PUT(request: NextRequest) {
       if (merged[f] && String(merged[f]).trim()) score += 4.67;
     }
     // Extra points for non-core fields
-    for (const f of ['business_goals', 'city', 'founder_name', 'main_products', 'posting_frequency']) {
+    for (const f of ['business_goals', 'main_products']) {
       if (merged[f] && String(merged[f]).trim()) score += 3;
     }
 
