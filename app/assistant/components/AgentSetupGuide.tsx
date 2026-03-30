@@ -26,7 +26,7 @@ const AGENT_SETUP: Record<string, {
       { title: 'Connecter TikTok', description: 'Publie aussi tes videos sur TikTok', action: 'connect_tiktok', optional: true },
       { title: 'Choisir le mode', description: 'Publication auto ou validation manuelle ?', action: 'choose_mode' },
     ],
-    benefit: 'Lena va publier 3x/jour du contenu optimise sur tes reseaux',
+    benefit: 'Lena publie du contenu optimise selon ta frequence',
     timeEstimate: '1 min',
   },
   dm_instagram: {

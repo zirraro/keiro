@@ -254,6 +254,8 @@ export default function AgentWorkspacePage() {
   const [agentInfo, setAgentInfo] = useState<AgentInfo | null>(null);
   const [pageLoading, setPageLoading] = useState(true);
   const [isVisitor, setIsVisitor] = useState(false);
+  const [creditsLow, setCreditsLow] = useState(false);
+  const [creditsBalance, setCreditsBalance] = useState<number | null>(null);
 
   // Tabs
   const [activeTab, setActiveTab] = useState<'dashboard' | 'planning' | 'history' | 'campaigns' | 'settings' | 'profile'>('dashboard');
@@ -313,12 +315,20 @@ export default function AgentWorkspacePage() {
   // ─── Init agent ────────────────────────────────────────
   useEffect(() => { const f = CLIENT_AGENTS.find(a => a.id === agentId); if (f) setAgent(f); }, [agentId]);
 
-  // ─── Check if visitor (not logged in) ─────────────────
+  // ─── Check if visitor + credits ────────────────────────
   useEffect(() => {
     import('@/lib/supabase/client').then(({ supabaseBrowser }) => {
       const sb = supabaseBrowser();
       sb.auth.getSession().then(({ data }: any) => {
-        if (!data?.session) setIsVisitor(true);
+        if (!data?.session) { setIsVisitor(true); return; }
+        // Check credits balance
+        sb.from('profiles').select('credits_balance').eq('id', data.session.user.id).single()
+          .then(({ data: p }: any) => {
+            if (p?.credits_balance != null) {
+              setCreditsBalance(p.credits_balance);
+              if (p.credits_balance < 50) setCreditsLow(true);
+            }
+          }).catch(() => {});
       });
     }).catch(() => setIsVisitor(true));
   }, []);
@@ -608,6 +618,12 @@ export default function AgentWorkspacePage() {
               <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
               <span className="text-green-300 text-[10px] font-medium">Actif</span>
             </div>
+            {creditsLow && (
+              <a href="/pricing" className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-amber-500/15 border border-amber-500/20 rounded-full hover:bg-amber-500/25 transition">
+                <span className="text-amber-300 text-[10px] font-medium">{creditsBalance} credits</span>
+                <span className="text-amber-400 text-[10px]">{'\u2197'}</span>
+              </a>
+            )}
             <div
               onClick={() => fileInputRef.current?.click()}
               className="hidden sm:flex items-center gap-1 px-2.5 py-1 bg-white/10 hover:bg-white/15 border border-white/10 rounded-full cursor-pointer transition"
@@ -1137,7 +1153,7 @@ export default function AgentWorkspacePage() {
                   title: 'Connecter Instagram & TikTok',
                   description: 'Lena publie automatiquement sur tes reseaux. Connecte tes comptes pour activer la publication auto.',
                   code: 'Va dans Mon compte → Reseaux sociaux → Connecter Instagram / TikTok',
-                  note: 'Une fois connecte, Lena publie 3x/jour automatiquement selon ton calendrier editorial',
+                  note: 'Une fois connecte, Lena publie automatiquement selon ta frequence choisie',
                 },
                 dm_instagram: {
                   title: 'Connecter Instagram pour les DMs',

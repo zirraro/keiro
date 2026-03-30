@@ -1436,7 +1436,7 @@ function HomeKeiroInner() {
               <ul className="space-y-3 sm:space-y-4">
                 {[
                   { label: 'Temps par post', after: '3 minutes, cle en main', icon: '\u26A1' },
-                  { label: 'Frequence reelle', after: '3 posts/jour, 7j/7, automatique', icon: '\u{1F680}' },
+                  { label: 'Frequence reelle', after: 'Publications regulieres, automatiques, selon ton plan', icon: '\u{1F680}' },
                   { label: 'Qualite visuelle', after: 'Visuels IA uniques, brandes a ton image', icon: '\u{1F3A8}' },
                   { label: 'Video', after: 'Reels + TikTok generes en 1 clic', icon: '\u{1F3AC}' },
                   { label: 'Legende', after: 'Personnalisee, optimisee, avec hashtags', icon: '\u{270D}\uFE0F' },
