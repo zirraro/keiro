@@ -969,19 +969,19 @@ export default function AssistantPage() {
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
                         <div className="bg-white/5 rounded-lg px-2 py-2 text-center">
                           <div className="text-white font-bold text-base">{summary.crm.total}</div>
-                          <div className="text-white/25 text-[9px] sm:text-[8px]">Prospects</div>
+                          <div className="text-white/25 text-[9px] sm:text-[10px]">Prospects</div>
                         </div>
                         <div className="bg-red-500/10 rounded-lg px-2 py-2 text-center">
                           <div className="text-red-400 font-bold text-base">{summary.crm.temperature?.hot ?? 0}</div>
-                          <div className="text-white/25 text-[9px] sm:text-[8px]">Chauds</div>
+                          <div className="text-white/25 text-[9px] sm:text-[10px]">Chauds</div>
                         </div>
                         <div className="bg-amber-500/10 rounded-lg px-2 py-2 text-center">
                           <div className="text-amber-400 font-bold text-base">{summary.crm.temperature?.warm ?? 0}</div>
-                          <div className="text-white/25 text-[9px] sm:text-[8px]">Tiedes</div>
+                          <div className="text-white/25 text-[9px] sm:text-[10px]">Tiedes</div>
                         </div>
                         <div className="bg-green-500/10 rounded-lg px-2 py-2 text-center">
                           <div className="text-green-400 font-bold text-base">{summary.crm.clients}</div>
-                          <div className="text-white/25 text-[9px] sm:text-[8px]">Clients</div>
+                          <div className="text-white/25 text-[9px] sm:text-[10px]">Clients</div>
                         </div>
                       </div>
                       {/* Pipeline bar */}
@@ -1300,7 +1300,7 @@ export default function AssistantPage() {
                 </svg>
                 {chatCount > 0 && (
                   <div className="absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full bg-green-400 border-2 border-[#0c1a3a] flex items-center justify-center">
-                    <span className="text-[8px] text-green-900 font-bold">{chatCount}</span>
+                    <span className="text-[10px] text-green-900 font-bold">{chatCount}</span>
                   </div>
                 )}
               </button>

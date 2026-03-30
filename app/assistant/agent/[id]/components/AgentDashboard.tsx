@@ -3193,7 +3193,7 @@ function InstagramCommentsPanel({ data, agentName, gradientFrom, gradientTo }: {
   const [autoReplying, setAutoReplying] = useState(false);
 
   // Fetch comments on mount
-  useState(() => {
+  useEffect(() => {
     fetch('/api/agents/instagram-comments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -3202,7 +3202,7 @@ function InstagramCommentsPanel({ data, agentName, gradientFrom, gradientTo }: {
     }).then(r => r.json()).then(d => {
       if (d.comments) setComments(d.comments);
     }).catch(() => {}).finally(() => setLoading(false));
-  });
+  }, []);
 
   const handleReply = async (commentId: string) => {
     if (!replyText.trim()) return;
