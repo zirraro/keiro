@@ -101,7 +101,7 @@ async function extractTextFromFile(buffer: Buffer, ext: string): Promise<string 
   }
 }
 
-const DOSSIER_EXTRACTION_PROMPT = `Analyse ce document business et extrais TOUTES les informations pour remplir un dossier client. Retourne UNIQUEMENT un JSON avec les champs trouves (ignore les champs vides).
+const DOSSIER_EXTRACTION_PROMPT = `Analyse ce document (meme si le texte est brut ou mal formate) et extrais TOUTES les informations business pour remplir un dossier client. Le texte peut contenir du XML ou des caracteres speciaux — ignore-les et concentre-toi sur le contenu. Retourne UNIQUEMENT un JSON avec les champs trouves (ignore les champs vides).
 
 Champs possibles:
 company_name, company_description, business_type, founder_name, employees_count,
@@ -329,16 +329,33 @@ export async function POST(req: NextRequest) {
       if (textExts.has(ext)) {
         // Text-based extraction (DOCX, XLSX, CSV, TXT, PPTX)
         console.log(`[agent-files] Starting text extraction for ${ext}: ${safeName} (${buffer.length} bytes)`);
-        const text = await extractTextFromFile(buffer, ext);
+        let text: string | null = null;
+        try {
+          text = await extractTextFromFile(buffer, ext);
+        } catch (extractErr: any) {
+          console.error(`[agent-files] extractTextFromFile crashed for ${ext}:`, extractErr.message);
+        }
         console.log(`[agent-files] Text extraction result: ${text ? text.length + ' chars' : 'NULL'}`);
+
+        // Fallback 1: if extraction failed, try crude string extraction from binary
+        if (!text || text.length < 20) {
+          console.warn(`[agent-files] Primary extraction failed, trying crude binary string extraction`);
+          try {
+            const raw = buffer.toString('utf-8').replace(/[^\x20-\x7E\xC0-\xFF\n]/g, ' ').replace(/\s+/g, ' ').trim();
+            if (raw.length > 50) text = raw.substring(0, 15000);
+          } catch {}
+        }
+
         if (text && text.length > 20) {
           console.log(`[agent-files] Sending to AI for dossier extraction (${text.substring(0, 100)}...)`);
           extracted = await extractDossierFromText(text, file.name);
           console.log(`[agent-files] AI extraction result: ${extracted ? Object.keys(extracted).length + ' fields' : 'NULL'}`);
         } else {
-          console.warn(`[agent-files] Text too short or null for ${safeName}, trying vision fallback`);
-          // Fallback: try vision extraction for any file type
-          extracted = await extractDossierFromVision(buffer, ext === 'docx' ? 'pdf' : ext, file.name);
+          console.warn(`[agent-files] All text extraction failed for ${safeName}, trying vision`);
+          // Fallback 2: vision for images only (DOCX can't be sent as vision)
+          if (['png', 'jpg', 'jpeg'].includes(ext)) {
+            extracted = await extractDossierFromVision(buffer, ext, file.name);
+          }
         }
       } else if (visionExts.has(ext)) {
         // Vision-based extraction (PDF, images)
