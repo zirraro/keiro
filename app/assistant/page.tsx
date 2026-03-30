@@ -826,31 +826,7 @@ export default function AssistantPage() {
               </div>
             </div>
 
-            {/* AMI — Analyste campagnes */}
-            <div className="rounded-2xl border border-pink-500/20 overflow-hidden cursor-pointer hover:border-pink-500/40 transition-all"
-              onClick={() => { const ami = agents.find(a => a.id === 'marketing'); if (ami) handleSelectAgent(ami); }}>
-              <div className="bg-gradient-to-r from-pink-600/20 to-rose-600/15 px-4 py-3 flex items-center gap-3">
-                <div className="w-11 h-11 rounded-full overflow-hidden flex-shrink-0" style={{ background: 'linear-gradient(135deg, #ec4899, #f43f5e)', padding: '2px' }}>
-                  <div className="w-full h-full rounded-full overflow-hidden bg-gray-900 flex items-center justify-center">
-                    {avatars['marketing'] ? <img src={avatars['marketing']} alt="Ami" className="w-full h-full object-cover scale-[1.15]" style={{ objectPosition: 'center 15%' }} /> : <span className="text-lg">{'\uD83C\uDFAF'}</span>}
-                  </div>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-white font-bold text-sm">Ami — Votre Analyste Marketing</div>
-                  <div className="text-pink-300/60 text-[10px]">Analyse les resultats et adapte la strategie de vos agents</div>
-                </div>
-                <button onClick={(e) => { e.stopPropagation(); const ami = agents.find(a => a.id === 'marketing'); if (ami) handleOpenChat(ami); }} className="px-3 py-1.5 bg-pink-600/20 hover:bg-pink-600/30 border border-pink-500/30 rounded-lg text-pink-300 text-[10px] font-medium transition-all flex-shrink-0">
-                  💬 Chat
-                </button>
-              </div>
-              <div className="px-4 py-3 bg-white/[0.02]">
-                {summary?.activityFeed?.find((a: any) => a.agent === 'marketing') ? (
-                  <p className="text-white/50 text-xs leading-relaxed">{'\uD83D\uDCCA'} {(summary.activityFeed.find((a: any) => a.agent === 'marketing') as any)?.action || 'Analyse en cours...'}</p>
-                ) : (
-                  <p className="text-white/30 text-xs italic">Ami analyse les performances de vos campagnes...</p>
-                )}
-              </div>
-            </div>
+            {/* AMI removed from suivi central — accessible via Strategie team + agent grid */}
           </div>
         )}
 
