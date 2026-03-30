@@ -1806,6 +1806,14 @@ function ContentPanel({
       {/* Content direction — client can guide what to publish */}
       <ContentDirectionInput />
 
+      {/* Stories suggestion tip */}
+      <div className="rounded-lg border border-purple-500/10 bg-purple-500/5 px-3 py-2 mb-3 flex items-center gap-2">
+        <span className="text-sm">{'\u{1F4A1}'}</span>
+        <p className="text-[10px] text-white/50">
+          <strong className="text-purple-300">Astuce :</strong> Les Stories Instagram generent 2x plus de visites sur ton profil. Lena peut en creer automatiquement — active le format Stories dans les parametres.
+        </p>
+      </div>
+
       {/* Instagram KPIs */}
       <SectionTitle>Performance Instagram</SectionTitle>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

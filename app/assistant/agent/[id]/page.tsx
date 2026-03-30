@@ -74,7 +74,8 @@ function getAgentSettings(agentId: string): SettingField[] {
       { key: 'use_hashtags', label: 'Hashtags', type: 'toggle', default: true, description: 'Ajouter automatiquement des hashtags pertinents' },
       { key: 'max_hashtags', label: 'Nombre max hashtags', type: 'number', default: 15, description: 'Nombre maximum de hashtags par post' },
       // Formats
-      { key: 'formats', label: 'Formats preferes', type: 'select', options: [{ value: 'all', label: 'Tous (posts, reels, carrousels)' }, { value: 'reels', label: 'Reels/Videos prioritaire' }, { value: 'carousel', label: 'Carrousels prioritaire' }, { value: 'static', label: 'Images statiques' }], default: 'all', description: 'Types de contenu a privilegier' },
+      { key: 'formats', label: 'Formats preferes', type: 'select', options: [{ value: 'all', label: 'Tous (posts, reels, stories, carrousels)' }, { value: 'reels', label: 'Reels/Videos prioritaire' }, { value: 'stories', label: 'Stories prioritaire' }, { value: 'carousel', label: 'Carrousels prioritaire' }, { value: 'static', label: 'Images statiques' }], default: 'all', description: 'Types de contenu a privilegier' },
+      { key: 'stories_enabled', label: 'Stories Instagram', type: 'toggle', default: true, description: 'Publier des stories pour plus de visibilite (recommande)' },
       { key: 'trend_surfing', label: 'Surf tendances', type: 'toggle', default: true, description: 'Creer du contenu base sur les tendances du moment' },
     ],
     dm_instagram: [

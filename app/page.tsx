@@ -507,7 +507,7 @@ function HomeKeiroInner() {
                 </div>
                 <div className="flex items-center gap-3 text-[10px]">
                   <span className="text-purple-400 font-semibold">{locale === 'fr' ? 'Resultat' : 'Result'}</span>
-                  <span className="text-white/40">{locale === 'fr' ? '3 posts/jour + SEO + avis Google + pub = visibilite maximale' : '3 posts/day + SEO + Google reviews + ads = max visibility'}</span>
+                  <span className="text-white/40">{locale === 'fr' ? 'Publications regulieres + SEO + avis Google + pub = visibilite maximale' : 'Regular posts + SEO + Google reviews + ads = max visibility'}</span>
                 </div>
               </div>
             </div>
