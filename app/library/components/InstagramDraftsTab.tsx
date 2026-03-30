@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { InstagramIcon, TrashIcon } from './Icons';
 import InstagramHelpGuide from './InstagramHelpGuide';
 import PlatformChoiceModal from './PlatformChoiceModal';
+import PostPreview from '@/app/assistant/agent/[id]/components/PostPreview';
 
 export type InstagramDraft = {
   id: string;
@@ -203,8 +204,16 @@ export default function InstagramDraftsTab({ drafts, onEdit, onDelete, onPublish
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {filteredDrafts.map((draft) => (
         <div key={draft.id} className="bg-white rounded-xl border border-neutral-200 overflow-hidden hover:shadow-lg transition-shadow flex flex-col">
+          {/* Instagram-like header */}
+          <div className="flex items-center gap-2 px-3 py-2 border-b border-neutral-100">
+            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-600 to-pink-500 flex items-center justify-center">
+              <InstagramIcon className="w-3.5 h-3.5 text-white" />
+            </div>
+            <span className="text-xs font-semibold text-neutral-800 flex-1">Mon business</span>
+            {draft.media_type === 'video' && <span className="text-[9px] bg-gradient-to-r from-purple-500 to-pink-500 text-white px-1.5 py-0.5 rounded-full">Reel</span>}
+          </div>
           {/* Image/Video */}
-          <div className="h-36 bg-neutral-100 relative">
+          <div className="aspect-square bg-neutral-100 relative">
             <img
               src={draft.media_url}
               alt="Instagram post preview"
