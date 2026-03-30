@@ -28,3 +28,34 @@ export async function GET(req: NextRequest) {
     provider: profile?.gmail_refresh_token ? 'gmail' : profile?.smtp_host ? 'smtp' : 'keiroai',
   });
 }
+
+/**
+ * POST /api/agents/email/check-connection
+ * Disconnect Gmail or SMTP.
+ */
+export async function POST(req: NextRequest) {
+  const { user, error } = await getAuthUser();
+  if (error || !user) return NextResponse.json({ error: 'Non autorise' }, { status: 401 });
+
+  const body = await req.json().catch(() => ({}));
+  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+
+  if (body.action === 'disconnect_gmail') {
+    await supabase.from('profiles').update({
+      gmail_refresh_token: null,
+      gmail_access_token: null,
+      gmail_email: null,
+      gmail_token_expires_at: null,
+    }).eq('id', user.id);
+    return NextResponse.json({ ok: true, disconnected: 'gmail' });
+  }
+
+  if (body.action === 'disconnect_smtp') {
+    await supabase.from('profiles').update({
+      smtp_host: null, smtp_port: null, smtp_user: null, smtp_pass: null, smtp_from_email: null,
+    }).eq('id', user.id);
+    return NextResponse.json({ ok: true, disconnected: 'smtp' });
+  }
+
+  return NextResponse.json({ error: 'Action inconnue' }, { status: 400 });
+}

@@ -150,6 +150,15 @@ function EmailConnectBanner({ connections }: { connections?: Record<string, bool
 
   if (loading) return null;
 
+  const handleDisconnect = useCallback(async () => {
+    if (!confirm('Deconnecter Gmail ? Les emails partiront de contact@keiroai.com.')) return;
+    try {
+      await fetch('/api/agents/email/check-connection', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'disconnect_gmail' }) });
+      setGmailConnected(false);
+      setGmailEmail(null);
+    } catch {}
+  }, []);
+
   if (gmailConnected) {
     return (
       <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 mb-3 flex items-center gap-3">
@@ -158,7 +167,7 @@ function EmailConnectBanner({ connections }: { connections?: Record<string, bool
           <p className="text-xs font-bold text-emerald-400">Email connecte</p>
           <p className="text-[10px] text-white/50">Les emails partent de <strong className="text-white/80">{gmailEmail}</strong></p>
         </div>
-        <span className="text-emerald-400 text-xs">{'\u2713'}</span>
+        <button onClick={handleDisconnect} className="text-[9px] text-white/20 hover:text-red-400/60 transition">Deconnecter</button>
       </div>
     );
   }
