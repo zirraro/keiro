@@ -24,7 +24,8 @@ interface AgentCardProps {
 export default function AgentCard({ agent, avatarUrl, isSelected, onClick, comingSoonMode = false, onNotifyClick, badgeCount = 0 }: AgentCardProps) {
   const [imgError, setImgError] = useState(false);
   const showImage = avatarUrl && !imgError;
-  const isLocked = comingSoonMode || agent.visibility === 'coming_soon';
+  // Only lock if COMING_SOON_MODE is active (not based on visibility — all agents are accessible now)
+  const isLocked = comingSoonMode;
 
   return (
     <button

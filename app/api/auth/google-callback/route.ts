@@ -83,7 +83,7 @@ export async function GET(req: NextRequest) {
 
     console.log(`[GoogleCallback] Google Business connected for user ${userId}: account=${accountName}, location=${locationName}`);
 
-    return NextResponse.redirect(`${origin}/assistant?agent=gmaps&google_connected=true`);
+    return NextResponse.redirect(`${origin}/assistant/agent/gmaps?google_connected=true`);
   } catch (e: any) {
     console.error('[GoogleCallback] Error:', e.message);
     return NextResponse.redirect(`${origin}/assistant?error=${encodeURIComponent(`Google erreur: ${e.message}`)}`);

@@ -53,10 +53,15 @@ export async function GET(req: NextRequest) {
     // Capture the origin domain so the callback redirects to the correct domain
     const origin = `${req.nextUrl.protocol}//${req.nextUrl.host}`;
 
-    // Encode user_id + origin in state parameter to maintain context during OAuth redirect
+    // Capture return path from referer header
+    const referer = req.headers.get('referer') || '';
+    const returnTo = referer.includes('/assistant/agent/') ? new URL(referer).pathname : '/assistant';
+
+    // Encode user_id + origin + returnTo in state parameter
     const statePayload = {
       userId: user.id,
       origin,
+      returnTo,
       timestamp: Date.now()
     };
     const stateEncoded = Buffer.from(JSON.stringify(statePayload)).toString('base64');

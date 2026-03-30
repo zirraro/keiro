@@ -42,7 +42,7 @@ function InstagramCallbackContent() {
             const decoded = JSON.parse(atob(stateParam));
             userId = decoded.userId;
             // Return to the page that initiated the OAuth
-            if (decoded.origin) returnTo = decoded.returnTo || '/assistant';
+            if (decoded.returnTo) returnTo = decoded.returnTo;
           } catch (e) {
             console.warn('[InstagramCallback] Could not decode state:', e);
           }
