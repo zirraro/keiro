@@ -30,9 +30,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL('/assistant/agent/email?error=invalid_state', req.url));
   }
 
-  // Use request host — must match the redirect_uri sent during authorization
-  const host = req.headers.get('host') || 'www.keiroai.com';
-  const redirectUri = `https://${host}/api/auth/gmail-callback`;
+  const redirectUri = `${process.env.NEXT_PUBLIC_SITE_URL || `${req.nextUrl.protocol}//${req.nextUrl.host}`}/api/auth/gmail-callback`;
   console.log('[Gmail Callback] redirect_uri:', redirectUri, 'userId:', userId);
 
   try {
