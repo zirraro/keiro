@@ -87,8 +87,9 @@ function InstagramCallbackContent() {
             }
           } catch {}
 
-          // Redirect back to where the user came from
-          setTimeout(() => { window.location.href = returnTo; }, 1500);
+          // Redirect back with just_connected flag
+          const separator = returnTo.includes('?') ? '&' : '?';
+          setTimeout(() => { window.location.href = `${returnTo}${separator}just_connected=instagram`; }, 1500);
         } else {
           throw new Error(data.error || 'Erreur lors de la connexion Instagram');
         }

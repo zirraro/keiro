@@ -391,6 +391,53 @@ export default function AgentWorkspacePage() {
     })();
   }, [agent, agentId, agentInfo]);
 
+  // ─── Detect just_connected (after OAuth redirect) ─────
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const justConnected = params.get('just_connected');
+    if (justConnected) {
+      // Clean URL
+      window.history.replaceState({}, '', window.location.pathname);
+
+      // Show success message in chat
+      const network = justConnected === 'instagram' ? 'Instagram' : justConnected === 'google' ? 'Google Business' : justConnected;
+      setMessages(prev => [...prev, {
+        id: `connected_${Date.now()}`,
+        role: 'assistant',
+        content: `\u2705 ${network} connecte avec succes ! ${agentId === 'content' ? 'Je prepare ton premier post...' : agentId === 'dm_instagram' ? 'Tes conversations DM vont apparaitre ici.' : 'L\'agent est pret a travailler pour toi.'}`,
+        created_at: new Date().toISOString(),
+      }]);
+      setChatOpen(true);
+
+      // For content agent: trigger first post generation
+      if (agentId === 'content' && justConnected === 'instagram') {
+        fetch('/api/agents/client-chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ agent_id: 'content', message: 'Genere mon premier post Instagram ! Un post accrocheur adapte a mon business, pret a publier.' }),
+        }).then(r => r.json()).then(d => {
+          if (d.reply) {
+            setMessages(prev => [...prev, {
+              id: `first_post_${Date.now()}`,
+              role: 'assistant',
+              content: d.reply,
+              created_at: new Date().toISOString(),
+            }]);
+          }
+        }).catch(() => {});
+      }
+
+      // Mark agent as setup completed
+      fetch('/api/agents/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ agent_id: agentId, setup_completed: true, auto_mode: true }),
+      }).catch(() => {});
+    }
+  }, [agentId]);
+
   // ─── Check agent setup status ─────────────────────────
   useEffect(() => {
     fetch(`/api/agents/settings?agent_id=${agentId}`, { credentials: 'include' })

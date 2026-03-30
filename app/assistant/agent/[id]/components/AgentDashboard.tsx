@@ -1840,15 +1840,22 @@ function ContentPanel({
 
       {/* Content workflow: prepared → validate → scheduled → published */}
       <div data-tour="content-workflow"><SectionTitle>File de contenu</SectionTitle>
-      {stats.postsGenerated === 0 && (
+      {stats.postsGenerated === 0 && !(data as any).connections?.instagram && (
         <PreviewBanner
           agentName="Lena"
           connectLabel="Connecter tes reseaux"
           connectUrl="/api/auth/instagram-oauth"
-          claraMessage="Voici un apercu de ce que Lena preparera pour toi ! Des posts optimises avec hashtags, programmes automatiquement. Connecte Instagram pour demarrer."
+          claraMessage="Connecte Instagram pour que Lena commence a preparer tes posts. Une fois connecte, ton premier post sera genere en quelques secondes !"
           gradientFrom="#8b5cf6"
           gradientTo="#6d28d9"
         />
+      )}
+      {stats.postsGenerated === 0 && (data as any).connections?.instagram && (
+        <div className="rounded-xl border border-emerald-500/20 bg-emerald-900/10 p-4 mb-3 text-center">
+          <span className="text-lg">{'\u2705'}</span>
+          <p className="text-xs text-emerald-400 font-bold mt-1">Instagram connecte !</p>
+          <p className="text-[10px] text-white/50 mt-1">Lena prepare ton premier post... Il apparaitra ici dans quelques instants.</p>
+        </div>
       )}
       <ContentWorkflow />
 
