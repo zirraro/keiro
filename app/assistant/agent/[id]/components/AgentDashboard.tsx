@@ -1789,6 +1789,9 @@ function ContentPanel({
       {/* Auto mode toggle */}
       <div data-tour="auto-toggle"><AutoModeToggle agentId="content" autoLabel="Publication automatique" manualLabel="Publication manuelle" autoDesc="Lena publie automatiquement selon ton calendrier" manualDesc="Tu valides chaque post avant publication" /></div>
 
+      {/* Content direction — client can guide what to publish */}
+      <ContentDirectionInput />
+
       {/* Instagram KPIs */}
       <SectionTitle>Performance Instagram</SectionTitle>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -1915,6 +1918,65 @@ function ContentPanel({
 
       {/* Instagram Comments moved to Jade (DM agent) via JadeTabs */}
     </>
+  );
+}
+
+// Content direction — let client guide what to publish this week
+function ContentDirectionInput() {
+  const [direction, setDirection] = useState('');
+  const [saved, setSaved] = useState(false);
+  const [existing, setExisting] = useState('');
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('keiro_content_direction');
+      if (saved) { setDirection(saved); setExisting(saved); }
+    } catch {}
+  }, []);
+
+  const save = useCallback(async () => {
+    if (!direction.trim()) return;
+    try { localStorage.setItem('keiro_content_direction', direction); } catch {}
+    // Also send to Clara/content agent for next generation
+    try {
+      await fetch('/api/agents/client-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          agent_id: 'content',
+          message: `[DIRECTIVE CONTENU] Le client veut mettre en avant cette semaine : ${direction}. Adapte les prochains posts en consequence.`,
+        }),
+      });
+    } catch {}
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  }, [direction]);
+
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/5 p-3 mb-3">
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-sm">{'\u{1F4A1}'}</span>
+        <span className="text-xs font-medium text-white/70">Un sujet a mettre en avant cette semaine ?</span>
+      </div>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={direction}
+          onChange={e => setDirection(e.target.value)}
+          placeholder="Ex: Notre nouveau menu, une promo, un evenement..."
+          className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-purple-500/50"
+          onKeyDown={e => { if (e.key === 'Enter') save(); }}
+        />
+        <button
+          onClick={save}
+          disabled={!direction.trim() || direction === existing}
+          className={`px-3 py-2 text-xs font-bold rounded-lg transition min-h-[36px] ${saved ? 'bg-emerald-500/20 text-emerald-400' : 'bg-purple-600 text-white hover:bg-purple-500'} disabled:opacity-30`}
+        >
+          {saved ? '\u2713' : 'Envoyer'}
+        </button>
+      </div>
+    </div>
   );
 }
 
