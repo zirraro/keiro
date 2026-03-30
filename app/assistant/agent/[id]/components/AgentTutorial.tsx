@@ -88,10 +88,38 @@ export default function AgentTutorial({ agentId }: { agentId: string }) {
       const isWizard = sessionStorage.getItem('keiro_wizard_active');
       const currentAgent = sessionStorage.getItem('keiro_wizard_agent');
       if (isWizard === 'true' && currentAgent === agentId) {
-        setPhase('confirm');
         setNextIndex(parseInt(sessionStorage.getItem('keiro_wizard_next') || '0'));
         setWizardAgents(JSON.parse(sessionStorage.getItem('keiro_wizard_agents') || '[]'));
         sessionStorage.removeItem('keiro_wizard_agent');
+
+        // Check if agent's network is already connected → skip to tour directly
+        const igAgents = ['content', 'dm_instagram', 'instagram_comments'];
+        const googleAgents = ['gmaps'];
+        const noConnectNeeded = ['email', 'commercial', 'seo', 'marketing', 'ads', 'chatbot', 'whatsapp', 'rh', 'comptable', 'onboarding'];
+
+        const checkAndStart = async () => {
+          let connected = false;
+          if (noConnectNeeded.includes(agentId)) connected = true;
+          else if (igAgents.includes(agentId)) {
+            try {
+              const r = await fetch('/api/instagram/check-token', { credentials: 'include' });
+              if (r.ok) { const d = await r.json(); connected = d.valid || d.connected; }
+            } catch {}
+          } else if (googleAgents.includes(agentId)) {
+            try {
+              const r = await fetch('/api/agents/settings?agent_id=gmaps', { credentials: 'include' });
+              if (r.ok) { const d = await r.json(); connected = !!d.settings?.setup_completed; }
+            } catch {}
+          }
+
+          if (connected) {
+            // Already connected → skip to spotlight tour
+            setTimeout(() => setPhase('tour'), 500);
+          } else {
+            setPhase('confirm');
+          }
+        };
+        checkAndStart();
       }
     } catch {}
   }, [agentId]);

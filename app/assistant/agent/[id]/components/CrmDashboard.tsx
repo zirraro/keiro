@@ -665,8 +665,16 @@ export default function CrmDashboard({ data, onAddProspect }: CrmDashboardProps)
     ? Math.round(prospects.reduce((s, p) => s + p.score, 0) / prospects.length)
     : 0;
 
+  // Hot prospects with recommended actions
+  const hotProspects = useMemo(() => {
+    return prospects
+      .filter(p => p.temperature === 'hot' || (p.score >= 60 && p.temperature !== 'dead'))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5);
+  }, [prospects]);
+
   return (
-    <div className="overflow-y-auto flex-1 p-4 sm:p-6 space-y-5">
+    <div data-tour="agent-dashboard" className="overflow-y-auto flex-1 p-4 sm:p-6 space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
         <div>
@@ -727,6 +735,37 @@ export default function CrmDashboard({ data, onAddProspect }: CrmDashboardProps)
           color="bg-blue-500/20"
         />
       </div>
+
+      {/* Hot prospects — priority actions */}
+      {hotProspects.length > 0 && (
+        <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
+          <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+            <span>{'\u{1F525}'}</span> Prospects chauds — Actions prioritaires
+          </h3>
+          <div className="space-y-2">
+            {hotProspects.map(p => (
+              <div key={p.id} className="flex items-center gap-3 bg-white/5 rounded-lg px-3 py-2">
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-bold text-white">{p.company || `${p.first_name} ${p.last_name}`}</div>
+                  <div className="text-[10px] text-white/40">{p.email || p.phone || p.instagram || 'Pas de contact'}</div>
+                </div>
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  <span className="text-[10px] font-bold text-red-400 bg-red-400/10 px-2 py-0.5 rounded-full">{p.score}/100</span>
+                  {p.email && (
+                    <button onClick={() => { window.location.href = '/assistant/agent/email'; }} className="text-[9px] px-2 py-1 bg-cyan-600/20 text-cyan-400 rounded-lg hover:bg-cyan-600/30">{'\u{1F4E7}'} Email</button>
+                  )}
+                  {p.instagram && (
+                    <button onClick={() => { window.location.href = '/assistant/agent/dm_instagram'; }} className="text-[9px] px-2 py-1 bg-purple-600/20 text-purple-400 rounded-lg hover:bg-purple-600/30">{'\u{1F4AC}'} DM</button>
+                  )}
+                  {p.phone && (
+                    <a href={`tel:${p.phone}`} className="text-[9px] px-2 py-1 bg-emerald-600/20 text-emerald-400 rounded-lg hover:bg-emerald-600/30">{'\u{1F4DE}'} Appeler</a>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Pipeline */}
       <PipelineFunnel
