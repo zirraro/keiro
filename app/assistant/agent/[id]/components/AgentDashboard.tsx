@@ -1872,6 +1872,10 @@ function ContentPanel({
           </div>
         </div>
       </div>
+
+      {/* Instagram Comments — Lena gère aussi les commentaires */}
+      <SectionTitle>Commentaires Instagram</SectionTitle>
+      <LenaCommentsSection />
     </>
   );
 }
@@ -2005,6 +2009,54 @@ function ContentWorkflow() {
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+// Inline comments section for Lena
+function LenaCommentsSection() {
+  const [comments, setComments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/agents/instagram-comments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ action: 'fetch_comments' }),
+    })
+      .then(r => r.json())
+      .then(d => { if (d.comments) setComments(d.comments); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div className="text-center py-4"><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-400 mx-auto" /></div>;
+
+  const displayComments = comments.length > 0 ? comments : DEMO_IG_COMMENTS;
+  const isDemo = comments.length === 0;
+
+  return (
+    <div className={isDemo ? 'opacity-80' : ''}>
+      {isDemo && <p className="text-[10px] text-amber-400/60 mb-2">{'\u{1F4F8}'} Apercu — connecte Instagram pour voir tes vrais commentaires</p>}
+      <div className="space-y-2 max-h-[250px] overflow-y-auto">
+        {displayComments.slice(0, 6).map((c: any, i: number) => (
+          <div key={i} className="bg-white/5 rounded-lg border border-white/10 p-3 flex items-start gap-2">
+            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center text-[8px] text-white font-bold flex-shrink-0">
+              {(c.username || '?')[0].toUpperCase()}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-white/80">@{c.username}</span>
+                <span className={`text-[8px] px-1.5 py-0.5 rounded-full ${c.replied ? 'bg-emerald-400/15 text-emerald-400' : 'bg-amber-400/15 text-amber-400'}`}>
+                  {c.replied ? 'Repondu' : 'En attente'}
+                </span>
+              </div>
+              <p className="text-[10px] text-white/50 mt-0.5 line-clamp-2">{c.text}</p>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
