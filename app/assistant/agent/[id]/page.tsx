@@ -1253,7 +1253,7 @@ export default function AgentWorkspacePage() {
       {chatOpen && (
         <>
           {isMobile && <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" onClick={() => setChatOpen(false)} />}
-          <div className={`fixed z-50 flex flex-col ${isMobile ? 'inset-0' : 'top-20 right-4 bottom-4 w-[420px] rounded-2xl shadow-2xl shadow-black/50 overflow-hidden'}`} style={{ animation: 'slideIn 0.25s ease-out' }}>
+          <div className={`fixed z-50 flex flex-col ${isMobile ? 'inset-0' : 'bottom-4 right-4 w-[380px] rounded-2xl shadow-2xl shadow-black/50 overflow-hidden'}`} style={{ animation: 'slideIn 0.25s ease-out', ...(!isMobile ? { height: 'min(480px, calc(100vh - 100px))' } : {}) }}>
             {/* Header */}
             <div className="flex items-center gap-3 px-4 py-3 flex-shrink-0" style={{ background: `linear-gradient(135deg, ${gf}, ${gt})` }}>
               <div className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 bg-white/15">

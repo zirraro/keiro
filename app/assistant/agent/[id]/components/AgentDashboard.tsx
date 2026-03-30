@@ -1913,9 +1913,7 @@ function ContentPanel({
         </div>
       </div>
 
-      {/* Instagram Comments — Lena gère aussi les commentaires */}
-      <SectionTitle>Commentaires Instagram</SectionTitle>
-      <LenaCommentsSection />
+      {/* Instagram Comments moved to Jade (DM agent) via JadeTabs */}
     </>
   );
 }
