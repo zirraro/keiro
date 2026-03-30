@@ -1937,7 +1937,16 @@ function ContentDirectionInput() {
   const save = useCallback(async () => {
     if (!direction.trim()) return;
     try { localStorage.setItem('keiro_content_direction', direction); } catch {}
-    // Also send to Clara/content agent for next generation
+    // Save to business dossier custom_fields so CRON agents pick it up too
+    try {
+      await fetch('/api/business-dossier', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ content_themes: direction, weekly_priority_topic: direction }),
+      });
+    } catch {}
+    // Also send to content agent chat for immediate awareness
     try {
       await fetch('/api/agents/client-chat', {
         method: 'POST',
@@ -1945,7 +1954,7 @@ function ContentDirectionInput() {
         credentials: 'include',
         body: JSON.stringify({
           agent_id: 'content',
-          message: `[DIRECTIVE CONTENU] Le client veut mettre en avant cette semaine : ${direction}. Adapte les prochains posts en consequence.`,
+          message: `[THEME PRIORITAIRE] Le client souhaite integrer ce theme dans ses prochaines publications : "${direction}". Integre ce sujet dans 1 a 2 posts sur les 5 prochains, en le mixant naturellement avec les autres themes habituels (tendances, conseils, coulisses, engagement). Ne fais pas TOUS les posts sur ce sujet — diversifie et garde de la creativite. Ce theme donne plus d'elements a mettre en valeur, pas une restriction.`,
         }),
       });
     } catch {}
