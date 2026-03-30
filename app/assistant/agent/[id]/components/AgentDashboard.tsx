@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import PreviewBanner from './PreviewBanner';
+import PostPreview from './PostPreview';
 import { DEMO_DM_CONVERSATIONS, DEMO_EMAILS, DEMO_CONTENT_POSTS, DEMO_REVIEWS, DEMO_COMMENTS, DEMO_ADS_STATS, DEMO_FINANCE_STATS, DEMO_RH_STATS, DEMO_CHATBOT_STATS, DEMO_WHATSAPP_STATS, DEMO_TIKTOK_STATS, DEMO_IG_COMMENTS } from './AgentPreviewData';
 
 // ─── Social Connect Banners — shown in agent dashboards ─────────────
@@ -2079,65 +2080,18 @@ function ContentWorkflow() {
         ))}
       </div>
 
-      {/* Post cards */}
-      <div className="space-y-2 max-h-[400px] overflow-y-auto">
-        {filtered.slice(0, 15).map((post: any) => {
-          const cfg = statusConfig[post.status] || statusConfig.draft;
-          return (
-            <div key={post.id} className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
-              <div className="p-3 sm:p-4">
-                <div className="flex items-start gap-3">
-                  {/* Visual preview — larger for better visibility */}
-                  {post.visual_url ? (
-                    <img src={post.visual_url} alt="" className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover flex-shrink-0 border border-white/10" />
-                  ) : post.video_url ? (
-                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-gradient-to-br from-purple-600/30 to-pink-600/30 flex items-center justify-center flex-shrink-0 border border-white/10">
-                      <span className="text-2xl">{'\u{1F3AC}'}</span>
-                    </div>
-                  ) : (
-                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-gradient-to-br from-white/5 to-white/10 flex flex-col items-center justify-center flex-shrink-0 border border-dashed border-white/15">
-                      <span className="text-xl mb-1">{cfg.icon}</span>
-                      <span className="text-[10px] text-white/20">{post.platform || 'post'}</span>
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${cfg.color}22`, color: cfg.color }}>{cfg.label}</span>
-                      {post.platform && <span className="text-[9px] text-white/30">{post.platform}</span>}
-                      {post.format && <span className="text-[9px] text-white/20">{post.format}</span>}
-                    </div>
-                    <p className="text-xs text-white/70 line-clamp-2">{post.hook || post.caption?.substring(0, 80) || post.title || 'Sans titre'}</p>
-                    {post.scheduled_date && <p className="text-[10px] text-white/30 mt-1">{'\u{1F4C5}'} {post.scheduled_date} {post.scheduled_time || ''}</p>}
-                  </div>
-                </div>
-              </div>
-
-              {/* Action buttons for drafts */}
-              {post.status === 'draft' && (
-                <div className="px-3 sm:px-4 pb-3 flex gap-2 flex-wrap">
-                  <button onClick={() => handleAction(post.id, 'approve')} disabled={post._loading} className="px-3 py-1.5 bg-emerald-600 text-white text-[10px] sm:text-xs font-bold rounded-lg hover:bg-emerald-500 disabled:opacity-40 min-h-[32px]">
-                    {'\u2705'} Valider
-                  </button>
-                  <button onClick={() => handleAction(post.id, 'publish_single')} disabled={post._loading} className="px-3 py-1.5 bg-purple-600 text-white text-[10px] sm:text-xs font-bold rounded-lg hover:bg-purple-500 disabled:opacity-40 min-h-[32px]">
-                    {'\u{1F680}'} Publier maintenant
-                  </button>
-                  <button onClick={() => handleAction(post.id, 'skip')} disabled={post._loading} className="px-3 py-1.5 bg-white/10 text-white/50 text-[10px] sm:text-xs rounded-lg hover:bg-white/15 disabled:opacity-40 min-h-[32px]">
-                    Ignorer
-                  </button>
-                </div>
-              )}
-
-              {/* Published: show engagement */}
-              {post.status === 'published' && post.engagement_data && (
-                <div className="px-3 sm:px-4 pb-3 flex gap-3 text-[10px] text-white/40">
-                  {post.engagement_data.likes != null && <span>{'\u2764\uFE0F'} {post.engagement_data.likes}</span>}
-                  {post.engagement_data.comments != null && <span>{'\u{1F4AC}'} {post.engagement_data.comments}</span>}
-                  {post.engagement_data.shares != null && <span>{'\u{1F4E4}'} {post.engagement_data.shares}</span>}
-                </div>
-              )}
-            </div>
-          );
-        })}
+      {/* Post cards — Instagram/TikTok/LinkedIn-like preview */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[500px] overflow-y-auto">
+        {filtered.slice(0, 12).map((post: any) => (
+          <PostPreview
+            key={post.id}
+            post={post}
+            compact
+            onApprove={post.status === 'draft' ? () => handleAction(post.id, 'approve') : undefined}
+            onPublish={post.status === 'draft' ? () => handleAction(post.id, 'publish_single') : undefined}
+            onSkip={post.status === 'draft' ? () => handleAction(post.id, 'skip') : undefined}
+          />
+        ))}
       </div>
     </div>
   );
