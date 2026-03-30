@@ -14,7 +14,7 @@ const AgentTutorial = dynamic(() => import('./components/AgentTutorial'), { ssr:
 
 const AGENTS_WITH_DASHBOARD = [
   'marketing', 'commercial', 'email', 'content', 'seo', 'ads', 'comptable',
-  'rh', 'onboarding', 'dm_instagram', 'tiktok_comments', 'gmaps', 'chatbot', 'whatsapp',
+  'rh', 'onboarding', 'dm_instagram', 'tiktok_comments', 'gmaps', 'chatbot', 'whatsapp', 'linkedin',
   'ceo', 'qa',
 ];
 

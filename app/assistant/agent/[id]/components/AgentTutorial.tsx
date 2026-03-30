@@ -65,6 +65,9 @@ const AGENT_TOURS: Record<string, TourStep[]> = {
   onboarding: [
     { target: 'agent-dashboard', title: 'Clara t\'accompagne', description: 'Remplis ton profil business, upload des documents, et Clara partage tout avec tes agents.', position: 'bottom' },
   ],
+  linkedin: [
+    { target: 'agent-dashboard', title: 'Emma LinkedIn', description: 'Emma publie du contenu optimise sur LinkedIn, commente et engage ton reseau professionnel pour generer des leads B2B.', position: 'bottom' },
+  ],
 };
 
 export default function AgentTutorial({ agentId }: { agentId: string }) {
@@ -165,7 +168,7 @@ export default function AgentTutorial({ agentId }: { agentId: string }) {
     content: 'Lena', dm_instagram: 'Jade', email: 'Hugo', gmaps: 'Theo',
     commercial: 'Leo', seo: 'Oscar', marketing: 'AMI', ads: 'Felix',
     chatbot: 'Max', whatsapp: 'Stella', tiktok_comments: 'Axel',
-    instagram_comments: 'Commentaires IG', rh: 'Sara', comptable: 'Louis', onboarding: 'Clara',
+    instagram_comments: 'Commentaires IG', rh: 'Sara', comptable: 'Louis', onboarding: 'Clara', linkedin: 'Emma',
   };
 
   // Next agent popup — Clara presents the next agent
@@ -186,6 +189,7 @@ export default function AgentTutorial({ agentId }: { agentId: string }) {
       ads: 'Felix cree et optimise tes campagnes Meta Ads et Google Ads.',
       rh: 'Sara genere tes documents juridiques : CGV, RGPD, contrats.',
       comptable: 'Louis suit tes revenus, depenses et marge automatiquement.',
+      linkedin: 'Emma publie sur LinkedIn, commente et engage ton reseau pro pour generer des leads B2B.',
     };
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
@@ -241,6 +245,7 @@ export default function AgentTutorial({ agentId }: { agentId: string }) {
     rh: null,
     comptable: null,
     onboarding: null,
+    linkedin: { label: 'Connecter LinkedIn', url: '/api/auth/linkedin-oauth' },
   };
 
   const connection = agentConnections[agentId];
