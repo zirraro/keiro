@@ -163,7 +163,7 @@ const TEAMS = [
     icon: '\uD83D\uDCF1',
     color: 'from-purple-500 to-violet-600',
     description: 'Contenu, SEO, TikTok, Google Maps',
-    agentIds: ['content', 'seo', 'tiktok_comments', 'gmaps'],
+    agentIds: ['content', 'seo', 'tiktok_comments', 'gmaps', 'linkedin'],
   },
   {
     name: 'Finance & Admin',

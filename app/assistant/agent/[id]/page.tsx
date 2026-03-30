@@ -503,9 +503,21 @@ export default function AgentWorkspacePage() {
   const handleFileUpload = useCallback(async (fl: FileList | null) => {
     if (!fl?.length) return; setUploading(true);
     for (let i = 0; i < fl.length; i++) {
+      // Show processing indicator in chat
+      const processingMsgId = `processing_${Date.now()}`;
+      setMessages(prev => [...prev, {
+        id: processingMsgId,
+        role: 'assistant',
+        content: `\u23F3 Analyse du fichier "${fl[i].name}" en cours... Extraction des donnees et mise a jour du profil.`,
+        created_at: new Date().toISOString(),
+      }]);
+      setChatOpen(true);
+
       const fd = new FormData(); fd.append('file', fl[i]); fd.append('agent_id', agentId);
       try {
         const r = await fetch('/api/agents/agent-files', { method: 'POST', credentials: 'include', body: fd });
+        // Remove processing message
+        setMessages(prev => prev.filter(m => m.id !== processingMsgId));
         if (r.ok) {
           const d = await r.json();
           setFiles(p => [...p, { id: d.id || generateId(), name: fl[i].name, size: fl[i].size, uploaded_at: new Date().toISOString(), url: d.file?.url || d.url }]);
