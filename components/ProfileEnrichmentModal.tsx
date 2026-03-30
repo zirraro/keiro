@@ -10,8 +10,8 @@ interface ProfileEnrichmentModalProps {
 
 export function shouldShowEnrichmentModal(profile: any): boolean {
   if (!profile) return false;
-  // Show until user has filled basic info (via popup, Clara, or dossier page)
-  const hasBasicInfo = profile.company_name || profile.business_description || profile.company_description;
+  // Show until user has filled ANY basic business info
+  const hasBasicInfo = profile.company_name || profile.business_description || profile.company_description || profile.business_type;
   return !hasBasicInfo;
 }
 
