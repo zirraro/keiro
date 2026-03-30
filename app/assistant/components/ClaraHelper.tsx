@@ -13,7 +13,7 @@ import { usePathname, useRouter } from 'next/navigation';
 const AGENT_SETUP_ORDER = [
   { id: 'content', name: 'Lena', icon: '\u2728', role: 'Experte Publication & Contenu', desc: 'Genere des posts, reels et stories optimises. Publie automatiquement sur Instagram, TikTok et LinkedIn selon ton calendrier.', benefit: '3x plus de contenu sans effort', connectUrl: '/api/auth/instagram-oauth', connectLabel: 'Connecter Instagram', needsConnect: 'instagram' },
   { id: 'dm_instagram', name: 'Jade', icon: '\u{1F4AC}', role: 'Experte DM & Prospection Instagram', desc: 'Envoie des DMs personnalises a tes prospects, repond automatiquement et qualifie les leads. Tu es alerte quand un prospect est chaud.', benefit: '50 prospects contactes par jour', connectUrl: '/api/auth/instagram-oauth', connectLabel: 'Connecter Instagram', needsConnect: 'instagram' },
-  { id: 'email', name: 'Hugo', icon: '\u{1F4E7}', role: 'Expert Email Marketing', desc: 'Envoie des sequences email personnalisees, suit les ouvertures et clics, relance automatiquement. Pas besoin de connecter ta boite — Hugo utilise KeiroAI.', benefit: 'Sequences email 100% auto', connectUrl: null, connectLabel: null, needsConnect: null },
+  { id: 'email', name: 'Hugo', icon: '\u{1F4E7}', role: 'Expert Email Marketing', desc: 'Envoie des sequences email personnalisees a tes prospects, suit les ouvertures et clics. Hugo envoie depuis KeiroAI mais tu peux repondre directement depuis ton espace agent.', benefit: 'Sequences email 100% auto', connectUrl: null, connectLabel: null, needsConnect: null },
   { id: 'gmaps', name: 'Theo', icon: '\u2B50', role: 'Expert Avis Google & Reputation', desc: 'Repond a tous tes avis Google avec des reponses IA personnalisees. Ameliore ta note et ta visibilite locale.', benefit: 'Chaque avis repondu en 30 sec', connectUrl: '/api/auth/google-oauth', connectLabel: 'Connecter Google Business', needsConnect: 'google' },
   { id: 'commercial', name: 'Leo', icon: '\u{1F91D}', role: 'Assistant Prospection & CRM', desc: 'Prospecte sur Google Maps dans ta zone, qualifie les leads, gere ton pipeline commercial et relance automatiquement.', benefit: 'Pipeline commercial automatise', connectUrl: null, connectLabel: null, needsConnect: null },
   { id: 'seo', name: 'Oscar', icon: '\u{1F50D}', role: 'Expert SEO & Visibilite', desc: 'Analyse ton site, suit tes positions Google, identifie les opportunites de mots-cles et te donne des recommandations concretes.', benefit: 'Monte dans les resultats Google', connectUrl: null, connectLabel: null, needsConnect: null },
@@ -149,14 +149,17 @@ export default function ClaraHelper() {
     setCurrentWizardIndex(prev => prev + 1);
   }, []);
 
-  // Hide Clara when spotlight tour is active (check sessionStorage)
+  // Hide Clara when spotlight tour is active
   const [tourActive, setTourActive] = useState(false);
   useEffect(() => {
     const check = () => {
-      try { setTourActive(sessionStorage.getItem('keiro_wizard_agent') !== null || sessionStorage.getItem('keiro_tour_replay') !== null); } catch {}
+      try {
+        const running = sessionStorage.getItem('keiro_tour_running') === 'true';
+        setTourActive(running);
+      } catch {}
     };
     check();
-    const interval = setInterval(check, 1000);
+    const interval = setInterval(check, 500);
     return () => clearInterval(interval);
   }, []);
 

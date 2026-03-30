@@ -35,10 +35,12 @@ export default function SpotlightTour({ steps, active, onFinish }: SpotlightTour
   useEffect(() => {
     updatePosition();
     window.addEventListener('resize', updatePosition);
-    window.addEventListener('scroll', updatePosition);
+    window.addEventListener('scroll', updatePosition, true); // capture phase for nested scrolls
+    const interval = setInterval(updatePosition, 500); // periodic refresh
     return () => {
       window.removeEventListener('resize', updatePosition);
-      window.removeEventListener('scroll', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+      clearInterval(interval);
     };
   }, [updatePosition]);
 
@@ -62,6 +64,16 @@ export default function SpotlightTour({ steps, active, onFinish }: SpotlightTour
     setCurrentStep(0);
   }, [onFinish]);
 
+  // Signal to ClaraHelper that tour is running
+  useEffect(() => {
+    if (active) {
+      try { sessionStorage.setItem('keiro_tour_running', 'true'); } catch {}
+    }
+    return () => {
+      try { sessionStorage.removeItem('keiro_tour_running'); } catch {}
+    };
+  }, [active]);
+
   if (!active || steps.length === 0) return null;
 
   const step = steps[currentStep];
@@ -70,29 +82,37 @@ export default function SpotlightTour({ steps, active, onFinish }: SpotlightTour
   const isFirst = currentStep === 0;
   const isLast = currentStep === steps.length - 1;
 
-  // Tooltip positioning
-  let tooltipTop = '50%';
-  let tooltipLeft = '50%';
-  let tooltipTransform = 'translate(-50%, -50%)';
+  // Tooltip positioning — smart: try right side first, fallback to bottom
+  let tooltipStyle: React.CSSProperties = { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
 
   if (hasTarget) {
-    const pos = step.position || 'bottom';
-    if (pos === 'bottom') {
-      tooltipTop = `${targetRect.bottom + 16}px`;
-      tooltipLeft = `${Math.max(16, Math.min(window.innerWidth - 340, targetRect.left + targetRect.width / 2 - 160))}px`;
-      tooltipTransform = '';
-    } else if (pos === 'top') {
-      tooltipTop = `${targetRect.top - 16}px`;
-      tooltipLeft = `${Math.max(16, Math.min(window.innerWidth - 340, targetRect.left + targetRect.width / 2 - 160))}px`;
-      tooltipTransform = 'translateY(-100%)';
-    } else if (pos === 'right') {
-      tooltipTop = `${targetRect.top + targetRect.height / 2 - 50}px`;
-      tooltipLeft = `${targetRect.right + 16}px`;
-      tooltipTransform = '';
+    const vw = typeof window !== 'undefined' ? window.innerWidth : 1200;
+    const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
+    const rightSpace = vw - targetRect.right;
+    const bottomSpace = vh - targetRect.bottom;
+
+    if (vw >= 768 && rightSpace > 340) {
+      // Desktop: tooltip to the right of element
+      tooltipStyle = {
+        position: 'fixed',
+        top: `${Math.max(16, Math.min(vh - 250, targetRect.top))}px`,
+        left: `${targetRect.right + 16}px`,
+      };
+    } else if (bottomSpace > 200) {
+      // Below element
+      tooltipStyle = {
+        position: 'fixed',
+        top: `${targetRect.bottom + 12}px`,
+        left: `${Math.max(8, Math.min(vw - 328, targetRect.left))}px`,
+      };
     } else {
-      tooltipTop = `${targetRect.top + targetRect.height / 2 - 50}px`;
-      tooltipLeft = `${targetRect.left - 336}px`;
-      tooltipTransform = '';
+      // Above element
+      tooltipStyle = {
+        position: 'fixed',
+        top: `${Math.max(8, targetRect.top - 12)}px`,
+        left: `${Math.max(8, Math.min(vw - 328, targetRect.left))}px`,
+        transform: 'translateY(-100%)',
+      };
     }
   }
 
@@ -115,7 +135,7 @@ export default function SpotlightTour({ steps, active, onFinish }: SpotlightTour
             )}
           </mask>
         </defs>
-        <rect x="0" y="0" width="100%" height="100%" fill="rgba(0,0,0,0.3)" mask="url(#spot-mask)" />
+        <rect x="0" y="0" width="100%" height="100%" fill="rgba(0,0,0,0.1)" mask="url(#spot-mask)" />
       </svg>
 
       {/* Clear border around highlighted element */}
@@ -131,10 +151,10 @@ export default function SpotlightTour({ steps, active, onFinish }: SpotlightTour
         />
       )}
 
-      {/* Tooltip */}
+      {/* Tooltip — follows element */}
       <div
-        className="fixed z-[9999] bg-gray-900 border border-emerald-500/30 rounded-xl shadow-2xl p-4 w-80"
-        style={{ top: tooltipTop, left: tooltipLeft, transform: tooltipTransform }}
+        className="z-[9999] bg-gray-900 border border-emerald-500/30 rounded-xl shadow-2xl p-4 w-72 sm:w-80"
+        style={tooltipStyle}
         onClick={e => e.stopPropagation()}
       >
         {/* Close */}
