@@ -317,8 +317,8 @@ export default function AgentWorkspacePage() {
   useEffect(() => {
     import('@/lib/supabase/client').then(({ supabaseBrowser }) => {
       const sb = supabaseBrowser();
-      sb.auth.getSession().then(({ data }) => {
-        if (!data.session) setIsVisitor(true);
+      sb.auth.getSession().then(({ data }: any) => {
+        if (!data?.session) setIsVisitor(true);
       });
     }).catch(() => setIsVisitor(true));
   }, []);
