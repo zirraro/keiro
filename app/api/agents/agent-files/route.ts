@@ -25,8 +25,17 @@ async function extractTextFromFile(buffer: Buffer, ext: string): Promise<string 
     if (ext === 'docx' || ext === 'pptx') {
       // DOCX/PPTX are ZIP archives with XML inside
       const JSZip = (await import('jszip')).default;
-      const uint8 = new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength);
-      const zip = await JSZip.loadAsync(uint8);
+      // Robust buffer conversion — handles Buffer, ArrayBuffer, Uint8Array
+      let zipInput: Uint8Array;
+      if (buffer instanceof Uint8Array) {
+        zipInput = buffer;
+      } else if (Buffer.isBuffer(buffer)) {
+        zipInput = new Uint8Array(buffer);
+      } else {
+        zipInput = new Uint8Array(buffer as any);
+      }
+      console.log(`[agent-files] JSZip loading ${ext}, input type: ${typeof zipInput}, length: ${zipInput.length}, first4: ${Array.from(zipInput.slice(0, 4)).map(b => b.toString(16)).join('')}`);
+      const zip = await JSZip.loadAsync(zipInput);
 
       if (ext === 'docx') {
         // Try multiple XML paths (some DOCX have different structures)
@@ -77,8 +86,8 @@ async function extractTextFromFile(buffer: Buffer, ext: string): Promise<string 
 
     if (ext === 'xlsx' || ext === 'xls') {
       const JSZip = (await import('jszip')).default;
-      const uint8 = new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength);
-      const zip = await JSZip.loadAsync(uint8);
+      const zipInput = Buffer.isBuffer(buffer) ? new Uint8Array(buffer) : new Uint8Array(buffer as any);
+      const zip = await JSZip.loadAsync(zipInput);
       // Read shared strings
       const sharedStringsXml = await zip.file('xl/sharedStrings.xml')?.async('string');
       if (!sharedStringsXml) return null;

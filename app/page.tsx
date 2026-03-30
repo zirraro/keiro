@@ -775,94 +775,69 @@ function HomeKeiroInner() {
           <p className="mt-2 text-neutral-600">{t.home.beforeAfterSubtitle}</p>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-8 items-start">
-          {/* AVANT - Vraiment amateur */}
-          <div className="relative">
-            <div className="absolute -top-3 -left-3 bg-neutral-600 text-white px-4 py-1 rounded-full text-sm font-semibold shadow-lg z-10">
-              {t.home.beforeLabel}
-            </div>
-            <div className="rounded-2xl border-2 border-neutral-300 overflow-hidden bg-white">
-              {/* Selfie miroir super amateur */}
-              <div className="relative bg-neutral-200">
-                <img
-                  src="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?q=40&w=800&auto=format&fit=crop"
-                  alt="Selfie miroir salle de sport amateur"
-                  className="w-full aspect-square object-cover opacity-85 brightness-110"
-                />
-              </div>
-
-              {/* Caption Instagram fade */}
-              <div className="p-4 space-y-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-red-500"></div>
-                  <span className="text-sm font-semibold">coach_maxime</span>
-                </div>
-                <p className="text-sm text-neutral-600 whitespace-pre-line">
-                  {t.home.beforeCaption}
-                </p>
-                <div className="pt-2 border-t border-neutral-200">
-                  <p className="text-xs text-neutral-500">{t.home.beforeStats}</p>
-                </div>
-              </div>
-
-              {/* Résultat */}
-              <div className="bg-neutral-100 p-4 text-center border-t border-neutral-200">
-                <p className="text-sm font-semibold text-neutral-700">{t.home.beforeResult}</p>
-                <p className="text-xs text-neutral-500 mt-1">{t.home.beforeResultSub}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* APRÈS - Overlay simple et réaliste Keiro */}
-          <div className="relative">
-            <div className="absolute -top-3 -left-3 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white px-4 py-1 rounded-full text-sm font-semibold shadow-lg z-10">
-              {t.home.afterLabel}
-            </div>
-            <div className="rounded-2xl border-2 border-[#0c1a3a]/30 overflow-hidden bg-white shadow-2xl">
-              {/* Image pro avec overlay SIMPLE et RÉALISTE */}
+        {/* Visual before/after comparisons — multiple businesses */}
+        <div className="space-y-8">
+          {[
+            {
+              business: 'Restaurant',
+              account: '@bistro_parisien',
+              before: { img: 'https://images.unsplash.com/photo-1476224203421-9ac39bcb3327?q=30&w=400&fit=crop', caption: 'Venez manger chez nous ! Menu du jour a 14,90. #restaurant #food', likes: 12, comments: 1 },
+              after: { img: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=90&w=400&fit=crop', caption: 'Ce plat a fait craquer 847 personnes cette semaine. Notre chef revisite le classique boeuf bourguignon avec une touche japonaise...', hashtags: '#RestaurantParis #GastroTendance #FoodParis #ChefLife', likes: 847, comments: 43, saves: 89 },
+            },
+            {
+              business: 'Coiffeur',
+              account: '@salon_emma_lyon',
+              before: { img: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?q=30&w=400&fit=crop', caption: 'Nouvelle coupe pour ma cliente ! #coiffure #lyon', likes: 8, comments: 0 },
+              after: { img: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?q=90&w=400&fit=crop', caption: 'Cette coupe fait fureur sur TikTok — et on comprend pourquoi. Le butterfly cut version 2026, adapte a chaque visage...', hashtags: '#CoiffeurLyon #ButterflyCut #TendanceCoiffure #Balayage', likes: 1247, comments: 67, saves: 156 },
+            },
+          ].map((ex, idx) => (
+            <div key={idx} className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+              {/* AVANT */}
               <div className="relative">
-                <img
-                  src="https://images.unsplash.com/photo-1534258936925-c58bed479fcb?q=95&w=800&auto=format&fit=crop"
-                  alt={t.home.afterImageAlt}
-                  className="w-full aspect-square object-cover"
-                />
-                {/* Overlay Keiro - Style discret et professionnel */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center p-8">
-                  <div className="bg-black/70 backdrop-blur-sm px-8 py-4 rounded-xl">
-                    <h3 className="text-2xl md:text-3xl font-bold text-white text-center">
-                      {t.home.afterOverlay}
-                    </h3>
+                <div className="absolute -top-2 left-4 z-10 bg-red-500 text-white px-3 py-0.5 rounded-full text-xs font-bold shadow-lg">
+                  {'\u274C'} ChatGPT + Canva
+                </div>
+                <div className="rounded-xl border-2 border-red-200 dark:border-red-800/30 overflow-hidden bg-white dark:bg-white/5">
+                  <img src={ex.before.img} alt="" className="w-full aspect-[4/3] object-cover opacity-80 brightness-105 saturate-75" />
+                  <div className="p-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-6 h-6 rounded-full bg-neutral-300 dark:bg-white/10" />
+                      <span className="text-xs font-medium text-neutral-700 dark:text-white/60">{ex.account}</span>
+                    </div>
+                    <p className="text-xs text-neutral-500 dark:text-white/40">{ex.before.caption}</p>
+                    <div className="flex gap-3 mt-2 pt-2 border-t border-neutral-100 dark:border-white/5 text-[10px] text-neutral-400 dark:text-white/20">
+                      <span>{'\u2764\uFE0F'} {ex.before.likes}</span>
+                      <span>{'\u{1F4AC}'} {ex.before.comments}</span>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Caption Instagram optimisée par IA */}
-              <div className="p-4 space-y-3 bg-gradient-to-b from-white to-[#0c1a3a]/3">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#0c1a3a] to-[#1e3a5f] ring-2 ring-[#1e3a5f]/30"></div>
-                  <span className="text-sm font-semibold">coach_maxime</span>
-                  <span className="text-xs bg-neutral-100 text-neutral-800 px-2 py-0.5 rounded-full font-medium">{t.home.afterBadge}</span>
+              {/* APRES */}
+              <div className="relative">
+                <div className="absolute -top-2 left-4 z-10 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white px-3 py-0.5 rounded-full text-xs font-bold shadow-lg">
+                  {'\u2728'} KeiroAI
                 </div>
-                <p className="text-sm text-neutral-800 leading-relaxed whitespace-pre-line">
-                  <span className="font-bold text-[#0c1a3a]">{t.home.afterCaptionTitle}</span> 💪{'\n\n'}
-                  {t.home.afterCaptionBody}{'\n\n'}
-                  <span className="font-bold">{t.home.afterCaptionResult}</span>{'\n'}(ou remboursé){'\n\n'}
-                  {t.home.afterCaptionCta}{'\n'}
-                  <span className="text-xs text-neutral-600">{t.home.afterCaptionLimit}</span>
-                </p>
-                <p className="text-xs text-[#0c1a3a] font-medium">{t.home.afterHashtags}</p>
-                <div className="pt-2 border-t border-[#0c1a3a]/10">
-                  <p className="text-xs text-[#0c1a3a] font-bold">{t.home.afterStats}</p>
+                <div className="rounded-xl border-2 border-emerald-300 dark:border-emerald-700/30 overflow-hidden bg-white dark:bg-white/5 shadow-xl shadow-emerald-500/10">
+                  <img src={ex.after.img} alt="" className="w-full aspect-[4/3] object-cover" />
+                  <div className="p-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#0c1a3a] to-purple-600 ring-1 ring-purple-500/30" />
+                      <span className="text-xs font-semibold text-neutral-800 dark:text-white">{ex.account}</span>
+                      <span className="text-[9px] bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded-full font-medium">KeiroAI</span>
+                    </div>
+                    <p className="text-xs text-neutral-700 dark:text-white/70 leading-relaxed">{ex.after.caption}</p>
+                    <p className="text-[10px] text-blue-500 mt-1">{ex.after.hashtags}</p>
+                    <div className="flex gap-3 mt-2 pt-2 border-t border-emerald-100 dark:border-emerald-500/10 text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+                      <span>{'\u2764\uFE0F'} {ex.after.likes.toLocaleString()}</span>
+                      <span>{'\u{1F4AC}'} {ex.after.comments}</span>
+                      <span>{'\u{1F4E9}'} {ex.after.saves} saves</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-
-              {/* Résultat */}
-              <div className="bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] p-4 text-center border-t-2 border-cyan-400">
-                <p className="text-sm font-bold text-white">{t.home.afterResult}</p>
-                <p className="text-xs text-white/90 mt-1">{t.home.afterResultSub}</p>
               </div>
             </div>
-          </div>
+          ))}
         </div>
 
         {/* Exemples concrets par type de commerce */}

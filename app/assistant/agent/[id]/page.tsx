@@ -762,7 +762,7 @@ export default function AgentWorkspacePage() {
                       )}
                     </div>
                   ) : (
-                    <AgentDashboard agentId={agentId} agentName={dn} gradientFrom={gf} gradientTo={gt} data={{...(dashboardData?.data || dashboardData || {}), connections: dashboardData?.connections}} />
+                    <AgentDashboard agentId={agentId} agentName={dn} gradientFrom={gf} gradientTo={gt} data={{...(dashboardData?.data || {}), connections: dashboardData?.connections || {}}} />
                   )}
                 </div>
               )}

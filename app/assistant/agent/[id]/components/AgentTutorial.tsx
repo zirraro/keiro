@@ -22,7 +22,7 @@ const AGENT_TOURS: Record<string, TourStep[]> = {
   dm_instagram: [
     { target: 'auto-toggle', title: 'Mode DM', description: 'En AUTO, Jade prospecte et repond aux DMs pour toi. En MANUEL, tu valides chaque message avant envoi.', position: 'bottom' },
     { target: 'dm-stats', title: 'Ton pipeline', description: 'DMs envoyes → Reponses recues → RDV generes. Le bouton CRM ouvre ton pipeline de prospects complet.', position: 'bottom' },
-    { target: 'dm-conversations', title: 'Tes conversations', description: 'Toutes tes conversations DM Instagram s\'affichent ici. Clique sur un contact pour voir les messages et repondre directement depuis Keiro.', position: 'top' },
+    { target: 'dm-conversations', title: 'DMs et Commentaires', description: 'Switch entre DMs et Commentaires. Tes conversations DM apparaissent ici. Dans l\'onglet Commentaires, Jade repond automatiquement aux commentaires sur tes posts.', position: 'top' },
   ],
   email: [
     { target: 'auto-toggle', title: 'Mode email', description: 'En AUTO, Hugo envoie les sequences email a tes prospects. En MANUEL, tu valides chaque email avant envoi.', position: 'bottom' },
