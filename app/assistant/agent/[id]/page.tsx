@@ -981,9 +981,33 @@ export default function AgentWorkspacePage() {
               </div>
             </div>
 
-            {/* Settings fields — 2 columns on desktop */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {settingFields.map(field => (
+            {/* Settings fields — grouped by category with step indicators */}
+            {(() => {
+              // Group settings by category (inferred from field keys)
+              const groups: { title: string; icon: string; fields: typeof settingFields }[] = [];
+              const modeFields = settingFields.filter(f => ['mode', 'active', 'notifications', 'auto_publish', 'auto_reply'].includes(f.key));
+              const scheduleFields = settingFields.filter(f => f.key.includes('hour') || f.key.includes('per_day') || f.key.includes('frequency') || f.key.includes('max_per_day') || f.key.includes('max_dms'));
+              const styleFields = settingFields.filter(f => f.key.includes('tone') || f.key.includes('style') || f.key.includes('caption') || f.key.includes('format') || f.key.includes('hashtag') || f.key.includes('signature'));
+              const targetFields = settingFields.filter(f => f.key.includes('target') || f.key.includes('score') || f.key.includes('source') || f.key.includes('types') || f.key.includes('prospect'));
+              const autoFields = settingFields.filter(f => f.key.includes('auto_') && !['auto_publish', 'auto_reply'].includes(f.key) || f.key.includes('relance') || f.key.includes('handover') || f.key.includes('reactivation') || f.key.includes('stop_'));
+              const otherFields = settingFields.filter(f => !modeFields.includes(f) && !scheduleFields.includes(f) && !styleFields.includes(f) && !targetFields.includes(f) && !autoFields.includes(f));
+
+              if (modeFields.length) groups.push({ title: 'Mode & Controle', icon: '\u{1F3AE}', fields: modeFields });
+              if (scheduleFields.length) groups.push({ title: 'Frequence & Horaires', icon: '\u{1F552}', fields: scheduleFields });
+              if (styleFields.length) groups.push({ title: 'Style & Ton', icon: '\u{1F3A8}', fields: styleFields });
+              if (targetFields.length) groups.push({ title: 'Ciblage', icon: '\u{1F3AF}', fields: targetFields });
+              if (autoFields.length) groups.push({ title: 'Automatisation', icon: '\u{1F916}', fields: autoFields });
+              if (otherFields.length) groups.push({ title: 'Avance', icon: '\u2699\uFE0F', fields: otherFields });
+
+              return groups.map((group, gi) => (
+                <details key={gi} open={gi === 0} className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden mb-3">
+                  <summary className="flex items-center gap-2 px-4 py-3 cursor-pointer hover:bg-white/5 transition">
+                    <span>{group.icon}</span>
+                    <span className="text-xs font-bold text-white flex-1">{group.title}</span>
+                    <span className="text-[10px] text-white/30">{group.fields.length} options</span>
+                  </summary>
+                  <div className="px-4 pb-3 grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {group.fields.map((field: any) => (
                 <div key={field.key} className="rounded-xl bg-white/[0.04] border border-white/10 px-4 py-3">
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex-1 min-w-0">
@@ -1004,9 +1028,9 @@ export default function AgentWorkspacePage() {
                       <select
                         value={settings[field.key] || field.default}
                         onChange={e => setSettings(prev => ({ ...prev, [field.key]: e.target.value }))}
-                        className="bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-[11px] text-white/70 focus:outline-none focus:ring-1 focus:ring-purple-500/50 appearance-none flex-shrink-0 min-w-[140px]"
+                        className="bg-[#1a2744] border border-white/10 rounded-lg px-2.5 py-1.5 text-[11px] text-white/70 focus:outline-none focus:ring-1 focus:ring-purple-500/50 flex-shrink-0 min-w-[140px]"
                       >
-                        {field.options?.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                        {field.options?.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}
                       </select>
                     )}
 
@@ -1041,7 +1065,10 @@ export default function AgentWorkspacePage() {
                   </div>
                 </div>
               ))}
-            </div>
+                  </div>
+                </details>
+              ));
+            })()}
 
             {/* Customization section */}
             <div className="mt-6 rounded-xl border border-white/10 bg-white/[0.03] p-5">
