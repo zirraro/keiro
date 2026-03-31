@@ -356,13 +356,14 @@ export async function POST(req: NextRequest) {
           } catch {}
         }
 
-        if (text && text.length > 20) {
-          console.log(`[agent-files] Sending to AI for dossier extraction (${text.substring(0, 100)}...)`);
+        if (text && text.length > 5) {
+          console.log(`[agent-files] Sending to AI for dossier extraction (${text.length} chars: ${text.substring(0, 100)}...)`);
           extracted = await extractDossierFromText(text, file.name);
           console.log(`[agent-files] AI extraction result: ${extracted ? Object.keys(extracted).length + ' fields' : 'NULL'}`);
-        } else {
-          console.warn(`[agent-files] All text extraction failed for ${safeName}, trying vision`);
-          // Fallback 2: vision for images only (DOCX can't be sent as vision)
+        }
+        // Fallback 3: if AI couldn't extract anything useful, try vision (images only)
+        if (!extracted || Object.keys(extracted).length === 0) {
+          console.warn(`[agent-files] Text-based extraction yielded nothing for ${safeName}`);
           if (['png', 'jpg', 'jpeg'].includes(ext)) {
             extracted = await extractDossierFromVision(buffer, ext, file.name);
           }

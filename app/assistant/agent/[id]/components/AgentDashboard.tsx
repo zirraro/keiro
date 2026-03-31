@@ -137,6 +137,15 @@ function EmailConnectBanner({ connections }: { connections?: Record<string, bool
   const [gmailEmail, setGmailEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const handleDisconnect = useCallback(async () => {
+    if (typeof window !== 'undefined' && !window.confirm('Deconnecter Gmail ? Les emails partiront de contact@keiroai.com.')) return;
+    try {
+      await fetch('/api/agents/email/check-connection', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'disconnect_gmail' }) });
+      setGmailConnected(false);
+      setGmailEmail(null);
+    } catch {}
+  }, []);
+
   useEffect(() => {
     fetch('/api/agents/email/check-connection', { credentials: 'include' })
       .then(r => r.json())
@@ -149,15 +158,6 @@ function EmailConnectBanner({ connections }: { connections?: Record<string, bool
   }, []);
 
   if (loading) return null;
-
-  const handleDisconnect = useCallback(async () => {
-    if (!confirm('Deconnecter Gmail ? Les emails partiront de contact@keiroai.com.')) return;
-    try {
-      await fetch('/api/agents/email/check-connection', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'disconnect_gmail' }) });
-      setGmailConnected(false);
-      setGmailEmail(null);
-    } catch {}
-  }, []);
 
   if (gmailConnected) {
     return (

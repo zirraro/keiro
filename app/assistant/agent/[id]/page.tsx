@@ -27,7 +27,7 @@ interface AgentTask { id: string; type: string; description: string; status: str
 
 // ─── Agent settings config per role ─────────────────────────
 
-interface SettingField { key: string; label: string; type: 'toggle' | 'select' | 'time' | 'number' | 'text'; options?: { value: string; label: string }[]; default: any; description: string; }
+interface SettingField { key: string; label: string; type: 'toggle' | 'select' | 'time' | 'number' | 'text' | 'header'; options?: { value: string; label: string }[]; default: any; description: string; }
 
 function getAgentSettings(agentId: string): SettingField[] {
   const common: SettingField[] = [
@@ -59,24 +59,32 @@ function getAgentSettings(agentId: string): SettingField[] {
       { key: 'stop_on_negative', label: 'Stop si negatif', type: 'toggle', default: true, description: 'Arreter la sequence si le prospect repond negativement' },
     ],
     content: [
-      // Volume
-      { key: 'posts_per_day_ig', label: 'Posts Instagram/jour', type: 'number', default: 3, description: 'Nombre de publications Instagram par jour' },
-      { key: 'posts_per_day_tt', label: 'Posts TikTok/jour', type: 'number', default: 3, description: 'Nombre de publications TikTok par jour' },
-      { key: 'posts_per_day_li', label: 'Posts LinkedIn/jour', type: 'number', default: 3, description: 'Nombre de publications LinkedIn par jour' },
-      // Horaires
-      { key: 'publish_hour_1', label: 'Publication matin', type: 'time', default: '09:00', description: '1er creneau de publication' },
-      { key: 'publish_hour_2', label: 'Publication midi', type: 'time', default: '13:30', description: '2eme creneau de publication' },
-      { key: 'publish_hour_3', label: 'Publication soir', type: 'time', default: '18:00', description: '3eme creneau de publication' },
-      // Style
+      // ── Instagram ──
+      { key: '_header_ig', label: '\u{1F4F8} Instagram', type: 'header', default: '', description: '' },
+      { key: 'posts_per_day_ig', label: 'Posts/jour', type: 'number', default: 3, description: 'Publications Instagram par jour' },
+      { key: 'formats_ig', label: 'Formats preferes', type: 'select', options: [{ value: 'all', label: 'Tous (posts, reels, stories, carrousels)' }, { value: 'reels', label: 'Reels/Videos' }, { value: 'stories', label: 'Stories' }, { value: 'carousel', label: 'Carrousels' }, { value: 'static', label: 'Photos' }], default: 'all', description: 'Types de contenu Instagram' },
+      { key: 'stories_enabled', label: 'Stories', type: 'toggle', default: true, description: 'Publier des stories pour plus de visibilite' },
+      { key: 'use_hashtags', label: 'Hashtags', type: 'toggle', default: true, description: 'Ajouter des hashtags pertinents' },
+      { key: 'max_hashtags', label: 'Max hashtags', type: 'number', default: 15, description: 'Nombre max par post' },
+      // ── TikTok ──
+      { key: '_header_tt', label: '\u{1F3B5} TikTok', type: 'header', default: '', description: '' },
+      { key: 'posts_per_day_tt', label: 'Videos/jour', type: 'number', default: 1, description: 'Videos TikTok par jour' },
+      { key: 'formats_tt', label: 'Style video', type: 'select', options: [{ value: 'all', label: 'Mix (face cam + montage)' }, { value: 'facecam', label: 'Face camera' }, { value: 'montage', label: 'Montage/B-roll' }, { value: 'slideshow', label: 'Slideshow' }], default: 'all', description: 'Type de videos TikTok' },
+      { key: 'tt_trend_surfing', label: 'Surf tendances TikTok', type: 'toggle', default: true, description: 'Surfer sur les sons et trends du moment' },
+      // ── LinkedIn ──
+      { key: '_header_li', label: '\u{1F4BC} LinkedIn', type: 'header', default: '', description: '' },
+      { key: 'posts_per_day_li', label: 'Posts/jour', type: 'number', default: 2, description: 'Publications LinkedIn par jour' },
+      { key: 'formats_li', label: 'Format prefere', type: 'select', options: [{ value: 'all', label: 'Mix (texte + image)' }, { value: 'text', label: 'Texte seul (thought leadership)' }, { value: 'image', label: 'Image + texte' }, { value: 'carousel', label: 'Carrousel PDF' }], default: 'all', description: 'Type de posts LinkedIn' },
+      { key: 'li_tone', label: 'Ton LinkedIn', type: 'select', options: [{ value: 'professional', label: 'Professionnel' }, { value: 'casual_pro', label: 'Pro decontracte' }, { value: 'expert', label: 'Expert/Thought leader' }, { value: 'storytelling', label: 'Storytelling' }], default: 'casual_pro', description: 'Style d\'ecriture LinkedIn' },
+      // ── Global ──
+      { key: '_header_global', label: '\u2699\uFE0F General', type: 'header', default: '', description: '' },
+      { key: 'publish_hour_1', label: 'Creneau matin', type: 'time', default: '09:00', description: '1er creneau de publication' },
+      { key: 'publish_hour_2', label: 'Creneau midi', type: 'time', default: '13:30', description: '2eme creneau' },
+      { key: 'publish_hour_3', label: 'Creneau soir', type: 'time', default: '18:00', description: '3eme creneau' },
       { key: 'auto_publish', label: 'Publication auto', type: 'toggle', default: true, description: 'Publier sans validation manuelle' },
-      { key: 'visual_style', label: 'Style visuel', type: 'select', options: [{ value: 'brand', label: 'DA de marque' }, { value: 'modern', label: 'Moderne/Tech' }, { value: 'warm', label: 'Chaleureux/Artisanal' }, { value: 'minimal', label: 'Minimaliste' }, { value: 'bold', label: 'Bold/Colore' }], default: 'brand', description: 'Direction artistique des visuels' },
-      { key: 'caption_style', label: 'Style des legendes', type: 'select', options: [{ value: 'short', label: 'Court (1-2 lignes)' }, { value: 'medium', label: 'Moyen (3-5 lignes)' }, { value: 'long', label: 'Long (storytelling)' }], default: 'medium', description: 'Longueur des legendes' },
-      { key: 'use_hashtags', label: 'Hashtags', type: 'toggle', default: true, description: 'Ajouter automatiquement des hashtags pertinents' },
-      { key: 'max_hashtags', label: 'Nombre max hashtags', type: 'number', default: 15, description: 'Nombre maximum de hashtags par post' },
-      // Formats
-      { key: 'formats', label: 'Formats preferes', type: 'select', options: [{ value: 'all', label: 'Tous (posts, reels, stories, carrousels)' }, { value: 'reels', label: 'Reels/Videos prioritaire' }, { value: 'stories', label: 'Stories prioritaire' }, { value: 'carousel', label: 'Carrousels prioritaire' }, { value: 'static', label: 'Images statiques' }], default: 'all', description: 'Types de contenu a privilegier' },
-      { key: 'stories_enabled', label: 'Stories Instagram', type: 'toggle', default: true, description: 'Publier des stories pour plus de visibilite (recommande)' },
-      { key: 'trend_surfing', label: 'Surf tendances', type: 'toggle', default: true, description: 'Creer du contenu base sur les tendances du moment' },
+      { key: 'visual_style', label: 'Style visuel global', type: 'select', options: [{ value: 'brand', label: 'DA de marque' }, { value: 'modern', label: 'Moderne/Tech' }, { value: 'warm', label: 'Chaleureux/Artisanal' }, { value: 'minimal', label: 'Minimaliste' }, { value: 'bold', label: 'Bold/Colore' }], default: 'brand', description: 'Direction artistique des visuels (toutes plateformes)' },
+      { key: 'caption_style', label: 'Style legendes', type: 'select', options: [{ value: 'short', label: 'Court' }, { value: 'medium', label: 'Moyen' }, { value: 'long', label: 'Long (storytelling)' }], default: 'medium', description: 'Longueur des legendes' },
+      { key: 'trend_surfing', label: 'Surf tendances global', type: 'toggle', default: true, description: 'Contenu base sur les tendances du moment' },
     ],
     dm_instagram: [
       { key: 'max_dms_day', label: 'Max DMs/jour', type: 'number', default: 50, description: 'Limite de DMs prepares par jour' },
@@ -402,11 +410,13 @@ export default function AgentWorkspacePage() {
 
       // Show success message in chat
       const network = justConnected === 'instagram' ? 'Instagram' : justConnected === 'google' ? 'Google Business' : justConnected === 'gmail' ? 'Gmail' : justConnected;
+      const contentMsg = agentId === 'content' ? 'Tu peux maintenant lancer une publication ou laisser Lena creer du contenu automatiquement !' : '';
+      const dmMsg = agentId === 'dm_instagram' ? 'Tes conversations DM vont apparaitre ici. Jade prospecte automatiquement pour toi !' : '';
       const gmailMsg = justConnected === 'gmail' ? 'Tes emails de prospection partiront maintenant de ton propre Gmail. Meilleur taux d\'ouverture garanti !' : '';
       setMessages(prev => [...prev, {
         id: `connected_${Date.now()}`,
         role: 'assistant',
-        content: `\u2705 ${network} connecte avec succes ! ${gmailMsg || (agentId === 'content' ? 'Je prepare ton premier post...' : agentId === 'dm_instagram' ? 'Tes conversations DM vont apparaitre ici.' : 'L\'agent est pret a travailler pour toi.')}`,
+        content: `\u2705 ${network} connecte avec succes ! ${gmailMsg || contentMsg || dmMsg || 'L\'agent est pret a travailler pour toi.'}`,
         created_at: new Date().toISOString(),
       }]);
       setChatOpen(true);
@@ -516,9 +526,9 @@ export default function AgentWorkspacePage() {
       });
   }, [agentId]);
 
-  // ─── Save settings to SERVER + localStorage ───────────
+  // ─── Auto-save settings with debounce (1.5s after last change) ───────
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const handleSaveSettings = useCallback(async () => {
-    // Save to server (org_agent_configs — source of truth)
     try {
       await fetch('/api/agents/settings', {
         method: 'POST',
@@ -527,11 +537,19 @@ export default function AgentWorkspacePage() {
         body: JSON.stringify({ agent_id: agentId, ...settings }),
       });
     } catch {}
-    // Also cache in localStorage for fast load
     try { localStorage.setItem(`keiro_agent_settings_${agentId}`, JSON.stringify(settings)); } catch {}
     setSettingsSaved(true);
     setTimeout(() => setSettingsSaved(false), 2000);
   }, [agentId, settings]);
+
+  // Auto-save when settings change (debounced)
+  const settingsInitRef = useRef(false);
+  useEffect(() => {
+    if (!settingsInitRef.current) { settingsInitRef.current = true; return; } // Skip initial load
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(() => { handleSaveSettings(); }, 1500);
+    return () => { if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current); };
+  }, [settings, handleSaveSettings]);
 
   // ─── Chat handlers ───────────────────────────────────
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, isLoading]);
@@ -641,7 +659,7 @@ export default function AgentWorkspacePage() {
             setMessages(prev => [...prev, {
               id: `file_${Date.now()}`,
               role: 'assistant',
-              content: `J'ai bien recu ton fichier "${fl[i].name}". Je n'ai pas pu en extraire d'infos pour ton profil — tu peux me les donner directement dans le chat !`,
+              content: `J'ai bien recu ton fichier "${fl[i].name}" et je l'ai sauvegarde. L'extraction automatique n'a pas detecte d'infos business exploitables — essaie de me decrire ton activite directement ici et je remplis ton profil instantanement ! (ex: "Je suis un restaurant italien a Lyon, ma cible c'est les 25-40 ans...")`,
               created_at: new Date().toISOString(),
             }]);
             setChatOpen(true);
@@ -1078,16 +1096,9 @@ export default function AgentWorkspacePage() {
                 <h3 className="text-white font-bold text-sm">{'\u2699\uFE0F'} Parametrage de {dn}</h3>
                 <p className="text-white/40 text-xs mt-0.5">Configurez le comportement de l&apos;agent selon vos besoins</p>
               </div>
-              <button
-                onClick={handleSaveSettings}
-                className={`px-4 py-2 text-xs font-semibold rounded-xl transition-all ${
-                  settingsSaved
-                    ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                    : 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg'
-                }`}
-              >
-                {settingsSaved ? '\u2713 Sauvegarde !' : 'Sauvegarder'}
-              </button>
+              {settingsSaved && (
+                <span className="text-[10px] text-emerald-400 animate-in fade-in duration-300">{'\u2713'} Sauvegarde auto</span>
+              )}
             </div>
 
             {/* Recommended badge */}
@@ -1126,6 +1137,12 @@ export default function AgentWorkspacePage() {
                   </summary>
                   <div className="px-4 pb-3 grid grid-cols-1 md:grid-cols-2 gap-2">
                     {group.fields.map((field: any) => (
+                field.type === 'header' ? (
+                  <div key={field.key} className="col-span-full mt-2 mb-0.5 flex items-center gap-2">
+                    <span className="text-sm font-bold text-white">{field.label}</span>
+                    <div className="flex-1 h-px bg-white/10" />
+                  </div>
+                ) : (
                 <div key={field.key} className="rounded-xl bg-white/[0.04] border border-white/10 px-4 py-3">
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex-1 min-w-0">
@@ -1182,7 +1199,7 @@ export default function AgentWorkspacePage() {
                     )}
                   </div>
                 </div>
-              ))}
+              )))}
                   </div>
                 </details>
               ));
