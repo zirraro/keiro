@@ -1942,11 +1942,15 @@ function ContentPanel({
           gradientTo="#6d28d9"
         />
       )}
-      {stats.postsGenerated === 0 && (data as any).connections?.instagram && (
-        <div className="rounded-xl border border-emerald-500/20 bg-emerald-900/10 p-4 mb-3 text-center">
-          <span className="text-lg">{'\u2705'}</span>
-          <p className="text-xs text-emerald-400 font-bold mt-1">Instagram connecte !</p>
-          <p className="text-[10px] text-white/50 mt-1">Lena prepare ton premier post... Il apparaitra ici dans quelques instants.</p>
+      {(data as any).connections?.instagram && (
+        <div className="flex items-center gap-2 mb-3" data-tour="launch-campaign">
+          <button
+            onClick={() => { try { (window as any).__openCampaignWizard?.(); } catch {} }}
+            className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-bold rounded-xl hover:shadow-lg hover:shadow-emerald-500/20 transition-all min-h-[44px] flex items-center gap-2"
+          >
+            <span>{'\u26A1'}</span> Lancer une campagne
+          </button>
+          <span className="text-[9px] text-emerald-400/50">{'\u2713'} Instagram connecte</span>
         </div>
       )}
       <ContentWorkflow />

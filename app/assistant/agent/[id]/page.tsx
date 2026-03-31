@@ -271,6 +271,12 @@ export default function AgentWorkspacePage() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'planning' | 'history' | 'campaigns' | 'settings' | 'profile'>('dashboard');
   const [showCampaignWizard, setShowCampaignWizard] = useState(false);
 
+  // Expose campaign wizard opener for child components
+  useEffect(() => {
+    (window as any).__openCampaignWizard = () => setShowCampaignWizard(true);
+    return () => { delete (window as any).__openCampaignWizard; };
+  }, []);
+
   // Chat (slide-over)
   const [chatOpen, setChatOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -708,6 +714,10 @@ export default function AgentWorkspacePage() {
         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center pointer-events-none" style={{ top: 64 }}>
           <div className="absolute inset-0 backdrop-blur-[2px] bg-black/10" />
           <div className="relative pointer-events-auto bg-gray-900/95 backdrop-blur-xl border border-purple-500/20 rounded-t-2xl sm:rounded-2xl shadow-2xl p-5 sm:p-6 w-full sm:max-w-md mx-4 mb-0 sm:mb-0 text-center">
+            {/* Close button */}
+            <button onClick={() => window.location.href = '/assistant'} className="absolute top-3 right-3 text-white/20 hover:text-white/50 transition p-2 min-h-[44px] min-w-[44px] flex items-center justify-center">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
             <div className="text-3xl mb-3">{'\u{1F512}'}</div>
             <h3 className="text-lg font-bold text-white mb-1">Decouvre tes agents IA</h3>
             <p className="text-xs text-white/50 mb-4">Cree ton compte gratuit pour acceder a l&apos;espace complet de tes 18 agents IA et automatiser ton business.</p>
@@ -815,16 +825,7 @@ export default function AgentWorkspacePage() {
         {activeTab === 'dashboard' && (
           <div>
             <div className="space-y-4 min-w-0">
-              {/* Launch campaign button — always visible */}
-              <div data-tour="launch-campaign" className="flex items-center gap-2">
-                <button
-                  onClick={() => setShowCampaignWizard(true)}
-                  className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-bold rounded-xl hover:shadow-lg hover:shadow-emerald-500/20 transition-all min-h-[44px] flex items-center gap-2"
-                >
-                  <span>{'\u26A1'}</span> Lancer une campagne
-                </button>
-                <span className="text-[9px] text-white/25">Configure et active {dn} en 30 secondes</span>
-              </div>
+              {/* Launch campaign button removed from here — moved to inside agent panels */}
 
               {hasDashboard && (
                 <div className="rounded-2xl border border-white/10 bg-white/[0.02] overflow-hidden">

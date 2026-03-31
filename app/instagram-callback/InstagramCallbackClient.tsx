@@ -77,15 +77,26 @@ function InstagramCallbackContent() {
           setMessage('Compte Instagram connecté avec succès !');
 
           // Restore Supabase session before redirecting
-          // This prevents the user from being logged out after Instagram OAuth redirect
+          // Instagram OAuth redirect can lose the session cookie — try multiple recovery methods
           try {
             const sb = supabaseBrowser();
-            await sb.auth.refreshSession();
-            const { data: { session: currentSession } } = await sb.auth.getSession();
-            if (!currentSession) {
-              console.warn('[InstagramCallback] Session lost after OAuth, user may need to re-login');
+            // Try refresh first
+            const { data: refreshData } = await sb.auth.refreshSession();
+            if (!refreshData.session) {
+              // Try getting existing session
+              const { data: { session: existingSession } } = await sb.auth.getSession();
+              if (!existingSession) {
+                console.warn('[InstagramCallback] Session lost — redirecting via login to restore');
+                // Redirect to login with return URL so user gets back to the agent page
+                const loginUrl = `/login?returnTo=${encodeURIComponent(returnTo + (returnTo.includes('?') ? '&' : '?') + 'just_connected=instagram')}`;
+                setTimeout(() => { window.location.href = loginUrl; }, 1500);
+                return;
+              }
             }
-          } catch {}
+            console.log('[InstagramCallback] Session restored OK');
+          } catch (sessionErr) {
+            console.warn('[InstagramCallback] Session restore failed:', sessionErr);
+          }
 
           // Redirect back with just_connected flag
           const separator = returnTo.includes('?') ? '&' : '?';
