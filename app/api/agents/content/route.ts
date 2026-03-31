@@ -2882,6 +2882,14 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
   if (slotType === 'tiktok' && postsPerDayTT < 1) {
     return NextResponse.json({ ok: true, skipped: true, reason: 'Client disabled TikTok' });
   }
+  // Skip TikTok generation entirely if no token (avoids wasting AI credits on unpublishable content)
+  if (slotType === 'tiktok') {
+    const { data: ttProfile } = await supabase.from('profiles').select('tiktok_access_token').eq(userId ? 'id' : 'is_admin', userId || true).single();
+    if (!ttProfile?.tiktok_access_token) {
+      console.log(`[Content] Skipping TikTok generation — no token for ${userId || 'admin'}`);
+      return NextResponse.json({ ok: true, skipped: true, reason: 'TikTok not connected' });
+    }
+  }
 
   const activeSchedule = slotType === 'tiktok' ? tiktokSchedule : slotType === 'evening' ? eveningSchedule : slotType === 'midday' ? middaySchedule : slotType === 'linkedin_1' ? linkedinSchedule1 : slotType === 'linkedin_2' ? linkedinSchedule2 : morningSchedule;
   const schedule = activeSchedule[dayOfWeek] || morningSchedule[1];
