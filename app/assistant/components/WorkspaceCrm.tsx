@@ -819,30 +819,76 @@ export default function WorkspaceCrm({ isAdmin }: { isAdmin: boolean }) {
     } catch { alert('Erreur lors de l\'export'); }
   }, []);
 
-  // ─── Import Excel/CSV ────
+  // ─── Import Excel/CSV (dynamic columns) ────
+  const [importing, setImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState({ current: 0, total: 0 });
+
   const importFromExcel = useCallback(async (file: File) => {
+    setImporting(true);
+    setImportProgress({ current: 0, total: 0 });
     try {
       const XLSX = await import('xlsx');
       const data = await file.arrayBuffer();
       const wb = XLSX.read(data);
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json<any>(ws);
+      setImportProgress({ current: 0, total: rows.length });
+
+      // Dynamic column mapping — match any variation of column names
+      const COLUMN_MAP: Record<string, string> = {
+        // Name
+        'nom': 'first_name', 'name': 'first_name', 'prenom': 'first_name', 'first_name': 'first_name', 'prénom': 'first_name',
+        'nom de famille': 'last_name', 'last_name': 'last_name', 'famille': 'last_name',
+        // Contact
+        'email': 'email', 'e-mail': 'email', 'mail': 'email', 'courriel': 'email',
+        'telephone': 'phone', 'phone': 'phone', 'tel': 'phone', 'téléphone': 'phone', 'mobile': 'phone',
+        // Company
+        'entreprise': 'company', 'company': 'company', 'societe': 'company', 'société': 'company', 'nom_entreprise': 'company', 'raison_sociale': 'company',
+        'type': 'type', 'secteur': 'type', 'activite': 'type', 'activité': 'type', 'categorie': 'type',
+        // Location
+        'ville': 'quartier', 'city': 'quartier', 'quartier': 'quartier', 'zone': 'quartier', 'adresse': 'quartier',
+        // Social
+        'instagram': 'instagram', 'ig': 'instagram', '@instagram': 'instagram',
+        'linkedin': 'linkedin_url', 'tiktok': 'tiktok_handle', 'site': 'website', 'website': 'website', 'site_web': 'website',
+        // CRM
+        'source': 'source', 'origine': 'source', 'canal': 'source',
+        'notes': 'notes', 'commentaires': 'notes', 'remarques': 'notes', 'description': 'notes',
+        'statut': 'status', 'status': 'status', 'etat': 'status',
+        'score': 'score', 'note': 'note_google', 'note_google': 'note_google', 'avis': 'avis_google',
+        'temperature': 'temperature', 'priorite': 'priorite', 'priority': 'priorite',
+      };
 
       let imported = 0;
-      for (const row of rows) {
-        const prospect: any = {};
-        if (row['Nom'] || row['first_name'] || row['nom']) {
-          const nameParts = (row['Nom'] || row['nom'] || '').split(' ');
-          prospect.first_name = row['first_name'] || row['prenom'] || row['Prenom'] || nameParts[0] || '';
-          prospect.last_name = row['last_name'] || nameParts.slice(1).join(' ') || '';
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const prospect: any = { source: 'import' };
+        const extraNotes: string[] = [];
+
+        for (const [colName, value] of Object.entries(row)) {
+          if (!value || String(value).trim() === '') continue;
+          const normalized = colName.toLowerCase().trim().replace(/[éè]/g, 'e').replace(/[àâ]/g, 'a');
+          const mappedField = COLUMN_MAP[normalized];
+          if (mappedField) {
+            prospect[mappedField] = String(value).trim();
+          } else {
+            // Unknown column → add to notes
+            extraNotes.push(`${colName}: ${String(value).trim()}`);
+          }
         }
-        prospect.email = row['Email'] || row['email'] || row['E-mail'] || '';
-        prospect.phone = row['Telephone'] || row['phone'] || row['Tel'] || row['tel'] || '';
-        prospect.company = row['Entreprise'] || row['company'] || row['societe'] || row['Societe'] || '';
-        prospect.type = row['Type'] || row['type'] || '';
-        prospect.source = row['Source'] || row['source'] || 'import';
-        prospect.notes = row['Notes'] || row['notes'] || '';
-        prospect.instagram = row['Instagram'] || row['instagram'] || row['ig'] || '';
+
+        // Handle combined name field
+        if (prospect.first_name && !prospect.last_name) {
+          const parts = prospect.first_name.split(' ');
+          if (parts.length > 1) {
+            prospect.first_name = parts[0];
+            prospect.last_name = parts.slice(1).join(' ');
+          }
+        }
+
+        // Append extra data to notes
+        if (extraNotes.length > 0) {
+          prospect.notes = [prospect.notes, ...extraNotes].filter(Boolean).join(' | ');
+        }
 
         if (prospect.first_name || prospect.email || prospect.company) {
           await fetch('/api/crm', {
@@ -852,10 +898,15 @@ export default function WorkspaceCrm({ isAdmin }: { isAdmin: boolean }) {
           });
           imported++;
         }
+        setImportProgress({ current: i + 1, total: rows.length });
       }
-      alert(`${imported} prospect(s) importes avec succes`);
+      setImporting(false);
+      alert(`${imported}/${rows.length} prospect(s) importes avec succes`);
       window.location.reload();
-    } catch { alert('Erreur lors de l\'import. Verifiez le format du fichier.'); }
+    } catch (e: any) {
+      setImporting(false);
+      alert('Erreur lors de l\'import: ' + (e.message || 'Verifiez le format du fichier.'));
+    }
   }, []);
 
   // ─── Fetch ────
@@ -1086,8 +1137,8 @@ export default function WorkspaceCrm({ isAdmin }: { isAdmin: boolean }) {
           </button>
           <label title="Importer Excel/CSV"
             className="text-neutral-400 hover:text-blue-500 text-xs px-2 py-2 rounded-xl border border-neutral-200 hover:border-blue-300 transition cursor-pointer">
-            📤 Import
-            <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={e => { if (e.target.files?.[0]) importFromExcel(e.target.files[0]); e.target.value = ''; }} />
+            {importing ? `${importProgress.current}/${importProgress.total}...` : '\u{1F4E4} Import'}
+            <input type="file" accept=".xlsx,.xls,.csv" className="hidden" disabled={importing} onChange={e => { if (e.target.files?.[0]) importFromExcel(e.target.files[0]); e.target.value = ''; }} />
           </label>
         </div>
       </div>
