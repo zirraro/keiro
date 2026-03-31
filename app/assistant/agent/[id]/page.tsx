@@ -416,6 +416,9 @@ export default function AgentWorkspacePage() {
       // Clean URL
       window.history.replaceState({}, '', window.location.pathname);
 
+      // Force dashboard reload to pick up new connection
+      setDashboardData(null);
+
       // Show success message in chat
       const network = justConnected === 'instagram' ? 'Instagram' : justConnected === 'google' ? 'Google Business' : justConnected === 'gmail' ? 'Gmail' : justConnected;
       const contentMsg = agentId === 'content' ? 'Tu peux maintenant lancer une publication ou laisser Lena creer du contenu automatiquement !' : '';
