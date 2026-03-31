@@ -795,7 +795,18 @@ export default function AgentWorkspacePage() {
             agentId={agentId}
             agentName={dn}
             onClose={() => setShowCampaignWizard(false)}
-            onActivated={() => { setDashboardData(null); }}
+            onActivated={() => {
+              // Force reload dashboard + settings
+              setDashboardData(null);
+              // Reload settings from server (wizard just saved them)
+              const fields = getAgentSettings(agentId);
+              const defaults: Record<string, any> = {};
+              fields.forEach((f: any) => { defaults[f.key] = f.default; });
+              fetch(`/api/agents/settings?agent_id=${agentId}`, { credentials: 'include' })
+                .then(r => r.json())
+                .then(d => { if (d.settings) setSettings({ ...defaults, ...d.settings }); })
+                .catch(() => {});
+            }}
           />
         )}
 
