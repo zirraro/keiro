@@ -265,7 +265,7 @@ export default function CampaignWizard({ agentId, agentName, onClose, onActivate
         {/* Navigation */}
         <div className="px-5 pb-4 flex items-center justify-between gap-3">
           {step > 0 ? (
-            <button onClick={() => setStep(s => s - 1)} className="px-4 py-2 text-xs text-white/40 hover:text-white/70 transition min-h-[40px]">
+            <button onClick={() => setStep(s => s - 1)} className="px-4 py-2 text-xs text-white/40 hover:text-white/70 transition min-h-[44px]">
               {'\u2190'} Retour
             </button>
           ) : <div />}
@@ -274,14 +274,14 @@ export default function CampaignWizard({ agentId, agentName, onClose, onActivate
             <button
               onClick={handleActivate}
               disabled={saving}
-              className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-bold rounded-xl hover:shadow-lg transition min-h-[40px] disabled:opacity-50"
+              className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-bold rounded-xl hover:shadow-lg transition min-h-[44px] disabled:opacity-50"
             >
               {saving ? 'Activation...' : `\u{26A1} Activer ${agentName}`}
             </button>
           ) : (
             <button
               onClick={() => setStep(s => s + 1)}
-              className="px-6 py-2.5 bg-purple-600 text-white text-xs font-bold rounded-xl hover:bg-purple-500 transition min-h-[40px]"
+              className="px-6 py-2.5 bg-purple-600 text-white text-xs font-bold rounded-xl hover:bg-purple-500 transition min-h-[44px]"
             >
               Suivant {'\u2192'}
             </button>

@@ -1170,7 +1170,7 @@ function MarketingPanel({
 
         {/* Commercial bloc */}
         <SectionTitle>Commercial</SectionTitle>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <KpiCard label="Leads semaine" value={fmt(gs.commercial.leadsWeek)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
           <KpiCard label="Conversions" value={fmt(gs.commercial.conversions)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
           <KpiCard label="CA estime" value={fmtCurrency(gs.commercial.estimatedRevenue)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
@@ -1209,7 +1209,7 @@ function MarketingPanel({
 
         {/* Visibilite bloc */}
         <SectionTitle>Visibilite</SectionTitle>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <KpiCard label="Trafic" value={fmt(gs.visibility.traffic)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
           <KpiCard label="Followers" value={fmt(gs.visibility.followers)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
           <KpiCard label="Note Google" value={`${(gs.visibility.googleRating || 0).toLocaleString('fr-FR', { maximumFractionDigits: 1 })}/5`} gradientFrom={gradientFrom} gradientTo={gradientTo} />
@@ -1226,7 +1226,7 @@ function MarketingPanel({
 
         {/* Finance bloc */}
         <SectionTitle>Finance</SectionTitle>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <KpiCard label="Budget pub" value={fmtCurrency(gs.finance.adBudget)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
           <KpiCard label="ROAS" value={`${(gs.finance.roas || 0).toLocaleString('fr-FR', { maximumFractionDigits: 1 })}x`} gradientFrom={gradientFrom} gradientTo={gradientTo} />
           <KpiCard label="Prevision tresorerie" value={fmtCurrency(gs.finance.forecast)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
@@ -1531,7 +1531,7 @@ function CampaignCreator() {
       {step === 0 && (
         <div className="space-y-2">
           <label className="text-[10px] text-white/50">Cible</label>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             {[
               { key: 'all_prospects', label: 'Tous', icon: '\u{1F465}' },
               { key: 'hot', label: 'Prospects chauds', icon: '\u{1F525}' },
@@ -1613,11 +1613,11 @@ function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: str
     return acc;
   }, {});
 
-  const prospectList = Object.entries(byProspect).map(([key, msgs]) => {
-    const latest = msgs[0];
+  const prospectList = Object.entries(byProspect).filter(([, msgs]) => msgs.length > 0).map(([key, msgs]) => {
+    const latest = msgs[0] || {};
     const hasIncoming = msgs.some((m: any) => m.direction === 'incoming');
-    return { key, name: latest.prospect || key, email: latest.email, msgs, latest, hasIncoming, prospect_id: latest.prospect_id };
-  }).sort((a, b) => new Date(b.latest.date).getTime() - new Date(a.latest.date).getTime());
+    return { key, name: latest.prospect || key, email: latest.email || '', msgs, latest, hasIncoming, prospect_id: latest.prospect_id || '' };
+  }).sort((a, b) => new Date(b.latest?.date || 0).getTime() - new Date(a.latest?.date || 0).getTime());
 
   const loadThread = useCallback(async (prospectId: string) => {
     if (!prospectId) return;
@@ -1674,11 +1674,11 @@ function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: str
     acc[key].push(e);
     return acc;
   }, {});
-  const reProspectList = Object.entries(reByProspect).map(([key, msgs]) => {
-    const latest = msgs[0];
+  const reProspectList = Object.entries(reByProspect).filter(([, msgs]) => msgs.length > 0).map(([key, msgs]) => {
+    const latest = msgs[0] || {};
     const hasIncoming = msgs.some((m: any) => m.direction === 'incoming');
-    return { key, name: latest.prospect || key, email: latest.email, msgs, latest, hasIncoming, prospect_id: latest.prospect_id };
-  }).sort((a, b) => new Date(b.latest.date).getTime() - new Date(a.latest.date).getTime());
+    return { key, name: latest.prospect || key, email: latest.email || '', msgs, latest, hasIncoming, prospect_id: latest.prospect_id || '' };
+  }).sort((a, b) => new Date(b.latest?.date || 0).getTime() - new Date(a.latest?.date || 0).getTime());
 
   return (
     <div>
@@ -2260,7 +2260,7 @@ function SeoPanel({
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <KpiCard label="Articles blog" value={fmt(stats.blogPosts)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
         <KpiCard label="Mots-cles suivis" value={fmt(stats.keywordsTracked)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        <KpiCard label="Actions SEO" value={fmt(stats.recentActions.length)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label="Actions SEO" value={fmt((stats.recentActions || []).length)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
       </div>
 
       {/* Workflow visual — pipeline SEO */}
@@ -2300,7 +2300,7 @@ function SeoPanel({
       </div>
 
       <SectionTitle>Actions SEO recentes</SectionTitle>
-      {stats.recentActions.length === 0 ? (
+      {(stats.recentActions || []).length === 0 ? (
         <EmptyState agentName={agentName} />
       ) : (
         <div className="flex flex-col gap-2">
@@ -2341,7 +2341,7 @@ function AdsPanel({
 }) {
   const stats: any = data.adsStats || { campaigns: 3, totalSpend: DEMO_ADS_STATS.totalSpend, avgRoas: DEMO_ADS_STATS.roas, roas: DEMO_ADS_STATS.roas, totalConversions: DEMO_ADS_STATS.totalConversions, totalImpressions: DEMO_ADS_STATS.totalImpressions, recentCampaigns: DEMO_ADS_STATS.recentCampaigns };
 
-  const totalSpend = stats.recentCampaigns.reduce((s: number, c: any) => s + c.spend, 0) || 1;
+  const totalSpend = (stats.recentCampaigns || []).reduce((s: number, c: any) => s + c.spend, 0) || 1;
   const statusColors: Record<string, string> = {
     active: '#34d399',
     paused: '#fbbf24',
@@ -2364,7 +2364,7 @@ function AdsPanel({
             segments={(stats.recentCampaigns || []).slice(0, 5).map((c: any, i: number) => ({
               value: c.spend,
               color: ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#a855f7'][i % 5],
-              label: c.name.substring(0, 15),
+              label: (c.name || '').substring(0, 15),
             }))}
             label={fmtCurrency(stats.totalSpend)}
           />
@@ -2373,7 +2373,7 @@ function AdsPanel({
           <ProgressBar value={Math.min(Math.round(stats.avgRoas * 33), 100)} max={100} color="#22c55e" label={`ROAS moyen (${stats.avgRoas}x)`} />
           <ProgressBar value={stats.campaigns} max={10} color={gradientFrom} label="Campagnes actives" />
           {(stats.recentCampaigns || []).slice(0, 3).map((c: any, i: number) => (
-            <ProgressBar key={i} value={Math.round(c.roas * 33)} max={100} color={['#3b82f6', '#22c55e', '#f59e0b'][i]} label={`${c.name.substring(0, 20)} (${c.roas}x)`} />
+            <ProgressBar key={i} value={Math.round(c.roas * 33)} max={100} color={['#3b82f6', '#22c55e', '#f59e0b'][i]} label={`${(c.name || '').substring(0, 20)} (${c.roas}x)`} />
           ))}
         </div>
       </div>
@@ -2389,7 +2389,7 @@ function AdsPanel({
       </div>
 
       <SectionTitle>Campagnes</SectionTitle>
-      {stats.recentCampaigns.length === 0 ? (
+      {(stats.recentCampaigns || []).length === 0 ? (
         <EmptyState agentName={agentName} />
       ) : (
         <div className="flex flex-col gap-2">
@@ -2418,7 +2418,7 @@ function AdsPanel({
 
       <SectionTitle>Repartition budget</SectionTitle>
       <div className="bg-white/5 rounded-xl border border-white/10 p-4">
-        {stats.recentCampaigns.length === 0 ? (
+        {(stats.recentCampaigns || []).length === 0 ? (
           <p className="text-sm text-white/40 text-center">Aucune campagne</p>
         ) : (
           <>
@@ -3457,7 +3457,7 @@ export default function AgentDashboard({ agentId, agentName, gradientFrom, gradi
             <h3 className="text-xs font-bold text-indigo-300 uppercase tracking-wider">Supervision cross-clients</h3>
             <span className="ml-auto text-[10px] text-indigo-400/50">24h</span>
           </div>
-          <div className="grid grid-cols-3 gap-2 mb-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
             <div className="bg-indigo-900/20 rounded-lg p-2 text-center">
               <div className="text-lg font-bold text-white">{(data as any).supervision.totalActions24h}</div>
               <div className="text-[9px] text-indigo-300/60">Actions</div>

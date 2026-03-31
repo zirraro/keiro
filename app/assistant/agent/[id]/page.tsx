@@ -819,7 +819,7 @@ export default function AgentWorkspacePage() {
               <div data-tour="launch-campaign" className="flex items-center gap-2">
                 <button
                   onClick={() => setShowCampaignWizard(true)}
-                  className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-bold rounded-xl hover:shadow-lg hover:shadow-emerald-500/20 transition-all min-h-[38px] flex items-center gap-2"
+                  className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-bold rounded-xl hover:shadow-lg hover:shadow-emerald-500/20 transition-all min-h-[44px] flex items-center gap-2"
                 >
                   <span>{'\u26A1'}</span> Lancer une campagne
                 </button>
