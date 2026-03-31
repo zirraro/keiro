@@ -167,6 +167,9 @@ export async function POST(req: NextRequest) {
         instagram: body.instagram || null,
         quartier: body.quartier || null,
         website: body.website || null,
+        note_google: body.note_google ? parseFloat(body.note_google) || null : null,
+        avis_google: body.avis_google ? parseInt(body.avis_google) || null : null,
+        abonnes: body.abonnes ? parseInt(body.abonnes) || null : null,
         created_by: user.id,
         user_id: user.id,
       })

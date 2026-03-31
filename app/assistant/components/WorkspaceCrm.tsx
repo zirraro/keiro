@@ -834,29 +834,43 @@ export default function WorkspaceCrm({ isAdmin }: { isAdmin: boolean }) {
       const rows = XLSX.utils.sheet_to_json<any>(ws);
       setImportProgress({ current: 0, total: rows.length });
 
-      // Dynamic column mapping — match any variation of column names
-      const COLUMN_MAP: Record<string, string> = {
+      // Dynamic column mapping — ALL keys normalized (no accents, lowercase)
+      const RAW_MAP: Record<string, string> = {
         // Name
-        'nom': 'first_name', 'name': 'first_name', 'prenom': 'first_name', 'first_name': 'first_name', 'prénom': 'first_name',
+        'nom': 'last_name', 'name': 'first_name', 'prenom': 'first_name', 'prénom': 'first_name', 'first_name': 'first_name',
         'nom de famille': 'last_name', 'last_name': 'last_name', 'famille': 'last_name',
         // Contact
         'email': 'email', 'e-mail': 'email', 'mail': 'email', 'courriel': 'email',
-        'telephone': 'phone', 'phone': 'phone', 'tel': 'phone', 'téléphone': 'phone', 'mobile': 'phone',
+        'telephone': 'phone', 'téléphone': 'phone', 'phone': 'phone', 'tel': 'phone', 'mobile': 'phone',
         // Company
         'entreprise': 'company', 'company': 'company', 'societe': 'company', 'société': 'company', 'nom_entreprise': 'company', 'raison_sociale': 'company',
         'type': 'type', 'secteur': 'type', 'activite': 'type', 'activité': 'type', 'categorie': 'type',
         // Location
         'ville': 'quartier', 'city': 'quartier', 'quartier': 'quartier', 'zone': 'quartier', 'adresse': 'quartier',
         // Social
-        'instagram': 'instagram', 'ig': 'instagram', '@instagram': 'instagram',
+        'instagram': 'instagram', 'ig': 'instagram', '@instagram': 'instagram', 'abonnes': 'abonnes', 'abonnés': 'abonnes',
         'linkedin': 'linkedin_url', 'tiktok': 'tiktok_handle', 'site': 'website', 'website': 'website', 'site_web': 'website',
         // CRM
         'source': 'source', 'origine': 'source', 'canal': 'source',
         'notes': 'notes', 'commentaires': 'notes', 'remarques': 'notes', 'description': 'notes',
-        'statut': 'status', 'status': 'status', 'etat': 'status',
-        'score': 'score', 'note': 'note_google', 'note_google': 'note_google', 'avis': 'avis_google',
-        'temperature': 'temperature', 'priorite': 'priorite', 'priority': 'priorite',
+        'statut': 'status', 'status': 'status', 'etat': 'status', 'état': 'status',
+        'score': 'score', 'note google': 'note_google', 'note_google': 'note_google', 'avis google': 'avis_google', 'avis_google': 'avis_google',
+        'temperature': 'temperature', 'température': 'temperature',
+        'priorite': 'priorite', 'priorité': 'priorite', 'priority': 'priorite',
+        'plan keiro': 'plan', 'plan': 'plan',
+        'tags': 'tags',
+        'freq. posts': 'posting_frequency', 'frequence': 'posting_frequency',
+        'qualite visuelle': 'visual_quality', 'qualité visuelle': 'visual_quality',
+        'date contact': 'last_contact_date',
+        "angle d'approche": 'approach_angle', 'angle': 'approach_angle',
+        'cree le': 'created_date', 'créé le': 'created_date', 'date creation': 'created_date',
       };
+      // Normalize all keys: remove accents, lowercase, trim
+      const normalize = (s: string) => s.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      const COLUMN_MAP: Record<string, string> = {};
+      for (const [k, v] of Object.entries(RAW_MAP)) {
+        COLUMN_MAP[normalize(k)] = v;
+      }
 
       let imported = 0;
       for (let i = 0; i < rows.length; i++) {
@@ -866,7 +880,7 @@ export default function WorkspaceCrm({ isAdmin }: { isAdmin: boolean }) {
 
         for (const [colName, value] of Object.entries(row)) {
           if (!value || String(value).trim() === '') continue;
-          const normalized = colName.toLowerCase().trim().replace(/[éè]/g, 'e').replace(/[àâ]/g, 'a');
+          const normalized = normalize(colName);
           const mappedField = COLUMN_MAP[normalized];
           if (mappedField) {
             prospect[mappedField] = String(value).trim();
@@ -890,7 +904,7 @@ export default function WorkspaceCrm({ isAdmin }: { isAdmin: boolean }) {
           prospect.notes = [prospect.notes, ...extraNotes].filter(Boolean).join(' | ');
         }
 
-        if (prospect.first_name || prospect.email || prospect.company) {
+        if (prospect.first_name || prospect.email || prospect.company || prospect.instagram || prospect.phone) {
           await fetch('/api/crm', {
             method: 'POST', credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
