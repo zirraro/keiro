@@ -204,36 +204,19 @@ export async function POST(request: NextRequest) {
               .single();
 
             if (freshProspect && freshProspect.email_clicks_count === 1) {
-              const RESEND_API_KEY = process.env.RESEND_API_KEY;
-              if (RESEND_API_KEY) {
-                try {
-                  await fetch('https://api.resend.com/emails', {
-                    method: 'POST',
-                    headers: {
-                      'Authorization': `Bearer ${RESEND_API_KEY}`,
-                      'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                      from: 'KeiroAI Agents <contact@keiroai.com>',
-                      to: ['contact@keiroai.com'],
-                      subject: `CLIC — ${prospect.company || prospect.email} a clique sur le lien !`,
-                      html: `<h2>Prospect interesse — Premier clic !</h2>
-                        <p><strong>${prospect.company || 'Inconnu'}</strong> (${prospect.type || 'N/A'}, ${prospect.quartier || 'N/A'}) a clique sur un lien dans votre email.</p>
-                        <p><strong>Lien clique :</strong> ${clickedUrl || 'N/A'}</p>
-                        <p><strong>Score :</strong> ${currentScore} → ${newScore}/100</p>
-                        <p><strong>Temperature :</strong> ${newClickTemp}</p>
-                        <p><strong>Email step :</strong> ${prospect.email_sequence_step}</p>
-                        <hr/>
-                        <p style="color:#888;font-size:12px">Ce prospect est passe en HOT — il a visite KeiroAI. Envisagez un suivi personnalise rapide.</p>`,
-                    }),
-                  });
-                  console.log('[BrevoWebhook] Click alert sent for:', prospect.email);
-                } catch (e: any) {
-                  console.warn('[BrevoWebhook] Click alert email failed:', e.message?.substring(0, 200));
-                }
-              } else {
-                console.warn('[BrevoWebhook] RESEND_API_KEY missing — click alert not sent for:', prospect.email);
-              }
+              // Log hot prospect alert — shown in client's Hugo dashboard (HotProspectsAlert component)
+              // No admin email — this is client-facing data now
+              console.log(`[BrevoWebhook] HOT prospect: ${prospect.company || prospect.email} clicked (score: ${currentScore} → ${newScore})`);
+              try {
+                await supabase.from('agent_logs').insert({
+                  agent: 'email',
+                  action: 'hot_prospect_click',
+                  user_id: prospect.user_id || null,
+                  status: 'ok',
+                  data: { prospect_id: prospect.id, company: prospect.company, email: prospect.email, url: clickedUrl, score: newScore, temperature: newClickTemp },
+                  created_at: now,
+                });
+              } catch {}
             }
           }
           // Emit event for CEO

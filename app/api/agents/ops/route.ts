@@ -369,31 +369,33 @@ async function sendCriticalAlert(
 </body>
 </html>`;
 
+  // Ops report saved to agent_logs for admin supervision panel (no email spam)
   try {
-    const resendRes = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: 'KeiroAI Ops Agent <contact@keiroai.com>',
-        to: FOUNDER_EMAILS,
-        subject: `[${statusEmoji}] ${downAgents.length} agent(s) down — Ops Report`,
-        html: emailHtml,
-      }),
+    const supabase = getSupabaseAdmin();
+    await supabase.from('agent_logs').insert({
+      agent: 'ops',
+      action: 'health_check_report',
+      status: downAgents.length > 0 ? 'error' : 'ok',
+      data: { downAgents, degradedAgents, statusEmoji },
+      created_at: new Date().toISOString(),
     });
-
-    if (resendRes.ok) {
-      console.log(`[OpsAgent] Alert email sent to ${FOUNDER_EMAILS.join(', ')}`);
-      return true;
-    } else {
-      const errText = await resendRes.text();
-      console.error('[OpsAgent] Resend alert failed:', errText);
-      return false;
+    console.log(`[OpsAgent] Report saved to supervision (${downAgents.length} down, ${degradedAgents.length} degraded)`);
+    // Only send email for truly critical situations (3+ agents down)
+    if (downAgents.length >= 3 && RESEND_API_KEY) {
+      await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: 'KeiroAI Ops Agent <contact@keiroai.com>',
+          to: FOUNDER_EMAILS,
+          subject: `[${statusEmoji}] ${downAgents.length} agent(s) down — Ops Report`,
+          html: emailHtml,
+        }),
+      });
     }
+    return true;
   } catch (e: any) {
-    console.error('[OpsAgent] Resend alert error:', e.message);
+    console.error('[OpsAgent] Ops report error:', e.message);
     return false;
   }
 }
