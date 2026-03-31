@@ -338,19 +338,20 @@ export async function POST(request: NextRequest) {
 
   let action = 'full';
   let orgId: string | null = null;
+  const clientUserId = request.nextUrl.searchParams.get('user_id') || null;
   try {
     const body = await request.json();
     if (body?.action) action = body.action;
     orgId = body?.org_id || null;
   } catch {}
 
-  return runEnrichment(action as 'verify_crm' | 'prospect_external' | 'full', orgId);
+  return runEnrichment(action as 'verify_crm' | 'prospect_external' | 'full', orgId, clientUserId);
 }
 
 /**
  * Core: fetch incomplete prospects, enrich via Gemini + Google Search, update DB.
  */
-async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' = 'full', orgId: string | null = null): Promise<NextResponse> {
+async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' = 'full', orgId: string | null = null, clientUserId: string | null = null): Promise<NextResponse> {
   const runStartTime = Date.now();
   const MAX_RUN_MS = 250_000; // Hard limit: 250s to leave 50s margin for reporting
 
@@ -1043,6 +1044,7 @@ Retourne 8-12 prospects qualifiés AVEC EMAIL en JSON. Sois TRÈS concis dans de
             verified: hasEnoughData,
             verified_at: hasEnoughData ? nowISO : null,
             verified_by: hasEnoughData ? 'commercial' : null,
+            user_id: clientUserId || null,
             created_at: nowISO,
             updated_at: nowISO,
           });

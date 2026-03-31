@@ -30,10 +30,11 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '100', 10);
 
     // Query scoped to user
+    // Show prospects created by user OR assigned to user (agents assign via user_id)
     let query = supabase
       .from('crm_prospects')
       .select('*')
-      .eq('created_by', user.id)
+      .or(`created_by.eq.${user.id},user_id.eq.${user.id}`)
       .order('created_at', { ascending: false })
       .limit(limit);
 
@@ -162,7 +163,12 @@ export async function POST(req: NextRequest) {
         score: body.score || 0,
         notes: body.notes || null,
         tags: body.tags || [],
+        type: body.type || null,
+        instagram: body.instagram || null,
+        quartier: body.quartier || null,
+        website: body.website || null,
         created_by: user.id,
+        user_id: user.id,
       })
       .select()
       .single();
