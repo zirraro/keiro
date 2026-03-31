@@ -1916,10 +1916,10 @@ function ContentPanel({
         <div className="rounded-xl border border-white/10 p-4 bg-white/[0.02]">
           <DonutChart
             segments={[
-              { value: stats.recentContent.filter(c => c.type === 'Reel' || c.type === 'reel').length, color: '#e879f9', label: 'Reels' },
-              { value: stats.recentContent.filter(c => c.type === 'Carousel' || c.type === 'carrousel').length, color: '#60a5fa', label: 'Carrousels' },
-              { value: stats.recentContent.filter(c => c.type === 'Post' || c.type === 'post').length, color: '#34d399', label: 'Posts' },
-              { value: stats.recentContent.filter(c => c.type === 'Story' || c.type === 'story').length, color: '#fbbf24', label: 'Stories' },
+              { value: (stats.recentContent || []).filter(c => c.type === 'Reel' || c.type === 'reel').length, color: '#e879f9', label: 'Reels' },
+              { value: (stats.recentContent || []).filter(c => c.type === 'Carousel' || c.type === 'carrousel').length, color: '#60a5fa', label: 'Carrousels' },
+              { value: (stats.recentContent || []).filter(c => c.type === 'Post' || c.type === 'post').length, color: '#34d399', label: 'Posts' },
+              { value: (stats.recentContent || []).filter(c => c.type === 'Story' || c.type === 'story').length, color: '#fbbf24', label: 'Stories' },
             ]}
             label={`${stats.postsGenerated}`}
           />
@@ -1985,7 +1985,7 @@ function ContentPanel({
                   d.setDate(d.getDate() - 7 + i);
                   const dayStr = d.toISOString().slice(0, 10);
                   const isToday = dayStr === now.toISOString().slice(0, 10);
-                  const dayPosts = stats.recentContent.filter((c: any) => c.created_at?.slice(0, 10) === dayStr && (c.platform === platform || (!c.platform && platform === 'instagram')));
+                  const dayPosts = (stats.recentContent || []).filter((c: any) => c.created_at?.slice(0, 10) === dayStr && (c.platform === platform || (!c.platform && platform === 'instagram')));
                   const hasPost = dayPosts.length > 0;
                   return (
                     <div
@@ -2304,7 +2304,7 @@ function SeoPanel({
         <EmptyState agentName={agentName} />
       ) : (
         <div className="flex flex-col gap-2">
-          {stats.recentActions.slice(0, 8).map((a: any, i: number) => (
+          {(stats.recentActions || []).slice(0, 8).map((a: any, i: number) => (
             <div key={i} className="bg-white/5 rounded-xl border border-white/10 p-4 flex items-start gap-3">
               <div
                 className="w-2 h-2 rounded-full mt-1.5 shrink-0"
@@ -2361,7 +2361,7 @@ function AdsPanel({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="rounded-xl border border-white/10 p-4 bg-white/[0.02]">
           <DonutChart
-            segments={stats.recentCampaigns.slice(0, 5).map((c: any, i: number) => ({
+            segments={(stats.recentCampaigns || []).slice(0, 5).map((c: any, i: number) => ({
               value: c.spend,
               color: ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#a855f7'][i % 5],
               label: c.name.substring(0, 15),
@@ -2372,7 +2372,7 @@ function AdsPanel({
         <div className="rounded-xl border border-white/10 p-4 bg-white/[0.02] space-y-3">
           <ProgressBar value={Math.min(Math.round(stats.avgRoas * 33), 100)} max={100} color="#22c55e" label={`ROAS moyen (${stats.avgRoas}x)`} />
           <ProgressBar value={stats.campaigns} max={10} color={gradientFrom} label="Campagnes actives" />
-          {stats.recentCampaigns.slice(0, 3).map((c: any, i: number) => (
+          {(stats.recentCampaigns || []).slice(0, 3).map((c: any, i: number) => (
             <ProgressBar key={i} value={Math.round(c.roas * 33)} max={100} color={['#3b82f6', '#22c55e', '#f59e0b'][i]} label={`${c.name.substring(0, 20)} (${c.roas}x)`} />
           ))}
         </div>
@@ -2393,7 +2393,7 @@ function AdsPanel({
         <EmptyState agentName={agentName} />
       ) : (
         <div className="flex flex-col gap-2">
-          {stats.recentCampaigns.slice(0, 8).map((c: any, i: number) => (
+          {(stats.recentCampaigns || []).slice(0, 8).map((c: any, i: number) => (
             <div key={i} className="bg-white/5 rounded-xl border border-white/10 p-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-white/80 font-medium truncate flex-1 mr-2">{c.name}</span>
@@ -2423,7 +2423,7 @@ function AdsPanel({
         ) : (
           <>
             <div className="flex h-6 rounded-full overflow-hidden">
-              {stats.recentCampaigns.map((c: any, i: number) => (
+              {(stats.recentCampaigns || []).map((c: any, i: number) => (
                 <div
                   key={i}
                   className="h-full"
@@ -2437,7 +2437,7 @@ function AdsPanel({
               ))}
             </div>
             <div className="flex flex-wrap gap-3 mt-3">
-              {stats.recentCampaigns.map((c: any, i: number) => (
+              {(stats.recentCampaigns || []).map((c: any, i: number) => (
                 <span key={i} className="text-xs text-white/50">
                   {c.name}: <span className="text-white/80 font-medium">{fmtCurrency(c.spend)}</span>
                 </span>
@@ -2523,7 +2523,7 @@ function FinancePanel({
         <EmptyState agentName={agentName} />
       ) : (
         <div className="flex flex-col gap-2">
-          {stats.recentTransactions.slice(0, 10).map((t: any, i: number) => (
+          {(stats.recentTransactions || []).slice(0, 10).map((t: any, i: number) => (
             <div key={i} className="bg-white/5 rounded-xl border border-white/10 p-4 flex items-center gap-3">
               <div
                 className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
@@ -2590,7 +2590,7 @@ function RhPanel({
         <EmptyState agentName={agentName} />
       ) : (
         <div className="flex flex-col gap-2">
-          {stats.recentDocs.slice(0, 5).map((doc: any, i: number) => (
+          {(stats.recentDocs || []).slice(0, 5).map((doc: any, i: number) => (
             <div key={i} className="bg-white/5 rounded-xl border border-white/10 p-4 flex items-center gap-3">
               <span
                 className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
@@ -2991,7 +2991,7 @@ function GmapsPanel({
       {(stats.recentReviews?.length || 0) > 0 && <SectionTitle>Avis recents</SectionTitle>}
       {(stats.recentReviews?.length || 0) > 0 && (
         <div className="flex flex-col gap-2">
-          {stats.recentReviews.slice(0, 5).map((review: any, i: number) => (
+          {(stats.recentReviews || []).slice(0, 5).map((review: any, i: number) => (
             <ReviewCard key={i} review={review} gradientFrom={gradientFrom} />
           ))}
         </div>
@@ -3084,7 +3084,7 @@ function ChatbotPanel({
         <EmptyState agentName={agentName} />
       ) : (
         <div className="flex flex-col gap-2">
-          {stats.recentSessions.slice(0, 5).map((session: any, i: number) => (
+          {(stats.recentSessions || []).slice(0, 5).map((session: any, i: number) => (
             <div key={i} className="bg-white/5 rounded-xl border border-white/10 p-4 flex items-center gap-3">
               <span
                 className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
@@ -3144,7 +3144,7 @@ function GenericPanel({
 
       {data.recommendations && data.recommendations.length > 0 ? (
         <div className="space-y-2">
-          {data.recommendations.slice(0, 5).map((rec, i) => (
+          {(data.recommendations || []).slice(0, 5).map((rec, i) => (
             <div key={i} className="rounded-xl border border-white/10 p-3 flex items-start gap-3" style={{ background: `linear-gradient(135deg, ${gradientFrom}08, ${gradientTo}05)` }}>
               <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: `linear-gradient(135deg, ${gradientFrom}30, ${gradientTo}30)` }}>
                 <svg className="w-4 h-4 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
@@ -3237,7 +3237,7 @@ function WhatsAppPanel({
       <SectionTitle>Conversations actives ({stats.conversationsActive})</SectionTitle>
       {stats.recentConversations && stats.recentConversations.length > 0 ? (
         <div className="space-y-2">
-          {stats.recentConversations.map((conv: any, i: number) => (
+          {(stats.recentConversations || []).map((conv: any, i: number) => (
             <div key={i} className="bg-white/5 rounded-xl border border-white/10 p-3 flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-[#25D366]/20 flex items-center justify-center flex-shrink-0">
                 <span className="text-sm">{'\uD83D\uDCF2'}</span>

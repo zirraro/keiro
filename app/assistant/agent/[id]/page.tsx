@@ -892,7 +892,7 @@ export default function AgentWorkspacePage() {
 
                           {/* Checks */}
                           <div className="space-y-1 max-h-96 overflow-y-auto">
-                            {qaResult.checks.map((c: any, i: number) => (
+                            {(qaResult.checks || []).map((c: any, i: number) => (
                               <div key={i} className={`flex items-start gap-2 px-3 py-2 rounded-lg text-xs ${c.status === 'pass' ? 'bg-white/[0.02]' : c.status === 'warn' ? 'bg-amber-500/5' : 'bg-red-500/5'}`}>
                                 <span className="flex-shrink-0">{c.status === 'pass' ? '\u2713' : c.status === 'warn' ? '!' : '\u2717'}</span>
                                 <div className="flex-1 min-w-0">
