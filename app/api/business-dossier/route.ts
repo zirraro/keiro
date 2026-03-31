@@ -82,7 +82,17 @@ export async function PUT(request: NextRequest) {
 
     // Merge: only update fields that have a non-empty value in body
     // Known columns in business_dossiers table
-    const knownColumns = new Set(['company_name', 'company_description', 'business_type', 'target_audience', 'brand_tone', 'main_products', 'competitors', 'unique_selling_points', 'business_goals', 'instagram_handle', 'tiktok_handle', 'linkedin_url', 'website_url', 'google_maps_url', 'logo_url', 'uploaded_files', 'ai_summary', 'custom_fields', 'completeness_score']);
+    const knownColumns = new Set([
+      'company_name', 'company_description', 'business_type', 'target_audience', 'brand_tone',
+      'main_products', 'competitors', 'unique_selling_points', 'business_goals', 'marketing_goals',
+      'instagram_handle', 'tiktok_handle', 'linkedin_url', 'website_url', 'google_maps_url',
+      'facebook_url', 'logo_url', 'uploaded_files', 'ai_summary', 'custom_fields', 'completeness_score',
+      'founder_name', 'employees_count', 'city', 'address', 'catchment_area', 'price_range',
+      'ideal_customer_profile', 'customer_pain_points', 'monthly_budget', 'posting_frequency',
+      'legal_status', 'country', 'value_proposition', 'business_model', 'market_segment',
+      'languages', 'visual_style', 'brand_colors', 'content_themes', 'preferred_channels',
+      'phone', 'email', 'horaires_ouverture', 'specialite',
+    ]);
 
     const merged: Record<string, any> = { user_id: user.id };
     const customUpdates: Record<string, string> = {};
@@ -116,22 +126,19 @@ export async function PUT(request: NextRequest) {
     if (Array.isArray(body.uploaded_files)) merged.uploaded_files = body.uploaded_files;
     else if (existing?.uploaded_files) merged.uploaded_files = existing.uploaded_files;
 
-    // Calculate completeness score from MERGED data
-    const coreFields = ['company_name', 'company_description', 'business_type', 'target_audience', 'brand_tone', 'main_products'];
-    const bonusFields = ['competitors', 'unique_selling_points', 'instagram_handle', 'logo_url', 'website_url', 'google_maps_url'];
-    let score = 0;
-    for (const f of coreFields) {
-      if (merged[f] && String(merged[f]).trim()) score += 12;
+    // Calculate completeness dynamically — count ALL filled fields
+    const IGNORE = new Set(['id', 'user_id', 'created_at', 'updated_at', 'completeness_score', 'uploaded_files']);
+    let filledCount = 0;
+    for (const [k, v] of Object.entries(merged)) {
+      if (IGNORE.has(k)) continue;
+      if (k === 'custom_fields') {
+        filledCount += Object.keys(v || {}).filter((ck: string) => v[ck] && String(v[ck]).trim().length > 0).length;
+      } else if (v && String(v).trim().length > 0) {
+        filledCount++;
+      }
     }
-    for (const f of bonusFields) {
-      if (merged[f] && String(merged[f]).trim()) score += 4.67;
-    }
-    // Extra points for goals + custom fields (Clara's dynamic fields)
-    if (merged.business_goals && String(merged.business_goals).trim()) score += 5;
-    const customCount = Object.keys(merged.custom_fields || {}).length;
-    score += Math.min(15, customCount * 3); // Up to 15 bonus points for custom fields
-
-    merged.completeness_score = Math.min(100, Math.round(score));
+    // 25 fields = 100% (good profile), scale proportionally
+    merged.completeness_score = Math.min(100, Math.round((filledCount / 25) * 100));
     merged.updated_at = new Date().toISOString();
 
     const { error } = await supabase
@@ -146,7 +153,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ ok: true, completeness: Math.min(100, Math.round(score)) });
+    return NextResponse.json({ ok: true, completeness: merged.completeness_score });
   } catch (error: any) {
     console.error('[BusinessDossier] PUT error:', error?.message);
     return NextResponse.json(

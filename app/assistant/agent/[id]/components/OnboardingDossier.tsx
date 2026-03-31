@@ -147,8 +147,14 @@ export default function OnboardingDossier() {
     setDossier(prev => ({ ...prev, [key]: value }));
   }, []);
 
-  const filledCount = ALL_FIELDS.filter(f => dossier[f.key] && String(dossier[f.key]).trim().length > 0).length;
-  const completeness = Math.round((filledCount / ALL_FIELDS.length) * 100);
+  // Dynamic completeness: count ALL filled fields in dossier (not just form fields)
+  const IGNORE_KEYS = new Set(['id', 'user_id', 'created_at', 'updated_at', 'completeness_score', 'uploaded_files', 'ai_summary']);
+  const allDossierKeys = Object.keys(dossier).filter(k => !IGNORE_KEYS.has(k) && dossier[k] && String(dossier[k]).trim().length > 0);
+  // Count custom_fields entries too
+  const customFieldsCount = dossier.custom_fields ? Object.keys(dossier.custom_fields).filter(k => dossier.custom_fields[k] && String(dossier.custom_fields[k]).trim().length > 0).length : 0;
+  const totalFilled = allDossierKeys.length + customFieldsCount;
+  // Base expectation: 20 fields for a good profile, 30+ is excellent
+  const completeness = Math.min(100, Math.round((totalFilled / 25) * 100));
 
   const step = STEPS[currentStep];
   const stepFilled = step.fields.filter(f => dossier[f.key] && String(dossier[f.key]).trim().length > 0).length;

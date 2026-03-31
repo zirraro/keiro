@@ -110,26 +110,31 @@ export async function upsertBusinessDossier(
     };
   }
 
-  // Calculate completeness
-  const coreFields = ['company_name', 'company_description', 'business_type', 'target_audience', 'brand_tone', 'main_products', 'city', 'unique_selling_points'];
-  const importantFields = ['founder_name', 'ideal_customer_profile', 'business_goals', 'marketing_goals', 'visual_style', 'content_themes', 'preferred_channels'];
-  const bonusFields = ['competitors', 'instagram_handle', 'logo_url', 'website_url', 'price_range', 'customer_pain_points', 'catchment_area', 'posting_frequency', 'brand_colors'];
+  // Calculate completeness dynamically — count ALL filled fields
+  // Load existing data to merge for accurate count
+  const { data: existingFull } = await supabase
+    .from('business_dossiers')
+    .select('*')
+    .eq('user_id', userId)
+    .maybeSingle();
 
-  let score = 0;
-  for (const f of coreFields) {
-    if (knownUpdates[f]) score += 8;
+  const merged = { ...(existingFull || {}), ...knownUpdates };
+  const IGNORE = new Set(['id', 'user_id', 'created_at', 'updated_at', 'completeness_score', 'uploaded_files']);
+  let filledCount = 0;
+  for (const [k, v] of Object.entries(merged)) {
+    if (IGNORE.has(k)) continue;
+    if (k === 'custom_fields') {
+      filledCount += Object.keys(v || {}).filter((ck: string) => (v as any)[ck] && String((v as any)[ck]).trim().length > 0).length;
+    } else if (v && String(v).trim().length > 0) {
+      filledCount++;
+    }
   }
-  for (const f of importantFields) {
-    if (knownUpdates[f]) score += 3;
-  }
-  for (const f of bonusFields) {
-    if (knownUpdates[f]) score += 1.67;
-  }
+  const score = Math.min(100, Math.round((filledCount / 25) * 100));
 
   await supabase.from('business_dossiers').upsert({
     user_id: userId,
     ...knownUpdates,
-    completeness_score: Math.min(100, Math.round(score)),
+    completeness_score: score,
     updated_at: new Date().toISOString(),
   }, { onConflict: 'user_id' });
 }

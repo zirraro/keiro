@@ -57,8 +57,15 @@ function replaceVars(template: string, v: Record<string, string>): string {
   for (const [key, value] of Object.entries(v)) {
     result = result.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), escapeHtml(value || ''));
   }
+  // Clean up leading comma when first_name empty: ", question sur X" → "Question sur X"
+  result = result.replace(/^[,\s]+/gm, (m) => '');
+  // "Bonjour ," → "Bonjour"
+  result = result.replace(/Bonjour\s*,\s*\n/g, 'Bonjour,\n');
+  // Fix <strong> tags escaped in text parts of html
+  result = result.replace(/&lt;strong&gt;/g, '<strong>').replace(/&lt;\/strong&gt;/g, '</strong>');
+  // Capitalize first letter after cleanup
+  result = result.replace(/^([a-zàâéèêëïîôùûüç])/gm, (m) => m.toUpperCase());
   // Clean up sentences with empty quartier variable
-  // "du " → remove trailing "du" before punctuation/tags/end-of-line
   result = result.replace(/\bdu\s*([.,<\n])/g, '$1');
   result = result.replace(/\bdu\s*$/gm, '');
   // "dans le " → remove "dans le" before punctuation/tags/spaces
