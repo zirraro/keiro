@@ -24,27 +24,14 @@ interface WizardStep {
 
 const AGENT_WIZARDS: Record<string, { title: string; subtitle: string; icon: string; steps: WizardStep[] }> = {
   content: {
-    title: 'Lancer la publication automatique',
-    subtitle: 'Lena publie du contenu sur tes reseaux',
+    title: 'Creer un post maintenant',
+    subtitle: 'Lena genere et publie en quelques secondes',
     icon: '\u2728',
     steps: [
-      { title: 'Tes reseaux', fields: [
-        { key: 'ig_enabled', label: 'Instagram', type: 'toggle', default: true, icon: '\u{1F4F8}' },
-        { key: 'posts_per_day_ig', label: 'Posts Instagram/jour', type: 'number', default: 1 },
-        { key: 'tt_enabled', label: 'TikTok', type: 'toggle', default: true, icon: '\u{1F3B5}' },
-        { key: 'posts_per_day_tt', label: 'Videos TikTok/jour', type: 'number', default: 1 },
-        { key: 'li_enabled', label: 'LinkedIn', type: 'toggle', default: false, icon: '\u{1F4BC}' },
-        { key: 'posts_per_day_li', label: 'Posts LinkedIn/jour', type: 'number', default: 1 },
-      ]},
-      { title: 'Format et style', fields: [
-        { key: 'formats_ig', label: 'Format Instagram', type: 'select', options: [{ value: 'all', label: 'Mix (posts + reels + stories)' }, { value: 'reels', label: 'Reels/Videos' }, { value: 'static', label: 'Photos' }, { value: 'carousel', label: 'Carrousels' }], default: 'all' },
-        { key: 'visual_style', label: 'Style visuel', type: 'select', options: [{ value: 'brand', label: 'DA de marque' }, { value: 'modern', label: 'Moderne' }, { value: 'warm', label: 'Chaleureux' }, { value: 'bold', label: 'Bold/Colore' }], default: 'brand' },
-        { key: 'auto_publish', label: 'Publier automatiquement', type: 'toggle', default: true },
-      ]},
-      { title: 'Horaires', fields: [
-        { key: 'publish_hour_1', label: 'Matin', type: 'time', default: '09:00' },
-        { key: 'publish_hour_2', label: 'Midi', type: 'time', default: '13:30' },
-        { key: 'publish_hour_3', label: 'Soir', type: 'time', default: '18:00' },
+      { title: 'Quel post veux-tu ?', fields: [
+        { key: 'platform', label: 'Plateforme', type: 'select', options: [{ value: 'instagram', label: '\u{1F4F8} Instagram' }, { value: 'tiktok', label: '\u{1F3B5} TikTok' }, { value: 'linkedin', label: '\u{1F4BC} LinkedIn' }], default: 'instagram' },
+        { key: 'format', label: 'Format', type: 'select', options: [{ value: 'post', label: 'Photo/Image' }, { value: 'reel', label: 'Reel/Video' }, { value: 'carousel', label: 'Carrousel' }, { value: 'story', label: 'Story' }], default: 'post' },
+        { key: 'pillar', label: 'Theme', type: 'select', options: [{ value: 'tips', label: '\u{1F4A1} Conseil/Astuce' }, { value: 'demo', label: '\u{1F3AC} Demo/Resultat' }, { value: 'social_proof', label: '\u2B50 Temoignage/Preuve' }, { value: 'trends', label: '\u{1F525} Tendance du moment' }], default: 'tips' },
       ]},
     ],
   },
@@ -160,22 +147,30 @@ export default function CampaignWizard({ agentId, agentName, onClose, onActivate
   const handleActivate = useCallback(async () => {
     setSaving(true);
     try {
-      // 1. Save all settings to org_agent_configs
-      await fetch('/api/agents/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ agent_id: agentId, auto_mode: true, setup_completed: true, ...values }),
-      });
+      // 1. Save settings + activate auto_mode (for non-content agents)
+      if (agentId !== 'content') {
+        await fetch('/api/agents/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ agent_id: agentId, auto_mode: true, setup_completed: true, ...values }),
+        });
+        try { localStorage.setItem(`keiro_agent_settings_${agentId}`, JSON.stringify({ auto_mode: true, setup_completed: true, ...values })); } catch {}
+      }
 
-      // 2. Also sync to localStorage so Settings tab picks it up immediately
-      try { localStorage.setItem(`keiro_agent_settings_${agentId}`, JSON.stringify({ auto_mode: true, setup_completed: true, ...values })); } catch {}
-
-      // 3. Trigger IMMEDIATE agent action so client sees value right away
+      // 2. Trigger IMMEDIATE action
       const immediateActions: Record<string, () => Promise<void>> = {
         content: async () => {
-          // Generate a post NOW
-          await fetch('/api/agents/content?slot=morning', { credentials: 'include' }).catch(() => {});
+          // Generate a post NOW with the chosen platform/format/pillar
+          const platform = values.platform || 'instagram';
+          const format = values.format || 'post';
+          const pillar = values.pillar || 'tips';
+          await fetch('/api/agents/content', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ action: 'generate_post', platform, format, pillar, draftOnly: false }),
+          });
         },
         email: async () => {
           // Trigger email daily run
@@ -214,8 +209,8 @@ export default function CampaignWizard({ agentId, agentName, onClose, onActivate
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
         <div className="bg-gray-900 border border-emerald-500/30 rounded-2xl p-8 max-w-sm w-full text-center animate-in zoom-in-95 duration-300">
           <div className="text-5xl mb-4">{'\u{1F680}'}</div>
-          <h2 className="text-xl font-bold text-white mb-2">{agentName} en action !</h2>
-          <p className="text-sm text-white/50 mb-2">Premiere tache lancee — tu verras le resultat dans quelques instants.</p>
+          <h2 className="text-xl font-bold text-white mb-2">{agentId === 'content' ? 'Post en cours de creation !' : `${agentName} en action !`}</h2>
+          <p className="text-sm text-white/50 mb-2">{agentId === 'content' ? 'Lena genere ton post avec visuel et legende — il apparaitra dans ta file de contenu.' : 'Premiere tache lancee — tu verras le resultat dans quelques instants.'}</p>
           <div className="flex items-center justify-center gap-2 text-emerald-400 text-xs">
             <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             En cours...
@@ -316,7 +311,7 @@ export default function CampaignWizard({ agentId, agentName, onClose, onActivate
               disabled={saving}
               className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-bold rounded-xl hover:shadow-lg transition min-h-[44px] disabled:opacity-50"
             >
-              {saving ? 'Activation...' : `\u{26A1} Activer ${agentName}`}
+              {saving ? (agentId === 'content' ? 'Generation en cours...' : 'Activation...') : agentId === 'content' ? '\u{1F680} Generer maintenant' : `\u{26A1} Activer ${agentName}`}
             </button>
           ) : (
             <button
