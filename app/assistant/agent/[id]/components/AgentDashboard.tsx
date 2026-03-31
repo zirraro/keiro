@@ -1900,7 +1900,16 @@ function ContentPanel({
           gradientTo="#6d28d9"
         />
       )}
-      {/* Campaign button now in main AgentDashboard header */}
+      {/* Launch campaign — inside content panel, above posts */}
+      <div data-tour="launch-campaign" className="flex items-center gap-2 mb-3">
+        <button
+          onClick={() => { try { (window as any).__openCampaignWizard?.(); } catch {} }}
+          className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-bold rounded-xl hover:shadow-lg hover:shadow-emerald-500/20 transition-all min-h-[44px] flex items-center gap-2"
+        >
+          <span>{'\u26A1'}</span> Lancer une campagne
+        </button>
+        {(data as any).connections?.instagram && <span className="text-[9px] text-emerald-400/50">{'\u2713'} Instagram connecte</span>}
+      </div>
       <ContentWorkflow isConnected={!!(data as any).connections?.instagram} />
 
       </div>{/* close content-workflow data-tour */}
@@ -3415,7 +3424,7 @@ export default function AgentDashboard({ agentId, agentName, gradientFrom, gradi
       </div>
 
       {/* Launch campaign button — all agents */}
-      {!isAdmin && agentId !== 'onboarding' && agentId !== 'ceo' && agentId !== 'qa' && (
+      {!isAdmin && agentId !== 'onboarding' && agentId !== 'ceo' && agentId !== 'qa' && agentId !== 'content' && (
         <div data-tour="launch-campaign" className="mx-5 mt-3 flex items-center gap-2">
           <button
             onClick={() => { try { (window as any).__openCampaignWizard?.(); } catch {} }}

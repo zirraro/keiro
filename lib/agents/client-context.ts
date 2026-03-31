@@ -73,6 +73,8 @@ const KNOWN_DOSSIER_FIELDS = new Set([
   'content_themes', 'preferred_channels', 'posting_frequency', 'business_goals', 'marketing_goals',
   'monthly_budget', 'kpi_targets', 'instagram_handle', 'tiktok_handle', 'linkedin_url',
   'website_url', 'google_maps_url', 'facebook_url', 'logo_url', 'uploaded_files', 'ai_summary',
+  'value_proposition', 'business_model', 'market_segment', 'languages',
+  'phone', 'email', 'horaires_ouverture', 'specialite',
 ]);
 
 export async function upsertBusinessDossier(

@@ -111,19 +111,53 @@ async function extractTextFromFile(buffer: Buffer, ext: string): Promise<string 
   }
 }
 
-const DOSSIER_EXTRACTION_PROMPT = `Analyse ce document (meme si le texte est brut ou mal formate) et extrais TOUTES les informations business pour remplir un dossier client. Le texte peut contenir du XML ou des caracteres speciaux — ignore-les et concentre-toi sur le contenu. Retourne UNIQUEMENT un JSON avec les champs trouves (ignore les champs vides).
+const DOSSIER_EXTRACTION_PROMPT = `Tu es un expert en analyse de documents business. Extrais TOUTES les informations de ce document pour remplir un dossier client complet. Le texte peut etre brut, XML ou mal formate — concentre-toi sur le CONTENU.
 
-Champs possibles:
-company_name, company_description, business_type, founder_name, employees_count,
-city, address, catchment_area, main_products, price_range, unique_selling_points, competitors,
-target_audience, ideal_customer_profile, customer_pain_points,
-brand_tone, visual_style, brand_colors, content_themes, preferred_channels, posting_frequency,
-business_goals, marketing_goals, monthly_budget,
-instagram_handle, tiktok_handle, website_url, google_maps_url, facebook_url,
-phone, email, horaires_ouverture, specialite, nombre_couverts, panier_moyen, certifications, langues_parlees, modes_paiement, livraison, reservation_en_ligne
+Retourne UNIQUEMENT un JSON avec les champs trouves. Ignore les champs vides.
 
-IMPORTANT: Extrais absolument TOUT ce que tu trouves, meme les champs custom. Sois exhaustif.
-Reponds UNIQUEMENT avec le JSON, rien d'autre.`;
+CHAMPS PRINCIPAUX (remplis en priorite):
+- company_name: nom de l'entreprise
+- company_description: description complete de l'activite (2-3 phrases)
+- business_type: type (restaurant, saas, coach, boutique, agence, etc.)
+- founder_name: nom du fondateur
+- employees_count: nombre d'employes (solo, 2-5, 5-10, etc.)
+- legal_status: statut juridique (SASU, SAS, auto-entrepreneur, etc.)
+- city, address, country: localisation
+- catchment_area: zone de chalandise
+
+CHAMPS PRODUIT/SERVICE:
+- main_products: produits/services principaux (liste)
+- price_range: gamme de prix ou tarifs
+- unique_selling_points: avantages concurrentiels (liste)
+- competitors: concurrents identifies
+- value_proposition: proposition de valeur centrale
+- business_model: modele economique (abonnement, vente, service, etc.)
+
+CHAMPS CLIENT/MARCHE:
+- target_audience: audience cible
+- ideal_customer_profile: profil client ideal
+- customer_pain_points: problemes resolus pour le client
+- market_segment: segment de marche (B2B, B2C, local, national, etc.)
+- languages: langues parlees/utilisees
+
+CHAMPS MARKETING:
+- brand_tone: ton de communication (professionnel, decontracte, etc.)
+- visual_style: style visuel (moderne, chaleureux, minimaliste, etc.)
+- brand_colors: couleurs de marque
+- content_themes: themes de contenu (liste)
+- preferred_channels: canaux preferes (Instagram, TikTok, LinkedIn, etc.)
+- posting_frequency: frequence souhaitee
+- business_goals, marketing_goals: objectifs
+
+CHAMPS CONTACT/DIGITAL:
+- website_url, instagram_handle, tiktok_handle, linkedin_url, facebook_url, google_maps_url
+- phone, email
+- horaires_ouverture, specialite
+
+CHAMPS CUSTOM: ajoute TOUT autre champ pertinent que tu trouves (tarifs detailles, offres, equipe, technologie, etc.) dans un objet "custom_fields".
+
+IMPORTANT: Sois EXHAUSTIF. Extrais absolument TOUT. Un document de 2 pages doit donner 15-30 champs minimum.
+Reponds UNIQUEMENT avec le JSON.`;
 
 /**
  * Use Claude to extract business dossier fields from file text content.
@@ -137,10 +171,10 @@ async function extractDossierFromText(text: string, fileName: string): Promise<R
     const client = new Anthropic({ apiKey });
     const response = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1500,
+      max_tokens: 4000,
       messages: [{
         role: 'user',
-        content: `Fichier: "${fileName}"\n\n${DOSSIER_EXTRACTION_PROMPT}\n\nDOCUMENT:\n${text.substring(0, 10000)}`,
+        content: `Fichier: "${fileName}"\n\n${DOSSIER_EXTRACTION_PROMPT}\n\nDOCUMENT:\n${text.substring(0, 14000)}`,
       }],
     });
 
