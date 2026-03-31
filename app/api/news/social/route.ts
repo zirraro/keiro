@@ -71,8 +71,9 @@ export async function GET(req: NextRequest) {
     const limit = Math.max(1, Math.min(50, Number(searchParams.get("limit")) || 12));
     const includeHidden = (searchParams.get("strict") === "0") ? true : false;
 
-    // Récupère les actus existantes (même source que /api/news)
-    const baseResp = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || ""}/api/news`, { cache: "no-store" }).catch(() => null);
+    // Récupère les actus existantes (même source que /api/news) — pass region for country filtering
+    const region = searchParams.get("region") || "fr";
+    const baseResp = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || ""}/api/news?region=${region}`, { cache: "no-store" }).catch(() => null);
     let items: NewsItem[] = [];
     if (baseResp && baseResp.ok) {
       const j = await baseResp.json();

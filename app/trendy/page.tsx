@@ -29,12 +29,26 @@ const WINDOWS = [
   { label: "7j",  hours: 168 },
 ];
 
+const COUNTRIES = [
+  { code: 'fr', label: 'France', flag: '\u{1F1EB}\u{1F1F7}' },
+  { code: 'us', label: 'USA', flag: '\u{1F1FA}\u{1F1F8}' },
+  { code: 'uk', label: 'UK', flag: '\u{1F1EC}\u{1F1E7}' },
+  { code: 'de', label: 'Allemagne', flag: '\u{1F1E9}\u{1F1EA}' },
+  { code: 'es', label: 'Espagne', flag: '\u{1F1EA}\u{1F1F8}' },
+  { code: 'it', label: 'Italie', flag: '\u{1F1EE}\u{1F1F9}' },
+  { code: 'ma', label: 'Maroc', flag: '\u{1F1F2}\u{1F1E6}' },
+  { code: 'ca', label: 'Canada', flag: '\u{1F1E8}\u{1F1E6}' },
+  { code: 'be', label: 'Belgique', flag: '\u{1F1E7}\u{1F1EA}' },
+  { code: 'ch', label: 'Suisse', flag: '\u{1F1E8}\u{1F1ED}' },
+];
+
 export default function TrendyPage() {
   const [hours, setHours] = useState<number>(48);
   const [strict, setStrict] = useState<boolean>(false);
   const [tab, setTab] = useState<"trending" | "gems">("trending");
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [country, setCountry] = useState<string>('fr');
   const [data, setData] = useState<{ trending: Item[]; hiddenGems: Item[]; minScore: number }|null>(null);
 
   const items: Item[] = useMemo(() => {
@@ -46,7 +60,7 @@ export default function TrendyPage() {
     setLoading(true);
     setError(null);
     try {
-      const r = await fetch(`/api/news/social?hours=${hours}&strict=${strict ? 1 : 0}`, { cache: "no-store" });
+      const r = await fetch(`/api/news/social?hours=${hours}&strict=${strict ? 1 : 0}&region=${country}`, { cache: "no-store" });
       const j = await r.json();
       if (!j?.ok) throw new Error(j?.error || "API error");
       setData({ trending: j.trending || [], hiddenGems: j.hiddenGems || [], minScore: j.minScore });
@@ -57,7 +71,7 @@ export default function TrendyPage() {
     }
   }
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [hours, strict]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [hours, strict, country]);
 
   return (
     <div className="min-h-screen page-studio-bg max-w-6xl mx-auto px-4 py-6">
@@ -81,6 +95,20 @@ export default function TrendyPage() {
             {w.label}
           </button>
         ))}
+
+        <div className="mx-2 h-5 w-px bg-neutral-200" />
+
+        <span className="text-sm text-neutral-500">Pays</span>
+        <div className="flex gap-1 flex-wrap">
+          {COUNTRIES.map(c => (
+            <button key={c.code} onClick={() => { setCountry(c.code); }}
+              className={classNames(
+                "px-2 py-1 rounded-md border text-xs",
+                country === c.code ? "bg-black text-white border-black" : "bg-white hover:bg-neutral-100 border-neutral-300"
+              )}
+            >{c.flag} {c.label}</button>
+          ))}
+        </div>
 
         <div className="mx-2 h-5 w-px bg-neutral-200" />
 
