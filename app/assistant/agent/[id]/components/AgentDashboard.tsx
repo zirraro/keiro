@@ -452,7 +452,7 @@ function DmConversationsLive() {
                     {msg.message || <span className="italic text-white/30">[media]</span>}
                     <div className={`flex items-center gap-1 mt-0.5 ${msg.fromMe ? 'justify-end' : ''}`}>
                       <span className={`text-[10px] ${msg.fromMe ? 'text-purple-200/60' : 'text-white/20'}`}>
-                        {new Date(msg.created_time).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                        {msg.created_time ? new Date(msg.created_time).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}
                       </span>
                       {msg.fromMe && msg.status === 'sending' && <span className="text-[10px] text-yellow-300/60">envoi...</span>}
                       {msg.fromMe && msg.status === 'sent' && <span className="text-[10px] text-green-300/60">{'\u2713'} envoye</span>}
@@ -1790,7 +1790,7 @@ function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: str
                       {msg.auto && <div className="text-[9px] text-white/40 mb-0.5">{'\u{1F916}'} Auto</div>}
                       <div className="whitespace-pre-wrap">{msg.message || '[pas de contenu]'}</div>
                       <div className={`text-[10px] mt-1 ${msg.direction === 'outgoing' ? 'text-cyan-200/50' : 'text-white/20'}`}>
-                        {new Date(msg.date).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                        {msg.date ? new Date(msg.date).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}
                       </div>
                     </div>
                   </div>
