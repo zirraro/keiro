@@ -11,6 +11,7 @@ const AgentDashboard = dynamic(() => import('./components/AgentDashboard'), { ss
 const OnboardingDossier = dynamic(() => import('./components/OnboardingDossier'), { ssr: false });
 const AgentSetupGuide = dynamic(() => import('../../components/AgentSetupGuide'), { ssr: false });
 const AgentTutorial = dynamic(() => import('./components/AgentTutorial'), { ssr: false });
+const CampaignWizard = dynamic(() => import('./components/CampaignWizard'), { ssr: false });
 
 const AGENTS_WITH_DASHBOARD = [
   'marketing', 'commercial', 'email', 'content', 'seo', 'ads', 'comptable',
@@ -268,6 +269,7 @@ export default function AgentWorkspacePage() {
 
   // Tabs
   const [activeTab, setActiveTab] = useState<'dashboard' | 'planning' | 'history' | 'campaigns' | 'settings' | 'profile'>('dashboard');
+  const [showCampaignWizard, setShowCampaignWizard] = useState(false);
 
   // Chat (slide-over)
   const [chatOpen, setChatOpen] = useState(false);
@@ -774,6 +776,16 @@ export default function AgentWorkspacePage() {
         {/* Agent tutorial overlay (appears during wizard) */}
         <AgentTutorial agentId={agentId} />
 
+        {/* Campaign wizard modal */}
+        {showCampaignWizard && (
+          <CampaignWizard
+            agentId={agentId}
+            agentName={dn}
+            onClose={() => setShowCampaignWizard(false)}
+            onActivated={() => { setDashboardData(null); }}
+          />
+        )}
+
         {/* ═══ TABS ═══ */}
         <div className="flex items-center gap-1 bg-white/5 rounded-xl p-1 border border-white/10 mb-6 overflow-x-auto">
           {([
@@ -803,7 +815,16 @@ export default function AgentWorkspacePage() {
         {activeTab === 'dashboard' && (
           <div>
             <div className="space-y-4 min-w-0">
-              {/* Setup guide removed — PreviewBanner in each agent panel handles this */}
+              {/* Launch campaign button — always visible */}
+              <div data-tour="launch-campaign" className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowCampaignWizard(true)}
+                  className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-bold rounded-xl hover:shadow-lg hover:shadow-emerald-500/20 transition-all min-h-[38px] flex items-center gap-2"
+                >
+                  <span>{'\u26A1'}</span> Lancer une campagne
+                </button>
+                <span className="text-[9px] text-white/25">Configure et active {dn} en 30 secondes</span>
+              </div>
 
               {hasDashboard && (
                 <div className="rounded-2xl border border-white/10 bg-white/[0.02] overflow-hidden">

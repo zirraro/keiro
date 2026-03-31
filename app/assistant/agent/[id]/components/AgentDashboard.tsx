@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import PreviewBanner from './PreviewBanner';
 import PostPreview from './PostPreview';
+import PostPreviewModal from './PostPreviewModal';
 import { DEMO_DM_CONVERSATIONS, DEMO_EMAILS, DEMO_CONTENT_POSTS, DEMO_REVIEWS, DEMO_COMMENTS, DEMO_ADS_STATS, DEMO_FINANCE_STATS, DEMO_RH_STATS, DEMO_CHATBOT_STATS, DEMO_WHATSAPP_STATS, DEMO_TIKTOK_STATS, DEMO_IG_COMMENTS } from './AgentPreviewData';
 
 // ─── Social Connect Banners — shown in agent dashboards ─────────────
@@ -2087,11 +2088,12 @@ function ContentDirectionInput() {
   );
 }
 
-// Content workflow: fetch posts by status, allow approve/skip/schedule
+// Content workflow: fetch posts by status, allow approve/skip/schedule — Instagram grid style
 function ContentWorkflow() {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
+  const [selectedPost, setSelectedPost] = useState<any | null>(null);
 
   useEffect(() => {
     fetch('/api/agents/content?action=calendar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'calendar' }) })
@@ -2110,7 +2112,6 @@ function ContentWorkflow() {
         credentials: 'include',
         body: JSON.stringify({ action, post_id: postId }),
       });
-      // Update status locally
       const newStatus = action === 'approve' ? 'approved' : action === 'skip' ? 'skipped' : action === 'publish_single' ? 'published' : 'draft';
       setPosts(prev => prev.map(p => p.id === postId ? { ...p, status: newStatus, _loading: false } : p));
     } catch {
@@ -2122,54 +2123,65 @@ function ContentWorkflow() {
 
   const isDemo = posts.length === 0;
   const displayPosts = isDemo ? DEMO_CONTENT_POSTS : posts;
-
-  const statusConfig: Record<string, { color: string; label: string; icon: string }> = {
-    draft: { color: '#fbbf24', label: 'A valider', icon: '\u{1F4DD}' },
-    approved: { color: '#60a5fa', label: 'Programme', icon: '\u{1F4C5}' },
-    published: { color: '#34d399', label: 'Publie', icon: '\u2705' },
-    skipped: { color: '#94a3b8', label: 'Ignore', icon: '\u23ED\uFE0F' },
-    video_generating: { color: '#e879f9', label: 'Video en cours', icon: '\u{1F3AC}' },
-  };
-
-  // Status counts
   const counts = displayPosts.reduce((acc: Record<string, number>, p: any) => { acc[p.status] = (acc[p.status] || 0) + 1; return acc; }, {});
   const filtered = filter === 'all' ? displayPosts : displayPosts.filter((p: any) => p.status === filter);
+
+  const STATUS_COLORS: Record<string, string> = { draft: 'bg-amber-500', approved: 'bg-blue-500', published: 'bg-emerald-500', skipped: 'bg-gray-500', video_generating: 'bg-purple-500' };
 
   return (
     <div>
       {/* Status filter tabs */}
-      <div className="flex gap-1.5 mb-3 overflow-x-auto pb-1">
+      <div className="flex gap-1 mb-2 overflow-x-auto pb-1">
         {[
-          { key: 'all', label: `Tous (${posts.length})` },
-          { key: 'draft', label: `A valider (${counts.draft || 0})` },
+          { key: 'all', label: `Tous (${displayPosts.length})` },
+          { key: 'draft', label: `Brouillons (${counts.draft || 0})` },
           { key: 'approved', label: `Programmes (${counts.approved || 0})` },
           { key: 'published', label: `Publies (${counts.published || 0})` },
         ].map(tab => (
-          <button
-            key={tab.key}
-            onClick={() => setFilter(tab.key)}
-            className={`px-3 py-1.5 text-[10px] sm:text-xs font-medium rounded-lg whitespace-nowrap transition-all ${
-              filter === tab.key ? 'bg-purple-600 text-white' : 'bg-white/5 text-white/40 hover:bg-white/10'
-            }`}
-          >
-            {tab.label}
+          <button key={tab.key} onClick={() => setFilter(tab.key)}
+            className={`px-2 py-1 text-[9px] font-medium rounded-md whitespace-nowrap transition-all ${filter === tab.key ? 'bg-purple-600 text-white' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}
+          >{tab.label}</button>
+        ))}
+      </div>
+
+      {/* Instagram-style grid — small thumbnails, click to expand */}
+      <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-1 max-h-[300px] overflow-y-auto">
+        {filtered.slice(0, 20).map((post: any) => (
+          <button key={post.id} onClick={() => setSelectedPost(post)} className="relative aspect-square bg-white/5 rounded-md overflow-hidden hover:opacity-80 transition group">
+            {post.visual_url ? (
+              <img src={post.visual_url} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-900/30 to-pink-900/30">
+                <span className="text-[10px] text-white/50 px-1 text-center line-clamp-2">{(post.hook || post.caption || '').substring(0, 40)}</span>
+              </div>
+            )}
+            {/* Status dot */}
+            <div className={`absolute top-1 right-1 w-2 h-2 rounded-full ${STATUS_COLORS[post.status] || 'bg-gray-500'}`} />
+            {/* Platform badge */}
+            <div className="absolute bottom-0.5 left-0.5 text-[7px] font-bold text-white/60 bg-black/40 px-1 rounded">
+              {post.platform === 'tiktok' ? 'TT' : post.platform === 'linkedin' ? 'LI' : 'IG'}
+            </div>
+            {/* Hover: reel/carousel indicator */}
+            {(post.format === 'reel' || post.format === 'video') && (
+              <div className="absolute top-1 left-1 text-[8px] text-white/70">{'\u{1F3AC}'}</div>
+            )}
+            {(post.format === 'carrousel' || post.format === 'carousel') && (
+              <div className="absolute top-1 left-1 text-[8px] text-white/70">{'\u{1F4DA}'}</div>
+            )}
           </button>
         ))}
       </div>
 
-      {/* Post cards — Instagram/TikTok/LinkedIn-like preview */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 max-h-[400px] overflow-y-auto">
-        {filtered.slice(0, 12).map((post: any) => (
-          <PostPreview
-            key={post.id}
-            post={post}
-            compact
-            onApprove={post.status === 'draft' ? () => handleAction(post.id, 'approve') : undefined}
-            onPublish={post.status === 'draft' ? () => handleAction(post.id, 'publish_single') : undefined}
-            onSkip={post.status === 'draft' ? () => handleAction(post.id, 'skip') : undefined}
-          />
-        ))}
-      </div>
+      {/* Post preview modal — opens on click */}
+      {selectedPost && (
+        <PostPreviewModal
+          post={selectedPost}
+          onClose={() => setSelectedPost(null)}
+          onApprove={selectedPost.status === 'draft' ? () => handleAction(selectedPost.id, 'approve') : undefined}
+          onPublish={selectedPost.status === 'draft' ? () => handleAction(selectedPost.id, 'publish_single') : undefined}
+          onSkip={selectedPost.status === 'draft' ? () => handleAction(selectedPost.id, 'skip') : undefined}
+        />
+      )}
     </div>
   );
 }
