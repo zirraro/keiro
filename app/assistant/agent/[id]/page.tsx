@@ -798,7 +798,7 @@ export default function AgentWorkspacePage() {
             onActivated={() => {
               // Force reload dashboard + settings
               setDashboardData(null);
-              // Reload settings from server (wizard just saved them)
+              // Reload settings from server
               const fields = getAgentSettings(agentId);
               const defaults: Record<string, any> = {};
               fields.forEach((f: any) => { defaults[f.key] = f.default; });
@@ -806,6 +806,15 @@ export default function AgentWorkspacePage() {
                 .then(r => r.json())
                 .then(d => { if (d.settings) setSettings({ ...defaults, ...d.settings }); })
                 .catch(() => {});
+              // Show campaign result in chat if available
+              try {
+                const result = (window as any).__campaignResult;
+                if (result) {
+                  setMessages(prev => [...prev, { id: `campaign_${Date.now()}`, role: 'assistant', content: result, created_at: new Date().toISOString() }]);
+                  setChatOpen(true);
+                  delete (window as any).__campaignResult;
+                }
+              } catch {}
             }}
           />
         )}

@@ -139,6 +139,7 @@ export default function CampaignWizard({ agentId, agentName, onClose, onActivate
   });
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
+  const [statusMsg, setStatusMsg] = useState('');
 
   const totalSteps = wizard.steps.length;
   const currentStep = wizard.steps[step];
@@ -147,74 +148,87 @@ export default function CampaignWizard({ agentId, agentName, onClose, onActivate
   const handleActivate = useCallback(async () => {
     setSaving(true);
     try {
-      // 1. Save settings + activate auto_mode (for non-content agents)
-      if (agentId !== 'content') {
-        await fetch('/api/agents/settings', {
+      // 1. Save settings + activate auto_mode
+      setStatusMsg('Sauvegarde des parametres...');
+      await fetch('/api/agents/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ agent_id: agentId, auto_mode: true, setup_completed: true, ...values }),
+      });
+      try { localStorage.setItem(`keiro_agent_settings_${agentId}`, JSON.stringify({ auto_mode: true, setup_completed: true, ...values })); } catch {}
+
+      // 2. Trigger IMMEDIATE action — WAIT for response (don't fire-and-forget)
+      const ACTION_MESSAGES: Record<string, string> = {
+        content: 'Generation du post en cours...',
+        email: 'Lancement des emails...',
+        dm_instagram: 'Lancement de la prospection DM...',
+        commercial: 'Recherche de prospects...',
+        seo: 'Analyse SEO en cours...',
+        gmaps: 'Scan des avis Google...',
+        linkedin: 'Publication LinkedIn en cours...',
+      };
+      setStatusMsg(ACTION_MESSAGES[agentId] || 'Activation en cours...');
+
+      // Use client-chat to trigger the action via the agent (natural, conversational)
+      const ACTION_PROMPTS: Record<string, string> = {
+        content: `Genere et publie immediatement 1 post ${values.platform || 'instagram'} format ${values.format || 'post'} sur le theme ${values.pillar || 'tips'}. Inclus le visuel, la legende et les hashtags.`,
+        email: 'Lance une campagne email maintenant. Envoie les premiers emails aux prospects qualifies dans le CRM.',
+        dm_instagram: 'Lance une session de prospection DM Instagram maintenant. Envoie des DMs personnalises aux prospects.',
+        commercial: 'Lance une session de prospection commerciale. Trouve et qualifie de nouveaux prospects.',
+        seo: 'Lance une analyse SEO complete de mon site web maintenant.',
+        gmaps: 'Scanne et reponds a mes derniers avis Google.',
+        linkedin: 'Genere et publie un post LinkedIn professionnel maintenant.',
+      };
+
+      const prompt = ACTION_PROMPTS[agentId];
+      if (prompt) {
+        const res = await fetch('/api/agents/client-chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ agent_id: agentId, auto_mode: true, setup_completed: true, ...values }),
+          body: JSON.stringify({ agent_id: agentId, message: prompt }),
         });
-        try { localStorage.setItem(`keiro_agent_settings_${agentId}`, JSON.stringify({ auto_mode: true, setup_completed: true, ...values })); } catch {}
-      }
-
-      // 2. Trigger IMMEDIATE action
-      const immediateActions: Record<string, () => Promise<void>> = {
-        content: async () => {
-          // Generate a post NOW with the chosen platform/format/pillar
-          const platform = values.platform || 'instagram';
-          const format = values.format || 'post';
-          const pillar = values.pillar || 'tips';
-          await fetch('/api/agents/content', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({ action: 'generate_post', platform, format, pillar, draftOnly: false }),
-          });
-        },
-        email: async () => {
-          // Trigger email daily run
-          await fetch('/api/agents/email/daily?slot=morning&types=all', { credentials: 'include' }).catch(() => {});
-        },
-        dm_instagram: async () => {
-          // Trigger DM prospection
-          await fetch('/api/agents/dm-instagram?slot=morning', { method: 'POST', credentials: 'include' }).catch(() => {});
-        },
-        commercial: async () => {
-          // Trigger prospect discovery
-          await fetch('/api/agents/commercial', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'prospect_external' }) }).catch(() => {});
-        },
-        seo: async () => {
-          await fetch('/api/agents/seo', { credentials: 'include' }).catch(() => {});
-        },
-        gmaps: async () => {
-          await fetch('/api/agents/gmaps', { credentials: 'include' }).catch(() => {});
-        },
-      };
-
-      // Fire the immediate action in background (don't block UI)
-      if (immediateActions[agentId]) {
-        immediateActions[agentId]().catch(() => {});
+        const data = await res.json();
+        if (data.reply) {
+          setStatusMsg('');
+          setDone(true);
+          // Show agent response in chat
+          try { (window as any).__campaignResult = data.reply; } catch {}
+          setTimeout(() => { onActivated(); onClose(); }, 2500);
+          return;
+        }
       }
 
       setDone(true);
       setTimeout(() => { onActivated(); onClose(); }, 2000);
-    } catch {
-      setSaving(false);
+    } catch (e: any) {
+      console.error('[CampaignWizard] Error:', e);
+      setStatusMsg('Erreur — reessaye');
+      setTimeout(() => setSaving(false), 2000);
     }
   }, [agentId, values, onActivated, onClose]);
+
+  // Saving state — show spinner with status message
+  if (saving && !done) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div className="bg-gray-900 border border-purple-500/30 rounded-2xl p-8 max-w-sm w-full text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mx-auto mb-4" />
+          <h2 className="text-lg font-bold text-white mb-2">{agentName} travaille...</h2>
+          <p className="text-sm text-white/50">{statusMsg || 'Preparation en cours...'}</p>
+        </div>
+      </div>
+    );
+  }
 
   if (done) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
         <div className="bg-gray-900 border border-emerald-500/30 rounded-2xl p-8 max-w-sm w-full text-center animate-in zoom-in-95 duration-300">
-          <div className="text-5xl mb-4">{'\u{1F680}'}</div>
-          <h2 className="text-xl font-bold text-white mb-2">{agentId === 'content' ? 'Post en cours de creation !' : `${agentName} en action !`}</h2>
-          <p className="text-sm text-white/50 mb-2">{agentId === 'content' ? 'Lena genere ton post avec visuel et legende — il apparaitra dans ta file de contenu.' : 'Premiere tache lancee — tu verras le resultat dans quelques instants.'}</p>
-          <div className="flex items-center justify-center gap-2 text-emerald-400 text-xs">
-            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            En cours...
-          </div>
+          <div className="text-5xl mb-4">{'\u2705'}</div>
+          <h2 className="text-lg font-bold text-white mb-2">Campagne lancee !</h2>
+          <p className="text-sm text-white/50 mb-2">Les resultats apparaissent dans ton dashboard.</p>
         </div>
       </div>
     );
@@ -266,9 +280,9 @@ export default function CampaignWizard({ agentId, agentName, onClose, onActivate
 
                 {field.type === 'select' && (
                   <select
-                    value={values[field.key] || field.default}
+                    value={values[field.key] ?? field.default}
                     onChange={e => setValues(prev => ({ ...prev, [field.key]: e.target.value }))}
-                    className="bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-[11px] text-white/70 focus:outline-none focus:ring-1 focus:ring-purple-500/50 min-w-[130px]"
+                    className="bg-[#1a2744] border border-white/10 rounded-lg px-2.5 py-2 text-[11px] text-white focus:outline-none focus:ring-1 focus:ring-purple-500/50 min-w-[150px]"
                   >
                     {field.options?.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
@@ -279,7 +293,7 @@ export default function CampaignWizard({ agentId, agentName, onClose, onActivate
                     type="number"
                     value={values[field.key] ?? field.default}
                     onChange={e => setValues(prev => ({ ...prev, [field.key]: parseInt(e.target.value) || 0 }))}
-                    className="bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-[11px] text-white/70 focus:outline-none focus:ring-1 focus:ring-purple-500/50 w-16 text-center"
+                    className="bg-[#1a2744] border border-white/10 rounded-lg px-2.5 py-2 text-[11px] text-white focus:outline-none focus:ring-1 focus:ring-purple-500/50 w-16 text-center"
                     min={0}
                   />
                 )}
@@ -289,7 +303,7 @@ export default function CampaignWizard({ agentId, agentName, onClose, onActivate
                     type="time"
                     value={values[field.key] || field.default}
                     onChange={e => setValues(prev => ({ ...prev, [field.key]: e.target.value }))}
-                    className="bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-[11px] text-white/70 focus:outline-none focus:ring-1 focus:ring-purple-500/50"
+                    className="bg-[#1a2744] border border-white/10 rounded-lg px-2.5 py-2 text-[11px] text-white focus:outline-none focus:ring-1 focus:ring-purple-500/50"
                   />
                 )}
               </div>
