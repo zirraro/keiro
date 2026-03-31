@@ -34,100 +34,58 @@ const SOCIAL_NETWORKS = {
   },
 } as const;
 
-function SocialConnectBanners({ agentId, networks }: { agentId: string; networks: Array<keyof typeof SOCIAL_NETWORKS> }) {
-  const storageKey = `keiro_socials_${agentId}`;
-  const [hidden, setHidden] = useState(false);
-  const [enabled, setEnabled] = useState<Record<string, boolean>>({});
-  const [connected, setConnected] = useState<Set<string>>(new Set());
+function SocialConnectBanners({ agentId, networks, connections }: { agentId: string; networks: Array<keyof typeof SOCIAL_NETWORKS>; connections?: Record<string, boolean> }) {
+  const [localConnected, setLocalConnected] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    // Load saved state
+    // Use connections from dashboard API (shared, always up-to-date)
+    if (connections) {
+      const c = new Set<string>();
+      if (connections.instagram) c.add('instagram');
+      if (connections.tiktok) c.add('tiktok');
+      if (connections.linkedin) c.add('linkedin');
+      if (connections.google) c.add('google');
+      setLocalConnected(c);
+    }
+  }, [connections]);
+
+  const handleDisconnect = useCallback(async (network: string) => {
+    if (typeof window !== 'undefined' && !window.confirm(`Deconnecter ${SOCIAL_NETWORKS[network as keyof typeof SOCIAL_NETWORKS]?.name || network} ?`)) return;
     try {
-      const saved = localStorage.getItem(storageKey);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed._hidden) { setHidden(true); return; }
-        setEnabled(parsed);
-      }
+      await fetch('/api/agents/disconnect-network', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ network }),
+      });
+      setLocalConnected(prev => { const n = new Set(prev); n.delete(network); return n; });
     } catch {}
-    // Check connected networks
-    fetch('/api/instagram/check-token', { credentials: 'include' })
-      .then(r => r.json())
-      .then(d => { if (d.valid || d.connected) setConnected(prev => new Set([...prev, 'instagram'])); })
-      .catch(() => {});
-  }, [storageKey]);
-
-  const save = useCallback((state: Record<string, boolean>) => {
-    try { localStorage.setItem(storageKey, JSON.stringify(state)); } catch {}
-  }, [storageKey]);
-
-  const toggle = useCallback((key: string) => {
-    setEnabled(prev => {
-      const next = { ...prev, [key]: !prev[key] };
-      save(next);
-      return next;
-    });
-  }, [save]);
-
-  const hideAll = useCallback(() => {
-    setHidden(true);
-    try { localStorage.setItem(storageKey, JSON.stringify({ _hidden: true })); } catch {}
-  }, [storageKey]);
-
-  if (hidden) return null;
-  // If all networks are connected, don't show
-  if (networks.every(n => connected.has(n))) return null;
+  }, []);
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 mb-4">
-      <div className="flex items-center justify-between mb-3">
-        <h4 className="text-xs font-bold text-white/70">Reseaux sociaux</h4>
-        <button onClick={hideAll} className="text-white/20 hover:text-white/50 transition" title="Masquer">
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-        </button>
-      </div>
-      <div className="space-y-2">
-        {networks.map(key => {
-          const net = SOCIAL_NETWORKS[key];
-          const isConnected = connected.has(key);
-          const isEnabled = enabled[key] || isConnected;
-          return (
-            <div key={key} className="flex items-center gap-3 py-1.5">
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center text-sm flex-shrink-0" style={{ background: `${net.color}20` }}>
-                {net.icon}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-xs font-medium text-white/80">{net.name}</div>
-                <div className="text-[9px] text-white/30">{net.description}</div>
-              </div>
-              {isConnected ? (
-                <span className="text-[10px] font-bold text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded-full flex-shrink-0">
-                  {'\u2713'} Connecte
-                </span>
-              ) : isEnabled ? (
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <a href={net.oauthUrl} className={`px-2.5 py-1 bg-gradient-to-r ${net.gradient} text-white text-[10px] font-bold rounded-lg hover:opacity-90 transition`}>
-                    Connecter
-                  </a>
-                  <button onClick={() => toggle(key)} className="w-10 h-6 rounded-full bg-emerald-500 relative transition-colors flex-shrink-0" title="Desactiver">
-                    <div className="absolute right-0.5 top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all" />
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <span className="text-[9px] text-white/20">Desactive</span>
-                  <button onClick={() => toggle(key)} className="w-10 h-6 rounded-full bg-white/15 relative transition-colors flex-shrink-0" title="Activer">
-                    <div className="absolute left-0.5 top-0.5 w-5 h-5 rounded-full bg-white/40 shadow transition-all" />
-                  </button>
-                </div>
-              )}
+    <div className="flex flex-wrap gap-2 mb-3">
+      {networks.map(key => {
+        const net = SOCIAL_NETWORKS[key];
+        const isConnected = localConnected.has(key) || connections?.[key];
+        return (
+          <div key={key} className="flex items-center gap-2 bg-white/[0.03] border border-white/10 rounded-lg px-3 py-2">
+            <div className="w-6 h-6 rounded-md flex items-center justify-center text-xs flex-shrink-0" style={{ background: `${net.color}20` }}>
+              {net.icon}
             </div>
-          );
-        })}
-      </div>
-      <p className="text-[9px] text-white/20 mt-3 text-center">
-        Pas encore de compte ? Active plus tard dans les parametres de l&apos;agent
-      </p>
+            <span className="text-[10px] text-white/60 font-medium">{net.name}</span>
+            {isConnected ? (
+              <div className="flex items-center gap-1.5">
+                <span className="text-[9px] text-emerald-400 font-bold">{'\u2713'}</span>
+                <button onClick={() => handleDisconnect(key)} className="text-[8px] text-white/15 hover:text-red-400/50 transition">Deconnecter</button>
+              </div>
+            ) : (
+              <a href={net.oauthUrl} className={`px-2 py-0.5 bg-gradient-to-r ${net.gradient} text-white text-[9px] font-bold rounded-md hover:opacity-90 transition`}>
+                Connecter
+              </a>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -1163,7 +1121,7 @@ function MarketingPanel({
     return (
       <>
         {/* Connect social networks — hide if already connected */}
-        {!(data as any).connections?.instagram && <SocialConnectBanners agentId="marketing" networks={['instagram', 'tiktok', 'linkedin']} />}
+        <SocialConnectBanners agentId="marketing" networks={['instagram', 'tiktok', 'linkedin']} connections={(data as any).connections} />
 
         {/* Hot prospects alert */}
         <HotProspectsAlert gradientFrom={gradientFrom} />
@@ -1868,7 +1826,7 @@ function ContentPanel({
   return (
     <>
       {/* Connect social networks — hide if already connected */}
-      {!(data as any).connections?.instagram && <SocialConnectBanners agentId="content" networks={['instagram', 'tiktok', 'linkedin']} />}
+      <SocialConnectBanners agentId="content" networks={['instagram', 'tiktok', 'linkedin']} connections={(data as any).connections} />
 
       {/* Auto mode toggle */}
       <div data-tour="auto-toggle"><AutoModeToggle agentId="content" autoLabel="Publication automatique" manualLabel="Publication manuelle" autoDesc="Lena publie automatiquement selon ton calendrier" manualDesc="Tu valides chaque post avant publication" /></div>
@@ -1942,18 +1900,8 @@ function ContentPanel({
           gradientTo="#6d28d9"
         />
       )}
-      {(data as any).connections?.instagram && (
-        <div className="flex items-center gap-2 mb-3" data-tour="launch-campaign">
-          <button
-            onClick={() => { try { (window as any).__openCampaignWizard?.(); } catch {} }}
-            className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-bold rounded-xl hover:shadow-lg hover:shadow-emerald-500/20 transition-all min-h-[44px] flex items-center gap-2"
-          >
-            <span>{'\u26A1'}</span> Lancer une campagne
-          </button>
-          <span className="text-[9px] text-emerald-400/50">{'\u2713'} Instagram connecte</span>
-        </div>
-      )}
-      <ContentWorkflow />
+      {/* Campaign button now in main AgentDashboard header */}
+      <ContentWorkflow isConnected={!!(data as any).connections?.instagram} />
 
       </div>{/* close content-workflow data-tour */}
 
@@ -2093,7 +2041,7 @@ function ContentDirectionInput() {
 }
 
 // Content workflow: fetch posts by status, allow approve/skip/schedule — Instagram grid style
-function ContentWorkflow() {
+function ContentWorkflow({ isConnected }: { isConnected?: boolean }) {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
@@ -2125,15 +2073,28 @@ function ContentWorkflow() {
 
   if (loading) return <div className="text-center py-6"><div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-400 mx-auto" /></div>;
 
-  const isDemo = posts.length === 0;
+  // Show demo only if NOT connected — if connected but no posts yet, show empty state
+  const isDemo = posts.length === 0 && !isConnected;
   const displayPosts = isDemo ? DEMO_CONTENT_POSTS : posts;
   const counts = displayPosts.reduce((acc: Record<string, number>, p: any) => { acc[p.status] = (acc[p.status] || 0) + 1; return acc; }, {});
   const filtered = filter === 'all' ? displayPosts : displayPosts.filter((p: any) => p.status === filter);
 
   const STATUS_COLORS: Record<string, string> = { draft: 'bg-amber-500', approved: 'bg-blue-500', published: 'bg-emerald-500', skipped: 'bg-gray-500', video_generating: 'bg-purple-500' };
 
+  // Connected but no posts yet — show helpful empty state
+  if (isConnected && posts.length === 0) {
+    return (
+      <div className="text-center py-8 bg-white/[0.02] rounded-xl border border-white/5">
+        <span className="text-2xl">{'\u{1F4F8}'}</span>
+        <p className="text-xs text-white/50 mt-2">Aucun post pour le moment</p>
+        <p className="text-[10px] text-white/30 mt-1">Clique sur {'\u26A1'} Lancer une campagne pour que Lena commence a creer du contenu !</p>
+      </div>
+    );
+  }
+
   return (
     <div>
+      {isDemo && <p className="text-[9px] text-amber-400/50 mb-2">{'\u{1F4F8}'} Apercu — connecte tes reseaux pour voir tes vrais posts</p>}
       {/* Status filter tabs */}
       <div className="flex gap-1 mb-2 overflow-x-auto pb-1">
         {[
@@ -2756,7 +2717,7 @@ function DmInstagramPanel({
     <>
       {/* Connect + Toggle inline — hide connect if already connected */}
       <div className="flex flex-col lg:flex-row gap-3 mb-3">
-        {!(data as any).connections?.instagram && <div className="flex-1"><SocialConnectBanners agentId="dm_instagram" networks={['instagram']} /></div>}
+        <div className="flex-1"><SocialConnectBanners agentId="dm_instagram" networks={['instagram']} connections={(data as any).connections} /></div>
         <div data-tour="auto-toggle" className={!(data as any).connections?.instagram ? 'lg:w-72' : 'flex-1'}><AutoModeToggle agentId="dm_instagram" autoLabel="DMs automatiques" manualLabel="DMs manuels" autoDesc="Jade repond auto aux DMs" manualDesc="Tu valides chaque DM" /></div>
       </div>
 
@@ -2810,7 +2771,7 @@ function TiktokCommentsPanel({
   return (
     <>
       {/* Connect TikTok if not connected */}
-      {!(data as any).connections?.tiktok && <SocialConnectBanners agentId="tiktok_comments" networks={['tiktok']} />}
+      <SocialConnectBanners agentId="tiktok_comments" networks={['tiktok']} connections={(data as any).connections} />
 
       {/* Auto mode */}
       <AutoModeToggle agentId="tiktok_comments" autoLabel="Engagement automatique" manualLabel="Engagement manuel" autoDesc="Axel commente et engage automatiquement" manualDesc="Tu valides chaque interaction" />
@@ -3452,6 +3413,19 @@ export default function AgentDashboard({ agentId, agentName, gradientFrom, gradi
           </div>
         </div>
       </div>
+
+      {/* Launch campaign button — all agents */}
+      {!isAdmin && agentId !== 'onboarding' && agentId !== 'ceo' && agentId !== 'qa' && (
+        <div data-tour="launch-campaign" className="mx-5 mt-3 flex items-center gap-2">
+          <button
+            onClick={() => { try { (window as any).__openCampaignWizard?.(); } catch {} }}
+            className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-bold rounded-xl hover:shadow-lg hover:shadow-emerald-500/20 transition-all min-h-[44px] flex items-center gap-2"
+          >
+            <span>{'\u26A1'}</span> Lancer une campagne
+          </button>
+          <span className="text-[9px] text-white/25">Configure et active en 30 secondes</span>
+        </div>
+      )}
 
       {/* Admin supervision panel — cross-client view */}
       {(data as any).supervision?.isAdmin && (

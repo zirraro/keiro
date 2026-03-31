@@ -15,18 +15,21 @@ import SpotlightTour, { TourStep } from './SpotlightTour';
 // Tour steps per agent — target matches data-tour="xxx" attributes on the page
 const AGENT_TOURS: Record<string, TourStep[]> = {
   content: [
+    { target: 'launch-campaign', title: 'Lance ta premiere campagne', description: 'Clique ici pour configurer Lena en 30 secondes : choisis tes reseaux, ta frequence et ton style. Lena commence a publier immediatement !', position: 'bottom' },
     { target: 'auto-toggle', title: 'Mode de publication', description: 'En AUTO, Lena publie selon ton calendrier. En MANUEL, tes posts apparaissent en brouillon et tu valides avant publication.', position: 'bottom' },
-    { target: 'content-workflow', title: 'Tes posts prepares', description: 'Ici apparaissent les posts generes par Lena avec leur visuel. Tu peux valider, publier maintenant ou ignorer. Filtre par statut : A valider, Programmes, Publies.', position: 'bottom' },
-    { target: 'content-calendar', title: 'Ton planning', description: 'Le calendrier montre tes publications sur 14 jours par plateforme : Instagram, TikTok, LinkedIn. Les cases colorees = posts publies.', position: 'top' },
+    { target: 'content-workflow', title: 'Tes posts', description: 'Clique sur un post pour le voir en grand comme sur Instagram. Tu peux valider, publier ou ignorer depuis la modal.', position: 'bottom' },
+    { target: 'content-calendar', title: 'Ton planning', description: 'Le calendrier montre tes publications sur 14 jours par plateforme : Instagram, TikTok, LinkedIn.', position: 'top' },
   ],
   dm_instagram: [
+    { target: 'launch-campaign', title: 'Lance la prospection DM', description: 'Configure Jade en 30 secondes : volume de DMs, cible et ton. Elle prospecte automatiquement pour toi !', position: 'bottom' },
     { target: 'auto-toggle', title: 'Mode DM', description: 'En AUTO, Jade prospecte et repond aux DMs pour toi. En MANUEL, tu valides chaque message avant envoi.', position: 'bottom' },
-    { target: 'dm-stats', title: 'Ton pipeline', description: 'DMs envoyes → Reponses recues → RDV generes. Le bouton CRM ouvre ton pipeline de prospects complet.', position: 'bottom' },
-    { target: 'dm-conversations', title: 'DMs et Commentaires', description: 'Switch entre DMs et Commentaires. Tes conversations DM apparaissent ici. Dans l\'onglet Commentaires, Jade repond automatiquement aux commentaires sur tes posts.', position: 'top' },
+    { target: 'dm-stats', title: 'Ton pipeline', description: 'DMs envoyes → Reponses recues → RDV generes. Le bouton CRM ouvre ton pipeline complet.', position: 'bottom' },
+    { target: 'dm-conversations', title: 'DMs et Commentaires', description: 'Tes conversations en temps reel. Dans Commentaires, Jade repond auto a tes posts.', position: 'top' },
   ],
   email: [
+    { target: 'launch-campaign', title: 'Lance la prospection email', description: 'Configure Hugo en 30 secondes : volume, ton et types de prospects. Il envoie automatiquement !', position: 'bottom' },
     { target: 'auto-toggle', title: 'Mode email', description: 'En AUTO, Hugo envoie les sequences email a tes prospects. En MANUEL, tu valides chaque email avant envoi.', position: 'bottom' },
-    { target: 'email-inbox', title: 'Ta boite email', description: 'Filtre par Recus, Envoyes ou Sequences auto. Clique sur un prospect pour voir le fil complet et repondre directement. Les ouvertures et clics sont suivis en temps reel.', position: 'top' },
+    { target: 'email-inbox', title: 'Ta boite email', description: 'Filtre par Recus, Envoyes ou Sequences. Clique sur un prospect pour repondre directement.', position: 'top' },
   ],
   gmaps: [
     { target: 'auto-toggle', title: 'Reponses auto', description: 'Active pour que Theo reponde automatiquement a chaque nouvel avis Google.', position: 'bottom' },

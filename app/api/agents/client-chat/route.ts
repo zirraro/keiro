@@ -223,8 +223,14 @@ export async function POST(request: NextRequest) {
 
     const response = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1024,
-      system: systemPrompt,
+      max_tokens: 2048,
+      system: systemPrompt + `\n\nREGLES DE CHAT CRITIQUES:
+- Reponds TOUJOURS de maniere concrete et actionnelle. JAMAIS "je traite ta demande" ou "je m'en occupe" sans detail.
+- Si le client demande une action (publier, envoyer, analyser), FAIS-LA et decris le resultat en detail.
+- Utilise un ton pro mais amical, tutoie le client, sois enthousiaste mais pas excessif.
+- Si tu ne peux pas faire quelque chose, explique POURQUOI et propose une alternative concrete.
+- Tes reponses doivent etre riches: chiffres, exemples concrets, next steps clairs.
+- Tu as acces a l'intelligence partagee de tous les agents — utilise-la pour donner du contexte.`,
       temperature: 0.7,
       messages: claudeMessages,
     });
