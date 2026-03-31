@@ -121,6 +121,23 @@ export async function POST(req: NextRequest) {
 
     console.log('[InstagramCallback] Instagram Business Account found:', instagramAccount.id);
 
+    // Étape 3.5: Get IGAA token for DM API access (graph.instagram.com)
+    let igaaToken: string | null = null;
+    try {
+      const igaaRes = await fetch(
+        `https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${process.env.INSTAGRAM_APP_SECRET || process.env.META_APP_SECRET}&access_token=${selectedPage.access_token}`
+      );
+      if (igaaRes.ok) {
+        const igaaData = await igaaRes.json();
+        igaaToken = igaaData.access_token || null;
+        console.log('[InstagramCallback] IGAA token obtained:', igaaToken ? 'YES' : 'NO');
+      } else {
+        console.warn('[InstagramCallback] IGAA token exchange failed:', await igaaRes.text().catch(() => ''));
+      }
+    } catch (e: any) {
+      console.warn('[InstagramCallback] IGAA token exchange error:', e.message);
+    }
+
     // Étape 4: Sauvegarder les informations dans Supabase (avec service role key)
     const { error: updateError } = await supabase
       .from('profiles')
@@ -128,7 +145,7 @@ export async function POST(req: NextRequest) {
         meta_app_user_id: userId,
         instagram_business_account_id: instagramAccount.id,
         instagram_username: instagramAccount.username,
-        instagram_access_token: selectedPage.access_token,
+        instagram_access_token: igaaToken || selectedPage.access_token,
         facebook_page_id: selectedPage.id,
         facebook_page_access_token: selectedPage.access_token,
         instagram_connected_at: new Date().toISOString(),
