@@ -373,22 +373,44 @@ export async function POST(req: NextRequest) {
       if (textExts.has(ext)) {
         // Text-based extraction (DOCX, XLSX, CSV, TXT, PPTX)
         // Ensure we have a proper Node Buffer (Vercel can pass ArrayBuffer)
-        const nodeBuffer = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
-        console.log(`[agent-files] Starting text extraction for ${ext}: ${safeName} (${nodeBuffer.length} bytes, isBuffer: ${Buffer.isBuffer(nodeBuffer)})`);
+        let nodeBuffer: Buffer;
+        try {
+          nodeBuffer = Buffer.isBuffer(buffer) ? buffer : Buffer.from(new Uint8Array((buffer as any).buffer ? (buffer as any).buffer : buffer as any));
+        } catch {
+          nodeBuffer = Buffer.from(buffer as any);
+        }
+        console.log(`[agent-files] Starting text extraction for ${ext}: ${safeName} (${nodeBuffer.length} bytes)`);
         let text: string | null = null;
+
+        // Method 1: JSZip extraction
         try {
           text = await extractTextFromFile(nodeBuffer, ext);
         } catch (extractErr: any) {
           console.error(`[agent-files] extractTextFromFile crashed for ${ext}:`, extractErr.message);
         }
-        console.log(`[agent-files] Text extraction result: ${text ? text.length + ' chars' : 'NULL'}`);
+        console.log(`[agent-files] JSZip extraction: ${text ? text.length + ' chars' : 'NULL'}`);
 
-        // Fallback 1: if extraction failed, try crude string extraction from binary
-        if (!text || text.length < 20) {
-          console.warn(`[agent-files] Primary extraction failed, trying crude binary string extraction`);
+        // Method 2: Crude XML extraction directly from buffer (bypass JSZip)
+        if (!text || text.length < 50) {
+          console.warn(`[agent-files] JSZip failed, trying direct XML extraction from buffer`);
           try {
-            const raw = nodeBuffer.toString('utf-8').replace(/[^\x20-\x7E\xC0-\xFF\n]/g, ' ').replace(/\s+/g, ' ').trim();
-            if (raw.length > 50) text = raw.substring(0, 15000);
+            const rawStr = nodeBuffer.toString('utf-8');
+            // Extract text between <w:t> tags (DOCX XML format)
+            const wtMatches = rawStr.match(/<w:t[^>]*>([^<]*)<\/w:t>/g);
+            if (wtMatches && wtMatches.length > 5) {
+              text = wtMatches.map(t => t.replace(/<[^>]+>/g, '')).join(' ').trim();
+              console.log(`[agent-files] Direct XML extraction: ${text.length} chars`);
+            }
+          } catch {}
+        }
+
+        // Method 3: Crude printable string extraction from binary
+        if (!text || text.length < 50) {
+          console.warn(`[agent-files] XML failed, trying crude binary string extraction`);
+          try {
+            const raw = nodeBuffer.toString('utf-8').replace(/[^\x20-\x7E\xC0-\xFF\u00C0-\u024F\n]/g, ' ').replace(/\s+/g, ' ').trim();
+            if (raw.length > 100) text = raw.substring(0, 15000);
+            console.log(`[agent-files] Crude extraction: ${(text || '').length} chars`);
           } catch {}
         }
 
