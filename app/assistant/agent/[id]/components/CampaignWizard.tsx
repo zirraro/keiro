@@ -181,6 +181,11 @@ export default function CampaignWizard({ agentId, agentName, onClose, onActivate
         linkedin: 'Genere et publie un post LinkedIn professionnel maintenant.',
       };
 
+      // Notify ContentWorkflow that generation is in progress
+      if (agentId === 'content') {
+        try { (window as any).__contentGenerating?.(); } catch {}
+      }
+
       const prompt = ACTION_PROMPTS[agentId];
       if (prompt) {
         const res = await fetch('/api/agents/client-chat', {

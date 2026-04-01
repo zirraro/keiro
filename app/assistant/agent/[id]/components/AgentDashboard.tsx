@@ -2054,15 +2054,26 @@ function ContentWorkflow({ isConnected }: { isConnected?: boolean }) {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
+  const [platformFilter, setPlatformFilter] = useState<string>('all');
   const [selectedPost, setSelectedPost] = useState<any | null>(null);
+  const [generating, setGenerating] = useState(false);
 
+  // Listen for campaign generation start
   useEffect(() => {
+    const handler = () => { setGenerating(true); setTimeout(() => { setGenerating(false); loadPosts(); }, 15000); };
+    (window as any).__contentGenerating = handler;
+    return () => { delete (window as any).__contentGenerating; };
+  }, []);
+
+  const loadPosts = useCallback(() => {
     fetch('/api/agents/content?action=calendar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'calendar' }) })
       .then(r => r.json())
       .then(d => { if (d.posts || d.calendar) setPosts(d.posts || d.calendar || []); })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => { loadPosts(); }, [loadPosts]);
 
   const handleAction = useCallback(async (postId: string, action: string) => {
     setPosts(prev => prev.map(p => p.id === postId ? { ...p, _loading: true } : p));
@@ -2101,13 +2112,40 @@ function ContentWorkflow({ isConnected }: { isConnected?: boolean }) {
     );
   }
 
+  // Apply platform filter
+  const platformFiltered = platformFilter === 'all' ? displayPosts : displayPosts.filter((p: any) => (p.platform || 'instagram') === platformFilter);
+  const platformCounts = displayPosts.reduce((acc: Record<string, number>, p: any) => { const pl = p.platform || 'instagram'; acc[pl] = (acc[pl] || 0) + 1; return acc; }, {});
+
   return (
     <div>
       {isDemo && <p className="text-[9px] text-amber-400/50 mb-2">{'\u{1F4F8}'} Apercu — connecte tes reseaux pour voir tes vrais posts</p>}
+
+      {/* Generation in progress indicator */}
+      {generating && (
+        <div className="flex items-center gap-2 mb-3 px-3 py-2 bg-purple-500/10 border border-purple-500/20 rounded-lg animate-pulse">
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-400" />
+          <span className="text-xs text-purple-300">Post en cours de generation... Il apparaitra ici dans quelques secondes</span>
+        </div>
+      )}
+
+      {/* Platform filter */}
+      <div className="flex gap-1 mb-1.5 overflow-x-auto">
+        {[
+          { key: 'all', label: 'Tous', icon: '' },
+          { key: 'instagram', label: `IG (${platformCounts.instagram || 0})`, icon: '\u{1F4F8}' },
+          { key: 'tiktok', label: `TT (${platformCounts.tiktok || 0})`, icon: '\u{1F3B5}' },
+          { key: 'linkedin', label: `LI (${platformCounts.linkedin || 0})`, icon: '\u{1F4BC}' },
+        ].map(tab => (
+          <button key={tab.key} onClick={() => setPlatformFilter(tab.key)}
+            className={`px-2 py-1 text-[9px] font-medium rounded-md whitespace-nowrap transition-all ${platformFilter === tab.key ? 'bg-white/15 text-white' : 'bg-white/5 text-white/30 hover:bg-white/10'}`}
+          >{tab.icon} {tab.label}</button>
+        ))}
+      </div>
+
       {/* Status filter tabs */}
       <div className="flex gap-1 mb-2 overflow-x-auto pb-1">
         {[
-          { key: 'all', label: `Tous (${displayPosts.length})` },
+          { key: 'all', label: `Tous (${platformFiltered.length})` },
           { key: 'draft', label: `Brouillons (${counts.draft || 0})` },
           { key: 'approved', label: `Programmes (${counts.approved || 0})` },
           { key: 'published', label: `Publies (${counts.published || 0})` },
@@ -2120,7 +2158,7 @@ function ContentWorkflow({ isConnected }: { isConnected?: boolean }) {
 
       {/* Instagram-style grid — small thumbnails, click to expand */}
       <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-1 max-h-[300px] overflow-y-auto">
-        {filtered.slice(0, 20).map((post: any) => (
+        {(filter === 'all' ? platformFiltered : platformFiltered.filter((p: any) => p.status === filter)).slice(0, 20).map((post: any) => (
           <button key={post.id} onClick={() => setSelectedPost(post)} className="relative aspect-square bg-white/5 rounded-md overflow-hidden hover:opacity-80 transition group">
             {post.visual_url ? (
               <img src={post.visual_url} alt="" className="w-full h-full object-cover" />
