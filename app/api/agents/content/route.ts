@@ -2079,6 +2079,20 @@ export async function POST(request: NextRequest) {
           ...(orgId ? { org_id: orgId } : {}),
         });
 
+        // Notify client of batch publication
+        if (userId && publishedCount > 0) {
+          try {
+            const { notifyClient } = await import('@/lib/agents/notify-client');
+            await notifyClient(supabase, {
+              userId,
+              agent: 'content',
+              title: `${publishedCount} post${publishedCount > 1 ? 's' : ''} publie${publishedCount > 1 ? 's' : ''}`,
+              message: publishedPosts.map((p: any) => `${p.platform}: ${(p.caption || p.hook || '').substring(0, 50)}`).join('\n'),
+              data: { count: publishedCount, posts: publishedPosts },
+            });
+          } catch {}
+        }
+
         // ── Save learnings from publication ──
         try {
           if (publishedCount > 0) {
@@ -3438,6 +3452,20 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
   }
 
   console.log(`[Content] Daily post: ${postPlatform} ${postFormat} — ${post.hook}`);
+
+  // ── Notify client of publication result ──
+  if (userId) {
+    try {
+      const { notifyPublication } = await import('@/lib/agents/notify-client');
+      await notifyPublication(supabase, userId, {
+        platform: postPlatform,
+        permalink: igPermalink || undefined,
+        caption: post.caption?.substring(0, 100),
+        status: publicationError ? 'publish_failed' : (igPermalink || tiktokPublishId) ? 'published' : 'publish_failed',
+        error: publicationError,
+      });
+    } catch {}
+  }
 
   return NextResponse.json({
     ok: true,

@@ -402,5 +402,17 @@ async function runGMapsScan(orgId: string | null = null, userId: string | null =
 
   console.log(`[GMaps] ${scannedZones.join(', ')}: ${totalImported} imported, ${totalSkipped} skipped, ${totalErrors} errors`);
 
+  // Notify client
+  if (userId && totalImported > 0) {
+    try {
+      const { notifyProspection } = await import('@/lib/agents/notify-client');
+      await notifyProspection(supabase, userId, {
+        imported: totalImported,
+        zones: scannedZones,
+        source: 'Google Maps',
+      });
+    } catch {}
+  }
+
   return NextResponse.json({ ok: true, ...report });
 }

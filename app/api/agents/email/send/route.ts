@@ -384,6 +384,19 @@ export async function POST(request: NextRequest) {
       ...(orgId ? { org_id: orgId } : {}),
     });
 
+    // Notify client
+    if (clientUserId) {
+      try {
+        const { notifyEmailSent } = await import('@/lib/agents/notify-client');
+        await notifyEmailSent(supabase, clientUserId, {
+          count: 1,
+          provider,
+          company: prospect.company,
+          subject: template.subject,
+        });
+      } catch {}
+    }
+
     return NextResponse.json({
       ok: true,
       messageId,
