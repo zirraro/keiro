@@ -15,10 +15,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL('/login', req.url));
   }
 
-  // Use request host to match exactly what Google sees (www vs non-www)
-  const host = req.headers.get('host') || new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://keiroai.com').host;
-  const redirectUri = `https://${host}/api/auth/gmail-callback`;
-  console.log('[Gmail OAuth] redirect_uri:', redirectUri, 'host:', host);
+  // Always use www.keiroai.com — this is what's registered in Google Console
+  const redirectUri = 'https://www.keiroai.com/api/auth/gmail-callback';
+  console.log('[Gmail OAuth] redirect_uri:', redirectUri);
 
   // State carries user_id + return URL + redirect_uri (for callback to reuse exact same URI)
   const returnTo = req.nextUrl.searchParams.get('returnTo') || '/assistant/agent/email';
