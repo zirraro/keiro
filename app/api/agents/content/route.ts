@@ -1790,26 +1790,35 @@ export async function POST(request: NextRequest) {
 
         // Publish approved/draft posts that are due today or earlier
         const todayDate = new Date().toISOString().split('T')[0];
-        const { data: readyPosts } = await supabase
+        let readyQuery = supabase
           .from('content_calendar')
           .select('*')
           .in('status', ['approved', 'draft'])
           .lte('scheduled_date', todayDate)
           .is('visual_url', null);
+        if (userId) readyQuery = readyQuery.eq('user_id', userId);
+        const { data: readyPosts } = await readyQuery;
 
         // Also get approved posts with visuals that aren't published yet + retry failed posts
-        const { data: approvedWithVisuals } = await supabase
+        let visualQuery = supabase
           .from('content_calendar')
           .select('*')
           .in('status', ['approved', 'draft', 'publish_failed'])
           .lte('scheduled_date', todayDate)
           .not('visual_url', 'is', null);
+        if (userId) visualQuery = visualQuery.eq('user_id', userId);
+        const { data: approvedWithVisuals } = await visualQuery;
+
+        // Skip TikTok/LinkedIn posts if client disabled them
+        const skipPlatforms = new Set<string>();
+        if (clientSettings.tt_enabled === false || (clientSettings.posts_per_day_tt != null && parseInt(clientSettings.posts_per_day_tt) === 0)) skipPlatforms.add('tiktok');
+        if (clientSettings.li_enabled === false || (clientSettings.posts_per_day_li != null && parseInt(clientSettings.posts_per_day_li) === 0)) skipPlatforms.add('linkedin');
 
         let publishedCount = 0;
         const publishedPosts: Array<{ platform: string; format: string; hook: string; instagram_permalink?: string; publication_error?: string }> = [];
 
-        // Publish posts that already have visuals
-        for (const post of approvedWithVisuals || []) {
+        // Publish posts that already have visuals (skip disabled platforms)
+        for (const post of (approvedWithVisuals || []).filter((p: any) => !skipPlatforms.has(p.platform || 'instagram'))) {
           const updateData: Record<string, any> = {
             status: 'published',
             published_at: new Date().toISOString(),
@@ -1915,7 +1924,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Generate visuals and publish for posts without visuals
-        for (const post of readyPosts || []) {
+        for (const post of (readyPosts || []).filter((p: any) => !skipPlatforms.has(p.platform || 'instagram'))) {
           const visualDesc = post.visual_description || post.hook || post.caption;
           if (visualDesc) {
             const visualUrl = await generateVisual(visualDesc, post.format || 'post');
