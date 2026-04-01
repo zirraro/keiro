@@ -193,8 +193,23 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 7. Build system prompt using client-facing prompt + enriched context
-    const systemPrompt = getClientPrompt(agent_id, dossierContext, agentName) + enrichedContext + scrapedContext;
+    // 6c. Load RAG learnings for this agent (shared knowledge pool)
+    let ragContext = '';
+    try {
+      const { getActiveLearnings, getAllHistoricalLearnings, formatLearningsForPrompt } = await import('@/lib/agents/learning');
+      const [agentLearnings, globalLearnings] = await Promise.all([
+        getActiveLearnings(supabase, agent_id, undefined, undefined),
+        getAllHistoricalLearnings(supabase, { minConfidence: 40, limit: 20 }),
+      ]);
+      if ((agentLearnings || []).length > 0 || (globalLearnings || []).length > 0) {
+        ragContext = '\n\n=== CONNAISSANCES & APPRENTISSAGES ===\n' + formatLearningsForPrompt(agentLearnings || [], globalLearnings || []);
+      }
+    } catch (e: any) {
+      console.warn('[ClientChat] RAG load failed (non-fatal):', e?.message);
+    }
+
+    // 7. Build system prompt using client-facing prompt + enriched context + RAG
+    const systemPrompt = getClientPrompt(agent_id, dossierContext, agentName) + enrichedContext + scrapedContext + ragContext;
 
     // 8. Load last 20 messages from client_agent_chats for conversation history
     const { data: chatRow } = await supabase

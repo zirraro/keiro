@@ -46,7 +46,7 @@ export default function ClientCRM() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch('/api/crm?limit=2000', { credentials: 'include' });
+        const res = await fetch('/api/crm?limit=5000', { credentials: 'include' });
         const data = await res.json();
         if (data.ok && data.prospects) {
           setProspects(data.prospects);
@@ -276,7 +276,7 @@ export default function ClientCRM() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.slice(0, 100).map(p => {
+                    {filtered.slice(0, 500).map(p => {
                       const statusCfg = STATUSES.find(s => s.id === p.status);
                       const tempCfg = TEMPS.find(t => t.id === p.temperature);
                       return (
@@ -294,7 +294,7 @@ export default function ClientCRM() {
                   </tbody>
                 </table>
               </div>
-              {filtered.length > 100 && <p className="text-center text-white/30 text-xs py-2">+ {filtered.length - 100} autres...</p>}
+              {filtered.length > 500 && <p className="text-center text-white/30 text-xs py-2">+ {filtered.length - 500} autres...</p>}
             </div>
           </div>
         )}

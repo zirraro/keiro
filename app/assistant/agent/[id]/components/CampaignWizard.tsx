@@ -195,7 +195,25 @@ export default function CampaignWizard({ agentId, agentName, onClose, onActivate
         linkedin: () => fetch('/api/agents/content', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'generate_post', platform: 'linkedin', format: 'text', pillar: 'tips', draftOnly: false }) }),
       };
       if (directCalls[agentId]) {
-        directCalls[agentId]().catch(() => {});
+        // For some agents, wait for the direct call result and show it
+        if (agentId === 'commercial' || agentId === 'email') {
+          try {
+            const directRes = await directCalls[agentId]();
+            const directData = await directRes.json();
+            if (directData.ok !== false) {
+              const resultMsg = agentId === 'commercial'
+                ? `${directData.imported || 0} prospects trouves sur Google Maps ! ${directData.skipped || 0} doublons ignores.`
+                : `${directData.stats?.success || directData.sent || 0} emails envoyes avec succes.`;
+              setStatusMsg('');
+              setDone(true);
+              try { (window as any).__campaignResult = resultMsg; } catch {}
+              setTimeout(() => { onActivated(); onClose(); }, 3000);
+              return;
+            }
+          } catch {}
+        } else {
+          directCalls[agentId]().catch(() => {});
+        }
       }
 
       // Log campaign start in agent history

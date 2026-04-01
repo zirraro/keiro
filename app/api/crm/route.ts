@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status') || '';
     const temperature = searchParams.get('temperature') || '';
-    const limit = parseInt(searchParams.get('limit') || '100', 10);
+    const limit = parseInt(searchParams.get('limit') || '5000', 10);
 
     // Query scoped to user — try org_id first, fallback to created_by/user_id
     let query = supabase
