@@ -15,12 +15,14 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL('/login', req.url));
   }
 
-  const redirectUri = `${process.env.NEXT_PUBLIC_SITE_URL || `${req.nextUrl.protocol}//${req.nextUrl.host}`}/api/auth/gmail-callback`;
-  console.log('[Gmail OAuth] redirect_uri:', redirectUri);
+  // Use request host to match exactly what Google sees (www vs non-www)
+  const host = req.headers.get('host') || new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://keiroai.com').host;
+  const redirectUri = `https://${host}/api/auth/gmail-callback`;
+  console.log('[Gmail OAuth] redirect_uri:', redirectUri, 'host:', host);
 
-  // State carries user_id + return URL
+  // State carries user_id + return URL + redirect_uri (for callback to reuse exact same URI)
   const returnTo = req.nextUrl.searchParams.get('returnTo') || '/assistant/agent/email';
-  const state = JSON.stringify({ userId: user.id, returnTo });
+  const state = JSON.stringify({ userId: user.id, returnTo, redirectUri });
   const stateB64 = Buffer.from(state).toString('base64url');
 
   const oauthUrl = getGmailOAuthUrl(redirectUri, stateB64);

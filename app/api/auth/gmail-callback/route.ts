@@ -22,15 +22,22 @@ export async function GET(req: NextRequest) {
   // Decode state
   let userId = '';
   let returnTo = '/assistant/agent/email';
+  let redirectUri = '';
   try {
     const state = JSON.parse(Buffer.from(stateB64 || '', 'base64url').toString());
     userId = state.userId;
     returnTo = state.returnTo || returnTo;
+    redirectUri = state.redirectUri || ''; // Exact URI used during authorization
   } catch {
     return NextResponse.redirect(new URL('/assistant/agent/email?error=invalid_state', req.url));
   }
 
-  const redirectUri = `${process.env.NEXT_PUBLIC_SITE_URL || `${req.nextUrl.protocol}//${req.nextUrl.host}`}/api/auth/gmail-callback`;
+  // Use redirectUri from state (matches exactly what was sent to Google)
+  // Fallback to request host if state doesn't have it
+  if (!redirectUri) {
+    const host = req.headers.get('host') || new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://keiroai.com').host;
+    redirectUri = `https://${host}/api/auth/gmail-callback`;
+  }
   console.log('[Gmail Callback] redirect_uri:', redirectUri, 'userId:', userId);
 
   try {
