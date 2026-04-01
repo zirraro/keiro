@@ -2867,24 +2867,28 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
   const slotType = forcePillar === '__midday__' ? 'midday' : forcePillar === '__evening__' ? 'evening' : forcePillar === '__tiktok__' ? 'tiktok' : forcePillar === '__linkedin_1__' ? 'linkedin_1' : forcePillar === '__linkedin_2__' ? 'linkedin_2' : 'morning';
 
   // ── CLIENT SETTINGS: skip slot if client reduced frequency or disabled platform ──
-  const postsPerDayIG = parseInt(clientSettings.posts_per_day_ig) || 3;
-  const postsPerDayTT = parseInt(clientSettings.posts_per_day_tt) || 3;
-  const postsPerDayLI = parseInt(clientSettings.posts_per_day_li) || 3;
-  const preferredFormats = clientSettings.formats || 'all'; // all, reels, stories, carousel, static
+  const postsPerDayIG = clientSettings.posts_per_day_ig != null ? parseInt(clientSettings.posts_per_day_ig) : 3;
+  const postsPerDayTT = clientSettings.posts_per_day_tt != null ? parseInt(clientSettings.posts_per_day_tt) : 0;
+  const postsPerDayLI = clientSettings.posts_per_day_li != null ? parseInt(clientSettings.posts_per_day_li) : 0;
+  const preferredFormats = clientSettings.formats_ig || clientSettings.formats || 'all';
+  const igEnabled = clientSettings.ig_enabled !== false;
+  const ttEnabled = clientSettings.tt_enabled === true && postsPerDayTT > 0;
+  const liEnabled = clientSettings.li_enabled === true && postsPerDayLI > 0;
 
-  // Skip this slot based on client frequency settings
+  // Skip slots based on client settings
   if (slotType === 'midday' && postsPerDayIG < 2) {
-    console.log(`[Content] Client ${userId || 'default'}: skipping midday (posts_per_day_ig=${postsPerDayIG})`);
     return NextResponse.json({ ok: true, skipped: true, reason: 'Client frequency < 2 posts/day IG' });
   }
   if (slotType === 'evening' && postsPerDayIG < 3) {
-    console.log(`[Content] Client ${userId || 'default'}: skipping evening (posts_per_day_ig=${postsPerDayIG})`);
     return NextResponse.json({ ok: true, skipped: true, reason: 'Client frequency < 3 posts/day IG' });
+  }
+  if (slotType.startsWith('linkedin') && !liEnabled) {
+    return NextResponse.json({ ok: true, skipped: true, reason: 'Client disabled LinkedIn' });
   }
   if ((slotType === 'linkedin_2') && postsPerDayLI < 2) {
     return NextResponse.json({ ok: true, skipped: true, reason: 'Client frequency < 2 posts/day LinkedIn' });
   }
-  if (slotType === 'tiktok' && postsPerDayTT < 1) {
+  if (slotType === 'tiktok' && !ttEnabled) {
     return NextResponse.json({ ok: true, skipped: true, reason: 'Client disabled TikTok' });
   }
   // Skip TikTok generation entirely if no token (avoids wasting AI credits on unpublishable content)
