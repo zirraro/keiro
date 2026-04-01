@@ -1931,13 +1931,9 @@ function ContentPanel({
 
       </div>{/* close content-workflow data-tour */}
 
-      {/* Calendar note — full calendar in Planning tab */}
-      <div className="text-center py-2">
-        <span className="text-[10px] text-white/30">{'\u{1F4C5}'} Le calendrier editorial complet est dans l&apos;onglet <strong className="text-purple-400">Planning</strong></span>
-      </div>
-      {/* Compact calendar preview */}
-      <SectionTitle>Apercu calendrier</SectionTitle>
-      <div data-tour="content-calendar" className="bg-white/5 rounded-xl border border-white/10 p-3 sm:p-4 overflow-x-auto">
+      {/* Calendar moved to Planning tab */}
+      {false && <SectionTitle>Calendrier</SectionTitle>}
+      <div data-tour="content-calendar" className="bg-white/5 rounded-xl border border-white/10 p-3 sm:p-4 overflow-x-auto" style={{ display: 'none' }}>
         <div className="min-w-[400px]">
           {/* Header: dates */}
           <div className="grid grid-cols-[80px_repeat(14,1fr)] gap-0.5 mb-1">

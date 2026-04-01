@@ -1556,13 +1556,31 @@ export async function POST(request: NextRequest) {
         const { data: psPost } = await supabase.from('content_calendar').select('*').eq('id', body.postId).single();
         if (!psPost) return NextResponse.json({ ok: false, error: 'Post not found' }, { status: 404 });
 
+        // Get the owner user_id from the post or from current auth
+        const postUserId = psPost.user_id || userId || null;
+
         // Update status to approved if pending
         if (psPost.status === 'pending_approval' || psPost.status === 'draft') {
           await supabase.from('content_calendar').update({ status: 'approved', updated_at: new Date().toISOString() }).eq('id', body.postId);
         }
 
-        // Delegate to republish_single logic
-        const psResult = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || `https://${process.env.VERCEL_URL}`}/api/agents/content`, {
+        // Publish directly instead of delegating (avoids losing userId in CRON call)
+        if (psPost.platform === 'instagram' || !psPost.platform) {
+          const igResult = await publishToInstagram({ ...psPost, visual_url: psPost.visual_url }, supabase, orgId, postUserId);
+          if (igResult.success) {
+            await supabase.from('content_calendar').update({
+              instagram_permalink: igResult.permalink,
+              status: 'published',
+              published_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            }).eq('id', body.postId);
+            return NextResponse.json({ ok: true, instagram_permalink: igResult.permalink });
+          }
+          return NextResponse.json({ ok: false, error: igResult.error || 'Publication echouee' });
+        }
+
+        // For other platforms, delegate
+        const psResult = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || `https://${process.env.VERCEL_URL}`}/api/agents/content?user_id=${postUserId || ''}`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${process.env.CRON_SECRET}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'republish_single', postId: body.postId }),
