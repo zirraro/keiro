@@ -18,16 +18,17 @@ function getSupabaseAdmin() {
 async function verifyAuth(request: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
   const authHeader = request.headers.get('authorization');
-  if (cronSecret && authHeader === `Bearer ${cronSecret}`) return { authorized: true, isCron: true };
+  if (cronSecret && authHeader === `Bearer ${cronSecret}`) return { authorized: true, isCron: true, userId: null as string | null };
 
   try {
     const { user, error } = await getAuthUser();
-    if (error || !user) return { authorized: false };
+    if (error || !user) return { authorized: false, userId: null as string | null };
     const supabase = getSupabaseAdmin();
     const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single();
-    if (profile?.is_admin) return { authorized: true, isAdmin: true };
+    // Allow both admin and authenticated clients
+    return { authorized: true, isAdmin: !!profile?.is_admin, userId: user.id };
   } catch {}
-  return { authorized: false };
+  return { authorized: false, userId: null as string | null };
 }
 
 // Search queries by business type
@@ -212,19 +213,21 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/agents/gmaps — manual trigger
+ * Body: { query?: string, city?: string, org_id?: string }
  */
 export async function POST(request: NextRequest) {
-  const { authorized } = await verifyAuth(request);
+  const { authorized, userId } = await verifyAuth(request);
   if (!authorized) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 
   let body: any = {};
   try { body = await request.json(); } catch { /* empty body ok */ }
   const orgId = body?.org_id || request.nextUrl.searchParams.get('org_id') || null;
+  const customQuery = body?.query || null;
 
-  return runGMapsScan(orgId);
+  return runGMapsScan(orgId, userId, customQuery);
 }
 
-async function runGMapsScan(orgId: string | null = null): Promise<NextResponse> {
+async function runGMapsScan(orgId: string | null = null, userId: string | null = null, customQuery: string | null = null): Promise<NextResponse> {
   const apiKey = process.env.GOOGLE_MAPS_API_KEY;
   if (!apiKey) {
     return NextResponse.json({ ok: false, error: 'GOOGLE_MAPS_API_KEY non configurée' }, { status: 500 });
@@ -253,15 +256,15 @@ async function runGMapsScan(orgId: string | null = null): Promise<NextResponse> 
   const importedNames: string[] = [];
   const scannedZones: string[] = [];
 
-  // Use ALL 13 queries for maximum discovery
-  const queries = [...SEARCH_QUERIES];
+  // Use custom query if provided, otherwise use ALL 13 default queries
+  const queries = customQuery ? [customQuery] : [...SEARCH_QUERIES];
 
   for (const zone of dailyZones) {
     console.log(`[GMaps] --- Zone: ${zone.name} ---`);
     scannedZones.push(zone.name);
 
     for (const query of queries) {
-      const searchQuery = `${query} ${zone.name.split(' ')[0]}`;
+      const searchQuery = customQuery ? query : `${query} ${zone.name.split(' ')[0]}`;
       console.log(`[GMaps] Searching: "${searchQuery}"`);
 
       const results = await searchPlaces(searchQuery, zone.lat, zone.lng, zone.radius);
@@ -313,6 +316,7 @@ async function runGMapsScan(orgId: string | null = null): Promise<NextResponse> 
             created_at: now,
             updated_at: now,
             ...(orgId ? { org_id: orgId } : {}),
+            ...(userId ? { user_id: userId, created_by: userId } : {}),
           });
 
           if (insertError) {

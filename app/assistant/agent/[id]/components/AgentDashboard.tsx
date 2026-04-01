@@ -3366,14 +3366,14 @@ function LaunchProspectionButton() {
     setLaunching(true);
     setResult(null);
     try {
-      const res = await fetch('/api/agents/commercial', {
+      const res = await fetch('/api/agents/gmaps', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ action: 'prospect_external', query: query || undefined }),
+        body: JSON.stringify({ query: query || undefined }),
       });
       const data = await res.json();
-      setResult({ ok: data.ok !== false, message: data.message || data.error || `${data.enriched || 0} prospects enrichis` });
+      setResult({ ok: data.ok !== false, message: data.message || data.error || `${data.imported || 0} prospects trouves sur Google Maps` });
     } catch (e: any) {
       setResult({ ok: false, message: e.message });
     } finally { setLaunching(false); }
