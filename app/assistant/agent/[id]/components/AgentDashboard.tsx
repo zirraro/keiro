@@ -330,8 +330,9 @@ function DmConversationsLive() {
 
   if (loading) return <div className="text-center py-8"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-400 mx-auto" /><div className="text-white/30 text-[10px] mt-2">Chargement des conversations...</div></div>;
 
-  // isDemo only if API didn't respond with conversations AND we haven't confirmed connectivity
-  const isDemo = convs.length === 0 && !apiResponded;
+  // isDemo only if NOT connected to Instagram AND API didn't respond
+  const igConnected = typeof window !== 'undefined' && (window as any).__igConnected;
+  const isDemo = convs.length === 0 && !apiResponded && !igConnected;
   const displayConvs = isDemo ? DEMO_DM_CONVERSATIONS : convs;
   const selected = displayConvs.find(c => c.id === selectedConv);
 
@@ -346,6 +347,13 @@ function DmConversationsLive() {
         gradientFrom="#e11d48"
         gradientTo="#be123c"
       />
+    )}
+    {!isDemo && convs.length === 0 && igConnected && (
+      <div className="text-center py-4 mb-3 bg-white/[0.02] rounded-xl border border-white/5">
+        <span className="text-xl">{'\u{1F4AC}'}</span>
+        <p className="text-xs text-white/40 mt-1">Aucune conversation DM pour le moment</p>
+        <p className="text-[10px] text-white/25 mt-0.5">Les DMs necessitent l&apos;approbation Meta du scope instagram_manage_messages. Soumets l&apos;App Review pour activer.</p>
+      </div>
     )}
     <div className={`rounded-xl border-2 ${isDemo ? 'border-amber-500/20 opacity-90' : 'border-purple-500/20'} bg-gradient-to-b from-purple-900/10 to-transparent overflow-hidden shadow-lg shadow-purple-500/5 h-[calc(60vh-60px)] md:h-[420px] mb-16 lg:mb-0`}>
       <div className="flex h-full">
@@ -2235,7 +2243,8 @@ function LenaCommentsSection() {
 
   return (
     <div className={isDemo ? 'opacity-80' : ''}>
-      {isDemo && <p className="text-[10px] text-amber-400/60 mb-2">{'\u{1F4F8}'} Apercu — connecte Instagram pour voir tes vrais commentaires</p>}
+      {isDemo && !(window as any).__igConnected && <p className="text-[10px] text-amber-400/60 mb-2">{'\u{1F4F8}'} Apercu — connecte Instagram pour voir tes vrais commentaires</p>}
+      {isDemo && (window as any).__igConnected && <p className="text-[10px] text-white/30 mb-2">{'\u{1F4F8}'} Aucun commentaire recent — les commentaires apparaitront quand tes posts recevront des interactions</p>}
       <div className="space-y-2 max-h-[250px] overflow-y-auto">
         {displayComments.slice(0, 6).map((c: any, i: number) => (
           <div key={i} className="bg-white/5 rounded-lg border border-white/10 p-3 flex items-start gap-2">
@@ -3451,6 +3460,12 @@ const ADMIN_NAMES: Record<string, { name: string; subtitle: string }> = {
 };
 
 export default function AgentDashboard({ agentId, agentName, gradientFrom, gradientTo, data }: AgentDashboardProps) {
+  // Set global connection flags for child components
+  if (typeof window !== 'undefined') {
+    (window as any).__igConnected = !!(data as any).connections?.instagram;
+    (window as any).__ttConnected = !!(data as any).connections?.tiktok;
+    (window as any).__liConnected = !!(data as any).connections?.linkedin;
+  }
   const config = AGENT_CONFIG[agentId];
   const isAdmin = !!(data as any).supervision?.isAdmin;
   const adminOverride = isAdmin ? ADMIN_NAMES[agentId] : null;
