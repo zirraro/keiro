@@ -280,15 +280,23 @@ async function getEmailData(
   const { data: recentActivities } = await activityQuery;
 
   // Also fetch email_opened, email_replied, email_bounced activities
-  const allEmailQuery = supabase
+  let allEmailQuery = supabase
     .from('crm_activities')
     .select('prospect_id, type, description, created_at, data')
     .like('type', 'email%')
     .order('created_at', { ascending: false })
-    .limit(30);
+    .limit(50);
 
-  if (orgId) {
-    // Filter by org prospects
+  // Filter by user's prospects
+  if (!orgId && userId) {
+    const { data: userProspectIds } = await supabase
+      .from('crm_prospects')
+      .select('id')
+      .or(`user_id.eq.${userId},created_by.eq.${userId}`)
+      .limit(500);
+    if (userProspectIds && userProspectIds.length > 0) {
+      allEmailQuery = allEmailQuery.in('prospect_id', userProspectIds.map((p: any) => p.id));
+    }
   }
 
   const { data: allEmailActivities } = await allEmailQuery;

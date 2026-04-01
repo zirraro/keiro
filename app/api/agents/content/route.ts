@@ -2286,12 +2286,15 @@ Retourne UNIQUEMENT le JSON.`,
         const startDate = body.startDate || new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
         const endDate = body.endDate || new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0];
 
-        const { data: posts } = await supabase
+        let calQuery = supabase
           .from('content_calendar')
           .select('*')
           .gte('scheduled_date', startDate)
           .lte('scheduled_date', endDate)
           .order('scheduled_date', { ascending: true });
+        // Filter by user_id for clients (not admin/cron)
+        if (userId) calQuery = calQuery.eq('user_id', userId);
+        const { data: posts } = await calQuery;
 
         return NextResponse.json({ ok: true, posts: posts || [] });
       }
