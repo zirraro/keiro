@@ -301,16 +301,21 @@ async function getEmailData(
 
   const { data: allEmailActivities } = await allEmailQuery;
 
-  const recentEmails = (allEmailActivities || []).map(a => ({
-    prospect_id: a.prospect_id,
-    prospect: (a.data as any)?.company || (a.data as any)?.to_email || a.description?.substring(0, 60) || '?',
-    email: (a.data as any)?.to_email || (a.data as any)?.from_email || '',
-    type: a.type === 'email_opened' ? 'ouvert' : a.type === 'email_replied' ? 'reponse_recue' : a.type === 'email_clicked' ? 'clic' : a.type === 'email_bounced' ? 'bounce' : (a.data as any)?.auto_reply ? 'auto_reply' : (a.data as any)?.step ? `step_${(a.data as any).step}` : 'email',
-    status: a.type === 'email_replied' ? 'repondu' : a.type === 'email_opened' ? 'ouvert' : a.type === 'email_clicked' ? 'clique' : a.type === 'email_bounced' ? 'bounce' : 'envoye',
-    message: (a.data as any)?.reply_content || (a.data as any)?.reply_preview || (a.data as any)?.message || a.description?.substring(0, 150) || '',
-    direction: a.type === 'email_replied' ? 'incoming' : 'outgoing',
-    date: a.created_at,
-  }));
+  const recentEmails = (allEmailActivities || []).map(a => {
+    const d = a.data as any;
+    return {
+      prospect_id: a.prospect_id,
+      prospect: d?.company || d?.to_email || a.description?.substring(0, 60) || '?',
+      email: d?.to_email || d?.from_email || '',
+      type: a.type === 'email_opened' ? 'ouvert' : a.type === 'email_replied' ? 'reponse_recue' : a.type === 'email_clicked' ? 'clic' : a.type === 'email_bounced' ? 'bounce' : d?.auto_reply ? 'auto_reply' : d?.step ? `step_${d.step}` : 'email',
+      status: a.type === 'email_replied' ? 'repondu' : a.type === 'email_opened' ? 'ouvert' : a.type === 'email_clicked' ? 'clique' : a.type === 'email_bounced' ? 'bounce' : 'envoye',
+      subject: d?.subject || null,
+      message: d?.reply_content || d?.reply_preview || d?.body?.substring(0, 300) || d?.message || a.description?.substring(0, 150) || '',
+      provider: d?.provider || null,
+      direction: a.type === 'email_replied' ? 'incoming' : 'outgoing',
+      date: a.created_at,
+    };
+  });
 
   return {
     statusCounts,
@@ -814,14 +819,47 @@ export async function GET(request: NextRequest) {
         .order('created_at', { ascending: false })
         .limit(30);
 
-      const formattedLogs = (logs || []).map((l: any) => ({
-        id: l.id,
-        type: l.action,
-        description: (l.data as any)?.message || (l.data as any)?.hook || l.action?.replace(/_/g, ' ') || 'Action',
-        result: (l.data as any)?.publication_error || (l.data as any)?.error || (l.data as any)?.campaign_result || null,
-        status: l.status === 'ok' || l.status === 'success' ? 'success' : l.status === 'error' ? 'error' : 'pending',
-        created_at: l.created_at,
-      }));
+      // Human-readable action labels
+      const ACTION_LABELS: Record<string, string> = {
+        email_sent: 'Email envoye',
+        daily_cold: 'Campagne email lancee',
+        warm_send: 'Relance envoyee',
+        daily_post_generated: 'Post cree',
+        execute_publication: 'Publication executee',
+        generate_week: 'Semaine de contenu generee',
+        prospect_scraped: 'Prospect identifie',
+        gmaps_scrape: 'Recherche Google Maps',
+        dm_sent: 'DM envoye',
+        dm_reply: 'Reponse DM',
+        comment_posted: 'Commentaire publie',
+        blog_generated: 'Article SEO redige',
+        seo_audit: 'Audit SEO',
+      };
+
+      const formattedLogs = (logs || []).map((l: any) => {
+        const d = l.data as any;
+        const actionLabel = ACTION_LABELS[l.action] || l.action?.replace(/_/g, ' ') || 'Action';
+        // Build rich description from data
+        let description = d?.message || d?.hook || actionLabel;
+        if (l.action === 'email_sent' && d?.subject) {
+          description = `Email envoye: "${d.subject}" a ${d.company || d.prospect_email || ''}`;
+        } else if (l.action === 'daily_post_generated' && d?.caption) {
+          description = `Post cree: ${(d.caption || '').substring(0, 80)}...`;
+        } else if (l.action === 'execute_publication' && d?.platform) {
+          description = `Publie sur ${d.platform}${d.permalink ? '' : ' (en attente)'}`;
+        } else if (l.action === 'prospect_scraped' || l.action === 'gmaps_scrape') {
+          description = `${d?.count || ''} prospects identifies${d?.query ? ` (${d.query})` : ''}`;
+        }
+
+        return {
+          id: l.id,
+          type: l.action,
+          description,
+          result: d?.publication_error || d?.error || d?.campaign_result || (d?.provider ? `via ${d.provider}` : null),
+          status: l.status === 'ok' || l.status === 'success' ? 'success' : l.status === 'error' ? 'error' : 'pending',
+          created_at: l.created_at,
+        };
+      });
 
       return NextResponse.json({ ok: true, logs: formattedLogs });
     }

@@ -57,7 +57,7 @@ export default function PostPreviewModal({ post, onClose, onApprove, onPublish, 
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full max-h-[85vh] overflow-y-auto animate-in zoom-in-95 duration-200 mt-16 sm:mt-0" onClick={e => e.stopPropagation()}>
+      <div className="bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-white/10">
           <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold ${
@@ -79,9 +79,9 @@ export default function PostPreviewModal({ post, onClose, onApprove, onPublish, 
         </div>
 
         {/* Visual */}
-        <div className={`relative bg-white/5 ${isTT || isStory ? 'aspect-[9/16] max-h-[35vh]' : 'aspect-[4/3] max-h-[40vh]'}`}>
+        <div className={`relative bg-white/5 ${isTT || isStory ? 'aspect-[9/16] max-h-[50vh]' : 'max-h-[50vh]'}`}>
           {post.visual_url ? (
-            <img src={post.visual_url} alt="" className="w-full h-full object-cover" />
+            <img src={post.visual_url} alt="" className="w-full h-full object-contain" />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-900/30 to-pink-900/30">
               {post.hook ? (
