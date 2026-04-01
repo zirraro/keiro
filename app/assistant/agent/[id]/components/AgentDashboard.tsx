@@ -2117,7 +2117,7 @@ function ContentWorkflow({ isConnected }: { isConnected?: boolean }) {
   const counts = displayPosts.reduce((acc: Record<string, number>, p: any) => { acc[p.status] = (acc[p.status] || 0) + 1; return acc; }, {});
   const filtered = filter === 'all' ? displayPosts : displayPosts.filter((p: any) => p.status === filter);
 
-  const STATUS_COLORS: Record<string, string> = { draft: 'bg-amber-500', approved: 'bg-blue-500', published: 'bg-emerald-500', skipped: 'bg-gray-500', video_generating: 'bg-purple-500' };
+  const STATUS_COLORS: Record<string, string> = { draft: 'bg-amber-500', approved: 'bg-blue-500', published: 'bg-emerald-500', publish_failed: 'bg-red-500', skipped: 'bg-gray-500', video_generating: 'bg-purple-500', publishing: 'bg-cyan-500' };
 
   // Connected but no posts yet — show helpful empty state
   if (isConnected && posts.length === 0) {
@@ -2166,8 +2166,9 @@ function ContentWorkflow({ isConnected }: { isConnected?: boolean }) {
         {[
           { key: 'all', label: `Tous (${platformFiltered.length})` },
           { key: 'draft', label: `Brouillons (${pCounts.draft || 0})` },
-          { key: 'approved', label: `Programmes (${pCounts.approved || 0})` },
+          { key: 'approved', label: `En attente (${pCounts.approved || 0})` },
           { key: 'published', label: `Publies (${pCounts.published || 0})` },
+          ...((pCounts.publish_failed || 0) > 0 ? [{ key: 'publish_failed', label: `Echec (${pCounts.publish_failed})` }] : []),
         ].map(tab => (
           <button key={tab.key} onClick={() => setFilter(tab.key)}
             className={`px-2 py-1 text-[9px] font-medium rounded-md whitespace-nowrap transition-all ${filter === tab.key ? 'bg-purple-600 text-white' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}
@@ -3474,6 +3475,56 @@ const ADMIN_NAMES: Record<string, { name: string; subtitle: string }> = {
   finance: { name: 'Louis Finance Group', subtitle: 'Supervision Finance — Tous clients' },
 };
 
+// ─── Agent Activity Indicator ─────────────────────────────────
+const AGENT_ACTIVITY_LABELS: Record<string, Record<string, string>> = {
+  email: { email_sent: 'envoie des emails', daily_cold: 'envoie une campagne email', warm_send: 'envoie des relances' },
+  content: { daily_post_generated: 'cree du contenu', execute_publication: 'publie un post', generate_week: 'genere la semaine' },
+  commercial: { prospect_scraped: 'prospecte', gmaps_scrape: 'recherche sur Google Maps', linkedin_scrape: 'prospecte sur LinkedIn' },
+  seo: { blog_generated: 'redige un article SEO', seo_audit: 'analyse le SEO' },
+  dm: { dm_sent: 'envoie des DMs', dm_reply: 'repond aux DMs' },
+  instagram_comments: { comment_posted: 'commente sur Instagram' },
+  marketing: { recommend: 'analyse la strategie' },
+};
+
+function AgentActivityBanner({ agentId, data, gradientFrom }: { agentId: string; data: any; gradientFrom: string }) {
+  const logs = data?.recentLogs || data?.logs || [];
+  if (!logs.length) return null;
+
+  // Check if there's a recent action (< 5 min ago)
+  const fiveMinAgo = Date.now() - 5 * 60 * 1000;
+  const recentLog = logs.find((l: any) => new Date(l.created_at).getTime() > fiveMinAgo);
+
+  // Also show last completed action (< 1h)
+  const oneHourAgo = Date.now() - 60 * 60 * 1000;
+  const lastLog = logs.find((l: any) => new Date(l.created_at).getTime() > oneHourAgo);
+
+  if (!recentLog && !lastLog) return null;
+
+  const activeLog = recentLog || lastLog;
+  const isActive = !!recentLog;
+  const agentLabels = AGENT_ACTIVITY_LABELS[agentId] || {};
+  const actionLabel = agentLabels[activeLog.action] || activeLog.action?.replace(/_/g, ' ') || 'travaille';
+  const agentDisplayName = agentId === 'email' ? 'Hugo' : agentId === 'content' ? 'Lena' : agentId === 'commercial' ? 'Leo' : agentId === 'seo' ? 'Tom' : agentId === 'dm' ? 'Jade' : agentId === 'marketing' ? 'AMI' : agentId;
+  const timeAgo = Math.round((Date.now() - new Date(activeLog.created_at).getTime()) / 60000);
+
+  return (
+    <div className={`mx-5 mt-2 flex items-center gap-2 px-3 py-2 rounded-lg border ${isActive ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-white/[0.03] border-white/10'}`}>
+      {isActive ? (
+        <div className="animate-pulse flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+          <span className="text-xs font-medium text-emerald-400">{agentDisplayName} {actionLabel}...</span>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-white/30" />
+          <span className="text-xs text-white/50">{agentDisplayName} a {actionLabel}</span>
+          <span className="text-[10px] text-white/30">il y a {timeAgo < 1 ? '< 1' : timeAgo} min</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AgentDashboard({ agentId, agentName, gradientFrom, gradientTo, data }: AgentDashboardProps) {
   // Set global connection flags for child components
   if (typeof window !== 'undefined') {
@@ -3503,6 +3554,9 @@ export default function AgentDashboard({ agentId, agentName, gradientFrom, gradi
           </div>
         </div>
       </div>
+
+      {/* Agent activity indicator */}
+      <AgentActivityBanner agentId={agentId} data={data} gradientFrom={gradientFrom} />
 
       {/* Launch campaign button — all agents */}
       {!isAdmin && agentId !== 'onboarding' && agentId !== 'ceo' && agentId !== 'qa' && agentId !== 'content' && (

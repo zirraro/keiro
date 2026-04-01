@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabaseBrowser } from '@/lib/supabase/client';
 
 type Prospect = {
   id: string; first_name: string | null; last_name: string | null; email: string | null;
@@ -43,32 +42,20 @@ export default function ClientCRM() {
   const [importResult, setImportResult] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load prospects
+  // Load prospects via API (bypasses RLS, uses service role)
   useEffect(() => {
     (async () => {
-      const supabase = supabaseBrowser();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      // Filter by user's org or user_id for data separation
-      let query = supabase
-        .from('crm_prospects')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(2000);
-
-      // Try org_id first, fallback to created_by
-      const { data: orgMember } = await supabase.from('organization_members').select('org_id').eq('user_id', user.id).maybeSingle();
-      if (orgMember?.org_id) {
-        query = query.eq('org_id', orgMember.org_id);
-      } else {
-        query = query.eq('created_by', user.id);
+      try {
+        const res = await fetch('/api/crm?limit=2000', { credentials: 'include' });
+        const data = await res.json();
+        if (data.ok && data.prospects) {
+          setProspects(data.prospects);
+        }
+      } catch (e) {
+        console.error('[CRM] Failed to load prospects:', e);
+      } finally {
+        setLoading(false);
       }
-
-      const { data } = await query;
-
-      setProspects(data || []);
-      setLoading(false);
     })();
   }, []);
 

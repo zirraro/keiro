@@ -29,14 +29,25 @@ export async function GET(req: NextRequest) {
     const temperature = searchParams.get('temperature') || '';
     const limit = parseInt(searchParams.get('limit') || '100', 10);
 
-    // Query scoped to user
-    // Show prospects created by user OR assigned to user (agents assign via user_id)
+    // Query scoped to user — try org_id first, fallback to created_by/user_id
     let query = supabase
       .from('crm_prospects')
       .select('*')
-      .or(`created_by.eq.${user.id},user_id.eq.${user.id}`)
       .order('created_at', { ascending: false })
       .limit(limit);
+
+    // Check org membership for multi-tenant filtering
+    const { data: orgMember } = await supabase
+      .from('organization_members')
+      .select('org_id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (orgMember?.org_id) {
+      query = query.eq('org_id', orgMember.org_id);
+    } else {
+      query = query.or(`created_by.eq.${user.id},user_id.eq.${user.id}`);
+    }
 
     if (status) query = query.eq('status', status);
     if (temperature) query = query.eq('temperature', temperature);

@@ -425,7 +425,8 @@ export async function POST(req: NextRequest) {
           console.log(`[agent-files] Methods 1-3 failed, trying brute force text extraction for Claude`);
           try {
             // Extract ALL readable text from the DOCX binary (it's a ZIP with XML inside)
-            const rawContent = nodeBuffer.toString('binary');
+            // Try UTF-8 first (preserves French accents), fallback to binary encoding
+            const rawContent = nodeBuffer.toString('utf-8');
             // Grab anything between XML tags + all printable ASCII + accented chars
             const allReadable = rawContent
               .replace(/<[^>]+>/g, ' ')
@@ -442,11 +443,15 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        // Fallback: vision for images only
+        // Fallback: vision for images, or return partial info for DOCX
         if (!extracted || Object.keys(extracted).length === 0) {
           console.warn(`[agent-files] All extraction methods failed for ${safeName}`);
-          if (['png', 'jpg', 'jpeg'].includes(ext)) {
+          if (['png', 'jpg', 'jpeg', 'pdf'].includes(ext)) {
             extracted = await extractDossierFromVision(buffer, ext, file.name);
+          } else if (ext === 'docx' && text && text.length > 20) {
+            // Last resort: send whatever text we got to Claude with lower expectations
+            console.log(`[agent-files] DOCX last resort: re-trying AI with ${text.length} chars of partial text`);
+            extracted = await extractDossierFromText(text.substring(0, 8000), file.name);
           }
         }
       } else if (visionExts.has(ext)) {

@@ -642,13 +642,14 @@ async function autoLearn(results: SendResult[], supabase: any, orgId: string | n
 }
 
 /**
- * Send a single email via Resend + Brevo fallback.
+ * Send a single email via Gmail API (client's own) > Brevo > Resend fallback.
  */
 async function sendEmail(
   prospect: any,
   step: number,
   template: { subject: string; htmlBody: string; textBody: string },
   category: string,
+  clientUserId?: string | null,
 ): Promise<{ success: boolean; messageId?: string; error?: string; provider?: string }> {
   try {
     // Final safety checks
@@ -682,8 +683,43 @@ async function sendEmail(
     let provider = 'brevo';
     let sendSuccess = false;
 
-    // Try Brevo first (primary)
-    if (process.env.BREVO_API_KEY) {
+    // Priority 1: Gmail API (client's own email) — if connected
+    const ownerUserId = clientUserId || prospect.user_id || prospect.created_by || null;
+    if (ownerUserId) {
+      try {
+        const { getValidGmailToken, sendViaGmail } = await import('@/lib/gmail-oauth');
+        const gmailAuth = await getValidGmailToken(ownerUserId);
+        if (gmailAuth) {
+          const supabase = getSupabaseAdmin();
+          const { data: clientProfile } = await supabase
+            .from('profiles')
+            .select('full_name, company_name')
+            .eq('id', ownerUserId)
+            .single();
+          const senderName = clientProfile?.full_name || clientProfile?.company_name || 'KeiroAI';
+
+          const result = await sendViaGmail(
+            gmailAuth.accessToken,
+            prospect.email,
+            template.subject,
+            template.htmlBody,
+            senderName,
+            gmailAuth.email,
+          );
+          if (result.sent) {
+            messageId = result.id;
+            provider = 'gmail';
+            sendSuccess = true;
+            console.log(`[EmailDaily] Email sent via Gmail (${gmailAuth.email}) to ${prospect.email}`);
+          }
+        }
+      } catch (e: any) {
+        console.warn(`[EmailDaily] Gmail send failed for ${prospect.email}, falling back to Brevo:`, e.message);
+      }
+    }
+
+    // Priority 2: Brevo (primary fallback)
+    if (!sendSuccess && process.env.BREVO_API_KEY) {
       try {
         const brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
           method: 'POST',
@@ -1010,7 +1046,7 @@ export async function GET(request: NextRequest) {
             note_google: prospect.note_google != null ? String(prospect.note_google) : '',
           }, 0);
 
-          const result = await sendEmail(prospect, 10, template, getSequenceForProspect(prospect));
+          const result = await sendEmail(prospect, 10, template, getSequenceForProspect(prospect), clientUserId);
           if (result.success) remainingQuota--;
           results.push({
             prospect_id: prospect.id,
@@ -1419,7 +1455,7 @@ export async function GET(request: NextRequest) {
             ai_generated: !!aiEmail,
           });
         } else {
-          const result = await sendEmail(prospect, step, template, category);
+          const result = await sendEmail(prospect, step, template, category, clientUserId);
           if (result.success) remainingQuota--;
           results.push({
             prospect_id: prospect.id,

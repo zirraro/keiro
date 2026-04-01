@@ -1455,6 +1455,12 @@ export async function POST(request: NextRequest) {
           }
         }
 
+        // If all platforms failed, mark as publish_failed
+        if (errors.length > 0 && !pubPermalink && !pubPublishId) {
+          pubUpdate.status = 'publish_failed';
+          delete pubUpdate.published_at;
+        }
+
         const { error } = await supabase.from('content_calendar').update(pubUpdate).eq('id', body.postId);
         if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
         return NextResponse.json({
@@ -3335,6 +3341,7 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
             console.log(`[Content] Daily post published to Instagram${igResult.permalink ? `: ${igResult.permalink}` : ''}`);
           } else {
             publicationError = igResult.error;
+            visualUpdate.status = 'publish_failed';
             console.warn(`[Content] Instagram publish failed for daily post ${inserted.id}: ${igResult.error}`);
           }
         } else if (postPlatform === 'tiktok') {
@@ -3348,6 +3355,7 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
             console.log(`[Content] Daily post published to TikTok: ${ttResult.publish_id}`);
           } else {
             publicationError = ttResult.error;
+            visualUpdate.status = 'publish_failed';
             console.warn(`[Content] TikTok publish failed for daily post ${inserted.id}: ${ttResult.error}`);
           }
         }
