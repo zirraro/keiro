@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import type { ClientAgent } from '@/lib/agents/client-context';
 import { CLIENT_AGENTS } from '@/lib/agents/client-context';
@@ -267,8 +267,10 @@ export default function AgentWorkspacePage() {
   const [creditsLow, setCreditsLow] = useState(false);
   const [creditsBalance, setCreditsBalance] = useState<number | null>(null);
 
-  // Tabs
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'planning' | 'history' | 'campaigns' | 'settings' | 'profile'>('dashboard');
+  // Tabs — support ?tab=history from notification links
+  const searchParams = useSearchParams();
+  const initialTab = (['dashboard', 'planning', 'history', 'campaigns', 'settings', 'profile'].includes(searchParams.get('tab') || '') ? searchParams.get('tab') : 'dashboard') as any;
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'planning' | 'history' | 'campaigns' | 'settings' | 'profile'>(initialTab);
   const [showCampaignWizard, setShowCampaignWizard] = useState(false);
 
   // Expose campaign wizard opener for child components
@@ -494,14 +496,26 @@ export default function AgentWorkspacePage() {
     })();
   }, [agentId, hasDashboard, dashboardData]);
 
-  // ─── Load task history ────────────────────────────────
+  // ─── Load task history (timeline items + action logs) ────────────────────────────────
+  const [timelineItems, setTimelineItems] = useState<any[]>([]);
   useEffect(() => {
     if (activeTab !== 'history' || tasks.length > 0) return;
     setTasksLoading(true);
     (async () => {
       try {
-        const res = await fetch(`/api/agents/dashboard?agent_id=${agentId}&type=logs`, { credentials: 'include' });
-        if (res.ok) { const data = await res.json(); setTasks(data.logs || data.recommendations || []); }
+        // Fetch both timeline items and action logs in parallel
+        const [timelineRes, logsRes] = await Promise.all([
+          fetch(`/api/agents/dashboard?agent_id=${agentId}&type=timeline`, { credentials: 'include' }),
+          fetch(`/api/agents/dashboard?agent_id=${agentId}&type=logs`, { credentials: 'include' }),
+        ]);
+        if (timelineRes.ok) {
+          const tData = await timelineRes.json();
+          setTimelineItems(tData.items || []);
+        }
+        if (logsRes.ok) {
+          const lData = await logsRes.json();
+          setTasks(lData.logs || lData.recommendations || []);
+        }
       } catch {} finally { setTasksLoading(false); }
     })();
   }, [activeTab, agentId, tasks.length]);
@@ -1029,44 +1043,90 @@ export default function AgentWorkspacePage() {
           </div>
         )}
 
-        {/* ═══ TAB: HISTORY ═══ */}
+        {/* ═══ TAB: HISTORY — Planning operationnel + actions ═══ */}
         {activeTab === 'history' && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-white font-bold text-sm">{'\u26A1'} Actions effectuees par {dn}</h3>
-              <span className="text-white/30 text-xs">{tasks.length} action{tasks.length !== 1 ? 's' : ''}</span>
-            </div>
-
             {tasksLoading ? (
               <div className="flex items-center justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400" /></div>
-            ) : tasks.length === 0 ? (
-              <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-8 text-center">
-                <div className="text-3xl mb-3">{icon}</div>
-                <p className="text-white/40 text-sm mb-1">Aucune action pour le moment</p>
-                <p className="text-white/20 text-xs">Discutez avec {dn} pour lancer des actions</p>
-              </div>
             ) : (
-              <div className="space-y-2">
-                {tasks.map((task, i) => (
-                  <div key={task.id || i} className="rounded-xl bg-white/[0.04] border border-white/10 px-4 py-3 flex items-start gap-3">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-sm ${
-                      task.status === 'success' ? 'bg-green-500/20 text-green-400' : task.status === 'error' ? 'bg-red-500/20 text-red-400' : 'bg-white/10 text-white/40'
-                    }`}>
-                      {task.status === 'success' ? '\u2713' : task.status === 'error' ? '\u2717' : '\u2022'}
+              <>
+                {/* Timeline items — posts, emails, prospects */}
+                {timelineItems.length > 0 && (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-white font-bold text-sm">{'\uD83D\uDCC5'} Planning {dn}</h3>
+                      <span className="text-white/30 text-xs">{timelineItems.length} element{timelineItems.length !== 1 ? 's' : ''}</span>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-white text-xs font-medium">{task.description || task.type || 'Action'}</div>
-                      {task.result && <div className="text-white/40 text-[10px] mt-0.5 truncate">{task.result}</div>}
-                      <div className="text-white/20 text-[10px] mt-1">{formatDateTime(task.created_at)}</div>
+                    <div className="space-y-1.5">
+                      {timelineItems.map((item, i) => {
+                        const isCompleted = item.type === 'completed';
+                        const isFailed = item.type === 'failed';
+                        const isScheduled = item.type === 'scheduled';
+                        const isDraft = item.type === 'draft';
+                        const isHot = item.type === 'hot';
+                        const statusColor = isCompleted ? 'border-emerald-500/30 bg-emerald-500/5' : isFailed ? 'border-red-500/30 bg-red-500/5' : isScheduled ? 'border-blue-500/30 bg-blue-500/5' : isHot ? 'border-orange-500/30 bg-orange-500/5' : 'border-white/10 bg-white/[0.02]';
+                        const dotColor = isCompleted ? 'bg-emerald-400' : isFailed ? 'bg-red-400' : isScheduled ? 'bg-blue-400' : isHot ? 'bg-orange-400' : 'bg-white/30';
+                        const badge = isCompleted ? 'Termine' : isFailed ? 'Echec' : isScheduled ? 'Prevu' : isDraft ? 'Brouillon' : isHot ? 'Chaud' : item.status || '';
+                        const badgeStyle = isCompleted ? 'bg-emerald-500/15 text-emerald-400' : isFailed ? 'bg-red-500/15 text-red-400' : isScheduled ? 'bg-blue-500/15 text-blue-400' : isHot ? 'bg-orange-500/15 text-orange-400' : 'bg-white/10 text-white/40';
+                        return (
+                          <div key={item.id || i} className={`rounded-xl border ${statusColor} px-3 py-2.5 flex items-start gap-3`}>
+                            {item.image ? (
+                              <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-white/5">
+                                <img src={item.image} alt="" className="w-full h-full object-cover" />
+                              </div>
+                            ) : (
+                              <div className={`w-3 h-3 rounded-full ${dotColor} flex-shrink-0 mt-1`} />
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className="text-white text-xs font-medium truncate">{item.title}</div>
+                              {item.subtitle && <div className="text-white/40 text-[10px] mt-0.5">{item.subtitle}</div>}
+                              <div className="text-white/20 text-[10px] mt-0.5">
+                                {item.date ? formatDateTime(item.date) : ''}{item.time ? ` a ${item.time}` : ''}
+                              </div>
+                            </div>
+                            <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                              <span className={`text-[9px] px-2 py-0.5 rounded-full ${badgeStyle}`}>{badge}</span>
+                              {item.link && <a href={item.link} target="_blank" rel="noopener" className="text-[9px] text-purple-400 hover:text-purple-300">Voir {'\u2197'}</a>}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                    <span className={`text-[9px] px-2 py-0.5 rounded-full flex-shrink-0 ${
-                      task.status === 'success' ? 'bg-green-500/15 text-green-400' : task.status === 'error' ? 'bg-red-500/15 text-red-400' : 'bg-white/10 text-white/40'
-                    }`}>
-                      {task.status === 'success' ? 'Termine' : task.status === 'error' ? 'Erreur' : task.status || 'En cours'}
-                    </span>
+                  </>
+                )}
+
+                {/* Action logs */}
+                {tasks.length > 0 && (
+                  <>
+                    <div className="flex items-center justify-between mt-2">
+                      <h3 className="text-white font-bold text-sm">{'\u26A1'} Actions {dn}</h3>
+                      <span className="text-white/30 text-xs">{tasks.length}</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      {tasks.map((task, i) => (
+                        <div key={task.id || i} className="rounded-xl bg-white/[0.03] border border-white/10 px-3 py-2.5 flex items-start gap-2">
+                          <div className={`w-2 h-2 rounded-full flex-shrink-0 mt-1.5 ${
+                            task.status === 'success' ? 'bg-emerald-400' : task.status === 'error' ? 'bg-red-400' : 'bg-white/30'
+                          }`} />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-white/80 text-[11px]">{task.description || task.type || 'Action'}</div>
+                            {task.result && <div className="text-white/30 text-[10px] mt-0.5 truncate">{task.result}</div>}
+                          </div>
+                          <span className="text-[9px] text-white/20 flex-shrink-0">{formatDateTime(task.created_at)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {tasks.length === 0 && timelineItems.length === 0 && (
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-8 text-center">
+                    <div className="text-3xl mb-3">{icon}</div>
+                    <p className="text-white/40 text-sm mb-1">Aucune activite pour le moment</p>
+                    <p className="text-white/20 text-xs">Lancez une campagne pour voir l'historique ici</p>
                   </div>
-                ))}
-              </div>
+                )}
+              </>
             )}
           </div>
         )}

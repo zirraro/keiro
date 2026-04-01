@@ -864,6 +864,103 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ok: true, logs: formattedLogs });
     }
 
+    // Handle type=timeline — return agent's operational items (posts, emails, prospects)
+    if (queryType === 'timeline') {
+      const supabase = getSupabaseAdmin();
+      const orgId = await resolveOrgId(supabase, user.id);
+      const items: any[] = [];
+
+      if (agentId === 'content') {
+        // Posts: past published + future scheduled
+        let query = supabase
+          .from('content_calendar')
+          .select('id, platform, format, status, hook, caption, visual_url, scheduled_date, scheduled_time, published_at, instagram_permalink, created_at')
+          .order('scheduled_date', { ascending: false })
+          .limit(50);
+        if (orgId) query = query.eq('org_id', orgId);
+        else query = query.eq('user_id', user.id);
+        const { data: posts } = await query;
+        for (const p of (posts || [])) {
+          const isPast = p.status === 'published';
+          const isFailed = p.status === 'publish_failed';
+          items.push({
+            id: p.id,
+            type: isPast ? 'completed' : isFailed ? 'failed' : p.status === 'approved' ? 'scheduled' : 'draft',
+            title: p.hook || (p.caption || '').substring(0, 60) || 'Post sans titre',
+            subtitle: `${p.platform || 'instagram'} • ${p.format || 'post'}`,
+            date: p.published_at || p.scheduled_date || p.created_at,
+            time: p.scheduled_time || null,
+            image: p.visual_url || null,
+            link: p.instagram_permalink || null,
+            status: p.status,
+          });
+        }
+      } else if (agentId === 'email') {
+        // Emails sent + prospects in sequence
+        let query = supabase
+          .from('crm_activities')
+          .select('id, prospect_id, type, description, data, created_at')
+          .ilike('type', 'email%')
+          .order('created_at', { ascending: false })
+          .limit(50);
+        const { data: activities } = await query;
+        for (const a of (activities || [])) {
+          const d = a.data as any;
+          items.push({
+            id: a.id,
+            type: a.type === 'email_replied' ? 'reply' : 'completed',
+            title: d?.subject || `Email etape ${d?.step || '?'}`,
+            subtitle: `${d?.company || d?.to_email || 'Prospect'} • via ${d?.provider || '?'}`,
+            date: a.created_at,
+            status: a.type === 'email_replied' ? 'repondu' : 'envoye',
+          });
+        }
+      } else if (agentId === 'commercial' || agentId === 'gmaps') {
+        // Recent prospects imported
+        let query = supabase
+          .from('crm_prospects')
+          .select('id, company, type, quartier, status, temperature, source, score, created_at')
+          .order('created_at', { ascending: false })
+          .limit(50);
+        if (orgId) query = query.eq('org_id', orgId);
+        else query = query.or(`user_id.eq.${user.id},created_by.eq.${user.id}`);
+        const { data: prospects } = await query;
+        for (const p of (prospects || [])) {
+          items.push({
+            id: p.id,
+            type: p.status === 'client' ? 'completed' : p.temperature === 'hot' ? 'hot' : 'scheduled',
+            title: p.company || 'Sans nom',
+            subtitle: `${p.type || '?'} • ${p.quartier || '?'} • score ${p.score || 0}`,
+            date: p.created_at,
+            status: p.status,
+            temperature: p.temperature,
+          });
+        }
+      } else if (agentId === 'dm_instagram') {
+        // DM conversations
+        const { data: logs } = await supabase
+          .from('agent_logs')
+          .select('id, action, data, status, created_at')
+          .eq('agent', 'dm_instagram')
+          .or(`user_id.eq.${user.id},user_id.is.null`)
+          .order('created_at', { ascending: false })
+          .limit(30);
+        for (const l of (logs || [])) {
+          const d = l.data as any;
+          items.push({
+            id: l.id,
+            type: l.status === 'success' ? 'completed' : 'failed',
+            title: d?.message || l.action?.replace(/_/g, ' ') || 'DM',
+            subtitle: d?.platform || 'Instagram',
+            date: l.created_at,
+            status: l.status,
+          });
+        }
+      }
+
+      return NextResponse.json({ ok: true, items });
+    }
+
     if (!AGENTS_WITH_DASHBOARDS.has(agentId)) {
       return NextResponse.json({ ok: true, hasDashboard: false });
     }

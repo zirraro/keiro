@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface Notification {
   id: string;
@@ -30,6 +31,7 @@ function timeAgo(iso: string): string {
 }
 
 export default function NotificationBell() {
+  const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [open, setOpen] = useState(false);
@@ -137,7 +139,15 @@ export default function NotificationBell() {
                 notifications.map(notif => (
                   <button
                     key={notif.id}
-                    onClick={() => { if (!notif.read) markRead(notif.id); }}
+                    onClick={() => {
+                      if (!notif.read) markRead(notif.id);
+                      setOpen(false);
+                      // Navigate to the agent's page with history tab
+                      const agentId = notif.agent;
+                      if (agentId && agentId !== 'system') {
+                        router.push(`/assistant/agent/${agentId}?tab=history`);
+                      }
+                    }}
                     className={`w-full text-left px-4 py-3 border-b border-neutral-50 dark:border-neutral-800/50 transition hover:bg-neutral-50 dark:hover:bg-neutral-800/50 ${!notif.read ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}
                   >
                     <div className="flex items-start gap-3">

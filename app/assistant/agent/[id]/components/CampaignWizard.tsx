@@ -189,7 +189,7 @@ export default function CampaignWizard({ agentId, agentName, onClose, onActivate
         }),
         email: () => fetch('/api/agents/email/daily?slot=morning&types=all', { credentials: 'include' }),
         dm_instagram: () => fetch('/api/agents/dm-instagram?slot=morning', { method: 'POST', credentials: 'include' }),
-        commercial: () => fetch('/api/agents/commercial', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'prospect_external' }) }),
+        commercial: () => fetch('/api/agents/gmaps', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({}) }),
         seo: () => fetch('/api/agents/seo', { credentials: 'include' }),
         gmaps: () => fetch('/api/agents/google-reviews', { credentials: 'include' }),
         linkedin: () => fetch('/api/agents/content', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'generate_post', platform: 'linkedin', format: 'text', pillar: 'tips', draftOnly: false }) }),
