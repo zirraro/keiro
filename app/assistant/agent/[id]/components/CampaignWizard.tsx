@@ -181,6 +181,14 @@ export default function CampaignWizard({ agentId, agentName, onClose, onActivate
         linkedin: 'Genere et publie un post LinkedIn professionnel maintenant.',
       };
 
+      // Also trigger direct API calls for agents that need them (chat alone doesn't execute)
+      if (agentId === 'email') {
+        fetch('/api/agents/email/daily?slot=morning&types=all', { credentials: 'include' }).catch(() => {});
+      }
+      if (agentId === 'commercial') {
+        fetch('/api/agents/commercial', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'prospect_external' }) }).catch(() => {});
+      }
+
       // Notify ContentWorkflow that generation is in progress
       if (agentId === 'content') {
         try { (window as any).__contentGenerating?.(); } catch {}

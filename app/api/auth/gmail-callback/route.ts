@@ -46,12 +46,32 @@ export async function GET(req: NextRequest) {
 
     // Store in profiles table
     const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
-    await supabase.from('profiles').update({
+
+    // If no userId from state, try to get from current session
+    if (!userId) {
+      try {
+        const { getAuthUser: getAuth } = await import('@/lib/auth-server');
+        const { user } = await getAuth();
+        if (user) userId = user.id;
+      } catch {}
+    }
+
+    if (!userId) {
+      console.error('[Gmail Callback] No userId — cannot save tokens');
+      return NextResponse.redirect(new URL('/assistant/agent/email?error=no_user', req.url));
+    }
+
+    console.log(`[Gmail Callback] Saving Gmail tokens for userId=${userId}, email=${profile.email}`);
+    const { error: updateError } = await supabase.from('profiles').update({
       gmail_refresh_token: tokens.refresh_token || null,
       gmail_access_token: tokens.access_token,
       gmail_email: profile.email,
       gmail_token_expires_at: new Date(Date.now() + (tokens.expires_in || 3600) * 1000).toISOString(),
     }).eq('id', userId);
+
+    if (updateError) {
+      console.error('[Gmail Callback] Update error:', updateError);
+    }
 
     console.log(`[Gmail Callback] Connected ${profile.email} for user ${userId}`);
 

@@ -106,6 +106,14 @@ function EmailConnectBanner({ connections }: { connections?: Record<string, bool
   }, []);
 
   useEffect(() => {
+    // Check from dashboard connections first (already loaded)
+    if (connections?.gmail) {
+      setGmailConnected(true);
+      setGmailEmail((connections as any).gmail_email || null);
+      setLoading(false);
+      return;
+    }
+    // Fallback: check via API
     fetch('/api/agents/email/check-connection', { credentials: 'include' })
       .then(r => r.json())
       .then(d => {
@@ -114,7 +122,7 @@ function EmailConnectBanner({ connections }: { connections?: Record<string, bool
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [connections]);
 
   if (loading) return null;
 
@@ -1622,7 +1630,8 @@ function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: str
     } catch {} finally { setSending(false); }
   }, [replyText, threadProspect]);
 
-  const isDemo = emails.length === 0;
+  const gmailConnectedGlobal = typeof window !== 'undefined' && (window as any).__gmailConnected;
+  const isDemo = emails.length === 0 && !gmailConnectedGlobal;
   const displayEmails = isDemo ? DEMO_EMAILS : emails;
 
   // Re-filter with demo data
@@ -3465,6 +3474,7 @@ export default function AgentDashboard({ agentId, agentName, gradientFrom, gradi
     (window as any).__igConnected = !!(data as any).connections?.instagram;
     (window as any).__ttConnected = !!(data as any).connections?.tiktok;
     (window as any).__liConnected = !!(data as any).connections?.linkedin;
+    (window as any).__gmailConnected = !!(data as any).connections?.gmail;
   }
   const config = AGENT_CONFIG[agentId];
   const isAdmin = !!(data as any).supervision?.isAdmin;
