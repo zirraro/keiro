@@ -316,15 +316,17 @@ async function publishToInstagram(
     }
 
     // Try client userId if no org profile found
-    if (!publishProfile && userId) {
+    // Also try post.user_id as fallback (set when post was created)
+    const effectiveUserId = userId || (post as any).user_id || null;
+    if (!publishProfile && effectiveUserId) {
       const { data: clientProfile } = await supabase
         .from('profiles')
         .select('instagram_business_account_id, facebook_page_access_token, instagram_username')
-        .eq('id', userId)
+        .eq('id', effectiveUserId)
         .single();
       if (clientProfile?.instagram_business_account_id && clientProfile?.facebook_page_access_token) {
         publishProfile = clientProfile;
-        console.log(`[Content] Using client's IG tokens (userId: ${userId})`);
+        console.log(`[Content] Using client's IG tokens (userId: ${effectiveUserId})`);
       }
     }
 
