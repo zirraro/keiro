@@ -1554,8 +1554,9 @@ export async function POST(request: NextRequest) {
 
       case 'publish_single': {
         // Publish a single approved post immediately
-        if (!body.postId) return NextResponse.json({ ok: false, error: 'postId required' }, { status: 400 });
-        const { data: psPost } = await supabase.from('content_calendar').select('*').eq('id', body.postId).single();
+        const publishPostId = body.postId || body.post_id;
+        if (!publishPostId) return NextResponse.json({ ok: false, error: 'postId required' }, { status: 400 });
+        const { data: psPost } = await supabase.from('content_calendar').select('*').eq('id', publishPostId).single();
         if (!psPost) return NextResponse.json({ ok: false, error: 'Post not found' }, { status: 404 });
 
         // Get the owner user_id from the post or from current auth
@@ -1575,7 +1576,7 @@ export async function POST(request: NextRequest) {
               status: 'published',
               published_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
-            }).eq('id', body.postId);
+            }).eq('id', publishPostId);
             return NextResponse.json({ ok: true, instagram_permalink: igResult.permalink });
           }
           return NextResponse.json({ ok: false, error: igResult.error || 'Publication echouee' });
@@ -1585,7 +1586,7 @@ export async function POST(request: NextRequest) {
         const psResult = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || `https://${process.env.VERCEL_URL}`}/api/agents/content?user_id=${postUserId || ''}`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${process.env.CRON_SECRET}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'republish_single', postId: body.postId }),
+          body: JSON.stringify({ action: 'republish_single', postId: publishPostId }),
         }).then(r => r.json()).catch(() => ({ ok: false }));
 
         return NextResponse.json(psResult);
