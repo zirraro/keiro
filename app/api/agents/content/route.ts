@@ -1821,24 +1821,27 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Publish approved/draft posts that are due today or earlier
+        // Publish ONLY 'approved' posts (NOT drafts — drafts need manual validation)
+        // Limit to 1 per call to avoid publishing everything at once
         const todayDate = new Date().toISOString().split('T')[0];
         let readyQuery = supabase
           .from('content_calendar')
           .select('*')
-          .in('status', ['approved', 'draft'])
+          .eq('status', 'approved')
           .lte('scheduled_date', todayDate)
           .is('visual_url', null);
         if (userId) readyQuery = readyQuery.eq('user_id', userId);
         const { data: readyPosts } = await readyQuery;
 
-        // Also get approved posts with visuals that aren't published yet + retry failed posts
+        // Also get approved posts with visuals that aren't published yet (NOT drafts)
+        // Limit to 1 per slot to spread publications throughout the day
         let visualQuery = supabase
           .from('content_calendar')
           .select('*')
-          .in('status', ['approved', 'draft', 'publish_failed'])
+          .in('status', ['approved', 'publish_failed'])
           .lte('scheduled_date', todayDate)
-          .not('visual_url', 'is', null);
+          .not('visual_url', 'is', null)
+          .limit(1);
         if (userId) visualQuery = visualQuery.eq('user_id', userId);
         const { data: approvedWithVisuals } = await visualQuery;
 
