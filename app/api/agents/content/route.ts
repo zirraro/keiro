@@ -1385,7 +1385,7 @@ export async function POST(request: NextRequest) {
       }
 
       case 'generate_week': {
-        return generateWeekWithVisuals(supabase, body.publishAll === true, orgId);
+        return generateWeekWithVisuals(supabase, body.publishAll === true, orgId, userId);
       }
 
       case 'approve': {
@@ -2577,7 +2577,7 @@ async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftO
 // ──────────────────────────────────────
 // Generate week with visuals + optional Instagram publishing
 // ──────────────────────────────────────
-async function generateWeekWithVisuals(supabase: any, publishAll: boolean, orgId: string | null = null) {
+async function generateWeekWithVisuals(supabase: any, publishAll: boolean, orgId: string | null = null, userId: string | null = null) {
   const now = new Date();
   const nowISO = now.toISOString();
 
@@ -2753,7 +2753,7 @@ async function generateWeekWithVisuals(supabase: any, publishAll: boolean, orgId
       if (publishAll && platform === 'instagram') {
         const igResult = await publishToInstagram(
           { format, caption: post.caption, hashtags: post.hashtags, visual_url: visualUrl },
-          supabase, orgId
+          supabase, orgId, userId
         );
 
         if (igResult.success) {
