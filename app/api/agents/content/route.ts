@@ -3308,7 +3308,7 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
         if (postPlatform === 'instagram') {
           const igResult = await publishToInstagram(
             { format: postFormat, caption: post.caption, hashtags: post.hashtags, visual_url: visualUrl || undefined, video_url: videoUrl || undefined },
-            supabase, orgId
+            supabase, orgId, userId
           );
           if (igResult.success) {
             igPermalink = igResult.permalink;
