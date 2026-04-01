@@ -419,9 +419,32 @@ export async function POST(req: NextRequest) {
           extracted = await extractDossierFromText(text, file.name);
           console.log(`[agent-files] AI extraction result: ${extracted ? Object.keys(extracted).length + ' fields' : 'NULL'}`);
         }
-        // Fallback 3: if AI couldn't extract anything useful, try vision (images only)
+
+        // Method 4: Send raw buffer content as text to Claude (brute force — send everything readable)
+        if ((!extracted || Object.keys(extracted).length === 0) && ext === 'docx') {
+          console.log(`[agent-files] Methods 1-3 failed, trying brute force text extraction for Claude`);
+          try {
+            // Extract ALL readable text from the DOCX binary (it's a ZIP with XML inside)
+            const rawContent = nodeBuffer.toString('binary');
+            // Grab anything between XML tags + all printable ASCII + accented chars
+            const allReadable = rawContent
+              .replace(/<[^>]+>/g, ' ')
+              .replace(/[^\x20-\x7E\xC0-\xFF\u00C0-\u024F\n]/g, '')
+              .replace(/\s+/g, ' ')
+              .trim();
+            if (allReadable.length > 100) {
+              console.log(`[agent-files] Brute force extracted ${allReadable.length} chars`);
+              extracted = await extractDossierFromText(allReadable.substring(0, 14000), file.name);
+              console.log(`[agent-files] Brute force AI result: ${extracted ? Object.keys(extracted).length + ' fields' : 'NULL'}`);
+            }
+          } catch (bruteErr: any) {
+            console.warn(`[agent-files] Brute force extraction failed: ${bruteErr.message}`);
+          }
+        }
+
+        // Fallback: vision for images only
         if (!extracted || Object.keys(extracted).length === 0) {
-          console.warn(`[agent-files] Text-based extraction yielded nothing for ${safeName}`);
+          console.warn(`[agent-files] All extraction methods failed for ${safeName}`);
           if (['png', 'jpg', 'jpeg'].includes(ext)) {
             extracted = await extractDossierFromVision(buffer, ext, file.name);
           }
