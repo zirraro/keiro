@@ -1914,8 +1914,12 @@ function ContentPanel({
 
       </div>{/* close content-workflow data-tour */}
 
-      {/* Calendar view by platform — 7 days past + 7 days future */}
-      <SectionTitle>Calendrier editorial</SectionTitle>
+      {/* Calendar note — full calendar in Planning tab */}
+      <div className="text-center py-2">
+        <span className="text-[10px] text-white/30">{'\u{1F4C5}'} Le calendrier editorial complet est dans l&apos;onglet <strong className="text-purple-400">Planning</strong></span>
+      </div>
+      {/* Compact calendar preview */}
+      <SectionTitle>Apercu calendrier</SectionTitle>
       <div data-tour="content-calendar" className="bg-white/5 rounded-xl border border-white/10 p-3 sm:p-4 overflow-x-auto">
         <div className="min-w-[400px]">
           {/* Header: dates */}
@@ -2057,6 +2061,7 @@ function ContentWorkflow({ isConnected }: { isConnected?: boolean }) {
   const [platformFilter, setPlatformFilter] = useState<string>('all');
   const [selectedPost, setSelectedPost] = useState<any | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [showAll, setShowAll] = useState(false);
 
   // Listen for campaign generation start
   useEffect(() => {
@@ -2156,9 +2161,9 @@ function ContentWorkflow({ isConnected }: { isConnected?: boolean }) {
         ))}
       </div>
 
-      {/* Instagram-style grid — small thumbnails, click to expand */}
-      <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-1 max-h-[300px] overflow-y-auto">
-        {(filter === 'all' ? platformFiltered : platformFiltered.filter((p: any) => p.status === filter)).slice(0, 20).map((post: any) => (
+      {/* Instagram-style grid — tiny thumbnails, "Voir plus" button */}
+      <div className="grid grid-cols-4 sm:grid-cols-5 lg:grid-cols-6 gap-0.5">
+        {(filter === 'all' ? platformFiltered : platformFiltered.filter((p: any) => p.status === filter)).slice(0, showAll ? 30 : 12).map((post: any) => (
           <button key={post.id} onClick={() => setSelectedPost(post)} className="relative aspect-square bg-white/5 rounded-md overflow-hidden hover:opacity-80 transition group">
             {post.visual_url ? (
               <img src={post.visual_url} alt="" className="w-full h-full object-cover" />
@@ -2183,6 +2188,13 @@ function ContentWorkflow({ isConnected }: { isConnected?: boolean }) {
           </button>
         ))}
       </div>
+
+      {/* Voir plus / Voir moins */}
+      {(filter === 'all' ? platformFiltered : platformFiltered.filter((p: any) => p.status === filter)).length > 12 && (
+        <button onClick={() => setShowAll(!showAll)} className="w-full mt-2 py-2 text-center text-[10px] text-purple-400 hover:text-purple-300 transition flex items-center justify-center gap-1">
+          {showAll ? '\u2191 Voir moins' : `\u2193 Voir plus (${(filter === 'all' ? platformFiltered : platformFiltered.filter((p: any) => p.status === filter)).length - 12} posts)`}
+        </button>
+      )}
 
       {/* Post preview modal — opens on click */}
       {selectedPost && (
