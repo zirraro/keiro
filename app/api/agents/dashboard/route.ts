@@ -77,11 +77,11 @@ async function getMarketingData(
   const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const prospectQuery = supabase
     .from('crm_prospects')
-    .select('id, status, temperature, created_at');
+    .select('id, status, temperature, created_at, email');
   if (orgId) {
     prospectQuery.eq('org_id', orgId);
   } else {
-    prospectQuery.eq('user_id', userId);
+    prospectQuery.or(`user_id.eq.${userId},created_by.eq.${userId}`);
   }
   const { data: allProspects } = await prospectQuery;
   const prospectList = allProspects ?? [];

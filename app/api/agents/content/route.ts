@@ -60,6 +60,8 @@ async function verifyAuth(request: NextRequest) {
     const supabase = getSupabaseAdmin();
     const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single();
     if (profile?.is_admin) return { authorized: true, isAdmin: true };
+    // Allow authenticated clients to access their own content
+    return { authorized: true, isClient: true, userId: user.id };
   } catch {}
   return { authorized: false };
 }
