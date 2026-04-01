@@ -1273,7 +1273,7 @@ function MarketingPanel({
 
         {/* Instagram engagement bloc */}
         <SectionTitle>Instagram</SectionTitle>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
           <KpiCard label="Posts publies" value={fmt((gs.visibility as any)?.postsCount || gs.visibility.traffic || 0)} gradientFrom="#8b5cf6" gradientTo="#6d28d9" />
           <KpiCard label="Likes total" value={fmt((gs.visibility as any)?.totalLikes || 0)} gradientFrom="#ec4899" gradientTo="#f43f5e" />
           <KpiCard label="Reach moyen" value={fmt((gs.visibility as any)?.avgReach || 0)} gradientFrom="#06b6d4" gradientTo="#0891b2" />
@@ -1774,7 +1774,7 @@ function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: str
     {/* Campaign creation */}
     <div data-tour="email-campaign"><CampaignCreator /></div>
 
-    <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden h-[calc(55vh-60px)] md:h-[420px] mb-16 lg:mb-0">
+    <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden h-[60vh] sm:h-[calc(55vh-60px)] md:h-[420px] mb-16 lg:mb-0">
       <div className="flex h-full">
         {/* Email list */}
         <div className={`${selectedId ? 'hidden sm:block' : ''} w-full sm:w-56 border-r border-white/5 overflow-y-auto`}>
@@ -1946,7 +1946,7 @@ function ContentPanel({
 
       {/* Instagram KPIs */}
       <SectionTitle>Performance Instagram</SectionTitle>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
         <KpiCard label="Posts publies" value={fmt(stats.postsGenerated)} gradientFrom="#8b5cf6" gradientTo="#6d28d9" />
         <KpiCard label="Likes total" value={fmt((data as any).igLikes || 0)} gradientFrom="#ec4899" gradientTo="#f43f5e" />
         <KpiCard label="Reach moyen" value={fmt((data as any).igReach || 0)} gradientFrom="#06b6d4" gradientTo="#0891b2" />
@@ -2263,7 +2263,7 @@ function ContentWorkflow({ isConnected }: { isConnected?: boolean }) {
       ); })()}
 
       {/* Instagram-style grid — latest first */}
-      <div className="grid grid-cols-4 sm:grid-cols-5 lg:grid-cols-6 gap-0.5">
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-0.5">
         {(filter === 'all' ? platformFiltered : platformFiltered.filter((p: any) => p.status === filter))
           .sort((a: any, b: any) => new Date(b.published_at || b.scheduled_date || b.created_at || 0).getTime() - new Date(a.published_at || a.scheduled_date || a.created_at || 0).getTime())
           .slice(0, showAll ? 30 : 12).map((post: any) => (
@@ -3300,7 +3300,7 @@ function CommercialPanel({ data, agentName, gradientFrom, gradientTo }: { data: 
 
   return (
     <>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
         <KpiCard label="Total prospects" value={fmt(stats.total)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
         <KpiCard label="Chauds" value={fmt(stats.hot)} gradientFrom="#ef4444" gradientTo="#f97316" />
         <KpiCard label="Tiedes" value={fmt(stats.warm)} gradientFrom="#f59e0b" gradientTo="#eab308" />
@@ -3515,7 +3515,7 @@ function WhatsAppPanel({
 
   return (
     <>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
         <KpiCard label="Messages envoyes" value={fmt(stats.messagesSent)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
         <KpiCard label="Messages recus" value={fmt(stats.messagesReceived)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
         <KpiCard label="Taux reponse" value={fmtPercent(stats.responseRate)} gradientFrom={gradientFrom} gradientTo={gradientTo} />

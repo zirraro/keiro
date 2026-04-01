@@ -93,10 +93,10 @@ export default function AgentChatPanel({
     <div
       className={`flex flex-col bg-[#0a1628] ${
         isMobile
-          ? 'fixed inset-0 z-50'
+          ? 'fixed inset-x-0 top-0 bottom-0 z-50'
           : 'rounded-2xl border border-white/10 overflow-hidden'
       }`}
-      style={isMobile ? undefined : { height: 'min(500px, calc(100vh - 250px))', minHeight: 350 }}
+      style={isMobile ? { paddingTop: 'env(safe-area-inset-top, 0px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' } : { height: 'min(500px, calc(100vh - 250px))', minHeight: 350 }}
     >
       {/* Header */}
       <div
@@ -107,7 +107,7 @@ export default function AgentChatPanel({
       >
         <button
           onClick={onBack}
-          className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors flex-shrink-0"
+          className="w-10 h-10 min-w-[44px] min-h-[44px] rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors flex-shrink-0"
           aria-label="Retour"
         >
           <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -273,7 +273,7 @@ export default function AgentChatPanel({
       )}
 
       {/* Input area */}
-      <div className={`border-t border-white/10 bg-[#0f1f3d] p-3 flex-shrink-0 ${isMobile ? 'pb-6' : ''}`}>
+      <div className={`border-t border-white/10 bg-[#0f1f3d] p-3 flex-shrink-0 ${isMobile ? 'pb-8' : ''}`} style={isMobile ? { paddingBottom: 'max(2rem, env(safe-area-inset-bottom, 1.5rem))' } : undefined}>
         <div className="flex gap-2">
           <input
             ref={inputRef}

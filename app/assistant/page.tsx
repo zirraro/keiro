@@ -1111,7 +1111,7 @@ export default function AssistantPage() {
             <button
               key={tab.key}
               onClick={() => setViewTab(tab.key)}
-              className={`flex-shrink-0 px-3 lg:px-4 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
+              className={`flex-shrink-0 px-2 sm:px-3 lg:px-4 py-2 rounded-lg text-[11px] sm:text-xs font-semibold transition-all whitespace-nowrap ${
                 viewTab === tab.key
                   ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md'
                   : 'text-white/50 hover:text-white/70 hover:bg-white/5'
@@ -1529,7 +1529,7 @@ export default function AssistantPage() {
                   ? 'inset-0'
                   : 'top-20 right-4 bottom-4 w-[420px] rounded-2xl shadow-2xl shadow-black/50 overflow-hidden'
               }`}
-              style={{ animation: 'slideInRight 0.25s ease-out' }}
+              style={{ animation: 'slideInRight 0.25s ease-out', ...(isMobile ? { paddingTop: 'env(safe-area-inset-top, 0px)' } : {}) }}
             >
               {/* Single header — AgentChatPanel handles it */}
               <div className="flex-1 flex flex-col overflow-hidden">

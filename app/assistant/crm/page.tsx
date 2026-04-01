@@ -80,7 +80,7 @@ function ProspectPanel({ prospect, activities, onClose, onUpdate }: {
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-md bg-[#0c1a3a] h-full overflow-y-auto animate-in slide-in-from-right duration-200" onClick={e => e.stopPropagation()}>
+      <div className="w-full max-w-md bg-[#0c1a3a] h-full overflow-y-auto animate-in slide-in-from-right duration-200" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }} onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="sticky top-0 bg-[#0c1a3a] border-b border-white/10 px-5 py-4 flex items-center justify-between z-10">
           <div>
