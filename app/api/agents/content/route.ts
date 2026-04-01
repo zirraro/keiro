@@ -1275,7 +1275,7 @@ export async function GET(request: NextRequest) {
     // If Sunday evening cron (or no posts planned this week), generate weekly plan
     // Moved AFTER auto-publish so Sunday posts still get published
     if (isCron && dayOfWeek === 0) {
-      return generateWeeklyPlan(supabase, undefined, undefined, orgId);
+      return generateWeeklyPlan(supabase, undefined, undefined, orgId, userId);
     }
 
     // AFTER auto-publish: generate new posts for midday/evening/tiktok slots
@@ -1376,7 +1376,7 @@ export async function POST(request: NextRequest) {
       }
 
       case 'generate_weekly':
-        return generateWeeklyPlan(supabase, body.platform, body.draftOnly, orgId);
+        return generateWeeklyPlan(supabase, body.platform, body.draftOnly, orgId, userId);
 
       case 'generate_post': {
         const todayStr = new Date().toISOString().split('T')[0];
@@ -2352,7 +2352,7 @@ Retourne UNIQUEMENT le JSON.`,
 // ──────────────────────────────────────
 // Generate weekly content plan
 // ──────────────────────────────────────
-async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftOnly?: boolean, orgId: string | null = null) {
+async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftOnly?: boolean, orgId: string | null = null, userId: string | null = null) {
   const now = new Date();
   const nowISO = now.toISOString();
 
@@ -2439,9 +2439,8 @@ async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftO
   // Map day names to dates
   const dayMap: Record<string, number> = { lundi: 1, mardi: 2, mercredi: 3, jeudi: 4, vendredi: 5, samedi: 6, dimanche: 0 };
 
-  // Get admin user id for content ownership
-  const { data: contentOwner } = await supabase.from('profiles').select('id').eq('is_admin', true).limit(1).maybeSingle();
-  const contentUserId = contentOwner?.id || null;
+  // Use passed userId for content ownership (not admin!)
+  const contentUserId = userId || null;
 
   let inserted = 0;
   for (const post of weekPlan) {
@@ -2683,6 +2682,7 @@ async function generateWeekWithVisuals(supabase: any, publishAll: boolean, orgId
       scheduled_time: scheduledTime,
       status: 'draft',
       ai_generated: true,
+      user_id: userId || null,
     }).select().single();
 
     if (insertError) {
@@ -3186,6 +3186,7 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
     scheduled_time: scheduledTime,
     status: draftOnly ? 'draft' : 'approved',
     ai_generated: true,
+    user_id: userId || null,
   }).select().single();
 
   if (insertError) {
@@ -3302,8 +3303,8 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
         visualUpdate.video_url = videoUrl;
       }
       if (!draftOnly) {
-        visualUpdate.status = 'published';
-        visualUpdate.published_at = new Date().toISOString();
+        // Don't set published until AFTER successful publish
+        visualUpdate.status = 'approved'; // default: ready for publish
 
         if (postPlatform === 'instagram') {
           const igResult = await publishToInstagram(
@@ -3311,6 +3312,8 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
             supabase, orgId, userId
           );
           if (igResult.success) {
+            visualUpdate.status = 'published';
+            visualUpdate.published_at = new Date().toISOString();
             igPermalink = igResult.permalink;
             if (igResult.permalink) visualUpdate.instagram_permalink = igResult.permalink;
             console.log(`[Content] Daily post published to Instagram${igResult.permalink ? `: ${igResult.permalink}` : ''}`);
