@@ -128,9 +128,15 @@ export default function NotificationBell() {
               )}
             </div>
 
-            {/* Notifications list */}
+            {/* Notifications list — show unread first, hide read by default */}
             <div className="overflow-y-auto max-h-[55vh]">
-              {notifications.length === 0 ? (
+              {notifications.filter(n => !n.read).length === 0 && notifications.length > 0 ? (
+                <div className="text-center py-8 text-neutral-400 text-sm">
+                  <div className="text-2xl mb-2">{'\u2705'}</div>
+                  Tout est a jour !
+                  <button onClick={() => {}} className="block mx-auto mt-2 text-[10px] text-blue-400 hover:underline">Voir les anciennes notifications</button>
+                </div>
+              ) : notifications.length === 0 ? (
                 <div className="text-center py-12 text-neutral-400 text-sm">
                   <div className="text-3xl mb-2">🔔</div>
                   Aucune notification

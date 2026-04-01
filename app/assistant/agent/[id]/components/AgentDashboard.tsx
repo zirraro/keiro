@@ -2884,6 +2884,30 @@ function DmInstagramPanel({
 
   return (
     <>
+      {/* Human Agent Protocol — required by Meta */}
+      <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-3 mb-3">
+        <div className="flex items-center gap-2 mb-2">
+          <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center text-xs">{'\u{1F9D1}'}</div>
+          <span className="text-xs font-semibold text-blue-300">Human Agent Protocol</span>
+        </div>
+        <p className="text-[10px] text-white/50 mb-2">
+          Les DMs automatiques de Jade incluent la mention "Reponse assistee par IA".
+          Vous pouvez reprendre la main sur n'importe quelle conversation a tout moment.
+          Le contact verra "Conversation geree par votre entreprise" quand vous repondez directement.
+        </p>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+            <div className="w-2 h-2 rounded-full bg-emerald-400" />
+            <span className="text-[10px] text-emerald-400 font-medium">IA active</span>
+          </div>
+          <span className="text-white/20 text-[10px]">ou</span>
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-blue-500/10 border border-blue-500/20">
+            <div className="w-2 h-2 rounded-full bg-blue-400" />
+            <span className="text-[10px] text-blue-400 font-medium">Vous repondez</span>
+          </div>
+        </div>
+      </div>
+
       {/* Connect + Toggle inline — hide connect if already connected */}
       <div className="flex flex-col lg:flex-row gap-3 mb-3">
         <div className="flex-1"><SocialConnectBanners agentId="dm_instagram" networks={['instagram']} connections={(data as any).connections} /></div>
