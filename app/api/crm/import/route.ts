@@ -137,14 +137,38 @@ Si une colonne ne correspond a rien, ne l'inclus pas.`,
     .eq('user_id', user.id)
     .single();
 
-  // Insert prospects
+  // Pre-load existing emails for fast dedup (single query instead of N queries)
+  const allEmails = dataRows
+    .map(row => {
+      const emailIdx = headers.findIndex(h => mapping[h] === 'email');
+      return emailIdx >= 0 ? row[emailIdx]?.trim().toLowerCase() : null;
+    })
+    .filter(Boolean) as string[];
+
+  const existingEmails = new Set<string>();
+  if (allEmails.length > 0) {
+    // Batch check in chunks of 200
+    for (let i = 0; i < allEmails.length; i += 200) {
+      const chunk = allEmails.slice(i, i + 200);
+      const { data: existing } = await supabase
+        .from('crm_prospects')
+        .select('email')
+        .in('email', chunk);
+      (existing || []).forEach((e: any) => { if (e.email) existingEmails.add(e.email.toLowerCase()); });
+    }
+  }
+
+  // Build prospects and batch insert
   let imported = 0;
   let skipped = 0;
   const errors: string[] = [];
+  const batch: Record<string, any>[] = [];
+  const seenEmails = new Set<string>();
 
   for (const row of dataRows) {
     const prospect: Record<string, any> = {
       created_by: user.id,
+      user_id: user.id,
       status: 'identifie',
       temperature: 'cold',
       score: 0,
@@ -165,23 +189,28 @@ Si une colonne ne correspond a rien, ne l'inclus pas.`,
     // Skip if no email AND no company
     if (!prospect.email && !prospect.company) { skipped++; continue; }
 
-    // Check for duplicate
-    if (prospect.email) {
-      const { data: existing } = await supabase
-        .from('crm_prospects')
-        .select('id')
-        .eq('email', prospect.email)
-        .limit(1)
-        .maybeSingle();
-      if (existing) { skipped++; continue; }
-    }
+    // Dedup: check against existing DB + current import batch
+    const email = prospect.email?.toLowerCase();
+    if (email && (existingEmails.has(email) || seenEmails.has(email))) { skipped++; continue; }
+    if (email) seenEmails.add(email);
 
-    const { error: insertErr } = await supabase.from('crm_prospects').insert(prospect);
+    batch.push(prospect);
+  }
+
+  // Batch insert in chunks of 100
+  for (let i = 0; i < batch.length; i += 100) {
+    const chunk = batch.slice(i, i + 100);
+    const { error: insertErr, data: inserted } = await supabase.from('crm_prospects').insert(chunk).select('id');
     if (insertErr) {
-      errors.push(`Row ${imported + skipped + 1}: ${insertErr.message.substring(0, 80)}`);
-      skipped++;
+      errors.push(`Batch ${Math.floor(i / 100) + 1}: ${insertErr.message.substring(0, 100)}`);
+      // Fallback: insert one by one for this batch to identify bad rows
+      for (const p of chunk) {
+        const { error: singleErr } = await supabase.from('crm_prospects').insert(p);
+        if (singleErr) { skipped++; errors.push(`Row: ${singleErr.message.substring(0, 60)}`); }
+        else { imported++; }
+      }
     } else {
-      imported++;
+      imported += inserted?.length || chunk.length;
     }
   }
 
