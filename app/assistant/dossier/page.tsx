@@ -310,6 +310,54 @@ Reponds en JSON strict:
     }
   }, [user, companyName, companyDescription, businessType, targetAudience, brandTone, mainProducts, competitors, uniqueSellingPoints, businessGoals, instagramHandle, tiktokHandle, linkedinUrl, websiteUrl, googleMapsUrl, logoUrl, uploadedFiles]);
 
+  // Apply recommended agent settings based on plan and business type
+  const applyRecommendedSettings = useCallback(async () => {
+    if (!user) return;
+    // Recommended settings presets by business type
+    const isRestaurant = ['restaurant', 'bistrot', 'traiteur', 'boulangerie', 'patisserie', 'cafe'].some(t => (businessType || '').toLowerCase().includes(t));
+    const isBeauty = ['coiffeur', 'barbier', 'salon', 'beaute', 'esthetique', 'spa'].some(t => (businessType || '').toLowerCase().includes(t));
+    const isCoach = ['coach', 'formation', 'consulting', 'freelance'].some(t => (businessType || '').toLowerCase().includes(t));
+
+    // Base settings all plans get
+    const agents: Array<{ agent_id: string; config: Record<string, any> }> = [
+      { agent_id: 'content', config: {
+        auto_mode: true,
+        auto_mode_instagram: true,
+        auto_mode_tiktok: false,
+        auto_mode_linkedin: false,
+        posts_per_day_ig: isRestaurant ? 2 : 1,
+        formats_ig: isRestaurant ? 'all' : isCoach ? 'reels' : 'all',
+        publish_morning: '09:00',
+        publish_evening: '18:00',
+        setup_completed: true,
+      }},
+      { agent_id: 'email', config: {
+        auto_mode: true,
+        max_per_day: 30,
+        tone: isBeauty ? 'chaleureux' : isCoach ? 'professionnel' : 'decontracte',
+        setup_completed: true,
+      }},
+      { agent_id: 'dm_instagram', config: {
+        auto_mode: false,
+        max_dms_day: 20,
+        setup_completed: true,
+      }},
+    ];
+
+    // Apply each agent's recommended settings
+    for (const { agent_id, config } of agents) {
+      try {
+        await fetch('/api/agents/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ agent_id, ...config }),
+        });
+      } catch {}
+    }
+    console.log('[Onboarding] Applied recommended settings for', agents.length, 'agents');
+  }, [user, businessType]);
+
   // Debounced auto-save
   const triggerAutoSave = useCallback(() => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
@@ -983,7 +1031,7 @@ Reponds en JSON strict:
             </button>
           ) : (
             <button
-              onClick={() => { saveDossier(); router.push('/assistant'); }}
+              onClick={async () => { await saveDossier(); await applyRecommendedSettings(); router.push('/assistant'); }}
               disabled={saving}
               className="flex-1 py-3.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-green-500/20 disabled:opacity-60 transition-all text-sm"
             >
