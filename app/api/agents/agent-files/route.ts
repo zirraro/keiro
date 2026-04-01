@@ -372,10 +372,12 @@ export async function POST(req: NextRequest) {
     try {
       if (textExts.has(ext)) {
         // Text-based extraction (DOCX, XLSX, CSV, TXT, PPTX)
-        console.log(`[agent-files] Starting text extraction for ${ext}: ${safeName} (${buffer.length} bytes)`);
+        // Ensure we have a proper Node Buffer (Vercel can pass ArrayBuffer)
+        const nodeBuffer = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
+        console.log(`[agent-files] Starting text extraction for ${ext}: ${safeName} (${nodeBuffer.length} bytes, isBuffer: ${Buffer.isBuffer(nodeBuffer)})`);
         let text: string | null = null;
         try {
-          text = await extractTextFromFile(buffer, ext);
+          text = await extractTextFromFile(nodeBuffer, ext);
         } catch (extractErr: any) {
           console.error(`[agent-files] extractTextFromFile crashed for ${ext}:`, extractErr.message);
         }
@@ -385,7 +387,7 @@ export async function POST(req: NextRequest) {
         if (!text || text.length < 20) {
           console.warn(`[agent-files] Primary extraction failed, trying crude binary string extraction`);
           try {
-            const raw = buffer.toString('utf-8').replace(/[^\x20-\x7E\xC0-\xFF\n]/g, ' ').replace(/\s+/g, ' ').trim();
+            const raw = nodeBuffer.toString('utf-8').replace(/[^\x20-\x7E\xC0-\xFF\n]/g, ' ').replace(/\s+/g, ' ').trim();
             if (raw.length > 50) text = raw.substring(0, 15000);
           } catch {}
         }
