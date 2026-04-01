@@ -251,18 +251,16 @@ export async function GET(request: NextRequest) {
     created_at: new Date().toISOString(),
   });
 
-  // ── Send alert if critical ──
+  // ── Diagnostic saved to agent_logs — no separate email (Ops handles alerts) ──
   if (hasCritical) {
-    const RESEND_API_KEY = process.env.RESEND_API_KEY;
-    if (RESEND_API_KEY) {
-      try {
-        const criticalChecks = checks.filter(c => c.status === 'critical');
-        await fetch('https://api.resend.com/emails', {
+    console.log(`[DiagnoseSocial] ${checks.filter(c => c.status === 'critical').length} critical issues — logged to supervision`);
+    // No email — Ops agent sends alert when agents are down
+    if (false) { // Disabled — was sending redundant emails
+      const RESEND_API_KEY = process.env.RESEND_API_KEY;
+      const criticalChecks = checks.filter(c => c.status === 'critical');
+      if (RESEND_API_KEY) try { await fetch('https://api.resend.com/emails', {
           method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${RESEND_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
             from: 'KeiroAI Agents <contact@keiroai.com>',
             to: ['contact@keiroai.com'],

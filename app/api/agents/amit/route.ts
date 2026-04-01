@@ -400,12 +400,15 @@ async function emailReportToFounder(report: any): Promise<void> {
   const emailSubject = `AMIT Strategic — ${new Date().toLocaleDateString('fr-FR')}`;
   let emailSent = false;
 
-  if (RESEND_API_KEY) {
+  // AMIT report saved to supervision — no email (Ops handles alerts)
+  console.log('[AMIT] Strategic report saved to supervision (no email)');
+  emailSent = true;
+  if (false) { // Disabled email — was redundant with supervision panel
     try {
       const resendRes = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${RESEND_API_KEY}`,
+          'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({

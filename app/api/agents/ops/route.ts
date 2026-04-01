@@ -380,8 +380,8 @@ async function sendCriticalAlert(
       created_at: new Date().toISOString(),
     });
     console.log(`[OpsAgent] Report saved to supervision (${downAgents.length} down, ${degradedAgents.length} degraded)`);
-    // Only send email for truly critical situations (3+ agents down)
-    if (downAgents.length >= 3 && RESEND_API_KEY) {
+    // Send email alert when ANY agent is down (client impact = urgent)
+    if (downAgents.length >= 1 && RESEND_API_KEY) {
       await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },

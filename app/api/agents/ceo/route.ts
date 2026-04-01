@@ -864,29 +864,12 @@ async function generateBrief(orgId: string | null = null): Promise<NextResponse>
     const emailSubject = `CEO Brief — ${firstLine.substring(0, 60)}`;
     let emailSent = false;
 
-    if (RESEND_API_KEY) {
+    // CEO brief saved to supervision panel — no email (reduces spam)
+    // Email alerts are handled by Ops agent only (when agents are down)
+    {
       try {
-        const resendRes = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${RESEND_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            from: 'KeiroAI CEO Agent <contact@keiroai.com>',
-            to: FOUNDER_EMAILS,
-            subject: emailSubject,
-            html: emailHtml,
-          }),
-        });
-
-        if (resendRes.ok) {
-          emailSent = true;
-          console.log(`[CEOAgent] Brief email sent via Resend to ${FOUNDER_EMAILS.join(', ')}`);
-        } else {
-          const errText = await resendRes.text();
-          console.error('[CEOAgent] Resend email failed:', errText);
-        }
+        console.log(`[CEOAgent] Brief saved to supervision (no email — use Ops for alerts)`);
+        emailSent = true; // Mark as "sent" for logging purposes
       } catch (e: any) {
         console.error('[CEOAgent] Resend email error:', e.message);
       }
