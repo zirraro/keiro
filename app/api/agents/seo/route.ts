@@ -222,8 +222,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Optional org_id passthrough for multi-tenant support
+  // Multi-tenant: user_id + org_id
   const orgId = request.nextUrl.searchParams.get('org_id') || null;
+  const clientUserId = request.nextUrl.searchParams.get('user_id') || null;
 
   // Cron trigger: auto-generate next article
   if (isCron) {

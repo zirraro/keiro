@@ -59,8 +59,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'GEMINI_API_KEY non configurée' }, { status: 500 });
   }
 
-  // Optional org_id passthrough for multi-tenant support
+  // Multi-tenant: user_id + org_id
   const orgId = request.nextUrl.searchParams.get('org_id') || null;
+  const clientUserId = request.nextUrl.searchParams.get('user_id') || null;
 
   const supabase = getSupabaseAdmin();
   const now = new Date();

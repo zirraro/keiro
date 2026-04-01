@@ -372,14 +372,16 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
     const runPhase3Discovery = mode === 'prospect_external' || mode === 'full';
 
     // === PHASE 1: Data enrichment (type, quartier, email validation) ===
-    // Fetch prospects that need enrichment — broad fetch, filter in JS for reliability
+    // Fetch prospects that need enrichment — filtered by client user_id
+    let prospectQueryBuilder = supabase
+      .from('crm_prospects')
+      .select('id, email, first_name, company, type, quartier, note_google, email_sequence_status, temperature, status, instagram, tiktok_handle, website, google_rating, google_reviews')
+      .not('temperature', 'eq', 'dead')
+      .order('created_at', { ascending: true })
+      .limit(500);
+    if (clientUserId) prospectQueryBuilder = prospectQueryBuilder.eq('user_id', clientUserId);
     const { data: rawProspects, error: fetchError } = runPhase1
-      ? await supabase
-          .from('crm_prospects')
-          .select('id, email, first_name, company, type, quartier, note_google, email_sequence_status, temperature, status, instagram, tiktok_handle, website, google_rating, google_reviews')
-          .not('temperature', 'eq', 'dead')
-          .order('created_at', { ascending: true })
-          .limit(500)
+      ? await prospectQueryBuilder
       : { data: [] as any[], error: null };
 
     // Filter: prospects that need enrichment (missing type/quartier, or never processed, or old ones to re-verify)

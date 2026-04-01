@@ -189,6 +189,7 @@ export async function GET(request: NextRequest) {
   if (!authorized) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 
   const orgId = request.nextUrl.searchParams.get('org_id') || null;
+  const clientUserId = request.nextUrl.searchParams.get('user_id') || null;
 
   if (isCron) {
     return runGMapsScan(orgId);
