@@ -275,7 +275,8 @@ async function checkDuplicatePublication(
 async function publishToInstagram(
   post: { id?: string; format?: string; caption?: string; hashtags?: string[]; visual_url?: string; video_url?: string },
   supabase: any,
-  orgId?: string | null
+  orgId?: string | null,
+  userId?: string | null
 ): Promise<{ success: boolean; permalink?: string; error?: string }> {
   try {
     // ── Dedup check: prevent publishing the same image twice ──
@@ -314,9 +315,21 @@ async function publishToInstagram(
       }
     }
 
-    // NO LONGER fallback to admin profile — each client must have their own IG connection
+    // Try client userId if no org profile found
+    if (!publishProfile && userId) {
+      const { data: clientProfile } = await supabase
+        .from('profiles')
+        .select('instagram_business_account_id, facebook_page_access_token, instagram_username')
+        .eq('id', userId)
+        .single();
+      if (clientProfile?.instagram_business_account_id && clientProfile?.facebook_page_access_token) {
+        publishProfile = clientProfile;
+        console.log(`[Content] Using client's IG tokens (userId: ${userId})`);
+      }
+    }
+
     if (!publishProfile) {
-      console.warn('[Content] No client IG profile found for publishing — skipping (admin fallback disabled)');
+      console.warn('[Content] No client IG profile found for publishing — skipping');
       return { success: false, error: 'Client Instagram non connecte. Aucune publication.' };
     }
 
@@ -1182,7 +1195,7 @@ export async function GET(request: NextRequest) {
           let platformSuccess = false;
 
           if (fullPost.platform === 'instagram') {
-            const igResult = await publishToInstagram(postWithMedia, supabase, orgId);
+            const igResult = await publishToInstagram(postWithMedia, supabase, orgId, userId);
             if (igResult.success && igResult.permalink) {
               updateFields.instagram_permalink = igResult.permalink;
               platformSuccess = true;
@@ -1407,7 +1420,7 @@ export async function POST(request: NextRequest) {
 
         // Publish to target platform
         if ((targetPlatform === 'instagram' || targetPlatform === 'all') && pubPost.visual_url) {
-          const igResult = await publishToInstagram(pubPost, supabase, orgId);
+          const igResult = await publishToInstagram(pubPost, supabase, orgId, userId);
           if (igResult.success && igResult.permalink) {
             pubUpdate.instagram_permalink = igResult.permalink;
             pubPermalink = igResult.permalink;
@@ -1478,7 +1491,7 @@ export async function POST(request: NextRequest) {
 
         // Publish to Instagram
         if (singlePost.platform === 'instagram') {
-          const igResult = await publishToInstagram({ ...singlePost, visual_url: singleVisualUrl }, supabase, orgId);
+          const igResult = await publishToInstagram({ ...singlePost, visual_url: singleVisualUrl }, supabase, orgId, userId);
           if (igResult.success) {
             await supabase.from('content_calendar').update({
               instagram_permalink: igResult.permalink,
@@ -1700,7 +1713,7 @@ export async function POST(request: NextRequest) {
           }
 
           // Publish to Instagram
-          const igResult = await publishToInstagram({ ...post, visual_url: visualUrl }, supabase, orgId);
+          const igResult = await publishToInstagram({ ...post, visual_url: visualUrl }, supabase, orgId, userId);
           if (igResult.success) {
             await supabase.from('content_calendar').update({
               instagram_permalink: igResult.permalink,
@@ -1731,16 +1744,15 @@ export async function POST(request: NextRequest) {
       case 'execute_publication': {
         // ── Pre-publication Instagram token diagnostic ──
         // Verify token validity before wasting API calls on publish attempts
-        const { data: adminProfile } = await supabase
-          .from('profiles')
-          .select('instagram_business_account_id, facebook_page_access_token')
-          .eq('is_admin', true)
-          .limit(1)
-          .single();
+        // Use client profile if userId is set, otherwise fallback to admin
+        const profileQuery = userId
+          ? supabase.from('profiles').select('instagram_business_account_id, facebook_page_access_token').eq('id', userId).single()
+          : supabase.from('profiles').select('instagram_business_account_id, facebook_page_access_token').eq('is_admin', true).limit(1).single();
+        const { data: publishProfile } = await profileQuery;
 
         let igTokenValid = false;
-        if (!adminProfile?.instagram_business_account_id || !adminProfile?.facebook_page_access_token) {
-          console.error('[Content] execute_publication: Instagram tokens missing from admin profile');
+        if (!publishProfile?.instagram_business_account_id || !publishProfile?.facebook_page_access_token) {
+          console.error(`[Content] execute_publication: Instagram tokens missing for ${userId || 'admin'}`);
           await supabase.from('agent_logs').insert({
             agent: 'diagnostic',
             action: 'instagram_health_check',
@@ -1757,8 +1769,8 @@ export async function POST(request: NextRequest) {
           try {
             const { graphGET: graphGETCheck } = await import('@/lib/meta');
             await graphGETCheck<{ id: string }>(
-              `/${adminProfile.instagram_business_account_id}`,
-              adminProfile.facebook_page_access_token,
+              `/${publishProfile.instagram_business_account_id}`,
+              publishProfile.facebook_page_access_token,
               { fields: 'id' }
             );
             igTokenValid = true;
@@ -1872,7 +1884,7 @@ export async function POST(request: NextRequest) {
               updateData.publish_diagnostic = { platform: 'Instagram', reason: 'token_invalid_pre_check', severity: 'critical', detail: pubError, timestamp: new Date().toISOString() };
               delete updateData.published_at;
             } else {
-              const igResult = await publishToInstagram(postWithVideo, supabase, orgId);
+              const igResult = await publishToInstagram(postWithVideo, supabase, orgId, userId);
               if (igResult.success) {
                 igPermalink = igResult.permalink;
                 if (igResult.permalink) updateData.instagram_permalink = igResult.permalink;
@@ -1948,7 +1960,7 @@ export async function POST(request: NextRequest) {
                   updateData.publish_diagnostic = { platform: 'Instagram', reason: 'token_invalid_pre_check', severity: 'critical', detail: pubError2, timestamp: new Date().toISOString() };
                   delete updateData.published_at;
                 } else {
-                  const igResult = await publishToInstagram({ ...post, visual_url: visualUrl }, supabase, orgId);
+                  const igResult = await publishToInstagram({ ...post, visual_url: visualUrl }, supabase, orgId, userId);
                   if (igResult.success) {
                     igPermalink2 = igResult.permalink;
                     if (igResult.permalink) updateData.instagram_permalink = igResult.permalink;
