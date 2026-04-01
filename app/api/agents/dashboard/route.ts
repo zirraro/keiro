@@ -801,6 +801,31 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Handle type=logs — return agent activity history for the client
+    const queryType = request.nextUrl.searchParams.get('type');
+    if (queryType === 'logs') {
+      const supabase = getSupabaseAdmin();
+      const { data: logs } = await supabase
+        .from('agent_logs')
+        .select('id, agent, action, status, data, created_at')
+        .eq('agent', agentId)
+        .or(`user_id.eq.${user.id},user_id.is.null`)
+        .not('action', 'like', '%report_to_ceo%')
+        .order('created_at', { ascending: false })
+        .limit(30);
+
+      const formattedLogs = (logs || []).map((l: any) => ({
+        id: l.id,
+        type: l.action,
+        description: (l.data as any)?.message || (l.data as any)?.hook || l.action?.replace(/_/g, ' ') || 'Action',
+        result: (l.data as any)?.publication_error || (l.data as any)?.error || (l.data as any)?.campaign_result || null,
+        status: l.status === 'ok' || l.status === 'success' ? 'success' : l.status === 'error' ? 'error' : 'pending',
+        created_at: l.created_at,
+      }));
+
+      return NextResponse.json({ ok: true, logs: formattedLogs });
+    }
+
     if (!AGENTS_WITH_DASHBOARDS.has(agentId)) {
       return NextResponse.json({ ok: true, hasDashboard: false });
     }

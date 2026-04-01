@@ -198,6 +198,12 @@ export default function CampaignWizard({ agentId, agentName, onClose, onActivate
         directCalls[agentId]().catch(() => {});
       }
 
+      // Log campaign start in agent history
+      fetch('/api/agents/client-chat', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+        body: JSON.stringify({ agent_id: agentId, message: `[SYSTEM] Campagne lancee: ${ACTION_MESSAGES[agentId] || 'Action en cours'}`, _system_log: true }),
+      }).catch(() => {});
+
       // Notify ContentWorkflow that generation is in progress
       if (agentId === 'content' || agentId === 'linkedin') {
         try { (window as any).__contentGenerating?.(); } catch {}
@@ -215,6 +221,7 @@ export default function CampaignWizard({ agentId, agentName, onClose, onActivate
         if (data.reply) {
           setStatusMsg('');
           setDone(true);
+          // Campaign completed — logged via chat history automatically
           // Show agent response in chat
           try { (window as any).__campaignResult = data.reply; } catch {}
           setTimeout(() => { onActivated(); onClose(); }, 2500);
