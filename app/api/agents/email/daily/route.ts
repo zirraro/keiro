@@ -660,12 +660,21 @@ async function sendEmail(
       template.textBody = template.textBody.replace(/Oussama/g, 'Victor');
       template.htmlBody = template.htmlBody.replace(/Oussama/g, 'Victor');
     }
-    // Fix "?" at beginning of line (unnatural formatting)
-    template.textBody = template.textBody.replace(/^\s*\?\s*/gm, '');
-    template.htmlBody = template.htmlBody.replace(/^\s*\?\s*/gm, '');
-    // Replace "Bonjour" with "Salut" for consistency
-    template.textBody = template.textBody.replace(/^Bonjour\s/gm, 'Salut ');
-    template.htmlBody = template.htmlBody.replace(/Bonjour\s/g, 'Salut ');
+    // Clean up formatting issues
+    for (const key of ['textBody', 'htmlBody'] as const) {
+      let t = template[key];
+      t = t.replace(/^\s*\?\s*/gm, ''); // Remove orphan "?" at start of lines
+      t = t.replace(/^Bonjour\s/gm, 'Salut '); // Consistent greeting
+      t = t.replace(/\s+\./g, '.'); // Fix "word ." → "word."
+      t = t.replace(/\s+,/g, ','); // Fix "word ," → "word,"
+      t = t.replace(/\s+!/g, ' !'); // French spacing before !
+      t = t.replace(/\s+\?/g, ' ?'); // French spacing before ?
+      t = t.replace(/\.\s*\.\s*\./g, '...'); // Fix ". . ." → "..."
+      t = t.replace(/\n{3,}/g, '\n\n'); // Max 2 newlines
+      t = t.replace(/^\s+$/gm, ''); // Remove whitespace-only lines
+      t = t.replace(/([.!?])\s*\n\s*([a-zà-ü])/g, '$1\n\n$2'); // Ensure paragraph breaks
+      template[key] = t;
+    }
     // Business coherence: if quartier is empty but email mentions a specific quartier, strip it
     if (!prospect.quartier) {
       // Remove phrases like "du Opéra", "du 9ème", "du Marais" if quartier wasn't in CRM

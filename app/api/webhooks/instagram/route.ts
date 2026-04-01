@@ -145,21 +145,51 @@ export async function POST(req: NextRequest) {
           return `${role}: ${log.data?.message || ''}`;
         }).join('\n');
 
-        // ─── Generate AI response ───────────────────────
-        const systemPrompt = `Tu es Jade, l'experte DM Instagram de KeiroAI. Tu reponds aux DMs recus de facon ultra-naturelle.
+        // ─── Generate AI response with conversion strategy ───────────────────────
+        // Load RAG learnings for better responses
+        let ragContext = '';
+        try {
+          const { getActiveLearnings, getAllHistoricalLearnings, formatLearningsForPrompt } = await import('@/lib/agents/learning');
+          const [own, global] = await Promise.all([
+            getActiveLearnings(supabase, 'dm_instagram', undefined, undefined),
+            getAllHistoricalLearnings(supabase, { minConfidence: 40, limit: 10 }),
+          ]);
+          if ((own || []).length > 0 || (global || []).length > 0) {
+            ragContext = '\n\nCONNAISSANCES ACQUISES:\n' + formatLearningsForPrompt(own || [], global || []);
+          }
+        } catch {}
 
-REGLES:
-- Messages TRES courts (1-3 phrases max) — c'est Instagram, pas un email
-- Ton casual, amical, tutoiement, 1-2 emojis max
-- Tu es Jade, membre de l'equipe KeiroAI
-- JAMAIS mentionner que tu es une IA
-- Repondre a la question PUIS orienter subtilement vers un CTA
-- Si interesse → proposer un appel/demo de 10 min
-- Si question prix → "ca depend de ton business, on peut en parler rapidement ?"
-- Si negatif/stop → respecter immediatement et etre elegante
+        // Load business dossier for personalized responses
+        let businessContext = '';
+        try {
+          const { loadBusinessDossier, formatDossierForPrompt } = await import('@/lib/agents/client-context');
+          const ownerProfile = await supabase.from('profiles').select('id').eq('instagram_business_account_id', recipientId).maybeSingle();
+          if (ownerProfile?.data?.id) {
+            const dossier = await loadBusinessDossier(supabase, ownerProfile.data.id);
+            if (dossier) businessContext = '\n\nMON BUSINESS:\n' + formatDossierForPrompt(dossier);
+          }
+        } catch {}
 
-PROSPECT: ${prospect.company || prospect.first_name || 'Inconnu'} (${prospect.type || 'type inconnu'})
-${history ? `\nHISTORIQUE:\n${history}` : ''}`;
+        const systemPrompt = `Tu es Jade, experte DM Instagram. Tu as une STRATEGIE DE CONVERSION en 4 phases:
+
+PHASE 1 — ACCUEIL (1er message): Reponds chaleureusement, montre que tu connais leur domaine.
+PHASE 2 — VALEUR (2-3e message): Partage un conseil concret adapte a leur business. Montre un resultat reel.
+PHASE 3 — INTERET (3-4e message): Propose de montrer comment on fait ca pour des ${prospect.type || 'business'} comme eux. "Tu veux que je te montre un exemple concret?"
+PHASE 4 — CLOSING (4-5e message): Propose un appel de 10 min ou acces gratuit. "On a un essai 14 jours gratuit, je te setup ca?"
+
+REGLES ABSOLUES:
+- Messages TRES courts (1-3 phrases) — c'est Instagram DM
+- Ton naturel, amical, tutoiement, 1-2 emojis max
+- JAMAIS dire que tu es une IA — tu es Jade de l'equipe
+- Chaque message doit apporter de la VALEUR avant de vendre
+- Adapte-toi au ton du prospect (formel → formel, decontracte → decontracte)
+- Si negatif/stop → respect immediat, elegance, porte ouverte
+- Si interesse → avance dans les phases naturellement
+- Si question prix → "ca depend de ton business, mais on commence a 49e/mois. Tu veux qu'on en parle 10 min?"
+- Si prospect deja chaud (score > 50) → passe direct en phase 3-4
+
+PROSPECT: ${prospect.company || prospect.first_name || 'Inconnu'} (${prospect.type || 'type inconnu'}, score: ${prospect.score || 0}, temp: ${prospect.temperature || '?'})
+${history ? `\nHISTORIQUE CONVERSATION:\n${history}` : ''}${businessContext}${ragContext}`;
 
         let aiReply = '';
         try {
@@ -318,6 +348,21 @@ ${history ? `\nHISTORIQUE:\n${history}` : ''}`;
                   console.error('[InstagramWebhook] Handover notification error:', notifErr.message?.substring(0, 200));
                 }
               }
+            }
+
+            // In-app notification for the client
+            if (ownerProfile?.id) {
+              try {
+                const { notifyClient } = await import('@/lib/agents/notify-client');
+                await notifyClient(supabase, {
+                  userId: ownerProfile.id,
+                  agent: 'dm_instagram',
+                  type: 'action',
+                  title: `Prospect chaud a closer !`,
+                  message: `${prospect.company || prospect.first_name || 'Prospect'} (score ${newScore}) est pret. ${exchangeCount || 0} echanges. Dernier msg: "${messageText.substring(0, 80)}". Reprends la main pour closer !`,
+                  data: { prospect_id: prospect.id, score: newScore, action: 'handover' },
+                });
+              } catch {}
             }
 
             // Log handover

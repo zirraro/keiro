@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
   }
 
   const headers = rawData[0];
-  const dataRows = rawData.slice(1).slice(0, 5000); // Max 5000 rows
+  const dataRows = rawData.slice(1); // No row limit — process all rows
 
   // Use Claude (Louis) to map columns intelligently
   const apiKey = process.env.ANTHROPIC_API_KEY;

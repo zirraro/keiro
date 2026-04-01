@@ -187,8 +187,15 @@ export default function CampaignWizard({ agentId, agentName, onClose, onActivate
           method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
           body: JSON.stringify({ action: 'generate_post', platform: values.platform || 'instagram', format: values.format || 'post', pillar: values.pillar || 'tips', draftOnly: false }),
         }),
-        email: () => fetch('/api/agents/email/daily?slot=morning&types=all', { credentials: 'include' }),
-        dm_instagram: () => fetch('/api/agents/dm-instagram?slot=morning', { method: 'POST', credentials: 'include' }),
+        email: () => fetch('/api/agents/email/daily?slot=morning&types=all&force=true', { credentials: 'include' }),
+        dm_instagram: async () => {
+          // 3 actions: scan DMs + reply comments + prepare proactive DMs
+          const results = await Promise.allSettled([
+            fetch('/api/agents/dm-instagram?slot=morning', { method: 'POST', credentials: 'include' }),
+            fetch('/api/agents/instagram-comments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'auto_reply_all' }) }),
+          ]);
+          return results[0].status === 'fulfilled' ? results[0].value : new Response('{}');
+        },
         commercial: () => fetch('/api/agents/gmaps', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({}) }),
         seo: () => fetch('/api/agents/seo', { credentials: 'include' }),
         gmaps: () => fetch('/api/agents/google-reviews', { credentials: 'include' }),
