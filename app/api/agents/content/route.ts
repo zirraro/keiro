@@ -2984,6 +2984,22 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
     .order('scheduled_date', { ascending: false })
     .limit(9);
 
+  // ── Smart format rotation: diversify if too many of the same format ──
+  if (preferredFormats === 'all' && platform === 'instagram' && recentGrid && recentGrid.length >= 3) {
+    const lastFormats = recentGrid.slice(0, 4).map((p: any) => p.format);
+    const formatCounts: Record<string, number> = {};
+    lastFormats.forEach((f: string) => { formatCounts[f] = (formatCounts[f] || 0) + 1; });
+    // If last 3+ posts are same format, rotate to something different
+    if (formatCounts[format] && formatCounts[format] >= 3) {
+      const alternatives = ['post', 'reel', 'carrousel'].filter(f => f !== format && (!formatCounts[f] || formatCounts[f] < 2));
+      if (alternatives.length > 0) {
+        const rotated = alternatives[Math.floor(Math.random() * alternatives.length)];
+        console.log(`[Content] Format rotation: ${format} → ${rotated} (${formatCounts[format]}x in last ${lastFormats.length} posts)`);
+        format = rotated;
+      }
+    }
+  }
+
   const gridContext = recentGrid?.map((p: any, i: number) =>
     `Position ${i + 1}: ${p.format} | Pilier: ${p.pillar} | Hook: ${p.hook || '?'} | Visuel: ${(p.visual_description || '').substring(0, 80)}`
   ).join('\n') || 'Grille vide';

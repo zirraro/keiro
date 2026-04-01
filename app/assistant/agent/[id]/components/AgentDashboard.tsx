@@ -578,6 +578,85 @@ function AutoModeToggle({ agentId, autoLabel, manualLabel, autoDesc, manualDesc 
   );
 }
 
+// ─── Per-Network Auto-Mode Toggles ───────────────────────────
+function NetworkAutoModeToggles({ agentId }: { agentId: string }) {
+  const [settings, setSettings] = useState<Record<string, boolean>>({});
+  const [globalAuto, setGlobalAuto] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  const NETWORKS = [
+    { key: 'instagram', label: 'Instagram', icon: '\uD83D\uDCF7', color: '#E1306C' },
+    { key: 'tiktok', label: 'TikTok', icon: '\uD83C\uDFB5', color: '#00f2ea' },
+    { key: 'linkedin', label: 'LinkedIn', icon: '\uD83D\uDCBC', color: '#0A66C2' },
+  ];
+
+  useEffect(() => {
+    fetch(`/api/agents/settings?agent_id=${agentId}`, { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => {
+        const cfg = d.settings || {};
+        setGlobalAuto(cfg.auto_mode ?? false);
+        setSettings({
+          instagram: cfg.auto_mode_instagram ?? cfg.auto_mode ?? false,
+          tiktok: cfg.auto_mode_tiktok ?? cfg.auto_mode ?? false,
+          linkedin: cfg.auto_mode_linkedin ?? cfg.auto_mode ?? false,
+        });
+      })
+      .catch(() => {})
+      .finally(() => setLoaded(true));
+  }, [agentId]);
+
+  const toggleNetwork = useCallback(async (network: string) => {
+    const newVal = !settings[network];
+    const newSettings = { ...settings, [network]: newVal };
+    setSettings(newSettings);
+    // Update global auto_mode: true if any network is on
+    const anyOn = Object.values(newSettings).some(v => v);
+    setGlobalAuto(anyOn);
+    try {
+      await fetch('/api/agents/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          agent_id: agentId,
+          auto_mode: anyOn,
+          [`auto_mode_${network}`]: newVal,
+        }),
+      });
+    } catch { setSettings(s => ({ ...s, [network]: !newVal })); }
+  }, [settings, agentId]);
+
+  if (!loaded) return null;
+
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 mb-3">
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-base">{globalAuto ? '\uD83E\uDD16' : '\u270D\uFE0F'}</span>
+        <span className="text-xs font-medium text-white/80">{globalAuto ? 'Publication automatique' : 'Publication manuelle'}</span>
+      </div>
+      <div className="space-y-1.5">
+        {NETWORKS.map(n => (
+          <div key={n.key} className="flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg bg-white/[0.03]">
+            <div className="flex items-center gap-2">
+              <span className="text-sm">{n.icon}</span>
+              <span className="text-[11px] text-white/70">{n.label}</span>
+            </div>
+            <button
+              onClick={() => toggleNetwork(n.key)}
+              className={`w-10 h-5 rounded-full relative transition-colors flex-shrink-0 ${settings[n.key] ? '' : 'bg-white/15'}`}
+              style={settings[n.key] ? { backgroundColor: n.color } : {}}
+            >
+              <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${settings[n.key] ? 'right-0.5' : 'left-0.5'}`} />
+            </button>
+          </div>
+        ))}
+      </div>
+      <p className="text-[9px] text-white/25 mt-2">Active/desactive la publication automatique par reseau</p>
+    </div>
+  );
+}
+
 // Review card with AI reply generation + direct Google reply for Google reviews
 function ReviewCard({ review, gradientFrom }: { review: { name?: string; author: string; rating: number; text: string; date: string; replied: boolean }; gradientFrom: string }) {
   const [showReply, setShowReply] = useState(false);
@@ -1849,8 +1928,10 @@ function ContentPanel({
       {/* Connect social networks — hide if already connected */}
       <SocialConnectBanners agentId="content" networks={['instagram', 'tiktok', 'linkedin']} connections={(data as any).connections} />
 
-      {/* Auto mode toggle */}
-      <div data-tour="auto-toggle"><AutoModeToggle agentId="content" autoLabel="Publication automatique" manualLabel="Publication manuelle" autoDesc="Lena publie automatiquement selon ton calendrier" manualDesc="Tu valides chaque post avant publication" /></div>
+      {/* Auto mode toggles per network */}
+      <div data-tour="auto-toggle">
+        <NetworkAutoModeToggles agentId="content" />
+      </div>
 
       {/* Content direction — client can guide what to publish */}
       <ContentDirectionInput />
@@ -3252,6 +3333,10 @@ function CommercialPanel({ data, agentName, gradientFrom, gradientTo }: { data: 
         })}
       </div>
 
+      {/* Launch prospection button */}
+      <SectionTitle>Actions rapides</SectionTitle>
+      <LaunchProspectionButton />
+
       {/* Recent activities */}
       {(data as any).activities?.length > 0 && (
         <>
@@ -3268,6 +3353,56 @@ function CommercialPanel({ data, agentName, gradientFrom, gradientTo }: { data: 
         </>
       )}
     </>
+  );
+}
+
+// ─── Launch Prospection Button for Léo ─────────────────────
+function LaunchProspectionButton() {
+  const [launching, setLaunching] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; message?: string } | null>(null);
+  const [query, setQuery] = useState('');
+
+  const launch = useCallback(async () => {
+    setLaunching(true);
+    setResult(null);
+    try {
+      const res = await fetch('/api/agents/commercial', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action: 'prospect_external', query: query || undefined }),
+      });
+      const data = await res.json();
+      setResult({ ok: data.ok !== false, message: data.message || data.error || `${data.enriched || 0} prospects enrichis` });
+    } catch (e: any) {
+      setResult({ ok: false, message: e.message });
+    } finally { setLaunching(false); }
+  }, [query]);
+
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 space-y-2">
+      <div className="flex items-center gap-2">
+        <input
+          type="text"
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          placeholder="Type de commerce, ville... (optionnel)"
+          className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-purple-500/50"
+        />
+        <button
+          onClick={launch}
+          disabled={launching}
+          className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs font-bold rounded-xl hover:shadow-lg transition-all disabled:opacity-50 flex items-center gap-1 whitespace-nowrap min-h-[44px]"
+        >
+          {launching ? <span className="animate-spin">{'...'}</span> : <>{'\uD83D\uDD0D'} Prospecter</>}
+        </button>
+      </div>
+      {result && (
+        <div className={`text-[10px] px-2 py-1 rounded-lg ${result.ok ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+          {result.message}
+        </div>
+      )}
+    </div>
   );
 }
 

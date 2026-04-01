@@ -177,6 +177,16 @@ export async function GET(request: NextRequest) {
     });
   }
 
+  // ── Helper: check if agent is active for a specific network ──────────
+  function isNetworkActive(userId: string, agentId: string, network: string): boolean {
+    const cfg = clientAgentConfigs[userId]?.[agentId];
+    if (!cfg) return false;
+    // Check per-network toggle first, fallback to global auto_mode
+    const networkKey = `auto_mode_${network}`;
+    if (cfg[networkKey] !== undefined) return cfg[networkKey] === true;
+    return cfg.auto_mode === true;
+  }
+
   // ── Helper: call endpoint for each client with agent active ──────────
   // agentFilter: only call for clients who activated this agent. If null, call for all.
   async function callForEachClient(name: string, path: string, method: 'GET' | 'POST' = 'GET', body?: any, agentFilter?: string) {

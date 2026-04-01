@@ -183,6 +183,177 @@ const TEAMS = [
 
 // ─── Main Page ─────────────────────────────────────────────
 
+// ─── Planning Calendar ──────────────────────────────────────
+function PlanningCalendar() {
+  const [posts, setPosts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [platformFilter, setPlatformFilter] = useState<string>('all');
+  const [weekOffset, setWeekOffset] = useState(0);
+
+  // Calculate date range (2 weeks from offset)
+  const now = new Date();
+  const startDate = new Date(now.getTime() + weekOffset * 7 * 86400000);
+  startDate.setDate(startDate.getDate() - startDate.getDay() + 1); // Monday
+  const endDate = new Date(startDate.getTime() + 13 * 86400000); // 2 weeks
+
+  useEffect(() => {
+    setLoading(true);
+    (async () => {
+      try {
+        const res = await fetch('/api/agents/content', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            action: 'calendar',
+            startDate: startDate.toISOString().split('T')[0],
+            endDate: endDate.toISOString().split('T')[0],
+          }),
+        });
+        const data = await res.json();
+        setPosts(data.posts || []);
+      } catch {} finally { setLoading(false); }
+    })();
+  }, [weekOffset]);
+
+  const days: Date[] = [];
+  for (let i = 0; i < 14; i++) {
+    days.push(new Date(startDate.getTime() + i * 86400000));
+  }
+
+  const dayNames = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+  const months = ['Jan', 'Fev', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aou', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const platforms = ['instagram', 'tiktok', 'linkedin'];
+  const PLATFORM_ICONS: Record<string, string> = { instagram: '\uD83D\uDCF7', tiktok: '\uD83C\uDFB5', linkedin: '\uD83D\uDCBC' };
+  const PLATFORM_COLORS: Record<string, string> = { instagram: '#E1306C', tiktok: '#00f2ea', linkedin: '#0A66C2' };
+  const STATUS_DOT: Record<string, string> = { draft: 'bg-amber-500', approved: 'bg-blue-500', published: 'bg-emerald-500', publish_failed: 'bg-red-500' };
+
+  const filtered = platformFilter === 'all' ? posts : posts.filter(p => (p.platform || 'instagram') === platformFilter);
+
+  const getPostsForDay = (date: Date, platform?: string) => {
+    const dateStr = date.toISOString().split('T')[0];
+    return filtered.filter(p => {
+      const match = p.scheduled_date === dateStr || (p.published_at && p.published_at.startsWith(dateStr));
+      return match && (!platform || (p.platform || 'instagram') === platform);
+    });
+  };
+
+  const today = new Date().toISOString().split('T')[0];
+
+  const totalByPlatform = platforms.reduce((acc, p) => {
+    acc[p] = posts.filter(post => (post.platform || 'instagram') === p).length;
+    return acc;
+  }, {} as Record<string, number>);
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <h2 className="text-white font-bold text-sm">{'\uD83D\uDCC5'} Calendrier editorial</h2>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setWeekOffset(w => w - 2)} className="px-2 py-1 bg-white/10 rounded-lg text-xs text-white/60 hover:bg-white/15">{'\u2190'}</button>
+          <button onClick={() => setWeekOffset(0)} className="px-2 py-1 bg-white/10 rounded-lg text-[10px] text-white/40 hover:bg-white/15">Aujourd'hui</button>
+          <button onClick={() => setWeekOffset(w => w + 2)} className="px-2 py-1 bg-white/10 rounded-lg text-xs text-white/60 hover:bg-white/15">{'\u2192'}</button>
+        </div>
+      </div>
+
+      {/* Platform filter */}
+      <div className="flex gap-1 flex-wrap">
+        <button onClick={() => setPlatformFilter('all')} className={`px-3 py-1.5 rounded-lg text-[10px] font-medium transition-all ${platformFilter === 'all' ? 'bg-purple-600 text-white' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}>
+          Tous ({posts.length})
+        </button>
+        {platforms.map(p => (
+          <button key={p} onClick={() => setPlatformFilter(p)} className={`px-3 py-1.5 rounded-lg text-[10px] font-medium transition-all ${platformFilter === p ? 'text-white' : 'bg-white/5 text-white/40 hover:bg-white/10'}`} style={platformFilter === p ? { backgroundColor: PLATFORM_COLORS[p] + '40', color: PLATFORM_COLORS[p] } : {}}>
+            {PLATFORM_ICONS[p]} {p.charAt(0).toUpperCase() + p.slice(1)} ({totalByPlatform[p] || 0})
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400" /></div>
+      ) : (
+        <>
+          {/* Calendar grid */}
+          <div className="rounded-xl border border-white/10 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[700px]">
+                <thead>
+                  <tr className="border-b border-white/10 bg-white/[0.03]">
+                    <th className="w-16 px-2 py-2 text-[10px] text-white/30 font-medium text-left"></th>
+                    {days.map((d, i) => {
+                      const isToday = d.toISOString().split('T')[0] === today;
+                      const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+                      return (
+                        <th key={i} className={`px-1 py-2 text-center ${isToday ? 'bg-purple-500/10' : isWeekend ? 'bg-white/[0.01]' : ''}`}>
+                          <div className={`text-[9px] ${isToday ? 'text-purple-400 font-bold' : 'text-white/30'}`}>{dayNames[(d.getDay() + 6) % 7]}</div>
+                          <div className={`text-[11px] font-bold ${isToday ? 'text-purple-400' : 'text-white/60'}`}>{d.getDate()}</div>
+                          {(i === 0 || d.getDate() === 1) && <div className="text-[8px] text-white/20">{months[d.getMonth()]}</div>}
+                        </th>
+                      );
+                    })}
+                  </tr>
+                </thead>
+                <tbody>
+                  {(platformFilter === 'all' ? platforms : [platformFilter]).map(platform => (
+                    <tr key={platform} className="border-b border-white/5">
+                      <td className="px-2 py-2">
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px]">{PLATFORM_ICONS[platform]}</span>
+                          <span className="text-[9px] text-white/40 uppercase tracking-wider">{platform.substring(0, 2).toUpperCase()}</span>
+                        </div>
+                      </td>
+                      {days.map((d, i) => {
+                        const dayPosts = getPostsForDay(d, platform);
+                        const isToday = d.toISOString().split('T')[0] === today;
+                        return (
+                          <td key={i} className={`px-0.5 py-1 align-top ${isToday ? 'bg-purple-500/5' : ''}`}>
+                            {dayPosts.length > 0 ? (
+                              <div className="space-y-0.5">
+                                {dayPosts.slice(0, 3).map((post, j) => (
+                                  <div key={j} className="group relative">
+                                    {post.visual_url ? (
+                                      <div className="w-full aspect-square rounded-md overflow-hidden border border-white/10">
+                                        <img src={post.visual_url} alt="" className="w-full h-full object-cover" />
+                                        <div className={`absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full ${STATUS_DOT[post.status] || 'bg-gray-500'}`} />
+                                      </div>
+                                    ) : (
+                                      <div className={`w-full aspect-square rounded-md border border-white/10 flex items-center justify-center text-[8px] text-white/30 ${STATUS_DOT[post.status]?.replace('bg-', 'bg-') + '/10' || 'bg-white/5'}`}>
+                                        {post.format === 'reel' ? '\uD83C\uDFAC' : post.format === 'story' ? '\uD83D\uDCF1' : '\uD83D\uDCDD'}
+                                      </div>
+                                    )}
+                                    {/* Tooltip on hover */}
+                                    <div className="hidden group-hover:block absolute z-50 bottom-full left-0 mb-1 w-40 bg-gray-900 border border-white/20 rounded-lg p-2 shadow-xl">
+                                      <div className="text-[9px] text-white/80 font-medium line-clamp-2">{post.hook || post.caption?.substring(0, 60) || 'Sans titre'}</div>
+                                      <div className="text-[8px] text-white/30 mt-1">{post.format} | {post.status}{post.scheduled_time ? ` | ${post.scheduled_time}` : ''}</div>
+                                    </div>
+                                  </div>
+                                ))}
+                                {dayPosts.length > 3 && <div className="text-[8px] text-white/20 text-center">+{dayPosts.length - 3}</div>}
+                              </div>
+                            ) : null}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Legend */}
+          <div className="flex items-center gap-4 text-[9px] text-white/30">
+            <span><span className="inline-block w-2 h-2 rounded-full bg-amber-500 mr-1" />Brouillon</span>
+            <span><span className="inline-block w-2 h-2 rounded-full bg-blue-500 mr-1" />En attente</span>
+            <span><span className="inline-block w-2 h-2 rounded-full bg-emerald-500 mr-1" />Publie</span>
+            <span><span className="inline-block w-2 h-2 rounded-full bg-red-500 mr-1" />Echec</span>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function AssistantPage() {
   const isMobile = useIsMobile();
   const router = useRouter();
@@ -236,7 +407,7 @@ export default function AssistantPage() {
   const [streak, setStreak] = useState(0);
 
   // View tab
-  const [viewTab, setViewTab] = useState<'suivi' | 'equipe' | 'agent' | 'campagnes' | 'pipeline' | 'offre'>('suivi');
+  const [viewTab, setViewTab] = useState<'suivi' | 'equipe' | 'agent' | 'campagnes' | 'pipeline' | 'offre' | 'planning'>('suivi');
 
   // Team agent ordering (per team) — initialized from localStorage via useEffect
   const [teamOrders, setTeamOrders] = useState<Record<string, string[]>>({});
@@ -933,6 +1104,7 @@ export default function AssistantPage() {
             { key: 'equipe' as const, label: '\uD83D\uDC65 Par equipe', shortLabel: 'Equipes' },
             { key: 'agent' as const, label: '\uD83E\uDD16 Par agent', shortLabel: 'Agents' },
             { key: 'campagnes' as const, label: '\u{1F3AF} Campagnes', shortLabel: 'Campagnes' },
+            { key: 'planning' as const, label: '\uD83D\uDCC5 Planning', shortLabel: 'Planning' },
             { key: 'pipeline' as const, label: '\uD83D\uDCCA Mon CRM', shortLabel: 'CRM' },
             { key: 'offre' as const, label: '\uD83D\uDCB0 Par offre', shortLabel: 'Offres' },
           ]).map((tab) => (
@@ -1094,6 +1266,8 @@ export default function AssistantPage() {
             )}
           </div>
         )}
+
+        {viewTab === 'planning' && <PlanningCalendar />}
 
         {viewTab === 'pipeline' && (
           <div className="text-center py-6">
