@@ -134,11 +134,16 @@ export async function GET(request: NextRequest) {
       .not('subscription_plan', 'eq', 'free');
 
     // Also include trial users (plan might be null but trial_ends_at in future)
-    const { data: trialClients } = await supabaseForClients
-      .from('profiles')
-      .select('id, email')
-      .or('is_admin.is.null,is_admin.eq.false')
-      .gt('trial_ends_at', now.toISOString());
+    let trialClients: any[] = [];
+    try {
+      const { data } = await supabaseForClients
+        .from('profiles')
+        .select('id, email')
+        .or('is_admin.is.null,is_admin.eq.false')
+        .not('trial_ends_at', 'is', null)
+        .gt('trial_ends_at', now.toISOString());
+      trialClients = data || [];
+    } catch { /* trial_ends_at column might not exist yet */ }
 
     const allClientIds = new Set<string>();
     (clients || []).forEach(c => allClientIds.add(c.id));
