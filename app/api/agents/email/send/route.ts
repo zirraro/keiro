@@ -76,12 +76,15 @@ export async function POST(request: NextRequest) {
     const supabase = getSupabaseAdmin();
     const now = new Date().toISOString();
 
-    // --- Fetch prospect ---
-    const { data: prospect, error: prospectError } = await supabase
+    // --- Fetch prospect (verify ownership via user_id) ---
+    let prospectQuery = supabase
       .from('crm_prospects')
       .select('*')
-      .eq('id', prospect_id)
-      .single();
+      .eq('id', prospect_id);
+    // If user_id available, verify this prospect belongs to the client
+    const ownerUserId = body?.user_id || null;
+    if (ownerUserId) prospectQuery = prospectQuery.eq('user_id', ownerUserId);
+    const { data: prospect, error: prospectError } = await prospectQuery.single();
 
     if (prospectError || !prospect) {
       return NextResponse.json(
