@@ -2160,23 +2160,27 @@ function ContentWorkflow({ isConnected }: { isConnected?: boolean }) {
         ))}
       </div>
 
-      {/* Status filter tabs */}
+      {/* Status filter tabs — counts based on platform filter */}
+      {(() => { const pCounts = platformFiltered.reduce((acc: Record<string, number>, p: any) => { acc[p.status] = (acc[p.status] || 0) + 1; return acc; }, {}); return (
       <div className="flex gap-1 mb-2 overflow-x-auto pb-1">
         {[
           { key: 'all', label: `Tous (${platformFiltered.length})` },
-          { key: 'draft', label: `Brouillons (${counts.draft || 0})` },
-          { key: 'approved', label: `Programmes (${counts.approved || 0})` },
-          { key: 'published', label: `Publies (${counts.published || 0})` },
+          { key: 'draft', label: `Brouillons (${pCounts.draft || 0})` },
+          { key: 'approved', label: `Programmes (${pCounts.approved || 0})` },
+          { key: 'published', label: `Publies (${pCounts.published || 0})` },
         ].map(tab => (
           <button key={tab.key} onClick={() => setFilter(tab.key)}
             className={`px-2 py-1 text-[9px] font-medium rounded-md whitespace-nowrap transition-all ${filter === tab.key ? 'bg-purple-600 text-white' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}
           >{tab.label}</button>
         ))}
       </div>
+      ); })()}
 
-      {/* Instagram-style grid — tiny thumbnails, "Voir plus" button */}
+      {/* Instagram-style grid — latest first */}
       <div className="grid grid-cols-4 sm:grid-cols-5 lg:grid-cols-6 gap-0.5">
-        {(filter === 'all' ? platformFiltered : platformFiltered.filter((p: any) => p.status === filter)).slice(0, showAll ? 30 : 12).map((post: any) => (
+        {(filter === 'all' ? platformFiltered : platformFiltered.filter((p: any) => p.status === filter))
+          .sort((a: any, b: any) => new Date(b.published_at || b.scheduled_date || b.created_at || 0).getTime() - new Date(a.published_at || a.scheduled_date || a.created_at || 0).getTime())
+          .slice(0, showAll ? 30 : 12).map((post: any) => (
           <button key={post.id} onClick={() => setSelectedPost(post)} className="relative aspect-square bg-white/5 rounded-md overflow-hidden hover:opacity-80 transition group">
             {post.visual_url ? (
               <img src={post.visual_url} alt="" className="w-full h-full object-cover" />
@@ -2191,6 +2195,12 @@ function ContentWorkflow({ isConnected }: { isConnected?: boolean }) {
             <div className="absolute bottom-0.5 left-0.5 text-[7px] font-bold text-white/60 bg-black/40 px-1 rounded">
               {post.platform === 'tiktok' ? 'TT' : post.platform === 'linkedin' ? 'LI' : 'IG'}
             </div>
+            {/* Scheduled date for approved posts */}
+            {post.status === 'approved' && post.scheduled_date && (
+              <div className="absolute bottom-0.5 right-0.5 text-[6px] text-white/50 bg-black/50 px-0.5 rounded">
+                {post.scheduled_date.substring(5)}{post.scheduled_time ? ` ${post.scheduled_time}` : ''}
+              </div>
+            )}
             {/* Hover: reel/carousel indicator */}
             {(post.format === 'reel' || post.format === 'video') && (
               <div className="absolute top-1 left-1 text-[8px] text-white/70">{'\u{1F3AC}'}</div>

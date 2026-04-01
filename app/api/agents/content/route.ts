@@ -1062,7 +1062,11 @@ export async function GET(request: NextRequest) {
   }
 
   const orgId = request.nextUrl.searchParams.get('org_id') || null;
-  const userId = request.nextUrl.searchParams.get('user_id') || null;
+  let userId = request.nextUrl.searchParams.get('user_id') || null;
+  // Fallback: get userId from session if not in URL (client direct calls)
+  if (!userId) {
+    try { const { user } = await getAuthUser(); if (user) userId = user.id; } catch {}
+  }
   const supabase = getSupabaseAdmin();
   const now = new Date();
   const todayStr = now.toISOString().split('T')[0];
@@ -1343,7 +1347,15 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = getSupabaseAdmin();
-  const userId = request.nextUrl.searchParams.get('user_id') || null;
+  let userId = request.nextUrl.searchParams.get('user_id') || null;
+
+  // If no user_id in URL, try to get from authenticated session
+  if (!userId) {
+    try {
+      const { user } = await getAuthUser();
+      if (user) userId = user.id;
+    } catch {}
+  }
 
   // Load client settings for POST handler too
   let clientSettings: Record<string, any> = {};
