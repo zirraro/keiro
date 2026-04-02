@@ -61,12 +61,30 @@ export async function GET(req: NextRequest) {
     if (quartier) query = query.eq('quartier', quartier);
     if (priorite) query = query.eq('priorite', priorite);
 
-    const { data: prospects, error } = await query;
-
-    if (error) {
-      console.error('[Admin CRM Export] Query error:', error);
-      return NextResponse.json({ error: 'Erreur lors de la récupération des prospects' }, { status: 500 });
+    // Paginate to fetch ALL prospects (Supabase caps at 1000 per request)
+    let allProspects: any[] = [];
+    let from = 0;
+    const PAGE_SIZE = 1000;
+    let hasMore = true;
+    while (hasMore) {
+      const pageQuery = supabase.from('crm_prospects').select('*').order('created_at', { ascending: false }).range(from, from + PAGE_SIZE - 1);
+      if (search) { const s = `%${search}%`; pageQuery.or(`first_name.ilike.${s},last_name.ilike.${s},email.ilike.${s},company.ilike.${s},notes.ilike.${s}`); }
+      if (status) pageQuery.eq('status', status);
+      if (source) pageQuery.eq('source', source);
+      if (type) pageQuery.eq('type', type);
+      if (quartier) pageQuery.eq('quartier', quartier);
+      if (priorite) pageQuery.eq('priorite', priorite);
+      const { data, error: pageError } = await pageQuery;
+      if (pageError) {
+        console.error('[Admin CRM Export] Query error:', pageError);
+        return NextResponse.json({ error: 'Erreur lors de la récupération des prospects' }, { status: 500 });
+      }
+      allProspects = allProspects.concat(data || []);
+      hasMore = (data?.length || 0) === PAGE_SIZE;
+      from += PAGE_SIZE;
+      if (from >= 100000) break; // Safety cap
     }
+    const prospects = allProspects;
 
     // Build Excel data
     const exportData = (prospects || []).map((p: any) => ({

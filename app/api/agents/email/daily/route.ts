@@ -413,7 +413,7 @@ ${email.body.split('\n').map((line: string) => `<p style="margin:8px 0;">${line}
  * Called at the end of each run to save insights.
  * Tracks: open/click/reply rates, best categories, best subject patterns, best steps.
  */
-async function autoLearn(results: SendResult[], supabase: any, orgId: string | null = null) {
+async function autoLearn(results: SendResult[], supabase: any, orgId: string | null = null, clientUserId: string | null = null) {
   const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
   // Get engagement data + email subjects for correlation
@@ -446,6 +446,22 @@ async function autoLearn(results: SendResult[], supabase: any, orgId: string | n
           score: Math.min(100, (prospect.score || 0) + 50),
           updated_at: new Date().toISOString(),
         }).eq('id', reply.prospect_id);
+
+        // Notify client: prospect has replied!
+        if (clientUserId) {
+          try {
+            const { notifyClient } = await import('@/lib/agents/notify-client');
+            const replyData = reply.data as any;
+            await notifyClient(supabase, {
+              userId: clientUserId,
+              agent: 'email',
+              type: 'action',
+              title: `Prospect a répondu ! Reprends la main`,
+              message: `${replyData?.company || 'Un prospect'} a répondu à ton email. C'est le moment de closer ! Ouvre ta boîte mail pour continuer la conversation.`,
+              data: { prospect_id: reply.prospect_id, action: 'reply_received' },
+            });
+          } catch {}
+        }
       }
     }
   }
@@ -1561,7 +1577,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Auto-learn from performance
-    await autoLearn(results, supabase, orgId);
+    await autoLearn(results, supabase, orgId, clientUserId);
 
     // Report to CEO
     await supabase.from('agent_logs').insert({

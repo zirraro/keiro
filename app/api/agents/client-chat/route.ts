@@ -241,11 +241,21 @@ export async function POST(request: NextRequest) {
       max_tokens: 2048,
       system: systemPrompt + `\n\nREGLES DE CHAT CRITIQUES:
 - Reponds TOUJOURS de maniere concrete et actionnelle. JAMAIS "je traite ta demande" ou "je m'en occupe" sans detail.
-- Si le client demande une action (publier, envoyer, analyser), FAIS-LA et decris le resultat en detail.
 - Utilise un ton pro mais amical, tutoie le client, sois enthousiaste mais pas excessif.
 - Si tu ne peux pas faire quelque chose, explique POURQUOI et propose une alternative concrete.
 - Tes reponses doivent etre riches: chiffres, exemples concrets, next steps clairs.
-- Tu as acces a l'intelligence partagee de tous les agents — utilise-la pour donner du contexte.`,
+- Tu as acces a l'intelligence partagee de tous les agents — utilise-la pour donner du contexte.
+- Tu te souviens de TOUTES les conversations passees avec ce client (historique ci-dessus).
+
+ACTIONS DISPONIBLES — Quand le client demande une action, INCLUS le tag action dans ta reponse:
+- Pour generer un post: [ACTION:{"type":"generate_post","platform":"instagram","format":"post","pillar":"tips"}]
+- Pour envoyer des emails: [ACTION:{"type":"send_emails"}]
+- Pour prospecter sur Google Maps: [ACTION:{"type":"prospect","query":"restaurant Paris"}]
+- Pour lister les posts planifies: [ACTION:{"type":"list_posts"}]
+
+Exemple: "Je genere un post Instagram maintenant ! [ACTION:{\\"type\\":\\"generate_post\\",\\"platform\\":\\"instagram\\"}]"
+Le systeme executera l'action et ajoutera le resultat automatiquement.
+IMPORTANT: N'utilise les actions QUE quand le client DEMANDE explicitement. Pour les questions d'info, reponds normalement avec tes connaissances.`,
       temperature: 0.7,
       messages: claudeMessages,
     });
@@ -275,7 +285,69 @@ export async function POST(request: NextRequest) {
                     .replace(/\[dossier_update\][\s\S]*?\[\/dossier_update\]/, '').trim();
     }
 
-    // 9.5 Detect and apply setting updates from agent response
+    // 9.5 Detect and execute ACTION from agent response
+    // Format: [ACTION:{"type":"publish","platform":"instagram"}]
+    const actionMatch = reply.match(/\[ACTION:\{.*?\}\]/);
+    if (actionMatch) {
+      try {
+        const actionJson = JSON.parse(actionMatch[0].replace('[ACTION:', '').replace(']', ''));
+        console.log(`[ClientChat] Action detected:`, actionJson);
+
+        // Execute the action
+        const actionType = actionJson.type;
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keiroai.com';
+        let actionResult = '';
+
+        if (actionType === 'generate_post' && agent_id === 'content') {
+          const res = await fetch(`${baseUrl}/api/agents/content`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
+            body: JSON.stringify({ action: 'generate_post', platform: actionJson.platform || 'instagram', format: actionJson.format || 'post', pillar: actionJson.pillar || 'tips', draftOnly: actionJson.draft || false, user_id: user.id }),
+          });
+          const data = await res.json();
+          actionResult = data.ok ? `Post ${data.post?.platform || 'instagram'} créé${data.instagram_permalink ? ` et publié: ${data.instagram_permalink}` : ' (en brouillon)'}` : `Erreur: ${data.error || 'échec'}`;
+        } else if (actionType === 'send_emails' && agent_id === 'email') {
+          const res = await fetch(`${baseUrl}/api/agents/email/daily?slot=morning&force=true&user_id=${user.id}`, {
+            headers: { 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
+          });
+          const data = await res.json();
+          actionResult = `${data.stats?.success || 0} emails envoyés`;
+        } else if (actionType === 'prospect' && (agent_id === 'commercial' || agent_id === 'gmaps')) {
+          const res = await fetch(`${baseUrl}/api/agents/gmaps`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
+            body: JSON.stringify({ query: actionJson.query }),
+          });
+          const data = await res.json();
+          actionResult = `${data.imported || 0} prospects trouvés sur Google Maps`;
+        } else if (actionType === 'list_posts' && agent_id === 'content') {
+          const res = await fetch(`${baseUrl}/api/agents/content`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
+            body: JSON.stringify({ action: 'calendar', user_id: user.id }),
+          });
+          const data = await res.json();
+          const posts = data.posts || [];
+          const scheduled = posts.filter((p: any) => p.status === 'approved').length;
+          const published = posts.filter((p: any) => p.status === 'published').length;
+          const drafts = posts.filter((p: any) => p.status === 'draft').length;
+          actionResult = `${posts.length} posts au total: ${published} publiés, ${scheduled} programmés, ${drafts} brouillons`;
+        }
+
+        if (actionResult) {
+          reply = reply.replace(/\[ACTION:\{.*?\}\]/, '').trim();
+          reply += `\n\n✅ **Résultat:** ${actionResult}`;
+        }
+
+        await supabase.from('agent_logs').insert({
+          agent: agent_id, action: 'chat_action_executed', status: 'ok',
+          data: { action: actionJson, result: actionResult, user_id: user.id },
+          created_at: new Date().toISOString(),
+        });
+      } catch (e: any) {
+        console.warn('[ClientChat] Action execution error:', e.message);
+        reply = reply.replace(/\[ACTION:\{.*?\}\]/, '').trim();
+      }
+    }
+
+    // 9.6 Detect and apply setting updates from agent response
     const settingMatch = reply.match(/\[SETTING_UPDATE:\{.*?\}\]/);
     if (settingMatch) {
       try {
@@ -323,6 +395,21 @@ export async function POST(request: NextRequest) {
         created_at: now,
         updated_at: now,
       });
+    }
+
+    // 10.5 Share key insights from this conversation to RAG (cross-agent learning)
+    // Only save if the reply contains substantial info (not just greetings)
+    if (reply.length > 100 && !reply.includes('Bonjour') && existingMessages.length >= 2) {
+      try {
+        const { saveLearning } = await import('@/lib/agents/learning');
+        await saveLearning(supabase, {
+          agent: agent_id,
+          category: 'general',
+          learning: `Client conversation: "${message.substring(0, 100)}" → Agent response key: ${reply.substring(0, 150)}`,
+          evidence: `chat_${agent_id}_${user.id}_${new Date().toISOString().split('T')[0]}`,
+          confidence: 15,
+        });
+      } catch {}
     }
 
     // 11. Deduct 1 credit
