@@ -66,6 +66,12 @@ export default function ClaraHelper() {
         setConnections(conns);
         console.log('[ClaraHelper] Connections:', conns);
 
+        // Check if user is authenticated — don't show for visitors
+        try {
+          const meRes = await fetch('/api/me', { credentials: 'include' });
+          if (!meRes.ok) return; // Not logged in → don't show
+        } catch { return; }
+
         // Get which agents are setup — parallel requests for speed
         const setupAgents = new Set<string>();
         const settingsPromises = AGENT_SETUP_ORDER.map(agent =>
@@ -86,15 +92,26 @@ export default function ClaraHelper() {
 
         // Start wizard flag handled in early check above
 
-        // Show bubble if there are inactive agents (with delay)
+        // Show bubble if there are inactive agents — but not too often
         if (remaining.length > 0) {
-          const shownKey = 'keiro_clara_inactive_shown';
-          const lastShown = sessionStorage.getItem(shownKey);
-          if (!lastShown || Date.now() - parseInt(lastShown) > 300000) {
+          // Track visit count in localStorage (persists across sessions)
+          const visitKey = 'keiro_clara_visit_count';
+          const visits = parseInt(localStorage.getItem(visitKey) || '0') + 1;
+          localStorage.setItem(visitKey, String(visits));
+
+          // Show only: first 5 visits, then every 10th visit
+          const shouldShow = visits <= 5 || visits % 10 === 0;
+
+          // Don't show if dismissed in the last 24h
+          const dismissedKey = 'keiro_clara_dismissed_at';
+          const lastDismissed = localStorage.getItem(dismissedKey);
+          const recentlyDismissed = lastDismissed && Date.now() - parseInt(lastDismissed) < 24 * 60 * 60 * 1000;
+
+          if (shouldShow && !recentlyDismissed) {
             setTimeout(() => {
               setMode('inactive');
               setShow(true);
-            }, 2000); // Reduced from 5s to 2s
+            }, 4000);
           }
         }
       } catch {}
@@ -106,7 +123,9 @@ export default function ClaraHelper() {
   const dismissAndCooldown = useCallback(() => {
     setDismissed(true);
     setShow(false);
-    try { sessionStorage.setItem('keiro_clara_inactive_shown', String(Date.now())); } catch {}
+    try {
+      localStorage.setItem('keiro_clara_dismissed_at', String(Date.now()));
+    } catch {}
   }, []);
 
   const startWizard = useCallback(() => {

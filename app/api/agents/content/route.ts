@@ -1206,6 +1206,13 @@ export async function GET(request: NextRequest) {
               updateFields.instagram_permalink = igResult.permalink;
               platformSuccess = true;
               console.log(`[Content] Instagram published for post ${post.id}: ${igResult.permalink}`);
+            } else if (igResult.error?.includes('Duplicate')) {
+              // Duplicate detected — skip this post, don't retry
+              updateFields.status = 'skipped';
+              updateFields.notes = `Auto-skip: ${igResult.error}`;
+              console.warn(`[Content] Duplicate post ${post.id} — auto-skipped`);
+              await supabase.from('content_calendar').update(updateFields).eq('id', post.id);
+              continue;
             } else {
               console.error(`[Content] Instagram publish FAILED for post ${post.id}: ${igResult.error}`);
               escalateAgentError({ agent: 'content', action: 'publish_instagram', error: igResult.error || 'Unknown IG error', platform: 'instagram', postId: post.id, context: `Hook: ${fullPost.hook?.substring(0, 80)}` }).catch(() => {});
