@@ -51,12 +51,12 @@ type CrmView = 'dashboard' | 'pipeline' | 'list' | 'prospect';
 // ─── Constants ──────────────────────────────────────────
 
 const PIPELINE_STAGES = [
-  { key: 'identifie', label: 'Identifie', color: '#64748b', emoji: '🔍' },
-  { key: 'contacte', label: 'Contacte', color: '#3b82f6', emoji: '📤' },
+  { key: 'identifie', label: 'Identifié', color: '#64748b', emoji: '🔍' },
+  { key: 'contacte', label: 'Contacté', color: '#3b82f6', emoji: '📤' },
   { key: 'relance_1', label: 'Relance 1', color: '#f59e0b', emoji: '🔄' },
   { key: 'relance_2', label: 'Relance 2', color: '#f97316', emoji: '🔄' },
   { key: 'relance_3', label: 'Relance 3', color: '#ef4444', emoji: '🔄' },
-  { key: 'repondu', label: 'Repondu', color: '#10b981', emoji: '✅' },
+  { key: 'repondu', label: 'Répondu', color: '#10b981', emoji: '✅' },
   { key: 'demo', label: 'Demo', color: '#8b5cf6', emoji: '🎯' },
   { key: 'sprint', label: 'Essai', color: '#a855f7', emoji: '🚀' },
   { key: 'client', label: 'Client', color: '#22c55e', emoji: '💎' },

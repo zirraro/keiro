@@ -160,7 +160,7 @@ export default function CampaignWizard({ agentId, agentName, onClose, onActivate
 
       // 2. Trigger IMMEDIATE action — WAIT for response (don't fire-and-forget)
       const ACTION_MESSAGES: Record<string, string> = {
-        content: 'Generation du post en cours...',
+        content: 'Génération du post en cours...',
         email: 'Lancement des emails...',
         dm_instagram: 'Lancement de la prospection DM...',
         commercial: 'Recherche de prospects...',
@@ -282,7 +282,7 @@ export default function CampaignWizard({ agentId, agentName, onClose, onActivate
         <div className="bg-gray-900 border border-emerald-500/30 rounded-2xl p-8 max-w-sm w-full text-center animate-in zoom-in-95 duration-300">
           <div className="text-5xl mb-4">{'\u2705'}</div>
           <h2 className="text-lg font-bold text-white mb-2">Campagne lancee !</h2>
-          <p className="text-sm text-white/50 mb-2">Les resultats apparaissent dans ton dashboard.</p>
+          <p className="text-sm text-white/50 mb-2">Les résultats apparaissent dans ton dashboard.</p>
         </div>
       </div>
     );
@@ -379,7 +379,7 @@ export default function CampaignWizard({ agentId, agentName, onClose, onActivate
               disabled={saving}
               className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-bold rounded-xl hover:shadow-lg transition min-h-[44px] disabled:opacity-50"
             >
-              {saving ? (agentId === 'content' ? 'Generation en cours...' : 'Activation...') : agentId === 'content' ? '\u{1F680} Generer maintenant' : `\u{26A1} Activer ${agentName}`}
+              {saving ? (agentId === 'content' ? 'Génération en cours...' : 'Activation...') : agentId === 'content' ? '\u{1F680} Générer maintenant' : `\u{26A1} Activer ${agentName}`}
             </button>
           ) : (
             <button

@@ -716,7 +716,7 @@ function ReviewCard({ review, gradientFrom }: { review: { name?: string; author:
                 color: review.replied ? '#34d399' : '#fbbf24',
               }}
             >
-              {review.replied ? 'Repondu' : 'En attente'}
+              {review.replied ? 'Répondu' : 'En attente'}
             </span>
             {!review.replied && (
               <button onClick={() => { setShowReply(!showReply); if (!showReply && !replyText) generateReply(); }} className="text-xs px-3 py-2 bg-white/10 rounded-lg text-white/60 hover:bg-white/15 shrink-0 min-h-[36px]">
@@ -1237,8 +1237,8 @@ function MarketingPanel({
           <div className="flex items-center justify-between gap-1 text-center">
             {[
               { label: 'Prospects identifies', value: gs.commercial.leadsWeek + gs.commercial.conversions, icon: '\u{1F465}', color: '#94a3b8' },
-              { label: 'Contactes', value: gs.commercial.leadsWeek, icon: '\u{1F4E8}', color: '#60a5fa' },
-              { label: 'Qualifies', value: Math.round(gs.commercial.leadsWeek * 0.6), icon: '\u{1F3AF}', color: '#fbbf24' },
+              { label: 'Contactés', value: gs.commercial.leadsWeek, icon: '\u{1F4E8}', color: '#60a5fa' },
+              { label: 'Qualifiés', value: Math.round(gs.commercial.leadsWeek * 0.6), icon: '\u{1F3AF}', color: '#fbbf24' },
               { label: 'Clients', value: gs.commercial.conversions, icon: '\u{1F525}', color: '#22c55e' },
             ].map((step, i) => (
               <div key={step.label} className="flex items-center flex-1">
@@ -1259,7 +1259,7 @@ function MarketingPanel({
             {'\u{1F4CA}'} Voir le CRM
           </a>
           <a href="/generate" className="px-4 py-2 bg-white/10 text-white/70 text-xs font-medium rounded-xl hover:bg-white/15">
-            {'\u2728'} Generer du contenu
+            {'\u2728'} Générer du contenu
           </a>
         </div>
 
@@ -1425,7 +1425,7 @@ function EmailPanel({
             { label: 'Email envoye', value: stats.sent, icon: '\u{1F4E7}', color: '#60a5fa' },
             { label: 'Ouvert', value: stats.opened, icon: '\u{1F4EC}', color: '#fbbf24' },
             { label: 'Clique', value: stats.clicked, icon: '\u{1F517}', color: '#a855f7' },
-            { label: 'Repondu', value: emailReplied, icon: '\u{1F4AC}', color: '#22c55e' },
+            { label: 'Répondu', value: emailReplied, icon: '\u{1F4AC}', color: '#22c55e' },
           ].map((step, i) => (
             <div key={step.label} className="flex items-center flex-1">
               <div className="flex-1 text-center">
@@ -1497,7 +1497,7 @@ function EmailPanel({
         <div className="flex items-end gap-1 h-24">
           {[stats.sent, stats.opened, stats.clicked].map((val, i) => {
             const max = Math.max(stats.sent, 1);
-            const labels = ['Envoyes', 'Ouverts', 'Cliques'];
+            const labels = ['Envoyés', 'Ouverts', 'Cliqués'];
             return (
               <div key={i} className="flex-1 flex flex-col items-center gap-1">
                 <div
@@ -1966,7 +1966,7 @@ function ContentPanel({
       <SectionTitle>Production</SectionTitle>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <KpiCard label="Posts generes" value={fmt(stats.postsGenerated)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        <KpiCard label="Programmes" value={fmt(stats.scheduledPosts)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label="Programmés" value={fmt(stats.scheduledPosts)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
         <KpiCard label="Cette semaine" value={fmt(stats.recentContent.length)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
       </div>
 
@@ -1986,7 +1986,7 @@ function ContentPanel({
         </div>
         <div className="rounded-xl border border-white/10 p-4 bg-white/[0.02] space-y-3">
           <ProgressBar value={stats.postsGenerated} max={Math.max(stats.postsGenerated + stats.scheduledPosts, 1)} color={gradientFrom} label="Generes" />
-          <ProgressBar value={stats.scheduledPosts} max={Math.max(stats.postsGenerated + stats.scheduledPosts, 1)} color={gradientTo} label="Programmes" />
+          <ProgressBar value={stats.scheduledPosts} max={Math.max(stats.postsGenerated + stats.scheduledPosts, 1)} color={gradientTo} label="Programmés" />
         </div>
       </div>
 
@@ -2356,7 +2356,7 @@ function LenaCommentsSection() {
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-bold text-white/80">@{c.username}</span>
                 <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${c.replied ? 'bg-emerald-400/15 text-emerald-400' : 'bg-amber-400/15 text-amber-400'}`}>
-                  {c.replied ? 'Repondu' : 'En attente'}
+                  {c.replied ? 'Répondu' : 'En attente'}
                 </span>
               </div>
               <p className="text-[10px] text-white/50 mt-0.5 line-clamp-2">{c.text}</p>
@@ -2429,7 +2429,7 @@ function SeoPanel({
           {'\u{1F4DD}'} Voir le blog
         </a>
         <a href="/generate" className="px-4 py-2 bg-white/10 text-white/70 text-xs font-medium rounded-xl hover:bg-white/15">
-          {'\u2728'} Generer un article
+          {'\u2728'} Générer un article
         </a>
       </div>
 
@@ -2648,7 +2648,7 @@ function FinancePanel({
           {'\u{1F4CA}'} Voir le CRM
         </a>
         <a href="/generate" className="px-4 py-2 bg-white/10 text-white/70 text-xs font-medium rounded-xl hover:bg-white/15">
-          {'\u2728'} Generer un rapport
+          {'\u2728'} Générer un rapport
         </a>
       </div>
 
@@ -2745,14 +2745,14 @@ function RhPanel({
       {/* Quick actions */}
       <div className="flex flex-wrap gap-2 mt-3">
         <a href="/generate" className="px-4 py-2 bg-gradient-to-r from-rose-600 to-pink-600 text-white text-xs font-semibold rounded-xl hover:opacity-90 transition-all">
-          {'\u2728'} Generer un document
+          {'\u2728'} Générer un document
         </a>
         <a href="/assistant/crm" className="px-4 py-2 bg-white/10 text-white/70 text-xs font-medium rounded-xl hover:bg-white/15">
           {'\u{1F4CA}'} Voir le CRM
         </a>
       </div>
 
-      <ActionButton label="Generer un document" gradientFrom={gradientFrom} gradientTo={gradientTo} />
+      <ActionButton label="Générer un document" gradientFrom={gradientFrom} gradientTo={gradientTo} />
     </>
   );
 }
@@ -3122,7 +3122,7 @@ function GmapsPanel({
           agentName="Theo"
           connectLabel="Connecter Google Business"
           connectUrl="/api/auth/google-oauth"
-          claraMessage="Voici un apercu de ton espace avis Google. Tu pourras voir tes avis, repondre avec l'IA et meme activer les reponses automatiques. 1 clic et c'est parti !"
+          claraMessage="Voici un apercu de ton espace avis Google. Tu pourras voir tes avis, repondre avec l'IA et meme activer les réponses automatiques. 1 clic et c'est parti !"
           gradientFrom="#f59e0b"
           gradientTo="#d97706"
         />
@@ -3158,7 +3158,7 @@ function GmapsPanel({
       {/* Quick actions */}
       <div className="flex flex-wrap gap-2 mt-3">
         <a href="/generate" className="px-4 py-2 bg-gradient-to-r from-amber-600 to-yellow-600 text-white text-xs font-semibold rounded-xl hover:opacity-90 transition-all">
-          {'\u2728'} Generer des reponses
+          {'\u2728'} Générer des réponses
         </a>
         <a href="/assistant/crm" className="px-4 py-2 bg-white/10 text-white/70 text-xs font-medium rounded-xl hover:bg-white/15">
           {'\u{1F4CA}'} Voir le CRM
@@ -3327,15 +3327,15 @@ function CommercialPanel({ data, agentName, gradientFrom, gradientTo }: { data: 
       <div className="grid grid-cols-3 gap-2 mb-3">
         <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-2 text-center">
           <div className="text-lg font-bold text-blue-400">{stats.total}</div>
-          <div className="text-[9px] text-blue-400/60">Identifies</div>
+          <div className="text-[9px] text-blue-400/60">Identifiés</div>
         </div>
         <div className="rounded-lg bg-purple-500/10 border border-purple-500/20 p-2 text-center">
           <div className="text-lg font-bold text-purple-400">{contactes}</div>
-          <div className="text-[9px] text-purple-400/60">Contactes</div>
+          <div className="text-[9px] text-purple-400/60">Contactés</div>
         </div>
         <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-2 text-center">
           <div className="text-lg font-bold text-emerald-400">{qualifies}</div>
-          <div className="text-[9px] text-emerald-400/60">Qualifies</div>
+          <div className="text-[9px] text-emerald-400/60">Qualifiés</div>
         </div>
       </div>
 
@@ -3479,7 +3479,7 @@ function GenericPanel({
       {/* Quick actions */}
       <div className="flex flex-wrap gap-2 mt-3">
         <a href="/generate" className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs font-semibold rounded-xl hover:opacity-90 transition-all">
-          {'\u2728'} Generer du contenu
+          {'\u2728'} Générer du contenu
         </a>
         <a href="/assistant/crm" className="px-4 py-2 bg-white/10 text-white/70 text-xs font-medium rounded-xl hover:bg-white/15">
           {'\u{1F4CA}'} Voir le CRM
@@ -3528,7 +3528,7 @@ function WhatsAppPanel({
         <div className="rounded-xl border border-white/10 p-4 bg-white/[0.02]">
           <DonutChart
             segments={[
-              { value: stats.messagesSent, color: '#25D366', label: 'Envoyes' },
+              { value: stats.messagesSent, color: '#25D366', label: 'Envoyés' },
               { value: stats.messagesReceived, color: '#128C7E', label: 'Recus' },
               { value: stats.leadsGenerated, color: '#fbbf24', label: 'Leads' },
             ]}
@@ -3885,9 +3885,9 @@ export default function AgentDashboard({ agentId, agentName, gradientFrom, gradi
               finance: { label: 'Activer le suivi', url: '#', msg: 'Voici un apercu du suivi financier par Louis. Le suivi est actif automatiquement avec ton abonnement.' },
               rh: { label: 'Activer Sara', url: '#', msg: 'Voici un apercu des documents que Sara peut generer : contrats, CGV, RGPD. Active-la pour commencer.' },
               chatbot: { label: 'Installer Max sur ton site', url: '#', msg: 'Voici un apercu des conversations que Max aura avec tes visiteurs. Installe le widget sur ton site pour demarrer.' },
-              whatsapp: { label: 'Configurer WhatsApp', url: '#', msg: 'Voici un apercu de Stella en action. Configure ton numero WhatsApp pour activer les reponses automatiques.' },
+              whatsapp: { label: 'Configurer WhatsApp', url: '#', msg: 'Voici un apercu de Stella en action. Configure ton numero WhatsApp pour activer les réponses automatiques.' },
               tiktok_comments: { label: 'Connecter TikTok', url: '/api/auth/tiktok-oauth', msg: 'Voici un apercu de l\'engagement TikTok par Axel. Connecte TikTok pour activer.' },
-              instagram_comments: { label: 'Connecter Instagram', url: '/api/auth/instagram-oauth', msg: 'Voici un apercu des reponses automatiques a tes commentaires Instagram.' },
+              instagram_comments: { label: 'Connecter Instagram', url: '/api/auth/instagram-oauth', msg: 'Voici un apercu des réponses automatiques a tes commentaires Instagram.' },
             };
             const cfg = previews[agentId];
             if (!cfg) return null;

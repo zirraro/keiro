@@ -1462,7 +1462,7 @@ function HomeKeiroInner() {
               Le vrai comparatif <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#0c1a3a] to-purple-600">sans bullshit</span>
             </h3>
             <div className="overflow-x-auto -mx-4 px-4">
-              <table className="w-full text-sm border-collapse min-w-[600px]">
+              <table className="w-full text-sm border-collapse min-w-[400px] sm:min-w-[600px]">
                 <thead>
                   <tr>
                     <th className="text-left py-3 px-3 sm:px-4 text-neutral-500 font-medium text-xs uppercase tracking-wider"></th>
@@ -1842,7 +1842,7 @@ function HomeKeiroInner() {
       {/* ═══ POPUP UPSELL CRÉATEUR → PRO ═══ */}
       {showUpsellPro && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setShowUpsellPro(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 relative" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-4 sm:p-6 max-h-[90vh] overflow-y-auto relative" onClick={e => e.stopPropagation()}>
             {/* Badge offre exclusive */}
             <div className="absolute -top-3 left-1/2 -translate-x-1/2">
               <span className="px-4 py-1 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs font-bold rounded-full uppercase tracking-wide shadow-lg">

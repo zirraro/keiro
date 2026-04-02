@@ -49,8 +49,8 @@ function getAgentSettings(agentId: string): SettingField[] {
       { key: 'reactivation_days', label: 'Reactivation apres (jours)', type: 'number', default: 30, description: 'Jours avant de reactiver un prospect sans reponse' },
       // Style
       { key: 'tone', label: 'Ton d\'ecriture', type: 'select', options: [{ value: 'friendly', label: 'Amical (tutoiement)' }, { value: 'formal', label: 'Professionnel (vouvoiement)' }, { value: 'casual', label: 'Decontracte' }, { value: 'premium', label: 'Premium/Luxe' }], default: 'friendly', description: 'Style d\'ecriture des emails' },
-      { key: 'signature', label: 'Type de signature', type: 'select', options: [{ value: 'custom', label: 'Nom personnalise' }, { value: 'founder', label: 'Nom du fondateur (profil)' }, { value: 'company', label: 'Nom de l\'entreprise' }, { value: 'team', label: 'L\'equipe + entreprise' }], default: 'founder', description: 'Comment signer les emails' },
-      { key: 'signature_name', label: 'Nom de signature personnalise', type: 'text', default: '', description: 'Ex: Marie de MonBusiness. Utilise quand le type est "Nom personnalise"' },
+      { key: 'signature', label: 'Type de signature', type: 'select', options: [{ value: 'custom', label: 'Nom personnalisé' }, { value: 'founder', label: 'Nom du fondateur (profil)' }, { value: 'company', label: 'Nom de l\'entreprise' }, { value: 'team', label: 'L\'equipe + entreprise' }], default: 'founder', description: 'Comment signer les emails' },
+      { key: 'signature_name', label: 'Nom de signature personnalisé', type: 'text', default: '', description: 'Ex: Marie de MonBusiness. Utilise quand le type est "Nom personnalisé"' },
       // Ciblage
       { key: 'target_types', label: 'Types de commerce cibles', type: 'select', options: [{ value: 'all', label: 'Tous' }, { value: 'restaurant', label: 'Restaurants' }, { value: 'boutique', label: 'Boutiques' }, { value: 'coach', label: 'Coaches' }, { value: 'beauty', label: 'Beaute/Coiffure' }], default: 'all', description: 'Cibler un type specifique de prospect' },
       { key: 'min_score', label: 'Score minimum', type: 'number', default: 0, description: 'N\'envoyer qu\'aux prospects avec ce score minimum' },
@@ -93,7 +93,7 @@ function getAgentSettings(agentId: string): SettingField[] {
       { key: 'auto_reply', label: 'Reponse auto DMs recus', type: 'toggle', default: true, description: 'Repondre automatiquement aux DMs entrants' },
       { key: 'dm_tone', label: 'Ton des DMs', type: 'select', options: [{ value: 'casual', label: 'Casual (ami entrepreneur)' }, { value: 'value', label: 'Value-first (conseil gratuit)' }, { value: 'direct', label: 'Direct (proposition)' }], default: 'casual', description: 'Approche des messages' },
       { key: 'first_dm_type', label: 'Premier DM', type: 'select', options: [{ value: 'compliment', label: 'Compliment sur le business' }, { value: 'question', label: 'Question ouverte' }, { value: 'story_reply', label: 'Reaction a une story' }], default: 'compliment', description: 'Comment ouvrir la conversation' },
-      { key: 'include_visual', label: 'Visual personnalise', type: 'toggle', default: true, description: 'Generer un visuel personnalise avec le DM' },
+      { key: 'include_visual', label: 'Visual personnalisé', type: 'toggle', default: true, description: 'Générer un visuel personnalisé avec le DM' },
       { key: 'handover_score', label: 'Score handover', type: 'number', default: 60, description: 'Score a partir duquel vous etes notifie pour closer' },
       { key: 'handover_exchanges', label: 'Echanges avant handover', type: 'number', default: 3, description: 'Nombre d\'echanges avant notification' },
     ],
@@ -113,8 +113,8 @@ function getAgentSettings(agentId: string): SettingField[] {
       { key: 'auto_publish_blog', label: 'Publication auto', type: 'toggle', default: false, description: 'Publier les articles sans validation' },
       { key: 'keyword_strategy', label: 'Strategie mots-cles', type: 'select', options: [{ value: 'longtail', label: 'Longue traine (volume faible, conversion haute)' }, { value: 'competitive', label: 'Competitif (volume haut, difficulte haute)' }, { value: 'local', label: 'Local (ville + metier)' }, { value: 'mix', label: 'Mix equilibre' }], default: 'longtail', description: 'Type de mots-cles a cibler' },
       { key: 'internal_linking', label: 'Liens internes', type: 'toggle', default: true, description: 'Ajouter automatiquement des liens vers les pages du site' },
-      { key: 'meta_auto', label: 'Meta descriptions auto', type: 'toggle', default: true, description: 'Generer automatiquement les meta descriptions SEO' },
-      { key: 'image_alt', label: 'Alt text images auto', type: 'toggle', default: true, description: 'Generer automatiquement les textes alt des images' },
+      { key: 'meta_auto', label: 'Meta descriptions auto', type: 'toggle', default: true, description: 'Générer automatiquement les meta descriptions SEO' },
+      { key: 'image_alt', label: 'Alt text images auto', type: 'toggle', default: true, description: 'Générer automatiquement les textes alt des images' },
     ],
     ads: [
       { key: 'daily_budget', label: 'Budget quotidien (EUR)', type: 'number', default: 20, description: 'Budget max par jour pour les campagnes' },
@@ -184,7 +184,7 @@ function getAgentSettings(agentId: string): SettingField[] {
       { key: 'auto_welcome', label: 'Email bienvenue auto', type: 'toggle', default: true, description: 'Envoyer un email de bienvenue automatiquement' },
       { key: 'setup_guide', label: 'Guide pas-a-pas', type: 'toggle', default: true, description: 'Afficher le guide interactif d\'onboarding' },
       { key: 'auto_activate_agents', label: 'Activer agents auto', type: 'toggle', default: true, description: 'Activer automatiquement les agents du plan choisi' },
-      { key: 'first_post_auto', label: 'Premier post auto', type: 'toggle', default: true, description: 'Generer et publier le premier post automatiquement' },
+      { key: 'first_post_auto', label: 'Premier post auto', type: 'toggle', default: true, description: 'Générer et publier le premier post automatiquement' },
       { key: 'check_frequency', label: 'Frequence check', type: 'select', options: [{ value: 'daily', label: 'Quotidien' }, { value: 'hourly', label: 'Chaque heure (J1-J3)' }], default: 'daily', description: 'A quelle frequence verifier l\'avancement' },
       { key: 'nps_after_days', label: 'NPS apres (jours)', type: 'number', default: 7, description: 'Demander un score NPS apres X jours' },
     ],
@@ -193,11 +193,11 @@ function getAgentSettings(agentId: string): SettingField[] {
       { key: 'reactivation_email', label: 'Email reactivation auto', type: 'toggle', default: true, description: 'Envoyer un email de reactivation automatiquement' },
       { key: 'reactivation_offer', label: 'Offre reactivation', type: 'toggle', default: false, description: 'Inclure une offre speciale dans le mail de reactivation' },
       { key: 'milestone_notifications', label: 'Notifications milestones', type: 'toggle', default: true, description: 'Feliciter le client a chaque milestone (1er post, 1er prospect, etc.)' },
-      { key: 'weekly_report', label: 'Rapport resultats hebdo', type: 'toggle', default: true, description: 'Envoyer un rapport de resultats chaque semaine' },
+      { key: 'weekly_report', label: 'Rapport résultats hebdo', type: 'toggle', default: true, description: 'Envoyer un rapport de résultats chaque semaine' },
       { key: 'churn_prediction', label: 'Prediction churn', type: 'toggle', default: true, description: 'Detecter les signaux de depart et intervenir proactivement' },
     ],
     rh: [
-      { key: 'contract_auto', label: 'Generation contrats auto', type: 'toggle', default: false, description: 'Generer automatiquement les brouillons de contrats' },
+      { key: 'contract_auto', label: 'Génération contrats auto', type: 'toggle', default: false, description: 'Générer automatiquement les brouillons de contrats' },
       { key: 'rgpd_check', label: 'Check RGPD auto', type: 'toggle', default: true, description: 'Verifier la conformite RGPD regulierement' },
       { key: 'legal_alerts', label: 'Alertes legales', type: 'toggle', default: true, description: 'Alerter sur les obligations legales a venir' },
       { key: 'doc_language', label: 'Langue documents', type: 'select', options: [{ value: 'fr', label: 'Francais' }, { value: 'en', label: 'Anglais' }, { value: 'both', label: 'Bilingue' }], default: 'fr', description: 'Langue des documents generes' },
@@ -1317,7 +1317,7 @@ export default function AgentWorkspacePage() {
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-white/60 text-[10px] font-medium mb-1.5 block">Nom personnalise</label>
+                  <label className="text-white/60 text-[10px] font-medium mb-1.5 block">Nom personnalisé</label>
                   <input type="text" value={settings.custom_name || ''} onChange={e => setSettings(prev => ({ ...prev, custom_name: e.target.value }))} placeholder={dn} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-xs placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-purple-500/50" />
                 </div>
                 <div>
@@ -1329,7 +1329,7 @@ export default function AgentWorkspacePage() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-white/60 text-[10px] font-medium mb-1.5 block">Avatar personnalise</label>
+                  <label className="text-white/60 text-[10px] font-medium mb-1.5 block">Avatar personnalisé</label>
                   <div className="flex items-center gap-3">
                     {settings.custom_avatar ? (
                       <img src={settings.custom_avatar} alt="Avatar" className="w-12 h-12 rounded-full object-cover border-2 border-white/20" />
@@ -1496,7 +1496,7 @@ export default function AgentWorkspacePage() {
                           }}
                           className="mt-3 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs font-semibold rounded-xl"
                         >
-                          Generer ma cle d&apos;integration
+                          Générer ma cle d&apos;integration
                         </button>
                       )}
                     </>

@@ -276,7 +276,7 @@ function PlanningCalendar() {
           {/* Calendar grid */}
           <div className="rounded-xl border border-white/10 overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[700px]">
+              <table className="w-full min-w-[500px] sm:min-w-[700px]">
                 <thead>
                   <tr className="border-b border-white/10 bg-white/[0.03]">
                     <th className="w-16 px-2 py-2 text-[10px] text-white/30 font-medium text-left"></th>

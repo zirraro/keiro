@@ -15,19 +15,19 @@ type Activity = {
 };
 
 const STATUSES = [
-  { id: 'identifie', label: 'Identifie', color: 'bg-slate-400', hex: '#94a3b8', icon: '\u{1F50D}' },
-  { id: 'contacte', label: 'Contacte', color: 'bg-blue-500', hex: '#3b82f6', icon: '\u{1F4E8}' },
+  { id: 'identifie', label: 'Identifié', color: 'bg-slate-400', hex: '#94a3b8', icon: '\u{1F50D}' },
+  { id: 'contacte', label: 'Contacté', color: 'bg-blue-500', hex: '#3b82f6', icon: '\u{1F4E8}' },
   { id: 'relance_1', label: 'Relance 1', color: 'bg-sky-400', hex: '#38bdf8', icon: '\u{1F504}' },
   { id: 'relance_2', label: 'Relance 2', color: 'bg-indigo-400', hex: '#818cf8', icon: '\u{1F504}' },
   { id: 'relance_3', label: 'Relance 3', color: 'bg-purple-400', hex: '#a78bfa', icon: '\u23F0' },
-  { id: 'repondu', label: 'Repondu', color: 'bg-violet-500', hex: '#8b5cf6', icon: '\u{1F4AC}' },
+  { id: 'repondu', label: 'Répondu', color: 'bg-violet-500', hex: '#8b5cf6', icon: '\u{1F4AC}' },
   { id: 'client', label: 'Client', color: 'bg-emerald-500', hex: '#10b981', icon: '\u2705' },
   { id: 'perdu', label: 'Perdu', color: 'bg-red-500', hex: '#ef4444', icon: '\u274C' },
 ];
 
 const TEMPS = [
   { id: 'hot', label: 'Chaud', color: 'text-red-500', bg: 'bg-red-500/15', icon: '\u{1F525}' },
-  { id: 'warm', label: 'Tiede', color: 'text-amber-500', bg: 'bg-amber-500/15', icon: '\u2600\uFE0F' },
+  { id: 'warm', label: 'Tiède', color: 'text-amber-500', bg: 'bg-amber-500/15', icon: '\u2600\uFE0F' },
   { id: 'cold', label: 'Froid', color: 'text-blue-400', bg: 'bg-blue-500/15', icon: '\u2744\uFE0F' },
   { id: 'dead', label: 'Perdu', color: 'text-neutral-400', bg: 'bg-neutral-500/15', icon: '\u{1F480}' },
 ];
@@ -342,9 +342,9 @@ export default function ClientCRM() {
               <h3 className="text-sm font-bold mb-3">{'\u{1F3AF}'} Funnel de conversion</h3>
               <div className="space-y-2">
                 {[
-                  { label: 'Identifies', count: byStatus['identifie'] || 0, color: '#94a3b8' },
-                  { label: 'Contactes', count: (byStatus['contacte'] || 0) + (byStatus['relance_1'] || 0) + (byStatus['relance_2'] || 0) + (byStatus['relance_3'] || 0), color: '#3b82f6' },
-                  { label: 'Repondu', count: byStatus['repondu'] || 0, color: '#8b5cf6' },
+                  { label: 'Identifiés', count: byStatus['identifie'] || 0, color: '#94a3b8' },
+                  { label: 'Contactés', count: (byStatus['contacte'] || 0) + (byStatus['relance_1'] || 0) + (byStatus['relance_2'] || 0) + (byStatus['relance_3'] || 0), color: '#3b82f6' },
+                  { label: 'Répondu', count: byStatus['repondu'] || 0, color: '#8b5cf6' },
                   { label: 'Clients', count: byStatus['client'] || 0, color: '#10b981' },
                 ].map((step, i) => {
                   const maxCount = Math.max(stats.total, 1);
@@ -454,7 +454,7 @@ export default function ClientCRM() {
         {tab === 'liste' && (
           <div className="space-y-4">
             <div className="flex flex-wrap gap-2 items-center">
-              <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Rechercher entreprise, email, type, quartier..." className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-purple-500/50 flex-1 min-w-[200px]" />
+              <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Rechercher entreprise, email, type, quartier..." className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-purple-500/50 flex-1 min-w-[120px] sm:min-w-[200px]" />
               <select value={filterStatus || ''} onChange={e => setFilterStatus(e.target.value || null)} className="px-2 py-2 bg-white/5 border border-white/10 rounded-lg text-xs text-white/70">
                 <option value="">Tous statuts</option>
                 {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label} ({byStatus[s.id] || 0})</option>)}
@@ -463,7 +463,7 @@ export default function ClientCRM() {
                 <option value="">Toutes temp.</option>
                 {TEMPS.map(t => <option key={t.id} value={t.id}>{t.icon} {t.label}</option>)}
               </select>
-              <span className="text-[10px] text-white/30">{filtered.length} resultats</span>
+              <span className="text-[10px] text-white/30">{filtered.length} résultats</span>
             </div>
 
             <div className="space-y-1">
