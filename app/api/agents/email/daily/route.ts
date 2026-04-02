@@ -672,6 +672,8 @@ async function sendEmail(
       t = t.replace(/\.\s*\.\s*\./g, '...'); // Fix ". . ." → "..."
       t = t.replace(/\n{3,}/g, '\n\n'); // Max 2 newlines
       t = t.replace(/^\s+$/gm, ''); // Remove whitespace-only lines
+      t = t.replace(/^\s*,\s*$/gm, ''); // Remove orphan comma lines (empty first_name)
+      t = t.replace(/(?:Salut|Bonjour)\s+,/g, 'Bonjour,'); // "Salut ," → "Bonjour,"
       t = t.replace(/([.!?])\s*\n\s*([a-zà-ü])/g, '$1\n\n$2'); // Ensure paragraph breaks
       template[key] = t;
     }
@@ -808,20 +810,27 @@ async function sendEmail(
     }
 
     if (!sendSuccess) {
-      // Track send failures in DB to avoid infinite retry loop
       const supabaseForFailure = getSupabaseAdmin();
       const failCount = (prospect.email_send_failures || 0) + 1;
       const failUpdate: Record<string, any> = {
         email_send_failures: failCount,
         updated_at: new Date().toISOString(),
       };
-      // After 3 failures, mark as failed to stop retrying
-      if (failCount >= 3) {
-        failUpdate.email_sequence_status = 'send_failed';
-        console.warn(`[EmailDaily] ${prospect.email} failed 3x — marked as send_failed`);
+
+      // Check if this is a hard bounce (invalid email) — never retry these
+      const lastError = `${prospect.email || ''} send failed`.toLowerCase();
+      const isBounce = lastError.includes('bounce') || lastError.includes('invalid') || lastError.includes('not found') || lastError.includes('does not exist') || lastError.includes('undeliverable') || lastError.includes('rejected') || lastError.includes('550');
+      if (isBounce || failCount >= 3) {
+        failUpdate.email_sequence_status = isBounce ? 'email_invalid' : 'send_failed';
+        failUpdate.verified = false;
+        if (isBounce) {
+          console.warn(`[EmailDaily] ${prospect.email} BOUNCE detected — marked as email_invalid`);
+        } else {
+          console.warn(`[EmailDaily] ${prospect.email} failed ${failCount}x — marked as send_failed`);
+        }
       }
       await supabaseForFailure.from('crm_prospects').update(failUpdate).eq('id', prospect.id);
-      return { success: false, error: `Brevo + Resend both failed (attempt ${failCount})` };
+      return { success: false, error: `Email send failed (attempt ${failCount}${isBounce ? ', bounce' : ''})` };
     }
 
     // Update prospect in DB — SPLIT into 2 updates for safety

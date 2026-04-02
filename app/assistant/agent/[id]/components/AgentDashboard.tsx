@@ -1893,6 +1893,58 @@ function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: str
   );
 }
 
+// ─── Inline Editorial Calendar for Content Agent ─────────────
+function ContentCalendarInline({ posts, onSelectPost }: { posts: any[]; onSelectPost: (p: any) => void }) {
+  const now = new Date();
+  const days: Date[] = [];
+  // Show 7 days back + 7 days ahead
+  for (let i = -7; i <= 7; i++) {
+    const d = new Date(now);
+    d.setDate(d.getDate() + i);
+    days.push(d);
+  }
+  const todayStr = now.toISOString().split('T')[0];
+  const dayNames = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+  const STATUS_DOT: Record<string, string> = { draft: 'bg-amber-500', approved: 'bg-blue-500', published: 'bg-emerald-500', publish_failed: 'bg-red-500' };
+
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3 overflow-x-auto mb-3">
+      <div className="flex gap-1 min-w-[500px]">
+        {days.map((d, i) => {
+          const dateStr = d.toISOString().split('T')[0];
+          const isToday = dateStr === todayStr;
+          const dayPosts = posts.filter(p => p.scheduled_date === dateStr || (p.published_at && p.published_at.startsWith(dateStr)));
+          return (
+            <div key={i} className={`flex-1 min-w-[32px] rounded-lg p-1 ${isToday ? 'bg-purple-500/10 border border-purple-500/20' : 'bg-white/[0.02]'}`}>
+              <div className={`text-center text-[8px] ${isToday ? 'text-purple-400 font-bold' : 'text-white/30'}`}>
+                {dayNames[d.getDay()]}
+              </div>
+              <div className={`text-center text-[10px] font-bold ${isToday ? 'text-purple-400' : 'text-white/50'}`}>
+                {d.getDate()}
+              </div>
+              <div className="space-y-0.5 mt-1">
+                {dayPosts.slice(0, 2).map((p, j) => (
+                  <button key={j} onClick={() => onSelectPost(p)} className="w-full aspect-square rounded overflow-hidden bg-white/5 hover:ring-1 hover:ring-purple-500/50 transition relative">
+                    {p.visual_url ? (
+                      <img src={p.visual_url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-[7px] text-white/30">
+                        {p.format === 'reel' ? '\uD83C\uDFAC' : '\uD83D\uDCDD'}
+                      </div>
+                    )}
+                    <div className={`absolute top-0 right-0 w-1.5 h-1.5 rounded-full ${STATUS_DOT[p.status] || 'bg-gray-500'}`} />
+                  </button>
+                ))}
+                {dayPosts.length > 2 && <div className="text-[7px] text-white/20 text-center">+{dayPosts.length - 2}</div>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function ContentPanel({
   data,
   agentName,
@@ -2016,67 +2068,7 @@ function ContentPanel({
 
       </div>{/* close content-workflow data-tour */}
 
-      {/* Calendar moved to Planning tab */}
-      {false && <SectionTitle>Calendrier</SectionTitle>}
-      <div data-tour="content-calendar" className="bg-white/5 rounded-xl border border-white/10 p-3 sm:p-4 overflow-x-auto" style={{ display: 'none' }}>
-        <div className="min-w-[400px]">
-          {/* Header: dates */}
-          <div className="grid grid-cols-[80px_repeat(14,1fr)] gap-0.5 mb-1">
-            <div />
-            {Array.from({ length: 14 }, (_, i) => {
-              const d = new Date(now);
-              d.setDate(d.getDate() - 7 + i);
-              const isToday = d.toISOString().slice(0, 10) === now.toISOString().slice(0, 10);
-              return (
-                <div key={i} className={`text-center text-[10px] sm:text-[9px] py-1 ${isToday ? 'text-purple-300 font-bold' : i < 7 ? 'text-white/30' : 'text-white/50'}`}>
-                  {d.toLocaleDateString('fr-FR', { weekday: 'narrow' })}{d.getDate()}
-                </div>
-              );
-            })}
-          </div>
-          {/* Rows: platforms */}
-          {['instagram', 'tiktok', 'linkedin'].map(platform => {
-            const platformIcon = platform === 'instagram' ? '\u{1F4F7}' : platform === 'tiktok' ? '\u{1F3B5}' : '\u{1F4BC}';
-            return (
-              <div key={platform} className="grid grid-cols-[80px_repeat(14,1fr)] gap-0.5 mb-0.5">
-                <div className="flex items-center gap-1 text-[10px] text-white/50 pr-1">
-                  <span>{platformIcon}</span>
-                  <span className="truncate capitalize">{platform}</span>
-                </div>
-                {Array.from({ length: 14 }, (_, i) => {
-                  const d = new Date(now);
-                  d.setDate(d.getDate() - 7 + i);
-                  const dayStr = d.toISOString().slice(0, 10);
-                  const isToday = dayStr === now.toISOString().slice(0, 10);
-                  const dayPosts = (stats.recentContent || []).filter((c: any) => c.created_at?.slice(0, 10) === dayStr && (c.platform === platform || (!c.platform && platform === 'instagram')));
-                  const hasPost = dayPosts.length > 0;
-                  return (
-                    <div
-                      key={i}
-                      className={`h-6 sm:h-7 rounded-sm flex items-center justify-center text-[10px] font-bold ${
-                        hasPost
-                          ? 'bg-gradient-to-br from-purple-500/40 to-blue-500/40 text-white/80'
-                          : isToday
-                          ? 'bg-white/10 border border-purple-500/30'
-                          : 'bg-white/[0.03]'
-                      }`}
-                      title={hasPost ? `${dayPosts.length} post(s) ${platform}` : ''}
-                    >
-                      {hasPost ? dayPosts.length : ''}
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })}
-          {/* Legend */}
-          <div className="flex items-center gap-3 mt-2 pt-2 border-t border-white/5">
-            <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-sm bg-gradient-to-br from-purple-500/40 to-blue-500/40" /><span className="text-[9px] text-white/30">Publie</span></div>
-            <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-sm bg-white/10 border border-purple-500/30" /><span className="text-[9px] text-white/30">Aujourd&apos;hui</span></div>
-            <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-sm bg-white/[0.03]" /><span className="text-[9px] text-white/30">Vide</span></div>
-          </div>
-        </div>
-      </div>
+      {/* Calendar is inside ContentWorkflow (has access to setSelectedPost) */}
 
       {/* Instagram Comments moved to Jade (DM agent) via JadeTabs */}
     </>
@@ -2230,6 +2222,9 @@ function ContentWorkflow({ isConnected }: { isConnected?: boolean }) {
           <span className="text-xs text-purple-300">Post en cours de generation... Il apparaitra ici dans quelques secondes</span>
         </div>
       )}
+
+      {/* Inline editorial calendar */}
+      <ContentCalendarInline posts={posts} onSelectPost={setSelectedPost} />
 
       {/* Platform filter */}
       <div className="flex gap-1 mb-1.5 overflow-x-auto">

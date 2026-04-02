@@ -59,8 +59,10 @@ function replaceVars(template: string, v: Record<string, string>): string {
   }
   // Clean up leading comma when first_name empty: ", question sur X" → "Question sur X"
   result = result.replace(/^[,\s]+/gm, (m) => '');
-  // "Bonjour ," → "Bonjour"
-  result = result.replace(/Bonjour\s*,\s*\n/g, 'Bonjour,\n');
+  // "Bonjour ," or "Salut ," → clean greeting when name is empty
+  result = result.replace(/(?:Bonjour|Salut)\s*,\s*\n/g, 'Bonjour,\n');
+  // Orphan comma on its own line (from empty first_name)
+  result = result.replace(/^\s*,\s*$/gm, '');
   // Fix <strong> tags escaped in text parts of html
   result = result.replace(/&lt;strong&gt;/g, '<strong>').replace(/&lt;\/strong&gt;/g, '</strong>');
   // Capitalize first letter after cleanup

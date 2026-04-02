@@ -273,8 +273,9 @@ ${history ? `\nHISTORIQUE CONVERSATION:\n${history}` : ''}${businessContext}${ra
         }
 
         // ─── Update prospect ────────────────────────────
-        const newScore = Math.min(100, (prospect.score || 0) + 15);
-        const newTemp = newScore >= 60 ? 'hot' : 'warm';
+        // Score boost per message: +8 (was +15, too aggressive)
+        const newScore = Math.min(100, (prospect.score || 0) + 8);
+        const newTemp = newScore >= 70 ? 'hot' : newScore >= 40 ? 'warm' : (prospect.temperature || 'cold');
         await supabase.from('crm_prospects').update({
           temperature: newTemp,
           score: newScore,
@@ -290,8 +291,9 @@ ${history ? `\nHISTORIQUE CONVERSATION:\n${history}` : ''}${businessContext}${ra
           .eq('action', 'webhook_dm_received')
           .contains('data', { prospect_id: prospect.id });
 
-        // After 3+ exchanges OR score >= 60: prospect is warm/hot → notify client to close
-        if ((exchangeCount && exchangeCount >= 3) || newScore >= 60) {
+        // After 5+ exchanges AND score >= 60: prospect is genuinely hot → notify client
+        // Must have BOTH conditions to avoid premature notifications
+        if (exchangeCount && exchangeCount >= 5 && newScore >= 60) {
           // Check if we already notified for this prospect
           const { data: alreadyNotified } = await supabase
             .from('agent_logs')

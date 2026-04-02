@@ -137,11 +137,36 @@ export default function PostPreviewModal({ post, onClose, onApprove, onPublish, 
         </div>
 
         {/* Actions */}
-        {isEditable && !editing && (onApprove || onPublish || onSkip) && (
-          <div className="px-4 pb-4 flex gap-2">
-            {onApprove && <button onClick={() => { onApprove(); onClose(); }} className="flex-1 py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-500 transition min-h-[44px]">{'\u2705'} Valider</button>}
-            {onPublish && <button onClick={() => { onPublish(); onClose(); }} className="flex-1 py-2.5 bg-purple-600 text-white text-xs font-bold rounded-xl hover:bg-purple-500 transition min-h-[44px]">{'\u{1F680}'} Publier</button>}
-            {onSkip && <button onClick={() => { onSkip(); onClose(); }} className="py-2.5 px-4 bg-white/10 text-white/40 text-xs rounded-xl hover:bg-white/15 transition min-h-[44px]">Ignorer</button>}
+        {isEditable && !editing && (
+          <div className="px-4 pb-4 space-y-2">
+            {(onApprove || onPublish || onSkip) && (
+              <div className="flex gap-2">
+                {onApprove && <button onClick={() => { onApprove(); onClose(); }} className="flex-1 py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-500 transition min-h-[44px]">{'\u2705'} Valider</button>}
+                {onPublish && <button onClick={() => { onPublish(); onClose(); }} className="flex-1 py-2.5 bg-purple-600 text-white text-xs font-bold rounded-xl hover:bg-purple-500 transition min-h-[44px]">{'\u{1F680}'} Publier</button>}
+                {onSkip && <button onClick={() => { onSkip(); onClose(); }} className="py-2.5 px-4 bg-white/10 text-white/40 text-xs rounded-xl hover:bg-white/15 transition min-h-[44px]">Ignorer</button>}
+              </div>
+            )}
+            <div className="flex gap-2">
+              <button onClick={async () => {
+                try {
+                  await fetch('/api/agents/content', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+                    body: JSON.stringify({ action: 'regenerate_single', postId: post.id }) });
+                  onClose();
+                } catch {}
+              }} className="flex-1 py-2 bg-amber-600/20 text-amber-400 text-[10px] font-medium rounded-xl hover:bg-amber-600/30 transition min-h-[44px]">
+                {'\uD83D\uDD04'} Régénérer
+              </button>
+              <button onClick={async () => {
+                if (!confirm('Supprimer ce post ?')) return;
+                try {
+                  await fetch('/api/agents/content', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+                    body: JSON.stringify({ action: 'skip_single', postId: post.id }) });
+                  onClose();
+                } catch {}
+              }} className="py-2 px-4 bg-red-600/20 text-red-400 text-[10px] font-medium rounded-xl hover:bg-red-600/30 transition min-h-[44px]">
+                {'\u{1F5D1}'} Supprimer
+              </button>
+            </div>
           </div>
         )}
       </div>

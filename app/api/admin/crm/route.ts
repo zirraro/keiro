@@ -135,8 +135,8 @@ export async function GET(req: NextRequest) {
       hasMore = (data?.length || 0) === PAGE_SIZE;
       from += PAGE_SIZE;
 
-      // Safety: max 10 pages (10,000 prospects)
-      if (from >= 10000) break;
+      // Safety: max 50 pages (50,000 prospects)
+      if (from >= 50000) break;
     }
     const byStatus: Record<string, number> = {
       identifie: 0, contacte: 0, relance_1: 0, relance_2: 0, relance_3: 0, relance_finale: 0, repondu: 0, demo: 0, sprint: 0, client: 0, perdu: 0,

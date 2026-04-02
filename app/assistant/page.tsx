@@ -1104,7 +1104,6 @@ export default function AssistantPage() {
             { key: 'equipe' as const, label: '\uD83D\uDC65 Par equipe', shortLabel: 'Equipes' },
             { key: 'agent' as const, label: '\uD83E\uDD16 Par agent', shortLabel: 'Agents' },
             { key: 'campagnes' as const, label: '\u{1F3AF} Campagnes', shortLabel: 'Campagnes' },
-            { key: 'planning' as const, label: '\uD83D\uDCC5 Planning', shortLabel: 'Planning' },
             { key: 'pipeline' as const, label: '\uD83D\uDCCA Mon CRM', shortLabel: 'CRM' },
             { key: 'offre' as const, label: '\uD83D\uDCB0 Par offre', shortLabel: 'Offres' },
           ]).map((tab) => (
@@ -1267,16 +1266,7 @@ export default function AssistantPage() {
           </div>
         )}
 
-        {viewTab === 'planning' && <PlanningCalendar />}
-
-        {viewTab === 'pipeline' && (
-          <div className="text-center py-6">
-            <p className="text-white/40 text-sm mb-4">Gerez vos prospects, importez vos fichiers Excel et suivez votre pipeline commercial</p>
-            <a href="/assistant/crm" className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm font-semibold rounded-xl shadow-lg hover:shadow-purple-500/20 transition-all">
-              {'\u{1F4CA}'} Ouvrir Mon CRM
-            </a>
-          </div>
-        )}
+        {viewTab === 'pipeline' && typeof window !== 'undefined' && (() => { window.location.href = '/assistant/crm'; return null; })()}
 
         {/* ═══ TAB: Par equipe (avec dashboards + CRM) ═══ */}
         {viewTab === 'equipe' && (
