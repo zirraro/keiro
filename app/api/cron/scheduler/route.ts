@@ -273,6 +273,10 @@ export async function GET(request: NextRequest) {
     case 'discovery':
       // 03:00 UTC — Commercial: verify CRM — PER CLIENT (commercial agent filter)
       await callForEachClient('Commercial Verify CRM', '/api/agents/commercial', 'POST', { action: 'verify_crm' }, 'commercial');
+      // DM auto-reply polling (piggyback on discovery slots for wider coverage)
+      for (const uid of getClientsWithAgent('dm_instagram')) {
+        callEndpoint(`DM AutoReply [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram/auto-reply?user_id=${uid}`, 'POST').catch(() => {});
+      }
       break;
 
     case 'discovery_2':
@@ -310,6 +314,10 @@ export async function GET(request: NextRequest) {
       for (const uid of getClientsWithAgent('content')) {
         await callEndpoint(`Content evening [${uid.substring(0, 8)}]`, `/api/agents/content?slot=evening&user_id=${uid}`);
         await callEndpoint(`Publish evening [${uid.substring(0, 8)}]`, `/api/agents/content?user_id=${uid}`, 'POST', { action: 'execute_publication' });
+      }
+      // DM auto-reply polling
+      for (const uid of getClientsWithAgent('dm_instagram')) {
+        callEndpoint(`DM AutoReply [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram/auto-reply?user_id=${uid}`, 'POST').catch(() => {});
       }
       break;
 
@@ -481,8 +489,12 @@ export async function GET(request: NextRequest) {
     case 'morning_prep':
       // 07:00 UTC — DM prep + SEO + Content — PER CLIENT (filtered by active agents)
       fireBackground(async () => {
-        // DM: only for clients with dm_instagram active
+        // DM: auto-reply to pending DMs + prepare proactive DMs
         for (const uid of getClientsWithAgent('dm_instagram')) {
+          // Poll & auto-reply first (fast, low cost — only API call, AI only if needed)
+          await callEndpoint(`DM AutoReply [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram/auto-reply?user_id=${uid}`, 'POST');
+          await delay(3000);
+          // Then prepare proactive DMs
           await callEndpoint(`DM Instagram [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram?slot=morning&user_id=${uid}`, 'POST');
           await delay(5000);
         }
@@ -556,6 +568,9 @@ export async function GET(request: NextRequest) {
       // 17:00 UTC — Evening DM — PER CLIENT (dm_instagram agent filter)
       fireBackground(async () => {
         for (const uid of getClientsWithAgent('dm_instagram')) {
+          // Poll & auto-reply first
+          await callEndpoint(`DM AutoReply [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram/auto-reply?user_id=${uid}`, 'POST');
+          await delay(3000);
           await callEndpoint(`DM Instagram [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram?slot=evening&user_id=${uid}`, 'POST');
           await delay(5000);
         }

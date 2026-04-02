@@ -189,8 +189,9 @@ export default function CampaignWizard({ agentId, agentName, onClose, onActivate
         }),
         email: () => fetch('/api/agents/email/daily?slot=morning&types=all&force=true', { credentials: 'include' }),
         dm_instagram: async () => {
-          // 3 actions: scan DMs + reply comments + prepare proactive DMs
+          // 3 actions: auto-reply DMs + reply comments + prepare proactive DMs
           const results = await Promise.allSettled([
+            fetch('/api/agents/dm-instagram/auto-reply', { method: 'POST', credentials: 'include' }),
             fetch('/api/agents/dm-instagram?slot=morning', { method: 'POST', credentials: 'include' }),
             fetch('/api/agents/instagram-comments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'auto_reply_all' }) }),
           ]);
