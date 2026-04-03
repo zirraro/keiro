@@ -291,10 +291,12 @@ IMAGES — TRES IMPORTANT:
 
 INTERDICTIONS ABSOLUES:
 - Ne dis JAMAIS "je t'envoie un exemple" sans mettre [SEND_SHOWCASE:...] ou [GENERATE_IMAGE:...]
-- Ne dis JAMAIS "le systeme a bugge", "excuses pour le couac", "probleme technique"
+- Ne dis JAMAIS "le systeme a bugge", "excuses pour le couac", "probleme technique", "desole pour le delai"
 - Ne dis JAMAIS que tu es une IA ou un agent
 - Ne parle JAMAIS de DMs, d'automatisation de DMs, de gestion de messages
-- Ne fais JAMAIS repeter le prospect. S'il dit "rien recu" → envoie direct un autre exemple sans t'excuser
+- Ne t'excuse JAMAIS. Pas de "desole", "pardon", "mille excuses", "ah mince"
+- Ne fais JAMAIS repeter le prospect. S'il dit "rien recu" ou "je regarde quoi" → envoie IMMEDIATEMENT un exemple avec un type DIFFERENT: [SEND_SHOWCASE:generic] ou [GENERATE_IMAGE:...]
+- Si le prospect dit "toujours rien" → envoie le lien directement dans le texte: "Tiens clique la: [URL de l'image]"
 
 PROSPECT: ${prospect.company || prospect.first_name || 'Inconnu'} (${prospect.type || 'type inconnu'})
 ${prospectProfileInfo}
@@ -397,7 +399,7 @@ ${history ? `\nCONVERSATION:\n${history}` : ''}${businessContext}${ragContext}`;
           }
         }
 
-        // Image will be sent separately after the text message
+        // Image will be sent after the text message (direct + URL fallback)
 
         // ─── Small delay to appear more human (not instant bot reply) ──
         await new Promise(r => setTimeout(r, 2000 + Math.random() * 3000)); // 2-5s delay
@@ -471,72 +473,52 @@ ${history ? `\nCONVERSATION:\n${history}` : ''}${businessContext}${ragContext}`;
 
               if (!sendSuccess) console.error('[InstagramWebhook] ALL send methods failed for', senderId);
 
-              // Send image separately if available
+              // Send image: try direct attachment first, then URL as text fallback
               if (imageToSend && sendSuccess) {
-                await new Promise(r => setTimeout(r, 1500));
+                await new Promise(r => setTimeout(r, 1000));
                 let imgSent = false;
 
-                // Method 1: Instagram Graph API — generic template with image_url
-                if (profile?.instagram_access_token && !imgSent) {
+                // Try direct image attachment via both APIs
+                for (const attempt of [
+                  { url: `https://graph.instagram.com/v21.0/me/messages`, token: profile?.instagram_access_token, label: 'IG' },
+                  { url: `https://graph.facebook.com/v21.0/${sendFromId}/messages`, token: sendToken, label: 'FB' },
+                ]) {
+                  if (imgSent || !attempt.token) continue;
                   try {
-                    const igImgRes = await fetch(`https://graph.instagram.com/v21.0/me/messages`, {
+                    const res = await fetch(attempt.url, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
                         recipient: { id: senderId },
-                        message: {
-                          attachment: {
-                            type: 'image',
-                            payload: { url: imageToSend, is_reusable: true }
-                          }
-                        },
-                        access_token: profile.instagram_access_token,
+                        message: { attachment: { type: 'image', payload: { url: imageToSend, is_reusable: true } } },
+                        access_token: attempt.token,
                       }),
                     });
-                    if (igImgRes.ok) { imgSent = true; console.log('[InstagramWebhook] Image sent via IG API'); }
-                    else { const err = await igImgRes.text(); console.warn('[InstagramWebhook] IG image failed:', err.substring(0, 200)); }
-                  } catch (e: any) { console.warn('[InstagramWebhook] IG image error:', e.message?.substring(0, 100)); }
+                    if (res.ok) { imgSent = true; console.log(`[InstagramWebhook] Image sent via ${attempt.label} API`); }
+                    else console.warn(`[InstagramWebhook] ${attempt.label} image failed:`, (await res.text()).substring(0, 150));
+                  } catch (e: any) { console.warn(`[InstagramWebhook] ${attempt.label} image error:`, e.message?.substring(0, 80)); }
                 }
 
-                // Method 2: Facebook Graph API with page token
-                if (!imgSent && sendToken) {
-                  try {
-                    const fbImgRes = await fetch(`https://graph.facebook.com/v21.0/${sendFromId}/messages`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        recipient: { id: senderId },
-                        message: {
-                          attachment: {
-                            type: 'image',
-                            payload: { url: imageToSend, is_reusable: true }
-                          }
-                        },
-                        access_token: sendToken,
-                      }),
-                    });
-                    if (fbImgRes.ok) { imgSent = true; console.log('[InstagramWebhook] Image sent via FB API'); }
-                    else { const err = await fbImgRes.text(); console.warn('[InstagramWebhook] FB image failed:', err.substring(0, 200)); }
-                  } catch (e: any) { console.warn('[InstagramWebhook] FB image error:', e.message?.substring(0, 100)); }
-                }
-
-                // Method 3: Fallback — send URL as text
+                // Fallback: send URL as separate text message (always works)
                 if (!imgSent) {
-                  try {
-                    const method = profile?.instagram_access_token ? 'ig' : 'fb';
-                    const url = method === 'ig' ? `https://graph.instagram.com/v21.0/me/messages` : `https://graph.facebook.com/v21.0/${sendFromId}/messages`;
-                    const token = method === 'ig' ? profile!.instagram_access_token : sendToken;
-                    await fetch(url, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        recipient: { id: senderId },
-                        message: { text: imageToSend },
-                        access_token: token,
-                      }),
-                    });
-                    console.log('[InstagramWebhook] Image URL sent as text fallback');
-                  } catch {}
+                  for (const attempt of [
+                    { url: `https://graph.instagram.com/v21.0/me/messages`, token: profile?.instagram_access_token },
+                    { url: `https://graph.facebook.com/v21.0/${sendFromId}/messages`, token: sendToken },
+                  ]) {
+                    if (imgSent || !attempt.token) continue;
+                    try {
+                      const res = await fetch(attempt.url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          recipient: { id: senderId },
+                          message: { text: imageToSend },
+                          access_token: attempt.token,
+                        }),
+                      });
+                      if (res.ok) { imgSent = true; console.log('[InstagramWebhook] Image URL sent as text'); }
+                    } catch {}
+                  }
                 }
               }
 
