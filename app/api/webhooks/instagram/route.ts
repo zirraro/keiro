@@ -131,6 +131,57 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
+        // ─── Fetch prospect's Instagram profile info ──────────────
+        let prospectProfileInfo = '';
+        try {
+          // Get admin token for Business Discovery
+          const { data: adminForDiscovery } = await supabase
+            .from('profiles')
+            .select('instagram_business_account_id, facebook_page_access_token')
+            .eq('is_admin', true)
+            .not('facebook_page_access_token', 'is', null)
+            .limit(1)
+            .maybeSingle();
+
+          if (adminForDiscovery?.instagram_business_account_id && adminForDiscovery?.facebook_page_access_token) {
+            // Try to get the sender's username from the message event or conversation
+            const senderUsername = event.sender?.username || null;
+            if (senderUsername) {
+              const discoveryRes = await fetch(
+                `https://graph.facebook.com/v21.0/${adminForDiscovery.instagram_business_account_id}?fields=business_discovery.fields(username,name,biography,followers_count,media_count,profile_picture_url,media.limit(3){caption,timestamp,like_count,comments_count,media_url,media_type}).username(${senderUsername})&access_token=${adminForDiscovery.facebook_page_access_token}`,
+                { signal: AbortSignal.timeout(8000) }
+              );
+              if (discoveryRes.ok) {
+                const disc = await discoveryRes.json();
+                const bd = disc.business_discovery;
+                if (bd) {
+                  prospectProfileInfo = `\n\nPROFIL INSTAGRAM DU PROSPECT:
+- Username: @${bd.username}
+- Nom: ${bd.name || '?'}
+- Bio: ${bd.biography || 'aucune'}
+- Abonnés: ${bd.followers_count || '?'}
+- Posts: ${bd.media_count || '?'}`;
+                  if (bd.media?.data?.length > 0) {
+                    prospectProfileInfo += '\n- Derniers posts:';
+                    for (const m of bd.media.data.slice(0, 3)) {
+                      prospectProfileInfo += `\n  • ${m.caption?.substring(0, 80) || 'Sans légende'} (${m.like_count || 0} likes, ${m.media_type})`;
+                    }
+                  }
+                  // Update prospect in CRM with real info
+                  const updates: Record<string, any> = { updated_at: now };
+                  if (bd.name && (!prospect.company || prospect.company === 'Instagram')) updates.company = bd.name;
+                  if (bd.followers_count) updates.abonnes = bd.followers_count;
+                  if (bd.username) updates.instagram = `@${bd.username}`;
+                  await supabase.from('crm_prospects').update(updates).eq('id', prospect.id);
+                  console.log(`[InstagramWebhook] Enriched prospect with Business Discovery: @${bd.username}, ${bd.followers_count} followers`);
+                }
+              }
+            }
+          }
+        } catch (discErr: any) {
+          console.warn('[InstagramWebhook] Business Discovery failed (non-fatal):', discErr.message?.substring(0, 100));
+        }
+
         // ─── Load conversation history ──────────────────
         const { data: recentLogs } = await supabase
           .from('agent_logs')
@@ -227,13 +278,17 @@ REGLES DE TON — ULTRA IMPORTANT:
 - Tutoiement naturel, decontracte, comme un pote entrepreneur
 - JAMAIS de formules generiques ("n'hesite pas", "je suis la pour t'aider", listes a puces)
 - JAMAIS dire que tu es une IA
+- JAMAIS dire "je ne peux pas voir ton profil" ou "je n'ai pas acces a ton profil" — tu as TOUJOURS les infos du prospect (voir PROFIL INSTAGRAM ci-dessus)
 - Si le prospect parle de son business → rebondis dessus naturellement avec un exemple adapte
 - Si negatif/stop → "ok pas de souci, bonne continuation"
 - Si question prix → "a partir de 49€/mois mais y'a un essai gratuit 14 jours, tu veux tester ?"
 - FOCUS SUR LES VISUELS ET LA VISIBILITE, pas sur les DMs ou l'automatisation
 
 PROSPECT: ${prospect.company || prospect.first_name || 'Inconnu'} (${prospect.type || 'type inconnu'}, score: ${prospect.score || 0})
-${history ? `\nHISTORIQUE CONVERSATION:\n${history}` : ''}${businessContext}${ragContext}`;
+${prospectProfileInfo}
+${history ? `\nHISTORIQUE CONVERSATION:\n${history}` : ''}${businessContext}${ragContext}
+
+IMPORTANT: Tu connais le profil Instagram du prospect (ci-dessus). UTILISE ces infos pour personnaliser ta reponse. Mentionne son business, commente ses posts recents, adapte ton approche. Ne dis JAMAIS que tu ne peux pas voir son profil.`;
 
         let aiReply = '';
         try {
@@ -399,21 +454,58 @@ ${history ? `\nHISTORIQUE CONVERSATION:\n${history}` : ''}${businessContext}${ra
 
               // Send image if available (after text message)
               if (imageToSend && sendSuccess) {
-                await new Promise(r => setTimeout(r, 1500)); // Small delay between text and image
-                try {
-                  const imgRes = await fetch(`https://graph.facebook.com/v21.0/${sendFromId}/messages`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: new URLSearchParams({
-                      recipient: JSON.stringify({ id: senderId }),
-                      message: JSON.stringify({ attachment: { type: 'image', payload: { url: imageToSend } } }),
-                      access_token: sendToken,
-                    }),
-                  });
-                  if (imgRes.ok) console.log(`[InstagramWebhook] Image sent to ${senderId}: ${imageToSend.substring(0, 80)}`);
-                  else console.warn('[InstagramWebhook] Image send failed:', (await imgRes.text()).substring(0, 100));
-                } catch (imgErr: any) {
-                  console.warn('[InstagramWebhook] Image send error:', imgErr.message?.substring(0, 100));
+                await new Promise(r => setTimeout(r, 1500));
+                let imgSent = false;
+
+                // Method 1: Instagram Graph API with image attachment
+                if (profile?.instagram_access_token) {
+                  try {
+                    const igImgRes = await fetch(`https://graph.instagram.com/v21.0/me/messages`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        recipient: { id: senderId },
+                        message: { attachment: { type: 'image', payload: { url: imageToSend } } },
+                        access_token: profile.instagram_access_token,
+                      }),
+                    });
+                    if (igImgRes.ok) { imgSent = true; console.log(`[InstagramWebhook] Image sent via IG API`); }
+                    else { console.warn('[InstagramWebhook] IG image failed:', (await igImgRes.text()).substring(0, 150)); }
+                  } catch (e: any) { console.warn('[InstagramWebhook] IG image error:', e.message?.substring(0, 100)); }
+                }
+
+                // Method 2: Facebook Graph API
+                if (!imgSent) {
+                  try {
+                    const fbImgRes = await fetch(`https://graph.facebook.com/v21.0/${sendFromId}/messages`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        recipient: { id: senderId },
+                        message: { attachment: { type: 'image', payload: { url: imageToSend, is_reusable: true } } },
+                        access_token: sendToken,
+                      }),
+                    });
+                    if (fbImgRes.ok) { imgSent = true; console.log(`[InstagramWebhook] Image sent via FB API`); }
+                    else { console.warn('[InstagramWebhook] FB image failed:', (await fbImgRes.text()).substring(0, 150)); }
+                  } catch (e: any) { console.warn('[InstagramWebhook] FB image error:', e.message?.substring(0, 100)); }
+                }
+
+                // Method 3: Send image URL as text message fallback
+                if (!imgSent) {
+                  try {
+                    const urlMsg = `Voici un exemple : ${imageToSend}`;
+                    await fetch(`https://graph.facebook.com/v21.0/${sendFromId}/messages`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                      body: new URLSearchParams({
+                        recipient: JSON.stringify({ id: senderId }),
+                        message: JSON.stringify({ text: urlMsg }),
+                        access_token: sendToken,
+                      }),
+                    });
+                    console.log(`[InstagramWebhook] Image URL sent as text fallback`);
+                  } catch {}
                 }
               }
 
