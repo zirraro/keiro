@@ -345,31 +345,45 @@ ${history ? `\nCONVERSATION:\n${history}` : ''}${businessContext}${ragContext}`;
           aiReply = aiReply.replace(/\[SEND_SHOWCASE:[^\]]+\]/, '').trim();
 
           // Get ALL images for this type, then pick one NOT already sent to this prospect
-          const typesToTry = [bType, 'generic'];
-          for (const tryType of typesToTry) {
+          // Map common business types to available showcase types
+          const TYPE_MAP: Record<string, string> = {
+            'agence': 'generic', 'voyage': 'generic', 'agence de voyage': 'generic',
+            'bar': 'caviste', 'cafe': 'restaurant', 'brasserie': 'restaurant',
+            'salon': 'coiffeur', 'barbier': 'coiffeur', 'beaute': 'coiffeur',
+            'boulangerie': 'restaurant', 'patisserie': 'restaurant', 'traiteur': 'restaurant',
+            'freelance': 'coach', 'consultant': 'coach', 'formation': 'coach',
+            'magasin': 'boutique', 'commerce': 'boutique', 'mode': 'boutique',
+            'spa': 'coiffeur', 'esthetique': 'coiffeur',
+          };
+          const mappedType = TYPE_MAP[bType] || bType;
+          const typesToTry = [mappedType, 'generic'];
+          // Remove duplicates
+          const uniqueTypes = [...new Set(typesToTry)];
+
+          for (const tryType of uniqueTypes) {
             if (imageToSend) break;
             try {
               const { data: imgs } = await supabase
                 .from('showcase_images')
-                .select('id, image_url')
+                .select('id, image_url, usage_count')
                 .eq('business_type', tryType)
                 .eq('is_active', true)
                 .order('usage_count', { ascending: true })
-                .limit(10); // Get up to 10 to have options
+                .limit(10);
 
               if (imgs && imgs.length > 0) {
-                // Filter out images already sent to this prospect
                 const unsent = imgs.filter((img: any) => !alreadySentImages.includes(img.image_url));
-                const picked = unsent.length > 0 ? unsent[0] : imgs[Math.floor(Math.random() * imgs.length)]; // Random if all sent
+                const picked = unsent.length > 0 ? unsent[0] : imgs[Math.floor(Math.random() * imgs.length)];
                 imageToSend = picked.image_url;
+                console.log(`[InstagramWebhook] Picked image: ${tryType} → ${(imageToSend || '').substring(0, 60)} (unsent: ${unsent.length}/${imgs.length})`);
 
-                // Increment usage_count for this image
-                supabase.from('showcase_images').update({ usage_count: (picked as any).usage_count + 1 || 1 }).eq('id', picked.id).then(() => {});
+                // Increment usage_count
+                supabase.from('showcase_images').update({ usage_count: ((picked as any).usage_count || 0) + 1 }).eq('id', picked.id).then(() => {});
               }
-            } catch {}
+            } catch (e: any) { console.warn(`[InstagramWebhook] Showcase fetch error for ${tryType}:`, e.message?.substring(0, 80)); }
           }
 
-          console.log(`[InstagramWebhook] Showcase image picked: ${imageToSend?.substring(0, 60) || 'NONE'} (already sent: ${alreadySentImages.length})`);
+          console.log(`[InstagramWebhook] Showcase: requested="${bType}" mapped="${mappedType}" found=${!!imageToSend} (already sent: ${alreadySentImages.length})`);
         }
 
         // Check if Jade wants to generate a personalized image
