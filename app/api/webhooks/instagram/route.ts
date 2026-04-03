@@ -523,7 +523,29 @@ ${history ? `\nCONVERSATION:\n${history}` : ''}${businessContext}${ragContext}`;
 
               if (!sendSuccess) console.error('[InstagramWebhook] ALL send methods failed for', senderId);
 
-              // Image URL is already included in the text message (guaranteed delivery)
+              // Also try sending image as direct attachment via Instagram API (works in test mode)
+              // The URL is already in the text as fallback
+              if (imageToSend && sendSuccess && profile?.instagram_access_token) {
+                await new Promise(r => setTimeout(r, 1500));
+                try {
+                  const igImgRes = await fetch(`https://graph.instagram.com/v21.0/me/messages`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      recipient: { id: senderId },
+                      message: { attachment: { type: 'image', payload: { url: imageToSend, is_reusable: true } } },
+                      access_token: profile.instagram_access_token,
+                    }),
+                  });
+                  if (igImgRes.ok) {
+                    console.log('[InstagramWebhook] Image attachment sent via IG API (inline display)');
+                  } else {
+                    console.warn('[InstagramWebhook] IG image attachment failed:', (await igImgRes.text()).substring(0, 150));
+                  }
+                } catch (e: any) {
+                  console.warn('[InstagramWebhook] IG image error:', e.message?.substring(0, 80));
+                }
+              }
 
               console.log(`[InstagramWebhook] Auto-reply sent to ${senderId}`);
 
