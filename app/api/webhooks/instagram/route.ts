@@ -341,26 +341,33 @@ ${history ? `\nCONVERSATION:\n${history}` : ''}${businessContext}${ragContext}`;
         if (showcaseMatch) {
           const bType = showcaseMatch[1].trim().toLowerCase();
           aiReply = aiReply.replace(/\[SEND_SHOWCASE:[^\]]+\]/, '').trim();
-          try {
-            const { data: imgs } = await supabase
-              .from('showcase_images')
-              .select('image_url')
-              .eq('business_type', bType)
-              .eq('is_active', true)
-              .order('usage_count', { ascending: true })
-              .limit(1);
-            if (imgs && imgs[0]?.image_url) imageToSend = imgs[0].image_url;
-          } catch {}
-          // Fallback to generic
-          if (!imageToSend) {
-            const { data: genericImgs } = await supabase
-              .from('showcase_images')
-              .select('image_url')
-              .eq('business_type', 'generic')
-              .eq('is_active', true)
-              .limit(1);
-            if (genericImgs && genericImgs[0]?.image_url) imageToSend = genericImgs[0].image_url;
+
+          // Get ALL images for this type, then pick one NOT already sent to this prospect
+          const typesToTry = [bType, 'generic'];
+          for (const tryType of typesToTry) {
+            if (imageToSend) break;
+            try {
+              const { data: imgs } = await supabase
+                .from('showcase_images')
+                .select('id, image_url')
+                .eq('business_type', tryType)
+                .eq('is_active', true)
+                .order('usage_count', { ascending: true })
+                .limit(10); // Get up to 10 to have options
+
+              if (imgs && imgs.length > 0) {
+                // Filter out images already sent to this prospect
+                const unsent = imgs.filter((img: any) => !alreadySentImages.includes(img.image_url));
+                const picked = unsent.length > 0 ? unsent[0] : imgs[Math.floor(Math.random() * imgs.length)]; // Random if all sent
+                imageToSend = picked.image_url;
+
+                // Increment usage_count for this image
+                supabase.from('showcase_images').update({ usage_count: (picked as any).usage_count + 1 || 1 }).eq('id', picked.id).then(() => {});
+              }
+            } catch {}
           }
+
+          console.log(`[InstagramWebhook] Showcase image picked: ${imageToSend?.substring(0, 60) || 'NONE'} (already sent: ${alreadySentImages.length})`);
         }
 
         // Check if Jade wants to generate a personalized image
@@ -561,6 +568,27 @@ ${history ? `\nCONVERSATION:\n${history}` : ''}${businessContext}${ragContext}`;
             }
           } else {
             console.warn('[InstagramWebhook] No token found for IG account:', recipientId);
+          }
+        }
+
+        // ─── Learn from image reactions ──────────────────
+        // If prospect responded after an image was sent, track the reaction
+        const lastSentImage = alreadySentImages.length > 0 ? alreadySentImages[alreadySentImages.length - 1] : null;
+        if (lastSentImage) {
+          const msgLower = messageText.toLowerCase();
+          const isPositive = msgLower.includes('cool') || msgLower.includes('super') || msgLower.includes('bien') || msgLower.includes('oui') || msgLower.includes('interesse') || msgLower.includes('top') || msgLower.includes('j\'aime') || msgLower.includes('genial') || msgLower.includes('wow');
+          const isNegative = msgLower.includes('non') || msgLower.includes('pas') || msgLower.includes('bof') || msgLower.includes('rien recu') || msgLower.includes('moche');
+          if (isPositive || isNegative) {
+            try {
+              const { saveLearning } = await import('@/lib/agents/learning');
+              await saveLearning(supabase, {
+                agent: 'dm_instagram',
+                category: 'content',
+                learning: `Image DM ${isPositive ? 'APPRECIEE' : 'PAS APPRECIEE'} par ${prospect.type || 'prospect'}: ${lastSentImage.substring(0, 100)}. Reaction: "${messageText.substring(0, 80)}"`,
+                evidence: `prospect_${prospect.id}_image_reaction`,
+                confidence: isPositive ? 30 : 20,
+              });
+            } catch {}
           }
         }
 
