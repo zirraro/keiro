@@ -986,6 +986,40 @@ export async function GET(request: NextRequest) {
   let remainingQuota = Math.max(0, DAILY_EMAIL_LIMIT - sentToday);
   console.log(`[EmailDaily] Daily quota: ${sentToday}/${DAILY_EMAIL_LIMIT} sent today, ${remainingQuota} remaining`);
 
+  // ── PROACTIVE CLEANUP: mark clearly invalid emails ──
+  try {
+    // Emails with 3+ send failures → mark as email_invalid (never retry)
+    const { data: failedEmails } = await supabase
+      .from('crm_prospects')
+      .select('id, email, email_send_failures')
+      .gte('email_send_failures', 3)
+      .eq('email_sequence_status', 'send_failed');
+    if (failedEmails && failedEmails.length > 0) {
+      for (const p of failedEmails) {
+        await supabase.from('crm_prospects').update({
+          email_sequence_status: 'email_invalid',
+          temperature: 'dead',
+          updated_at: nowISO,
+        }).eq('id', p.id);
+      }
+      console.log(`[EmailDaily] Cleanup: marked ${failedEmails.length} failed emails as email_invalid`);
+    }
+    // Emails marked bounced → ensure they're dead and never contacted
+    const { data: bouncedEmails } = await supabase
+      .from('crm_prospects')
+      .select('id')
+      .eq('email_sequence_status', 'bounced')
+      .not('temperature', 'eq', 'dead');
+    if (bouncedEmails && bouncedEmails.length > 0) {
+      for (const p of bouncedEmails) {
+        await supabase.from('crm_prospects').update({ temperature: 'dead', updated_at: nowISO }).eq('id', p.id);
+      }
+      console.log(`[EmailDaily] Cleanup: marked ${bouncedEmails.length} bounced emails as dead`);
+    }
+  } catch (cleanupErr: any) {
+    console.warn('[EmailDaily] Cleanup error:', cleanupErr.message?.substring(0, 100));
+  }
+
   // If Brevo quota exhausted but Resend available, switch to Resend-only mode
   let resendOnlyMode = false;
   if (remainingQuota === 0) {
@@ -1110,7 +1144,11 @@ export async function GET(request: NextRequest) {
       const prospectQuery = supabase
         .from('crm_prospects')
         .select('*')
-        .not('email', 'is', null);
+        .not('email', 'is', null)
+        .not('email_sequence_status', 'eq', 'bounced')
+        .not('email_sequence_status', 'eq', 'email_invalid')
+        .not('email_sequence_status', 'eq', 'stopped')
+        .not('email_sequence_status', 'eq', 'paused');
 
       // Multi-tenant: filter by client
       if (clientUserId) {
