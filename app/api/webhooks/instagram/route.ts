@@ -259,12 +259,13 @@ PHASE 2 — DECOUVERTE + VALEUR: Pose des questions sur leur business pour compr
 Partage un conseil concret adapte a leur secteur.
 
 PHASE 3 — DEMONSTRATION: Montre des exemples concrets.
-Pour envoyer une image exemple: ajoute [SEND_SHOWCASE:${prospect.type || 'restaurant'}] dans ta reponse
-Ex: "Tiens regarde ce qu'on fait pour des ${prospect.type || 'restos'} [SEND_SHOWCASE:${prospect.type || 'restaurant'}]"
-Si le prospect donne des details precis sur son business (nom, produits, style) → genere un visuel perso:
-Ajoute [GENERATE_IMAGE:description detaillee en anglais du visuel] dans ta reponse
-Ex: "Attends je te genere un truc perso pour ton business [GENERATE_IMAGE:Professional photo of a cozy wine bar interior, warm lighting, wine bottles on shelves, elegant atmosphere]"
-Le systeme enverra l'image automatiquement apres ton message texte.
+Pour envoyer une image exemple adapte au type du prospect: ajoute [SEND_SHOWCASE:${prospect.type || 'restaurant'}] a la FIN de ta reponse.
+Le systeme ajoutera automatiquement le lien de l'image dans ton message — le prospect verra le lien cliquable.
+Ex: "On fait des trucs comme ca pour les ${prospect.type || 'restos'}, clique pour voir [SEND_SHOWCASE:${prospect.type || 'restaurant'}]"
+Si le prospect donne des details precis sur son business → genere un visuel personnalise:
+Ajoute [GENERATE_IMAGE:description en anglais] a la FIN de ta reponse.
+Ex: "Je te prepare un truc sur mesure, regarde ca [GENERATE_IMAGE:Professional photo of a cozy wine bar interior, warm lighting]"
+IMPORTANT: Le lien de l'image sera ajoute APRES ton texte automatiquement. Ne dis pas "je t'envoie" sans le tag.
 
 PHASE 4 — CLOSING:
 - "On a un essai gratuit 14 jours, tous les agents IA debloques. Tu veux que je t'inscris ?"
@@ -380,6 +381,8 @@ IMPORTANT: Tu connais le profil Instagram du prospect (ci-dessus). UTILISE ces i
           }
         }
 
+        // Image will be sent separately after the text message
+
         // ─── Small delay to appear more human (not instant bot reply) ──
         await new Promise(r => setTimeout(r, 2000 + Math.random() * 3000)); // 2-5s delay
 
@@ -452,59 +455,71 @@ IMPORTANT: Tu connais le profil Instagram du prospect (ci-dessus). UTILISE ces i
 
               if (!sendSuccess) console.error('[InstagramWebhook] ALL send methods failed for', senderId);
 
-              // Send image if available (after text message)
+              // Send image separately if available
               if (imageToSend && sendSuccess) {
                 await new Promise(r => setTimeout(r, 1500));
                 let imgSent = false;
 
-                // Method 1: Instagram Graph API with image attachment
-                if (profile?.instagram_access_token) {
+                // Method 1: Instagram Graph API — generic template with image_url
+                if (profile?.instagram_access_token && !imgSent) {
                   try {
                     const igImgRes = await fetch(`https://graph.instagram.com/v21.0/me/messages`, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
                         recipient: { id: senderId },
-                        message: { attachment: { type: 'image', payload: { url: imageToSend } } },
+                        message: {
+                          attachment: {
+                            type: 'image',
+                            payload: { url: imageToSend, is_reusable: true }
+                          }
+                        },
                         access_token: profile.instagram_access_token,
                       }),
                     });
-                    if (igImgRes.ok) { imgSent = true; console.log(`[InstagramWebhook] Image sent via IG API`); }
-                    else { console.warn('[InstagramWebhook] IG image failed:', (await igImgRes.text()).substring(0, 150)); }
+                    if (igImgRes.ok) { imgSent = true; console.log('[InstagramWebhook] Image sent via IG API'); }
+                    else { const err = await igImgRes.text(); console.warn('[InstagramWebhook] IG image failed:', err.substring(0, 200)); }
                   } catch (e: any) { console.warn('[InstagramWebhook] IG image error:', e.message?.substring(0, 100)); }
                 }
 
-                // Method 2: Facebook Graph API
-                if (!imgSent) {
+                // Method 2: Facebook Graph API with page token
+                if (!imgSent && sendToken) {
                   try {
                     const fbImgRes = await fetch(`https://graph.facebook.com/v21.0/${sendFromId}/messages`, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
                         recipient: { id: senderId },
-                        message: { attachment: { type: 'image', payload: { url: imageToSend, is_reusable: true } } },
+                        message: {
+                          attachment: {
+                            type: 'image',
+                            payload: { url: imageToSend, is_reusable: true }
+                          }
+                        },
                         access_token: sendToken,
                       }),
                     });
-                    if (fbImgRes.ok) { imgSent = true; console.log(`[InstagramWebhook] Image sent via FB API`); }
-                    else { console.warn('[InstagramWebhook] FB image failed:', (await fbImgRes.text()).substring(0, 150)); }
+                    if (fbImgRes.ok) { imgSent = true; console.log('[InstagramWebhook] Image sent via FB API'); }
+                    else { const err = await fbImgRes.text(); console.warn('[InstagramWebhook] FB image failed:', err.substring(0, 200)); }
                   } catch (e: any) { console.warn('[InstagramWebhook] FB image error:', e.message?.substring(0, 100)); }
                 }
 
-                // Method 3: Send image URL as text message fallback
+                // Method 3: Fallback — send URL as text
                 if (!imgSent) {
                   try {
-                    const urlMsg = `Voici un exemple : ${imageToSend}`;
-                    await fetch(`https://graph.facebook.com/v21.0/${sendFromId}/messages`, {
+                    const method = profile?.instagram_access_token ? 'ig' : 'fb';
+                    const url = method === 'ig' ? `https://graph.instagram.com/v21.0/me/messages` : `https://graph.facebook.com/v21.0/${sendFromId}/messages`;
+                    const token = method === 'ig' ? profile!.instagram_access_token : sendToken;
+                    await fetch(url, {
                       method: 'POST',
-                      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                      body: new URLSearchParams({
-                        recipient: JSON.stringify({ id: senderId }),
-                        message: JSON.stringify({ text: urlMsg }),
-                        access_token: sendToken,
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        recipient: { id: senderId },
+                        message: { text: imageToSend },
+                        access_token: token,
                       }),
                     });
-                    console.log(`[InstagramWebhook] Image URL sent as text fallback`);
+                    console.log('[InstagramWebhook] Image URL sent as text fallback');
                   } catch {}
                 }
               }
