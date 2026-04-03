@@ -19,8 +19,27 @@ function getSupabase() {
 }
 
 export async function GET(req: NextRequest) {
-  const { user, error } = await getAuthUser();
-  if (error || !user) return NextResponse.json({ error: 'Non autorise' }, { status: 401 });
+  // Support CRON_SECRET for scheduled calls
+  const cronSecret = process.env.CRON_SECRET;
+  const authHeader = req.headers.get('authorization');
+  let userId: string | null = null;
+
+  if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
+    userId = req.nextUrl.searchParams.get('user_id') || null;
+    // If no user_id, find admin
+    if (!userId) {
+      const supabase = getSupabase();
+      const { data: admin } = await supabase.from('profiles').select('id').eq('is_admin', true).limit(1).maybeSingle();
+      userId = admin?.id || null;
+    }
+  } else {
+    const { user, error } = await getAuthUser();
+    if (error || !user) return NextResponse.json({ error: 'Non autorise' }, { status: 401 });
+    userId = user.id;
+  }
+
+  if (!userId) return NextResponse.json({ error: 'Non autorise' }, { status: 401 });
+  const user = { id: userId };
 
   const supabase = getSupabase();
 
