@@ -413,7 +413,43 @@ ${history ? `\nCONVERSATION:\n${history}` : ''}${businessContext}${ragContext}`;
           }
         }
 
-        // Image will be sent after the text message (direct + URL fallback)
+        // If no image found from showcase but AI wanted to send one, generate via Seedream
+        // This handles ANY business type — not limited to DB categories
+        if (!imageToSend && (showcaseMatch || generateMatch)) {
+          try {
+            const seedreamUrl = process.env.SEEDREAM_API_URL;
+            const seedreamKey = process.env.SEEDREAM_API_KEY;
+            if (seedreamUrl && seedreamKey) {
+              // Build a rich prompt from prospect info
+              const bizType = prospect.type || (showcaseMatch ? showcaseMatch[1] : 'business');
+              const bizName = prospect.company || '';
+              const autoPrompt = `Professional Instagram marketing visual for a ${bizType}${bizName ? ` called "${bizName}"` : ''}, modern clean design, vibrant colors, eye-catching social media post, professional photography style, warm lighting, high quality 4K, trending aesthetic`;
+              console.log(`[InstagramWebhook] Auto-generating image: ${autoPrompt.substring(0, 80)}`);
+              const genRes = await fetch(seedreamUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${seedreamKey}` },
+                body: JSON.stringify({ prompt: autoPrompt, width: 1080, height: 1080, num_images: 1 }),
+                signal: AbortSignal.timeout(30000),
+              });
+              if (genRes.ok) {
+                const genData = await genRes.json();
+                const generatedUrl = genData.images?.[0]?.url || genData.data?.[0]?.url || genData.url;
+                if (generatedUrl) {
+                  imageToSend = generatedUrl;
+                  console.log(`[InstagramWebhook] Auto-generated image: ${generatedUrl.substring(0, 80)}`);
+                }
+              }
+            }
+          } catch (e: any) {
+            console.warn('[InstagramWebhook] Auto-generate failed:', e.message?.substring(0, 80));
+          }
+        }
+
+        // GUARANTEED: if we still have an image, include URL in message text as fallback
+        if (imageToSend && aiReply) {
+          // Always append URL to text — this is the guaranteed delivery method
+          aiReply = aiReply.trim() + '\n\n' + imageToSend;
+        }
 
         // ─── Small delay to appear more human (not instant bot reply) ──
         await new Promise(r => setTimeout(r, 2000 + Math.random() * 3000)); // 2-5s delay
@@ -487,54 +523,7 @@ ${history ? `\nCONVERSATION:\n${history}` : ''}${businessContext}${ragContext}`;
 
               if (!sendSuccess) console.error('[InstagramWebhook] ALL send methods failed for', senderId);
 
-              // Send image: try direct attachment first, then URL as text fallback
-              if (imageToSend && sendSuccess) {
-                await new Promise(r => setTimeout(r, 1000));
-                let imgSent = false;
-
-                // Try direct image attachment via both APIs
-                for (const attempt of [
-                  { url: `https://graph.instagram.com/v21.0/me/messages`, token: profile?.instagram_access_token, label: 'IG' },
-                  { url: `https://graph.facebook.com/v21.0/${sendFromId}/messages`, token: sendToken, label: 'FB' },
-                ]) {
-                  if (imgSent || !attempt.token) continue;
-                  try {
-                    const res = await fetch(attempt.url, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        recipient: { id: senderId },
-                        message: { attachment: { type: 'image', payload: { url: imageToSend, is_reusable: true } } },
-                        access_token: attempt.token,
-                      }),
-                    });
-                    if (res.ok) { imgSent = true; console.log(`[InstagramWebhook] Image sent via ${attempt.label} API`); }
-                    else console.warn(`[InstagramWebhook] ${attempt.label} image failed:`, (await res.text()).substring(0, 150));
-                  } catch (e: any) { console.warn(`[InstagramWebhook] ${attempt.label} image error:`, e.message?.substring(0, 80)); }
-                }
-
-                // Fallback: send URL as separate text message (always works)
-                if (!imgSent) {
-                  for (const attempt of [
-                    { url: `https://graph.instagram.com/v21.0/me/messages`, token: profile?.instagram_access_token },
-                    { url: `https://graph.facebook.com/v21.0/${sendFromId}/messages`, token: sendToken },
-                  ]) {
-                    if (imgSent || !attempt.token) continue;
-                    try {
-                      const res = await fetch(attempt.url, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          recipient: { id: senderId },
-                          message: { text: imageToSend },
-                          access_token: attempt.token,
-                        }),
-                      });
-                      if (res.ok) { imgSent = true; console.log('[InstagramWebhook] Image URL sent as text'); }
-                    } catch {}
-                  }
-                }
-              }
+              // Image URL is already included in the text message (guaranteed delivery)
 
               console.log(`[InstagramWebhook] Auto-reply sent to ${senderId}`);
 
