@@ -505,43 +505,19 @@ ${replyContent.substring(0, 2000)}
             }
           }
 
-          // ─── ALERT FOUNDER ────────────────────────────────
-          if (RESEND_API_KEY) {
+          // ─── NOTIFY CLIENT via in-app notification (not email) ────────
+          if (prospect.user_id && (classification.intent === 'positive' || classification.intent === 'interested' || classification.intent === 'question')) {
             try {
-              const alertEmoji = classification.intent === 'closed_business' ? '\u274C'
-                : classification.intent === 'unsubscribe' ? '\uD83D\uDEAB'
-                : classification.intent === 'negative' ? '\uD83D\uDC4E'
-                : classification.intent === 'positive' || classification.intent === 'interested' ? '\uD83D\uDD25'
-                : classification.intent === 'question' ? '\u2753'
-                : '\uD83D\uDCE9';
-              const alertStatus = ['closed_business', 'unsubscribe', 'negative'].includes(classification.intent)
-                ? 'SORTI DU PIPE' : 'PROSPECT CHAUD';
-
-              await fetch('https://api.resend.com/emails', {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  from: 'KeiroAI Agents <contact@keiroai.com>',
-                  to: ['contact@keiroai.com'],
-                  subject: `${alertEmoji} ${alertStatus} — ${prospect.company || prospect.email} a repondu`,
-                  html: `<h2>${alertEmoji} ${alertStatus}</h2>
-                    <p><strong>${prospect.company || 'Inconnu'}</strong> (${prospect.type || 'N/A'}, ${prospect.quartier || 'N/A'})</p>
-                    <table style="border-collapse:collapse;margin:12px 0;">
-                      <tr><td style="padding:4px 12px 4px 0;color:#888;">Intent</td><td style="padding:4px 0;font-weight:bold;">${classification.intent}</td></tr>
-                      <tr><td style="padding:4px 12px 4px 0;color:#888;">Sentiment</td><td style="padding:4px 0;">${classification.sentiment}</td></tr>
-                      <tr><td style="padding:4px 12px 4px 0;color:#888;">Nouveau statut</td><td style="padding:4px 0;font-weight:bold;">${classification.newStatus}</td></tr>
-                      <tr><td style="padding:4px 12px 4px 0;color:#888;">Temperature</td><td style="padding:4px 0;">${classification.newTemp}</td></tr>
-                      <tr><td style="padding:4px 12px 4px 0;color:#888;">Score</td><td style="padding:4px 0;">${prospect.score ?? 0}/100</td></tr>
-                      <tr><td style="padding:4px 12px 4px 0;color:#888;">Auto-reponse</td><td style="padding:4px 0;">${classification.autoReply ? 'Oui, envoyee' : 'Non (intent negatif)'}</td></tr>
-                    </table>
-                    ${replyContent ? `<div style="background:#f9fafb;padding:12px;border-radius:8px;margin:12px 0;border-left:3px solid #6b7280;"><strong>Message du prospect:</strong><br/>${replyContent.substring(0, 500).replace(/\n/g, '<br/>')}</div>` : ''}
-                    ${classification.autoReply ? `<div style="background:#f0fdf4;padding:12px;border-radius:8px;margin:12px 0;border-left:3px solid #22c55e;"><strong>Auto-reponse envoyee:</strong><br/>${classification.autoReply.replace(/\n/g, '<br/>')}</div>` : ''}`,
-                }),
+              const { notifyClient } = await import('@/lib/agents/notify-client');
+              await notifyClient(supabase, {
+                userId: prospect.user_id,
+                agent: 'email',
+                type: 'action',
+                title: `Prospect a répondu — reprends la main`,
+                message: `${prospect.company || prospect.email} a répondu (${classification.intent}). ${replyContent?.substring(0, 100) || ''}`,
+                data: { prospect_id: prospect.id, intent: classification.intent },
               });
-              console.log('[BrevoWebhook] Alert sent for reply from:', prospect.email);
-            } catch (alertError: any) {
-              console.error('[BrevoWebhook] Alert email failed:', alertError.message?.substring(0, 200));
-            }
+            } catch {}
           }
           // Emit event for CEO decision engine
           Events.prospectReplied(supabase, prospect.id, prospect.company || prospect.email, classification.intent, 'email', undefined).catch(() => {});

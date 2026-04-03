@@ -605,44 +605,8 @@ ${history ? `\nCONVERSATION:\n${history}` : ''}${businessContext}${ragContext}`;
               .limit(1)
               .maybeSingle();
 
-            if (ownerProfile?.email) {
-              const RESEND_KEY = process.env.RESEND_API_KEY;
-              if (RESEND_KEY) {
-                try {
-                  await fetch('https://api.resend.com/emails', {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      from: 'KeiroAI Agents <contact@keiroai.com>',
-                      to: [ownerProfile.email],
-                      subject: `🔥 Prospect chaud sur Instagram — Reprenez la main !`,
-                      html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
-                        <div style="background:linear-gradient(135deg,#e11d48,#be123c);color:white;padding:20px;border-radius:12px 12px 0 0;">
-                          <h2 style="margin:0;">🔥 Un prospect est pret a closer !</h2>
-                        </div>
-                        <div style="background:white;padding:20px;border:1px solid #e5e7eb;border-top:none;">
-                          <p><strong>Prospect :</strong> ${prospect.company || prospect.first_name || senderId}</p>
-                          <p><strong>Score :</strong> ${newScore}/100 (${newTemp})</p>
-                          <p><strong>Echanges :</strong> ${exchangeCount || 0} messages</p>
-                          <p><strong>Dernier message :</strong> "${messageText.substring(0, 150)}"</p>
-                          <hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0;"/>
-                          <p style="color:#6b7280;">Jade (votre agent DM) a chauffe ce prospect. Il est maintenant pret pour une conversation humaine. <strong>Reprenez la main sur Instagram pour closer !</strong></p>
-                          <div style="text-align:center;margin-top:20px;">
-                            <a href="https://www.instagram.com/direct/inbox/" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,#e11d48,#be123c);color:white;text-decoration:none;border-radius:8px;font-weight:bold;">Ouvrir mes DMs Instagram →</a>
-                          </div>
-                        </div>
-                        <div style="background:#f9fafb;padding:12px;text-align:center;color:#9ca3af;font-size:12px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;">
-                          KeiroAI — Votre equipe IA
-                        </div>
-                      </div>`,
-                    }),
-                  });
-                  console.log(`[InstagramWebhook] Handover notification sent to ${ownerProfile.email} for prospect ${prospect.id}`);
-                } catch (notifErr: any) {
-                  console.error('[InstagramWebhook] Handover notification error:', notifErr.message?.substring(0, 200));
-                }
-              }
-            }
+            // In-app notification only (no email spam)
+            // The daily CEO brief will include this in the evening summary
 
             // In-app notification for the client
             if (ownerProfile?.id) {
