@@ -1093,12 +1093,8 @@ export default function AssistantPage() {
         {/* Instagram token check — popup si expire */}
         {!isVisitor && <InstagramTokenAlert />}
 
-        {/* ═══ TABS + NOTIFICATION BELL ═══ */}
+        {/* ═══ TABS ═══ */}
         <div className="flex items-center gap-1 bg-white/5 rounded-xl p-1 border border-white/10 mb-5 overflow-x-auto">
-          {/* Notification bell */}
-          <div className="flex-shrink-0 mr-1">
-            <NotificationBell />
-          </div>
           {([
             { key: 'suivi' as const, label: '\uD83D\uDCCB Suivi central', shortLabel: 'Suivi' },
             { key: 'equipe' as const, label: '\uD83D\uDC65 Par equipe', shortLabel: 'Equipes' },

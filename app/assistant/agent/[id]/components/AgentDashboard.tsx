@@ -1923,7 +1923,7 @@ function ContentCalendarInline({ posts, onSelectPost }: { posts: any[]; onSelect
                 {d.getDate()}
               </div>
               <div className="space-y-0.5 mt-1">
-                {dayPosts.slice(0, 2).map((p, j) => (
+                {dayPosts.map((p, j) => (
                   <button key={j} onClick={() => onSelectPost(p)} className="w-full aspect-square rounded overflow-hidden bg-white/5 hover:ring-1 hover:ring-purple-500/50 transition relative">
                     {p.visual_url ? (
                       <img src={p.visual_url} alt="" className="w-full h-full object-cover" />
@@ -1935,7 +1935,7 @@ function ContentCalendarInline({ posts, onSelectPost }: { posts: any[]; onSelect
                     <div className={`absolute top-0 right-0 w-1.5 h-1.5 rounded-full ${STATUS_DOT[p.status] || 'bg-gray-500'}`} />
                   </button>
                 ))}
-                {dayPosts.length > 2 && <div className="text-[7px] text-white/20 text-center">+{dayPosts.length - 2}</div>}
+                {/* All posts shown */}
               </div>
             </div>
           );
