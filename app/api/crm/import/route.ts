@@ -189,10 +189,34 @@ Si une colonne ne correspond a rien, ne l'inclus pas.`,
     // Skip if no email AND no company
     if (!prospect.email && !prospect.company) { skipped++; continue; }
 
-    // Dedup: check against existing DB + current import batch
+    // Dedup within same file
     const email = prospect.email?.toLowerCase();
-    if (email && (existingEmails.has(email) || seenEmails.has(email))) { skipped++; continue; }
+    if (email && seenEmails.has(email)) { skipped++; continue; }
     if (email) seenEmails.add(email);
+
+    // If email exists in DB → UPDATE existing prospect with new data (merge)
+    if (email && existingEmails.has(email)) {
+      try {
+        const updateData: Record<string, any> = { updated_at: new Date().toISOString() };
+        // Only update fields that have values (don't overwrite with empty)
+        if (prospect.company) updateData.company = prospect.company;
+        if (prospect.phone) updateData.phone = prospect.phone;
+        if (prospect.type) updateData.type = prospect.type;
+        if (prospect.quartier) updateData.quartier = prospect.quartier;
+        if (prospect.instagram) updateData.instagram = prospect.instagram;
+        if (prospect.website) updateData.website = prospect.website;
+        if (prospect.notes) updateData.notes = prospect.notes;
+        if (prospect.first_name) updateData.first_name = prospect.first_name;
+        if (prospect.last_name) updateData.last_name = prospect.last_name;
+        if (Object.keys(updateData).length > 1) {
+          await supabase.from('crm_prospects').update(updateData).eq('email', email);
+          imported++; // Count as imported (updated)
+        } else {
+          skipped++;
+        }
+      } catch { skipped++; }
+      continue;
+    }
 
     batch.push(prospect);
   }

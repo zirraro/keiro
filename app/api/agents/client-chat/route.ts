@@ -69,6 +69,7 @@ export async function POST(request: NextRequest) {
         .single();
       const hasPlan = userProfile?.subscription_plan && userProfile.subscription_plan !== 'free' && userProfile.subscription_plan !== 'gratuit';
       const inTrial = userProfile?.trial_ends_at && new Date(userProfile.trial_ends_at) > new Date();
+      console.log(`[ClientChat] User ${user.id}: plan=${userProfile?.subscription_plan}, trial=${userProfile?.trial_ends_at}, hasPlan=${hasPlan}, inTrial=${inTrial}`);
 
       if (!hasPlan && !inTrial) {
         const check = await checkCredits(user.id, 'marketing_chat');

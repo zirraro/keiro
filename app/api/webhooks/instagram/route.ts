@@ -445,11 +445,9 @@ ${history ? `\nCONVERSATION:\n${history}` : ''}${businessContext}${ragContext}`;
           }
         }
 
-        // GUARANTEED: if we still have an image, include URL in message text as fallback
-        if (imageToSend && aiReply) {
-          // Always append URL to text — this is the guaranteed delivery method
-          aiReply = aiReply.trim() + '\n\n' + imageToSend;
-        }
+        // Save original text (without URL) for the text message
+        // Image will be sent separately via IG API
+        const textOnly = aiReply;
 
         // ─── Small delay to appear more human (not instant bot reply) ──
         await new Promise(r => setTimeout(r, 2000 + Math.random() * 3000)); // 2-5s delay
@@ -523,27 +521,51 @@ ${history ? `\nCONVERSATION:\n${history}` : ''}${businessContext}${ragContext}`;
 
               if (!sendSuccess) console.error('[InstagramWebhook] ALL send methods failed for', senderId);
 
-              // Also try sending image as direct attachment via Instagram API (works in test mode)
-              // The URL is already in the text as fallback
-              if (imageToSend && sendSuccess && profile?.instagram_access_token) {
+              // Send image via Instagram API (this is what worked before)
+              if (imageToSend && sendSuccess) {
                 await new Promise(r => setTimeout(r, 1500));
-                try {
-                  const igImgRes = await fetch(`https://graph.instagram.com/v21.0/me/messages`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      recipient: { id: senderId },
-                      message: { attachment: { type: 'image', payload: { url: imageToSend, is_reusable: true } } },
-                      access_token: profile.instagram_access_token,
-                    }),
-                  });
-                  if (igImgRes.ok) {
-                    console.log('[InstagramWebhook] Image attachment sent via IG API (inline display)');
-                  } else {
-                    console.warn('[InstagramWebhook] IG image attachment failed:', (await igImgRes.text()).substring(0, 150));
-                  }
-                } catch (e: any) {
-                  console.warn('[InstagramWebhook] IG image error:', e.message?.substring(0, 80));
+                let imgSent = false;
+
+                // Method 1: Instagram Graph API with IGAA token (THIS WORKED BEFORE)
+                if (profile?.instagram_access_token) {
+                  try {
+                    const igImgRes = await fetch(`https://graph.instagram.com/v21.0/me/messages`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        recipient: { id: senderId },
+                        message: { attachment: { type: 'image', payload: { url: imageToSend, is_reusable: true } } },
+                        access_token: profile.instagram_access_token,
+                      }),
+                    });
+                    if (igImgRes.ok) {
+                      imgSent = true;
+                      console.log('[InstagramWebhook] Image sent via IG API (inline)');
+                    } else {
+                      const err = await igImgRes.text();
+                      console.warn('[InstagramWebhook] IG image failed:', err.substring(0, 200));
+                    }
+                  } catch (e: any) { console.warn('[InstagramWebhook] IG image error:', e.message?.substring(0, 100)); }
+                }
+
+                // Fallback: send URL as separate text message
+                if (!imgSent) {
+                  const urlToken = profile?.instagram_access_token || sendToken;
+                  const urlEndpoint = profile?.instagram_access_token
+                    ? `https://graph.instagram.com/v21.0/me/messages`
+                    : `https://graph.facebook.com/v21.0/${sendFromId}/messages`;
+                  try {
+                    await fetch(urlEndpoint, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        recipient: { id: senderId },
+                        message: { text: `Tiens regarde : ${imageToSend}` },
+                        access_token: urlToken,
+                      }),
+                    });
+                    console.log('[InstagramWebhook] Image URL sent as text fallback');
+                  } catch {}
                 }
               }
 
