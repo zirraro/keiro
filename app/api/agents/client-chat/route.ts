@@ -250,14 +250,24 @@ export async function POST(request: NextRequest) {
 7. Tu partages les connaissances de TOUS les agents (RAG ci-dessus).
 
 ACTIONS — Inclus le tag dans ta reponse quand le client demande une action:
-- Generer un post: [ACTION:{"type":"generate_post","platform":"instagram","format":"post","pillar":"tips"}]
-- Envoyer des emails: [ACTION:{"type":"send_emails"}]
-- Prospecter Google Maps: [ACTION:{"type":"prospect","query":"restaurant Paris"}]
-- Lister les posts: [ACTION:{"type":"list_posts"}]
+- Generer un post Instagram: [ACTION:{"type":"generate_post","platform":"instagram","format":"post","pillar":"tips"}]
+- Generer un reel: [ACTION:{"type":"generate_post","platform":"instagram","format":"reel","pillar":"trends"}]
+- Generer un post TikTok: [ACTION:{"type":"generate_post","platform":"tiktok","format":"video"}]
+- Generer un post LinkedIn: [ACTION:{"type":"generate_post","platform":"linkedin","format":"text"}]
+- Envoyer des emails aux prospects: [ACTION:{"type":"send_emails"}]
+- Prospecter sur Google Maps: [ACTION:{"type":"prospect","query":"restaurant Paris"}]
+- Voir les posts planifies: [ACTION:{"type":"list_posts"}]
+- Scanner et repondre aux DMs: [ACTION:{"type":"scan_dms"}]
+- Repondre aux commentaires Instagram: [ACTION:{"type":"reply_comments"}]
 
-IMPORTANT: Le systeme execute l'action et ajoute le resultat. TOI tu expliques ce que tu fais AVANT le tag action.
-Ex: "Je lance la generation d'un post Instagram avec un visuel pro ! [ACTION:{\\"type\\":\\"generate_post\\",\\"platform\\":\\"instagram\\"}]"
-N'utilise les actions QUE quand demande explicitement.`,
+CROSS-AGENT: Meme si tu n'es pas l'agent en charge, tu peux declencher des actions pour le client.
+Ex: Si le client parle a Hugo (email) et dit "genere-moi un post", Hugo peut declencher generate_post.
+Ex: Si le client parle a Lena (contenu) et dit "envoie des emails", Lena peut declencher send_emails.
+
+IMPORTANT: Le systeme execute l'action et ajoute le resultat automatiquement.
+TOI tu expliques ce que tu fais AVANT le tag action, avec enthousiasme et details.
+Ex: "Top ! Je te genere un post Instagram pro tout de suite, avec un visuel adapte a ton activite ! [ACTION:{\\"type\\":\\"generate_post\\",\\"platform\\":\\"instagram\\"}]"
+N'utilise les actions QUE quand le client DEMANDE explicitement une action.`,
       temperature: 0.7,
       messages: claudeMessages,
     });
@@ -300,27 +310,41 @@ N'utilise les actions QUE quand demande explicitement.`,
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keiroai.com';
         let actionResult = '';
 
-        if (actionType === 'generate_post' && agent_id === 'content') {
+        if (actionType === 'generate_post') {
           const res = await fetch(`${baseUrl}/api/agents/content`, {
             method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
             body: JSON.stringify({ action: 'generate_post', platform: actionJson.platform || 'instagram', format: actionJson.format || 'post', pillar: actionJson.pillar || 'tips', draftOnly: actionJson.draft || false, user_id: user.id }),
           });
           const data = await res.json();
           actionResult = data.ok ? `Post ${data.post?.platform || 'instagram'} créé${data.instagram_permalink ? ` et publié: ${data.instagram_permalink}` : ' (en brouillon)'}` : `Erreur: ${data.error || 'échec'}`;
-        } else if (actionType === 'send_emails' && agent_id === 'email') {
+        } else if (actionType === 'scan_dms') {
+          const res = await fetch(`${baseUrl}/api/agents/dm-instagram/auto-reply`, {
+            method: 'POST', headers: { 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
+          });
+          const data = await res.json();
+          actionResult = `${data.replied || 0} DMs répondus, ${data.total_conversations || 0} conversations scannées`;
+        } else if (actionType === 'reply_comments') {
+          const res = await fetch(`${baseUrl}/api/agents/instagram-comments`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
+            body: JSON.stringify({ action: 'auto_reply_all' }),
+          });
+          const data = await res.json();
+          actionResult = `${data.replied || data.comments_replied || 0} commentaires répondus`;
+        } else if (actionType === 'send_emails') {
+          // Cross-agent: any agent can trigger emails
           const res = await fetch(`${baseUrl}/api/agents/email/daily?slot=morning&force=true&user_id=${user.id}`, {
             headers: { 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
           });
           const data = await res.json();
           actionResult = `${data.stats?.success || 0} emails envoyés`;
-        } else if (actionType === 'prospect' && (agent_id === 'commercial' || agent_id === 'gmaps')) {
+        } else if (actionType === 'prospect') {
           const res = await fetch(`${baseUrl}/api/agents/gmaps`, {
             method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
             body: JSON.stringify({ query: actionJson.query }),
           });
           const data = await res.json();
           actionResult = `${data.imported || 0} prospects trouvés sur Google Maps`;
-        } else if (actionType === 'list_posts' && agent_id === 'content') {
+        } else if (actionType === 'list_posts') {
           const res = await fetch(`${baseUrl}/api/agents/content`, {
             method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
             body: JSON.stringify({ action: 'calendar', user_id: user.id }),
