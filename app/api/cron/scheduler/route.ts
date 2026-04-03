@@ -673,8 +673,10 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'gmaps':
-      // 10:30 UTC — Google Maps: scan reviews + respond — PER CLIENT
-      await callForEachClient('Google Maps Scan', '/api/agents/gmaps', 'GET', undefined, 'gmaps');
+      // 10:30 UTC — Google Maps: scan new prospects + reviews — PER CLIENT
+      await callForEachClient('Google Maps Scan', '/api/agents/gmaps', 'POST', {}, 'gmaps');
+      // Also respond to Google reviews
+      await callForEachClient('Google Reviews Reply', '/api/agents/google-reviews', 'GET', undefined, 'gmaps');
       break;
 
     case 'comptable':
