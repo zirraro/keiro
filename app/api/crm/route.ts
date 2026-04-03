@@ -27,14 +27,7 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status') || '';
     const temperature = searchParams.get('temperature') || '';
-    const limit = parseInt(searchParams.get('limit') || '5000', 10);
-
-    // Query scoped to user — try org_id first, fallback to created_by/user_id
-    let query = supabase
-      .from('crm_prospects')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(limit);
+    const limit = parseInt(searchParams.get('limit') || '10000', 10);
 
     // Check org membership for multi-tenant filtering
     const { data: orgMember } = await supabase
@@ -43,22 +36,40 @@ export async function GET(req: NextRequest) {
       .eq('user_id', user.id)
       .maybeSingle();
 
-    if (orgMember?.org_id) {
-      query = query.eq('org_id', orgMember.org_id);
-    } else {
-      query = query.or(`created_by.eq.${user.id},user_id.eq.${user.id}`);
+    // Paginate to bypass Supabase PostgREST 1000 row cap
+    let allProspects: any[] = [];
+    const PAGE_SIZE = 1000;
+    let from = 0;
+    let hasMore = true;
+
+    while (hasMore && from < limit) {
+      let pageQuery = supabase
+        .from('crm_prospects')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .range(from, from + PAGE_SIZE - 1);
+
+      if (orgMember?.org_id) {
+        pageQuery = pageQuery.eq('org_id', orgMember.org_id);
+      } else {
+        pageQuery = pageQuery.or(`created_by.eq.${user.id},user_id.eq.${user.id}`);
+      }
+
+      if (status) pageQuery = pageQuery.eq('status', status);
+      if (temperature) pageQuery = pageQuery.eq('temperature', temperature);
+      if (search) {
+        pageQuery = pageQuery.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,company.ilike.%${search}%,email.ilike.%${search}%`);
+      }
+
+      const { data, error: pageError } = await pageQuery;
+      if (pageError) return NextResponse.json({ error: pageError.message }, { status: 500 });
+
+      allProspects = allProspects.concat(data || []);
+      hasMore = (data?.length || 0) === PAGE_SIZE;
+      from += PAGE_SIZE;
     }
 
-    if (status) query = query.eq('status', status);
-    if (temperature) query = query.eq('temperature', temperature);
-    if (search) {
-      query = query.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,company.ilike.%${search}%,email.ilike.%${search}%`);
-    }
-
-    const { data: prospects, error } = await query;
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    const prospects = allProspects;
 
     // Load activities for these prospects
     const prospectIds = (prospects || []).map((p: any) => p.id);
