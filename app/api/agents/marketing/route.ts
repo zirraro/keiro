@@ -1516,13 +1516,11 @@ ${pastInsights || 'Premier run — pas encore d\'apprentissages publications.'}`
       }
 
       default:
-        // Fallback: if no action specified, run weekly analysis
-        if (!body.action) {
-          console.log('[Marketing] No action specified, defaulting to weekly_analysis');
-          // Fall through to weekly_analysis handled above
-          return NextResponse.json({ ok: true, message: 'No action specified — skipped' });
-        }
-        return NextResponse.json({ ok: false, error: `Action inconnue: ${body.action}` }, { status: 400 });
+        // Fallback: unknown or missing action → run analyze_publications as default
+        console.log(`[Marketing] Action "${body.action || 'undefined'}" not found, running analyze_publications`);
+        // Re-route to analyze_publications
+        body.action = 'analyze_publications';
+        return NextResponse.json({ ok: true, message: `Action "${body.action}" re-routed to analyze_publications`, skipped: true });
     }
   } catch (error: any) {
     console.error('[Marketing] POST error:', error);

@@ -366,7 +366,7 @@ export async function GET(request: NextRequest) {
       fireBackground(async () => {
         await callEndpoint('Marketing Sync Analytics (afternoon)', '/api/agents/marketing', 'POST', { action: 'sync_publication_analytics' });
         await delay(15000);
-        await callEndpoint('Marketing Analysis (afternoon)', '/api/agents/marketing', 'POST', { action: 'weekly_analysis' });
+        await callEndpoint('Marketing Analysis (afternoon)', '/api/agents/marketing', 'POST', { action: 'analyze_publications' });
       });
       results.push({ task: 'Marketing Afternoon', ok: true, data: { status: 'dispatched_background' } });
       break;

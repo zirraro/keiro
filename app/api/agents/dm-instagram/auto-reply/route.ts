@@ -201,6 +201,9 @@ REGLES DE TON:
 - Pas de formules toutes faites, pas de "n'hesite pas", pas de listes a puces
 - Si negatif → "ok pas de souci, bonne continuation"
 
+Si tu veux montrer un exemple visuel adapte au prospect, ajoute: [SEND_SHOWCASE:${prospect?.type || 'restaurant'}]
+Ex: "Tiens regarde ce qu'on fait pour des restos comme toi [SEND_SHOWCASE:restaurant]"
+
 PROSPECT: ${prospect?.company || prospect?.first_name || senderName} (${prospect?.type || 'business'}, score: ${prospect?.score || 0})
 
 HISTORIQUE:
