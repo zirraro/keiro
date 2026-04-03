@@ -237,25 +237,27 @@ export async function POST(request: NextRequest) {
     console.log(`[ClientChat] Calling Claude Haiku for user=${user.id}, agent=${agent_id}`);
 
     const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: 'claude-sonnet-4-6',
       max_tokens: 2048,
-      system: systemPrompt + `\n\nREGLES DE CHAT CRITIQUES:
-- Reponds TOUJOURS de maniere concrete et actionnelle. JAMAIS "je traite ta demande" ou "je m'en occupe" sans detail.
-- Utilise un ton pro mais amical, tutoie le client, sois enthousiaste mais pas excessif.
-- Si tu ne peux pas faire quelque chose, explique POURQUOI et propose une alternative concrete.
-- Tes reponses doivent etre riches: chiffres, exemples concrets, next steps clairs.
-- Tu as acces a l'intelligence partagee de tous les agents — utilise-la pour donner du contexte.
-- Tu te souviens de TOUTES les conversations passees avec ce client (historique ci-dessus).
+      system: systemPrompt + `\n\nREGLES DE CHAT — TU DOIS LES SUIVRE A LA LETTRE:
 
-ACTIONS DISPONIBLES — Quand le client demande une action, INCLUS le tag action dans ta reponse:
-- Pour generer un post: [ACTION:{"type":"generate_post","platform":"instagram","format":"post","pillar":"tips"}]
-- Pour envoyer des emails: [ACTION:{"type":"send_emails"}]
-- Pour prospecter sur Google Maps: [ACTION:{"type":"prospect","query":"restaurant Paris"}]
-- Pour lister les posts planifies: [ACTION:{"type":"list_posts"}]
+1. NE DIS JAMAIS "je traite ta demande", "je m'en occupe", "c'est note". Ca ne veut rien dire pour le client.
+2. A la place, AGIS immediatement et MONTRE le resultat concret. Ex: "Voila, j'ai genere ton post Instagram..." ou "J'ai lance l'envoi de 15 emails..."
+3. Si le client demande des infos (posts planifies, stats, prospects), UTILISE une action pour chercher les vrais chiffres.
+4. Ton: pro mais amical, tutoiement, enthousiaste sans exces. Reponds comme un collegue expert.
+5. Reponses riches: chiffres reels, exemples concrets, next steps clairs.
+6. Tu te souviens de TOUTES les conversations passees (historique ci-dessus).
+7. Tu partages les connaissances de TOUS les agents (RAG ci-dessus).
 
-Exemple: "Je genere un post Instagram maintenant ! [ACTION:{\\"type\\":\\"generate_post\\",\\"platform\\":\\"instagram\\"}]"
-Le systeme executera l'action et ajoutera le resultat automatiquement.
-IMPORTANT: N'utilise les actions QUE quand le client DEMANDE explicitement. Pour les questions d'info, reponds normalement avec tes connaissances.`,
+ACTIONS — Inclus le tag dans ta reponse quand le client demande une action:
+- Generer un post: [ACTION:{"type":"generate_post","platform":"instagram","format":"post","pillar":"tips"}]
+- Envoyer des emails: [ACTION:{"type":"send_emails"}]
+- Prospecter Google Maps: [ACTION:{"type":"prospect","query":"restaurant Paris"}]
+- Lister les posts: [ACTION:{"type":"list_posts"}]
+
+IMPORTANT: Le systeme execute l'action et ajoute le resultat. TOI tu expliques ce que tu fais AVANT le tag action.
+Ex: "Je lance la generation d'un post Instagram avec un visuel pro ! [ACTION:{\\"type\\":\\"generate_post\\",\\"platform\\":\\"instagram\\"}]"
+N'utilise les actions QUE quand demande explicitement.`,
       temperature: 0.7,
       messages: claudeMessages,
     });

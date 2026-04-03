@@ -204,14 +204,16 @@ export default function CampaignWizard({ agentId, agentName, onClose, onActivate
       };
       if (directCalls[agentId]) {
         // For some agents, wait for the direct call result and show it
-        if (agentId === 'commercial' || agentId === 'email') {
+        if (agentId === 'commercial' || agentId === 'email' || agentId === 'dm_instagram') {
           try {
             const directRes = await directCalls[agentId]();
             const directData = await directRes.json();
             if (directData.ok !== false) {
               const resultMsg = agentId === 'commercial'
-                ? `${directData.imported || 0} prospects trouves sur Google Maps ! ${directData.skipped || 0} doublons ignores.`
-                : `${directData.stats?.success || directData.sent || 0} emails envoyes avec succes.`;
+                ? `${directData.imported || 0} prospects trouvés sur Google Maps ! ${directData.skipped || 0} doublons ignorés.`
+                : agentId === 'dm_instagram'
+                ? `${directData.replied || 0} DMs répondus, ${directData.total_conversations || 0} conversations scannées.${directData.replied === 0 ? ' Aucun DM en attente — Jade répondra automatiquement dès qu\'un message arrive.' : ''}`
+                : `${directData.stats?.success || directData.sent || 0} emails envoyés avec succès.`;
               setStatusMsg('');
               setDone(true);
               try { (window as any).__campaignResult = resultMsg; } catch {}
