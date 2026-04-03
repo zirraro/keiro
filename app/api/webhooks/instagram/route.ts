@@ -207,10 +207,13 @@ PHASE 2 — DECOUVERTE + VALEUR: Pose des questions sur leur business pour compr
 - "Tu aimerais quel type de contenu ? Des photos pro, des reels tendance ?"
 Partage un conseil concret adapte a leur secteur.
 
-PHASE 3 — DEMONSTRATION: Montre des EXEMPLES CONCRETS de visuels IA generes pour leur type de business.
-${showcaseContext ? 'UTILISE CES EXEMPLES REELS:' + showcaseContext : 'Decris ce que l\'IA peut generer pour eux: "Imagine un visuel pro de ton [produit/plat/salon] avec une accroche tendance, genere en 30 secondes"'}
-Dis: "Regarde ce qu'on fait pour des ${prospect.type || 'business'} comme toi" et partage un lien d'exemple.
-Si le prospect donne des details sur son business → propose de generer un visuel personnalise pour lui.
+PHASE 3 — DEMONSTRATION: Montre des exemples concrets.
+Pour envoyer une image exemple: ajoute [SEND_SHOWCASE:${prospect.type || 'restaurant'}] dans ta reponse
+Ex: "Tiens regarde ce qu'on fait pour des ${prospect.type || 'restos'} [SEND_SHOWCASE:${prospect.type || 'restaurant'}]"
+Si le prospect donne des details precis sur son business (nom, produits, style) → genere un visuel perso:
+Ajoute [GENERATE_IMAGE:description detaillee en anglais du visuel] dans ta reponse
+Ex: "Attends je te genere un truc perso pour ton business [GENERATE_IMAGE:Professional photo of a cozy wine bar interior, warm lighting, wine bottles on shelves, elegant atmosphere]"
+Le systeme enverra l'image automatiquement apres ton message texte.
 
 PHASE 4 — CLOSING:
 - "On a un essai gratuit 14 jours, tous les agents IA debloques. Tu veux que je t'inscris ?"
@@ -264,6 +267,63 @@ ${history ? `\nHISTORIQUE CONVERSATION:\n${history}` : ''}${businessContext}${ra
           data: { direction: 'inbound', message: messageText.substring(0, 500) },
           created_at: now,
         });
+
+        // ─── Detect image actions in AI reply ──────────
+        let imageToSend: string | null = null;
+
+        // Check if Jade wants to send a showcase image
+        const showcaseMatch = aiReply.match(/\[SEND_SHOWCASE:([^\]]+)\]/);
+        if (showcaseMatch) {
+          const bType = showcaseMatch[1].trim().toLowerCase();
+          aiReply = aiReply.replace(/\[SEND_SHOWCASE:[^\]]+\]/, '').trim();
+          try {
+            const { data: imgs } = await supabase
+              .from('showcase_images')
+              .select('image_url')
+              .eq('business_type', bType)
+              .eq('is_active', true)
+              .order('usage_count', { ascending: true })
+              .limit(1);
+            if (imgs && imgs[0]?.image_url) imageToSend = imgs[0].image_url;
+          } catch {}
+          // Fallback to generic
+          if (!imageToSend) {
+            const { data: genericImgs } = await supabase
+              .from('showcase_images')
+              .select('image_url')
+              .eq('business_type', 'generic')
+              .eq('is_active', true)
+              .limit(1);
+            if (genericImgs && genericImgs[0]?.image_url) imageToSend = genericImgs[0].image_url;
+          }
+        }
+
+        // Check if Jade wants to generate a personalized image
+        const generateMatch = aiReply.match(/\[GENERATE_IMAGE:([^\]]+)\]/);
+        if (generateMatch && !imageToSend) {
+          const imgPrompt = generateMatch[1].trim();
+          aiReply = aiReply.replace(/\[GENERATE_IMAGE:[^\]]+\]/, '').trim();
+          try {
+            const seedreamUrl = process.env.SEEDREAM_API_URL;
+            const seedreamKey = process.env.SEEDREAM_API_KEY;
+            if (seedreamUrl && seedreamKey) {
+              console.log(`[InstagramWebhook] Generating personalized image: ${imgPrompt.substring(0, 80)}`);
+              const genRes = await fetch(seedreamUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${seedreamKey}` },
+                body: JSON.stringify({ prompt: imgPrompt, width: 1080, height: 1080, num_images: 1 }),
+                signal: AbortSignal.timeout(30000),
+              });
+              if (genRes.ok) {
+                const genData = await genRes.json();
+                const generatedUrl = genData.images?.[0]?.url || genData.data?.[0]?.url || genData.url;
+                if (generatedUrl) imageToSend = generatedUrl;
+              }
+            }
+          } catch (genErr: any) {
+            console.warn('[InstagramWebhook] Image generation failed:', genErr.message?.substring(0, 100));
+          }
+        }
 
         // ─── Small delay to appear more human (not instant bot reply) ──
         await new Promise(r => setTimeout(r, 2000 + Math.random() * 3000)); // 2-5s delay
@@ -336,6 +396,26 @@ ${history ? `\nHISTORIQUE CONVERSATION:\n${history}` : ''}${businessContext}${ra
               }
 
               if (!sendSuccess) console.error('[InstagramWebhook] ALL send methods failed for', senderId);
+
+              // Send image if available (after text message)
+              if (imageToSend && sendSuccess) {
+                await new Promise(r => setTimeout(r, 1500)); // Small delay between text and image
+                try {
+                  const imgRes = await fetch(`https://graph.facebook.com/v21.0/${sendFromId}/messages`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({
+                      recipient: JSON.stringify({ id: senderId }),
+                      message: JSON.stringify({ attachment: { type: 'image', payload: { url: imageToSend } } }),
+                      access_token: sendToken,
+                    }),
+                  });
+                  if (imgRes.ok) console.log(`[InstagramWebhook] Image sent to ${senderId}: ${imageToSend.substring(0, 80)}`);
+                  else console.warn('[InstagramWebhook] Image send failed:', (await imgRes.text()).substring(0, 100));
+                } catch (imgErr: any) {
+                  console.warn('[InstagramWebhook] Image send error:', imgErr.message?.substring(0, 100));
+                }
+              }
 
               console.log(`[InstagramWebhook] Auto-reply sent to ${senderId}`);
 
