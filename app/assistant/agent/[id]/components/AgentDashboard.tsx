@@ -2226,6 +2226,8 @@ function ContentWorkflow({ isConnected }: { isConnected?: boolean }) {
       {/* Inline editorial calendar */}
       <ContentCalendarInline posts={posts} onSelectPost={setSelectedPost} />
 
+      {/* Gallery removed — use Planning tab. Hidden below to keep state/logic intact */}
+      <div style={{ display: 'none' }}>
       {/* Platform filter */}
       <div className="flex gap-1 mb-1.5 overflow-x-auto">
         {[
@@ -2300,13 +2302,15 @@ function ContentWorkflow({ isConnected }: { isConnected?: boolean }) {
         </button>
       )}
 
-      {/* Post preview modal — opens on click */}
+      </div>{/* end hidden gallery */}
+
+      {/* Post preview modal — opens from calendar clicks */}
       {selectedPost && (
         <PostPreviewModal
           post={selectedPost}
           onClose={() => setSelectedPost(null)}
           onApprove={selectedPost.status === 'draft' ? () => handleAction(selectedPost.id, 'approve') : undefined}
-          onPublish={selectedPost.status === 'draft' ? () => handleAction(selectedPost.id, 'publish_single') : undefined}
+          onPublish={(selectedPost.status === 'draft' || selectedPost.status === 'approved') ? () => handleAction(selectedPost.id, 'publish_single') : undefined}
           onSkip={selectedPost.status === 'draft' ? () => handleAction(selectedPost.id, 'skip') : undefined}
         />
       )}
