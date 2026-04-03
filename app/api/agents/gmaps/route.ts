@@ -403,7 +403,7 @@ async function runGMapsScan(orgId: string | null = null, userId: string | null =
   console.log(`[GMaps] ${scannedZones.join(', ')}: ${totalImported} imported, ${totalSkipped} skipped, ${totalErrors} errors`);
 
   // Notify client
-  if (userId && totalImported > 0) {
+  if (userId && totalImported >= 10) {
     try {
       const { notifyProspection } = await import('@/lib/agents/notify-client');
       await notifyProspection(supabase, userId, {

@@ -1,6 +1,17 @@
 /**
- * Client notification helper — creates in-app notifications for agent actions.
- * These appear in the NotificationBell and agent History tab.
+ * Client notification helper — HIGH VALUE notifications only.
+ *
+ * SEND NOTIFICATIONS FOR:
+ * - Publication confirmed (post publié sur Instagram/TikTok)
+ * - Prospect replied to email (reprends la main!)
+ * - DM prospect hot (5+ échanges, score >= 60)
+ * - Batch prospects imported (>= 10)
+ * - Batch posts published
+ *
+ * DO NOT SEND FOR:
+ * - Individual emails sent (too noisy)
+ * - Each CRM activity (too noisy)
+ * - Agent routine tasks (logs are enough)
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
