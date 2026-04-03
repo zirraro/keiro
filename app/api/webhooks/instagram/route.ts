@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     try { body = JSON.parse(rawBody); } catch { return NextResponse.json({ ok: false, error: 'Invalid JSON' }, { status: 400 }); }
 
     // Verify signature (warn but don't block — allows debugging in test mode)
-    const APP_SECRET = process.env.FACEBOOK_APP_SECRET || process.env.WHATSAPP_APP_SECRET;
+    const APP_SECRET = process.env.FACEBOOK_APP_SECRET || process.env.META_APP_SECRET || process.env.WHATSAPP_APP_SECRET;
     if (APP_SECRET) {
       const signature = req.headers.get('x-hub-signature-256') || '';
       const expected = 'sha256=' + crypto.createHmac('sha256', APP_SECRET).update(rawBody).digest('hex');
