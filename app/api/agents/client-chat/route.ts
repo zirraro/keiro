@@ -52,10 +52,8 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (!profile) {
-      return NextResponse.json(
-        { ok: false, error: 'Profil utilisateur introuvable' },
-        { status: 404 },
-      );
+      // Don't block — create minimal profile and continue
+      console.warn(`[ClientChat] Profile not found for ${user.id}, continuing without profile`);
     }
 
     // 3. Chat is FREE for everyone — agents are already gated by plan (blurred/locked)
@@ -88,7 +86,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. Rate limit: free plan = 10 messages/day, paid = unlimited
-    const plan = profile.subscription_plan || 'free';
+    const plan = profile?.subscription_plan || 'free';
     if (plan === 'free' && !isAdminUser) {
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
@@ -132,7 +130,7 @@ export async function POST(request: NextRequest) {
       const dossier = await loadBusinessDossier(supabase, user.id);
       const enrichment = await enrichAgentContext(
         agent_id,
-        profile.business_type || dossier?.business_type || null,
+        profile?.business_type || dossier?.business_type || null,
         dossier?.google_maps_url || null,
       );
       const enrichParts: string[] = [];
