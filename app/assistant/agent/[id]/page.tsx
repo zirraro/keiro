@@ -682,9 +682,19 @@ export default function AgentWorkspacePage() {
     if (inputRef.current) inputRef.current.style.height = 'auto';
     try {
       const res = await fetch('/api/agents/client-chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ agent_id: agentId, message: text }) });
-      const replyContent = res.ok ? ((await res.json()).message || 'Reponse recue.') : 'Merci ! Je traite ta demande.';
-      setMessages(prev => [...prev, { id: generateId(), role: 'assistant', content: replyContent, created_at: new Date().toISOString() }]);
-    } catch { setMessages(prev => [...prev, { id: generateId(), role: 'assistant', content: 'Oups, probleme de connexion.', created_at: new Date().toISOString() }]); }
+      const data = await res.json();
+      if (res.ok && data.message) {
+        setMessages(prev => [...prev, { id: generateId(), role: 'assistant', content: data.message, created_at: new Date().toISOString() }]);
+      } else {
+        // Show the actual error to debug, never "je traite ta demande"
+        const errorMsg = data.error === 'Credits insuffisants'
+          ? 'Tu n\'as plus de crédits. Passe au plan supérieur pour continuer à discuter avec tes agents.'
+          : data.error === 'Connexion requise'
+          ? 'Connecte-toi pour discuter avec tes agents.'
+          : `Désolé, je n'ai pas pu répondre. ${data.error || 'Réessaie dans quelques secondes.'}`;
+        setMessages(prev => [...prev, { id: generateId(), role: 'assistant', content: errorMsg, created_at: new Date().toISOString() }]);
+      }
+    } catch { setMessages(prev => [...prev, { id: generateId(), role: 'assistant', content: 'Connexion perdue. Vérifie ta connexion internet et réessaie.', created_at: new Date().toISOString() }]); }
     finally { setIsLoading(false); }
   }, [input, isLoading, agentId]);
 

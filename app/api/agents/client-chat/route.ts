@@ -58,21 +58,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Check credits (1 credit per message, same feature key as marketing_chat)
+    // 3. Check credits (1 credit per message) — skip for trial/active plans
     const isAdminUser = await checkIsAdmin(user.id);
     if (!isAdminUser) {
-      const check = await checkCredits(user.id, 'marketing_chat');
-      if (!check.allowed) {
-        return NextResponse.json(
-          {
-            ok: false,
-            error: 'Credits insuffisants pour envoyer un message.',
-            insufficientCredits: true,
-            cost: check.cost,
-            balance: check.balance,
-          },
-          { status: 402 },
+      // Check if user has an active subscription (trial or paid) — chat is free for subscribers
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('subscription_plan, trial_ends_at')
+        .eq('id', user.id)
+        .single();
+      const hasPlan = userProfile?.subscription_plan && userProfile.subscription_plan !== 'free' && userProfile.subscription_plan !== 'gratuit';
+      const inTrial = userProfile?.trial_ends_at && new Date(userProfile.trial_ends_at) > new Date();
+
+      if (!hasPlan && !inTrial) {
+        const check = await checkCredits(user.id, 'marketing_chat');
+        if (!check.allowed) {
+          return NextResponse.json(
+            {
+              ok: false,
+              error: 'Credits insuffisants pour envoyer un message.',
+              insufficientCredits: true,
+              cost: check.cost,
+              balance: check.balance,
+            },
+            { status: 402 },
         );
+        }
       }
     }
 
