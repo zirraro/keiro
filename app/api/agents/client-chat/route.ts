@@ -58,35 +58,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Check credits (1 credit per message) — skip for trial/active plans
+    // 3. Chat is FREE for everyone — agents are already gated by plan (blurred/locked)
+    // If a user can access the agent page, they can use the chat
     const isAdminUser = await checkIsAdmin(user.id);
-    if (!isAdminUser) {
-      // Check if user has an active subscription (trial or paid) — chat is free for subscribers
-      const { data: userProfile } = await supabase
-        .from('profiles')
-        .select('subscription_plan, trial_ends_at')
-        .eq('id', user.id)
-        .single();
-      const hasPlan = userProfile?.subscription_plan && userProfile.subscription_plan !== 'free' && userProfile.subscription_plan !== 'gratuit';
-      const inTrial = userProfile?.trial_ends_at && new Date(userProfile.trial_ends_at) > new Date();
-      console.log(`[ClientChat] User ${user.id}: plan=${userProfile?.subscription_plan}, trial=${userProfile?.trial_ends_at}, hasPlan=${hasPlan}, inTrial=${inTrial}`);
-
-      if (!hasPlan && !inTrial) {
-        const check = await checkCredits(user.id, 'marketing_chat');
-        if (!check.allowed) {
-          return NextResponse.json(
-            {
-              ok: false,
-              error: 'Credits insuffisants pour envoyer un message.',
-              insufficientCredits: true,
-              cost: check.cost,
-              balance: check.balance,
-            },
-            { status: 402 },
-        );
-        }
-      }
-    }
 
     // Parse body
     const body = await request.json().catch(() => ({}));
@@ -450,12 +424,8 @@ N'utilise les actions QUE quand le client DEMANDE explicitement une action.`,
       } catch {}
     }
 
-    // 11. Deduct 1 credit
-    let newBalance: number | undefined;
-    if (!isAdminUser) {
-      const result = await deductCredits(user.id, 'marketing_chat', `Chat agent ${agentName}`);
-      newBalance = result.newBalance;
-    }
+    // 11. Chat is free — no credit deduction
+    const newBalance: number | undefined = undefined;
 
     // Extract setting update for frontend
     const settingUpdate = settingMatch ? (() => {
