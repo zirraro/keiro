@@ -357,29 +357,24 @@ ${history ? `\nCONVERSATION:\n${history}` : ''}${businessContext}${ragContext}`;
           const bType = showcaseMatch[1].trim().toLowerCase();
           aiReply = aiReply.replace(/\[SEND_SHOWCASE:[^\]]+\]/, '').trim();
 
-          // Get ALL images for this type, then pick one NOT already sent to this prospect
-          // Map common business types to available showcase types
+          // EXACT MATCH ONLY — don't send wrong business type images
+          // Types available in DB: restaurant, boutique, coach, coiffeur, caviste, fleuriste, generic
+          const EXACT_DB_TYPES = ['restaurant', 'boutique', 'coach', 'coiffeur', 'caviste', 'fleuriste', 'generic'];
           const TYPE_MAP: Record<string, string> = {
-            'agence': 'generic', 'voyage': 'generic', 'agence de voyage': 'generic',
             'bar': 'caviste', 'cafe': 'restaurant', 'brasserie': 'restaurant',
-            'salon': 'coiffeur', 'barbier': 'coiffeur', 'beaute': 'coiffeur',
+            'salon': 'coiffeur', 'barbier': 'coiffeur',
             'boulangerie': 'restaurant', 'patisserie': 'restaurant', 'traiteur': 'restaurant',
-            'freelance': 'coach', 'consultant': 'coach', 'formation': 'coach',
-            'magasin': 'boutique', 'commerce': 'boutique', 'mode': 'boutique',
-            'spa': 'coiffeur', 'esthetique': 'coiffeur',
           };
           const mappedType = TYPE_MAP[bType] || bType;
-          const typesToTry = [mappedType, 'generic'];
-          // Remove duplicates
-          const uniqueTypes = [...new Set(typesToTry)];
+          const hasExactMatch = EXACT_DB_TYPES.includes(mappedType);
 
-          for (const tryType of uniqueTypes) {
-            if (imageToSend) break;
+          if (hasExactMatch) {
+            // Use showcase image ONLY if exact type match exists
             try {
               const { data: imgs } = await supabase
                 .from('showcase_images')
                 .select('id, image_url, usage_count')
-                .eq('business_type', tryType)
+                .eq('business_type', mappedType)
                 .eq('is_active', true)
                 .order('usage_count', { ascending: true })
                 .limit(10);
@@ -388,12 +383,16 @@ ${history ? `\nCONVERSATION:\n${history}` : ''}${businessContext}${ragContext}`;
                 const unsent = imgs.filter((img: any) => !alreadySentImages.includes(img.image_url));
                 const picked = unsent.length > 0 ? unsent[0] : imgs[Math.floor(Math.random() * imgs.length)];
                 imageToSend = picked.image_url;
-                console.log(`[InstagramWebhook] Picked image: ${tryType} → ${(imageToSend || '').substring(0, 60)} (unsent: ${unsent.length}/${imgs.length})`);
-
-                // Increment usage_count
+                console.log(`[InstagramWebhook] Exact showcase match: ${mappedType} → ${(imageToSend || '').substring(0, 60)}`);
                 supabase.from('showcase_images').update({ usage_count: ((picked as any).usage_count || 0) + 1 }).eq('id', picked.id).then(() => {});
               }
-            } catch (e: any) { console.warn(`[InstagramWebhook] Showcase fetch error for ${tryType}:`, e.message?.substring(0, 80)); }
+            } catch (e: any) { console.warn(`[InstagramWebhook] Showcase error:`, e.message?.substring(0, 80)); }
+          }
+
+          // NO exact match → generate via Seedream (personalized to the ACTUAL business)
+          if (!imageToSend) {
+            console.log(`[InstagramWebhook] No exact showcase for "${bType}" — generating via Seedream`);
+            // Force generation by setting showcaseMatch (will be caught by auto-generate block below)
           }
 
           console.log(`[InstagramWebhook] Showcase: requested="${bType}" mapped="${mappedType}" found=${!!imageToSend} (already sent: ${alreadySentImages.length})`);
@@ -433,10 +432,12 @@ ${history ? `\nCONVERSATION:\n${history}` : ''}${businessContext}${ragContext}`;
             const seedreamUrl = process.env.SEEDREAM_API_URL;
             const seedreamKey = process.env.SEEDREAM_API_KEY;
             if (seedreamUrl && seedreamKey) {
-              // Build a rich prompt from prospect info
-              const bizType = prospect.type || (showcaseMatch ? showcaseMatch[1] : 'business');
+              // Build a rich prompt from prospect info + what they told us
+              const bizType = showcaseMatch ? showcaseMatch[1] : (prospect.type || 'business');
               const bizName = prospect.company || '';
-              const autoPrompt = `Professional Instagram marketing visual for a ${bizType}${bizName ? ` called "${bizName}"` : ''}, modern clean design, vibrant colors, eye-catching social media post, professional photography style, warm lighting, high quality 4K, trending aesthetic`;
+              // Use the conversation to understand what the prospect actually does
+              const lastUserMsg = messageText.toLowerCase();
+              const autoPrompt = `Beautiful Instagram marketing post for a ${bizType} shop${bizName ? ` "${bizName}"` : ''}, showing ${bizType} products elegantly displayed, professional product photography, soft natural lighting, luxury feel, modern aesthetic, social media ready, square format, high quality 4K`;
               console.log(`[InstagramWebhook] Auto-generating image: ${autoPrompt.substring(0, 80)}`);
               const genRes = await fetch(seedreamUrl, {
                 method: 'POST',
@@ -571,7 +572,7 @@ ${history ? `\nCONVERSATION:\n${history}` : ''}${businessContext}${ragContext}`;
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
                         recipient: { id: senderId },
-                        message: { text: imageToSend },
+                        message: { text: `Clique ici pour voir l'exemple :\n${imageToSend}` },
                         access_token: urlToken,
                       }),
                     });
