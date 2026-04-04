@@ -525,6 +525,12 @@ export default function AssistantPage() {
       const ami = visible.splice(amiIndex, 1)[0];
       visible.unshift(ami);
     }
+    // Sort: active agents first, coming_soon last
+    visible.sort((a, b) => {
+      if (a.visibility === 'active' && b.visibility !== 'active') return -1;
+      if (a.visibility !== 'active' && b.visibility === 'active') return 1;
+      return 0;
+    });
     setAgents(visible);
   }, [userPlan, isAdmin, isTrialActive]);
 

@@ -329,7 +329,20 @@ function EditorialCalendarFull({ agentId }: { agentId: string }) {
             {selected.visual_url && <img src={selected.visual_url} alt="" className="w-full max-h-[50vh] object-contain" />}
             <div className="px-4 py-3 space-y-2">
               {selected.hook && <p className="text-sm font-bold text-white">{selected.hook}</p>}
-              <p className="text-xs text-white/70 whitespace-pre-wrap">{selected.caption}</p>
+              {(selected.status === 'draft' || selected.status === 'approved') ? (
+                <textarea
+                  defaultValue={selected.caption || ''}
+                  onBlur={async (e) => {
+                    if (e.target.value !== selected.caption) {
+                      try { await fetch('/api/agents/content', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'update_caption', postId: selected.id, caption: e.target.value }) }); } catch {}
+                    }
+                  }}
+                  className="w-full text-xs text-white/70 bg-white/5 border border-white/10 rounded-lg p-2 min-h-[60px] resize-y focus:ring-1 focus:ring-purple-500/50 focus:outline-none"
+                  placeholder="Description du post..."
+                />
+              ) : (
+                <p className="text-xs text-white/70 whitespace-pre-wrap">{selected.caption}</p>
+              )}
               {selected.hashtags && <p className="text-xs text-blue-400">{Array.isArray(selected.hashtags) ? selected.hashtags.join(' ') : selected.hashtags}</p>}
               {selected.instagram_permalink && <a href={selected.instagram_permalink} target="_blank" rel="noopener" className="text-[10px] text-purple-400 hover:underline">Voir sur Instagram {'\u2197'}</a>}
             </div>
