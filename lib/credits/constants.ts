@@ -57,21 +57,65 @@ export const PLAN_PRICES: Record<string, string> = {
   solo_promo: '49€',
 };
 
-// Prix agent addon (achat individuel entre les plans)
-// Coût = marge cible 80% sur le coût API estimé par agent par mois
+// Prix agent addon — 3 paliers pour simplifier Stripe (3 liens seulement)
+// Palier 1: 8€/mois — agents légers (Gemini, peu d'appels)
+// Palier 2: 12€/mois — agents moyens (Gemini, plus d'appels)
+// Palier 3: 15€/mois — agents lourds (Seedream/Sonnet, génération IA)
+export const ADDON_TIER_1 = 8;
+export const ADDON_TIER_2 = 12;
+export const ADDON_TIER_3 = 15;
+
 export const AGENT_ADDON_PRICES: Record<string, number> = {
-  content: 15,        // Lena — génération images/vidéos (Seedream ~3€/mois)
-  dm_instagram: 10,   // Jade — DM auto (Gemini ~2€/mois)
-  email: 10,          // Hugo — emails (Brevo gratuit, Gemini ~2€/mois)
-  commercial: 10,     // Léo — prospection (Gemini ~2€/mois)
-  gmaps: 8,           // Théo — avis Google (Gemini ~1.5€/mois)
-  seo: 12,            // Oscar — articles SEO (Gemini ~2.5€/mois)
-  chatbot: 10,        // Max — chatbot site (Gemini ~2€/mois)
-  rh: 8,              // Sara — juridique/RH (Gemini ~1.5€/mois)
-  comptable: 15,      // Louis — finance (Sonnet ~3€/mois)
-  marketing: 0,       // Ami — gratuit avec tout plan
-  onboarding: 0,      // Clara — gratuit avec tout plan
+  // Tier 3 (15€) — génération IA lourde
+  content: ADDON_TIER_3,       // Lena — images/vidéos Seedream
+  comptable: ADDON_TIER_3,     // Louis — devis/factures Sonnet
+
+  // Tier 2 (12€) — agents avec volume d'appels moyen
+  seo: ADDON_TIER_2,           // Oscar — articles SEO
+  dm_instagram: ADDON_TIER_2,  // Jade — DM auto + webhook
+  email: ADDON_TIER_2,         // Hugo — séquences email
+  chatbot: ADDON_TIER_2,       // Max — chatbot 24/7
+
+  // Tier 1 (8€) — agents légers
+  commercial: ADDON_TIER_1,    // Léo — prospection CRM
+  gmaps: ADDON_TIER_1,         // Théo — avis Google
+  rh: ADDON_TIER_1,            // Sara — juridique/RH
+
+  // Gratuits (inclus dans tout plan)
+  marketing: 0,                // Ami
+  onboarding: 0,               // Clara
 };
+
+// Quels agents sont disponibles en addon pour chaque plan
+// = tous les agents qui ne sont PAS dans le plan du client
+export function getAvailableAddons(plan: string): Array<{ agentId: string; name: string; price: number; tier: number }> {
+  const planAgents: Record<string, Set<string>> = {
+    free: new Set(['marketing', 'onboarding']),
+    gratuit: new Set(['marketing', 'onboarding']),
+    createur: new Set(['marketing', 'onboarding', 'content', 'dm_instagram', 'email', 'commercial', 'gmaps']),
+    pro: new Set(['marketing', 'onboarding', 'content', 'dm_instagram', 'email', 'commercial', 'gmaps', 'seo', 'rh', 'chatbot']),
+    fondateurs: new Set(['marketing', 'onboarding', 'content', 'dm_instagram', 'email', 'commercial', 'gmaps', 'seo', 'rh', 'chatbot', 'comptable']),
+    business: new Set(['marketing', 'onboarding', 'content', 'dm_instagram', 'email', 'commercial', 'gmaps', 'seo', 'rh', 'chatbot', 'comptable']),
+    elite: new Set(['marketing', 'onboarding', 'content', 'dm_instagram', 'email', 'commercial', 'gmaps', 'seo', 'rh', 'chatbot', 'comptable']),
+  };
+
+  const AGENT_NAMES: Record<string, string> = {
+    content: 'Lena (Contenu)', dm_instagram: 'Jade (DM)', email: 'Hugo (Email)',
+    commercial: 'Léo (Prospection)', gmaps: 'Théo (Avis Google)', seo: 'Oscar (SEO)',
+    chatbot: 'Max (Chatbot)', rh: 'Sara (RH)', comptable: 'Louis (Finance)',
+  };
+
+  const included = planAgents[plan] || planAgents.free;
+  return Object.entries(AGENT_ADDON_PRICES)
+    .filter(([id, price]) => price > 0 && !included.has(id))
+    .map(([id, price]) => ({
+      agentId: id,
+      name: AGENT_NAMES[id] || id,
+      price,
+      tier: price === ADDON_TIER_3 ? 3 : price === ADDON_TIER_2 ? 2 : 1,
+    }))
+    .sort((a, b) => a.tier - b.tier);
+}
 
 // Noms affichés
 export const PLAN_NAMES: Record<string, string> = {

@@ -2,12 +2,13 @@
 
 import { useState } from 'react';
 import type { ClientAgent } from '@/lib/agents/client-context';
+import { AGENT_ADDON_PRICES } from '@/lib/credits/constants';
 
 const PLAN_LABELS: Record<string, string> = {
-  createur: 'Createur (49\u20AC/mois)',
+  createur: 'Créateur (49\u20AC/mois)',
   pro: 'Pro (99\u20AC/mois)',
   fondateurs: 'Fondateurs Pro (149\u20AC/mois)',
-  business: 'Business (349\u20AC/mois)',
+  business: 'Business (199\u20AC/mois)',
   elite: 'Elite (999\u20AC/mois)',
 };
 
@@ -53,20 +54,37 @@ export default function AgentCard({ agent, avatarUrl, isSelected, onClick, comin
         }}
       />
 
-      {/* Locked overlay — shows required plan */}
-      {isLocked && (
-        <div className="absolute inset-0 z-20 bg-black/50 backdrop-blur-[2px] flex flex-col items-center justify-center gap-2 px-3">
-          <svg className="w-5 h-5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-          </svg>
-          <span className="text-white/90 text-xs font-semibold text-center">
-            Passe au plan {PLAN_LABELS[agent.minPlan] || agent.minPlan}
-          </span>
-          <a href="/offre" className="px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-[10px] font-bold rounded-lg hover:opacity-90 transition-all">
-            Voir les offres
-          </a>
-        </div>
-      )}
+      {/* Locked overlay — addon upsell or plan upgrade */}
+      {isLocked && (() => {
+        const addonPrice = AGENT_ADDON_PRICES[agent.id];
+        return (
+          <div className="absolute inset-0 z-20 bg-black/50 backdrop-blur-[2px] flex flex-col items-center justify-center gap-2 px-3">
+            <svg className="w-5 h-5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            {addonPrice && addonPrice > 0 ? (
+              <>
+                <span className="text-white/90 text-xs font-semibold text-center">
+                  Ajouter cet agent
+                </span>
+                <span className="text-white font-bold text-lg">{addonPrice}€<span className="text-[10px] text-white/50 font-normal">/mois</span></span>
+                <a href="/pricing" className="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-[10px] font-bold rounded-lg hover:opacity-90 transition-all">
+                  Ajouter {agent.displayName}
+                </a>
+              </>
+            ) : (
+              <>
+                <span className="text-white/90 text-xs font-semibold text-center">
+                  Plan {PLAN_LABELS[agent.minPlan] || agent.minPlan}
+                </span>
+                <a href="/pricing" className="px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-[10px] font-bold rounded-lg hover:opacity-90 transition-all">
+                  Voir les offres
+                </a>
+              </>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Status badge */}
       {isLocked && (
