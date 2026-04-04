@@ -244,7 +244,7 @@ function PricingPageInner() {
 
             <Link
               href="/checkout/upsell?plan=createur"
-              className="block w-full py-3 px-6 text-center rounded-xl bg-gradient-to-r from-[#0c1a3a] to-purple-700 text-white font-bold hover:shadow-lg transition-all hover:scale-105"
+              className="block w-full py-3 px-6 text-center rounded-xl bg-gradient-to-r from-[#0c1a3a] to-purple-700 text-white font-bold hover:shadow-lg transition-all hover:scale-100 sm:hover:scale-105"
             >
               {t.pricing.freeTrialCta || '→ Essai gratuit 14 jours'}
             </Link>
@@ -253,7 +253,7 @@ function PricingPageInner() {
         </div>
 
         {/* TikTok Unlock Highlight */}
-        <div className="bg-gradient-to-br from-cyan-500 via-[#0c1a3a] to-purple-600 rounded-2xl p-8 mb-10 text-white relative overflow-hidden">
+        <div className="bg-gradient-to-br from-cyan-500 via-[#0c1a3a] to-purple-600 rounded-2xl p-4 sm:p-8 mb-6 sm:mb-10 text-white relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 animate-float-slow"></div>
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-24 -mb-24 animate-float-medium"></div>
 
@@ -310,7 +310,7 @@ function PricingPageInner() {
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mb-16">
           {/* Créateur 49€ */}
-          <div id="createur" className="bg-gradient-to-br from-purple-600 to-indigo-600 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col">
+          <div id="createur" className="bg-gradient-to-br from-purple-600 to-indigo-600 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-100 sm:hover:scale-105 flex flex-col">
             <div className="mb-4 pt-2">
               <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
                 <span>💎</span> {t.pricing.planCreateurTitle}
@@ -365,7 +365,7 @@ function PricingPageInner() {
           </div>
 
           {/* Pro 99€ */}
-          <div id="pro" className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col">
+          <div id="pro" className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-100 sm:hover:scale-105 flex flex-col">
             <div className="mb-4 pt-2">
               <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
                 <span>🚀</span> {t.pricing.planProTitle}
@@ -411,7 +411,7 @@ function PricingPageInner() {
           </div>
 
           {/* Fondateurs Pro 149€ - POPULAIRE + CHRONO */}
-          <div id="fondateurs" className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col animate-glow">
+          <div id="fondateurs" className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-100 sm:hover:scale-105 flex flex-col animate-glow">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2">
               <span className="bg-amber-900 text-amber-100 px-4 py-1 rounded-full text-xs font-bold shadow-lg">
                 {'\u2B50'} Populaire
@@ -473,7 +473,7 @@ function PricingPageInner() {
           </div>
 
           {/* Business 349€ */}
-          <div className="bg-gradient-to-br from-[#0c1a3a] to-[#1e3a5f] rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col">
+          <div className="bg-gradient-to-br from-[#0c1a3a] to-[#1e3a5f] rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-100 sm:hover:scale-105 flex flex-col">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2">
               <span className="bg-[#0c1a3a] text-cyan-200 px-4 py-1 rounded-full text-xs font-bold shadow-lg">
                 PME & Multi-activité
@@ -530,7 +530,7 @@ function PricingPageInner() {
         {/* Elite - Plan complet */}
 
         <div className="max-w-lg mx-auto mb-16">
-          <div className="bg-gradient-to-br from-amber-600 to-yellow-700 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-105 flex flex-col">
+          <div className="bg-gradient-to-br from-amber-600 to-yellow-700 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-100 sm:hover:scale-105 flex flex-col">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2">
               <span className="bg-gradient-to-r from-yellow-400 to-amber-400 text-amber-900 px-4 py-1 rounded-full text-xs font-bold shadow-lg">
                 {t.pricing.planEliteBadge}
@@ -882,7 +882,7 @@ function PricingPageInner() {
 
         {/* Comparateur Keiro vs. Prestataires - 3 colonnes */}
 
-        <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-8 md:p-12 mb-16 text-white relative overflow-hidden">
+        <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-4 sm:p-8 md:p-12 mb-16 text-white relative overflow-hidden">
           <div className="absolute top-0 right-0 w-72 h-72 bg-[#0c1a3a]/10 rounded-full -mr-36 -mt-36 blur-3xl"></div>
           <div className="absolute bottom-0 left-0 w-56 h-56 bg-cyan-500/10 rounded-full -ml-28 -mb-28 blur-3xl"></div>
 
@@ -1217,7 +1217,7 @@ function PricingPageInner() {
 
         {/* Section Support */}
 
-        <div className="mt-16 bg-gradient-to-br from-purple-50 via-[#0c1a3a]/5 to-cyan-50 rounded-3xl border-2 border-purple-200 p-8 md:p-12">
+        <div className="mt-16 bg-gradient-to-br from-purple-50 via-[#0c1a3a]/5 to-cyan-50 rounded-3xl border-2 border-purple-200 p-4 sm:p-8 md:p-12">
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-purple-600 to-[#0c1a3a] rounded-full mb-4">
               <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1295,7 +1295,7 @@ function PricingPageInner() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/checkout/upsell?plan=createur"
-              className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-[#0c1a3a] font-bold rounded-xl hover:bg-[#0c1a3a]/5 transition-all text-lg shadow-xl hover:shadow-2xl hover:scale-105"
+              className="inline-flex items-center justify-center gap-2 px-4 sm:px-8 py-3 sm:py-4 bg-white text-[#0c1a3a] font-bold rounded-xl hover:bg-[#0c1a3a]/5 transition-all text-lg shadow-xl hover:shadow-2xl hover:scale-100 sm:hover:scale-105"
             >
               {t.pricing.ctaCta}
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1304,7 +1304,7 @@ function PricingPageInner() {
             </Link>
             <Link
               href="/checkout/upsell?plan=createur"
-              className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-amber-500 text-white font-bold rounded-xl hover:bg-amber-600 transition-all text-lg shadow-xl hover:shadow-2xl hover:scale-105"
+              className="inline-flex items-center justify-center gap-2 px-4 sm:px-8 py-3 sm:py-4 bg-amber-500 text-white font-bold rounded-xl hover:bg-amber-600 transition-all text-lg shadow-xl hover:shadow-2xl hover:scale-100 sm:hover:scale-105"
             >
               {t.pricing.planFondateursCta} ⭐
             </Link>
