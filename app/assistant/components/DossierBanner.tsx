@@ -34,7 +34,20 @@ function computeCompleteness(profile: Record<string, any> | null): number {
 
 export default function DossierBanner({ profile, claraAvatarUrl }: DossierBannerProps) {
   const [dismissed, setDismissed] = useState(false);
-  const completeness = computeCompleteness(profile);
+  const [dossierScore, setDossierScore] = useState<number | null>(null);
+
+  // Load real completeness from business_dossiers (Clara fills this, not profile)
+  useEffect(() => {
+    fetch('/api/business-dossier', { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => {
+        if (d.completeness_score !== undefined) setDossierScore(d.completeness_score);
+        else if (d.dossier?.completeness_score !== undefined) setDossierScore(d.dossier.completeness_score);
+      })
+      .catch(() => {});
+  }, []);
+
+  const completeness = dossierScore ?? computeCompleteness(profile);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {

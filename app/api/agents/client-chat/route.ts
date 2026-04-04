@@ -218,48 +218,88 @@ export async function POST(request: NextRequest) {
       { role: 'user' as const, content: message },
     ];
 
-    console.log(`[ClientChat] Calling Claude Haiku for user=${user.id}, agent=${agent_id}`);
+    // Boosted system prompt — works with any model (Gemini, Haiku, Sonnet)
+    const boostedRules = `
 
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 2048,
-      system: systemPrompt + `\n\nREGLES DE CHAT — TU DOIS LES SUIVRE A LA LETTRE:
+=== REGLES ABSOLUES ===
 
-1. NE DIS JAMAIS "je traite ta demande", "je m'en occupe", "c'est note". Ca ne veut rien dire pour le client.
-2. A la place, AGIS immediatement et MONTRE le resultat concret. Ex: "Voila, j'ai genere ton post Instagram..." ou "J'ai lance l'envoi de 15 emails..."
-3. Si le client demande des infos (posts planifies, stats, prospects), UTILISE une action pour chercher les vrais chiffres.
-4. Ton: pro mais amical, tutoiement, enthousiaste sans exces. Reponds comme un collegue expert.
-5. Reponses riches: chiffres reels, exemples concrets, next steps clairs.
-6. Tu te souviens de TOUTES les conversations passees (historique ci-dessus).
-7. Tu partages les connaissances de TOUS les agents (RAG ci-dessus).
+INTERDICTIONS (ne fais JAMAIS ca):
+- "Je traite ta demande" / "C'est noté" / "Je m'en occupe" → INTERDIT. Ca ne veut RIEN dire.
+- Réponses vagues sans action concrète → INTERDIT.
+- Ignorer une demande d'action → INTERDIT.
 
-ACTIONS — Inclus le tag dans ta reponse quand le client demande une action:
-- Generer un post Instagram: [ACTION:{"type":"generate_post","platform":"instagram","format":"post","pillar":"tips"}]
-- Generer un reel: [ACTION:{"type":"generate_post","platform":"instagram","format":"reel","pillar":"trends"}]
-- Generer un post TikTok: [ACTION:{"type":"generate_post","platform":"tiktok","format":"video"}]
-- Generer un post LinkedIn: [ACTION:{"type":"generate_post","platform":"linkedin","format":"text"}]
-- Envoyer des emails aux prospects: [ACTION:{"type":"send_emails"}]
-- Prospecter sur Google Maps: [ACTION:{"type":"prospect","query":"restaurant Paris"}]
-- Voir les posts planifies: [ACTION:{"type":"list_posts"}]
-- Scanner et repondre aux DMs: [ACTION:{"type":"scan_dms"}]
-- Repondre aux commentaires Instagram: [ACTION:{"type":"reply_comments"}]
+OBLIGATIONS (fais TOUJOURS ca):
+- Le client demande quelque chose ? AGIS et MONTRE le résultat. Ex: "C'est fait ! Voilà ton post Instagram..."
+- Le client pose une question ? RÉPONDS avec des CHIFFRES et des FAITS (utilise les actions pour chercher).
+- Ton: pro, amical, tutoiement, enthousiaste mais pas excessif. Comme un collègue expert.
+- Tu te souviens de TOUT (historique ci-dessus). Ne demande JAMAIS une info déjà donnée.
+- Tu connais les données de TOUS les agents (RAG ci-dessus). Utilise-les.
 
-CROSS-AGENT: Meme si tu n'es pas l'agent en charge, tu peux declencher des actions pour le client.
-Ex: Si le client parle a Hugo (email) et dit "genere-moi un post", Hugo peut declencher generate_post.
-Ex: Si le client parle a Lena (contenu) et dit "envoie des emails", Lena peut declencher send_emails.
+=== ACTIONS CROSS-AGENTS ===
+Tu peux déclencher N'IMPORTE quelle action, même si tu n'es pas l'agent en charge.
+Hugo peut générer un post. Lena peut envoyer des emails. Léo peut scanner les DMs.
 
-IMPORTANT: Le systeme execute l'action et ajoute le resultat automatiquement.
-TOI tu expliques ce que tu fais AVANT le tag action, avec enthousiasme et details.
-Ex: "Top ! Je te genere un post Instagram pro tout de suite, avec un visuel adapte a ton activite ! [ACTION:{\\"type\\":\\"generate_post\\",\\"platform\\":\\"instagram\\"}]"
-N'utilise les actions QUE quand le client DEMANDE explicitement une action.`,
-      temperature: 0.7,
-      messages: claudeMessages,
-    });
+Pour exécuter une action, INCLUS le tag DANS ta réponse:
+- Post Instagram: [ACTION:{"type":"generate_post","platform":"instagram","format":"post","pillar":"tips"}]
+- Reel Instagram: [ACTION:{"type":"generate_post","platform":"instagram","format":"reel","pillar":"trends"}]
+- Post TikTok: [ACTION:{"type":"generate_post","platform":"tiktok","format":"video"}]
+- Post LinkedIn: [ACTION:{"type":"generate_post","platform":"linkedin","format":"text"}]
+- Envoyer emails: [ACTION:{"type":"send_emails"}]
+- Prospecter Google Maps: [ACTION:{"type":"prospect","query":"restaurant Paris"}]
+- Voir posts planifiés: [ACTION:{"type":"list_posts"}]
+- Scanner DMs: [ACTION:{"type":"scan_dms"}]
+- Répondre commentaires: [ACTION:{"type":"reply_comments"}]
 
-    let reply =
-      response.content[0].type === 'text' ? response.content[0].text : '';
+COMMENT UTILISER: Explique ce que tu fais PUIS mets le tag.
+Ex: "Je te génère un post Instagram tout de suite ! [ACTION:{\\"type\\":\\"generate_post\\",\\"platform\\":\\"instagram\\"}]"
+Le système exécute l'action et ajoute "Résultat: ..." automatiquement.
+N'utilise les actions QUE quand le client DEMANDE explicitement.`;
 
-    console.log(`[ClientChat] Response received (${response.usage.input_tokens + response.usage.output_tokens} tokens):`, reply.substring(0, 100));
+    const fullSystemPrompt = systemPrompt + boostedRules;
+
+    // Choose model based on plan: Gemini (free/standard) or Sonnet (premium)
+    const premiumPlans = ['business', 'elite', 'agence'];
+    const isPremium = premiumPlans.includes(plan);
+
+    let reply = '';
+
+    if (isPremium) {
+      // Premium: Claude Sonnet — best quality
+      console.log(`[ClientChat] Using Claude Sonnet for premium plan=${plan}, user=${user.id}, agent=${agent_id}`);
+      const response = await anthropic.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 2048,
+        system: fullSystemPrompt,
+        temperature: 0.7,
+        messages: claudeMessages,
+      });
+      reply = response.content[0].type === 'text' ? response.content[0].text : '';
+      console.log(`[ClientChat] Sonnet response (${response.usage.input_tokens + response.usage.output_tokens} tokens)`);
+    } else {
+      // Standard: Gemini Flash — best value, free/near-free
+      console.log(`[ClientChat] Using Gemini Flash for plan=${plan}, user=${user.id}, agent=${agent_id}`);
+      try {
+        const { callGeminiChat } = await import('@/lib/agents/gemini');
+        const historyStr = recentMessages.map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`).join('\n');
+        reply = await callGeminiChat({
+          system: fullSystemPrompt + (historyStr ? `\n\nHISTORIQUE:\n${historyStr}` : ''),
+          message: message,
+          history: [],
+        });
+      } catch (geminiErr: any) {
+        console.warn(`[ClientChat] Gemini failed, falling back to Haiku:`, geminiErr.message?.substring(0, 100));
+        // Fallback to Claude Haiku if Gemini fails
+        const response = await anthropic.messages.create({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 2048,
+          system: fullSystemPrompt,
+          temperature: 0.7,
+          messages: claudeMessages,
+        });
+        reply = response.content[0].type === 'text' ? response.content[0].text : '';
+      }
+      console.log(`[ClientChat] Response received: ${reply.substring(0, 80)}...`);
+    }
 
     // 9.4 Detect and save dossier updates from Clara's onboarding interview
     // Supports both <dossier_update>...</dossier_update> and [dossier_update]...[/dossier_update]
