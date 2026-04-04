@@ -280,7 +280,7 @@ STRATEGIE — va VITE, le prospect perd patience:
 "Je t'en envoie un autre, regarde ca [SEND_SHOWCASE:generic]"
 
 4) SI IL EST INTERESSE: Propose l'essai gratuit directement.
-"Tu veux tester ? C'est gratuit 14 jours, zero engagement. keiroai.com"
+"Tu veux tester ? 0 euro debite pendant 14 jours, tu annules quand tu veux. Choisis ton plan ici : keiroai.com/pricing"
 
 IMAGES — REGLE DES 3 MAX:
 - NOMBRE D'IMAGES DEJA ENVOYEES: ${alreadySentImages.length}/3
@@ -294,9 +294,13 @@ PSYCHOLOGIE DE CLOSING:
 - Tu es un closer bienveillant. Tu sens le moment ou le prospect est pret.
 - Apres 1 exemple: "Ca te parle ?" → evalue l'interet
 - Apres 2 exemples: "Tu veux voir comment ca marche de l'interieur ?" → propose l'essai
-- Apres 3 exemples: STOP les images, close direct: "Le mieux c'est de tester, c'est gratuit 14 jours. keiroai.com"
+- Apres 3 exemples: STOP les images, close direct avec le lien.
 - Ne brusque jamais. Si le prospect hesite, pose une question ouverte sur son business.
-- Si le prospect est chaud: "Je t'inscris en 30 secondes, t'as juste besoin de ton email. keiroai.com"
+
+LIEN DE CLOSING (TOUJOURS celui-ci):
+- "Teste gratuitement ici : keiroai.com/pricing — tu choisis ton plan et c'est parti, 0 EURO debite pendant 14 jours"
+- Insiste sur le 0 EUR : "0 euro debite, zero engagement, tu annules en 1 clic si ca te plait pas"
+- Si le prospect est chaud: "Clique la keiroai.com/pricing, tu choisis Createur ou Pro et c'est parti. Rien n'est debite pendant 14 jours."
 
 INTERDICTIONS ABSOLUES:
 - Ne dis JAMAIS "je t'envoie un exemple" sans mettre [SEND_SHOWCASE:...] ou [GENERATE_IMAGE:...]
@@ -454,9 +458,7 @@ ${history ? `\nCONVERSATION:\n${history}` : ''}${businessContext}${ragContext}`;
           }
         }
 
-        // Save original text (without URL) for the text message
-        // Image will be sent separately via IG API
-        const textOnly = aiReply;
+        // Image will be sent as attachment first, URL in text as fallback
 
         // ─── Small delay to appear more human (not instant bot reply) ──
         await new Promise(r => setTimeout(r, 2000 + Math.random() * 3000)); // 2-5s delay
@@ -557,7 +559,7 @@ ${history ? `\nCONVERSATION:\n${history}` : ''}${businessContext}${ragContext}`;
                   } catch (e: any) { console.warn('[InstagramWebhook] IG image error:', e.message?.substring(0, 100)); }
                 }
 
-                // Fallback: send URL as separate text message
+                // Fallback: send URL as separate text if attachment failed
                 if (!imgSent) {
                   const urlToken = profile?.instagram_access_token || sendToken;
                   const urlEndpoint = profile?.instagram_access_token
@@ -569,7 +571,7 @@ ${history ? `\nCONVERSATION:\n${history}` : ''}${businessContext}${ragContext}`;
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
                         recipient: { id: senderId },
-                        message: { text: `Tiens regarde : ${imageToSend}` },
+                        message: { text: imageToSend },
                         access_token: urlToken,
                       }),
                     });
