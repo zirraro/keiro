@@ -243,12 +243,12 @@ export interface ClientAgent {
 // Background: ALL agents optimize KeiroAI invisibly for ALL plans
 
 export const CLIENT_AGENTS: ClientAgent[] = [
-  // ── GRATUIT ─── Ami (basique) + Clara ───
+  // ── GRATUIT ─── Ami + Clara (stratégie + setup) ───
   {
     id: 'marketing',
     displayName: 'Ami',
-    title: 'Directrice Strategie Marketing',
-    description: 'Analyse vos performances, recommande des strategies, optimise vos campagnes et coordonne les agents operationnels',
+    title: 'Directrice Stratégie Marketing',
+    description: 'Analyse vos performances, recommande des stratégies, optimise vos campagnes et coordonne les agents opérationnels',
     visibility: 'coming_soon',
     minPlan: 'gratuit',
     gradientFrom: '#ec4899',
@@ -268,7 +268,7 @@ export const CLIENT_AGENTS: ClientAgent[] = [
     icon: '\u{1F680}',
   },
 
-  // ── CRÉATEUR (49EUR) ─── LÉNA + JADE ───
+  // ── CRÉATEUR (49EUR) ─── Contenu auto + DMs ───
   {
     id: 'content',
     displayName: 'Lena',
@@ -294,14 +294,14 @@ export const CLIENT_AGENTS: ClientAgent[] = [
     integrations: ['Instagram DM'],
   },
 
-  // ── PRO (99EUR) ─── + HUGO, FÉLIX, LEO, AXEL ───
+  // ── CRÉATEUR (49EUR) ─── + Hugo, Léo (prospection + emails) ───
   {
     id: 'email',
     displayName: 'Hugo',
     title: 'Expert Email Marketing',
-    description: 'Lance automatiquement vos sequences email, relance les prospects, envoie des newsletters personnalisees',
+    description: 'Lance automatiquement vos séquences email, relance les prospects, envoie des newsletters personnalisées',
     visibility: 'coming_soon',
-    minPlan: 'pro',
+    minPlan: 'createur',
     gradientFrom: '#06b6d4',
     gradientTo: '#0891b2',
     icon: '\u{1F4E7}',
@@ -323,9 +323,9 @@ export const CLIENT_AGENTS: ClientAgent[] = [
     id: 'commercial',
     displayName: 'Leo',
     title: 'Assistant Prospection',
-    description: 'Prospecte automatiquement, qualifie les leads, relance les prospects et gere votre pipeline CRM',
+    description: 'Prospecte automatiquement, qualifie les leads, relance les prospects et gère votre pipeline CRM',
     visibility: 'coming_soon',
-    minPlan: 'pro',
+    minPlan: 'createur',
     gradientFrom: '#3b82f6',
     gradientTo: '#2563eb',
     icon: '\u{1F91D}',
@@ -361,10 +361,10 @@ export const CLIENT_AGENTS: ClientAgent[] = [
   {
     id: 'seo',
     displayName: 'Oscar',
-    title: 'Expert SEO & Visibilite',
-    description: 'Optimise automatiquement votre SEO, redige des articles blog, ameliore votre visibilite Google',
+    title: 'Expert SEO & Visibilité',
+    description: 'Optimise automatiquement votre SEO, rédige des articles blog, améliore votre visibilité Google',
     visibility: 'coming_soon',
-    minPlan: 'business',
+    minPlan: 'pro',
     gradientFrom: '#f59e0b',
     gradientTo: '#d97706',
     icon: '\u{1F50D}',
@@ -374,9 +374,9 @@ export const CLIENT_AGENTS: ClientAgent[] = [
     id: 'rh',
     displayName: 'Sara',
     title: 'Expert Juridique & RH',
-    description: 'Genere automatiquement vos contrats, verifie la conformite RGPD, alerte sur les obligations legales',
+    description: 'Génère automatiquement vos contrats, vérifie la conformité RGPD, alerte sur les obligations légales',
     visibility: 'coming_soon',
-    minPlan: 'business',
+    minPlan: 'pro',
     gradientFrom: '#d946ef',
     gradientTo: '#a21caf',
     icon: '\u2696\uFE0F',
@@ -384,10 +384,10 @@ export const CLIENT_AGENTS: ClientAgent[] = [
   {
     id: 'gmaps',
     displayName: 'Theo',
-    title: 'Reputation & Avis Clients',
-    description: 'Genere des avis Google 5 etoiles, repond aux avis automatiquement, fait apparaitre ton commerce en premier quand les gens cherchent pres de chez toi',
+    title: 'Réputation & Avis Clients',
+    description: 'Répond aux avis Google automatiquement, améliore ta note, fait apparaître ton commerce en premier quand les gens cherchent près de chez toi',
     visibility: 'coming_soon',
-    minPlan: 'business',
+    minPlan: 'createur',
     gradientFrom: '#22c55e',
     gradientTo: '#16a34a',
     icon: '\u{1F4CD}',
@@ -399,7 +399,7 @@ export const CLIENT_AGENTS: ClientAgent[] = [
     title: 'Chatbot Site Web',
     description: 'Accueille automatiquement les visiteurs de votre site, capture les leads, qualifie les prospects 24/7',
     visibility: 'coming_soon',
-    minPlan: 'business',
+    minPlan: 'pro',
     gradientFrom: '#7c3aed',
     gradientTo: '#5b21b6',
     icon: '\u{1F916}',
