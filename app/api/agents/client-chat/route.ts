@@ -85,9 +85,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 4. Rate limit: free plan = 10 messages/day, paid = unlimited
+    // 4. Chat quota: free messages per day based on plan, then uses credits
     const plan = profile?.subscription_plan || 'free';
-    if (plan === 'free' && !isAdminUser) {
+    const CHAT_DAILY_QUOTA: Record<string, number> = {
+      free: 5, gratuit: 5, sprint: 10,
+      createur: 30, pro: 60, fondateurs: 100,
+      business: 200, elite: 500, agence: 9999,
+    };
+    const dailyQuota = CHAT_DAILY_QUOTA[plan] || 10;
+
+    if (!isAdminUser) {
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
 
@@ -97,15 +104,23 @@ export async function POST(request: NextRequest) {
         .eq('user_id', user.id)
         .gte('updated_at', todayStart.toISOString());
 
-      if ((todayMessageCount ?? 0) >= FREE_DAILY_MESSAGE_LIMIT) {
-        return NextResponse.json(
-          {
+      const msgCount = todayMessageCount ?? 0;
+
+      if (msgCount >= dailyQuota) {
+        // Over quota — check if user has credits
+        const { checkCredits, deductCredits } = await import('@/lib/credits/server');
+        const check = await checkCredits(user.id, 'marketing_chat');
+        if (!check.allowed) {
+          return NextResponse.json({
             ok: false,
-            error: `Limite journaliere atteinte (${FREE_DAILY_MESSAGE_LIMIT} messages/jour en plan gratuit). Passez a un plan superieur pour un acces illimite.`,
+            error: `Tu as utilisé tes ${dailyQuota} messages gratuits du jour. Achète des crédits pour continuer ou attends demain.`,
             rateLimited: true,
-          },
-          { status: 429 },
-        );
+            quota: dailyQuota,
+            used: msgCount,
+          }, { status: 429 });
+        }
+        // Deduct 1 credit for over-quota messages
+        await deductCredits(user.id, 'marketing_chat', `Chat agent (over quota ${msgCount}/${dailyQuota})`);
       }
     }
 

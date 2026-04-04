@@ -57,6 +57,22 @@ export const PLAN_PRICES: Record<string, string> = {
   solo_promo: '49€',
 };
 
+// Prix agent addon (achat individuel entre les plans)
+// Coût = marge cible 80% sur le coût API estimé par agent par mois
+export const AGENT_ADDON_PRICES: Record<string, number> = {
+  content: 15,        // Lena — génération images/vidéos (Seedream ~3€/mois)
+  dm_instagram: 10,   // Jade — DM auto (Gemini ~2€/mois)
+  email: 10,          // Hugo — emails (Brevo gratuit, Gemini ~2€/mois)
+  commercial: 10,     // Léo — prospection (Gemini ~2€/mois)
+  gmaps: 8,           // Théo — avis Google (Gemini ~1.5€/mois)
+  seo: 12,            // Oscar — articles SEO (Gemini ~2.5€/mois)
+  chatbot: 10,        // Max — chatbot site (Gemini ~2€/mois)
+  rh: 8,              // Sara — juridique/RH (Gemini ~1.5€/mois)
+  comptable: 15,      // Louis — finance (Sonnet ~3€/mois)
+  marketing: 0,       // Ami — gratuit avec tout plan
+  onboarding: 0,      // Clara — gratuit avec tout plan
+};
+
 // Noms affichés
 export const PLAN_NAMES: Record<string, string> = {
   free: 'Gratuit',
