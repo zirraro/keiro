@@ -160,6 +160,23 @@ function ProspectPanel({ prospect, activities, onClose, onUpdate }: {
             </div>
           )}
 
+          {/* Channels & pipeline stage */}
+          {prospectActivities.length > 0 && (
+            <div>
+              <h3 className="text-[10px] text-white/30 uppercase tracking-wider mb-2">Canaux de contact</h3>
+              <div className="flex flex-wrap gap-1.5">
+                {[...new Set(prospectActivities.map(a => a.type))].map(type => {
+                  const CHANNEL_ICONS: Record<string, string> = { email: '\uD83D\uDCE7', email_opened: '\uD83D\uDCEC', email_clicked: '\uD83D\uDD17', email_replied: '\uD83D\uDCAC', dm_instagram: '\uD83D\uDCF8', prospect_discovered: '\uD83D\uDD0D', commercial_enrichment: '\uD83E\uDD16', note: '\uD83D\uDCDD' };
+                  return (
+                    <span key={type} className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-[9px] text-white/50">
+                      {CHANNEL_ICONS[type] || '\u2022'} {type.replace(/_/g, ' ')}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Activity timeline */}
           {prospectActivities.length > 0 && (
             <div>

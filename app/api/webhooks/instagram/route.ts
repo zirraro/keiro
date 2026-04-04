@@ -635,15 +635,22 @@ ${history ? `\nCONVERSATION:\n${history}` : ''}${businessContext}${ragContext}`;
           }
         }
 
-        // ─── Update prospect ────────────────────────────
-        // Score boost per message: +8 (was +15, too aggressive)
+        // ─── Update prospect with full tracking ────────────────────────────
         const newScore = Math.min(100, (prospect.score || 0) + 8);
         const newTemp = newScore >= 70 ? 'hot' : newScore >= 40 ? 'warm' : (prospect.temperature || 'cold');
-        await supabase.from('crm_prospects').update({
+        const prospectUpdate: Record<string, any> = {
           temperature: newTemp,
           score: newScore,
           updated_at: now,
-        }).eq('id', prospect.id);
+          last_engaged_at: now,
+        };
+        // Advance pipeline status based on engagement
+        if (prospect.status === 'identifie') prospectUpdate.status = 'contacte';
+        if (newTemp === 'hot' && prospect.status !== 'client' && prospect.status !== 'repondu') prospectUpdate.status = 'repondu';
+        // Track source channel
+        if (!prospect.source || prospect.source === 'unknown') prospectUpdate.source = 'dm_instagram';
+
+        await supabase.from('crm_prospects').update(prospectUpdate).eq('id', prospect.id);
 
         // ─── HANDOVER: Notify client when prospect is hot ──
         // Count exchange rounds (inbound messages from this prospect)

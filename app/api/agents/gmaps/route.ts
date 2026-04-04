@@ -296,7 +296,7 @@ async function runGMapsScan(orgId: string | null = null, userId: string | null =
           });
 
           // Insert into crm_prospects with status 'identifie' (ready for enrichment)
-          const { error: insertError } = await supabase.from('crm_prospects').insert({
+          const { data: insertedProspect, error: insertError } = await supabase.from('crm_prospects').insert({
             company: details.name,
             type: businessType,
             quartier: zone.name,
@@ -317,12 +317,23 @@ async function runGMapsScan(orgId: string | null = null, userId: string | null =
             updated_at: now,
             ...(orgId ? { org_id: orgId } : {}),
             ...(userId ? { user_id: userId, created_by: userId } : {}),
-          });
+          }).select('id').single();
 
           if (insertError) {
             if (insertError.code === '23505') { totalSkipped++; }
             else { console.warn(`[GMaps] Insert error:`, insertError.message); totalErrors++; }
             continue;
+          }
+
+          // Log discovery activity in CRM
+          if (insertedProspect?.id) {
+            await supabase.from('crm_activities').insert({
+              prospect_id: insertedProspect.id,
+              type: 'prospect_discovered',
+              description: `Prospect découvert via Google Maps: ${details.name} (${businessType}, ${zone.name})`,
+              data: { source: 'google_maps', zone: zone.name, rating: details.rating, reviews: details.user_ratings_total, score, agent: 'gmaps' },
+              created_at: now,
+            });
           }
 
           totalImported++;
