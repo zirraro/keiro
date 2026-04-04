@@ -52,7 +52,9 @@ export async function GET(req: NextRequest) {
       if (orgMember?.org_id) {
         pageQuery = pageQuery.eq('org_id', orgMember.org_id);
       } else {
-        pageQuery = pageQuery.or(`created_by.eq.${user.id},user_id.eq.${user.id}`);
+        // Use user_id as primary filter (most prospects have user_id set)
+        // This avoids PostgREST .or() + .range() pagination issues
+        pageQuery = pageQuery.eq('user_id', user.id);
       }
 
       if (status) pageQuery = pageQuery.eq('status', status);

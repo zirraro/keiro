@@ -1093,6 +1093,11 @@ export default function AssistantPage() {
         {/* Instagram token check — popup si expire */}
         {!isVisitor && <InstagramTokenAlert />}
 
+        {/* Notification bell — floating above tabs */}
+        <div className="flex justify-end mb-2">
+          <NotificationBell />
+        </div>
+
         {/* ═══ TABS ═══ */}
         <div className="flex items-center gap-1 bg-white/5 rounded-xl p-1 border border-white/10 mb-5 overflow-x-auto">
           {([

@@ -467,7 +467,7 @@ export default function ClientCRM() {
             </div>
 
             <div className="space-y-1">
-              {filtered.slice(0, 200).map(p => {
+              {filtered.slice(0, 500).map(p => {
                 const statusCfg = STATUSES.find(s => s.id === p.status);
                 const tempCfg = TEMPS.find(t => t.id === p.temperature);
                 return (
@@ -491,7 +491,7 @@ export default function ClientCRM() {
                 );
               })}
             </div>
-            {filtered.length > 200 && <p className="text-center text-white/20 text-xs py-2">+ {filtered.length - 200} autres — utilisez la recherche pour affiner</p>}
+            {filtered.length > 500 && <p className="text-center text-white/20 text-xs py-2">+ {filtered.length - 500} autres — utilisez la recherche pour affiner</p>}
           </div>
         )}
       </div>

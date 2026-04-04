@@ -583,7 +583,8 @@ ${history ? `\nCONVERSATION:\n${history}` : ''}${businessContext}${ragContext}`;
 
               console.log(`[InstagramWebhook] Auto-reply sent to ${senderId}`);
 
-              // Log outbound reply (include image_sent for dedup)
+              // Log outbound reply (track image delivery for dedup + analytics)
+              const imgDelivered = imageToSend ? 'sent' : null;
               await supabase.from('agent_logs').insert({
                 agent: 'dm_instagram',
                 action: 'dm_auto_reply',
@@ -593,6 +594,7 @@ ${history ? `\nCONVERSATION:\n${history}` : ''}${businessContext}${ragContext}`;
                   message: aiReply,
                   direction: 'outbound',
                   image_sent: imageToSend || null,
+                  image_delivery: imgDelivered,
                 },
                 created_at: now,
               });
