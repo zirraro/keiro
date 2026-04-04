@@ -30,10 +30,21 @@ export async function GET() {
     // ─── Parallel data loading ─────────────────────────────
     const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-    // 1. CRM prospects (for commercial, email, dm, chatbot agents)
-    const prospectQuery = supabase.from('crm_prospects').select('*');
-    if (orgId) prospectQuery.eq('org_id', orgId);
-    else prospectQuery.eq('user_id', user.id);
+    // 1. CRM prospects — paginate to get ALL (PostgREST caps at 1000)
+    let allProspects: any[] = [];
+    let pFrom = 0;
+    let pMore = true;
+    while (pMore) {
+      const pq = supabase.from('crm_prospects').select('id, status, temperature, score, source, created_at, email').range(pFrom, pFrom + 999);
+      if (orgId) pq.eq('org_id', orgId);
+      else pq.eq('user_id', user.id);
+      const { data: pData } = await pq;
+      allProspects = allProspects.concat(pData || []);
+      pMore = (pData?.length || 0) === 1000;
+      pFrom += 1000;
+      if (pFrom >= 20000) break;
+    }
+    const prospectQuery = { data: allProspects, error: null } as any;
 
     // 2. Agent logs (for all agents)
     const logsQuery = supabase
@@ -63,19 +74,20 @@ export async function GET() {
       .eq('user_id', user.id);
 
     const [
-      { data: prospects },
+      _prospectsDone,
       { data: logs },
       { data: sessions },
       { data: dossier },
       { data: chats },
     ] = await Promise.all([
-      prospectQuery,
+      Promise.resolve(prospectQuery),
       logsQuery,
       sessionQuery,
       dossierQuery,
       chatsQuery,
     ]);
 
+    const prospects = allProspects;
     const prospectList = prospects ?? [];
     const logList = logs ?? [];
     const sessionList = sessions ?? [];

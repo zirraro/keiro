@@ -148,11 +148,11 @@ export default function NotificationBell() {
                     onClick={() => {
                       if (!notif.read) markRead(notif.id);
                       setOpen(false);
-                      // Navigate to the agent's page — force full navigation
+                      // Navigate to agent page, open chat with notification message
                       const agentId = notif.agent;
                       if (agentId && agentId !== 'system') {
-                        const tab = notif.type === 'action' ? 'dashboard' : 'history';
-                        window.location.href = `/assistant/agent/${agentId}?tab=${tab}`;
+                        const chatMsg = encodeURIComponent(notif.title + ': ' + notif.message);
+                        window.location.href = `/assistant/agent/${agentId}?tab=dashboard&openChat=true&chatMsg=${chatMsg}`;
                       }
                     }}
                     className={`w-full text-left px-4 py-3 border-b border-neutral-50 dark:border-neutral-800/50 transition hover:bg-neutral-50 dark:hover:bg-neutral-800/50 ${!notif.read ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}

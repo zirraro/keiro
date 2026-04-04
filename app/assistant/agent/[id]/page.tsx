@@ -369,6 +369,19 @@ export default function AgentWorkspacePage() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'planning' | 'history' | 'campaigns' | 'settings' | 'profile'>(initialTab);
   const [showCampaignWizard, setShowCampaignWizard] = useState(false);
 
+  // Open chat with notification message if redirected from notification
+  useEffect(() => {
+    const openChat = searchParams.get('openChat');
+    const chatMsg = searchParams.get('chatMsg');
+    if (openChat === 'true') {
+      setChatOpen(true);
+      if (chatMsg) {
+        const decoded = decodeURIComponent(chatMsg);
+        setMessages(prev => prev.length === 0 ? [{ id: 'notif-' + Date.now(), role: 'assistant' as const, content: decoded, created_at: new Date().toISOString() }] : prev);
+      }
+    }
+  }, []);
+
   // Expose campaign wizard opener for child components
   useEffect(() => {
     (window as any).__openCampaignWizard = () => setShowCampaignWizard(true);
@@ -1621,7 +1634,7 @@ export default function AgentWorkspacePage() {
       {!chatOpen && (
         <button onClick={() => setChatOpen(true)} className="fixed bottom-20 right-4 z-40 w-14 h-14 rounded-full shadow-2xl hover:scale-105 flex items-center justify-center transition-all lg:bottom-8 lg:right-8" style={{ background: `linear-gradient(135deg, ${gf}, ${gt})` }}>
           <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-          {messages.length > 0 && <div className="absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full bg-green-400 border-2 border-[#0c1a3a] flex items-center justify-center"><span className="text-[10px] text-green-900 font-bold">{messages.length}</span></div>}
+          {/* Badge shows only pending action notifications, not message count */}
         </button>
       )}
 

@@ -257,9 +257,10 @@ N'utilise les actions QUE quand le client DEMANDE explicitement.`;
 
     const fullSystemPrompt = systemPrompt + boostedRules;
 
-    // Choose model based on plan: Gemini (free/standard) or Sonnet (premium)
+    // Choose model based on plan + agent type
     const premiumPlans = ['business', 'elite', 'agence'];
-    const isPremium = premiumPlans.includes(plan);
+    const premiumAgents = ['comptable', 'finance']; // Louis always gets Sonnet (devis, factures, Excel)
+    const isPremium = premiumPlans.includes(plan) || premiumAgents.includes(agent_id);
 
     let reply = '';
 

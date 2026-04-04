@@ -475,11 +475,13 @@ export function getVisibleAgents(plan: string, isAdmin = false): ClientAgent[] {
     .map(a => {
       const requiredIndex = planOrder.indexOf(a.minPlan);
       const isAccessible = isAdmin || userPlanIndex >= requiredIndex;
+      // Force certain agents to "coming_soon" regardless of plan (not yet ready)
+      const FORCED_COMING_SOON = new Set(['tiktok_comments', 'linkedin', 'whatsapp', 'ads', 'rh']);
+      const isForcedComingSoon = FORCED_COMING_SOON.has(a.id) && !isAdmin;
+
       return {
         ...a,
-        // Admin or users with sufficient plan see agents as active
-        // coming_soon agents become active if user's plan meets minPlan requirement
-        visibility: isAdmin ? 'active' : (isAccessible ? 'active' : 'coming_soon'),
+        visibility: isAdmin ? 'active' : isForcedComingSoon ? 'coming_soon' : (isAccessible ? 'active' : 'coming_soon'),
       } as ClientAgent;
     });
 }
