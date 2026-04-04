@@ -1524,6 +1524,34 @@ function EmailPanel({
         <SectionTitle>Boite de reception</SectionTitle>
         <EmailInbox emails={(data as any).recentEmails || (stats as any).recentEmails || []} gradientFrom={gradientFrom} />
       </div>
+
+      {/* Custom domain — discrete option */}
+      <details className="mt-3 rounded-xl border border-white/5 bg-white/[0.01]">
+        <summary className="px-4 py-2.5 text-[10px] text-white/30 cursor-pointer hover:text-white/50 flex items-center gap-2">
+          <span>{'\u2699\uFE0F'}</span> Envoyer depuis ton propre nom de domaine
+        </summary>
+        <div className="px-4 pb-4 space-y-3">
+          <p className="text-[11px] text-white/50">
+            Par défaut, Hugo envoie depuis <span className="text-white/70 font-medium">contact@keiroai.com</span>.
+            Tu peux connecter ton propre domaine pour envoyer depuis <span className="text-white/70 font-medium">contact@tonentreprise.com</span>.
+          </p>
+          <div className="rounded-lg bg-white/[0.03] border border-white/10 p-3 space-y-2">
+            <h4 className="text-[11px] text-white/70 font-semibold">Comment faire :</h4>
+            <ol className="text-[10px] text-white/40 space-y-1.5 list-decimal pl-4">
+              <li>Crée un compte sur <a href="https://app.brevo.com" target="_blank" rel="noopener" className="text-purple-400 hover:underline">Brevo</a> (gratuit, 300 emails/jour)</li>
+              <li>Ajoute et vérifie ton domaine dans Brevo (DNS : SPF + DKIM)</li>
+              <li>Récupère ta clé API Brevo</li>
+              <li>Communique-la nous lors de l'accompagnement</li>
+            </ol>
+          </div>
+          <div className="flex items-center gap-3">
+            <a href="https://cal.com" target="_blank" rel="noopener" className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-[10px] font-bold rounded-xl hover:shadow-lg transition min-h-[44px] flex items-center gap-1">
+              {'\uD83D\uDCC5'} Réserver un créneau d'accompagnement
+            </a>
+            <span className="text-[9px] text-white/20">15 min, on configure ensemble</span>
+          </div>
+        </div>
+      </details>
     </>
   );
 }
@@ -1897,8 +1925,7 @@ function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: str
 function ContentCalendarInline({ posts, onSelectPost }: { posts: any[]; onSelectPost: (p: any) => void }) {
   const now = new Date();
   const days: Date[] = [];
-  // Show 7 days back + 7 days ahead
-  for (let i = -7; i <= 7; i++) {
+  for (let i = -3; i <= 3; i++) {
     const d = new Date(now);
     d.setDate(d.getDate() + i);
     days.push(d);
@@ -1908,34 +1935,24 @@ function ContentCalendarInline({ posts, onSelectPost }: { posts: any[]; onSelect
   const STATUS_DOT: Record<string, string> = { draft: 'bg-amber-500', approved: 'bg-blue-500', published: 'bg-emerald-500', publish_failed: 'bg-red-500' };
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3 overflow-x-auto mb-3">
-      <div className="flex gap-1 min-w-[500px]">
+    <div className="rounded-xl border border-white/10 bg-white/[0.02] p-2 mb-3">
+      <div className="grid grid-cols-7 gap-1">
         {days.map((d, i) => {
           const dateStr = d.toISOString().split('T')[0];
           const isToday = dateStr === todayStr;
           const dayPosts = posts.filter(p => p.scheduled_date === dateStr || (p.published_at && p.published_at.startsWith(dateStr)));
           return (
-            <div key={i} className={`flex-1 min-w-[32px] rounded-lg p-1 ${isToday ? 'bg-purple-500/10 border border-purple-500/20' : 'bg-white/[0.02]'}`}>
-              <div className={`text-center text-[8px] ${isToday ? 'text-purple-400 font-bold' : 'text-white/30'}`}>
-                {dayNames[d.getDay()]}
-              </div>
-              <div className={`text-center text-[10px] font-bold ${isToday ? 'text-purple-400' : 'text-white/50'}`}>
-                {d.getDate()}
-              </div>
-              <div className="space-y-0.5 mt-1">
-                {dayPosts.map((p, j) => (
+            <div key={i} className={`rounded-lg p-1 ${isToday ? 'bg-purple-500/10 border border-purple-500/20' : ''}`}>
+              <div className={`text-center text-[8px] ${isToday ? 'text-purple-400 font-bold' : 'text-white/30'}`}>{dayNames[d.getDay()]}</div>
+              <div className={`text-center text-[10px] font-bold mb-1 ${isToday ? 'text-purple-400' : 'text-white/50'}`}>{d.getDate()}</div>
+              <div className="space-y-0.5 max-h-[80px] overflow-y-auto">
+                {dayPosts.slice(0, 3).map((p, j) => (
                   <button key={j} onClick={() => onSelectPost(p)} className="w-full aspect-square rounded overflow-hidden bg-white/5 hover:ring-1 hover:ring-purple-500/50 transition relative">
-                    {p.visual_url ? (
-                      <img src={p.visual_url} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-[7px] text-white/30">
-                        {p.format === 'reel' ? '\uD83C\uDFAC' : '\uD83D\uDCDD'}
-                      </div>
-                    )}
+                    {p.visual_url ? <img src={p.visual_url} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[7px] text-white/30">{p.format === 'reel' ? '\uD83C\uDFAC' : '\uD83D\uDCDD'}</div>}
                     <div className={`absolute top-0 right-0 w-1.5 h-1.5 rounded-full ${STATUS_DOT[p.status] || 'bg-gray-500'}`} />
                   </button>
                 ))}
-                {/* All posts shown */}
+                {dayPosts.length > 3 && <div className="text-[7px] text-white/20 text-center">+{dayPosts.length - 3}</div>}
               </div>
             </div>
           );
@@ -2771,7 +2788,23 @@ function OnboardingPanel({
   gradientFrom: string;
   gradientTo: string;
 }) {
-  const stats: any = data.onboardingStats || { completionPercent: 25, agentsActivated: 2, totalAgents: 18, steps: [{ name: 'Profil business', completed: true }, { name: 'Connecter Instagram', completed: false }, { name: 'Premier post', completed: false }] };
+  const rawStats: any = data.onboardingStats || {};
+  const stats: any = {
+    completionPercent: rawStats.completenessScore ?? rawStats.completionPercent ?? 0,
+    agentsActivated: rawStats.agentsDiscovered ?? 0,
+    totalAgents: rawStats.totalAgents ?? 18,
+    steps: rawStats.stepsCompleted ? [
+      { name: 'Profil business', completed: rawStats.completenessScore >= 50 },
+      { name: 'Dossier complet', completed: rawStats.completenessScore >= 80 },
+      { name: 'Premier agent', completed: rawStats.agentsDiscovered >= 1 },
+      { name: 'Réseaux connectés', completed: !!(data as any).connections?.instagram },
+      { name: 'Premier lancement', completed: rawStats.agentsDiscovered >= 3 },
+    ] : [
+      { name: 'Identité marque', completed: false },
+      { name: 'Connexion réseaux', completed: false },
+      { name: 'Premier lancement', completed: false },
+    ],
+  };
 
   const defaultSteps = stats.steps.length > 0
     ? stats.steps
