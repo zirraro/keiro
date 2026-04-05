@@ -1611,7 +1611,7 @@ function HomeKeiroInner() {
 
             <Plan
               title={`🏢 ${t.home.planBusinessTitle}`}
-              price={billingPeriod === 'annual' ? `3 490€ ${t.common.perYear}` : `349€ ${t.common.perMonth}`}
+              price={billingPeriod === 'annual' ? `1 990€ ${t.common.perYear}` : `199€ ${t.common.perMonth}`}
               priceNote={billingPeriod === 'annual' ? t.home.priceNoteBusiness : undefined}
               subtitle={t.home.planBusinessSubtitle}
               bullets={t.home.planBusinessBullets}
