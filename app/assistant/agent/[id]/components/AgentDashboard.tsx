@@ -1287,10 +1287,10 @@ function MarketingPanel({
         {/* Instagram engagement bloc */}
         <SectionTitle>Instagram</SectionTitle>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-          <KpiCard label="Posts publies" value={fmt((gs.visibility as any)?.postsCount || gs.visibility.traffic || 0)} gradientFrom="#8b5cf6" gradientTo="#6d28d9" />
-          <KpiCard label="Likes total" value={fmt((gs.visibility as any)?.totalLikes || 0)} gradientFrom="#ec4899" gradientTo="#f43f5e" />
-          <KpiCard label="Reach moyen" value={fmt((gs.visibility as any)?.avgReach || 0)} gradientFrom="#06b6d4" gradientTo="#0891b2" />
-          <KpiCard label="Engagement" value={`${((gs.visibility as any)?.engagementRate || 0).toFixed?.(1) || '0'}%`} gradientFrom="#10b981" gradientTo="#059669" />
+          <KpiCard label="Posts publiés" value={fmt((gs as any).instagram?.postsCount || 0)} gradientFrom="#8b5cf6" gradientTo="#6d28d9" />
+          <KpiCard label="Likes total" value={fmt((gs as any).instagram?.likes || 0)} gradientFrom="#ec4899" gradientTo="#f43f5e" />
+          <KpiCard label="Reach" value={fmt((gs as any).instagram?.reach || 0)} gradientFrom="#06b6d4" gradientTo="#0891b2" />
+          <KpiCard label="Engagement" value={`${((gs as any).instagram?.engagement || 0).toFixed?.(1) || '0'}%`} gradientFrom="#10b981" gradientTo="#059669" />
         </div>
 
         {/* Finance bloc */}
@@ -2029,10 +2029,10 @@ function ContentPanel({
       {/* Instagram KPIs */}
       <SectionTitle>Performance Instagram</SectionTitle>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-        <KpiCard label="Posts publies" value={fmt(stats.postsGenerated)} gradientFrom="#8b5cf6" gradientTo="#6d28d9" />
-        <KpiCard label="Likes total" value={fmt((data as any).igLikes || 0)} gradientFrom="#ec4899" gradientTo="#f43f5e" />
-        <KpiCard label="Reach moyen" value={fmt((data as any).igReach || 0)} gradientFrom="#06b6d4" gradientTo="#0891b2" />
-        <KpiCard label="Engagement" value={`${((data as any).igEngagement || 0).toFixed?.(1) || '0'}%`} gradientFrom="#10b981" gradientTo="#059669" />
+        <KpiCard label="Posts publiés" value={fmt((stats as any).publishedPosts || stats.postsGenerated || 0)} gradientFrom="#8b5cf6" gradientTo="#6d28d9" />
+        <KpiCard label="Likes total" value={fmt((stats as any).totalLikes || 0)} gradientFrom="#ec4899" gradientTo="#f43f5e" />
+        <KpiCard label="Reach" value={fmt((stats as any).reach || 0)} gradientFrom="#06b6d4" gradientTo="#0891b2" />
+        <KpiCard label="Engagement" value={`${((stats as any).accountsEngaged || 0)}%`} gradientFrom="#10b981" gradientTo="#059669" />
       </div>
 
       {/* Quick actions */}

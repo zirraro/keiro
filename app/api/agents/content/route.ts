@@ -3086,14 +3086,24 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
     const trends = trendsRes.status === 'fulfilled' && trendsRes.value.ok ? await trendsRes.value.json() : null;
     const news = newsRes.status === 'fulfilled' && newsRes.value.ok ? await newsRes.value.json() : null;
 
-    const trendItems = (trends?.trends || trends?.data || []).slice(0, 5).map((t: any) => t.title || t.query || t.name).filter(Boolean);
-    const newsItems = (news?.articles || news?.items || news?.data || []).slice(0, 5).map((n: any) => n.title || n.headline).filter(Boolean);
+    // Get Google Trends (nested structure)
+    const googleTrends = trends?.data?.googleTrends || trends?.trends || [];
+    const trendItems = googleTrends.slice(0, 10).map((t: any) => t.title || t.query || t.name).filter(Boolean);
+    // Get news articles
+    const newsItems = (news?.articles || news?.items || news?.data || []).slice(0, 8).map((n: any) => n.title || n.headline).filter(Boolean);
 
     if (trendItems.length > 0 || newsItems.length > 0) {
-      trendsContext = '\n━━━ TENDANCES & ACTUALITÉS DU JOUR ━━━\n';
-      if (trendItems.length > 0) trendsContext += `Trends du moment : ${trendItems.join(' | ')}\n`;
-      if (newsItems.length > 0) trendsContext += `Actualités : ${newsItems.join(' | ')}\n`;
-      trendsContext += 'UTILISE ces tendances pour rendre le contenu pertinent et viral. Surfe sur l\'actualité !\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
+      trendsContext = '\n━━━ TENDANCES & ACTUALITÉS DU JOUR — OBLIGATOIRE ━━━\n';
+      if (trendItems.length > 0) trendsContext += `Trends Google/TikTok : ${trendItems.join(' | ')}\n`;
+      if (newsItems.length > 0) trendsContext += `Actualités France : ${newsItems.join(' | ')}\n`;
+      trendsContext += `
+RÈGLE ABSOLUE : Le hook du post DOIT faire référence à UNE de ces tendances ou actualités.
+Exemples de connexion avec le business du client :
+- Trend "IA" + restaurant → "L'IA génère les menus de demain. Et ton restaurant ?"
+- Actualité économie + boutique → "En pleine inflation, les commerces malins automatisent leur marketing"
+- Trend sport + coach → "Même les athlètes pro utilisent l'IA pour leur image. Et toi ?"
+Le post doit être ANCRÉ dans l'actualité du jour. Pas de contenu générique intemporel.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
     }
   } catch (e: any) {
     console.warn('[Content] Trends/news load failed (non-fatal):', e.message?.substring(0, 80));

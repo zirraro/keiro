@@ -140,9 +140,39 @@ async function getMarketingData(
       'Votre visibilité est faible. Publiez plus de contenu et activez les agents SEO et TikTok.';
   }
 
+  // Instagram stats — load from real IG API
+  let igStats = { postsCount: 0, followersCount: 0, reach: 0, likes: 0, engagement: 0 };
+  try {
+    const { data: igProfile } = await supabase.from('profiles').select('instagram_access_token, instagram_business_account_id').eq('id', userId).single();
+    const igToken = igProfile?.instagram_access_token;
+    if (igToken) {
+      // Profile stats
+      const profileRes = await fetch(`https://graph.instagram.com/v21.0/me?fields=followers_count,media_count&access_token=${igToken}`, { signal: AbortSignal.timeout(5000) });
+      if (profileRes.ok) {
+        const profileData = await profileRes.json();
+        igStats.postsCount = profileData.media_count || 0;
+        igStats.followersCount = profileData.followers_count || 0;
+      }
+      // Insights
+      const insightsRes = await fetch(`https://graph.instagram.com/v21.0/me/insights?metric=reach&metric_type=total_value&period=day&access_token=${igToken}`, { signal: AbortSignal.timeout(5000) });
+      if (insightsRes.ok) {
+        const insightsData = await insightsRes.json();
+        igStats.reach = insightsData.data?.[0]?.total_value?.value || 0;
+      }
+      // Recent media likes
+      const mediaRes = await fetch(`https://graph.instagram.com/v21.0/me/media?fields=like_count&limit=20&access_token=${igToken}`, { signal: AbortSignal.timeout(5000) });
+      if (mediaRes.ok) {
+        const mediaData = await mediaRes.json();
+        igStats.likes = (mediaData.data || []).reduce((sum: number, m: any) => sum + (m.like_count || 0), 0);
+        igStats.engagement = igStats.followersCount > 0 ? Math.round((igStats.likes / Math.max(igStats.postsCount, 1) / igStats.followersCount) * 10000) / 100 : 0;
+      }
+    }
+  } catch {}
+
   const globalStats = {
     commercial: commercialDomain,
-    visibility: { totalActions: visibilityCount ?? 0 },
+    visibility: { totalActions: visibilityCount ?? 0, traffic: igStats.followersCount },
+    instagram: igStats,
     finance: { totalActions: financeCount ?? 0 },
     teamActivity: teamActivity ?? [],
     recommendation,
