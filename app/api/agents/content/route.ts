@@ -3075,8 +3075,53 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
   const avoidTarget = recentTargets[0] || '';
   const targetWarning = avoidTarget ? `Le dernier post ciblait "${avoidTarget}". Cible un AUTRE type de commerce cette fois (${TARGET_TYPES.filter(t => t !== avoidTarget).slice(0, 4).join(', ')}...).` : '';
 
-  const enhancedPrompt = `Génère 1 post ÉLITE pour aujourd'hui (${todayStr}).
+  // ── LOAD TRENDS & NEWS for content inspiration ──
+  let trendsContext = '';
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keiroai.com';
+    const [trendsRes, newsRes] = await Promise.allSettled([
+      fetch(`${baseUrl}/api/trends`, { signal: AbortSignal.timeout(5000) }),
+      fetch(`${baseUrl}/api/news`, { signal: AbortSignal.timeout(5000) }),
+    ]);
+    const trends = trendsRes.status === 'fulfilled' && trendsRes.value.ok ? await trendsRes.value.json() : null;
+    const news = newsRes.status === 'fulfilled' && newsRes.value.ok ? await newsRes.value.json() : null;
 
+    const trendItems = (trends?.trends || trends?.data || []).slice(0, 5).map((t: any) => t.title || t.query || t.name).filter(Boolean);
+    const newsItems = (news?.articles || news?.items || news?.data || []).slice(0, 5).map((n: any) => n.title || n.headline).filter(Boolean);
+
+    if (trendItems.length > 0 || newsItems.length > 0) {
+      trendsContext = '\n━━━ TENDANCES & ACTUALITÉS DU JOUR ━━━\n';
+      if (trendItems.length > 0) trendsContext += `Trends du moment : ${trendItems.join(' | ')}\n`;
+      if (newsItems.length > 0) trendsContext += `Actualités : ${newsItems.join(' | ')}\n`;
+      trendsContext += 'UTILISE ces tendances pour rendre le contenu pertinent et viral. Surfe sur l\'actualité !\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
+    }
+  } catch (e: any) {
+    console.warn('[Content] Trends/news load failed (non-fatal):', e.message?.substring(0, 80));
+  }
+
+  // ── CALENDAR EVENTS (seasonal content) ──
+  const today = new Date();
+  const month = today.getMonth() + 1;
+  const day = today.getDate();
+  const EVENTS: Record<string, string> = {
+    '1-1': 'Nouvel An', '2-14': 'Saint-Valentin', '3-8': 'Journée de la femme',
+    '3-20': 'Printemps', '5-1': 'Fête du travail', '5-25': 'Fête des mères',
+    '6-15': 'Fête des pères', '6-21': 'Été / Fête de la musique',
+    '7-14': 'Fête nationale', '9-1': 'Rentrée', '10-31': 'Halloween',
+    '11-25': 'Black Friday', '12-25': 'Noël', '12-31': 'Réveillon',
+  };
+  // Check events within 3 days
+  let eventContext = '';
+  for (const [dateStr, event] of Object.entries(EVENTS)) {
+    const [em, ed] = dateStr.split('-').map(Number);
+    if (em === month && Math.abs(ed - day) <= 3) {
+      eventContext = `\n🎉 ÉVÉNEMENT PROCHE : ${event} (${dateStr}) — Adapte le contenu si pertinent pour le business du client !\n`;
+      break;
+    }
+  }
+
+  const enhancedPrompt = `Génère 1 post ÉLITE pour aujourd'hui (${todayStr}).
+${trendsContext}${eventContext}
 ${sharedIntelligence ? `━━━ INTELLIGENCE PARTAGÉE (données de TOUS les agents) ━━━\n${sharedIntelligence}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` : ''}
 Plateforme : ${platform}
 Format suggéré : ${format}

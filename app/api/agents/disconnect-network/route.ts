@@ -20,6 +20,9 @@ export async function POST(req: NextRequest) {
     case 'instagram':
       updates.instagram_access_token = null;
       updates.instagram_business_account_id = null;
+      updates.facebook_page_access_token = null;
+      updates.facebook_page_id = null;
+      updates.instagram_username = null;
       break;
     case 'tiktok':
       updates.tiktok_access_token = null;
