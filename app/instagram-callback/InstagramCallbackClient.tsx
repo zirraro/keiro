@@ -106,6 +106,15 @@ function InstagramCallbackContent() {
         }
 
       } catch (error: any) {
+        // "authorization has been used" means the code was already exchanged successfully
+        // The token is saved — treat as success and redirect
+        if (error.message?.includes('authorization') || error.message?.includes('already') || error.message?.includes('used')) {
+          console.log('[InstagramCallback] Code already used — connection was successful, redirecting');
+          setStatus('success');
+          setMessage('Instagram déjà connecté !');
+          setTimeout(() => { window.location.href = '/assistant'; }, 1000);
+          return;
+        }
         console.error('[InstagramCallback] Error:', error);
         setStatus('error');
         setMessage(error.message || 'Erreur lors de la connexion');

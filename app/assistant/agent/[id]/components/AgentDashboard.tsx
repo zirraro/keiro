@@ -2240,8 +2240,7 @@ function ContentWorkflow({ isConnected }: { isConnected?: boolean }) {
         </div>
       )}
 
-      {/* Inline editorial calendar */}
-      <ContentCalendarInline posts={posts} onSelectPost={setSelectedPost} />
+      {/* Calendar + gallery removed — everything in Planning tab */}
 
       {/* Gallery removed — use Planning tab. Hidden below to keep state/logic intact */}
       <div style={{ display: 'none' }}>
