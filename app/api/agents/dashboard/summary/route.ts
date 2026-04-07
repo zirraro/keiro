@@ -50,9 +50,9 @@ export async function GET() {
     const logsQuery = supabase
       .from('agent_logs')
       .select('id, agent, action, result, status, created_at')
-      .eq('user_id', user.id)
+      .or(`user_id.eq.${user.id},user_id.is.null`)
       .order('created_at', { ascending: false })
-      .limit(200);
+      .limit(500);
 
     // 3. Chatbot sessions
     const sessionQuery = supabase.from('chatbot_sessions').select('id, visitor_email, created_at');
@@ -301,7 +301,7 @@ export async function GET() {
       onboarding: {
         metrics: [
           { label: 'Dossier', value: dossier?.completeness_score ? `${dossier.completeness_score}%` : '0%', icon: '📋' },
-          { label: 'Agents actifs', value: chatList.length, icon: '🤖' },
+          { label: 'Agents actifs', value: Object.keys(logsByAgent).length || chatList.length, icon: '🤖' },
           { label: 'Messages', value: chatsByAgent['onboarding'] ?? 0, icon: '💬' },
         ],
         recent: recentLogs('onboarding'),
@@ -329,7 +329,7 @@ export async function GET() {
       strategie: {
         totalActions: countLogs('marketing') + countLogs('onboarding'),
         dossierScore: dossier?.completeness_score ?? 0,
-        agentsDiscovered: chatList.length,
+        agentsDiscovered: Object.keys(logsByAgent).length || chatList.length,
       },
     };
 

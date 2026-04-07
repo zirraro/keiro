@@ -113,12 +113,15 @@ Sois concis et technique. Format HTML pour email.`,
       });
     }
 
-    // 5. Envoyer email admin avec la recommandation
-    const BREVO_KEY = process.env.BREVO_API_KEY;
-    if (BREVO_KEY) {
+    // 5. Email admin DISABLED — errors are batched in CEO daily report (2x/day)
+    // Individual error emails were spamming the admin inbox
+    // Errors are already logged in agent_logs + saved to RAG
+    // The CEO report (cron morning + evening) aggregates all errors
+    const BREVO_KEY_DISABLED = false;
+    if (BREVO_KEY_DISABLED) {
       await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
-        headers: { 'accept': 'application/json', 'api-key': BREVO_KEY, 'content-type': 'application/json' },
+        headers: { 'accept': 'application/json', 'api-key': process.env.BREVO_API_KEY || '', 'content-type': 'application/json' },
         body: JSON.stringify({
           sender: { name: 'KeiroAI Error Alert', email: 'contact@keiroai.com' },
           to: [{ email: ADMIN_EMAIL }],
