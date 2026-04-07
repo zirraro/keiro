@@ -376,25 +376,37 @@ async function getContentData(
   const scheduled = allPosts.filter(p => p.status === 'approved');
   const drafts = allPosts.filter(p => p.status === 'draft');
 
-  // Calculate real engagement stats from posts
+  // Load REAL engagement stats from Instagram API (not from DB which is empty)
   let totalLikes = 0;
   let totalComments = 0;
   let totalViews = 0;
-  for (const p of published) {
-    const eng = p.engagement_data as any;
-    if (eng) {
-      totalLikes += eng.likes || 0;
-      totalComments += eng.comments || 0;
-      totalViews += eng.views || eng.impressions || 0;
-    }
-  }
-
-  // Also load IG insights if available
   let igInsights: any = null;
+  let followersCount = 0;
+
   try {
     const { data: profile } = await supabase.from('profiles').select('instagram_access_token').eq('id', userId).single();
     if (profile?.instagram_access_token) {
-      const insightsRes = await fetch(`https://graph.instagram.com/v21.0/me/insights?metric=reach,accounts_engaged&metric_type=total_value&period=day&access_token=${profile.instagram_access_token}`, { signal: AbortSignal.timeout(5000) });
+      const token = profile.instagram_access_token;
+
+      // Fetch likes + comments from recent media (real data)
+      const mediaRes = await fetch(`https://graph.instagram.com/v21.0/me/media?fields=like_count,comments_count&limit=50&access_token=${token}`, { signal: AbortSignal.timeout(5000) });
+      if (mediaRes.ok) {
+        const mediaData = await mediaRes.json();
+        for (const m of (mediaData.data || [])) {
+          totalLikes += m.like_count || 0;
+          totalComments += m.comments_count || 0;
+        }
+      }
+
+      // Fetch profile (followers)
+      const profileRes = await fetch(`https://graph.instagram.com/v21.0/me?fields=followers_count&access_token=${token}`, { signal: AbortSignal.timeout(5000) });
+      if (profileRes.ok) {
+        const profileData = await profileRes.json();
+        followersCount = profileData.followers_count || 0;
+      }
+
+      // Fetch insights (reach)
+      const insightsRes = await fetch(`https://graph.instagram.com/v21.0/me/insights?metric=reach&metric_type=total_value&period=day&access_token=${token}`, { signal: AbortSignal.timeout(5000) });
       if (insightsRes.ok) {
         const insightsData = await insightsRes.json();
         igInsights = {};
@@ -414,8 +426,10 @@ async function getContentData(
       totalLikes,
       totalComments,
       totalViews,
+      followersCount,
       reach: igInsights?.reach || 0,
       accountsEngaged: igInsights?.accounts_engaged || 0,
+      engagement: followersCount > 0 && published.length > 0 ? Math.round(((totalLikes + totalComments) / published.length / followersCount) * 10000) / 100 : 0,
       recentContent: allPosts.slice(0, 30),
     },
     recentLogs: allPosts.slice(0, 10).map(p => ({
