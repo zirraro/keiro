@@ -14,30 +14,20 @@ export interface EmailTemplate {
 // ---------------------------------------------------------------------------
 
 function wrapHtmlEmail(subject: string, bodyHtml: string): string {
+  // Style "écrit à la main" — pas de header coloré, pas de cadre, pas de pub
+  // Ressemble à un vrai email personnel envoyé depuis Gmail
   return `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 </head>
-<body style="font-family:Arial,Helvetica,sans-serif;line-height:1.6;color:#333;margin:0;padding:0;background-color:#f4f4f7;">
-  <div style="max-width:600px;margin:0 auto;padding:20px;">
-    <div style="background:linear-gradient(to right,#0c1a3a,#1e3a5f);color:white;padding:24px 20px;border-radius:8px 8px 0 0;">
-      <h2 style="margin:0;font-size:18px;">${subject}</h2>
-    </div>
-    <div style="background:#ffffff;padding:24px 20px;border:1px solid #e5e7eb;border-top:none;">
-      ${bodyHtml}
-      <div style="margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:14px;color:#6b7280;">
-        <p style="margin:0;">Victor</p>
-        <p style="margin:2px 0;color:#0c1a3a;font-weight:bold;">KeiroAI</p>
-        <p style="margin:2px 0;font-size:13px;">contact@keiroai.com</p>
-      </div>
-    </div>
-    <div style="background:#f9fafb;padding:16px;text-align:center;color:#9ca3af;font-size:12px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;">
-      <p style="margin:0;">KeiroAI &mdash; Marketing IA pour entrepreneurs et PME</p>
-      <p style="margin:4px 0 0 0;"><a href="https://keiroai.com" style="color:#0c1a3a;text-decoration:none;">keiroai.com</a></p>
-      <p style="margin:8px 0 0 0;font-size:11px;color:#c0c0c0;">Si vous ne souhaitez plus recevoir nos emails, <a href="{{unsubscribe_url}}" style="color:#c0c0c0;">cliquez ici</a>.</p>
-    </div>
+<body style="font-family:Arial,Helvetica,sans-serif;line-height:1.7;color:#222;margin:0;padding:0;">
+  <div style="max-width:580px;margin:0 auto;padding:20px 10px;">
+    ${bodyHtml}
+    <p style="margin-top:28px;color:#222;">Victor</p>
+    <p style="margin:2px 0;color:#555;font-size:13px;">KeiroAI — keiroai.com</p>
+    <p style="margin:16px 0 0 0;font-size:11px;color:#aaa;">Pour ne plus recevoir ces emails, <a href="{{unsubscribe_url}}" style="color:#aaa;">cliquez ici</a>.</p>
   </div>
 </body>
 </html>`;
@@ -106,19 +96,20 @@ function replaceVars(template: string, v: Record<string, string>): string {
 // Shared CTA and social proof elements for "superstar" emails
 // ---------------------------------------------------------------------------
 
+// Style "email perso" — pas de bouton coloré, juste un lien texte naturel
 function ctaButtonHtml(text: string, url: string): string {
-  const safeText = escapeHtml(text);
   const safeUrl = escapeHtml(url);
-  return `<p style="margin:20px 0;text-align:center;"><a href="${safeUrl}" style="display:inline-block;background:linear-gradient(to right,#0c1a3a,#1e3a5f);color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:bold;font-size:15px;letter-spacing:0.3px;">${safeText}</a></p>`;
+  return `<p style="margin:16px 0;font-size:15px;"><a href="${safeUrl}" style="color:#0066cc;text-decoration:underline;">keiroai.com</a></p>`;
 }
 
 function socialProofHtml(): string {
-  return `<p style="margin:14px 0;font-size:13px;color:#6b7280;border-left:3px solid #0c1a3a;padding-left:12px;">Utilis\u00E9 par +200 entrepreneurs et commerces en France pour leur marketing sur les r\u00E9seaux sociaux.</p>`;
+  // Supprimé — trop marketing pour un email perso
+  return '';
 }
 
 function psLineHtml(text: string): string {
   const safeText = escapeHtml(text);
-  return `<p style="margin:18px 0 0 0;font-size:13px;color:#6b7280;font-style:italic;"><strong>P.S.</strong> ${safeText}</p>`;
+  return `<p style="margin:16px 0 0 0;font-size:14px;color:#666;"><em>P.S. ${safeText}</em></p>`;
 }
 
 function psLineText(text: string): string {

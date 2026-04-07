@@ -3097,12 +3097,12 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
       if (trendItems.length > 0) trendsContext += `Trends Google/TikTok : ${trendItems.join(' | ')}\n`;
       if (newsItems.length > 0) trendsContext += `Actualités France : ${newsItems.join(' | ')}\n`;
       trendsContext += `
-RÈGLE ABSOLUE : Le hook du post DOIT faire référence à UNE de ces tendances ou actualités.
+RÈGLE : Quand c'est pertinent, connecte le hook à UNE de ces tendances ou actualités. Pas systématique — seulement si ça fait sens avec le business du client. Environ 1 post sur 3 doit surfer sur l'actu.
 Exemples de connexion avec le business du client :
 - Trend "IA" + restaurant → "L'IA génère les menus de demain. Et ton restaurant ?"
 - Actualité économie + boutique → "En pleine inflation, les commerces malins automatisent leur marketing"
 - Trend sport + coach → "Même les athlètes pro utilisent l'IA pour leur image. Et toi ?"
-Le post doit être ANCRÉ dans l'actualité du jour. Pas de contenu générique intemporel.
+Alterne entre contenu evergreen (tips, conseils) et contenu ancré dans l'actu. Environ 1/3 actu, 2/3 evergreen.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
     }
   } catch (e: any) {
