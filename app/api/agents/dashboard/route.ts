@@ -333,26 +333,68 @@ async function getContentData(
   supabase: ReturnType<typeof getSupabaseAdmin>,
   userId: string,
 ) {
-  // Content calendar items from agent_logs
-  const { data: contentLogs } = await supabase
-    .from('agent_logs')
-    .select('id, action, result, created_at')
-    .eq('agent', 'content')
+  // Get REAL posts from content_calendar (not just logs)
+  const { data: posts } = await supabase
+    .from('content_calendar')
+    .select('id, platform, format, status, hook, caption, visual_url, scheduled_date, published_at, instagram_permalink, engagement_data, created_at')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
-    .limit(20);
+    .limit(100);
 
-  const logs = contentLogs ?? [];
-  const publicationCount = logs.filter(
-    (l) =>
-      typeof l.action === 'string' &&
-      (l.action.includes('publish') || l.action.includes('generate')),
-  ).length;
+  const allPosts = posts || [];
+  const published = allPosts.filter(p => p.status === 'published');
+  const scheduled = allPosts.filter(p => p.status === 'approved');
+  const drafts = allPosts.filter(p => p.status === 'draft');
+
+  // Calculate real engagement stats from posts
+  let totalLikes = 0;
+  let totalComments = 0;
+  let totalViews = 0;
+  for (const p of published) {
+    const eng = p.engagement_data as any;
+    if (eng) {
+      totalLikes += eng.likes || 0;
+      totalComments += eng.comments || 0;
+      totalViews += eng.views || eng.impressions || 0;
+    }
+  }
+
+  // Also load IG insights if available
+  let igInsights: any = null;
+  try {
+    const { data: profile } = await supabase.from('profiles').select('instagram_access_token').eq('id', userId).single();
+    if (profile?.instagram_access_token) {
+      const insightsRes = await fetch(`https://graph.instagram.com/v21.0/me/insights?metric=reach,accounts_engaged&metric_type=total_value&period=day&access_token=${profile.instagram_access_token}`, { signal: AbortSignal.timeout(5000) });
+      if (insightsRes.ok) {
+        const insightsData = await insightsRes.json();
+        igInsights = {};
+        for (const d of (insightsData.data || [])) {
+          igInsights[d.name] = d.total_value?.value || 0;
+        }
+      }
+    }
+  } catch {}
 
   return {
-    calendarItems: logs,
-    publicationCount,
-    recentContent: logs.slice(0, 5),
+    contentStats: {
+      postsGenerated: allPosts.length,
+      scheduledPosts: scheduled.length,
+      publishedPosts: published.length,
+      draftPosts: drafts.length,
+      totalLikes,
+      totalComments,
+      totalViews,
+      reach: igInsights?.reach || 0,
+      accountsEngaged: igInsights?.accounts_engaged || 0,
+      recentContent: allPosts.slice(0, 30),
+    },
+    recentLogs: allPosts.slice(0, 10).map(p => ({
+      id: p.id,
+      action: p.status === 'published' ? 'execute_publication' : 'daily_post_generated',
+      data: { platform: p.platform, format: p.format, hook: p.hook, permalink: p.instagram_permalink },
+      status: p.status === 'published' ? 'success' : 'pending',
+      created_at: p.published_at || p.created_at,
+    })),
   };
 }
 
@@ -573,17 +615,11 @@ async function getDmInstagramData(
 
   const logs = dmLogs ?? [];
 
-  const dmsSent = logs.filter(
-    (l) =>
-      typeof l.action === 'string' &&
-      (l.action.includes('send') || l.action.includes('dm') || l.action.includes('message')),
-  ).length;
-
-  const responses = logs.filter(
-    (l) =>
-      typeof l.action === 'string' &&
-      (l.action.includes('response') || l.action.includes('reply') || l.action.includes('réponse')),
-  ).length;
+  // Count actual DM auto-replies and received messages
+  const dmsSent = logs.filter(l => l.action === 'dm_auto_reply' || l.action === 'daily_preparation').length;
+  const dmReceived = logs.filter(l => l.action === 'webhook_dm_received').length;
+  const responses = dmReceived; // Each received message that got a reply
+  const handovers = logs.filter(l => l.action === 'handover_notification').length;
 
   const rdvGenerated = logs.filter(
     (l) =>
@@ -620,9 +656,11 @@ async function getDmInstagramData(
   return {
     dmStats: {
       dmsSent,
+      dmReceived,
       responses,
       rdvGenerated,
-      responseRate: dmsSent > 0 ? Math.round((responses / dmsSent) * 100) : 0,
+      handovers,
+      responseRate: dmReceived > 0 ? Math.round((dmsSent / dmReceived) * 100) : 0,
       prospectsGenerated: dmProspects ?? 0,
       totalActions: logs.length,
       recentDms,
