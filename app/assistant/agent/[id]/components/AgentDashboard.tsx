@@ -1222,7 +1222,7 @@ function MarketingPanel({
         <SocialConnectBanners agentId="marketing" networks={['instagram', 'tiktok', 'linkedin']} connections={(data as any).connections} />
 
         {/* Hot prospects alert */}
-        <HotProspectsAlert gradientFrom={gradientFrom} />
+        {/* HotProspectsAlert removed — too much space, only useful for visitor mode */}
 
         {/* Commercial bloc */}
         <SectionTitle>Commercial</SectionTitle>
@@ -1517,7 +1517,7 @@ function EmailPanel({
       </div>
 
       {/* Hot prospects — direct notification */}
-      <HotProspectsAlert source="email" gradientFrom={gradientFrom} />
+      {/* HotProspectsAlert removed */}
 
       {/* Email Inbox */}
       <div data-tour="email-inbox">
@@ -2971,7 +2971,7 @@ function DmInstagramPanel({
       <AgentNotifications agentId="dm_instagram" />
 
       {/* Hot prospects */}
-      <HotProspectsAlert source="dm_instagram" gradientFrom={gradientFrom} />
+      {/* HotProspectsAlert removed */}
 
       {/* DMs / Comments switch */}
       <JadeTabs gradientFrom={gradientFrom} gradientTo={gradientTo} />
