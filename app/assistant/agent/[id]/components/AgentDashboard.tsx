@@ -1398,8 +1398,8 @@ function EmailPanel({
   const seqTotal = seqEntries.reduce((s, [, v]) => s + v, 0) || 1;
 
   // Derive approximate counts for workflow
-  const emailProspects = stats.sent + Math.round(stats.sent * 0.2); // prospects > sent
-  const emailReplied = Math.round(stats.opened * 0.15); // rough estimate of replies
+  const emailProspects = (stats as any).totalProspects || stats.sent || 0;
+  const emailReplied = (stats as any).replied || 0;
 
   return (
     <>
@@ -2395,14 +2395,10 @@ function SeoPanel({
   gradientTo: string;
 }) {
   const isDemo = !data.seoStats;
-  const stats: any = data.seoStats || { blogPosts: 3, keywordsTracked: 8, pagesOptimized: 3, keywordsRanked: 8, avgPosition: 12.4, trafficIncrease: 15, recentActions: [
-    { type: 'audit', title: 'Audit SEO complet du site', action: 'Audit SEO complet du site', created_at: new Date(Date.now() - 86400000).toISOString() },
-    { type: 'keyword', title: 'Optimisation mots-cles page accueil', action: 'Optimisation mots-cles', created_at: new Date(Date.now() - 3 * 86400000).toISOString() },
-  ] };
+  const stats: any = data.seoStats || { blogPosts: 0, keywordsTracked: 0, pagesOptimized: 0, keywordsRanked: 0, avgPosition: 0, trafficIncrease: 0, recentActions: [] };
 
-  // Derive approximate counts for SEO workflow
-  const seoIndexed = Math.round((stats.blogPosts || 0) * 0.8);
-  const seoTraffic = Math.round(seoIndexed * 12);
+  const seoIndexed = stats.blogPosts || 0;
+  const seoTraffic = 0; // Real traffic requires Google Analytics integration
 
   return (
     <>
@@ -2610,7 +2606,7 @@ function FinancePanel({
   gradientFrom: string;
   gradientTo: string;
 }) {
-  const stats: any = data.financeStats || { revenue: DEMO_FINANCE_STATS.revenue, expenses: DEMO_FINANCE_STATS.expenses, profit: DEMO_FINANCE_STATS.profit, profitMargin: DEMO_FINANCE_STATS.profitMargin, recentTransactions: DEMO_FINANCE_STATS.recentTransactions };
+  const stats: any = data.financeStats || { revenue: 0, expenses: 0, profit: 0, profitMargin: 0, recentTransactions: [] };
 
   const maxBar = Math.max(stats.revenue, stats.expenses, 1);
 
@@ -2716,7 +2712,7 @@ function RhPanel({
   gradientFrom: string;
   gradientTo: string;
 }) {
-  const stats: any = data.rhStats || { contractsGenerated: DEMO_RH_STATS.contractsGenerated, rgpdCompliant: true, alertsCount: 0, recentDocs: DEMO_RH_STATS.recentDocs };
+  const stats: any = data.rhStats || { docsGenerated: 0, questionsAnswered: 0, activeContracts: 0, rgpdCompliant: true, alertsCount: 0, recentDocs: [] };
 
   const docTypeBadge: Record<string, string> = {
     contrat: '#60a5fa',
@@ -2820,7 +2816,7 @@ function OnboardingPanel({
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <KpiCard
           label="Etape onboarding"
-          value={`${stats.currentStep}/${stats.totalSteps}`}
+          value={`${stats.steps?.filter((s: any) => s.completed).length || 0}/${stats.steps?.length || 5}`}
           gradientFrom={gradientFrom}
           gradientTo={gradientTo}
         />
@@ -3219,7 +3215,7 @@ function ChatbotPanel({
   gradientFrom: string;
   gradientTo: string;
 }) {
-  const stats: any = data.chatbotStats || { totalVisitors: DEMO_CHATBOT_STATS.totalVisitors, leadsGenerated: DEMO_CHATBOT_STATS.leadsGenerated, avgSessionDuration: DEMO_CHATBOT_STATS.avgSessionDuration, conversionRate: DEMO_CHATBOT_STATS.conversionRate, recentSessions: DEMO_CHATBOT_STATS.recentSessions };
+  const stats: any = data.chatbotStats || { totalVisitors: 0, leadsGenerated: 0, avgSessionDuration: '0 min', conversionRate: 0, recentSessions: [] };
 
   // Conversion funnel mini visual
   const funnelSteps = [
