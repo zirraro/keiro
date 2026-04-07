@@ -139,19 +139,33 @@ export async function POST(req: NextRequest) {
     }
 
     // Étape 4: Sauvegarder les informations dans Supabase (avec service role key)
+    // IMPORTANT: Don't overwrite existing IGAA token with FB page token
+    const updateData: Record<string, any> = {
+      meta_app_user_id: userId,
+      instagram_business_account_id: instagramAccount.id,
+      instagram_username: instagramAccount.username,
+      facebook_page_id: selectedPage.id,
+      facebook_page_access_token: selectedPage.access_token,
+      instagram_connected_at: new Date().toISOString(),
+      instagram_last_sync_at: new Date().toISOString(),
+      instagram_token_expiry: null,
+    };
+    // Only update instagram_access_token if we got a real IGAA token
+    // Don't overwrite an existing IGAA token with a FB page token
+    if (igaaToken) {
+      updateData.instagram_access_token = igaaToken;
+    } else {
+      // Check if existing token is already IGAA — don't overwrite
+      const { data: existingProfile } = await supabase.from('profiles').select('instagram_access_token').eq('id', userId).single();
+      if (!existingProfile?.instagram_access_token || !existingProfile.instagram_access_token.startsWith('IGAA')) {
+        updateData.instagram_access_token = selectedPage.access_token;
+      }
+      console.log(`[InstagramCallback] IGAA exchange failed — ${existingProfile?.instagram_access_token?.startsWith('IGAA') ? 'keeping existing IGAA token' : 'using FB page token'}`);
+    }
+
     const { error: updateError } = await supabase
       .from('profiles')
-      .update({
-        meta_app_user_id: userId,
-        instagram_business_account_id: instagramAccount.id,
-        instagram_username: instagramAccount.username,
-        instagram_access_token: igaaToken || selectedPage.access_token,
-        facebook_page_id: selectedPage.id,
-        facebook_page_access_token: selectedPage.access_token,
-        instagram_connected_at: new Date().toISOString(),
-        instagram_last_sync_at: new Date().toISOString(),
-        instagram_token_expiry: null
-      })
+      .update(updateData)
       .eq('id', userId);
 
     if (updateError) {
