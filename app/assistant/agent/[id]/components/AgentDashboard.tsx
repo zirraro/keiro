@@ -2388,10 +2388,63 @@ function LenaCommentsSection() {
                 </span>
               </div>
               <p className="text-[10px] text-white/50 mt-0.5 line-clamp-2">{c.text}</p>
+              {!c.replied && !isDemo && (
+                <div className="flex items-center gap-1.5 mt-1.5">
+                  <button
+                    onClick={async () => {
+                      try {
+                        await fetch('/api/agents/instagram-comments', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          credentials: 'include',
+                          body: JSON.stringify({ action: 'reply_comment', comment_id: c.comment_id, media_id: c.media_id }),
+                        });
+                        setComments(prev => prev.map(cc => cc.comment_id === c.comment_id ? { ...cc, replied: true } : cc));
+                      } catch {}
+                    }}
+                    className="px-2 py-1 bg-emerald-600/20 text-emerald-400 text-[9px] font-medium rounded-lg hover:bg-emerald-600/30 transition min-h-[28px]"
+                  >
+                    Répondre auto
+                  </button>
+                  <button
+                    onClick={() => {
+                      const reply = prompt('Ta réponse :');
+                      if (!reply) return;
+                      fetch('/api/agents/instagram-comments', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({ action: 'reply_comment', comment_id: c.comment_id, media_id: c.media_id, custom_reply: reply }),
+                      }).then(() => setComments(prev => prev.map(cc => cc.comment_id === c.comment_id ? { ...cc, replied: true } : cc))).catch(() => {});
+                    }}
+                    className="px-2 py-1 bg-blue-600/20 text-blue-400 text-[9px] font-medium rounded-lg hover:bg-blue-600/30 transition min-h-[28px]"
+                  >
+                    Répondre
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         ))}
       </div>
+      {!isDemo && comments.length > 0 && (
+        <button
+          onClick={async () => {
+            try {
+              await fetch('/api/agents/instagram-comments', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ action: 'auto_reply_all' }),
+              });
+              setComments(prev => prev.map(c => ({ ...c, replied: true })));
+            } catch {}
+          }}
+          className="mt-2 w-full py-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-[10px] font-bold rounded-xl hover:opacity-90 transition min-h-[36px]"
+        >
+          Répondre à tous automatiquement
+        </button>
+      )}
     </div>
   );
 }
