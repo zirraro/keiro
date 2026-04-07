@@ -409,9 +409,15 @@ function DmConversationsLive() {
                 <span className="text-xs font-bold text-white">@{selected.participant.username}</span>
                 <div className="text-[9px] text-white/20">{selected.messages.length} messages</div>
               </div>
-              <div className="ml-auto flex items-center gap-1.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
-                <span className="text-[9px] text-green-400/60">Direct</span>
+              <div className="ml-auto flex items-center gap-2">
+                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/20">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  <span className="text-[9px] text-emerald-400 font-medium">IA active</span>
+                </div>
+                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/15 border border-blue-500/20">
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                  <span className="text-[9px] text-blue-400 font-medium">Vous</span>
+                </div>
               </div>
             </div>
             {/* Messages */}
@@ -429,9 +435,10 @@ function DmConversationsLive() {
                         {msg.created_time ? new Date(msg.created_time).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}
                       </span>
                       {msg.fromMe && msg.status === 'sending' && <span className="text-[10px] text-yellow-300/60">envoi...</span>}
-                      {msg.fromMe && msg.status === 'sent' && <span className="text-[10px] text-green-300/60">{'\u2713'} envoye</span>}
-                      {msg.fromMe && msg.status === 'prepared' && <span className="text-[10px] text-amber-300/60">prepare</span>}
-                      {msg.fromMe && msg.status === 'error' && <span className="text-[10px] text-red-300/60">echec</span>}
+                      {msg.fromMe && msg.status === 'sent' && <span className="text-[10px] text-green-300/60">{'\u2713'}</span>}
+                      {msg.fromMe && msg.status === 'prepared' && <span className="text-[10px] text-amber-300/60">préparé</span>}
+                      {msg.fromMe && msg.status === 'error' && <span className="text-[10px] text-red-300/60">échec</span>}
+                      {msg.fromMe && <span className={`text-[9px] px-1 py-0.5 rounded ${msg.from === 'moi' ? 'bg-blue-500/20 text-blue-300' : 'bg-emerald-500/20 text-emerald-300'}`}>{msg.from === 'moi' ? 'Vous' : 'IA'}</span>}
                     </div>
                   </div>
                 </div>
