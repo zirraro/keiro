@@ -438,7 +438,13 @@ function DmConversationsLive() {
                       {msg.fromMe && msg.status === 'sent' && <span className="text-[10px] text-green-300/60">{'\u2713'}</span>}
                       {msg.fromMe && msg.status === 'prepared' && <span className="text-[10px] text-amber-300/60">préparé</span>}
                       {msg.fromMe && msg.status === 'error' && <span className="text-[10px] text-red-300/60">échec</span>}
-                      {msg.fromMe && <span className={`text-[9px] px-1 py-0.5 rounded ${msg.from === 'moi' ? 'bg-blue-500/20 text-blue-300' : 'bg-emerald-500/20 text-emerald-300'}`}>{msg.from === 'moi' ? 'Vous' : 'IA'}</span>}
+                      {msg.fromMe && (() => {
+                        // "moi" = typed manually by client in this session
+                        // "sending"/"sent" = client just sent it
+                        // Everything else fromMe = sent by IA (webhook/auto-reply)
+                        const isManual = msg.from === 'moi' || msg.status === 'sending' || msg.status === 'sent';
+                        return <span className={`text-[9px] px-1 py-0.5 rounded ${isManual ? 'bg-blue-500/20 text-blue-300' : 'bg-emerald-500/20 text-emerald-300'}`}>{isManual ? 'Vous' : 'IA'}</span>;
+                      })()}
                     </div>
                   </div>
                 </div>
