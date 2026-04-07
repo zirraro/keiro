@@ -1091,11 +1091,17 @@ export async function GET(request: NextRequest) {
 
         const aiEmails = await generateAIEmails(batchInput, learnings);
 
+        let warmSentCount = 0;
         for (const prospect of warmProspects) {
           if (remainingQuota <= 0) {
             console.log('[EmailDaily] Daily quota exhausted mid-warm-batch, stopping.');
             break;
           }
+          // Anti-spam: delay between warm emails
+          if (warmSentCount > 0) {
+            await new Promise(r => setTimeout(r, 3000 + Math.random() * 5000));
+          }
+          warmSentCount++;
           // Cross-agent dedup: skip if any agent emailed this prospect in last 3 days
           const warmDedup = await canSendEmail(supabase, prospect.email, {
             minDays: 3,
@@ -1495,6 +1501,13 @@ export async function GET(request: NextRequest) {
           break;
         }
         sentInThisBatch.add(prospect.id);
+
+        // Anti-spam: delay between emails (Gmail throttles mass sends)
+        // 3-8 seconds random delay to look human
+        if (sentInThisBatch.size > 1) {
+          await new Promise(r => setTimeout(r, 3000 + Math.random() * 5000));
+        }
+
         const aiEmail = aiEmails.get(prospect.id);
 
         // Fallback to template if AI failed
