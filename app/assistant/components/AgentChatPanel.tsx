@@ -176,13 +176,19 @@ export default function AgentChatPanel({
                   ))}
                 </div>
 
-                {/* Document download buttons */}
+                {/* Document download + save buttons */}
                 {msg.role === 'assistant' && (msg.content.includes('[DOCUMENT_READY]') || msg.content.includes('[EXCEL_READY]')) && (
-                  <div className="mt-2 flex gap-2">
+                  <div className="mt-2 flex flex-wrap gap-2">
                     {msg.content.includes('[DOCUMENT_READY]') && (
                       <button
                         onClick={() => {
-                          const clean = msg.content.replace(/```\[DOCUMENT_READY\]```/g, '').replace(/\[DOCUMENT_READY\]/g, '').trim();
+                          const clean = msg.content.replace(/```\[DOCUMENT_READY\]```/g, '').replace(/\[DOCUMENT_READY\]/g, '').replace(/\[EXCEL_READY\]/g, '').trim();
+                          // Save to agent documents
+                          const doc = { id: `doc_${Date.now()}`, name: `Document ${new Date().toLocaleDateString('fr-FR')}`, content: clean, type: 'document' as const, folder: '', agentId: agent?.id || '', createdAt: new Date().toISOString() };
+                          const key = `keiro_docs_${agent?.id || ''}`;
+                          try { const existing = JSON.parse(localStorage.getItem(key) || '[]'); localStorage.setItem(key, JSON.stringify([doc, ...existing])); } catch {}
+                          window.dispatchEvent(new CustomEvent('keiro-doc-saved', { detail: doc }));
+                          // Download
                           const blob = new Blob([clean], { type: 'text/markdown' });
                           const url = URL.createObjectURL(blob);
                           const a = document.createElement('a');
@@ -192,13 +198,19 @@ export default function AgentChatPanel({
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/20 text-emerald-400 text-xs font-medium rounded-lg hover:bg-emerald-500/30 transition"
                       >
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                        Telecharger le document
+                        Sauvegarder + Telecharger
                       </button>
                     )}
                     {msg.content.includes('[EXCEL_READY]') && (
                       <button
                         onClick={() => {
-                          const clean = msg.content.replace(/```\[EXCEL_READY\]```/g, '').replace(/\[EXCEL_READY\]/g, '').trim();
+                          const clean = msg.content.replace(/```\[EXCEL_READY\]```/g, '').replace(/\[EXCEL_READY\]/g, '').replace(/\[DOCUMENT_READY\]/g, '').trim();
+                          // Save to agent documents
+                          const doc = { id: `xls_${Date.now()}`, name: `Tableau ${new Date().toLocaleDateString('fr-FR')}`, content: clean, type: 'excel' as const, folder: '', agentId: agent?.id || '', createdAt: new Date().toISOString() };
+                          const key = `keiro_docs_${agent?.id || ''}`;
+                          try { const existing = JSON.parse(localStorage.getItem(key) || '[]'); localStorage.setItem(key, JSON.stringify([doc, ...existing])); } catch {}
+                          window.dispatchEvent(new CustomEvent('keiro-doc-saved', { detail: doc }));
+                          // Download
                           const blob = new Blob([clean], { type: 'text/csv' });
                           const url = URL.createObjectURL(blob);
                           const a = document.createElement('a');
@@ -208,7 +220,7 @@ export default function AgentChatPanel({
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/20 text-blue-400 text-xs font-medium rounded-lg hover:bg-blue-500/30 transition"
                       >
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                        Telecharger en Excel
+                        Sauvegarder + Excel
                       </button>
                     )}
                   </div>
