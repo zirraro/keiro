@@ -1053,7 +1053,7 @@ export async function GET(request: NextRequest) {
     // Check if admin + connection status
     const { data: userProfile } = await supabase
       .from('profiles')
-      .select('is_admin, instagram_business_account_id, instagram_access_token, facebook_page_id, google_business_location_id, subscription_plan, linkedin_access_token, tiktok_access_token, gmail_email, gmail_refresh_token')
+      .select('is_admin, instagram_business_account_id, instagram_access_token, facebook_page_id, google_business_location_id, subscription_plan, linkedin_access_token, tiktok_access_token, gmail_email, gmail_refresh_token, gmail_access_token')
       .eq('id', user.id)
       .single();
     const isAdmin = !!userProfile?.is_admin;
@@ -1064,7 +1064,7 @@ export async function GET(request: NextRequest) {
       google: !!userProfile?.google_business_location_id,
       linkedin: !!userProfile?.linkedin_access_token,
       tiktok: !!userProfile?.tiktok_access_token,
-      gmail: !!userProfile?.gmail_refresh_token,
+      gmail: !!(userProfile?.gmail_refresh_token || (userProfile as any)?.gmail_access_token),
       gmail_email: userProfile?.gmail_email || null,
       subscription_plan: userProfile?.subscription_plan || 'free',
     };

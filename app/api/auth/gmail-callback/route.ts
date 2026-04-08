@@ -68,13 +68,26 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(new URL('/assistant/agent/email?error=no_user', req.url));
     }
 
-    console.log(`[Gmail Callback] Saving Gmail tokens for userId=${userId}, email=${profile.email}`);
-    const { error: updateError } = await supabase.from('profiles').update({
-      gmail_refresh_token: tokens.refresh_token || null,
+    console.log(`[Gmail Callback] Saving Gmail tokens for userId=${userId}, email=${profile.email}, hasRefresh=${!!tokens.refresh_token}`);
+
+    // Build update — NEVER overwrite existing refresh_token with null
+    const updateData: Record<string, any> = {
       gmail_access_token: tokens.access_token,
       gmail_email: profile.email,
       gmail_token_expires_at: new Date(Date.now() + (tokens.expires_in || 3600) * 1000).toISOString(),
-    }).eq('id', userId);
+    };
+    // Only set refresh_token if Google actually returned one
+    if (tokens.refresh_token) {
+      updateData.gmail_refresh_token = tokens.refresh_token;
+    } else {
+      // If no refresh_token returned, check if user already has one stored
+      const { data: existing } = await supabase.from('profiles').select('gmail_refresh_token').eq('id', userId).single();
+      if (!existing?.gmail_refresh_token) {
+        console.warn('[Gmail Callback] No refresh_token from Google and none in DB — user may need to revoke and re-authorize');
+      }
+    }
+
+    const { error: updateError } = await supabase.from('profiles').update(updateData).eq('id', userId);
 
     if (updateError) {
       console.error('[Gmail Callback] Update error:', updateError);

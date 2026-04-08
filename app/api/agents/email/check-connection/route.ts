@@ -15,17 +15,19 @@ export async function GET(req: NextRequest) {
   const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
   const { data: profile } = await supabase
     .from('profiles')
-    .select('gmail_refresh_token, gmail_email, smtp_host, smtp_from_email')
+    .select('gmail_refresh_token, gmail_access_token, gmail_email, smtp_host, smtp_from_email')
     .eq('id', user.id)
     .single();
 
+  const gmailConnected = !!(profile?.gmail_refresh_token || profile?.gmail_access_token);
+
   return NextResponse.json({
     ok: true,
-    gmail_connected: !!profile?.gmail_refresh_token,
+    gmail_connected: gmailConnected,
     gmail_email: profile?.gmail_email || null,
     smtp_connected: !!profile?.smtp_host,
     smtp_email: profile?.smtp_from_email || null,
-    provider: profile?.gmail_refresh_token ? 'gmail' : profile?.smtp_host ? 'smtp' : 'keiroai',
+    provider: gmailConnected ? 'gmail' : profile?.smtp_host ? 'smtp' : 'keiroai',
   });
 }
 
