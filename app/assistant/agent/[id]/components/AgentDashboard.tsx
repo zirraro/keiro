@@ -2348,6 +2348,90 @@ function ContentWorkflow({ isConnected }: { isConnected?: boolean }) {
 }
 
 // Inline comments section for Lena
+function CommentCard({ comment: c, isDemo, onUpdate }: { comment: any; isDemo: boolean; onUpdate: (id: string, data: any) => void }) {
+  const [replyText, setReplyText] = useState('');
+  const [showReply, setShowReply] = useState(false);
+  const [sending, setSending] = useState(false);
+
+  const sendReply = useCallback(async (customReply?: string) => {
+    setSending(true);
+    try {
+      const res = await fetch('/api/agents/instagram-comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action: 'reply_comment', comment_id: c.comment_id, media_id: c.media_id, ...(customReply ? { custom_reply: customReply } : {}) }),
+      });
+      const data = await res.json();
+      onUpdate(c.comment_id, { replied: true, reply_text: customReply || data.reply || 'Répondu' });
+      setShowReply(false);
+      setReplyText('');
+    } catch {} finally { setSending(false); }
+  }, [c.comment_id, c.media_id, onUpdate]);
+
+  return (
+    <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
+      {/* Comment */}
+      <div className="p-3 flex items-start gap-2">
+        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center text-[10px] text-white font-bold flex-shrink-0">
+          {(c.username || '?')[0].toUpperCase()}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-bold text-white/80">@{c.username}</span>
+            <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${c.replied ? 'bg-emerald-400/15 text-emerald-400' : 'bg-amber-400/15 text-amber-400'}`}>
+              {c.replied ? 'Répondu' : 'En attente'}
+            </span>
+          </div>
+          <p className="text-[11px] text-white/60 mt-1">{c.text}</p>
+        </div>
+      </div>
+
+      {/* Reply shown */}
+      {c.replied && c.reply_text && (
+        <div className="px-3 pb-2 ml-9">
+          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2">
+            <span className="text-[9px] text-emerald-400 font-medium">Votre réponse :</span>
+            <p className="text-[10px] text-white/60 mt-0.5">{c.reply_text}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Actions */}
+      {!c.replied && !isDemo && (
+        <div className="px-3 pb-3">
+          {!showReply ? (
+            <div className="flex items-center gap-1.5">
+              <button onClick={() => sendReply()} disabled={sending} className="px-2.5 py-1.5 bg-emerald-600/20 text-emerald-400 text-[9px] font-medium rounded-lg hover:bg-emerald-600/30 transition min-h-[32px] disabled:opacity-50">
+                {sending ? '...' : 'Répondre auto'}
+              </button>
+              <button onClick={() => setShowReply(true)} className="px-2.5 py-1.5 bg-blue-600/20 text-blue-400 text-[9px] font-medium rounded-lg hover:bg-blue-600/30 transition min-h-[32px]">
+                Répondre
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5">
+              <input
+                type="text"
+                value={replyText}
+                onChange={e => setReplyText(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && replyText.trim()) sendReply(replyText); }}
+                placeholder="Ta réponse..."
+                autoFocus
+                className="flex-1 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-[11px] text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+              />
+              <button onClick={() => sendReply(replyText)} disabled={sending || !replyText.trim()} className="px-3 py-1.5 bg-blue-600 text-white text-[9px] font-bold rounded-lg disabled:opacity-40 min-h-[32px]">
+                {sending ? '...' : 'Envoyer'}
+              </button>
+              <button onClick={() => setShowReply(false)} className="text-white/30 hover:text-white/60 text-xs px-1">✕</button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function LenaCommentsSection() {
   const [comments, setComments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -2372,59 +2456,11 @@ function LenaCommentsSection() {
 
   return (
     <div className={isDemo ? 'opacity-80' : ''}>
-      {isDemo && !(window as any).__igConnected && <p className="text-[10px] text-amber-400/60 mb-2">{'\u{1F4F8}'} Apercu — connecte Instagram pour voir tes vrais commentaires</p>}
-      {isDemo && (window as any).__igConnected && <p className="text-[10px] text-white/30 mb-2">{'\u{1F4F8}'} Aucun commentaire recent — les commentaires apparaitront quand tes posts recevront des interactions</p>}
-      <div className="space-y-2 max-h-[250px] overflow-y-auto">
-        {displayComments.slice(0, 6).map((c: any, i: number) => (
-          <div key={i} className="bg-white/5 rounded-lg border border-white/10 p-3 flex items-start gap-2">
-            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center text-[10px] text-white font-bold flex-shrink-0">
-              {(c.username || '?')[0].toUpperCase()}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold text-white/80">@{c.username}</span>
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${c.replied ? 'bg-emerald-400/15 text-emerald-400' : 'bg-amber-400/15 text-amber-400'}`}>
-                  {c.replied ? 'Répondu' : 'En attente'}
-                </span>
-              </div>
-              <p className="text-[10px] text-white/50 mt-0.5 line-clamp-2">{c.text}</p>
-              {!c.replied && !isDemo && (
-                <div className="flex items-center gap-1.5 mt-1.5">
-                  <button
-                    onClick={async () => {
-                      try {
-                        await fetch('/api/agents/instagram-comments', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          credentials: 'include',
-                          body: JSON.stringify({ action: 'reply_comment', comment_id: c.comment_id, media_id: c.media_id }),
-                        });
-                        setComments(prev => prev.map(cc => cc.comment_id === c.comment_id ? { ...cc, replied: true } : cc));
-                      } catch {}
-                    }}
-                    className="px-2 py-1 bg-emerald-600/20 text-emerald-400 text-[9px] font-medium rounded-lg hover:bg-emerald-600/30 transition min-h-[28px]"
-                  >
-                    Répondre auto
-                  </button>
-                  <button
-                    onClick={() => {
-                      const reply = prompt('Ta réponse :');
-                      if (!reply) return;
-                      fetch('/api/agents/instagram-comments', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        credentials: 'include',
-                        body: JSON.stringify({ action: 'reply_comment', comment_id: c.comment_id, media_id: c.media_id, custom_reply: reply }),
-                      }).then(() => setComments(prev => prev.map(cc => cc.comment_id === c.comment_id ? { ...cc, replied: true } : cc))).catch(() => {});
-                    }}
-                    className="px-2 py-1 bg-blue-600/20 text-blue-400 text-[9px] font-medium rounded-lg hover:bg-blue-600/30 transition min-h-[28px]"
-                  >
-                    Répondre
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
+      {isDemo && !(window as any).__igConnected && <p className="text-[10px] text-amber-400/60 mb-2">{'\u{1F4F8}'} Aperçu — connecte Instagram pour voir tes vrais commentaires</p>}
+      {isDemo && (window as any).__igConnected && <p className="text-[10px] text-white/30 mb-2">{'\u{1F4F8}'} Aucun commentaire récent</p>}
+      <div className="space-y-2 max-h-[350px] overflow-y-auto">
+        {displayComments.slice(0, 10).map((c: any, i: number) => (
+          <CommentCard key={c.comment_id || i} comment={c} isDemo={isDemo} onUpdate={(id, data) => setComments(prev => prev.map(cc => cc.comment_id === id ? { ...cc, ...data } : cc))} />
         ))}
       </div>
       {!isDemo && comments.length > 0 && (
@@ -3798,7 +3834,7 @@ const AGENT_CONFIG: Record<string, { subtitle: string; Panel: typeof MarketingPa
   finance: { subtitle: 'Finance & Tresorerie', Panel: FinancePanel },
   rh: { subtitle: 'Expert Juridique & RH', Panel: RhPanel },
   onboarding: { subtitle: 'Guide de Demarrage', Panel: OnboardingPanel },
-  dm_instagram: { subtitle: 'Experte DM Instagram', Panel: DmInstagramPanel },
+  dm_instagram: { subtitle: 'DM & Commentaires Instagram', Panel: DmInstagramPanel },
   instagram_comments: { subtitle: 'Commentaires Instagram', Panel: InstagramCommentsPanel },
   tiktok_comments: { subtitle: 'Expert TikTok Engagement', Panel: TiktokCommentsPanel },
   gmaps: { subtitle: 'Reputation & Avis Clients', Panel: GmapsPanel },

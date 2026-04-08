@@ -284,7 +284,7 @@ export const CLIENT_AGENTS: ClientAgent[] = [
   {
     id: 'dm_instagram',
     displayName: 'Jade',
-    title: 'Experte DM Instagram',
+    title: 'DM & Commentaires Instagram',
     description: 'Envoie automatiquement des DMs strategiques, engage vos followers, convertit par message prive',
     visibility: 'coming_soon',
     minPlan: 'createur',
