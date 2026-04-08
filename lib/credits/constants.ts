@@ -89,14 +89,16 @@ export const AGENT_ADDON_PRICES: Record<string, number> = {
 // Quels agents sont disponibles en addon pour chaque plan
 // = tous les agents qui ne sont PAS dans le plan du client
 export function getAvailableAddons(plan: string): Array<{ agentId: string; name: string; price: number; tier: number }> {
+  // All agents included in all paid plans — credits are the natural limit
+  const ALL_AGENTS = new Set(['marketing', 'onboarding', 'content', 'dm_instagram', 'email', 'commercial', 'gmaps', 'seo', 'rh', 'chatbot', 'comptable', 'ads', 'tiktok_comments', 'linkedin', 'whatsapp']);
   const planAgents: Record<string, Set<string>> = {
     free: new Set(['marketing', 'onboarding']),
     gratuit: new Set(['marketing', 'onboarding']),
-    createur: new Set(['marketing', 'onboarding', 'content', 'dm_instagram', 'email', 'commercial', 'gmaps']),
-    pro: new Set(['marketing', 'onboarding', 'content', 'dm_instagram', 'email', 'commercial', 'gmaps', 'seo', 'rh', 'chatbot']),
-    fondateurs: new Set(['marketing', 'onboarding', 'content', 'dm_instagram', 'email', 'commercial', 'gmaps', 'seo', 'rh', 'chatbot', 'comptable']),
-    business: new Set(['marketing', 'onboarding', 'content', 'dm_instagram', 'email', 'commercial', 'gmaps', 'seo', 'rh', 'chatbot', 'comptable']),
-    elite: new Set(['marketing', 'onboarding', 'content', 'dm_instagram', 'email', 'commercial', 'gmaps', 'seo', 'rh', 'chatbot', 'comptable']),
+    createur: ALL_AGENTS,
+    pro: ALL_AGENTS,
+    fondateurs: ALL_AGENTS,
+    business: ALL_AGENTS,
+    elite: ALL_AGENTS,
   };
 
   const AGENT_NAMES: Record<string, string> = {
