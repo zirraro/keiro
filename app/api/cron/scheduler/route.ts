@@ -224,7 +224,7 @@ export async function GET(request: NextRequest) {
       // Plan-based throttle: check if this slot is allowed for the client's plan
       const plan = clientPlans[uid] || 'créateur';
       const allowedSlots = PLAN_SLOT_LIMITS[plan] || PLAN_SLOT_LIMITS['business'];
-      if (!allowedSlots.has(slot)) {
+      if (slot && !allowedSlots.has(slot)) {
         console.log(`[Scheduler] Throttled: ${uid.substring(0, 8)} plan=${plan} cannot run slot=${slot}`);
         return false;
       }

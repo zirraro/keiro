@@ -12,6 +12,7 @@ import AgentTeams from './components/AgentTeams';
 import WorkspaceCrm from './components/WorkspaceCrm';
 import NotificationBell, { AgentNotifBadge } from './components/NotificationBell';
 import InstagramTokenAlert from './components/InstagramTokenAlert';
+import StrategyOnboarding from './components/StrategyOnboarding';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -839,6 +840,9 @@ export default function AssistantPage() {
   // ─── Main workspace layout ────────────────────────────
   return (
     <div className="min-h-screen bg-[#0c1a3a] pt-16">
+      {/* Strategy onboarding popup — shows once for new paying clients */}
+      <StrategyOnboarding />
+
       <div className="max-w-7xl mx-auto px-4 py-6 pb-24 lg:pb-8">
 
         {/* ═══ WORKSPACE HEADER ═══ */}
