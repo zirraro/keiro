@@ -1,128 +1,40 @@
 {
   "crons": [
     {
-      "path": "/api/cron/scheduler?slot=discovery",
-      "schedule": "0 3 * * *"
-    },
-    {
-      "path": "/api/cron/scheduler?slot=marketing_prep",
-      "schedule": "50 4 * * *"
-    },
-    {
-      "path": "/api/cron/scheduler?slot=ceo",
-      "schedule": "0 5 * * *"
-    },
-    {
-      "path": "/api/cron/scheduler?slot=trends",
-      "schedule": "30 5 * * *"
-    },
-    {
-      "path": "/api/cron/scheduler?slot=early_morning",
-      "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/cron/scheduler?slot=morning_prep",
+      "path": "/api/cron/scheduler?slot=morning_batch",
       "schedule": "0 7 * * *"
     },
     {
-      "path": "/api/cron/diagnose-social",
-      "schedule": "45 7 * * *"
-    },
-    {
-      "path": "/api/cron/scheduler?slot=comptable",
-      "schedule": "15 8 * * *"
-    },
-    {
-      "path": "/api/cron/scheduler?slot=morning",
-      "schedule": "0 8 * * *"
-    },
-    {
-      "path": "/api/cron/scheduler?slot=retention",
-      "schedule": "0 9 * * *"
-    },
-    {
-      "path": "/api/cron/scheduler?slot=community",
-      "schedule": "30 9 * * *"
-    },
-    {
-      "path": "/api/cron/scheduler?slot=gmaps",
-      "schedule": "30 10 * * *"
-    },
-    {
-      "path": "/api/cron/scheduler?slot=midday",
+      "path": "/api/cron/scheduler?slot=midday_batch",
       "schedule": "0 10 * * *"
     },
     {
-      "path": "/api/cron/scheduler?slot=discovery_2",
-      "schedule": "0 11 * * *"
-    },
-    {
-      "path": "/api/cron/scheduler?slot=afternoon",
-      "schedule": "0 12 * * *"
-    },
-    {
-      "path": "/api/cron/scheduler?slot=content_2",
+      "path": "/api/cron/scheduler?slot=afternoon_batch",
       "schedule": "30 13 * * *"
     },
     {
-      "path": "/api/cron/scheduler?slot=discovery_3",
-      "schedule": "0 14 * * *"
-    },
-    {
-      "path": "/api/cron/scheduler?slot=email_warm_2",
-      "schedule": "40 14 * * *"
-    },
-    {
-      "path": "/api/cron/scheduler?slot=ceo_evening",
-      "schedule": "0 15 * * *"
-    },
-    {
-      "path": "/api/cron/scheduler?slot=evening",
-      "schedule": "0 16 * * *"
-    },
-    {
-      "path": "/api/cron/scheduler?slot=evening_prep",
+      "path": "/api/cron/scheduler?slot=evening_batch",
       "schedule": "0 17 * * *"
     },
     {
-      "path": "/api/cron/scheduler?slot=content_3",
-      "schedule": "30 17 * * *"
-    },
-    {
-      "path": "/api/cron/scheduler?slot=email_recap",
-      "schedule": "45 18 * * *"
-    },
-    {
-      "path": "/api/cron/scheduler?slot=marketing_learn",
-      "schedule": "0 19 * * *"
-    },
-    {
-      "path": "/api/cron/scheduler?slot=tiktok_publish",
-      "schedule": "30 19 * * *"
-    },
-    {
-      "path": "/api/cron/scheduler?slot=ceo_night",
+      "path": "/api/cron/scheduler?slot=ceo_daily",
       "schedule": "0 20 * * *"
-    },
-    {
-      "path": "/api/cron/scheduler?slot=ops",
-      "schedule": "0 22 * * *"
-    },
-    {
-      "path": "/api/cron/scheduler?slot=video_poll",
-      "schedule": "0 */3 * * *"
     },
     {
       "path": "/api/cron/scheduler?slot=publish_scheduled",
       "schedule": "0 9,13,18 * * *"
     },
     {
-      "path": "/api/agents/monthly-recap",
-      "schedule": "0 7 1 * *"
+      "path": "/api/cron/scheduler?slot=video_poll",
+      "schedule": "0 */6 * * *"
     },
     {
       "path": "/api/agents/weekly-trends",
       "schedule": "0 7 * * 1"
+    },
+    {
+      "path": "/api/agents/monthly-recap",
+      "schedule": "0 7 1 * *"
     }
   ]
 }

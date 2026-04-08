@@ -106,6 +106,9 @@ export async function GET(request: NextRequest) {
   // Action slots (email, DM, content, publish, comments) run PER CLIENT only
   // Monitoring slots (QA, CEO, marketing) run globally (all clients)
   const actionSlots = new Set([
+    // v3 batched slots
+    'morning_batch', 'midday_batch', 'afternoon_batch', 'evening_batch',
+    // Legacy individual slots (still work if called directly)
     'early_morning', 'morning', 'midday', 'afternoon', 'evening',
     'email_warm_2', 'email_recap',
     'morning_prep', 'content_2', 'content_3', 'content_tiktok',
@@ -130,26 +133,27 @@ export async function GET(request: NextRequest) {
   // Pro (99€): standard crons → 85% margin
   // Business (199€): all crons → 85% margin
   const PLAN_SLOT_LIMITS: Record<string, Set<string>> = {
-    // Créateur: 2 email, 1 content, 1 DM, 1 discovery, 0 CEO, 0 SEO, 0 community
+    // Créateur: morning + midday only (2 email, 1 content, 1 DM, 1 discovery)
     créateur: new Set([
-      'early_morning', 'evening', // 2 email slots
-      'morning_prep', // 1 content + 1 DM
-      'discovery', // 1 discovery
-      'retention', 'gmaps',
+      'morning_batch', 'midday_batch',
       'publish_scheduled',
+      // Legacy slots (if called individually)
+      'early_morning', 'evening', 'morning_prep', 'discovery', 'retention', 'gmaps',
     ]),
-    // Pro: 4 email, 2 content, 2 DM, 2 discovery, 1 CEO, SEO, 1 community
+    // Pro: morning + midday + afternoon (4 email, 2 content, 2 DM, community, CEO)
     pro: new Set([
-      'early_morning', 'morning', 'midday', 'evening', // 4 email
-      'morning_prep', 'content_2', // 2 content + 2 DM
-      'discovery', 'discovery_2', // 2 discovery
-      'ceo_evening', // 1 CEO report
-      'community', // 1 community
-      'retention', 'gmaps', 'comptable',
-      'email_warm_2', 'publish_scheduled',
+      'morning_batch', 'midday_batch', 'afternoon_batch',
+      'publish_scheduled',
+      // Legacy slots
+      'early_morning', 'morning', 'midday', 'evening',
+      'morning_prep', 'content_2', 'discovery', 'discovery_2',
+      'ceo_evening', 'community', 'retention', 'gmaps', 'comptable', 'email_warm_2',
     ]),
-    // Business: everything
+    // Business: all batches
     business: new Set([
+      'morning_batch', 'midday_batch', 'afternoon_batch', 'evening_batch', 'ceo_daily',
+      'publish_scheduled',
+      // Legacy slots (all)
       'early_morning', 'morning', 'midday', 'afternoon', 'evening', 'email_warm_2', 'email_recap',
       'morning_prep', 'content_2', 'content_3',
       'discovery', 'discovery_2', 'discovery_3',
@@ -321,6 +325,159 @@ export async function GET(request: NextRequest) {
   const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
   switch (slot) {
+    // ════════════════════════════════════════════════════════════════
+    // BATCHED SLOTS (v3) — 5 daily batches instead of 30+ individual crons
+    // ════════════════════════════════════════════════════════════════
+
+    case 'morning_batch':
+      // 07:00 UTC — Everything morning: DM + Content + Email #1 + Discovery + Trends + Diag + Comptable
+      fireBackground(async () => {
+        // Trends refresh (global, no per-client)
+        await callEndpoint('Trends Refresh', '/api/cron/refresh-trends');
+        // Diagnose social (global)
+        await callEndpoint('Diagnose Social', '/api/cron/diagnose-social');
+        // Comptable (per client)
+        for (const uid of getClientsWithAgent('comptable')) {
+          await callEndpoint(`Comptable [${uid.substring(0, 8)}]`, `/api/agents/comptable?user_id=${uid}`);
+        }
+        // DM auto-reply + proactive
+        for (const uid of getClientsWithAgent('dm_instagram')) {
+          await callEndpoint(`DM AutoReply [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram/auto-reply?user_id=${uid}`, 'POST');
+          await delay(3000);
+          await callEndpoint(`DM Instagram [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram?slot=morning&user_id=${uid}`, 'POST');
+          await delay(5000);
+          // TikTok DM if active
+          if (isNetworkActive(uid, 'dm_instagram', 'tiktok')) {
+            await callEndpoint(`DM TikTok [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram?platform=tiktok&count=20&user_id=${uid}`, 'POST');
+            await delay(10000);
+          }
+        }
+        // Content morning + publish
+        for (const uid of getClientsWithAgent('content')) {
+          await callEndpoint(`Content [${uid.substring(0, 8)}]`, `/api/agents/content?slot=morning&user_id=${uid}`);
+          await delay(5000);
+          await callEndpoint(`Publish [${uid.substring(0, 8)}]`, `/api/agents/content?user_id=${uid}`, 'POST', { action: 'execute_publication' });
+          await delay(5000);
+        }
+        // Email cold #1
+        for (const uid of getClientsWithAgent('email')) {
+          await callEndpoint(`Email Cold [${uid.substring(0, 8)}]`, `/api/agents/email/daily?slot=morning&types=restaurant,traiteur,boutique,coiffeur,fleuriste&user_id=${uid}`);
+        }
+        // Discovery
+        await callForEachClient('Commercial Verify CRM', '/api/agents/commercial', 'POST', { action: 'verify_crm' }, 'commercial');
+        // SEO (Mon/Wed/Fri only)
+        if (isSeoDay) {
+          await callEndpoint('SEO', '/api/agents/seo');
+        }
+      });
+      results.push({ task: 'Morning Batch', ok: true, data: { status: 'dispatched_background', clients: clientUserIds.length } });
+      break;
+
+    case 'midday_batch':
+      // 10:00 UTC — Email #2 + Community + GMaps + Retention + Onboarding
+      // Retention
+      for (const uid of getClientsWithAgent('email')) {
+        await callEndpoint(`Retention [${uid.substring(0, 8)}]`, `/api/agents/retention?user_id=${uid}`);
+      }
+      // Email cold #2
+      for (const uid of getClientsWithAgent('email')) {
+        await callEndpoint(`Email Cold [${uid.substring(0, 8)}]`, `/api/agents/email/daily?slot=midday&types=coach,freelance,services,professionnel&user_id=${uid}`);
+      }
+      // Community (comments + follows)
+      for (const uid of getClientsWithAgent('content')) {
+        callEndpoint(`Community [${uid.substring(0, 8)}]`, `/api/agents/content?slot=community&user_id=${uid}`).catch(() => {});
+      }
+      // GMaps
+      for (const uid of getClientsWithAgent('gmaps')) {
+        callEndpoint(`GMaps [${uid.substring(0, 8)}]`, `/api/agents/gmaps?user_id=${uid}`).catch(() => {});
+      }
+      // Onboarding
+      for (const uid of clientUserIds) {
+        await callEndpoint(`Onboarding [${uid.substring(0, 8)}]`, `/api/agents/onboarding?user_id=${uid}`);
+      }
+      break;
+
+    case 'afternoon_batch':
+      // 13:30 UTC — Content #2 + Email #3 + Email warm + TikTok + LinkedIn + Discovery #2
+      // Content midday + publish
+      for (const uid of getClientsWithAgent('content')) {
+        await callEndpoint(`Content midday [${uid.substring(0, 8)}]`, `/api/agents/content?slot=midday&user_id=${uid}`);
+        await callEndpoint(`Publish midday [${uid.substring(0, 8)}]`, `/api/agents/content?user_id=${uid}`, 'POST', { action: 'execute_publication' });
+      }
+      // TikTok content (if connected)
+      if (isTiktokDay) {
+        for (const uid of getClientsWithAgent('content')) {
+          if (isNetworkActive(uid, 'content', 'tiktok')) {
+            await callEndpoint(`Content TikTok [${uid.substring(0, 8)}]`, `/api/agents/content?slot=tiktok&user_id=${uid}`);
+          }
+        }
+      }
+      // LinkedIn content (if connected)
+      for (const uid of getClientsWithAgent('linkedin')) {
+        await callEndpoint(`Content LinkedIn [${uid.substring(0, 8)}]`, `/api/agents/content?slot=linkedin_1&user_id=${uid}`);
+      }
+      // Email cold #3 + warm
+      for (const uid of getClientsWithAgent('email')) {
+        await callEndpoint(`Email Cold [${uid.substring(0, 8)}]`, `/api/agents/email/daily?slot=afternoon&types=restaurant,pme,services&user_id=${uid}`);
+        await callEndpoint(`Email Warm [${uid.substring(0, 8)}]`, `/api/agents/email/daily?slot=warm&user_id=${uid}`);
+      }
+      // Discovery #2
+      await callForEachClient('Commercial Prospect', '/api/agents/commercial', 'POST', { action: 'prospect_external' }, 'commercial');
+      // DM auto-reply + TikTok DM
+      fireBackground(async () => {
+        for (const uid of getClientsWithAgent('dm_instagram')) {
+          await callEndpoint(`DM AutoReply [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram/auto-reply?user_id=${uid}`, 'POST');
+          if (isNetworkActive(uid, 'dm_instagram', 'tiktok')) {
+            await callEndpoint(`DM TikTok [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram?platform=tiktok&count=20&user_id=${uid}`, 'POST');
+            await delay(10000);
+          }
+        }
+      });
+      break;
+
+    case 'evening_batch':
+      // 17:00 UTC — DM soir + Content #3 + Email #4 + Recap
+      fireBackground(async () => {
+        // DM evening
+        for (const uid of getClientsWithAgent('dm_instagram')) {
+          await callEndpoint(`DM Evening [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram?slot=evening&user_id=${uid}`, 'POST');
+          await delay(5000);
+        }
+        // Content evening + publish
+        for (const uid of getClientsWithAgent('content')) {
+          await callEndpoint(`Content evening [${uid.substring(0, 8)}]`, `/api/agents/content?slot=evening&user_id=${uid}`);
+          await delay(5000);
+          await callEndpoint(`Publish evening [${uid.substring(0, 8)}]`, `/api/agents/content?user_id=${uid}`, 'POST', { action: 'execute_publication' });
+        }
+        // Email cold #4 + recap
+        for (const uid of getClientsWithAgent('email')) {
+          await callEndpoint(`Email Cold [${uid.substring(0, 8)}]`, `/api/agents/email/daily?slot=evening&types=restaurant,bar,commerce&user_id=${uid}`);
+          await delay(3000);
+          await callEndpoint(`Email Recap [${uid.substring(0, 8)}]`, `/api/agents/email/daily?slot=recap&user_id=${uid}`);
+        }
+        // TikTok publish
+        await callForEachClient('Publish TikTok', '/api/agents/content', 'POST', { action: 'execute_publication' }, 'content');
+      });
+      results.push({ task: 'Evening Batch', ok: true, data: { status: 'dispatched_background', clients: clientUserIds.length } });
+      break;
+
+    case 'ceo_daily':
+      // 20:00 UTC — CEO brief + Marketing learn + Ops + AMIT (all global/admin)
+      // Marketing analysis
+      await callEndpoint('Marketing Learn', '/api/agents/marketing', 'POST', { action: 'learn' });
+      // CEO full daily brief
+      await callEndpoint('CEO Daily Brief', '/api/agents/ceo', 'POST', { action: 'daily_brief' });
+      // AMIT strategic analysis
+      await callEndpoint('AMIT Strategic', '/api/agents/amit', 'POST', { action: 'analyze' });
+      // Ops health check
+      await callEndpoint('Ops Health', '/api/agents/ops', 'POST', { action: 'health_check' });
+      break;
+
+    // ════════════════════════════════════════════════════════════════
+    // LEGACY INDIVIDUAL SLOTS (kept for backward compatibility)
+    // These still work if called directly but are no longer in vercel.json
+    // ════════════════════════════════════════════════════════════════
+
     case 'discovery':
       // 03:00 UTC — Commercial: verify CRM — PER CLIENT (commercial agent filter)
       await callForEachClient('Commercial Verify CRM', '/api/agents/commercial', 'POST', { action: 'verify_crm' }, 'commercial');
