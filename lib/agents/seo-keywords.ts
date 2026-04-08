@@ -412,5 +412,48 @@ export function getAllKeywordsSorted(): SeoKeyword[] {
 export function pickNextKeyword(usedPrimaries: string[]): SeoKeyword | null {
   const sorted = getAllKeywordsSorted();
   const usedSet = new Set(usedPrimaries.map((k) => k.toLowerCase()));
-  return sorted.find((k) => !usedSet.has(k.primary.toLowerCase())) || null;
+  const unused = sorted.find((k) => !usedSet.has(k.primary.toLowerCase()));
+  if (unused) return unused;
+
+  // All static keywords used — generate dynamic variations
+  // Pick a random used keyword and create a variation
+  const businessTypes = ['restaurant', 'boutique', 'coach', 'coiffeur', 'caviste', 'fleuriste', 'freelance', 'artisan'];
+  const formats = [
+    'comment augmenter sa visibilité sur instagram pour',
+    'stratégie marketing digital pour',
+    'comment attirer des clients avec instagram pour',
+    'comment créer du contenu viral pour',
+    'guide complet marketing IA pour',
+    'automatiser sa communication pour',
+    'comment gérer ses réseaux sociaux pour',
+    'idées de posts instagram pour',
+    'comment utiliser l\'IA pour le marketing de',
+    'gagner des clients sur les réseaux sociaux pour',
+  ];
+  const year = new Date().getFullYear();
+  const month = new Date().toLocaleString('fr-FR', { month: 'long' });
+
+  // Generate a unique combination not yet used
+  for (const format of formats) {
+    for (const biz of businessTypes) {
+      const keyword = `${format} ${biz} ${year}`;
+      if (!usedSet.has(keyword.toLowerCase())) {
+        return {
+          primary: keyword,
+          secondary: [`marketing ${biz}`, `instagram ${biz}`, `IA marketing ${biz}`],
+          volume: 500 + Math.floor(Math.random() * 1000),
+          difficulty: 20 + Math.floor(Math.random() * 30),
+          priority: 'moyenne',
+        };
+      }
+    }
+  }
+
+  // Ultimate fallback — monthly trending topic
+  const trending = `tendances marketing digital ${month} ${year}`;
+  if (!usedSet.has(trending.toLowerCase())) {
+    return { primary: trending, secondary: ['tendances marketing', 'digital marketing'], volume: 800, difficulty: 25, priority: 'haute' };
+  }
+
+  return null;
 }
