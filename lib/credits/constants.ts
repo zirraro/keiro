@@ -89,16 +89,21 @@ export const AGENT_ADDON_PRICES: Record<string, number> = {
 // Quels agents sont disponibles en addon pour chaque plan
 // = tous les agents qui ne sont PAS dans le plan du client
 export function getAvailableAddons(plan: string): Array<{ agentId: string; name: string; price: number; tier: number }> {
-  // All agents included in all paid plans — credits are the natural limit
-  const ALL_AGENTS = new Set(['marketing', 'onboarding', 'content', 'dm_instagram', 'email', 'commercial', 'gmaps', 'seo', 'rh', 'chatbot', 'comptable', 'ads', 'tiktok_comments', 'linkedin', 'whatsapp']);
+  // Agent access per plan — higher plans unlock more agents
+  // Créateur: visibility + prospection essentials (boutiques, restos, hotels)
+  // Pro: + SEO, chatbot, legal (growth stage)
+  // Business: + finance, LinkedIn, ads, WhatsApp (full automation)
+  const CREATEUR_AGENTS = new Set(['marketing', 'onboarding', 'content', 'dm_instagram', 'email', 'commercial', 'gmaps']);
+  const PRO_AGENTS = new Set([...CREATEUR_AGENTS, 'seo', 'chatbot', 'rh']);
+  const BUSINESS_AGENTS = new Set([...PRO_AGENTS, 'comptable', 'ads', 'tiktok_comments', 'linkedin', 'whatsapp']);
   const planAgents: Record<string, Set<string>> = {
     free: new Set(['marketing', 'onboarding']),
     gratuit: new Set(['marketing', 'onboarding']),
-    createur: ALL_AGENTS,
-    pro: ALL_AGENTS,
-    fondateurs: ALL_AGENTS,
-    business: ALL_AGENTS,
-    elite: ALL_AGENTS,
+    createur: CREATEUR_AGENTS,
+    pro: PRO_AGENTS,
+    fondateurs: BUSINESS_AGENTS,
+    business: BUSINESS_AGENTS,
+    elite: BUSINESS_AGENTS,
   };
 
   const AGENT_NAMES: Record<string, string> = {

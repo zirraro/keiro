@@ -313,7 +313,7 @@ export const CLIENT_AGENTS: ClientAgent[] = [
     title: 'Expert Publicite',
     description: 'Cree et optimise automatiquement vos campagnes Meta Ads et Google Ads, maximise votre ROAS',
     visibility: 'coming_soon',
-    minPlan: 'createur',
+    minPlan: 'business',
     gradientFrom: '#ef4444',
     gradientTo: '#dc2626',
     icon: '\u{1F4E2}',
@@ -337,7 +337,7 @@ export const CLIENT_AGENTS: ClientAgent[] = [
     title: 'Expert TikTok Engagement',
     description: 'Commente automatiquement sur TikTok, engage votre communaute, genere du trafic vers votre profil',
     visibility: 'coming_soon',
-    minPlan: 'createur',
+    minPlan: 'business',
     gradientFrom: '#000000',
     gradientTo: '#1a1a2e',
     icon: '\u{1F3B5}',
@@ -350,7 +350,7 @@ export const CLIENT_AGENTS: ClientAgent[] = [
     title: 'Experte LinkedIn & Reseau Pro',
     description: 'Publie du contenu optimise sur LinkedIn, commente et engage votre reseau professionnel, genere des leads B2B',
     visibility: 'coming_soon',
-    minPlan: 'createur',
+    minPlan: 'business',
     gradientFrom: '#0A66C2',
     gradientTo: '#004182',
     icon: '\u{1F4BC}',
@@ -364,7 +364,7 @@ export const CLIENT_AGENTS: ClientAgent[] = [
     title: 'Expert SEO & Visibilité',
     description: 'Optimise automatiquement votre SEO, rédige des articles blog, améliore votre visibilité Google',
     visibility: 'coming_soon',
-    minPlan: 'createur',
+    minPlan: 'pro',
     gradientFrom: '#f59e0b',
     gradientTo: '#d97706',
     icon: '\u{1F50D}',
@@ -376,7 +376,7 @@ export const CLIENT_AGENTS: ClientAgent[] = [
     title: 'Expert Juridique & RH',
     description: 'Génère automatiquement vos contrats, vérifie la conformité RGPD, alerte sur les obligations légales',
     visibility: 'coming_soon',
-    minPlan: 'createur',
+    minPlan: 'pro',
     gradientFrom: '#d946ef',
     gradientTo: '#a21caf',
     icon: '\u2696\uFE0F',
@@ -399,7 +399,7 @@ export const CLIENT_AGENTS: ClientAgent[] = [
     title: 'Chatbot Site Web',
     description: 'Accueille automatiquement les visiteurs de votre site, capture les leads, qualifie les prospects 24/7',
     visibility: 'coming_soon',
-    minPlan: 'createur',
+    minPlan: 'pro',
     gradientFrom: '#7c3aed',
     gradientTo: '#5b21b6',
     icon: '\u{1F916}',
@@ -411,7 +411,7 @@ export const CLIENT_AGENTS: ClientAgent[] = [
     title: 'Experte WhatsApp Business',
     description: 'Envoie et repond aux messages WhatsApp, relance les prospects chauds, convertit par conversation privee',
     visibility: 'coming_soon',
-    minPlan: 'createur',
+    minPlan: 'business',
     gradientFrom: '#25D366',
     gradientTo: '#128C7E',
     icon: '\u{1F4F2}',
@@ -423,7 +423,7 @@ export const CLIENT_AGENTS: ClientAgent[] = [
     title: 'Expert Finance',
     description: 'Suit automatiquement votre tresorerie, genere des previsions, alerte sur les anomalies financieres',
     visibility: 'coming_soon',
-    minPlan: 'createur',
+    minPlan: 'business',
     gradientFrom: '#0e7490',
     gradientTo: '#155e75',
     icon: '\u{1F4B0}',
@@ -476,6 +476,7 @@ export function getVisibleAgents(plan: string, isAdmin = false): ClientAgent[] {
       const requiredIndex = planOrder.indexOf(a.minPlan);
       const isAccessible = isAdmin || userPlanIndex >= requiredIndex;
       // Force certain agents to "coming_soon" regardless of plan (not yet ready)
+      // Agents not yet functional — show "à venir" regardless of plan
       const FORCED_COMING_SOON = new Set(['tiktok_comments', 'linkedin', 'whatsapp', 'ads']);
       const isForcedComingSoon = FORCED_COMING_SOON.has(a.id) && !isAdmin;
 
