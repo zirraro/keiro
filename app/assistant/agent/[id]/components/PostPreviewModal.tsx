@@ -2,6 +2,80 @@
 
 import { useState, useCallback } from 'react';
 
+// TikTok UX Guidelines compliance — Required before publishing to TikTok
+function TikTokPublishFlow({ post, onPublish, onCancel }: { post: any; onPublish: (settings: any) => void; onCancel: () => void }) {
+  const [step, setStep] = useState(1);
+  const [privacy, setPrivacy] = useState<'public' | 'friends' | 'private'>('public');
+  const [comments, setComments] = useState(true);
+  const [duet, setDuet] = useState(true);
+  const [stitch, setStitch] = useState(true);
+
+  return (
+    <div className="space-y-4">
+      {/* Step 1: Disclosure */}
+      {step === 1 && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-bold text-white">Publier sur TikTok</h3>
+          <p className="text-[11px] text-white/60">Ce contenu sera publié sur votre compte TikTok. En continuant, vous acceptez que KeiroAI publie ce contenu en votre nom via l'API TikTok.</p>
+          {post.visual_url && <img src={post.visual_url} alt="" className="w-full max-h-[150px] object-contain rounded-lg" />}
+          <p className="text-[10px] text-white/40">{(post.caption || '').substring(0, 100)}</p>
+          <button onClick={() => setStep(2)} className="w-full py-2.5 bg-black text-white text-xs font-bold rounded-xl min-h-[44px]">Continuer vers les paramètres</button>
+        </div>
+      )}
+
+      {/* Step 2: Privacy */}
+      {step === 2 && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-bold text-white">Qui peut voir cette vidéo ?</h3>
+          {(['public', 'friends', 'private'] as const).map(opt => (
+            <button key={opt} onClick={() => setPrivacy(opt)} className={`w-full text-left px-4 py-3 rounded-xl border text-xs transition ${privacy === opt ? 'border-white/40 bg-white/10 text-white' : 'border-white/10 text-white/50 hover:bg-white/5'}`}>
+              {opt === 'public' ? 'Tout le monde' : opt === 'friends' ? 'Amis uniquement' : 'Privé (moi seul)'}
+            </button>
+          ))}
+          <button onClick={() => setStep(3)} className="w-full py-2.5 bg-black text-white text-xs font-bold rounded-xl min-h-[44px]">Suivant</button>
+        </div>
+      )}
+
+      {/* Step 3: Interactions */}
+      {step === 3 && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-bold text-white">Paramètres d'interaction</h3>
+          {[
+            { key: 'comments', label: 'Autoriser les commentaires', value: comments, set: setComments },
+            { key: 'duet', label: 'Autoriser les Duos', value: duet, set: setDuet },
+            { key: 'stitch', label: 'Autoriser le Stitch', value: stitch, set: setStitch },
+          ].map(s => (
+            <div key={s.key} className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-white/5 border border-white/10">
+              <span className="text-xs text-white/70">{s.label}</span>
+              <button onClick={() => s.set(!s.value)} className={`w-10 h-5 rounded-full relative transition-colors ${s.value ? 'bg-emerald-500' : 'bg-white/15'}`}>
+                <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${s.value ? 'right-0.5' : 'left-0.5'}`} />
+              </button>
+            </div>
+          ))}
+          <button onClick={() => setStep(4)} className="w-full py-2.5 bg-black text-white text-xs font-bold rounded-xl min-h-[44px]">Aperçu final</button>
+        </div>
+      )}
+
+      {/* Step 4: Preview + Confirm */}
+      {step === 4 && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-bold text-white">Confirmer la publication</h3>
+          {post.visual_url && <img src={post.visual_url} alt="" className="w-full max-h-[150px] object-contain rounded-lg" />}
+          <p className="text-[10px] text-white/50">{post.caption}</p>
+          <div className="space-y-1 text-[10px] text-white/40">
+            <div>Visibilité : <span className="text-white/70 font-medium">{privacy === 'public' ? 'Tout le monde' : privacy === 'friends' ? 'Amis' : 'Privé'}</span></div>
+            <div>Commentaires : <span className="text-white/70">{comments ? 'Oui' : 'Non'}</span> | Duo : <span className="text-white/70">{duet ? 'Oui' : 'Non'}</span> | Stitch : <span className="text-white/70">{stitch ? 'Oui' : 'Non'}</span></div>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={onCancel} className="flex-1 py-2.5 bg-white/10 text-white/50 text-xs rounded-xl min-h-[44px]">Annuler</button>
+            <button onClick={() => onPublish({ privacy, comments, duet, stitch })} className="flex-1 py-2.5 bg-black text-white text-xs font-bold rounded-xl min-h-[44px]">Publier sur TikTok</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /**
  * PostPreviewModal — Fullscreen Instagram/TikTok/LinkedIn-like post preview.
  * Editable caption/hashtags for draft/approved posts.
@@ -31,6 +105,7 @@ interface PostPreviewModalProps {
 export default function PostPreviewModal({ post, onClose, onApprove, onPublish, onSkip }: PostPreviewModalProps) {
   const isIG = !post.platform || post.platform === 'instagram';
   const isTT = post.platform === 'tiktok';
+  const [showTikTokFlow, setShowTikTokFlow] = useState(false);
   const isReel = post.format === 'reel' || post.format === 'video';
   const isStory = post.format === 'story';
   const isCarousel = post.format === 'carrousel' || post.format === 'carousel';
@@ -142,7 +217,8 @@ export default function PostPreviewModal({ post, onClose, onApprove, onPublish, 
             {(onApprove || onPublish || onSkip) && (
               <div className="flex gap-2">
                 {onApprove && <button onClick={() => { onApprove(); onClose(); }} className="flex-1 py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-500 transition min-h-[44px]">{'\u2705'} Valider</button>}
-                {onPublish && <button onClick={() => { onPublish(); onClose(); }} className="flex-1 py-2.5 bg-purple-600 text-white text-xs font-bold rounded-xl hover:bg-purple-500 transition min-h-[44px]">{'\u{1F680}'} Publier</button>}
+                {onPublish && isTT && <button onClick={() => setShowTikTokFlow(true)} className="flex-1 py-2.5 bg-black text-white text-xs font-bold rounded-xl hover:bg-gray-900 transition min-h-[44px]">{'\uD83C\uDFB5'} Publier sur TikTok</button>}
+                {onPublish && !isTT && <button onClick={() => { onPublish(); onClose(); }} className="flex-1 py-2.5 bg-purple-600 text-white text-xs font-bold rounded-xl hover:bg-purple-500 transition min-h-[44px]">{'\u{1F680}'} Publier</button>}
                 {onSkip && <button onClick={() => { onSkip(); onClose(); }} className="py-2.5 px-4 bg-white/10 text-white/40 text-xs rounded-xl hover:bg-white/15 transition min-h-[44px]">Ignorer</button>}
               </div>
             )}
@@ -170,6 +246,22 @@ export default function PostPreviewModal({ post, onClose, onApprove, onPublish, 
           </div>
         )}
       </div>
+
+      {/* TikTok Publishing Flow — UX Guidelines compliance */}
+      {showTikTokFlow && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/90 p-4" onClick={() => setShowTikTokFlow(false)}>
+          <div className="bg-gray-900 rounded-2xl shadow-2xl max-w-sm w-full max-h-[85vh] overflow-y-auto p-5" onClick={e => e.stopPropagation()}>
+            <TikTokPublishFlow
+              post={post}
+              onPublish={(settings) => {
+                setShowTikTokFlow(false);
+                if (onPublish) { onPublish(); onClose(); }
+              }}
+              onCancel={() => setShowTikTokFlow(false)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
