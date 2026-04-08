@@ -273,7 +273,7 @@ export default function AgentChatPanel({
       )}
 
       {/* Input area */}
-      <div className={`border-t border-white/10 bg-[#0f1f3d] p-3 flex-shrink-0 ${isMobile ? 'pb-8' : ''}`} style={isMobile ? { paddingBottom: 'max(2rem, env(safe-area-inset-bottom, 1.5rem))' } : undefined}>
+      <div className="border-t border-white/10 bg-[#0f1f3d] p-3 flex-shrink-0" style={isMobile ? { paddingBottom: 'max(2rem, env(safe-area-inset-bottom, 1.5rem))' } : undefined}>
         <div className="flex gap-2">
           <input
             ref={inputRef}

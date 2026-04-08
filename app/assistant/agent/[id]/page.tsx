@@ -878,7 +878,7 @@ export default function AgentWorkspacePage() {
         </div>
       )}
 
-      <div className={`max-w-7xl mx-auto px-4 py-6 pb-24 lg:pb-8 ${isVisitor ? 'pointer-events-none select-none' : ''}`}>
+      <div className={`max-w-7xl mx-auto px-4 py-6 pb-28 sm:pb-8 ${isVisitor ? 'pointer-events-none select-none' : ''}`}>
 
         {/* ═══ HEADER ═══ */}
         <div className="flex items-center gap-4 mb-6">
@@ -966,7 +966,7 @@ export default function AgentWorkspacePage() {
         )}
 
         {/* ═══ TABS ═══ */}
-        <div className="flex items-center gap-1 bg-white/5 rounded-xl p-1 border border-white/10 mb-6 overflow-x-auto">
+        <div className="flex items-center gap-1 bg-white/5 rounded-xl p-1 border border-white/10 mb-6 overflow-x-auto whitespace-nowrap scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
           {([
             { key: 'dashboard' as const, label: 'Dashboard', icon: '\uD83D\uDCCA' },
             ...(agentId === 'onboarding' ? [{ key: 'profile' as const, label: 'Mon profil', icon: '\uD83D\uDCCB' }] : []),
