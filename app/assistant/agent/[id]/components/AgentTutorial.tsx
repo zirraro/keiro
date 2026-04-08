@@ -81,6 +81,14 @@ export default function AgentTutorial({ agentId }: { agentId: string }) {
 
   useEffect(() => {
     try {
+      // Check for first activation spotlight (from workspace toggle)
+      const spotlight = sessionStorage.getItem('keiro_show_spotlight');
+      if (spotlight === agentId) {
+        sessionStorage.removeItem('keiro_show_spotlight');
+        setTimeout(() => setPhase('confirm'), 300);
+        return;
+      }
+
       // Check for "i" button replay — go directly to tour
       const replay = sessionStorage.getItem('keiro_tour_replay');
       if (replay === agentId) {

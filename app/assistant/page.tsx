@@ -635,10 +635,12 @@ export default function AssistantPage() {
         credentials: 'include',
         body: JSON.stringify({ agent_id: agentId, auto_mode: newState, setup_completed: newState }),
       });
-      // First activation → mark for spotlight tutorial
+      // First activation → spotlight tutorial on agent page
       if (newState && !localStorage.getItem(`keiro_agent_activated_${agentId}`)) {
         localStorage.setItem(`keiro_agent_activated_${agentId}`, 'true');
         sessionStorage.setItem('keiro_show_spotlight', agentId);
+        // Navigate to agent page so spotlight tour plays
+        router.push(`/assistant/agent/${agentId}`);
       }
     } catch {
       // Revert on error
