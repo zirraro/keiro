@@ -780,11 +780,11 @@ export async function publishTikTokVideoViaFileUpload(
   // the one chunk IS the last chunk, so it can be smaller than declared chunk_size.
   if (videoSize <= MAX_CHUNK_SIZE) {
     // Case 1: Video fits in one chunk (≤64MB)
-    // Declare chunk_size = PREFERRED (10MB) to satisfy TikTok's 5MB minimum
-    // The actual single chunk = videoSize which is allowed to be smaller (last chunk rule)
-    chunkSize = Math.max(PREFERRED_CHUNK_SIZE, videoSize);
+    // IMPORTANT: chunk_size MUST equal the actual file size for single-chunk uploads
+    // TikTok rejects if declared chunk_size != actual bytes sent
+    chunkSize = videoSize;
     totalChunkCount = 1;
-    console.log(`[TikTok] Case 1: Single chunk upload, declared chunk_size=${(chunkSize / (1024 * 1024)).toFixed(2)}MB, actual video=${(videoSize / (1024 * 1024)).toFixed(2)}MB`);
+    console.log(`[TikTok] Case 1: Single chunk upload, chunk_size=${(chunkSize / (1024 * 1024)).toFixed(2)}MB = video size`);
 
   } else {
     // Case 3: Video > 10MB
