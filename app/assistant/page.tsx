@@ -18,8 +18,8 @@ import { arrayMove, SortableContext, useSortable, rectSortingStrategy } from '@d
 import { CSS } from '@dnd-kit/utilities';
 
 // ─── Sortable Agent Row for Team view (drag & drop) ────────
-function SortableTeamAgentRow({ agent, avatars, agentStats, onClick, onChat }: {
-  agent: ClientAgent; avatars: Record<string, string | null>; agentStats: any; onClick: () => void; onChat: () => void;
+function SortableTeamAgentRow({ agent, avatars, agentStats, onClick, onChat, isActivated, onToggle }: {
+  agent: ClientAgent; avatars: Record<string, string | null>; agentStats: any; onClick: () => void; onChat: () => void; isActivated?: boolean; onToggle?: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: agent.id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1, zIndex: isDragging ? 50 : 'auto' as any };
@@ -53,7 +53,14 @@ function SortableTeamAgentRow({ agent, avatars, agentStats, onClick, onChat }: {
             )}
           </div>
         </button>
-        <button onClick={onChat} className="text-white/30 hover:text-white/70 transition text-sm px-2 py-1.5 rounded-lg hover:bg-white/10">💬</button>
+        <button
+          onClick={(e) => { e.stopPropagation(); onToggle?.(); }}
+          className={`relative w-8 h-[18px] rounded-full flex-shrink-0 transition-colors ${isActivated ? 'bg-green-500/40' : 'bg-white/10'}`}
+          title={isActivated ? 'Actif' : 'Inactif'}
+        >
+          <div className={`absolute top-[2px] w-[14px] h-[14px] rounded-full transition-all ${isActivated ? 'left-[15px] bg-green-400' : 'left-[2px] bg-white/30'}`} />
+        </button>
+        <button onClick={onChat} className="text-white/30 hover:text-white/70 transition text-sm px-2 py-1.5 rounded-lg hover:bg-white/10">{'\u{1F4AC}'}</button>
       </div>
     </div>
   );
@@ -61,11 +68,13 @@ function SortableTeamAgentRow({ agent, avatars, agentStats, onClick, onChat }: {
 
 // ─── Sortable Agent Card (drag & drop) ──────────────────────
 
-function SortableAgentCard({ agent, avatars, summary, onClick }: {
+function SortableAgentCard({ agent, avatars, summary, onClick, isActivated, onToggle }: {
   agent: ClientAgent;
   avatars: Record<string, string | null>;
   summary: any;
   onClick: () => void;
+  isActivated?: boolean;
+  onToggle?: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: agent.id });
   const style = {
@@ -104,7 +113,14 @@ function SortableAgentCard({ agent, avatars, summary, onClick }: {
               <div className="text-white font-bold text-xs truncate">{agent.displayName}</div>
               <div className="text-white/30 text-[9px] truncate">{agent.title}</div>
             </div>
-            <div className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0 opacity-60 group-hover:opacity-100 transition-opacity" />
+            {/* Activation toggle */}
+            <button
+              onClick={(e) => { e.stopPropagation(); onToggle?.(); }}
+              className={`relative w-8 h-[18px] rounded-full flex-shrink-0 transition-colors ${isActivated ? 'bg-green-500/40' : 'bg-white/10'}`}
+              title={isActivated ? 'Agent actif — cliquer pour desactiver' : 'Agent inactif — cliquer pour activer'}
+            >
+              <div className={`absolute top-[2px] w-[14px] h-[14px] rounded-full transition-all ${isActivated ? 'left-[15px] bg-green-400' : 'left-[2px] bg-white/30'}`} />
+            </button>
           </div>
           {metrics && metrics.length > 0 ? (
             <div className="flex flex-wrap gap-x-3 gap-y-1">
@@ -442,6 +458,9 @@ export default function AssistantPage() {
   const [summary, setSummary] = useState<any>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
 
+  // Agent activation states (auto_mode per agent)
+  const [agentActivations, setAgentActivations] = useState<Record<string, boolean>>({});
+
   // Agent questions/notifications
   const [agentQuestions, setAgentQuestions] = useState<Array<{ agent: string; agent_name: string; question: string; id: string }>>([]);
 
@@ -584,6 +603,48 @@ export default function AssistantPage() {
     }
     loadSummary();
   }, [user]);
+
+  // ─── Load agent activation states ───────────────────────
+  useEffect(() => {
+    if (!user || agents.length === 0) return;
+    const loadActivations = async () => {
+      const activations: Record<string, boolean> = {};
+      try {
+        const promises = agents.filter(a => a.visibility !== 'background').map(a =>
+          fetch(`/api/agents/settings?agent_id=${a.id}`, { credentials: 'include' })
+            .then(r => r.json())
+            .then(d => { activations[a.id] = !!(d.settings?.auto_mode || d.settings?.setup_completed); })
+            .catch(() => { activations[a.id] = false; })
+        );
+        await Promise.all(promises);
+        setAgentActivations(activations);
+      } catch {}
+    };
+    loadActivations();
+  }, [user, agents]);
+
+  const toggleAgentActivation = useCallback(async (agentId: string) => {
+    const current = agentActivations[agentId] || false;
+    const newState = !current;
+    // Optimistic update
+    setAgentActivations(prev => ({ ...prev, [agentId]: newState }));
+    try {
+      await fetch('/api/agents/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ agent_id: agentId, auto_mode: newState, setup_completed: newState }),
+      });
+      // First activation → mark for spotlight tutorial
+      if (newState && !localStorage.getItem(`keiro_agent_activated_${agentId}`)) {
+        localStorage.setItem(`keiro_agent_activated_${agentId}`, 'true');
+        sessionStorage.setItem('keiro_show_spotlight', agentId);
+      }
+    } catch {
+      // Revert on error
+      setAgentActivations(prev => ({ ...prev, [agentId]: current }));
+    }
+  }, [agentActivations]);
 
   // ─── Load agent questions (notifications) ──────────────
   useEffect(() => {
@@ -1158,6 +1219,8 @@ export default function AssistantPage() {
                             avatars={avatars}
                             summary={summary}
                             onClick={() => handleSelectAgent(agent)}
+                            isActivated={agentActivations[agent.id] || false}
+                            onToggle={() => toggleAgentActivation(agent.id)}
                           />
                         );
                       })}
@@ -1360,6 +1423,8 @@ export default function AssistantPage() {
                               agentStats={summary?.agents?.[agent.id]}
                               onClick={() => handleSelectAgent(agent)}
                               onChat={() => {/* handled below if chat exists */}}
+                              isActivated={agentActivations[agent.id] || false}
+                              onToggle={() => toggleAgentActivation(agent.id)}
                             />
                           );
                         })}
