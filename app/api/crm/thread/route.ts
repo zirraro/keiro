@@ -34,16 +34,41 @@ export async function GET(req: NextRequest) {
     .order('created_at', { ascending: true })
     .limit(100);
 
-  // Format as conversation thread
-  const thread = (activities || []).map(a => ({
-    id: a.id,
-    type: a.type, // email, email_replied, dm_instagram, call, etc.
-    direction: (a.data as any)?.auto_reply || (a.data as any)?.manual_reply || a.type === 'email' ? 'outgoing' : 'incoming',
-    message: (a.data as any)?.reply_content || (a.data as any)?.message || (a.data as any)?.reply_preview || a.description || '',
-    channel: a.type?.includes('dm') ? 'dm_instagram' : a.type?.includes('email') ? 'email' : a.type || 'other',
-    date: a.created_at,
-    auto: !!(a.data as any)?.auto_reply,
-  }));
+  // Format as conversation thread with full email content
+  const thread = (activities || []).map(a => {
+    const d = a.data as any;
+    // For outgoing emails: show the actual email subject + body
+    const isOutgoingEmail = a.type === 'email' && !d?.auto_reply;
+    const isReply = a.type === 'email_replied';
+
+    let message = '';
+    let subject = '';
+
+    if (isOutgoingEmail) {
+      subject = d?.subject || '';
+      // Show the real email body (strip HTML tags for display)
+      const rawBody = d?.body || d?.message || a.description || '';
+      message = rawBody.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#39;/g, "'").replace(/&quot;/g, '"').substring(0, 1000);
+    } else if (isReply) {
+      subject = 'Réponse reçue';
+      message = d?.reply_content || d?.reply_preview || d?.message || a.description || '';
+    } else {
+      message = d?.reply_content || d?.message || d?.reply_preview || a.description || '';
+    }
+
+    return {
+      id: a.id,
+      type: a.type,
+      direction: isOutgoingEmail || d?.auto_reply || d?.manual_reply ? 'outgoing' : a.type === 'email_replied' ? 'incoming' : 'outgoing',
+      subject,
+      message,
+      channel: a.type?.includes('dm') ? 'dm_instagram' : a.type?.includes('email') ? 'email' : a.type || 'other',
+      date: a.created_at,
+      auto: !!(d?.auto_reply || d?.auto),
+      provider: d?.provider || null,
+      step: d?.step || null,
+    };
+  });
 
   return NextResponse.json({ ok: true, prospect, thread });
 }

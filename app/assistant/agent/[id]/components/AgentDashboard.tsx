@@ -1887,9 +1887,11 @@ function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: str
                     }`}>
                       {msg.direction === 'incoming' && <div className="text-[9px] text-cyan-300/60 mb-0.5">{'\u2709\uFE0F'} Reponse recue</div>}
                       {msg.auto && <div className="text-[9px] text-white/40 mb-0.5">{'\u{1F916}'} Auto</div>}
+                      {msg.subject && <div className="font-semibold text-[11px] mb-1 opacity-90">{msg.subject}</div>}
                       <div className="whitespace-pre-wrap">{msg.message || '[pas de contenu]'}</div>
-                      <div className={`text-[10px] mt-1 ${msg.direction === 'outgoing' ? 'text-cyan-200/50' : 'text-white/20'}`}>
+                      <div className={`text-[10px] mt-1 flex items-center gap-1.5 ${msg.direction === 'outgoing' ? 'text-cyan-200/50' : 'text-white/20'}`}>
                         {msg.date ? new Date(msg.date).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}
+                        {msg.step && <span>· Etape {msg.step}</span>}
                       </div>
                     </div>
                   </div>
