@@ -123,12 +123,54 @@ export async function GET(request: NextRequest) {
   // For action slots: get list of active non-admin client user_ids + agent configs
   let clientUserIds: string[] = [];
   const clientAgentConfigs: Record<string, Record<string, any>> = {};
+  const clientPlans: Record<string, string> = {}; // userId → plan name
+
+  // ── Plan-based throttle: which slots are allowed per plan ──────────
+  // Créateur (49€): minimal crons → 80%+ margin
+  // Pro (99€): standard crons → 85% margin
+  // Business (199€): all crons → 85% margin
+  const PLAN_SLOT_LIMITS: Record<string, Set<string>> = {
+    // Créateur: 2 email, 1 content, 1 DM, 1 discovery, 0 CEO, 0 SEO, 0 community
+    créateur: new Set([
+      'early_morning', 'evening', // 2 email slots
+      'morning_prep', // 1 content + 1 DM
+      'discovery', // 1 discovery
+      'retention', 'gmaps',
+      'publish_scheduled',
+    ]),
+    // Pro: 4 email, 2 content, 2 DM, 2 discovery, 1 CEO, SEO, 1 community
+    pro: new Set([
+      'early_morning', 'morning', 'midday', 'evening', // 4 email
+      'morning_prep', 'content_2', // 2 content + 2 DM
+      'discovery', 'discovery_2', // 2 discovery
+      'ceo_evening', // 1 CEO report
+      'community', // 1 community
+      'retention', 'gmaps', 'comptable',
+      'email_warm_2', 'publish_scheduled',
+    ]),
+    // Business: everything
+    business: new Set([
+      'early_morning', 'morning', 'midday', 'afternoon', 'evening', 'email_warm_2', 'email_recap',
+      'morning_prep', 'content_2', 'content_3',
+      'discovery', 'discovery_2', 'discovery_3',
+      'ceo', 'ceo_evening', 'ceo_night',
+      'community', 'evening_prep',
+      'retention', 'gmaps', 'comptable',
+      'publish_scheduled', 'tiktok_publish',
+    ]),
+  };
+  // Aliases
+  PLAN_SLOT_LIMITS['createur'] = PLAN_SLOT_LIMITS['créateur'];
+  PLAN_SLOT_LIMITS['fondateurs'] = PLAN_SLOT_LIMITS['business'];
+  PLAN_SLOT_LIMITS['elite'] = PLAN_SLOT_LIMITS['business'];
+  // Trial users get Pro-level access
+  PLAN_SLOT_LIMITS['trial'] = PLAN_SLOT_LIMITS['pro'];
 
   if (actionSlots.has(slot)) {
     const supabaseForClients = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
     const { data: clients } = await supabaseForClients
       .from('profiles')
-      .select('id, email')
+      .select('id, email, subscription_plan')
       .or('is_admin.is.null,is_admin.eq.false')
       .not('subscription_plan', 'is', null)
       .not('subscription_plan', 'eq', 'free');
@@ -138,7 +180,7 @@ export async function GET(request: NextRequest) {
     try {
       const { data } = await supabaseForClients
         .from('profiles')
-        .select('id, email')
+        .select('id, email, subscription_plan')
         .or('is_admin.is.null,is_admin.eq.false')
         .not('trial_ends_at', 'is', null)
         .gt('trial_ends_at', now.toISOString());
@@ -146,8 +188,8 @@ export async function GET(request: NextRequest) {
     } catch { /* trial_ends_at column might not exist yet */ }
 
     const allClientIds = new Set<string>();
-    (clients || []).forEach(c => allClientIds.add(c.id));
-    (trialClients || []).forEach(c => allClientIds.add(c.id));
+    (clients || []).forEach(c => { allClientIds.add(c.id); clientPlans[c.id] = (c.subscription_plan || 'créateur').toLowerCase(); });
+    (trialClients || []).forEach(c => { allClientIds.add(c.id); if (!clientPlans[c.id]) clientPlans[c.id] = 'trial'; });
     clientUserIds = [...allClientIds];
 
     console.log(`[Scheduler] Action slot=${slot}: ${clientUserIds.length} active client(s)`);
@@ -169,11 +211,20 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // ── Helper: get clients who activated a specific agent ──────────
+  // ── Helper: get clients who activated a specific agent AND whose plan allows this slot ──
   function getClientsWithAgent(agentId: string): string[] {
     return clientUserIds.filter(uid => {
       const cfg = clientAgentConfigs[uid]?.[agentId];
-      return cfg?.auto_mode === true || cfg?.setup_completed === true;
+      const isActive = cfg?.auto_mode === true || cfg?.setup_completed === true;
+      if (!isActive) return false;
+      // Plan-based throttle: check if this slot is allowed for the client's plan
+      const plan = clientPlans[uid] || 'créateur';
+      const allowedSlots = PLAN_SLOT_LIMITS[plan] || PLAN_SLOT_LIMITS['business'];
+      if (!allowedSlots.has(slot)) {
+        console.log(`[Scheduler] Throttled: ${uid.substring(0, 8)} plan=${plan} cannot run slot=${slot}`);
+        return false;
+      }
+      return true;
     });
   }
 
