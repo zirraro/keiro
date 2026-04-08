@@ -2982,7 +2982,80 @@ function OnboardingPanel({
       </div>
 
       <ActionButton label="Reprendre l'onboarding" gradientFrom={gradientFrom} gradientTo={gradientTo} />
+
+      {/* Strategy presets */}
+      <SectionTitle>Strategie recommandee</SectionTitle>
+      <StrategyPresets gradientFrom={gradientFrom} gradientTo={gradientTo} />
     </>
+  );
+}
+
+/** Strategy presets — changeable from Clara's dashboard */
+function StrategyPresets({ gradientFrom, gradientTo }: { gradientFrom: string; gradientTo: string }) {
+  const [current, setCurrent] = useState<string | null>(null);
+  const [applying, setApplying] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      setCurrent(localStorage.getItem('keiro_strategy_done') || null);
+    } catch {}
+  }, []);
+
+  const strategies = [
+    { id: 'instagram_focus', name: 'Instagram Focus', icon: '\u{1F4F8}', desc: '4-5 posts/sem + reels + DM auto', credits: '~200 cr/mois',
+      agents: { content: { auto_mode: true, auto_mode_instagram: true, auto_mode_tiktok: false, auto_mode_linkedin: false }, dm_instagram: { auto_mode: true }, email: { auto_mode: true }, commercial: { auto_mode: true }, gmaps: { auto_mode: true } } },
+    { id: 'tiktok_focus', name: 'TikTok Focus', icon: '\u{1F3B5}', desc: '3-4 videos/sem TikTok + email', credits: '~220 cr/mois',
+      agents: { content: { auto_mode: true, auto_mode_instagram: false, auto_mode_tiktok: true, auto_mode_linkedin: false }, email: { auto_mode: true }, commercial: { auto_mode: true } } },
+    { id: 'prospection', name: 'Machine a Prospects', icon: '\u{1F3AF}', desc: 'Emails + DM + CRM auto, peu de contenu', credits: '~120 cr/mois',
+      agents: { email: { auto_mode: true }, dm_instagram: { auto_mode: true }, commercial: { auto_mode: true }, gmaps: { auto_mode: true }, content: { auto_mode: true, auto_mode_instagram: true, auto_mode_tiktok: false, auto_mode_linkedin: false } } },
+    { id: 'multi_platform', name: 'Multi-plateforme', icon: '\u{1F680}', desc: 'IG + TikTok + Email + DM', credits: '~380 cr/mois',
+      agents: { content: { auto_mode: true, auto_mode_instagram: true, auto_mode_tiktok: true, auto_mode_linkedin: false }, dm_instagram: { auto_mode: true }, email: { auto_mode: true }, commercial: { auto_mode: true }, gmaps: { auto_mode: true } } },
+    { id: 'linkedin_b2b', name: 'LinkedIn B2B', icon: '\u{1F4BC}', desc: 'Posts LinkedIn + emails B2B', credits: '~150 cr/mois',
+      agents: { content: { auto_mode: true, auto_mode_instagram: false, auto_mode_tiktok: false, auto_mode_linkedin: true }, email: { auto_mode: true }, commercial: { auto_mode: true } } },
+  ];
+
+  const apply = async (s: typeof strategies[0]) => {
+    setApplying(s.id);
+    try {
+      for (const [agentId, config] of Object.entries(s.agents)) {
+        await fetch('/api/agents/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ agent_id: agentId, ...config, setup_completed: true }),
+        });
+      }
+      localStorage.setItem('keiro_strategy_done', s.id);
+      setCurrent(s.id);
+    } catch {} finally { setApplying(null); }
+  };
+
+  return (
+    <div className="space-y-2">
+      {strategies.map(s => (
+        <button
+          key={s.id}
+          onClick={() => apply(s)}
+          disabled={applying !== null}
+          className={`w-full flex items-center gap-3 p-3 rounded-xl border transition text-left ${
+            current === s.id
+              ? 'border-cyan-500/40 bg-cyan-500/10'
+              : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/20'
+          }`}
+        >
+          <span className="text-xl">{s.icon}</span>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-white text-xs font-bold">{s.name}</span>
+              {current === s.id && <span className="text-[9px] text-cyan-400 bg-cyan-500/20 px-1.5 py-0.5 rounded-full">Active</span>}
+            </div>
+            <span className="text-white/40 text-[10px]">{s.desc}</span>
+          </div>
+          <span className="text-[9px] text-white/20 shrink-0">{s.credits}</span>
+          {applying === s.id && <div className="animate-spin w-3 h-3 border-b border-cyan-400 rounded-full" />}
+        </button>
+      ))}
+    </div>
   );
 }
 
