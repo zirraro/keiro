@@ -302,15 +302,36 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'content_2':
-      // 13:30 UTC — Content: 2nd post — PER CLIENT (only clients with content agent active)
+      // 13:30 UTC — Content: 2nd post (IG + TikTok + LinkedIn) — PER CLIENT
       for (const uid of getClientsWithAgent('content')) {
         await callEndpoint(`Content midday [${uid.substring(0, 8)}]`, `/api/agents/content?slot=midday&user_id=${uid}`);
         await callEndpoint(`Publish midday [${uid.substring(0, 8)}]`, `/api/agents/content?user_id=${uid}`, 'POST', { action: 'execute_publication' });
       }
+      // TikTok content — only for clients with TikTok connected
+      if (isTiktokDay) {
+        for (const uid of getClientsWithAgent('content')) {
+          if (isNetworkActive(uid, 'content', 'tiktok')) {
+            await callEndpoint(`Content TikTok [${uid.substring(0, 8)}]`, `/api/agents/content?slot=tiktok&user_id=${uid}`);
+          }
+        }
+      }
+      // LinkedIn content — only for clients with LinkedIn connected
+      for (const uid of getClientsWithAgent('linkedin')) {
+        await callEndpoint(`Content LinkedIn [${uid.substring(0, 8)}]`, `/api/agents/content?slot=linkedin_1&user_id=${uid}`);
+      }
+      // TikTok DM — only for clients with TikTok DM active
+      fireBackground(async () => {
+        for (const uid of getClientsWithAgent('dm_instagram')) {
+          if (isNetworkActive(uid, 'dm_instagram', 'tiktok')) {
+            await callEndpoint(`DM TikTok [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram?platform=tiktok&count=20&user_id=${uid}`, 'POST');
+            await delay(10000);
+          }
+        }
+      });
       break;
 
     case 'content_3':
-      // 17:30 UTC — Content: 3rd post — PER CLIENT (only clients with content agent active)
+      // 17:30 UTC — Content: 3rd post — PER CLIENT
       for (const uid of getClientsWithAgent('content')) {
         await callEndpoint(`Content evening [${uid.substring(0, 8)}]`, `/api/agents/content?slot=evening&user_id=${uid}`);
         await callEndpoint(`Publish evening [${uid.substring(0, 8)}]`, `/api/agents/content?user_id=${uid}`, 'POST', { action: 'execute_publication' });
@@ -497,6 +518,13 @@ export async function GET(request: NextRequest) {
           // Then prepare proactive DMs
           await callEndpoint(`DM Instagram [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram?slot=morning&user_id=${uid}`, 'POST');
           await delay(5000);
+        }
+        // TikTok DM — only if client has TikTok DM active (merged from tiktok_dm_morning)
+        for (const uid of getClientsWithAgent('dm_instagram')) {
+          if (isNetworkActive(uid, 'dm_instagram', 'tiktok')) {
+            await callEndpoint(`DM TikTok [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram?platform=tiktok&count=20&user_id=${uid}`, 'POST');
+            await delay(10000);
+          }
         }
         // Content: only for clients with content active
         for (const uid of getClientsWithAgent('content')) {

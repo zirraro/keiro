@@ -25,10 +25,6 @@
       "schedule": "0 7 * * *"
     },
     {
-      "path": "/api/cron/scheduler?slot=tiktok_dm_morning",
-      "schedule": "30 7 * * *"
-    },
-    {
       "path": "/api/cron/diagnose-social",
       "schedule": "45 7 * * *"
     },
@@ -49,10 +45,6 @@
       "schedule": "30 9 * * *"
     },
     {
-      "path": "/api/cron/scheduler?slot=content_linkedin_1",
-      "schedule": "45 9 * * *"
-    },
-    {
       "path": "/api/cron/scheduler?slot=gmaps",
       "schedule": "30 10 * * *"
     },
@@ -67,10 +59,6 @@
     {
       "path": "/api/cron/scheduler?slot=afternoon",
       "schedule": "0 12 * * *"
-    },
-    {
-      "path": "/api/cron/scheduler?slot=tiktok_dm_midday",
-      "schedule": "30 12 * * *"
     },
     {
       "path": "/api/cron/scheduler?slot=content_2",
@@ -101,10 +89,6 @@
       "schedule": "30 17 * * *"
     },
     {
-      "path": "/api/cron/scheduler?slot=content_tiktok",
-      "schedule": "15 18 * * *"
-    },
-    {
       "path": "/api/cron/scheduler?slot=email_recap",
       "schedule": "45 18 * * *"
     },
@@ -126,7 +110,7 @@
     },
     {
       "path": "/api/cron/scheduler?slot=video_poll",
-      "schedule": "0 * * * *"
+      "schedule": "0 */3 * * *"
     },
     {
       "path": "/api/cron/scheduler?slot=publish_scheduled",
