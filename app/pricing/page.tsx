@@ -676,158 +676,54 @@ function PricingPageInner() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left py-3 px-2">Fonctionnalité</th>
-                  <th className="text-center py-3 px-2">Créateur</th>
-                  <th className="text-center py-3 px-2">Pro</th>
-                  <th className="text-center py-3 px-2 bg-amber-50 font-bold">Fondateurs ⭐</th>
-                  <th className="text-center py-3 px-2">Business</th>
-                  <th className="text-center py-3 px-2 bg-yellow-50 font-bold">Elite 999€</th>
+                  <th className="text-left py-3 px-2">Fonctionnalite</th>
+                  <th className="text-center py-3 px-2 text-purple-600">Createur 49{'\u20AC'}</th>
+                  <th className="text-center py-3 px-2 text-blue-600">Pro 99{'\u20AC'}</th>
+                  <th className="text-center py-3 px-2 bg-amber-50 font-bold text-amber-600">Business 199{'\u20AC'}</th>
+                  <th className="text-center py-3 px-2 bg-yellow-50 font-bold">Elite 999{'\u20AC'}</th>
                 </tr>
               </thead>
               <tbody>
                 {/* Crédits */}
-                <tr className="border-b bg-[#0c1a3a]/5/30">
-                  <td className="py-3 px-2 font-medium">Crédits</td>
-                  <td className="text-center py-3 px-2"><strong>400/mois</strong></td>
-                  <td className="text-center py-3 px-2"><strong>800/mois</strong></td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><strong>2 000/mois</strong></td>
-                  <td className="text-center py-3 px-2"><strong>2 000/mois</strong></td>
-                  <td className="text-center py-3 px-2 bg-yellow-50"><strong>6 000/mois</strong></td>
-                </tr>
-                {/* LÉNA Contenu & Trend */}
-                <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">LÉNA Contenu & Trend</td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
-                </tr>
-                {/* JADE DM Instagram */}
-                <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">JADE DM Instagram</td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
-                </tr>
-                {/* AMI Coach Analytics */}
-                <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">AMI Coach Analytics</td>
-                  <td className="text-center py-3 px-2">Basique</td>
-                  <td className="text-center py-3 px-2"><strong>Complet</strong></td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><strong>Complet</strong></td>
-                  <td className="text-center py-3 px-2"><strong>Complet</strong></td>
-                  <td className="text-center py-3 px-2 bg-yellow-50"><strong>Complet</strong></td>
-                </tr>
-                {/* CLARA Guide Démarrage */}
-                <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">CLARA Guide Démarrage</td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
-                </tr>
-                {/* FÉLIX Publicité */}
-                <tr className="border-b bg-cyan-50/30">
-                  <td className="py-3 px-2 font-medium">FÉLIX Publicité</td>
-                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
-                </tr>
-                {/* HUGO Email Marketing */}
-                <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">HUGO Email Marketing</td>
-                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
-                </tr>
-                {/* OSCAR SEO */}
-                <tr className="border-b bg-cyan-50/30">
-                  <td className="py-3 px-2 font-medium">OSCAR SEO</td>
-                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
-                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
-                </tr>
-                {/* SARA RH & Juridique */}
-                <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">SARA RH & Juridique</td>
-                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
-                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
-                </tr>
-                {/* Vidéos IA */}
-                <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">Vidéos IA</td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
-                </tr>
-                {/* Trend surfing */}
-                <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">Trend surfing</td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
-                </tr>
-                {/* Branding mémorisé */}
-                <tr className="border-b bg-cyan-50/30">
-                  <td className="py-3 px-2 font-medium">Branding mémorisé</td>
-                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
-                </tr>
-                {/* Multi-comptes */}
-                <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">Multi-comptes</td>
-                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
-                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><strong>1+5</strong></td>
-                  <td className="text-center py-3 px-2"><strong>1+5</strong></td>
-                  <td className="text-center py-3 px-2 bg-yellow-50"><strong>Illimité</strong></td>
-                </tr>
-                {/* Marque blanche */}
-                <tr className="border-b">
-                  <td className="py-3 px-2 font-medium">Marque blanche</td>
-                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
-                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-neutral-400">—</span></td>
-                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
-                  <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-neutral-400">—</span></td>
-                </tr>
-                {/* CRM intégré */}
-                <tr className="border-b bg-cyan-50/30">
-                  <td className="py-3 px-2 font-medium">CRM intégré</td>
-                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
-                  <td className="text-center py-3 px-2"><span className="text-neutral-400">—</span></td>
-                  <td className="text-center py-3 px-2 bg-amber-50"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2"><span className="text-green-600">✓</span></td>
-                  <td className="text-center py-3 px-2 bg-yellow-50"><span className="text-green-600">✓</span></td>
-                </tr>
+                {[
+                  { name: 'Credits', c: '400/mois', p: '800/mois', b: '2 000/mois', e: '6 000/mois', bold: true },
+                  { name: 'Agents IA', c: '7', p: '10', b: '15+', e: '15+', bold: true },
+                  { name: 'LENA Contenu & Publication', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'HUGO Email Marketing', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'JADE DM Instagram', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'LEO CRM & Prospection', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'THEO Avis Google', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'AMI Analytics', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'CLARA Onboarding', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'OSCAR SEO & Blog', c: '\u2014', p: '\u2713', b: '\u2713', e: '\u2713', pro: true },
+                  { name: 'MAX Chatbot Site Web', c: '\u2014', p: '\u2713', b: '\u2713', e: '\u2713', pro: true },
+                  { name: 'SARA Juridique & RH', c: '\u2014', p: '\u2713', b: '\u2713', e: '\u2713', pro: true },
+                  { name: 'LOUIS Finance & Tresorerie', c: '\u2014', p: '\u2014', b: '\u2713', e: '\u2713', biz: true },
+                  { name: 'FELIX Publicite (Meta/Google)', c: '\u2014', p: '\u2014', b: 'Bientot', e: 'Bientot', biz: true },
+                  { name: 'EMMA LinkedIn', c: '\u2014', p: '\u2014', b: 'Bientot', e: 'Bientot', biz: true },
+                  { name: 'STELLA WhatsApp', c: '\u2014', p: '\u2014', b: 'Bientot', e: 'Bientot', biz: true },
+                  { name: 'Videos IA', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'Images IA', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'Tendances en temps reel', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'Calendrier editorial', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'Export documents', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'Multi-comptes', c: '\u2014', p: '\u2014', b: '1+5', e: 'Illimite' },
+                ].map((row, i) => (
+                  <tr key={i} className={`border-b ${row.pro ? 'bg-blue-50/30' : row.biz ? 'bg-amber-50/30' : ''}`}>
+                    <td className="py-3 px-2 font-medium">{row.name}</td>
+                    <td className="text-center py-3 px-2">{row.bold ? <strong>{row.c}</strong> : row.c === '\u2713' ? <span className="text-green-600">{row.c}</span> : row.c === '\u2014' ? <span className="text-neutral-400">{row.c}</span> : row.c}</td>
+                    <td className="text-center py-3 px-2">{row.bold ? <strong>{row.p}</strong> : row.p === '\u2713' ? <span className="text-green-600">{row.p}</span> : row.p === '\u2014' ? <span className="text-neutral-400">{row.p}</span> : row.p}</td>
+                    <td className="text-center py-3 px-2 bg-amber-50">{row.bold ? <strong>{row.b}</strong> : row.b === '\u2713' ? <span className="text-green-600">{row.b}</span> : row.b === '\u2014' ? <span className="text-neutral-400">{row.b}</span> : row.b === 'Bientot' ? <span className="text-amber-500 text-xs">Bientot</span> : row.b}</td>
+                    <td className="text-center py-3 px-2 bg-yellow-50">{row.bold ? <strong>{row.e}</strong> : row.e === '\u2713' ? <span className="text-green-600">{row.e}</span> : row.e === '\u2014' ? <span className="text-neutral-400">{row.e}</span> : row.e === 'Bientot' ? <span className="text-amber-500 text-xs">Bientot</span> : row.e}</td>
+                  </tr>
+                ))}
                 {/* Prix */}
                 <tr>
                   <td className="py-3 px-2 font-medium">{t.pricing.compPrice}</td>
-                  <td className="text-center py-3 px-2 font-bold text-purple-600">49€</td>
-                  <td className="text-center py-3 px-2 font-bold text-blue-600">99€</td>
-                  <td className="text-center py-3 px-2 bg-amber-50 font-bold text-amber-600">149€*</td>
-                  <td className="text-center py-3 px-2 font-bold text-[#0c1a3a]">199€</td>
-                  <td className="text-center py-3 px-2 bg-yellow-50 font-bold text-amber-700">999€</td>
+                  <td className="text-center py-3 px-2 font-bold text-purple-600">49{'\u20AC'}/mois</td>
+                  <td className="text-center py-3 px-2 font-bold text-blue-600">99{'\u20AC'}/mois</td>
+                  <td className="text-center py-3 px-2 bg-amber-50 font-bold text-amber-600">199{'\u20AC'}/mois</td>
+                  <td className="text-center py-3 px-2 bg-yellow-50 font-bold text-amber-700">999{'\u20AC'}/mois</td>
                 </tr>
               </tbody>
             </table>
