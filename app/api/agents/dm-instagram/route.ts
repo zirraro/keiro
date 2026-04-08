@@ -132,6 +132,7 @@ async function generateDM(prospect: any, platform: 'instagram' | 'tiktok' = 'ins
       system: getDMSystemPrompt(platform),
       message: prospectData,
       maxTokens: 1000,
+      thinking: true,
     });
     // Strip markdown code fences: ```json ... ``` or ``` ... ```
     let cleanText = rawText.trim();

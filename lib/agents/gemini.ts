@@ -91,14 +91,19 @@ interface GeminiOptions {
   system: string;
   message: string;
   maxTokens?: number;
+  /** Enable thinking mode (default: false). Only enable for complex analysis tasks.
+   *  Thinking tokens cost 6x more ($3.50/1M vs $0.60/1M output).
+   *  DISABLED by default to save ~70% on Gemini costs. */
+  thinking?: boolean;
 }
 
 /**
  * Call Gemini 2.5 Flash with a system prompt and user message.
  * Uses cached system prompts when possible (10x cheaper input).
+ * Thinking mode OFF by default (6x cheaper). Enable only for complex analysis.
  * Returns the text response or throws on error.
  */
-export async function callGemini({ system, message, maxTokens = 2000 }: GeminiOptions): Promise<string> {
+export async function callGemini({ system, message, maxTokens = 2000, thinking = false }: GeminiOptions): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error('GEMINI_API_KEY non configurée');
@@ -117,6 +122,9 @@ export async function callGemini({ system, message, maxTokens = 2000 }: GeminiOp
     generationConfig: {
       maxOutputTokens: maxTokens,
       temperature: 0.7,
+      // Disable thinking by default — saves ~70% on Gemini costs
+      // Thinking tokens: $3.50/1M vs output: $0.60/1M (6x more expensive)
+      ...(thinking ? {} : { thinkingConfig: { thinkingBudget: 0 } }),
     },
   };
 
@@ -141,7 +149,7 @@ export async function callGemini({ system, message, maxTokens = 2000 }: GeminiOp
     // If cached content expired/invalid, retry without cache
     if (cachedId && (response.status === 400 || response.status === 404)) {
       systemPromptCache.delete(hashPrompt(system));
-      return callGemini({ system, message, maxTokens });
+      return callGemini({ system, message, maxTokens, thinking });
     }
     throw new Error(`Gemini API error ${response.status}: ${errText}`);
   }
@@ -160,11 +168,14 @@ export async function callGeminiChat({
   history,
   message,
   maxTokens = 2000,
+  thinking = false,
 }: {
   system: string;
   history: Array<{ role: 'user' | 'assistant'; content: string }>;
   message: string;
   maxTokens?: number;
+  /** Enable thinking mode (default: false). 6x more expensive. */
+  thinking?: boolean;
 }): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
@@ -191,6 +202,7 @@ export async function callGeminiChat({
     generationConfig: {
       maxOutputTokens: maxTokens,
       temperature: 0.7,
+      ...(thinking ? {} : { thinkingConfig: { thinkingBudget: 0 } }),
     },
   };
 
@@ -212,7 +224,7 @@ export async function callGeminiChat({
     const errText = await response.text();
     if (cachedId && (response.status === 400 || response.status === 404)) {
       systemPromptCache.delete(hashPrompt(system));
-      return callGeminiChat({ system, history, message, maxTokens });
+      return callGeminiChat({ system, history, message, maxTokens, thinking });
     }
     throw new Error(`Gemini Chat API error ${response.status}: ${errText}`);
   }

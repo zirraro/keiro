@@ -368,6 +368,7 @@ export async function POST(request: NextRequest) {
       })),
       message,
       maxTokens: 2000,
+      thinking: true,
     });
 
     // Log conversation

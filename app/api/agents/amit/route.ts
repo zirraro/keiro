@@ -215,6 +215,7 @@ async function runStrategicAnalysis(orgId: string | null = null): Promise<NextRe
       system: systemPrompt,
       message: analysisPrompt,
       maxTokens: 4000,
+      thinking: true,
     });
 
     // ── 6. Parse JSON response ──

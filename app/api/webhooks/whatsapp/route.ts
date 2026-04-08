@@ -349,6 +349,7 @@ async function handleIncomingMessage(
       history: historyForAI,
       message: messageText,
       maxTokens: 300, // WhatsApp = short messages
+      thinking: true,
     });
   } catch (aiErr: any) {
     console.error('[WhatsApp] AI error:', aiErr.message);

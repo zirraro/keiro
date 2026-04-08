@@ -317,7 +317,7 @@ ${history ? `\nCONVERSATION:\n${history}` : ''}${businessContext}${ragContext}`;
 
         let aiReply = '';
         try {
-          aiReply = await callGeminiChat({ system: systemPrompt, message: messageText, history: [] });
+          aiReply = await callGeminiChat({ system: systemPrompt, message: messageText, history: [], thinking: true });
           // Clean up AI response
           aiReply = aiReply.replace(/\*\*/g, '').replace(/```[\s\S]*?```/g, '').trim();
           if (aiReply.length > 500) aiReply = aiReply.substring(0, 500);

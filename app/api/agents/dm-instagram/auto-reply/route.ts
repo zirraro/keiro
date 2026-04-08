@@ -211,7 +211,7 @@ ${history}${ragContext}`;
 
         let aiReply = '';
         try {
-          aiReply = await callGeminiChat({ system: systemPrompt, message: lastMsgText, history: [] });
+          aiReply = await callGeminiChat({ system: systemPrompt, message: lastMsgText, history: [], thinking: true });
           aiReply = aiReply.replace(/\*\*/g, '').replace(/```[\s\S]*?```/g, '').trim();
           if (aiReply.length > 500) aiReply = aiReply.substring(0, 500);
         } catch (e: any) {

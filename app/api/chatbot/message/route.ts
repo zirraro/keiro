@@ -262,6 +262,7 @@ export async function POST(request: NextRequest) {
         })),
         message,
         maxTokens: 2000,
+        thinking: true,
       });
       console.log('[Chatbot] Response:', assistantMessage.substring(0, 100));
     } catch (geminiError: any) {
