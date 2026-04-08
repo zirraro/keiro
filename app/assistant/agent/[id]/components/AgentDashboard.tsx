@@ -106,19 +106,23 @@ function EmailConnectBanner({ connections }: { connections?: Record<string, bool
   }, []);
 
   useEffect(() => {
-    // Check from dashboard connections first (already loaded)
-    if (connections?.gmail) {
+    // Detect ?just_connected=gmail in URL — force fresh check from API
+    const justConnected = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('just_connected') === 'gmail';
+
+    if (!justConnected && connections?.gmail) {
       setGmailConnected(true);
       setGmailEmail((connections as any).gmail_email || null);
       setLoading(false);
       return;
     }
-    // Fallback: check via API
+    // Always check via API if just_connected or no cached connection
     fetch('/api/agents/email/check-connection', { credentials: 'include' })
       .then(r => r.json())
       .then(d => {
         setGmailConnected(d.gmail_connected || false);
         setGmailEmail(d.gmail_email || null);
+        // Update global flag so EmailInbox also sees it
+        if (typeof window !== 'undefined') (window as any).__gmailConnected = d.gmail_connected;
       })
       .catch(() => {})
       .finally(() => setLoading(false));
