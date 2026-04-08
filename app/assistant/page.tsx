@@ -1498,8 +1498,9 @@ export default function AssistantPage() {
                 agent={agent}
                 avatarUrl={avatars[agent.id] || null}
                 isSelected={!!chats[agent.id]}
-                onClick={() => handleSelectAgent(agent)}
+                onClick={() => agent.visibility === 'coming_soon' ? undefined : handleSelectAgent(agent)}
                 comingSoonMode={COMING_SOON_MODE}
+                isComingSoon={agent.visibility === 'coming_soon'}
                 badgeCount={notifBadges[agent.id] || 0}
                 onNotifyClick={() => {
                   if (COMING_SOON_MODE) {

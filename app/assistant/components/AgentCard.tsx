@@ -18,15 +18,15 @@ interface AgentCardProps {
   isSelected: boolean;
   onClick: () => void;
   comingSoonMode?: boolean;
+  isComingSoon?: boolean;
   onNotifyClick?: () => void;
   badgeCount?: number;
 }
 
-export default function AgentCard({ agent, avatarUrl, isSelected, onClick, comingSoonMode = false, onNotifyClick, badgeCount = 0 }: AgentCardProps) {
+export default function AgentCard({ agent, avatarUrl, isSelected, onClick, comingSoonMode = false, isComingSoon = false, onNotifyClick, badgeCount = 0 }: AgentCardProps) {
   const [imgError, setImgError] = useState(false);
   const showImage = avatarUrl && !imgError;
-  // Only lock if COMING_SOON_MODE is active (not based on visibility — all agents are accessible now)
-  const isLocked = comingSoonMode;
+  const isLocked = comingSoonMode || isComingSoon;
 
   return (
     <button
@@ -54,8 +54,17 @@ export default function AgentCard({ agent, avatarUrl, isSelected, onClick, comin
         }}
       />
 
-      {/* Locked overlay — addon upsell or plan upgrade */}
+      {/* Locked overlay — coming soon or plan upgrade */}
       {isLocked && (() => {
+        if (isComingSoon) {
+          return (
+            <div className="absolute inset-0 z-20 bg-black/40 backdrop-blur-[2px] flex flex-col items-center justify-center gap-2 px-3">
+              <span className="text-2xl">{'\u{1F6A7}'}</span>
+              <span className="text-white/90 text-xs font-semibold text-center">Bientot disponible</span>
+              <span className="text-white/40 text-[10px] text-center">Cet agent est en cours de developpement</span>
+            </div>
+          );
+        }
         const addonPrice = AGENT_ADDON_PRICES[agent.id];
         return (
           <div className="absolute inset-0 z-20 bg-black/50 backdrop-blur-[2px] flex flex-col items-center justify-center gap-2 px-3">
@@ -65,11 +74,10 @@ export default function AgentCard({ agent, avatarUrl, isSelected, onClick, comin
             {addonPrice && addonPrice > 0 ? (
               <>
                 <span className="text-white/90 text-xs font-semibold text-center">
-                  Ajouter cet agent
+                  Disponible avec le plan {PLAN_LABELS[agent.minPlan] || agent.minPlan}
                 </span>
-                <span className="text-white font-bold text-lg">{addonPrice}€<span className="text-[10px] text-white/50 font-normal">/mois</span></span>
-                <a href="/pricing" className="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-[10px] font-bold rounded-lg hover:opacity-90 transition-all">
-                  Ajouter {agent.displayName}
+                <a href="/pricing" className="px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-[10px] font-bold rounded-lg hover:opacity-90 transition-all">
+                  Passer au {agent.minPlan === 'pro' ? 'Pro' : 'Business'}
                 </a>
               </>
             ) : (
@@ -87,15 +95,18 @@ export default function AgentCard({ agent, avatarUrl, isSelected, onClick, comin
       })()}
 
       {/* Status badge */}
-      {isLocked && (
+      {isComingSoon ? (
+        <div className="absolute top-3 right-3 z-30 flex items-center gap-1 px-2 py-0.5 bg-cyan-500/20 backdrop-blur-sm rounded-full border border-cyan-500/20">
+          <span className="text-[10px] text-cyan-300 font-medium">A venir</span>
+        </div>
+      ) : isLocked && !isComingSoon ? (
         <div className="absolute top-3 right-3 z-30 flex items-center gap-1 px-2 py-0.5 bg-amber-500/30 backdrop-blur-sm rounded-full">
           <svg className="w-2.5 h-2.5 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
           </svg>
-          <span className="text-[10px] text-amber-200 font-medium">{agent.minPlan === 'createur' ? 'Createur+' : agent.minPlan === 'pro' ? 'Pro+' : agent.minPlan === 'business' ? 'Business+' : 'Premium'}</span>
+          <span className="text-[10px] text-amber-200 font-medium">{agent.minPlan === 'pro' ? 'Pro' : agent.minPlan === 'business' ? 'Business' : 'Premium'}</span>
         </div>
-      )}
-      {!isLocked && (
+      ) : (
         <div className="absolute top-3 right-3 z-10 flex items-center gap-1 px-2 py-0.5 bg-green-500/15 backdrop-blur-sm rounded-full border border-green-500/20">
           <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
           <span className="text-[10px] text-green-300 font-medium">Actif</span>
