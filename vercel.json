@@ -13,10 +13,6 @@
       "schedule": "0 5 * * *"
     },
     {
-      "path": "/api/cron/scheduler?slot=ceo_community",
-      "schedule": "15 5 * * *"
-    },
-    {
       "path": "/api/cron/scheduler?slot=trends",
       "schedule": "30 5 * * *"
     },
@@ -45,10 +41,6 @@
       "schedule": "0 8 * * *"
     },
     {
-      "path": "/api/cron/scheduler?slot=discovery_4",
-      "schedule": "30 8 * * *"
-    },
-    {
       "path": "/api/cron/scheduler?slot=retention",
       "schedule": "0 9 * * *"
     },
@@ -59,10 +51,6 @@
     {
       "path": "/api/cron/scheduler?slot=content_linkedin_1",
       "schedule": "45 9 * * *"
-    },
-    {
-      "path": "/api/cron/scheduler?slot=whatsapp_followup",
-      "schedule": "15 10 * * *"
     },
     {
       "path": "/api/cron/scheduler?slot=gmaps",
@@ -85,20 +73,12 @@
       "schedule": "30 12 * * *"
     },
     {
-      "path": "/api/cron/scheduler?slot=discovery_5",
-      "schedule": "0 13 * * *"
-    },
-    {
       "path": "/api/cron/scheduler?slot=content_2",
       "schedule": "30 13 * * *"
     },
     {
       "path": "/api/cron/scheduler?slot=discovery_3",
       "schedule": "0 14 * * *"
-    },
-    {
-      "path": "/api/cron/scheduler?slot=content_linkedin_2",
-      "schedule": "20 14 * * *"
     },
     {
       "path": "/api/cron/scheduler?slot=email_warm_2",
@@ -109,16 +89,8 @@
       "schedule": "0 15 * * *"
     },
     {
-      "path": "/api/cron/scheduler?slot=community_2",
-      "schedule": "30 15 * * *"
-    },
-    {
       "path": "/api/cron/scheduler?slot=evening",
       "schedule": "0 16 * * *"
-    },
-    {
-      "path": "/api/cron/scheduler?slot=discovery_6",
-      "schedule": "30 16 * * *"
     },
     {
       "path": "/api/cron/scheduler?slot=evening_prep",
@@ -149,32 +121,16 @@
       "schedule": "0 20 * * *"
     },
     {
-      "path": "/api/cron/scheduler?slot=amit",
-      "schedule": "0 21 * * *"
-    },
-    {
       "path": "/api/cron/scheduler?slot=ops",
       "schedule": "0 22 * * *"
     },
     {
       "path": "/api/cron/scheduler?slot=video_poll",
-      "schedule": "*/20 * * * *"
+      "schedule": "0 * * * *"
     },
     {
       "path": "/api/cron/scheduler?slot=publish_scheduled",
       "schedule": "0 9,13,18 * * *"
-    },
-    {
-      "path": "/api/cron/scheduler?slot=content_tiktok_2",
-      "schedule": "30 13 * * *"
-    },
-    {
-      "path": "/api/cron/scheduler?slot=content_tiktok_3",
-      "schedule": "0 17 * * *"
-    },
-    {
-      "path": "/api/cron/scheduler?slot=content_linkedin_3",
-      "schedule": "0 16 * * *"
     },
     {
       "path": "/api/agents/monthly-recap",
