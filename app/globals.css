@@ -1140,6 +1140,107 @@ html:not(.light) .fixed.inset-0 .text-emerald-600 { color: #059669 !important; }
 html:not(.light) .fixed.inset-0 .text-amber-600 { color: #d97706 !important; }
 html:not(.light) .fixed.inset-0 .text-blue-600 { color: #2563eb !important; }
 
+/* ===== LIGHT MODE: AGENT DASHBOARD PAGES ===== */
+/* Agent pages use hardcoded dark colors — override them for light mode */
+
+/* Main background: #0c1a3a → white/light gray */
+html.light [class*="bg-\[#0c1a3a\]"] {
+  background-color: #f8fafc !important;
+}
+html.light [class*="bg-\[#060e1f\]"] {
+  background-color: #f1f5f9 !important;
+}
+
+/* Glass cards: bg-white/5, bg-white/10, bg-white/[0.02], bg-white/[0.03] → subtle gray */
+html.light [class*="bg-white\/5"],
+html.light [class*="bg-white\/\[0\.02\]"],
+html.light [class*="bg-white\/\[0\.03\]"] {
+  background-color: #ffffff !important;
+}
+html.light [class*="bg-white\/10"],
+html.light [class*="bg-white\/15"] {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Borders: border-white/10, border-white/5 → light gray */
+html.light [class*="border-white\/10"],
+html.light [class*="border-white\/5"],
+html.light [class*="border-white\/\[0\.06\]"] {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+html.light [class*="border-white\/20"] {
+  border-color: rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Text: text-white → dark, text-white/XX → gray scale */
+html.light .text-white {
+  color: #1e293b !important;
+}
+html.light [class*="text-white\/90"] {
+  color: #1e293b !important;
+}
+html.light [class*="text-white\/80"] {
+  color: #334155 !important;
+}
+html.light [class*="text-white\/70"] {
+  color: #475569 !important;
+}
+html.light [class*="text-white\/60"] {
+  color: #64748b !important;
+}
+html.light [class*="text-white\/50"] {
+  color: #64748b !important;
+}
+html.light [class*="text-white\/40"] {
+  color: #94a3b8 !important;
+}
+html.light [class*="text-white\/30"] {
+  color: #94a3b8 !important;
+}
+html.light [class*="text-white\/25"] {
+  color: #cbd5e1 !important;
+}
+html.light [class*="text-white\/20"] {
+  color: #cbd5e1 !important;
+}
+
+/* Agent chat bubble (outgoing stays colored, incoming gets light bg) */
+html.light [class*="bg-gray-900"] {
+  background-color: #f1f5f9 !important;
+}
+html.light [class*="bg-black\/80"] {
+  background-color: rgba(0, 0, 0, 0.5) !important;
+}
+html.light [class*="bg-black\/60"] {
+  background-color: rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Placeholder text */
+html.light [class*="placeholder-white\/30"]::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Ring/focus styles */
+html.light [class*="ring-white\/10"] {
+  --tw-ring-color: rgba(0, 0, 0, 0.1) !important;
+}
+html.light [class*="ring-cyan-500\/50"] {
+  --tw-ring-color: rgba(6, 182, 212, 0.5) !important;
+}
+
+/* Dividers */
+html.light [class*="divide-white\/5"] > * + * {
+  border-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Scrollbar in light mode */
+html.light ::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+html.light ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+
 /* Hide scrollbar for horizontal scroll */
 .scrollbar-hide {
   -ms-overflow-style: none;
