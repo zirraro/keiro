@@ -2592,7 +2592,7 @@ function AdsPanel({
   gradientFrom: string;
   gradientTo: string;
 }) {
-  const stats: any = data.adsStats || { campaigns: 3, totalSpend: DEMO_ADS_STATS.totalSpend, avgRoas: DEMO_ADS_STATS.roas, roas: DEMO_ADS_STATS.roas, totalConversions: DEMO_ADS_STATS.totalConversions, totalImpressions: DEMO_ADS_STATS.totalImpressions, recentCampaigns: DEMO_ADS_STATS.recentCampaigns };
+  const stats: any = data.adsStats || { campaigns: 0, totalSpend: 0, avgRoas: 0, roas: 0, totalConversions: 0, totalImpressions: 0, recentCampaigns: [] };
 
   const totalSpend = (stats.recentCampaigns || []).reduce((s: number, c: any) => s + c.spend, 0) || 1;
   const statusColors: Record<string, string> = {
@@ -2855,7 +2855,7 @@ function RhPanel({
                 {doc.type}
               </span>
               <span className="text-sm text-white/80 truncate flex-1">{doc.title}</span>
-              <span className="text-xs text-white/40 shrink-0">{fmtDate(doc.created_at)}</span>
+              <span className="text-xs text-white/40 shrink-0">{fmtDate(doc.date || doc.created_at)}</span>
             </div>
           ))}
         </div>
@@ -3323,15 +3323,18 @@ function ChatbotPanel({
   gradientFrom: string;
   gradientTo: string;
 }) {
-  const stats: any = data.chatbotStats || { totalVisitors: 0, leadsGenerated: 0, avgSessionDuration: '0 min', conversionRate: 0, recentSessions: [] };
+  const stats: any = data.chatbotStats || { totalVisitors: 0, leadsWithEmail: 0, conversionRate: 0, recentSessions: [] };
+
+  const visitors = stats.totalVisitors || stats.visitorsGreeted || 0;
+  const leads = stats.leadsWithEmail || stats.leadsCaptured || 0;
 
   // Conversion funnel mini visual
   const funnelSteps = [
-    { label: 'Visiteurs', value: stats.visitorsGreeted },
-    { label: 'Leads', value: stats.leadsCaptured },
-    { label: 'Convertis', value: Math.round(stats.leadsCaptured * (stats.conversionRate / 100)) },
+    { label: 'Visiteurs', value: visitors },
+    { label: 'Leads', value: leads },
+    { label: 'Convertis', value: Math.round(leads * (stats.conversionRate / 100)) },
   ];
-  const maxFunnel = Math.max(stats.visitorsGreeted, 1);
+  const maxFunnel = Math.max(visitors, 1);
 
   const outcomeColors: Record<string, string> = {
     lead: '#34d399',
@@ -3343,8 +3346,8 @@ function ChatbotPanel({
   return (
     <>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <KpiCard label="Visiteurs accueillis" value={fmt(stats.visitorsGreeted)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        <KpiCard label="Leads captes" value={fmt(stats.leadsCaptured)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label="Visiteurs accueillis" value={fmt(visitors)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label="Leads captes" value={fmt(leads)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
         <KpiCard label="Taux conversion" value={fmtPercent(stats.conversionRate)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
       </div>
 

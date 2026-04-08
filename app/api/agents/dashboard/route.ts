@@ -540,9 +540,38 @@ async function getComptableData(
 
   const logs = financialLogs ?? [];
 
+  // Extract financial data from log results
+  let revenue = 0;
+  let expenses = 0;
+  const recentTransactions: any[] = [];
+
+  for (const log of logs) {
+    const r = typeof log.result === 'string' ? (() => { try { return JSON.parse(log.result); } catch { return log.result; } })() : log.result;
+    if (r && typeof r === 'object') {
+      if (r.revenue) revenue += Number(r.revenue) || 0;
+      if (r.expenses) expenses += Number(r.expenses) || 0;
+      if (r.amount) {
+        recentTransactions.push({
+          label: r.label || r.description || log.action || 'Transaction',
+          amount: Number(r.amount) || 0,
+          type: r.type || (Number(r.amount) >= 0 ? 'revenue' : 'expense'),
+          date: log.created_at,
+        });
+      }
+    }
+  }
+
   return {
-    totalEntries: logs.length,
-    recentLogs: logs.slice(0, 10),
+    financeStats: {
+      revenue,
+      expenses,
+      profit: revenue - expenses,
+      margin: revenue - expenses,
+      profitMargin: revenue > 0 ? Math.round(((revenue - expenses) / revenue) * 100) : 0,
+      totalEntries: logs.length,
+      recentTransactions: recentTransactions.slice(0, 10),
+      recentLogs: logs.slice(0, 10),
+    },
   };
 }
 
@@ -579,12 +608,26 @@ async function getRhData(
       !l.action.includes('archiv'),
   ).length;
 
+  // Build recentDocs from doc-related logs
+  const recentDocs = logs
+    .filter(l => typeof l.action === 'string' && (l.action.includes('document') || l.action.includes('contrat') || l.action.includes('generate')))
+    .slice(0, 10)
+    .map(l => {
+      const r = typeof l.result === 'string' ? (() => { try { return JSON.parse(l.result); } catch { return {}; } })() : (l.result || {});
+      return {
+        title: r.title || r.name || l.action || 'Document',
+        type: l.action?.includes('contrat') ? 'contrat' : 'document',
+        date: l.created_at,
+      };
+    });
+
   return {
     rhStats: {
       docsGenerated,
       questionsAnswered,
       activeContracts,
       totalActions: logs.length,
+      recentDocs,
       recentLogs: logs.slice(0, 10),
     },
   };
