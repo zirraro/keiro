@@ -387,7 +387,7 @@ export default function Header() {
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: -8 }}
                     transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-                    className={`absolute right-0 mt-2 w-56 backdrop-blur-xl rounded-xl shadow-2xl py-2 z-20 ${
+                    className={`absolute right-0 mt-2 w-56 max-w-[calc(100vw-16px)] backdrop-blur-xl rounded-xl shadow-2xl py-2 z-20 ${
                       isLight ? 'bg-white/95 border border-neutral-200' : 'bg-[#0c1a3a]/95 border border-white/10'
                     }`}>
                     <div className={`px-4 py-3 border-b ${isLight ? 'border-neutral-100' : 'border-white/10'}`}>

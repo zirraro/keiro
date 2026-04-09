@@ -1172,7 +1172,8 @@ export default function AssistantPage() {
         </div>
 
         {/* ═══ TABS ═══ */}
-        <div className="flex items-center gap-1 bg-white/5 rounded-xl p-1 border border-white/10 mb-5 overflow-x-auto">
+        <div className="relative">
+        <div className="flex items-center gap-1 bg-white/5 rounded-xl p-1 border border-white/10 mb-5 overflow-x-auto whitespace-nowrap scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
           {([
             { key: 'suivi' as const, label: '\uD83D\uDCCB Suivi central', shortLabel: 'Suivi' },
             { key: 'equipe' as const, label: '\uD83D\uDC65 Par equipe', shortLabel: 'Equipes' },
@@ -1194,6 +1195,9 @@ export default function AssistantPage() {
               <span className="lg:hidden">{tab.shortLabel}</span>
             </button>
           ))}
+        </div>
+        {/* Scroll fade indicator for mobile */}
+        <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#0c1a3a] to-transparent pointer-events-none rounded-r-xl sm:hidden mb-5" />
         </div>
 
         {/* ═══ TAB: SUIVI CENTRAL — Supra-elite visual ═══ */}
