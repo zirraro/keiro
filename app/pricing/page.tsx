@@ -669,11 +669,11 @@ function PricingPageInner() {
         </div>
 
         {/* Comparatif rapide */}
-        <div className="bg-white dark:bg-white/5 rounded-2xl border border-neutral-200 dark:border-white/10 p-8 mb-16">
+        <div className="bg-white dark:bg-white/5 rounded-2xl border border-neutral-200 dark:border-white/10 p-4 sm:p-8 mb-16">
           <h3 className="text-xl sm:text-2xl font-bold text-center mb-2">{t.pricing.comparisonTitle}</h3>
           <p className="text-center text-neutral-500 text-sm mb-8">{t.pricing.subtitle}</p>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto -mx-2 sm:mx-0">
+            <table className="w-full text-[10px] sm:text-sm min-w-[480px]">
               <thead>
                 <tr className="border-b">
                   <th className="text-left py-3 px-2">Fonctionnalite</th>
