@@ -106,9 +106,22 @@ export default function DocumentEditor({ agentId, agentName }: { agentId: string
     setTimeout(() => setSaved(false), 2000);
   }, [content, docName, agentId]);
 
-  const handleDownload = useCallback(async (format?: DocFormat) => {
+  const handleDownload = useCallback(async (format?: DocFormat | 'original') => {
     const fmt = format || originalFormat || 'md';
     try {
+      // Special: download original file untouched
+      if (fmt === 'original' && originalFileBufferRef.current) {
+        const mime = originalFormat === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+        const blob = new Blob([originalFileBufferRef.current], { type: mime });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${docName}-original.${originalFormat}`;
+        a.click();
+        URL.revokeObjectURL(url);
+        return;
+      }
+
       if (fmt === 'md' || fmt === 'txt') {
         const blob = new Blob([content], { type: 'text/markdown' });
         const url = URL.createObjectURL(blob);
@@ -132,10 +145,26 @@ export default function DocumentEditor({ agentId, agentName }: { agentId: string
         }
         doc.save(`${docName}.pdf`);
       } else if (fmt === 'docx') {
-        const { Document, Packer, Paragraph, TextRun } = await import('docx');
-        const paragraphs = content.split('\n').map(line =>
-          new Paragraph({ children: [new TextRun(line)] })
-        );
+        const { Document, Packer, Paragraph, TextRun, HeadingLevel } = await import('docx');
+        // Parse simple markdown headings into Word headings
+        const paragraphs = content.split('\n').map(line => {
+          if (line.startsWith('# ')) {
+            return new Paragraph({ children: [new TextRun({ text: line.slice(2), bold: true, size: 32 })], heading: HeadingLevel.HEADING_1 });
+          } else if (line.startsWith('## ')) {
+            return new Paragraph({ children: [new TextRun({ text: line.slice(3), bold: true, size: 28 })], heading: HeadingLevel.HEADING_2 });
+          } else if (line.startsWith('### ')) {
+            return new Paragraph({ children: [new TextRun({ text: line.slice(4), bold: true, size: 24 })], heading: HeadingLevel.HEADING_3 });
+          }
+          // Bold detection: **text**
+          const parts = line.split(/(\*\*[^*]+\*\*)/g);
+          const runs = parts.filter(p => p).map(p => {
+            if (p.startsWith('**') && p.endsWith('**')) {
+              return new TextRun({ text: p.slice(2, -2), bold: true });
+            }
+            return new TextRun({ text: p });
+          });
+          return new Paragraph({ children: runs });
+        });
         const doc = new Document({ sections: [{ properties: {}, children: paragraphs }] });
         const blob = await Packer.toBlob(doc);
         const url = URL.createObjectURL(blob);
@@ -208,10 +237,16 @@ export default function DocumentEditor({ agentId, agentName }: { agentId: string
             <button className="px-2 py-1 text-xs text-white/60 hover:text-white hover:bg-white/10 rounded transition">
               {'\u2B07\uFE0F'} Export
             </button>
-            <div className="absolute right-0 top-full mt-1 bg-gray-900 border border-white/10 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition z-50 min-w-[100px]">
+            <div className="absolute right-0 top-full mt-1 bg-gray-900 border border-white/10 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition z-50 min-w-[160px]">
               <button onClick={() => handleDownload('md')} className="block w-full px-3 py-1.5 text-xs text-white/70 hover:bg-white/10 text-left">Markdown (.md)</button>
               <button onClick={() => handleDownload('pdf')} className="block w-full px-3 py-1.5 text-xs text-white/70 hover:bg-white/10 text-left">PDF (.pdf)</button>
               <button onClick={() => handleDownload('docx')} className="block w-full px-3 py-1.5 text-xs text-white/70 hover:bg-white/10 text-left">Word (.docx)</button>
+              {originalFileBufferRef.current && (
+                <>
+                  <div className="border-t border-white/10 my-1" />
+                  <button onClick={() => handleDownload('original')} className="block w-full px-3 py-1.5 text-xs text-amber-400 hover:bg-white/10 text-left">{`${'\u{1F4C3}'} Original intact`}</button>
+                </>
+              )}
             </div>
           </div>
         </div>
