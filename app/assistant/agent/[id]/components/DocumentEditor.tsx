@@ -28,6 +28,8 @@ export default function DocumentEditor({ agentId, agentName }: { agentId: string
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // Original file binary — kept for "download original" option
+  const originalFileBufferRef = useRef<ArrayBuffer | null>(null);
 
   const handleUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -42,12 +44,15 @@ export default function DocumentEditor({ agentId, agentName }: { agentId: string
         const text = await file.text();
         setContent(text);
         setOriginalFormat(ext);
+        originalFileBufferRef.current = null;
       } else if (ext === 'pdf') {
-        // PDF — extract text via pdfjs
+        // PDF — extract text via pdfjs, keep original buffer
+        const arrayBuffer = await file.arrayBuffer();
+        // Keep a copy of the original PDF for download
+        originalFileBufferRef.current = arrayBuffer.slice(0);
         const pdfjs: any = await import('pdfjs-dist');
         pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.mjs`;
-        const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+        const pdf = await pdfjs.getDocument({ data: arrayBuffer.slice(0) }).promise;
         let fullText = '';
         for (let i = 1; i <= pdf.numPages; i++) {
           const page = await pdf.getPage(i);
@@ -58,10 +63,11 @@ export default function DocumentEditor({ agentId, agentName }: { agentId: string
         setContent(fullText.trim());
         setOriginalFormat('pdf');
       } else if (ext === 'docx') {
-        // DOCX — extract text via mammoth
-        const mammoth: any = await import('mammoth');
+        // DOCX — extract text via mammoth, keep original buffer
         const arrayBuffer = await file.arrayBuffer();
-        const result = await mammoth.extractRawText({ arrayBuffer });
+        originalFileBufferRef.current = arrayBuffer.slice(0);
+        const mammoth: any = await import('mammoth');
+        const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer.slice(0) });
         setContent(result.value);
         setOriginalFormat('docx');
       } else {

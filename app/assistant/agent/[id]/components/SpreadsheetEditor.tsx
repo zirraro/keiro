@@ -57,21 +57,53 @@ const DEFAULT_GRID: string[][] = [
   ['', '', '', ''],
 ];
 
+type FileFormat = 'csv' | 'xlsx' | 'xlsm' | 'xls';
+
 export default function SpreadsheetEditor({ agentId, agentName }: { agentId: string; agentName: string }) {
   const [grid, setGrid] = useState<string[][]>(DEFAULT_GRID);
   const [sheetName, setSheetName] = useState<string>('Tableau sans titre');
+  const [originalFormat, setOriginalFormat] = useState<FileFormat>('xlsx');
   const [chatMessages, setChatMessages] = useState<ChatMsg[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [sending, setSending] = useState(false);
   const [saved, setSaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Reference to the original workbook (preserves formulas, macros, styles)
+  const workbookRef = useRef<any>(null);
+  const activeSheetRef = useRef<string>('');
+  const hasFormulasRef = useRef<boolean>(false);
+  const hasMacrosRef = useRef<boolean>(false);
 
-  const updateCell = useCallback((row: number, col: number, value: string) => {
+  const updateCell = useCallback(async (row: number, col: number, value: string) => {
     setGrid(prev => {
       const newGrid = prev.map(r => [...r]);
       newGrid[row][col] = value;
       return newGrid;
     });
+    // Also update the workbook object directly so formulas/macros are preserved on export
+    if (workbookRef.current && activeSheetRef.current) {
+      try {
+        const XLSX: any = await import('xlsx');
+        const ws = workbookRef.current.Sheets[activeSheetRef.current];
+        const cellRef = XLSX.utils.encode_cell({ r: row, c: col });
+        // Detect cell type
+        const numValue = Number(value);
+        const isNumber = value !== '' && !isNaN(numValue) && isFinite(numValue);
+        const isFormula = value.startsWith('=');
+        if (isFormula) {
+          ws[cellRef] = { t: 'n', f: value.slice(1), v: 0 };
+        } else if (isNumber) {
+          ws[cellRef] = { t: 'n', v: numValue };
+        } else {
+          ws[cellRef] = { t: 's', v: value };
+        }
+        // Extend the range if needed
+        const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+        if (col > range.e.c) range.e.c = col;
+        if (row > range.e.r) range.e.r = row;
+        ws['!ref'] = XLSX.utils.encode_range(range);
+      } catch {}
+    }
   }, []);
 
   const addRow = useCallback(() => {
@@ -88,7 +120,7 @@ export default function SpreadsheetEditor({ agentId, agentName }: { agentId: str
   const handleUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const ext = file.name.split('.').pop()?.toLowerCase();
+    const ext = file.name.split('.').pop()?.toLowerCase() as FileFormat;
     const cleanName = file.name.replace(/\.[^.]+$/, '');
 
     try {
@@ -96,17 +128,38 @@ export default function SpreadsheetEditor({ agentId, agentName }: { agentId: str
         const text = await file.text();
         const parsed = parseCsv(text);
         if (parsed.length > 0) setGrid(parsed);
+        workbookRef.current = null;
+        hasFormulasRef.current = false;
+        hasMacrosRef.current = false;
+        setOriginalFormat('csv');
       } else if (ext === 'xlsx' || ext === 'xls' || ext === 'xlsm') {
-        // Use SheetJS for Excel files
+        // Use SheetJS with full preservation: formulas, styles, macros, number formats
         const XLSX: any = await import('xlsx');
         const arrayBuffer = await file.arrayBuffer();
-        const workbook = XLSX.read(arrayBuffer, { type: 'array', cellFormula: false });
+        const workbook = XLSX.read(arrayBuffer, {
+          type: 'array',
+          bookVBA: true,      // Preserve VBA macros
+          cellFormula: true,  // Preserve formulas
+          cellStyles: true,   // Preserve cell styling
+          cellNF: true,       // Preserve number formats
+          cellDates: true,    // Parse dates as Date objects
+          sheetStubs: true,   // Generate stubs for empty cells
+        });
+
+        // Store the FULL workbook reference (preserves macros, formulas, styles)
+        workbookRef.current = workbook;
         const firstSheetName = workbook.SheetNames[0];
+        activeSheetRef.current = firstSheetName;
+        setOriginalFormat(ext);
+
+        // Detect formulas and macros
         const worksheet = workbook.Sheets[firstSheetName];
-        // Convert to 2D array (json with header:1 returns array of arrays)
-        const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '', blankrows: false }) as any[][];
+        hasFormulasRef.current = Object.values(worksheet).some((cell: any) => cell?.f);
+        hasMacrosRef.current = !!(workbook.vbaraw || ext === 'xlsm');
+
+        // Convert to 2D array for display — show formula results, not formulas
+        const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '', blankrows: false, raw: false }) as any[][];
         if (data.length > 0) {
-          // Normalize: ensure all rows have same length
           const maxCols = Math.max(...data.map(r => r.length));
           const normalized = data.map(row => {
             const r = row.map(c => String(c ?? ''));
@@ -149,8 +202,10 @@ export default function SpreadsheetEditor({ agentId, agentName }: { agentId: str
     setTimeout(() => setSaved(false), 2000);
   }, [grid, sheetName, agentId]);
 
-  const handleDownload = useCallback(async (format: 'csv' | 'xlsx' = 'xlsx') => {
+  const handleDownload = useCallback(async (format: 'csv' | 'xlsx' | 'xlsm' = 'xlsx') => {
     try {
+      const XLSX: any = await import('xlsx');
+
       if (format === 'csv') {
         const csv = gridToCsv(grid);
         const blob = new Blob([csv], { type: 'text/csv' });
@@ -160,9 +215,47 @@ export default function SpreadsheetEditor({ agentId, agentName }: { agentId: str
         a.download = `${sheetName}.csv`;
         a.click();
         URL.revokeObjectURL(url);
+        return;
+      }
+
+      // For xlsx/xlsm: prefer the original workbook (preserves formulas/macros/styles)
+      if (workbookRef.current && activeSheetRef.current) {
+        // Sync grid changes to the workbook before export
+        const ws = workbookRef.current.Sheets[activeSheetRef.current];
+        const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+        // Update each cell from the grid (only cells that don't already have a formula)
+        for (let r = 0; r < grid.length; r++) {
+          for (let c = 0; c < grid[r].length; c++) {
+            const cellRef = XLSX.utils.encode_cell({ r, c });
+            const existing = ws[cellRef];
+            const value = grid[r][c];
+            // Don't overwrite formulas — let them recalculate in Excel
+            if (existing?.f) continue;
+            const numValue = Number(value);
+            const isNumber = value !== '' && !isNaN(numValue) && isFinite(numValue);
+            if (value === '' && !existing) continue;
+            if (isNumber) {
+              ws[cellRef] = { ...existing, t: 'n', v: numValue };
+            } else {
+              ws[cellRef] = { ...existing, t: 's', v: value };
+            }
+            if (c > range.e.c) range.e.c = c;
+            if (r > range.e.r) range.e.r = r;
+          }
+        }
+        ws['!ref'] = XLSX.utils.encode_range(range);
+
+        // Write back preserving everything
+        const isMacroFile = format === 'xlsm' || hasMacrosRef.current;
+        const writeOpts = {
+          bookType: isMacroFile ? 'xlsm' : 'xlsx',
+          bookVBA: isMacroFile,
+          cellStyles: true,
+          compression: true,
+        };
+        XLSX.writeFile(workbookRef.current, `${sheetName}.${isMacroFile ? 'xlsm' : 'xlsx'}`, writeOpts);
       } else {
-        // XLSX export via SheetJS
-        const XLSX: any = await import('xlsx');
+        // No original workbook (CSV import or new file) — create from grid
         const worksheet = XLSX.utils.aoa_to_sheet(grid);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
@@ -220,8 +313,17 @@ export default function SpreadsheetEditor({ agentId, agentName }: { agentId: str
             type="text"
             value={sheetName}
             onChange={e => setSheetName(e.target.value)}
-            className="flex-1 bg-transparent text-white text-sm font-medium focus:outline-none px-2 py-1 rounded hover:bg-white/5 focus:bg-white/5"
+            className="flex-1 min-w-0 bg-transparent text-white text-sm font-medium focus:outline-none px-2 py-1 rounded hover:bg-white/5 focus:bg-white/5"
           />
+          {originalFormat !== 'csv' && (
+            <span className="text-[9px] text-white/30 uppercase">{originalFormat}</span>
+          )}
+          {hasFormulasRef.current && (
+            <span className="text-[9px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded" title="Formules preservees">fx</span>
+          )}
+          {hasMacrosRef.current && (
+            <span className="text-[9px] text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded" title="Macros VBA preservees">VBA</span>
+          )}
           <button onClick={addRow} className="px-2 py-1 text-xs text-white/60 hover:text-white hover:bg-white/10 rounded transition" title="Ajouter une ligne">+ ligne</button>
           <button onClick={addColumn} className="px-2 py-1 text-xs text-white/60 hover:text-white hover:bg-white/10 rounded transition" title="Ajouter une colonne">+ col</button>
           <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls,.xlsm" onChange={handleUpload} className="hidden" />
@@ -235,8 +337,11 @@ export default function SpreadsheetEditor({ agentId, agentName }: { agentId: str
             <button className="px-2 py-1 text-xs text-white/60 hover:text-white hover:bg-white/10 rounded transition">
               {`${'\u2B07\uFE0F'} Export`}
             </button>
-            <div className="absolute right-0 top-full mt-1 bg-gray-900 border border-white/10 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition z-50 min-w-[120px]">
+            <div className="absolute right-0 top-full mt-1 bg-gray-900 border border-white/10 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition z-50 min-w-[160px]">
               <button onClick={() => handleDownload('xlsx')} className="block w-full px-3 py-1.5 text-xs text-white/70 hover:bg-white/10 text-left">Excel (.xlsx)</button>
+              {hasMacrosRef.current && (
+                <button onClick={() => handleDownload('xlsm')} className="block w-full px-3 py-1.5 text-xs text-amber-400 hover:bg-white/10 text-left">Excel + macros (.xlsm)</button>
+              )}
               <button onClick={() => handleDownload('csv')} className="block w-full px-3 py-1.5 text-xs text-white/70 hover:bg-white/10 text-left">CSV (.csv)</button>
             </div>
           </div>

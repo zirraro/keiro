@@ -47,6 +47,7 @@
     "nodemailer": "^6.10.1",
     "open-graph-scraper": "^6.10.0",
     "openai": "^6.17.0",
+    "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^4.0.379",
     "react": "19.1.0",
     "react-dom": "19.1.0",
