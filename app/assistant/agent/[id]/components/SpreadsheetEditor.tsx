@@ -4,8 +4,9 @@ import { useState, useCallback, useRef } from 'react';
 
 /**
  * SpreadsheetEditor — Collaborative Excel-like editor with AI assistant.
- * User edits cells directly, asks Louis to calculate/modify via chat,
- * Louis returns updated grid in [GRID_UPDATE] tags which auto-applies.
+ * Supports import: .csv, .xlsx, .xls (with macros preserved)
+ * Export: .csv, .xlsx
+ * AI agent (Louis) can modify the grid via [GRID_UPDATE] tags.
  */
 
 interface ChatMsg {
@@ -84,19 +85,44 @@ export default function SpreadsheetEditor({ agentId, agentName }: { agentId: str
     setGrid(prev => prev.map(row => [...row, '']));
   }, []);
 
-  const handleUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-      const text = ev.target?.result as string;
-      try {
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    const cleanName = file.name.replace(/\.[^.]+$/, '');
+
+    try {
+      if (ext === 'csv') {
+        const text = await file.text();
         const parsed = parseCsv(text);
         if (parsed.length > 0) setGrid(parsed);
-        setSheetName(file.name.replace(/\.[^.]+$/, ''));
-      } catch {}
-    };
-    reader.readAsText(file);
+      } else if (ext === 'xlsx' || ext === 'xls' || ext === 'xlsm') {
+        // Use SheetJS for Excel files
+        const XLSX: any = await import('xlsx');
+        const arrayBuffer = await file.arrayBuffer();
+        const workbook = XLSX.read(arrayBuffer, { type: 'array', cellFormula: false });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        // Convert to 2D array (json with header:1 returns array of arrays)
+        const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '', blankrows: false }) as any[][];
+        if (data.length > 0) {
+          // Normalize: ensure all rows have same length
+          const maxCols = Math.max(...data.map(r => r.length));
+          const normalized = data.map(row => {
+            const r = row.map(c => String(c ?? ''));
+            while (r.length < maxCols) r.push('');
+            return r;
+          });
+          setGrid(normalized);
+        }
+      } else {
+        alert('Format non supporte. Utilise .csv, .xlsx, .xls ou .xlsm');
+        return;
+      }
+      setSheetName(cleanName);
+    } catch (err: any) {
+      alert('Erreur import : ' + (err?.message || 'inconnue'));
+    }
   }, []);
 
   const handleSave = useCallback(() => {
@@ -123,15 +149,28 @@ export default function SpreadsheetEditor({ agentId, agentName }: { agentId: str
     setTimeout(() => setSaved(false), 2000);
   }, [grid, sheetName, agentId]);
 
-  const handleDownload = useCallback(() => {
-    const csv = gridToCsv(grid);
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${sheetName}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const handleDownload = useCallback(async (format: 'csv' | 'xlsx' = 'xlsx') => {
+    try {
+      if (format === 'csv') {
+        const csv = gridToCsv(grid);
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${sheetName}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } else {
+        // XLSX export via SheetJS
+        const XLSX: any = await import('xlsx');
+        const worksheet = XLSX.utils.aoa_to_sheet(grid);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
+        XLSX.writeFile(workbook, `${sheetName}.xlsx`);
+      }
+    } catch (err: any) {
+      alert('Erreur export : ' + (err?.message || 'inconnue'));
+    }
   }, [grid, sheetName]);
 
   const sendMessage = useCallback(async () => {
@@ -185,12 +224,22 @@ export default function SpreadsheetEditor({ agentId, agentName }: { agentId: str
           />
           <button onClick={addRow} className="px-2 py-1 text-xs text-white/60 hover:text-white hover:bg-white/10 rounded transition" title="Ajouter une ligne">+ ligne</button>
           <button onClick={addColumn} className="px-2 py-1 text-xs text-white/60 hover:text-white hover:bg-white/10 rounded transition" title="Ajouter une colonne">+ col</button>
-          <input ref={fileInputRef} type="file" accept=".csv,.xlsx" onChange={handleUpload} className="hidden" />
-          <button onClick={() => fileInputRef.current?.click()} className="px-2 py-1 text-xs text-white/60 hover:text-white hover:bg-white/10 rounded transition" title="Importer un CSV">{'\u{1F4C2}'}</button>
+          <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls,.xlsm" onChange={handleUpload} className="hidden" />
+          <button onClick={() => fileInputRef.current?.click()} className="px-2 py-1 text-xs text-white/60 hover:text-white hover:bg-white/10 rounded transition" title="Importer un fichier Excel ou CSV">
+            {`${'\u{1F4C2}'} Importer`}
+          </button>
           <button onClick={handleSave} className={`px-3 py-1 text-xs font-medium rounded transition ${saved ? 'bg-emerald-500/30 text-emerald-300' : 'bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30'}`}>
             {saved ? `${'\u2713'} Sauve` : `${'\u{1F4BE}'} Sauver`}
           </button>
-          <button onClick={handleDownload} className="px-2 py-1 text-xs text-white/60 hover:text-white hover:bg-white/10 rounded transition" title="Telecharger CSV">{'\u2B07\uFE0F'}</button>
+          <div className="relative group">
+            <button className="px-2 py-1 text-xs text-white/60 hover:text-white hover:bg-white/10 rounded transition">
+              {`${'\u2B07\uFE0F'} Export`}
+            </button>
+            <div className="absolute right-0 top-full mt-1 bg-gray-900 border border-white/10 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition z-50 min-w-[120px]">
+              <button onClick={() => handleDownload('xlsx')} className="block w-full px-3 py-1.5 text-xs text-white/70 hover:bg-white/10 text-left">Excel (.xlsx)</button>
+              <button onClick={() => handleDownload('csv')} className="block w-full px-3 py-1.5 text-xs text-white/70 hover:bg-white/10 text-left">CSV (.csv)</button>
+            </div>
+          </div>
         </div>
         {/* Spreadsheet grid */}
         <div className="flex-1 overflow-auto p-3">
