@@ -73,37 +73,18 @@ export default function SpreadsheetEditor({ agentId, agentName }: { agentId: str
   const activeSheetRef = useRef<string>('');
   const hasFormulasRef = useRef<boolean>(false);
   const hasMacrosRef = useRef<boolean>(false);
+  // Track which cells were explicitly modified (by user or AI)
+  // Only these cells will be overwritten on export — everything else stays 100% original
+  const modifiedCellsRef = useRef<Set<string>>(new Set());
 
-  const updateCell = useCallback(async (row: number, col: number, value: string) => {
+  const updateCell = useCallback((row: number, col: number, value: string) => {
     setGrid(prev => {
       const newGrid = prev.map(r => [...r]);
       newGrid[row][col] = value;
       return newGrid;
     });
-    // Also update the workbook object directly so formulas/macros are preserved on export
-    if (workbookRef.current && activeSheetRef.current) {
-      try {
-        const XLSX: any = await import('xlsx');
-        const ws = workbookRef.current.Sheets[activeSheetRef.current];
-        const cellRef = XLSX.utils.encode_cell({ r: row, c: col });
-        // Detect cell type
-        const numValue = Number(value);
-        const isNumber = value !== '' && !isNaN(numValue) && isFinite(numValue);
-        const isFormula = value.startsWith('=');
-        if (isFormula) {
-          ws[cellRef] = { t: 'n', f: value.slice(1), v: 0 };
-        } else if (isNumber) {
-          ws[cellRef] = { t: 'n', v: numValue };
-        } else {
-          ws[cellRef] = { t: 's', v: value };
-        }
-        // Extend the range if needed
-        const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
-        if (col > range.e.c) range.e.c = col;
-        if (row > range.e.r) range.e.r = row;
-        ws['!ref'] = XLSX.utils.encode_range(range);
-      } catch {}
-    }
+    // Mark this cell as explicitly modified — will be written on export
+    modifiedCellsRef.current.add(`${row},${col}`);
   }, []);
 
   const addRow = useCallback(() => {
@@ -124,6 +105,9 @@ export default function SpreadsheetEditor({ agentId, agentName }: { agentId: str
     const cleanName = file.name.replace(/\.[^.]+$/, '');
 
     try {
+      // Reset modified cells on new import
+      modifiedCellsRef.current = new Set();
+
       if (ext === 'csv') {
         const text = await file.text();
         const parsed = parseCsv(text);
@@ -218,34 +202,44 @@ export default function SpreadsheetEditor({ agentId, agentName }: { agentId: str
         return;
       }
 
-      // For xlsx/xlsm: prefer the original workbook (preserves formulas/macros/styles)
+      // For xlsx/xlsm: use the original workbook (preserves formulas/macros/styles)
+      // CRITICAL: only touch cells that were explicitly modified (by user or AI)
+      // Everything else stays 100% original — formulas, macros, formatting, charts
       if (workbookRef.current && activeSheetRef.current) {
-        // Sync grid changes to the workbook before export
         const ws = workbookRef.current.Sheets[activeSheetRef.current];
         const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
-        // Update each cell from the grid (only cells that don't already have a formula)
-        for (let r = 0; r < grid.length; r++) {
-          for (let c = 0; c < grid[r].length; c++) {
-            const cellRef = XLSX.utils.encode_cell({ r, c });
-            const existing = ws[cellRef];
-            const value = grid[r][c];
-            // Don't overwrite formulas — let them recalculate in Excel
-            if (existing?.f) continue;
-            const numValue = Number(value);
-            const isNumber = value !== '' && !isNaN(numValue) && isFinite(numValue);
-            if (value === '' && !existing) continue;
-            if (isNumber) {
-              ws[cellRef] = { ...existing, t: 'n', v: numValue };
-            } else {
-              ws[cellRef] = { ...existing, t: 's', v: value };
-            }
-            if (c > range.e.c) range.e.c = c;
-            if (r > range.e.r) range.e.r = r;
+
+        // Only write the cells that were explicitly modified
+        for (const cellKey of modifiedCellsRef.current) {
+          const [rStr, cStr] = cellKey.split(',');
+          const r = parseInt(rStr);
+          const c = parseInt(cStr);
+          if (r >= grid.length || c >= (grid[r]?.length || 0)) continue;
+          const value = grid[r][c];
+          const cellRef = XLSX.utils.encode_cell({ r, c });
+          const existing = ws[cellRef] || {};
+          // Detect type
+          const numValue = Number(value);
+          const isNumber = value !== '' && !isNaN(numValue) && isFinite(numValue);
+          const isFormula = typeof value === 'string' && value.startsWith('=');
+          // Preserve cell style (s) but update value/formula
+          if (isFormula) {
+            ws[cellRef] = { ...existing, t: 'n', f: value.slice(1), v: 0 };
+          } else if (isNumber) {
+            ws[cellRef] = { ...existing, t: 'n', v: numValue, f: undefined };
+          } else if (value === '') {
+            // Clear the cell value but keep the cell object for style
+            ws[cellRef] = { ...existing, t: 's', v: '', f: undefined };
+          } else {
+            ws[cellRef] = { ...existing, t: 's', v: value, f: undefined };
           }
+          // Extend range if needed
+          if (c > range.e.c) range.e.c = c;
+          if (r > range.e.r) range.e.r = r;
         }
         ws['!ref'] = XLSX.utils.encode_range(range);
 
-        // Write back preserving everything
+        // Write back preserving everything: macros (vbaraw), formulas, styles, etc.
         const isMacroFile = format === 'xlsm' || hasMacrosRef.current;
         const writeOpts = {
           bookType: isMacroFile ? 'xlsm' : 'xlsx',
@@ -290,7 +284,19 @@ export default function SpreadsheetEditor({ agentId, agentName }: { agentId: str
       if (gridMatch) {
         const newCsv = gridMatch[1].trim();
         const newGrid = parseCsv(newCsv);
-        if (newGrid.length > 0) setGrid(newGrid);
+        if (newGrid.length > 0) {
+          // Mark all changed cells as modified — they'll be written on export
+          for (let r = 0; r < newGrid.length; r++) {
+            for (let c = 0; c < (newGrid[r] || []).length; c++) {
+              const oldVal = grid[r]?.[c] ?? '';
+              const newVal = newGrid[r][c] ?? '';
+              if (oldVal !== newVal) {
+                modifiedCellsRef.current.add(`${r},${c}`);
+              }
+            }
+          }
+          setGrid(newGrid);
+        }
         const explanation = reply.split('[GRID_UPDATE]')[0].trim();
         setChatMessages(prev => [...prev, { id: `a_${Date.now()}`, role: 'assistant', content: explanation || 'Tableau mis a jour.' }]);
       } else {
