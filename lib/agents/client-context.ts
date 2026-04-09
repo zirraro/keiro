@@ -466,7 +466,10 @@ export const CLIENT_AGENTS: ClientAgent[] = [
   },
 ];
 
-export function getVisibleAgents(plan: string, isAdmin = false): ClientAgent[] {
+// Agents not yet functional — show "à venir" regardless of plan
+export const FORCED_COMING_SOON_AGENTS = new Set(['tiktok_comments', 'linkedin', 'whatsapp', 'ads']);
+
+export function getVisibleAgents(plan: string, isAdmin = false): (ClientAgent & { notReleased?: boolean })[] {
   const planOrder = ['gratuit', 'free', 'sprint', 'solo', 'solo_promo', 'createur', 'pro', 'pro_promo', 'fondateurs', 'standard', 'business', 'elite', 'agence'];
   const userPlanIndex = planOrder.indexOf(plan || 'gratuit');
 
@@ -475,14 +478,12 @@ export function getVisibleAgents(plan: string, isAdmin = false): ClientAgent[] {
     .map(a => {
       const requiredIndex = planOrder.indexOf(a.minPlan);
       const isAccessible = isAdmin || userPlanIndex >= requiredIndex;
-      // Force certain agents to "coming_soon" regardless of plan (not yet ready)
-      // Agents not yet functional — show "à venir" regardless of plan
-      const FORCED_COMING_SOON = new Set(['tiktok_comments', 'linkedin', 'whatsapp', 'ads']);
-      const isForcedComingSoon = FORCED_COMING_SOON.has(a.id) && !isAdmin;
+      const isNotReleased = FORCED_COMING_SOON_AGENTS.has(a.id) && !isAdmin;
 
       return {
         ...a,
-        visibility: isAdmin ? 'active' : isForcedComingSoon ? 'coming_soon' : (isAccessible ? 'active' : 'coming_soon'),
-      } as ClientAgent;
+        visibility: isAdmin ? 'active' : isNotReleased ? 'coming_soon' : (isAccessible ? 'active' : 'coming_soon'),
+        notReleased: isNotReleased,
+      };
     });
 }

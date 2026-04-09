@@ -1197,7 +1197,7 @@ export default function AssistantPage() {
           ))}
         </div>
         {/* Scroll fade indicator for mobile */}
-        <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#0c1a3a] to-transparent pointer-events-none rounded-r-xl sm:hidden mb-5" />
+        <div className="absolute right-0 top-0 bottom-5 w-6 bg-gradient-to-l from-[#0c1a3a] to-transparent pointer-events-none rounded-r-xl sm:hidden" />
         </div>
 
         {/* ═══ TAB: SUIVI CENTRAL — Supra-elite visual ═══ */}
@@ -1502,9 +1502,9 @@ export default function AssistantPage() {
                 agent={agent}
                 avatarUrl={avatars[agent.id] || null}
                 isSelected={!!chats[agent.id]}
-                onClick={() => agent.visibility === 'coming_soon' ? undefined : handleSelectAgent(agent)}
+                onClick={() => (agent as any).notReleased ? undefined : handleSelectAgent(agent)}
                 comingSoonMode={COMING_SOON_MODE}
-                isComingSoon={agent.visibility === 'coming_soon'}
+                isComingSoon={(agent as any).notReleased === true}
                 badgeCount={notifBadges[agent.id] || 0}
                 onNotifyClick={() => {
                   if (COMING_SOON_MODE) {

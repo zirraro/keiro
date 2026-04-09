@@ -1570,13 +1570,18 @@ function HomeKeiroInner() {
             </div>
           </div>
 
-          {/* Plans Grid — 4 plans principaux */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6">
+          {/* Plans Grid — 3 plans principaux */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
             <Plan
               title={`\uD83D\uDC8E ${locale === 'fr' ? 'Createur' : 'Creator'}`}
               price={billingPeriod === 'annual' ? `490\u20AC ${t.common.perYear}` : `49\u20AC ${t.common.perMonth}`}
-              subtitle={locale === 'fr' ? 'Freelance & createur solo' : 'Freelance & solo creator'}
-              bullets={[locale === 'fr' ? '400 credits/mois' : '400 credits/month', locale === 'fr' ? 'Publication auto Instagram' : 'Auto-publish Instagram', locale === 'fr' ? 'Agent contenu + DM' : 'Content + DM agent']}
+              subtitle={locale === 'fr' ? 'Boutiques, restos, freelances' : 'Shops, restaurants, freelancers'}
+              bullets={[
+                locale === 'fr' ? '7 agents IA inclus' : '7 AI agents included',
+                locale === 'fr' ? '400 credits/mois' : '400 credits/month',
+                locale === 'fr' ? 'Contenu, Email, DM, CRM' : 'Content, Email, DM, CRM',
+                locale === 'fr' ? 'Avis Google auto' : 'Google reviews auto',
+              ]}
               ctaLabel={locale === 'fr' ? 'Essai gratuit 14 jours' : 'Free trial 14 days'}
               ctaOnClick={() => {
                 if (billingPeriod === 'monthly') {
@@ -1591,30 +1596,30 @@ function HomeKeiroInner() {
               title={`\uD83D\uDE80 ${t.home.planProTitle}`}
               price={billingPeriod === 'annual' ? `990\u20AC ${t.common.perYear}` : `99\u20AC ${t.common.perMonth}`}
               priceNote={billingPeriod === 'annual' ? t.home.priceNotePro : undefined}
-              subtitle={t.home.planProSubtitle}
-              bullets={t.home.planProBullets}
+              subtitle={locale === 'fr' ? 'Restos, hotels, commerces qui veulent grandir' : 'Restaurants, hotels, growing businesses'}
+              bullets={[
+                locale === 'fr' ? '10 agents IA inclus' : '10 AI agents included',
+                locale === 'fr' ? '800 credits/mois' : '800 credits/month',
+                locale === 'fr' ? 'Tout Createur + SEO' : 'All Creator + SEO',
+                locale === 'fr' ? 'Chatbot 24/7 + RH' : 'Chatbot 24/7 + HR',
+              ]}
               ctaLabel={billingPeriod === 'annual' ? t.home.ctaProAnnual : locale === 'fr' ? 'Essai gratuit 14 jours' : 'Free trial 14 days'}
               ctaOnClick={() => startCheckout(billingPeriod === 'annual' ? 'pro_annual' : 'pro')}
-            />
-
-            <Plan
-              title={`⭐ ${t.home.planFondateursTitle}`}
-              price={billingPeriod === 'annual' ? `1 490€ ${t.common.perYear}` : `149€ ${t.common.perMonth}`}
-              priceNote={billingPeriod === 'annual' ? t.home.priceNoteFondateurs : undefined}
-              subtitle={t.home.planFondateursSubtitle}
-              special
-              highlight
-              bullets={t.home.planFondateursBullets}
-              ctaLabel={billingPeriod === 'annual' ? t.home.ctaFondateursAnnual : t.home.ctaBecomeFondateur}
-              ctaOnClick={() => startCheckout(billingPeriod === 'annual' ? 'fondateurs_annual' : 'fondateurs')}
             />
 
             <Plan
               title={`🏢 ${t.home.planBusinessTitle}`}
               price={billingPeriod === 'annual' ? `1 990€ ${t.common.perYear}` : `199€ ${t.common.perMonth}`}
               priceNote={billingPeriod === 'annual' ? t.home.priceNoteBusiness : undefined}
-              subtitle={t.home.planBusinessSubtitle}
-              bullets={t.home.planBusinessBullets}
+              subtitle={locale === 'fr' ? 'PME, hotels, multi-sites' : 'SMEs, hotels, multi-site'}
+              special
+              highlight
+              bullets={[
+                locale === 'fr' ? '15+ agents IA inclus' : '15+ AI agents included',
+                locale === 'fr' ? '2 000 credits/mois' : '2,000 credits/month',
+                locale === 'fr' ? 'Tout Pro + Finance' : 'All Pro + Finance',
+                locale === 'fr' ? 'LinkedIn, Ads, WhatsApp (bientot)' : 'LinkedIn, Ads, WhatsApp (soon)',
+              ]}
               ctaLabel={billingPeriod === 'annual' ? t.home.ctaBusinessAnnual : t.home.ctaChooseBusiness}
               ctaOnClick={() => startCheckout(billingPeriod === 'annual' ? 'business_annual' : 'business')}
             />
