@@ -13,6 +13,8 @@ const AgentSetupGuide = dynamic(() => import('../../components/AgentSetupGuide')
 const AgentTutorial = dynamic(() => import('./components/AgentTutorial'), { ssr: false });
 const CampaignWizard = dynamic(() => import('./components/CampaignWizard'), { ssr: false });
 const AgentDocuments = dynamic(() => import('./components/AgentDocuments'), { ssr: false });
+const DocumentEditor = dynamic(() => import('./components/DocumentEditor'), { ssr: false });
+const SpreadsheetEditor = dynamic(() => import('./components/SpreadsheetEditor'), { ssr: false });
 
 const AGENTS_WITH_DASHBOARD = [
   'marketing', 'commercial', 'email', 'content', 'seo', 'ads', 'comptable',
@@ -380,7 +382,7 @@ export default function AgentWorkspacePage() {
   // Tabs — support ?tab=history from notification links
   const searchParams = useSearchParams();
   const initialTab = (['dashboard', 'planning', 'history', 'campaigns', 'settings', 'profile'].includes(searchParams.get('tab') || '') ? searchParams.get('tab') : 'dashboard') as any;
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'planning' | 'history' | 'campaigns' | 'settings' | 'profile' | 'documents'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'planning' | 'history' | 'campaigns' | 'settings' | 'profile' | 'documents' | 'editor'>(initialTab);
   const [showCampaignWizard, setShowCampaignWizard] = useState(false);
 
   // Open chat with notification message if redirected from notification
@@ -973,6 +975,7 @@ export default function AgentWorkspacePage() {
             ...(agentId === 'onboarding' ? [{ key: 'profile' as const, label: 'Mon profil', icon: '\uD83D\uDCCB' }] : []),
             ...(['email', 'ads', 'commercial', 'dm_instagram'].includes(agentId) ? [{ key: 'campaigns' as const, label: 'Campagnes', icon: '\u{1F3AF}' }] : []),
             ...(['content', 'email'].includes(agentId) ? [{ key: 'planning' as const, label: 'Planning', icon: '\uD83D\uDCC5' }] : []),
+            ...(['rh', 'comptable'].includes(agentId) ? [{ key: 'editor' as const, label: 'Editeur', icon: '\u270D\uFE0F' }] : []),
             { key: 'documents' as const, label: 'Documents', icon: '\uD83D\uDCC1' },
             { key: 'history' as const, label: 'Historique', icon: '\u26A1' },
             { key: 'settings' as const, label: 'Parametres', icon: '\u2699\uFE0F' },
@@ -1178,6 +1181,14 @@ export default function AgentWorkspacePage() {
               )}
             </div>
           </div>
+        )}
+
+        {/* ═══ TAB: EDITEUR — Sara docs / Louis spreadsheet ═══ */}
+        {activeTab === 'editor' && agentId === 'rh' && (
+          <DocumentEditor agentId={agentId} agentName="Sara" />
+        )}
+        {activeTab === 'editor' && agentId === 'comptable' && (
+          <SpreadsheetEditor agentId={agentId} agentName="Louis" />
         )}
 
         {/* ═══ TAB: DOCUMENTS — Fichiers generes par l'agent ═══ */}
