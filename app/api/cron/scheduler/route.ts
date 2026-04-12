@@ -398,41 +398,42 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'afternoon_batch':
-      // 13:30 UTC — Content #2 + Email #3 + Email warm + TikTok + LinkedIn + Discovery #2
-      // Content midday + publish
-      for (const uid of getClientsWithAgent('content')) {
-        await callEndpoint(`Content midday [${uid.substring(0, 8)}]`, `/api/agents/content?slot=midday&user_id=${uid}`);
-        await callEndpoint(`Publish midday [${uid.substring(0, 8)}]`, `/api/agents/content?user_id=${uid}`, 'POST', { action: 'execute_publication' });
-      }
-      // TikTok content (if connected)
-      if (isTiktokDay) {
+      // 13:30 UTC — Content #2 + Email #3 + TikTok + LinkedIn + Discovery #2
+      // All in background to avoid Vercel 300s timeout
+      fireBackground(async () => {
+        // Content midday + publish
         for (const uid of getClientsWithAgent('content')) {
-          if (isNetworkActive(uid, 'content', 'tiktok')) {
-            await callEndpoint(`Content TikTok [${uid.substring(0, 8)}]`, `/api/agents/content?slot=tiktok&user_id=${uid}`);
+          await callEndpoint(`Content midday [${uid.substring(0, 8)}]`, `/api/agents/content?slot=midday&user_id=${uid}`);
+          await delay(3000);
+          await callEndpoint(`Publish midday [${uid.substring(0, 8)}]`, `/api/agents/content?user_id=${uid}`, 'POST', { action: 'execute_publication' });
+          await delay(3000);
+        }
+        // TikTok content (if connected, Mon/Wed only)
+        if (isTiktokDay) {
+          for (const uid of getClientsWithAgent('content')) {
+            if (isNetworkActive(uid, 'content', 'tiktok')) {
+              await callEndpoint(`Content TikTok [${uid.substring(0, 8)}]`, `/api/agents/content?slot=tiktok&user_id=${uid}`);
+            }
           }
         }
-      }
-      // LinkedIn content (if connected)
-      for (const uid of getClientsWithAgent('linkedin')) {
-        await callEndpoint(`Content LinkedIn [${uid.substring(0, 8)}]`, `/api/agents/content?slot=linkedin_1&user_id=${uid}`);
-      }
-      // Email cold #3 + warm
-      for (const uid of getClientsWithAgent('email')) {
-        await callEndpoint(`Email Cold [${uid.substring(0, 8)}]`, `/api/agents/email/daily?slot=afternoon&types=restaurant,pme,services&user_id=${uid}`);
-        await callEndpoint(`Email Warm [${uid.substring(0, 8)}]`, `/api/agents/email/daily?slot=warm&user_id=${uid}`);
-      }
-      // Discovery #2
-      await callForEachClient('Commercial Prospect', '/api/agents/commercial', 'POST', { action: 'prospect_external' }, 'commercial');
-      // DM auto-reply + TikTok DM
-      fireBackground(async () => {
+        // LinkedIn content (if connected)
+        for (const uid of getClientsWithAgent('linkedin')) {
+          await callEndpoint(`Content LinkedIn [${uid.substring(0, 8)}]`, `/api/agents/content?slot=linkedin_1&user_id=${uid}`);
+        }
+        // Email cold #3 + warm
+        for (const uid of getClientsWithAgent('email')) {
+          await callEndpoint(`Email Cold [${uid.substring(0, 8)}]`, `/api/agents/email/daily?slot=afternoon&types=restaurant,pme,services&user_id=${uid}`);
+          await delay(3000);
+          await callEndpoint(`Email Warm [${uid.substring(0, 8)}]`, `/api/agents/email/daily?slot=warm&user_id=${uid}`);
+        }
+        // Discovery #2
+        await callForEachClient('Commercial Prospect', '/api/agents/commercial', 'POST', { action: 'prospect_external' }, 'commercial');
+        // DM auto-reply
         for (const uid of getClientsWithAgent('dm_instagram')) {
           await callEndpoint(`DM AutoReply [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram/auto-reply?user_id=${uid}`, 'POST');
-          if (isNetworkActive(uid, 'dm_instagram', 'tiktok')) {
-            await callEndpoint(`DM TikTok [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram?platform=tiktok&count=20&user_id=${uid}`, 'POST');
-            await delay(10000);
-          }
         }
       });
+      results.push({ task: 'Afternoon Batch', ok: true, data: { status: 'dispatched_background', clients: clientUserIds.length } });
       break;
 
     case 'evening_batch':
@@ -462,15 +463,21 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'ceo_daily':
-      // 20:00 UTC — CEO brief + Marketing learn + Ops + AMIT (all global/admin)
-      // Marketing analysis
-      await callEndpoint('Marketing Learn', '/api/agents/marketing', 'POST', { action: 'learn' });
-      // CEO full daily brief
-      await callEndpoint('CEO Daily Brief', '/api/agents/ceo', 'POST', { action: 'daily_brief' });
-      // AMIT strategic analysis
-      await callEndpoint('AMIT Strategic', '/api/agents/amit', 'POST', { action: 'analyze' });
-      // Ops health check
-      await callEndpoint('Ops Health', '/api/agents/ops', 'POST', { action: 'health_check' });
+      // 20:00 UTC — CEO + Marketing + AMIT + Ops — all in background to avoid timeout
+      fireBackground(async () => {
+        // Marketing analysis first (feeds CEO)
+        await callEndpoint('Marketing Learn', '/api/agents/marketing', 'POST', { action: 'learn' });
+        await delay(5000);
+        // CEO daily brief (reads marketing insights)
+        await callEndpoint('CEO Daily Brief', '/api/agents/ceo', 'POST', { action: 'daily_brief' });
+        await delay(5000);
+        // AMIT strategic (reads CEO + marketing)
+        await callEndpoint('AMIT Strategic', '/api/agents/amit', 'POST', { action: 'analyze' });
+        await delay(3000);
+        // Ops health check + send report
+        await callEndpoint('Ops Health', '/api/agents/ops', 'POST', { action: 'health_check' });
+      });
+      results.push({ task: 'CEO Daily', ok: true, data: { status: 'dispatched_background' } });
       break;
 
     // ════════════════════════════════════════════════════════════════
