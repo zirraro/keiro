@@ -106,25 +106,22 @@ function EmailConnectBanner({ connections }: { connections?: Record<string, bool
   }, []);
 
   useEffect(() => {
-    // Detect ?just_connected=gmail in URL — force fresh check from API
-    const justConnected = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('just_connected') === 'gmail';
-
-    if (!justConnected && connections?.gmail) {
-      setGmailConnected(true);
-      setGmailEmail((connections as any).gmail_email || null);
-      setLoading(false);
-      return;
-    }
-    // Always check via API if just_connected or no cached connection
+    // Always check via direct API call — don't rely on cached connections
+    // This ensures Gmail is detected immediately after OAuth redirect
     fetch('/api/agents/email/check-connection', { credentials: 'include' })
       .then(r => r.json())
       .then(d => {
         setGmailConnected(d.gmail_connected || false);
         setGmailEmail(d.gmail_email || null);
-        // Update global flag so EmailInbox also sees it
         if (typeof window !== 'undefined') (window as any).__gmailConnected = d.gmail_connected;
       })
-      .catch(() => {})
+      .catch(() => {
+        // Fallback to cached connections
+        if (connections?.gmail) {
+          setGmailConnected(true);
+          setGmailEmail((connections as any).gmail_email || null);
+        }
+      })
       .finally(() => setLoading(false));
   }, [connections]);
 

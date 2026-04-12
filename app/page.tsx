@@ -1193,8 +1193,8 @@ function HomeKeiroInner() {
                 <li className="flex gap-2"><span className="text-[#0c1a3a] font-bold">✓</span> <span><strong>Vidéo IA + audio narration</strong> inclus</span></li>
                 <li className="flex gap-2"><span className="text-[#0c1a3a] font-bold">✓</span> <span><strong>Texte, légendes, hashtags</strong> générés automatiquement</span></li>
                 <li className="flex gap-2"><span className="text-[#0c1a3a] font-bold">✓</span> <span><strong>Instagram + TikTok + LinkedIn</strong> (multi-plateforme)</span></li>
-                <li className="flex gap-2"><span className="text-[#0c1a3a] font-bold">✓</span> <span><strong>Branding personnalisé</strong> (Fondateurs)</span></li>
-                <li className="flex gap-2"><span className="text-[#0c1a3a] font-bold">✓</span> <span><strong>Multi-format automatique</strong> (Fondateurs)</span></li>
+                <li className="flex gap-2"><span className="text-[#0c1a3a] font-bold">✓</span> <span><strong>Branding personnalisé</strong> (Pro+)</span></li>
+                <li className="flex gap-2"><span className="text-[#0c1a3a] font-bold">✓</span> <span><strong>Multi-format automatique</strong> (Pro+)</span></li>
                 <li className="flex gap-2"><span className="text-[#0c1a3a] font-bold">✓</span> <span><strong>Statistiques et analyse</strong> intégrées</span></li>
                 <li className="flex gap-2"><span className="text-[#0c1a3a] font-bold">✓</span> <span><strong>Assistant Marketing Intelligence</strong> personnalisé</span></li>
                 <li className="flex gap-2"><span className="text-[#0c1a3a] font-bold">✓</span> <span>Disponible <strong>24/7</strong>, jamais en congé</span></li>
@@ -1304,8 +1304,8 @@ function HomeKeiroInner() {
               <li className="flex gap-2 bg-green-100/50 rounded px-2 py-1"><span className="text-green-500 font-bold flex-shrink-0">✓</span><span className="text-neutral-800"><strong>VIDÉOS IA</strong> (5s à 90s) — impossible avec ChatGPT</span></li>
               <li className="flex gap-2"><span className="text-green-500 font-bold flex-shrink-0">✓</span><span className="text-neutral-800"><strong>Audio narration INTÉGRÉE</strong> dans la vidéo</span></li>
               <li className="flex gap-2"><span className="text-green-500 font-bold flex-shrink-0">✓</span><span className="text-neutral-800">Lié à l&apos;<strong>actualité du jour</strong> automatiquement</span></li>
-              <li className="flex gap-2"><span className="text-green-500 font-bold flex-shrink-0">✓</span><span className="text-neutral-800"><strong>Branding mémorisé</strong> — logo + couleurs auto (Fondateurs)</span></li>
-              <li className="flex gap-2"><span className="text-green-500 font-bold flex-shrink-0">✓</span><span className="text-neutral-800"><strong>Multi-format</strong> — 1 clic = post + Story + Reel (Fondateurs)</span></li>
+              <li className="flex gap-2"><span className="text-green-500 font-bold flex-shrink-0">✓</span><span className="text-neutral-800"><strong>Branding mémorisé</strong> — logo + couleurs auto (Pro+)</span></li>
+              <li className="flex gap-2"><span className="text-green-500 font-bold flex-shrink-0">✓</span><span className="text-neutral-800"><strong>Multi-format</strong> — 1 clic = post + Story + Reel (Pro+)</span></li>
               <li className="flex gap-2"><span className="text-green-500 font-bold flex-shrink-0">✓</span><span className="text-neutral-800">Légendes + hashtags générés automatiquement</span></li>
               <li className="flex gap-2"><span className="text-green-500 font-bold flex-shrink-0">✓</span><span className="text-neutral-800">Calendrier de planification</span></li>
               <li className="flex gap-2"><span className="text-green-500 font-bold flex-shrink-0">✓</span><span className="text-neutral-800">Statistiques Instagram + TikTok</span></li>
@@ -1693,9 +1693,9 @@ function HomeKeiroInner() {
             </ul>
           </div>
 
-          {/* Fondateurs card */}
+          {/* Business card */}
           <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl border-2 border-amber-400 p-6 shadow-lg">
-            <h3 className="text-xl font-bold text-amber-900 mb-4">⭐ Fondateurs — Votre marque partout, sur Instagram ET TikTok, en 3 formats</h3>
+            <h3 className="text-xl font-bold text-amber-900 mb-4">{'\u{1F3E2}'} Business — Votre marque partout, sur Instagram ET TikTok, en 3 formats</h3>
             <ul className="space-y-3 text-sm text-neutral-700">
               <li className="flex items-start gap-2">
                 <span className="text-amber-500 font-bold mt-0.5">▸</span>
@@ -1959,7 +1959,7 @@ function QuizAndCalculator() {
 
   const getRecommendedPlan = () => {
     if (quizAnswers.budget === 'large' || quizAnswers.businessType === 'ecommerce') return 'Business';
-    if (quizAnswers.budget === 'medium') return 'Fondateurs Pro';
+    if (quizAnswers.budget === 'medium') return 'Pro';
     if (quizAnswers.budget === 'small') return 'Pro';
     return 'Pro';
   };
