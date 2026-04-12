@@ -1224,6 +1224,32 @@ export async function GET(request: NextRequest) {
       case 'chatbot':
         agentData = await getChatbotData(supabase, user.id, orgId);
         break;
+      case 'ceo': {
+        // Noah CEO: aggregate data from all agents for strategic overview
+        const [commercialData, emailData, dmData, contentData] = await Promise.all([
+          getCommercialData(supabase, dashboardUserId || user.id, dashboardOrgId),
+          getEmailData(supabase, dashboardUserId || user.id, dashboardOrgId),
+          getDmInstagramData(supabase, user.id, orgId),
+          getContentData(supabase, dashboardUserId || user.id),
+        ]);
+        // Get recent logs from ALL agents
+        const { data: allLogs } = await supabase
+          .from('agent_logs')
+          .select('agent, action, status, created_at')
+          .or(`user_id.eq.${user.id},user_id.is.null`)
+          .order('created_at', { ascending: false })
+          .limit(50);
+        agentData = {
+          ...agentData,
+          prospects: (commercialData as any).prospects,
+          stats: (commercialData as any).stats,
+          emailStats: emailData,
+          dmStats: { sent: (dmData as any).dmStats?.totalDMs || 0 },
+          contentStats: { published: (contentData as any).contentStats?.publishedCount || 0 },
+          recentLogs: allLogs || [],
+        };
+        break;
+      }
     }
 
     const recentChats = await recentChatsPromise;
