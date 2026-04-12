@@ -3684,6 +3684,90 @@ function LaunchProspectionButton() {
   );
 }
 
+/** Noah CEO Panel — Strategic overview for the client */
+function CeoPanel({
+  data,
+  agentName,
+  gradientFrom,
+  gradientTo,
+}: {
+  data: AgentDashboardProps['data'];
+  agentName: string;
+  gradientFrom: string;
+  gradientTo: string;
+}) {
+  // Extract data from various sources
+  const prospects = (data as any).prospects?.length || (data as any).stats?.total || 0;
+  const hot = (data as any).stats?.hot || 0;
+  const emailsSent = (data as any).emailStats?.sent || 0;
+  const openRate = (data as any).emailStats?.openRate || 0;
+  const dmsSent = (data as any).dmStats?.sent || 0;
+  const publications = (data as any).contentStats?.published || 0;
+  const recentLogs = (data as any).recentLogs || [];
+
+  // Agent status from logs
+  const agentStatus = recentLogs.reduce((acc: Record<string, string>, log: any) => {
+    if (!acc[log.agent]) acc[log.agent] = log.status === 'error' ? 'erreur' : 'actif';
+    return acc;
+  }, {} as Record<string, string>);
+
+  const AGENT_NAMES: Record<string, string> = {
+    content: 'Lena', email: 'Hugo', dm_instagram: 'Jade', commercial: 'Leo',
+    seo: 'Oscar', gmaps: 'Theo', chatbot: 'Max', rh: 'Sara', comptable: 'Louis',
+  };
+
+  return (
+    <>
+      {/* KPI strategiques */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <KpiCard label="Prospects" value={fmt(prospects)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label="Chauds" value={fmt(hot)} gradientFrom="#ef4444" gradientTo="#f97316" />
+        <KpiCard label="Emails envoyes" value={fmt(emailsSent)} gradientFrom="#06b6d4" gradientTo="#0891b2" />
+        <KpiCard label="Taux ouverture" value={`${openRate}%`} gradientFrom="#10b981" gradientTo="#22c55e" />
+      </div>
+
+      {/* Vision strategique */}
+      <SectionTitle>Performance des agents</SectionTitle>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        {Object.entries(AGENT_NAMES).map(([id, name]) => {
+          const status = agentStatus[id];
+          return (
+            <div key={id} className="flex items-center gap-2 bg-white/[0.03] border border-white/10 rounded-xl p-2.5">
+              <div className={`w-2 h-2 rounded-full ${status === 'erreur' ? 'bg-red-400' : status === 'actif' ? 'bg-green-400' : 'bg-white/20'}`} />
+              <span className="text-xs text-white/70 font-medium">{name}</span>
+              <span className={`text-[9px] ml-auto ${status === 'erreur' ? 'text-red-400' : status === 'actif' ? 'text-green-400' : 'text-white/20'}`}>
+                {status || 'en attente'}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      <SectionTitle>Canaux actifs</SectionTitle>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div className="rounded-xl bg-white/[0.03] border border-white/10 p-3 text-center">
+          <div className="text-lg font-bold text-pink-400">{fmt(dmsSent)}</div>
+          <div className="text-[9px] text-white/40">DMs envoyes</div>
+        </div>
+        <div className="rounded-xl bg-white/[0.03] border border-white/10 p-3 text-center">
+          <div className="text-lg font-bold text-purple-400">{fmt(publications)}</div>
+          <div className="text-[9px] text-white/40">Publications</div>
+        </div>
+        <div className="rounded-xl bg-white/[0.03] border border-white/10 p-3 text-center">
+          <div className="text-lg font-bold text-cyan-400">{fmt(emailsSent)}</div>
+          <div className="text-[9px] text-white/40">Emails</div>
+        </div>
+        <div className="rounded-xl bg-white/[0.03] border border-white/10 p-3 text-center">
+          <div className="text-lg font-bold text-amber-400">{fmt(hot)}</div>
+          <div className="text-[9px] text-white/40">Prospects chauds</div>
+        </div>
+      </div>
+
+      <ActionButton label="Parler a Noah" gradientFrom={gradientFrom} gradientTo={gradientTo} />
+    </>
+  );
+}
+
 function GenericPanel({
   data,
   agentName,
@@ -3963,6 +4047,8 @@ const AGENT_CONFIG: Record<string, { subtitle: string; Panel: typeof MarketingPa
   chatbot: { subtitle: 'Chatbot Site Web', Panel: ChatbotPanel },
   whatsapp: { subtitle: 'WhatsApp Business', Panel: WhatsAppPanel },
   commercial: { subtitle: 'Prospection & Pipeline', Panel: CommercialPanel },
+  comptable: { subtitle: 'Finance & Tresorerie', Panel: FinancePanel },
+  ceo: { subtitle: 'Vision Strategique', Panel: CeoPanel },
   linkedin: { subtitle: 'LinkedIn & Reseau Pro', Panel: GenericPanel },
 };
 

@@ -15,61 +15,59 @@ import SpotlightTour, { TourStep } from './SpotlightTour';
 // Tour steps per agent — target matches data-tour="xxx" attributes on the page
 const AGENT_TOURS: Record<string, TourStep[]> = {
   content: [
-    { target: 'launch-campaign', title: 'Lance ta premiere campagne', description: 'Clique ici pour configurer Lena en 30 secondes : choisis tes reseaux, ta frequence et ton style. Lena commence a publier immediatement !', position: 'bottom' },
-    { target: 'auto-toggle', title: 'Mode de publication', description: 'En AUTO, Lena publie selon ton calendrier. En MANUEL, tes posts apparaissent en brouillon et tu valides avant publication.', position: 'bottom' },
-    { target: 'content-workflow', title: 'Tes posts', description: 'Clique sur un post pour le voir en grand comme sur Instagram. Tu peux valider, publier ou ignorer depuis la modal.', position: 'bottom' },
-    { target: 'content-calendar', title: 'Ton planning', description: 'Le calendrier montre tes publications sur 14 jours par plateforme : Instagram, TikTok, LinkedIn.', position: 'top' },
+    { target: 'auto-toggle', title: 'Publication automatique', description: 'Active le mode AUTO pour que Lena publie selon ton calendrier. En MANUEL, tu valides chaque post avant publication.', position: 'bottom' },
+    { target: 'content-workflow', title: 'Tes publications', description: 'Tous tes posts generes apparaissent ici. Clique pour voir le visuel, la legende et les hashtags. Publie en un clic.', position: 'bottom' },
+    { target: 'agent-dashboard', title: 'Onglet Planning', description: 'Va dans l\'onglet Planning pour voir ton calendrier editorial sur 14 jours avec les publications programmees par plateforme.', position: 'top' },
   ],
   dm_instagram: [
-    { target: 'launch-campaign', title: 'Lance la prospection DM', description: 'Configure Jade en 30 secondes : volume de DMs, cible et ton. Elle prospecte automatiquement pour toi !', position: 'bottom' },
-    { target: 'auto-toggle', title: 'Mode DM', description: 'En AUTO, Jade prospecte et repond aux DMs pour toi. En MANUEL, tu valides chaque message avant envoi.', position: 'bottom' },
-    { target: 'dm-stats', title: 'Ton pipeline', description: 'DMs envoyes → Reponses recues → RDV generes. Le bouton CRM ouvre ton pipeline complet.', position: 'bottom' },
-    { target: 'dm-conversations', title: 'DMs et Commentaires', description: 'Tes conversations en temps reel. Dans Commentaires, Jade repond auto a tes posts.', position: 'top' },
+    { target: 'auto-toggle', title: 'DM automatique', description: 'En AUTO, Jade contacte tes prospects par DM Instagram et repond automatiquement. Tu es alerte quand un prospect est chaud.', position: 'bottom' },
+    { target: 'agent-dashboard', title: 'Conversations', description: 'Tes DMs en cours avec les prospects. Tu peux reprendre la conversation a tout moment si Jade a besoin d\'aide.', position: 'bottom' },
   ],
   email: [
-    { target: 'launch-campaign', title: 'Lance la prospection email', description: 'Configure Hugo en 30 secondes : volume, ton et types de prospects. Il envoie automatiquement !', position: 'bottom' },
-    { target: 'auto-toggle', title: 'Mode email', description: 'En AUTO, Hugo envoie les sequences email a tes prospects. En MANUEL, tu valides chaque email avant envoi.', position: 'bottom' },
-    { target: 'email-inbox', title: 'Ta boite email', description: 'Filtre par Recus, Envoyes ou Sequences. Clique sur un prospect pour repondre directement.', position: 'top' },
+    { target: 'auto-toggle', title: 'Emails automatiques', description: 'Hugo envoie des sequences de prospection personnalisees. Chaque prospect recoit 3 a 6 emails espaces intelligemment.', position: 'bottom' },
+    { target: 'email-inbox', title: 'Boite email', description: 'Tous les emails envoyes et les reponses recues. Filtre par statut (envoye, ouvert, repondu) et reponds directement.', position: 'top' },
   ],
   gmaps: [
-    { target: 'auto-toggle', title: 'Reponses auto', description: 'Active pour que Theo reponde automatiquement a chaque nouvel avis Google.', position: 'bottom' },
-    { target: 'google-reviews', title: 'Avis Google', description: 'Tes avis apparaissent ici. Clique Repondre pour generer une reponse IA et la publier sur Google.', position: 'top' },
+    { target: 'auto-toggle', title: 'Reponses automatiques', description: 'Theo repond a chaque nouvel avis Google avec un message personnalise. Ameliore ta note et ta visibilite locale.', position: 'bottom' },
   ],
   commercial: [
-    { target: 'agent-dashboard', title: 'CRM Prospects', description: 'Leo qualifie et score tes prospects automatiquement. Vois ton pipeline ici.', position: 'bottom' },
+    { target: 'agent-dashboard', title: 'Tes prospects', description: 'Leo cherche et qualifie tes prospects automatiquement. Tu vois ici le pipeline par canal : email, Instagram, TikTok.', position: 'bottom' },
   ],
   seo: [
-    { target: 'agent-dashboard', title: 'Audit SEO', description: 'Oscar analyse ton site et te donne des recommandations concretes pour ameliorer ton referencement.', position: 'bottom' },
+    { target: 'agent-dashboard', title: 'Articles SEO', description: 'Oscar redige des articles blog optimises pour Google. Chaque article cible un mot-cle pour attirer du trafic vers ton site.', position: 'bottom' },
   ],
   marketing: [
-    { target: 'agent-dashboard', title: 'Dashboard global', description: 'AMI supervise tous tes agents et te donne une vue d\'ensemble de tes performances.', position: 'bottom' },
+    { target: 'agent-dashboard', title: 'Analyse marketing', description: 'Ami analyse les performances de tous tes canaux et te recommande des actions concretes pour ameliorer tes resultats.', position: 'bottom' },
   ],
-  ads: [
-    { target: 'agent-dashboard', title: 'Campagnes pub', description: 'Felix cree et optimise tes campagnes Meta Ads et Google Ads automatiquement.', position: 'bottom' },
+  ceo: [
+    { target: 'agent-dashboard', title: 'Vision strategique', description: 'Noah supervise tous tes agents. Il analyse les resultats, donne la direction et ajuste la strategie selon tes objectifs.', position: 'bottom' },
   ],
   chatbot: [
-    { target: 'agent-dashboard', title: 'Chatbot Max', description: 'Max accueille tes visiteurs 24/7. Installe le widget sur ton site pour demarrer.', position: 'bottom' },
-  ],
-  whatsapp: [
-    { target: 'agent-dashboard', title: 'WhatsApp Stella', description: 'Stella repond automatiquement a tes messages WhatsApp et qualifie les prospects.', position: 'bottom' },
-  ],
-  tiktok_comments: [
-    { target: 'agent-dashboard', title: 'TikTok Axel', description: 'Axel engage ta communaute TikTok en commentant et interagissant automatiquement.', position: 'bottom' },
-  ],
-  instagram_comments: [
-    { target: 'agent-dashboard', title: 'Commentaires IG', description: 'Reponses automatiques et personnalisees a tous tes commentaires Instagram.', position: 'bottom' },
+    { target: 'agent-dashboard', title: 'Chatbot sur ton site', description: 'Max accueille tes visiteurs 24/7, repond a leurs questions et capture leurs coordonnees. Installe-le via l\'onglet Parametres.', position: 'bottom' },
   ],
   rh: [
-    { target: 'agent-dashboard', title: 'Documents Sara', description: 'Sara genere tes CGV, mentions legales, RGPD et contrats personnalises.', position: 'bottom' },
+    { target: 'agent-dashboard', title: 'Documents juridiques', description: 'Sara genere tes contrats, CGV, mentions legales et documents RGPD. Va dans l\'onglet Editeur pour creer et modifier tes documents.', position: 'bottom' },
   ],
   comptable: [
-    { target: 'agent-dashboard', title: 'Finance Louis', description: 'Louis suit tes revenus, depenses et marge. Tableau de bord financier automatique.', position: 'bottom' },
+    { target: 'agent-dashboard', title: 'Gestion financiere', description: 'Louis cree tes business plans, previsionnels et inventaires. Va dans l\'onglet Editeur pour travailler sur tes tableaux Excel.', position: 'bottom' },
   ],
   onboarding: [
-    { target: 'agent-dashboard', title: 'Clara t\'accompagne', description: 'Remplis ton profil business, upload des documents, et Clara partage tout avec tes agents.', position: 'bottom' },
+    { target: 'agent-dashboard', title: 'Ton profil business', description: 'Complete ton dossier business pour que tes agents te connaissent mieux. Plus c\'est complet, plus ils sont efficaces.', position: 'bottom' },
+  ],
+  ads: [
+    { target: 'agent-dashboard', title: 'Publicite (bientot)', description: 'Felix creera et optimisera tes campagnes Meta Ads et Google Ads automatiquement. Cette fonctionnalite arrive bientot.', position: 'bottom' },
+  ],
+  whatsapp: [
+    { target: 'agent-dashboard', title: 'WhatsApp (bientot)', description: 'Stella repondra automatiquement a tes messages WhatsApp Business. Cette fonctionnalite arrive bientot.', position: 'bottom' },
+  ],
+  tiktok_comments: [
+    { target: 'agent-dashboard', title: 'TikTok (bientot)', description: 'Axel engagera ta communaute TikTok en commentant et interagissant automatiquement. Arrive bientot.', position: 'bottom' },
   ],
   linkedin: [
-    { target: 'agent-dashboard', title: 'Emma LinkedIn', description: 'Emma publie du contenu optimise sur LinkedIn, commente et engage ton reseau professionnel pour generer des leads B2B.', position: 'bottom' },
+    { target: 'agent-dashboard', title: 'LinkedIn (bientot)', description: 'Emma publiera du contenu optimise sur LinkedIn et engagera ton reseau pro. Arrive bientot.', position: 'bottom' },
+  ],
+  instagram_comments: [
+    { target: 'agent-dashboard', title: 'Commentaires Instagram', description: 'Reponses automatiques et personnalisees a tous les commentaires sur tes posts Instagram.', position: 'bottom' },
   ],
 };
 
