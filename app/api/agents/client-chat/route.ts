@@ -208,7 +208,30 @@ export async function POST(request: NextRequest) {
     }
 
     // 7. Build system prompt using client-facing prompt + enriched context + RAG
-    const systemPrompt = getClientPrompt(agent_id, dossierContext, agentName) + enrichedContext + scrapedContext + ragContext;
+    let partnerContext = '';
+    // Noah ↔ Ami shared context: each sees what the other discussed with the client
+    if (agent_id === 'ceo' || agent_id === 'marketing') {
+      const partnerId = agent_id === 'ceo' ? 'marketing' : 'ceo';
+      const partnerName = agent_id === 'ceo' ? 'Ami (Marketing)' : 'Noah (Strategie)';
+      try {
+        const { data: partnerChat } = await supabase
+          .from('client_agent_chats')
+          .select('messages')
+          .eq('user_id', user.id)
+          .eq('agent_id', partnerId)
+          .single();
+        if (partnerChat?.messages && Array.isArray(partnerChat.messages)) {
+          const lastMsgs = partnerChat.messages.slice(-6);
+          if (lastMsgs.length > 0) {
+            partnerContext = `\n\nCONVERSATION RECENTE DU CLIENT AVEC ${partnerName.toUpperCase()} :\n` +
+              lastMsgs.map((m: any) => `[${m.role === 'user' ? 'Client' : partnerName}] ${(m.content || '').substring(0, 200)}`).join('\n') +
+              '\nTiens compte de cette conversation dans tes reponses.';
+          }
+        }
+      } catch {}
+    }
+
+    const systemPrompt = getClientPrompt(agent_id, dossierContext, agentName) + enrichedContext + scrapedContext + ragContext + partnerContext;
 
     // 8. Load last 20 messages from client_agent_chats for conversation history
     const { data: chatRow } = await supabase

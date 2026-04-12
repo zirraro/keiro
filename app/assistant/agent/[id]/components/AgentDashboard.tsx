@@ -959,11 +959,13 @@ interface AgentDashboardProps {
     };
     // Ami global dashboard
     globalStats?: {
-      commercial: { leadsWeek: number; conversions: number; estimatedRevenue: number };
-      visibility: { traffic: number; followers: number; googleRating: number };
-      finance: { adBudget: number; roas: number; forecast: number };
+      commercial: Record<string, any>;
+      visibility: Record<string, any>;
+      instagram?: Record<string, any>;
+      finance: Record<string, any>;
+      teamActivity?: Array<{ agent: string; action: string; date?: string; created_at?: string }>;
+      recentTeamActivity?: Array<{ agent: string; action: string; date: string }>;
       recommendation: string;
-      recentTeamActivity: Array<{ agent: string; action: string; date: string }>;
     };
   };
 }
@@ -1242,21 +1244,22 @@ function MarketingPanel({
         {/* HotProspectsAlert removed — too much space, only useful for visitor mode */}
 
         {/* Commercial bloc */}
-        <SectionTitle>Commercial</SectionTitle>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <KpiCard label="Leads semaine" value={fmt(gs.commercial.leadsWeek)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-          <KpiCard label="Conversions" value={fmt(gs.commercial.conversions)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-          <KpiCard label="CA estime" value={fmtCurrency(gs.commercial.estimatedRevenue)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <SectionTitle>Prospection</SectionTitle>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <KpiCard label="Total prospects" value={fmt(gs.commercial?.totalProspects || 0)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+          <KpiCard label="Cette semaine" value={`+${fmt(gs.commercial?.prospectsThisWeek || 0)}`} gradientFrom="#06b6d4" gradientTo="#0891b2" />
+          <KpiCard label="Clients" value={fmt(gs.commercial?.conversions || 0)} gradientFrom="#10b981" gradientTo="#22c55e" />
+          <KpiCard label="Conversion" value={`${gs.commercial?.conversionRate || 0}%`} gradientFrom="#f59e0b" gradientTo="#d97706" />
         </div>
 
-        {/* Workflow visual — pipeline Commercial */}
+        {/* Funnel */}
         <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 mt-4">
           <div className="flex items-center justify-between gap-1 text-center">
             {[
-              { label: 'Prospects identifies', value: gs.commercial.leadsWeek + gs.commercial.conversions, icon: '\u{1F465}', color: '#94a3b8' },
-              { label: 'Contactés', value: gs.commercial.leadsWeek, icon: '\u{1F4E8}', color: '#60a5fa' },
-              { label: 'Qualifiés', value: Math.round(gs.commercial.leadsWeek * 0.6), icon: '\u{1F3AF}', color: '#fbbf24' },
-              { label: 'Clients', value: gs.commercial.conversions, icon: '\u{1F525}', color: '#22c55e' },
+              { label: 'Identifies', value: gs.commercial?.totalProspects || 0, icon: '\u{1F465}', color: '#94a3b8' },
+              { label: 'Contactes', value: gs.commercial?.prospectsThisWeek || 0, icon: '\u{1F4E8}', color: '#60a5fa' },
+              { label: 'Qualifies', value: Math.round((gs.commercial?.prospectsThisWeek || 0) * 0.6), icon: '\u{1F3AF}', color: '#fbbf24' },
+              { label: 'Clients', value: gs.commercial?.conversions || 0, icon: '\u{1F525}', color: '#22c55e' },
             ].map((step, i) => (
               <div key={step.label} className="flex items-center flex-1">
                 <div className="flex-1 text-center">
@@ -1282,10 +1285,10 @@ function MarketingPanel({
 
         {/* Visibilite bloc */}
         <SectionTitle>Visibilite</SectionTitle>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <KpiCard label="Trafic" value={fmt(gs.visibility.traffic)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-          <KpiCard label="Followers" value={fmt(gs.visibility.followers)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-          <KpiCard label="Note Google" value={`${(gs.visibility.googleRating || 0).toLocaleString('fr-FR', { maximumFractionDigits: 1 })}/5`} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <KpiCard label="Followers" value={fmt((gs as any).instagram?.followersCount || gs.visibility?.traffic || 0)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+          <KpiCard label="Actions visibilite" value={fmt(gs.visibility?.totalActions || 0)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+          <KpiCard label="Recommandation" value={gs.recommendation ? '1' : '0'} gradientFrom={gradientFrom} gradientTo={gradientTo} />
         </div>
 
         {/* Instagram engagement bloc */}
@@ -1346,11 +1349,24 @@ function MarketingPanel({
 
         {/* Feed equipe temps reel */}
         <SectionTitle>Feed equipe temps reel</SectionTitle>
+        {/* Ami's recommendation */}
+        {gs.recommendation && (
+          <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-4 mt-3">
+            <div className="flex items-start gap-2">
+              <span className="text-lg">{'\u{1F4A1}'}</span>
+              <div>
+                <p className="text-xs font-bold text-cyan-400 mb-1">Recommandation d&apos;Ami</p>
+                <p className="text-xs text-white/70 leading-relaxed">{gs.recommendation}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <ActivityFeed
-          items={(gs.recentTeamActivity ?? []).map((a) => ({
+          items={((gs as any).teamActivity ?? gs.recentTeamActivity ?? []).map((a: any) => ({
             label: a.action,
             detail: a.agent,
-            date: a.date,
+            date: a.date || a.created_at,
           }))}
           agentName={agentName}
           gradientFrom={gradientFrom}
