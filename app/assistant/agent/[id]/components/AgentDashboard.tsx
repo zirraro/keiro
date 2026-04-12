@@ -2990,34 +2990,50 @@ function OnboardingPanel({
   );
 }
 
-/** Strategy presets — changeable from Clara's dashboard */
+/** Strategy presets — multi-select focus areas, changeable anytime from Clara's dashboard */
 function StrategyPresets({ gradientFrom, gradientTo }: { gradientFrom: string; gradientTo: string }) {
-  const [current, setCurrent] = useState<string | null>(null);
-  const [applying, setApplying] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [applying, setApplying] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const focuses = [
+    { id: 'instagram', icon: '\u{1F4F8}', name: 'Instagram', desc: '4-5 posts/sem + reels + stories', credits: 120, agents: { content: { auto_mode: true, auto_mode_instagram: true } } },
+    { id: 'tiktok', icon: '\u{1F3B5}', name: 'TikTok', desc: '3-4 videos/sem', credits: 140, agents: { content: { auto_mode: true, auto_mode_tiktok: true } } },
+    { id: 'linkedin', icon: '\u{1F4BC}', name: 'LinkedIn', desc: '3 posts pro/sem', credits: 80, agents: { content: { auto_mode: true, auto_mode_linkedin: true } } },
+    { id: 'prospection', icon: '\u{1F3AF}', name: 'Prospection', desc: 'Emails + DM + CRM', credits: 60, agents: { email: { auto_mode: true }, dm_instagram: { auto_mode: true }, commercial: { auto_mode: true } } },
+    { id: 'reputation', icon: '\u2B50', name: 'Avis Google', desc: 'Reponses auto', credits: 20, agents: { gmaps: { auto_mode: true } } },
+    { id: 'seo', icon: '\u{1F50D}', name: 'SEO & Blog', desc: 'Articles optimises', credits: 40, agents: { seo: { auto_mode: true } } },
+    { id: 'chatbot', icon: '\u{1F916}', name: 'Chatbot', desc: 'Capture leads 24/7', credits: 30, agents: { chatbot: { auto_mode: true } } },
+  ];
 
   useEffect(() => {
     try {
-      setCurrent(localStorage.getItem('keiro_strategy_done') || null);
+      const stored = localStorage.getItem('keiro_strategy_done');
+      if (stored && stored !== 'skipped') {
+        setSelected(new Set(stored.split('+')));
+      }
     } catch {}
   }, []);
 
-  const strategies = [
-    { id: 'instagram_focus', name: 'Instagram Focus', icon: '\u{1F4F8}', desc: '4-5 posts/sem + reels + DM auto', credits: '~200 cr/mois',
-      agents: { content: { auto_mode: true, auto_mode_instagram: true, auto_mode_tiktok: false, auto_mode_linkedin: false }, dm_instagram: { auto_mode: true }, email: { auto_mode: true }, commercial: { auto_mode: true }, gmaps: { auto_mode: true } } },
-    { id: 'tiktok_focus', name: 'TikTok Focus', icon: '\u{1F3B5}', desc: '3-4 videos/sem TikTok + email', credits: '~220 cr/mois',
-      agents: { content: { auto_mode: true, auto_mode_instagram: false, auto_mode_tiktok: true, auto_mode_linkedin: false }, email: { auto_mode: true }, commercial: { auto_mode: true } } },
-    { id: 'prospection', name: 'Machine a Prospects', icon: '\u{1F3AF}', desc: 'Emails + DM + CRM auto, peu de contenu', credits: '~120 cr/mois',
-      agents: { email: { auto_mode: true }, dm_instagram: { auto_mode: true }, commercial: { auto_mode: true }, gmaps: { auto_mode: true }, content: { auto_mode: true, auto_mode_instagram: true, auto_mode_tiktok: false, auto_mode_linkedin: false } } },
-    { id: 'multi_platform', name: 'Multi-plateforme', icon: '\u{1F680}', desc: 'IG + TikTok + Email + DM', credits: '~380 cr/mois',
-      agents: { content: { auto_mode: true, auto_mode_instagram: true, auto_mode_tiktok: true, auto_mode_linkedin: false }, dm_instagram: { auto_mode: true }, email: { auto_mode: true }, commercial: { auto_mode: true }, gmaps: { auto_mode: true } } },
-    { id: 'linkedin_b2b', name: 'LinkedIn B2B', icon: '\u{1F4BC}', desc: 'Posts LinkedIn + emails B2B', credits: '~150 cr/mois',
-      agents: { content: { auto_mode: true, auto_mode_instagram: false, auto_mode_tiktok: false, auto_mode_linkedin: true }, email: { auto_mode: true }, commercial: { auto_mode: true } } },
-  ];
+  const totalCredits = focuses.filter(f => selected.has(f.id)).reduce((s, f) => s + f.credits, 0);
 
-  const apply = async (s: typeof strategies[0]) => {
-    setApplying(s.id);
+  const apply = async () => {
+    setApplying(true);
     try {
-      for (const [agentId, config] of Object.entries(s.agents)) {
+      const mergedAgents: Record<string, Record<string, boolean>> = {};
+      for (const focus of focuses) {
+        if (!selected.has(focus.id)) continue;
+        for (const [agentId, config] of Object.entries(focus.agents)) {
+          if (!mergedAgents[agentId]) mergedAgents[agentId] = {};
+          Object.assign(mergedAgents[agentId], config);
+        }
+      }
+      if (mergedAgents.content) {
+        if (!mergedAgents.content.auto_mode_instagram) mergedAgents.content.auto_mode_instagram = false;
+        if (!mergedAgents.content.auto_mode_tiktok) mergedAgents.content.auto_mode_tiktok = false;
+        if (!mergedAgents.content.auto_mode_linkedin) mergedAgents.content.auto_mode_linkedin = false;
+      }
+      for (const [agentId, config] of Object.entries(mergedAgents)) {
         await fetch('/api/agents/settings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -3025,36 +3041,37 @@ function StrategyPresets({ gradientFrom, gradientTo }: { gradientFrom: string; g
           body: JSON.stringify({ agent_id: agentId, ...config, setup_completed: true }),
         });
       }
-      localStorage.setItem('keiro_strategy_done', s.id);
-      setCurrent(s.id);
-    } catch {} finally { setApplying(null); }
+      localStorage.setItem('keiro_strategy_done', [...selected].join('+'));
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch {} finally { setApplying(false); }
   };
 
   return (
-    <div className="space-y-2">
-      {strategies.map(s => (
-        <button
-          key={s.id}
-          onClick={() => apply(s)}
-          disabled={applying !== null}
-          className={`w-full flex items-center gap-3 p-3 rounded-xl border transition text-left ${
-            current === s.id
-              ? 'border-cyan-500/40 bg-cyan-500/10'
-              : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/20'
-          }`}
-        >
-          <span className="text-xl">{s.icon}</span>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="text-white text-xs font-bold">{s.name}</span>
-              {current === s.id && <span className="text-[9px] text-cyan-400 bg-cyan-500/20 px-1.5 py-0.5 rounded-full">Active</span>}
-            </div>
-            <span className="text-white/40 text-[10px]">{s.desc}</span>
-          </div>
-          <span className="text-[9px] text-white/20 shrink-0">{s.credits}</span>
-          {applying === s.id && <div className="animate-spin w-3 h-3 border-b border-cyan-400 rounded-full" />}
-        </button>
-      ))}
+    <div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
+        {focuses.map(f => {
+          const active = selected.has(f.id);
+          return (
+            <button key={f.id} onClick={() => setSelected(prev => { const n = new Set(prev); if (n.has(f.id)) n.delete(f.id); else n.add(f.id); return n; })}
+              className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border transition text-center ${active ? 'border-cyan-500/50 bg-cyan-500/15' : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.06]'}`}>
+              <span className="text-lg">{f.icon}</span>
+              <span className={`text-[10px] font-bold ${active ? 'text-cyan-400' : 'text-white/70'}`}>{f.name}</span>
+              <span className="text-[8px] text-white/30">~{f.credits} cr</span>
+            </button>
+          );
+        })}
+      </div>
+      {selected.size > 0 && (
+        <div className={`flex items-center justify-between px-3 py-2 rounded-lg mb-3 text-xs ${totalCredits <= 400 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}`}>
+          <span>~{totalCredits} cr/mois</span>
+          {totalCredits > 400 && <span className="text-[9px]">Depasse Createur (400 cr)</span>}
+        </div>
+      )}
+      <button onClick={apply} disabled={selected.size === 0 || applying}
+        className={`w-full py-2.5 text-xs font-bold rounded-xl transition ${saved ? 'bg-emerald-500/30 text-emerald-300' : 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:opacity-90'} disabled:opacity-30`}>
+        {saved ? '\u2713 Strategie appliquee' : applying ? 'Application...' : 'Appliquer cette strategie'}
+      </button>
     </div>
   );
 }
