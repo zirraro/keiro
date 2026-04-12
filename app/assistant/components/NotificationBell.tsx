@@ -148,11 +148,17 @@ export default function NotificationBell() {
                     onClick={() => {
                       if (!notif.read) markRead(notif.id);
                       setOpen(false);
-                      // Navigate to agent page, open chat with notification message
+                      // Navigate to agent page — show dashboard directly (not chat)
                       const agentId = notif.agent;
                       if (agentId && agentId !== 'system') {
-                        const chatMsg = encodeURIComponent(notif.title + ': ' + notif.message);
-                        window.location.href = `/assistant/agent/${agentId}?tab=dashboard&openChat=true&chatMsg=${chatMsg}`;
+                        // Determine best tab based on notification type
+                        const notifType = notif.type || '';
+                        const tab = notifType.includes('email') ? 'campaigns'
+                          : notifType.includes('dm') ? 'dashboard'
+                          : notifType.includes('publish') || notifType.includes('content') ? 'dashboard'
+                          : notifType.includes('prospect') ? 'dashboard'
+                          : 'dashboard';
+                        window.location.href = `/assistant/agent/${agentId}?tab=${tab}`;
                       }
                     }}
                     className={`w-full text-left px-4 py-3 border-b border-neutral-50 dark:border-neutral-800/50 transition hover:bg-neutral-50 dark:hover:bg-neutral-800/50 ${!notif.read ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}
