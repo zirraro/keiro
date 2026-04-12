@@ -1611,8 +1611,27 @@ export default function AgentWorkspacePage() {
               const config = integrations[agentId];
               if (!config) return null;
 
+              // Integration code only for Business+ plans (fondateurs, business, elite, agence)
+              const integrationPlans = new Set(['fondateurs', 'business', 'elite', 'agence', 'admin']);
+              const hasIntegration = integrationPlans.has(userPlan);
+
               // Replace VOTRE_CLE with actual widget key
               const displayCode = widgetKey ? config.code.replace(/VOTRE_CLE/g, widgetKey) : config.code;
+
+              // Agents that don't need code embed (just connection instructions) — show to all
+              const noCodeAgents = new Set(['content', 'dm_instagram', 'gmaps', 'comptable']);
+              const needsCode = !noCodeAgents.has(agentId);
+
+              if (needsCode && !hasIntegration) {
+                return (
+                  <div className="mt-6 rounded-xl border border-amber-500/20 bg-amber-500/5 p-5 text-center">
+                    <span className="text-2xl">{'\u{1F512}'}</span>
+                    <h4 className="text-white font-bold text-sm mt-2 mb-1">Integration disponible avec Business</h4>
+                    <p className="text-white/40 text-xs mb-3">Integre {dn} directement sur ton site web avec un code embed.</p>
+                    <a href="/pricing" className="inline-block px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-600 text-white text-xs font-bold rounded-xl hover:opacity-90 transition">Passer au Business</a>
+                  </div>
+                );
+              }
 
               return (
                 <div className="mt-6 rounded-xl border border-white/10 bg-white/[0.03] p-5">

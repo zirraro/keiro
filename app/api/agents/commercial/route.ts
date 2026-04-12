@@ -57,6 +57,7 @@ async function verifyAuth(request: NextRequest): Promise<{ authorized: boolean; 
 const VALID_TYPES = [
   'restaurant', 'boutique', 'coach', 'coiffeur', 'caviste', 'fleuriste',
   'traiteur', 'freelance', 'services', 'professionnel', 'agence', 'pme',
+  'hotel', 'bar', 'salon_beaute', 'boulangerie', 'photographe',
 ];
 
 interface EnrichmentResult {
@@ -697,9 +698,9 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
       const minuteOfHour = new Date().getUTCMinutes();
       const runIdx = dayOfYear * 100 + hourOfDay * 10 + Math.floor(minuteOfHour / 10); // More unique per run
 
-      // Generate 6 different search combinations for maximum coverage
+      // Generate 8 different search combinations for maximum coverage across all channels
       const searches: Array<{ type: string; location: string; searchQuery: string }> = [];
-      for (let s = 0; s < 6; s++) {
+      for (let s = 0; s < 8; s++) {
         const tIdx = (runIdx + s * 7) % businessTypes.length;
         const cIdx = (runIdx + s * 11) % cities.length;
         const city = cities[cIdx];
@@ -712,6 +713,10 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
           `${type} ${location} pagesjaunes email telephone`,
           `meilleur ${type} ${location} avis google instagram`,
           `${type} ${location} "contact@" OR "info@" OR "hello@"`,
+          `site:instagram.com "${type}" "${location}" email bio`,
+          `site:tiktok.com "${type}" "${location}"`,
+          `site:linkedin.com "${type}" "${location}" email`,
+          `${type} ${location} google maps avis telephone adresse`,
           `annuaire ${type} ${location} email adresse`,
           `${type} independant ${location} site web contact`,
         ];
@@ -746,10 +751,12 @@ CRITÈRES DE QUALIFICATION SUPPLÉMENTAIRES (au moins 1) :
 
 CE QUE TU DOIS REMPLIR pour chaque prospect (MAXIMUM d'info) :
 - company : nom EXACT du commerce
-- type : restaurant|boutique|coach|coiffeur|fleuriste|caviste|traiteur|freelance|services|boulangerie|photographe|agence
+- type : restaurant|boutique|coach|coiffeur|fleuriste|caviste|traiteur|freelance|services|boulangerie|photographe|agence|hotel|bar|salon_beaute
 - quartier : ville + quartier si possible
 - email : OBLIGATOIRE — adresse email trouvée ou construite depuis le site
-- instagram : handle Instagram SANS @ (si trouvé)
+- instagram : handle Instagram SANS @ (si trouvé) — CRUCIAL pour l'agent DM
+- tiktok_handle : handle TikTok SANS @ (si trouvé) — pour DM TikTok
+- linkedin_url : URL LinkedIn du commerce ou du dirigeant (si trouvé)
 - website : URL complète
 - phone : numéro de téléphone
 - google_rating : note Google (ex: 4.5)
@@ -758,6 +765,13 @@ CE QUE TU DOIS REMPLIR pour chaque prospect (MAXIMUM d'info) :
 - specialty : spécialité (ex: "cuisine japonaise", "coiffure homme")
 - address : adresse physique complète
 - qualification_reason : pourquoi ce prospect a besoin de KeiroAI
+
+IMPORTANT POUR LES AUTRES AGENTS :
+- L'agent Hugo (email) a besoin de l'EMAIL pour envoyer des sequences
+- L'agent Jade (DM) a besoin de l'INSTAGRAM pour envoyer des DMs
+- L'agent Jade (DM TikTok) a besoin du TIKTOK_HANDLE
+- L'agent Emma (LinkedIn) a besoin du LINKEDIN_URL
+- REMPLIS UN MAXIMUM de champs pour que chaque agent puisse travailler
 
 RETOURNE UNIQUEMENT un tableau JSON, PAS de markdown :
 [{"company":"...","type":"...","quartier":"...","instagram":"...", ...}]
@@ -1030,6 +1044,8 @@ Retourne 8-12 prospects qualifiés AVEC EMAIL en JSON. Sois TRÈS concis dans de
             type: VALID_TYPES.includes(np.type) ? np.type : 'pme',
             quartier: np.quartier || null,
             instagram: igHandle,
+            tiktok_handle: np.tiktok_handle ? np.tiktok_handle.replace(/^@/, '') : null,
+            linkedin_url: np.linkedin_url || null,
             website: np.website || null,
             email: np.email || null,
             phone: np.phone || null,
