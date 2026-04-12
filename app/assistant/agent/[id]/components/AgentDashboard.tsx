@@ -3531,11 +3531,12 @@ function CommercialPanel({ data, agentName, gradientFrom, gradientTo }: { data: 
 
   return (
     <>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
         <KpiCard label="Total prospects" value={fmt(stats.total)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label="Ajoutes aujourd'hui" value={fmt(stats.todayCount || today)} gradientFrom="#06b6d4" gradientTo="#0891b2" />
         <KpiCard label="Chauds" value={fmt(stats.hot)} gradientFrom="#ef4444" gradientTo="#f97316" />
         <KpiCard label="Tiedes" value={fmt(stats.warm)} gradientFrom="#f59e0b" gradientTo="#eab308" />
-        <KpiCard label="Taux conversion" value={`${stats.conversionRate}%`} gradientFrom="#10b981" gradientTo="#22c55e" />
+        <KpiCard label="Conversion" value={`${stats.conversionRate}%`} gradientFrom="#10b981" gradientTo="#22c55e" />
       </div>
 
       <SectionTitle>Activite par periode</SectionTitle>
@@ -3554,19 +3555,41 @@ function CommercialPanel({ data, agentName, gradientFrom, gradientTo }: { data: 
         </div>
       </div>
 
+      <SectionTitle>Prospects par canal</SectionTitle>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+        <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-2 text-center">
+          <div className="text-lg font-bold text-blue-400">{stats.withEmail || 0}</div>
+          <div className="text-[9px] text-blue-400/60">Avec email</div>
+          <div className="text-[8px] text-blue-400/40">{stats.emailNotStarted || 0} a contacter</div>
+        </div>
+        <div className="rounded-lg bg-pink-500/10 border border-pink-500/20 p-2 text-center">
+          <div className="text-lg font-bold text-pink-400">{stats.withInstagram || 0}</div>
+          <div className="text-[9px] text-pink-400/60">Avec Instagram</div>
+          <div className="text-[8px] text-pink-400/40">{stats.dmNotStarted || 0} a DM</div>
+        </div>
+        <div className="rounded-lg bg-purple-500/10 border border-purple-500/20 p-2 text-center">
+          <div className="text-lg font-bold text-purple-400">{stats.withTiktok || 0}</div>
+          <div className="text-[9px] text-purple-400/60">Avec TikTok</div>
+        </div>
+        <div className="rounded-lg bg-cyan-500/10 border border-cyan-500/20 p-2 text-center">
+          <div className="text-lg font-bold text-cyan-400">{stats.withLinkedin || 0}</div>
+          <div className="text-[9px] text-cyan-400/60">Avec LinkedIn</div>
+        </div>
+      </div>
+
       <SectionTitle>Funnel prospection</SectionTitle>
       <div className="grid grid-cols-3 gap-2 mb-3">
         <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-2 text-center">
           <div className="text-lg font-bold text-blue-400">{stats.total}</div>
-          <div className="text-[9px] text-blue-400/60">Identifiés</div>
+          <div className="text-[9px] text-blue-400/60">Identifies</div>
         </div>
         <div className="rounded-lg bg-purple-500/10 border border-purple-500/20 p-2 text-center">
           <div className="text-lg font-bold text-purple-400">{contactes}</div>
-          <div className="text-[9px] text-purple-400/60">Contactés</div>
+          <div className="text-[9px] text-purple-400/60">Contactes</div>
         </div>
         <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-2 text-center">
           <div className="text-lg font-bold text-emerald-400">{qualifies}</div>
-          <div className="text-[9px] text-emerald-400/60">Qualifiés</div>
+          <div className="text-[9px] text-emerald-400/60">Qualifies</div>
         </div>
       </div>
 

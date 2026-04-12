@@ -191,15 +191,18 @@ async function getCommercialData(
   userId: string,
   orgId: string | null,
 ) {
-  // Prospects scoped to org or user
+  // Prospects scoped to org or user — select only needed fields for perf
   const prospectQuery = supabase
     .from('crm_prospects')
-    .select('*');
+    .select('id, company, type, status, temperature, score, email, instagram, tiktok_handle, linkedin_url, dm_status, email_sequence_status, created_at')
+    .order('created_at', { ascending: false })
+    .limit(2000);
 
   if (orgId) {
     prospectQuery.eq('org_id', orgId);
   } else {
-    prospectQuery.eq('user_id', userId);
+    // Include both user-owned and cron-created prospects (user_id or created_by)
+    prospectQuery.or(`user_id.eq.${userId},created_by.eq.${userId}`);
   }
 
   const { data: prospects } = await prospectQuery;
@@ -238,12 +241,25 @@ async function getCommercialData(
 
   const total = prospectList.length;
   const converted = prospectList.filter(
-    (p) => p.status === 'converted' || p.status === 'won',
+    (p) => p.status === 'converted' || p.status === 'won' || p.status === 'client',
   ).length;
   const conversionRate = total > 0 ? Math.round((converted / total) * 100) : 0;
 
+  // Channel readiness stats — how many prospects are ready for each agent
+  const withEmail = prospectList.filter(p => p.email && !['bounced', 'email_invalid', 'stopped'].includes(p.email_sequence_status || '')).length;
+  const withInstagram = prospectList.filter(p => p.instagram && p.instagram !== 'A_VERIFIER').length;
+  const withTiktok = prospectList.filter(p => p.tiktok_handle).length;
+  const withLinkedin = prospectList.filter(p => p.linkedin_url).length;
+  const emailNotStarted = prospectList.filter(p => p.email && (!p.email_sequence_status || p.email_sequence_status === 'not_started')).length;
+  const dmNotStarted = prospectList.filter(p => p.instagram && (!p.dm_status || p.dm_status === 'none')).length;
+
+  // Today's additions
+  const now = Date.now();
+  const oneDay = 24 * 60 * 60 * 1000;
+  const todayCount = prospectList.filter(p => new Date(p.created_at).getTime() > now - oneDay).length;
+
   return {
-    prospects: prospectList,
+    prospects: prospectList.slice(0, 200), // Limit for frontend perf
     activities,
     pipeline,
     stats: {
@@ -252,6 +268,13 @@ async function getCommercialData(
       warm: scoreDistribution.warm,
       cold: scoreDistribution.cold,
       conversionRate,
+      todayCount,
+      withEmail,
+      withInstagram,
+      withTiktok,
+      withLinkedin,
+      emailNotStarted,
+      dmNotStarted,
     },
   };
 }
