@@ -1234,70 +1234,53 @@ export default function AssistantPage() {
                   </SortableContext>
                 </DndContext>
 
-                {/* Bottom section: CRM snapshot + Activity feed */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                  {/* CRM snapshot */}
-                  {summary?.crm && (
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <h3 className="text-white font-bold text-sm">{'\uD83D\uDCCA'} Pipeline</h3>
-                        <button onClick={() => setViewTab('pipeline')} className="text-purple-400 text-[10px] font-medium hover:text-purple-300">Voir tout {'\u2192'}</button>
-                      </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
-                        <div className="bg-white/5 rounded-lg px-2 py-2 text-center">
-                          <div className="text-white font-bold text-base">{summary.crm.total}</div>
-                          <div className="text-white/25 text-[9px] sm:text-[10px]">Prospects</div>
+                {/* Bottom section: Actions recommandées */}
+                <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-5">
+                  <h3 className="text-white font-bold text-sm mb-4 flex items-center gap-2">
+                    <span>{'\u{1F3AF}'}</span> Prochaines actions
+                  </h3>
+                  {summary?.actions?.length > 0 ? (
+                    <div className="space-y-2.5">
+                      {(summary.actions as Array<{ icon: string; text: string; cta?: string; link?: string }>).slice(0, 5).map((action, i) => (
+                        <div key={i} className="flex items-center gap-3 p-3 bg-white/[0.03] border border-white/5 rounded-xl hover:bg-white/[0.06] transition">
+                          <span className="text-lg shrink-0">{action.icon}</span>
+                          <p className="text-white/70 text-xs flex-1">{action.text}</p>
+                          {action.cta && action.link && (
+                            <a href={action.link} className="px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-[10px] font-bold rounded-lg hover:opacity-90 transition shrink-0">
+                              {action.cta}
+                            </a>
+                          )}
                         </div>
-                        <div className="bg-red-500/10 rounded-lg px-2 py-2 text-center">
-                          <div className="text-red-400 font-bold text-base">{summary.crm.temperature?.hot ?? 0}</div>
-                          <div className="text-white/25 text-[9px] sm:text-[10px]">Chauds</div>
-                        </div>
-                        <div className="bg-amber-500/10 rounded-lg px-2 py-2 text-center">
-                          <div className="text-amber-400 font-bold text-base">{summary.crm.temperature?.warm ?? 0}</div>
-                          <div className="text-white/25 text-[9px] sm:text-[10px]">Tiedes</div>
-                        </div>
-                        <div className="bg-green-500/10 rounded-lg px-2 py-2 text-center">
-                          <div className="text-green-400 font-bold text-base">{summary.crm.clients}</div>
-                          <div className="text-white/25 text-[9px] sm:text-[10px]">Clients</div>
-                        </div>
-                      </div>
-                      {/* Pipeline bar */}
-                      <div className="flex h-3 rounded-full overflow-hidden bg-white/5">
-                        <div className="bg-red-500 transition-all" style={{ width: `${(summary.crm.temperature?.hot || 0) / Math.max(summary.crm.total, 1) * 100}%` }} />
-                        <div className="bg-amber-500 transition-all" style={{ width: `${(summary.crm.temperature?.warm || 0) / Math.max(summary.crm.total, 1) * 100}%` }} />
-                        <div className="bg-blue-400 transition-all" style={{ width: `${(summary.crm.temperature?.cold || 0) / Math.max(summary.crm.total, 1) * 100}%` }} />
-                        <div className="bg-green-500 transition-all" style={{ width: `${(summary.crm.clients || 0) / Math.max(summary.crm.total, 1) * 100}%` }} />
-                      </div>
-                      <div className="text-right mt-1"><span className="text-green-400 text-[10px] font-bold">{summary.crm.conversionRate}% conversion</span></div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-6">
+                      <span className="text-2xl">{'\u2705'}</span>
+                      <p className="text-white/40 text-xs mt-2">Tout est en ordre ! Tes agents travaillent.</p>
                     </div>
                   )}
 
-                  {/* Activity feed — compact */}
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
-                    <h3 className="text-white font-bold text-sm mb-3">{'\u26A1'} Activite recente</h3>
-                    {summary?.activityFeed?.length > 0 ? (
-                      <div className="space-y-1.5 max-h-[280px] overflow-y-auto pr-1">
-                        {(summary.activityFeed as Array<{ agent: string; action: string; date: string }>).slice(0, 12).map((a, i) => {
-                          const agentInfo = agents.find(ag => ag.id === a.agent);
-                          return (
-                            <div key={i} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/[0.03] transition-colors">
-                              <div className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-[9px] overflow-hidden"
-                                style={{ background: agentInfo ? `linear-gradient(135deg, ${agentInfo.gradientFrom}, ${agentInfo.gradientTo})` : '#4B5563' }}>
-                                {avatars[a.agent] ? <img src={avatars[a.agent]!} alt="" className="w-full h-full object-cover" /> : (agentInfo?.icon || '\uD83E\uDD16')}
-                              </div>
-                              <span className="text-white text-[10px] font-medium min-w-[50px]">{agentInfo?.displayName || a.agent}</span>
-                              <span className="text-white/30 text-[10px] flex-1 truncate">{a.action}</span>
-                              <span className="text-white/15 text-[9px] flex-shrink-0">
-                                {new Date(a.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                              </span>
-                            </div>
-                          );
-                        })}
+                  {/* Mini stats bar */}
+                  {summary?.globalStats && (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4 pt-4 border-t border-white/5">
+                      <div className="text-center">
+                        <div className="text-white font-bold text-lg">{summary.globalStats.prospectsTotal}</div>
+                        <div className="text-white/30 text-[9px]">Prospects</div>
                       </div>
-                    ) : (
-                      <p className="text-white/20 text-xs text-center py-6">Aucune activite recente</p>
-                    )}
-                  </div>
+                      <div className="text-center">
+                        <div className="text-cyan-400 font-bold text-lg">+{summary.globalStats.prospectsToday}</div>
+                        <div className="text-white/30 text-[9px]">Aujourd&apos;hui</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-amber-400 font-bold text-lg">{summary.globalStats.prospectsHot}</div>
+                        <div className="text-white/30 text-[9px]">Chauds</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-emerald-400 font-bold text-lg">{summary.globalStats.emailOpenRate}%</div>
+                        <div className="text-white/30 text-[9px]">Taux ouverture</div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </>
             )}
