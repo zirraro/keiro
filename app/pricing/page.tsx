@@ -308,7 +308,7 @@ function PricingPageInner() {
         <h3 className="text-2xl font-bold text-center mb-2">{t.pricing.comparisonTitle}</h3>
         <p className="text-center text-neutral-600 mb-8">{t.pricing.subtitle}</p>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mb-16">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mb-16">
           {/* Créateur 49€ */}
           <div id="createur" className="bg-gradient-to-br from-purple-600 to-indigo-600 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-100 sm:hover:scale-105 flex flex-col">
             <div className="mb-4 pt-2">
@@ -410,69 +410,7 @@ function PricingPageInner() {
             <p className="text-xs text-center text-blue-200 mt-2">{t.pricing.planProNote}</p>
           </div>
 
-          {/* Fondateurs Pro 149€ - POPULAIRE + CHRONO */}
-          <div id="fondateurs" className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-100 sm:hover:scale-105 flex flex-col animate-glow">
-            <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-              <span className="bg-amber-900 text-amber-100 px-4 py-1 rounded-full text-xs font-bold shadow-lg">
-                {'\u2B50'} Populaire
-              </span>
-            </div>
-            {/* Countdown timer */}
-            <div className="bg-amber-900/40 backdrop-blur-sm rounded-xl px-3 py-2 mb-3 mt-2 text-center border border-amber-300/20">
-              <p className="text-amber-100 text-[10px] uppercase tracking-wider font-semibold mb-1">{'\u23F0'} Offre limitee</p>
-              {(() => {
-                const deadline = new Date('2026-05-25T23:59:59');
-                const now = new Date();
-                const diff = deadline.getTime() - now.getTime();
-                const days = Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
-                const hours = Math.max(0, Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)));
-                return (
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="bg-amber-900/60 rounded-lg px-2 py-1 min-w-[40px]">
-                      <div className="text-white font-bold text-lg leading-tight">{days}</div>
-                      <div className="text-amber-200/60 text-[8px]">jours</div>
-                    </div>
-                    <span className="text-amber-200 font-bold">:</span>
-                    <div className="bg-amber-900/60 rounded-lg px-2 py-1 min-w-[40px]">
-                      <div className="text-white font-bold text-lg leading-tight">{hours}</div>
-                      <div className="text-amber-200/60 text-[8px]">heures</div>
-                    </div>
-                    <span className="text-amber-200/40 text-[9px] ml-1">avant fin de l&apos;offre</span>
-                  </div>
-                );
-              })()}
-            </div>
-            <div className="mb-4">
-              <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
-                <span>⭐</span> {t.pricing.planFondateursTitle}
-              </h3>
-              <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-3xl sm:text-4xl font-bold">{billingPeriod === 'annual' ? '1 490€' : '149€'}</span>
-                <span className="text-amber-100">{billingPeriod === 'annual' ? t.common.perYear : t.common.perMonth}</span>
-                {billingPeriod === 'annual' && <span className="text-xs text-yellow-200 font-semibold">{t.home.priceNoteFondateurs}</span>}
-              </div>
-              <p className="text-amber-100 text-sm font-medium" dangerouslySetInnerHTML={{ __html: t.pricing.planFondateursSubtitle }} />
-            </div>
-
-            <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3 mb-4 border border-white/30">
-              <p className="text-xs font-semibold">{t.pricing.planFondateursBullets[1]}</p>
-            </div>
-
-            <ul className="space-y-3 mb-6 text-sm flex-1">
-              {t.pricing.planFondateursBullets.map((bullet, i) => (
-                <li key={i} className="flex gap-2">
-                  <span className={i >= 2 ? 'text-yellow-200' : 'text-yellow-300'}>{i >= 2 ? '★' : '✓'}</span>
-                  <span dangerouslySetInnerHTML={{ __html: bullet }} />
-                </li>
-              ))}
-            </ul>
-            <button onClick={() => startCheckout(billingPeriod === 'annual' ? 'fondateurs_annual' : 'fondateurs')} className="block w-full py-3 text-center rounded-xl bg-white text-amber-600 font-bold hover:bg-amber-50 transition-all shadow-lg mt-auto">
-              {billingPeriod === 'annual' ? `${t.pricing.planFondateursTitle} ${t.common.annual.toLowerCase()} (${t.common.annualDiscount})` : t.pricing.planFondateursCta}
-            </button>
-            <p className="text-xs text-center text-amber-200 mt-2">{t.pricing.planFondateursNote}</p>
-          </div>
-
-          {/* Business 199€ */}
+          {/* Business 199€ — POPULAIRE */}
           <div className="bg-gradient-to-br from-[#0c1a3a] to-[#1e3a5f] rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-100 sm:hover:scale-105 flex flex-col">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2">
               <span className="bg-[#0c1a3a] text-cyan-200 px-4 py-1 rounded-full text-xs font-bold shadow-lg">
@@ -588,16 +526,15 @@ function PricingPageInner() {
                 <li><span className="font-semibold text-purple-700">{"C'est rentabilisé si..."}</span> 1 vente en plus (boutique) / 5 couverts (resto)</li>
               </ul>
             </div>
-            {/* Fondateurs card */}
-            <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl border-2 border-amber-300 p-6 shadow-lg">
-              <h4 className="text-lg font-bold text-amber-900 mb-1">{"Accès Business complet, prix verrouille jusqu au 25 mai 2026"}</h4>
-              <p className="text-sm text-amber-600 font-semibold mb-4">Fondateurs Pro — 149€/mois après essai ⭐</p>
+            {/* Business value card */}
+            <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-2xl border-2 border-cyan-300 p-6 shadow-lg">
+              <h4 className="text-lg font-bold text-cyan-900 mb-1">{"Automatisation complete pour PME et multi-sites"}</h4>
+              <p className="text-sm text-cyan-600 font-semibold mb-4">Business — 199{'\u20AC'}/mois — 15+ agents IA</p>
               <ul className="space-y-3 text-sm text-neutral-700">
-                <li><span className="font-semibold text-amber-700">{"C'est comme..."}</span> Avoir un directeur marketing à temps partiel</li>
-                <li><span className="font-semibold text-amber-700">{"Ça remplace..."}</span> Un graphiste (800€) + un CM (1 500€) + stats (100€) + Canva Pro (12€)</li>
-                <li><span className="font-semibold text-amber-700">{"En concret..."}</span> Tous les agents IA, CRM intégré, multi-comptes 1+5, 2 000 crédits/mois</li>
-                <li><span className="font-semibold text-amber-700">{"Ça coûte..."}</span> 200€ de moins que Business (199€) — prix verrouille jusqu au 25 mai 2026</li>
-                <li><span className="font-semibold text-amber-700">{"C'est rentabilisé si..."}</span> 2 ventes en plus (boutique) / 7 couverts (resto)</li>
+                <li><span className="font-semibold text-cyan-700">{"C'est comme..."}</span> Avoir une equipe marketing complete a temps plein</li>
+                <li><span className="font-semibold text-cyan-700">{"Ca remplace..."}</span> Un graphiste (800{'\u20AC'}) + un CM (1 500{'\u20AC'}) + un comptable (200{'\u20AC'}) + 3 outils SaaS</li>
+                <li><span className="font-semibold text-cyan-700">{"En concret..."}</span> 15+ agents IA, CRM, finance, juridique, chatbot, 2 000 credits/mois</li>
+                <li><span className="font-semibold text-cyan-700">{"C'est rentabilise si..."}</span> 3 clients en plus par mois (restaurant) / 2 ventes (boutique)</li>
               </ul>
             </div>
           </div>
@@ -859,8 +796,8 @@ function PricingPageInner() {
                   <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> Vidéo IA + audio narration inclus</li>
                   <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> Texte, légendes, hashtags auto</li>
                   <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> Instagram + TikTok + LinkedIn</li>
-                  <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> Branding personnalisé (Fondateurs)</li>
-                  <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> Multi-format automatique (Fondateurs)</li>
+                  <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> Branding personnalisé (Business)</li>
+                  <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> Multi-format automatique (Business)</li>
                   <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> Statistiques et analyse intégrées</li>
                   <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> Assistant Marketing Intelligence</li>
                   <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> Disponible 24/7</li>
@@ -903,7 +840,7 @@ function PricingPageInner() {
                     <th className="text-center py-3 px-3 text-neutral-500 font-medium">ChatGPT/Claude Gratuit</th>
                     <th className="text-center py-3 px-3 text-neutral-500 font-medium">ChatGPT/Claude Pro (20€)</th>
                     <th className="text-center py-3 px-3 font-bold text-purple-700 bg-purple-50 rounded-t-lg">KeiroAI Créateur</th>
-                    <th className="text-center py-3 px-3 font-bold text-amber-700 bg-amber-50 rounded-t-lg">KeiroAI Fondateurs</th>
+                    <th className="text-center py-3 px-3 font-bold text-amber-700 bg-amber-50 rounded-t-lg">KeiroAI Business</th>
                   </tr>
                 </thead>
                 <tbody>
