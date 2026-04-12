@@ -875,7 +875,7 @@ export default function AssistantPage() {
   };
 
   // ─── Computed values ──────────────────────────────────
-  const activeAgents = agents.filter(a => a.visibility === 'active').length;
+  const activeAgents = Object.values(agentActivations).filter(Boolean).length;
   const totalActions = summary?.teams
     ? Object.values(summary.teams).reduce((sum: number, t: any) => sum + (t?.totalActions ?? 0), 0)
     : 0;

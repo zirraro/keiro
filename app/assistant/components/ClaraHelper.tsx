@@ -92,22 +92,31 @@ export default function ClaraHelper() {
 
         // Start wizard flag handled in early check above
 
-        // Show bubble if there are inactive agents — but not too often
+        // Popup schedule: show at 20 visits, then 40 days later, then 80 days later, then never
         if (remaining.length > 0) {
-          // Track visit count in localStorage (persists across sessions)
           const visitKey = 'keiro_clara_visit_count';
           const visits = parseInt(localStorage.getItem(visitKey) || '0') + 1;
           localStorage.setItem(visitKey, String(visits));
 
-          // Show only: first 5 visits, then every 10th visit
-          const shouldShow = visits <= 5 || visits % 10 === 0;
-
-          // Don't show if dismissed in the last 24h
+          const dismissCountKey = 'keiro_clara_dismiss_count';
+          const dismissCount = parseInt(localStorage.getItem(dismissCountKey) || '0');
           const dismissedKey = 'keiro_clara_dismissed_at';
           const lastDismissed = localStorage.getItem(dismissedKey);
-          const recentlyDismissed = lastDismissed && Date.now() - parseInt(lastDismissed) < 24 * 60 * 60 * 1000;
 
-          if (shouldShow && !recentlyDismissed) {
+          // 3 chances max: after 20 visits, then 40 days after dismiss #1, then 80 days after dismiss #2
+          let shouldShow = false;
+          if (dismissCount === 0 && visits === 20) {
+            shouldShow = true;
+          } else if (dismissCount === 1 && lastDismissed) {
+            const daysSinceDismiss = (Date.now() - parseInt(lastDismissed)) / (1000 * 60 * 60 * 24);
+            shouldShow = daysSinceDismiss >= 40;
+          } else if (dismissCount === 2 && lastDismissed) {
+            const daysSinceDismiss = (Date.now() - parseInt(lastDismissed)) / (1000 * 60 * 60 * 24);
+            shouldShow = daysSinceDismiss >= 80;
+          }
+          // dismissCount >= 3 → never show again
+
+          if (shouldShow) {
             setTimeout(() => {
               setMode('inactive');
               setShow(true);
@@ -125,6 +134,8 @@ export default function ClaraHelper() {
     setShow(false);
     try {
       localStorage.setItem('keiro_clara_dismissed_at', String(Date.now()));
+      const count = parseInt(localStorage.getItem('keiro_clara_dismiss_count') || '0');
+      localStorage.setItem('keiro_clara_dismiss_count', String(count + 1));
     } catch {}
   }, []);
 
