@@ -975,12 +975,28 @@ export default function AssistantPage() {
               )}
             </div>
           </div>
-          <p className="text-white/50 text-sm">
-            {COMING_SOON_MODE
-              ? `${agents.length} agents IA qui automatisent votre business`
-              : `${activeAgents} agents actifs — automatisation & intelligence`
-            }
-          </p>
+          {/* Performance bar */}
+          {summary?.globalStats && !COMING_SOON_MODE && !isVisitor ? (
+            <div className="flex items-center gap-3 mt-1 flex-wrap">
+              <span className="text-white/50 text-sm">{activeAgents} agents actifs</span>
+              <span className="text-white/20">|</span>
+              <span className="text-cyan-400 text-sm font-medium">+{summary.globalStats.prospectsToday || 0} prospects</span>
+              <span className="text-white/20">|</span>
+              <span className="text-blue-400 text-sm font-medium">{summary.globalStats.emailsSent || 0} emails</span>
+              <span className="text-white/20">|</span>
+              <span className="text-purple-400 text-sm font-medium">{summary.globalStats.contentPublished || 0} posts</span>
+              {summary.globalStats.emailOpenRate > 0 && (
+                <>
+                  <span className="text-white/20">|</span>
+                  <span className="text-emerald-400 text-sm font-medium">{summary.globalStats.emailOpenRate}% ouverture</span>
+                </>
+              )}
+            </div>
+          ) : (
+            <p className="text-white/50 text-sm">
+              {COMING_SOON_MODE ? `${agents.length} agents IA` : `${activeAgents} agents actifs`}
+            </p>
+          )}
 
           {/* Publishing streak */}
           {streak > 0 && !COMING_SOON_MODE && !isVisitor && (
