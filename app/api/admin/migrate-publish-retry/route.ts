@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 // @ts-ignore — pg has no bundled types; runtime-only usage here
 import { Client } from 'pg';
+import { promises as dns } from 'dns';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -45,8 +46,22 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Missing ?pw= with Supabase postgres password' }, { status: 400 });
   }
 
+  // Supabase disabled IPv4 direct DB for new projects — resolve IPv6 and pass the
+  // literal address so pg skips Node's IPv4-only getaddrinfo.
+  const dbHost = `db.${projectRef}.supabase.co`;
+  let hostToUse: string = dbHost;
+  try {
+    const v6 = await dns.resolve6(dbHost);
+    if (v6[0]) hostToUse = v6[0];
+  } catch {
+    try {
+      const v4 = await dns.resolve4(dbHost);
+      if (v4[0]) hostToUse = v4[0];
+    } catch {}
+  }
+
   const client = new Client({
-    host: `db.${projectRef}.supabase.co`,
+    host: hostToUse,
     port: 5432,
     user: 'postgres',
     password: pw,
