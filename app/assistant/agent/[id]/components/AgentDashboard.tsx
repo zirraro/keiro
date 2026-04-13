@@ -3135,19 +3135,33 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
               {dm.company && <span className="text-[10px] text-white/40">{dm.company}</span>}
             </div>
             <p className="text-[11px] text-white/60 leading-relaxed mb-2 line-clamp-3">{dm.message}</p>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <button
-                onClick={() => sendDM(dm.id)}
-                disabled={sending === dm.id}
-                className="px-4 py-2.5 min-h-[44px] bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold rounded-lg hover:opacity-90 transition disabled:opacity-40"
+                onClick={() => {
+                  navigator.clipboard.writeText(dm.message);
+                  const btn = document.activeElement as HTMLButtonElement;
+                  if (btn) { btn.textContent = '\u2713 Copie !'; setTimeout(() => { btn.textContent = '\u{1F4CB} Copier le DM'; }, 2000); }
+                }}
+                className="px-4 py-2.5 min-h-[44px] bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold rounded-lg hover:opacity-90 transition"
               >
-                {sending === dm.id ? '...' : `${'\u{1F4AC}'} Envoyer`}
+                {'\u{1F4CB}'} Copier le DM
               </button>
-              <button
-                onClick={() => setQueue(prev => prev.filter(d => d.id !== dm.id))}
-                className="px-3 py-2.5 min-h-[44px] text-xs text-white/30 hover:text-white/60 transition"
+              <a
+                href={`https://www.instagram.com/${dm.handle}/`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-2.5 min-h-[44px] bg-white/10 text-white/70 text-xs font-medium rounded-lg hover:bg-white/20 transition flex items-center gap-1"
               >
-                Ignorer
+                {'\u{1F4F8}'} Ouvrir @{dm.handle}
+              </a>
+              <button
+                onClick={() => {
+                  sendDM(dm.id); // Mark as sent in DB
+                  setQueue(prev => prev.filter(d => d.id !== dm.id));
+                }}
+                className="px-3 py-2.5 min-h-[44px] text-xs text-emerald-400 hover:text-emerald-300 transition"
+              >
+                {'\u2705'} Fait
               </button>
             </div>
           </div>

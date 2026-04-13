@@ -763,11 +763,18 @@ async function getDmInstagramData(
     };
   });
 
-  // DM queue stats — prepared, sent, pending, failed
-  const { count: queueTotal } = await supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('channel', 'instagram');
-  const { count: queuePending } = await supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('channel', 'instagram').eq('status', 'pending');
-  const { count: queueSent } = await supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('channel', 'instagram').eq('status', 'sent');
-  const { count: queueFailed } = await supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('channel', 'instagram').eq('status', 'failed');
+  // DM queue stats — scoped to client's prospects
+  const prospectIdsForDM = (await supabase.from('crm_prospects').select('id').or(`user_id.eq.${userId},created_by.eq.${userId}`).not('instagram', 'is', null).limit(2000)).data || [];
+  const pIds = prospectIdsForDM.map(p => p.id);
+  let queueTotal = 0, queuePending = 0, queueSent = 0, queueFailed = 0;
+  if (pIds.length > 0) {
+    const batchIds = pIds.slice(0, 500); // Limit for query perf
+    const { count: qt } = await supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('channel', 'instagram').in('prospect_id', batchIds);
+    const { count: qp } = await supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('channel', 'instagram').eq('status', 'pending').in('prospect_id', batchIds);
+    const { count: qs } = await supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('channel', 'instagram').eq('status', 'sent').in('prospect_id', batchIds);
+    const { count: qf } = await supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('channel', 'instagram').eq('status', 'failed').in('prospect_id', batchIds);
+    queueTotal = qt ?? 0; queuePending = qp ?? 0; queueSent = qs ?? 0; queueFailed = qf ?? 0;
+  }
 
   // Prospects with Instagram for DM potential
   const { count: prospectsWithIG } = await supabase.from('crm_prospects')
