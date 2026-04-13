@@ -2896,36 +2896,36 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
     console.warn('[Content] Failed to load shared context:', e.message);
   }
 
-  // 4x/day content strategy: 3 Instagram (morning/midday/evening) + 1 TikTok (tiktok slot)
+  // CONTENT STRATEGY v3 — 50% actualité/trends, format rotation
   // DB pillar constraint: tips, demo, social_proof, trends
-  // Morning & Midday = IMAGE posts (fast, reliable, always published)
-  // Evening = reel (video pipeline, may take longer but has time budget)
-  // TikTok = video via async pipeline
+  // Morning = varied formats (post, carrousel, story) — image-based
+  // Evening = reel (video) — 50% trends-linked
+  // 50% of ALL content must link to current trends/actualité
   const morningSchedule: Record<number, { platform: string; format: string; pillar: string }> = {
-    1: { platform: 'instagram', format: 'post', pillar: 'tips' },                  // Mon AM: tips post
-    2: { platform: 'instagram', format: 'post', pillar: 'demo' },                  // Tue AM: démo post
-    3: { platform: 'instagram', format: 'post', pillar: 'social_proof' },          // Wed AM: témoignage post
-    4: { platform: 'instagram', format: 'post', pillar: 'trends' },                // Thu AM: tendances post
-    5: { platform: 'instagram', format: 'post', pillar: 'tips' },                  // Fri AM: tips post
-    6: { platform: 'instagram', format: 'post', pillar: 'demo' },                  // Sat AM: démo post
-    0: { platform: 'instagram', format: 'post', pillar: 'social_proof' },          // Sun AM: résultats post
+    1: { platform: 'instagram', format: 'carrousel', pillar: 'trends' },           // Mon AM: actu carrousel
+    2: { platform: 'instagram', format: 'post', pillar: 'tips' },                  // Tue AM: tips post
+    3: { platform: 'instagram', format: 'story', pillar: 'trends' },               // Wed AM: actu story
+    4: { platform: 'instagram', format: 'carrousel', pillar: 'demo' },             // Thu AM: démo carrousel
+    5: { platform: 'instagram', format: 'post', pillar: 'trends' },                // Fri AM: actu post
+    6: { platform: 'instagram', format: 'story', pillar: 'social_proof' },         // Sat AM: témoignage story
+    0: { platform: 'instagram', format: 'post', pillar: 'trends' },                // Sun AM: actu post
   };
   const middaySchedule: Record<number, { platform: string; format: string; pillar: string }> = {
-    1: { platform: 'instagram', format: 'post', pillar: 'demo' },                  // Mon MID: démo post
-    2: { platform: 'instagram', format: 'post', pillar: 'social_proof' },          // Tue MID: témoignage post
-    3: { platform: 'instagram', format: 'post', pillar: 'tips' },                  // Wed MID: tips post
-    4: { platform: 'instagram', format: 'post', pillar: 'demo' },                  // Thu MID: démo post
-    5: { platform: 'instagram', format: 'post', pillar: 'social_proof' },          // Fri MID: social proof post
-    6: { platform: 'instagram', format: 'post', pillar: 'trends' },                // Sat MID: tendances post
-    0: { platform: 'instagram', format: 'post', pillar: 'tips' },                  // Sun MID: tips post
+    1: { platform: 'instagram', format: 'post', pillar: 'trends' },                // Mon MID: actu post
+    2: { platform: 'instagram', format: 'carrousel', pillar: 'social_proof' },     // Tue MID: témoignage carrousel
+    3: { platform: 'instagram', format: 'post', pillar: 'demo' },                  // Wed MID: démo post
+    4: { platform: 'instagram', format: 'story', pillar: 'trends' },               // Thu MID: actu story
+    5: { platform: 'instagram', format: 'carrousel', pillar: 'tips' },             // Fri MID: tips carrousel
+    6: { platform: 'instagram', format: 'post', pillar: 'trends' },                // Sat MID: actu post
+    0: { platform: 'instagram', format: 'story', pillar: 'tips' },                 // Sun MID: tips story
   };
   const eveningSchedule: Record<number, { platform: string; format: string; pillar: string }> = {
-    1: { platform: 'instagram', format: 'reel', pillar: 'social_proof' },           // Mon EVE: témoignage reel
-    2: { platform: 'instagram', format: 'reel', pillar: 'trends' },                // Tue EVE: tendances reel
-    3: { platform: 'instagram', format: 'reel', pillar: 'demo' },                  // Wed EVE: démo reel
+    1: { platform: 'instagram', format: 'reel', pillar: 'trends' },                // Mon EVE: actu reel
+    2: { platform: 'instagram', format: 'reel', pillar: 'demo' },                  // Tue EVE: démo reel
+    3: { platform: 'instagram', format: 'reel', pillar: 'trends' },                // Wed EVE: actu reel
     4: { platform: 'instagram', format: 'reel', pillar: 'social_proof' },           // Thu EVE: témoignage reel
-    5: { platform: 'instagram', format: 'reel', pillar: 'trends' },                // Fri EVE: tendances reel
-    6: { platform: 'instagram', format: 'reel', pillar: 'tips' },                  // Sat EVE: tips reel
+    5: { platform: 'instagram', format: 'reel', pillar: 'trends' },                // Fri EVE: actu reel
+    6: { platform: 'instagram', format: 'reel', pillar: 'trends' },                // Sat EVE: actu reel
     0: { platform: 'instagram', format: 'reel', pillar: 'demo' },                  // Sun EVE: démo reel
   };
   // TikTok slot: 1 video per day (published at 21h30 Paris via tiktok_publish cron)
@@ -3104,16 +3104,25 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
     const newsItems = (news?.articles || news?.items || news?.data || []).slice(0, 8).map((n: any) => n.title || n.headline).filter(Boolean);
 
     if (trendItems.length > 0 || newsItems.length > 0) {
-      trendsContext = '\n━━━ TENDANCES & ACTUALITÉS DU JOUR — OBLIGATOIRE ━━━\n';
+      trendsContext = '\n━━━ TENDANCES & ACTUALITES DU JOUR — 50% DU CONTENU ━━━\n';
       if (trendItems.length > 0) trendsContext += `Trends Google/TikTok : ${trendItems.join(' | ')}\n`;
-      if (newsItems.length > 0) trendsContext += `Actualités France : ${newsItems.join(' | ')}\n`;
+      if (newsItems.length > 0) trendsContext += `Actualites France : ${newsItems.join(' | ')}\n`;
       trendsContext += `
-RÈGLE : Quand c'est pertinent, connecte le hook à UNE de ces tendances ou actualités. Pas systématique — seulement si ça fait sens avec le business du client. Environ 1 post sur 3 doit surfer sur l'actu.
-Exemples de connexion avec le business du client :
-- Trend "IA" + restaurant → "L'IA génère les menus de demain. Et ton restaurant ?"
-- Actualité économie + boutique → "En pleine inflation, les commerces malins automatisent leur marketing"
-- Trend sport + coach → "Même les athlètes pro utilisent l'IA pour leur image. Et toi ?"
-Alterne entre contenu evergreen (tips, conseils) et contenu ancré dans l'actu. Environ 1/3 actu, 2/3 evergreen.
+REGLE ABSOLUE : 50% de tes posts DOIVENT faire un lien FORT entre une tendance/actualite et le business du client.
+Ce n'est PAS optionnel — 1 post sur 2 doit surfer sur l'actu du jour.
+
+COMMENT CREER LE LIEN :
+1. Prends une tendance ou actualite CONCRETE du jour (pas generique)
+2. Fais le PONT avec le metier du client (comment ca l'impacte, comment il peut en profiter)
+3. Donne une ACTION concrete que le client peut faire AUJOURD'HUI
+
+Exemples de liens FORTS :
+- Trend "IA generative" + agence contenu → "GPT-5 vient de sortir. Voila pourquoi tes visuels sont deja obsoletes — et comment passer devant"
+- Actu "inflation en hausse" + restaurant → "Les prix montent. 3 restos qui ont AUGMENTE leur CA en automatisant leur marketing (gratuit)"
+- Trend "TikTok ban" + boutique → "TikTok menace de fermer. Les boutiques malins diversifient MAINTENANT. Voici les 3 alternatives"
+- Actu "Euro de foot" + coiffeur → "Finale de l'Euro ce soir. Le coiffeur qui a publie un post a mi-temps a eu 200 likes en 1h"
+
+Le lien doit etre NATUREL et PERCUTANT — pas force. Si aucune actu ne colle au business du client, fais un post tips/demo classique.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
     }
   } catch (e: any) {
