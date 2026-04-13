@@ -777,6 +777,11 @@ async function getDmInstagramData(
 
   // Likes given (from send-queue pre-engagement)
   const likesLogs = logs.filter(l => typeof l.action === 'string' && l.action.includes('like'));
+  let totalLikesGiven = 0;
+  for (const l of likesLogs) {
+    const r = l.result as any;
+    totalLikesGiven += r?.likes || 1;
+  }
 
   return {
     dmStats: {
@@ -794,7 +799,7 @@ async function getDmInstagramData(
       queuePending: queuePending ?? 0,
       queueSent: queueSent ?? 0,
       queueFailed: queueFailed ?? 0,
-      likesGiven: likesLogs.length,
+      likesGiven: totalLikesGiven,
       recentDms,
       recentLogs: logs.slice(0, 10),
     },

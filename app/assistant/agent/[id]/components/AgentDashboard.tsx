@@ -3250,23 +3250,26 @@ function DmInstagramPanel({
         </div>
       </div>
 
-      {/* Queue stats detail */}
-      {((stats as any).queueTotal || 0) > 0 && (
-        <div className="grid grid-cols-3 gap-2 mb-3">
-          <div className="rounded-lg bg-purple-500/10 border border-purple-500/20 p-2 text-center">
-            <div className="text-sm font-bold text-purple-400">{fmt((stats as any).queuePending || 0)}</div>
-            <div className="text-[8px] text-white/30">En attente</div>
-          </div>
-          <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-2 text-center">
-            <div className="text-sm font-bold text-emerald-400">{fmt((stats as any).queueSent || 0)}</div>
-            <div className="text-[8px] text-white/30">Envoyes</div>
-          </div>
-          <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-2 text-center">
-            <div className="text-sm font-bold text-red-400">{fmt((stats as any).queueFailed || 0)}</div>
-            <div className="text-[8px] text-white/30">Echoues</div>
-          </div>
+      {/* Queue + engagement stats */}
+      <SectionTitle>Activite de prospection</SectionTitle>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+        <div className="rounded-lg bg-pink-500/10 border border-pink-500/20 p-2 text-center">
+          <div className="text-sm font-bold text-pink-400">{fmt((stats as any).likesGiven || 0)}</div>
+          <div className="text-[8px] text-white/30">{'\u2764\uFE0F'} Likes donnes</div>
         </div>
-      )}
+        <div className="rounded-lg bg-purple-500/10 border border-purple-500/20 p-2 text-center">
+          <div className="text-sm font-bold text-purple-400">{fmt((stats as any).queuePending || 0)}</div>
+          <div className="text-[8px] text-white/30">{'\u{1F4DD}'} En attente</div>
+        </div>
+        <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-2 text-center">
+          <div className="text-sm font-bold text-emerald-400">{fmt((stats as any).queueSent || 0)}</div>
+          <div className="text-[8px] text-white/30">{'\u2705'} Envoyes</div>
+        </div>
+        <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-2 text-center">
+          <div className="text-sm font-bold text-red-400">{fmt((stats as any).queueFailed || 0)}</div>
+          <div className="text-[8px] text-white/30">{'\u274C'} Echoues</div>
+        </div>
+      </div>
 
       <div className="flex items-center gap-2 mb-3">
         <a href="/assistant/crm" className="px-3 py-2 bg-purple-600/20 text-purple-300 text-xs font-medium rounded-lg hover:bg-purple-600/30 transition border border-purple-500/20">

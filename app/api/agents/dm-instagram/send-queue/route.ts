@@ -98,6 +98,15 @@ export async function POST(req: NextRequest) {
         }
         if (likesGiven > 0) {
           console.log(`[DMSendQueue] Pre-engaged ${dm.handle}: liked ${likesGiven} posts`);
+          // Log the likes for stats tracking
+          await supabase.from('agent_logs').insert({
+            agent: 'dm_instagram',
+            action: 'pre_engagement_likes',
+            status: 'success',
+            result: { handle: dm.handle, likes: likesGiven, prospect_id: dm.prospect_id },
+            user_id: profile.id,
+            created_at: new Date().toISOString(),
+          });
         }
 
         // Step 2: Send DM via Instagram Graph API
