@@ -1429,11 +1429,22 @@ export async function POST(request: NextRequest) {
           updated_at: new Date().toISOString(),
         };
 
-        // Only mark as published if not already published (allows cross-posting)
-        if (pubPost.status !== 'published') {
-          pubUpdate.status = 'published';
-          pubUpdate.published_at = new Date().toISOString();
+        // Prevent double-publish
+        if (pubPost.status === 'published') {
+          return NextResponse.json({ ok: true, already_published: true, message: 'Post deja publie' });
         }
+        // Atomically claim this post (prevents double-publish from concurrent crons)
+        const { data: claimed } = await supabase.from('content_calendar')
+          .update({ status: 'publishing' })
+          .eq('id', pubPost.id)
+          .in('status', ['approved', 'draft'])
+          .select('id')
+          .single();
+        if (!claimed) {
+          return NextResponse.json({ ok: true, already_publishing: true, message: 'Post en cours de publication' });
+        }
+        pubUpdate.status = 'published';
+        pubUpdate.published_at = new Date().toISOString();
 
         let pubPermalink: string | undefined;
         let pubPublishId: string | undefined;
