@@ -29,6 +29,10 @@
       "schedule": "0 */6 * * *"
     },
     {
+      "path": "/api/cron/scheduler?slot=prospect_external",
+      "schedule": "0 14 * * *"
+    },
+    {
       "path": "/api/agents/weekly-trends",
       "schedule": "0 7 * * 1"
     },

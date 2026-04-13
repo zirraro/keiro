@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
   // Monitoring slots (QA, CEO, marketing) run globally (all clients)
   const actionSlots = new Set([
     // v3 batched slots
-    'morning_batch', 'midday_batch', 'afternoon_batch', 'evening_batch',
+    'morning_batch', 'midday_batch', 'afternoon_batch', 'evening_batch', 'prospect_external',
     // Legacy individual slots (still work if called directly)
     'early_morning', 'morning', 'midday', 'afternoon', 'evening',
     'email_warm_2', 'email_recap',
@@ -133,16 +133,16 @@ export async function GET(request: NextRequest) {
   // Pro (99€): standard crons → 85% margin
   // Business (199€): all crons → 85% margin
   const PLAN_SLOT_LIMITS: Record<string, Set<string>> = {
-    // Créateur: morning + midday only (2 email, 1 content, 1 DM, 1 discovery)
+    // Créateur: morning + midday + prospect_external (2 email, 1 content, 1 DM, discovery)
     créateur: new Set([
-      'morning_batch', 'midday_batch',
+      'morning_batch', 'midday_batch', 'prospect_external',
       'publish_scheduled',
       // Legacy slots (if called individually)
       'early_morning', 'evening', 'morning_prep', 'discovery', 'retention', 'gmaps',
     ]),
-    // Pro: morning + midday + afternoon (4 email, 2 content, 2 DM, community, CEO)
+    // Pro: morning + midday + afternoon + prospect_external
     pro: new Set([
-      'morning_batch', 'midday_batch', 'afternoon_batch',
+      'morning_batch', 'midday_batch', 'afternoon_batch', 'prospect_external',
       'publish_scheduled',
       // Legacy slots
       'early_morning', 'morning', 'midday', 'evening',
@@ -151,7 +151,7 @@ export async function GET(request: NextRequest) {
     ]),
     // Business: all batches
     business: new Set([
-      'morning_batch', 'midday_batch', 'afternoon_batch', 'evening_batch', 'ceo_daily',
+      'morning_batch', 'midday_batch', 'afternoon_batch', 'evening_batch', 'ceo_daily', 'prospect_external',
       'publish_scheduled',
       // Legacy slots (all)
       'early_morning', 'morning', 'midday', 'afternoon', 'evening', 'email_warm_2', 'email_recap',
@@ -465,6 +465,14 @@ export async function GET(request: NextRequest) {
         await callForEachClient('Publish TikTok', '/api/agents/content', 'POST', { action: 'execute_publication' }, 'content');
       });
       results.push({ task: 'Evening Batch', ok: true, data: { status: 'dispatched_background', clients: clientUserIds.length } });
+      break;
+
+    case 'prospect_external':
+      // 14:00 UTC — Léo finds NEW prospects via Google Search (separate cron, needs full 300s)
+      // NOT in fireBackground because Google Search grounding takes 60-120s per batch
+      for (const uid of getClientsWithAgent('commercial')) {
+        await callEndpoint(`Commercial Prospect [${uid.substring(0, 8)}]`, `/api/agents/commercial?user_id=${uid}`, 'POST', { action: 'prospect_external' });
+      }
       break;
 
     case 'ceo_daily':
