@@ -13,7 +13,7 @@ import { completeDirective, loadContextWithAvatar } from '@/lib/agents/shared-co
 import { escalateAgentError } from '@/lib/agents/error-escalation';
 import { decomposePromptIntoScenes, calculateSegments } from '@/lib/video-scenes';
 import { createVideoJob } from '@/lib/video-jobs-db';
-import { diagnosePublishFailure, sendPublishAlert } from '@/lib/agents/publish-diagnostics';
+import { diagnosePublishFailure, sendPublishAlert, isTransientPublishError, nextRetryDelayMs, MAX_PUBLISH_RETRIES } from '@/lib/agents/publish-diagnostics';
 import { saveLearning, saveAgentFeedback } from '@/lib/agents/learning';
 import { sendPublishNotification } from '@/lib/agents/publish-notification';
 
@@ -270,6 +270,37 @@ async function checkDuplicatePublication(
   }
 
   return { isDuplicate: false };
+}
+
+/**
+ * Apply retry-on-transient-error policy to a failed publish attempt.
+ * - Transient errors (timeout, 5xx, rate limit) under MAX_PUBLISH_RETRIES:
+ *   mutate updateData to set status='retry_pending' with next_retry_at + retry_count.
+ *   The next execute_publication cron run will pick it up.
+ * - Permanent errors OR retries exhausted: keep the existing publish_failed fields.
+ * Returns true if the post was scheduled for retry (caller should skip alert email).
+ */
+function applyPublishRetry(
+  updateData: Record<string, any>,
+  currentRetryCount: number,
+  errorMessage: string,
+  postId: string,
+  platform: string,
+): boolean {
+  if (!isTransientPublishError(errorMessage)) return false;
+  if (currentRetryCount >= MAX_PUBLISH_RETRIES) {
+    console.warn(`[Content] Post ${postId}: max retries (${MAX_PUBLISH_RETRIES}) reached on ${platform} — giving up`);
+    return false;
+  }
+  const nextRetryAt = new Date(Date.now() + nextRetryDelayMs(currentRetryCount)).toISOString();
+  updateData.status = 'retry_pending';
+  updateData.retry_count = currentRetryCount + 1;
+  updateData.next_retry_at = nextRetryAt;
+  updateData.publish_error = errorMessage;
+  delete updateData.published_at;
+  delete updateData.publish_diagnostic;
+  console.log(`[Content] Post ${postId}: transient ${platform} error — retry ${currentRetryCount + 1}/${MAX_PUBLISH_RETRIES} at ${nextRetryAt}`);
+  return true;
 }
 
 async function publishToInstagram(
@@ -1869,14 +1900,19 @@ export async function POST(request: NextRequest) {
         if (userId) readyQuery = readyQuery.eq('user_id', userId);
         const { data: readyPosts } = await readyQuery;
 
-        // Also get approved posts with visuals that aren't published yet (NOT drafts)
-        // Limit to 1 per slot to spread publications throughout the day
+        // Also get approved posts with visuals that aren't published yet (NOT drafts).
+        // Include posts that failed with a transient error and are ready for retry
+        // (status='retry_pending' AND next_retry_at <= now) — they get picked up
+        // automatically without needing a separate cron slot.
+        // Limit to 1 per slot to spread publications throughout the day.
+        const nowIso = new Date().toISOString();
         let visualQuery = supabase
           .from('content_calendar')
           .select('*')
-          .in('status', ['approved', 'publish_failed'])
+          .in('status', ['approved', 'publish_failed', 'retry_pending'])
           .lte('scheduled_date', todayDate)
           .not('visual_url', 'is', null)
+          .or(`status.neq.retry_pending,next_retry_at.lte.${nowIso}`)
           .limit(1);
         if (userId) visualQuery = visualQuery.eq('user_id', userId);
         const { data: approvedWithVisuals } = await visualQuery;
@@ -1958,12 +1994,15 @@ export async function POST(request: NextRequest) {
                   delete updateData.published_at;
                 } else {
                   console.warn(`[Content] Instagram publish failed for post ${post.id}: ${igResult.error}`);
-                  const diag = diagnosePublishFailure('Instagram', igResult.error || '');
-                  updateData.status = 'publish_failed';
-                  updateData.publish_error = igResult.error || 'Unknown Instagram error';
-                  updateData.publish_diagnostic = { platform: 'Instagram', reason: diag.reason, severity: diag.severity, detail: diag.detail, timestamp: new Date().toISOString() };
-                  delete updateData.published_at;
-                  await sendPublishAlert(diag, `Post ${post.id} — ${post.hook || post.caption?.substring(0, 60) || 'N/A'}`, supabase);
+                  const scheduled = applyPublishRetry(updateData, post.retry_count || 0, igResult.error || '', post.id, 'Instagram');
+                  if (!scheduled) {
+                    const diag = diagnosePublishFailure('Instagram', igResult.error || '');
+                    updateData.status = 'publish_failed';
+                    updateData.publish_error = igResult.error || 'Unknown Instagram error';
+                    updateData.publish_diagnostic = { platform: 'Instagram', reason: diag.reason, severity: diag.severity, detail: diag.detail, timestamp: new Date().toISOString() };
+                    delete updateData.published_at;
+                    await sendPublishAlert(diag, `Post ${post.id} — ${post.hook || post.caption?.substring(0, 60) || 'N/A'}`, supabase);
+                  }
                 }
               }
             }
@@ -1975,12 +2014,15 @@ export async function POST(request: NextRequest) {
             } else {
               pubError = ttResult.error;
               console.warn(`[Content] TikTok publish failed for post ${post.id}: ${ttResult.error}`);
-              const diag = diagnosePublishFailure('TikTok', ttResult.error || '');
-              updateData.status = 'publish_failed';
-              updateData.publish_error = ttResult.error || 'Unknown TikTok error';
-              updateData.publish_diagnostic = { platform: 'TikTok', reason: diag.reason, severity: diag.severity, detail: diag.detail, timestamp: new Date().toISOString() };
-              delete updateData.published_at;
-              await sendPublishAlert(diag, `Post ${post.id} — ${post.hook || post.caption?.substring(0, 60) || 'N/A'}`, supabase);
+              const scheduled = applyPublishRetry(updateData, post.retry_count || 0, ttResult.error || '', post.id, 'TikTok');
+              if (!scheduled) {
+                const diag = diagnosePublishFailure('TikTok', ttResult.error || '');
+                updateData.status = 'publish_failed';
+                updateData.publish_error = ttResult.error || 'Unknown TikTok error';
+                updateData.publish_diagnostic = { platform: 'TikTok', reason: diag.reason, severity: diag.severity, detail: diag.detail, timestamp: new Date().toISOString() };
+                delete updateData.published_at;
+                await sendPublishAlert(diag, `Post ${post.id} — ${post.hook || post.caption?.substring(0, 60) || 'N/A'}`, supabase);
+              }
             }
           }
 
@@ -2027,12 +2069,15 @@ export async function POST(request: NextRequest) {
                   } else {
                     pubError2 = igResult.error;
                     console.warn(`[Content] Instagram publish failed for post ${post.id}: ${igResult.error}`);
-                    const diag = diagnosePublishFailure('Instagram', igResult.error || '');
-                    updateData.status = 'publish_failed';
-                    updateData.publish_error = igResult.error || 'Unknown Instagram error';
-                    updateData.publish_diagnostic = { platform: 'Instagram', reason: diag.reason, severity: diag.severity, detail: diag.detail, timestamp: new Date().toISOString() };
-                    delete updateData.published_at;
-                    await sendPublishAlert(diag, `Post ${post.id} — ${post.hook || post.caption?.substring(0, 60) || 'N/A'}`, supabase);
+                    const scheduled = applyPublishRetry(updateData, post.retry_count || 0, igResult.error || '', post.id, 'Instagram');
+                    if (!scheduled) {
+                      const diag = diagnosePublishFailure('Instagram', igResult.error || '');
+                      updateData.status = 'publish_failed';
+                      updateData.publish_error = igResult.error || 'Unknown Instagram error';
+                      updateData.publish_diagnostic = { platform: 'Instagram', reason: diag.reason, severity: diag.severity, detail: diag.detail, timestamp: new Date().toISOString() };
+                      delete updateData.published_at;
+                      await sendPublishAlert(diag, `Post ${post.id} — ${post.hook || post.caption?.substring(0, 60) || 'N/A'}`, supabase);
+                    }
                   }
                 }
               } else if (post.platform === 'tiktok') {
@@ -2042,12 +2087,15 @@ export async function POST(request: NextRequest) {
                 } else {
                   pubError2 = ttResult.error;
                   console.warn(`[Content] TikTok publish failed for post ${post.id}: ${ttResult.error}`);
-                  const diag = diagnosePublishFailure('TikTok', ttResult.error || '');
-                  updateData.status = 'publish_failed';
-                  updateData.publish_error = ttResult.error || 'Unknown TikTok error';
-                  updateData.publish_diagnostic = { platform: 'TikTok', reason: diag.reason, severity: diag.severity, detail: diag.detail, timestamp: new Date().toISOString() };
-                  delete updateData.published_at;
-                  await sendPublishAlert(diag, `Post ${post.id} — ${post.hook || post.caption?.substring(0, 60) || 'N/A'}`, supabase);
+                  const scheduled = applyPublishRetry(updateData, post.retry_count || 0, ttResult.error || '', post.id, 'TikTok');
+                  if (!scheduled) {
+                    const diag = diagnosePublishFailure('TikTok', ttResult.error || '');
+                    updateData.status = 'publish_failed';
+                    updateData.publish_error = ttResult.error || 'Unknown TikTok error';
+                    updateData.publish_diagnostic = { platform: 'TikTok', reason: diag.reason, severity: diag.severity, detail: diag.detail, timestamp: new Date().toISOString() };
+                    delete updateData.published_at;
+                    await sendPublishAlert(diag, `Post ${post.id} — ${post.hook || post.caption?.substring(0, 60) || 'N/A'}`, supabase);
+                  }
                 }
               }
 

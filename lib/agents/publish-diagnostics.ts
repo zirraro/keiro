@@ -44,6 +44,43 @@ export function diagnosePublishFailure(platform: string, error: string): PubDiag
   return { severity: 'info', reason: 'unknown', platform, detail: error };
 }
 
+/**
+ * Detect if a publish error is transient (worth retrying) vs permanent.
+ * Transient: network timeouts, rate limits, 5xx server errors, async media still processing.
+ * Permanent: token expired, account disconnected, duplicate, invalid media format.
+ */
+export function isTransientPublishError(error: string): boolean {
+  const e = (error || '').toLowerCase();
+  if (!e) return false;
+
+  // Explicit permanent signals — never retry these
+  if (e.includes('duplicate') || e.includes('non connecte') || e.includes('not configured')
+      || e.includes('token invalid') || e.includes('permissions') || e.includes('unaudited')
+      || (e.includes('media') && (e.includes('invalid') || e.includes('format')))) {
+    return false;
+  }
+
+  // Transient signals
+  return e.includes('timeout') || e.includes('timed out') || e.includes('etimedout')
+      || e.includes('econnreset') || e.includes('econnrefused') || e.includes('enotfound')
+      || e.includes('network') || e.includes('fetch failed')
+      || e.includes('rate limit') || e.includes('too many') || e.includes('429')
+      || e.includes('500') || e.includes('502') || e.includes('503') || e.includes('504')
+      || e.includes('server error') || e.includes('temporarily')
+      || e.includes('still processing') || e.includes('media not ready');
+}
+
+export const MAX_PUBLISH_RETRIES = 3;
+
+/**
+ * Exponential backoff for publish retries.
+ * Attempt 1 → +15 min, Attempt 2 → +1h, Attempt 3 → +4h.
+ */
+export function nextRetryDelayMs(retryCount: number): number {
+  const schedule = [15 * 60_000, 60 * 60_000, 4 * 60 * 60_000];
+  return schedule[Math.min(retryCount, schedule.length - 1)];
+}
+
 export async function sendPublishAlert(diagnostic: PubDiagnostic, postInfo: string, supabase: any) {
   // Always log diagnostic to agent_logs
   await supabase.from('agent_logs').insert({
