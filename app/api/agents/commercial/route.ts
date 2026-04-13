@@ -698,9 +698,10 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
       const minuteOfHour = new Date().getUTCMinutes();
       const runIdx = dayOfYear * 100 + hourOfDay * 10 + Math.floor(minuteOfHour / 10); // More unique per run
 
-      // Generate 8 different search combinations for maximum coverage across all channels
+      // Generate 4 search combinations per run (reduced from 8 to fit in 300s Vercel timeout)
+      // Runs daily so all types/cities are covered across multiple days
       const searches: Array<{ type: string; location: string; searchQuery: string }> = [];
-      for (let s = 0; s < 8; s++) {
+      for (let s = 0; s < 4; s++) {
         const tIdx = (runIdx + s * 7) % businessTypes.length;
         const cIdx = (runIdx + s * 11) % cities.length;
         const city = cities[cIdx];
