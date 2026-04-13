@@ -339,26 +339,25 @@ export async function GET(request: NextRequest) {
         await callForEachClient('Commercial Verify CRM', '/api/agents/commercial', 'POST', { action: 'verify_crm' }, 'commercial');
       });
 
-      // 2. DM + Email — contact prospects found by commercial
+      // 2. DM — auto-reply + preparation + send queue
       fireBackground(async () => {
         for (const uid of getClientsWithAgent('dm_instagram')) {
           await callEndpoint(`DM AutoReply [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram/auto-reply?user_id=${uid}`, 'POST');
           await delay(2000);
           await callEndpoint(`DM Instagram [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram?slot=morning&user_id=${uid}`, 'POST');
           await delay(2000);
-          // Send pending DMs from queue (proactive prospection)
           await callEndpoint(`DM Send Queue [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram/send-queue?user_id=${uid}`, 'POST');
-          await delay(2000);
-          if (isNetworkActive(uid, 'dm_instagram', 'tiktok')) {
-            await callEndpoint(`DM TikTok [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram?platform=tiktok&count=20&user_id=${uid}`, 'POST');
-          }
         }
+      });
+
+      // 3bis. Email — separate fireBackground (was timing out when combined with DM)
+      fireBackground(async () => {
         for (const uid of getClientsWithAgent('email')) {
           await callEndpoint(`Email Cold [${uid.substring(0, 8)}]`, `/api/agents/email/daily?slot=morning&types=restaurant,traiteur,boutique,coiffeur,fleuriste&user_id=${uid}`);
         }
       });
 
-      // 3. Content + Publish — visibility
+      // 4. Content + Publish — visibility
       fireBackground(async () => {
         for (const uid of getClientsWithAgent('content')) {
           await callEndpoint(`Content [${uid.substring(0, 8)}]`, `/api/agents/content?slot=morning&user_id=${uid}`);
@@ -367,7 +366,7 @@ export async function GET(request: NextRequest) {
         }
       });
 
-      // 4. Support tasks — lower priority
+      // 5. Support tasks — lower priority
       fireBackground(async () => {
         await callEndpoint('Trends Refresh', '/api/cron/refresh-trends');
         await callEndpoint('Diagnose Social', '/api/cron/diagnose-social');
