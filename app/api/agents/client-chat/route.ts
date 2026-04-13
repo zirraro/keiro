@@ -458,6 +458,50 @@ N'utilise les actions QUE quand le client DEMANDE explicitement.`;
       reply = reply.replace(/\[SETTING_UPDATE:\{.*?\}\]/, '').trim();
     }
 
+    // 9.7 Detect and send email to client (Noah recap feature)
+    const emailClientMatch = reply.match(/\[EMAIL_CLIENT\]([\s\S]*?)\[\/EMAIL_CLIENT\]/);
+    if (emailClientMatch) {
+      try {
+        const emailContent = emailClientMatch[1].trim();
+        const lines = emailContent.split('\n');
+        const subjectLine = lines.find((l: string) => l.startsWith('Objet:'));
+        const subject = subjectLine ? subjectLine.replace('Objet:', '').trim() : `Recap KeiroAI — ${new Date().toLocaleDateString('fr-FR')}`;
+        const body = lines.filter((l: string) => !l.startsWith('Objet:') && l !== '---').join('\n').trim();
+
+        // Get client email
+        const { data: clientProfile } = await supabase.from('profiles').select('email').eq('id', user.id).single();
+        if (clientProfile?.email && body) {
+          // Send via Brevo
+          const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
+            method: 'POST',
+            headers: { 'api-key': process.env.BREVO_API_KEY || '', 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sender: { name: 'Noah — KeiroAI', email: 'contact@keiroai.com' },
+              to: [{ email: clientProfile.email }],
+              subject,
+              htmlContent: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#333">
+                <h2 style="color:#0c1a3a">${subject}</h2>
+                ${body.split('\n').map((line: string) => {
+                  if (line.startsWith('##')) return `<h3 style="color:#0c1a3a;margin-top:16px">${line.replace(/^#+\s*/, '')}</h3>`;
+                  if (line.startsWith('- ')) return `<li>${line.slice(2)}</li>`;
+                  if (line.trim() === '') return '<br/>';
+                  return `<p style="margin:4px 0">${line}</p>`;
+                }).join('')}
+                <hr style="border:none;border-top:1px solid #eee;margin:24px 0"/>
+                <p style="font-size:12px;color:#999">Envoye par Noah, ton directeur strategie KeiroAI</p>
+              </div>`,
+            }),
+          });
+          console.log(`[ClientChat] Email sent to ${clientProfile.email}: ${brevoRes.ok ? 'OK' : 'FAIL'}`);
+        }
+      } catch (e: any) {
+        console.warn('[ClientChat] Email send failed:', e.message);
+      }
+      // Remove email block from visible reply
+      reply = reply.replace(/\[EMAIL_CLIENT\][\s\S]*?\[\/EMAIL_CLIENT\]/, '').trim();
+      reply += '\n\nRecap envoye par email !';
+    }
+
     // 10. Save both user message and agent reply to client_agent_chats
     const now = new Date().toISOString();
     const newMessages = [
