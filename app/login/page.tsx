@@ -283,7 +283,7 @@ function LoginPageInner() {
           });
           const promoData = await promoRes.json();
           if (promoData.ok) {
-            promoExpiresMessage = ` +${promoData.credits} crédits ajoutés${promoData.expiresAt ? ' — expirent dans 14 jours' : ''}.`;
+            promoExpiresMessage = ` +${promoData.credits} crédits ajoutés${promoData.expiresAt ? ' — expirent dans 7 jours' : ''}.`;
             localStorage.removeItem('pending_promo_code'); // Déjà activé, pas besoin du callback
           }
           console.log('[Signup] Promo code redeemed:', promoData);

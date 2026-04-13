@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
 
     if (result.expiresAt) {
       response.expiresAt = result.expiresAt;
-      response.message += ' Vos crédits expirent dans 14 jours.';
+      response.message += ' Vos crédits expirent dans 7 jours.';
     }
 
     return NextResponse.json(response);

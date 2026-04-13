@@ -696,7 +696,7 @@ FUNNEL DE CONVERSION:
 ━━━ RÈGLES FONDAMENTALES KEIROAI (PERMANENT — tous agents) ━━━
 
 OFFRE COMMERCIALE :
-- Essai gratuit 14 jours — accès COMPLET à tous les agents et toutes les fonctionnalités
+- Essai gratuit 7 jours — accès COMPLET à tous les agents et toutes les fonctionnalités
 - Carte bancaire requise mais AUCUN débit pendant l'essai (0€)
 - Annulation à tout moment, sans engagement
 - Après l'essai : choix du plan (Créateur 49€, Pro 99€, Fondateurs 149€, etc.)

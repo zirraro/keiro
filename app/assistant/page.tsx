@@ -519,9 +519,9 @@ export default function AssistantPage() {
           setUserPlan(profileData.subscription_plan || 'gratuit');
           if (profileData.is_admin) setIsAdmin(true);
 
-          // Check if user is in 14-day trial period
+          // Check if user is in 7-day trial period
           const createdAt = new Date(profileData.created_at);
-          const trialEnd = new Date(createdAt.getTime() + 14 * 24 * 60 * 60 * 1000);
+          const trialEnd = new Date(createdAt.getTime() + 7 * 24 * 60 * 60 * 1000);
           const creditsExpiry = profileData.credits_expires_at ? new Date(profileData.credits_expires_at) : null;
           const now = new Date();
           if (now < trialEnd || (creditsExpiry && now < creditsExpiry)) {
@@ -837,7 +837,7 @@ export default function AssistantPage() {
         role: 'assistant',
         content: res.ok
           ? ((await res.json()).message || 'Reponse recue.')
-          : `Merci pour ton message ! Pour activer ${chat.agent.displayName}, demarre ton essai gratuit 14 jours sur keiroai.com/pricing`,
+          : `Merci pour ton message ! Pour activer ${chat.agent.displayName}, demarre ton essai gratuit 7 jours sur keiroai.com/pricing`,
         created_at: new Date().toISOString(),
       };
       setChats(prev => ({

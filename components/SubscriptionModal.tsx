@@ -75,7 +75,7 @@ export default function SubscriptionModal({ isOpen, onClose }: SubscriptionModal
         {/* Trial banner — prominent */}
         <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-2xl p-4 sm:p-5 mb-6 text-center">
           <div className="text-3xl sm:text-4xl font-black text-green-700 mb-1">
-            0{'\u20AC'} pendant 14 jours
+            0{'\u20AC'} pendant 7 jours
           </div>
           <p className="text-sm sm:text-base text-green-600 font-medium">
             Tous les agents IA debloques {'\u00B7'} Annulation en 1 clic a tout moment
@@ -142,9 +142,9 @@ export default function SubscriptionModal({ isOpen, onClose }: SubscriptionModal
                     : "bg-neutral-100 text-neutral-900 hover:bg-neutral-200"
                 }`}
               >
-                Essai gratuit 14 jours
+                Essai gratuit 7 jours
               </Link>
-              <p className="text-center text-[10px] text-neutral-400 mt-1">0{'\u20AC'} pendant 14j {'\u00B7'} Annulation en 1 clic</p>
+              <p className="text-center text-[10px] text-neutral-400 mt-1">0{'\u20AC'} pendant 7j {'\u00B7'} Annulation en 1 clic</p>
             </div>
           ))}
         </div>

@@ -119,7 +119,7 @@ export default function OffrePage() {
                 <h3 className="text-2xl font-bold">Pro</h3>
                 <p className="mt-1 text-purple-200">Instagram complet</p>
                 <div className="mt-4">
-                  <span className="text-4xl font-bold">14 jours gratuits</span>
+                  <span className="text-4xl font-bold">7 jours gratuits</span>
                 </div>
                 <p className="text-sm text-purple-200 mt-1">puis 49&euro;/mois &bull; Carte requise, 0&euro; d&eacute;bit&eacute;</p>
               </div>
@@ -271,7 +271,7 @@ export default function OffrePage() {
                 </svg>
               </summary>
               <div className="px-5 pb-5 text-neutral-600">
-                Oui, en 1 clic, sans engagement. 0&euro; d&eacute;bit&eacute; pendant les 14 jours d&apos;essai.
+                Oui, en 1 clic, sans engagement. 0&euro; d&eacute;bit&eacute; pendant les 7 jours d&apos;essai.
               </div>
             </details>
 

@@ -186,7 +186,7 @@ CE QUE LE BUSINESS PROPOSE (KeiroAI):
 - Generation de visuels et videos pro avec l'IA pour les reseaux sociaux
 - Publication automatique Instagram, TikTok, LinkedIn
 - Contenu qui surfe sur les tendances et actualites
-- Essai gratuit 14 jours sur keiroai.com
+- Essai gratuit 7 jours sur keiroai.com
 
 APPROCHE CONVERSATION:
 1. Reponds a la question/message du prospect naturellement

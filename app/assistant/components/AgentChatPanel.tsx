@@ -304,13 +304,13 @@ export default function AgentChatPanel({
           </div>
           <h3 className="text-white font-bold text-base mb-1">Decouvre {agent.displayName}</h3>
           <p className="text-white/50 text-sm mb-4 max-w-[280px]">
-            {agent.displayName} et 17 autres agents IA sont prets a automatiser ton business. Essaie gratuitement pendant 14 jours.
+            {agent.displayName} et 17 autres agents IA sont prets a automatiser ton business. Essaie gratuitement pendant 7 jours.
           </p>
           <a
             href="/checkout/upsell?plan=createur"
             className="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white text-sm font-bold rounded-xl hover:shadow-lg transition-all mb-2"
           >
-            Essai gratuit 14 jours — 0{'\u20AC'}
+            Essai gratuit 7 jours — 0{'\u20AC'}
           </a>
           <p className="text-[10px] text-white/30 mb-3">Carte requise, aucun debit. Annulation en 1 clic.</p>
           <button

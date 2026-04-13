@@ -17,7 +17,7 @@ const AGENT_TOURS: Record<string, TourStep[]> = {
   content: [
     { target: 'auto-toggle', title: 'Publication automatique', description: 'Active le mode AUTO pour que Lena publie selon ton calendrier. En MANUEL, tu valides chaque post avant publication.', position: 'bottom' },
     { target: 'content-workflow', title: 'Tes publications', description: 'Tous tes posts generes apparaissent ici. Clique pour voir le visuel, la legende et les hashtags. Publie en un clic.', position: 'bottom' },
-    { target: 'agent-dashboard', title: 'Onglet Planning', description: 'Va dans l\'onglet Planning pour voir ton calendrier editorial sur 14 jours avec les publications programmees par plateforme.', position: 'top' },
+    { target: 'agent-dashboard', title: 'Onglet Planning', description: 'Va dans l\'onglet Planning pour voir ton calendrier editorial sur 7 jours avec les publications programmees par plateforme.', position: 'top' },
   ],
   dm_instagram: [
     { target: 'auto-toggle', title: 'DM automatique', description: 'En AUTO, Jade contacte tes prospects par DM Instagram et repond automatiquement. Tu es alerte quand un prospect est chaud.', position: 'bottom' },

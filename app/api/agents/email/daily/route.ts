@@ -227,7 +227,7 @@ STEP 2 (relance douce, J+3) : "Je te relance vite fait..." + rappeler step 1 + s
 STEP 3 (valeur gratuite, J+5) : Donne un conseil concret et actionnable sans rien demander en retour. Genre "3 astuces pour tes stories" ou "ton erreur #1 sur Insta". Pas de CTA vente, juste de la valeur. Signe "Victor ✌️" et c'est tout.
 STEP 4 (FOMO concurrents, J+8) : "Tes concurrents postent déjà..." + montrer que le marché bouge + urgence naturelle + CTA direct
 STEP 5 (dernière chance, J+12) : Ultra direct et désarmant. "Pas de souci si c'est pas le moment" + dernière proposition + "je te laisse tranquille après"
-WARM (step 10) : "Suite à notre échange..." + très personnalisé + proposer essai gratuit 14 jours (carte requise, 0€ débité)
+WARM (step 10) : "Suite à notre échange..." + très personnalisé + proposer essai gratuit 7 jours (carte requise, 0€ débité)
 
 VÉRIFICATION BUSINESS OBLIGATOIRE :
 - AVANT d'écrire l'email, vérifie que le nom du commerce EST CRÉDIBLE. Un nom inventé/hallucinated = INTERDIT.
@@ -1256,7 +1256,7 @@ export async function GET(request: NextRequest) {
       const MIN_HOURS_BEFORE_FIRST_EMAIL = isManualTrigger ? 0 : 0; // No delay — send immediately
       // For manual triggers: send immediately (no multi-day gaps)
       // For cron: respect normal spacing between steps (min 3 days between any email to same prospect)
-      // Séquence 14 jours : J+0, J+2, J+7, J+10, J+13
+      // Séquence 7 jours : J+0, J+2, J+7, J+10, J+13
       const STEP_GAP_DAYS = forceMode ? { 1: 0, 2: 0, 3: 0, 4: 0 } :
         isManualTrigger ? { 1: 0.5, 2: 0.5, 3: 0.5, 4: 0.5 } :
         { 1: 2, 2: 5, 3: 3, 4: 3 };

@@ -280,11 +280,11 @@ STRATEGIE — va VITE, le prospect perd patience:
 "Je t'en envoie un autre, regarde ca [SEND_SHOWCASE:generic]"
 
 4) SI IL EST INTERESSE: Propose l'essai gratuit directement.
-"Tu veux tester ? 0 euro debite pendant 14 jours, tu annules quand tu veux. Choisis ton plan ici : keiroai.com/pricing"
+"Tu veux tester ? 0 euro debite pendant 7 jours, tu annules quand tu veux. Choisis ton plan ici : keiroai.com/pricing"
 
 IMAGES — REGLE DES 3 MAX:
 - NOMBRE D'IMAGES DEJA ENVOYEES: ${alreadySentImages.length}/3
-${alreadySentImages.length >= 3 ? '- STOP: Tu as deja envoye 3 exemples. Ne propose PLUS d\'images. Redirige vers l\'essai gratuit: "Tu as vu 3 exemples, le mieux c\'est de tester par toi-meme. C\'est gratuit 14 jours sur keiroai.com"' : `- Pour envoyer un visuel: [SEND_SHOWCASE:type] (type = restaurant, boutique, coach, caviste, fleuriste, generic)
+${alreadySentImages.length >= 3 ? '- STOP: Tu as deja envoye 3 exemples. Ne propose PLUS d\'images. Redirige vers l\'essai gratuit: "Tu as vu 3 exemples, le mieux c\'est de tester par toi-meme. C\'est gratuit 7 jours sur keiroai.com"' : `- Pour envoyer un visuel: [SEND_SHOWCASE:type] (type = restaurant, boutique, coach, caviste, fleuriste, generic)
 - Pour generer un perso: [GENERATE_IMAGE:description en anglais]
 - IMAGES DEJA ENVOYEES: ${alreadySentImages.length > 0 ? alreadySentImages.map((u: string) => u.substring(u.lastIndexOf('/') + 1, u.lastIndexOf('/') + 20)).join(', ') : 'aucune'}
 - JAMAIS renvoyer la meme image. Utilise un TYPE DIFFERENT a chaque fois.`}
@@ -298,9 +298,9 @@ PSYCHOLOGIE DE CLOSING:
 - Ne brusque jamais. Si le prospect hesite, pose une question ouverte sur son business.
 
 LIEN DE CLOSING (TOUJOURS celui-ci):
-- "Teste gratuitement ici : keiroai.com/pricing — tu choisis ton plan et c'est parti, 0 EURO debite pendant 14 jours"
+- "Teste gratuitement ici : keiroai.com/pricing — tu choisis ton plan et c'est parti, 0 EURO debite pendant 7 jours"
 - Insiste sur le 0 EUR : "0 euro debite, zero engagement, tu annules en 1 clic si ca te plait pas"
-- Si le prospect est chaud: "Clique la keiroai.com/pricing, tu choisis Createur ou Pro et c'est parti. Rien n'est debite pendant 14 jours."
+- Si le prospect est chaud: "Clique la keiroai.com/pricing, tu choisis Createur ou Pro et c'est parti. Rien n'est debite pendant 7 jours."
 
 INTERDICTIONS ABSOLUES:
 - Ne dis JAMAIS "je t'envoie un exemple" sans mettre [SEND_SHOWCASE:...] ou [GENERATE_IMAGE:...]

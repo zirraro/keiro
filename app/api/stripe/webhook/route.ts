@@ -901,7 +901,7 @@ async function handleTrialWillEnd(subscription: Stripe.Subscription) {
   </div>
   <div style="background:white;padding:24px;border:1px solid #e5e7eb;border-top:none;">
     <p>Bonjour${profile.company_name ? ` ${profile.company_name}` : ''},</p>
-    <p>Votre essai gratuit de 14 jours sur KeiroAI arrive a sa fin le <strong>${dateStr}</strong>.</p>
+    <p>Votre essai gratuit de 7 jours sur KeiroAI arrive a sa fin le <strong>${dateStr}</strong>.</p>
     <p>A partir de cette date, votre abonnement <strong>${plan.name}</strong> sera active au tarif de <strong>${plan.price}\u20AC/mois</strong>.</p>
     <div style="background:#f0fdf4;border-left:3px solid #22c55e;padding:12px;margin:16px 0;border-radius:0 8px 8px 0;">
       <p style="margin:0;font-size:14px;"><strong>Ce qui est inclus dans votre plan :</strong></p>

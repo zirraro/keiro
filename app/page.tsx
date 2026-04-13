@@ -188,12 +188,12 @@ function HomeKeiroInner() {
             <div className="flex items-center gap-2 sm:gap-3">
               <span className="text-lg sm:text-xl">🎁</span>
               <div>
-                <p className="font-semibold text-sm sm:text-base">{t.home.freeTrialTitle || 'Essai gratuit 14 jours'}</p>
+                <p className="font-semibold text-sm sm:text-base">{t.home.freeTrialTitle || 'Essai gratuit 7 jours'}</p>
                 <p className="text-[10px] sm:text-xs text-purple-200">{t.home.freeTrialSubtitle || 'Carte requise, aucun debit. Annulation en 1 clic a tout moment.'}</p>
               </div>
             </div>
             <Link href="/checkout/upsell?plan=createur" className="px-7 py-3 rounded-xl bg-white text-[#0c1a3a] font-extrabold hover:bg-purple-50 transition-all text-sm whitespace-nowrap shadow-lg hover:shadow-2xl hover:scale-105">
-              {t.home.freeTrialCta || 'Essai gratuit 14 jours'} →
+              {t.home.freeTrialCta || 'Essai gratuit 7 jours'} →
             </Link>
           </div>
           </div>
@@ -1113,7 +1113,7 @@ function HomeKeiroInner() {
             <div className="absolute -top-2 -right-2 text-xl">⭐</div>
             <h3 className="text-lg font-bold text-[#0c1a3a] mb-3">&quot;KeiroAI&quot;</h3>
             <ul className="space-y-2 text-sm text-neutral-700">
-              <li><span className="font-semibold text-[#0c1a3a]">Coût :</span> 14 jours gratuits, puis à partir de 49€/mois</li>
+              <li><span className="font-semibold text-[#0c1a3a]">Coût :</span> 7 jours gratuits, puis à partir de 49€/mois</li>
               <li><span className="font-semibold text-[#0c1a3a]">Résultat :</span> 3 à 6 posts pro par semaine, brandés, liés à l&apos;actu</li>
               <li><span className="font-semibold text-[#0c1a3a]">Clients :</span> Le calcul est simple ↓</li>
             </ul>
@@ -1182,10 +1182,10 @@ function HomeKeiroInner() {
           {/* Colonne KeiroAI */}
           <div className="bg-gradient-to-br from-[#0c1a3a]/5 to-cyan-50 rounded-2xl border-2 border-[#0c1a3a]/30 p-6 relative shadow-lg shadow-[#0c1a3a]/10">
             <div className="absolute -top-3 left-4">
-              <span className="bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white px-3 py-1 rounded-full text-xs font-bold">KeiroAI — 14 jours gratuits</span>
+              <span className="bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white px-3 py-1 rounded-full text-xs font-bold">KeiroAI — 7 jours gratuits</span>
             </div>
             <div className="pt-4">
-              <p className="text-2xl font-bold text-[#0c1a3a] mb-1">14 jours gratuits<span className="text-base font-normal text-[#6b9fd4]"> puis 49€/mois</span></p>
+              <p className="text-2xl font-bold text-[#0c1a3a] mb-1">7 jours gratuits<span className="text-base font-normal text-[#6b9fd4]"> puis 49€/mois</span></p>
               <ul className="mt-4 space-y-2 text-sm text-neutral-700">
                 <li className="flex gap-2"><span className="text-[#0c1a3a] font-bold">✓</span> <span><strong>3 minutes</strong> par visuel, instantané</span></li>
                 <li className="flex gap-2"><span className="text-[#0c1a3a] font-bold">✓</span> <span>Modifications <strong>illimitées</strong>, en temps réel</span></li>
@@ -1298,7 +1298,7 @@ function HomeKeiroInner() {
               <p className="text-xl font-bold text-[#0c1a3a]">KeiroAI</p>
               <span className="text-yellow-500">⭐</span>
             </div>
-            <p className="text-[#0c1a3a] text-sm mb-4">14 jours gratuits, puis à partir de 49€/mois</p>
+            <p className="text-[#0c1a3a] text-sm mb-4">7 jours gratuits, puis à partir de 49€/mois</p>
             <ul className="space-y-2 text-sm">
               <li className="flex gap-2"><span className="text-green-500 font-bold flex-shrink-0">✓</span><span className="text-neutral-800">Images IA optimisées pour les commerces</span></li>
               <li className="flex gap-2 bg-green-100/50 rounded px-2 py-1"><span className="text-green-500 font-bold flex-shrink-0">✓</span><span className="text-neutral-800"><strong>VIDÉOS IA</strong> (5s à 90s) — impossible avec ChatGPT</span></li>
@@ -1442,7 +1442,7 @@ function HomeKeiroInner() {
                   { label: 'Legende', after: 'Personnalisee, optimisee, avec hashtags', icon: '\u{270D}\uFE0F' },
                   { label: 'DMs prospects', after: '50 DMs/jour automatiques + suivi', icon: '\u{1F4E9}' },
                   { label: 'Suivi clients', after: 'CRM IA avec scoring + relance auto', icon: '\u{1F4CA}' },
-                  { label: 'Cout total', after: '14 jours gratuits, puis 49€/mois', icon: '\u{1F4B0}' },
+                  { label: 'Cout total', after: '7 jours gratuits, puis 49€/mois', icon: '\u{1F4B0}' },
                 ].map((item, i) => (
                   <li key={i} className="flex items-start gap-3">
                     <span className="text-base sm:text-lg mt-0.5">{item.icon}</span>
@@ -1505,7 +1505,7 @@ function HomeKeiroInner() {
               18 agents IA specialises qui travaillent 24/7 : creation, publication, DMs, emails, SEO, avis Google, CRM, analytics. Tout est automatise.
             </p>
             <Link href="/checkout/upsell?plan=createur" className="inline-block px-6 sm:px-10 py-3 sm:py-4 bg-white text-[#0c1a3a] font-extrabold text-sm sm:text-base rounded-xl hover:shadow-2xl hover:scale-105 transition-all">
-              Essai gratuit 14 jours — 0€ {'\u2192'}
+              Essai gratuit 7 jours — 0€ {'\u2192'}
             </Link>
             <p className="text-xs text-white/40 mt-2">Carte requise, aucun debit. Annulation en 1 clic.</p>
           </div>
@@ -1557,15 +1557,15 @@ function HomeKeiroInner() {
           <div className="max-w-2xl mx-auto mb-10">
             <div className="bg-gradient-to-r from-[#0c1a3a]/5 to-purple-50 dark:from-[#0c1a3a] dark:to-purple-900/30 rounded-2xl border border-purple-200 dark:border-purple-500/20 p-5 flex flex-col sm:flex-row items-center gap-4">
               <div className="flex-1 text-center sm:text-left">
-                <p className="text-sm font-bold text-neutral-900 dark:text-white">🎁 {t.home.freeTrialTitle || 'Essai gratuit 14 jours'}</p>
+                <p className="text-sm font-bold text-neutral-900 dark:text-white">🎁 {t.home.freeTrialTitle || 'Essai gratuit 7 jours'}</p>
                 <p className="text-xs text-neutral-600 dark:text-neutral-300 mt-0.5">{t.home.freeTrialPricingDesc || 'Tous les agents IA débloqués — carte requise, 0€ débité'}</p>
-                <p className="text-[11px] text-purple-700 dark:text-purple-300 mt-0.5">{t.home.freeTrialPricingNote || '0€ pendant 14 jours • Carte requise • Annulation à tout moment'}</p>
+                <p className="text-[11px] text-purple-700 dark:text-purple-300 mt-0.5">{t.home.freeTrialPricingNote || '0€ pendant 7 jours • Carte requise • Annulation à tout moment'}</p>
               </div>
               <Link
                 href="/checkout/upsell?plan=createur"
                 className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#0c1a3a] to-purple-700 text-white text-sm font-bold hover:shadow-lg transition-all hover:-translate-y-0.5 whitespace-nowrap flex-shrink-0"
               >
-                {t.home.freeTrialCta || 'Essai gratuit 14 jours'}
+                {t.home.freeTrialCta || 'Essai gratuit 7 jours'}
               </Link>
             </div>
           </div>
@@ -1582,7 +1582,7 @@ function HomeKeiroInner() {
                 locale === 'fr' ? 'Contenu, Email, DM, CRM' : 'Content, Email, DM, CRM',
                 locale === 'fr' ? 'Avis Google auto' : 'Google reviews auto',
               ]}
-              ctaLabel={locale === 'fr' ? 'Essai gratuit 14 jours' : 'Free trial 14 days'}
+              ctaLabel={locale === 'fr' ? 'Essai gratuit 7 jours' : 'Free trial 7 days'}
               ctaOnClick={() => {
                 if (billingPeriod === 'monthly') {
                   setShowUpsellPro(true);
@@ -1603,7 +1603,7 @@ function HomeKeiroInner() {
                 locale === 'fr' ? 'Tout Createur + SEO' : 'All Creator + SEO',
                 locale === 'fr' ? 'Chatbot 24/7 + RH' : 'Chatbot 24/7 + HR',
               ]}
-              ctaLabel={billingPeriod === 'annual' ? t.home.ctaProAnnual : locale === 'fr' ? 'Essai gratuit 14 jours' : 'Free trial 14 days'}
+              ctaLabel={billingPeriod === 'annual' ? t.home.ctaProAnnual : locale === 'fr' ? 'Essai gratuit 7 jours' : 'Free trial 7 days'}
               ctaOnClick={() => startCheckout(billingPeriod === 'annual' ? 'pro_annual' : 'pro')}
             />
 
@@ -1902,7 +1902,7 @@ function HomeKeiroInner() {
               >
                 Non merci, je reste sur Createur
               </button>
-              <p className="text-center text-[10px] text-neutral-400 mt-2">0{'\u20AC'} pendant 14 jours {'\u00B7'} Annulation en 1 clic a tout moment</p>
+              <p className="text-center text-[10px] text-neutral-400 mt-2">0{'\u20AC'} pendant 7 jours {'\u00B7'} Annulation en 1 clic a tout moment</p>
             </div>
           </div>
         </div>
@@ -2293,7 +2293,7 @@ function Plan({
           {ctaLabel}
         </a>
       )}
-      <p className="text-center text-[10px] text-neutral-400 mt-1.5">0{'\u20AC'} pendant 14j {'\u00B7'} Annulation en 1 clic</p>
+      <p className="text-center text-[10px] text-neutral-400 mt-1.5">0{'\u20AC'} pendant 7j {'\u00B7'} Annulation en 1 clic</p>
     </div>
   );
 }

@@ -216,18 +216,18 @@ function PricingPageInner() {
             </div>
             <div className="mb-6 pt-2">
               <h3 className="text-xl sm:text-2xl font-bold mb-2 flex items-center gap-2">
-                <span>🎁</span> {t.pricing.freeTrialTitle || 'Essai gratuit 14 jours'}
+                <span>🎁</span> {t.pricing.freeTrialTitle || 'Essai gratuit 7 jours'}
               </h3>
               <div className="flex items-baseline gap-2 mb-4">
                 <span className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-[#0c1a3a] to-purple-600 bg-clip-text text-transparent">0€</span>
-                <span className="text-neutral-500">/ 14 jours</span>
+                <span className="text-neutral-500">/ 7 jours</span>
               </div>
               <p className="text-neutral-600 dark:text-neutral-300 text-sm font-medium">{t.pricing.freeTrialSubtitle || 'Tous les agents débloqués — carte requise, aucun débit'}</p>
             </div>
 
             <ul className="space-y-4 mb-8">
               {[
-                '<strong>Tous les agents IA</strong> débloqués pendant 14 jours',
+                '<strong>Tous les agents IA</strong> débloqués pendant 7 jours',
                 '<strong>Vidéos IA</strong> + images + audio narration',
                 'Publication Instagram, LinkedIn, TikTok',
                 'Assistant marketing IA inclus',
@@ -246,9 +246,9 @@ function PricingPageInner() {
               href="/checkout/upsell?plan=createur"
               className="block w-full py-3 px-6 text-center rounded-xl bg-gradient-to-r from-[#0c1a3a] to-purple-700 text-white font-bold hover:shadow-lg transition-all hover:scale-100 sm:hover:scale-105"
             >
-              {t.pricing.freeTrialCta || '→ Essai gratuit 14 jours'}
+              {t.pricing.freeTrialCta || '→ Essai gratuit 7 jours'}
             </Link>
-            <p className="text-xs text-center text-neutral-500 mt-2">{t.pricing.freeTrialNote || '0€ pendant 14 jours • Carte requise • Annulation à tout moment'}</p>
+            <p className="text-xs text-center text-neutral-500 mt-2">{t.pricing.freeTrialNote || '0€ pendant 7 jours • Carte requise • Annulation à tout moment'}</p>
           </div>
         </div>
 
@@ -703,7 +703,7 @@ function PricingPageInner() {
             <div className="bg-gradient-to-br from-[#0c1a3a]/5 to-purple-50 rounded-2xl border-2 border-[#0c1a3a]/20 p-5 shadow-lg">
               <h4 className="font-bold text-[#0c1a3a] mb-3 flex items-center gap-1">⭐ KeiroAI</h4>
               <div className="space-y-2 text-sm">
-                <p><span className="font-semibold text-[#0c1a3a]">{"Coût :"}</span> 14 jours gratuits, puis à partir de 49€/mois</p>
+                <p><span className="font-semibold text-[#0c1a3a]">{"Coût :"}</span> 7 jours gratuits, puis à partir de 49€/mois</p>
                 <p><span className="font-semibold text-[#0c1a3a]">{"Résultat :"}</span> 3 à 6 posts pro par semaine, brandés, liés à l{"'"}actu</p>
                 <p><span className="font-semibold text-[#0c1a3a]">{"Clients :"}</span> {"Le calcul est simple ↓"}</p>
               </div>
@@ -786,7 +786,7 @@ function PricingPageInner() {
                   </div>
                   <div>
                     <h4 className="font-bold text-sm">KeiroAI</h4>
-                    <p className="text-lg font-bold text-cyan-400">14 jours gratuits<span className="text-xs font-normal text-slate-400"> puis 49€/mois</span></p>
+                    <p className="text-lg font-bold text-cyan-400">7 jours gratuits<span className="text-xs font-normal text-slate-400"> puis 49€/mois</span></p>
                   </div>
                 </div>
                 <ul className="space-y-2 text-sm text-slate-200">
@@ -1139,7 +1139,7 @@ function PricingPageInner() {
               href="/checkout/upsell?plan=createur"
               className="inline-flex items-center justify-center gap-2 px-4 sm:px-8 py-3 sm:py-4 bg-amber-500 text-white font-bold rounded-xl hover:bg-amber-600 transition-all text-lg shadow-xl hover:shadow-2xl hover:scale-100 sm:hover:scale-105"
             >
-              Essai gratuit 14 jours {'\u{1F680}'}
+              Essai gratuit 7 jours {'\u{1F680}'}
             </Link>
           </div>
           <p className="text-[#0c1a3a]/60 text-sm mt-4">{t.pricing.foundersNote}</p>

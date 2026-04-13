@@ -356,7 +356,7 @@ async function handleIncomingMessage(
     // Fallback
     const low = messageText.toLowerCase();
     if (low.includes('prix') || low.includes('combien') || low.includes('tarif')) {
-      assistantMessage = "On a 3 plans : Createur a 49\u20AC/mois (7 agents), Pro a 99\u20AC/mois (10 agents, le plus populaire) et Business a 199\u20AC/mois (15+ agents). 14 jours d'essai gratuit ! Tu veux les details ?";
+      assistantMessage = "On a 3 plans : Createur a 49\u20AC/mois (7 agents), Pro a 99\u20AC/mois (10 agents, le plus populaire) et Business a 199\u20AC/mois (15+ agents). 7 jours d'essai gratuit ! Tu veux les details ?";
     } else if (low.includes('bonjour') || low.includes('salut') || low.includes('hello')) {
       assistantMessage = "Salut ! Bienvenue sur KeiroAI. Tu cherches à booster tes réseaux sociaux ? Dis-moi ton secteur !";
     } else {

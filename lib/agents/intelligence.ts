@@ -403,7 +403,7 @@ function getUpcomingEvents(): CalendarEvent[] {
     const daysUntil = calculateDaysUntil(month, day, evt.month, evt.day, evt.range);
 
     // Future events: adapt anticipation to event size
-    // Big events (Black Friday, Noel, Soldes) → 14j ahead
+    // Big events (Black Friday, Noel, Soldes) → 7j ahead
     // Medium events (Fete meres, Saint-Valentin) → 7j ahead
     // Small events (Chandeleur, Poisson avril) → 3j ahead
     const isBigEvent = ['Black Friday', 'Noel', 'Soldes', 'Calendrier Avent', 'Cyber Monday'].some(k => evt.name.includes(k));

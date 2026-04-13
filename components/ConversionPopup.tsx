@@ -81,7 +81,7 @@ export default function ConversionPopup({ isOpen, imageUrl, onClose, onSuccess }
         <p className="text-neutral-600 text-center mb-6 text-sm leading-relaxed">
           Cr{'\u00E9'}e ton compte gratuit pour le t{'\u00E9'}l{'\u00E9'}charger — et re{'\u00E7'}ois{' '}
           <strong className="text-neutral-900">2 cr{'\u00E9'}ations suppl{'\u00E9'}mentaires + 1 vid{'\u00E9'}o</strong>{' '}
-          offertes pendant 14 jours.
+          offertes pendant 7 jours.
         </p>
 
         {/* Benefits */}
@@ -90,7 +90,7 @@ export default function ConversionPopup({ isOpen, imageUrl, onClose, onSuccess }
             {[
               { icon: '\uD83D\uDDBC\uFE0F', text: '3 visuels IA pro gratuits' },
               { icon: '\uD83C\uDFAC', text: '1 vid\u00E9o IA offerte' },
-              { icon: '\u23F0', text: '14 jours gratuits — carte requise, aucun d\u00E9bit' },
+              { icon: '\u23F0', text: '7 jours gratuits — carte requise, aucun d\u00E9bit' },
               { icon: '\uD83D\uDCE5', text: 'T\u00E9l\u00E9chargement imm\u00E9diat de ton visuel' },
             ].map((b, i) => (
               <div key={i} className="flex items-center gap-2.5">

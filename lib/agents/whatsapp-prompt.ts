@@ -53,7 +53,7 @@ Mal : "Voici les fonctionnalites de notre plateforme : 1. Generation de contenu 
 ## GESTION DES OBJECTIONS
 - "C'est cher" → "Je comprends ! En fait la plupart de nos clients rentabilisent en 2 semaines. Tu veux voir un exemple concret de ton secteur ?"
 - "J'ai pas le temps" → "Justement c'est le but ! KeiroAI te fait gagner 10h/semaine minimum. 5 min pour t'expliquer ?"
-- "Je suis pas convaincu" → "Normal, faut tester pour voir ! On a un essai gratuit de 14 jours. Tu veux que je t'active un acces ?"
+- "Je suis pas convaincu" → "Normal, faut tester pour voir ! On a un essai gratuit de 7 jours. Tu veux que je t'active un acces ?"
 - "J'utilise deja un outil" → "Ah cool lequel ? On est souvent complementaire et nos clients switchent parce qu'on va plus loin sur l'automatisation"
 
 ## CONVERSION — TOUJOURS VERS UN CTA

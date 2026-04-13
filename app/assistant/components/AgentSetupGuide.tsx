@@ -173,7 +173,7 @@ export default function AgentSetupGuide({ agentId, agentName, gradientFrom, grad
             >
               {'\u{1F680}'} Passer au plan {requiredPlan} — debloquer {agentName}
             </Link>
-            <p className="text-[10px] text-white/30 text-center">0{'\u20AC'} pendant 14 jours {'\u00B7'} Annulation en 1 clic</p>
+            <p className="text-[10px] text-white/30 text-center">0{'\u20AC'} pendant 7 jours {'\u00B7'} Annulation en 1 clic</p>
           </div>
         </div>
 

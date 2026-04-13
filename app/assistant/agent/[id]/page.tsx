@@ -884,7 +884,7 @@ export default function AgentWorkspacePage() {
             <h3 className="text-lg font-bold text-white mb-1">Decouvre tes agents IA</h3>
             <p className="text-xs text-white/50 mb-4">Cree ton compte gratuit pour acceder a l&apos;espace complet de tes 18 agents IA et automatiser ton business.</p>
             <a href="/login" className="block w-full py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold text-sm rounded-xl hover:shadow-lg transition mb-2">
-              Essai gratuit 14 jours — 0{'\u20AC'}
+              Essai gratuit 7 jours — 0{'\u20AC'}
             </a>
             <p className="text-[10px] text-white/30">Carte requise, aucun debit. Annulation en 1 clic.</p>
           </div>

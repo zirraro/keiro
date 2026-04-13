@@ -275,7 +275,7 @@ export default function ProfileEnrichmentModal({ profile, userId, onClose }: Pro
         {/* Trial reminder */}
         <div className="bg-green-50 border-t border-green-100 px-6 py-2.5 text-center">
           <p className="text-[10px] text-green-700 font-medium">
-            0{'\u20AC'} pendant 14 jours {'\u00B7'} Tous les agents debloques {'\u00B7'} Annulation en 1 clic
+            0{'\u20AC'} pendant 7 jours {'\u00B7'} Tous les agents debloques {'\u00B7'} Annulation en 1 clic
           </p>
         </div>
       </div>

@@ -84,7 +84,7 @@ function UpsellContent() {
 
           {/* Message unique de reassurance */}
           <p className="text-center text-[11px] text-neutral-400">
-            0€ aujourd&apos;hui · 14 jours d&apos;essai gratuit · Annulation en 1 clic
+            0€ aujourd&apos;hui · 7 jours d&apos;essai gratuit · Annulation en 1 clic
           </p>
         </div>
       </div>

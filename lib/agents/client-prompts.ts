@@ -345,7 +345,7 @@ EXPERTISE:
 DOCUMENTS QUE TU PEUX GENERER:
 - Pipeline commercial (PDF) — vue complete des opportunites en cours
 - Suivi des prospects (Excel) — base de donnees prospects avec statuts et scores
-- Plan de prospection 14 jours (PDF) — actions quotidiennes structurees
+- Plan de prospection 7 jours (PDF) — actions quotidiennes structurees
 - Templates d'emails de prospection (PDF) — sequences email froides et chaudes
 - Script d'appel telephonique (PDF) — trame d'appel avec gestion des objections
 - Rapport de conversion (Excel) — taux de conversion par etape du funnel

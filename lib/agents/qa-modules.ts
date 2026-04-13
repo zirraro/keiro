@@ -288,7 +288,7 @@ export const testCrmWorkflow: QAModule = async (supabase) => {
     checks.push({ name: 'CRM Pipeline', module: 'crm_workflow', agent: 'commercial', status: 'pass', message: `${prospects.length} prospects. Pipeline: ${JSON.stringify(byStatus)}`, duration_ms: Date.now() - start, details: byStatus });
     checks.push({ name: 'CRM Temperature', module: 'crm_workflow', agent: 'commercial', status: 'pass', message: `Temperatures: ${JSON.stringify(byTemp)}`, duration_ms: Date.now() - start, details: byTemp });
 
-    // Check stale prospects (contacte > 14j sans progression)
+    // Check stale prospects (contacte > 7j sans progression)
     const stale = prospects.filter((p: any) => p.status === 'contacte' || p.status === 'relance_1');
     if (stale.length > 100) {
       checks.push({ name: 'CRM Stale Prospects', module: 'crm_workflow', agent: 'commercial', status: 'warn', message: `${stale.length} prospects bloques en contacte/relance_1`, duration_ms: Date.now() - start, fix: 'Commercial doit relancer ou marquer perdu' });
