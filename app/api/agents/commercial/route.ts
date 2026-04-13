@@ -689,8 +689,30 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
     if (runPhase3Discovery && (Date.now() - runStartTime < MAX_RUN_MS)) {
       console.log('[CommercialAgent] Phase 3: Aggressive search for new qualified prospects...');
 
-      const businessTypes = ['restaurant', 'boutique', 'coiffeur', 'coach sportif', 'fleuriste', 'caviste', 'traiteur', 'freelance graphiste', 'salon esthetique', 'boulangerie', 'photographe', 'agence immobiliere', 'pizzeria', 'bar a vin', 'institut de beaute', 'salle de sport', 'epicerie fine', 'fromagerie', 'chocolatier', 'bijouterie', 'opticien', 'veterinaire', 'cabinet dentaire', 'osteopathe'];
-      const cities = ['Paris', 'Lyon', 'Marseille', 'Bordeaux', 'Lille', 'Nantes', 'Toulouse', 'Strasbourg', 'Nice', 'Montpellier', 'Rennes', 'Grenoble', 'Rouen', 'Toulon', 'Aix-en-Provence', 'Annecy', 'Clermont-Ferrand', 'Dijon', 'Metz', 'Tours', 'Reims', 'Le Mans', 'Brest', 'Perpignan', 'Cannes', 'Avignon', 'La Rochelle', 'Bayonne', 'Pau', 'Colmar'];
+      const businessTypes = [
+        // Restauration
+        'restaurant', 'pizzeria', 'bar a vin', 'traiteur', 'boulangerie', 'epicerie fine', 'fromagerie', 'chocolatier', 'patisserie', 'bar cocktail', 'food truck',
+        // Commerce
+        'boutique', 'bijouterie', 'opticien', 'concept store', 'magasin bio',
+        // Beauté & Santé
+        'coiffeur', 'salon esthetique', 'institut de beaute', 'barbier', 'spa', 'cabinet dentaire', 'osteopathe', 'veterinaire',
+        // Sport & Bien-être
+        'coach sportif', 'salle de sport', 'studio yoga', 'coach nutrition',
+        // Services & Freelance
+        'freelance graphiste', 'photographe', 'agence immobiliere', 'auto-ecole', 'garage auto',
+        // Fleurs & Artisanat
+        'fleuriste', 'caviste', 'artisan',
+        // Tourisme & Hébergement
+        'hotel', 'chambre d hote', 'gite', 'camping',
+      ];
+      const cities = [
+        // Top 15 grandes villes
+        'Paris', 'Lyon', 'Marseille', 'Bordeaux', 'Lille', 'Nantes', 'Toulouse', 'Strasbourg', 'Nice', 'Montpellier', 'Rennes', 'Grenoble', 'Rouen', 'Toulon',
+        // Villes moyennes attractives
+        'Aix-en-Provence', 'Annecy', 'Clermont-Ferrand', 'Dijon', 'Metz', 'Tours', 'Reims', 'Le Mans', 'Brest', 'Perpignan', 'Cannes', 'Avignon', 'La Rochelle', 'Bayonne', 'Pau', 'Colmar',
+        // Nouvelles villes
+        'Caen', 'Limoges', 'Amiens', 'Besancon', 'Mulhouse', 'Poitiers', 'Valence', 'Saint-Etienne', 'Chambery', 'Ajaccio',
+      ];
       const parisQuartiers = ['Marais', 'Montmartre', 'Saint-Germain', 'Bastille', 'Oberkampf', 'Batignolles', 'Belleville', 'Pigalle', 'République', 'Nation', 'Châtelet', 'Opéra', 'Ménilmontant', 'Butte-aux-Cailles', 'Passy'];
 
       const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
