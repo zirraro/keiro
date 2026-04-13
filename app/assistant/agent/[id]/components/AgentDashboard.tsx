@@ -3962,6 +3962,44 @@ function CeoPanel({
         </div>
       </div>
 
+      {/* Strategy in effect */}
+      <SectionTitle>Strategie en cours</SectionTitle>
+      <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-4">
+        {(() => {
+          const strategy = typeof window !== 'undefined' ? localStorage.getItem('keiro_strategy_done') : null;
+          const STRAT_NAMES: Record<string, string> = {
+            instagram: '\u{1F4F8} Instagram Focus',
+            tiktok: '\u{1F3B5} TikTok Focus',
+            prospection: '\u{1F3AF} Prospection',
+            reputation: '\u2B50 Reputation',
+            seo: '\u{1F50D} SEO',
+            chatbot: '\u{1F916} Chatbot',
+            linkedin: '\u{1F4BC} LinkedIn B2B',
+          };
+          const focuses = (strategy || '').split('+').filter(Boolean);
+          return focuses.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {focuses.map(f => (
+                <span key={f} className="px-2 py-1 bg-cyan-500/20 text-cyan-300 text-[10px] font-medium rounded-lg">{STRAT_NAMES[f] || f}</span>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-white/40">Aucune strategie definie — va dans Clara pour en choisir une</p>
+          );
+        })()}
+      </div>
+
+      {/* Quick tip from Noah */}
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 mt-3">
+        <p className="text-xs text-white/50 italic">
+          {hot > 0
+            ? `\u{1F525} ${hot} prospect${hot > 1 ? 's' : ''} chaud${hot > 1 ? 's' : ''} — contacte-les en priorite via Hugo (email) ou Jade (DM).`
+            : emailsSent > 0
+            ? `\u{1F4E7} ${emailsSent} emails envoyes. Continue la prospection pour generer des prospects chauds.`
+            : `\u{1F680} Active tes agents pour commencer a prospecter. Parle-moi pour definir ta strategie.`}
+        </p>
+      </div>
+
       <ActionButton label="Parler a Noah" gradientFrom={gradientFrom} gradientTo={gradientTo} />
     </>
   );

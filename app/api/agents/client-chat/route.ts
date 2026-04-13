@@ -198,7 +198,7 @@ export async function POST(request: NextRequest) {
       const { getActiveLearnings, getAllHistoricalLearnings, formatLearningsForPrompt } = await import('@/lib/agents/learning');
       const [agentLearnings, globalLearnings] = await Promise.all([
         getActiveLearnings(supabase, agent_id, undefined, undefined),
-        getAllHistoricalLearnings(supabase, { minConfidence: 40, limit: 20 }),
+        getAllHistoricalLearnings(supabase, { minConfidence: 25, limit: 30 }),
       ]);
       if ((agentLearnings || []).length > 0 || (globalLearnings || []).length > 0) {
         ragContext = '\n\n=== CONNAISSANCES & APPRENTISSAGES ===\n' + formatLearningsForPrompt(agentLearnings || [], globalLearnings || []);
@@ -531,17 +531,23 @@ N'utilise les actions QUE quand le client DEMANDE explicitement.`;
     }
 
     // 10.5 Share key insights from this conversation to RAG (cross-agent learning)
-    // Only save if the reply contains substantial info (not just greetings)
-    if (reply.length > 100 && !reply.includes('Bonjour') && existingMessages.length >= 2) {
+    if (reply.length > 80) {
       try {
         const { saveLearning } = await import('@/lib/agents/learning');
-        await saveLearning(supabase, {
-          agent: agent_id,
-          category: 'general',
-          learning: `Client conversation: "${message.substring(0, 100)}" → Agent response key: ${reply.substring(0, 150)}`,
-          evidence: `chat_${agent_id}_${user.id}_${new Date().toISOString().split('T')[0]}`,
-          confidence: 15,
-        });
+        // Detect if the conversation contains useful business info
+        const hasBusinessInfo = message.match(/restaurant|boutique|coach|hotel|coiffeur|salon|bar|pizz|fleur|cav/i);
+        const hasPerformanceData = reply.match(/\d+%|\d+ clients|\d+ prospects|\d+ emails|\d+ ventes/i);
+        const confidence = hasPerformanceData ? 65 : hasBusinessInfo ? 50 : 30;
+
+        if (confidence >= 30) {
+          await saveLearning(supabase, {
+            agent: agent_id,
+            category: hasPerformanceData ? 'conversion' : hasBusinessInfo ? 'prospection' : 'general',
+            learning: `[${agent_id}] Q: "${message.substring(0, 80)}" → Insight: ${reply.substring(0, 120)}`,
+            evidence: `chat_${user.id}_${new Date().toISOString().split('T')[0]}`,
+            confidence,
+          });
+        }
       } catch {}
     }
 
