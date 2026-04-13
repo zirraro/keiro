@@ -213,7 +213,7 @@ export default function DocumentEditor({ agentId, agentName }: { agentId: string
   }, [chatInput, sending, content, agentId, chatMessages]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[calc(100vh-280px)] min-h-[500px]">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-[400px] lg:h-[calc(100vh-280px)]">
       {/* Editor */}
       <div className="lg:col-span-2 flex flex-col bg-white/[0.03] border border-white/10 rounded-2xl overflow-hidden">
         <div className="flex items-center gap-2 px-3 py-2 border-b border-white/10 bg-white/[0.02] flex-wrap">

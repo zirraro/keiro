@@ -193,7 +193,7 @@ export default function AgentDocuments({ agentId, gradientFrom }: { agentId: str
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
-          className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-xs font-bold rounded-xl hover:opacity-90 transition disabled:opacity-50"
+          className="flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-xs font-bold rounded-xl hover:opacity-90 transition disabled:opacity-50"
         >
           {uploading ? (
             <><div className="animate-spin rounded-full h-3 w-3 border-b border-white" /> Upload...</>
@@ -306,8 +306,8 @@ export default function AgentDocuments({ agentId, gradientFrom }: { agentId: str
                 </div>
               </div>
 
-              {/* Actions */}
-              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition">
+              {/* Actions — always visible on mobile, hover on desktop */}
+              <div className="flex items-center gap-0.5 sm:opacity-0 sm:group-hover:opacity-100 transition">
                 {doc.file_url && (
                   <a href={doc.file_url} target="_blank" download={doc.name} className="p-1.5 hover:bg-white/10 rounded-lg text-white/40 hover:text-white/80 transition" title="Telecharger">
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>

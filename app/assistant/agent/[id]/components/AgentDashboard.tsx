@@ -3139,13 +3139,13 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
               <button
                 onClick={() => sendDM(dm.id)}
                 disabled={sending === dm.id}
-                className="px-3 py-1.5 bg-gradient-to-r from-pink-500 to-purple-600 text-white text-[10px] font-bold rounded-lg hover:opacity-90 transition disabled:opacity-40"
+                className="px-4 py-2.5 min-h-[44px] bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold rounded-lg hover:opacity-90 transition disabled:opacity-40"
               >
-                {sending === dm.id ? '...' : `${'\u{1F4AC}'} Envoyer le DM`}
+                {sending === dm.id ? '...' : `${'\u{1F4AC}'} Envoyer`}
               </button>
               <button
                 onClick={() => setQueue(prev => prev.filter(d => d.id !== dm.id))}
-                className="px-2 py-1.5 text-[10px] text-white/30 hover:text-white/60 transition"
+                className="px-3 py-2.5 min-h-[44px] text-xs text-white/30 hover:text-white/60 transition"
               >
                 Ignorer
               </button>
