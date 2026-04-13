@@ -3161,18 +3161,22 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
             <div className="flex items-center gap-2 flex-wrap">
               <button
                 onClick={() => {
-                  // 1. Copy message to clipboard
-                  navigator.clipboard.writeText(dm.message);
-                  // 2. Open Instagram DM conversation directly
-                  window.open(`https://www.instagram.com/direct/t/${cleanHandle}/`, '_blank');
-                  // 3. Mark as sent after 3s (user has time to paste)
+                  // 1. Copy message to clipboard so the user can paste in IG
+                  navigator.clipboard.writeText(dm.message).catch(() => {});
+                  // 2. Open the prospect's profile page — IG deprecated /direct/t/{handle}
+                  //    (it now requires numeric user IDs and throws "Une erreur s'est
+                  //    produite..." on plain handles). The profile page always loads
+                  //    and has a "Message" button the user taps in one click.
+                  window.open(`https://www.instagram.com/${cleanHandle}/`, '_blank');
+                  // 3. Mark as sent on the server after a short delay so the user has
+                  //    time to paste + send inside Instagram.
                   setTimeout(() => {
                     sendDM(dm.id);
-                    setQueue(prev => prev.filter(d => d.id !== dm.id));
                   }, 3000);
                 }}
                 disabled={sending === dm.id}
                 className="px-4 py-2.5 min-h-[44px] bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold rounded-lg hover:opacity-90 transition disabled:opacity-40"
+                title="Copie le message, ouvre le profil Instagram — cliquez Message puis collez"
               >
                 {sending === dm.id ? '\u2713 Envoye !' : `${'\u{1F4AC}'} Envoyer le DM`}
               </button>
