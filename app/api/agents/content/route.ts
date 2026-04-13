@@ -3108,8 +3108,48 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
     // Get news articles
     const newsItems = (news?.articles || news?.items || news?.data || []).slice(0, 8).map((n: any) => n.title || n.headline).filter(Boolean);
 
-    if (trendItems.length > 0 || newsItems.length > 0) {
+    // Event calendar — key dates to leverage in content
+    const now = new Date();
+    const month = now.getMonth() + 1; // 1-12
+    const day = now.getDate();
+    const EVENT_CALENDAR: Record<string, string[]> = {
+      '1-1': ['Nouvel An — resolutions, nouveau depart'],
+      '1-6': ['Epiphanie — galette des rois'],
+      '2-14': ['Saint-Valentin — offres couples, cadeaux'],
+      '3-8': ['Journee internationale des droits des femmes'],
+      '3-20': ['Printemps — renouveau, nettoyage, fraicheur'],
+      '4-1': ['Poisson d\'avril — humour, engagement'],
+      '4-22': ['Jour de la Terre — eco-responsable'],
+      '5-1': ['Fete du travail'],
+      '5-25': ['Fete des meres — cadeaux, attention'],
+      '6-15': ['Fete des peres'],
+      '6-21': ['Ete — soldes, vacances, terrasses'],
+      '7-14': ['Fete nationale — bleu blanc rouge'],
+      '8-15': ['Assomption — vacances, fin d\'ete'],
+      '9-1': ['Rentree — nouveau depart, objectifs'],
+      '10-31': ['Halloween — deco, ambiance'],
+      '11-25': ['Black Friday — promos, urgence'],
+      '12-25': ['Noel — cadeaux, fetes, convivialite'],
+      '12-31': ['Reveillon — bilan, celebration'],
+    };
+    // Check ±3 days for upcoming events
+    const upcomingEvents: string[] = [];
+    for (let offset = -1; offset <= 3; offset++) {
+      const d = new Date(now.getTime() + offset * 24 * 60 * 60 * 1000);
+      const key = `${d.getMonth() + 1}-${d.getDate()}`;
+      if (EVENT_CALENDAR[key]) {
+        const prefix = offset === 0 ? 'AUJOURD\'HUI' : offset < 0 ? 'HIER' : `Dans ${offset}j`;
+        upcomingEvents.push(`${prefix}: ${EVENT_CALENDAR[key].join(', ')}`);
+      }
+    }
+    let eventContext = '';
+    if (upcomingEvents.length > 0) {
+      eventContext = `\nCALENDRIER EVENEMENTS : ${upcomingEvents.join(' | ')}\nSi pertinent, integre cet evenement dans le post pour surfer sur le moment.\n`;
+    }
+
+    if (trendItems.length > 0 || newsItems.length > 0 || upcomingEvents.length > 0) {
       trendsContext = '\n━━━ TENDANCES & ACTUALITES DU JOUR — 50% DU CONTENU ━━━\n';
+      if (eventContext) trendsContext += eventContext;
       if (trendItems.length > 0) trendsContext += `Trends Google/TikTok : ${trendItems.join(' | ')}\n`;
       if (newsItems.length > 0) trendsContext += `Actualites France : ${newsItems.join(' | ')}\n`;
       trendsContext += `
