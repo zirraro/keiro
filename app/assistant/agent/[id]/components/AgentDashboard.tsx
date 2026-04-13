@@ -3128,44 +3128,44 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
         </span>
       </div>
       <div className="space-y-2 max-h-[300px] overflow-y-auto">
-        {queue.slice(0, 5).map(dm => (
+        {queue.slice(0, 5).map(dm => {
+          const cleanHandle = (dm.handle || '').replace(/^@/, '').trim();
+          if (!cleanHandle) return null;
+          return (
           <div key={dm.id} className="bg-white/[0.03] border border-white/10 rounded-xl p-3">
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-xs font-semibold text-white">@{dm.handle}</span>
+              <span className="text-xs font-semibold text-white">@{cleanHandle}</span>
               {dm.company && <span className="text-[10px] text-white/40">{dm.company}</span>}
             </div>
             <p className="text-[11px] text-white/60 leading-relaxed mb-2 line-clamp-3">{dm.message}</p>
             <div className="flex items-center gap-2 flex-wrap">
               <button
                 onClick={() => {
+                  // 1. Copy message to clipboard
                   navigator.clipboard.writeText(dm.message);
-                  const btn = document.activeElement as HTMLButtonElement;
-                  if (btn) { btn.textContent = '\u2713 Copie !'; setTimeout(() => { btn.textContent = '\u{1F4CB} Copier le DM'; }, 2000); }
+                  // 2. Open Instagram DM conversation directly
+                  window.open(`https://www.instagram.com/direct/t/${cleanHandle}/`, '_blank');
+                  // 3. Mark as sent after 3s (user has time to paste)
+                  setTimeout(() => {
+                    sendDM(dm.id);
+                    setQueue(prev => prev.filter(d => d.id !== dm.id));
+                  }, 3000);
                 }}
-                className="px-4 py-2.5 min-h-[44px] bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold rounded-lg hover:opacity-90 transition"
+                disabled={sending === dm.id}
+                className="px-4 py-2.5 min-h-[44px] bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold rounded-lg hover:opacity-90 transition disabled:opacity-40"
               >
-                {'\u{1F4CB}'} Copier le DM
+                {sending === dm.id ? '\u2713 Envoye !' : `${'\u{1F4AC}'} Envoyer le DM`}
               </button>
-              <a
-                href={`https://www.instagram.com/${dm.handle}/`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-3 py-2.5 min-h-[44px] bg-white/10 text-white/70 text-xs font-medium rounded-lg hover:bg-white/20 transition flex items-center gap-1"
-              >
-                {'\u{1F4F8}'} Ouvrir @{dm.handle}
-              </a>
               <button
-                onClick={() => {
-                  sendDM(dm.id); // Mark as sent in DB
-                  setQueue(prev => prev.filter(d => d.id !== dm.id));
-                }}
-                className="px-3 py-2.5 min-h-[44px] text-xs text-emerald-400 hover:text-emerald-300 transition"
+                onClick={() => setQueue(prev => prev.filter(d => d.id !== dm.id))}
+                className="px-3 py-2.5 min-h-[44px] text-xs text-white/30 hover:text-white/60 transition"
               >
-                {'\u2705'} Fait
+                Passer
               </button>
             </div>
           </div>
-        ))}
+          );
+        }).filter(Boolean)}
       </div>
     </div>
   );

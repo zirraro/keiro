@@ -54,8 +54,9 @@ export async function POST(req: NextRequest) {
     if (!pendingDMs || pendingDMs.length === 0) continue;
 
     for (const dm of pendingDMs) {
-      if (!dm.handle) {
-        await supabase.from('dm_queue').update({ status: 'skipped', error: 'No handle' }).eq('id', dm.id);
+      const cleanHandle = (dm.handle || '').replace(/^@/, '').replace(/\s/g, '').trim();
+      if (!cleanHandle || cleanHandle.length < 2 || cleanHandle === 'A_VERIFIER') {
+        await supabase.from('dm_queue').update({ status: 'skipped', error: 'Invalid handle: ' + (dm.handle || 'empty') }).eq('id', dm.id);
         totalSkipped++;
         continue;
       }
