@@ -273,25 +273,62 @@ async function checkDuplicatePublication(
 }
 
 /**
+ * Runtime cache: whether content_calendar actually has the retry_count /
+ * next_retry_at columns. Lazily filled on first check — true = columns exist,
+ * false = migration 20260413_add_publish_retry.sql hasn't been applied yet
+ * (in which case we fall back to plain publish_failed instead of writing
+ * unknown columns, which would roll the whole update back and cause an
+ * infinite retry loop on every cron run).
+ */
+let retryColumnsAvailable: boolean | null = null;
+
+async function checkRetryColumns(supabase: any): Promise<boolean> {
+  if (retryColumnsAvailable !== null) return retryColumnsAvailable;
+  try {
+    const { error } = await supabase
+      .from('content_calendar')
+      .select('retry_count, next_retry_at')
+      .limit(1);
+    if (error && /column .* does not exist/i.test(error.message || '')) {
+      console.warn('[Content] retry_count/next_retry_at columns missing — apply migration 20260413_add_publish_retry.sql. Retry feature disabled until then.');
+      retryColumnsAvailable = false;
+    } else {
+      retryColumnsAvailable = !error;
+    }
+  } catch {
+    retryColumnsAvailable = false;
+  }
+  return retryColumnsAvailable;
+}
+
+/**
  * Apply retry-on-transient-error policy to a failed publish attempt.
  * - Transient errors (timeout, 5xx, rate limit) under MAX_PUBLISH_RETRIES:
  *   mutate updateData to set status='retry_pending' with next_retry_at + retry_count.
  *   The next execute_publication cron run will pick it up.
  * - Permanent errors OR retries exhausted: keep the existing publish_failed fields.
+ * - If the retry_count/next_retry_at columns haven't been added yet (migration
+ *   not applied), we silently skip retry and let the caller write publish_failed.
  * Returns true if the post was scheduled for retry (caller should skip alert email).
  */
-function applyPublishRetry(
+async function applyPublishRetry(
+  supabase: any,
   updateData: Record<string, any>,
   currentRetryCount: number,
   errorMessage: string,
   postId: string,
   platform: string,
-): boolean {
+): Promise<boolean> {
   if (!isTransientPublishError(errorMessage)) return false;
   if (currentRetryCount >= MAX_PUBLISH_RETRIES) {
     console.warn(`[Content] Post ${postId}: max retries (${MAX_PUBLISH_RETRIES}) reached on ${platform} — giving up`);
     return false;
   }
+  // Guard: without the migration, we can't track retry_count safely — fall
+  // back to plain publish_failed so the update doesn't reject.
+  const hasCols = await checkRetryColumns(supabase);
+  if (!hasCols) return false;
+
   const nextRetryAt = new Date(Date.now() + nextRetryDelayMs(currentRetryCount)).toISOString();
   updateData.status = 'retry_pending';
   updateData.retry_count = currentRetryCount + 1;
@@ -1916,19 +1953,27 @@ export async function POST(request: NextRequest) {
         const { data: readyPosts } = await readyQuery;
 
         // Also get approved posts with visuals that aren't published yet (NOT drafts).
-        // Include posts that failed with a transient error and are ready for retry
-        // (status='retry_pending' AND next_retry_at <= now) — they get picked up
-        // automatically without needing a separate cron slot.
+        // When the retry migration is applied, we also include posts that failed
+        // with a transient error and are ready for retry (status='retry_pending'
+        // AND next_retry_at <= now), so they get picked up without a dedicated
+        // cron slot. Until the migration is applied, we skip the retry_pending
+        // branch entirely (otherwise the .or() on next_retry_at would fail).
         // Limit to 1 per slot to spread publications throughout the day.
+        const retryEnabled = await checkRetryColumns(supabase);
         const nowIso = new Date().toISOString();
+        const statuses = retryEnabled
+          ? ['approved', 'publish_failed', 'retry_pending']
+          : ['approved', 'publish_failed'];
         let visualQuery = supabase
           .from('content_calendar')
           .select('*')
-          .in('status', ['approved', 'publish_failed', 'retry_pending'])
+          .in('status', statuses)
           .lte('scheduled_date', todayDate)
-          .not('visual_url', 'is', null)
-          .or(`status.neq.retry_pending,next_retry_at.lte.${nowIso}`)
-          .limit(1);
+          .not('visual_url', 'is', null);
+        if (retryEnabled) {
+          visualQuery = visualQuery.or(`status.neq.retry_pending,next_retry_at.lte.${nowIso}`);
+        }
+        visualQuery = visualQuery.limit(1);
         if (userId) visualQuery = visualQuery.eq('user_id', userId);
         const { data: approvedWithVisuals } = await visualQuery;
 
@@ -2009,7 +2054,7 @@ export async function POST(request: NextRequest) {
                   delete updateData.published_at;
                 } else {
                   console.warn(`[Content] Instagram publish failed for post ${post.id}: ${igResult.error}`);
-                  const scheduled = applyPublishRetry(updateData, post.retry_count || 0, igResult.error || '', post.id, 'Instagram');
+                  const scheduled = await applyPublishRetry(supabase, updateData, post.retry_count || 0, igResult.error || '', post.id, 'Instagram');
                   if (!scheduled) {
                     const diag = diagnosePublishFailure('Instagram', igResult.error || '');
                     updateData.status = 'publish_failed';
@@ -2029,7 +2074,7 @@ export async function POST(request: NextRequest) {
             } else {
               pubError = ttResult.error;
               console.warn(`[Content] TikTok publish failed for post ${post.id}: ${ttResult.error}`);
-              const scheduled = applyPublishRetry(updateData, post.retry_count || 0, ttResult.error || '', post.id, 'TikTok');
+              const scheduled = await applyPublishRetry(supabase, updateData, post.retry_count || 0, ttResult.error || '', post.id, 'TikTok');
               if (!scheduled) {
                 const diag = diagnosePublishFailure('TikTok', ttResult.error || '');
                 updateData.status = 'publish_failed';
@@ -2084,7 +2129,7 @@ export async function POST(request: NextRequest) {
                   } else {
                     pubError2 = igResult.error;
                     console.warn(`[Content] Instagram publish failed for post ${post.id}: ${igResult.error}`);
-                    const scheduled = applyPublishRetry(updateData, post.retry_count || 0, igResult.error || '', post.id, 'Instagram');
+                    const scheduled = await applyPublishRetry(supabase, updateData, post.retry_count || 0, igResult.error || '', post.id, 'Instagram');
                     if (!scheduled) {
                       const diag = diagnosePublishFailure('Instagram', igResult.error || '');
                       updateData.status = 'publish_failed';
@@ -2102,7 +2147,7 @@ export async function POST(request: NextRequest) {
                 } else {
                   pubError2 = ttResult.error;
                   console.warn(`[Content] TikTok publish failed for post ${post.id}: ${ttResult.error}`);
-                  const scheduled = applyPublishRetry(updateData, post.retry_count || 0, ttResult.error || '', post.id, 'TikTok');
+                  const scheduled = await applyPublishRetry(supabase, updateData, post.retry_count || 0, ttResult.error || '', post.id, 'TikTok');
                   if (!scheduled) {
                     const diag = diagnosePublishFailure('TikTok', ttResult.error || '');
                     updateData.status = 'publish_failed';
