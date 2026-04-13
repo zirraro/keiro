@@ -897,6 +897,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
       const data = await response.json();
 
       if (data.ok) {
+        try { window.dispatchEvent(new Event('keiro:tiktok-post-published')); } catch {}
         setShowReviewScreen(false);
         const successMessage = t.library.tiktokPublishSuccess + '\n\n' + t.library.tiktokPublishSuccessDetails;
         alert(successMessage);

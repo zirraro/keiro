@@ -484,6 +484,9 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
       const data = await response.json();
 
       if (data.ok) {
+        // Let the InstagramWidget refresh its thumbnail grid immediately.
+        try { window.dispatchEvent(new Event('keiro:instagram-post-published')); } catch {}
+
         // Message de succès plus engageant
         const successMessage = t.library.publishSuccess + '\n\n' + t.library.publishSuccessDetails + '\n\n' + t.library.congratulations;
         alert(successMessage);

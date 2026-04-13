@@ -244,6 +244,7 @@ export default function LinkedInModal({ image, images, video, videos, onClose, o
       }
 
       await onPublish(mediaUrl, mediaType, caption, hashtags);
+      try { window.dispatchEvent(new Event('keiro:linkedin-post-published')); } catch {}
       setSuccessToast(t.library.linkedInPublishedSuccess);
       setTimeout(() => { setSuccessToast(null); onClose(); }, 2000);
     } catch (error: any) {

@@ -28,6 +28,28 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
 
   useEffect(() => {
     loadTikTokStatus();
+
+    // Auto-refresh when the tab regains focus or a publish success event
+    // is broadcast — keeps the gallery in sync without the user clicking
+    // the manual refresh button.
+    const triggerRefresh = () => {
+      fetch('/api/tiktok/sync-media', { method: 'POST', credentials: 'include' })
+        .then(() => loadTikTokStatus())
+        .catch(() => {});
+    };
+    const onFocus = () => triggerRefresh();
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') triggerRefresh();
+    };
+    const onPublished = () => triggerRefresh();
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('keiro:tiktok-post-published', onPublished);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('keiro:tiktok-post-published', onPublished);
+    };
   }, []);
 
   // Refresh when parent signals a publish success

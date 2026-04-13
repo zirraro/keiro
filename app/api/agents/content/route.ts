@@ -322,6 +322,10 @@ async function publishToInstagram(
 
     // Multi-tenant: find IG tokens by org_id first, fallback to admin
     let publishProfile: any = null;
+    // Track which client user_id the post belongs to, so instagram_posts.user_id
+    // is written under the actual owner (not the admin) — otherwise the library
+    // widget's `WHERE user_id = client.id` filter hides the freshly published post.
+    let effectivePostOwnerId: string | null = userId || (post as any).user_id || null;
 
     if (orgId) {
       // Try to find the org owner's IG tokens
@@ -335,12 +339,13 @@ async function publishToInstagram(
       if (orgMember?.user_id) {
         const { data: orgProfile } = await supabase
           .from('profiles')
-          .select('instagram_business_account_id, facebook_page_access_token, instagram_username')
+          .select('id, instagram_business_account_id, facebook_page_access_token, instagram_username')
           .eq('id', orgMember.user_id)
           .single();
 
         if (orgProfile?.instagram_business_account_id && orgProfile?.facebook_page_access_token) {
           publishProfile = orgProfile;
+          effectivePostOwnerId = orgProfile.id || orgMember.user_id;
           console.log(`[Content] Using org owner's IG tokens (org: ${orgId})`);
         }
       }
@@ -352,11 +357,12 @@ async function publishToInstagram(
     if (!publishProfile && effectiveUserId) {
       const { data: clientProfile } = await supabase
         .from('profiles')
-        .select('instagram_business_account_id, facebook_page_access_token, instagram_username')
+        .select('id, instagram_business_account_id, facebook_page_access_token, instagram_username')
         .eq('id', effectiveUserId)
         .single();
       if (clientProfile?.instagram_business_account_id && clientProfile?.facebook_page_access_token) {
         publishProfile = clientProfile;
+        effectivePostOwnerId = clientProfile.id || effectiveUserId;
         console.log(`[Content] Using client's IG tokens (userId: ${effectiveUserId})`);
       }
     }
@@ -418,11 +424,20 @@ async function publishToInstagram(
 
     console.log(`[Content] Instagram publish success — media id: ${result.id}${result.permalink ? `, permalink: ${result.permalink}` : ''}`);
 
-    // Auto-save to instagram_posts table for instant gallery/thumbnail update
+    // Auto-save to instagram_posts table for instant gallery/thumbnail update.
+    // Writes under the actual post owner (client or org owner) so the library
+    // widget's `WHERE user_id = currentUser` query picks it up immediately.
+    // Falls back to admin only if we truly don't know the owner.
     try {
+      let ownerId = effectivePostOwnerId;
+      if (!ownerId) {
+        const { data: adminProfile } = await supabase
+          .from('profiles').select('id').eq('is_admin', true).single();
+        ownerId = adminProfile?.id;
+      }
       await supabase.from('instagram_posts').upsert({
         id: result.id,
-        user_id: (await supabase.from('profiles').select('id').eq('is_admin', true).single()).data?.id,
+        user_id: ownerId,
         caption: fullCaption.substring(0, 2000),
         permalink: result.permalink || `https://www.instagram.com/p/${result.id}/`,
         media_type: format === 'reel' || format === 'video' ? 'VIDEO' : format === 'carrousel' ? 'CAROUSEL_ALBUM' : 'IMAGE',
@@ -431,7 +446,7 @@ async function publishToInstagram(
         cached_media_url: post.video_url || post.visual_url || '',
         synced_at: new Date().toISOString(),
       }, { onConflict: 'id' });
-      console.log('[Content] Post saved to instagram_posts for gallery auto-refresh');
+      console.log(`[Content] Post saved to instagram_posts under owner ${ownerId} for gallery auto-refresh`);
     } catch (e: any) {
       console.warn('[Content] Failed to save to instagram_posts:', e.message);
     }

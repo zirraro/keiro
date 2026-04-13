@@ -46,18 +46,51 @@ export default function InstagramWidget({
   const [showPlatformChoice, setShowPlatformChoice] = useState(false);
 
   useEffect(() => {
-    if (!isGuest) {
-      loadData();
-    }
+    if (isGuest) return;
+
+    // Initial load (reads DB + triggers sync in background if needed)
+    loadData();
+
+    // Refresh whenever the tab regains focus or becomes visible again —
+    // this catches posts the content agent published while the user was
+    // on another tab/app, without needing the manual refresh button.
+    const onFocus = () => {
+      refreshInBackground();
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') refreshInBackground();
+    };
+    // Also listen for explicit "post published" events broadcast by other
+    // components (e.g. the InstagramModal after a direct client publish).
+    const onPublished = () => {
+      refreshInBackground();
+    };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('keiro:instagram-post-published', onPublished);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('keiro:instagram-post-published', onPublished);
+    };
   }, [isGuest]);
 
-  const loadData = async () => {
+  // Fire-and-forget background refresh — no loading spinner, so the UI
+  // doesn't flash every time the tab is focused.
+  const refreshInBackground = async () => {
+    try {
+      await fetch('/api/instagram/sync-media', { method: 'POST', credentials: 'include' });
+    } catch {}
+    await loadData(true);
+  };
+
+  const loadData = async (silent = false) => {
     try {
       const supabase = supabaseBrowser();
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
-        setLoading(false);
+        if (!silent) setLoading(false);
         return;
       }
 
@@ -70,33 +103,16 @@ export default function InstagramWidget({
       setProfile(profileData);
 
       if (profileData?.instagram_business_account_id) {
-        console.log('[InstagramWidget] Loading Instagram posts from database...');
-
-        // Charger les posts Instagram depuis la table dédiée
+        // Read whatever is currently in the DB — show it immediately so the user
+        // sees *something* instead of a skeleton, even if a sync is also running.
         const { data: instagramPosts, error } = await supabase
           .from('instagram_posts')
           .select('*')
           .eq('user_id', user.id)
           .order('posted_at', { ascending: false })
-          .limit(10);
+          .limit(12);
 
-        if (error) {
-          console.error('[InstagramWidget] Error loading posts:', error);
-          // Si erreur (table n'existe pas?), déclencher la sync qui créera les posts
-          console.log('[InstagramWidget] Table error - triggering sync to create posts');
-
-          fetch('/api/instagram/sync-media', { method: 'POST', credentials: 'include' })
-            .then(r => r.json())
-            .then(data => {
-              console.log('[InstagramWidget] Sync result:', data);
-              if (data.ok) {
-                // Attendre 2 secondes puis recharger
-                setTimeout(() => loadData(), 2000);
-              }
-            })
-            .catch(err => console.error('[InstagramWidget] Sync failed:', err));
-        } else if (instagramPosts && instagramPosts.length > 0) {
-          // Transformer en format attendu par le widget
+        if (!error && instagramPosts) {
           const transformedPosts = instagramPosts.map((post: any) => ({
             id: post.id,
             caption: post.caption || '',
@@ -108,21 +124,25 @@ export default function InstagramWidget({
             media_type: post.media_type || 'IMAGE',
             timestamp: post.posted_at
           }));
-
-          console.log('[InstagramWidget] Loaded', transformedPosts.length, 'Instagram posts');
           setPosts(transformedPosts);
-        } else {
-          console.log('[InstagramWidget] No Instagram posts found - triggering sync');
+        }
 
-          // Si pas de posts, lancer la sync immédiatement
+        // Check how fresh the cached data is. If it's older than 2 minutes OR we
+        // have no posts at all, fire a sync in the background to pick up anything
+        // Lena or the client published since the last visit. The result reloads
+        // the widget through the loadData(true) tail below.
+        const mostRecent = instagramPosts?.[0];
+        const lastSync = mostRecent?.synced_at ? new Date(mostRecent.synced_at).getTime() : 0;
+        const isStale = !instagramPosts || instagramPosts.length === 0 || (Date.now() - lastSync > 2 * 60_000);
+
+        if (isStale) {
+          console.log('[InstagramWidget] Data stale or empty — triggering background sync');
           fetch('/api/instagram/sync-media', { method: 'POST', credentials: 'include' })
             .then(r => r.json())
             .then(data => {
-              console.log('[InstagramWidget] Sync result:', data);
               if (data.ok) {
-                console.log('[InstagramWidget] Initial sync completed:', data.cached, 'posts');
-                // Attendre 2 secondes puis recharger
-                setTimeout(() => loadData(), 2000);
+                // Reload from DB quietly — no spinner, posts just update in place
+                setTimeout(() => loadData(true), 1500);
               }
             })
             .catch(err => console.error('[InstagramWidget] Sync failed:', err));
@@ -131,7 +151,7 @@ export default function InstagramWidget({
     } catch (error) {
       console.error('[InstagramWidget] Error:', error);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 

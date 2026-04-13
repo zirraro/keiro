@@ -29,6 +29,23 @@ export default function LinkedInWidget({
 
   useEffect(() => {
     loadLinkedInStatus();
+
+    // Auto-refresh when the tab regains focus or a publish success event is
+    // broadcast — keeps the gallery in sync without the user clicking refresh.
+    const triggerRefresh = () => { syncDrafts().catch(() => {}); };
+    const onFocus = () => triggerRefresh();
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') triggerRefresh();
+    };
+    const onPublished = () => triggerRefresh();
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('keiro:linkedin-post-published', onPublished);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('keiro:linkedin-post-published', onPublished);
+    };
   }, []);
 
   const loadLinkedInStatus = async () => {
