@@ -61,24 +61,43 @@ export async function POST(req: NextRequest) {
       }
 
       try {
-        // Step 1: Find the Instagram user ID from handle
-        // Use Instagram Business Discovery API
+        // Step 1: Find the Instagram user ID from handle via Business Discovery
         let recipientIgId = '';
+        let recipientMediaIds: string[] = [];
         try {
           const discoverRes = await fetch(
-            `https://graph.instagram.com/v21.0/${igAccountId}?fields=business_discovery.fields(id,username).username(${dm.handle})&access_token=${token}`
+            `https://graph.instagram.com/v21.0/${igAccountId}?fields=business_discovery.fields(id,username,media.limit(3){id}).username(${dm.handle})&access_token=${token}`
           );
           if (discoverRes.ok) {
             const discoverData = await discoverRes.json();
             recipientIgId = discoverData?.business_discovery?.id || '';
+            recipientMediaIds = (discoverData?.business_discovery?.media?.data || []).map((m: any) => m.id);
           }
         } catch {}
 
         if (!recipientIgId) {
-          // Can't find the user — skip
-          await supabase.from('dm_queue').update({ status: 'skipped', error: 'User not found via business_discovery' }).eq('id', dm.id);
+          await supabase.from('dm_queue').update({ status: 'skipped', error: 'User not found' }).eq('id', dm.id);
           totalSkipped++;
           continue;
+        }
+
+        // Step 1.5: Pre-engage — like their recent posts to trigger notification
+        // This increases chances they check our profile and respond to our DM
+        // Instagram allows liking public posts via Graph API
+        let likesGiven = 0;
+        for (const mediaId of recipientMediaIds.slice(0, 2)) {
+          try {
+            const likeRes = await fetch(`https://graph.instagram.com/v21.0/${mediaId}/likes`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ access_token: token }),
+            });
+            if (likeRes.ok) likesGiven++;
+          } catch {}
+          await new Promise(r => setTimeout(r, 1000));
+        }
+        if (likesGiven > 0) {
+          console.log(`[DMSendQueue] Pre-engaged ${dm.handle}: liked ${likesGiven} posts`);
         }
 
         // Step 2: Send DM via Instagram Graph API

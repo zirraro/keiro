@@ -3089,6 +3089,74 @@ function StrategyPresets({ gradientFrom, gradientTo }: { gradientFrom: string; g
   );
 }
 
+/** Pending DM Queue — client can preview and send prepared DMs */
+function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
+  const [queue, setQueue] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch('/api/agents/dm-instagram/queue', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : { queue: [] })
+      .then(d => setQueue(d.queue || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const sendDM = useCallback(async (dmId: string) => {
+    setSending(dmId);
+    try {
+      const res = await fetch('/api/agents/dm-instagram/send-single', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ dm_id: dmId }),
+      });
+      if (res.ok) {
+        setQueue(prev => prev.filter(d => d.id !== dmId));
+      }
+    } catch {} finally { setSending(null); }
+  }, []);
+
+  if (loading || queue.length === 0) return null;
+
+  return (
+    <div className="mb-3">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs font-bold text-white flex items-center gap-1.5">
+          {'\u{1F4AC}'} DMs prets a envoyer <span className="text-[10px] text-cyan-400 bg-cyan-500/20 px-1.5 py-0.5 rounded-full">{queue.length}</span>
+        </span>
+      </div>
+      <div className="space-y-2 max-h-[300px] overflow-y-auto">
+        {queue.slice(0, 5).map(dm => (
+          <div key={dm.id} className="bg-white/[0.03] border border-white/10 rounded-xl p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xs font-semibold text-white">@{dm.handle}</span>
+              {dm.company && <span className="text-[10px] text-white/40">{dm.company}</span>}
+            </div>
+            <p className="text-[11px] text-white/60 leading-relaxed mb-2 line-clamp-3">{dm.message}</p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => sendDM(dm.id)}
+                disabled={sending === dm.id}
+                className="px-3 py-1.5 bg-gradient-to-r from-pink-500 to-purple-600 text-white text-[10px] font-bold rounded-lg hover:opacity-90 transition disabled:opacity-40"
+              >
+                {sending === dm.id ? '...' : `${'\u{1F4AC}'} Envoyer le DM`}
+              </button>
+              <button
+                onClick={() => setQueue(prev => prev.filter(d => d.id !== dm.id))}
+                className="px-2 py-1.5 text-[10px] text-white/30 hover:text-white/60 transition"
+              >
+                Ignorer
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /*  NEW: Jade (dm_instagram) - Experte DM Instagram                   */
 /* ------------------------------------------------------------------ */
@@ -3178,6 +3246,9 @@ function DmInstagramPanel({
 
       {/* Hot prospects */}
       {/* HotProspectsAlert removed */}
+
+      {/* Pending DMs ready to send — client clicks to send */}
+      <PendingDMQueue gradientFrom={gradientFrom} />
 
       {/* DMs / Comments switch */}
       <JadeTabs gradientFrom={gradientFrom} gradientTo={gradientTo} />

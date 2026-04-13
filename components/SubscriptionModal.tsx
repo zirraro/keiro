@@ -31,15 +31,13 @@ export default function SubscriptionModal({ isOpen, onClose }: SubscriptionModal
       highlight: false,
     },
     {
-      name: "Fondateurs",
-      emoji: "\u2B50",
-      price: "149\u20AC",
+      name: "Business",
+      emoji: "\u{1F3E2}",
+      price: "199\u20AC",
       subtitle: "/mois",
-      description: "Offre limitee",
-      features: ["Visuels illimites", "Video illimitee", "Demo personnalisee", "Support prioritaire"],
-      highlight: false,
-      badge: "Offre limitee",
-      special: true,
+      description: "Automatisation complete",
+      features: ["15+ agents IA", "2000 credits/mois", "Finance + juridique", "Integration site web"],
+      highlight: true,
     },
     {
       name: "Business",
@@ -91,7 +89,7 @@ export default function SubscriptionModal({ isOpen, onClose }: SubscriptionModal
             <div
               key={plan.name}
               className={`rounded-2xl border p-5 hover:shadow-lg transition-all relative ${
-                plan.special
+                plan.highlight
                   ? "border-2 border-amber-400 bg-gradient-to-br from-amber-50 to-orange-50"
                   : plan.highlight
                   ? "border-2 border-[#0c1a3a]/20 bg-[#0c1a3a]/5 shadow-md"
@@ -101,7 +99,7 @@ export default function SubscriptionModal({ isOpen, onClose }: SubscriptionModal
               {plan.badge && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                   <span className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
-                    plan.special
+                    plan.highlight
                       ? "bg-amber-500 text-white"
                       : "bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white"
                   }`}>
@@ -126,7 +124,7 @@ export default function SubscriptionModal({ isOpen, onClose }: SubscriptionModal
               <ul className="space-y-1.5 mb-4">
                 {plan.features.map((feature, idx) => (
                   <li key={idx} className="flex items-start gap-1.5 text-xs">
-                    <span className={plan.special ? "text-amber-500" : "text-[#0c1a3a]"}>{'\u2713'}</span>
+                    <span className={plan.highlight ? "text-amber-500" : "text-[#0c1a3a]"}>{'\u2713'}</span>
                     <span className="text-neutral-700">{feature}</span>
                   </li>
                 ))}
@@ -135,7 +133,7 @@ export default function SubscriptionModal({ isOpen, onClose }: SubscriptionModal
               <Link
                 href="/checkout/upsell?plan=createur"
                 className={`block w-full py-3 text-center text-sm font-bold rounded-xl transition min-h-[44px] ${
-                  plan.special
+                  plan.highlight
                     ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:shadow-lg"
                     : plan.highlight
                     ? "bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white hover:shadow-lg"
