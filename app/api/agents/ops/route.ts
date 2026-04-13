@@ -19,10 +19,22 @@ function getSupabaseAdmin() {
 
 const FOUNDER_EMAILS = ['contact@keiroai.com'];
 
-const KNOWN_AGENTS = [
+// Agents qui DOIVENT s'executer via des crons scheduler quotidiens.
+// Absence de run reussi en 48h = probleme reel.
+const SCHEDULED_AGENTS = [
   'ceo', 'commercial', 'email', 'marketing', 'content', 'seo',
-  'dm_instagram', 'dm_tiktok', 'onboarding', 'retention', 'gmaps', 'amit',
+  'dm_instagram', 'onboarding', 'retention',
 ];
+
+// Agents qui ne tournent QUE lorsque certains clients les ont actives
+// (Google Business connecte pour gmaps, WhatsApp branche, etc.) ou qui
+// sont purement on-demand (chatbot, tiktok_comments). 0 runs = etat normal,
+// on n'alerte que si TOTAL > 0 ET taux d'echec eleve.
+const CONDITIONAL_AGENTS = [
+  'gmaps', 'amit', 'dm_tiktok', 'chatbot', 'whatsapp', 'tiktok_comments',
+];
+
+const KNOWN_AGENTS = [...SCHEDULED_AGENTS, ...CONDITIONAL_AGENTS];
 
 // ── Auth helper ──
 
@@ -114,40 +126,65 @@ async function runHealthCheck(orgId: string | null = null): Promise<HealthReport
 
   const logs = allLogs || [];
 
-  // Analyze each agent
+  // Analyze each agent. Different rules for SCHEDULED vs CONDITIONAL.
   const agentHealthMap: AgentHealth[] = KNOWN_AGENTS.map((agentName) => {
+    const isConditional = CONDITIONAL_AGENTS.includes(agentName);
     const agentLogs = logs.filter((l: any) => l.agent === agentName);
-    const successStatuses = ['ok', 'success'];
+    const successStatuses = ['ok', 'success', 'active', 'confirmed'];
 
     // Last successful run (within 48h)
     const lastSuccess = agentLogs.find((l: any) => successStatuses.includes(l.status));
     const lastSuccessDate = lastSuccess?.created_at || null;
 
-    // 24h metrics
-    const logs24h = agentLogs.filter((l: any) => l.created_at >= twentyFourHoursAgo);
+    // 24h metrics — ignore learning/feedback-style actions that don't represent
+    // an actual agent "run" (they're side effects of other agents' successes).
+    const runLike = (l: any) => !/^(learning|agent_feedback|webhook_|hot_prospect_click|heartbeat)/.test(l.action || '');
+    const logs24h = agentLogs.filter((l: any) => l.created_at >= twentyFourHoursAgo).filter(runLike);
     const totalRuns24h = logs24h.length;
     const errorCount24h = logs24h.filter((l: any) => !successStatuses.includes(l.status)).length;
-    const successRate = totalRuns24h > 0 ? ((totalRuns24h - errorCount24h) / totalRuns24h) * 100 : -1; // -1 = no data
+    const successRate = totalRuns24h > 0 ? ((totalRuns24h - errorCount24h) / totalRuns24h) * 100 : -1;
 
     // Classify
     let status: 'healthy' | 'degraded' | 'down';
     let reason: string | undefined;
 
-    if (!lastSuccessDate) {
-      status = 'down';
-      reason = 'Aucun run réussi dans les 48h';
-    } else if (successRate >= 0 && successRate < 30) {
-      status = 'down';
-      reason = `Taux de succès critique: ${successRate.toFixed(0)}% (${errorCount24h} erreurs / ${totalRuns24h} runs en 24h)`;
-    } else if (successRate >= 0 && successRate < 70) {
-      status = 'degraded';
-      reason = `Taux de succès dégradé: ${successRate.toFixed(0)}% (${errorCount24h} erreurs / ${totalRuns24h} runs en 24h)`;
-    } else if (totalRuns24h === 0 && lastSuccessDate) {
-      // Has old success but no runs in 24h — could be a cron that didn't fire
-      status = 'degraded';
-      reason = 'Aucun run dans les dernières 24h (cron potentiellement arrêté)';
+    if (isConditional) {
+      // Conditional agents: 0 runs = normal (client hasn't activated the feature,
+      // or no events have triggered this agent in 48h). Only alert if the agent
+      // HAS been running and is failing badly.
+      if (totalRuns24h === 0) {
+        // No activity — silent. Treat as healthy so it doesn't appear in the report.
+        status = 'healthy';
+      } else if (successRate >= 0 && successRate < 30) {
+        status = 'down';
+        reason = `Taux de succès critique sur agent optionnel: ${successRate.toFixed(0)}% (${errorCount24h}/${totalRuns24h})`;
+      } else if (successRate >= 0 && successRate < 50) {
+        status = 'degraded';
+        reason = `Agent optionnel en difficulté: ${successRate.toFixed(0)}% de succès (${errorCount24h}/${totalRuns24h})`;
+      } else {
+        status = 'healthy';
+      }
     } else {
-      status = 'healthy';
+      // Scheduled agents: must have at least one successful run in 48h AND a
+      // reasonable success rate in 24h.
+      if (!lastSuccessDate) {
+        status = 'down';
+        reason = 'Aucun run réussi dans les 48h (cron possiblement arrêté)';
+      } else if (successRate >= 0 && successRate < 30) {
+        status = 'down';
+        reason = `Taux de succès critique: ${successRate.toFixed(0)}% (${errorCount24h}/${totalRuns24h} runs 24h)`;
+      } else if (successRate >= 0 && successRate < 50) {
+        // Threshold lowered from 70% — 50% is a more realistic cut since many
+        // "errors" are expected permanent failures (disconnected account, etc.)
+        status = 'degraded';
+        reason = `Taux de succès dégradé: ${successRate.toFixed(0)}% (${errorCount24h}/${totalRuns24h} runs 24h)`;
+      } else if (totalRuns24h === 0 && lastSuccessDate) {
+        // Had success in 48h but nothing in last 24h — might be a once-daily
+        // cron that ran yesterday. That's fine, not an alert.
+        status = 'healthy';
+      } else {
+        status = 'healthy';
+      }
     }
 
     return {
@@ -259,15 +296,39 @@ Réponds UNIQUEMENT avec une liste de recommandations, une par ligne, commençan
     }
   }
 
-  // Send alert if critical
-  if (systemStatus === 'critical' || downAgents.length > 0) {
+  // Dedup: compare the set of problem agents to the previous ops report.
+  // If the set hasn't changed, skip the alert email — but still save the new
+  // report so timeline / supervision panels stay up to date. Prevents the
+  // "same alert every morning" spam (previous behavior: always send).
+  const currentProblemKey = [
+    ...downAgents.map(a => `down:${a.agent}:${a.reason || ''}`),
+    ...degradedAgents.map(a => `degr:${a.agent}:${a.reason || ''}`),
+  ].sort().join('|');
+
+  const { data: lastOpsLog } = await supabase
+    .from('agent_logs')
+    .select('data')
+    .eq('agent', 'ops')
+    .eq('action', 'health_check')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const previousKey: string | undefined = lastOpsLog?.data?.problem_key;
+  const shouldSendAlert =
+    (systemStatus === 'critical' || downAgents.length > 0) && currentProblemKey !== previousKey;
+
+  // Send alert only when the issue set is NEW compared to the previous run.
+  if (shouldSendAlert) {
     const alertSent = await sendCriticalAlert(systemStatus, downAgents, degradedAgents, issues);
     if (alertSent) {
-      actions.push(`Alerte critique envoyée au fondateur (${downAgents.length} agent(s) down)`);
+      actions.push(`Alerte envoyée au fondateur (${downAgents.length} down, ${degradedAgents.length} degraded — changement détecté)`);
     }
+  } else if (downAgents.length > 0 || degradedAgents.length > 0) {
+    actions.push('Dedup: situation identique au rapport precedent — pas de nouvelle alerte email');
   }
 
-  const report: HealthReport = {
+  const report: HealthReport & { problem_key?: string } = {
     system_health: {
       status: systemStatus,
       uptime_score: uptimeScore,
@@ -280,14 +341,17 @@ Réponds UNIQUEMENT avec une liste de recommandations, une par ligne, commençan
     actions_taken: actions,
     recommendations,
     checked_at: now.toISOString(),
+    problem_key: currentProblemKey,
   };
 
-  // Save report to agent_logs
+  // Save report to agent_logs (agent_logs_agent_check was extended to allow
+  // 'ops' in migration 20260413_fix_agent_logs_constraints.sql). The previous
+  // insert also passed `target: null`, but the column is named `target_id` —
+  // that silently rejected every insert before the constraint fix.
   await supabase.from('agent_logs').insert({
     agent: 'ops',
     action: 'health_check',
     status: systemStatus === 'critical' ? 'error' : 'ok',
-    target: null,
     data: report,
     created_at: now.toISOString(),
     ...(orgId ? { org_id: orgId } : {}),
@@ -369,7 +433,10 @@ async function sendCriticalAlert(
 </body>
 </html>`;
 
-  // Ops report saved to agent_logs for admin supervision panel (no email spam)
+  // Ops report saved to agent_logs for admin supervision panel.
+  // The dedup gate is done by the caller (runHealthCheck) — if this function
+  // is called, it means the issue set has genuinely changed and we DO want
+  // to send the email.
   try {
     const supabase = getSupabaseAdmin();
     await supabase.from('agent_logs').insert({
@@ -380,7 +447,6 @@ async function sendCriticalAlert(
       created_at: new Date().toISOString(),
     });
     console.log(`[OpsAgent] Report saved to supervision (${downAgents.length} down, ${degradedAgents.length} degraded)`);
-    // Send email alert when ANY agent is down (client impact = urgent)
     if (downAgents.length >= 1 && RESEND_API_KEY) {
       await fetch('https://api.resend.com/emails', {
         method: 'POST',
