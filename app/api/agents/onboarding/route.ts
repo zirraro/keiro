@@ -466,7 +466,7 @@ function getOnboardingSteps(plan: string) {
     { key: 'w2_autonomy', trigger: 'time_based', delayMs: 14 * DAY },
   ];
 
-  // Solo/Pro: standard onboarding with upsell to Fondateurs
+  // Solo/Pro: standard onboarding with upsell to Business
   const proSteps = [
     { key: 'h0', trigger: 'payment', delayMs: 0 },
     { key: 'h2', trigger: 'time_based', delayMs: 2 * HOUR },

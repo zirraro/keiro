@@ -270,7 +270,7 @@ export async function POST(request: NextRequest) {
       // Fallback: respond with a contextual pre-written message instead of crashing
       const lowMsg = message.toLowerCase();
       if (lowMsg.includes('prix') || lowMsg.includes('combien') || lowMsg.includes('tarif') || lowMsg.includes('coût') || lowMsg.includes('cout')) {
-        assistantMessage = "Le plan le plus populaire c'est le Fondateurs à 149€/mois — la plupart des pros le choisissent. Et franchement, 1 seul client en plus et c'est remboursé 😉 Tu veux que je t'explique ce qui est inclus ?";
+        assistantMessage = "Le plan le plus populaire c'est le Pro a 99\u20AC/mois — 10 agents IA, SEO, chatbot, 800 credits. Et franchement, 1 seul client en plus et c'est rembourse ! Tu veux que je t'explique ce qui est inclus ?";
       } else if (lowMsg.includes('resto') || lowMsg.includes('restaurant') || lowMsg.includes('cuisine')) {
         assistantMessage = "Un resto ! Top 🔥 Avec du bon contenu sur Insta, c'est 5 couverts en plus facile. Et la vidéo TikTok c'est le jackpot. Tu postes déjà sur les réseaux ?";
       } else if (lowMsg.includes('comment') || lowMsg.includes('marche') || lowMsg.includes('fonctionne')) {

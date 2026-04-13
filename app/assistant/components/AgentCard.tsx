@@ -7,7 +7,7 @@ import { AGENT_ADDON_PRICES } from '@/lib/credits/constants';
 const PLAN_LABELS: Record<string, string> = {
   createur: 'Créateur (49\u20AC/mois)',
   pro: 'Pro (99\u20AC/mois)',
-  fondateurs: 'Fondateurs Pro (149\u20AC/mois)',
+  fondateurs: 'Business (199\u20AC/mois)',
   business: 'Business (199\u20AC/mois)',
   elite: 'Elite (999\u20AC/mois)',
 };

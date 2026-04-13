@@ -1139,7 +1139,7 @@ function PricingPageInner() {
               href="/checkout/upsell?plan=createur"
               className="inline-flex items-center justify-center gap-2 px-4 sm:px-8 py-3 sm:py-4 bg-amber-500 text-white font-bold rounded-xl hover:bg-amber-600 transition-all text-lg shadow-xl hover:shadow-2xl hover:scale-100 sm:hover:scale-105"
             >
-              {t.pricing.planFondateursCta} ⭐
+              Essai gratuit 14 jours {'\u{1F680}'}
             </Link>
           </div>
           <p className="text-[#0c1a3a]/60 text-sm mt-4">{t.pricing.foundersNote}</p>
