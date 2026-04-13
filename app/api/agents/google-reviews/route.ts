@@ -57,8 +57,23 @@ export async function GET(req: NextRequest) {
     .eq('id', user.id)
     .single();
 
-  if (!profile?.google_business_location_id || !profile?.google_business_refresh_token) {
+  // No refresh token → truly not connected.
+  if (!profile?.google_business_refresh_token) {
     return NextResponse.json({ ok: true, reviews: [], connected: false, message: 'Google Business non connecte' });
+  }
+
+  // Tokens saved but no location picked yet — report connected so the UI
+  // switches out of the preview banner, but return zero reviews and a
+  // helpful message. This handles the "OAuth succeeded but the account has
+  // no location" case that previously looked identical to "not connected".
+  if (!profile.google_business_location_id) {
+    return NextResponse.json({
+      ok: true,
+      connected: true,
+      reviews: [],
+      needsLocation: true,
+      message: 'Google Business connecte, mais aucun etablissement trouve. Ajoute ton etablissement sur business.google.com puis reessaie.',
+    });
   }
 
   // Get valid token (refreshes if needed)

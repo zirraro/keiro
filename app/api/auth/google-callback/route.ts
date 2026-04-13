@@ -83,7 +83,13 @@ export async function GET(req: NextRequest) {
 
     console.log(`[GoogleCallback] Google Business connected for user ${userId}: account=${accountName}, location=${locationName}`);
 
-    return NextResponse.redirect(`${origin}/assistant/agent/gmaps?google_connected=true`);
+    // Use the same `just_connected=google` convention Gmail and Instagram
+    // callbacks use — otherwise the /assistant/agent/[id] page listener won't
+    // see the success, the dashboard won't reload, and the PreviewBanner keeps
+    // showing even though tokens are actually saved. This is exactly why the
+    // session notes said "Théo ne tourne pas car Google Business pas connecté"
+    // — the client had connected but the UI never switched.
+    return NextResponse.redirect(`${origin}/assistant/agent/gmaps?just_connected=google`);
   } catch (e: any) {
     console.error('[GoogleCallback] Error:', e.message);
     return NextResponse.redirect(`${origin}/assistant?error=${encodeURIComponent(`Google erreur: ${e.message}`)}`);

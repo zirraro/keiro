@@ -3484,20 +3484,42 @@ function GmapsPanel({
   // Fetch real Google reviews if connected
   const [googleReviews, setGoogleReviews] = useState<any[]>([]);
   const [googleConnected, setGoogleConnected] = useState(false);
+  const [googleNeedsLocation, setGoogleNeedsLocation] = useState(false);
   const [loadingReviews, setLoadingReviews] = useState(false);
 
   useEffect(() => {
-    setLoadingReviews(true);
-    fetch('/api/agents/google-reviews', { credentials: 'include' })
-      .then(r => r.json())
-      .then(d => {
-        if (d.connected && d.reviews?.length > 0) {
-          setGoogleReviews(d.reviews);
-          setGoogleConnected(true);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoadingReviews(false));
+    let cancelled = false;
+    const fetchReviews = () => {
+      setLoadingReviews(true);
+      fetch('/api/agents/google-reviews', { credentials: 'include' })
+        .then(r => r.json())
+        .then(d => {
+          if (cancelled) return;
+          // Treat the account as connected as soon as the API says so, even
+          // if there are zero reviews yet (new Google Business profile, or
+          // location with no reviews) — otherwise the PreviewBanner stays
+          // forever and the client thinks the connection failed.
+          if (d.connected) {
+            setGoogleReviews(d.reviews || []);
+            setGoogleConnected(true);
+            setGoogleNeedsLocation(!!d.needsLocation);
+          } else {
+            setGoogleConnected(false);
+            setGoogleNeedsLocation(false);
+          }
+        })
+        .catch(() => {})
+        .finally(() => { if (!cancelled) setLoadingReviews(false); });
+    };
+
+    fetchReviews();
+
+    // Re-check connection when the tab regains focus — handles the OAuth
+    // round trip (Google → callback → back to this page) even if the URL
+    // param watcher in the parent page didn't force a re-mount.
+    const onFocus = () => fetchReviews();
+    window.addEventListener('focus', onFocus);
+    return () => { cancelled = true; window.removeEventListener('focus', onFocus); };
   }, []);
 
   // Star rating visual
@@ -3557,6 +3579,29 @@ function GmapsPanel({
           gradientFrom="#f59e0b"
           gradientTo="#d97706"
         />
+      )}
+
+      {/* Connected but no Google Business location found — guide user */}
+      {googleConnected && googleNeedsLocation && (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 mb-4">
+          <div className="flex items-start gap-3">
+            <span className="text-xl">{'\u26A0\uFE0F'}</span>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-amber-300 font-bold text-sm mb-1">Google Business connecte, mais aucun etablissement</h4>
+              <p className="text-white/60 text-xs mb-2 leading-relaxed">
+                Ton compte Google est bien lie mais n'a pas encore d'etablissement enregistre.
+                Ajoute ton commerce sur <a href="https://business.google.com" target="_blank" rel="noopener" className="text-amber-300 underline">business.google.com</a>,
+                puis reviens ici — Theo recuperera automatiquement tes avis.
+              </p>
+              <a
+                href="/api/auth/google-oauth"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 transition"
+              >
+                Reconnecter / rafraichir
+              </a>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Auto-reply toggle — always visible (demo or real) */}
