@@ -3089,19 +3089,27 @@ function StrategyPresets({ gradientFrom, gradientTo }: { gradientFrom: string; g
   );
 }
 
-/** Pending DM Queue — client can preview and send prepared DMs */
+/** Pending DM Queue — client can preview and mass-send prepared DMs */
 function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
   const [queue, setQueue] = useState<any[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
-  useEffect(() => {
-    fetch('/api/agents/dm-instagram/queue', { credentials: 'include' })
-      .then(r => r.ok ? r.json() : { queue: [] })
-      .then(d => setQueue(d.queue || []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+  const loadQueue = useCallback(async (limit = 50) => {
+    try {
+      const res = await fetch(`/api/agents/dm-instagram/queue?limit=${limit}`, { credentials: 'include' });
+      if (res.ok) {
+        const d = await res.json();
+        setQueue(d.queue || []);
+        setTotal(d.total || 0);
+      }
+    } catch {} finally { setLoading(false); }
   }, []);
+
+  useEffect(() => { loadQueue(showAll ? 200 : 50); }, [loadQueue, showAll]);
 
   const sendDM = useCallback(async (dmId: string) => {
     setSending(dmId);
@@ -3114,21 +3122,33 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
       });
       if (res.ok) {
         setQueue(prev => prev.filter(d => d.id !== dmId));
+        setTotal(prev => prev - 1);
       }
     } catch {} finally { setSending(null); }
   }, []);
 
   if (loading || queue.length === 0) return null;
 
+  const displayed = showAll ? queue : queue.slice(0, 10);
+
   return (
     <div className="mb-3">
-      <div className="flex items-center justify-between mb-2">
+      {/* Header + campaign actions */}
+      <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
         <span className="text-xs font-bold text-white flex items-center gap-1.5">
-          {'\u{1F4AC}'} DMs prets a envoyer <span className="text-[10px] text-cyan-400 bg-cyan-500/20 px-1.5 py-0.5 rounded-full">{queue.length}</span>
+          {'\u{1F4AC}'} DMs prets a envoyer <span className="text-[10px] text-cyan-400 bg-cyan-500/20 px-1.5 py-0.5 rounded-full">{total}</span>
         </span>
+        <div className="flex items-center gap-1.5">
+          {!showAll && queue.length > 10 && (
+            <button onClick={() => setShowAll(true)} className="text-[10px] text-cyan-400 hover:text-cyan-300 transition">
+              Voir tous ({total})
+            </button>
+          )}
+        </div>
       </div>
-      <div className="space-y-2 max-h-[300px] overflow-y-auto">
-        {queue.slice(0, 5).map(dm => {
+
+      <div className={`space-y-2 ${showAll ? 'max-h-[600px]' : 'max-h-[400px]'} overflow-y-auto pr-1`}>
+        {displayed.map(dm => {
           const cleanHandle = (dm.handle || '').replace(/^@/, '').trim();
           if (!cleanHandle) return null;
           return (
@@ -3240,6 +3260,51 @@ function DmInstagramPanel({
         <KpiCard label="Reponses recues" value={fmt(stats.responses)} gradientFrom="#f59e0b" gradientTo="#d97706" />
         <KpiCard label="DMs prepares" value={fmt((stats as any).queuePending || 0)} gradientFrom="#8b5cf6" gradientTo="#6d28d9" />
         <KpiCard label="Prospects IG" value={fmt((stats as any).prospectsWithIG || 0)} gradientFrom="#ec4899" gradientTo="#db2777" />
+      </div>
+
+      {/* Campaign actions */}
+      <SectionTitle>Lancer une campagne</SectionTitle>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+        <button
+          onClick={() => {
+            fetch('/api/agents/dm-instagram?slot=morning', { method: 'POST', credentials: 'include', headers: { 'Authorization': 'Bearer ' + (document.cookie.match(/sb-[^=]+=([^;]+)/)?.[1] || '') } }).catch(() => {});
+          }}
+          className="flex flex-col items-center gap-1 p-3 bg-pink-500/10 border border-pink-500/20 rounded-xl hover:bg-pink-500/20 transition text-center"
+        >
+          <span className="text-lg">{'\u{1F4AC}'}</span>
+          <span className="text-[10px] text-pink-400 font-bold">Preparer DMs</span>
+          <span className="text-[8px] text-white/30">Nouveaux prospects</span>
+        </button>
+        <button
+          onClick={() => {
+            fetch('/api/agents/dm-instagram/send-queue', { method: 'POST', credentials: 'include', headers: { 'Authorization': 'Bearer ' + (document.cookie.match(/sb-[^=]+=([^;]+)/)?.[1] || '') } }).catch(() => {});
+          }}
+          className="flex flex-col items-center gap-1 p-3 bg-purple-500/10 border border-purple-500/20 rounded-xl hover:bg-purple-500/20 transition text-center"
+        >
+          <span className="text-lg">{'\u2764\uFE0F'}</span>
+          <span className="text-[10px] text-purple-400 font-bold">Campagne Likes</span>
+          <span className="text-[8px] text-white/30">Liker les posts prospects</span>
+        </button>
+        <button
+          onClick={() => {
+            fetch('/api/agents/content?slot=community', { method: 'GET', credentials: 'include' }).catch(() => {});
+          }}
+          className="flex flex-col items-center gap-1 p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl hover:bg-blue-500/20 transition text-center"
+        >
+          <span className="text-lg">{'\u{1F4DD}'}</span>
+          <span className="text-[10px] text-blue-400 font-bold">Commentaires</span>
+          <span className="text-[8px] text-white/30">Commenter les posts</span>
+        </button>
+        <button
+          onClick={() => {
+            fetch('/api/agents/dm-instagram/auto-reply', { method: 'POST', credentials: 'include' }).catch(() => {});
+          }}
+          className="flex flex-col items-center gap-1 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl hover:bg-emerald-500/20 transition text-center"
+        >
+          <span className="text-lg">{'\u{1F504}'}</span>
+          <span className="text-[10px] text-emerald-400 font-bold">Auto-reply</span>
+          <span className="text-[8px] text-white/30">Repondre aux DMs recus</span>
+        </button>
       </div>
 
       {/* Pipeline funnel */}
