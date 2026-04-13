@@ -1048,10 +1048,16 @@ Retourne 8-12 prospects qualifiés AVEC EMAIL en JSON. Sois TRÈS concis dans de
             continue;
           }
 
-          // Create new prospect (igHandle already normalized above for dedup)
+          // Validate and clean IG handle
+          let cleanIG = igHandle ? igHandle.replace(/^@/, '').replace(/\s/g, '').replace(/https?:\/\/(www\.)?instagram\.com\//g, '').replace(/\/$/, '').trim() : null;
+          if (cleanIG && (!/^[a-zA-Z0-9._]{1,30}$/.test(cleanIG) || cleanIG === 'A_VERIFIER' || cleanIG.length < 2)) {
+            cleanIG = null; // Invalid handle
+          }
+
+          // Create new prospect
           const newProspectData = {
             email: np.email,
-            instagram: igHandle,
+            instagram: cleanIG,
             website: np.website,
             google_rating: np.google_rating,
             google_reviews: np.google_reviews,
@@ -1067,7 +1073,7 @@ Retourne 8-12 prospects qualifiés AVEC EMAIL en JSON. Sois TRÈS concis dans de
             company: np.company,
             type: VALID_TYPES.includes(np.type) ? np.type : 'pme',
             quartier: np.quartier || null,
-            instagram: igHandle,
+            instagram: cleanIG,
             tiktok_handle: np.tiktok_handle ? np.tiktok_handle.replace(/^@/, '') : null,
             linkedin_url: np.linkedin_url || null,
             website: np.website || null,
@@ -1102,7 +1108,7 @@ Retourne 8-12 prospects qualifiés AVEC EMAIL en JSON. Sois TRÈS concis dans de
                 prospect_id: newP.id,
                 type: 'prospect_discovered',
                 description: `Nouveau prospect: ${np.company} (${np.type || 'type inconnu'})`,
-                data: { action: 'discovered', company: np.company, type: np.type, quartier: np.quartier, email: np.email, instagram: igHandle, score: newScore, agent: 'commercial' },
+                data: { action: 'discovered', company: np.company, type: np.type, quartier: np.quartier, email: np.email, instagram: cleanIG, score: newScore, agent: 'commercial' },
                 created_at: nowISO,
               });
             }
@@ -1112,7 +1118,7 @@ Retourne 8-12 prospects qualifiés AVEC EMAIL en JSON. Sois TRÈS concis dans de
               company: np.company,
               type: VALID_TYPES.includes(np.type) ? np.type : 'pme',
               quartier: np.quartier || null,
-              instagram: igHandle,
+              instagram: cleanIG,
               website: np.website || null,
               email: np.email || null,
               phone: np.phone || null,
