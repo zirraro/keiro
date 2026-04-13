@@ -414,21 +414,33 @@ ${history ? `\nCONVERSATION:\n${history}` : ''}${businessContext}${ragContext}`;
           const imgPrompt = generateMatch[1].trim();
           aiReply = aiReply.replace(/\[GENERATE_IMAGE:[^\]]+\]/, '').trim();
           try {
-            const seedreamUrl = process.env.SEEDREAM_API_URL;
-            const seedreamKey = process.env.SEEDREAM_API_KEY;
-            if (seedreamUrl && seedreamKey) {
-              console.log(`[InstagramWebhook] Generating personalized image: ${imgPrompt.substring(0, 80)}`);
-              const genRes = await fetch(seedreamUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${seedreamKey}` },
-                body: JSON.stringify({ prompt: imgPrompt, width: 1080, height: 1080, num_images: 1 }),
-                signal: AbortSignal.timeout(30000),
-              });
-              if (genRes.ok) {
-                const genData = await genRes.json();
-                const generatedUrl = genData.images?.[0]?.url || genData.data?.[0]?.url || genData.url;
-                if (generatedUrl) imageToSend = generatedUrl;
+            const seedreamUrl = process.env.SEEDREAM_API_URL || 'https://ark.ap-southeast.bytepluses.com/api/v3/images/generations';
+            const seedreamKey = process.env.SEEDREAM_API_KEY || process.env.ARK_API_KEY || '341cd095-2c11-49da-82e7-dc2db23c565c';
+            const cleanKey = seedreamKey.replace(/\\n/g, '').trim();
+            console.log(`[InstagramWebhook] Generating personalized image: ${imgPrompt.substring(0, 80)}`);
+            const genRes = await fetch(seedreamUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${cleanKey}` },
+              body: JSON.stringify({
+                model: 'seedream-4-5-251128',
+                prompt: imgPrompt + '. Ultra high quality, professional marketing visual, cinematic lighting, modern premium aesthetic, social media ready, no text, no words, no letters, no watermarks',
+                negative_prompt: 'text, words, letters, numbers, writing, typography, signs, labels, watermarks, logos, low quality, blurry',
+                response_format: 'url',
+                watermark: false,
+                size: '1024x1024',
+                seed: -1,
+              }),
+              signal: AbortSignal.timeout(30000),
+            });
+            if (genRes.ok) {
+              const genData = await genRes.json();
+              const generatedUrl = genData.data?.[0]?.url || genData.images?.[0]?.url || genData.url;
+              if (generatedUrl) {
+                imageToSend = generatedUrl;
+                console.log(`[InstagramWebhook] Image generated: ${generatedUrl.substring(0, 80)}`);
               }
+            } else {
+              console.warn('[InstagramWebhook] Seedream API error:', genRes.status, (await genRes.text()).substring(0, 100));
             }
           } catch (genErr: any) {
             console.warn('[InstagramWebhook] Image generation failed:', genErr.message?.substring(0, 100));
@@ -439,15 +451,17 @@ ${history ? `\nCONVERSATION:\n${history}` : ''}${businessContext}${ragContext}`;
         // This handles ANY business type — not limited to DB categories
         if (!imageToSend && (showcaseMatch || generateMatch)) {
           try {
-            const seedreamUrl = process.env.SEEDREAM_API_URL;
-            const seedreamKey = process.env.SEEDREAM_API_KEY;
+            const seedreamUrl = process.env.SEEDREAM_API_URL || 'https://ark.ap-southeast.bytepluses.com/api/v3/images/generations';
+            const seedreamKey = (process.env.SEEDREAM_API_KEY || process.env.ARK_API_KEY || '341cd095-2c11-49da-82e7-dc2db23c565c').replace(/\\n/g, '').trim();
             if (seedreamUrl && seedreamKey) {
               // Build a rich prompt from prospect info + what they told us
               const bizType = showcaseMatch ? showcaseMatch[1] : (prospect.type || 'business');
               const bizName = prospect.company || '';
               // Use the conversation to understand what the prospect actually does
               const lastUserMsg = messageText.toLowerCase();
-              const autoPrompt = `Beautiful Instagram marketing post for a ${bizType} shop${bizName ? ` "${bizName}"` : ''}, showing ${bizType} products elegantly displayed, professional product photography, soft natural lighting, luxury feel, modern aesthetic, social media ready, square format, high quality 4K`;
+              // Use prospect specialty if available for ultra-precise visuals
+              const specialty = (prospect.notes || '').split(' — ')[0] || bizType;
+              const autoPrompt = `Stunning Instagram marketing visual for a ${specialty}${bizName ? ` named "${bizName}"` : ''}, featuring ${specialty} products beautifully styled, cinematic composition, professional product photography, soft natural lighting with warm tones, luxury premium feel, modern minimalist aesthetic, social media ready, ultra high quality, photorealistic`;
               console.log(`[InstagramWebhook] Auto-generating image: ${autoPrompt.substring(0, 80)}`);
               const genRes = await fetch(seedreamUrl, {
                 method: 'POST',
