@@ -281,23 +281,54 @@ function EditorialCalendarFull({ agentId }: { agentId: string }) {
     return true;
   }).sort((a, b) => new Date(b.scheduled_date || b.created_at).getTime() - new Date(a.scheduled_date || a.created_at).getTime());
 
-  const counts = { all: posts.length, draft: posts.filter(p => p.status === 'draft').length, approved: posts.filter(p => p.status === 'approved').length, published: posts.filter(p => p.status === 'published').length };
+  const counts = {
+    all: posts.length,
+    draft: posts.filter(p => p.status === 'draft').length,
+    approved: posts.filter(p => p.status === 'approved').length,
+    published: posts.filter(p => p.status === 'published').length,
+    failed: posts.filter(p => p.status === 'publish_failed').length,
+    skipped: posts.filter(p => p.status === 'skipped').length,
+  };
+  const platformCounts = {
+    all: filtered.length,
+    instagram: posts.filter(p => (p.platform || 'instagram') === 'instagram').length,
+    tiktok: posts.filter(p => p.platform === 'tiktok').length,
+    linkedin: posts.filter(p => p.platform === 'linkedin').length,
+  };
 
   if (loading) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400" /></div>;
 
   return (
     <div className="space-y-4">
-      {/* Filters */}
+      {/* Status filters — clear labels with counts */}
       <div className="flex flex-wrap gap-1.5">
-        {[{ key: 'all', label: `Tous (${counts.all})` }, { key: 'draft', label: `Brouillons (${counts.draft})` }, { key: 'approved', label: `Programmés (${counts.approved})` }, { key: 'published', label: `Publiés (${counts.published})` }].map(f => (
-          <button key={f.key} onClick={() => setFilter(f.key)} className={`px-3 py-1.5 rounded-lg text-[10px] font-medium transition-all ${filter === f.key ? 'bg-purple-600 text-white' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}>{f.label}</button>
+        {[
+          { key: 'all', label: 'Tous', count: counts.all, color: 'bg-purple-600' },
+          { key: 'published', label: 'Publies', count: counts.published, color: 'bg-emerald-600' },
+          { key: 'approved', label: 'Programmes', count: counts.approved, color: 'bg-blue-600' },
+          { key: 'draft', label: 'Brouillons', count: counts.draft, color: 'bg-amber-600' },
+          ...(counts.failed > 0 ? [{ key: 'publish_failed', label: 'Echoues', count: counts.failed, color: 'bg-red-600' }] : []),
+        ].map(f => (
+          <button key={f.key} onClick={() => setFilter(f.key)} className={`px-3 py-2 rounded-lg text-xs font-medium transition-all min-h-[36px] flex items-center gap-1.5 ${filter === f.key ? f.color + ' text-white shadow-lg' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}>
+            {f.label}
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${filter === f.key ? 'bg-white/20' : 'bg-white/10'}`}>{f.count}</span>
+          </button>
         ))}
       </div>
+      {/* Platform filters */}
       <div className="flex gap-1.5">
-        {[{ key: 'all', label: 'Tous' }, { key: 'instagram', label: '\uD83D\uDCF7 IG' }, { key: 'tiktok', label: '\uD83C\uDFB5 TT' }, { key: 'linkedin', label: '\uD83D\uDCBC LI' }].map(p => (
-          <button key={p.key} onClick={() => setPlatformFilter(p.key)} className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all ${platformFilter === p.key ? 'bg-white/15 text-white' : 'bg-white/5 text-white/30 hover:bg-white/10'}`}>{p.label}</button>
+        {[
+          { key: 'all', label: 'Toutes plateformes', count: platformCounts.all },
+          { key: 'instagram', label: '\u{1F4F7} Instagram', count: platformCounts.instagram },
+          { key: 'tiktok', label: '\u{1F3B5} TikTok', count: platformCounts.tiktok },
+          { key: 'linkedin', label: '\u{1F4BC} LinkedIn', count: platformCounts.linkedin },
+        ].map(p => (
+          <button key={p.key} onClick={() => setPlatformFilter(p.key)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1 ${platformFilter === p.key ? 'bg-white/20 text-white' : 'bg-white/5 text-white/30 hover:bg-white/10'}`}>
+            {p.label} <span className="text-[9px] text-white/40">{p.count}</span>
+          </button>
         ))}
       </div>
+      <p className="text-[10px] text-white/20">{filtered.length} post{filtered.length > 1 ? 's' : ''} affiches</p>
 
       {/* Grid */}
       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-1.5">
