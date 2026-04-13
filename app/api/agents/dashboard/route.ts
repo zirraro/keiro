@@ -469,9 +469,9 @@ async function getSeoData(
   supabase: ReturnType<typeof getSupabaseAdmin>,
   userId: string,
 ) {
-  // Try seo_blog_posts first, fall back to agent_logs
+  // Try blog_posts first, fall back to agent_logs
   const { data: blogPosts, error: blogError } = await supabase
-    .from('seo_blog_posts')
+    .from('blog_posts')
     .select('id, title, status, keyword, created_at')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
