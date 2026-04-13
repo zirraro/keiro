@@ -377,8 +377,20 @@ async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram', 
       console.log(`[DMAgent] Using fallback template for ${prospect.company || prospect.instagram}`);
     }
 
-    // Insert into dm_queue with status 'pending' — founder must manually send
+    // Check for duplicates before inserting
     const handle = isTikTok ? prospect.tiktok_handle : prospect.instagram;
+    const { data: existingDM } = await supabase.from('dm_queue')
+      .select('id')
+      .eq('prospect_id', prospect.id)
+      .eq('channel', channelName)
+      .in('status', ['pending', 'sent'])
+      .limit(1);
+    if (existingDM && existingDM.length > 0) {
+      console.log(`[DMAgent] Skip duplicate: ${handle} already in queue`);
+      continue;
+    }
+
+    // Insert into dm_queue
     const { error: queueError } = await supabase.from('dm_queue').insert({
       prospect_id: prospect.id,
       channel: channelName,
