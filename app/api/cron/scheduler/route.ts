@@ -345,7 +345,10 @@ export async function GET(request: NextRequest) {
           await callEndpoint(`DM AutoReply [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram/auto-reply?user_id=${uid}`, 'POST');
           await delay(2000);
           await callEndpoint(`DM Instagram [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram?slot=morning&user_id=${uid}`, 'POST');
-          await delay(3000);
+          await delay(2000);
+          // Send pending DMs from queue (proactive prospection)
+          await callEndpoint(`DM Send Queue [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram/send-queue?user_id=${uid}`, 'POST');
+          await delay(2000);
           if (isNetworkActive(uid, 'dm_instagram', 'tiktok')) {
             await callEndpoint(`DM TikTok [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram?platform=tiktok&count=20&user_id=${uid}`, 'POST');
           }
