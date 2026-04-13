@@ -2896,38 +2896,43 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
     console.warn('[Content] Failed to load shared context:', e.message);
   }
 
-  // CONTENT STRATEGY v3 — 50% actualité/trends, format rotation
+  // CONTENT STRATEGY v4 — percentage-based, works for ANY posting frequency
   // DB pillar constraint: tips, demo, social_proof, trends
-  // Morning = varied formats (post, carrousel, story) — image-based
-  // Evening = reel (video) — 50% trends-linked
-  // 50% of ALL content must link to current trends/actualité
-  const morningSchedule: Record<number, { platform: string; format: string; pillar: string }> = {
-    1: { platform: 'instagram', format: 'carrousel', pillar: 'trends' },           // Mon AM: actu carrousel
-    2: { platform: 'instagram', format: 'post', pillar: 'tips' },                  // Tue AM: tips post
-    3: { platform: 'instagram', format: 'story', pillar: 'trends' },               // Wed AM: actu story
-    4: { platform: 'instagram', format: 'carrousel', pillar: 'demo' },             // Thu AM: démo carrousel
-    5: { platform: 'instagram', format: 'post', pillar: 'trends' },                // Fri AM: actu post
-    6: { platform: 'instagram', format: 'story', pillar: 'social_proof' },         // Sat AM: témoignage story
-    0: { platform: 'instagram', format: 'post', pillar: 'trends' },                // Sun AM: actu post
+  //
+  // PILLAR DISTRIBUTION (% based):
+  //   50% trends (actualité/tendances liées au business du client)
+  //   20% tips (conseils pratiques)
+  //   15% demo (démonstration produit/service)
+  //   15% social_proof (témoignages, résultats, avant/après)
+  //
+  // FORMAT DISTRIBUTION (% based):
+  //   30% post (image)
+  //   25% reel (vidéo courte)
+  //   25% carrousel (multi-image)
+  //   20% story (éphémère)
+  //
+  // The schedule below uses dayOfWeek + slot to pick pillar/format
+  // via rotation that respects these percentages over a 7-day cycle.
+
+  const PILLAR_ROTATION = ['trends', 'tips', 'trends', 'demo', 'trends', 'social_proof', 'trends'];
+  const FORMAT_ROTATION_MORNING = ['post', 'carrousel', 'story', 'carrousel', 'post', 'story', 'post'];
+  const FORMAT_ROTATION_MIDDAY = ['carrousel', 'post', 'post', 'story', 'carrousel', 'post', 'story'];
+  const FORMAT_ROTATION_EVENING = ['reel', 'reel', 'reel', 'reel', 'reel', 'reel', 'reel'];
+
+  // Pick pillar: 50% trends via rotation + offset per slot
+  const pickPillar = (day: number, slotOffset: number) => {
+    return PILLAR_ROTATION[(day + slotOffset) % PILLAR_ROTATION.length];
   };
-  const middaySchedule: Record<number, { platform: string; format: string; pillar: string }> = {
-    1: { platform: 'instagram', format: 'post', pillar: 'trends' },                // Mon MID: actu post
-    2: { platform: 'instagram', format: 'carrousel', pillar: 'social_proof' },     // Tue MID: témoignage carrousel
-    3: { platform: 'instagram', format: 'post', pillar: 'demo' },                  // Wed MID: démo post
-    4: { platform: 'instagram', format: 'story', pillar: 'trends' },               // Thu MID: actu story
-    5: { platform: 'instagram', format: 'carrousel', pillar: 'tips' },             // Fri MID: tips carrousel
-    6: { platform: 'instagram', format: 'post', pillar: 'trends' },                // Sat MID: actu post
-    0: { platform: 'instagram', format: 'story', pillar: 'tips' },                 // Sun MID: tips story
-  };
-  const eveningSchedule: Record<number, { platform: string; format: string; pillar: string }> = {
-    1: { platform: 'instagram', format: 'reel', pillar: 'trends' },                // Mon EVE: actu reel
-    2: { platform: 'instagram', format: 'reel', pillar: 'demo' },                  // Tue EVE: démo reel
-    3: { platform: 'instagram', format: 'reel', pillar: 'trends' },                // Wed EVE: actu reel
-    4: { platform: 'instagram', format: 'reel', pillar: 'social_proof' },           // Thu EVE: témoignage reel
-    5: { platform: 'instagram', format: 'reel', pillar: 'trends' },                // Fri EVE: actu reel
-    6: { platform: 'instagram', format: 'reel', pillar: 'trends' },                // Sat EVE: actu reel
-    0: { platform: 'instagram', format: 'reel', pillar: 'demo' },                  // Sun EVE: démo reel
-  };
+
+  const morningSchedule: Record<number, { platform: string; format: string; pillar: string }> = {};
+  const middaySchedule: Record<number, { platform: string; format: string; pillar: string }> = {};
+  const eveningSchedule: Record<number, { platform: string; format: string; pillar: string }> = {};
+
+  for (let d = 0; d < 7; d++) {
+    morningSchedule[d] = { platform: 'instagram', format: FORMAT_ROTATION_MORNING[d], pillar: pickPillar(d, 0) };
+    middaySchedule[d] = { platform: 'instagram', format: FORMAT_ROTATION_MIDDAY[d], pillar: pickPillar(d, 2) };
+    eveningSchedule[d] = { platform: 'instagram', format: FORMAT_ROTATION_EVENING[d], pillar: pickPillar(d, 4) };
+  }
   // TikTok slot: 1 video per day (published at 21h30 Paris via tiktok_publish cron)
   const tiktokSchedule: Record<number, { platform: string; format: string; pillar: string }> = {
     1: { platform: 'tiktok', format: 'video', pillar: 'tips' },
