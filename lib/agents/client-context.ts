@@ -216,7 +216,21 @@ export function formatDossierForPrompt(dossier: BusinessDossier | null): string 
 
   if (dossier.ai_summary) sections.push(`RESUME IA: ${dossier.ai_summary}`);
 
-  return `=== DOSSIER CLIENT (${dossier.completeness_score}% complet) ===\n${sections.join('\n\n')}`;
+  // Prominent targeting directive — LLMs tend to treat the dossier as
+  // background info and drift toward generic advice. Putting the business
+  // type + city + tone at the TOP as an explicit "tailor every response to
+  // this exact business" instruction makes recommendations land much more
+  // specifically, especially for niche business types.
+  const targetingParts: string[] = [];
+  if (dossier.business_type) targetingParts.push(`TYPE: ${dossier.business_type}`);
+  if (dossier.city) targetingParts.push(`VILLE: ${dossier.city}`);
+  if (dossier.brand_tone) targetingParts.push(`TON: ${dossier.brand_tone}`);
+  if (dossier.target_audience) targetingParts.push(`CIBLE: ${dossier.target_audience}`);
+  const targeting = targetingParts.length
+    ? `=== CIBLAGE OBLIGATOIRE ===\nChaque conseil, exemple, post, email ou recommandation que tu donnes DOIT etre adapte specifiquement a ce business. Ne donne jamais de conseil generique qui pourrait s'appliquer a n'importe quel commerce.\n${targetingParts.join('\n')}\n\n`
+    : '';
+
+  return `${targeting}=== DOSSIER CLIENT (${dossier.completeness_score}% complet) ===\n${sections.join('\n\n')}`;
 }
 
 // Define which agents are visible to clients and their status
