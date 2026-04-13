@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { promises as dns } from 'dns';
 import { getEmailTemplate } from '@/lib/agents/email-templates';
 import { getSequenceForProspect } from '@/lib/agents/scoring';
 import { verifyProspectData, verifyCRMCoherence } from '@/lib/agents/business-timing';
@@ -17,6 +18,29 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 function getSupabaseAdmin() {
   return createClient(supabaseUrl, supabaseServiceKey);
+}
+
+// In-process MX cache (lifetime = one cron slot execution) so 50 prospects
+// on the same domain don't each trigger a DNS lookup.
+const mxCache = new Map<string, boolean>();
+async function hasMxRecord(domain: string): Promise<boolean> {
+  if (!domain) return false;
+  const cached = mxCache.get(domain);
+  if (cached !== undefined) return cached;
+  try {
+    const records = await dns.resolveMx(domain);
+    const ok = Array.isArray(records) && records.length > 0;
+    mxCache.set(domain, ok);
+    return ok;
+  } catch (e: any) {
+    // ENOTFOUND / ENODATA → domain has no MX and can't receive mail
+    if (e?.code === 'ENOTFOUND' || e?.code === 'ENODATA') {
+      mxCache.set(domain, false);
+      return false;
+    }
+    // Other DNS errors (SERVFAIL, TIMEOUT) — give benefit of doubt, don't cache
+    return true;
+  }
 }
 
 /**
@@ -704,6 +728,33 @@ async function sendEmail(
     const emailDomain = (prospect.email || '').split('@')[1]?.toLowerCase();
     if (emailDomain && disposableDomains.includes(emailDomain)) {
       return { success: false, error: 'Disposable email' };
+    }
+
+    // Pre-send MX validation: ~80% of scraped `contact@xxx.tld` hard bounces
+    // come from domains that don't even resolve MX records. Skipping them
+    // before sending saves Brevo quota, cuts bounce rate (today ~5% hard,
+    // ~25% soft) and protects sender reputation (Brevo throttles accounts
+    // with high bounce ratios). Results cached in-process to avoid repeated
+    // DNS lookups for the same domain inside a single cron slot.
+    if (emailDomain) {
+      try {
+        const mxOk = await hasMxRecord(emailDomain);
+        if (!mxOk) {
+          // Mark the prospect email_invalid so we don't retry it every slot
+          try {
+            const sb = getSupabaseAdmin();
+            await sb.from('crm_prospects').update({
+              email_sequence_status: 'email_invalid',
+              temperature: 'dead',
+              updated_at: new Date().toISOString(),
+            }).eq('id', prospect.id);
+          } catch {}
+          console.warn(`[EmailDaily] Skipping ${prospect.email} — no MX record for ${emailDomain}`);
+          return { success: false, error: 'Domain has no MX record' };
+        }
+      } catch {
+        // DNS failures are non-fatal; continue with send
+      }
     }
 
     let messageId = 'unknown';
