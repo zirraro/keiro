@@ -331,41 +331,46 @@ export async function GET(request: NextRequest) {
 
     case 'morning_batch':
       // 07:00 UTC — Everything morning: DM + Content + Email #1 + Discovery + Trends + Diag + Comptable
+      // PRIORITY ORDER: Commercial first (feeds the pipeline), then DM, Content, Email, SEO
+      // Each major task is a separate fireBackground to avoid timeout cascading
+
+      // 1. Commercial — HIGHEST PRIORITY: finds new prospects for all other agents
       fireBackground(async () => {
-        // Trends refresh (global, no per-client)
-        await callEndpoint('Trends Refresh', '/api/cron/refresh-trends');
-        // Diagnose social (global)
-        await callEndpoint('Diagnose Social', '/api/cron/diagnose-social');
-        // Comptable (per client)
-        for (const uid of getClientsWithAgent('comptable')) {
-          await callEndpoint(`Comptable [${uid.substring(0, 8)}]`, `/api/agents/comptable?user_id=${uid}`);
-        }
-        // DM auto-reply + proactive
+        await callForEachClient('Commercial Verify CRM', '/api/agents/commercial', 'POST', { action: 'verify_crm' }, 'commercial');
+      });
+
+      // 2. DM + Email — contact prospects found by commercial
+      fireBackground(async () => {
         for (const uid of getClientsWithAgent('dm_instagram')) {
           await callEndpoint(`DM AutoReply [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram/auto-reply?user_id=${uid}`, 'POST');
-          await delay(3000);
+          await delay(2000);
           await callEndpoint(`DM Instagram [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram?slot=morning&user_id=${uid}`, 'POST');
-          await delay(5000);
-          // TikTok DM if active
+          await delay(3000);
           if (isNetworkActive(uid, 'dm_instagram', 'tiktok')) {
             await callEndpoint(`DM TikTok [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram?platform=tiktok&count=20&user_id=${uid}`, 'POST');
-            await delay(10000);
           }
         }
-        // Content morning + publish
-        for (const uid of getClientsWithAgent('content')) {
-          await callEndpoint(`Content [${uid.substring(0, 8)}]`, `/api/agents/content?slot=morning&user_id=${uid}`);
-          await delay(5000);
-          await callEndpoint(`Publish [${uid.substring(0, 8)}]`, `/api/agents/content?user_id=${uid}`, 'POST', { action: 'execute_publication' });
-          await delay(5000);
-        }
-        // Email cold #1
         for (const uid of getClientsWithAgent('email')) {
           await callEndpoint(`Email Cold [${uid.substring(0, 8)}]`, `/api/agents/email/daily?slot=morning&types=restaurant,traiteur,boutique,coiffeur,fleuriste&user_id=${uid}`);
         }
-        // Discovery
-        await callForEachClient('Commercial Verify CRM', '/api/agents/commercial', 'POST', { action: 'verify_crm' }, 'commercial');
-        // SEO (Mon/Wed/Fri only)
+      });
+
+      // 3. Content + Publish — visibility
+      fireBackground(async () => {
+        for (const uid of getClientsWithAgent('content')) {
+          await callEndpoint(`Content [${uid.substring(0, 8)}]`, `/api/agents/content?slot=morning&user_id=${uid}`);
+          await delay(3000);
+          await callEndpoint(`Publish [${uid.substring(0, 8)}]`, `/api/agents/content?user_id=${uid}`, 'POST', { action: 'execute_publication' });
+        }
+      });
+
+      // 4. Support tasks — lower priority
+      fireBackground(async () => {
+        await callEndpoint('Trends Refresh', '/api/cron/refresh-trends');
+        await callEndpoint('Diagnose Social', '/api/cron/diagnose-social');
+        for (const uid of getClientsWithAgent('comptable')) {
+          await callEndpoint(`Comptable [${uid.substring(0, 8)}]`, `/api/agents/comptable?user_id=${uid}`);
+        }
         if (isSeoDay) {
           await callEndpoint('SEO', '/api/agents/seo');
         }
