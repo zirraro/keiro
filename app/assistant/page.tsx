@@ -602,6 +602,9 @@ export default function AssistantPage() {
       setSummaryLoading(false);
     }
     loadSummary();
+    // Auto-refresh summary every 90s for real-time agent activity
+    const interval = setInterval(loadSummary, 90000);
+    return () => clearInterval(interval);
   }, [user]);
 
   // ─── Load agent activation states ───────────────────────

@@ -616,10 +616,20 @@ export default function AgentWorkspacePage() {
   useEffect(() => {
     if (!hasDashboard || dashboardData) return;
     setDashboardLoading(true);
-    (async () => {
+    const loadDash = async () => {
       try { const res = await fetch(`/api/agents/dashboard?agent_id=${agentId}`, { credentials: 'include' }); if (res.ok) setDashboardData(await res.json()); } catch {} finally { setDashboardLoading(false); }
-    })();
-  }, [agentId, hasDashboard, dashboardData]);
+    };
+    loadDash();
+
+    // Auto-refresh dashboard every 60s so client sees agent results in real-time
+    const interval = setInterval(() => {
+      fetch(`/api/agents/dashboard?agent_id=${agentId}`, { credentials: 'include' })
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (d) setDashboardData(d); })
+        .catch(() => {});
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [agentId, hasDashboard]);
 
   // ─── Load task history (timeline items + action logs) ────────────────────────────────
   const [timelineItems, setTimelineItems] = useState<any[]>([]);
