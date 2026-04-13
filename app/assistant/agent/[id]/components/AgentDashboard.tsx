@@ -3220,23 +3220,56 @@ function DmInstagramPanel({
         <div data-tour="auto-toggle" className={!(data as any).connections?.instagram ? 'lg:w-72' : 'flex-1'}><AutoModeToggle agentId="dm_instagram" autoLabel="DMs automatiques" manualLabel="DMs manuels" autoDesc="Jade repond auto aux DMs" manualDesc="Tu valides chaque DM" /></div>
       </div>
 
-      {/* KPIs + CRM link — horizontal bar */}
-      <div data-tour="dm-stats" className="flex items-center gap-2 sm:gap-3 mb-3 flex-wrap">
-        <div className="flex items-center gap-1.5 bg-white/5 rounded-lg px-3 py-2 border border-white/10">
-          <span className="text-blue-400 font-bold text-sm">{fmt(stats.dmsSent)}</span>
-          <span className="text-white/30 text-[10px]">DMs</span>
+      {/* KPI cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+        <KpiCard label="DMs envoyes" value={fmt(stats.dmsSent)} gradientFrom="#3b82f6" gradientTo="#2563eb" />
+        <KpiCard label="Reponses recues" value={fmt(stats.responses)} gradientFrom="#f59e0b" gradientTo="#d97706" />
+        <KpiCard label="DMs prepares" value={fmt((stats as any).queuePending || 0)} gradientFrom="#8b5cf6" gradientTo="#6d28d9" />
+        <KpiCard label="Prospects IG" value={fmt((stats as any).prospectsWithIG || 0)} gradientFrom="#ec4899" gradientTo="#db2777" />
+      </div>
+
+      {/* Pipeline funnel */}
+      <div data-tour="dm-stats" className="rounded-xl border border-white/10 bg-white/[0.02] p-3 mb-3">
+        <div className="flex items-center justify-between gap-1 text-center">
+          {[
+            { label: 'Prospects IG', value: (stats as any).prospectsWithIG || 0, icon: '\u{1F4F8}', color: '#ec4899' },
+            { label: 'DMs prepares', value: (stats as any).queueTotal || 0, icon: '\u{1F4DD}', color: '#8b5cf6' },
+            { label: 'DMs envoyes', value: stats.dmsSent, icon: '\u{1F4AC}', color: '#3b82f6' },
+            { label: 'Reponses', value: stats.responses, icon: '\u{1F4EC}', color: '#f59e0b' },
+            { label: 'RDV/Conversion', value: stats.rdvGenerated, icon: '\u{1F525}', color: '#22c55e' },
+          ].map((step, i) => (
+            <div key={step.label} className="flex items-center flex-1">
+              <div className="flex-1 text-center">
+                <div className="text-sm mb-0.5">{step.icon}</div>
+                <div className="text-sm font-bold" style={{ color: step.color }}>{step.value}</div>
+                <div className="text-[8px] text-white/30 mt-0.5">{step.label}</div>
+              </div>
+              {i < 4 && <div className="text-white/15 text-[10px]">{'\u2192'}</div>}
+            </div>
+          ))}
         </div>
-        <span className="text-white/15 text-xs">{'\u2192'}</span>
-        <div className="flex items-center gap-1.5 bg-white/5 rounded-lg px-3 py-2 border border-white/10">
-          <span className="text-amber-400 font-bold text-sm">{fmt(stats.responses)}</span>
-          <span className="text-white/30 text-[10px]">Reponses</span>
+      </div>
+
+      {/* Queue stats detail */}
+      {((stats as any).queueTotal || 0) > 0 && (
+        <div className="grid grid-cols-3 gap-2 mb-3">
+          <div className="rounded-lg bg-purple-500/10 border border-purple-500/20 p-2 text-center">
+            <div className="text-sm font-bold text-purple-400">{fmt((stats as any).queuePending || 0)}</div>
+            <div className="text-[8px] text-white/30">En attente</div>
+          </div>
+          <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-2 text-center">
+            <div className="text-sm font-bold text-emerald-400">{fmt((stats as any).queueSent || 0)}</div>
+            <div className="text-[8px] text-white/30">Envoyes</div>
+          </div>
+          <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-2 text-center">
+            <div className="text-sm font-bold text-red-400">{fmt((stats as any).queueFailed || 0)}</div>
+            <div className="text-[8px] text-white/30">Echoues</div>
+          </div>
         </div>
-        <span className="text-white/15 text-xs">{'\u2192'}</span>
-        <div className="flex items-center gap-1.5 bg-white/5 rounded-lg px-3 py-2 border border-white/10">
-          <span className="text-emerald-400 font-bold text-sm">{fmt(stats.rdvGenerated)}</span>
-          <span className="text-white/30 text-[10px]">RDV</span>
-        </div>
-        <a href="/assistant/crm" className="ml-auto px-3 py-2 bg-purple-600/20 text-purple-300 text-xs font-medium rounded-lg hover:bg-purple-600/30 transition border border-purple-500/20">
+      )}
+
+      <div className="flex items-center gap-2 mb-3">
+        <a href="/assistant/crm" className="px-3 py-2 bg-purple-600/20 text-purple-300 text-xs font-medium rounded-lg hover:bg-purple-600/30 transition border border-purple-500/20">
           {'\u{1F4CA}'} CRM
         </a>
       </div>

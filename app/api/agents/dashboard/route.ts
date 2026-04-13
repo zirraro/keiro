@@ -763,16 +763,38 @@ async function getDmInstagramData(
     };
   });
 
+  // DM queue stats — prepared, sent, pending, failed
+  const { count: queueTotal } = await supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('channel', 'instagram');
+  const { count: queuePending } = await supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('channel', 'instagram').eq('status', 'pending');
+  const { count: queueSent } = await supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('channel', 'instagram').eq('status', 'sent');
+  const { count: queueFailed } = await supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('channel', 'instagram').eq('status', 'failed');
+
+  // Prospects with Instagram for DM potential
+  const { count: prospectsWithIG } = await supabase.from('crm_prospects')
+    .select('id', { count: 'exact', head: true })
+    .not('instagram', 'is', null)
+    .neq('instagram', '');
+
+  // Likes given (from send-queue pre-engagement)
+  const likesLogs = logs.filter(l => typeof l.action === 'string' && l.action.includes('like'));
+
   return {
     dmStats: {
-      dmsSent,
+      dmsSent: (queueSent ?? 0) + dmsSent,
       dmReceived,
       responses,
       rdvGenerated,
       handovers,
-      responseRate: dmReceived > 0 ? Math.round((dmsSent / dmReceived) * 100) : 0,
+      responseRate: dmReceived > 0 ? Math.round((dmsSent / Math.max(dmReceived, 1)) * 100) : 0,
       prospectsGenerated: dmProspects ?? 0,
+      prospectsWithIG: prospectsWithIG ?? 0,
       totalActions: logs.length,
+      // Queue stats
+      queueTotal: queueTotal ?? 0,
+      queuePending: queuePending ?? 0,
+      queueSent: queueSent ?? 0,
+      queueFailed: queueFailed ?? 0,
+      likesGiven: likesLogs.length,
       recentDms,
       recentLogs: logs.slice(0, 10),
     },
