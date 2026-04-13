@@ -784,8 +784,9 @@ CE QUE TU DOIS REMPLIR pour chaque prospect (MAXIMUM d'info) :
 - phone : numéro de téléphone
 - google_rating : note Google (ex: 4.5)
 - google_reviews : nombre d'avis Google
-- description : ce que fait ce commerce (1 ligne)
-- specialty : spécialité (ex: "cuisine japonaise", "coiffure homme")
+- description : ce que fait ce commerce (1 ligne PRECISE — pas juste "restaurant" mais "restaurant italien" ou "sushi bar")
+- specialty : spécialité PRECISE (ex: "cuisine japonaise fusion", "coiffure afro homme", "bijoux artisanaux", "pizzeria napolitaine")
+IMPORTANT: La specialty doit permettre a nos agents de PERSONNALISER leurs visuels et messages. Plus c'est precis, mieux c'est.
 - address : adresse physique complète
 - qualification_reason : pourquoi ce prospect a besoin de KeiroAI
 
