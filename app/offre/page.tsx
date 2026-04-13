@@ -159,55 +159,51 @@ export default function OffrePage() {
               </div>
             </div>
 
-            {/* Fondateurs card */}
-            <div className="rounded-2xl border-2 border-amber-400 shadow-lg overflow-hidden relative">
-              <div className="absolute top-4 right-4 bg-amber-400 text-amber-900 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">
+            {/* Business card */}
+            <div className="rounded-2xl border-2 border-cyan-400 shadow-lg overflow-hidden relative">
+              <div className="absolute top-4 right-4 bg-cyan-400 text-cyan-900 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">
                 Recommand&eacute;
               </div>
-              <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-6 text-white text-center">
-                <h3 className="text-2xl font-bold">Fondateurs</h3>
-                <p className="mt-1 text-amber-100">Votre logo + 3 formats + TikTok</p>
+              <div className="bg-gradient-to-br from-[#0c1a3a] to-[#1e3a5f] p-6 text-white text-center">
+                <h3 className="text-2xl font-bold">Business</h3>
+                <p className="mt-1 text-cyan-200">15+ agents IA — automatisation compl&egrave;te</p>
                 <div className="mt-4">
-                  <span className="text-4xl font-bold">149&euro;</span>
-                  <span className="text-amber-100 ml-1">/mois</span>
+                  <span className="text-4xl font-bold">199&euro;</span>
+                  <span className="text-cyan-200 ml-1">/mois</span>
                 </div>
               </div>
               <div className="p-6">
                 <ul className="space-y-3 text-neutral-700">
                   <li className="flex items-start gap-2">
-                    <span className="text-amber-500 mt-0.5">&#10003;</span>
-                    <span>700 cr&eacute;dits/mois</span>
+                    <span className="text-cyan-500 mt-0.5">&#10003;</span>
+                    <span>2 000 cr&eacute;dits/mois</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-amber-500 mt-0.5">&#10003;</span>
-                    <span>TOUT le plan Pro +</span>
+                    <span className="text-cyan-500 mt-0.5">&#10003;</span>
+                    <span>15+ agents IA inclus</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-amber-500 mt-0.5">&#10003;</span>
-                    <span>TikTok d&eacute;bloqu&eacute;</span>
+                    <span className="text-cyan-500 mt-0.5">&#10003;</span>
+                    <span>Finance, SEO, Chatbot, RH</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-amber-500 mt-0.5">&#10003;</span>
-                    <span>Branding personnalis&eacute; (logo + couleurs)</span>
+                    <span className="text-cyan-500 mt-0.5">&#10003;</span>
+                    <span>Int&eacute;gration site web (widget)</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-amber-500 mt-0.5">&#10003;</span>
+                    <span className="text-cyan-500 mt-0.5">&#10003;</span>
                     <span>Multi-format : post + Story + Reel</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-amber-500 mt-0.5">&#10003;</span>
-                    <span>Support prioritaire 12h</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-amber-500 mt-0.5">&#10003;</span>
-                    <span>Prix verrouill&eacute; — offre valable jusqu&apos;au 25 mai 2026</span>
+                    <span className="text-cyan-500 mt-0.5">&#10003;</span>
+                    <span>Support prioritaire</span>
                   </li>
                 </ul>
                 <button
-                  onClick={() => startCheckout('fondateurs')}
-                  className="mt-6 w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 px-6 py-3 text-white font-semibold hover:shadow-lg hover:scale-[1.02] transition-all"
+                  onClick={() => startCheckout('business')}
+                  className="mt-6 w-full rounded-xl bg-gradient-to-r from-[#0c1a3a] to-cyan-600 px-6 py-3 text-white font-semibold hover:shadow-lg hover:scale-[1.02] transition-all"
                 >
-                  Devenir Fondateur — 149&euro;/mois
+                  Essai gratuit 7 jours — 199&euro;/mois
                 </button>
               </div>
             </div>
@@ -283,7 +279,7 @@ export default function OffrePage() {
                 </svg>
               </summary>
               <div className="px-5 pb-5 text-neutral-600">
-                Instagram + Stories + LinkedIn, visuels pro, vid&eacute;os, audio, stats, AMI (Assistant Marketing Intelligence). Tout sauf TikTok et le branding perso (r&eacute;serv&eacute;s Fondateurs).
+                Instagram + Stories + LinkedIn, visuels pro, vid&eacute;os, audio, stats, AMI (Assistant Marketing Intelligence). SEO, Chatbot et Finance avec le plan Pro et Business.
               </div>
             </details>
           </div>

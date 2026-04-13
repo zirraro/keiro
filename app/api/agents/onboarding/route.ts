@@ -466,26 +466,24 @@ function getOnboardingSteps(plan: string) {
     { key: 'w2_autonomy', trigger: 'time_based', delayMs: 14 * DAY },
   ];
 
-  // Solo/Pro: standard onboarding with upsell to Business
+  // Standard onboarding for all paid plans (7-day trial)
   const proSteps = [
-    { key: 'h0', trigger: 'payment', delayMs: 0 },
-    { key: 'h2', trigger: 'time_based', delayMs: 2 * HOUR },
-    { key: 'h6', trigger: 'time_based', delayMs: 6 * HOUR },
-    { key: 'h12', trigger: 'time_based', delayMs: 12 * HOUR },
-    { key: 'd1_morning', trigger: 'time_based', delayMs: 1 * DAY },
-    { key: 'd2_morning', trigger: 'time_based', delayMs: 2 * DAY },
-    { key: 'w1_review', trigger: 'time_based', delayMs: 7 * DAY },
-    { key: 'w2_autonomy', trigger: 'time_based', delayMs: 14 * DAY },
+    { key: 'h0', trigger: 'payment', delayMs: 0 },              // Bienvenue
+    { key: 'h2', trigger: 'time_based', delayMs: 2 * HOUR },    // Guide 1er visuel
+    { key: 'h6', trigger: 'time_based', delayMs: 6 * HOUR },    // Feature discovery
+    { key: 'd1_morning', trigger: 'time_based', delayMs: 1 * DAY },   // J+1 relance
+    { key: 'd2_morning', trigger: 'time_based', delayMs: 2 * DAY },   // J+2 upsell
+    { key: 'd5_urgency', trigger: 'time_based', delayMs: 5 * DAY },   // J+5 urgence (2j restants)
+    { key: 'w1_review', trigger: 'time_based', delayMs: 7 * DAY },    // J+7 fin essai
   ];
 
   const fondateursSteps = [
     { key: 'h0', trigger: 'payment', delayMs: 0 },
     { key: 'h2', trigger: 'time_based', delayMs: 2 * HOUR },
-    { key: 'h12', trigger: 'time_based', delayMs: 12 * HOUR },
     { key: 'd1_morning', trigger: 'time_based', delayMs: 1 * DAY },
     { key: 'd2_morning', trigger: 'time_based', delayMs: 2 * DAY },
+    { key: 'd5_urgency', trigger: 'time_based', delayMs: 5 * DAY },
     { key: 'w1_review', trigger: 'time_based', delayMs: 7 * DAY },
-    { key: 'w2_autonomy', trigger: 'time_based', delayMs: 14 * DAY },
   ];
 
   switch (plan) {

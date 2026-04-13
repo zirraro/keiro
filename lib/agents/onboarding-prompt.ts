@@ -142,11 +142,11 @@ ${totalCreations >= 3
 4. Lien : https://keiro.ai/generate`}
 Max 4 lignes. Signe "Victor de KeiroAI".`,
 
-    // JOUR 12 : Urgence J+12 — dernier push avant expiration essai 7j
-    d5_urgency: `J+12 pour ${firstName} (${businessType}, essai gratuit 7j).
+    // JOUR 5 : Urgence J+5 — dernier push avant expiration essai 7j
+    d5_urgency: `J+5 pour ${firstName} (${businessType}, essai gratuit 7j).
 Visuels : ${generationsCount}, Vidéos : ${videosCount}
 Crédits restants : ${creditsRemaining}
-IL RESTE 2 JOURS AVANT EXPIRATION DE L'ESSAI 14 JOURS.
+IL RESTE 2 JOURS AVANT EXPIRATION DE L'ESSAI 7 JOURS.
 
 ${totalCreations >= 2 ? `Le client a utilisé le produit. Il connaît la valeur.` : `Client peu actif — dernière chance.`}
 
