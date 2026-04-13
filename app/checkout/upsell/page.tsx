@@ -49,12 +49,11 @@ function UpsellContent() {
               <p className="text-xs text-neutral-400 uppercase font-bold mb-1">Createur</p>
               <p className="text-xl font-bold text-neutral-900 mb-2">49€<span className="text-sm font-normal text-neutral-400">/mois</span></p>
               <ul className="text-[11px] text-neutral-600 space-y-1">
-                <li>✓ 400 credits/mois</li>
-                <li>✓ Publication Instagram</li>
-                <li>✓ Agent contenu + DM</li>
-                <li className="text-neutral-300">✗ TikTok/LinkedIn</li>
-                <li className="text-neutral-300">✗ Email marketing</li>
-                <li className="text-neutral-300">✗ CRM</li>
+                <li>{'\u2713'} 7 agents IA</li>
+                <li>{'\u2713'} 400 credits/mois</li>
+                <li>{'\u2713'} Contenu + Email + DM + CRM</li>
+                <li>{'\u2713'} Avis Google auto</li>
+                <li className="text-neutral-300">{'\u2717'} SEO, Chatbot, RH</li>
               </ul>
             </button>
 
@@ -73,11 +72,11 @@ function UpsellContent() {
                 <span className="text-xs text-neutral-400 line-through ml-1">99€</span>
               </div>
               <ul className="text-[11px] text-neutral-700 space-y-1">
-                <li className="font-semibold text-green-600">✓ 1 200 credits (3x)</li>
-                <li>✓ IG + TikTok + LinkedIn</li>
-                <li>✓ 10 agents IA actifs</li>
-                <li className="font-semibold text-green-600">✓ Email + CRM</li>
-                <li className="font-semibold text-green-600">✓ Commercial + WhatsApp</li>
+                <li className="font-semibold text-green-600">{'\u2713'} 10 agents IA</li>
+                <li>{'\u2713'} 800 credits/mois (2x)</li>
+                <li className="font-semibold text-green-600">{'\u2713'} + SEO blog + Chatbot 24/7</li>
+                <li className="font-semibold text-green-600">{'\u2713'} + Sara juridique/RH</li>
+                <li>{'\u2713'} Tout Createur inclus</li>
               </ul>
             </button>
           </div>
