@@ -32,12 +32,16 @@ export async function GET(req: NextRequest) {
   const limit = parseInt(req.nextUrl.searchParams.get('limit') || '200');
   const offset = parseInt(req.nextUrl.searchParams.get('offset') || '0');
 
+  // Prioritize already-verified DMs so the client's Envoyer DM button
+  // never opens an inactive profile. verified_exists=true → shown first;
+  // unverified DMs still appear after them so nothing gets lost.
   const { data: queue, count: totalPending } = await supabase
     .from('dm_queue')
-    .select('id, prospect_id, handle, message, channel, priority, created_at', { count: 'exact' })
+    .select('id, prospect_id, handle, message, channel, priority, created_at, verified_exists, verified_at', { count: 'exact' })
     .eq('status', 'pending')
     .eq('channel', 'instagram')
     .in('prospect_id', prospectIds.slice(0, 500))
+    .order('verified_exists', { ascending: false, nullsFirst: false })
     .order('priority', { ascending: false })
     .range(offset, offset + limit - 1);
 

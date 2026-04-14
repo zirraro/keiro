@@ -2622,6 +2622,50 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
     } catch {} finally { setSending(null); }
   }, []);
 
+  // Live-check that the IG account is reachable BEFORE opening the profile,
+  // so we never send the user to an error page ("Une erreur s'est produite...").
+  // On failure the DM is also auto-removed from the queue and marked skipped
+  // server-side (the verify-handle route does the persistence).
+  const [verifying, setVerifying] = useState<string | null>(null);
+  const handleEnvoyerDM = useCallback(async (dm: { id: string; handle: string; message: string }) => {
+    const cleanHandle = (dm.handle || '').replace(/^@/, '').trim();
+    if (!cleanHandle) return;
+    setVerifying(dm.id);
+    try {
+      const vres = await fetch('/api/agents/dm-instagram/verify-handle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ dm_id: dm.id }),
+      });
+      const v = await vres.json().catch(() => ({}));
+      if (v?.exists === false) {
+        alert(`Ce compte Instagram (@${cleanHandle}) n'est plus joignable (${v.reason || 'compte prive / inexistant / pas de messagerie'}). On l'a retire de la file.`);
+        setQueue(prev => prev.filter(d => d.id !== dm.id));
+        setTotal(prev => prev - 1);
+        return;
+      }
+      // exists === true OR exists === null (unknown: admin not connected → proceed)
+      // Copy the prepared message to the clipboard so the user just pastes
+      // it into Instagram — we never auto-send. Meta considers
+      // click-through-then-paste as a human action, which is the whole
+      // point of the manual path while the App Review is pending.
+      navigator.clipboard.writeText(dm.message).catch(() => {});
+      window.open(`https://www.instagram.com/${cleanHandle}/`, '_blank');
+      // Mark as sent on the server after a short delay so the user has
+      // time to paste + send inside Instagram.
+      setTimeout(() => { sendDM(dm.id); }, 3000);
+    } catch {
+      // If the verify endpoint itself fails, fall back to the old behavior
+      // (open profile, trust the user). Better than blocking the click.
+      navigator.clipboard.writeText(dm.message).catch(() => {});
+      window.open(`https://www.instagram.com/${cleanHandle}/`, '_blank');
+      setTimeout(() => { sendDM(dm.id); }, 3000);
+    } finally {
+      setVerifying(null);
+    }
+  }, [sendDM]);
+
   if (loading || queue.length === 0) return null;
 
   const displayed = showAll ? queue : queue.slice(0, 10);
@@ -2646,34 +2690,31 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
         {displayed.map(dm => {
           const cleanHandle = (dm.handle || '').replace(/^@/, '').trim();
           if (!cleanHandle) return null;
+          const isVerified = (dm as any).verified_exists === true;
           return (
           <div key={dm.id} className="bg-white/[0.03] border border-white/10 rounded-xl p-3">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-xs font-semibold text-white">@{cleanHandle}</span>
+              {isVerified && (
+                <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-semibold">
+                  {'\u2705'} verifie
+                </span>
+              )}
               {dm.company && <span className="text-[10px] text-white/40">{dm.company}</span>}
             </div>
             <p className="text-[11px] text-white/60 leading-relaxed mb-2 line-clamp-3">{dm.message}</p>
             <div className="flex items-center gap-2 flex-wrap">
               <button
-                onClick={() => {
-                  // 1. Copy message to clipboard so the user can paste in IG
-                  navigator.clipboard.writeText(dm.message).catch(() => {});
-                  // 2. Open the prospect's profile page — IG deprecated /direct/t/{handle}
-                  //    (it now requires numeric user IDs and throws "Une erreur s'est
-                  //    produite..." on plain handles). The profile page always loads
-                  //    and has a "Message" button the user taps in one click.
-                  window.open(`https://www.instagram.com/${cleanHandle}/`, '_blank');
-                  // 3. Mark as sent on the server after a short delay so the user has
-                  //    time to paste + send inside Instagram.
-                  setTimeout(() => {
-                    sendDM(dm.id);
-                  }, 3000);
-                }}
-                disabled={sending === dm.id}
+                onClick={() => handleEnvoyerDM({ id: dm.id, handle: cleanHandle, message: dm.message })}
+                disabled={sending === dm.id || verifying === dm.id}
                 className="px-4 py-2.5 min-h-[44px] bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold rounded-lg hover:opacity-90 transition disabled:opacity-40"
-                title="Copie le message, ouvre le profil Instagram — cliquez Message puis collez"
+                title="Verifie le compte, copie le message, ouvre le profil Instagram — cliquez Message puis collez"
               >
-                {sending === dm.id ? '\u2713 Envoye !' : `${'\u{1F4AC}'} Envoyer le DM`}
+                {verifying === dm.id
+                  ? '\u23F3 Verification...'
+                  : sending === dm.id
+                    ? '\u2713 Envoye !'
+                    : `${'\u{1F4AC}'} Envoyer le DM`}
               </button>
               <button
                 onClick={() => setQueue(prev => prev.filter(d => d.id !== dm.id))}
