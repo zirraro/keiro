@@ -182,7 +182,7 @@ function DmConversationsLive() {
         agentName="Jade"
         connectLabel="Connecter Instagram"
         connectUrl="/api/auth/instagram-oauth"
-        claraMessage="Voici a quoi ressembleront tes conversations DM une fois Instagram connecte. Jade repondra automatiquement et prospection en DM pour toi !"
+        claraMessage="Voici a quoi ressembleront tes conversations DM une fois Instagram connecte. Jade prepare les brouillons de DM pour toi — tu les relis et tu cliques Envoyer. Tu restes le seul human agent qui envoie les messages."
         gradientFrom="#e11d48"
         gradientTo="#be123c"
       />
@@ -1802,26 +1802,30 @@ function DmInstagramPanel({
 
   return (
     <>
-      {/* Human Agent Protocol — required by Meta */}
+      {/* Human Agent Protocol — required by Meta. Every DM is reviewed and
+          sent by the human business owner (customer service agent). Jade
+          only prepares drafts; nothing is sent automatically. */}
       <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-3 mb-3">
         <div className="flex items-center gap-2 mb-2">
           <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center text-xs">{'\u{1F9D1}'}</div>
-          <span className="text-xs font-semibold text-blue-300">Human Agent Protocol</span>
+          <span className="text-xs font-semibold text-blue-300">Human Agent Protocol (Meta compliant)</span>
         </div>
         <p className="text-[10px] text-white/50 mb-2">
-          Les DMs automatiques de Jade incluent la mention "Reponse assistee par IA".
-          Vous pouvez reprendre la main sur n'importe quelle conversation a tout moment.
-          Le contact verra "Conversation geree par votre entreprise" quand vous repondez directement.
+          Chaque DM est <strong className="text-white/70">prepare par Jade et envoye par toi</strong>.
+          Jade te propose un brouillon personnalise, tu le relis, tu cliques "Envoyer"
+          et le message part depuis ton propre compte Instagram. <strong className="text-white/70">Aucun envoi automatique</strong> —
+          c'est toi, l'humain, qui es l'agent de service client.
+          C'est le mode "Human Agent" au sens des Plateformes Politiques Meta.
         </p>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-            <div className="w-2 h-2 rounded-full bg-emerald-400" />
-            <span className="text-[10px] text-emerald-400 font-medium">IA active</span>
-          </div>
-          <span className="text-white/20 text-[10px]">ou</span>
           <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-blue-500/10 border border-blue-500/20">
             <div className="w-2 h-2 rounded-full bg-blue-400" />
-            <span className="text-[10px] text-blue-400 font-medium">Vous repondez</span>
+            <span className="text-[10px] text-blue-400 font-medium">Tu reponds — toujours humain</span>
+          </div>
+          <span className="text-white/20 text-[10px]">+</span>
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-purple-500/10 border border-purple-500/20">
+            <div className="w-2 h-2 rounded-full bg-purple-400" />
+            <span className="text-[10px] text-purple-400 font-medium">Jade prepare les brouillons</span>
           </div>
         </div>
       </div>
@@ -1829,7 +1833,15 @@ function DmInstagramPanel({
       {/* Connect + Toggle inline — hide connect if already connected */}
       <div className="flex flex-col lg:flex-row gap-3 mb-3">
         <div className="flex-1"><SocialConnectBanners agentId="dm_instagram" networks={['instagram']} connections={(data as any).connections} /></div>
-        <div data-tour="auto-toggle" className={!(data as any).connections?.instagram ? 'lg:w-72' : 'flex-1'}><AutoModeToggle agentId="dm_instagram" autoLabel="DMs automatiques" manualLabel="DMs manuels" autoDesc="Jade repond auto aux DMs" manualDesc="Tu valides chaque DM" /></div>
+        <div data-tour="auto-toggle" className={!(data as any).connections?.instagram ? 'lg:w-72' : 'flex-1'}>
+          <AutoModeToggle
+            agentId="dm_instagram"
+            autoLabel="Brouillons prets a envoyer"
+            manualLabel="Pause des brouillons"
+            autoDesc="Jade prepare les DMs, tu cliques Envoyer pour valider humain"
+            manualDesc="Jade arrete de preparer — reprise quand tu veux"
+          />
+        </div>
       </div>
 
       {/* KPI cards */}
