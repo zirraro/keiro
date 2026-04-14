@@ -7,6 +7,7 @@ import { getSequenceForProspect } from '@/lib/agents/scoring';
 import { verifyCRMCoherence } from '@/lib/agents/business-timing';
 import { loadContextWithAvatar } from '@/lib/agents/shared-context';
 import { saveLearning, saveAgentFeedback } from '@/lib/agents/learning';
+import { verifyInstagramHandle } from '@/lib/agents/dm-verify';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -241,6 +242,34 @@ async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram', 
   if (clientUserId) console.log(`[DMAgent] Running for client user_id=${clientUserId}`);
   console.log(`[DMAgent] Preparing daily DMs for ${platform}...`);
 
+  // Load admin IG credentials once for business_discovery verification.
+  // IMPORTANT: business_discovery only works with a Page token on
+  // graph.facebook.com — instagram_access_token on graph.instagram.com
+  // returns "Tried accessing nonexisting field (business_discovery)".
+  // Falls back gracefully if admin isn't connected — in that case we can't
+  // verify handles and will skip proactive DMs rather than queue unreachable
+  // ones (previous behavior was to queue everything, which left 1000+ DMs
+  // stuck in pending because none of the handles were reachable).
+  let adminIg: { id: string; token: string } | null = null;
+  if (!isTikTok) {
+    const { data: adminProfile } = await supabase
+      .from('profiles')
+      .select('instagram_business_account_id, facebook_page_access_token')
+      .eq('is_admin', true)
+      .not('instagram_business_account_id', 'is', null)
+      .not('facebook_page_access_token', 'is', null)
+      .limit(1)
+      .maybeSingle();
+    if (adminProfile?.instagram_business_account_id && adminProfile.facebook_page_access_token) {
+      adminIg = {
+        id: adminProfile.instagram_business_account_id,
+        token: adminProfile.facebook_page_access_token,
+      };
+    } else {
+      console.warn('[DMAgent] No admin FB page token found — handle verification disabled; DMs will be queued unverified');
+    }
+  }
+
   // Select prospects with handle that haven't been DMed yet
   const prospectQuery = supabase
     .from('crm_prospects')
@@ -390,7 +419,36 @@ async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram', 
       continue;
     }
 
-    // Insert into dm_queue
+    // IG HANDLE VERIFICATION — before queueing, confirm the handle resolves
+    // to a real IG business/creator account. If it doesn't:
+    //  - mark the prospect's handle empty so future runs stop trying
+    //  - mark the prospect dm_status='invalid' so the CRM reflects truth
+    //  - skip this DM entirely (do NOT insert into dm_queue)
+    // This is the Leo/Jade safety net the session notes asked for.
+    // TikTok has no equivalent lookup API we can rely on, so we only verify
+    // Instagram handles — TikTok handles remain best-effort.
+    let verifiedIgId: string | null = null;
+    let verifiedMediaIds: string[] = [];
+    if (!isTikTok && adminIg) {
+      const verify = await verifyInstagramHandle(handle, adminIg.id, adminIg.token);
+      if (!verify.exists) {
+        console.log(`[DMAgent] Skip @${handle} — not found via business_discovery: ${verify.rawError}`);
+        skippedVerification++;
+        // Clear the bad handle so Leo/Jade stop qualifying this prospect for DM
+        await supabase.from('crm_prospects').update({
+          instagram: null,
+          dm_status: 'invalid_handle',
+          updated_at: now,
+        }).eq('id', prospect.id);
+        continue;
+      }
+      verifiedIgId = verify.igId || null;
+      verifiedMediaIds = verify.mediaIds || [];
+    }
+
+    // Insert into dm_queue. Mark as pre-verified when we just confirmed
+    // the handle via business_discovery — saves a redundant lookup in the
+    // send-queue cron and tags the row for attribution tracking.
     const { error: queueError } = await supabase.from('dm_queue').insert({
       prospect_id: prospect.id,
       channel: channelName,
@@ -405,9 +463,14 @@ async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram', 
         tone_notes: dm.tone_notes || null,
         business_type: category,
         visual_url: visualUrls.get(prospect.id) || null,
+        verified_ig_id: verifiedIgId,
+        verified_media_ids: verifiedMediaIds,
       }),
       priority: prospect.score || 50,
       status: 'pending',
+      verified_at: verifiedIgId ? now : null,
+      verified_exists: verifiedIgId ? true : null,
+      verification_attempts: verifiedIgId ? 1 : 0,
       created_at: now,
     });
 

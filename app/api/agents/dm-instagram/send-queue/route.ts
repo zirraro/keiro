@@ -56,28 +56,45 @@ export async function POST(req: NextRequest) {
     for (const dm of pendingDMs) {
       const cleanHandle = (dm.handle || '').replace(/^@/, '').replace(/\s/g, '').trim();
       if (!cleanHandle || cleanHandle.length < 2 || cleanHandle === 'A_VERIFIER') {
-        await supabase.from('dm_queue').update({ status: 'skipped', error: 'Invalid handle: ' + (dm.handle || 'empty') }).eq('id', dm.id);
+        await supabase.from('dm_queue').update({ status: 'skipped', error_message: 'Invalid handle: ' + (dm.handle || 'empty') }).eq('id', dm.id);
         totalSkipped++;
         continue;
       }
 
       try {
-        // Step 1: Find the Instagram user ID from handle via Business Discovery
+        // Step 1: Find the Instagram user ID from handle via Business Discovery.
+        // When the DM agent already ran verifyInstagramHandle at queue-insert
+        // time, it saved the id in personalization.verified_ig_id — use that
+        // and avoid burning another API call here.
         let recipientIgId = '';
         let recipientMediaIds: string[] = [];
         try {
-          const discoverRes = await fetch(
-            `https://graph.instagram.com/v21.0/${igAccountId}?fields=business_discovery.fields(id,username,media.limit(3){id}).username(${dm.handle})&access_token=${token}`
-          );
-          if (discoverRes.ok) {
-            const discoverData = await discoverRes.json();
-            recipientIgId = discoverData?.business_discovery?.id || '';
-            recipientMediaIds = (discoverData?.business_discovery?.media?.data || []).map((m: any) => m.id);
+          const cached = (() => {
+            try { return JSON.parse((dm as any).personalization || '{}'); }
+            catch { return {}; }
+          })();
+          if (cached?.verified_ig_id) {
+            recipientIgId = cached.verified_ig_id;
+            recipientMediaIds = Array.isArray(cached.verified_media_ids) ? cached.verified_media_ids : [];
+          } else {
+            const discoverRes = await fetch(
+              `https://graph.instagram.com/v21.0/${igAccountId}?fields=business_discovery.fields(id,username,media.limit(3){id}).username(${dm.handle})&access_token=${token}`
+            );
+            if (discoverRes.ok) {
+              const discoverData = await discoverRes.json();
+              recipientIgId = discoverData?.business_discovery?.id || '';
+              recipientMediaIds = (discoverData?.business_discovery?.media?.data || []).map((m: any) => m.id);
+            }
           }
         } catch {}
 
         if (!recipientIgId) {
-          await supabase.from('dm_queue').update({ status: 'skipped', error: 'User not found' }).eq('id', dm.id);
+          await supabase.from('dm_queue').update({
+            status: 'skipped',
+            error_message: 'User not found (business_discovery returned nothing — personal account or invalid handle)',
+            verified_at: new Date().toISOString(),
+            verified_exists: false,
+          }).eq('id', dm.id);
           totalSkipped++;
           continue;
         }
@@ -99,12 +116,13 @@ export async function POST(req: NextRequest) {
         }
         if (likesGiven > 0) {
           console.log(`[DMSendQueue] Pre-engaged ${dm.handle}: liked ${likesGiven} posts`);
-          // Log the likes for stats tracking
+          // Log the likes for stats tracking — note the column is `data`, not `result`
+          // (the previous `result:` key silently failed the insert).
           await supabase.from('agent_logs').insert({
             agent: 'dm_instagram',
             action: 'pre_engagement_likes',
             status: 'success',
-            result: { handle: dm.handle, likes: likesGiven, prospect_id: dm.prospect_id },
+            data: { handle: dm.handle, likes: likesGiven, prospect_id: dm.prospect_id },
             user_id: profile.id,
             created_at: new Date().toISOString(),
           });
@@ -149,7 +167,12 @@ export async function POST(req: NextRequest) {
 
         if (sendSuccess) {
           // Update queue
-          await supabase.from('dm_queue').update({ status: 'sent', sent_at: new Date().toISOString() }).eq('id', dm.id);
+          await supabase.from('dm_queue').update({
+            status: 'sent',
+            sent_at: new Date().toISOString(),
+            verified_at: new Date().toISOString(),
+            verified_exists: true,
+          }).eq('id', dm.id);
           // Update prospect
           await supabase.from('crm_prospects').update({
             dm_status: 'sent',
@@ -159,7 +182,10 @@ export async function POST(req: NextRequest) {
           }).eq('id', dm.prospect_id);
           totalSent++;
         } else {
-          await supabase.from('dm_queue').update({ status: 'failed', error: 'API send failed' }).eq('id', dm.id);
+          await supabase.from('dm_queue').update({
+            status: 'failed',
+            error_message: 'API send failed (likely instagram_manage_messages not approved — Meta App Review pending)',
+          }).eq('id', dm.id);
           totalFailed++;
         }
 
@@ -167,7 +193,10 @@ export async function POST(req: NextRequest) {
         await new Promise(r => setTimeout(r, 2000));
 
       } catch (e: any) {
-        await supabase.from('dm_queue').update({ status: 'failed', error: e.message?.substring(0, 200) }).eq('id', dm.id);
+        await supabase.from('dm_queue').update({
+          status: 'failed',
+          error_message: e.message?.substring(0, 200),
+        }).eq('id', dm.id);
         totalFailed++;
       }
     }
