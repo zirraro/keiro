@@ -763,17 +763,32 @@ async function getDmInstagramData(
     };
   });
 
-  // DM queue stats — scoped to client's prospects
+  // DM queue stats — scoped to client's prospects. Now includes the full
+  // funnel (verified / skipped / sent / responded) so the workspace panel
+  // can show DM channel attribution, not just "sent count".
   const prospectIdsForDM = (await supabase.from('crm_prospects').select('id').or(`user_id.eq.${userId},created_by.eq.${userId}`).not('instagram', 'is', null).limit(2000)).data || [];
   const pIds = prospectIdsForDM.map(p => p.id);
   let queueTotal = 0, queuePending = 0, queueSent = 0, queueFailed = 0;
+  let queueSkipped = 0, queueResponded = 0, queueVerifiedReady = 0;
   if (pIds.length > 0) {
     const batchIds = pIds.slice(0, 500); // Limit for query perf
-    const { count: qt } = await supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('channel', 'instagram').in('prospect_id', batchIds);
-    const { count: qp } = await supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('channel', 'instagram').eq('status', 'pending').in('prospect_id', batchIds);
-    const { count: qs } = await supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('channel', 'instagram').eq('status', 'sent').in('prospect_id', batchIds);
-    const { count: qf } = await supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('channel', 'instagram').eq('status', 'failed').in('prospect_id', batchIds);
-    queueTotal = qt ?? 0; queuePending = qp ?? 0; queueSent = qs ?? 0; queueFailed = qf ?? 0;
+    const baseQ = () => supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('channel', 'instagram').in('prospect_id', batchIds);
+    const [qt, qp, qs, qf, qsk, qr, qv] = await Promise.all([
+      baseQ(),
+      baseQ().eq('status', 'pending'),
+      baseQ().eq('status', 'sent'),
+      baseQ().eq('status', 'failed'),
+      baseQ().eq('status', 'skipped'),
+      baseQ().eq('status', 'responded'),
+      baseQ().eq('status', 'pending').eq('verified_exists', true),
+    ]);
+    queueTotal = qt.count ?? 0;
+    queuePending = qp.count ?? 0;
+    queueSent = qs.count ?? 0;
+    queueFailed = qf.count ?? 0;
+    queueSkipped = qsk.count ?? 0;
+    queueResponded = qr.count ?? 0;
+    queueVerifiedReady = qv.count ?? 0;
   }
 
   // Prospects with Instagram for DM potential
@@ -782,13 +797,20 @@ async function getDmInstagramData(
     .not('instagram', 'is', null)
     .neq('instagram', '');
 
-  // Likes given (from send-queue pre-engagement)
+  // Likes given (from send-queue pre-engagement) — note the column is `data`,
+  // not `result`, so the previous read was always undefined.
   const likesLogs = logs.filter(l => typeof l.action === 'string' && l.action.includes('like'));
   let totalLikesGiven = 0;
   for (const l of likesLogs) {
-    const r = l.result as any;
-    totalLikesGiven += r?.likes || 1;
+    const d = (l as any).data || (l as any).result || {};
+    totalLikesGiven += d?.likes || 1;
   }
+
+  // Response rate on the channel: how many of the DMs we actually sent
+  // received a reply? Compared against (sent + responded) because by the
+  // time the prospect replies, dm_queue.status flips from sent → responded.
+  const sentOrResponded = queueSent + queueResponded;
+  const dmResponseRate = sentOrResponded > 0 ? Math.round((queueResponded / sentOrResponded) * 100) : 0;
 
   return {
     dmStats: {
@@ -797,15 +819,18 @@ async function getDmInstagramData(
       responses,
       rdvGenerated,
       handovers,
-      responseRate: dmReceived > 0 ? Math.round((dmsSent / Math.max(dmReceived, 1)) * 100) : 0,
+      responseRate: dmResponseRate, // % of sent DMs that got a reply
       prospectsGenerated: dmProspects ?? 0,
       prospectsWithIG: prospectsWithIG ?? 0,
       totalActions: logs.length,
-      // Queue stats
-      queueTotal: queueTotal ?? 0,
-      queuePending: queuePending ?? 0,
-      queueSent: queueSent ?? 0,
-      queueFailed: queueFailed ?? 0,
+      // Full funnel stats
+      queueTotal,
+      queuePending,
+      queueSent,
+      queueFailed,
+      queueSkipped,       // NEW — invalid/unreachable handles we skipped
+      queueResponded,     // NEW — prospects who replied to our DM
+      queueVerifiedReady, // NEW — pending DMs with a verified IG account
       likesGiven: totalLikesGiven,
       recentDms,
       recentLogs: logs.slice(0, 10),

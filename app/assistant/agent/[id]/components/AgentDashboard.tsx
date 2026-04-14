@@ -3074,26 +3074,42 @@ function DmInstagramPanel({
         </button>
       </div>
 
-      {/* Pipeline funnel */}
+      {/* Pipeline funnel — full DM attribution chain: prospects scraped →
+          verified reachable via business_discovery → actually sent → got a
+          reply → converted. Each step is measurable, so the channel impact
+          can be tracked end-to-end. The "ecartes" badge shows how many
+          unreachable handles the verifier has filtered out. */}
       <div data-tour="dm-stats" className="rounded-xl border border-white/10 bg-white/[0.02] p-3 mb-3">
         <div className="flex items-center justify-between gap-1 text-center">
           {[
             { label: 'Prospects IG', value: (stats as any).prospectsWithIG || 0, icon: '\u{1F4F8}', color: '#ec4899' },
-            { label: 'DMs prepares', value: (stats as any).queueTotal || 0, icon: '\u{1F4DD}', color: '#8b5cf6' },
-            { label: 'DMs envoyes', value: stats.dmsSent, icon: '\u{1F4AC}', color: '#3b82f6' },
-            { label: 'Reponses', value: stats.responses, icon: '\u{1F4EC}', color: '#f59e0b' },
-            { label: 'RDV/Conversion', value: stats.rdvGenerated, icon: '\u{1F525}', color: '#22c55e' },
+            { label: 'DMs verifies', value: (stats as any).queueVerifiedReady || 0, icon: '\u2705', color: '#8b5cf6' },
+            { label: 'DMs envoyes', value: (stats as any).queueSent || stats.dmsSent || 0, icon: '\u{1F4AC}', color: '#3b82f6' },
+            { label: 'Reponses', value: (stats as any).queueResponded || stats.responses || 0, icon: '\u{1F4EC}', color: '#f59e0b' },
+            { label: 'Conversions', value: stats.rdvGenerated || 0, icon: '\u{1F525}', color: '#22c55e' },
           ].map((step, i) => (
             <div key={step.label} className="flex items-center flex-1">
               <div className="flex-1 text-center">
                 <div className="text-sm mb-0.5">{step.icon}</div>
-                <div className="text-sm font-bold" style={{ color: step.color }}>{step.value}</div>
+                <div className="text-sm font-bold" style={{ color: step.color }}>{fmt(step.value)}</div>
                 <div className="text-[8px] text-white/30 mt-0.5">{step.label}</div>
               </div>
               {i < 4 && <div className="text-white/15 text-[10px]">{'\u2192'}</div>}
             </div>
           ))}
         </div>
+        {((stats as any).queueSkipped || 0) > 0 && (
+          <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between text-[10px]">
+            <span className="text-white/40">Handles filtres par verification</span>
+            <span className="text-red-400 font-semibold">{fmt((stats as any).queueSkipped || 0)} ecartes</span>
+          </div>
+        )}
+        {(stats as any).queueSent > 0 && (
+          <div className="mt-1 flex items-center justify-between text-[10px]">
+            <span className="text-white/40">Taux de reponse</span>
+            <span className="text-emerald-400 font-semibold">{stats.responseRate || 0}%</span>
+          </div>
+        )}
       </div>
 
       {/* Queue + engagement stats */}
