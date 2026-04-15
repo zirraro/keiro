@@ -10,6 +10,7 @@ import {
   KpiCard, SectionTitle, EmptyState, DonutChart, ProgressBar, ActivityFeed,
 } from './Primitives';
 import { SocialConnectBanners } from './SharedBanners';
+import { InstagramAssetBadge } from './InstagramAssetBadge';
 import { useLanguage } from '@/lib/i18n/context';
 import type { PanelProps } from './types';
 
@@ -23,6 +24,9 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
   if (gs) {
     return (
       <>
+        {/* Meta App Review: asset badge required for insights screencast */}
+        <InstagramAssetBadge />
+
         {/* Connect social networks — hide if already connected */}
         <SocialConnectBanners agentId="marketing" networks={['instagram', 'tiktok', 'linkedin']} connections={(data as any).connections} />
 
