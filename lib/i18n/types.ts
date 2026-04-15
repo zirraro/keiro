@@ -616,4 +616,5 @@ export interface Translations {
   library: Record<string, string>;
   studio: Record<string, string>;
   assistant: Record<string, string>;
+  panels: Record<string, string>;
 }
