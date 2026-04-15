@@ -11,6 +11,7 @@ import {
   fmtPercent,
   KpiCard, SectionTitle, ActionButton,
 } from './Primitives';
+import { useLanguage } from '@/lib/i18n/context';
 import type { PanelProps } from './types';
 
 /** Strategy presets — multi-select focus areas, changeable anytime from Clara's dashboard */
@@ -100,6 +101,8 @@ function StrategyPresets({ gradientFrom, gradientTo }: { gradientFrom: string; g
 }
 
 export function OnboardingPanel({ data, agentName, gradientFrom, gradientTo }: PanelProps) {
+  const { t } = useLanguage();
+  const p = t.panels;
   const rawStats: any = data.onboardingStats || {};
   const stats: any = {
     completionPercent: rawStats.completenessScore ?? rawStats.completionPercent ?? 0,

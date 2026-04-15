@@ -9,18 +9,21 @@ import {
   fmt, fmtDate,
   KpiCard, SectionTitle, EmptyState,
 } from './Primitives';
+import { useLanguage } from '@/lib/i18n/context';
 import type { PanelProps } from './types';
 
 export function GenericPanel({ data, agentName, gradientFrom, gradientTo }: PanelProps) {
+  const { t } = useLanguage();
+  const p = t.panels;
   return (
     <>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        <KpiCard label="Messages echanges" value={fmt(data.totalMessages)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        <KpiCard label="Recommandations" value={fmt(data.recommendations?.length)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        <KpiCard label="Score engagement" value={data.recentChats ? `${data.recentChats}` : '--'} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label={p.genericKpiMessages} value={fmt(data.totalMessages)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label={p.genericKpiRec} value={fmt(data.recommendations?.length)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label={p.genericKpiScore} value={data.recentChats ? `${data.recentChats}` : '--'} gradientFrom={gradientFrom} gradientTo={gradientTo} />
       </div>
 
-      <SectionTitle>Recommandations recentes</SectionTitle>
+      <SectionTitle>{p.genericSectionRec}</SectionTitle>
 
       {data.recommendations && data.recommendations.length > 0 ? (
         <div className="space-y-2">
@@ -43,17 +46,17 @@ export function GenericPanel({ data, agentName, gradientFrom, gradientTo }: Pane
       {/* Weekly summary */}
       <div className="mt-4 rounded-xl border border-white/10 p-4" style={{ background: `linear-gradient(135deg, ${gradientFrom}08, transparent)` }}>
         <p className="text-white/40 text-xs italic">
-          {agentName} a analyse {fmt(data.totalMessages || 0)} donnees cette semaine.
+          {p.genericWeeklySummary.replace('{agent}', agentName).replace('{n}', fmt(data.totalMessages || 0))}
         </p>
       </div>
 
       {/* Quick actions */}
       <div className="flex flex-wrap gap-2 mt-3">
         <a href="/generate" className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs font-semibold rounded-xl hover:opacity-90 transition-all">
-          {'\u2728'} Générer du contenu
+          {'\u2728'} {p.createContent}
         </a>
         <a href="/assistant/crm" className="px-4 py-2 bg-white/10 text-white/70 text-xs font-medium rounded-xl hover:bg-white/15">
-          {'\u{1F4CA}'} Voir le CRM
+          {'\u{1F4CA}'} {p.viewCrm}
         </a>
       </div>
     </>

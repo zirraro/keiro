@@ -9,9 +9,12 @@ import {
   fmt, fmtCurrency,
   KpiCard, SectionTitle, EmptyState, DonutChart, ProgressBar,
 } from './Primitives';
+import { useLanguage } from '@/lib/i18n/context';
 import type { PanelProps } from './types';
 
 export function AdsPanel({ data, agentName, gradientFrom, gradientTo }: PanelProps) {
+  const { t } = useLanguage();
+  const p = t.panels;
   const stats: any = data.adsStats || { campaigns: 0, totalSpend: 0, avgRoas: 0, roas: 0, totalConversions: 0, totalImpressions: 0, recentCampaigns: [] };
 
   const totalSpend = (stats.recentCampaigns || []).reduce((s: number, c: any) => s + c.spend, 0) || 1;
@@ -24,13 +27,13 @@ export function AdsPanel({ data, agentName, gradientFrom, gradientTo }: PanelPro
   return (
     <>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <KpiCard label="Campagnes actives" value={fmt(stats.campaigns)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        <KpiCard label="Budget total" value={fmtCurrency(stats.totalSpend)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        <KpiCard label="ROAS moyen" value={`${(stats.avgRoas || 0).toLocaleString('fr-FR', { maximumFractionDigits: 1 })}x`} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label={p.adsKpiActive} value={fmt(stats.campaigns)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label={p.adsKpiBudget} value={fmtCurrency(stats.totalSpend)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label={p.adsKpiRoas} value={`${(stats.avgRoas || 0).toLocaleString('fr-FR', { maximumFractionDigits: 1 })}x`} gradientFrom={gradientFrom} gradientTo={gradientTo} />
       </div>
 
       {/* Visual: budget & ROAS */}
-      <SectionTitle>Performance visuelle</SectionTitle>
+      <SectionTitle>{p.adsSectionPerf}</SectionTitle>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="rounded-xl border border-white/10 p-4 bg-white/[0.02]">
           <DonutChart
@@ -44,7 +47,7 @@ export function AdsPanel({ data, agentName, gradientFrom, gradientTo }: PanelPro
         </div>
         <div className="rounded-xl border border-white/10 p-4 bg-white/[0.02] space-y-3">
           <ProgressBar value={Math.min(Math.round(stats.avgRoas * 33), 100)} max={100} color="#22c55e" label={`ROAS moyen (${stats.avgRoas}x)`} />
-          <ProgressBar value={stats.campaigns} max={10} color={gradientFrom} label="Campagnes actives" />
+          <ProgressBar value={stats.campaigns} max={10} color={gradientFrom} label={p.adsKpiActive} />
           {(stats.recentCampaigns || []).slice(0, 3).map((c: any, i: number) => (
             <ProgressBar key={i} value={Math.round(c.roas * 33)} max={100} color={['#3b82f6', '#22c55e', '#f59e0b'][i]} label={`${(c.name || '').substring(0, 20)} (${c.roas}x)`} />
           ))}
@@ -54,14 +57,14 @@ export function AdsPanel({ data, agentName, gradientFrom, gradientTo }: PanelPro
       {/* Quick actions */}
       <div className="flex flex-wrap gap-2 mt-3">
         <a href="/generate" className="px-4 py-2 bg-gradient-to-r from-orange-600 to-amber-600 text-white text-xs font-semibold rounded-xl hover:opacity-90 transition-all">
-          {'\u2728'} Creer une campagne
+          {'\u2728'} {p.adsBtnCreate}
         </a>
         <a href="/assistant/crm" className="px-4 py-2 bg-white/10 text-white/70 text-xs font-medium rounded-xl hover:bg-white/15">
-          {'\u{1F4CA}'} Voir le CRM
+          {'\u{1F4CA}'} {p.viewCrm}
         </a>
       </div>
 
-      <SectionTitle>Campagnes</SectionTitle>
+      <SectionTitle>{p.adsSectionCampaigns}</SectionTitle>
       {(stats.recentCampaigns || []).length === 0 ? (
         <EmptyState agentName={agentName} />
       ) : (
@@ -89,10 +92,10 @@ export function AdsPanel({ data, agentName, gradientFrom, gradientTo }: PanelPro
         </div>
       )}
 
-      <SectionTitle>Repartition budget</SectionTitle>
+      <SectionTitle>{p.adsSectionBudget}</SectionTitle>
       <div className="bg-white/5 rounded-xl border border-white/10 p-4">
         {(stats.recentCampaigns || []).length === 0 ? (
-          <p className="text-sm text-white/40 text-center">Aucune campagne</p>
+          <p className="text-sm text-white/40 text-center">{p.adsNoCampaign}</p>
         ) : (
           <>
             <div className="flex h-6 rounded-full overflow-hidden">

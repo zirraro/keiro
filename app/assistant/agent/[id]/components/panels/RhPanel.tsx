@@ -9,9 +9,12 @@ import {
   fmt, fmtDate,
   KpiCard, SectionTitle, EmptyState, ActionButton,
 } from './Primitives';
+import { useLanguage } from '@/lib/i18n/context';
 import type { PanelProps } from './types';
 
 export function RhPanel({ data, agentName, gradientFrom, gradientTo }: PanelProps) {
+  const { t } = useLanguage();
+  const p = t.panels;
   const stats: any = data.rhStats || { docsGenerated: 0, questionsAnswered: 0, activeContracts: 0, rgpdCompliant: true, alertsCount: 0, recentDocs: [] };
 
   const docTypeBadge: Record<string, string> = {
@@ -25,12 +28,12 @@ export function RhPanel({ data, agentName, gradientFrom, gradientTo }: PanelProp
   return (
     <>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <KpiCard label="Docs generes" value={fmt(stats.docsGenerated)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        <KpiCard label="Questions repondues" value={fmt(stats.questionsAnswered)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        <KpiCard label="Contrats actifs" value={fmt(stats.activeContracts)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label={p.rhKpiDocs} value={fmt(stats.docsGenerated)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label={p.rhKpiQuestions} value={fmt(stats.questionsAnswered)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label={p.rhKpiContracts} value={fmt(stats.activeContracts)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
       </div>
 
-      <SectionTitle>Documents recents</SectionTitle>
+      <SectionTitle>{p.rhSectionRecent}</SectionTitle>
       {stats.recentDocs.length === 0 ? (
         <EmptyState agentName={agentName} />
       ) : (
@@ -56,14 +59,14 @@ export function RhPanel({ data, agentName, gradientFrom, gradientTo }: PanelProp
       {/* Quick actions */}
       <div className="flex flex-wrap gap-2 mt-3">
         <a href="/generate" className="px-4 py-2 bg-gradient-to-r from-rose-600 to-pink-600 text-white text-xs font-semibold rounded-xl hover:opacity-90 transition-all">
-          {'\u2728'} Générer un document
+          {'\u2728'} {p.rhBtnGenerate}
         </a>
         <a href="/assistant/crm" className="px-4 py-2 bg-white/10 text-white/70 text-xs font-medium rounded-xl hover:bg-white/15">
-          {'\u{1F4CA}'} Voir le CRM
+          {'\u{1F4CA}'} {p.viewCrm}
         </a>
       </div>
 
-      <ActionButton label="Générer un document" gradientFrom={gradientFrom} gradientTo={gradientTo} />
+      <ActionButton label="{p.rhBtnGenerate}" gradientFrom={gradientFrom} gradientTo={gradientTo} />
     </>
   );
 }

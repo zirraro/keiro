@@ -9,9 +9,12 @@ import {
   fmt, fmtDate,
   KpiCard, SectionTitle, EmptyState,
 } from './Primitives';
+import { useLanguage } from '@/lib/i18n/context';
 import type { PanelProps } from './types';
 
 export function SeoPanel({ data, agentName, gradientFrom, gradientTo }: PanelProps) {
+  const { t } = useLanguage();
+  const p = t.panels;
   const stats: any = data.seoStats || { blogPosts: 0, keywordsTracked: 0, pagesOptimized: 0, keywordsRanked: 0, avgPosition: 0, trafficIncrease: 0, recentActions: [] };
 
   const seoIndexed = stats.blogPosts || 0;
@@ -20,20 +23,20 @@ export function SeoPanel({ data, agentName, gradientFrom, gradientTo }: PanelPro
   return (
     <>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <KpiCard label="Articles blog" value={fmt(stats.blogPosts)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        <KpiCard label="Mots-cles suivis" value={fmt(stats.keywordsTracked)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        <KpiCard label="Actions SEO" value={fmt((stats.recentActions || []).length)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label={p.seoKpiArticles} value={fmt(stats.blogPosts)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label={p.seoKpiKeywords} value={fmt(stats.keywordsTracked)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label={p.seoKpiActions} value={fmt((stats.recentActions || []).length)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
       </div>
 
       {/* Workflow visual — pipeline SEO */}
-      <SectionTitle>Workflow SEO</SectionTitle>
+      <SectionTitle>{p.seoSectionWorkflow}</SectionTitle>
       <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
         <div className="flex items-center justify-between gap-1 text-center">
           {[
-            { label: 'Mots-cles', value: stats.keywordsTracked, icon: '\u{1F50D}', color: '#94a3b8' },
-            { label: 'Articles', value: stats.blogPosts, icon: '\u{1F4DD}', color: '#60a5fa' },
-            { label: 'Indexes', value: seoIndexed, icon: '\u2705', color: '#fbbf24' },
-            { label: 'Trafic', value: seoTraffic, icon: '\u{1F4C8}', color: '#22c55e' },
+            { label: p.seoLabelKeywords, value: stats.keywordsTracked, icon: '\u{1F50D}', color: '#94a3b8' },
+            { label: p.seoLabelArticles, value: stats.blogPosts, icon: '\u{1F4DD}', color: '#60a5fa' },
+            { label: p.seoLabelIndexed, value: seoIndexed, icon: '\u2705', color: '#fbbf24' },
+            { label: p.seoLabelTraffic, value: seoTraffic, icon: '\u{1F4C8}', color: '#22c55e' },
           ].map((step, i) => (
             <div key={step.label} className="flex items-center flex-1">
               <div className="flex-1 text-center">
@@ -47,21 +50,21 @@ export function SeoPanel({ data, agentName, gradientFrom, gradientTo }: PanelPro
         </div>
         <div className="mt-3 pt-3 border-t border-white/5 flex items-center gap-2">
           <span className="text-[10px] text-emerald-400">{'\u{1F331}'}</span>
-          <span className="text-[10px] text-white/50">Les articles <strong className="text-emerald-400">indexes</strong> generent du trafic organique en continu</span>
+          <span className="text-[10px] text-white/50">{p.seoWorkflowNote}</span>
         </div>
       </div>
 
       {/* Quick actions */}
       <div className="flex flex-wrap gap-2 mt-3">
         <a href="/blog" className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-semibold rounded-xl hover:opacity-90 transition-all">
-          {'\u{1F4DD}'} Voir le blog
+          {'\u{1F4DD}'} {p.seoBtnViewBlog}
         </a>
         <a href="/generate" className="px-4 py-2 bg-white/10 text-white/70 text-xs font-medium rounded-xl hover:bg-white/15">
-          {'\u2728'} Générer un article
+          {'\u2728'} {p.seoBtnGenerateArticle}
         </a>
       </div>
 
-      <SectionTitle>Actions SEO recentes</SectionTitle>
+      <SectionTitle>{p.seoSectionActions}</SectionTitle>
       {(stats.recentActions || []).length === 0 ? (
         <EmptyState agentName={agentName} />
       ) : (
@@ -81,10 +84,10 @@ export function SeoPanel({ data, agentName, gradientFrom, gradientTo }: PanelPro
         </div>
       )}
 
-      <SectionTitle>Suivi mots-cles</SectionTitle>
+      <SectionTitle>{p.seoSectionTracking}</SectionTitle>
       <div className="bg-white/5 rounded-xl border border-white/10 p-6 text-center">
-        <p className="text-sm text-white/50">Le suivi detaille des mots-cles arrive bientot.</p>
-        <p className="text-xs text-white/40 mt-1">Demandez a {agentName} vos positions actuelles.</p>
+        <p className="text-sm text-white/50">{p.seoTrackingComingSoon}</p>
+        <p className="text-xs text-white/40 mt-1">{p.seoTrackingAsk.replace('{agent}', agentName)}</p>
       </div>
     </>
   );

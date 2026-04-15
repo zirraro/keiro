@@ -64,6 +64,8 @@ function ContentCalendarInline({ posts, onSelectPost }: { posts: any[]; onSelect
 
 // Content direction — let client guide what to publish this week
 function ContentDirectionInput() {
+  const { t } = useLanguage();
+  const p = t.panels;
   const [direction, setDirection] = useState('');
   const [saved, setSaved] = useState(false);
   const [existing, setExisting] = useState('');
@@ -107,14 +109,14 @@ function ContentDirectionInput() {
     <div className="rounded-xl border border-white/10 bg-white/5 p-3 mb-3">
       <div className="flex items-center gap-2 mb-2">
         <span className="text-sm">{'\u{1F4A1}'}</span>
-        <span className="text-xs font-medium text-white/70">Un sujet a mettre en avant cette semaine ?</span>
+        <span className="text-xs font-medium text-white/70">{p.contentDirectionTitle}</span>
       </div>
       <div className="flex gap-2">
         <input
           type="text"
           value={direction}
           onChange={e => setDirection(e.target.value)}
-          placeholder="Ex: Notre nouveau menu, une promo, un evenement..."
+          placeholder={p.contentDirectionPlaceholder}
           className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-purple-500/50"
           onKeyDown={e => { if (e.key === 'Enter') save(); }}
         />
@@ -123,7 +125,7 @@ function ContentDirectionInput() {
           disabled={!direction.trim() || direction === existing}
           className={`px-3 py-2 text-xs font-bold rounded-lg transition min-h-[36px] ${saved ? 'bg-emerald-500/20 text-emerald-400' : 'bg-purple-600 text-white hover:bg-purple-500'} disabled:opacity-30`}
         >
-          {saved ? '\u2713' : 'Envoyer'}
+          {saved ? '\u2713' : p.contentDirectionSend}
         </button>
       </div>
     </div>
@@ -132,6 +134,8 @@ function ContentDirectionInput() {
 
 // Content workflow: fetch posts by status, allow approve/skip/schedule — Instagram grid style
 function ContentWorkflow({ isConnected }: { isConnected?: boolean }) {
+  const { t } = useLanguage();
+  const p = t.panels;
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
@@ -188,8 +192,8 @@ function ContentWorkflow({ isConnected }: { isConnected?: boolean }) {
     return (
       <div className="text-center py-8 bg-white/[0.02] rounded-xl border border-white/5">
         <span className="text-2xl">{'\u{1F4F8}'}</span>
-        <p className="text-xs text-white/50 mt-2">Aucun post pour le moment</p>
-        <p className="text-[10px] text-white/30 mt-1">Clique sur {'\u26A1'} Lancer une campagne pour que Lena commence a creer du contenu !</p>
+        <p className="text-xs text-white/50 mt-2">{p.contentEmptyTitle}</p>
+        <p className="text-[10px] text-white/30 mt-1">{p.contentEmptySubtitle}</p>
       </div>
     );
   }
@@ -200,13 +204,13 @@ function ContentWorkflow({ isConnected }: { isConnected?: boolean }) {
 
   return (
     <div>
-      {isDemo && <p className="text-[9px] text-amber-400/50 mb-2">{'\u{1F4F8}'} Apercu — connecte tes reseaux pour voir tes vrais posts</p>}
+      {isDemo && <p className="text-[9px] text-amber-400/50 mb-2">{'\u{1F4F8}'} {p.contentDemoHint}</p>}
 
       {/* Generation in progress indicator */}
       {generating && (
         <div className="flex items-center gap-2 mb-3 px-3 py-2 bg-purple-500/10 border border-purple-500/20 rounded-lg animate-pulse">
           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-400" />
-          <span className="text-xs text-purple-300">Post en cours de generation... Il apparaitra ici dans quelques secondes</span>
+          <span className="text-xs text-purple-300">{p.contentGeneratingInProgress}</span>
         </div>
       )}
 
@@ -217,7 +221,7 @@ function ContentWorkflow({ isConnected }: { isConnected?: boolean }) {
       {/* Platform filter */}
       <div className="flex gap-1 mb-1.5 overflow-x-auto">
         {[
-          { key: 'all', label: 'Tous', icon: '' },
+          { key: 'all', label: p.contentPlatformAll, icon: '' },
           { key: 'instagram', label: `IG (${platformCounts.instagram || 0})`, icon: '\u{1F4F8}' },
           { key: 'tiktok', label: `TT (${platformCounts.tiktok || 0})`, icon: '\u{1F3B5}' },
           { key: 'linkedin', label: `LI (${platformCounts.linkedin || 0})`, icon: '\u{1F4BC}' },
@@ -232,11 +236,11 @@ function ContentWorkflow({ isConnected }: { isConnected?: boolean }) {
       {(() => { const pCounts = platformFiltered.reduce((acc: Record<string, number>, p: any) => { acc[p.status] = (acc[p.status] || 0) + 1; return acc; }, {}); return (
       <div className="flex gap-1 mb-2 overflow-x-auto pb-1">
         {[
-          { key: 'all', label: `Tous (${platformFiltered.length})` },
-          { key: 'draft', label: `Brouillons (${pCounts.draft || 0})` },
-          { key: 'approved', label: `En attente (${pCounts.approved || 0})` },
-          { key: 'published', label: `Publies (${pCounts.published || 0})` },
-          ...((pCounts.publish_failed || 0) > 0 ? [{ key: 'publish_failed', label: `Echec (${pCounts.publish_failed})` }] : []),
+          { key: 'all', label: `${p.contentTabAll} (${platformFiltered.length})` },
+          { key: 'draft', label: `${p.contentTabDraft} (${pCounts.draft || 0})` },
+          { key: 'approved', label: `${p.contentTabApproved} (${pCounts.approved || 0})` },
+          { key: 'published', label: `${p.contentTabPublished} (${pCounts.published || 0})` },
+          ...((pCounts.publish_failed || 0) > 0 ? [{ key: 'publish_failed', label: `${p.contentTabFailed} (${pCounts.publish_failed})` }] : []),
         ].map(tab => (
           <button key={tab.key} onClick={() => setFilter(tab.key)}
             className={`px-2 py-1 text-[9px] font-medium rounded-md whitespace-nowrap transition-all ${filter === tab.key ? 'bg-purple-600 text-white' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}
@@ -282,9 +286,9 @@ function ContentWorkflow({ isConnected }: { isConnected?: boolean }) {
       </div>
 
       {/* Voir plus / Voir moins */}
-      {(filter === 'all' ? platformFiltered : platformFiltered.filter((p: any) => p.status === filter)).length > 12 && (
+      {(filter === 'all' ? platformFiltered : platformFiltered.filter((post: any) => post.status === filter)).length > 12 && (
         <button onClick={() => setShowAll(!showAll)} className="w-full mt-2 py-2 text-center text-[10px] text-purple-400 hover:text-purple-300 transition flex items-center justify-center gap-1">
-          {showAll ? '\u2191 Voir moins' : `\u2193 Voir plus (${(filter === 'all' ? platformFiltered : platformFiltered.filter((p: any) => p.status === filter)).length - 12} posts)`}
+          {showAll ? `\u2191 ${p.contentSeeLess}` : `\u2193 ${p.contentSeeMore} (${(filter === 'all' ? platformFiltered : platformFiltered.filter((post: any) => post.status === filter)).length - 12} posts)`}
         </button>
       )}
 
@@ -328,65 +332,63 @@ export function ContentPanel({ data, agentName, gradientFrom, gradientTo }: Pane
       {/* Stories suggestion tip */}
       <div className="rounded-lg border border-purple-500/10 bg-purple-500/5 px-3 py-2 mb-3 flex items-center gap-2">
         <span className="text-sm">{'\u{1F4A1}'}</span>
-        <p className="text-[10px] text-white/50">
-          <strong className="text-purple-300">Astuce :</strong> Les Stories Instagram generent 2x plus de visites sur ton profil. Lena peut en creer automatiquement — active le format Stories dans les parametres.
-        </p>
+        <p className="text-[10px] text-white/50">{p.contentStoriesTip}</p>
       </div>
 
       {/* Instagram KPIs */}
-      <SectionTitle>Performance Instagram</SectionTitle>
+      <SectionTitle>{p.contentSectionPerf}</SectionTitle>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-        <KpiCard label="Posts publiés" value={fmt((stats as any).publishedPosts || stats.postsGenerated || 0)} gradientFrom="#8b5cf6" gradientTo="#6d28d9" />
-        <KpiCard label="Likes total" value={fmt((stats as any).totalLikes || 0)} gradientFrom="#ec4899" gradientTo="#f43f5e" />
-        <KpiCard label="Reach" value={fmt((stats as any).reach || 0)} gradientFrom="#06b6d4" gradientTo="#0891b2" />
-        <KpiCard label="Engagement" value={`${((stats as any).accountsEngaged || 0)}%`} gradientFrom="#10b981" gradientTo="#059669" />
+        <KpiCard label={p.contentKpiPublished} value={fmt((stats as any).publishedPosts || stats.postsGenerated || 0)} gradientFrom="#8b5cf6" gradientTo="#6d28d9" />
+        <KpiCard label={p.contentKpiLikes} value={fmt((stats as any).totalLikes || 0)} gradientFrom="#ec4899" gradientTo="#f43f5e" />
+        <KpiCard label={p.contentKpiReach} value={fmt((stats as any).reach || 0)} gradientFrom="#06b6d4" gradientTo="#0891b2" />
+        <KpiCard label={p.contentKpiEngagement} value={`${((stats as any).accountsEngaged || 0)}%`} gradientFrom="#10b981" gradientTo="#059669" />
       </div>
 
       {/* Quick actions */}
       <div className="flex flex-wrap gap-2 mt-3">
         <a href="/generate" className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs font-semibold rounded-xl hover:opacity-90 transition-all">
-          {'\u2728'} Creer un nouveau visuel
+          {'\u2728'} {p.contentBtnCreateVisual}
         </a>
         <a href="/library" className="px-4 py-2 bg-white/10 text-white/70 text-xs font-medium rounded-xl hover:bg-white/15">
-          {'\u{1F4DA}'} Ma galerie
+          {'\u{1F4DA}'} {p.contentBtnGallery}
         </a>
       </div>
 
-      <SectionTitle>Production</SectionTitle>
+      <SectionTitle>{p.contentSectionProduction}</SectionTitle>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <KpiCard label="Posts generes" value={fmt(stats.postsGenerated)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        <KpiCard label="Programmés" value={fmt(stats.scheduledPosts)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        <KpiCard label="Cette semaine" value={fmt(stats.recentContent.length)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label={p.contentKpiGenerated} value={fmt(stats.postsGenerated)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label={p.contentKpiScheduled} value={fmt(stats.scheduledPosts)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label={p.contentKpiThisWeek} value={fmt(stats.recentContent.length)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
       </div>
 
       {/* Visual: content type distribution */}
-      <SectionTitle>Repartition du contenu</SectionTitle>
+      <SectionTitle>{p.contentSectionDistribution}</SectionTitle>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="rounded-xl border border-white/10 p-4 bg-white/[0.02]">
           <DonutChart
             segments={[
-              { value: (stats.recentContent || []).filter(c => c.type === 'Reel' || c.type === 'reel').length, color: '#e879f9', label: 'Reels' },
-              { value: (stats.recentContent || []).filter(c => c.type === 'Carousel' || c.type === 'carrousel').length, color: '#60a5fa', label: 'Carrousels' },
-              { value: (stats.recentContent || []).filter(c => c.type === 'Post' || c.type === 'post').length, color: '#34d399', label: 'Posts' },
-              { value: (stats.recentContent || []).filter(c => c.type === 'Story' || c.type === 'story').length, color: '#fbbf24', label: 'Stories' },
+              { value: (stats.recentContent || []).filter(c => c.type === 'Reel' || c.type === 'reel').length, color: '#e879f9', label: p.contentTypeReels },
+              { value: (stats.recentContent || []).filter(c => c.type === 'Carousel' || c.type === 'carrousel').length, color: '#60a5fa', label: p.contentTypeCarousels },
+              { value: (stats.recentContent || []).filter(c => c.type === 'Post' || c.type === 'post').length, color: '#34d399', label: p.contentTypePosts },
+              { value: (stats.recentContent || []).filter(c => c.type === 'Story' || c.type === 'story').length, color: '#fbbf24', label: p.contentTypeStories },
             ]}
             label={`${stats.postsGenerated}`}
           />
         </div>
         <div className="rounded-xl border border-white/10 p-4 bg-white/[0.02] space-y-3">
-          <ProgressBar value={stats.postsGenerated} max={Math.max(stats.postsGenerated + stats.scheduledPosts, 1)} color={gradientFrom} label="Generes" />
-          <ProgressBar value={stats.scheduledPosts} max={Math.max(stats.postsGenerated + stats.scheduledPosts, 1)} color={gradientTo} label="Programmés" />
+          <ProgressBar value={stats.postsGenerated} max={Math.max(stats.postsGenerated + stats.scheduledPosts, 1)} color={gradientFrom} label={p.contentLabelGenerated} />
+          <ProgressBar value={stats.scheduledPosts} max={Math.max(stats.postsGenerated + stats.scheduledPosts, 1)} color={gradientTo} label={p.contentLabelScheduled} />
         </div>
       </div>
 
       {/* Content workflow: prepared → validate → scheduled → published */}
-      <div data-tour="content-workflow"><SectionTitle>File de contenu</SectionTitle>
+      <div data-tour="content-workflow"><SectionTitle>{p.contentSectionFile}</SectionTitle>
       {stats.postsGenerated === 0 && !(data as any).connections?.instagram && (
         <PreviewBanner
           agentName="Lena"
-          connectLabel="Connecter tes reseaux"
+          connectLabel={p.assetBadgeConnectCta}
           connectUrl="/api/auth/instagram-oauth"
-          claraMessage="Connecte Instagram pour que Lena commence a preparer tes posts. Une fois connecte, ton premier post sera genere en quelques secondes !"
+          claraMessage={p.contentConnectFirstBody}
           gradientFrom="#8b5cf6"
           gradientTo="#6d28d9"
         />
@@ -397,9 +399,9 @@ export function ContentPanel({ data, agentName, gradientFrom, gradientTo }: Pane
           onClick={() => { try { (window as any).__openCampaignWizard?.(); } catch {} }}
           className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-bold rounded-xl hover:shadow-lg hover:shadow-emerald-500/20 transition-all min-h-[44px] flex items-center gap-2"
         >
-          <span>{'\u26A1'}</span> Lancer une campagne
+          <span>{'\u26A1'}</span> {p.contentBtnLaunchCampaign}
         </button>
-        {(data as any).connections?.instagram && <span className="text-[9px] text-emerald-400/50">{'\u2713'} Instagram connecte</span>}
+        {(data as any).connections?.instagram && <span className="text-[9px] text-emerald-400/50">{'\u2713'} {p.contentConnectedBadge}</span>}
       </div>
       <ContentWorkflow isConnected={!!(data as any).connections?.instagram} />
 

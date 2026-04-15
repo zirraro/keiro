@@ -9,9 +9,12 @@ import {
   fmtCurrency, fmtPercent, fmtDate,
   KpiCard, SectionTitle, EmptyState,
 } from './Primitives';
+import { useLanguage } from '@/lib/i18n/context';
 import type { PanelProps } from './types';
 
 export function FinancePanel({ data, agentName, gradientFrom, gradientTo }: PanelProps) {
+  const { t } = useLanguage();
+  const p = t.panels;
   const stats: any = data.financeStats || { revenue: 0, expenses: 0, profit: 0, profitMargin: 0, recentTransactions: [] };
 
   const maxBar = Math.max(stats.revenue, stats.expenses, 1);
@@ -19,20 +22,20 @@ export function FinancePanel({ data, agentName, gradientFrom, gradientTo }: Pane
   return (
     <>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <KpiCard label="Chiffre d'affaires" value={fmtCurrency(stats.revenue)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        <KpiCard label="Depenses" value={fmtCurrency(stats.expenses)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label={p.financeKpiRevenue} value={fmtCurrency(stats.revenue)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label={p.financeKpiExpenses} value={fmtCurrency(stats.expenses)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
         <KpiCard
-          label="Marge"
+          label={p.financeKpiMargin}
           value={`${fmtCurrency(stats.margin)} (${stats.revenue > 0 ? fmtPercent((stats.margin / stats.revenue) * 100) : '0 %'})`}
           gradientFrom={gradientFrom}
           gradientTo={gradientTo}
         />
       </div>
 
-      <SectionTitle>Revenus vs Depenses</SectionTitle>
+      <SectionTitle>{p.financeSectionPerf}</SectionTitle>
       <div className="bg-white/5 rounded-xl border border-white/10 p-4 flex flex-col gap-3">
         <div className="flex items-center gap-3">
-          <span className="text-xs text-white/50 w-20 shrink-0">Revenus</span>
+          <span className="text-xs text-white/50 w-20 shrink-0">{p.financeLabelRevenue}</span>
           <div className="flex-1 h-6 bg-white/5 rounded-full overflow-hidden">
             <div
               className="h-full rounded-full"
@@ -45,7 +48,7 @@ export function FinancePanel({ data, agentName, gradientFrom, gradientTo }: Pane
           <span className="text-xs text-white/70 font-medium w-20 text-right shrink-0">{fmtCurrency(stats.revenue)}</span>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-white/50 w-20 shrink-0">Depenses</span>
+          <span className="text-xs text-white/50 w-20 shrink-0">{p.financeLabelExpenses}</span>
           <div className="flex-1 h-6 bg-white/5 rounded-full overflow-hidden">
             <div
               className="h-full rounded-full"
@@ -62,14 +65,14 @@ export function FinancePanel({ data, agentName, gradientFrom, gradientTo }: Pane
       {/* Quick actions */}
       <div className="flex flex-wrap gap-2 mt-3">
         <a href="/assistant/crm" className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-green-600 text-white text-xs font-semibold rounded-xl hover:opacity-90 transition-all">
-          {'\u{1F4CA}'} Voir le CRM
+          {'\u{1F4CA}'} {p.viewCrm}
         </a>
         <a href="/generate" className="px-4 py-2 bg-white/10 text-white/70 text-xs font-medium rounded-xl hover:bg-white/15">
-          {'\u2728'} Générer un rapport
+          {'\u2728'} {p.generateReport}
         </a>
       </div>
 
-      <SectionTitle>Transactions recentes</SectionTitle>
+      <SectionTitle>{p.financeSectionRecent}</SectionTitle>
       {stats.recentTransactions.length === 0 ? (
         <EmptyState agentName={agentName} />
       ) : (

@@ -12,9 +12,12 @@ import {
 import { AutoModeToggle } from './AutoModeToggle';
 import { SocialConnectBanners } from './SharedBanners';
 import { DEMO_TIKTOK_STATS } from '../AgentPreviewData';
+import { useLanguage } from '@/lib/i18n/context';
 import type { PanelProps } from './types';
 
 export function TiktokCommentsPanel({ data, agentName, gradientFrom, gradientTo }: PanelProps) {
+  const { t } = useLanguage();
+  const p = t.panels;
   const stats: any = data.tiktokStats || {
     videosPosted: DEMO_TIKTOK_STATS.videosPosted,
     totalViews: DEMO_TIKTOK_STATS.totalViews,
@@ -29,30 +32,30 @@ export function TiktokCommentsPanel({ data, agentName, gradientFrom, gradientTo 
       <SocialConnectBanners agentId="tiktok_comments" networks={['tiktok']} connections={(data as any).connections} />
 
       {/* Auto mode */}
-      <AutoModeToggle agentId="tiktok_comments" autoLabel="Engagement automatique" manualLabel="Engagement manuel" autoDesc="Axel commente et engage automatiquement" manualDesc="Tu valides chaque interaction" />
+      <AutoModeToggle agentId="tiktok_comments" autoLabel={p.tiktokToggleAutoLabel} manualLabel={p.tiktokToggleManualLabel} autoDesc={p.tiktokToggleAutoDesc} manualDesc={p.tiktokToggleManualDesc} />
 
       {/* KPIs horizontal */}
       <div className="flex items-center gap-2 sm:gap-3 mb-3 flex-wrap">
         <div className="flex items-center gap-1.5 bg-white/5 rounded-lg px-3 py-2 border border-white/10">
           <span className="font-bold text-sm" style={{ color: gradientFrom }}>{fmt(stats.videosPosted || 0)}</span>
-          <span className="text-white/30 text-[10px]">Videos</span>
+          <span className="text-white/30 text-[10px]">{p.tiktokKpiVideos}</span>
         </div>
         <div className="flex items-center gap-1.5 bg-white/5 rounded-lg px-3 py-2 border border-white/10">
           <span className="text-cyan-400 font-bold text-sm">{fmt(stats.totalViews || 0)}</span>
-          <span className="text-white/30 text-[10px]">Vues</span>
+          <span className="text-white/30 text-[10px]">{p.tiktokKpiViews}</span>
         </div>
         <div className="flex items-center gap-1.5 bg-white/5 rounded-lg px-3 py-2 border border-white/10">
           <span className="text-emerald-400 font-bold text-sm">{(stats.avgEngagement || 0).toFixed(1)}%</span>
-          <span className="text-white/30 text-[10px]">Engagement</span>
+          <span className="text-white/30 text-[10px]">{p.tiktokKpiEngagement}</span>
         </div>
         <div className="flex items-center gap-1.5 bg-white/5 rounded-lg px-3 py-2 border border-white/10">
           <span className="text-purple-400 font-bold text-sm">{fmt(stats.followers || 0)}</span>
-          <span className="text-white/30 text-[10px]">Followers</span>
+          <span className="text-white/30 text-[10px]">{p.tiktokKpiFollowers}</span>
         </div>
       </div>
 
       {/* TikTok Comments */}
-      <SectionTitle>Commentaires TikTok</SectionTitle>
+      <SectionTitle>{p.tiktokSectionComments}</SectionTitle>
       <div className="space-y-2 max-h-[200px] overflow-y-auto mb-3">
         {(stats.recentComments || DEMO_TIKTOK_STATS.recentComments || []).slice(0, 5).map((c: any, i: number) => (
           <div key={i} className="bg-white/5 rounded-lg border border-white/10 p-3 flex items-start gap-2">
@@ -68,7 +71,7 @@ export function TiktokCommentsPanel({ data, agentName, gradientFrom, gradientTo 
       </div>
 
       {/* Recent actions */}
-      <SectionTitle>Actions recentes</SectionTitle>
+      <SectionTitle>{p.recentActions}</SectionTitle>
       <ActivityFeed
         items={(stats.recentActions ?? []).map((a: any) => ({
           label: a.action,
@@ -83,14 +86,14 @@ export function TiktokCommentsPanel({ data, agentName, gradientFrom, gradientTo 
       {/* Quick actions */}
       <div className="flex flex-wrap gap-2 mt-3">
         <a href="/generate" className="px-4 py-2 bg-gradient-to-r from-fuchsia-600 to-pink-600 text-white text-xs font-semibold rounded-xl hover:opacity-90 transition-all">
-          {'\u2728'} Creer du contenu TikTok
+          {'\u2728'} {p.tiktokBtnCreate}
         </a>
         <a href="/assistant/crm" className="px-4 py-2 bg-white/10 text-white/70 text-xs font-medium rounded-xl hover:bg-white/15">
-          {'\u{1F4CA}'} Voir le CRM
+          {'\u{1F4CA}'} {p.viewCrm}
         </a>
       </div>
 
-      <ActionButton label="Configurer l'engagement" gradientFrom={gradientFrom} gradientTo={gradientTo} />
+      <ActionButton label={p.tiktokBtnConfigure} gradientFrom={gradientFrom} gradientTo={gradientTo} />
     </>
   );
 }

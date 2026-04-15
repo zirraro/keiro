@@ -13,6 +13,7 @@ import {
   KpiCard, SectionTitle, ActionButton,
 } from './Primitives';
 import { AutoModeToggle } from './AutoModeToggle';
+import { useLanguage } from '@/lib/i18n/context';
 import type { PanelProps } from './types';
 
 // Review card with AI reply generation + direct Google reply for Google reviews
@@ -154,6 +155,8 @@ function ReviewCard({ review, gradientFrom }: { review: { name?: string; author:
 }
 
 export function GmapsPanel({ data, agentName, gradientFrom, gradientTo }: PanelProps) {
+  const { t } = useLanguage();
+  const p = t.panels;
   const stats = data.gmapsStats || { reviewsAnswered: 0, googleRating: 0, totalReviews: 0, gmbClicks: 0, recentReviews: [] };
 
   // Fetch real Google reviews if connected
@@ -205,18 +208,18 @@ export function GmapsPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
   return (
     <>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <KpiCard label="Avis repondus" value={fmt(stats.reviewsAnswered)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label={p.gmapsKpiAnswered} value={fmt(stats.reviewsAnswered)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
         <KpiCard
-          label="Note Google"
+          label={p.gmapsKpiRating}
           value={`${(stats.googleRating || 0).toLocaleString('fr-FR', { maximumFractionDigits: 1 })}/5`}
           gradientFrom={gradientFrom}
           gradientTo={gradientTo}
         />
-        <KpiCard label="Clics fiche GMB" value={fmt(stats.gmbClicks)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label={p.gmapsKpiClicks} value={fmt(stats.gmbClicks)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
       </div>
 
       {/* Star rating visual */}
-      <SectionTitle>Note moyenne ({fmt(stats.totalReviews)} avis)</SectionTitle>
+      <SectionTitle>{p.gmapsSectionAvg.replace('{n}', fmt(stats.totalReviews))}</SectionTitle>
       <div className="bg-white/5 rounded-xl border border-white/10 p-4 flex items-center justify-center gap-1">
         {Array.from({ length: fullStars }).map((_, i) => (
           <svg key={`full-${i}`} className="w-7 h-7" viewBox="0 0 24 24" fill={gradientFrom}>
@@ -248,9 +251,9 @@ export function GmapsPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
       {!googleConnected && !loadingReviews && (
         <PreviewBanner
           agentName="Theo"
-          connectLabel="Connecter Google Business"
+          connectLabel={p.gmapsConnectLabel}
           connectUrl="/api/auth/google-oauth"
-          claraMessage="Voici un apercu de ton espace avis Google. Tu pourras voir tes avis, repondre avec l'IA et meme activer les réponses automatiques. 1 clic et c'est parti !"
+          claraMessage={p.gmapsConnectMessage}
           gradientFrom="#f59e0b"
           gradientTo="#d97706"
         />
@@ -262,17 +265,16 @@ export function GmapsPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
           <div className="flex items-start gap-3">
             <span className="text-xl">{'\u26A0\uFE0F'}</span>
             <div className="flex-1 min-w-0">
-              <h4 className="text-amber-300 font-bold text-sm mb-1">Google Business connecte, mais aucun etablissement</h4>
+              <h4 className="text-amber-300 font-bold text-sm mb-1">{p.gmapsNeedsLocationTitle}</h4>
               <p className="text-white/60 text-xs mb-2 leading-relaxed">
-                Ton compte Google est bien lie mais n'a pas encore d'etablissement enregistre.
-                Ajoute ton commerce sur <a href="https://business.google.com" target="_blank" rel="noopener" className="text-amber-300 underline">business.google.com</a>,
+                {p.gmapsNeedsLocationDesc.split('business.google.com')[0]} <a href="https://business.google.com" target="_blank" rel="noopener" className="text-amber-300 underline">business.google.com</a>,
                 puis reviens ici — Theo recuperera automatiquement tes avis.
               </p>
               <a
                 href="/api/auth/google-oauth"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 transition"
               >
-                Reconnecter / rafraichir
+                {p.gmapsNeedsLocationBtn}
               </a>
             </div>
           </div>
@@ -280,11 +282,11 @@ export function GmapsPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
       )}
 
       {/* Auto-reply toggle — always visible (demo or real) */}
-      <AutoModeToggle agentId="gmaps" autoLabel="Reponses automatiques" manualLabel="Reponses manuelles" autoDesc="Theo repond a chaque nouvel avis automatiquement" manualDesc="Tu choisis quand et quoi repondre" />
+      <AutoModeToggle agentId="gmaps" autoLabel={p.gmapsToggleAutoLabel} manualLabel={p.gmapsToggleManualLabel} autoDesc={p.gmapsToggleAutoDesc} manualDesc={p.gmapsToggleManualDesc} />
 
       {/* Google reviews: real data or demo */}
       <div data-tour="google-reviews">
-      <SectionTitle>{googleConnected ? `Avis Google (${googleReviews.length})` : 'Avis Google (apercu)'}</SectionTitle>
+      <SectionTitle>{googleConnected ? p.gmapsSectionAvisConnected.replace('{n}', String(googleReviews.length)) : p.gmapsSectionAvisPreview}</SectionTitle>
       <div className={`flex flex-col gap-2 ${!googleConnected ? 'opacity-90' : ''}`}>
         {(googleConnected ? googleReviews : DEMO_REVIEWS).slice(0, 10).map((review: any, i: number) => (
           <ReviewCard key={i} review={review} gradientFrom={gradientFrom} />
@@ -297,7 +299,7 @@ export function GmapsPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
       <div className="pb-16 lg:pb-0" />
 
       {/* Fallback: cached reviews from agent_logs */}
-      {(stats.recentReviews?.length || 0) > 0 && <SectionTitle>Avis recents</SectionTitle>}
+      {(stats.recentReviews?.length || 0) > 0 && <SectionTitle>{p.gmapsSectionRecentAvis}</SectionTitle>}
       {(stats.recentReviews?.length || 0) > 0 && (
         <div className="flex flex-col gap-2">
           {(stats.recentReviews || []).slice(0, 5).map((review: any, i: number) => (
@@ -309,14 +311,14 @@ export function GmapsPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
       {/* Quick actions */}
       <div className="flex flex-wrap gap-2 mt-3">
         <a href="/generate" className="px-4 py-2 bg-gradient-to-r from-amber-600 to-yellow-600 text-white text-xs font-semibold rounded-xl hover:opacity-90 transition-all">
-          {'\u2728'} Générer des réponses
+          {'\u2728'} {p.generate}
         </a>
         <a href="/assistant/crm" className="px-4 py-2 bg-white/10 text-white/70 text-xs font-medium rounded-xl hover:bg-white/15">
-          {'\u{1F4CA}'} Voir le CRM
+          {'\u{1F4CA}'} {p.viewCrm}
         </a>
       </div>
 
-      <ActionButton label="Voir ma fiche Google" gradientFrom={gradientFrom} gradientTo={gradientTo} />
+      <ActionButton label={p.gmapsBtnViewPage} gradientFrom={gradientFrom} gradientTo={gradientTo} />
     </>
   );
 }

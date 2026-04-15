@@ -9,9 +9,12 @@ import {
   fmt, fmtPercent, fmtDate,
   KpiCard, SectionTitle, EmptyState, ActionButton,
 } from './Primitives';
+import { useLanguage } from '@/lib/i18n/context';
 import type { PanelProps } from './types';
 
 export function ChatbotPanel({ data, agentName, gradientFrom, gradientTo }: PanelProps) {
+  const { t } = useLanguage();
+  const p = t.panels;
   const stats: any = data.chatbotStats || { totalVisitors: 0, leadsWithEmail: 0, conversionRate: 0, recentSessions: [] };
 
   const visitors = stats.totalVisitors || stats.visitorsGreeted || 0;
@@ -19,9 +22,9 @@ export function ChatbotPanel({ data, agentName, gradientFrom, gradientTo }: Pane
 
   // Conversion funnel mini visual
   const funnelSteps = [
-    { label: 'Visiteurs', value: visitors },
-    { label: 'Leads', value: leads },
-    { label: 'Convertis', value: Math.round(leads * (stats.conversionRate / 100)) },
+    { label: p.chatbotLabelVisitors, value: visitors },
+    { label: p.chatbotLabelLeads, value: leads },
+    { label: p.chatbotLabelConverted, value: Math.round(leads * (stats.conversionRate / 100)) },
   ];
   const maxFunnel = Math.max(visitors, 1);
 
@@ -35,13 +38,13 @@ export function ChatbotPanel({ data, agentName, gradientFrom, gradientTo }: Pane
   return (
     <>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <KpiCard label="Visiteurs accueillis" value={fmt(visitors)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        <KpiCard label="Leads captes" value={fmt(leads)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        <KpiCard label="Taux conversion" value={fmtPercent(stats.conversionRate)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label={p.chatbotKpiVisitors} value={fmt(visitors)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label={p.chatbotKpiLeads} value={fmt(leads)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label={p.chatbotKpiConv} value={fmtPercent(stats.conversionRate)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
       </div>
 
       {/* Conversion funnel */}
-      <SectionTitle>Entonnoir de conversion</SectionTitle>
+      <SectionTitle>{p.chatbotSectionFunnel}</SectionTitle>
       <div className="bg-white/5 rounded-xl border border-white/10 p-4 flex flex-col gap-3">
         {funnelSteps.map((step, i) => {
           const widthPct = Math.max((step.value / maxFunnel) * 100, 8);
@@ -67,7 +70,7 @@ export function ChatbotPanel({ data, agentName, gradientFrom, gradientTo }: Pane
       </div>
 
       {/* Recent chatbot sessions */}
-      <SectionTitle>Sessions recentes</SectionTitle>
+      <SectionTitle>{p.chatbotSectionRecent}</SectionTitle>
       {stats.recentSessions.length === 0 ? (
         <EmptyState agentName={agentName} />
       ) : (
@@ -93,14 +96,14 @@ export function ChatbotPanel({ data, agentName, gradientFrom, gradientTo }: Pane
       {/* Quick actions */}
       <div className="flex flex-wrap gap-2 mt-3">
         <a href="/generate" className="px-4 py-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white text-xs font-semibold rounded-xl hover:opacity-90 transition-all">
-          {'\u2728'} Personnaliser les messages
+          {'\u2728'} {p.chatbotBtnPersonalize}
         </a>
         <a href="/assistant/crm" className="px-4 py-2 bg-white/10 text-white/70 text-xs font-medium rounded-xl hover:bg-white/15">
-          {'\u{1F4CA}'} Voir le CRM
+          {'\u{1F4CA}'} {p.viewCrm}
         </a>
       </div>
 
-      <ActionButton label="Configurer le chatbot" gradientFrom={gradientFrom} gradientTo={gradientTo} />
+      <ActionButton label={p.chatbotBtnConfigure} gradientFrom={gradientFrom} gradientTo={gradientTo} />
     </>
   );
 }

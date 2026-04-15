@@ -16,6 +16,7 @@ import {
 } from './Primitives';
 import { AutoModeToggle } from './AutoModeToggle';
 import { EmailConnectBanner } from './SharedBanners';
+import { useLanguage } from '@/lib/i18n/context';
 import type { PanelProps } from './types';
 
 function EmailCard({ email }: { email: { prospect: string; type: string; status: string; date: string; subject?: string; message?: string; provider?: string } }) {
@@ -69,6 +70,8 @@ function EmailCard({ email }: { email: { prospect: string; type: string; status:
 }
 
 export function EmailPanel({ data, agentName, gradientFrom, gradientTo }: PanelProps) {
+  const { t } = useLanguage();
+  const p = t.panels;
   const stats = data.emailStats || { sent: 0, opened: 0, clicked: 0, openRate: 0, clickRate: 0, sequences: {}, recentEmails: [] };
 
   const seqEntries = Object.entries(stats.sequences ?? {}) as Array<[string, number]>;
@@ -81,28 +84,28 @@ export function EmailPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
   return (
     <>
       {/* Auto mode toggle */}
-      <div data-tour="auto-toggle"><AutoModeToggle agentId="email" autoLabel="Emails automatiques" manualLabel="Emails manuels" autoDesc="Hugo envoie les sequences email automatiquement" manualDesc="Tu valides chaque email avant envoi" /></div>
+      <div data-tour="auto-toggle"><AutoModeToggle agentId="email" autoLabel="Automatic emails" manualLabel="Manual emails" autoDesc="Hugo sends email sequences automatically" manualDesc="You validate each email before sending" /></div>
 
       {/* Email connection banner */}
       <EmailConnectBanner connections={(data as any).connections} />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KpiCard label="Emails envoyes" value={fmt(stats.sent)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        <KpiCard label="Taux ouverture" value={fmtPercent(stats.openRate)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        <KpiCard label="Taux clic" value={fmtPercent(stats.clickRate)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        <KpiCard label="Sequences actives" value={fmt(seqEntries.length)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label={p.emailKpiSent} value={fmt(stats.sent)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label={p.emailKpiOpenRate} value={fmtPercent(stats.openRate)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label={p.emailKpiClickRate} value={fmtPercent(stats.clickRate)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label={p.emailSectionSequences} value={fmt(seqEntries.length)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
       </div>
 
       {/* Workflow visual — pipeline Email */}
-      <SectionTitle>Workflow Email</SectionTitle>
+      <SectionTitle>Email Workflow</SectionTitle>
       <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
         <div className="flex items-center justify-between gap-1 text-center">
           {[
             { label: 'Prospects', value: emailProspects, icon: '\u{1F465}', color: '#94a3b8' },
-            { label: 'Email envoye', value: stats.sent, icon: '\u{1F4E7}', color: '#60a5fa' },
-            { label: 'Ouvert', value: stats.opened, icon: '\u{1F4EC}', color: '#fbbf24' },
-            { label: 'Clique', value: stats.clicked, icon: '\u{1F517}', color: '#a855f7' },
-            { label: 'Répondu', value: emailReplied, icon: '\u{1F4AC}', color: '#22c55e' },
+            { label: p.emailCardStatusSent, value: stats.sent, icon: '\u{1F4E7}', color: '#60a5fa' },
+            { label: p.emailCardStatusOpened, value: stats.opened, icon: '\u{1F4EC}', color: '#fbbf24' },
+            { label: 'Clicked', value: stats.clicked, icon: '\u{1F517}', color: '#a855f7' },
+            { label: p.emailCardStatusReplied, value: emailReplied, icon: '\u{1F4AC}', color: '#22c55e' },
           ].map((step, i) => (
             <div key={step.label} className="flex items-center flex-1">
               <div className="flex-1 text-center">
@@ -116,30 +119,30 @@ export function EmailPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
         </div>
         <div className="mt-3 pt-3 border-t border-white/5 flex items-center gap-2">
           <span className="text-[10px] text-cyan-400">{'\u{1F4E8}'}</span>
-          <span className="text-[10px] text-white/50">Les prospects qui <strong className="text-cyan-400">repondent</strong> sont automatiquement signales dans le CRM</span>
+          <span className="text-[10px] text-white/50">Prospects who <strong className="text-cyan-400">reply</strong> are automatically flagged in the CRM</span>
         </div>
       </div>
 
       {/* Quick actions */}
       <div className="flex flex-wrap gap-2 mt-3">
         <a href="/generate" className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 text-white text-xs font-semibold rounded-xl hover:opacity-90 transition-all">
-          {'\u2728'} Creer un template email
+          {'\u2728'} Create email template
         </a>
         <a href="/assistant/crm" className="px-4 py-2 bg-white/10 text-white/70 text-xs font-medium rounded-xl hover:bg-white/15">
-          {'\u{1F4CA}'} Voir le CRM
+          {'\u{1F4CA}'} {p.viewCrm}
         </a>
       </div>
 
-      <SectionTitle>Taux de performance</SectionTitle>
+      <SectionTitle>Performance rates</SectionTitle>
       <div className="flex justify-center gap-8">
-        <CircularProgress value={stats.openRate} label="Ouverture" gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        <CircularProgress value={stats.clickRate} label="Clic" gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <CircularProgress value={stats.openRate} label="Open rate" gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <CircularProgress value={stats.clickRate} label="Click rate" gradientFrom={gradientFrom} gradientTo={gradientTo} />
       </div>
 
-      <SectionTitle>Pipeline sequences</SectionTitle>
+      <SectionTitle>Sequences pipeline</SectionTitle>
       <div className="bg-white/5 rounded-xl border border-white/10 p-4">
         {seqEntries.length === 0 ? (
-          <p className="text-sm text-white/40 text-center">Aucune sequence active</p>
+          <p className="text-sm text-white/40 text-center">No active sequence</p>
         ) : (
           <>
             <div className="flex h-6 rounded-full overflow-hidden">
@@ -169,12 +172,12 @@ export function EmailPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
         )}
       </div>
 
-      <SectionTitle>Performance recente</SectionTitle>
+      <SectionTitle>Recent performance</SectionTitle>
       <div className="bg-white/5 rounded-xl border border-white/10 p-4">
         <div className="flex items-end gap-1 h-24">
           {[stats.sent, stats.opened, stats.clicked].map((val, i) => {
             const max = Math.max(stats.sent, 1);
-            const labels = ['Envoyés', 'Ouverts', 'Cliqués'];
+            const labels = ['Sent', 'Opened', 'Clicked'];
             return (
               <div key={i} className="flex-1 flex flex-col items-center gap-1">
                 <div
@@ -198,34 +201,34 @@ export function EmailPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
 
       {/* Email Inbox */}
       <div data-tour="email-inbox">
-        <SectionTitle>Boite de reception</SectionTitle>
+        <SectionTitle>{p.emailInboxTitle}</SectionTitle>
         <EmailInbox emails={(data as any).recentEmails || (stats as any).recentEmails || []} gradientFrom={gradientFrom} />
       </div>
 
       {/* Custom domain — discrete option */}
       <details className="mt-3 rounded-xl border border-white/5 bg-white/[0.01]">
         <summary className="px-4 py-2.5 text-[10px] text-white/30 cursor-pointer hover:text-white/50 flex items-center gap-2">
-          <span>{'\u2699\uFE0F'}</span> Envoyer depuis ton propre nom de domaine
+          <span>{'\u2699\uFE0F'}</span> Send from your own domain
         </summary>
         <div className="px-4 pb-4 space-y-3">
           <p className="text-[11px] text-white/50">
-            Par défaut, Hugo envoie depuis <span className="text-white/70 font-medium">contact@keiroai.com</span>.
-            Tu peux connecter ton propre domaine pour envoyer depuis <span className="text-white/70 font-medium">contact@tonentreprise.com</span>.
+            By default, Hugo sends from <span className="text-white/70 font-medium">contact@keiroai.com</span>.
+            You can connect your own domain to send from <span className="text-white/70 font-medium">contact@yourcompany.com</span>.
           </p>
           <div className="rounded-lg bg-white/[0.03] border border-white/10 p-3 space-y-2">
-            <h4 className="text-[11px] text-white/70 font-semibold">Comment faire :</h4>
+            <h4 className="text-[11px] text-white/70 font-semibold">How to:</h4>
             <ol className="text-[10px] text-white/40 space-y-1.5 list-decimal pl-4">
-              <li>Crée un compte sur <a href="https://app.brevo.com" target="_blank" rel="noopener" className="text-purple-400 hover:underline">Brevo</a> (gratuit, 300 emails/jour)</li>
-              <li>Ajoute et vérifie ton domaine dans Brevo (DNS : SPF + DKIM)</li>
-              <li>Récupère ta clé API Brevo</li>
-              <li>Communique-la nous lors de l'accompagnement</li>
+              <li>Create an account on <a href="https://app.brevo.com" target="_blank" rel="noopener" className="text-purple-400 hover:underline">Brevo</a> (free, 300 emails/day)</li>
+              <li>Add and verify your domain in Brevo (DNS: SPF + DKIM)</li>
+              <li>Get your Brevo API key</li>
+              <li>Share it with us during onboarding</li>
             </ol>
           </div>
           <div className="flex items-center gap-3">
             <a href="https://cal.com" target="_blank" rel="noopener" className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-[10px] font-bold rounded-xl hover:shadow-lg transition min-h-[44px] flex items-center gap-1">
-              {'\uD83D\uDCC5'} Réserver un créneau d'accompagnement
+              {'\uD83D\uDCC5'} Book an onboarding call
             </a>
-            <span className="text-[9px] text-white/20">15 min, on configure ensemble</span>
+            <span className="text-[9px] text-white/20">15 min, we configure it together</span>
           </div>
         </div>
       </details>

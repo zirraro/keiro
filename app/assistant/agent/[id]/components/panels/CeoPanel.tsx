@@ -9,9 +9,12 @@ import {
   fmt,
   KpiCard, SectionTitle, ActionButton,
 } from './Primitives';
+import { useLanguage } from '@/lib/i18n/context';
 import type { PanelProps } from './types';
 
 export function CeoPanel({ data, agentName, gradientFrom, gradientTo }: PanelProps) {
+  const { t } = useLanguage();
+  const p = t.panels;
   // Extract data from various sources
   const prospects = (data as any).prospects?.length || (data as any).stats?.total || 0;
   const hot = (data as any).stats?.hot || 0;
@@ -36,14 +39,14 @@ export function CeoPanel({ data, agentName, gradientFrom, gradientTo }: PanelPro
     <>
       {/* KPI strategiques */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <KpiCard label="Prospects" value={fmt(prospects)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        <KpiCard label="Chauds" value={fmt(hot)} gradientFrom="#ef4444" gradientTo="#f97316" />
-        <KpiCard label="Emails envoyes" value={fmt(emailsSent)} gradientFrom="#06b6d4" gradientTo="#0891b2" />
-        <KpiCard label="Taux ouverture" value={`${openRate}%`} gradientFrom="#10b981" gradientTo="#22c55e" />
+        <KpiCard label={p.ceoKpiProspects} value={fmt(prospects)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label={p.ceoKpiHot} value={fmt(hot)} gradientFrom="#ef4444" gradientTo="#f97316" />
+        <KpiCard label={p.ceoKpiEmailsSent} value={fmt(emailsSent)} gradientFrom="#06b6d4" gradientTo="#0891b2" />
+        <KpiCard label={p.ceoKpiOpenRate} value={`${openRate}%`} gradientFrom="#10b981" gradientTo="#22c55e" />
       </div>
 
       {/* Vision strategique */}
-      <SectionTitle>Performance des agents</SectionTitle>
+      <SectionTitle>{p.ceoSectionAgents}</SectionTitle>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
         {Object.entries(AGENT_NAMES).map(([id, name]) => {
           const status = agentStatus[id];
@@ -52,35 +55,35 @@ export function CeoPanel({ data, agentName, gradientFrom, gradientTo }: PanelPro
               <div className={`w-2 h-2 rounded-full ${status === 'erreur' ? 'bg-red-400' : status === 'actif' ? 'bg-green-400' : 'bg-white/20'}`} />
               <span className="text-xs text-white/70 font-medium">{name}</span>
               <span className={`text-[9px] ml-auto ${status === 'erreur' ? 'text-red-400' : status === 'actif' ? 'text-green-400' : 'text-white/20'}`}>
-                {status || 'en attente'}
+                {status === 'erreur' ? p.ceoStatusError : status === 'actif' ? p.ceoStatusActive : p.ceoStatusWaiting}
               </span>
             </div>
           );
         })}
       </div>
 
-      <SectionTitle>Canaux actifs</SectionTitle>
+      <SectionTitle>{p.ceoSectionChannels}</SectionTitle>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <div className="rounded-xl bg-white/[0.03] border border-white/10 p-3 text-center">
           <div className="text-lg font-bold text-pink-400">{fmt(dmsSent)}</div>
-          <div className="text-[9px] text-white/40">DMs envoyes</div>
+          <div className="text-[9px] text-white/40">{p.ceoStatDmsSent}</div>
         </div>
         <div className="rounded-xl bg-white/[0.03] border border-white/10 p-3 text-center">
           <div className="text-lg font-bold text-purple-400">{fmt(publications)}</div>
-          <div className="text-[9px] text-white/40">Publications</div>
+          <div className="text-[9px] text-white/40">{p.ceoStatPublications}</div>
         </div>
         <div className="rounded-xl bg-white/[0.03] border border-white/10 p-3 text-center">
           <div className="text-lg font-bold text-cyan-400">{fmt(emailsSent)}</div>
-          <div className="text-[9px] text-white/40">Emails</div>
+          <div className="text-[9px] text-white/40">{p.ceoStatEmails}</div>
         </div>
         <div className="rounded-xl bg-white/[0.03] border border-white/10 p-3 text-center">
           <div className="text-lg font-bold text-amber-400">{fmt(hot)}</div>
-          <div className="text-[9px] text-white/40">Prospects chauds</div>
+          <div className="text-[9px] text-white/40">{p.ceoStatHotProspects}</div>
         </div>
       </div>
 
       {/* Strategy in effect */}
-      <SectionTitle>Strategie en cours</SectionTitle>
+      <SectionTitle>{p.ceoSectionStrategy}</SectionTitle>
       <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-4">
         {(() => {
           const strategy = typeof window !== 'undefined' ? localStorage.getItem('keiro_strategy_done') : null;
@@ -101,7 +104,7 @@ export function CeoPanel({ data, agentName, gradientFrom, gradientTo }: PanelPro
               ))}
             </div>
           ) : (
-            <p className="text-xs text-white/40">Aucune strategie definie — va dans Clara pour en choisir une</p>
+            <p className="text-xs text-white/40">{p.ceoStrategyEmpty}</p>
           );
         })()}
       </div>
@@ -117,7 +120,7 @@ export function CeoPanel({ data, agentName, gradientFrom, gradientTo }: PanelPro
         </p>
       </div>
 
-      <ActionButton label="Parler a Noah" gradientFrom={gradientFrom} gradientTo={gradientTo} />
+      <ActionButton label={p.ceoBtnTalk} gradientFrom={gradientFrom} gradientTo={gradientTo} />
     </>
   );
 }

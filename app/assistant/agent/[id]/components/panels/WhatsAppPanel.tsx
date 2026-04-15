@@ -10,9 +10,12 @@ import {
   KpiCard, SectionTitle, DonutChart, ProgressBar,
 } from './Primitives';
 import { DEMO_WHATSAPP_STATS } from '../AgentPreviewData';
+import { useLanguage } from '@/lib/i18n/context';
 import type { PanelProps } from './types';
 
 export function WhatsAppPanel({ data, agentName, gradientFrom, gradientTo }: PanelProps) {
+  const { t } = useLanguage();
+  const p = t.panels;
   const stats: any = data.whatsappStats || {
     conversations: DEMO_WHATSAPP_STATS.conversations,
     activeConversations: DEMO_WHATSAPP_STATS.activeConversations,
@@ -31,34 +34,34 @@ export function WhatsAppPanel({ data, agentName, gradientFrom, gradientTo }: Pan
   return (
     <>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-        <KpiCard label="Messages envoyes" value={fmt(stats.messagesSent)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        <KpiCard label="Messages recus" value={fmt(stats.messagesReceived)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        <KpiCard label="Taux reponse" value={fmtPercent(stats.responseRate)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        <KpiCard label="Leads generes" value={fmt(stats.leadsGenerated)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label={p.whatsappKpiSent} value={fmt(stats.messagesSent)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label={p.whatsappKpiReceived} value={fmt(stats.messagesReceived)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label={p.whatsappKpiRate} value={fmtPercent(stats.responseRate)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label={p.whatsappKpiLeads} value={fmt(stats.leadsGenerated)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
       </div>
 
       {/* Performance visuelle */}
-      <SectionTitle>Performance</SectionTitle>
+      <SectionTitle>{p.whatsappSectionPerf}</SectionTitle>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="rounded-xl border border-white/10 p-4 bg-white/[0.02]">
           <DonutChart
             segments={[
-              { value: stats.messagesSent, color: '#25D366', label: 'Envoyés' },
-              { value: stats.messagesReceived, color: '#128C7E', label: 'Recus' },
-              { value: stats.leadsGenerated, color: '#fbbf24', label: 'Leads' },
+              { value: stats.messagesSent, color: '#25D366', label: p.whatsappLabelSent },
+              { value: stats.messagesReceived, color: '#128C7E', label: p.whatsappLabelReceived },
+              { value: stats.leadsGenerated, color: '#fbbf24', label: p.whatsappLabelLeads },
             ]}
             label={`${stats.responseRate}%`}
           />
         </div>
         <div className="rounded-xl border border-white/10 p-4 bg-white/[0.02] space-y-3">
-          <ProgressBar value={stats.messagesReceived} max={Math.max(stats.messagesSent, 1)} color="#25D366" label="Taux reponse" />
-          <ProgressBar value={stats.leadsGenerated} max={Math.max(stats.messagesReceived, 1)} color="#fbbf24" label="Conversion leads" />
-          <ProgressBar value={stats.conversationsActive} max={Math.max(stats.messagesSent, 1)} color="#128C7E" label="Conversations actives" />
+          <ProgressBar value={stats.messagesReceived} max={Math.max(stats.messagesSent, 1)} color="#25D366" label={p.whatsappKpiRate} />
+          <ProgressBar value={stats.leadsGenerated} max={Math.max(stats.messagesReceived, 1)} color="#fbbf24" label={p.whatsappLabelLeadRate} />
+          <ProgressBar value={stats.conversationsActive} max={Math.max(stats.messagesSent, 1)} color="#128C7E" label={p.whatsappLabelConvsActive} />
         </div>
       </div>
 
       {/* Active conversations */}
-      <SectionTitle>Conversations actives ({stats.conversationsActive})</SectionTitle>
+      <SectionTitle>{p.whatsappSectionActive.replace('{n}', String(stats.conversationsActive))}</SectionTitle>
       {stats.recentConversations && stats.recentConversations.length > 0 ? (
         <div className="space-y-2">
           {(stats.recentConversations || []).map((conv: any, i: number) => (
@@ -78,16 +81,16 @@ export function WhatsAppPanel({ data, agentName, gradientFrom, gradientTo }: Pan
           ))}
         </div>
       ) : (
-        <div className="text-center py-6 text-white/30 text-sm">Aucune conversation recente</div>
+        <div className="text-center py-6 text-white/30 text-sm">{p.whatsappNoConvs}</div>
       )}
 
       {/* Quick actions */}
       <div className="flex flex-wrap gap-2 mt-3">
         <a href="/generate" className="px-4 py-2 bg-gradient-to-r from-[#25D366] to-[#128C7E] text-white text-xs font-semibold rounded-xl hover:opacity-90 transition-all">
-          {'\u2728'} Creer un template WhatsApp
+          {'\u2728'} {p.whatsappBtnCreateTemplate}
         </a>
         <a href="/assistant/crm" className="px-4 py-2 bg-white/10 text-white/70 text-xs font-medium rounded-xl hover:bg-white/15">
-          {'\u{1F4CA}'} Voir le CRM
+          {'\u{1F4CA}'} {p.viewCrm}
         </a>
       </div>
     </>

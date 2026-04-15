@@ -10,9 +10,12 @@ import {
   KpiCard, SectionTitle, EmptyState, DonutChart, ProgressBar, ActivityFeed,
 } from './Primitives';
 import { SocialConnectBanners } from './SharedBanners';
+import { useLanguage } from '@/lib/i18n/context';
 import type { PanelProps } from './types';
 
 export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: PanelProps) {
+  const { t } = useLanguage();
+  const p = t.panels;
   const gs = data.globalStats;
   const recs = data.recommendations ?? [];
 
@@ -27,22 +30,22 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
         {/* HotProspectsAlert removed — too much space, only useful for visitor mode */}
 
         {/* Commercial bloc */}
-        <SectionTitle>Prospection</SectionTitle>
+        <SectionTitle>{p.marketingSectionProspection}</SectionTitle>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <KpiCard label="Total prospects" value={fmt(gs.commercial?.totalProspects || 0)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-          <KpiCard label="Cette semaine" value={`+${fmt(gs.commercial?.prospectsThisWeek || 0)}`} gradientFrom="#06b6d4" gradientTo="#0891b2" />
-          <KpiCard label="Clients" value={fmt(gs.commercial?.conversions || 0)} gradientFrom="#10b981" gradientTo="#22c55e" />
-          <KpiCard label="Conversion" value={`${gs.commercial?.conversionRate || 0}%`} gradientFrom="#f59e0b" gradientTo="#d97706" />
+          <KpiCard label={p.marketingLabelTotalProspects} value={fmt(gs.commercial?.totalProspects || 0)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+          <KpiCard label={p.marketingLabelThisWeek} value={`+${fmt(gs.commercial?.prospectsThisWeek || 0)}`} gradientFrom="#06b6d4" gradientTo="#0891b2" />
+          <KpiCard label={p.marketingLabelClients} value={fmt(gs.commercial?.conversions || 0)} gradientFrom="#10b981" gradientTo="#22c55e" />
+          <KpiCard label={p.marketingLabelConversion} value={`${gs.commercial?.conversionRate || 0}%`} gradientFrom="#f59e0b" gradientTo="#d97706" />
         </div>
 
         {/* Funnel */}
         <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 mt-4">
           <div className="flex items-center justify-between gap-1 text-center">
             {[
-              { label: 'Identifies', value: gs.commercial?.totalProspects || 0, icon: '\u{1F465}', color: '#94a3b8' },
-              { label: 'Contactes', value: gs.commercial?.prospectsThisWeek || 0, icon: '\u{1F4E8}', color: '#60a5fa' },
-              { label: 'Qualifies', value: Math.round((gs.commercial?.prospectsThisWeek || 0) * 0.6), icon: '\u{1F3AF}', color: '#fbbf24' },
-              { label: 'Clients', value: gs.commercial?.conversions || 0, icon: '\u{1F525}', color: '#22c55e' },
+              { label: p.marketingFunnelIdentified, value: gs.commercial?.totalProspects || 0, icon: '\u{1F465}', color: '#94a3b8' },
+              { label: p.marketingFunnelContacted, value: gs.commercial?.prospectsThisWeek || 0, icon: '\u{1F4E8}', color: '#60a5fa' },
+              { label: p.marketingFunnelQualified, value: Math.round((gs.commercial?.prospectsThisWeek || 0) * 0.6), icon: '\u{1F3AF}', color: '#fbbf24' },
+              { label: p.marketingFunnelClients, value: gs.commercial?.conversions || 0, icon: '\u{1F525}', color: '#22c55e' },
             ].map((step, i) => (
               <div key={step.label} className="flex items-center flex-1">
                 <div className="flex-1 text-center">
@@ -59,42 +62,42 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
         {/* Quick actions */}
         <div className="flex flex-wrap gap-2 mt-3">
           <a href="/assistant/crm" className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xs font-semibold rounded-xl hover:opacity-90 transition-all">
-            {'\u{1F4CA}'} Voir le CRM
+            {'\u{1F4CA}'} {p.viewCrm}
           </a>
           <a href="/generate" className="px-4 py-2 bg-white/10 text-white/70 text-xs font-medium rounded-xl hover:bg-white/15">
-            {'\u2728'} Générer du contenu
+            {'\u2728'} {p.createContent}
           </a>
         </div>
 
         {/* Visibilite bloc */}
-        <SectionTitle>Visibilite</SectionTitle>
+        <SectionTitle>{p.marketingSectionVisibility}</SectionTitle>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          <KpiCard label="Followers" value={fmt((gs as any).instagram?.followersCount || gs.visibility?.traffic || 0)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-          <KpiCard label="Actions visibilite" value={fmt(gs.visibility?.totalActions || 0)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-          <KpiCard label="Recommandation" value={gs.recommendation ? '1' : '0'} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+          <KpiCard label={p.marketingLabelFollowers} value={fmt((gs as any).instagram?.followersCount || gs.visibility?.traffic || 0)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+          <KpiCard label={p.marketingLabelActions} value={fmt(gs.visibility?.totalActions || 0)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+          <KpiCard label={p.marketingLabelRecommendation} value={gs.recommendation ? '1' : '0'} gradientFrom={gradientFrom} gradientTo={gradientTo} />
         </div>
 
         {/* Instagram engagement bloc */}
-        <SectionTitle>Instagram</SectionTitle>
+        <SectionTitle>{p.marketingSectionInstagram}</SectionTitle>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-          <KpiCard label="Posts publiés" value={fmt((gs as any).instagram?.postsCount || 0)} gradientFrom="#8b5cf6" gradientTo="#6d28d9" />
-          <KpiCard label="Likes total" value={fmt((gs as any).instagram?.likes || 0)} gradientFrom="#ec4899" gradientTo="#f43f5e" />
-          <KpiCard label="Reach" value={fmt((gs as any).instagram?.reach || 0)} gradientFrom="#06b6d4" gradientTo="#0891b2" />
-          <KpiCard label="Engagement" value={`${((gs as any).instagram?.engagement || 0).toFixed?.(1) || '0'}%`} gradientFrom="#10b981" gradientTo="#059669" />
+          <KpiCard label={p.marketingLabelPosts} value={fmt((gs as any).instagram?.postsCount || 0)} gradientFrom="#8b5cf6" gradientTo="#6d28d9" />
+          <KpiCard label={p.marketingLabelLikes} value={fmt((gs as any).instagram?.likes || 0)} gradientFrom="#ec4899" gradientTo="#f43f5e" />
+          <KpiCard label={p.marketingLabelReach} value={fmt((gs as any).instagram?.reach || 0)} gradientFrom="#06b6d4" gradientTo="#0891b2" />
+          <KpiCard label={p.marketingLabelEngagement} value={`${((gs as any).instagram?.engagement || 0).toFixed?.(1) || '0'}%`} gradientFrom="#10b981" gradientTo="#059669" />
         </div>
 
         {/* Finance bloc */}
-        <SectionTitle>Finance</SectionTitle>
+        <SectionTitle>{p.marketingSectionFinance}</SectionTitle>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <KpiCard label="Budget pub" value={fmtCurrency(gs.finance.adBudget)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-          <KpiCard label="ROAS" value={`${(gs.finance.roas || 0).toLocaleString('fr-FR', { maximumFractionDigits: 1 })}x`} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-          <KpiCard label="Prevision tresorerie" value={fmtCurrency(gs.finance.forecast)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+          <KpiCard label={p.marketingLabelAdBudget} value={fmtCurrency(gs.finance.adBudget)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+          <KpiCard label={p.marketingLabelRoas} value={`${(gs.finance.roas || 0).toLocaleString('fr-FR', { maximumFractionDigits: 1 })}x`} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+          <KpiCard label={p.marketingLabelForecast} value={fmtCurrency(gs.finance.forecast)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
         </div>
 
         {/* Recommendation AMI */}
         {gs.recommendation && (
           <>
-            <SectionTitle>Recommandation AMI</SectionTitle>
+            <SectionTitle>{p.marketingSectionRec}</SectionTitle>
             <div
               className="rounded-xl border p-4"
               style={{
@@ -108,37 +111,37 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
         )}
 
         {/* Visual charts */}
-        <SectionTitle>Vue d&apos;ensemble</SectionTitle>
+        <SectionTitle>{p.marketingSectionOverview}</SectionTitle>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="rounded-xl border border-white/10 p-4 bg-white/[0.02]">
-            <h4 className="text-white/50 text-[10px] uppercase tracking-wider mb-3 text-center">Repartition activite</h4>
+            <h4 className="text-white/50 text-[10px] uppercase tracking-wider mb-3 text-center">{p.marketingOverviewBreakdown}</h4>
             <DonutChart
               segments={[
-                { value: gs.commercial.leadsWeek, color: '#3b82f6', label: 'Leads' },
-                { value: gs.commercial.conversions, color: '#22c55e', label: 'Conversions' },
-                { value: gs.visibility.traffic, color: '#a855f7', label: 'Trafic' },
-                { value: gs.visibility.followers, color: '#f59e0b', label: 'Followers' },
+                { value: gs.commercial.leadsWeek, color: '#3b82f6', label: p.marketingOverviewLeads },
+                { value: gs.commercial.conversions, color: '#22c55e', label: p.marketingOverviewConversions },
+                { value: gs.visibility.traffic, color: '#a855f7', label: p.marketingOverviewTraffic },
+                { value: gs.visibility.followers, color: '#f59e0b', label: p.marketingOverviewFollowers },
               ]}
               label={`${gs.commercial.leadsWeek + gs.commercial.conversions + gs.visibility.traffic + gs.visibility.followers}`}
             />
           </div>
           <div className="rounded-xl border border-white/10 p-4 bg-white/[0.02] space-y-3">
-            <h4 className="text-white/50 text-[10px] uppercase tracking-wider mb-1">Objectifs</h4>
-            <ProgressBar value={gs.commercial.conversions} max={Math.max(gs.commercial.leadsWeek, 1)} color="#22c55e" label="Taux conversion" />
-            <ProgressBar value={Math.round(gs.visibility.googleRating * 20)} max={100} color="#f59e0b" label={`Note Google (${gs.visibility.googleRating}/5)`} />
+            <h4 className="text-white/50 text-[10px] uppercase tracking-wider mb-1">{p.marketingOverviewObjectives}</h4>
+            <ProgressBar value={gs.commercial.conversions} max={Math.max(gs.commercial.leadsWeek, 1)} color="#22c55e" label={p.marketingLabelConversion} />
+            <ProgressBar value={Math.round(gs.visibility.googleRating * 20)} max={100} color="#f59e0b" label={`Google (${gs.visibility.googleRating}/5)`} />
             <ProgressBar value={Math.min(Math.round(gs.finance.roas * 33), 100)} max={100} color="#a855f7" label={`ROAS (${gs.finance.roas}x)`} />
           </div>
         </div>
 
         {/* Feed equipe temps reel */}
-        <SectionTitle>Feed equipe temps reel</SectionTitle>
+        <SectionTitle>{p.marketingSectionTeamFeed}</SectionTitle>
         {/* Ami's recommendation */}
         {gs.recommendation && (
           <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-4 mt-3">
             <div className="flex items-start gap-2">
               <span className="text-lg">{'\u{1F4A1}'}</span>
               <div>
-                <p className="text-xs font-bold text-cyan-400 mb-1">Recommandation d&apos;Ami</p>
+                <p className="text-xs font-bold text-cyan-400 mb-1">{p.marketingSectionRec}</p>
                 <p className="text-xs text-white/70 leading-relaxed">{gs.recommendation}</p>
               </div>
             </div>
@@ -163,12 +166,12 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
   return (
     <>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <KpiCard label="Messages echanges" value={fmt(data.totalMessages)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        <KpiCard label="Recommandations" value={fmt(recs.length)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        <KpiCard label="Score engagement" value="--" gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label={p.genericKpiMessages} value={fmt(data.totalMessages)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label={p.genericKpiRec} value={fmt(recs.length)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label={p.genericKpiScore} value="--" gradientFrom={gradientFrom} gradientTo={gradientTo} />
       </div>
 
-      <SectionTitle>Recommandations recentes</SectionTitle>
+      <SectionTitle>{p.genericSectionRec}</SectionTitle>
       {recs.length === 0 ? (
         <EmptyState agentName={agentName} />
       ) : (

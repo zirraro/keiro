@@ -10,10 +10,13 @@ import {
   fmt, fmtDate,
   KpiCard, SectionTitle,
 } from './Primitives';
+import { useLanguage } from '@/lib/i18n/context';
 import type { PanelProps } from './types';
 
 // Internal helper — standalone launch button for Leo's proactive scraping.
 function LaunchProspectionButton() {
+  const { t } = useLanguage();
+  const p = t.panels;
   const [launching, setLaunching] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; message?: string } | null>(null);
   const [query, setQuery] = useState('');
@@ -42,7 +45,7 @@ function LaunchProspectionButton() {
           type="text"
           value={query}
           onChange={e => setQuery(e.target.value)}
-          placeholder="Type de commerce, ville... (optionnel)"
+          placeholder={p.commercialLaunchInput}
           className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-purple-500/50"
         />
         <button
@@ -50,7 +53,7 @@ function LaunchProspectionButton() {
           disabled={launching}
           className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs font-bold rounded-xl hover:shadow-lg transition-all disabled:opacity-50 flex items-center gap-1 whitespace-nowrap min-h-[44px]"
         >
-          {launching ? <span className="animate-spin">{'...'}</span> : <>{'\uD83D\uDD0D'} Prospecter</>}
+          {launching ? <span className="animate-spin">{'...'}</span> : <>{'\uD83D\uDD0D'} {p.commercialLaunchBtn}</>}
         </button>
       </div>
       {result && (
@@ -63,6 +66,8 @@ function LaunchProspectionButton() {
 }
 
 export function CommercialPanel({ data, agentName, gradientFrom, gradientTo }: PanelProps) {
+  const { t } = useLanguage();
+  const p = t.panels;
   const prospects = (data as any).prospects || [];
   const pipeline = (data as any).pipeline || {};
   const stats = (data as any).stats || { total: 0, hot: 0, warm: 0, cold: 0, conversionRate: 0 };
@@ -83,68 +88,68 @@ export function CommercialPanel({ data, agentName, gradientFrom, gradientTo }: P
   return (
     <>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-        <KpiCard label="Total prospects" value={fmt(stats.total)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        <KpiCard label="Ajoutes aujourd'hui" value={fmt(stats.todayCount || today)} gradientFrom="#06b6d4" gradientTo="#0891b2" />
-        <KpiCard label="Chauds" value={fmt(stats.hot)} gradientFrom="#ef4444" gradientTo="#f97316" />
-        <KpiCard label="Tiedes" value={fmt(stats.warm)} gradientFrom="#f59e0b" gradientTo="#eab308" />
-        <KpiCard label="Conversion" value={`${stats.conversionRate}%`} gradientFrom="#10b981" gradientTo="#22c55e" />
+        <KpiCard label={p.commercialKpiTotal} value={fmt(stats.total)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label={p.commercialKpiToday} value={fmt(stats.todayCount || today)} gradientFrom="#06b6d4" gradientTo="#0891b2" />
+        <KpiCard label={p.commercialKpiHot} value={fmt(stats.hot)} gradientFrom="#ef4444" gradientTo="#f97316" />
+        <KpiCard label={p.commercialKpiWarm} value={fmt(stats.warm)} gradientFrom="#f59e0b" gradientTo="#eab308" />
+        <KpiCard label={p.commercialKpiConversion} value={`${stats.conversionRate}%`} gradientFrom="#10b981" gradientTo="#22c55e" />
       </div>
 
-      <SectionTitle>Activite par periode</SectionTitle>
+      <SectionTitle>{p.commercialSectionPeriod}</SectionTitle>
       <div className="grid grid-cols-3 gap-3">
         <div className="rounded-xl bg-white/[0.03] border border-white/10 p-3 text-center">
           <div className="text-xl font-bold text-white">{today}</div>
-          <div className="text-[10px] text-white/40">Aujourd'hui</div>
+          <div className="text-[10px] text-white/40">{p.commercialLabelToday}</div>
         </div>
         <div className="rounded-xl bg-white/[0.03] border border-white/10 p-3 text-center">
           <div className="text-xl font-bold text-white">{thisWeek}</div>
-          <div className="text-[10px] text-white/40">Cette semaine</div>
+          <div className="text-[10px] text-white/40">{p.commercialLabelThisWeek}</div>
         </div>
         <div className="rounded-xl bg-white/[0.03] border border-white/10 p-3 text-center">
           <div className="text-xl font-bold text-white">{thisMonth}</div>
-          <div className="text-[10px] text-white/40">Ce mois</div>
+          <div className="text-[10px] text-white/40">{p.commercialLabelThisMonth}</div>
         </div>
       </div>
 
-      <SectionTitle>Prospects par canal</SectionTitle>
+      <SectionTitle>{p.commercialSectionChannel}</SectionTitle>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
         <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-2 text-center">
           <div className="text-lg font-bold text-blue-400">{stats.withEmail || 0}</div>
-          <div className="text-[9px] text-blue-400/60">Avec email</div>
+          <div className="text-[9px] text-blue-400/60">{p.commercialWithEmail}</div>
           <div className="text-[8px] text-blue-400/40">{stats.emailNotStarted || 0} a contacter</div>
         </div>
         <div className="rounded-lg bg-pink-500/10 border border-pink-500/20 p-2 text-center">
           <div className="text-lg font-bold text-pink-400">{stats.withInstagram || 0}</div>
-          <div className="text-[9px] text-pink-400/60">Avec Instagram</div>
+          <div className="text-[9px] text-pink-400/60">{p.commercialWithInstagram}</div>
           <div className="text-[8px] text-pink-400/40">{stats.dmNotStarted || 0} a DM</div>
         </div>
         <div className="rounded-lg bg-purple-500/10 border border-purple-500/20 p-2 text-center">
           <div className="text-lg font-bold text-purple-400">{stats.withTiktok || 0}</div>
-          <div className="text-[9px] text-purple-400/60">Avec TikTok</div>
+          <div className="text-[9px] text-purple-400/60">{p.commercialWithTiktok}</div>
         </div>
         <div className="rounded-lg bg-cyan-500/10 border border-cyan-500/20 p-2 text-center">
           <div className="text-lg font-bold text-cyan-400">{stats.withLinkedin || 0}</div>
-          <div className="text-[9px] text-cyan-400/60">Avec LinkedIn</div>
+          <div className="text-[9px] text-cyan-400/60">{p.commercialWithLinkedin}</div>
         </div>
       </div>
 
-      <SectionTitle>Funnel prospection</SectionTitle>
+      <SectionTitle>{p.commercialSectionFunnel}</SectionTitle>
       <div className="grid grid-cols-3 gap-2 mb-3">
         <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-2 text-center">
           <div className="text-lg font-bold text-blue-400">{stats.total}</div>
-          <div className="text-[9px] text-blue-400/60">Identifies</div>
+          <div className="text-[9px] text-blue-400/60">{p.commercialLabelIdentified}</div>
         </div>
         <div className="rounded-lg bg-purple-500/10 border border-purple-500/20 p-2 text-center">
           <div className="text-lg font-bold text-purple-400">{contactes}</div>
-          <div className="text-[9px] text-purple-400/60">Contactes</div>
+          <div className="text-[9px] text-purple-400/60">{p.commercialLabelContacted}</div>
         </div>
         <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-2 text-center">
           <div className="text-lg font-bold text-emerald-400">{qualifies}</div>
-          <div className="text-[9px] text-emerald-400/60">Qualifies</div>
+          <div className="text-[9px] text-emerald-400/60">{p.commercialLabelQualified}</div>
         </div>
       </div>
 
-      <SectionTitle>Pipeline</SectionTitle>
+      <SectionTitle>{p.commercialSectionPipeline}</SectionTitle>
       <div className="space-y-2">
         {PIPELINE_ORDER.filter(s => pipeline[s]).map(status => {
           const count = pipeline[status] || 0;
@@ -163,13 +168,13 @@ export function CommercialPanel({ data, agentName, gradientFrom, gradientTo }: P
       </div>
 
       {/* Launch prospection button */}
-      <SectionTitle>Actions rapides</SectionTitle>
+      <SectionTitle>{p.commercialSectionQuickActions}</SectionTitle>
       <LaunchProspectionButton />
 
       {/* Recent activities */}
       {(data as any).activities?.length > 0 && (
         <>
-          <SectionTitle>Dernieres actions</SectionTitle>
+          <SectionTitle>{p.recentActions}</SectionTitle>
           <div className="space-y-1">
             {((data as any).activities || []).slice(0, 5).map((a: any, i: number) => (
               <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.03]">
