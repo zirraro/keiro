@@ -564,25 +564,42 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
         return;
       }
       // exists === true OR exists === null (unknown: admin not connected → proceed)
-      // Copy the prepared message to the clipboard so the user just pastes
-      // it into Instagram — we never auto-send. Meta considers
-      // click-through-then-paste as a human action, which is the whole
-      // point of the manual path while the App Review is pending.
+      // Copy the prepared message so the user can paste it into Instagram,
+      // then open the Meta-sanctioned ig.me/m/{handle} deep link which
+      // lands directly inside the DM thread (or shows Instagram's native
+      // "can't send message" screen if the prospect has DMs disabled —
+      // better than opening the profile and guessing).
       navigator.clipboard.writeText(dm.message).catch(() => {});
-      window.open(`https://www.instagram.com/${cleanHandle}/`, '_blank');
+      window.open(`https://ig.me/m/${cleanHandle}`, '_blank');
       // Mark as sent on the server after a short delay so the user has
       // time to paste + send inside Instagram.
       setTimeout(() => { sendDM(dm.id); }, 3000);
     } catch {
-      // If the verify endpoint itself fails, fall back to the old behavior
-      // (open profile, trust the user). Better than blocking the click.
+      // If the verify endpoint itself fails, fall back to the direct DM
+      // deep link without verification. Better than blocking the click.
       navigator.clipboard.writeText(dm.message).catch(() => {});
-      window.open(`https://www.instagram.com/${cleanHandle}/`, '_blank');
+      window.open(`https://ig.me/m/${cleanHandle}`, '_blank');
       setTimeout(() => { sendDM(dm.id); }, 3000);
     } finally {
       setVerifying(null);
     }
-  }, [sendDM]);
+  }, [sendDM, p.dmUnreachableAlert]);
+
+  // Mark a DM as blocked by the prospect (they have DMs disabled or
+  // declined the message request). Client clicks this after opening the
+  // ig.me link and seeing Instagram's native "can't message" screen.
+  const markBlocked = useCallback(async (dmId: string) => {
+    try {
+      await fetch('/api/agents/dm-instagram/send-single', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ dm_id: dmId, status: 'blocked' }),
+      });
+    } catch {}
+    setQueue(prev => prev.filter(d => d.id !== dmId));
+    setTotal(prev => prev - 1);
+  }, []);
 
   if (loading || queue.length === 0) return null;
 
@@ -633,6 +650,13 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
                   : sending === dm.id
                     ? `\u2713 ${p.dmBtnSent}`
                     : `${'\u{1F4AC}'} ${p.dmBtnEnvoyerDM}`}
+              </button>
+              <button
+                onClick={() => markBlocked(dm.id)}
+                className="px-3 py-2.5 min-h-[44px] text-xs text-red-400/60 hover:text-red-400 transition"
+                title="Le prospect a bloqué les DMs — retire-le du canal"
+              >
+                {'\u{1F6AB}'} {p.dmBtnBlockedMark}
               </button>
               <button
                 onClick={() => setQueue(prev => prev.filter(d => d.id !== dm.id))}
@@ -716,10 +740,10 @@ export function DmInstagramPanel({ data, agentName, gradientFrom, gradientTo }: 
 
       {/* Campaign actions */}
       <SectionTitle>{p.dmSectionCampaign}</SectionTitle>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-3">
         <button
           onClick={() => {
-            fetch('/api/agents/dm-instagram?slot=morning', { method: 'POST', credentials: 'include', headers: { 'Authorization': 'Bearer ' + (document.cookie.match(/sb-[^=]+=([^;]+)/)?.[1] || '') } }).catch(() => {});
+            fetch('/api/agents/dm-instagram?slot=morning', { method: 'POST', credentials: 'include' }).catch(() => {});
           }}
           className="flex flex-col items-center gap-1 p-3 bg-pink-500/10 border border-pink-500/20 rounded-xl hover:bg-pink-500/20 transition text-center"
         >
@@ -729,7 +753,21 @@ export function DmInstagramPanel({ data, agentName, gradientFrom, gradientTo }: 
         </button>
         <button
           onClick={() => {
-            fetch('/api/agents/dm-instagram/send-queue', { method: 'POST', credentials: 'include', headers: { 'Authorization': 'Bearer ' + (document.cookie.match(/sb-[^=]+=([^;]+)/)?.[1] || '') } }).catch(() => {});
+            fetch('/api/agents/dm-instagram/follow-prospects', { method: 'POST', credentials: 'include' })
+              .then(r => r.json())
+              .then(d => { if (d?.ok) alert(`${d.followed ?? 0} accounts followed. ${d.skipped ?? 0} skipped, ${d.failed ?? 0} failed.`); })
+              .catch(() => {});
+          }}
+          className="flex flex-col items-center gap-1 p-3 bg-cyan-500/10 border border-cyan-500/20 rounded-xl hover:bg-cyan-500/20 transition text-center"
+          title={p.dmCampaignFollowDesc}
+        >
+          <span className="text-lg">{'\u{1F465}'}</span>
+          <span className="text-[10px] text-cyan-400 font-bold">{p.dmCampaignFollow}</span>
+          <span className="text-[8px] text-white/30">{p.dmCampaignFollowDesc}</span>
+        </button>
+        <button
+          onClick={() => {
+            fetch('/api/agents/dm-instagram/send-queue', { method: 'POST', credentials: 'include' }).catch(() => {});
           }}
           className="flex flex-col items-center gap-1 p-3 bg-purple-500/10 border border-purple-500/20 rounded-xl hover:bg-purple-500/20 transition text-center"
         >

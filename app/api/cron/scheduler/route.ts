@@ -339,7 +339,7 @@ export async function GET(request: NextRequest) {
         await callForEachClient('Commercial Verify CRM', '/api/agents/commercial', 'POST', { action: 'verify_crm' }, 'commercial');
       });
 
-      // 2. DM — auto-reply + preparation + send queue
+      // 2. DM — auto-reply + preparation + send queue + daily follow warm-up
       fireBackground(async () => {
         for (const uid of getClientsWithAgent('dm_instagram')) {
           await callEndpoint(`DM AutoReply [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram/auto-reply?user_id=${uid}`, 'POST');
@@ -347,6 +347,10 @@ export async function GET(request: NextRequest) {
           await callEndpoint(`DM Instagram [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram?slot=morning&user_id=${uid}`, 'POST');
           await delay(2000);
           await callEndpoint(`DM Send Queue [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram/send-queue?user_id=${uid}`, 'POST');
+          await delay(2000);
+          // Daily follow campaign: Jade follows ~25 qualified prospects to
+          // warm them up before any DM is sent. Rate-limited in the route.
+          await callEndpoint(`DM Follow [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram/follow-prospects?user_id=${uid}`, 'POST', { user_id: uid });
         }
       });
 

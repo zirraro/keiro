@@ -20,6 +20,23 @@ export interface IgVerificationResult {
   igId?: string;
   mediaIds?: string[];
   username?: string;
+  followersCount?: number;
+  mediaCount?: number;
+  /**
+   * Best-effort flag: is the account "reachable" for a DM attempt? The Meta
+   * Graph API does not expose a real "can receive DMs" field, so we can only
+   * infer from indirect signals:
+   * - business_discovery succeeded → account is business/creator (necessary
+   *   condition, because personal accounts can't be messaged via API)
+   * - followers_count > 0 AND media_count > 0 → account is actively used
+   * - no explicit "DM disabled" signal is exposed by Meta
+   *
+   * Even with this flag set to true, the account may still block DMs from
+   * strangers — in that case the `ig.me/m/{handle}` deep link shows Instagram's
+   * native "can't send message" screen in the user's browser, which is the
+   * safest way for the human operator to discover the block.
+   */
+  canLikelyReceiveDm?: boolean;
   rawError?: string;
 }
 
@@ -59,8 +76,10 @@ export async function verifyInstagramHandle(
   // business_discovery is exposed on graph.facebook.com with a Page token.
   // The graph.instagram.com host does NOT support this field (throws
   // "Tried accessing nonexisting field (business_discovery)").
+  // We request followers_count + media_count + media so we can compute
+  // a reasonable "reachable for DM" heuristic below.
   const url = `https://graph.facebook.com/v21.0/${adminIgId}` +
-    `?fields=business_discovery.username(${encodeURIComponent(cleanHandle)}){id,username,media.limit(3){id}}` +
+    `?fields=business_discovery.username(${encodeURIComponent(cleanHandle)}){id,username,followers_count,media_count,media.limit(3){id}}` +
     `&access_token=${encodeURIComponent(adminPageToken)}`;
 
   try {
@@ -79,13 +98,37 @@ export async function verifyInstagramHandle(
       .map((m: any) => m?.id)
       .filter(Boolean);
 
+    const followersCount = typeof bd.followers_count === 'number' ? bd.followers_count : undefined;
+    const mediaCount = typeof bd.media_count === 'number' ? bd.media_count : undefined;
+
+    // Heuristic: to be considered "likely DM-reachable" we require the
+    // account to be actively used. Dormant accounts (0 posts, 0 followers)
+    // typically don't read or accept DMs. This catches obvious ghost accounts
+    // but cannot detect a business that has manually disabled DMs in the app.
+    const isActive = (followersCount ?? 0) > 5 && (mediaCount ?? 0) > 2;
+
     return {
       exists: true,
       igId: bd.id,
       username: bd.username || cleanHandle,
       mediaIds,
+      followersCount,
+      mediaCount,
+      canLikelyReceiveDm: isActive,
     };
   } catch (e: any) {
     return { exists: false, rawError: (e?.message || 'fetch_error').substring(0, 200) };
   }
+}
+
+/**
+ * Build the Meta-sanctioned DM deep link for a given handle. This opens
+ * directly inside the Instagram DM thread (web or mobile app), skipping
+ * the profile page. If the target has DMs disabled, Instagram shows its
+ * native "can't send message" screen on this URL, which is the safest
+ * way for the human operator to discover the block.
+ */
+export function instagramDmDeepLink(handle: string): string {
+  const clean = (handle || '').replace(/^@/, '').trim().toLowerCase();
+  return `https://ig.me/m/${clean}`;
 }
