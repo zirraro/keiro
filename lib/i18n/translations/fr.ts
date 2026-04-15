@@ -2777,6 +2777,14 @@ export const fr: Translations = {
     demoCategoryHealth: 'Santé',
   },
   panels: {
+    // ─── Badge compte Instagram connecté ────────────────────
+    assetBadgeTitle: 'Compte Instagram Business connecté',
+    assetBadgeConnected: 'Connecté en tant que',
+    assetBadgeThrough: 'via la Page Facebook',
+    assetBadgeNotConnected: 'Aucun compte Instagram Business connecté',
+    assetBadgeConnectCta: 'Connecter Instagram',
+    assetBadgeStateReady: 'Prêt à envoyer, publier, répondre et suivre les insights',
+
     // ─── Shared labels ──────────────────────────────────────
     viewCrm: 'Voir le CRM',
     sendBtn: 'Envoyer',

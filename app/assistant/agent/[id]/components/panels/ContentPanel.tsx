@@ -17,6 +17,8 @@ import {
 } from './Primitives';
 import { SocialConnectBanners } from './SharedBanners';
 import { NetworkAutoModeToggles } from './AutoModeToggle';
+import { InstagramAssetBadge } from './InstagramAssetBadge';
+import { useLanguage } from '@/lib/i18n/context';
 import type { PanelProps } from './types';
 
 // ─── Inline Editorial Calendar for Content Agent ─────────────
@@ -303,10 +305,15 @@ function ContentWorkflow({ isConnected }: { isConnected?: boolean }) {
 }
 
 export function ContentPanel({ data, agentName, gradientFrom, gradientTo }: PanelProps) {
+  const { t } = useLanguage();
+  const p = t.panels;
   const stats = data.contentStats || { postsGenerated: 0, scheduledPosts: 0, recentContent: [] };
 
   return (
     <>
+      {/* Instagram asset badge — visible for Meta reviewers */}
+      <InstagramAssetBadge />
+
       {/* Connect social networks — hide if already connected */}
       <SocialConnectBanners agentId="content" networks={['instagram', 'tiktok', 'linkedin']} connections={(data as any).connections} />
 

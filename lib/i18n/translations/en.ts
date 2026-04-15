@@ -2723,6 +2723,15 @@ export const en: Translations = {
     demoCategoryHealth: 'Health',
   },
   panels: {
+    // ─── Instagram asset badge (Meta App Review: every screencast
+    //     must show which Page/IG Business account is connected) ─────
+    assetBadgeTitle: 'Connected Instagram Business account',
+    assetBadgeConnected: 'Connected as',
+    assetBadgeThrough: 'via Facebook Page',
+    assetBadgeNotConnected: 'No Instagram Business account connected',
+    assetBadgeConnectCta: 'Connect Instagram',
+    assetBadgeStateReady: 'Ready to send, publish, reply and track insights',
+
     // ─── Shared labels (used by many panels) ────────────────
     viewCrm: 'View CRM',
     sendBtn: 'Send',

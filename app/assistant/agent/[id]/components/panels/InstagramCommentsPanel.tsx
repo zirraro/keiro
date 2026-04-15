@@ -10,9 +10,13 @@ import { useState, useEffect } from 'react';
 import PreviewBanner from '../PreviewBanner';
 import { DEMO_IG_COMMENTS } from '../AgentPreviewData';
 import { fmt, KpiCard, SectionTitle } from './Primitives';
+import { InstagramAssetBadge } from './InstagramAssetBadge';
+import { useLanguage } from '@/lib/i18n/context';
 import type { PanelProps } from './types';
 
 export function InstagramCommentsPanel({ data, agentName, gradientFrom, gradientTo }: PanelProps) {
+  const { t } = useLanguage();
+  const p = t.panels;
   const [comments, setComments] = useState<Array<{ comment_id: string; text: string; username: string; timestamp: string; replied: boolean }>>([]);
   const [loading, setLoading] = useState(true);
   const [replying, setReplying] = useState<string | null>(null);
@@ -66,6 +70,7 @@ export function InstagramCommentsPanel({ data, agentName, gradientFrom, gradient
 
   return (
     <>
+      <InstagramAssetBadge />
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <KpiCard label="Commentaires" value={fmt(comments.length)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
         <KpiCard label="Sans reponse" value={fmt(unreplied)} gradientFrom={unreplied > 0 ? '#ef4444' : gradientFrom} gradientTo={unreplied > 0 ? '#dc2626' : gradientTo} />

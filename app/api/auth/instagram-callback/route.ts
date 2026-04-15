@@ -121,6 +121,28 @@ export async function POST(req: NextRequest) {
 
     console.log('[InstagramCallback] Instagram Business Account found:', instagramAccount.id);
 
+    // Étape 3.2: Fetch profile details (picture, followers, media count) to
+    // populate the persistent Instagram Asset Badge shown in every panel.
+    // This is required for Meta App Review screencasts — the reviewer
+    // must see the connected asset at all times.
+    let profilePictureUrl: string | null = null;
+    let followersCount: number | null = null;
+    let mediaCount: number | null = null;
+    try {
+      const profileRes = await fetch(
+        `https://graph.facebook.com/v21.0/${instagramAccount.id}?fields=profile_picture_url,followers_count,media_count&access_token=${encodeURIComponent(selectedPage.access_token)}`
+      );
+      if (profileRes.ok) {
+        const profileData = await profileRes.json();
+        profilePictureUrl = profileData.profile_picture_url || null;
+        followersCount = typeof profileData.followers_count === 'number' ? profileData.followers_count : null;
+        mediaCount = typeof profileData.media_count === 'number' ? profileData.media_count : null;
+        console.log(`[InstagramCallback] IG profile enriched: ${followersCount} followers, ${mediaCount} media`);
+      }
+    } catch (e: any) {
+      console.warn('[InstagramCallback] Profile enrichment failed (non-fatal):', e.message);
+    }
+
     // Étape 3.5: Get IGAA token for DM API access (graph.instagram.com)
     let igaaToken: string | null = null;
     try {
@@ -144,7 +166,11 @@ export async function POST(req: NextRequest) {
       meta_app_user_id: userId,
       instagram_business_account_id: instagramAccount.id,
       instagram_username: instagramAccount.username,
+      instagram_profile_picture_url: profilePictureUrl,
+      instagram_followers_count: followersCount,
+      instagram_media_count: mediaCount,
       facebook_page_id: selectedPage.id,
+      facebook_page_name: selectedPage.name || null,
       facebook_page_access_token: selectedPage.access_token,
       instagram_connected_at: new Date().toISOString(),
       instagram_last_sync_at: new Date().toISOString(),

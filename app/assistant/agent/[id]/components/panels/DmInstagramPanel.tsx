@@ -13,6 +13,7 @@ import { DEMO_DM_CONVERSATIONS, DEMO_IG_COMMENTS } from '../AgentPreviewData';
 import { fmt, KpiCard, SectionTitle } from './Primitives';
 import { AutoModeToggle } from './AutoModeToggle';
 import { SocialConnectBanners, AgentNotifications } from './SharedBanners';
+import { InstagramAssetBadge } from './InstagramAssetBadge';
 import { useLanguage } from '@/lib/i18n/context';
 import type { PanelProps } from './types';
 
@@ -694,6 +695,11 @@ export function DmInstagramPanel({ data, agentName, gradientFrom, gradientTo }: 
 
   return (
     <>
+      {/* Instagram asset badge — always visible at the top so Meta
+          reviewers see which IG Business account is connected in every
+          screencast (required by Platform Policies Section 1.6). */}
+      <InstagramAssetBadge />
+
       {/* Human Agent Protocol — required by Meta. Every DM is reviewed and
           sent by the human business owner (customer service agent). Jade
           only prepares drafts; nothing is sent automatically. */}
