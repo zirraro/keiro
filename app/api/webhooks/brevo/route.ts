@@ -260,6 +260,7 @@ export async function POST(request: NextRequest) {
                 type: prospect.type || '',
                 quartier: prospect.quartier || '',
                 note_google: prospect.note_google != null ? String(prospect.note_google) : '',
+                prospect_id: prospect.id,
               };
               const tmpl = getEmailTemplate(cat, prospect.email_sequence_step, vars, prospect.email_subject_variant || 0);
 

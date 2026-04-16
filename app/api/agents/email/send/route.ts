@@ -123,6 +123,7 @@ export async function POST(request: NextRequest) {
       type: prospect.type || '',
       quartier: prospect.quartier || '',
       note_google: prospect.note_google != null ? String(prospect.note_google) : '',
+      prospect_id: prospect.id,
     };
     const template = getEmailTemplate(category, template_step, vars, selectedVariant);
 

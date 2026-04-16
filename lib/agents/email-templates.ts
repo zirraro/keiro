@@ -2,6 +2,8 @@
 // 6 categories x 3 emails + 1 warm template
 // Sender: "Victor de KeiroAI" / contact@keiroai.com
 
+import { buildUnsubscribeUrl } from '@/lib/email/unsubscribe-token';
+
 export interface EmailTemplate {
   subject: string;
   htmlBody: string;
@@ -87,8 +89,11 @@ function replaceVars(template: string, v: Record<string, string>): string {
   result = result.replace(/Caviste\s+—/g, 'Votre cave —');
   result = result.replace(/Fleuriste\s+—/g, 'Votre boutique —');
   result = result.replace(/\s{2,}/g, ' ');
-  // Replace unsubscribe placeholder with Brevo default
-  result = result.replace(/\{\{unsubscribe_url\}\}/g, 'https://keiroai.com/unsubscribe');
+  // Replace unsubscribe placeholder — tokenized per prospect when possible
+  const unsubUrl = v.prospect_id
+    ? buildUnsubscribeUrl(v.prospect_id)
+    : 'https://keiroai.com/unsubscribe';
+  result = result.replace(/\{\{unsubscribe_url\}\}/g, unsubUrl);
   return result;
 }
 

@@ -1169,6 +1169,7 @@ export async function GET(request: NextRequest) {
             type: prospect.type || '',
             quartier: prospect.quartier || '',
             note_google: prospect.note_google != null ? String(prospect.note_google) : '',
+            prospect_id: prospect.id,
           }, 0);
 
           const result = await sendEmail(prospect, 10, template, getSequenceForProspect(prospect), clientUserId);
@@ -1568,6 +1569,7 @@ export async function GET(request: NextRequest) {
           type: prospect.type || '',
           quartier: prospect.quartier || '',
           note_google: prospect.note_google != null ? String(prospect.note_google) : '',
+          prospect_id: prospect.id,
         }, Math.floor(Math.random() * 3));
 
         if (draftMode) {
