@@ -5,12 +5,80 @@
  * Extracted from AgentDashboard.tsx.
  */
 
+import { useState, useCallback } from 'react';
 import {
   fmt,
   KpiCard, SectionTitle, ActionButton,
 } from './Primitives';
 import { useLanguage } from '@/lib/i18n/context';
 import type { PanelProps } from './types';
+
+const FREQUENCY_OPTIONS = [
+  { value: 'daily', labelFr: 'Quotidien', labelEn: 'Daily' },
+  { value: 'every_2_days', labelFr: 'Tous les 2 jours', labelEn: 'Every 2 days' },
+  { value: 'weekly', labelFr: 'Hebdomadaire', labelEn: 'Weekly' },
+  { value: 'biweekly', labelFr: 'Toutes les 2 semaines', labelEn: 'Biweekly' },
+  { value: 'monthly', labelFr: 'Mensuel', labelEn: 'Monthly' },
+] as const;
+
+function ReportFrequencyPicker() {
+  const { t, locale } = useLanguage();
+  const p = t.panels;
+  const [freq, setFreq] = useState<string>('daily');
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  // Load current setting on mount
+  useState(() => {
+    fetch('/api/agents/settings?agent_id=ceo', { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => { if (d.settings?.report_frequency) setFreq(d.settings.report_frequency); })
+      .catch(() => {});
+  });
+
+  const save = useCallback(async (newFreq: string) => {
+    setFreq(newFreq);
+    setSaving(true);
+    setSaved(false);
+    try {
+      await fetch('/api/agents/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ agent_id: 'ceo', report_frequency: newFreq }),
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch {} finally { setSaving(false); }
+  }, []);
+
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 mt-3">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[10px] text-white/50 uppercase tracking-wider font-bold">
+          {locale === 'fr' ? 'Fréquence du rapport Noah' : 'Noah report frequency'}
+        </span>
+        {saved && <span className="text-[9px] text-emerald-400">✓</span>}
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {FREQUENCY_OPTIONS.map(opt => (
+          <button
+            key={opt.value}
+            onClick={() => save(opt.value)}
+            disabled={saving}
+            className={`px-2.5 py-1.5 text-[10px] font-medium rounded-lg transition ${
+              freq === opt.value
+                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                : 'bg-white/5 text-white/50 border border-white/10 hover:bg-white/10'
+            }`}
+          >
+            {locale === 'fr' ? opt.labelFr : opt.labelEn}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export function CeoPanel({ data, agentName, gradientFrom, gradientTo }: PanelProps) {
   const { t } = useLanguage();
@@ -119,6 +187,9 @@ export function CeoPanel({ data, agentName, gradientFrom, gradientTo }: PanelPro
             : `\u{1F680} Active tes agents pour commencer a prospecter. Parle-moi pour definir ta strategie.`}
         </p>
       </div>
+
+      {/* Report frequency config */}
+      <ReportFrequencyPicker />
 
       <ActionButton label={p.ceoBtnTalk} gradientFrom={gradientFrom} gradientTo={gradientTo} />
     </>

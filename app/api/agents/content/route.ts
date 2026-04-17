@@ -269,6 +269,27 @@ async function checkDuplicatePublication(
     };
   }
 
+  // Second safety net: also check instagram_posts for same media URL
+  // This catches stories that were published but missed by content_calendar dedup
+  const mediaUrl = videoUrl || visualUrl;
+  if (mediaUrl) {
+    const { data: igExisting } = await supabase
+      .from('instagram_posts')
+      .select('id, permalink, posted_at')
+      .or(`original_media_url.eq.${mediaUrl},cached_media_url.eq.${mediaUrl}`)
+      .gte('posted_at', since)
+      .limit(1);
+
+    if (igExisting && igExisting.length > 0) {
+      console.warn(`[Content] DUPLICATE DETECTED (instagram_posts): media already posted as ${igExisting[0].id} on ${igExisting[0].posted_at}`);
+      return {
+        isDuplicate: true,
+        existingPostId: igExisting[0].id,
+        existingPermalink: igExisting[0].permalink,
+      };
+    }
+  }
+
   return { isDuplicate: false };
 }
 
@@ -477,7 +498,7 @@ async function publishToInstagram(
         user_id: ownerId,
         caption: fullCaption.substring(0, 2000),
         permalink: result.permalink || `https://www.instagram.com/p/${result.id}/`,
-        media_type: format === 'reel' || format === 'video' ? 'VIDEO' : format === 'carrousel' ? 'CAROUSEL_ALBUM' : 'IMAGE',
+        media_type: format === 'reel' || format === 'video' ? 'VIDEO' : format === 'story' ? 'STORY' : format === 'carrousel' ? 'CAROUSEL_ALBUM' : 'IMAGE',
         posted_at: new Date().toISOString(),
         original_media_url: post.video_url || post.visual_url || '',
         cached_media_url: post.video_url || post.visual_url || '',
@@ -1285,10 +1306,10 @@ export async function GET(request: NextRequest) {
 
           if (fullPost.platform === 'instagram') {
             const igResult = await publishToInstagram(postWithMedia, supabase, orgId, userId);
-            if (igResult.success && igResult.permalink) {
-              updateFields.instagram_permalink = igResult.permalink;
+            if (igResult.success) {
+              if (igResult.permalink) updateFields.instagram_permalink = igResult.permalink;
               platformSuccess = true;
-              console.log(`[Content] Instagram published for post ${post.id}: ${igResult.permalink}`);
+              console.log(`[Content] Instagram published for post ${post.id}: ${igResult.permalink || '(story — no permalink)'}`);
             } else if (igResult.error?.includes('Duplicate')) {
               // Duplicate detected — skip this post, don't retry
               updateFields.status = 'skipped';

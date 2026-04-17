@@ -1,6 +1,10 @@
 {
   "crons": [
     {
+      "path": "/api/cron/scheduler?slot=ceo",
+      "schedule": "0 5 * * *"
+    },
+    {
       "path": "/api/cron/scheduler?slot=morning_batch",
       "schedule": "0 7 * * *"
     },

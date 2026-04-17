@@ -324,13 +324,40 @@ async function handleClientBrief(supabase: any) {
         .from('client_brief_preferences')
         .select('*')
         .eq('user_id', client.id)
-        .single();
+        .maybeSingle();
 
       // Skip if disabled
       if (prefs?.enabled === false) continue;
 
-      // Get client's agent activity (last 24h)
-      const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+      // Check if Noah (ceo) agent is activated for this client
+      const { data: ceoConfig } = await supabase
+        .from('org_agent_configs')
+        .select('config')
+        .eq('user_id', client.id)
+        .eq('agent_id', 'ceo')
+        .maybeSingle();
+
+      // Skip clients who haven't activated Noah
+      if (!ceoConfig?.config?.auto_mode && !ceoConfig?.config?.setup_completed) continue;
+
+      // Frequency gating: daily (default), every_2_days, weekly, biweekly, monthly
+      // Read from prefs or from ceo agent config
+      const freq: string = prefs?.frequency || ceoConfig?.config?.report_frequency || 'daily';
+      const now = new Date();
+      const dayOfMonth = now.getUTCDate();
+      const dayOfWeek = now.getUTCDay(); // 0=Sun, 1=Mon...
+      const dayOfYear = Math.floor((now.getTime() - new Date(now.getUTCFullYear(), 0, 0).getTime()) / 86400000);
+
+      if (freq === 'every_2_days' && dayOfYear % 2 !== 0) continue;
+      if (freq === 'weekly' && dayOfWeek !== 1) continue;       // Monday only
+      if (freq === 'biweekly' && (dayOfWeek !== 1 || Math.floor(dayOfYear / 7) % 2 !== 0)) continue;
+      if (freq === 'monthly' && dayOfMonth !== 1) continue;      // 1st of month
+
+      // Get client's agent activity — lookback matches frequency
+      const lookbackHours: Record<string, number> = {
+        daily: 24, every_2_days: 48, weekly: 168, biweekly: 336, monthly: 720,
+      };
+      const since = new Date(Date.now() - (lookbackHours[freq] || 24) * 3600 * 1000).toISOString();
       const { data: logs } = await supabase
         .from('agent_logs')
         .select('agent, action, data, created_at')
