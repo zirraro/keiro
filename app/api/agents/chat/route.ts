@@ -602,21 +602,28 @@ export async function POST(request: NextRequest) {
             system: `Tu analyses un message utilisateur destiné à un agent IA marketing. Extrais 2 choses :
 
 1. **directives** : instructions PERSISTANTES sur le comportement (fréquence, format, sujet, ton, cible, horaires)
-2. **immediate_action** : si l'utilisateur demande une action MAINTENANT ("publie", "envoie", "lance", "génère", "prospecte")
+2. **immediate_action** : si l'utilisateur veut qu'un agent AGISSE maintenant. Detecte l'INTENTION, pas les mots exacts.
+   Le client peut dire ça de 100 façons différentes — comprends le SENS :
+   - Direct : "publie", "envoie", "lance", "génère", "prospecte", "fais-le", "go", "exécute"
+   - Implicite : "c'est parti", "allez", "on y va", "balance", "active", "démarre", "run", "now"
+   - Contextuel : "je veux un post maintenant", "t'attends quoi", "fais ton job", "montre-moi"
+   - Avec contexte : "fais un post sur la pizza" = directive (pizza) + immediate_action (content)
 
-HORAIRES : si l'utilisateur demande de changer les horaires de publication ou d'exécution, extrais-les dans schedule.
-Exemples de schedule : "publie à 8h et 18h" → {"schedule":{"content":["08:00","18:00"]}}
+HORAIRES : si l'utilisateur demande de changer les horaires, extrais dans schedule.
 
-Exemples complets :
+Exemples :
 - "publie plus de stories" → {"directives":["format_preference: more stories"],"settings":{"formats_ig":"stories"},"immediate_action":null,"schedule":null}
 - "poste 5 fois par jour" → {"directives":["posting frequency: 5 per day"],"settings":{"posts_per_day_ig":5},"immediate_action":null,"schedule":null}
 - "publie maintenant" → {"directives":[],"settings":{},"immediate_action":"content","schedule":null}
-- "envoie les emails maintenant" → {"directives":[],"settings":{},"immediate_action":"email","schedule":null}
-- "lance la prospection" → {"directives":[],"settings":{},"immediate_action":"commercial","schedule":null}
-- "génère un post sur la pizza" → {"directives":["content topic: pizza"],"settings":{},"immediate_action":"content","schedule":null}
+- "go" → {"directives":[],"settings":{},"immediate_action":"[current_agent]","schedule":null}
+- "c'est parti lance tout" → {"directives":[],"settings":{},"immediate_action":"[current_agent]","schedule":null}
+- "envoie les mails" → {"directives":[],"settings":{},"immediate_action":"email","schedule":null}
+- "trouve des prospects" → {"directives":[],"settings":{},"immediate_action":"commercial","schedule":null}
+- "fais un post sur la pizza" → {"directives":["content topic: pizza"],"settings":{},"immediate_action":"content","schedule":null}
 - "publie à 9h, 13h et 19h" → {"directives":["custom schedule: 9h, 13h, 19h"],"settings":{},"immediate_action":null,"schedule":{"content":["09:00","13:00","19:00"]}}
-- "envoie les emails à 8h et 16h" → {"directives":[],"settings":{},"immediate_action":null,"schedule":{"email":["08:00","16:00"]}}
 - "comment ça marche ?" → {"directives":[],"settings":{},"immediate_action":null,"schedule":null}
+
+IMPORTANT : quand immediate_action est détecté et que l'agent n'est pas explicite, mets "[current_agent]" comme valeur.
 
 Retourne UNIQUEMENT du JSON valide.`,
             history: [],
@@ -670,14 +677,15 @@ Retourne UNIQUEMENT du JSON valide.`,
           }
 
           // ── 2. Immediate execution ──
-          if (immediateAction) {
-            const actionAgent = immediateAction === 'content' ? 'content'
-              : immediateAction === 'email' ? 'email'
-              : immediateAction === 'commercial' ? 'commercial'
-              : immediateAction === 'dm' || immediateAction === 'dm_instagram' ? 'dm_instagram'
-              : immediateAction === 'seo' ? 'seo'
-              : immediateAction === 'gmaps' ? 'gmaps'
-              : immediateAction;
+          const resolvedAction = immediateAction === '[current_agent]' ? agent : immediateAction;
+          if (resolvedAction) {
+            const actionAgent = resolvedAction === 'content' ? 'content'
+              : resolvedAction === 'email' ? 'email'
+              : resolvedAction === 'commercial' ? 'commercial'
+              : resolvedAction === 'dm' || resolvedAction === 'dm_instagram' ? 'dm_instagram'
+              : resolvedAction === 'seo' ? 'seo'
+              : resolvedAction === 'gmaps' ? 'gmaps'
+              : resolvedAction;
 
             const endpoint = AGENT_ENDPOINTS[actionAgent];
             if (endpoint) {

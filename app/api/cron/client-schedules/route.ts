@@ -22,12 +22,14 @@ export async function GET(req: NextRequest) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  // Get all non-free profiles
+  // Get all non-free, non-admin client profiles
+  // Admin (contact@keiroai.com) is NOT a client — agents run per-client only
   const { data: profiles } = await supabase
     .from('profiles')
-    .select('id, email, subscription_plan')
+    .select('id, email, subscription_plan, is_admin')
     .not('subscription_plan', 'is', null)
-    .neq('subscription_plan', 'free');
+    .neq('subscription_plan', 'free')
+    .neq('is_admin', true);
 
   if (!profiles || profiles.length === 0) {
     return NextResponse.json({ clients: [] });
