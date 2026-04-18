@@ -70,6 +70,8 @@ export function SocialConnectBanners({ agentId, networks, connections }: {
         body: JSON.stringify({ network }),
       });
       setLocalConnected(prev => { const n = new Set(prev); n.delete(network); return n; });
+      // Force full page reload so all panels (DM, Content, Comments, Header dropdown) reflect the disconnect
+      window.location.reload();
     } catch {}
   }, []);
 
