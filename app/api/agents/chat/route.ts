@@ -591,79 +591,117 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ── Chat-to-Settings: detect directives for content/DM/email agents ──
-    // When the user says "more stories", "post 5x/day", "focus on Italian food"
-    // → extract structured settings and persist them so crons adapt.
-    const DIRECTIVE_AGENTS = new Set(['content', 'dm_instagram', 'email', 'marketing', 'ceo']);
+    // ── Chat-to-Settings + Immediate Execution ──
+    // 1. Detect directives → save to org_agent_configs (persistent)
+    // 2. Detect action requests → execute agent NOW (not wait for cron)
+    const DIRECTIVE_AGENTS = new Set(['content', 'dm_instagram', 'email', 'marketing', 'ceo', 'commercial', 'seo', 'gmaps']);
     if (DIRECTIVE_AGENTS.has(agent)) {
       (async () => {
         try {
           const extraction = await callGeminiChat({
-            system: `Tu extrais des DIRECTIVES de configuration d'un message utilisateur destiné à un agent IA de marketing/réseaux sociaux.
-Si le message contient une INSTRUCTION sur le comportement de l'agent (fréquence, format, sujet, ton, cible, plateforme, etc.), extrais-la en JSON.
-Si c'est une simple question ou discussion, retourne {"directives":[]}.
+            system: `Tu analyses un message utilisateur destiné à un agent IA marketing. Extrais 2 choses :
 
-Exemples:
-- "publie plus de stories" → {"directives":["format_preference: more stories"],"settings":{"formats_ig":"stories"}}
-- "poste 5 fois par jour" → {"directives":["posting frequency: 5 per day"],"settings":{"posts_per_day_ig":5}}
-- "parle plus de cuisine italienne" → {"directives":["content topic: Italian cuisine"]}
-- "arrête les reels" → {"directives":["no reels"],"settings":{"formats_ig":"post"}}
-- "met plus de carousels" → {"directives":["format_preference: more carousels"],"settings":{"formats_ig":"carousel"}}
-- "cible les restaurants à Paris" → {"directives":["target: restaurants in Paris"]}
-- "comment ça marche ?" → {"directives":[]}
+1. **directives** : instructions PERSISTANTES sur le comportement (fréquence, format, sujet, ton, cible, horaires)
+2. **immediate_action** : si l'utilisateur demande une action MAINTENANT ("publie", "envoie", "lance", "génère", "prospecte")
 
-Retourne UNIQUEMENT du JSON valide, rien d'autre.`,
+HORAIRES : si l'utilisateur demande de changer les horaires de publication ou d'exécution, extrais-les dans schedule.
+Exemples de schedule : "publie à 8h et 18h" → {"schedule":{"content":["08:00","18:00"]}}
+
+Exemples complets :
+- "publie plus de stories" → {"directives":["format_preference: more stories"],"settings":{"formats_ig":"stories"},"immediate_action":null,"schedule":null}
+- "poste 5 fois par jour" → {"directives":["posting frequency: 5 per day"],"settings":{"posts_per_day_ig":5},"immediate_action":null,"schedule":null}
+- "publie maintenant" → {"directives":[],"settings":{},"immediate_action":"content","schedule":null}
+- "envoie les emails maintenant" → {"directives":[],"settings":{},"immediate_action":"email","schedule":null}
+- "lance la prospection" → {"directives":[],"settings":{},"immediate_action":"commercial","schedule":null}
+- "génère un post sur la pizza" → {"directives":["content topic: pizza"],"settings":{},"immediate_action":"content","schedule":null}
+- "publie à 9h, 13h et 19h" → {"directives":["custom schedule: 9h, 13h, 19h"],"settings":{},"immediate_action":null,"schedule":{"content":["09:00","13:00","19:00"]}}
+- "envoie les emails à 8h et 16h" → {"directives":[],"settings":{},"immediate_action":null,"schedule":{"email":["08:00","16:00"]}}
+- "comment ça marche ?" → {"directives":[],"settings":{},"immediate_action":null,"schedule":null}
+
+Retourne UNIQUEMENT du JSON valide.`,
             history: [],
             message: `Agent: ${agent}\nMessage utilisateur: ${message}`,
-            maxTokens: 300,
+            maxTokens: 400,
           });
 
-          // Parse extraction
           const jsonMatch = extraction.match(/\{[\s\S]*\}/);
           if (!jsonMatch) return;
           const parsed = JSON.parse(jsonMatch[0]);
           const directives: string[] = parsed.directives || [];
           const settings: Record<string, any> = parsed.settings || {};
+          const immediateAction: string | null = parsed.immediate_action || null;
+          const schedule: Record<string, string[]> | null = parsed.schedule || null;
 
-          if (directives.length === 0 && Object.keys(settings).length === 0) return;
-
-          // Map agent for config: content chat → content agent settings
+          // ── 1. Save directives + settings + schedule ──
           const targetAgentId = agent === 'ceo' || agent === 'marketing' ? 'content' : agent;
 
-          // Load existing config
-          const { data: existing } = await supabase
-            .from('org_agent_configs')
-            .select('id, config')
-            .eq('user_id', user.id)
-            .eq('agent_id', targetAgentId)
-            .maybeSingle();
+          if (directives.length > 0 || Object.keys(settings).length > 0 || schedule) {
+            const { data: existing } = await supabase
+              .from('org_agent_configs')
+              .select('id, config')
+              .eq('user_id', user.id)
+              .eq('agent_id', targetAgentId)
+              .maybeSingle();
 
-          const currentConfig = existing?.config || {};
-          const existingDirectives: string[] = currentConfig.content_directives || [];
+            const currentConfig = existing?.config || {};
+            const existingDirectives: string[] = currentConfig.content_directives || [];
+            const mergedDirectives = [...new Set([...existingDirectives, ...directives])].slice(-20);
 
-          // Merge: add new directives (dedup), apply settings
-          const mergedDirectives = [...new Set([...existingDirectives, ...directives])].slice(-20); // keep last 20
-          const updatedConfig = {
-            ...currentConfig,
-            ...settings,
-            content_directives: mergedDirectives,
-            directives_updated_at: new Date().toISOString(),
-          };
+            const updatedConfig: Record<string, any> = {
+              ...currentConfig,
+              ...settings,
+              content_directives: mergedDirectives,
+              directives_updated_at: new Date().toISOString(),
+            };
 
-          if (existing?.id) {
-            await supabase.from('org_agent_configs')
-              .update({ config: updatedConfig })
-              .eq('id', existing.id);
-          } else {
-            await supabase.from('org_agent_configs')
-              .insert({ user_id: user.id, agent_id: targetAgentId, config: updatedConfig });
+            // Save custom schedule per agent
+            if (schedule) {
+              const existingSchedule = currentConfig.custom_schedule || {};
+              updatedConfig.custom_schedule = { ...existingSchedule, ...schedule };
+              console.log(`[AgentChat] Schedule updated for user ${user.id.substring(0, 8)}:`, schedule);
+            }
+
+            if (existing?.id) {
+              await supabase.from('org_agent_configs').update({ config: updatedConfig }).eq('id', existing.id);
+            } else {
+              await supabase.from('org_agent_configs').insert({ user_id: user.id, agent_id: targetAgentId, config: updatedConfig });
+            }
+            console.log(`[AgentChat] Directive saved for ${targetAgentId} (user ${user.id.substring(0, 8)}): ${directives.join(', ')}`);
           }
 
-          console.log(`[AgentChat] Directive saved for ${targetAgentId} (user ${user.id.substring(0, 8)}): ${directives.join(', ')}`);
+          // ── 2. Immediate execution ──
+          if (immediateAction) {
+            const actionAgent = immediateAction === 'content' ? 'content'
+              : immediateAction === 'email' ? 'email'
+              : immediateAction === 'commercial' ? 'commercial'
+              : immediateAction === 'dm' || immediateAction === 'dm_instagram' ? 'dm_instagram'
+              : immediateAction === 'seo' ? 'seo'
+              : immediateAction === 'gmaps' ? 'gmaps'
+              : immediateAction;
+
+            const endpoint = AGENT_ENDPOINTS[actionAgent];
+            if (endpoint) {
+              const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://keiroai.com';
+              const cronSecret = process.env.CRON_SECRET;
+              // Fire agent with user_id so it runs for THIS client only
+              const separator = endpoint.path.includes('?') ? '&' : '?';
+              const url = `${appUrl}${endpoint.path}${separator}user_id=${user.id}`;
+              console.log(`[AgentChat] 🚀 IMMEDIATE EXECUTION: ${actionAgent} for user ${user.id.substring(0, 8)}`);
+              fetch(url, {
+                method: endpoint.method,
+                headers: cronSecret ? { 'Authorization': `Bearer ${cronSecret}`, 'Content-Type': 'application/json' } : {},
+              }).then(async (res) => {
+                const data = await res.json().catch(() => ({}));
+                console.log(`[AgentChat] ✓ ${actionAgent} executed: HTTP ${res.status}`, JSON.stringify(data).substring(0, 200));
+              }).catch((e) => {
+                console.error(`[AgentChat] ✗ ${actionAgent} execution failed:`, e.message);
+              });
+            }
+          }
         } catch (e: any) {
           console.warn('[AgentChat] Directive extraction failed (non-fatal):', e.message?.substring(0, 100));
         }
-      })(); // fire-and-forget
+      })(); // fire-and-forget, doesn't block chat response
     }
 
     // Check if agent learned something (save to memory)
