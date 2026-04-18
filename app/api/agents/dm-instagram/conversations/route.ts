@@ -97,6 +97,7 @@ export async function GET(req: NextRequest) {
       fbToken && fbToken !== igToken ? { url: `https://graph.instagram.com/v21.0/me/conversations?fields=id,participants,updated_time&access_token=${fbToken}`, label: 'Instagram /me with FB token', apiType: 'instagram', token: fbToken } : null,
     ].filter(Boolean) as Array<{ url: string; label: string; apiType: string; token: string }>;
 
+    const errors: string[] = [];
     for (const ep of endpoints) {
       console.log(`[DM-conversations] Trying ${ep.label}...`);
 
@@ -104,18 +105,32 @@ export async function GET(req: NextRequest) {
       if (res.ok) {
         const data = await res.json();
         const count = data.data?.length || 0;
-        console.log(`[DM-conversations] ${ep.label} returned ${count} conversations`);
+        console.log(`[DM-conversations] ✓ ${ep.label} returned ${count} conversations`);
         if (count > 0) {
           return await processConversations(data, ep.token, [igUserId, pageId || ''], ep.apiType);
         }
       } else {
         const errText = await res.text().catch(() => '');
-        console.warn(`[DM-conversations] ${ep.label} failed (${res.status}): ${errText.substring(0, 100)}`);
+        const errMsg = `${ep.label}: HTTP ${res.status} — ${errText.substring(0, 150)}`;
+        console.warn(`[DM-conversations] ✗ ${errMsg}`);
+        errors.push(errMsg);
       }
     }
 
-    console.warn(`[DM-conversations] All endpoints returned 0 conversations`);
-    return NextResponse.json({ ok: true, conversations: [], message: 'Aucune conversation trouvee' });
+    // If ALL endpoints failed with errors (not just 0 conversations), report it
+    if (errors.length === endpoints.length && errors.length > 0) {
+      console.error(`[DM-conversations] ALL ${errors.length} endpoints FAILED. Errors:`, errors.join(' | '));
+      return NextResponse.json({
+        ok: false,
+        conversations: [],
+        error: 'Instagram API error — check token validity',
+        details: errors,
+        hint: 'Try reconnecting Instagram in Settings',
+      });
+    }
+
+    console.warn(`[DM-conversations] All endpoints returned 0 conversations (no errors)`);
+    return NextResponse.json({ ok: true, conversations: [], message: 'No conversations yet — send a DM to your Instagram to test' });
   } catch (e: any) {
     console.error(`[DM-conversations] Error:`, e.message);
     return NextResponse.json({ ok: true, conversations: [], error: e.message });
@@ -167,8 +182,18 @@ async function processConversations(convData: any, token: string, myIds: string[
         updated_time: conv.updated_time,
         messages,
       });
-    } catch {}
+    } catch (err: any) {
+      console.error(`[DM-conversations] Exception fetching messages for conv ${conv.id}:`, err.message);
+      // Still push the conversation with empty messages so UI shows something
+      conversations.push({
+        id: conv.id,
+        participant: { username: otherParticipant.username || otherParticipant.name || 'inconnu', id: otherParticipant.id },
+        updated_time: conv.updated_time,
+        messages: [],
+      });
+    }
   }
 
+  console.log(`[DM-conversations] Returning ${conversations.length} conversations (${conversations.reduce((a, c) => a + c.messages.length, 0)} total messages)`);
   return NextResponse.json({ ok: true, conversations });
 }
