@@ -591,6 +591,81 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // ── Chat-to-Settings: detect directives for content/DM/email agents ──
+    // When the user says "more stories", "post 5x/day", "focus on Italian food"
+    // → extract structured settings and persist them so crons adapt.
+    const DIRECTIVE_AGENTS = new Set(['content', 'dm_instagram', 'email', 'marketing', 'ceo']);
+    if (DIRECTIVE_AGENTS.has(agent)) {
+      (async () => {
+        try {
+          const extraction = await callGeminiChat({
+            system: `Tu extrais des DIRECTIVES de configuration d'un message utilisateur destiné à un agent IA de marketing/réseaux sociaux.
+Si le message contient une INSTRUCTION sur le comportement de l'agent (fréquence, format, sujet, ton, cible, plateforme, etc.), extrais-la en JSON.
+Si c'est une simple question ou discussion, retourne {"directives":[]}.
+
+Exemples:
+- "publie plus de stories" → {"directives":["format_preference: more stories"],"settings":{"formats_ig":"stories"}}
+- "poste 5 fois par jour" → {"directives":["posting frequency: 5 per day"],"settings":{"posts_per_day_ig":5}}
+- "parle plus de cuisine italienne" → {"directives":["content topic: Italian cuisine"]}
+- "arrête les reels" → {"directives":["no reels"],"settings":{"formats_ig":"post"}}
+- "met plus de carousels" → {"directives":["format_preference: more carousels"],"settings":{"formats_ig":"carousel"}}
+- "cible les restaurants à Paris" → {"directives":["target: restaurants in Paris"]}
+- "comment ça marche ?" → {"directives":[]}
+
+Retourne UNIQUEMENT du JSON valide, rien d'autre.`,
+            history: [],
+            message: `Agent: ${agent}\nMessage utilisateur: ${message}`,
+            maxTokens: 300,
+          });
+
+          // Parse extraction
+          const jsonMatch = extraction.match(/\{[\s\S]*\}/);
+          if (!jsonMatch) return;
+          const parsed = JSON.parse(jsonMatch[0]);
+          const directives: string[] = parsed.directives || [];
+          const settings: Record<string, any> = parsed.settings || {};
+
+          if (directives.length === 0 && Object.keys(settings).length === 0) return;
+
+          // Map agent for config: content chat → content agent settings
+          const targetAgentId = agent === 'ceo' || agent === 'marketing' ? 'content' : agent;
+
+          // Load existing config
+          const { data: existing } = await supabase
+            .from('org_agent_configs')
+            .select('id, config')
+            .eq('user_id', user.id)
+            .eq('agent_id', targetAgentId)
+            .maybeSingle();
+
+          const currentConfig = existing?.config || {};
+          const existingDirectives: string[] = currentConfig.content_directives || [];
+
+          // Merge: add new directives (dedup), apply settings
+          const mergedDirectives = [...new Set([...existingDirectives, ...directives])].slice(-20); // keep last 20
+          const updatedConfig = {
+            ...currentConfig,
+            ...settings,
+            content_directives: mergedDirectives,
+            directives_updated_at: new Date().toISOString(),
+          };
+
+          if (existing?.id) {
+            await supabase.from('org_agent_configs')
+              .update({ config: updatedConfig })
+              .eq('id', existing.id);
+          } else {
+            await supabase.from('org_agent_configs')
+              .insert({ user_id: user.id, agent_id: targetAgentId, config: updatedConfig });
+          }
+
+          console.log(`[AgentChat] Directive saved for ${targetAgentId} (user ${user.id.substring(0, 8)}): ${directives.join(', ')}`);
+        } catch (e: any) {
+          console.warn('[AgentChat] Directive extraction failed (non-fatal):', e.message?.substring(0, 100));
+        }
+      })(); // fire-and-forget
+    }
+
     // Check if agent learned something (save to memory)
     // Supports multiple patterns in French
     const learningPatterns = [

@@ -473,8 +473,26 @@ async function publishToInstagram(
       const storyResult = await publishStoryToInstagram(igUserId, pageAccessToken, post.visual_url!);
       result = { id: storyResult.id };
     } else if (format === 'carrousel') {
-      console.log('[Content] Carousel detected — publishing as single image (multi-image carousel not yet supported)');
-      result = await publishImageToInstagram(igUserId, pageAccessToken, post.visual_url!, fullCaption);
+      // Real carousel: generate 2 additional variations, publish 3 images as carousel
+      const carouselUrls: string[] = [post.visual_url!];
+      const baseDesc = (post as any).visual_description || (post as any).hook || (post as any).caption || 'premium product';
+      const variationSuffixes = [
+        'from a different creative angle, alternative composition, complementary color palette',
+        'close-up detail shot, macro photography perspective, showing texture and quality',
+      ];
+      for (const suffix of variationSuffixes) {
+        try {
+          const varUrl = await generateVisual(`${baseDesc}. ${suffix}`, 'carrousel');
+          if (varUrl) carouselUrls.push(varUrl);
+        } catch { /* skip variation on error */ }
+      }
+      if (carouselUrls.length >= 2) {
+        console.log(`[Content] Publishing carousel with ${carouselUrls.length} images`);
+        result = await publishCarouselToInstagram(igUserId, pageAccessToken, carouselUrls, fullCaption);
+      } else {
+        console.log('[Content] Carousel fallback: only 1 image generated, publishing as single post');
+        result = await publishImageToInstagram(igUserId, pageAccessToken, post.visual_url!, fullCaption);
+      }
     } else {
       // post or any other format → single image publish
       result = await publishImageToInstagram(igUserId, pageAccessToken, post.visual_url!, fullCaption);
@@ -3324,8 +3342,14 @@ Le lien doit etre NATUREL et PERCUTANT — pas force. Si aucune actu ne colle au
     }
   }
 
+  // ── CLIENT DIRECTIVES: persistent instructions from chat ──
+  const clientDirectives: string[] = clientSettings.content_directives || [];
+  const directivesBlock = clientDirectives.length > 0
+    ? `\n━━━ DIRECTIVES CLIENT (instructions données par le client dans le chat) ━━━\n${clientDirectives.map((d: string, i: number) => `${i + 1}. ${d}`).join('\n')}\n→ RESPECTE ces directives en PRIORITÉ — elles viennent du client.\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`
+    : '';
+
   const enhancedPrompt = `Génère 1 post ÉLITE pour aujourd'hui (${todayStr}).
-${trendsContext}${eventContext}
+${trendsContext}${eventContext}${directivesBlock}
 ${sharedIntelligence ? `━━━ INTELLIGENCE PARTAGÉE (données de TOUS les agents) ━━━\n${sharedIntelligence}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` : ''}
 Plateforme : ${platform}
 Format suggéré : ${format}
