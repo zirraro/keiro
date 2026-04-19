@@ -15,10 +15,9 @@ export const maxDuration = 15;
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ conv_id: string }> | { conv_id: string } }
+  { params }: { params: Promise<{ conv_id: string }> }
 ) {
-  const resolved = await (params as any);
-  const convId: string | undefined = resolved?.conv_id;
+  const { conv_id: convId } = await params;
   if (!convId) return NextResponse.json({ ok: false, error: 'conv_id requis' }, { status: 400 });
 
   const { user, error } = await getAuthUser();
