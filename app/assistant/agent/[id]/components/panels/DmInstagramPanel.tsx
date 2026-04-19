@@ -59,6 +59,23 @@ function JadeTabs({ gradientFrom, gradientTo }: { gradientFrom: string; gradient
   );
 }
 
+// Merge fresh server messages for ONE conversation with any local optimistic
+// entries (sending/sent/prepared) we already had. Preserves outbound
+// messages the server hasn't echoed back yet.
+function mergeMessageArrays(
+  prev: Array<{ id?: string; message: string; fromMe: boolean; status?: string; [k: string]: any }>,
+  fresh: Array<{ id?: string; message: string; fromMe: boolean; [k: string]: any }>,
+): any[] {
+  if (!Array.isArray(prev) || prev.length === 0) return fresh;
+  const freshIds = new Set(fresh.map(m => m.id).filter(Boolean));
+  const freshKeys = new Set(fresh.map(m => `${m.fromMe}|${m.message}`));
+  const extras = prev.filter(m =>
+    m.fromMe && (m.status === 'sending' || m.status === 'sent' || m.status === 'error' || m.status === 'prepared') &&
+    !(m.id && freshIds.has(m.id)) && !freshKeys.has(`${m.fromMe}|${m.message}`)
+  );
+  return [...fresh, ...extras];
+}
+
 // Live Instagram DM conversations component
 
 function DmConversationsLive() {
@@ -230,6 +247,34 @@ function DmConversationsLive() {
   }, [convs, selectedConv, replyText]);
 
   const [apiResponded, setApiResponded] = useState(false);
+  const [msgLoading, setMsgLoading] = useState(false);
+  const [rateLimited, setRateLimited] = useState(false);
+
+  // Lazy-load the messages of the currently selected conversation. The list
+  // endpoint now returns conversations WITHOUT messages (to avoid Meta's
+  // "Application request limit"), so this effect pulls messages for one
+  // conversation at a time — much easier on the quota.
+  useEffect(() => {
+    if (!selectedConv) return;
+    let cancelled = false;
+    const fetchMsgs = async () => {
+      setMsgLoading(true);
+      try {
+        const res = await fetch(`/api/agents/dm-instagram/conversations/${encodeURIComponent(selectedConv)}/messages`, { credentials: 'include' });
+        const d = await res.json();
+        if (cancelled) return;
+        if (d.error === 'rate_limited') setRateLimited(true);
+        if (Array.isArray(d.messages)) {
+          setConvs(prev => prev.map(c => c.id === selectedConv ? { ...c, messages: mergeMessageArrays(c.messages, d.messages) } : c));
+        }
+      } catch {} finally {
+        if (!cancelled) setMsgLoading(false);
+      }
+    };
+    fetchMsgs();
+    const interval = setInterval(() => { if (!userTyping) fetchMsgs(); }, 10000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [selectedConv, userTyping]);
 
   // Only show the spinner on the very first load; once we have at least one
   // payload, keep the UI stable and let polling update it in the background.

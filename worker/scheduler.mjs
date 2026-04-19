@@ -315,9 +315,11 @@ async function pollAutoReplies() {
   }
 }
 
-setInterval(pollAutoReplies, 5 * 60 * 1000);
-// First run after 45s so the app/worker has time to finish booting.
-setTimeout(pollAutoReplies, 45_000);
+// 10 min (was 5) — lower cadence to avoid tripping Meta's app-level
+// "Application request limit" when combined with the UI's per-conv polling.
+setInterval(pollAutoReplies, 10 * 60 * 1000);
+// First run after 90s so the app/worker has time to finish booting.
+setTimeout(pollAutoReplies, 90_000);
 
 // Graceful shutdown
 process.on('SIGINT', () => { log('normal', '\n🛑 Worker stopping'); process.exit(0); });

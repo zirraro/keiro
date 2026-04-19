@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
 
   const { data: userProfile } = await supabase
     .from('profiles')
-    .select('instagram_business_account_id, instagram_access_token, instagram_igaa_token, facebook_page_access_token, facebook_page_id, email')
+    .select('instagram_business_account_id, instagram_access_token, instagram_igaa_token, facebook_page_access_token, facebook_page_id, email, is_admin')
     .eq('id', user.id)
     .single();
 
@@ -38,30 +38,26 @@ export async function GET(req: NextRequest) {
   pageId = userProfile?.facebook_page_id;
   igUserId = userProfile?.instagram_business_account_id;
 
-  if (!pageToken || !igUserId) {
-    // Fallback: admin profile
-    const { data: adminProfile } = await supabase
-      .from('profiles')
-      .select('instagram_business_account_id, instagram_access_token, facebook_page_access_token, facebook_page_id')
-      .eq('is_admin', true)
-      .limit(1)
-      .maybeSingle();
+  // Admin users get admin fallback for testing/demo; real clients do not —
+  // otherwise a disconnected client would keep seeing the admin's DMs.
+  const isAdminUser = userProfile?.is_admin === true;
 
-    if (adminProfile) {
-      pageToken = adminProfile.facebook_page_access_token || adminProfile.instagram_access_token;
-      pageId = adminProfile.facebook_page_id;
-      igUserId = adminProfile.instagram_business_account_id;
-      console.log(`[DM-conversations] Fallback to admin: page_id=${pageId}, ig_account=${igUserId}`);
-    }
+  // User intent: instagram_business_account_id is the disconnect signal.
+  // Disconnect clears it (see /api/agents/disconnect-network) even though
+  // the permanent instagram_igaa_token stays on the profile. If the user
+  // has no ig_id and is not admin, we treat the account as disconnected
+  // regardless of the IGAA token's presence.
+  if (!userProfile?.instagram_business_account_id && !isAdminUser) {
+    console.log(`[DM-conversations] User ${userProfile?.email} has no instagram_business_account_id → connected:false`);
+    return NextResponse.json({ ok: true, conversations: [], connected: false, message: 'Instagram non connecte' });
   }
 
-  if (!pageToken || !igUserId) {
-    // Last fallback: any profile with IG connected
+  if (isAdminUser && (!pageToken || !igUserId) && !igaaToken) {
     const { data: anyProfile } = await supabase
       .from('profiles')
-      .select('instagram_business_account_id, instagram_access_token, facebook_page_access_token, facebook_page_id')
+      .select('instagram_business_account_id, instagram_access_token, instagram_igaa_token, facebook_page_access_token, facebook_page_id')
       .not('instagram_business_account_id', 'is', null)
-      .not('facebook_page_access_token', 'is', null)
+      .or('facebook_page_access_token.not.is.null,instagram_igaa_token.not.is.null')
       .limit(1)
       .maybeSingle();
 
@@ -69,12 +65,15 @@ export async function GET(req: NextRequest) {
       pageToken = anyProfile.facebook_page_access_token || anyProfile.instagram_access_token;
       pageId = anyProfile.facebook_page_id;
       igUserId = anyProfile.instagram_business_account_id;
-      console.log(`[DM-conversations] Fallback to any connected profile: page_id=${pageId}, ig_account=${igUserId}`);
+      (userProfile as any).instagram_igaa_token = anyProfile.instagram_igaa_token;
+      console.log(`[DM-conversations] Admin fallback used: ig_account=${igUserId}`);
     }
   }
 
-  if (!pageToken && !igaaToken) {
-    console.warn(`[DM-conversations] No IG token found for user ${user.id}`);
+  const currentIgaa = igaaToken || (userProfile as any)?.instagram_igaa_token;
+
+  if (!pageToken && !currentIgaa) {
+    console.warn(`[DM-conversations] No IG token for user ${user.id} — returning disconnected`);
     return NextResponse.json({ ok: true, conversations: [], connected: false, message: 'Instagram non connecte' });
   }
 
@@ -171,64 +170,34 @@ async function processConversations(convData: any, token: string, myIds: string[
   // serial loop did 10 round-trips sequentially (≈300ms each on Meta's side
   // so the whole endpoint took 3s+ before returning). With Promise.all we
   // collapse to a single round-trip worth of latency.
+  // LIST-ONLY payload: no per-conversation message fetch.
+  //
+  // Meta's "Application request limit" hit hard when we fetched messages
+  // for every conversation on every 10s poll (≥10 convs × 12 messages =
+  // 120 rate-limited calls per minute per viewer). Messages are now
+  // fetched on demand by GET /conversations/[id]/messages when the user
+  // selects a conversation, and refreshed only for that one conv every
+  // 10s. Net: one light list call per poll + one focused messages call.
   const started = Date.now();
-  const conversations = await Promise.all(
-    convList.map(async (conv: any) => {
-      const otherParticipant = conv.participants?.data?.find((p: any) => !myIdSet.has(p.id))
-        || conv.participants?.data?.[0]
-        || { username: 'inconnu', id: '?' };
-
-      let messages: any[] = [];
-      try {
-        // Fetch fewer messages (last 12) — bigger pulls just slow the panel
-        // without adding value; older messages stay reachable on IG natively.
-        const msgRes = await fetch(
-          `https://${domain}/v21.0/${conv.id}/messages?fields=id,message,from,created_time,attachments&limit=12&access_token=${token}`,
-          { signal: AbortSignal.timeout(8000) }
-        );
-        if (msgRes.ok) {
-          const msgData = await msgRes.json();
-          messages = (msgData.data || []).map((m: any) => {
-            const rawAttachments = m.attachments?.data || [];
-            const attachments = rawAttachments.map((a: any) => ({
-              type: (a.image_data ? 'image' : a.video_data ? 'video' : a.file_url ? 'file' : a.type || 'unknown'),
-              url: a.image_data?.url || a.image_data?.preview_url || a.video_data?.url || a.file_url || a.payload?.url || '',
-            })).filter((a: any) => a.url);
-            return {
-              id: m.id,
-              message: m.message || '',
-              from: m.from?.username || m.from?.name || '?',
-              fromMe: myIdSet.has(m.from?.id),
-              created_time: m.created_time,
-              ...(attachments.length > 0 ? { attachments } : {}),
-            };
-          }).reverse();
-        } else {
-          const errText = await msgRes.text().catch(() => '');
-          console.warn(`[DM-conversations] Msg fetch failed ${conv.id}: ${msgRes.status} ${errText.substring(0, 100)}`);
-        }
-      } catch (err: any) {
-        console.error(`[DM-conversations] Msg exception ${conv.id}:`, err.message);
-      }
-
-      return {
-        id: conv.id,
-        participant: { username: otherParticipant.username || otherParticipant.name || 'inconnu', id: otherParticipant.id },
-        updated_time: conv.updated_time,
-        messages,
-      };
-    })
-  );
+  const conversations = convList.map((conv: any) => {
+    const otherParticipant = conv.participants?.data?.find((p: any) => !myIdSet.has(p.id))
+      || conv.participants?.data?.[0]
+      || { username: 'inconnu', id: '?' };
+    return {
+      id: conv.id,
+      participant: { username: otherParticipant.username || otherParticipant.name || 'inconnu', id: otherParticipant.id },
+      updated_time: conv.updated_time,
+      messages: [] as any[],
+    };
+  });
 
   const elapsed = Date.now() - started;
-  console.log(`[DM-conversations] Returning ${conversations.length} conversations (${conversations.reduce((a, c) => a + c.messages.length, 0)} msgs) in ${elapsed}ms`);
-  // Let the browser cache the payload for a few seconds so re-renders and
-  // prefetches don't re-hit Meta — the 15s polling still refreshes it.
+  console.log(`[DM-conversations] Returning ${conversations.length} conversations (list only) in ${elapsed}ms`);
   return new NextResponse(JSON.stringify({ ok: true, connected: true, conversations }), {
     status: 200,
     headers: {
       'Content-Type': 'application/json',
-      'Cache-Control': 'private, max-age=5',
+      'Cache-Control': 'private, max-age=10',
     },
   });
 }
