@@ -33,13 +33,19 @@ export async function GET(req: NextRequest) {
     .eq('id', user.id)
     .single();
 
-  // Check org_agent_configs for per-agent settings
-  const { data: config } = await supabase
+  // Check org_agent_configs for per-agent settings.
+  // NOTE: .maybeSingle() returns null when multiple rows match — some
+  // accounts have duplicate (user_id, agent_id) rows, which made the
+  // agents page falsely report "not activated" for agents the user had
+  // actually turned on. Order by created_at and take the most recent.
+  const { data: configRows } = await supabase
     .from('org_agent_configs')
-    .select('config')
+    .select('config, created_at')
     .eq('user_id', user.id)
     .eq('agent_id', agentId)
-    .maybeSingle();
+    .order('created_at', { ascending: false })
+    .limit(1);
+  const config = configRows?.[0];
 
   return NextResponse.json({
     ok: true,
@@ -61,13 +67,18 @@ export async function POST(req: NextRequest) {
 
   const supabase = getSupabase();
 
-  // Upsert into org_agent_configs
-  const { data: existing } = await supabase
+  // Upsert into org_agent_configs. Same duplicate-row defence as GET —
+  // pick the most recent row when several exist, otherwise the update
+  // writes to an old row and the next read (which also picks the newest)
+  // silently reverts the toggle.
+  const { data: existingRows } = await supabase
     .from('org_agent_configs')
-    .select('id, config')
+    .select('id, config, created_at')
     .eq('user_id', user.id)
     .eq('agent_id', agent_id)
-    .maybeSingle();
+    .order('created_at', { ascending: false })
+    .limit(1);
+  const existing = existingRows?.[0];
 
   const newConfig = {
     ...(existing?.config || {}),

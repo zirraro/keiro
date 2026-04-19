@@ -1178,14 +1178,23 @@ export async function GET(request: NextRequest) {
     // Check if admin + connection status
     const { data: userProfile } = await supabase
       .from('profiles')
-      .select('is_admin, instagram_business_account_id, instagram_access_token, facebook_page_id, google_business_location_id, subscription_plan, linkedin_access_token, tiktok_access_token, gmail_email, gmail_refresh_token, gmail_access_token')
+      .select('is_admin, instagram_business_account_id, instagram_access_token, instagram_igaa_token, facebook_page_access_token, facebook_page_id, google_business_location_id, subscription_plan, linkedin_access_token, tiktok_access_token, gmail_email, gmail_refresh_token, gmail_access_token')
       .eq('id', user.id)
       .single();
     const isAdmin = !!userProfile?.is_admin;
 
-    // Connection status — passed to frontend so panels know what's connected
+    // Connection status — passed to frontend so panels know what's connected.
+    // IGAA token counts as "Instagram connected" because it's the permanent
+    // token we use for DMs when Meta hasn't approved instagram_manage_messages.
+    // Without this, clients with only IGAA (no classic FB page id) show as
+    // disconnected on every panel even though the DM pipeline works.
     const connections = {
-      instagram: !!(userProfile?.instagram_business_account_id && (userProfile?.instagram_access_token || userProfile?.facebook_page_id)),
+      instagram: !!(userProfile?.instagram_business_account_id && (
+        userProfile?.instagram_igaa_token ||
+        userProfile?.facebook_page_access_token ||
+        userProfile?.instagram_access_token ||
+        userProfile?.facebook_page_id
+      )),
       google: !!userProfile?.google_business_location_id,
       linkedin: !!userProfile?.linkedin_access_token,
       tiktok: !!userProfile?.tiktok_access_token,

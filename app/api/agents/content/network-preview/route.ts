@@ -37,8 +37,24 @@ export async function GET(req: NextRequest) {
     if (network === 'instagram') {
       const igUserId = profile.instagram_business_account_id;
       const token = profile.instagram_igaa_token || profile.facebook_page_access_token;
+      // We only report connected:false when we have no usable credentials.
+      // If credentials exist but Meta rate-limits us, we still say connected
+      // (so the UI shows "Instagram connected, 0 posts loaded" instead of
+      // "Instagram not connected").
       if (!igUserId || !token) return NextResponse.json({ ok: true, network, connected: false, posts: [] });
-      const media = await getOwnInstagramMedia(igUserId, token, 12);
+      let media: any[] = [];
+      try {
+        media = await getOwnInstagramMedia(igUserId, token, 12);
+      } catch (e: any) {
+        console.warn('[NetworkPreview] IG media fetch failed:', e.message?.slice(0, 200));
+        return NextResponse.json({
+          ok: true,
+          network,
+          connected: true,
+          posts: [],
+          error: e.message?.includes('request limit') ? 'rate_limited' : 'api_error',
+        });
+      }
       const posts = media.map(m => ({
         id: m.id,
         caption: m.caption?.slice(0, 240) || '',
