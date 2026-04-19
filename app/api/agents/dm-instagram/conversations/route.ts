@@ -166,7 +166,7 @@ async function processConversations(convData: any, token: string, myIds: string[
     id: string;
     participant: { username: string; id: string };
     updated_time: string;
-    messages: Array<{ id: string; message: string; from: string; fromMe: boolean; created_time: string }>;
+    messages: Array<{ id: string; message: string; from: string; fromMe: boolean; created_time: string; attachments?: Array<{ type: string; url: string }> }>;
   }> = [];
 
   // myIds contains all IDs that represent "me" (igUserId, pageId, etc.)
@@ -178,23 +178,31 @@ async function processConversations(convData: any, token: string, myIds: string[
                              conv.participants?.data?.[0] ||
                              { username: 'inconnu', id: '?' };
 
-    // Fetch messages
+    // Fetch messages — include attachments so images/videos render inline instead of [media]
     try {
       const domain = apiType === 'instagram' ? 'graph.instagram.com' : 'graph.facebook.com';
       const msgRes = await fetch(
-        `https://${domain}/v21.0/${conv.id}/messages?fields=id,message,from,created_time&limit=20&access_token=${token}`
+        `https://${domain}/v21.0/${conv.id}/messages?fields=id,message,from,created_time,attachments&limit=20&access_token=${token}`
       );
 
       let messages: any[] = [];
       if (msgRes.ok) {
         const msgData = await msgRes.json();
-        messages = (msgData.data || []).map((m: any) => ({
-          id: m.id,
-          message: m.message || '',
-          from: m.from?.username || m.from?.name || '?',
-          fromMe: myIdSet.has(m.from?.id),
-          created_time: m.created_time,
-        })).reverse(); // Chronological order
+        messages = (msgData.data || []).map((m: any) => {
+          const rawAttachments = m.attachments?.data || [];
+          const attachments = rawAttachments.map((a: any) => ({
+            type: (a.image_data ? 'image' : a.video_data ? 'video' : a.file_url ? 'file' : a.type || 'unknown'),
+            url: a.image_data?.url || a.image_data?.preview_url || a.video_data?.url || a.file_url || a.payload?.url || '',
+          })).filter((a: any) => a.url);
+          return {
+            id: m.id,
+            message: m.message || '',
+            from: m.from?.username || m.from?.name || '?',
+            fromMe: myIdSet.has(m.from?.id),
+            created_time: m.created_time,
+            ...(attachments.length > 0 ? { attachments } : {}),
+          };
+        }).reverse(); // Chronological order
       } else {
         const errText = await msgRes.text().catch(() => '');
         console.warn(`[DM-conversations] Message fetch failed for conv ${conv.id}: ${msgRes.status} ${errText.substring(0, 100)}`);

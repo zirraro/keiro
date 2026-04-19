@@ -11,7 +11,6 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import PreviewBanner from '../PreviewBanner';
 import { DEMO_DM_CONVERSATIONS, DEMO_IG_COMMENTS } from '../AgentPreviewData';
 import { fmt, KpiCard, SectionTitle } from './Primitives';
-import { AutoModeToggle } from './AutoModeToggle';
 import { SocialConnectBanners, AgentNotifications } from './SharedBanners';
 import { InstagramAssetBadge } from './InstagramAssetBadge';
 import { useLanguage } from '@/lib/i18n/context';
@@ -69,39 +68,94 @@ function DmConversationsLive() {
     id: string;
     participant: { username: string; id: string };
     updated_time?: string;
-    messages: Array<{ message: string; from: string; fromMe: boolean; created_time: string; status?: string }>;
+    messages: Array<{ id?: string; message: string; from: string; fromMe: boolean; created_time: string; status?: string; attachments?: Array<{ type: string; url: string }> }>;
   }>>([]);
   const [loading, setLoading] = useState(true);
   const [selectedConv, setSelectedConv] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
   const [sending, setSending] = useState(false);
+  const [aiActive, setAiActive] = useState(true);
+  const [userTyping, setUserTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Load AI toggle state from server
+  useEffect(() => {
+    fetch('/api/agents/settings?agent_id=dm_instagram', { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => { if (d.auto_mode !== undefined) setAiActive(d.auto_mode); })
+      .catch(() => {});
+  }, []);
+
+  const persistAiMode = useCallback(async (val: boolean) => {
+    setAiActive(val);
+    try { localStorage.setItem('keiro_auto_dm_instagram', String(val)); } catch {}
+    try {
+      await fetch('/api/agents/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ agent_id: 'dm_instagram', auto_mode: val }),
+      });
+    } catch {}
+  }, []);
+
+  // Merge fresh server conversations with local optimistic state to avoid
+  // flicker (bug 4) and preserve messages the user just sent (bug 5).
+  const mergeConvs = useCallback((fresh: typeof convs) => {
+    setConvs(prev => {
+      if (prev.length === 0) return fresh;
+      const prevById = new Map(prev.map(c => [c.id, c]));
+      let changed = fresh.length !== prev.length;
+      const merged = fresh.map(fc => {
+        const old = prevById.get(fc.id);
+        if (!old) { changed = true; return fc; }
+        // Keep local optimistic messages (sending/sent/error) that the server
+        // hasn't echoed back yet (matched by id or by message+fromMe)
+        const freshIds = new Set(fc.messages.map(m => m.id).filter(Boolean));
+        const freshKeys = new Set(fc.messages.map(m => `${m.fromMe}|${m.message}`));
+        const extras = old.messages.filter(m =>
+          m.fromMe && (m.status === 'sending' || m.status === 'sent' || m.status === 'error' || m.status === 'prepared') &&
+          !(m.id && freshIds.has(m.id)) && !freshKeys.has(`${m.fromMe}|${m.message}`)
+        );
+        const mergedMsgs = [...fc.messages, ...extras];
+        // Detect change to avoid pointless rerenders
+        if (
+          old.messages.length !== mergedMsgs.length ||
+          old.updated_time !== fc.updated_time ||
+          old.messages[old.messages.length - 1]?.id !== mergedMsgs[mergedMsgs.length - 1]?.id
+        ) changed = true;
+        return { ...fc, messages: mergedMsgs };
+      });
+      return changed ? merged : prev;
+    });
+  }, []);
 
   const fetchConversations = useCallback(() => {
     fetch('/api/agents/dm-instagram/conversations', { credentials: 'include' })
       .then(r => r.json())
       .then(d => {
-        if (d.conversations) { setApiResponded(true); setConvs(d.conversations); }
+        if (d.conversations) { setApiResponded(true); mergeConvs(d.conversations); }
         if (d.conversations?.length === 0) {
-          // Retry after 3s in case token just got saved
           setTimeout(() => {
             fetch('/api/agents/dm-instagram/conversations', { credentials: 'include' })
               .then(r2 => r2.json())
-              .then(d2 => { if (d2.conversations) setConvs(d2.conversations); })
+              .then(d2 => { if (d2.conversations) mergeConvs(d2.conversations); })
               .catch(() => {});
           }, 3000);
         }
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [mergeConvs]);
 
-  // Initial load + auto-refresh every 15s
+  // Initial load + auto-refresh every 15s (paused while user is typing so the
+  // textarea doesn't re-render and swallow focus)
   useEffect(() => {
     fetchConversations();
-    const interval = setInterval(fetchConversations, 15000);
+    const interval = setInterval(() => { if (!userTyping) fetchConversations(); }, 15000);
     return () => clearInterval(interval);
-  }, [fetchConversations]);
+  }, [fetchConversations, userTyping]);
 
   // Auto-scroll to bottom of messages (within container, not page)
   useEffect(() => {
@@ -114,11 +168,12 @@ function DmConversationsLive() {
     setSending(true);
     const msgText = replyText;
     setReplyText('');
+    const localId = `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-    // Optimistic UI update
+    // Optimistic UI update — stable localId so merge() can preserve it
     setConvs(prev => prev.map(c => c.id === selected.id ? {
       ...c,
-      messages: [...c.messages, { message: msgText, from: 'moi', fromMe: true, created_time: new Date().toISOString(), status: 'sending' }],
+      messages: [...c.messages, { id: localId, message: msgText, from: 'moi', fromMe: true, created_time: new Date().toISOString(), status: 'sending' }],
     } : c));
 
     try {
@@ -133,26 +188,23 @@ function DmConversationsLive() {
       });
       const data = await res.json();
 
-      // Update message status
       setConvs(prev => prev.map(c => c.id === selected.id ? {
         ...c,
-        messages: c.messages.map((m, i) =>
-          i === c.messages.length - 1 && m.status === 'sending'
-            ? { ...m, status: data.sent ? 'sent' : 'prepared' }
-            : m
+        messages: c.messages.map(m =>
+          m.id === localId ? { ...m, status: data.sent ? 'sent' : 'prepared' } : m
         ),
       } : c));
     } catch {
       setConvs(prev => prev.map(c => c.id === selected.id ? {
         ...c,
-        messages: c.messages.map((m, i) =>
-          i === c.messages.length - 1 && m.status === 'sending'
-            ? { ...m, status: 'error' }
-            : m
+        messages: c.messages.map(m =>
+          m.id === localId ? { ...m, status: 'error' } : m
         ),
       } : c));
     } finally {
       setSending(false);
+      // Reset typing flag so AI toggle returns to active after send
+      setUserTyping(false);
     }
   }, [convs, selectedConv, replyText]);
 
@@ -244,14 +296,29 @@ function DmConversationsLive() {
             </div>
             {/* Messages */}
             <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2.5">
-              {selected.messages.map((msg, i) => (
-                <div key={i} className={`flex ${msg.fromMe ? 'justify-end' : 'justify-start'}`}>
+              {(selected.messages as any[]).map((msg: any, i: number) => (
+                <div key={msg.id || i} className={`flex ${msg.fromMe ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[80%] px-3 py-2 rounded-2xl text-xs leading-relaxed ${
                     msg.fromMe
                       ? 'bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-br-md'
                       : 'bg-white/10 text-white/80 rounded-bl-md'
                   } ${msg.status === 'sending' ? 'opacity-60' : ''}`}>
-                    {msg.message || <span className="italic text-white/30">[media]</span>}
+                    {msg.attachments && msg.attachments.length > 0 && (
+                      <div className="flex flex-col gap-1 mb-1">
+                        {msg.attachments.map((a: { type: string; url: string }, ai: number) => (
+                          a.type === 'video' ? (
+                            <video key={ai} src={a.url} controls className="rounded-lg max-w-full max-h-64" />
+                          ) : a.type === 'image' ? (
+                            <a key={ai} href={a.url} target="_blank" rel="noopener noreferrer">
+                              <img src={a.url} alt="attachment" className="rounded-lg max-w-full max-h-64 object-cover" />
+                            </a>
+                          ) : (
+                            <a key={ai} href={a.url} target="_blank" rel="noopener noreferrer" className="underline text-[10px] text-white/60">{a.type || 'file'}</a>
+                          )
+                        ))}
+                      </div>
+                    )}
+                    {msg.message || (msg.attachments?.length ? null : <span className="italic text-white/30">[media]</span>)}
                     <div className={`flex items-center gap-1 mt-0.5 ${msg.fromMe ? 'justify-end' : ''}`}>
                       <span className={`text-[10px] ${msg.fromMe ? 'text-purple-200/60' : 'text-white/20'}`}>
                         {msg.created_time ? new Date(msg.created_time).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}
@@ -270,12 +337,40 @@ function DmConversationsLive() {
               ))}
               <div ref={messagesEndRef} />
             </div>
+            {/* Inline AI / You toggle — sits right above the composer so the
+                client sees the current mode at a glance. Auto-switches to
+                "You" while typing, back to "AI" when idle. */}
+            <div className="border-t border-white/5 px-3 pt-2 pb-1 bg-white/[0.02] flex items-center justify-between">
+              <span className="text-[10px] text-white/40">
+                {aiActive && !userTyping ? `\u{1F916} ${p.dmConvsBadgeAi}` : `\u270D\uFE0F ${p.dmConvsBadgeYou}`}
+              </span>
+              <button
+                onClick={() => persistAiMode(!aiActive)}
+                className={`w-9 h-5 rounded-full relative transition-colors ${aiActive && !userTyping ? 'bg-emerald-500' : 'bg-blue-500'}`}
+                title={aiActive ? 'Desactiver l\'IA' : 'Activer l\'IA'}
+              >
+                <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${aiActive && !userTyping ? 'right-0.5' : 'left-0.5'}`} />
+              </button>
+            </div>
             {/* Reply input */}
             <div className="border-t border-white/5 px-3 py-2.5 flex gap-2 bg-white/[0.02]">
               <input
                 type="text"
                 value={replyText}
-                onChange={e => setReplyText(e.target.value)}
+                onChange={e => {
+                  setReplyText(e.target.value);
+                  // Auto-switch to "You" the moment the user starts typing
+                  if (e.target.value.length > 0 && !userTyping) setUserTyping(true);
+                  if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+                  typingTimerRef.current = setTimeout(() => {
+                    setUserTyping(false);
+                  }, 4000);
+                }}
+                onFocus={() => { if (replyText.length > 0) setUserTyping(true); }}
+                onBlur={() => {
+                  if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+                  setUserTyping(false);
+                }}
                 placeholder={p.dmConvsInputPlaceholder}
                 className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-purple-500/50 focus:border-purple-500/30"
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && replyText.trim()) { e.preventDefault(); sendReply(); } }}
@@ -722,18 +817,11 @@ export function DmInstagramPanel({ data, agentName, gradientFrom, gradientTo }: 
         </div>
       </div>
 
-      {/* Connect + Toggle inline — hide connect if already connected */}
-      <div className="flex flex-col lg:flex-row gap-3 mb-3">
-        <div className="flex-1"><SocialConnectBanners agentId="dm_instagram" networks={['instagram']} connections={(data as any).connections} /></div>
-        <div data-tour="auto-toggle" className={!(data as any).connections?.instagram ? 'lg:w-72' : 'flex-1'}>
-          <AutoModeToggle
-            agentId="dm_instagram"
-            autoLabel={p.dmToggleAutoLabel}
-            manualLabel={p.dmToggleManualLabel}
-            autoDesc={p.dmToggleAutoDesc}
-            manualDesc={p.dmToggleManualDesc}
-          />
-        </div>
+      {/* Connect banner — the auto/manual toggle moved inline above the
+          conversation composer so it sits where the client actually works.
+          See JadeTabs → DmConversationsLive. */}
+      <div className="mb-3">
+        <SocialConnectBanners agentId="dm_instagram" networks={['instagram']} connections={(data as any).connections} />
       </div>
 
       {/* KPI cards */}

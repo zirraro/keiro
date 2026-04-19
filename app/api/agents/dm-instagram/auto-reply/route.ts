@@ -130,11 +130,15 @@ export async function POST(req: NextRequest) {
         const msgAge = Date.now() - new Date(lastMsg.created_time).getTime();
         if (msgAge > 24 * 60 * 60 * 1000) { skipped++; continue; }
 
-        // Build conversation history
-        const history = messages.map((m: any) => {
-          const fromMe = myIds.has(m.from?.id);
-          return `${fromMe ? 'Jade' : senderName}: ${m.message || ''}`;
-        }).join('\n');
+        // Build conversation history as proper multi-turn chat (last message
+        // will be sent as the current user input, so we exclude it here).
+        const historyMsgs = messages.slice(0, -1);
+        const history: Array<{ role: 'user' | 'assistant'; content: string }> = historyMsgs
+          .map((m: any) => ({
+            role: (myIds.has(m.from?.id) ? 'assistant' : 'user') as 'user' | 'assistant',
+            content: m.message || '',
+          }))
+          .filter((h: { content: string }) => h.content.trim().length > 0);
 
         // Find/create prospect
         let prospect: any = null;
@@ -201,18 +205,20 @@ REGLES DE TON:
 - Pas de formules toutes faites, pas de "n'hesite pas", pas de listes a puces
 - Si negatif → "ok pas de souci, bonne continuation"
 
-Si tu veux montrer un exemple visuel adapte au prospect, ajoute: [SEND_SHOWCASE:${prospect?.type || 'restaurant'}]
-Ex: "Tiens regarde ce qu'on fait pour des restos comme toi [SEND_SHOWCASE:restaurant]"
+${prospect?.type ? `Si le prospect demande un exemple visuel ET que tu connais son secteur (${prospect.type}), ajoute: [SEND_SHOWCASE:${prospect.type}]` : `IMPORTANT: Tu NE CONNAIS PAS encore le secteur du prospect. N'envoie AUCUN visuel generique — demande-lui d'abord ce qu'il fait. N'utilise PAS [SEND_SHOWCASE] tant que tu n'as pas identifie son business.`}
 
-PROSPECT: ${prospect?.company || prospect?.first_name || senderName} (${prospect?.type || 'business'}, score: ${prospect?.score || 0})
-
-HISTORIQUE:
-${history}${ragContext}`;
+PROSPECT: ${prospect?.company || prospect?.first_name || senderName} (${prospect?.type || 'secteur inconnu — demande-lui'}, score: ${prospect?.score || 0})
+${ragContext}`;
 
         let aiReply = '';
         try {
-          aiReply = await callGeminiChat({ system: systemPrompt, message: lastMsgText, history: [], thinking: true });
-          aiReply = aiReply.replace(/\*\*/g, '').replace(/```[\s\S]*?```/g, '').trim();
+          aiReply = await callGeminiChat({ system: systemPrompt, message: lastMsgText, history, thinking: true });
+          aiReply = aiReply
+            .replace(/\*\*/g, '')
+            .replace(/```[\s\S]*?```/g, '')
+            .replace(/\[SEND_SHOWCASE:[^\]]+\]/g, '')
+            .replace(/\[GENERATE_IMAGE:[^\]]+\]/g, '')
+            .trim();
           if (aiReply.length > 500) aiReply = aiReply.substring(0, 500);
         } catch (e: any) {
           console.error(`[DM-AutoReply] AI error for ${senderName}:`, e.message?.substring(0, 100));

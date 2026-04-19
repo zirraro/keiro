@@ -192,10 +192,17 @@ export async function POST(req: NextRequest) {
           .order('created_at', { ascending: false })
           .limit(10);
 
-        const history = (recentLogs || []).reverse().map(log => {
-          const role = log.data?.direction === 'outbound' ? 'assistant' : 'user';
-          return `${role}: ${log.data?.message || ''}`;
-        }).join('\n');
+        // Build proper multi-turn history for the model (last inbound is
+        // passed separately as `message`, so excluded here).
+        const historyTurns: Array<{ role: 'user' | 'assistant'; content: string }> = (recentLogs || [])
+          .reverse()
+          .map(log => ({
+            role: (log.data?.direction === 'outbound' ? 'assistant' : 'user') as 'user' | 'assistant',
+            content: String(log.data?.reply_sent || log.data?.message || '').trim(),
+          }))
+          .filter(h => h.content.length > 0);
+        // Text block kept for backwards compat with the system prompt body
+        const history = historyTurns.map(h => `${h.role}: ${h.content}`).join('\n');
 
         // ─── Generate AI response with conversion strategy ───────────────────────
         // Load RAG learnings for better responses
@@ -286,8 +293,7 @@ Exemples:
 - Pizzeria → [GENERATE_IMAGE:italian pizzeria marketing post, wood-fired pizza, warm atmosphere, family restaurant]
 - Coach sportif → [GENERATE_IMAGE:fitness coach marketing post, personal training session, motivation, modern gym]
 
-3) SI IL REDEMANDE OU DIT "rien recu": Genere un AUTRE visuel different ou envoie un showcase.
-"Je t'en envoie un autre, regarde ca [SEND_SHOWCASE:${prospect.type || 'generic'}]"
+3) SI IL REDEMANDE OU DIT "rien recu": Genere un AUTRE visuel personnalise avec [GENERATE_IMAGE:description specifique a ${prospect.type || 'son business'}]. ${prospect.type ? `Tu peux aussi fallback sur [SEND_SHOWCASE:${prospect.type}] si tu connais bien son secteur.` : 'N\'utilise PAS [SEND_SHOWCASE:generic] — ca envoie une image random sans rapport. Demande plutot son secteur si tu ne le connais pas.'}
 
 4) SI IL EST INTERESSE: Propose l'essai gratuit directement.
 "Tu veux tester ? 0 euro debite pendant 7 jours, tu annules quand tu veux. Choisis ton plan ici : keiroai.com/pricing"
@@ -318,7 +324,7 @@ INTERDICTIONS ABSOLUES:
 - Ne dis JAMAIS que tu es une IA ou un agent
 - Ne parle JAMAIS de DMs, d'automatisation de DMs, de gestion de messages
 - Ne t'excuse JAMAIS. Pas de "desole", "pardon", "mille excuses", "ah mince"
-- Ne fais JAMAIS repeter le prospect. S'il dit "rien recu" ou "je regarde quoi" → envoie IMMEDIATEMENT un exemple avec un type DIFFERENT: [SEND_SHOWCASE:generic] ou [GENERATE_IMAGE:...]
+- Ne fais JAMAIS repeter le prospect. S'il dit "rien recu" ou "je regarde quoi" → envoie IMMEDIATEMENT un AUTRE exemple avec [GENERATE_IMAGE:...] personnalise a son secteur (ou [SEND_SHOWCASE:type] si le type est connu). JAMAIS [SEND_SHOWCASE:generic] — c'est une image random sans rapport.
 - Si le prospect dit "toujours rien" → envoie le lien directement dans le texte: "Tiens clique la: [URL de l'image]"
 
 PROSPECT: ${prospect.company || prospect.first_name || 'Inconnu'} (${prospect.type || 'type inconnu'})
@@ -327,7 +333,7 @@ ${history ? `\nCONVERSATION:\n${history}` : ''}${businessContext}${ragContext}`;
 
         let aiReply = '';
         try {
-          aiReply = await callGeminiChat({ system: systemPrompt, message: messageText, history: [], thinking: true });
+          aiReply = await callGeminiChat({ system: systemPrompt, message: messageText, history: historyTurns, thinking: true });
           // Clean up AI response
           aiReply = aiReply.replace(/\*\*/g, '').replace(/```[\s\S]*?```/g, '').trim();
           if (aiReply.length > 500) aiReply = aiReply.substring(0, 500);
@@ -367,9 +373,11 @@ ${history ? `\nCONVERSATION:\n${history}` : ''}${businessContext}${ragContext}`;
           const bType = showcaseMatch[1].trim().toLowerCase();
           aiReply = aiReply.replace(/\[SEND_SHOWCASE:[^\]]+\]/, '').trim();
 
-          // EXACT MATCH ONLY — don't send wrong business type images
-          // Types available in DB: restaurant, boutique, coach, coiffeur, caviste, fleuriste, generic
-          const EXACT_DB_TYPES = ['restaurant', 'boutique', 'coach', 'coiffeur', 'caviste', 'fleuriste', 'generic'];
+          // EXACT MATCH ONLY — don't send wrong business type images.
+          // "generic" is intentionally excluded so the AI can't send a random
+          // unrelated image when it doesn't know the prospect's sector.
+          // Without a match, the code below forces GENERATE_IMAGE instead.
+          const EXACT_DB_TYPES = ['restaurant', 'boutique', 'coach', 'coiffeur', 'caviste', 'fleuriste'];
           const TYPE_MAP: Record<string, string> = {
             'bar': 'caviste', 'cafe': 'restaurant', 'brasserie': 'restaurant',
             'salon': 'coiffeur', 'barbier': 'coiffeur',
@@ -377,6 +385,17 @@ ${history ? `\nCONVERSATION:\n${history}` : ''}${businessContext}${ragContext}`;
           };
           const mappedType = TYPE_MAP[bType] || bType;
           const hasExactMatch = EXACT_DB_TYPES.includes(mappedType);
+          // If the AI emitted [SEND_SHOWCASE:generic] (or an unknown/unmapped
+          // type), rewrite the reply so the GENERATE_IMAGE block below can
+          // produce a visual targeted to what we actually know about the
+          // prospect instead of firing a random showcase image.
+          if (!hasExactMatch && !aiReply.includes('[GENERATE_IMAGE:')) {
+            const genHint = prospect.company && prospect.type
+              ? `${prospect.type} marketing post for ${prospect.company}, professional social media visual, modern premium style`
+              : `professional social media marketing visual for a small local business, modern premium aesthetic`;
+            aiReply += ` [GENERATE_IMAGE:${genHint}]`;
+            console.log(`[InstagramWebhook] Rewriting showcase "${bType}" → GENERATE_IMAGE fallback`);
+          }
 
           if (hasExactMatch) {
             // Use showcase image ONLY if exact type match exists
