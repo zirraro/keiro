@@ -2627,14 +2627,17 @@ async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftO
       }
     }
   } catch (parseError) {
-    console.error('[Content] Parse error:', parseError, 'Raw:', rawText.substring(0, 300));
+    console.error('[Content] Weekly plan parse error — falling back to daily post. Raw:', rawText.substring(0, 300));
     await supabase.from('agent_logs').insert({
       agent: 'content', action: 'weekly_plan_failed',
       data: { raw: rawText.substring(0, 500), error: String(parseError) },
       status: 'error', error_message: String(parseError), created_at: nowISO,
       ...(orgId ? { org_id: orgId } : {}),
     });
-    return NextResponse.json({ ok: false, error: 'Failed to parse weekly plan' }, { status: 500 });
+    // Don't crash — fall through to daily post generation instead
+    console.log('[Content] Generating daily post as fallback...');
+    const today = new Date();
+    return generateDailyPost(supabase, today.toISOString().split('T')[0], today.getUTCDay(), undefined, undefined, undefined, orgId, userId, {});
   }
 
   // Map day names to dates
@@ -2822,15 +2825,24 @@ async function generateWeekWithVisuals(supabase: any, publishAll: boolean, orgId
 
   let weekPlan: any[];
   try {
-    const cleanText = rawText.replace(/```[\w]*\s*/g, '');
+    const cleanText = rawText.replace(/```[\w]*\s*/g, '').trim();
     const jsonMatch = cleanText.match(/\[[\s\S]*\]/);
     if (jsonMatch) {
       weekPlan = JSON.parse(jsonMatch[0]);
     } else {
-      throw new Error('No JSON array found in response');
+      // Try to salvage truncated JSON
+      const partialMatch = cleanText.match(/\[[\s\S]*/);
+      if (partialMatch) {
+        let salvaged = partialMatch[0].replace(/,\s*\{[^}]*$/, '').replace(/,\s*$/, '');
+        if (!salvaged.endsWith(']')) salvaged += ']';
+        weekPlan = JSON.parse(salvaged);
+        console.log('[Content] Salvaged truncated generate_week JSON');
+      } else {
+        throw new Error('No JSON array found in response');
+      }
     }
   } catch (parseError) {
-    console.error('[Content] generate_week parse error:', parseError);
+    console.error('[Content] generate_week parse error:', parseError, 'Raw:', rawText.substring(0, 300));
     return NextResponse.json({ ok: false, error: 'Failed to parse weekly plan' }, { status: 500 });
   }
 

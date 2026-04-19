@@ -13,7 +13,7 @@ module.exports = {
       script: './worker/scheduler.mjs',
       interpreter: 'node',
       env: {
-        KEIRO_URL: 'https://keiroai.com',
+        KEIRO_URL: 'http://localhost:3000',
         CRON_SECRET: '09876543211234567890Oz@',
         TZ: 'Europe/Paris',
         LOG_LEVEL: 'normal',
