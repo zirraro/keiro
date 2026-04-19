@@ -11,6 +11,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { useLanguage } from '@/lib/i18n/context';
 
 const SOCIAL_NETWORKS = {
   instagram: {
@@ -183,6 +184,18 @@ export function EmailConnectBanner({ connections }: { connections?: Record<strin
 // and the main AgentDashboard wrapper.
 export function AgentNotifications({ agentId }: { agentId: string }) {
   const [notifs, setNotifs] = useState<any[]>([]);
+  const { locale } = useLanguage();
+
+  // Pick the locale-specific copy with graceful fallback: EN locale reads
+  // title_en/message_en, falls back to title_fr, then to the legacy title.
+  const titleFor = (n: any) => {
+    if (locale === 'en') return n.title_en || n.title_fr || n.title;
+    return n.title_fr || n.title;
+  };
+  const messageFor = (n: any) => {
+    if (locale === 'en') return n.message_en || n.message_fr || n.message;
+    return n.message_fr || n.message;
+  };
 
   useEffect(() => {
     fetch('/api/notifications', { credentials: 'include' })
@@ -214,8 +227,8 @@ export function AgentNotifications({ agentId }: { agentId: string }) {
         <div key={n.id} className={`rounded-xl border p-3 flex items-start gap-3 ${n.type === 'action' ? 'border-red-500/30 bg-red-500/5' : 'border-blue-500/20 bg-blue-500/5'}`}>
           <span className="text-lg mt-0.5">{n.type === 'action' ? '\u{1F525}' : '\u{1F514}'}</span>
           <div className="flex-1 min-w-0">
-            <div className="text-xs font-bold text-white">{n.title}</div>
-            <div className="text-[10px] text-white/50 mt-0.5">{n.message}</div>
+            <div className="text-xs font-bold text-white">{titleFor(n)}</div>
+            <div className="text-[10px] text-white/50 mt-0.5">{messageFor(n)}</div>
           </div>
           <button onClick={() => markRead(n.id)} className="text-[9px] text-white/30 hover:text-white/60 px-2 py-1 bg-white/5 rounded-lg flex-shrink-0">OK</button>
         </div>

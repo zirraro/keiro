@@ -12,26 +12,44 @@
  * - Individual emails sent (too noisy)
  * - Each CRM activity (too noisy)
  * - Agent routine tasks (logs are enough)
+ *
+ * BILINGUAL SUPPORT (2026-04-19):
+ * Each notification is now written with both FR and EN copy so the UI can
+ * render in the user's locale. The legacy `title`/`message` columns stay
+ * populated (always FR) for backwards compat with older consumers; new
+ * consumers should read `title_fr`/`title_en` + `message_fr`/`message_en`.
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 const AGENT_NAMES: Record<string, string> = {
-  content: 'Lena',
+  content: 'Léna',
   email: 'Hugo',
-  commercial: 'Leo',
+  commercial: 'Léo',
   dm_instagram: 'Jade',
-  seo: 'Tom',
-  gmaps: 'Theo',
-  marketing: 'AMI',
+  seo: 'Oscar',
+  gmaps: 'Théo',
+  marketing: 'Ami',
   ceo: 'Noah',
   onboarding: 'Clara',
   chatbot: 'Max',
-  retention: 'Eva',
+  retention: 'Théo',
   comptable: 'Louis',
   instagram_comments: 'Jade',
   tiktok_comments: 'Axel',
 };
+
+type Bilingual = string | { fr: string; en: string };
+
+function pickFr(v: Bilingual | undefined): string {
+  if (!v) return '';
+  return typeof v === 'string' ? v : v.fr;
+}
+
+function pickEn(v: Bilingual | undefined): string {
+  if (!v) return '';
+  return typeof v === 'string' ? v : v.en;
+}
 
 export async function notifyClient(
   supabase: SupabaseClient,
@@ -39,19 +57,32 @@ export async function notifyClient(
     userId: string;
     agent: string;
     type?: 'info' | 'alert' | 'action' | 'brief';
-    title: string;
-    message: string;
+    /** FR text, or {fr, en} object for explicit bilingual copy. String = FR only, EN falls back to FR at display time. */
+    title: Bilingual;
+    /** Same shape as title. */
+    message: Bilingual;
     data?: Record<string, any>;
   }
 ) {
   try {
     const agentName = AGENT_NAMES[opts.agent] || opts.agent;
+    const titleFr = pickFr(opts.title);
+    const titleEn = pickEn(opts.title) || titleFr;
+    const messageFr = pickFr(opts.message);
+    const messageEn = pickEn(opts.message) || messageFr;
+
     await supabase.from('client_notifications').insert({
       user_id: opts.userId,
       agent: opts.agent,
       type: opts.type || 'info',
-      title: `${agentName}: ${opts.title}`,
-      message: opts.message,
+      // Legacy columns — always FR for backwards compat
+      title: `${agentName}: ${titleFr}`,
+      message: messageFr,
+      // Localised columns — picked by the UI based on user locale
+      title_fr: `${agentName}: ${titleFr}`,
+      message_fr: messageFr,
+      title_en: `${agentName}: ${titleEn}`,
+      message_en: messageEn,
       data: opts.data || {},
       created_at: new Date().toISOString(),
     });
@@ -69,14 +100,23 @@ export async function notifyPublication(
   opts: { platform: string; permalink?: string; caption?: string; status: 'published' | 'publish_failed'; error?: string }
 ) {
   const success = opts.status === 'published';
+  const captionPreview = (opts.caption || '').substring(0, 100);
   await notifyClient(supabase, {
     userId,
     agent: 'content',
     type: success ? 'info' : 'alert',
-    title: success ? `Post publie sur ${opts.platform}` : `Echec publication ${opts.platform}`,
+    title: success
+      ? { fr: `Post publié sur ${opts.platform}`, en: `Post published on ${opts.platform}` }
+      : { fr: `Échec publication ${opts.platform}`, en: `Failed to publish on ${opts.platform}` },
     message: success
-      ? `${(opts.caption || '').substring(0, 100)}${opts.permalink ? `\n${opts.permalink}` : ''}`
-      : `Erreur: ${opts.error || 'Publication echouee'}`,
+      ? {
+          fr: `${captionPreview}${opts.permalink ? `\n${opts.permalink}` : ''}`,
+          en: `${captionPreview}${opts.permalink ? `\n${opts.permalink}` : ''}`,
+        }
+      : {
+          fr: `Erreur : ${opts.error || 'Publication échouée'}`,
+          en: `Error: ${opts.error || 'Publication failed'}`,
+        },
     data: { platform: opts.platform, permalink: opts.permalink, status: opts.status },
   });
 }
@@ -90,10 +130,18 @@ export async function notifyEmailSent(
     userId,
     agent: 'email',
     type: 'info',
-    title: opts.count === 1 ? `Email envoye a ${opts.company || 'prospect'}` : `${opts.count} emails envoyes`,
+    title: opts.count === 1
+      ? { fr: `Email envoyé à ${opts.company || 'prospect'}`, en: `Email sent to ${opts.company || 'prospect'}` }
+      : { fr: `${opts.count} emails envoyés`, en: `${opts.count} emails sent` },
     message: opts.count === 1
-      ? `Sujet: "${opts.subject || ''}"\nVia ${opts.provider}`
-      : `${opts.count} emails envoyes via ${opts.provider}`,
+      ? {
+          fr: `Sujet : "${opts.subject || ''}"\nVia ${opts.provider}`,
+          en: `Subject: "${opts.subject || ''}"\nVia ${opts.provider}`,
+        }
+      : {
+          fr: `${opts.count} emails envoyés via ${opts.provider}`,
+          en: `${opts.count} emails sent via ${opts.provider}`,
+        },
     data: { count: opts.count, provider: opts.provider },
   });
 }
@@ -104,12 +152,19 @@ export async function notifyProspection(
   opts: { imported: number; zones: string[]; source: string }
 ) {
   if (opts.imported === 0) return;
+  const zones = opts.zones.slice(0, 3).join(', ');
   await notifyClient(supabase, {
     userId,
     agent: 'commercial',
     type: 'info',
-    title: `${opts.imported} nouveaux prospects trouves`,
-    message: `${opts.imported} prospects importes depuis ${opts.source} (${opts.zones.slice(0, 3).join(', ')})`,
+    title: {
+      fr: `${opts.imported} nouveaux prospects trouvés`,
+      en: `${opts.imported} new prospects found`,
+    },
+    message: {
+      fr: `${opts.imported} prospects importés depuis ${opts.source} (${zones})`,
+      en: `${opts.imported} prospects imported from ${opts.source} (${zones})`,
+    },
     data: { imported: opts.imported, zones: opts.zones, source: opts.source },
   });
 }
