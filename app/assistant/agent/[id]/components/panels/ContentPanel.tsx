@@ -308,16 +308,191 @@ function ContentWorkflow({ isConnected }: { isConnected?: boolean }) {
   );
 }
 
+// ─── Network preview tab (Instagram / TikTok / LinkedIn) ───────
+// Shows the most recent posts on each connected network with live metrics
+// and a native deep-link so the client can jump straight into the platform
+// (only place where posts can actually be deleted — none of the APIs we use
+// authorize DELETE for IG or TikTok).
+function NetworkPreviewTab() {
+  const NETWORKS = [
+    { key: 'instagram', label: 'Instagram', color: '#e1306c', icon: '\u{1F4F8}' },
+    { key: 'tiktok', label: 'TikTok', color: '#00f2ea', icon: '\u{1F3B5}' },
+    { key: 'linkedin', label: 'LinkedIn', color: '#0A66C2', icon: '\u{1F4BC}' },
+  ];
+  const [active, setActive] = useState<'instagram' | 'tiktok' | 'linkedin'>('instagram');
+  const [state, setState] = useState<Record<string, { loading: boolean; connected: boolean; posts: any[]; error?: string }>>({
+    instagram: { loading: true, connected: false, posts: [] },
+    tiktok: { loading: true, connected: false, posts: [] },
+    linkedin: { loading: true, connected: false, posts: [] },
+  });
+
+  const load = useCallback((net: string) => {
+    setState(prev => ({ ...prev, [net]: { ...prev[net], loading: true, error: undefined } }));
+    fetch(`/api/agents/content/network-preview?network=${net}`, { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => setState(prev => ({
+        ...prev,
+        [net]: {
+          loading: false,
+          connected: !!d.connected,
+          posts: Array.isArray(d.posts) ? d.posts : [],
+          error: d.ok === false ? d.error : undefined,
+        },
+      })))
+      .catch(e => setState(prev => ({ ...prev, [net]: { loading: false, connected: false, posts: [], error: e.message } })));
+  }, []);
+
+  useEffect(() => { load(active); }, [active, load]);
+
+  const cur = state[active];
+  const net = NETWORKS.find(n => n.key === active)!;
+
+  return (
+    <div>
+      <div className="flex gap-1 bg-white/5 rounded-lg p-0.5 border border-white/10 mb-3">
+        {NETWORKS.map(n => (
+          <button
+            key={n.key}
+            onClick={() => setActive(n.key as any)}
+            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all ${
+              active === n.key ? 'bg-white/10 text-white shadow' : 'text-white/40 hover:text-white/60'
+            }`}
+          >
+            <span>{n.icon}</span> {n.label}
+            {state[n.key].connected && <span className="ml-1 w-1.5 h-1.5 rounded-full bg-emerald-400" />}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs text-white/40">
+          {cur.loading ? 'Chargement...' : cur.connected ? `${cur.posts.length} post(s) recent(s)` : `${net.label} non connecte`}
+        </span>
+        <button
+          onClick={() => load(active)}
+          disabled={cur.loading}
+          className="text-[10px] text-white/50 hover:text-white/80 disabled:opacity-40"
+        >
+          {cur.loading ? '...' : '\u21BB Rafraichir'}
+        </button>
+      </div>
+
+      {cur.error && (
+        <div className="rounded-lg border border-red-500/20 bg-red-500/5 text-[10px] text-red-300 p-2 mb-2">
+          {cur.error}
+        </div>
+      )}
+
+      {!cur.loading && !cur.connected && (
+        <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 text-center">
+          <div className="text-xl mb-1">{net.icon}</div>
+          <p className="text-xs text-white/50">Connecte {net.label} pour voir tes publications ici.</p>
+        </div>
+      )}
+
+      {cur.connected && cur.posts.length === 0 && !cur.loading && (
+        <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 text-center text-xs text-white/40">
+          Aucune publication trouvee.
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        {cur.posts.map(post => {
+          const metrics = post.metrics || {};
+          const metricEntries: Array<[string, any]> = Object.entries(metrics).filter(([, v]) => v !== null && v !== undefined);
+          return (
+            <div key={post.id} className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden flex flex-col">
+              {post.media_url ? (
+                <div className="aspect-square bg-black/40 overflow-hidden">
+                  <img src={post.media_url} alt="" className="w-full h-full object-cover" />
+                </div>
+              ) : (
+                <div className="aspect-square bg-white/5 flex items-center justify-center text-2xl text-white/20">{net.icon}</div>
+              )}
+              <div className="p-2 flex-1 flex flex-col">
+                {post.caption && (
+                  <p className="text-[10px] text-white/60 line-clamp-2 mb-1.5">{post.caption}</p>
+                )}
+                {metricEntries.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-2 text-[9px] text-white/50">
+                    {metricEntries.slice(0, 4).map(([k, v]) => (
+                      <span key={k} className="px-1.5 py-0.5 rounded-full bg-white/5 border border-white/10">
+                        {k}: {fmt(Number(v) || 0)}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="mt-auto flex items-center gap-1">
+                  {post.permalink ? (
+                    <a
+                      href={post.permalink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 text-center px-2 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-[10px] text-white/70 transition min-h-[32px] flex items-center justify-center gap-1"
+                      title={`Ouvrir dans ${net.label} (supprimer via les 3 points)`}
+                    >
+                      {'\u2197'} Ouvrir / supprimer
+                    </a>
+                  ) : (
+                    <span className="flex-1 text-center px-2 py-1.5 text-[10px] text-white/30">Pas de lien natif</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <p className="text-[9px] text-white/30 mt-3 text-center">
+        Meta et TikTok n'autorisent pas la suppression par API. Le bouton ouvre ton post, la suppression se fait dans l'app (...).
+      </p>
+    </div>
+  );
+}
+
 export function ContentPanel({ data, agentName, gradientFrom, gradientTo }: PanelProps) {
   const { t } = useLanguage();
   const p = t.panels;
   const stats = data.contentStats || { postsGenerated: 0, scheduledPosts: 0, recentContent: [] };
+  const [mainTab, setMainTab] = useState<'workflow' | 'networks'>('workflow');
 
   return (
     <>
       {/* Instagram asset badge — visible for Meta reviewers */}
       <InstagramAssetBadge />
 
+      {/* Main tabs: Production workflow (default) vs Aperçu réseaux */}
+      <div className="flex gap-1 bg-white/5 rounded-lg p-0.5 border border-white/10 mb-3">
+        <button
+          onClick={() => setMainTab('workflow')}
+          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all ${
+            mainTab === 'workflow' ? 'bg-white/10 text-white shadow' : 'text-white/40 hover:text-white/60'
+          }`}
+        >
+          {'\u{1F4DD}'} Production
+        </button>
+        <button
+          onClick={() => setMainTab('networks')}
+          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all ${
+            mainTab === 'networks' ? 'bg-white/10 text-white shadow' : 'text-white/40 hover:text-white/60'
+          }`}
+        >
+          {'\u{1F4F1}'} Apercu reseaux
+        </button>
+      </div>
+
+      {mainTab === 'networks' ? (
+        <NetworkPreviewTab />
+      ) : (
+        <ContentProductionSection data={data} gradientFrom={gradientFrom} gradientTo={gradientTo} stats={stats} p={p} />
+      )}
+    </>
+  );
+}
+
+function ContentProductionSection({ data, gradientFrom, gradientTo, stats, p }: { data: any; gradientFrom: string; gradientTo: string; stats: any; p: any }) {
+  return (
+    <>
       {/* Connect social networks — hide if already connected */}
       <SocialConnectBanners agentId="content" networks={['instagram', 'tiktok', 'linkedin']} connections={(data as any).connections} />
 
@@ -367,10 +542,10 @@ export function ContentPanel({ data, agentName, gradientFrom, gradientTo }: Pane
         <div className="rounded-xl border border-white/10 p-4 bg-white/[0.02]">
           <DonutChart
             segments={[
-              { value: (stats.recentContent || []).filter(c => c.type === 'Reel' || c.type === 'reel').length, color: '#e879f9', label: p.contentTypeReels },
-              { value: (stats.recentContent || []).filter(c => c.type === 'Carousel' || c.type === 'carrousel').length, color: '#60a5fa', label: p.contentTypeCarousels },
-              { value: (stats.recentContent || []).filter(c => c.type === 'Post' || c.type === 'post').length, color: '#34d399', label: p.contentTypePosts },
-              { value: (stats.recentContent || []).filter(c => c.type === 'Story' || c.type === 'story').length, color: '#fbbf24', label: p.contentTypeStories },
+              { value: (stats.recentContent || []).filter((c: any) => c.type === 'Reel' || c.type === 'reel').length, color: '#e879f9', label: p.contentTypeReels },
+              { value: (stats.recentContent || []).filter((c: any) => c.type === 'Carousel' || c.type === 'carrousel').length, color: '#60a5fa', label: p.contentTypeCarousels },
+              { value: (stats.recentContent || []).filter((c: any) => c.type === 'Post' || c.type === 'post').length, color: '#34d399', label: p.contentTypePosts },
+              { value: (stats.recentContent || []).filter((c: any) => c.type === 'Story' || c.type === 'story').length, color: '#fbbf24', label: p.contentTypeStories },
             ]}
             label={`${stats.postsGenerated}`}
           />
