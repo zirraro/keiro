@@ -32,61 +32,82 @@ export async function POST(req: NextRequest) {
   const action = body.action || 'fetch_comments';
 
   // Get IG tokens — prefer authenticated user, then user_id param, then admin fallback for monitoring only
+  // We pull instagram_igaa_token as well because when FB page tokens are
+  // expired or missing, IGAA tokens still work against graph.instagram.com.
   let profile: any = null;
   const targetUserId = body.user_id;
+  const PROFILE_COLS = 'instagram_business_account_id, facebook_page_access_token, instagram_access_token, instagram_igaa_token';
 
   if (!isCron) {
     const { user } = await getAuthUser().catch(() => ({ user: null }));
     if (user) {
       const { data: userProfile } = await supabase
         .from('profiles')
-        .select('instagram_business_account_id, facebook_page_access_token, instagram_access_token')
+        .select(PROFILE_COLS)
         .eq('id', user.id)
         .single();
-      if (userProfile?.instagram_business_account_id) profile = userProfile;
+      if (userProfile?.instagram_business_account_id || userProfile?.instagram_igaa_token) profile = userProfile;
     }
   }
 
   if (!profile && targetUserId) {
     const { data: targetProfile } = await supabase
       .from('profiles')
-      .select('instagram_business_account_id, facebook_page_access_token, instagram_access_token')
+      .select(PROFILE_COLS)
       .eq('id', targetUserId)
       .single();
-    if (targetProfile?.instagram_business_account_id) profile = targetProfile;
+    if (targetProfile?.instagram_business_account_id || targetProfile?.instagram_igaa_token) profile = targetProfile;
   }
 
   // Admin fallback ONLY for fetch_comments (read-only), NOT for replying
   if (!profile && action === 'fetch_comments') {
     const { data: adminProfile } = await supabase
       .from('profiles')
-      .select('instagram_business_account_id, facebook_page_access_token, instagram_access_token')
+      .select(PROFILE_COLS)
       .eq('is_admin', true)
       .single();
     profile = adminProfile;
   }
 
-  if (!profile?.instagram_business_account_id || !(profile?.facebook_page_access_token || profile?.instagram_access_token)) {
+  if (!profile || !(profile?.facebook_page_access_token || profile?.instagram_igaa_token || profile?.instagram_access_token)) {
     return NextResponse.json({ error: 'Instagram non connecte' }, { status: 400 });
   }
 
   const igId = profile.instagram_business_account_id;
-  const token = profile.facebook_page_access_token;
+  // IGAA token takes priority (it's the only one guaranteed to work for DM +
+  // comment APIs on graph.instagram.com). FB page token is the fallback.
+  const useIgaa = !!profile.instagram_igaa_token;
+  const token = useIgaa ? profile.instagram_igaa_token : profile.facebook_page_access_token;
   const now = new Date().toISOString();
+
+  // When using IGAA we must hit graph.instagram.com and /me/media (the
+  // token is bound to one account). With the FB page token we hit
+  // graph.facebook.com and /{ig_id}/media.
+  const IG_HOST = 'https://graph.instagram.com/v21.0';
+  const fetchGraph = async <T>(path: string, params: Record<string, string | number>): Promise<T> => {
+    if (useIgaa) {
+      const qs = new URLSearchParams({ access_token: token, ...Object.fromEntries(Object.entries(params).map(([k,v])=>[k,String(v)])) });
+      const res = await fetch(`${IG_HOST}${path}?${qs.toString()}`, { cache: 'no-store' });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json() as Promise<T>;
+    }
+    return graphGET<T>(path, token, params);
+  };
 
   if (action === 'fetch_comments') {
     // Fetch recent media + their comments
     try {
-      const media = await graphGET<{ data: Array<{ id: string; caption?: string; timestamp: string }> }>(
-        `/${igId}/media`, token, { fields: 'id,caption,timestamp', limit: '10' }
+      const mediaPath = useIgaa ? '/me/media' : `/${igId}/media`;
+      const media = await fetchGraph<{ data: Array<{ id: string; caption?: string; timestamp: string }> }>(
+        mediaPath, { fields: 'id,caption,timestamp', limit: 10 }
       );
 
       const allComments: Array<{ media_id: string; comment_id: string; text: string; username: string; timestamp: string; replied: boolean }> = [];
 
       for (const post of media.data || []) {
         try {
-          const comments = await graphGET<{ data: Array<{ id: string; text: string; username: string; timestamp: string }> }>(
-            `/${post.id}/comments`, token, { fields: 'id,text,username,timestamp' }
+          const comments = await fetchGraph<{ data: Array<{ id: string; text: string; username: string; timestamp: string }> }>(
+            `/${post.id}/comments`, { fields: 'id,text,username,timestamp' }
           );
 
           for (const c of comments.data || []) {

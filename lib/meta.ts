@@ -1,12 +1,40 @@
 /**
  * Helpers simples pour appeler l'API Graph.
  * NB : on ne gère pas ici les tokens long-lived; pour la prod, ajoute l'échange en 60j si besoin.
+ *
+ * Dual-host routing: IGAA tokens (obtained from Meta dev tools) only work on
+ * graph.instagram.com, while Facebook Page tokens only work on
+ * graph.facebook.com. We auto-detect the token type by prefix so callers can
+ * publish/read with whichever is stored in profiles — reduces dependency on
+ * having both FB page + IG tokens valid simultaneously.
  */
 const GRAPH = "https://graph.facebook.com/v20.0";
+const GRAPH_IG = "https://graph.instagram.com/v21.0";
 
-export async function graphGET<T>(path: string, accessToken: string, params: Record<string,string|number|boolean> = {}): Promise<T> {
+export function isIgaaToken(token: string | null | undefined): boolean {
+  return !!token && token.startsWith('IGAA');
+}
+
+function pickHost(token: string): string {
+  return isIgaaToken(token) ? GRAPH_IG : GRAPH;
+}
+
+/** When using IGAA, paths targeting /{ig_id}/... must be rewritten to
+ *  /me/... because the token is scoped to one account. */
+function rewritePathForIgaa(path: string, token: string, igUserId?: string | null): string {
+  if (!isIgaaToken(token)) return path;
+  if (!igUserId) return path;
+  // Rewrite /{igUserId}/xxx to /me/xxx
+  if (path.startsWith(`/${igUserId}/`)) return `/me/${path.slice(igUserId.length + 2)}`;
+  if (path === `/${igUserId}`) return `/me`;
+  return path;
+}
+
+export async function graphGET<T>(path: string, accessToken: string, params: Record<string,string|number|boolean> = {}, opts: { igUserId?: string | null } = {}): Promise<T> {
+  const host = pickHost(accessToken);
+  const finalPath = rewritePathForIgaa(path, accessToken, opts.igUserId);
   const usp = new URLSearchParams({ access_token: accessToken, ...Object.fromEntries(Object.entries(params).map(([k,v])=>[k,String(v)])) });
-  const res = await fetch(`${GRAPH}${path}?${usp.toString()}`, { cache: "no-store" });
+  const res = await fetch(`${host}${finalPath}?${usp.toString()}`, { cache: "no-store" });
   if (!res.ok) {
     const errorText = await res.text();
     console.error('[graphGET] Error response:', errorText);
@@ -15,8 +43,10 @@ export async function graphGET<T>(path: string, accessToken: string, params: Rec
   return res.json() as Promise<T>;
 }
 
-export async function graphPOST<T>(path: string, accessToken: string, body: Record<string,string|number|boolean> = {}): Promise<T> {
-  const res = await fetch(`${GRAPH}${path}`, {
+export async function graphPOST<T>(path: string, accessToken: string, body: Record<string,string|number|boolean> = {}, opts: { igUserId?: string | null } = {}): Promise<T> {
+  const host = pickHost(accessToken);
+  const finalPath = rewritePathForIgaa(path, accessToken, opts.igUserId);
+  const res = await fetch(`${host}${finalPath}`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({ access_token: accessToken, ...Object.fromEntries(Object.entries(body).map(([k,v])=>[k,String(v)])) }),
@@ -55,12 +85,12 @@ export async function publishToFacebookPage(pageId: string, pageAccessToken: str
 
 export async function publishImageToInstagram(igUserId: string, pageAccessToken: string, imageUrl: string, caption?: string): Promise<{ id: string; permalink?: string }> {
   try {
-    console.log('[publishImageToInstagram] Step 1: Creating media container...');
+    console.log('[publishImageToInstagram] Step 1: Creating media container...', { tokenType: isIgaaToken(pageAccessToken) ? 'IGAA' : 'FB' });
     // 1) Créer un "container"
     const container = await graphPOST<{ id: string }>(`/${igUserId}/media`, pageAccessToken, {
       image_url: imageUrl,
       caption: caption || "",
-    });
+    }, { igUserId });
     console.log('[publishImageToInstagram] Container created:', container.id);
 
     // 2) Wait for media to be ready (Facebook needs time to process the image)
@@ -74,7 +104,7 @@ export async function publishImageToInstagram(igUserId: string, pageAccessToken:
         console.log(`[publishImageToInstagram] Publishing attempt ${attempt}/3...`);
         publish = await graphPOST<{ id: string }>(`/${igUserId}/media_publish`, pageAccessToken, {
           creation_id: container.id,
-        });
+        }, { igUserId });
         console.log('[publishImageToInstagram] Media published:', publish.id);
         break;
       } catch (pubErr: any) {
@@ -94,7 +124,7 @@ export async function publishImageToInstagram(igUserId: string, pageAccessToken:
       console.log('[publishImageToInstagram] Step 3: Fetching permalink...');
       const postInfo = await graphGET<{ permalink?: string }>(`/${publish.id}`, pageAccessToken, {
         fields: "permalink"
-      });
+      }, { igUserId });
       return { id: publish.id, permalink: postInfo.permalink };
     } catch (error) {
       console.error('[publishImageToInstagram] Error fetching permalink:', error);
@@ -113,7 +143,7 @@ export async function publishStoryToInstagram(igUserId: string, pageAccessToken:
     const container = await graphPOST<{ id: string }>(`/${igUserId}/media`, pageAccessToken, {
       image_url: imageUrl,
       media_type: "STORIES",
-    });
+    }, { igUserId });
 
     // 2) Attendre que le media soit prêt (Instagram nécessite quelques secondes)
     console.log('[publishStoryToInstagram] Container created:', container.id, '- Waiting for media to be ready...');
@@ -123,7 +153,7 @@ export async function publishStoryToInstagram(igUserId: string, pageAccessToken:
     // 3) Publier la story
     const publish = await graphPOST<{ id: string }>(`/${igUserId}/media_publish`, pageAccessToken, {
       creation_id: container.id,
-    });
+    }, { igUserId });
 
     console.log('[publishStoryToInstagram] Story published:', publish.id);
     return { id: publish.id };
@@ -157,7 +187,7 @@ export async function publishCarouselToInstagram(
       const childContainer = await graphPOST<{ id: string }>(`/${igUserId}/media`, pageAccessToken, {
         image_url: imageUrl,
         is_carousel_item: true,
-      });
+      }, { igUserId });
 
       childIds.push(childContainer.id);
       console.log(`[publishCarouselToInstagram] Child ${i + 1} created:`, childContainer.id);
@@ -170,7 +200,7 @@ export async function publishCarouselToInstagram(
       media_type: "CAROUSEL",
       caption: caption || "",
       children: childIds.join(','),
-    });
+    }, { igUserId });
 
     console.log('[publishCarouselToInstagram] Carousel container created:', carouselContainer.id);
 
@@ -179,7 +209,7 @@ export async function publishCarouselToInstagram(
     // 3) Publier le carrousel
     const publish = await graphPOST<{ id: string }>(`/${igUserId}/media_publish`, pageAccessToken, {
       creation_id: carouselContainer.id,
-    });
+    }, { igUserId });
 
     console.log('[publishCarouselToInstagram] Carousel published:', publish.id);
 
@@ -188,7 +218,7 @@ export async function publishCarouselToInstagram(
       console.log('[publishCarouselToInstagram] Step 4: Fetching permalink...');
       const postInfo = await graphGET<{ permalink?: string }>(`/${publish.id}`, pageAccessToken, {
         fields: "permalink"
-      });
+      }, { igUserId });
       return { id: publish.id, permalink: postInfo.permalink };
     } catch (error) {
       console.error('[publishCarouselToInstagram] Error fetching permalink:', error);
@@ -221,7 +251,7 @@ export async function publishReelToInstagram(
       video_url: videoUrl,
       caption: caption || '',
       share_to_feed: true,
-    });
+    }, { igUserId });
     console.log('[publishReelToInstagram] Container created:', container.id);
 
     // 2) Wait for video processing (Instagram needs time to process video)
@@ -236,7 +266,8 @@ export async function publishReelToInstagram(
         const status = await graphGET<{ status_code?: string; status?: string }>(
           `/${container.id}`,
           pageAccessToken,
-          { fields: 'status_code,status' }
+          { fields: 'status_code,status' },
+          { igUserId }
         );
         console.log('[publishReelToInstagram] Container status:', status.status_code || status.status);
         if (status.status_code === 'FINISHED') break;
@@ -257,7 +288,7 @@ export async function publishReelToInstagram(
       try {
         publish = await graphPOST<{ id: string }>(`/${igUserId}/media_publish`, pageAccessToken, {
           creation_id: container.id,
-        });
+        }, { igUserId });
         console.log('[publishReelToInstagram] Reel published:', publish.id);
         break;
       } catch (pubErr: any) {
@@ -277,7 +308,7 @@ export async function publishReelToInstagram(
       console.log('[publishReelToInstagram] Step 3: Fetching permalink...');
       const postInfo = await graphGET<{ permalink?: string }>(`/${publish.id}`, pageAccessToken, {
         fields: 'permalink'
-      });
+      }, { igUserId });
       return { id: publish.id, permalink: postInfo.permalink };
     } catch (error) {
       console.error('[publishReelToInstagram] Error fetching permalink:', error);
@@ -318,6 +349,7 @@ export async function getOwnInstagramMedia(
       `/${igUserId}/media`,
       pageAccessToken,
       { fields, limit },
+      { igUserId },
     );
     const posts = data.data || [];
 

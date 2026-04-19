@@ -397,11 +397,11 @@ async function publishToInstagram(
       if (orgMember?.user_id) {
         const { data: orgProfile } = await supabase
           .from('profiles')
-          .select('id, instagram_business_account_id, facebook_page_access_token, instagram_username')
+          .select('id, instagram_business_account_id, facebook_page_access_token, instagram_igaa_token, instagram_username')
           .eq('id', orgMember.user_id)
           .single();
 
-        if (orgProfile?.instagram_business_account_id && orgProfile?.facebook_page_access_token) {
+        if (orgProfile?.instagram_business_account_id && (orgProfile?.facebook_page_access_token || orgProfile?.instagram_igaa_token)) {
           publishProfile = orgProfile;
           effectivePostOwnerId = orgProfile.id || orgMember.user_id;
           console.log(`[Content] Using org owner's IG tokens (org: ${orgId})`);
@@ -415,10 +415,10 @@ async function publishToInstagram(
     if (!publishProfile && effectiveUserId) {
       const { data: clientProfile } = await supabase
         .from('profiles')
-        .select('id, instagram_business_account_id, facebook_page_access_token, instagram_username')
+        .select('id, instagram_business_account_id, facebook_page_access_token, instagram_igaa_token, instagram_username')
         .eq('id', effectiveUserId)
         .single();
-      if (clientProfile?.instagram_business_account_id && clientProfile?.facebook_page_access_token) {
+      if (clientProfile?.instagram_business_account_id && (clientProfile?.facebook_page_access_token || clientProfile?.instagram_igaa_token)) {
         publishProfile = clientProfile;
         effectivePostOwnerId = clientProfile.id || effectiveUserId;
         console.log(`[Content] Using client's IG tokens (userId: ${effectiveUserId})`);
@@ -431,7 +431,9 @@ async function publishToInstagram(
     }
 
     const igUserId = publishProfile.instagram_business_account_id;
-    const pageAccessToken = publishProfile.facebook_page_access_token;
+    // Prefer permanent IGAA token; fall back to FB page token. lib/meta
+    // auto-routes to graph.instagram.com when token starts with IGAA.
+    const pageAccessToken = publishProfile.instagram_igaa_token || publishProfile.facebook_page_access_token;
 
     if (!igUserId || !pageAccessToken) {
       console.error('[Content] Admin has no Instagram tokens configured');
@@ -1923,14 +1925,18 @@ export async function POST(request: NextRequest) {
       case 'execute_publication': {
         // ── Pre-publication Instagram token diagnostic ──
         // Verify token validity before wasting API calls on publish attempts
-        // Use client profile if userId is set, otherwise fallback to admin
+        // Use client profile if userId is set, otherwise fallback to admin.
+        // Also pulls the IGAA token — if FB page token is missing/expired we
+        // can fall back to the permanent IGAA for publishing via graph.instagram.com.
         const profileQuery = userId
-          ? supabase.from('profiles').select('instagram_business_account_id, facebook_page_access_token').eq('id', userId).single()
-          : supabase.from('profiles').select('instagram_business_account_id, facebook_page_access_token').eq('is_admin', true).limit(1).single();
+          ? supabase.from('profiles').select('instagram_business_account_id, facebook_page_access_token, instagram_igaa_token').eq('id', userId).single()
+          : supabase.from('profiles').select('instagram_business_account_id, facebook_page_access_token, instagram_igaa_token').eq('is_admin', true).limit(1).single();
         const { data: publishProfile } = await profileQuery;
 
+        // Prefer IGAA when present — it doesn't expire like FB page tokens
+        const publishToken = publishProfile?.instagram_igaa_token || publishProfile?.facebook_page_access_token;
         let igTokenValid = false;
-        if (!publishProfile?.instagram_business_account_id || !publishProfile?.facebook_page_access_token) {
+        if (!publishProfile?.instagram_business_account_id || !publishToken) {
           console.error(`[Content] execute_publication: Instagram tokens missing for ${userId || 'admin'}`);
           await supabase.from('agent_logs').insert({
             agent: 'diagnostic',
@@ -1949,11 +1955,12 @@ export async function POST(request: NextRequest) {
             const { graphGET: graphGETCheck } = await import('@/lib/meta');
             await graphGETCheck<{ id: string }>(
               `/${publishProfile.instagram_business_account_id}`,
-              publishProfile.facebook_page_access_token,
-              { fields: 'id' }
+              publishToken,
+              { fields: 'id' },
+              { igUserId: publishProfile.instagram_business_account_id }
             );
             igTokenValid = true;
-            console.log('[Content] execute_publication: Instagram token verified OK');
+            console.log(`[Content] execute_publication: Instagram token verified OK (${publishProfile.instagram_igaa_token ? 'IGAA' : 'FB'})`);
           } catch (tokenErr: any) {
             const errDetail = (tokenErr.message || '').substring(0, 300);
             console.error('[Content] execute_publication: Instagram token INVALID:', errDetail);
