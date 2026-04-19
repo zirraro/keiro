@@ -31,13 +31,17 @@ export async function POST(req: NextRequest) {
   // stay silent — no auto replies, even on cron ticks. We still return
   // 200 so the worker doesn't retry/alert; payload shows it was skipped.
   if (userId) {
-    const { data: toggleCfg } = await supabase
+    // Some accounts have duplicated org_agent_configs rows for the same
+    // user/agent pair — .maybeSingle() would return null in that case and
+    // silently bypass the gate. Read the most recent row instead.
+    const { data: toggleCfgRows } = await supabase
       .from('org_agent_configs')
-      .select('config')
+      .select('config, created_at')
       .eq('user_id', userId)
       .eq('agent_id', 'dm_instagram')
-      .maybeSingle();
-    const autoMode = toggleCfg?.config?.auto_mode;
+      .order('created_at', { ascending: false })
+      .limit(1);
+    const autoMode = toggleCfgRows?.[0]?.config?.auto_mode;
     if (autoMode === false) {
       return NextResponse.json({
         ok: true,
