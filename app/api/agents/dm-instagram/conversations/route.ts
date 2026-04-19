@@ -24,11 +24,15 @@ export async function GET(req: NextRequest) {
 
   const { data: userProfile } = await supabase
     .from('profiles')
-    .select('instagram_business_account_id, instagram_access_token, facebook_page_access_token, facebook_page_id, email')
+    .select('instagram_business_account_id, instagram_access_token, instagram_igaa_token, facebook_page_access_token, facebook_page_id, email')
     .eq('id', user.id)
     .single();
 
-  console.log(`[DM-conversations] User ${userProfile?.email || user.id}: ig_account=${userProfile?.instagram_business_account_id || 'null'}, page_id=${userProfile?.facebook_page_id || 'null'}, has_fb_token=${!!userProfile?.facebook_page_access_token}`);
+  // IGAA token (from Meta developer tools) is permanent and takes priority
+  // It's never cleared by disconnect/reconnect — only by manual removal
+  const igaaToken = userProfile?.instagram_igaa_token;
+
+  console.log(`[DM-conversations] User ${userProfile?.email || user.id}: ig_account=${userProfile?.instagram_business_account_id || 'null'}, page_id=${userProfile?.facebook_page_id || 'null'}, has_igaa=${!!igaaToken}, has_fb_token=${!!userProfile?.facebook_page_access_token}`);
 
   pageToken = userProfile?.facebook_page_access_token || userProfile?.instagram_access_token;
   pageId = userProfile?.facebook_page_id;
@@ -69,8 +73,26 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  if (!pageToken || !igUserId) {
+  if (!pageToken && !igaaToken) {
     console.warn(`[DM-conversations] No IG token found for user ${user.id}`);
+    return NextResponse.json({ ok: true, conversations: [], message: 'Instagram non connecte' });
+  }
+
+  // If igUserId is null (disconnected) but we have IGAA token, we can still fetch conversations
+  if (!igUserId && igaaToken) {
+    // Try to get igUserId from IGAA token
+    try {
+      const meRes = await fetch(`https://graph.instagram.com/v21.0/me?fields=id&access_token=${igaaToken}`);
+      if (meRes.ok) {
+        const meData = await meRes.json();
+        igUserId = meData.id;
+        console.log(`[DM-conversations] Recovered igUserId from IGAA token: ${igUserId}`);
+      }
+    } catch {}
+  }
+
+  if (!igUserId) {
+    console.warn(`[DM-conversations] No IG user ID for user ${user.id}`);
     return NextResponse.json({ ok: true, conversations: [], message: 'Instagram non connecte' });
   }
 
@@ -87,8 +109,10 @@ export async function GET(req: NextRequest) {
     // 3. IG user conversations on Facebook Graph (works with FB page token)
 
     const endpoints = [
-      // Instagram API — works with IGAA tokens (most common for new IG API)
-      igToken ? { url: `https://graph.instagram.com/v21.0/me/conversations?fields=id,participants,updated_time&access_token=${igToken}`, label: 'Instagram /me/conversations', apiType: 'instagram', token: igToken } : null,
+      // IGAA token (permanent, from Meta dev tools) — highest priority for DMs
+      igaaToken ? { url: `https://graph.instagram.com/v21.0/me/conversations?fields=id,participants,updated_time&access_token=${igaaToken}`, label: 'Instagram IGAA /me/conversations', apiType: 'instagram', token: igaaToken } : null,
+      // Instagram API — works with IGAA tokens obtained via OAuth
+      igToken && igToken !== igaaToken ? { url: `https://graph.instagram.com/v21.0/me/conversations?fields=id,participants,updated_time&access_token=${igToken}`, label: 'Instagram /me/conversations', apiType: 'instagram', token: igToken } : null,
       // Facebook Page conversations with platform=instagram filter
       pageId && fbToken ? { url: `https://graph.facebook.com/v21.0/${pageId}/conversations?platform=instagram&fields=id,participants,updated_time&access_token=${fbToken}`, label: 'FB Page+platform=instagram', apiType: 'facebook', token: fbToken } : null,
       // IG user conversations via Facebook Graph
