@@ -75,7 +75,7 @@ export async function GET(req: NextRequest) {
 
   if (!pageToken && !igaaToken) {
     console.warn(`[DM-conversations] No IG token found for user ${user.id}`);
-    return NextResponse.json({ ok: true, conversations: [], message: 'Instagram non connecte' });
+    return NextResponse.json({ ok: true, conversations: [], connected: false, message: 'Instagram non connecte' });
   }
 
   // If igUserId is null (disconnected) but we have IGAA token, we can still fetch conversations
@@ -93,7 +93,7 @@ export async function GET(req: NextRequest) {
 
   if (!igUserId) {
     console.warn(`[DM-conversations] No IG user ID for user ${user.id}`);
-    return NextResponse.json({ ok: true, conversations: [], message: 'Instagram non connecte' });
+    return NextResponse.json({ ok: true, conversations: [], connected: false, message: 'Instagram non connecte' });
   }
 
   // Keep both tokens — IGAA token works on graph.instagram.com, FB page token on graph.facebook.com
@@ -146,6 +146,7 @@ export async function GET(req: NextRequest) {
       console.error(`[DM-conversations] ALL ${errors.length} endpoints FAILED. Errors:`, errors.join(' | '));
       return NextResponse.json({
         ok: false,
+        connected: true,
         conversations: [],
         error: 'Instagram API error — check token validity',
         details: errors,
@@ -154,10 +155,10 @@ export async function GET(req: NextRequest) {
     }
 
     console.warn(`[DM-conversations] All endpoints returned 0 conversations (no errors)`);
-    return NextResponse.json({ ok: true, conversations: [], message: 'No conversations yet — send a DM to your Instagram to test' });
+    return NextResponse.json({ ok: true, connected: true, conversations: [], message: 'No conversations yet — send a DM to your Instagram to test' });
   } catch (e: any) {
     console.error(`[DM-conversations] Error:`, e.message);
-    return NextResponse.json({ ok: true, conversations: [], error: e.message });
+    return NextResponse.json({ ok: true, connected: true, conversations: [], error: e.message });
   }
 }
 
@@ -223,7 +224,7 @@ async function processConversations(convData: any, token: string, myIds: string[
   console.log(`[DM-conversations] Returning ${conversations.length} conversations (${conversations.reduce((a, c) => a + c.messages.length, 0)} msgs) in ${elapsed}ms`);
   // Let the browser cache the payload for a few seconds so re-renders and
   // prefetches don't re-hit Meta — the 15s polling still refreshes it.
-  return new NextResponse(JSON.stringify({ ok: true, conversations }), {
+  return new NextResponse(JSON.stringify({ ok: true, connected: true, conversations }), {
     status: 200,
     headers: {
       'Content-Type': 'application/json',

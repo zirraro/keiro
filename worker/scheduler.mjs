@@ -277,6 +277,48 @@ fetchClientSchedules().then(() => {
 setInterval(tick, 30_000);
 tick();
 
+// ──────────────────────────────────────────────────────────
+// DM Auto-reply poller — every 5 min, per client
+// ──────────────────────────────────────────────────────────
+//
+// Continuously polls Instagram for unanswered prospect DMs so Jade
+// can reply within minutes. The /auto-reply endpoint itself checks the
+// per-client `auto_mode` toggle and returns early when the human has
+// taken over, matching Meta's Human Agent protocol. Runs on its own
+// interval so it is independent from the hourly per-client schedule.
+
+async function pollAutoReplies() {
+  if (clientSchedules.length === 0) return;
+  for (const client of clientSchedules) {
+    try {
+      const r = await callEndpoint(
+        `/api/agents/dm-instagram/auto-reply?user_id=${client.user_id}`,
+        'POST',
+        null,
+        1, // one attempt — if it fails we'll try again in 5 min
+      );
+      if (r.ok) {
+        const d = r.data || {};
+        if (d.skipped_reason === 'ai_off') {
+          log('verbose', `  ⏸ auto-reply skipped (AI off) for ${client.email}`);
+        } else if (d.replied > 0) {
+          log('normal', `  💬 auto-reply: ${d.replied} reply(s) sent for ${client.email}`);
+        } else {
+          log('verbose', `  · auto-reply: 0 new for ${client.email}`);
+        }
+      }
+    } catch (e) {
+      log('normal', `  ✗ auto-reply error for ${client.email}: ${e.message}`);
+    }
+    // Stagger so we don't hammer Meta back-to-back
+    await new Promise(r => setTimeout(r, 2000));
+  }
+}
+
+setInterval(pollAutoReplies, 5 * 60 * 1000);
+// First run after 45s so the app/worker has time to finish booting.
+setTimeout(pollAutoReplies, 45_000);
+
 // Graceful shutdown
 process.on('SIGINT', () => { log('normal', '\n🛑 Worker stopping'); process.exit(0); });
 process.on('SIGTERM', () => { log('normal', '\n🛑 Worker stopping'); process.exit(0); });

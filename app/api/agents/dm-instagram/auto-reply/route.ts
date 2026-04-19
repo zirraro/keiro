@@ -26,6 +26,30 @@ export async function POST(req: NextRequest) {
 
   const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
+  // Respect the AI toggle (Meta Human Agent protocol). If the user has
+  // handed the mic back to themselves (auto_mode=false) the agent must
+  // stay silent — no auto replies, even on cron ticks. We still return
+  // 200 so the worker doesn't retry/alert; payload shows it was skipped.
+  if (userId) {
+    const { data: toggleCfg } = await supabase
+      .from('org_agent_configs')
+      .select('config')
+      .eq('user_id', userId)
+      .eq('agent_id', 'dm_instagram')
+      .maybeSingle();
+    const autoMode = toggleCfg?.config?.auto_mode;
+    if (autoMode === false) {
+      return NextResponse.json({
+        ok: true,
+        skipped_reason: 'ai_off',
+        replied: 0,
+        skipped: 0,
+        total_conversations: 0,
+        message: 'AI toggle is off — human is handling replies.',
+      });
+    }
+  }
+
   // Get IG tokens — IGAA token (graph.instagram.com) takes priority since
   // it's the only one Meta lets read conversation content.
   let igToken: string | null = null;

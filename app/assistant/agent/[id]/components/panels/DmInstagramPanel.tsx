@@ -87,6 +87,16 @@ function DmConversationsLive() {
       .catch(() => {});
   }, []);
 
+  // Fire the polling auto-reply once. Used when the AI toggle turns ON so
+  // Jade picks up messages that arrived while she was paused, without
+  // waiting for the next worker tick.
+  const kickAutoReply = useCallback(() => {
+    fetch('/api/agents/dm-instagram/auto-reply', {
+      method: 'POST',
+      credentials: 'include',
+    }).catch(() => {});
+  }, []);
+
   const persistAiMode = useCallback(async (val: boolean) => {
     setAiActive(val);
     try { localStorage.setItem('keiro_auto_dm_instagram', String(val)); } catch {}
@@ -98,20 +108,32 @@ function DmConversationsLive() {
         body: JSON.stringify({ agent_id: 'dm_instagram', auto_mode: val }),
       });
     } catch {}
-  }, []);
+    // Meta Human Agent protocol: when the human hands the mic back to the
+    // AI, the AI must *immediately* pick up any messages received during
+    // the handoff. Fire auto-reply once on OFF→ON transitions.
+    if (val) kickAutoReply();
+  }, [kickAutoReply]);
 
-  // Merge fresh server conversations with local optimistic state to avoid
-  // flicker (bug 4) and preserve messages the user just sent (bug 5).
-  const mergeConvs = useCallback((fresh: typeof convs) => {
+  // Merge fresh server conversations with local optimistic state.
+  // Preserves:
+  //  - optimistic "sending/sent/prepared" messages not yet echoed by Meta
+  //  - the previous list when the fresh payload is empty but the account
+  //    is still connected (transient API hiccup shouldn't wipe the UI)
+  const mergeConvs = useCallback((fresh: typeof convs, opts: { connected: boolean }) => {
     setConvs(prev => {
+      // If the server explicitly says "disconnected", clear the panel.
+      if (!opts.connected) return [];
+      // If the fresh pull is empty but we had convs, keep the old list —
+      // otherwise the list flickers away every time the graph returns 0
+      // (rate limit, timeout, transient error).
+      if (fresh.length === 0 && prev.length > 0) return prev;
       if (prev.length === 0) return fresh;
+
       const prevById = new Map(prev.map(c => [c.id, c]));
       let changed = fresh.length !== prev.length;
       const merged = fresh.map(fc => {
         const old = prevById.get(fc.id);
         if (!old) { changed = true; return fc; }
-        // Keep local optimistic messages (sending/sent/error) that the server
-        // hasn't echoed back yet (matched by id or by message+fromMe)
         const freshIds = new Set(fc.messages.map(m => m.id).filter(Boolean));
         const freshKeys = new Set(fc.messages.map(m => `${m.fromMe}|${m.message}`));
         const extras = old.messages.filter(m =>
@@ -119,7 +141,6 @@ function DmConversationsLive() {
           !(m.id && freshIds.has(m.id)) && !freshKeys.has(`${m.fromMe}|${m.message}`)
         );
         const mergedMsgs = [...fc.messages, ...extras];
-        // Detect change to avoid pointless rerenders
         if (
           old.messages.length !== mergedMsgs.length ||
           old.updated_time !== fc.updated_time ||
@@ -131,29 +152,29 @@ function DmConversationsLive() {
     });
   }, []);
 
+  const [connected, setConnected] = useState<boolean | null>(null);
+
   const fetchConversations = useCallback(() => {
     fetch('/api/agents/dm-instagram/conversations', { credentials: 'include' })
       .then(r => r.json())
       .then(d => {
-        if (d.conversations) { setApiResponded(true); mergeConvs(d.conversations); }
-        if (d.conversations?.length === 0) {
-          setTimeout(() => {
-            fetch('/api/agents/dm-instagram/conversations', { credentials: 'include' })
-              .then(r2 => r2.json())
-              .then(d2 => { if (d2.conversations) mergeConvs(d2.conversations); })
-              .catch(() => {});
-          }, 3000);
+        const isConnected = d.connected !== false;
+        setConnected(isConnected);
+        if (d.conversations) {
+          setApiResponded(true);
+          mergeConvs(d.conversations, { connected: isConnected });
         }
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [mergeConvs]);
 
-  // Initial load + auto-refresh every 15s (paused while user is typing so the
-  // textarea doesn't re-render and swallow focus)
+  // Initial load + auto-refresh every 10s (slightly faster than before for
+  // near-real-time feel). Paused while user is typing so the textarea
+  // doesn't re-render and swallow focus.
   useEffect(() => {
     fetchConversations();
-    const interval = setInterval(() => { if (!userTyping) fetchConversations(); }, 15000);
+    const interval = setInterval(() => { if (!userTyping) fetchConversations(); }, 10000);
     return () => clearInterval(interval);
   }, [fetchConversations, userTyping]);
 
@@ -210,10 +231,14 @@ function DmConversationsLive() {
 
   const [apiResponded, setApiResponded] = useState(false);
 
-  if (loading) return <div className="text-center py-8"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-400 mx-auto" /><div className="text-white/30 text-[10px] mt-2">{p.dmConvsLoading}</div></div>;
+  // Only show the spinner on the very first load; once we have at least one
+  // payload, keep the UI stable and let polling update it in the background.
+  if (loading && !apiResponded) return <div className="text-center py-8"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-400 mx-auto" /><div className="text-white/30 text-[10px] mt-2">{p.dmConvsLoading}</div></div>;
 
-  // isDemo only if NOT connected to Instagram AND API didn't respond
-  const igConnected = typeof window !== 'undefined' && (window as any).__igConnected;
+  // Instagram is considered connected either via the global flag set at
+  // page boot OR when the API has explicitly confirmed connected: true.
+  const igConnected = (typeof window !== 'undefined' && (window as any).__igConnected) || connected === true;
+  // Demo mode only when no evidence of a real account AND nothing loaded.
   const isDemo = convs.length === 0 && !apiResponded && !igConnected;
   const displayConvs = isDemo ? DEMO_DM_CONVERSATIONS : convs;
   const selected = displayConvs.find(c => c.id === selectedConv);
