@@ -162,70 +162,72 @@ export async function GET(req: NextRequest) {
 }
 
 async function processConversations(convData: any, token: string, myIds: string[], apiType: string) {
-  const conversations: Array<{
-    id: string;
-    participant: { username: string; id: string };
-    updated_time: string;
-    messages: Array<{ id: string; message: string; from: string; fromMe: boolean; created_time: string; attachments?: Array<{ type: string; url: string }> }>;
-  }> = [];
-
-  // myIds contains all IDs that represent "me" (igUserId, pageId, etc.)
   const myIdSet = new Set(myIds.filter(Boolean));
+  const domain = apiType === 'instagram' ? 'graph.instagram.com' : 'graph.facebook.com';
+  const convList = (convData.data || []).slice(0, 10);
 
-  for (const conv of (convData.data || []).slice(0, 10)) {
-    // Get the other participant (not me)
-    const otherParticipant = conv.participants?.data?.find((p: any) => !myIdSet.has(p.id)) ||
-                             conv.participants?.data?.[0] ||
-                             { username: 'inconnu', id: '?' };
-
-    // Fetch messages — include attachments so images/videos render inline instead of [media]
-    try {
-      const domain = apiType === 'instagram' ? 'graph.instagram.com' : 'graph.facebook.com';
-      const msgRes = await fetch(
-        `https://${domain}/v21.0/${conv.id}/messages?fields=id,message,from,created_time,attachments&limit=20&access_token=${token}`
-      );
+  // Fire all per-conversation message fetches in parallel — the previous
+  // serial loop did 10 round-trips sequentially (≈300ms each on Meta's side
+  // so the whole endpoint took 3s+ before returning). With Promise.all we
+  // collapse to a single round-trip worth of latency.
+  const started = Date.now();
+  const conversations = await Promise.all(
+    convList.map(async (conv: any) => {
+      const otherParticipant = conv.participants?.data?.find((p: any) => !myIdSet.has(p.id))
+        || conv.participants?.data?.[0]
+        || { username: 'inconnu', id: '?' };
 
       let messages: any[] = [];
-      if (msgRes.ok) {
-        const msgData = await msgRes.json();
-        messages = (msgData.data || []).map((m: any) => {
-          const rawAttachments = m.attachments?.data || [];
-          const attachments = rawAttachments.map((a: any) => ({
-            type: (a.image_data ? 'image' : a.video_data ? 'video' : a.file_url ? 'file' : a.type || 'unknown'),
-            url: a.image_data?.url || a.image_data?.preview_url || a.video_data?.url || a.file_url || a.payload?.url || '',
-          })).filter((a: any) => a.url);
-          return {
-            id: m.id,
-            message: m.message || '',
-            from: m.from?.username || m.from?.name || '?',
-            fromMe: myIdSet.has(m.from?.id),
-            created_time: m.created_time,
-            ...(attachments.length > 0 ? { attachments } : {}),
-          };
-        }).reverse(); // Chronological order
-      } else {
-        const errText = await msgRes.text().catch(() => '');
-        console.warn(`[DM-conversations] Message fetch failed for conv ${conv.id}: ${msgRes.status} ${errText.substring(0, 100)}`);
+      try {
+        // Fetch fewer messages (last 12) — bigger pulls just slow the panel
+        // without adding value; older messages stay reachable on IG natively.
+        const msgRes = await fetch(
+          `https://${domain}/v21.0/${conv.id}/messages?fields=id,message,from,created_time,attachments&limit=12&access_token=${token}`,
+          { signal: AbortSignal.timeout(8000) }
+        );
+        if (msgRes.ok) {
+          const msgData = await msgRes.json();
+          messages = (msgData.data || []).map((m: any) => {
+            const rawAttachments = m.attachments?.data || [];
+            const attachments = rawAttachments.map((a: any) => ({
+              type: (a.image_data ? 'image' : a.video_data ? 'video' : a.file_url ? 'file' : a.type || 'unknown'),
+              url: a.image_data?.url || a.image_data?.preview_url || a.video_data?.url || a.file_url || a.payload?.url || '',
+            })).filter((a: any) => a.url);
+            return {
+              id: m.id,
+              message: m.message || '',
+              from: m.from?.username || m.from?.name || '?',
+              fromMe: myIdSet.has(m.from?.id),
+              created_time: m.created_time,
+              ...(attachments.length > 0 ? { attachments } : {}),
+            };
+          }).reverse();
+        } else {
+          const errText = await msgRes.text().catch(() => '');
+          console.warn(`[DM-conversations] Msg fetch failed ${conv.id}: ${msgRes.status} ${errText.substring(0, 100)}`);
+        }
+      } catch (err: any) {
+        console.error(`[DM-conversations] Msg exception ${conv.id}:`, err.message);
       }
 
-      conversations.push({
+      return {
         id: conv.id,
         participant: { username: otherParticipant.username || otherParticipant.name || 'inconnu', id: otherParticipant.id },
         updated_time: conv.updated_time,
         messages,
-      });
-    } catch (err: any) {
-      console.error(`[DM-conversations] Exception fetching messages for conv ${conv.id}:`, err.message);
-      // Still push the conversation with empty messages so UI shows something
-      conversations.push({
-        id: conv.id,
-        participant: { username: otherParticipant.username || otherParticipant.name || 'inconnu', id: otherParticipant.id },
-        updated_time: conv.updated_time,
-        messages: [],
-      });
-    }
-  }
+      };
+    })
+  );
 
-  console.log(`[DM-conversations] Returning ${conversations.length} conversations (${conversations.reduce((a, c) => a + c.messages.length, 0)} total messages)`);
-  return NextResponse.json({ ok: true, conversations });
+  const elapsed = Date.now() - started;
+  console.log(`[DM-conversations] Returning ${conversations.length} conversations (${conversations.reduce((a, c) => a + c.messages.length, 0)} msgs) in ${elapsed}ms`);
+  // Let the browser cache the payload for a few seconds so re-renders and
+  // prefetches don't re-hit Meta — the 15s polling still refreshes it.
+  return new NextResponse(JSON.stringify({ ok: true, conversations }), {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'private, max-age=5',
+    },
+  });
 }

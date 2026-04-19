@@ -2776,6 +2776,23 @@ export const fr: Translations = {
     demoTimeFriday5pm: 'Vendredi 17h',
     demoCategoryHealth: 'Santé',
   },
+  notif: {
+    pendingActionsTitle: 'Actions en attente',
+    hotProspects: 'Prospects chauds',
+    openDashboard: 'Ouvrir le tableau de bord',
+    pendingActionOne: 'action en attente',
+    pendingActionMany: 'actions en attente',
+    agentCommercial: 'Léo (Commercial)',
+    agentEmail: 'Hugo (Email)',
+    agentDmInstagram: 'Jade (DM)',
+    agentMarketing: 'Ami (Marketing)',
+    agentOnboarding: 'Clara (Onboarding)',
+    agentSeo: 'Oscar (SEO)',
+    agentContent: 'Léna (Contenu)',
+    agentChatbot: 'Max (Chatbot)',
+    agentRetention: 'Théo (Rétention)',
+    agentCeo: 'Noah (Brief CEO)',
+  },
   panels: {
     // ─── Badge compte Instagram connecté ────────────────────
     assetBadgeTitle: 'Compte Instagram Business connecté',

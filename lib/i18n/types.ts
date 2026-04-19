@@ -617,4 +617,5 @@ export interface Translations {
   studio: Record<string, string>;
   assistant: Record<string, string>;
   panels: Record<string, string>;
+  notif: Record<string, string>;
 }

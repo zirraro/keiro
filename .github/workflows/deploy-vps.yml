@@ -1,8 +1,11 @@
 name: Deploy to VPS
 
+# Manual trigger only. Auto-deploy on push was failing because the
+# VPS_SSH_KEY / Supabase env secrets have never been added to the repo,
+# flooding the user with "deploy failed" emails. Deploy is done manually
+# via SSH for now — re-enable the push trigger once the secrets are set.
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:

@@ -2722,6 +2722,23 @@ export const en: Translations = {
     demoTimeFriday5pm: 'Friday 5PM',
     demoCategoryHealth: 'Health',
   },
+  notif: {
+    pendingActionsTitle: 'Pending actions',
+    hotProspects: 'Hot prospects',
+    openDashboard: 'Open dashboard',
+    pendingActionOne: 'pending action',
+    pendingActionMany: 'pending actions',
+    agentCommercial: 'Léo (Sales)',
+    agentEmail: 'Hugo (Email)',
+    agentDmInstagram: 'Jade (DMs)',
+    agentMarketing: 'Ami (Marketing)',
+    agentOnboarding: 'Clara (Onboarding)',
+    agentSeo: 'Oscar (SEO)',
+    agentContent: 'Léna (Content)',
+    agentChatbot: 'Max (Chatbot)',
+    agentRetention: 'Théo (Retention)',
+    agentCeo: 'Noah (CEO brief)',
+  },
   panels: {
     // ─── Instagram asset badge (Meta App Review: every screencast
     //     must show which Page/IG Business account is connected) ─────

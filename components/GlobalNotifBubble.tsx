@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Bell, X, ExternalLink } from 'lucide-react';
+import { useLanguage } from '@/lib/i18n/context';
 
 interface NotifData {
   totalPending: number;
@@ -11,25 +12,26 @@ interface NotifData {
   notifications: Array<{ id: string; agent: string; type: string; title: string; message: string; read: boolean; created_at: string }>;
 }
 
-const AGENT_LABELS: Record<string, string> = {
-  commercial: 'Jade (Commercial)',
-  email: 'Hugo (Email)',
-  dm_instagram: 'Jade (DM)',
-  marketing: 'Lena (Marketing)',
-  onboarding: 'Clara (Onboarding)',
-  seo: 'SEO',
-  content: 'Lena (Contenu)',
-  chatbot: 'Max (Chatbot)',
-  retention: 'Retention',
-  ceo: 'CEO Brief',
-};
-
 export default function GlobalNotifBubble() {
   const [data, setData] = useState<NotifData | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  const { t } = useLanguage();
+  const n = (t as any).notif || {};
+  const AGENT_LABELS: Record<string, string> = {
+    commercial: n.agentCommercial || 'Léo (Commercial)',
+    email: n.agentEmail || 'Hugo (Email)',
+    dm_instagram: n.agentDmInstagram || 'Jade (DM)',
+    marketing: n.agentMarketing || 'Ami (Marketing)',
+    onboarding: n.agentOnboarding || 'Clara (Onboarding)',
+    seo: n.agentSeo || 'Oscar (SEO)',
+    content: n.agentContent || 'Léna (Contenu)',
+    chatbot: n.agentChatbot || 'Max (Chatbot)',
+    retention: n.agentRetention || 'Théo (Rétention)',
+    ceo: n.agentCeo || 'Noah (Brief CEO)',
+  };
 
   // Don't show on assistant/agent pages (avoid overlapping agent chat UIs)
   const isAssistantPage = pathname?.startsWith('/assistant');
@@ -65,7 +67,7 @@ export default function GlobalNotifBubble() {
       {expanded && (
         <div className="bg-gray-900/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl w-72 sm:w-80 max-h-[80vh] overflow-hidden animate-in slide-in-from-bottom-2 duration-200">
           <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-            <span className="text-white font-semibold text-sm">Actions en attente</span>
+            <span className="text-white font-semibold text-sm">{n.pendingActionsTitle || 'Actions en attente'}</span>
             <button onClick={() => setExpanded(false)} className="text-white/40 hover:text-white/70 transition">
               <X size={16} />
             </button>
@@ -95,7 +97,7 @@ export default function GlobalNotifBubble() {
               <div className="border-t border-white/5 mt-1 pt-1">
                 <div className="px-3 py-1.5">
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-orange-400/60">
-                    Prospects chauds
+                    {n.hotProspects || 'Prospects chauds'}
                   </span>
                 </div>
                 {data.hotProspects.slice(0, 5).map(p => (
@@ -116,7 +118,7 @@ export default function GlobalNotifBubble() {
               onClick={() => { router.push('/assistant'); setExpanded(false); }}
               className="w-full text-center text-xs text-purple-400 hover:text-purple-300 transition font-medium"
             >
-              Ouvrir le tableau de bord →
+              {n.openDashboard || 'Ouvrir le tableau de bord'} →
             </button>
           </div>
         </div>
@@ -131,7 +133,7 @@ export default function GlobalNotifBubble() {
         <Bell size={18} className="animate-bounce" style={{ animationDuration: '2s' }} />
         <span className="font-bold text-sm">{data.totalPending}</span>
         <span className="text-white/80 text-xs hidden sm:inline">
-          action{data.totalPending > 1 ? 's' : ''} en attente
+          {data.totalPending > 1 ? (n.pendingActionMany || 'actions en attente') : (n.pendingActionOne || 'action en attente')}
         </span>
 
         {/* Dismiss button */}
