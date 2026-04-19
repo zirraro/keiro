@@ -10,10 +10,17 @@
 
 import { useCallback, useEffect, useState } from 'react';
 
-const DEFAULT_URL = 'https://www.instagram.com/p/C7xIbd_MfH7/';
+const DEFAULT_URL = 'https://www.instagram.com/p/DXUcafUkRU2/';
 
 export default function OembedDemoPage() {
-  const [url, setUrl] = useState(DEFAULT_URL);
+  // Meta App Review hint: a reviewer can pass ?url=<ig_or_fb_url> and the
+  // page auto-loads the embed without any clicks — important because the
+  // v1 submission got rejected for "URL leads to an error page" when the
+  // reviewer didn't realise they had to paste the URL manually first.
+  const initialUrl = typeof window !== 'undefined'
+    ? (new URLSearchParams(window.location.search).get('url') || DEFAULT_URL)
+    : DEFAULT_URL;
+  const [url, setUrl] = useState(initialUrl);
   const [loading, setLoading] = useState(false);
   const [html, setHtml] = useState<string | null>(null);
   const [title, setTitle] = useState<string | null>(null);
@@ -46,7 +53,7 @@ export default function OembedDemoPage() {
     }
   }, []);
 
-  useEffect(() => { fetchEmbed(DEFAULT_URL); }, [fetchEmbed]);
+  useEffect(() => { fetchEmbed(initialUrl); }, [fetchEmbed, initialUrl]);
 
   // Inject Instagram's embed.js once the oEmbed HTML lands so the
   // blockquote is upgraded to a real post preview.
