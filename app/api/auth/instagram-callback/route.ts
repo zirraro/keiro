@@ -145,19 +145,33 @@ export async function POST(req: NextRequest) {
 
     // Étape 3.5: Get IGAA token for DM API access (graph.instagram.com)
     let igaaToken: string | null = null;
-    try {
-      const igaaRes = await fetch(
-        `https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${process.env.INSTAGRAM_APP_SECRET || process.env.META_APP_SECRET}&access_token=${selectedPage.access_token}`
-      );
-      if (igaaRes.ok) {
-        const igaaData = await igaaRes.json();
-        igaaToken = igaaData.access_token || null;
-        console.log('[InstagramCallback] IGAA token obtained:', igaaToken ? 'YES' : 'NO');
-      } else {
-        console.warn('[InstagramCallback] IGAA token exchange failed:', await igaaRes.text().catch(() => ''));
+    // Try Instagram App Secret first (for IGAA tokens), then Meta App Secret
+    const igSecret = process.env.INSTAGRAM_APP_SECRET;
+    const metaSecret = process.env.META_APP_SECRET;
+    const secretsToTry = [igSecret, metaSecret].filter(Boolean) as string[];
+
+    for (const secret of secretsToTry) {
+      try {
+        const igaaRes = await fetch(
+          `https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${secret}&access_token=${selectedPage.access_token}`
+        );
+        if (igaaRes.ok) {
+          const igaaData = await igaaRes.json();
+          igaaToken = igaaData.access_token || null;
+          if (igaaToken) {
+            console.log('[InstagramCallback] IGAA token obtained via', secret === igSecret ? 'IG secret' : 'Meta secret');
+            break;
+          }
+        } else {
+          const errText = await igaaRes.text().catch(() => '');
+          console.warn(`[InstagramCallback] IGAA exchange failed with ${secret === igSecret ? 'IG' : 'Meta'} secret:`, errText.substring(0, 150));
+        }
+      } catch (e: any) {
+        console.warn('[InstagramCallback] IGAA exchange error:', e.message);
       }
-    } catch (e: any) {
-      console.warn('[InstagramCallback] IGAA token exchange error:', e.message);
+    }
+    if (!igaaToken) {
+      console.warn('[InstagramCallback] Could not obtain IGAA token — DMs may not work until token is manually set');
     }
 
     // Étape 4: Sauvegarder les informations dans Supabase (avec service role key)
