@@ -77,12 +77,12 @@ export default function OembedDemoPage() {
       <div className="max-w-3xl mx-auto px-4 py-10">
         <h1 className="text-2xl font-bold mb-2">KeiroAI &mdash; Instagram oEmbed demo</h1>
         <p className="text-sm text-white/60 mb-6">
-          Cette page publique montre comment KeiroAI utilise la permission <code className="text-white/80">oEmbed Read</code> de
-          Meta : nous prenons un lien public Instagram, nous appelons notre endpoint{' '}
-          <code className="text-white/80">/api/oembed</code> qui interroge{' '}
-          <code className="text-white/80">graph.facebook.com/instagram_oembed</code>, puis nous affichons
-          l&apos;aper&ccedil;u officiel du post dans l&apos;interface client
-          (utilis&eacute; dans nos outils d&apos;inspiration contenu).
+          This public page demonstrates how KeiroAI uses Meta&apos;s{' '}
+          <code className="text-white/80">oEmbed Read</code> permission. We take a public Instagram
+          URL, call our <code className="text-white/80">/api/oembed</code> endpoint which proxies{' '}
+          <code className="text-white/80">graph.facebook.com/instagram_oembed</code>, and render
+          the official post preview inside our client workspace (used in KeiroAI&apos;s content
+          inspiration and published-post confirmation views).
         </p>
 
         <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 mb-6">
