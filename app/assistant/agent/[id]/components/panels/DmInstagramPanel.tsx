@@ -67,6 +67,10 @@ function mergeMessageArrays(
   fresh: Array<{ id?: string; message: string; fromMe: boolean; [k: string]: any }>,
 ): any[] {
   if (!Array.isArray(prev) || prev.length === 0) return fresh;
+  // If fresh is empty (rate-limit, timeout, transient error), keep prev as-is.
+  // Wiping would make the whole thread vanish for the duration of the next
+  // successful poll — the opposite of the user-facing expectation.
+  if (!Array.isArray(fresh) || fresh.length === 0) return prev;
   const freshIds = new Set(fresh.map(m => m.id).filter(Boolean));
   const freshKeys = new Set(fresh.map(m => `${m.fromMe}|${m.message}`));
   const extras = prev.filter(m =>
@@ -151,6 +155,14 @@ function DmConversationsLive() {
       const merged = fresh.map(fc => {
         const old = prevById.get(fc.id);
         if (!old) { changed = true; return fc; }
+        // The list endpoint now returns no messages per conv — the messages
+        // live in the per-conv endpoint. Do NOT overwrite old.messages when
+        // fresh arrives with an empty array, otherwise every 10s list poll
+        // wipes the currently-open thread's messages.
+        if (!fc.messages || fc.messages.length === 0) {
+          if (old.updated_time !== fc.updated_time) changed = true;
+          return { ...fc, messages: old.messages };
+        }
         const freshIds = new Set(fc.messages.map(m => m.id).filter(Boolean));
         const freshKeys = new Set(fc.messages.map(m => `${m.fromMe}|${m.message}`));
         const extras = old.messages.filter(m =>
