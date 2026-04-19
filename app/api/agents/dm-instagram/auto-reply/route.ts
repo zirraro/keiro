@@ -26,9 +26,11 @@ export async function POST(req: NextRequest) {
 
   const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
-  // Get IG tokens
+  // Get IG tokens — IGAA token (graph.instagram.com) takes priority since
+  // it's the only one Meta lets read conversation content.
   let igToken: string | null = null;
   let fbToken: string | null = null;
+  let igaaToken: string | null = null;
   let igUserId: string | null = null;
   let pageId: string | null = null;
   let ownerUserId: string | null = userId;
@@ -36,25 +38,27 @@ export async function POST(req: NextRequest) {
   if (userId) {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('instagram_business_account_id, instagram_access_token, facebook_page_access_token, facebook_page_id')
+      .select('instagram_business_account_id, instagram_access_token, instagram_igaa_token, facebook_page_access_token, facebook_page_id')
       .eq('id', userId)
       .single();
     igToken = profile?.instagram_access_token;
+    igaaToken = profile?.instagram_igaa_token;
     fbToken = profile?.facebook_page_access_token;
     igUserId = profile?.instagram_business_account_id;
     pageId = profile?.facebook_page_id;
   }
 
   // Fallback to admin
-  if (!igUserId) {
+  if (!igUserId && !igaaToken) {
     const { data: admin } = await supabase
       .from('profiles')
-      .select('id, instagram_business_account_id, instagram_access_token, facebook_page_access_token, facebook_page_id')
+      .select('id, instagram_business_account_id, instagram_access_token, instagram_igaa_token, facebook_page_access_token, facebook_page_id')
       .eq('is_admin', true)
       .limit(1)
       .maybeSingle();
     if (admin) {
       igToken = admin.instagram_access_token;
+      igaaToken = admin.instagram_igaa_token;
       fbToken = admin.facebook_page_access_token;
       igUserId = admin.instagram_business_account_id;
       pageId = admin.facebook_page_id;
@@ -62,19 +66,24 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  if (!igUserId || (!igToken && !fbToken)) {
+  if (!igUserId && !igaaToken) {
     return NextResponse.json({ ok: false, error: 'Instagram non connecté' });
   }
 
-  const token = fbToken || igToken!;
+  // Use IGAA when we have it — it's the only token that reliably reads DMs.
+  // Fall back to FB/IG tokens for accounts that still have classic OAuth.
+  const useIgaa = !!igaaToken;
+  const token = useIgaa ? igaaToken! : (fbToken || igToken!);
   const myIds = new Set([igUserId, pageId].filter(Boolean));
 
   try {
     // 1. Fetch recent conversations
-    const domain = fbToken ? 'graph.facebook.com' : 'graph.instagram.com';
-    const convUrl = fbToken && pageId
-      ? `https://graph.facebook.com/v21.0/${pageId}/conversations?platform=instagram&fields=id,participants,updated_time&access_token=${token}`
-      : `https://graph.instagram.com/v21.0/me/conversations?fields=id,participants,updated_time&access_token=${token}`;
+    const domain = useIgaa || !fbToken ? 'graph.instagram.com' : 'graph.facebook.com';
+    const convUrl = useIgaa
+      ? `https://graph.instagram.com/v21.0/me/conversations?fields=id,participants,updated_time&access_token=${token}`
+      : fbToken && pageId
+        ? `https://graph.facebook.com/v21.0/${pageId}/conversations?platform=instagram&fields=id,participants,updated_time&access_token=${token}`
+        : `https://graph.instagram.com/v21.0/me/conversations?fields=id,participants,updated_time&access_token=${token}`;
 
     const convRes = await fetch(convUrl);
     if (!convRes.ok) {
@@ -227,9 +236,11 @@ ${ragContext}`;
 
         if (!aiReply) continue;
 
-        // Send reply
+        // Send reply — graph.instagram.com when using IGAA, else FB graph.
         try {
-          const sendRes = await fetch(`https://graph.facebook.com/v21.0/${igUserId}/messages`, {
+          const sendHost = useIgaa ? 'graph.instagram.com' : 'graph.facebook.com';
+          const sendPath = useIgaa ? 'me' : igUserId;
+          const sendRes = await fetch(`https://${sendHost}/v21.0/${sendPath}/messages`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams({
