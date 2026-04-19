@@ -45,9 +45,9 @@ const GLOBAL_SCHEDULE = [
 // Agent endpoint mapping (for per-client direct calls)
 const AGENT_ENDPOINTS = {
   content:      { path: '/api/agents/content', method: 'GET' },
-  email:        { path: '/api/agents/email/daily', method: 'GET' },
+  email:        { path: '/api/agents/email/daily?slot=morning&types=restaurant,traiteur,boutique,coiffeur,fleuriste', method: 'GET' },
   commercial:   { path: '/api/agents/commercial', method: 'POST' },
-  dm_instagram: { path: '/api/agents/dm-instagram', method: 'POST' },
+  dm_instagram: { path: '/api/agents/dm-instagram?slot=morning', method: 'POST' },
   seo:          { path: '/api/agents/seo', method: 'GET' },
   gmaps:        { path: '/api/agents/gmaps', method: 'GET' },
   marketing:    { path: '/api/agents/marketing', method: 'GET' },
