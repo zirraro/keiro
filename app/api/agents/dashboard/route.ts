@@ -143,8 +143,10 @@ async function getMarketingData(
   // Instagram stats — load from real IG API
   let igStats = { postsCount: 0, followersCount: 0, reach: 0, likes: 0, engagement: 0 };
   try {
-    const { data: igProfile } = await supabase.from('profiles').select('instagram_access_token, instagram_business_account_id').eq('id', userId).single();
-    const igToken = igProfile?.instagram_access_token;
+    // IGAA token takes priority — classic instagram_access_token is often
+    // null after the new OAuth flow, which made stats come back as zeros.
+    const { data: igProfile } = await supabase.from('profiles').select('instagram_access_token, instagram_igaa_token, instagram_business_account_id').eq('id', userId).single();
+    const igToken = igProfile?.instagram_igaa_token || igProfile?.instagram_access_token;
     if (igToken) {
       // Profile stats
       const profileRes = await fetch(`https://graph.instagram.com/v21.0/me?fields=followers_count,media_count&access_token=${igToken}`, { signal: AbortSignal.timeout(5000) });
@@ -407,9 +409,9 @@ async function getContentData(
   let followersCount = 0;
 
   try {
-    const { data: profile } = await supabase.from('profiles').select('instagram_access_token').eq('id', userId).single();
-    if (profile?.instagram_access_token) {
-      const token = profile.instagram_access_token;
+    const { data: profile } = await supabase.from('profiles').select('instagram_access_token, instagram_igaa_token').eq('id', userId).single();
+    const token = profile?.instagram_igaa_token || profile?.instagram_access_token;
+    if (token) {
 
       // Fetch likes + comments from recent media (real data)
       const mediaRes = await fetch(`https://graph.instagram.com/v21.0/me/media?fields=like_count,comments_count&limit=50&access_token=${token}`, { signal: AbortSignal.timeout(5000) });
@@ -440,6 +442,19 @@ async function getContentData(
     }
   } catch {}
 
+  // Break totals down by platform so the Content panel can surface a tidy
+  // per-network view (Instagram / TikTok / LinkedIn) instead of one blended
+  // row — asked for a pleasant UX grouped per réseau.
+  const byPlatform: Record<string, { published: number; scheduled: number; drafts: number; total: number }> = {};
+  for (const p of allPosts) {
+    const plat = (p.platform || 'instagram').toLowerCase();
+    if (!byPlatform[plat]) byPlatform[plat] = { published: 0, scheduled: 0, drafts: 0, total: 0 };
+    byPlatform[plat].total++;
+    if (p.status === 'published') byPlatform[plat].published++;
+    else if (p.status === 'approved') byPlatform[plat].scheduled++;
+    else if (p.status === 'draft') byPlatform[plat].drafts++;
+  }
+
   return {
     contentStats: {
       postsGenerated: allPosts.length,
@@ -454,6 +469,28 @@ async function getContentData(
       accountsEngaged: igInsights?.accounts_engaged || 0,
       engagement: followersCount > 0 && published.length > 0 ? Math.round(((totalLikes + totalComments) / published.length / followersCount) * 10000) / 100 : 0,
       recentContent: allPosts.slice(0, 30),
+      // Per-network breakdown for the Content panel
+      byNetwork: {
+        instagram: {
+          posts: byPlatform['instagram']?.published || 0,
+          scheduled: byPlatform['instagram']?.scheduled || 0,
+          followers: followersCount,
+          likes: totalLikes,
+          comments: totalComments,
+          reach: igInsights?.reach || 0,
+          engagement: followersCount > 0 && published.length > 0
+            ? Math.round(((totalLikes + totalComments) / published.length / followersCount) * 10000) / 100
+            : 0,
+        },
+        tiktok: {
+          posts: byPlatform['tiktok']?.published || 0,
+          scheduled: byPlatform['tiktok']?.scheduled || 0,
+        },
+        linkedin: {
+          posts: byPlatform['linkedin']?.published || 0,
+          scheduled: byPlatform['linkedin']?.scheduled || 0,
+        },
+      },
     },
     recentLogs: allPosts.slice(0, 10).map(p => ({
       id: p.id,

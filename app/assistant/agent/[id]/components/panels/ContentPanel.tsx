@@ -308,6 +308,87 @@ function ContentWorkflow({ isConnected }: { isConnected?: boolean }) {
   );
 }
 
+// ─── Per-network performance cards ───────────────────────────
+// Grouped view so the client sees each social at a glance — better UX
+// than a single blended engagement number that hides whether growth is
+// on Instagram or TikTok.
+function PerNetworkStats({ stats }: { stats: any }) {
+  const byNet = stats.byNetwork || {};
+  const ig = byNet.instagram || {};
+  const tk = byNet.tiktok || {};
+  const li = byNet.linkedin || {};
+
+  const NETWORKS = [
+    {
+      key: 'instagram',
+      label: 'Instagram',
+      icon: '\u{1F4F8}',
+      gradient: 'from-pink-500/20 to-purple-500/20',
+      border: 'border-pink-500/30',
+      accent: 'text-pink-300',
+      data: ig,
+      metrics: [
+        { label: 'Posts published', value: fmt(ig.posts || 0) },
+        { label: 'Followers', value: fmt(ig.followers || 0) },
+        { label: 'Likes', value: fmt(ig.likes || 0) },
+        { label: 'Comments', value: fmt(ig.comments || 0) },
+        { label: 'Reach (24h)', value: fmt(ig.reach || 0) },
+        { label: 'Engagement', value: `${(ig.engagement || 0)}%` },
+      ],
+    },
+    {
+      key: 'tiktok',
+      label: 'TikTok',
+      icon: '\u{1F3B5}',
+      gradient: 'from-cyan-500/20 to-emerald-500/20',
+      border: 'border-cyan-500/30',
+      accent: 'text-cyan-300',
+      data: tk,
+      metrics: [
+        { label: 'Videos published', value: fmt(tk.posts || 0) },
+        { label: 'Scheduled', value: fmt(tk.scheduled || 0) },
+      ],
+    },
+    {
+      key: 'linkedin',
+      label: 'LinkedIn',
+      icon: '\u{1F4BC}',
+      gradient: 'from-blue-500/20 to-sky-500/20',
+      border: 'border-blue-500/30',
+      accent: 'text-blue-300',
+      data: li,
+      metrics: [
+        { label: 'Posts published', value: fmt(li.posts || 0) },
+        { label: 'Scheduled', value: fmt(li.scheduled || 0) },
+      ],
+    },
+  ];
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      {NETWORKS.map(net => (
+        <div
+          key={net.key}
+          className={`rounded-xl border ${net.border} bg-gradient-to-br ${net.gradient} p-3`}
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-base">{net.icon}</span>
+            <span className={`text-xs font-bold ${net.accent}`}>{net.label}</span>
+          </div>
+          <div className="space-y-1">
+            {net.metrics.map(m => (
+              <div key={m.label} className="flex items-center justify-between">
+                <span className="text-[10px] text-white/50">{m.label}</span>
+                <span className="text-[11px] font-semibold text-white">{m.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ─── Network preview tab (Instagram / TikTok / LinkedIn) ───────
 // Shows the most recent posts on each connected network with live metrics
 // and a native deep-link so the client can jump straight into the platform
@@ -510,13 +591,17 @@ function ContentProductionSection({ data, gradientFrom, gradientTo, stats, p }: 
         <p className="text-[10px] text-white/50">{p.contentStoriesTip}</p>
       </div>
 
-      {/* Instagram KPIs */}
+      {/* Per-network performance — Instagram first because it has real
+          engagement data, TikTok and LinkedIn follow. Pulls straight from
+          the dashboard's IG Graph fetch so numbers match what Meta shows. */}
       <SectionTitle>{p.contentSectionPerf}</SectionTitle>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+      <PerNetworkStats stats={stats} />
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-3">
         <KpiCard label={p.contentKpiPublished} value={fmt((stats as any).publishedPosts || stats.postsGenerated || 0)} gradientFrom="#8b5cf6" gradientTo="#6d28d9" />
         <KpiCard label={p.contentKpiLikes} value={fmt((stats as any).totalLikes || 0)} gradientFrom="#ec4899" gradientTo="#f43f5e" />
         <KpiCard label={p.contentKpiReach} value={fmt((stats as any).reach || 0)} gradientFrom="#06b6d4" gradientTo="#0891b2" />
-        <KpiCard label={p.contentKpiEngagement} value={`${((stats as any).accountsEngaged || 0)}%`} gradientFrom="#10b981" gradientTo="#059669" />
+        <KpiCard label={p.contentKpiEngagement} value={`${((stats as any).accountsEngaged || (stats as any).engagement || 0)}%`} gradientFrom="#10b981" gradientTo="#059669" />
       </div>
 
       {/* Quick actions */}

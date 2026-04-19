@@ -95,20 +95,39 @@ export async function POST(req: NextRequest) {
   };
 
   if (action === 'fetch_comments') {
-    // Fetch recent media + their comments
+    // Fetch recent media + their comments.
+    // Return post context (thumbnail, caption, permalink, media_type) so
+    // the UI can show the reviewer which post each comment is attached to.
     try {
       const mediaPath = useIgaa ? '/me/media' : `/${igId}/media`;
-      const media = await fetchGraph<{ data: Array<{ id: string; caption?: string; timestamp: string }> }>(
-        mediaPath, { fields: 'id,caption,timestamp', limit: 10 }
+      const media = await fetchGraph<{ data: Array<{ id: string; caption?: string; timestamp: string; media_url?: string; thumbnail_url?: string; permalink?: string; media_type?: string }> }>(
+        mediaPath, { fields: 'id,caption,timestamp,media_url,thumbnail_url,permalink,media_type', limit: 10 }
       );
 
-      const allComments: Array<{ media_id: string; comment_id: string; text: string; username: string; timestamp: string; replied: boolean }> = [];
+      const allComments: Array<{
+        media_id: string;
+        comment_id: string;
+        text: string;
+        username: string;
+        timestamp: string;
+        replied: boolean;
+        post: { caption: string; thumbnail_url: string | null; permalink: string | null; media_type: string | null; posted_at: string };
+      }> = [];
 
       for (const post of media.data || []) {
         try {
           const comments = await fetchGraph<{ data: Array<{ id: string; text: string; username: string; timestamp: string }> }>(
             `/${post.id}/comments`, { fields: 'id,text,username,timestamp' }
           );
+
+          const postCtx = {
+            caption: (post.caption || '').slice(0, 240),
+            // For videos/reels, thumbnail_url is the frame image; for images, media_url is the image.
+            thumbnail_url: post.thumbnail_url || post.media_url || null,
+            permalink: post.permalink || null,
+            media_type: post.media_type || null,
+            posted_at: post.timestamp || '',
+          };
 
           for (const c of comments.data || []) {
             // Check if already replied
@@ -128,6 +147,7 @@ export async function POST(req: NextRequest) {
               username: c.username,
               timestamp: c.timestamp,
               replied: !!existing,
+              post: postCtx,
             });
           }
         } catch {}

@@ -559,21 +559,71 @@ function CommentCard({ comment: c, isDemo, onUpdate }: { comment: any; isDemo: b
     } catch {} finally { setSending(false); }
   }, [c.comment_id, c.media_id, onUpdate, p.replied]);
 
+  // Human-friendly timestamp ("2h ago" / "Yesterday" / "3 Apr")
+  const formatWhen = (iso?: string) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    const diffMs = Date.now() - d.getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    if (diffMin < 1) return 'just now';
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const diffHr = Math.floor(diffMin / 60);
+    if (diffHr < 24) return `${diffHr}h ago`;
+    const diffDay = Math.floor(diffHr / 24);
+    if (diffDay < 7) return `${diffDay}d ago`;
+    return d.toLocaleDateString(undefined, { day: '2-digit', month: 'short' });
+  };
+
+  const postCtx = c.post || {};
+  const postThumb: string | null = postCtx.thumbnail_url || null;
+  const postCaption: string = postCtx.caption || '';
+  const postPermalink: string | null = postCtx.permalink || null;
+  const mediaType: string = (postCtx.media_type || '').toUpperCase();
+  const mediaBadge = mediaType === 'VIDEO' || mediaType === 'REELS' ? '🎬' : mediaType === 'CAROUSEL_ALBUM' ? '🖼️' : '📷';
+
   return (
     <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
+      {/* Post context — what this comment is attached to */}
+      {(postThumb || postCaption) && (
+        <a
+          href={postPermalink || '#'}
+          target={postPermalink ? '_blank' : undefined}
+          rel="noopener noreferrer"
+          className={`flex items-center gap-2 px-3 py-2 border-b border-white/5 bg-white/[0.02] ${postPermalink ? 'hover:bg-white/5 transition' : 'pointer-events-none'}`}
+          title={postPermalink ? 'Open post on Instagram' : ''}
+        >
+          {postThumb && (
+            <img src={postThumb} alt="" className="w-10 h-10 rounded-md object-cover flex-shrink-0" loading="lazy" />
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[9px] text-white/30">{mediaBadge}</span>
+              <span className="text-[10px] font-semibold text-white/60 truncate">
+                {postCaption ? postCaption.substring(0, 60) : 'Instagram post'}
+              </span>
+            </div>
+            {postCtx.posted_at && (
+              <div className="text-[9px] text-white/25">Posted {formatWhen(postCtx.posted_at)}</div>
+            )}
+          </div>
+          {postPermalink && <span className="text-[10px] text-purple-400/60">{'\u2197'}</span>}
+        </a>
+      )}
+
       {/* Comment */}
       <div className="p-3 flex items-start gap-2">
         <div className="w-7 h-7 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center text-[10px] text-white font-bold flex-shrink-0">
           {(c.username || '?')[0].toUpperCase()}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-bold text-white/80">@{c.username}</span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[11px] font-bold text-white/80">@{c.username || 'instagram_user'}</span>
+            {c.timestamp && <span className="text-[9px] text-white/30">· {formatWhen(c.timestamp)}</span>}
             <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${c.replied ? 'bg-emerald-400/15 text-emerald-400' : 'bg-amber-400/15 text-amber-400'}`}>
               {c.replied ? p.replied : p.pending}
             </span>
           </div>
-          <p className="text-[11px] text-white/60 mt-1">{c.text}</p>
+          <p className="text-[11px] text-white/60 mt-1 whitespace-pre-wrap break-words">{c.text}</p>
         </div>
       </div>
 
