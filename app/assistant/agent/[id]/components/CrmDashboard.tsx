@@ -745,7 +745,7 @@ export default function CrmDashboard({ data, onAddProspect }: CrmDashboardProps)
       {hotProspects.length > 0 && (
         <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
           <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
-            <span>{'\u{1F525}'}</span> Prospects chauds — Actions prioritaires
+            <span>{'\u{1F525}'}</span> {nn.crmHotHeaderPriority || 'Prospects chauds — Actions prioritaires'}
           </h3>
           <div className="space-y-2">
             {hotProspects.map(p => (

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useLanguage } from '@/lib/i18n/context';
 import dynamic from 'next/dynamic';
 import type { ClientAgent } from '@/lib/agents/client-context';
 import { CLIENT_AGENTS } from '@/lib/agents/client-context';
@@ -397,6 +398,8 @@ function EditorialCalendarFull({ agentId }: { agentId: string }) {
 }
 
 export default function AgentWorkspacePage() {
+  const { t: tLang } = useLanguage();
+  const nn = (tLang as any).notif || {};
   const params = useParams();
   const router = useRouter();
   const isMobile = useIsMobile();
@@ -965,7 +968,7 @@ export default function AgentWorkspacePage() {
                 } catch {}
               }}
               className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/40 hover:text-white/70 transition"
-              title="Voir le tutoriel"
+              title={nn.formViewTutorial || 'Voir le tutoriel'}
             >
               <span className="text-[10px] font-bold">i</span>
             </button>

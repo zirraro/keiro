@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { ClientAgent } from '@/lib/agents/client-context';
+import { useLanguage } from '@/lib/i18n/context';
 
 interface AgentTeamPack {
   name: string;
@@ -70,6 +71,8 @@ interface AgentTeamsProps {
 }
 
 export default function AgentTeams({ agents, userPlan, avatars = {} }: AgentTeamsProps) {
+  const { t } = useLanguage();
+  const nn = (t as any).notif || {};
   const userPlanIndex = PLAN_ORDER.indexOf(userPlan || 'gratuit');
   const [view, setView] = useState<'packs' | 'teams'>('packs');
 
@@ -257,7 +260,7 @@ export default function AgentTeams({ agents, userPlan, avatars = {} }: AgentTeam
         <div className="flex items-start gap-2">
           <span className="text-sm">🧠</span>
           <div>
-            <p className="text-white/70 text-xs font-semibold">Agents en arriere-plan</p>
+            <p className="text-white/70 text-xs font-semibold">{nn.backgroundAgents || 'Agents en arrière-plan'}</p>
             <p className="text-gray-500 text-[10px] mt-0.5">
               Noah (Orchestrateur IA) et Theo (Retention) optimisent invisiblement KeiroAI pour tous les plans, sans action de votre part.
             </p>

@@ -240,6 +240,7 @@ export function EmailPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
 // ─── Campaign Creator (mini flow) ──────────────────────────────────
 
 function CampaignCreator() {
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
   const [target, setTarget] = useState('all_prospects');
@@ -337,7 +338,7 @@ function CampaignCreator() {
               disabled={sending || !subject.trim() || !body.trim()}
               className="flex-1 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 text-white text-xs font-bold rounded-lg disabled:opacity-40"
             >
-              {sending ? '...' : '\u{1F680} Lancer la campagne'}
+              {sending ? '...' : (((t as any).notif?.emailLaunchCampaign) || '\u{1F680} Lancer la campagne')}
             </button>
           </div>
         </div>
