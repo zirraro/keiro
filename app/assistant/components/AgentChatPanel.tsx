@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { ClientAgent } from '@/lib/agents/client-context';
+import { useLanguage } from '@/lib/i18n/context';
 
 export interface ChatMessage {
   id: string;
@@ -64,6 +65,10 @@ export default function AgentChatPanel({
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { locale } = useLanguage();
+  const tChat = {
+    chatWith: locale === 'en' ? 'Chat with' : 'Discute avec',
+  };
 
   // Auto-scroll on new messages
   useEffect(() => {
@@ -93,7 +98,10 @@ export default function AgentChatPanel({
     <div
       className={`flex flex-col bg-[#0a1628] ${
         isMobile
-          ? 'fixed inset-x-0 top-0 bottom-0 z-50'
+          // z-[9999] so it always sits above the global site header (which
+          // uses z-50). Previously the chat appeared *under* the header on
+          // some phones, hiding the first line of conversation.
+          ? 'fixed inset-x-0 top-0 bottom-0 z-[9999]'
           : 'rounded-2xl border border-white/10 overflow-hidden'
       }`}
       style={isMobile ? { paddingTop: 'env(safe-area-inset-top, 0px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' } : { height: 'min(500px, calc(100vh - 250px))', minHeight: 350 }}
@@ -107,11 +115,12 @@ export default function AgentChatPanel({
       >
         <button
           onClick={onBack}
-          className="w-10 h-10 min-w-[44px] min-h-[44px] rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors flex-shrink-0"
-          aria-label="Retour"
+          className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-white/25 hover:bg-white/35 flex items-center justify-center transition-colors flex-shrink-0 shadow-md"
+          aria-label="Back"
+          title="Back"
         >
-          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
 
@@ -124,14 +133,22 @@ export default function AgentChatPanel({
         </div>
 
         <div className="flex-1 min-w-0">
-          <h3 className="text-white font-semibold text-sm leading-tight">{agent.displayName}</h3>
-          <p className="text-white/70 text-xs">{agent.title}</p>
+          <h3 className="text-white font-semibold text-sm leading-tight truncate">{agent.displayName}</h3>
+          <p className="text-white/70 text-xs truncate">{agent.title}</p>
         </div>
 
-        <div className="flex items-center gap-1.5">
-          <div className="w-2 h-2 rounded-full bg-green-400" />
-          <span className="text-white/60 text-[10px]">En ligne</span>
-        </div>
+        {/* Close button — extra visible on mobile where the back arrow on
+            the left can be missed when the thumb hovers the right side. */}
+        <button
+          onClick={onBack}
+          className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition flex-shrink-0"
+          aria-label="Close chat"
+          title="Close chat"
+        >
+          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
 
       {/* Messages area */}
@@ -144,7 +161,7 @@ export default function AgentChatPanel({
             >
               <span className="text-3xl">{agent.icon}</span>
             </div>
-            <h4 className="text-white font-semibold text-sm mb-1">Discute avec {agent.displayName}</h4>
+            <h4 className="text-white font-semibold text-sm mb-1">{tChat.chatWith} {agent.displayName}</h4>
             <p className="text-white/50 text-xs max-w-[260px]">
               {agent.description}
             </p>
@@ -331,7 +348,7 @@ export default function AgentChatPanel({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={`Message a ${agent.displayName}...`}
+            placeholder={`${locale === 'en' ? 'Message to' : 'Message à'} ${agent.displayName}...`}
             className="flex-1 px-3.5 py-2.5 border border-white/20 rounded-xl text-sm text-white placeholder-white/40 bg-white/5 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
             disabled={isLoading || comingSoonMode}
           />
