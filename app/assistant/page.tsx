@@ -16,21 +16,48 @@ import StrategyOnboarding from './components/StrategyOnboarding';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { useLanguage } from '@/lib/i18n/context';
+
+// Translation key per agent id — falls back to the client-context `title`
+// when no localised override is present (keeps legacy agents working).
+const AGENT_TITLE_KEYS: Record<string, string> = {
+  onboarding: 'agentTitleOnboarding',
+  content: 'agentTitleContent',
+  dm_instagram: 'agentTitleDmInstagram',
+  email: 'agentTitleEmail',
+  commercial: 'agentTitleCommercial',
+  seo: 'agentTitleSeo',
+  marketing: 'agentTitleMarketing',
+  chatbot: 'agentTitleChatbot',
+  retention: 'agentTitleRetention',
+  comptable: 'agentTitleComptable',
+  ads: 'agentTitleAds',
+  rh: 'agentTitleRh',
+  ceo: 'agentTitleCeo',
+  whatsapp: 'agentTitleWhatsapp',
+  linkedin: 'agentTitleLinkedin',
+};
+
+function getAgentTitle(agent: ClientAgent, notif: Record<string, string>): string {
+  const key = AGENT_TITLE_KEYS[agent.id];
+  if (key && notif[key]) return notif[key];
+  return agent.title;
+}
 
 // ─── Sortable Agent Row for Team view (drag & drop) ────────
-function SortableTeamAgentRow({ agent, avatars, agentStats, onClick, onChat, isActivated, onToggle }: {
+function SortableTeamAgentRow({ agent, avatars, agentStats: _agentStats, onClick, onChat, isActivated, onToggle, agentTitle, dragLabel, activeLabel, inactiveLabel }: {
   agent: ClientAgent; avatars: Record<string, string | null>; agentStats: any; onClick: () => void; onChat: () => void; isActivated?: boolean; onToggle?: () => void;
+  agentTitle: string; dragLabel: string; activeLabel: string; inactiveLabel: string;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: agent.id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1, zIndex: isDragging ? 50 : 'auto' as any };
-  const metrics = agentStats?.metrics as Array<{ label: string; value: string | number; icon: string }> | undefined;
 
   return (
     <div ref={setNodeRef} style={style} {...attributes}
       className="rounded-xl bg-white/[0.04] hover:bg-white/[0.08] transition-all overflow-hidden">
       <div className="flex items-center gap-3 px-3 py-2.5">
         {/* Drag handle */}
-        <div className="cursor-grab active:cursor-grabbing text-white/20 hover:text-white/50 transition" {...listeners} title="Glisser">⠿</div>
+        <div className="cursor-grab active:cursor-grabbing text-white/20 hover:text-white/50 transition" {...listeners} title={dragLabel}>⠿</div>
         <button onClick={onClick} className="flex items-center gap-3 flex-1 min-w-0 text-left">
           <div className="w-10 h-10 rounded-full flex-shrink-0" style={{ background: `linear-gradient(135deg, ${agent.gradientFrom}, ${agent.gradientTo})`, padding: '2px' }}>
             <div className="w-full h-full rounded-full overflow-hidden bg-gray-900 flex items-center justify-center">
@@ -43,20 +70,13 @@ function SortableTeamAgentRow({ agent, avatars, agentStats, onClick, onChat, isA
           </div>
           <div className="min-w-0 flex-1">
             <div className="text-white font-semibold text-xs">{agent.displayName}</div>
-            <div className="text-gray-400 text-[10px] truncate">{agent.title}</div>
-            {metrics && metrics.length > 0 && (
-              <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-0.5">
-                {metrics.slice(0, 3).map((m, i) => (
-                  <span key={i} className="text-[9px] text-white/50">{m.icon} {m.value}</span>
-                ))}
-              </div>
-            )}
+            <div className="text-gray-400 text-[10px] truncate">{agentTitle}</div>
           </div>
         </button>
         <button
           onClick={(e) => { e.stopPropagation(); onToggle?.(); }}
           className={`relative w-8 h-[18px] rounded-full flex-shrink-0 transition-colors ${isActivated ? 'bg-green-500/40' : 'bg-white/10'}`}
-          title={isActivated ? 'Actif' : 'Inactif'}
+          title={isActivated ? activeLabel : inactiveLabel}
         >
           <div className={`absolute top-[2px] w-[14px] h-[14px] rounded-full transition-all ${isActivated ? 'left-[15px] bg-green-400' : 'left-[2px] bg-white/30'}`} />
         </button>
@@ -68,13 +88,17 @@ function SortableTeamAgentRow({ agent, avatars, agentStats, onClick, onChat, isA
 
 // ─── Sortable Agent Card (drag & drop) ──────────────────────
 
-function SortableAgentCard({ agent, avatars, summary, onClick, isActivated, onToggle }: {
+function SortableAgentCard({ agent, avatars, summary: _summary, onClick, isActivated, onToggle, agentTitle, dragLabel, activeLabel, inactiveLabel }: {
   agent: ClientAgent;
   avatars: Record<string, string | null>;
   summary: any;
   onClick: () => void;
   isActivated?: boolean;
   onToggle?: () => void;
+  agentTitle: string;
+  dragLabel: string;
+  activeLabel: string;
+  inactiveLabel: string;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: agent.id });
   const style = {
@@ -84,9 +108,6 @@ function SortableAgentCard({ agent, avatars, summary, onClick, isActivated, onTo
     zIndex: isDragging ? 50 : 'auto' as any,
   };
 
-  const agentStats = summary?.agents?.[agent.id];
-  const metrics = agentStats?.metrics as Array<{ label: string; value: string | number; icon: string }> | undefined;
-
   return (
     <div ref={setNodeRef} style={style} {...attributes}>
       <div className="w-full rounded-2xl bg-white/[0.03] border border-white/10 hover:border-white/25 hover:bg-white/[0.06] transition-all text-left overflow-hidden group relative">
@@ -95,11 +116,15 @@ function SortableAgentCard({ agent, avatars, summary, onClick, isActivated, onTo
           className="h-2 cursor-grab active:cursor-grabbing hover:h-3 transition-all"
           style={{ background: `linear-gradient(90deg, ${agent.gradientFrom}, ${agent.gradientTo})` }}
           {...listeners}
-          title="Glisser pour deplacer"
+          title={dragLabel}
         />
-        {/* Clickable content → opens agent */}
+        {/* Clickable content → opens agent. Mini per-agent counters were
+            removed here: they were showing 0 for most rows because our
+            backend summary only hydrates a few agent-specific metrics,
+            which looked broken. Card now stays clean — full metrics live
+            in the agent's own workspace. */}
         <button onClick={onClick} className="w-full text-left p-3">
-          <div className="flex items-center gap-2.5 mb-2.5">
+          <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-full flex-shrink-0 overflow-hidden" style={{ background: `linear-gradient(135deg, ${agent.gradientFrom}, ${agent.gradientTo})`, padding: '2px' }}>
               <div className="w-full h-full rounded-full overflow-hidden bg-gray-900 flex items-center justify-center">
                 {avatars[agent.id] ? (
@@ -111,29 +136,17 @@ function SortableAgentCard({ agent, avatars, summary, onClick, isActivated, onTo
             </div>
             <div className="min-w-0 flex-1">
               <div className="text-white font-bold text-xs truncate">{agent.displayName}</div>
-              <div className="text-white/30 text-[9px] truncate">{agent.title}</div>
+              <div className="text-white/30 text-[9px] truncate">{agentTitle}</div>
             </div>
             {/* Activation toggle */}
             <button
               onClick={(e) => { e.stopPropagation(); onToggle?.(); }}
               className={`relative w-8 h-[18px] rounded-full flex-shrink-0 transition-colors ${isActivated ? 'bg-green-500/40' : 'bg-white/10'}`}
-              title={isActivated ? 'Agent actif — cliquer pour desactiver' : 'Agent inactif — cliquer pour activer'}
+              title={isActivated ? activeLabel : inactiveLabel}
             >
               <div className={`absolute top-[2px] w-[14px] h-[14px] rounded-full transition-all ${isActivated ? 'left-[15px] bg-green-400' : 'left-[2px] bg-white/30'}`} />
             </button>
           </div>
-          {metrics && metrics.length > 0 ? (
-            <div className="flex flex-wrap gap-x-3 gap-y-1">
-              {metrics.slice(0, 3).map((m, i) => (
-                <div key={i} className="flex items-center gap-1">
-                  <span className="text-[9px]">{m.icon}</span>
-                  <span className="text-white/70 text-[10px] font-bold">{m.value}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-white/15 text-[9px]">↕ Glissez la barre pour reorganiser</div>
-          )}
         </button>
       </div>
     </div>
@@ -374,6 +387,8 @@ function PlanningCalendar() {
 export default function AssistantPage() {
   const isMobile = useIsMobile();
   const router = useRouter();
+  const { t } = useLanguage();
+  const nt = (t as any).notif || {}; // i18n keys for this page live under notif
 
   // Auth & profile
   const [user, setUser] = useState<any>(null);
@@ -1127,10 +1142,10 @@ export default function AssistantPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
                 </div>
-                <span className="text-white/40 text-[10px] uppercase tracking-wider font-semibold">Agents actifs</span>
+                <span className="text-white/40 text-[10px] uppercase tracking-wider font-semibold">{nt.kpiActiveAgents || 'Active agents'}</span>
               </div>
               <div className="text-white text-2xl font-bold">{activeAgents}</div>
-              <div className="text-white/30 text-[10px] mt-0.5">sur {agents.length} agents</div>
+              <div className="text-white/30 text-[10px] mt-0.5">{(nt.kpiActiveAgentsOf || 'of {n} agents').replace('{n}', String(agents.length))}</div>
             </div>
 
             <div className="rounded-xl bg-white/[0.04] border border-white/10 p-4">
@@ -1140,10 +1155,10 @@ export default function AssistantPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
                 </div>
-                <span className="text-white/40 text-[10px] uppercase tracking-wider font-semibold">Actions</span>
+                <span className="text-white/40 text-[10px] uppercase tracking-wider font-semibold">{nt.kpiActions || 'Actions'}</span>
               </div>
               <div className="text-white text-2xl font-bold">{totalActions}</div>
-              <div className="text-white/30 text-[10px] mt-0.5">cette semaine</div>
+              <div className="text-white/30 text-[10px] mt-0.5">{nt.kpiActionsThisWeek || 'this week'}</div>
             </div>
 
             <div className="rounded-xl bg-white/[0.04] border border-white/10 p-4">
@@ -1153,10 +1168,10 @@ export default function AssistantPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                 </div>
-                <span className="text-white/40 text-[10px] uppercase tracking-wider font-semibold">Prospects</span>
+                <span className="text-white/40 text-[10px] uppercase tracking-wider font-semibold">{nt.kpiProspects || 'Prospects'}</span>
               </div>
               <div className="text-white text-2xl font-bold">{totalProspects}</div>
-              <div className="text-white/30 text-[10px] mt-0.5">dans le pipeline</div>
+              <div className="text-white/30 text-[10px] mt-0.5">{nt.kpiProspectsInPipeline || 'in pipeline'}</div>
             </div>
 
             <div className="rounded-xl bg-white/[0.04] border border-white/10 p-4">
@@ -1166,10 +1181,10 @@ export default function AssistantPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <span className="text-white/40 text-[10px] uppercase tracking-wider font-semibold">Clients</span>
+                <span className="text-white/40 text-[10px] uppercase tracking-wider font-semibold">{nt.kpiClients || 'Clients'}</span>
               </div>
               <div className="text-white text-2xl font-bold">{totalClients}</div>
-              <div className="text-green-400/70 text-[10px] mt-0.5 font-medium">{conversionRate}% conversion</div>
+              <div className="text-green-400/70 text-[10px] mt-0.5 font-medium">{(nt.kpiConversion || '{n}% conversion').replace('{n}', String(conversionRate))}</div>
             </div>
           </div>
         )}
@@ -1194,12 +1209,12 @@ export default function AssistantPage() {
         <div className="relative">
         <div className="flex items-center gap-1 bg-white/5 rounded-xl p-1 border border-white/10 mb-5 overflow-x-auto whitespace-nowrap scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
           {([
-            { key: 'suivi' as const, label: '\uD83D\uDCCB Suivi central', shortLabel: 'Suivi' },
-            { key: 'equipe' as const, label: '\uD83D\uDC65 Par equipe', shortLabel: 'Equipes' },
-            { key: 'agent' as const, label: '\uD83E\uDD16 Par agent', shortLabel: 'Agents' },
-            { key: 'campagnes' as const, label: '\u{1F3AF} Campagnes', shortLabel: 'Campagnes' },
-            { key: 'pipeline' as const, label: '\uD83D\uDCCA Mon CRM', shortLabel: 'CRM' },
-            { key: 'offre' as const, label: '\uD83D\uDCB0 Par offre', shortLabel: 'Offres' },
+            { key: 'suivi' as const, label: `\uD83D\uDCCB ${nt.tabCentral || 'Central view'}`, shortLabel: nt.tabCentralShort || 'Central' },
+            { key: 'equipe' as const, label: `\uD83D\uDC65 ${nt.tabTeam || 'By team'}`, shortLabel: nt.tabTeamShort || 'Teams' },
+            { key: 'agent' as const, label: `\uD83E\uDD16 ${nt.tabAgent || 'By agent'}`, shortLabel: nt.tabAgentShort || 'Agents' },
+            { key: 'campagnes' as const, label: `\u{1F3AF} ${nt.tabCampaigns || 'Campaigns'}`, shortLabel: nt.tabCampaignsShort || 'Campaigns' },
+            { key: 'pipeline' as const, label: `\uD83D\uDCCA ${nt.tabCrm || 'My CRM'}`, shortLabel: nt.tabCrmShort || 'CRM' },
+            { key: 'offre' as const, label: `\uD83D\uDCB0 ${nt.tabOffer || 'By offer'}`, shortLabel: nt.tabOfferShort || 'Offers' },
           ]).map((tab) => (
             <button
               key={tab.key}
@@ -1246,6 +1261,10 @@ export default function AssistantPage() {
                             onClick={() => handleSelectAgent(agent)}
                             isActivated={agentActivations[agent.id] || false}
                             onToggle={() => toggleAgentActivation(agent.id)}
+                            agentTitle={getAgentTitle(agent, nt)}
+                            dragLabel={nt.dragToReorder || 'Drag to reorder'}
+                            activeLabel={nt.agentToggleActive || 'Agent active'}
+                            inactiveLabel={nt.agentToggleInactive || 'Agent inactive'}
                           />
                         );
                       })}
@@ -1256,7 +1275,7 @@ export default function AssistantPage() {
                 {/* Bottom section: Actions recommandées */}
                 <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.04] to-white/[0.01] p-5">
                   <h3 className="text-white font-bold text-sm mb-4 flex items-center gap-2">
-                    <span>{'\u{1F3AF}'}</span> Prochaines actions
+                    <span>{'\u{1F3AF}'}</span> {nt.nextActionsTitle || 'Next actions'}
                   </h3>
                   {summary?.actions?.length > 0 ? (
                     <div className="space-y-2.5">
@@ -1275,7 +1294,7 @@ export default function AssistantPage() {
                   ) : (
                     <div className="text-center py-6">
                       <span className="text-2xl">{'\u2705'}</span>
-                      <p className="text-white/40 text-xs mt-2">Tout est en ordre ! Tes agents travaillent.</p>
+                      <p className="text-white/40 text-xs mt-2">{nt.allInOrder || 'All good! Your agents are at work.'}</p>
                     </div>
                   )}
 
@@ -1284,19 +1303,19 @@ export default function AssistantPage() {
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4 pt-4 border-t border-white/5">
                       <div className="text-center">
                         <div className="text-white font-bold text-lg">{summary.globalStats.prospectsTotal}</div>
-                        <div className="text-white/30 text-[9px]">Prospects</div>
+                        <div className="text-white/30 text-[9px]">{nt.miniProspectsTotal || 'Prospects'}</div>
                       </div>
                       <div className="text-center">
                         <div className="text-cyan-400 font-bold text-lg">+{summary.globalStats.prospectsToday}</div>
-                        <div className="text-white/30 text-[9px]">Aujourd&apos;hui</div>
+                        <div className="text-white/30 text-[9px]">{nt.miniProspectsToday || 'Today'}</div>
                       </div>
                       <div className="text-center">
                         <div className="text-amber-400 font-bold text-lg">{summary.globalStats.prospectsHot}</div>
-                        <div className="text-white/30 text-[9px]">Chauds</div>
+                        <div className="text-white/30 text-[9px]">{nt.miniProspectsHot || 'Hot'}</div>
                       </div>
                       <div className="text-center">
                         <div className="text-emerald-400 font-bold text-lg">{summary.globalStats.emailOpenRate}%</div>
-                        <div className="text-white/30 text-[9px]">Taux ouverture</div>
+                        <div className="text-white/30 text-[9px]">{nt.miniEmailOpenRate || 'Open rate'}</div>
                       </div>
                     </div>
                   )}
@@ -1310,8 +1329,8 @@ export default function AssistantPage() {
         {viewTab === 'campagnes' && (
           <div className="space-y-5">
             <div className="flex items-center justify-between">
-              <h2 className="text-white font-bold text-sm">{'\u{1F3AF}'} Campagnes actives</h2>
-              <span className="text-white/30 text-xs">Toutes les actions de tes agents</span>
+              <h2 className="text-white font-bold text-sm">{'\u{1F3AF}'} {nt.activeCampaignsTitle || 'Active campaigns'}</h2>
+              <span className="text-white/30 text-xs">{nt.activeCampaignsSubtitle || 'All your agents\u2019 activity'}</span>
             </div>
 
             {/* Agent activity cards */}
@@ -1433,6 +1452,10 @@ export default function AssistantPage() {
                               onChat={() => {/* handled below if chat exists */}}
                               isActivated={agentActivations[agent.id] || false}
                               onToggle={() => toggleAgentActivation(agent.id)}
+                              agentTitle={getAgentTitle(agent, nt)}
+                              dragLabel={nt.dragToReorder || 'Drag'}
+                              activeLabel={nt.agentActiveTitle || 'Active'}
+                              inactiveLabel={nt.agentInactiveTitle || 'Inactive'}
                             />
                           );
                         })}

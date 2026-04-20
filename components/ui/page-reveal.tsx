@@ -59,11 +59,13 @@ export function PageReveal() {
 
   useEffect(() => {
     if (shouldReduce) { setPhase('done'); return; }
+    // Shortened timeline (was 2000ms total). Users reported the intro felt
+    // slow — new pacing is 1100ms total while keeping the same 4 phases.
     const t = [
-      setTimeout(() => setPhase('glow'), 250),
-      setTimeout(() => setPhase('expand'), 1000),
-      setTimeout(() => setPhase('fade'), 1500),
-      setTimeout(() => setPhase('done'), 2000),
+      setTimeout(() => setPhase('glow'), 120),
+      setTimeout(() => setPhase('expand'), 500),
+      setTimeout(() => setPhase('fade'), 800),
+      setTimeout(() => setPhase('done'), 1100),
     ];
     return () => t.forEach(clearTimeout);
   }, [shouldReduce]);
