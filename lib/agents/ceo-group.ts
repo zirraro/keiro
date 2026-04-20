@@ -161,8 +161,11 @@ export async function sendCeoGroupReport(
   const now = new Date();
   const period = now.getUTCHours() < 12 ? 'matin' : now.getUTCHours() < 18 ? 'apres-midi' : 'soir';
 
-  const RESEND_KEY = process.env.RESEND_API_KEY;
-  if (!RESEND_KEY) return;
+  // Send via Brevo (the same provider we use for every other email). The
+  // previous code gated on RESEND_API_KEY which was never configured on
+  // the VPS, so this report was silently skipped since the migration.
+  const BREVO_KEY = process.env.BREVO_API_KEY;
+  if (!BREVO_KEY) return;
 
   const patternsHtml = report.patterns.length > 0
     ? report.patterns.map(p => `<li><strong>${p.pattern.substring(0, 80)}</strong> — ${p.count}x (agents: ${p.agents.join(', ')})</li>`).join('')
@@ -176,14 +179,14 @@ export async function sendCeoGroupReport(
     `<tr><td style="padding:4px 8px;font-size:12px;">${f.agent}</td><td style="padding:4px 8px;font-size:12px;">${f.action}</td><td style="padding:4px 8px;font-size:12px;color:#ef4444;">${f.error?.substring(0, 80) || 'N/A'}</td></tr>`
   ).join('');
 
-  await fetch('https://api.resend.com/emails', {
+  await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
+    headers: { 'accept': 'application/json', 'api-key': BREVO_KEY, 'content-type': 'application/json' },
     body: JSON.stringify({
-      from: 'Noah CEO Group <contact@keiroai.com>',
-      to: ['contact@keiroai.com'],
+      sender: { name: 'Noah CEO Group', email: 'contact@keiroai.com' },
+      to: [{ email: 'contact@keiroai.com' }],
       subject: `${report.codeRecommendations.length > 0 ? '\uD83D\uDEE0' : '\u2705'} CEO Group — Reco code ${period} (${report.successRate}% succes, ${report.codeRecommendations.length} reco)`,
-      html: `<div style="font-family:Arial,sans-serif;max-width:700px;margin:0 auto;">
+      htmlContent: `<div style="font-family:Arial,sans-serif;max-width:700px;margin:0 auto;">
         <div style="background:linear-gradient(135deg,#1e1b4b,#312e81);color:white;padding:20px;border-radius:12px 12px 0 0;">
           <h2 style="margin:0;">\uD83D\uDEE0 CEO Group — Recommandations Code</h2>
           <p style="margin:4px 0 0;color:#a5b4fc;font-size:13px;">${now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })} — Rapport ${period}</p>

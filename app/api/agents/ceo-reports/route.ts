@@ -305,11 +305,14 @@ async function handleClientBrief(supabase: any) {
   const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
   const BREVO_CLIENT_KEY = process.env.BREVO_API_KEY;
 
-  // Get all active clients with their profiles
+  // Get all active clients with their profiles.
+  // NOTE: the column is `subscription_plan` (not `plan`) — the old typo
+  // silently failed for weeks and zero Noah briefs went out because the
+  // REST call returned a schema error that was swallowed by the catch.
   const { data: clients } = await supabase
     .from('profiles')
-    .select('id, email, first_name, plan')
-    .not('plan', 'is', null);
+    .select('id, email, first_name, subscription_plan')
+    .not('subscription_plan', 'is', null);
 
   if (!clients || clients.length === 0) {
     return NextResponse.json({ ok: true, type: 'client_brief', sent: 0 });
@@ -454,7 +457,7 @@ REGLES:
 - ACTIONABLE: chaque point doit donner une action claire
 
 INTERDIT: erreurs, echecs, "KeiroAI", jargon technique, taux d'erreur`,
-              messages: [{ role: 'user', content: `Activite agents 24h: ${agentActivity || 'aucune'}\nAgents AUTO: ${autoAgents.join(', ') || 'aucun'}\nAgents MANUEL: ${manualAgents.join(', ') || 'aucun'}\nProspects total: ${prospectCount || 0}\nProspects HOT: ${hotCount || 0}\nPlan: ${client.plan}\n\nGenere le brief Noah + AMI du jour.` }],
+              messages: [{ role: 'user', content: `Activite agents 24h: ${agentActivity || 'aucune'}\nAgents AUTO: ${autoAgents.join(', ') || 'aucun'}\nAgents MANUEL: ${manualAgents.join(', ') || 'aucun'}\nProspects total: ${prospectCount || 0}\nProspects HOT: ${hotCount || 0}\nPlan: ${client.subscription_plan}\n\nGenere le brief Noah + AMI du jour.` }],
             }),
           });
           if (res.ok) {

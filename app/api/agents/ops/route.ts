@@ -389,9 +389,14 @@ async function sendCriticalAlert(
   degradedAgents: AgentHealth[],
   issues: HealthReport['issues_detected'],
 ): Promise<boolean> {
+  // Fall through from Resend → Brevo so this works on the VPS where only
+  // BREVO_API_KEY is configured. Previously the route returned false on
+  // the first line when RESEND_API_KEY was absent → admin never got any
+  // ops alerts since the migration.
   const RESEND_API_KEY = process.env.RESEND_API_KEY;
-  if (!RESEND_API_KEY) {
-    console.error('[OpsAgent] No RESEND_API_KEY, cannot send alert');
+  const BREVO_API_KEY = process.env.BREVO_API_KEY;
+  if (!RESEND_API_KEY && !BREVO_API_KEY) {
+    console.error('[OpsAgent] No email API key (RESEND_API_KEY / BREVO_API_KEY) — alert skipped');
     return false;
   }
 
@@ -447,17 +452,30 @@ async function sendCriticalAlert(
       created_at: new Date().toISOString(),
     });
     console.log(`[OpsAgent] Report saved to supervision (${downAgents.length} down, ${degradedAgents.length} degraded)`);
-    if (downAgents.length >= 1 && RESEND_API_KEY) {
-      await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          from: 'KeiroAI Ops Agent <contact@keiroai.com>',
-          to: FOUNDER_EMAILS,
-          subject: `[${statusEmoji}] ${downAgents.length} agent(s) down — Ops Report`,
-          html: emailHtml,
-        }),
-      });
+    if (downAgents.length >= 1) {
+      if (RESEND_API_KEY) {
+        await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from: 'KeiroAI Ops Agent <contact@keiroai.com>',
+            to: FOUNDER_EMAILS,
+            subject: `[${statusEmoji}] ${downAgents.length} agent(s) down — Ops Report`,
+            html: emailHtml,
+          }),
+        });
+      } else if (BREVO_API_KEY) {
+        await fetch('https://api.brevo.com/v3/smtp/email', {
+          method: 'POST',
+          headers: { 'accept': 'application/json', 'api-key': BREVO_API_KEY, 'content-type': 'application/json' },
+          body: JSON.stringify({
+            sender: { name: 'KeiroAI Ops Agent', email: 'contact@keiroai.com' },
+            to: FOUNDER_EMAILS.map(email => ({ email })),
+            subject: `[${statusEmoji}] ${downAgents.length} agent(s) down — Ops Report`,
+            htmlContent: emailHtml,
+          }),
+        });
+      }
     }
     return true;
   } catch (e: any) {
