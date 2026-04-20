@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useLanguage } from '@/lib/i18n/context';
 
 interface ProfileEnrichmentModalProps {
   profile: any;
@@ -15,35 +16,53 @@ export function shouldShowEnrichmentModal(profile: any): boolean {
   return !hasBasicInfo;
 }
 
-const QUESTIONS = [
-  {
-    emoji: '\u{1F3E2}',
-    label: 'Ton activite',
-    question: 'C\'est quoi ton business ?',
-    placeholder: 'Ex: Restaurant italien a Paris, salon de coiffure a Lyon, coach sportif...',
-  },
-  {
-    emoji: '\u{1F3AF}',
-    label: 'Ton objectif',
-    question: 'Qu\'est-ce que tu veux accomplir ?',
-    placeholder: 'Ex: Plus de clients via Instagram, remplir mes midis, vendre en ligne...',
-  },
-  {
-    emoji: '\u{1F465}',
-    label: 'Tes clients',
-    question: 'C\'est qui tes clients ideaux ?',
-    placeholder: 'Ex: Jeunes actifs 25-40 ans, familles du quartier, pros en B2B...',
-  },
-  {
-    emoji: '\u{1F4AC}',
-    label: 'Autre chose',
-    question: 'Autre chose qu\'on devrait savoir ?',
-    placeholder: 'Dis ce que tu veux : horaires, specialites, ce qui te differencie, tes reseaux...',
-    free: true,
-  },
-];
+// Questions are returned by a hook because their copy depends on the
+// current locale. Keeping the emoji + label keys stable so `handleSubmit`
+// still builds a consistent combined string per answer.
+function useQuestions() {
+  const { locale } = useLanguage();
+  const isEn = locale === 'en';
+  return [
+    {
+      emoji: '\u{1F3E2}',
+      label: isEn ? 'Your business' : 'Ton activite',
+      question: isEn ? "What's your business?" : "C'est quoi ton business ?",
+      placeholder: isEn
+        ? 'Ex: Italian restaurant in Paris, hair salon in Lyon, fitness coach...'
+        : 'Ex: Restaurant italien a Paris, salon de coiffure a Lyon, coach sportif...',
+    },
+    {
+      emoji: '\u{1F3AF}',
+      label: isEn ? 'Your goal' : 'Ton objectif',
+      question: isEn ? 'What do you want to achieve?' : "Qu'est-ce que tu veux accomplir ?",
+      placeholder: isEn
+        ? 'Ex: More Instagram clients, fill my lunch slots, sell online...'
+        : 'Ex: Plus de clients via Instagram, remplir mes midis, vendre en ligne...',
+    },
+    {
+      emoji: '\u{1F465}',
+      label: isEn ? 'Your customers' : 'Tes clients',
+      question: isEn ? 'Who are your ideal customers?' : "C'est qui tes clients ideaux ?",
+      placeholder: isEn
+        ? 'Ex: Young professionals 25-40, neighborhood families, B2B pros...'
+        : 'Ex: Jeunes actifs 25-40 ans, familles du quartier, pros en B2B...',
+    },
+    {
+      emoji: '\u{1F4AC}',
+      label: isEn ? 'Anything else' : 'Autre chose',
+      question: isEn ? 'Anything else we should know?' : "Autre chose qu'on devrait savoir ?",
+      placeholder: isEn
+        ? 'Tell us anything: hours, specialties, what makes you stand out, your socials...'
+        : 'Dis ce que tu veux : horaires, specialites, ce qui te differencie, tes reseaux...',
+      free: true,
+    },
+  ];
+}
 
 export default function ProfileEnrichmentModal({ profile, userId, onClose }: ProfileEnrichmentModalProps) {
+  const QUESTIONS = useQuestions();
+  const { locale } = useLanguage();
+  const isEn = locale === 'en';
   const [answers, setAnswers] = useState(['', '', '', '']);
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(false);
@@ -67,7 +86,7 @@ export default function ProfileEnrichmentModal({ profile, userId, onClose }: Pro
     if (!SR) return;
     setActiveField(fieldIndex);
     const recognition = new SR();
-    recognition.lang = 'fr-FR';
+    recognition.lang = isEn ? 'en-US' : 'fr-FR';
     recognition.continuous = true;
     recognition.interimResults = true;
     let base = answers[fieldIndex];
@@ -182,8 +201,8 @@ export default function ProfileEnrichmentModal({ profile, userId, onClose }: Pro
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
         <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 text-center animate-in zoom-in-95 duration-300">
           <div className="text-5xl mb-4">{'\u{1F680}'}</div>
-          <h2 className="text-xl font-bold text-neutral-900 mb-2">C&apos;est parti !</h2>
-          <p className="text-sm text-neutral-500">Clara configure ton espace avec tes infos. Tes 18 agents IA sont prets !</p>
+          <h2 className="text-xl font-bold text-neutral-900 mb-2">{isEn ? 'Here we go!' : 'C\u2019est parti !'}</h2>
+          <p className="text-sm text-neutral-500">{isEn ? 'Clara is configuring your workspace with your info. Your 18 AI agents are ready!' : 'Clara configure ton espace avec tes infos. Tes 18 agents IA sont prets !'}</p>
         </div>
       </div>
     );
@@ -199,8 +218,8 @@ export default function ProfileEnrichmentModal({ profile, userId, onClose }: Pro
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
           <div className="text-3xl mb-2">{'\u{1F44B}'}</div>
-          <h2 className="text-lg font-bold text-white mb-0.5">Bienvenue sur KeiroAI !</h2>
-          <p className="text-xs text-purple-200">Quelques infos rapides pour que tes agents IA demarrent du bon pied</p>
+          <h2 className="text-lg font-bold text-white mb-0.5">{isEn ? 'Welcome to KeiroAI!' : 'Bienvenue sur KeiroAI !'}</h2>
+          <p className="text-xs text-purple-200">{isEn ? 'A few quick facts so your AI agents start on the right foot' : 'Quelques infos rapides pour que tes agents IA demarrent du bon pied'}</p>
           {/* Progress dots */}
           <div className="flex justify-center gap-1.5 mt-3">
             {QUESTIONS.map((_, i) => (
@@ -230,7 +249,7 @@ export default function ProfileEnrichmentModal({ profile, userId, onClose }: Pro
                       ? 'border-emerald-300 bg-emerald-50/30'
                       : 'border-neutral-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10'
                   } focus:outline-none`}
-                  placeholder={listening && activeField === i ? 'Parle...' : q.placeholder}
+                  placeholder={listening && activeField === i ? (isEn ? 'Speak...' : 'Parle...') : q.placeholder}
                   onKeyDown={e => { if (e.key === 'Enter' && i < 2) inputRefs.current[i + 1]?.focus(); }}
                 />
                 <button
@@ -250,7 +269,7 @@ export default function ProfileEnrichmentModal({ profile, userId, onClose }: Pro
             </div>
           ))}
           {listening && (
-            <p className="text-[10px] text-red-400 text-center animate-pulse">{'\u{1F534}'} Ecoute en cours... clique le micro pour arreter</p>
+            <p className="text-[10px] text-red-400 text-center animate-pulse">{'\u{1F534}'} {isEn ? 'Listening... tap the mic to stop' : 'Ecoute en cours... clique le micro pour arreter'}</p>
           )}
         </div>
 
@@ -267,7 +286,7 @@ export default function ProfileEnrichmentModal({ profile, userId, onClose }: Pro
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
               </span>
             ) : (
-              `C'est parti ! (${filledCount}/4)`
+              `${isEn ? "Let's go!" : "C'est parti !"} (${filledCount}/4)`
             )}
           </button>
         </div>
@@ -275,7 +294,7 @@ export default function ProfileEnrichmentModal({ profile, userId, onClose }: Pro
         {/* Trial reminder */}
         <div className="bg-green-50 border-t border-green-100 px-6 py-2.5 text-center">
           <p className="text-[10px] text-green-700 font-medium">
-            0{'\u20AC'} pendant 7 jours {'\u00B7'} Tous les agents debloques {'\u00B7'} Annulation en 1 clic
+            {isEn ? <>0{'\u20AC'} for 7 days {'\u00B7'} All agents unlocked {'\u00B7'} Cancel in 1 click</> : <>0{'\u20AC'} pendant 7 jours {'\u00B7'} Tous les agents debloques {'\u00B7'} Annulation en 1 clic</>}
           </p>
         </div>
       </div>
