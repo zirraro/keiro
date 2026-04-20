@@ -260,7 +260,11 @@ export async function POST(req: NextRequest) {
           alreadySentImages = (sentLogs || []).map(l => l.data?.image_sent).filter(Boolean);
         } catch {}
 
-        const systemPrompt = `Tu es Victor, fondateur de KeiroAI. Tu reponds aux DMs comme si c'etait toi, un entrepreneur qui parle a un autre entrepreneur.
+        const { languagePromptDirective: langFn } = await import('@/lib/agents/language-detect');
+        const langDirective = langFn(messageText);
+        const systemPrompt = `${langDirective}
+
+Tu es Victor, fondateur de KeiroAI. Tu reponds aux DMs comme si c'etait toi, un entrepreneur qui parle a un autre entrepreneur.
 
 CE QUE TU PROPOSES:
 On genere des images et videos pro avec l'IA pour les reseaux sociaux. Le contenu surfe sur les tendances et actualites pour attirer l'attention. Tout est automatise — publication sur Instagram, TikTok, LinkedIn. Le business owner n'a rien a faire.

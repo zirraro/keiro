@@ -355,7 +355,9 @@ export async function POST(request: NextRequest) {
                 body: JSON.stringify({
                   model: 'claude-haiku-4-5-20251001',
                   max_tokens: 1024,
-                  system: `Tu es un analyste commercial expert. Tu analyses les reponses email de prospects pour KeiroAI (plateforme de marketing IA pour commercants/entrepreneurs).
+                  system: `${(await import('@/lib/agents/language-detect')).languagePromptDirective(replyContent)}
+
+Tu es un analyste commercial expert. Tu analyses les reponses email de prospects pour KeiroAI (plateforme de marketing IA pour commercants/entrepreneurs).
 
 Tu dois classifier la reponse ET generer une auto-reponse naturelle si pertinent.
 

@@ -118,8 +118,16 @@ export async function POST(req: NextRequest) {
     const agentType = widgetConfig.agent_type || 'chatbot'; // 'chatbot' (Max) or 'onboarding' (Clara)
     const greeting = widgetConfig.greeting_message || `Bonjour ! Comment puis-je vous aider ?`;
 
+    // Auto-detect visitor language from their latest + recent messages and
+    // tell the model to mirror it. Falls back to French when uncertain.
+    const { languagePromptDirective: langFn } = await import('@/lib/agents/language-detect');
+    const langSample = [message, ...history.slice(-4).filter(m => m.role === 'user').map(m => m.content)].join(' ');
+    const langDirective = langFn(langSample);
+
     const systemPrompt = agentType === 'onboarding'
-      ? `Tu es Clara, assistante d'onboarding pour ${orgName} (${businessType}). Tu guides les visiteurs dans leur parcours d'achat, tu personnalises l'experience et tu pousses subtilement vers la conversion.
+      ? `${langDirective}
+
+Tu es Clara, assistante d'onboarding pour ${orgName} (${businessType}). Tu guides les visiteurs dans leur parcours d'achat, tu personnalises l'experience et tu pousses subtilement vers la conversion.
 
 DOSSIER BUSINESS:
 ${dossier ? `Nom: ${dossier.company_name || orgName}\nDescription: ${dossier.company_description || ''}\nProduits: ${dossier.main_products || ''}\nCible: ${dossier.target_audience || ''}\nTon: ${dossier.brand_tone || 'chaleureux'}` : `Commerce: ${orgName}`}
@@ -141,10 +149,12 @@ REGLES:
 - JAMAIS de pression agressive — toujours subtil et naturel
 - Si le visiteur a vu une page produit, mentionne ce produit
 - Si le visiteur revient, reconnais-le et propose du nouveau
-- Reponds en francais
+- Match the visitor's language (see LANGUAGE block at the top)
 ${crossClientContext}`
 
-      : `Tu es Max, chatbot IA de ${orgName} (${businessType}). Tu accueilles les visiteurs, reponds a leurs questions et les guides vers l'achat ou le contact.
+      : `${langDirective}
+
+Tu es Max, chatbot IA de ${orgName} (${businessType}). Tu accueilles les visiteurs, reponds a leurs questions et les guides vers l'achat ou le contact.
 
 DOSSIER BUSINESS:
 ${dossier ? `Nom: ${dossier.company_name || orgName}\nDescription: ${dossier.company_description || ''}\nProduits: ${dossier.main_products || ''}\nHoraires: ${dossier.address || ''}\nSite: ${dossier.website_url || ''}` : `Commerce: ${orgName}`}
@@ -160,7 +170,7 @@ OBJECTIFS:
 REGLES:
 - Messages courts et utiles (2-3 phrases)
 - Si tu ne sais pas, propose de contacter l'equipe
-- Reponds en francais`;
+- Match the visitor's language (see LANGUAGE block at the top)`;
 
     // Call Claude
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });

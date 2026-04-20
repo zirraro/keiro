@@ -226,13 +226,17 @@ export async function POST(req: NextRequest) {
           // Skip spam
           if (c.text.length < 3 || /follow|dm me|check|click/i.test(c.text)) continue;
 
-          // Generate reply
+          // Generate reply — mirror the commenter's language
+          const { languagePromptDirective } = await import('@/lib/agents/language-detect');
+          const langHint = languagePromptDirective(c.text);
           const response = await anthropic.messages.create({
             model: 'claude-haiku-4-5-20251001',
             max_tokens: 150,
             messages: [{
               role: 'user',
-              content: `Tu geres les commentaires Instagram d'un commerce. Reponds a ce commentaire de maniere naturelle, chaleureuse et engageante. Max 2 phrases.
+              content: `${langHint}
+
+Tu geres les commentaires Instagram d'un commerce. Reponds a ce commentaire de maniere naturelle, chaleureuse et engageante. Max 2 phrases.
 ${brandContext}
 Commentaire de @${c.username}: "${c.text}"
 Reponds UNIQUEMENT avec le texte de la reponse.`,

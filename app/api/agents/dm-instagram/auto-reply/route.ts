@@ -221,7 +221,11 @@ export async function POST(req: NextRequest) {
 
         // Generate AI response
         const { callGeminiChat } = await import('@/lib/agents/gemini');
-        const systemPrompt = `Tu parles au nom du business owner. Tu es son assistant qui repond a ses DMs Instagram comme si c'etait lui.
+        const { languagePromptDirective } = await import('@/lib/agents/language-detect');
+        const langDirective = languagePromptDirective(lastMsgText);
+        const systemPrompt = `${langDirective}
+
+Tu parles au nom du business owner. Tu es son assistant qui repond a ses DMs Instagram comme si c'etait lui.
 
 CE QUE LE BUSINESS PROPOSE (KeiroAI):
 - Generation de visuels et videos pro avec l'IA pour les reseaux sociaux
