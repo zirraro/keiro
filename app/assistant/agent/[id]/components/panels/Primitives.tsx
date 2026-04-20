@@ -13,24 +13,36 @@ import React from 'react';
 /*  Formatting helpers                                                */
 /* ------------------------------------------------------------------ */
 
+// Read the user-selected UI locale from localStorage (set by
+// LanguageProvider under "keiro_language") so every panel that calls
+// fmt() / fmtCurrency() / fmtPercent() / fmtDate() formats numbers and
+// dates with the right locale conventions without each component
+// needing to pass a locale prop down.
+function uiLocale(): string {
+  if (typeof window === 'undefined') return 'fr-FR';
+  try {
+    return localStorage.getItem('keiro_language') === 'en' ? 'en-US' : 'fr-FR';
+  } catch { return 'fr-FR'; }
+}
+
 export function fmt(n: number | undefined): string {
   if (n === undefined || n === null) return '0';
-  return n.toLocaleString('fr-FR');
+  return n.toLocaleString(uiLocale());
 }
 
 export function fmtCurrency(n: number | undefined): string {
   if (n === undefined || n === null) return '0 \u20ac';
-  return n.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+  return n.toLocaleString(uiLocale(), { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
 }
 
 export function fmtPercent(n: number | undefined): string {
   if (n === undefined || n === null) return '0 %';
-  return `${n.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} %`;
+  return `${n.toLocaleString(uiLocale(), { maximumFractionDigits: 1 })} %`;
 }
 
 export function fmtDate(iso: string): string {
   try {
-    return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    return new Date(iso).toLocaleDateString(uiLocale(), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
   } catch {
     return iso;
   }

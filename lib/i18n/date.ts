@@ -24,3 +24,17 @@ export function useDateLocale(): string {
 export function dateLocaleFor(locale: string | undefined): string {
   return locale === 'en' ? 'en-US' : 'fr-FR';
 }
+
+/**
+ * Client-only shortcut that reads the current locale from localStorage
+ * (the LanguageProvider writes it under "keiro_language"). Useful inside
+ * module-level helpers that can't call the useLanguage hook.
+ */
+export function currentDateLocale(): string {
+  if (typeof window === 'undefined') return 'fr-FR';
+  try {
+    return localStorage.getItem('keiro_language') === 'en' ? 'en-US' : 'fr-FR';
+  } catch {
+    return 'fr-FR';
+  }
+}

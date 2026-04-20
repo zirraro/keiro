@@ -138,7 +138,7 @@ export function InstagramAssetBadge() {
               <>
                 {p.assetBadgeThrough} <span className="text-white/60">{info.pageName}</span>
                 {typeof info.followersCount === 'number' && (
-                  <span className="ml-1.5">· {info.followersCount.toLocaleString('fr-FR')} followers</span>
+                  <span className="ml-1.5">· {info.followersCount.toLocaleString(typeof window !== 'undefined' && localStorage.getItem('keiro_language') === 'en' ? 'en-US' : 'fr-FR')} followers</span>
                 )}
               </>
             ) : (

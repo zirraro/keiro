@@ -115,18 +115,28 @@ const STATUS_COLORS: Record<string, string> = {
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
 
+// Read the UI locale from localStorage (set by LanguageProvider under key
+// "keiro_language") so these module-level helpers stay in sync with the
+// language toggle without becoming hooks.
+function currentDateLocale(): string {
+  if (typeof window === 'undefined') return 'fr-FR';
+  try {
+    return localStorage.getItem('keiro_language') === 'en' ? 'en-US' : 'fr-FR';
+  } catch { return 'fr-FR'; }
+}
+
 function formatDate(iso: string): string {
   if (!iso) return '-';
   const d = new Date(iso);
   if (isNaN(d.getTime())) return '-';
-  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+  return d.toLocaleDateString(currentDateLocale(), { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 function formatDateTime(iso: string): string {
   if (!iso) return '-';
   const d = new Date(iso);
   if (isNaN(d.getTime())) return '-';
-  return d.toLocaleDateString('fr-FR', {
+  return d.toLocaleDateString(currentDateLocale(), {
     day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
   });
 }

@@ -80,7 +80,7 @@ export default function AgentDocuments({ agentId, gradientFrom }: { agentId: str
             credentials: 'include',
             body: JSON.stringify({
               agent_id: agentId,
-              name: detail.name || `Document ${new Date().toLocaleDateString('fr-FR')}`,
+              name: detail.name || `Document ${new Date().toLocaleDateString(typeof window !== 'undefined' && localStorage.getItem('keiro_language') === 'en' ? 'en-US' : 'fr-FR')}`,
               content: detail.content,
               type: detail.type || 'document',
               folder: detail.folder || '',
@@ -299,7 +299,7 @@ export default function AgentDocuments({ agentId, gradientFrom }: { agentId: str
                   <p className="text-sm text-white/80 font-medium truncate">{doc.name}</p>
                 )}
                 <div className="flex items-center gap-2 text-[10px] text-white/30">
-                  <span>{new Date(doc.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}</span>
+                  <span>{new Date(doc.created_at).toLocaleDateString(typeof window !== 'undefined' && localStorage.getItem('keiro_language') === 'en' ? 'en-US' : 'fr-FR', { day: '2-digit', month: 'short' })}</span>
                   {doc.file_size > 0 && <span>{formatSize(doc.file_size)}</span>}
                   {doc.source === 'agent_chat' && <span className="text-cyan-400/50">via chat</span>}
                   {doc.folder && <span>{'\u{1F4C2}'} {doc.folder}</span>}
