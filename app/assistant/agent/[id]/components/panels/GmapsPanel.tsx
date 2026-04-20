@@ -18,6 +18,8 @@ import type { PanelProps } from './types';
 
 // Review card with AI reply generation + direct Google reply for Google reviews
 function ReviewCard({ review, gradientFrom }: { review: { name?: string; author: string; rating: number; text: string; date: string; replied: boolean }; gradientFrom: string }) {
+  const { locale } = useLanguage();
+  const isEn = locale === 'en';
   const [showReply, setShowReply] = useState(false);
   const [replyText, setReplyText] = useState('');
   const [generating, setGenerating] = useState(false);
@@ -28,13 +30,17 @@ function ReviewCard({ review, gradientFrom }: { review: { name?: string; author:
   const generateReply = useCallback(async () => {
     setGenerating(true);
     try {
+      // Instruction sent to the agent: mirror the reviewer's language
+      // so Theo writes the reply in the same language the customer used.
+      const { languagePromptDirective } = await import('@/lib/agents/language-detect');
+      const langHint = languagePromptDirective(review.text);
       const res = await fetch('/api/agents/client-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
           agent_id: 'gmaps',
-          message: `Genere une reponse professionnelle et chaleureuse a cet avis Google (${review.rating}/5 etoiles) de ${review.author}: "${review.text}". Reponse courte (2-3 phrases max), en francais, qui remercie et montre qu'on prend en compte le feedback. Pas de formule type, sois naturel.`,
+          message: `${langHint}\n\nGenere une reponse professionnelle et chaleureuse a cet avis Google (${review.rating}/5 etoiles) de ${review.author}: "${review.text}". Reponse courte (2-3 phrases max), qui remercie et montre qu'on prend en compte le feedback. Pas de formule type, sois naturel.`,
         }),
       });
       if (res.ok) {
@@ -97,7 +103,7 @@ function ReviewCard({ review, gradientFrom }: { review: { name?: string; author:
           <textarea
             value={replyText}
             onChange={e => setReplyText(e.target.value)}
-            placeholder={generating ? 'Generation en cours...' : 'Ecris ta reponse ou clique Regenerer pour une suggestion IA...'}
+            placeholder={generating ? (isEn ? 'Generating...' : 'Generation en cours...') : (isEn ? 'Write your reply or hit Regenerate for an AI suggestion...' : 'Ecris ta reponse ou clique Regenerer pour une suggestion IA...')}
             className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-purple-500/50 resize-none"
             rows={3}
           />
@@ -107,7 +113,7 @@ function ReviewCard({ review, gradientFrom }: { review: { name?: string; author:
               disabled={generating}
               className="px-3 py-2 text-xs font-medium bg-white/10 text-white/60 rounded-lg hover:bg-white/15 disabled:opacity-40 min-h-[36px]"
             >
-              {generating ? 'Generation...' : '\u2728 Regenerer'}
+              {generating ? (isEn ? 'Generating...' : 'Generation...') : `\u2728 ${isEn ? 'Regenerate' : 'Regenerer'}`}
             </button>
             {/* Direct reply via Google Business API */}
             {review.name && (

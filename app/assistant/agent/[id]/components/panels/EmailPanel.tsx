@@ -240,7 +240,8 @@ export function EmailPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
 // ─── Campaign Creator (mini flow) ──────────────────────────────────
 
 function CampaignCreator() {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const isEn = locale === 'en';
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
   const [target, setTarget] = useState('all_prospects');
@@ -324,7 +325,7 @@ function CampaignCreator() {
             <textarea value={body} onChange={e => setBody(e.target.value)} placeholder={generating ? 'Generation IA en cours...' : 'Corps de l\'email'} rows={4} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-cyan-500/50 mt-1 resize-none" />
           </div>
           <div className="flex gap-2">
-            <button onClick={() => setStep(0)} className="px-3 py-2 bg-white/10 text-white/50 text-xs rounded-lg">Retour</button>
+            <button onClick={() => setStep(0)} className="px-3 py-2 bg-white/10 text-white/50 text-xs rounded-lg">{isEn ? 'Back' : 'Retour'}</button>
             <button onClick={generateEmail} disabled={generating} className="px-3 py-2 bg-white/10 text-white/50 text-xs rounded-lg disabled:opacity-40">{generating ? '...' : '\u2728 Regenerer'}</button>
             <button
               onClick={async () => {

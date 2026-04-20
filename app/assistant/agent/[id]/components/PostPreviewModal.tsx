@@ -1,9 +1,12 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useLanguage } from '@/lib/i18n/context';
 
 // TikTok UX Guidelines compliance — Required before publishing to TikTok
 function TikTokPublishFlow({ post, onPublish, onCancel }: { post: any; onPublish: (settings: any) => void; onCancel: () => void }) {
+  const { locale } = useLanguage();
+  const isEn = locale === 'en';
   const [step, setStep] = useState(1);
   const [privacy, setPrivacy] = useState<'public' | 'friends' | 'private'>('public');
   const [comments, setComments] = useState(true);
@@ -67,7 +70,7 @@ function TikTokPublishFlow({ post, onPublish, onCancel }: { post: any; onPublish
             <div>Commentaires : <span className="text-white/70">{comments ? 'Oui' : 'Non'}</span> | Duo : <span className="text-white/70">{duet ? 'Oui' : 'Non'}</span> | Stitch : <span className="text-white/70">{stitch ? 'Oui' : 'Non'}</span></div>
           </div>
           <div className="flex gap-2">
-            <button onClick={onCancel} className="flex-1 py-2.5 bg-white/10 text-white/50 text-xs rounded-xl min-h-[44px]">Annuler</button>
+            <button onClick={onCancel} className="flex-1 py-2.5 bg-white/10 text-white/50 text-xs rounded-xl min-h-[44px]">{isEn ? 'Cancel' : 'Annuler'}</button>
             <button onClick={() => onPublish({ privacy, comments, duet, stitch })} className="flex-1 py-2.5 bg-black text-white text-xs font-bold rounded-xl min-h-[44px]">Publier sur TikTok</button>
           </div>
         </div>
@@ -103,6 +106,8 @@ interface PostPreviewModalProps {
 }
 
 export default function PostPreviewModal({ post, onClose, onApprove, onPublish, onSkip }: PostPreviewModalProps) {
+  const { locale } = useLanguage();
+  const isEn = locale === 'en';
   const isIG = !post.platform || post.platform === 'instagram';
   const isTT = post.platform === 'tiktok';
   const [showTikTokFlow, setShowTikTokFlow] = useState(false);
@@ -174,7 +179,7 @@ export default function PostPreviewModal({ post, onClose, onApprove, onPublish, 
         {/* Caption + hashtags — editable */}
         <div className="px-4 py-3">
           {post.engagement_data && (
-            <div className="text-xs font-semibold text-white mb-1">{(post.engagement_data.likes || 0).toLocaleString()} J&apos;aime</div>
+            <div className="text-xs font-semibold text-white mb-1">{(post.engagement_data.likes || 0).toLocaleString()} {isEn ? 'likes' : 'J\u2019aime'}</div>
           )}
 
           {editing ? (
@@ -183,7 +188,7 @@ export default function PostPreviewModal({ post, onClose, onApprove, onPublish, 
                 value={caption}
                 onChange={e => setCaption(e.target.value)}
                 className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm text-white/90 focus:outline-none focus:ring-1 focus:ring-purple-500/50 min-h-[100px] resize-y"
-                placeholder="Legende..."
+                placeholder={isEn ? 'Caption...' : 'Légende...'}
               />
               <input
                 value={hashtags}
@@ -193,14 +198,14 @@ export default function PostPreviewModal({ post, onClose, onApprove, onPublish, 
               />
               <div className="flex gap-2">
                 <button onClick={handleSave} disabled={saving} className="flex-1 py-2 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-500 transition min-h-[44px]">
-                  {saving ? 'Sauvegarde...' : '\u2705 Sauvegarder'}
+                  {saving ? (isEn ? 'Saving...' : 'Sauvegarde...') : `\u2705 ${isEn ? 'Save' : 'Sauvegarder'}`}
                 </button>
-                <button onClick={() => setEditing(false)} className="px-4 py-2 bg-white/10 text-white/50 text-xs rounded-lg min-h-[44px]">Annuler</button>
+                <button onClick={() => setEditing(false)} className="px-4 py-2 bg-white/10 text-white/50 text-xs rounded-lg min-h-[44px]">{isEn ? 'Cancel' : 'Annuler'}</button>
               </div>
             </div>
           ) : (
             <>
-              <p className="text-sm text-white/80 leading-relaxed whitespace-pre-wrap">{caption || 'Legende en cours de generation...'}</p>
+              <p className="text-sm text-white/80 leading-relaxed whitespace-pre-wrap">{caption || (isEn ? 'Caption being generated...' : 'Legende en cours de generation...')}</p>
               {hashtags && <p className="text-sm text-blue-500 mt-2">{hashtags}</p>}
               {isEditable && (
                 <button onClick={() => setEditing(true)} className="mt-2 text-[10px] text-purple-400 hover:text-purple-300 transition">
