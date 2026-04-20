@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useLanguage } from '@/lib/i18n/context';
 
 interface ConversionPopupProps {
   isOpen: boolean;
@@ -11,6 +12,8 @@ interface ConversionPopupProps {
 }
 
 export default function ConversionPopup({ isOpen, imageUrl, onClose, onSuccess }: ConversionPopupProps) {
+  const { locale } = useLanguage();
+  const isEn = locale === 'en';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -22,8 +25,8 @@ export default function ConversionPopup({ isOpen, imageUrl, onClose, onSuccess }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) { setError('Entre ton email'); return; }
-    if (mode === 'signup' && password.length < 6) { setError('6 caract\u00E8res minimum'); return; }
+    if (!email.trim()) { setError(isEn ? 'Enter your email' : 'Entre ton email'); return; }
+    if (mode === 'signup' && password.length < 6) { setError(isEn ? '6 characters minimum' : '6 caract\u00E8res minimum'); return; }
 
     setIsSubmitting(true);
     setError('');
@@ -38,13 +41,13 @@ export default function ConversionPopup({ isOpen, imageUrl, onClose, onSuccess }
       const data = await res.json();
 
       if (!data.ok && !data.user) {
-        throw new Error(data.error || 'Erreur');
+        throw new Error(data.error || (isEn ? 'Something went wrong' : 'Erreur'));
       }
 
       // Success — trigger download + bonus credits
       onSuccess();
     } catch (err: any) {
-      setError(err.message || 'Erreur. R\u00E9essaie.');
+      setError(err.message || (isEn ? 'Something went wrong. Try again.' : 'Erreur. R\u00E9essaie.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -76,23 +79,34 @@ export default function ConversionPopup({ isOpen, imageUrl, onClose, onSuccess }
 
         {/* Title */}
         <h2 className="text-2xl font-bold text-center mb-2">
-          Ton visuel est pr{'\u00EA'}t !
+          {isEn ? 'Your visual is ready!' : 'Ton visuel est prêt !'}
         </h2>
         <p className="text-neutral-600 text-center mb-6 text-sm leading-relaxed">
-          Cr{'\u00E9'}e ton compte gratuit pour le t{'\u00E9'}l{'\u00E9'}charger — et re{'\u00E7'}ois{' '}
-          <strong className="text-neutral-900">2 cr{'\u00E9'}ations suppl{'\u00E9'}mentaires + 1 vid{'\u00E9'}o</strong>{' '}
-          offertes pendant 7 jours.
+          {isEn ? (
+            <>Create your free account to download it — and get{' '}
+              <strong className="text-neutral-900">2 more creations + 1 video</strong>{' '}
+              free for 7 days.</>
+          ) : (
+            <>Crée ton compte gratuit pour le télécharger — et reçois{' '}
+              <strong className="text-neutral-900">2 créations supplémentaires + 1 vidéo</strong>{' '}
+              offertes pendant 7 jours.</>
+          )}
         </p>
 
         {/* Benefits */}
         <div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-xl p-4 mb-6 border border-green-100">
           <div className="space-y-2">
-            {[
+            {(isEn ? [
+              { icon: '\uD83D\uDDBC\uFE0F', text: '3 free pro AI visuals' },
+              { icon: '\uD83C\uDFAC', text: '1 free AI video' },
+              { icon: '\u23F0', text: '7 free days — card required, nothing charged' },
+              { icon: '\uD83D\uDCE5', text: 'Instant download of your visual' },
+            ] : [
               { icon: '\uD83D\uDDBC\uFE0F', text: '3 visuels IA pro gratuits' },
-              { icon: '\uD83C\uDFAC', text: '1 vid\u00E9o IA offerte' },
-              { icon: '\u23F0', text: '7 jours gratuits — carte requise, aucun d\u00E9bit' },
-              { icon: '\uD83D\uDCE5', text: 'T\u00E9l\u00E9chargement imm\u00E9diat de ton visuel' },
-            ].map((b, i) => (
+              { icon: '\uD83C\uDFAC', text: '1 vidéo IA offerte' },
+              { icon: '\u23F0', text: '7 jours gratuits — carte requise, aucun débit' },
+              { icon: '\uD83D\uDCE5', text: 'Téléchargement immédiat de ton visuel' },
+            ]).map((b, i) => (
               <div key={i} className="flex items-center gap-2.5">
                 <span className="text-lg">{b.icon}</span>
                 <span className="text-sm text-neutral-700 font-medium">{b.text}</span>
@@ -107,7 +121,7 @@ export default function ConversionPopup({ isOpen, imageUrl, onClose, onSuccess }
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="ton@email.com"
+            placeholder={isEn ? 'your@email.com' : 'ton@email.com'}
             required
             className="w-full px-4 py-3 rounded-xl border-2 border-neutral-200 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/10 transition-all text-sm"
             autoFocus
@@ -117,7 +131,7 @@ export default function ConversionPopup({ isOpen, imageUrl, onClose, onSuccess }
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Mot de passe (6 caract\u00E8res min)"
+              placeholder={isEn ? 'Password (6 characters min)' : 'Mot de passe (6 caract\u00E8res min)'}
               className="w-full px-4 py-3 rounded-xl border-2 border-neutral-200 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/10 transition-all text-sm"
             />
           )}
@@ -129,9 +143,11 @@ export default function ConversionPopup({ isOpen, imageUrl, onClose, onSuccess }
             disabled={isSubmitting}
             className="w-full py-3.5 bg-gradient-to-r from-purple-600 to-[#1e3a5f] text-white font-bold rounded-xl hover:shadow-lg hover:shadow-purple-500/20 transition-all disabled:opacity-50 text-sm"
           >
-            {isSubmitting ? 'Cr\u00E9ation...' : mode === 'signup'
-              ? '\u2192 T\u00E9l\u00E9charger & activer mes 3 cr\u00E9ations gratuites'
-              : '\u2192 Me connecter & t\u00E9l\u00E9charger'}
+            {isSubmitting
+              ? (isEn ? 'Creating...' : 'Création...')
+              : mode === 'signup'
+                ? (isEn ? '\u2192 Download & activate my 3 free creations' : '\u2192 Télécharger & activer mes 3 créations gratuites')
+                : (isEn ? '\u2192 Sign in & download' : '\u2192 Me connecter & télécharger')}
           </button>
         </form>
 
@@ -140,7 +156,9 @@ export default function ConversionPopup({ isOpen, imageUrl, onClose, onSuccess }
           onClick={() => { setMode(mode === 'signup' ? 'login' : 'signup'); setError(''); }}
           className="w-full text-center text-xs text-purple-600 hover:text-purple-800 mt-3 font-medium"
         >
-          {mode === 'signup' ? 'D\u00E9j\u00E0 un compte ? Se connecter' : 'Pas encore de compte ? S\'inscrire'}
+          {mode === 'signup'
+            ? (isEn ? 'Already have an account? Sign in' : 'Déjà un compte ? Se connecter')
+            : (isEn ? "No account yet? Sign up" : "Pas encore de compte ? S'inscrire")}
         </button>
 
         {/* Dismiss */}
@@ -148,7 +166,7 @@ export default function ConversionPopup({ isOpen, imageUrl, onClose, onSuccess }
           onClick={onClose}
           className="w-full text-center text-xs text-neutral-400 hover:text-neutral-500 mt-4 transition-colors"
         >
-          Continuer sans sauvegarder (le visuel sera perdu)
+          {isEn ? 'Continue without saving (visual will be lost)' : 'Continuer sans sauvegarder (le visuel sera perdu)'}
         </button>
       </div>
     </div>

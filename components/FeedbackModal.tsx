@@ -1,24 +1,29 @@
 'use client';
 
 import { useState } from 'react';
+import { useLanguage } from '@/lib/i18n/context';
 
-const QUESTIONS = [
-  { key: 'images', label: 'Génération d\'images' },
-  { key: 'videos', label: 'Génération de vidéos' },
-  { key: 'suggestions', label: 'Suggestions texte IA' },
-  { key: 'assistant', label: 'Assistant marketing IA' },
-  { key: 'audio', label: 'Audio / narration' },
-  { key: 'publication', label: 'Publication réseaux sociaux' },
-  { key: 'interface', label: 'Interface / facilité d\'utilisation' },
-  { key: 'prix', label: 'Rapport qualité / prix' },
-] as const;
-
-const RATING_OPTIONS = [
-  { value: 'tres_bien', label: 'Très bien', bg: 'bg-green-100', border: 'border-green-500', text: 'text-green-700', selectedBg: 'bg-green-500 text-white' },
-  { value: 'bien', label: 'Bien', bg: 'bg-[#0c1a3a]/10', border: 'border-[#0c1a3a]', text: 'text-[#0c1a3a]', selectedBg: 'bg-[#0c1a3a] text-white' },
-  { value: 'moyen', label: 'Moyen', bg: 'bg-amber-100', border: 'border-amber-500', text: 'text-amber-700', selectedBg: 'bg-amber-500 text-white' },
-  { value: 'pas_du_tout', label: 'Pas du tout', bg: 'bg-red-100', border: 'border-red-500', text: 'text-red-700', selectedBg: 'bg-red-500 text-white' },
-] as const;
+function useFeedbackLabels() {
+  const { locale } = useLanguage();
+  const isEn = locale === 'en';
+  const QUESTIONS = [
+    { key: 'images', label: isEn ? 'Image generation' : 'Génération d\u2019images' },
+    { key: 'videos', label: isEn ? 'Video generation' : 'Génération de vidéos' },
+    { key: 'suggestions', label: isEn ? 'AI text suggestions' : 'Suggestions texte IA' },
+    { key: 'assistant', label: isEn ? 'Marketing AI assistant' : 'Assistant marketing IA' },
+    { key: 'audio', label: isEn ? 'Audio / narration' : 'Audio / narration' },
+    { key: 'publication', label: isEn ? 'Social-media publishing' : 'Publication réseaux sociaux' },
+    { key: 'interface', label: isEn ? 'Interface / ease of use' : 'Interface / facilité d\u2019utilisation' },
+    { key: 'prix', label: isEn ? 'Value for money' : 'Rapport qualité / prix' },
+  ] as const;
+  const RATING_OPTIONS = [
+    { value: 'tres_bien', label: isEn ? 'Very good' : 'Très bien', bg: 'bg-green-100', border: 'border-green-500', text: 'text-green-700', selectedBg: 'bg-green-500 text-white' },
+    { value: 'bien', label: isEn ? 'Good' : 'Bien', bg: 'bg-[#0c1a3a]/10', border: 'border-[#0c1a3a]', text: 'text-[#0c1a3a]', selectedBg: 'bg-[#0c1a3a] text-white' },
+    { value: 'moyen', label: isEn ? 'Average' : 'Moyen', bg: 'bg-amber-100', border: 'border-amber-500', text: 'text-amber-700', selectedBg: 'bg-amber-500 text-white' },
+    { value: 'pas_du_tout', label: isEn ? 'Not at all' : 'Pas du tout', bg: 'bg-red-100', border: 'border-red-500', text: 'text-red-700', selectedBg: 'bg-red-500 text-white' },
+  ] as const;
+  return { QUESTIONS, RATING_OPTIONS, isEn };
+}
 
 interface FeedbackModalProps {
   isOpen: boolean;
@@ -26,6 +31,7 @@ interface FeedbackModalProps {
 }
 
 export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
+  const { QUESTIONS, RATING_OPTIONS, isEn } = useFeedbackLabels();
   const [ratings, setRatings] = useState<Record<string, string>>({});
   const [comments, setComments] = useState<Record<string, string>>({});
   const [expandedComment, setExpandedComment] = useState<string | null>(null);
@@ -74,8 +80,8 @@ export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h3 className="text-xl font-bold text-neutral-900 mb-2">Merci pour votre retour !</h3>
-          <p className="text-neutral-600">Vos retours nous aident a ameliorer Keiro.</p>
+          <h3 className="text-xl font-bold text-neutral-900 mb-2">{isEn ? 'Thanks for your feedback!' : 'Merci pour votre retour !'}</h3>
+          <p className="text-neutral-600">{isEn ? 'Your feedback helps us improve Keiro.' : 'Vos retours nous aident a ameliorer Keiro.'}</p>
         </div>
       </div>
     );
@@ -90,8 +96,8 @@ export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
         <div className="bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] p-6 text-white rounded-t-xl">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-bold">Votre retour sur Keiro</h2>
-              <p className="text-sm text-purple-100">8 questions rapides (~30 secondes)</p>
+              <h2 className="text-xl font-bold">{isEn ? 'Your feedback on Keiro' : 'Votre retour sur Keiro'}</h2>
+              <p className="text-sm text-purple-100">{isEn ? '8 quick questions (~30 seconds)' : '8 questions rapides (~30 secondes)'}</p>
             </div>
             <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-lg transition-colors">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -124,13 +130,13 @@ export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
                 onClick={() => setExpandedComment(expandedComment === q.key ? null : q.key)}
                 className="text-[11px] text-neutral-400 hover:text-neutral-600 mt-2 transition-colors"
               >
-                {expandedComment === q.key ? 'Masquer' : 'Qu\'amelioreriez-vous ? (optionnel)'}
+                {expandedComment === q.key ? (isEn ? 'Hide' : 'Masquer') : (isEn ? 'What would you improve? (optional)' : 'Qu\u2019amelioreriez-vous ? (optionnel)')}
               </button>
               {expandedComment === q.key && (
                 <textarea
                   value={comments[q.key] || ''}
                   onChange={(e) => setComments((prev) => ({ ...prev, [q.key]: e.target.value }))}
-                  placeholder="Votre suggestion..."
+                  placeholder={isEn ? 'Your suggestion...' : 'Votre suggestion...'}
                   rows={2}
                   className="w-full mt-1 text-sm border border-neutral-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
                 />
@@ -140,14 +146,14 @@ export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
 
           <div className="flex gap-3 pt-2">
             <button onClick={onClose} className="flex-1 px-4 py-2.5 rounded-lg border border-neutral-300 text-neutral-700 font-medium hover:bg-neutral-50 transition-colors">
-              Annuler
+              {isEn ? 'Cancel' : 'Annuler'}
             </button>
             <button
               onClick={handleSubmit}
               disabled={sending || Object.keys(ratings).length === 0}
               className="flex-1 px-4 py-2.5 rounded-lg bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {sending ? 'Envoi...' : `Envoyer (${Object.keys(ratings).length}/8)`}
+              {sending ? (isEn ? 'Sending...' : 'Envoi...') : `${isEn ? 'Submit' : 'Envoyer'} (${Object.keys(ratings).length}/8)`}
             </button>
           </div>
         </div>
