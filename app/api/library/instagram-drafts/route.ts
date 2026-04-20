@@ -23,25 +23,55 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const { data, error } = await supabase
-      .from('instagram_drafts')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
+    // Two sources feed the Instagram drafts tab:
+    //  1. instagram_drafts — manual drafts created from /generate
+    //  2. content_calendar — drafts produced by Léna's campaign wizard
+    //     when the client picks "Prepare draft" instead of "Publish now".
+    // We merge them here so the library tab shows everything.
+    const [manualRes, calendarRes] = await Promise.all([
+      supabase.from('instagram_drafts').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+      supabase.from('content_calendar')
+        .select('id, platform, format, pillar, hook, caption, hashtags, visual_url, video_url, status, scheduled_date, created_at, user_id')
+        .eq('user_id', user.id)
+        .eq('platform', 'instagram')
+        .eq('status', 'draft')
+        .order('created_at', { ascending: false }),
+    ]);
 
-    if (error) {
-      console.error('[InstagramDrafts] Error fetching drafts:', error);
-      return NextResponse.json(
-        { ok: false, error: error.message },
-        { status: 500 }
-      );
+    if (manualRes.error) {
+      console.error('[InstagramDrafts] Error fetching manual drafts:', manualRes.error);
+    }
+    if (calendarRes.error) {
+      console.error('[InstagramDrafts] Error fetching calendar drafts:', calendarRes.error);
     }
 
-    console.log('[InstagramDrafts] ✅ Fetched', data?.length || 0, 'drafts');
+    const manual = manualRes.data || [];
+    const calendar = (calendarRes.data || []).map((p: any) => ({
+      // Map to the library draft shape so the UI can render both uniformly
+      id: `cc-${p.id}`, // prefix to avoid clashing with manual draft UUIDs
+      source: 'campaign',
+      content_calendar_id: p.id,
+      user_id: p.user_id,
+      media_url: p.visual_url || null,
+      video_url: p.video_url || null,
+      media_type: p.format === 'reel' || p.format === 'video' ? 'video' : 'image',
+      category: 'draft',
+      caption: p.caption || '',
+      hashtags: p.hashtags || [],
+      hook: p.hook || null,
+      status: 'draft',
+      scheduled_date: p.scheduled_date,
+      created_at: p.created_at,
+    }));
+
+    const merged = [...manual.map((m: any) => ({ ...m, source: m.source || 'manual' })), ...calendar]
+      .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    console.log(`[InstagramDrafts] ✅ Fetched ${merged.length} drafts (${manual.length} manual + ${calendar.length} campaign)`);
 
     return NextResponse.json({
       ok: true,
-      posts: data || []
+      posts: merged,
     });
 
   } catch (error: any) {

@@ -181,9 +181,15 @@ export default function CampaignWizard({ agentId, agentName, onClose, onActivate
       setStatusMsg(ACTION_MESSAGES[agentId] || 'Activation en cours...');
 
       const draftMode = values.publish_mode === 'prepare_draft';
-      // Use client-chat to trigger the action via the agent (natural, conversational)
+      // Use client-chat to trigger the action via the agent (natural, conversational).
+      // "[CAMPAIGN_CONFIRM]" hints the agent to return a short confirmation
+      // instead of dumping caption + hashtags + visual description — the
+      // full content is visible in the Library/Drafts tab, no need to
+      // re-state it in chat.
       const ACTION_PROMPTS: Record<string, string> = {
-        content: `${draftMode ? 'Prepare en brouillon' : 'Genere et publie immediatement'} 1 post ${values.platform || 'instagram'} format ${values.format || 'post'} sur le theme ${values.pillar || 'tips'}. Inclus le visuel, la legende et les hashtags.${draftMode ? ' Ne publie PAS — reste en brouillon pour validation.' : ''}`,
+        content: `[CAMPAIGN_CONFIRM] ${draftMode ? 'Prepare en brouillon' : 'Genere et publie immediatement'} 1 post ${values.platform || 'instagram'} format ${values.format || 'post'} sur le theme ${values.pillar || 'tips'}. Inclus le visuel, la legende et les hashtags.${draftMode ? ' Ne publie PAS — reste en brouillon pour validation.' : ''}
+
+QUAND TU REPONDS DANS LE CHAT: 2 phrases maximum, style "C'est fait ! ${draftMode ? 'Ton post est dans les Brouillons — va le valider.' : 'Le post est publie, va voir le resultat en ligne.'}". Ne reecris PAS la legende, les hashtags, ni la description du visuel.`,
         email: 'Lance une campagne email maintenant. Envoie les premiers emails aux prospects qualifies dans le CRM.',
         dm_instagram: 'Lance une session de prospection DM Instagram maintenant. Envoie des DMs personnalises aux prospects.',
         commercial: 'Lance une session de prospection commerciale. Trouve et qualifie de nouveaux prospects.',
@@ -309,7 +315,11 @@ export default function CampaignWizard({ agentId, agentName, onClose, onActivate
           </p>
           {isContent && draftMode && (
             <a
-              href="/library?filter=draft"
+              href={
+                values.platform === 'tiktok' ? '/library?tab=tiktok-drafts'
+                : values.platform === 'linkedin' ? '/library?tab=linkedin-drafts'
+                : '/library?tab=drafts'
+              }
               className="inline-block px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-sm font-semibold transition"
             >
               Ouvrir les brouillons
