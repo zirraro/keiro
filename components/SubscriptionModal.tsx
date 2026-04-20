@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useLanguage } from "@/lib/i18n/context";
 
 interface SubscriptionModalProps {
   isOpen: boolean;
@@ -8,44 +9,55 @@ interface SubscriptionModalProps {
 }
 
 export default function SubscriptionModal({ isOpen, onClose }: SubscriptionModalProps) {
+  const { locale } = useLanguage();
+  const isEn = locale === "en";
   if (!isOpen) return null;
 
+  const monthSuffix = isEn ? "/mo" : "/mois";
   const plans = [
     {
       name: "Starter",
       emoji: "\u{1F680}",
       price: "49\u20AC",
-      subtitle: "/mois",
-      description: "Freelance & createur solo",
-      features: ["400 credits/mois", "Publication auto Instagram", "Agent contenu + DM", "Studio edition"],
+      subtitle: monthSuffix,
+      description: isEn ? "Freelancer & solo creator" : "Freelance & createur solo",
+      features: isEn
+        ? ["400 credits/mo", "Instagram auto-publish", "Content + DM agents", "Edit studio"]
+        : ["400 credits/mois", "Publication auto Instagram", "Agent contenu + DM", "Studio edition"],
       highlight: true,
-      badge: "Populaire",
+      badge: isEn ? "Popular" : "Populaire",
     },
     {
       name: "Pro",
       emoji: "\u{1F4BC}",
       price: "99\u20AC",
-      subtitle: "/mois",
-      description: "Onboarding premium",
-      features: ["Tout Starter", "30 videos/mois", "Calendrier contenus", "Kit de style"],
+      subtitle: monthSuffix,
+      description: isEn ? "Premium onboarding" : "Onboarding premium",
+      features: isEn
+        ? ["Everything in Starter", "30 videos/mo", "Content calendar", "Style kit"]
+        : ["Tout Starter", "30 videos/mois", "Calendrier contenus", "Kit de style"],
       highlight: false,
     },
     {
       name: "Business",
       emoji: "\u{1F3E2}",
       price: "199\u20AC",
-      subtitle: "/mois",
-      description: "Automatisation complete",
-      features: ["15+ agents IA", "2000 credits/mois", "Finance + juridique", "Integration site web"],
+      subtitle: monthSuffix,
+      description: isEn ? "Full automation" : "Automatisation complete",
+      features: isEn
+        ? ["15+ AI agents", "2000 credits/mo", "Finance + legal", "Website integration"]
+        : ["15+ agents IA", "2000 credits/mois", "Finance + juridique", "Integration site web"],
       highlight: true,
     },
     {
       name: "Business",
       emoji: "\u{1F3C6}",
       price: "349\u20AC",
-      subtitle: "/mois",
-      description: "Strategie mensuelle incluse",
-      features: ["Tout Pro", "Video illimitee", "Equipe 5 users", "Analytics avances"],
+      subtitle: monthSuffix,
+      description: isEn ? "Includes monthly strategy" : "Strategie mensuelle incluse",
+      features: isEn
+        ? ["Everything in Pro", "Unlimited video", "5-user team", "Advanced analytics"]
+        : ["Tout Pro", "Video illimitee", "Equipe 5 users", "Analytics avances"],
       highlight: false,
     },
   ];
@@ -57,7 +69,7 @@ export default function SubscriptionModal({ isOpen, onClose }: SubscriptionModal
         <div className="flex justify-between items-start mb-4">
           <div>
             <h2 className="text-2xl font-bold text-neutral-900">
-              Debloquez toutes les fonctionnalites
+              {isEn ? "Unlock every feature" : "Debloquez toutes les fonctionnalites"}
             </h2>
           </div>
           <button
@@ -73,13 +85,13 @@ export default function SubscriptionModal({ isOpen, onClose }: SubscriptionModal
         {/* Trial banner — prominent */}
         <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-2xl p-4 sm:p-5 mb-6 text-center">
           <div className="text-3xl sm:text-4xl font-black text-green-700 mb-1">
-            0{'\u20AC'} pendant 7 jours
+            {isEn ? <>0{'\u20AC'} for 7 days</> : <>0{'\u20AC'} pendant 7 jours</>}
           </div>
           <p className="text-sm sm:text-base text-green-600 font-medium">
-            Tous les agents IA debloques {'\u00B7'} Annulation en 1 clic a tout moment
+            {isEn ? 'All AI agents unlocked · Cancel in 1 click anytime' : <>Tous les agents IA debloques {'\u00B7'} Annulation en 1 clic a tout moment</>}
           </p>
           <p className="text-xs text-green-500 mt-1">
-            Carte requise, aucun debit pendant l&apos;essai
+            {isEn ? 'Card required, nothing charged during the trial' : 'Carte requise, aucun debit pendant l\u2019essai'}
           </p>
         </div>
 
@@ -140,16 +152,16 @@ export default function SubscriptionModal({ isOpen, onClose }: SubscriptionModal
                     : "bg-neutral-100 text-neutral-900 hover:bg-neutral-200"
                 }`}
               >
-                Essai gratuit 7 jours
+                {isEn ? 'Start 7-day free trial' : 'Essai gratuit 7 jours'}
               </Link>
-              <p className="text-center text-[10px] text-neutral-400 mt-1">0{'\u20AC'} pendant 7j {'\u00B7'} Annulation en 1 clic</p>
+              <p className="text-center text-[10px] text-neutral-400 mt-1">{isEn ? <>0{'\u20AC'} for 7d {'\u00B7'} Cancel in 1 click</> : <>0{'\u20AC'} pendant 7j {'\u00B7'} Annulation en 1 clic</>}</p>
             </div>
           ))}
         </div>
 
         {/* Footer */}
         <div className="mt-6 text-center text-sm text-neutral-500">
-          <Link href="/pricing" className="text-[#0c1a3a] hover:underline font-medium">Voir la comparaison complete</Link>
+          <Link href="/pricing" className="text-[#0c1a3a] hover:underline font-medium">{isEn ? 'See the full comparison' : 'Voir la comparaison complete'}</Link>
         </div>
       </div>
     </div>
