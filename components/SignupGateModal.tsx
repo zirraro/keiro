@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useLanguage } from '@/lib/i18n/context';
 
 interface SignupGateModalProps {
   isOpen: boolean;
@@ -9,6 +10,8 @@ interface SignupGateModalProps {
 }
 
 export default function SignupGateModal({ isOpen, onClose, onSuccess }: SignupGateModalProps) {
+  const { locale } = useLanguage();
+  const isEn = locale === 'en';
   if (!isOpen) return null;
 
   return (
@@ -35,39 +38,39 @@ export default function SignupGateModal({ isOpen, onClose, onSuccess }: SignupGa
 
         {/* Title */}
         <h2 className="text-3xl font-bold text-center mb-2">
-          Limite gratuite atteinte
+          {isEn ? 'Free limit reached' : 'Limite gratuite atteinte'}
         </h2>
         <p className="text-neutral-600 text-center mb-6">
-          Créez un compte pour continuer à générer du contenu visuel illimité et accéder à toutes les fonctionnalités premium
+          {isEn ? 'Create a free account to keep generating unlimited visual content and unlock all premium features' : 'Créez un compte pour continuer à générer du contenu visuel illimité et accéder à toutes les fonctionnalités premium'}
         </p>
 
         {/* Benefits */}
         <div className="bg-gradient-to-br from-[#0c1a3a]/5 to-[#1e3a5f]/5 rounded-xl p-6 mb-6">
-          <h3 className="font-bold text-lg mb-4 text-center">Avec un compte gratuit :</h3>
+          <h3 className="font-bold text-lg mb-4 text-center">{isEn ? 'With a free account:' : 'Avec un compte gratuit :'}</h3>
           <ul className="space-y-3">
             <li className="flex items-start gap-3">
               <svg className="w-6 h-6 text-[#0c1a3a] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              <span className="text-neutral-700"><strong>3 visuels gratuits</strong> avec watermark par mois</span>
+              <span className="text-neutral-700">{isEn ? <><strong>3 free visuals</strong> with watermark per month</> : <><strong>3 visuels gratuits</strong> avec watermark par mois</>}</span>
             </li>
             <li className="flex items-start gap-3">
               <svg className="w-6 h-6 text-[#0c1a3a] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              <span className="text-neutral-700"><strong>Bibliothèque personnelle</strong> pour sauvegarder vos créations</span>
+              <span className="text-neutral-700">{isEn ? <><strong>Personal library</strong> to save your creations</> : <><strong>Bibliothèque personnelle</strong> pour sauvegarder vos créations</>}</span>
             </li>
             <li className="flex items-start gap-3">
               <svg className="w-6 h-6 text-[#0c1a3a] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              <span className="text-neutral-700"><strong>Accès au studio d'édition</strong> pour perfectionner vos visuels</span>
+              <span className="text-neutral-700">{isEn ? <><strong>Edit studio access</strong> to polish your visuals</> : <><strong>Accès au studio d&apos;édition</strong> pour perfectionner vos visuels</>}</span>
             </li>
             <li className="flex items-start gap-3">
               <svg className="w-6 h-6 text-[#0c1a3a] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              <span className="text-neutral-700"><strong>Historique de génération</strong> pour retrouver tous vos visuels</span>
+              <span className="text-neutral-700">{isEn ? <><strong>Generation history</strong> so every visual is one click away</> : <><strong>Historique de génération</strong> pour retrouver tous vos visuels</>}</span>
             </li>
           </ul>
         </div>
@@ -78,27 +81,27 @@ export default function SignupGateModal({ isOpen, onClose, onSuccess }: SignupGa
             href="/login"
             className="block w-full py-3 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-bold rounded-xl text-center hover:shadow-lg transition-all"
           >
-            Créer mon compte gratuit
+            {isEn ? 'Create my free account' : 'Créer mon compte gratuit'}
           </Link>
 
           <Link
             href="/login"
             className="block w-full py-3 border-2 border-neutral-300 text-neutral-700 font-semibold rounded-xl text-center hover:border-neutral-400 hover:bg-neutral-50 transition-all"
           >
-            J'ai déjà un compte
+            {isEn ? 'I already have an account' : 'J\u2019ai déjà un compte'}
           </Link>
         </div>
 
         {/* Upgrade link */}
         <div className="mt-6 pt-6 border-t border-neutral-200 text-center">
           <p className="text-sm text-neutral-600 mb-3">
-            Besoin de plus ? Passez Premium
+            {isEn ? 'Need more? Go Premium' : 'Besoin de plus ? Passez Premium'}
           </p>
           <Link
             href="/pricing"
             className="inline-flex items-center gap-2 text-amber-600 font-semibold hover:text-amber-700 transition-colors"
           >
-            <span>Découvrir les offres Premium</span>
+            <span>{isEn ? 'Explore Premium plans' : 'Découvrir les offres Premium'}</span>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
             </svg>

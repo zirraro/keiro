@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useLanguage } from '@/lib/i18n/context';
 
 interface EmailGateModalProps {
   isOpen: boolean;
@@ -10,6 +11,8 @@ interface EmailGateModalProps {
 }
 
 export default function EmailGateModal({ isOpen, onClose, onSubmit, type = 'generation' }: EmailGateModalProps) {
+  const { locale } = useLanguage();
+  const isEn = locale === 'en';
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -22,7 +25,7 @@ export default function EmailGateModal({ isOpen, onClose, onSubmit, type = 'gene
     // Validation email simple
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      setError('Veuillez entrer une adresse email valide');
+      setError(isEn ? 'Please enter a valid email address' : 'Veuillez entrer une adresse email valide');
       return;
     }
 
@@ -40,7 +43,7 @@ export default function EmailGateModal({ isOpen, onClose, onSubmit, type = 'gene
       const data = await response.json();
 
       if (!data.ok) {
-        throw new Error(data.error || 'Erreur lors de l\'enregistrement');
+        throw new Error(data.error || (isEn ? 'Something went wrong while saving' : 'Erreur lors de l\'enregistrement'));
       }
 
       console.log('[EmailGateModal] Email captured successfully');
@@ -49,7 +52,7 @@ export default function EmailGateModal({ isOpen, onClose, onSubmit, type = 'gene
       setEmail('');
     } catch (err: any) {
       console.error('[EmailGateModal] Error:', err);
-      setError(err.message || 'Une erreur est survenue. Veuillez réessayer.');
+      setError(err.message || (isEn ? 'Something went wrong. Please try again.' : 'Une erreur est survenue. Veuillez réessayer.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -79,10 +82,10 @@ export default function EmailGateModal({ isOpen, onClose, onSubmit, type = 'gene
 
         {/* Title */}
         <h2 className="text-2xl font-bold text-center mb-2">
-          Débloquez une génération bonus
+          {isEn ? 'Unlock a bonus generation' : 'Débloquez une génération bonus'}
         </h2>
         <p className="text-neutral-600 text-center mb-6">
-          Entrez votre email pour continuer à créer du contenu visuel exceptionnel
+          {isEn ? 'Enter your email to keep creating exceptional visual content' : 'Entrez votre email pour continuer à créer du contenu visuel exceptionnel'}
         </p>
 
         {/* Form */}
@@ -106,37 +109,37 @@ export default function EmailGateModal({ isOpen, onClose, onSubmit, type = 'gene
             disabled={isSubmitting}
             className="w-full py-3 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold rounded-xl hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isSubmitting ? 'Envoi...' : 'Débloquer ma génération'}
+            {isSubmitting ? (isEn ? 'Sending...' : 'Envoi...') : (isEn ? 'Unlock my generation' : 'Débloquer ma génération')}
           </button>
         </form>
 
         {/* Benefits */}
         <div className="mt-6 pt-6 border-t border-neutral-200">
-          <p className="text-xs text-neutral-500 text-center mb-3">Vous recevrez également :</p>
+          <p className="text-xs text-neutral-500 text-center mb-3">{isEn ? 'You will also get:' : 'Vous recevrez également :'}</p>
           <ul className="space-y-2 text-sm text-neutral-600">
             <li className="flex items-center gap-2">
               <svg className="w-5 h-5 text-[#0c1a3a] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              Des conseils exclusifs sur les réseaux sociaux
+              {isEn ? 'Exclusive social-media tips' : 'Des conseils exclusifs sur les réseaux sociaux'}
             </li>
             <li className="flex items-center gap-2">
               <svg className="w-5 h-5 text-[#0c1a3a] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              Accès anticipé aux nouvelles fonctionnalités
+              {isEn ? 'Early access to new features' : 'Accès anticipé aux nouvelles fonctionnalités'}
             </li>
             <li className="flex items-center gap-2">
               <svg className="w-5 h-5 text-[#0c1a3a] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              Des offres spéciales réservées
+              {isEn ? 'Members-only special offers' : 'Des offres spéciales réservées'}
             </li>
           </ul>
         </div>
 
         <p className="text-xs text-neutral-400 text-center mt-4">
-          Pas de spam. Vous pouvez vous désabonner à tout moment.
+          {isEn ? 'No spam. You can unsubscribe anytime.' : 'Pas de spam. Vous pouvez vous désabonner à tout moment.'}
         </p>
       </div>
     </div>
