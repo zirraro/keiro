@@ -25,13 +25,23 @@ interface WizardStep {
 const AGENT_WIZARDS: Record<string, { title: string; subtitle: string; icon: string; steps: WizardStep[] }> = {
   content: {
     title: 'Creer un post maintenant',
-    subtitle: 'Lena genere et publie en quelques secondes',
+    subtitle: 'Lena genere et publie — ou prepare un brouillon pour ta validation',
     icon: '\u2728',
     steps: [
       { title: 'Quel post veux-tu ?', fields: [
         { key: 'platform', label: 'Plateforme', type: 'select', options: [{ value: 'instagram', label: '\u{1F4F8} Instagram' }, { value: 'tiktok', label: '\u{1F3B5} TikTok' }, { value: 'linkedin', label: '\u{1F4BC} LinkedIn' }], default: 'instagram' },
         { key: 'format', label: 'Format', type: 'select', options: [{ value: 'post', label: 'Photo/Image' }, { value: 'reel', label: 'Reel/Video' }, { value: 'carousel', label: 'Carrousel' }, { value: 'story', label: 'Story' }], default: 'post' },
         { key: 'pillar', label: 'Theme', type: 'select', options: [{ value: 'tips', label: '\u{1F4A1} Conseil/Astuce' }, { value: 'demo', label: '\u{1F3AC} Demo/Resultat' }, { value: 'social_proof', label: '\u2B50 Temoignage/Preuve' }, { value: 'trends', label: '\u{1F525} Tendance du moment' }], default: 'tips' },
+        {
+          key: 'publish_mode',
+          label: 'Publication',
+          type: 'select',
+          options: [
+            { value: 'publish_now', label: '\u{1F680} Publier tout de suite' },
+            { value: 'prepare_draft', label: '\u{1F4DD} Preparer en brouillon (je validerai)' },
+          ],
+          default: 'publish_now',
+        },
       ]},
     ],
   },
@@ -170,9 +180,10 @@ export default function CampaignWizard({ agentId, agentName, onClose, onActivate
       };
       setStatusMsg(ACTION_MESSAGES[agentId] || 'Activation en cours...');
 
+      const draftMode = values.publish_mode === 'prepare_draft';
       // Use client-chat to trigger the action via the agent (natural, conversational)
       const ACTION_PROMPTS: Record<string, string> = {
-        content: `Genere et publie immediatement 1 post ${values.platform || 'instagram'} format ${values.format || 'post'} sur le theme ${values.pillar || 'tips'}. Inclus le visuel, la legende et les hashtags.`,
+        content: `${draftMode ? 'Prepare en brouillon' : 'Genere et publie immediatement'} 1 post ${values.platform || 'instagram'} format ${values.format || 'post'} sur le theme ${values.pillar || 'tips'}. Inclus le visuel, la legende et les hashtags.${draftMode ? ' Ne publie PAS — reste en brouillon pour validation.' : ''}`,
         email: 'Lance une campagne email maintenant. Envoie les premiers emails aux prospects qualifies dans le CRM.',
         dm_instagram: 'Lance une session de prospection DM Instagram maintenant. Envoie des DMs personnalises aux prospects.',
         commercial: 'Lance une session de prospection commerciale. Trouve et qualifie de nouveaux prospects.',
@@ -185,7 +196,7 @@ export default function CampaignWizard({ agentId, agentName, onClose, onActivate
       const directCalls: Record<string, () => Promise<any>> = {
         content: () => fetch('/api/agents/content', {
           method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
-          body: JSON.stringify({ action: 'generate_post', platform: values.platform || 'instagram', format: values.format || 'post', pillar: values.pillar || 'tips', draftOnly: false }),
+          body: JSON.stringify({ action: 'generate_post', platform: values.platform || 'instagram', format: values.format || 'post', pillar: values.pillar || 'tips', draftOnly: draftMode }),
         }),
         email: () => fetch('/api/agents/email/daily?slot=morning&types=all&force=true', { credentials: 'include' }),
         dm_instagram: async () => {
@@ -280,12 +291,30 @@ export default function CampaignWizard({ agentId, agentName, onClose, onActivate
   }
 
   if (done) {
+    const isContent = agentId === 'content' || agentId === 'linkedin';
+    const draftMode = values.publish_mode === 'prepare_draft';
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
         <div className="bg-gray-900 border border-emerald-500/30 rounded-2xl p-8 max-w-sm w-full text-center animate-in zoom-in-95 duration-300">
-          <div className="text-5xl mb-4">{'\u2705'}</div>
-          <h2 className="text-lg font-bold text-white mb-2">Campagne lancee !</h2>
-          <p className="text-sm text-white/50 mb-2">Les résultats apparaissent dans ton dashboard.</p>
+          <div className="text-5xl mb-4">{isContent && draftMode ? '\u{1F4DD}' : '\u2705'}</div>
+          <h2 className="text-lg font-bold text-white mb-2">
+            {isContent && draftMode ? 'Brouillon prêt !' : 'Campagne lancée !'}
+          </h2>
+          <p className="text-sm text-white/50 mb-3">
+            {isContent && draftMode
+              ? `Va dans "Brouillons" pour valider, modifier ou publier.`
+              : isContent
+                ? 'Post publié — va voir le résultat en ligne.'
+                : 'Les résultats apparaissent dans ton dashboard.'}
+          </p>
+          {isContent && draftMode && (
+            <a
+              href="/library?filter=draft"
+              className="inline-block px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-sm font-semibold transition"
+            >
+              Ouvrir les brouillons
+            </a>
+          )}
         </div>
       </div>
     );
