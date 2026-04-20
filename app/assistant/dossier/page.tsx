@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import type { BusinessDossier } from '@/lib/agents/client-context';
+import { useLanguage } from '@/lib/i18n/context';
 
 // ─── Constants ──────────────────────────────────────────
 const BUSINESS_TYPES = [
@@ -69,6 +70,8 @@ interface UploadedFile {
 
 // ─── Main Component ─────────────────────────────────────
 export default function DossierPage() {
+  const { t } = useLanguage();
+  const n = (t as any).notif || {};
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -522,7 +525,7 @@ Reponds en JSON strict:
             </svg>
           </button>
           <div className="flex-1">
-            <h1 className="text-white font-bold text-xl">Dossier Business</h1>
+            <h1 className="text-white font-bold text-xl">{n.dossierTitle || 'Dossier Business'}</h1>
             <p className="text-white/50 text-xs">
               {saving ? 'Sauvegarde...' : saved ? '\u2705 Sauvegarde !' : `Etape ${currentStep + 1}/${STEPS.length} — ${STEPS[currentStep].title}`}
             </p>
@@ -604,7 +607,7 @@ Reponds en JSON strict:
                           ? 'bg-red-500 text-white animate-pulse'
                           : 'bg-white/10 text-white/50 hover:bg-white/20'
                       }`}
-                      title="Dicter votre reponse"
+                      title={n.dossierDictate || 'Dicter votre reponse'}
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
@@ -646,7 +649,7 @@ Reponds en JSON strict:
               <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-6 text-center">
                 <div className="text-3xl mb-2">{'\u2705'}</div>
                 <p className="text-green-400 font-bold text-base">Espace configure automatiquement !</p>
-                <p className="text-white/40 text-xs mt-1">Verifiez et completez les informations ci-dessous</p>
+                <p className="text-white/40 text-xs mt-1">{n.dossierSubtitle || 'Verifiez et completez les informations ci-dessous'}</p>
                 <button onClick={() => { setConversationMode(false); setCurrentStep(1); }} className="mt-4 px-6 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold rounded-xl text-sm">
                   Verifier mon profil {'\u2192'}
                 </button>
@@ -667,7 +670,7 @@ Reponds en JSON strict:
 
         {/* ═══ STEP 1: Informations generales ═══ */}
         {currentStep === 1 && (<>
-        <SectionTitle title="Informations generales" icon="building" />
+        <SectionTitle title={n.dossierSectionGeneral || 'Informations generales'} icon="building" />
 
         <FormField label="Nom de l'entreprise" required>
           <input
@@ -696,7 +699,7 @@ Reponds en JSON strict:
           <textarea
             value={companyDescription}
             onChange={(e) => setCompanyDescription(e.target.value)}
-            placeholder="Decrivez votre activite en quelques phrases..."
+            placeholder={n.dossierCompanyDescriptionPh || 'Decrivez votre activite en quelques phrases...'}
             rows={3}
             className="form-input-dark resize-none"
           />
@@ -716,7 +719,7 @@ Reponds en JSON strict:
 
         {/* ═══ STEP 2: Cible & Positionnement ═══ */}
         {currentStep === 2 && (<>
-        <SectionTitle title="Cible & Positionnement" icon="target" />
+        <SectionTitle title={n.dossierSectionTarget || 'Cible & Positionnement'} icon="target" />
 
         <FormField label="Public cible" required>
           <textarea
@@ -780,7 +783,7 @@ Reponds en JSON strict:
 
         {/* ═══ STEP 3: Presence en ligne ═══ */}
         {currentStep === 3 && (<>
-        <SectionTitle title="Presence en ligne" icon="globe" />
+        <SectionTitle title={n.dossierSectionPresence || 'Presence en ligne'} icon="globe" />
 
         <FormField label="Compte Instagram">
           <div className="relative">
@@ -842,11 +845,11 @@ Reponds en JSON strict:
 
         {/* ═══ STEP 4: Direction Artistique ═══ */}
         {currentStep === 4 && (<>
-        <SectionTitle title="Direction Artistique (DA)" icon="palette" />
+        <SectionTitle title={n.dossierSectionBrand || 'Direction Artistique'} icon="palette" />
 
         <div className="bg-gradient-to-r from-purple-600/10 to-blue-600/10 border border-purple-500/20 rounded-xl p-4 mb-4">
           <p className="text-purple-300 text-xs font-semibold mb-1">{'\uD83C\uDFA8'} Pourquoi c&apos;est important ?</p>
-          <p className="text-white/40 text-[11px]">Vos agents utilisent ces informations pour creer du contenu fidele a votre marque : posts Instagram, emails, visuels publicitaires, etc.</p>
+          <p className="text-white/40 text-[11px]">{n.dossierBrandHelper || 'Vos agents utilisent ces informations pour creer du contenu fidele a votre marque : posts Instagram, emails, visuels publicitaires, etc.'}</p>
         </div>
 
         <FormField label="Couleurs de marque (codes hex)">
@@ -891,7 +894,7 @@ Reponds en JSON strict:
 
         {/* ═══ STEP 5: Logo & Documents ═══ */}
         {currentStep === 5 && (<>
-        <SectionTitle title="Logo & Documents" icon="upload" />
+        <SectionTitle title={n.dossierSectionLogo || 'Logo & Documents'} icon="upload" />
 
         {/* Recommended documents */}
         <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4 mb-4">

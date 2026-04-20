@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useLanguage } from '@/lib/i18n/context';
 
 type Prospect = {
   id: string; first_name: string | null; last_name: string | null; email: string | null;
@@ -207,6 +208,8 @@ function ProspectPanel({ prospect, activities, onClose, onUpdate }: {
 
 // ─── Main CRM Page ──────────────────────────────────────────
 export default function ClientCRM() {
+  const { t } = useLanguage();
+  const nn = (t as any).notif || {};
   const [tab, setTab] = useState<'dashboard' | 'pipeline' | 'liste'>('dashboard');
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -471,7 +474,7 @@ export default function ClientCRM() {
         {tab === 'liste' && (
           <div className="space-y-4">
             <div className="flex flex-wrap gap-2 items-center">
-              <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Rechercher entreprise, email, type, quartier..." className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-purple-500/50 flex-1 min-w-[120px] sm:min-w-[200px]" />
+              <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder={nn.crmSearchFull || 'Rechercher entreprise, email, type, quartier...'} className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-purple-500/50 flex-1 min-w-[120px] sm:min-w-[200px]" />
               <select value={filterStatus || ''} onChange={e => setFilterStatus(e.target.value || null)} className="px-2 py-2 bg-white/5 border border-white/10 rounded-lg text-xs text-white/70">
                 <option value="">Tous statuts</option>
                 {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label} ({byStatus[s.id] || 0})</option>)}

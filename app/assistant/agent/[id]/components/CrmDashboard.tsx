@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useLanguage } from '@/lib/i18n/context';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -542,6 +543,8 @@ function FilterBar({ search, onSearch, tempFilter, onTempFilter, sourceFilter, o
   onSourceFilter: (v: string) => void;
   sources: string[];
 }) {
+  const { t } = useLanguage();
+  const nn = (t as any).notif || {};
   return (
     <div className="flex flex-col sm:flex-row gap-2">
       {/* Search */}
@@ -551,7 +554,7 @@ function FilterBar({ search, onSearch, tempFilter, onTempFilter, sourceFilter, o
         </svg>
         <input
           type="text"
-          placeholder="Rechercher un prospect..."
+          placeholder={nn.crmSearchProspect || 'Rechercher un prospect...'}
           value={search}
           onChange={e => onSearch(e.target.value)}
           className="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent min-h-[44px]"
@@ -591,6 +594,8 @@ function FilterBar({ search, onSearch, tempFilter, onTempFilter, sourceFilter, o
 /* ------------------------------------------------------------------ */
 
 export default function CrmDashboard({ data, onAddProspect }: CrmDashboardProps) {
+  const { t } = useLanguage();
+  const nn = (t as any).notif || {};
   const prospects = data?.prospects || [];
   const activities = data?.activities || [];
   const pipeline = data?.pipeline || {};

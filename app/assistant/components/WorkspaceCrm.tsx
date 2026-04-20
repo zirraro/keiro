@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useLanguage } from '@/lib/i18n/context';
 
 // ─── Types ──────────────────────────────────────────────
 
@@ -786,6 +787,8 @@ function AddProspectModal({ onClose, onSave }: { onClose: () => void; onSave: ()
 // ═══════════════════════════════════════════════════════
 
 export default function WorkspaceCrm({ isAdmin }: { isAdmin: boolean }) {
+  const { t } = useLanguage();
+  const nn = (t as any).notif || {};
   // Data
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -1120,7 +1123,7 @@ export default function WorkspaceCrm({ isAdmin }: { isAdmin: boolean }) {
         <div className="relative flex-1">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-sm">🔍</span>
           <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Rechercher un prospect..."
+            placeholder={nn.crmSearchProspect || 'Rechercher un prospect...'}
             className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-700 text-sm bg-white dark:bg-neutral-900" />
         </div>
         <div className="flex gap-2">
@@ -1145,11 +1148,11 @@ export default function WorkspaceCrm({ isAdmin }: { isAdmin: boolean }) {
             + Prospect
           </button>
           {/* Import/Export */}
-          <button onClick={() => exportToExcel(filtered)} title="Exporter Excel"
+          <button onClick={() => exportToExcel(filtered)} title={nn.crmExport || 'Exporter Excel'}
             className="text-neutral-400 hover:text-green-500 text-xs px-2 py-2 rounded-xl border border-neutral-200 hover:border-green-300 transition">
             📥 Export
           </button>
-          <label title="Importer Excel/CSV"
+          <label title={nn.crmImport || 'Importer Excel/CSV'}
             className="text-neutral-400 hover:text-blue-500 text-xs px-2 py-2 rounded-xl border border-neutral-200 hover:border-blue-300 transition cursor-pointer">
             {importing ? `${importProgress.current}/${importProgress.total}...` : '\u{1F4E4} Import'}
             <input type="file" accept=".xlsx,.xls,.csv" className="hidden" disabled={importing} onChange={e => { if (e.target.files?.[0]) importFromExcel(e.target.files[0]); e.target.value = ''; }} />
