@@ -14,8 +14,9 @@ import { useLanguage } from '@/lib/i18n/context';
 import type { PanelProps } from './types';
 
 export function WhatsAppPanel({ data, agentName, gradientFrom, gradientTo }: PanelProps) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const p = t.panels;
+  const dateLocale = locale === 'en' ? 'en-US' : 'fr-FR';
   const stats: any = data.whatsappStats || {
     conversations: DEMO_WHATSAPP_STATS.conversations,
     activeConversations: DEMO_WHATSAPP_STATS.activeConversations,
@@ -75,7 +76,7 @@ export function WhatsAppPanel({ data, agentName, gradientFrom, gradientTo }: Pan
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: statusColors[conv.status] || '#6b7280' }} />
-                <span className="text-[10px] text-white/40">{new Date(conv.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
+                <span className="text-[10px] text-white/40">{new Date(conv.date).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short' })}</span>
               </div>
             </div>
           ))}

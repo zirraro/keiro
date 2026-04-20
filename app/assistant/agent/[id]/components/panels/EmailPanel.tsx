@@ -352,6 +352,8 @@ function CampaignCreator() {
 // ─── Email Inbox Component ─────────────────────────────────────────
 
 function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: string }) {
+  const { locale } = useLanguage();
+  const dateLocale = locale === 'en' ? 'en-US' : 'fr-FR';
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [thread, setThread] = useState<any[]>([]);
   const [threadProspect, setThreadProspect] = useState<any>(null);
@@ -516,7 +518,7 @@ function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: str
                   p.latest.status === 'clique' ? 'bg-purple-400/15 text-purple-400' :
                   'bg-blue-400/15 text-blue-400'
                 }`}>{p.latest.status}</span>
-                <span className="text-[9px] text-white/15">{new Date(p.latest.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}</span>
+                <span className="text-[9px] text-white/15">{new Date(p.latest.date).toLocaleDateString(dateLocale, { day: '2-digit', month: '2-digit' })}</span>
               </div>
             </button>
           ))}
@@ -562,7 +564,7 @@ function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: str
                       {msg.subject && <div className="font-semibold text-[11px] mb-1 opacity-90">{msg.subject}</div>}
                       <div className="whitespace-pre-wrap">{msg.message || '[pas de contenu]'}</div>
                       <div className={`text-[10px] mt-1 flex items-center gap-1.5 ${msg.direction === 'outgoing' ? 'text-cyan-200/50' : 'text-white/20'}`}>
-                        {msg.date ? new Date(msg.date).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}
+                        {msg.date ? new Date(msg.date).toLocaleString(dateLocale, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}
                         {msg.step && <span>· Etape {msg.step}</span>}
                       </div>
                     </div>

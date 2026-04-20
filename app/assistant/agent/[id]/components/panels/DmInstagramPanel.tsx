@@ -83,8 +83,9 @@ function mergeMessageArrays(
 // Live Instagram DM conversations component
 
 function DmConversationsLive() {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const p = t.panels;
+  const dateLocale = locale === 'en' ? 'en-US' : 'fr-FR';
   const [convs, setConvs] = useState<Array<{
     id: string;
     participant: { username: string; id: string };
@@ -344,7 +345,7 @@ function DmConversationsLive() {
                 </div>
                 {conv.updated_time && (
                   <div className="text-[9px] text-white/15 mt-0.5 pl-4">
-                    {new Date(conv.updated_time).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
+                    {new Date(conv.updated_time).toLocaleDateString(dateLocale, { day: '2-digit', month: '2-digit' })}
                   </div>
                 )}
               </button>
@@ -403,7 +404,7 @@ function DmConversationsLive() {
                     {msg.message || (msg.attachments?.length ? null : <span className="italic text-white/30">[media]</span>)}
                     <div className={`flex items-center gap-1 mt-0.5 ${msg.fromMe ? 'justify-end' : ''}`}>
                       <span className={`text-[10px] ${msg.fromMe ? 'text-purple-200/60' : 'text-white/20'}`}>
-                        {msg.created_time ? new Date(msg.created_time).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}
+                        {msg.created_time ? new Date(msg.created_time).toLocaleString(dateLocale, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}
                       </span>
                       {msg.fromMe && msg.status === 'sending' && <span className="text-[10px] text-yellow-300/60">{p.dmConvsStatusSending}</span>}
                       {msg.fromMe && msg.status === 'sent' && <span className="text-[10px] text-green-300/60">{'\u2713'}</span>}
