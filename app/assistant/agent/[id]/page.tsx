@@ -214,8 +214,9 @@ function getAgentSettings(agentId: string): SettingField[] {
 
 function generateId() { return 'msg_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8); }
 function formatFileSize(bytes: number) { if (bytes < 1024) return bytes + ' o'; if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' Ko'; return (bytes / (1024 * 1024)).toFixed(1) + ' Mo'; }
-function formatDate(iso: string) { return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }); }
-function formatDateTime(iso: string) { return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); }
+function _uiLoc(): string { if (typeof window === 'undefined') return 'fr-FR'; try { return localStorage.getItem('keiro_language') === 'en' ? 'en-US' : 'fr-FR'; } catch { return 'fr-FR'; } }
+function formatDate(iso: string) { return new Date(iso).toLocaleDateString(_uiLoc(), { day: 'numeric', month: 'short' }); }
+function formatDateTime(iso: string) { return new Date(iso).toLocaleDateString(_uiLoc(), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); }
 
 function useIsMobile() {
   const [m, setM] = useState(false);
@@ -398,8 +399,9 @@ function EditorialCalendarFull({ agentId }: { agentId: string }) {
 }
 
 export default function AgentWorkspacePage() {
-  const { t: tLang } = useLanguage();
+  const { t: tLang, locale } = useLanguage();
   const nn = (tLang as any).notif || {};
+  const isEn = locale === 'en';
   const params = useParams();
   const router = useRouter();
   const isMobile = useIsMobile();
@@ -1169,7 +1171,7 @@ export default function AgentWorkspacePage() {
             <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-white font-bold text-sm">{'\uD83D\uDCC5'} Planning de la semaine</h3>
-                <span className="text-white/30 text-xs">Semaine du {weekDays[0].toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</span>
+                <span className="text-white/30 text-xs">{isEn ? 'Week of' : 'Semaine du'} {weekDays[0].toLocaleDateString(_uiLoc(), { day: 'numeric', month: 'short' })}</span>
               </div>
 
               <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
@@ -1366,7 +1368,7 @@ export default function AgentWorkspacePage() {
                     }`}>
                       {task.status === 'success' ? 'Termine' : task.status === 'error' ? 'Echec' : 'En cours'}
                     </span>
-                    <span className="text-white/20 text-[9px]">{task.created_at ? new Date(task.created_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}</span>
+                    <span className="text-white/20 text-[9px]">{task.created_at ? new Date(task.created_at).toLocaleString(_uiLoc(), { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}</span>
                   </div>
                 </div>
               )) : (

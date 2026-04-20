@@ -201,7 +201,7 @@ export default function AgentChatPanel({
                         onClick={() => {
                           const clean = msg.content.replace(/```\[DOCUMENT_READY\]```/g, '').replace(/\[DOCUMENT_READY\]/g, '').replace(/\[EXCEL_READY\]/g, '').trim();
                           // Save to agent documents
-                          const doc = { id: `doc_${Date.now()}`, name: `Document ${new Date().toLocaleDateString('fr-FR')}`, content: clean, type: 'document' as const, folder: '', agentId: agent?.id || '', createdAt: new Date().toISOString() };
+                          const doc = { id: `doc_${Date.now()}`, name: `Document ${new Date().toLocaleDateString(typeof window !== 'undefined' && localStorage.getItem('keiro_language') === 'en' ? 'en-US' : 'fr-FR')}`, content: clean, type: 'document' as const, folder: '', agentId: agent?.id || '', createdAt: new Date().toISOString() };
                           const key = `keiro_docs_${agent?.id || ''}`;
                           try { const existing = JSON.parse(localStorage.getItem(key) || '[]'); localStorage.setItem(key, JSON.stringify([doc, ...existing])); } catch {}
                           window.dispatchEvent(new CustomEvent('keiro-doc-saved', { detail: doc }));

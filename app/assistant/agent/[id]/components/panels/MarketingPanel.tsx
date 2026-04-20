@@ -94,7 +94,7 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
         <SectionTitle>{p.marketingSectionFinance}</SectionTitle>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <KpiCard label={p.marketingLabelAdBudget} value={fmtCurrency(gs.finance.adBudget)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-          <KpiCard label={p.marketingLabelRoas} value={`${(gs.finance.roas || 0).toLocaleString('fr-FR', { maximumFractionDigits: 1 })}x`} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+          <KpiCard label={p.marketingLabelRoas} value={`${(gs.finance.roas || 0).toLocaleString(typeof window !== 'undefined' && localStorage.getItem('keiro_language') === 'en' ? 'en-US' : 'fr-FR', { maximumFractionDigits: 1 })}x`} gradientFrom={gradientFrom} gradientTo={gradientTo} />
           <KpiCard label={p.marketingLabelForecast} value={fmtCurrency(gs.finance.forecast)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
         </div>
 

@@ -29,7 +29,7 @@ export function AdsPanel({ data, agentName, gradientFrom, gradientTo }: PanelPro
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <KpiCard label={p.adsKpiActive} value={fmt(stats.campaigns)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
         <KpiCard label={p.adsKpiBudget} value={fmtCurrency(stats.totalSpend)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        <KpiCard label={p.adsKpiRoas} value={`${(stats.avgRoas || 0).toLocaleString('fr-FR', { maximumFractionDigits: 1 })}x`} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+        <KpiCard label={p.adsKpiRoas} value={`${(stats.avgRoas || 0).toLocaleString(typeof window !== 'undefined' && localStorage.getItem('keiro_language') === 'en' ? 'en-US' : 'fr-FR', { maximumFractionDigits: 1 })}x`} gradientFrom={gradientFrom} gradientTo={gradientTo} />
       </div>
 
       {/* Visual: budget & ROAS */}
@@ -85,7 +85,7 @@ export function AdsPanel({ data, agentName, gradientFrom, gradientTo }: PanelPro
               </div>
               <div className="flex items-center gap-4 text-xs text-white/50">
                 <span>Depense: <span className="text-white/70 font-medium">{fmtCurrency(c.spend)}</span></span>
-                <span>ROAS: <span className="text-white/70 font-medium">{(c.roas || 0).toLocaleString('fr-FR', { maximumFractionDigits: 1 })}x</span></span>
+                <span>ROAS: <span className="text-white/70 font-medium">{(c.roas || 0).toLocaleString(typeof window !== 'undefined' && localStorage.getItem('keiro_language') === 'en' ? 'en-US' : 'fr-FR', { maximumFractionDigits: 1 })}x</span></span>
               </div>
             </div>
           ))}

@@ -217,7 +217,7 @@ export function GmapsPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
         <KpiCard label={p.gmapsKpiAnswered} value={fmt(stats.reviewsAnswered)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
         <KpiCard
           label={p.gmapsKpiRating}
-          value={`${(stats.googleRating || 0).toLocaleString('fr-FR', { maximumFractionDigits: 1 })}/5`}
+          value={`${(stats.googleRating || 0).toLocaleString(typeof window !== 'undefined' && localStorage.getItem('keiro_language') === 'en' ? 'en-US' : 'fr-FR', { maximumFractionDigits: 1 })}/5`}
           gradientFrom={gradientFrom}
           gradientTo={gradientTo}
         />
@@ -249,7 +249,7 @@ export function GmapsPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
           </svg>
         ))}
         <span className="ml-3 text-lg font-bold text-white/80">
-          {(stats.googleRating || 0).toLocaleString('fr-FR', { maximumFractionDigits: 1 })}
+          {(stats.googleRating || 0).toLocaleString(typeof window !== 'undefined' && localStorage.getItem('keiro_language') === 'en' ? 'en-US' : 'fr-FR', { maximumFractionDigits: 1 })}
         </span>
       </div>
 

@@ -264,7 +264,7 @@ export function CountUp({
 
   return (
     <span ref={ref} className={className}>
-      {prefix}{count.toLocaleString('fr-FR')}{suffix}
+      {prefix}{count.toLocaleString(typeof window !== 'undefined' && localStorage.getItem('keiro_language') === 'en' ? 'en-US' : 'fr-FR')}{suffix}
     </span>
   );
 }
