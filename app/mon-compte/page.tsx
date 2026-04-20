@@ -8,6 +8,7 @@ import { Suspense } from "react";
 import FeedbackPopup from '@/components/FeedbackPopup';
 import FeedbackModal from '@/components/FeedbackModal';
 import { useFeedbackPopup } from '@/hooks/useFeedbackPopup';
+import { useLanguage } from '@/lib/i18n/context';
 
 import { PLAN_CREDITS, CREDIT_PACKS, FEATURE_LABELS } from '@/lib/credits/constants';
 import { startCheckout } from '@/lib/stripe/checkout';
@@ -35,6 +36,8 @@ export default function MonCompteWrapper() {
 
 function MonComptePage() {
   const router = useRouter();
+  const { locale } = useLanguage();
+  const isEn = locale === 'en';
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [instagramPosts, setInstagramPosts] = useState<any[]>([]);
@@ -326,14 +329,14 @@ function MonComptePage() {
               <h1 className="text-2xl font-bold text-neutral-900">
                 {profile?.first_name && profile?.last_name
                   ? `${profile.first_name} ${profile.last_name}`
-                  : 'Mon Compte'}
+                  : (isEn ? 'My Account' : 'Mon Compte')}
               </h1>
               <p className="text-sm text-neutral-500">{user?.email}</p>
               <div className="flex items-center gap-3 mt-1">
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold" style={{ backgroundColor: currentPlan.color + '20', color: currentPlan.color }}>
                   {currentPlan.name}
                 </span>
-                <span className="text-xs text-neutral-400">Membre depuis {memberSince}</span>
+                <span className="text-xs text-neutral-400">{isEn ? 'Member since' : 'Membre depuis'} {memberSince}</span>
               </div>
             </div>
           </div>
@@ -423,8 +426,8 @@ function MonComptePage() {
                   <div className="w-full bg-neutral-100 rounded-full h-3">
                     <div className={`h-3 rounded-full transition-all ${creditPct > 50 ? 'bg-gradient-to-r from-green-400 to-emerald-500' : creditPct > 20 ? 'bg-gradient-to-r from-amber-400 to-orange-500' : 'bg-gradient-to-r from-red-400 to-red-500'}`} style={{ width: `${Math.max(3, creditPct)}%` }} />
                   </div>
-                  {creditsBalance <= 0 && <p className="text-xs text-red-600 mt-1 font-medium">Plus de crédits disponibles</p>}
-                  {creditsBalance > 0 && creditsBalance <= 20 && <p className="text-xs text-amber-600 mt-1">Crédits bientôt épuisés</p>}
+                  {creditsBalance <= 0 && <p className="text-xs text-red-600 mt-1 font-medium">{isEn ? 'No credits left' : 'Plus de crédits disponibles'}</p>}
+                  {creditsBalance > 0 && creditsBalance <= 20 && <p className="text-xs text-amber-600 mt-1">{isEn ? 'Credits running low' : 'Crédits bientôt épuisés'}</p>}
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-center">
                   <div className="p-3 bg-neutral-50 rounded-lg">
@@ -606,7 +609,7 @@ function MonComptePage() {
                   type="text"
                   value={promoCode}
                   onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                  placeholder="Entrez votre code promo"
+                  placeholder={isEn ? 'Enter your promo code' : 'Entrez votre code promo'}
                   className="flex-1 px-4 py-2.5 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent uppercase tracking-wider"
                   onKeyDown={(e) => e.key === 'Enter' && handleRedeemPromo()}
                 />
@@ -875,7 +878,7 @@ function MonComptePage() {
           <div className="space-y-6">
             <div className="bg-white rounded-2xl shadow-lg border border-neutral-200 p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-neutral-900">Mes demandes de support</h2>
+                <h2 className="text-lg font-bold text-neutral-900">{isEn ? 'My support requests' : 'Mes demandes de support'}</h2>
                 <button
                   onClick={loadMyRequests}
                   className="text-sm text-[#0c1a3a] hover:underline"
@@ -889,7 +892,7 @@ function MonComptePage() {
                   <svg className="w-12 h-12 mx-auto mb-3 text-neutral-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                   </svg>
-                  <p className="text-sm">Aucune demande de support pour le moment</p>
+                  <p className="text-sm">{isEn ? 'No support requests yet' : 'Aucune demande de support pour le moment'}</p>
                   <p className="text-xs mt-1">Utilisez le bouton Contact dans le menu pour nous contacter</p>
                 </div>
               )}
@@ -985,7 +988,7 @@ function MonComptePage() {
                                 onClick={() => userFileRef.current?.click()}
                                 disabled={userUploading}
                                 className="px-3 py-2 border border-neutral-300 rounded-lg hover:bg-neutral-50 transition-all disabled:opacity-50"
-                                title="Joindre une image"
+                                title={isEn ? 'Attach an image' : 'Joindre une image'}
                               >
                                 {userUploading ? (
                                   <div className="w-4 h-4 border-2 border-[#0c1a3a] border-t-transparent rounded-full animate-spin" />
@@ -1000,7 +1003,7 @@ function MonComptePage() {
                                 value={userReply}
                                 onChange={(e) => setUserReply(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleUserReply(selectedMyRequest.id)}
-                                placeholder="Votre réponse..."
+                                placeholder={isEn ? 'Your reply...' : 'Votre réponse...'}
                                 className="flex-1 px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0c1a3a]"
                               />
                               <button
