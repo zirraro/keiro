@@ -409,7 +409,7 @@ export default function ClientCRM() {
             {/* Hot prospects */}
             {stats.hot > 0 && (
               <div className="rounded-xl bg-red-500/5 border border-red-500/20 p-4">
-                <h3 className="text-sm font-bold text-red-400 mb-3">{'\u{1F525}'} Prospects chauds a contacter</h3>
+                <h3 className="text-sm font-bold text-red-400 mb-3">{'\u{1F525}'} {nn.crmHotHeader || 'Prospects chauds a contacter'}</h3>
                 <div className="space-y-1.5">
                   {prospects.filter(p => p.temperature === 'hot').sort((a, b) => (b.score || 0) - (a.score || 0)).slice(0, 5).map(p => (
                     <button key={p.id} onClick={() => setSelectedProspect(p)} className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.06] transition text-left">
@@ -476,14 +476,14 @@ export default function ClientCRM() {
             <div className="flex flex-wrap gap-2 items-center">
               <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder={nn.crmSearchFull || 'Rechercher entreprise, email, type, quartier...'} className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-purple-500/50 flex-1 min-w-[120px] sm:min-w-[200px]" />
               <select value={filterStatus || ''} onChange={e => setFilterStatus(e.target.value || null)} className="px-2 py-2 bg-white/5 border border-white/10 rounded-lg text-xs text-white/70">
-                <option value="">Tous statuts</option>
+                <option value="">{nn.crmAllStatuses || 'Tous statuts'}</option>
                 {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label} ({byStatus[s.id] || 0})</option>)}
               </select>
               <select value={filterTemp || ''} onChange={e => setFilterTemp(e.target.value || null)} className="px-2 py-2 bg-white/5 border border-white/10 rounded-lg text-xs text-white/70">
-                <option value="">Toutes temp.</option>
+                <option value="">{nn.crmAllTemps || 'Toutes temp.'}</option>
                 {TEMPS.map(t => <option key={t.id} value={t.id}>{t.icon} {t.label}</option>)}
               </select>
-              <span className="text-[10px] text-white/30">{filtered.length} résultats</span>
+              <span className="text-[10px] text-white/30">{filtered.length} {nn.crmResults || 'résultats'}</span>
             </div>
 
             <div className="space-y-1">

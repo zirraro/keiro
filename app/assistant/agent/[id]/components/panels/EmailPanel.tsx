@@ -20,6 +20,7 @@ import { useLanguage } from '@/lib/i18n/context';
 import type { PanelProps } from './types';
 
 function EmailCard({ email }: { email: { prospect: string; type: string; status: string; date: string; subject?: string; message?: string; provider?: string } }) {
+  const { t } = useLanguage();
   const [showReply, setShowReply] = useState(false);
   const [replyText, setReplyText] = useState('');
   const [sending, setSending] = useState(false);
@@ -59,7 +60,7 @@ function EmailCard({ email }: { email: { prospect: string; type: string; status:
       {email.message && <div className="px-3 sm:px-4 pb-2 text-[10px] text-white/30 line-clamp-2">{email.message.replace(/<[^>]+>/g, '').substring(0, 200)}</div>}
       {showReply && (
         <div className="px-3 sm:px-4 pb-3 border-t border-white/5 pt-2 flex gap-2">
-          <input type="text" value={replyText} onChange={e => setReplyText(e.target.value)} placeholder="Repondre par email..." className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-purple-500/50" onKeyDown={e => { if (e.key === 'Enter') handleReply(); }} />
+          <input type="text" value={replyText} onChange={e => setReplyText(e.target.value)} placeholder={((t as any).notif?.emailReplyPlaceholder) || 'Repondre par email...'} className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-purple-500/50" onKeyDown={e => { if (e.key === 'Enter') handleReply(); }} />
           <button onClick={handleReply} disabled={sending || !replyText.trim()} className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all shrink-0 ${sent ? 'bg-emerald-500/20 text-emerald-400' : 'bg-cyan-600 text-white hover:bg-cyan-700'} disabled:opacity-40`}>
             {sent ? '\u2713' : sending ? '...' : 'Envoyer'}
           </button>

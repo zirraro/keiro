@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useLanguage } from '@/lib/i18n/context';
 
 /**
  * CampaignWizard — Quick 3-step wizard to launch an agent campaign.
@@ -140,6 +141,8 @@ export default function CampaignWizard({ agentId, agentName, onClose, onActivate
   onClose: () => void;
   onActivated: () => void;
 }) {
+  const { t } = useLanguage();
+  const nn = (t as any).notif || {};
   const wizard = AGENT_WIZARDS[agentId] || DEFAULT_WIZARD;
   const [step, setStep] = useState(0);
   const [values, setValues] = useState<Record<string, any>>(() => {
@@ -289,8 +292,8 @@ QUAND TU REPONDS DANS LE CHAT: 2 phrases maximum, style "C'est fait ! ${draftMod
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
         <div className="bg-gray-900 border border-purple-500/30 rounded-2xl p-8 max-w-sm w-full text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mx-auto mb-4" />
-          <h2 className="text-lg font-bold text-white mb-2">{agentName} travaille...</h2>
-          <p className="text-sm text-white/50">{statusMsg || 'Preparation en cours...'}</p>
+          <h2 className="text-lg font-bold text-white mb-2">{agentName} {nn.wizardWorking || 'travaille...'}</h2>
+          <p className="text-sm text-white/50">{statusMsg || (nn.wizardWorking ? 'Preparing...' : 'Preparation en cours...')}</p>
         </div>
       </div>
     );
@@ -304,14 +307,14 @@ QUAND TU REPONDS DANS LE CHAT: 2 phrases maximum, style "C'est fait ! ${draftMod
         <div className="bg-gray-900 border border-emerald-500/30 rounded-2xl p-8 max-w-sm w-full text-center animate-in zoom-in-95 duration-300">
           <div className="text-5xl mb-4">{isContent && draftMode ? '\u{1F4DD}' : '\u2705'}</div>
           <h2 className="text-lg font-bold text-white mb-2">
-            {isContent && draftMode ? 'Brouillon prêt !' : 'Campagne lancée !'}
+            {isContent && draftMode ? (nn.wizardSuccessTitleDraft || 'Brouillon prêt !') : (nn.wizardSuccessTitlePublished || 'Campagne lancée !')}
           </h2>
           <p className="text-sm text-white/50 mb-3">
             {isContent && draftMode
-              ? `Va dans "Brouillons" pour valider, modifier ou publier.`
+              ? (nn.wizardSuccessDraft || 'Va dans "Brouillons" pour valider, modifier ou publier.')
               : isContent
-                ? 'Post publié — va voir le résultat en ligne.'
-                : 'Les résultats apparaissent dans ton dashboard.'}
+                ? (nn.wizardSuccessPublished || 'Post publié — va voir le résultat en ligne.')
+                : 'Results will appear on your dashboard.'}
           </p>
           {isContent && draftMode && (
             <a
@@ -322,7 +325,7 @@ QUAND TU REPONDS DANS LE CHAT: 2 phrases maximum, style "C'est fait ! ${draftMod
               }
               className="inline-block px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-sm font-semibold transition"
             >
-              Ouvrir les brouillons
+              {nn.wizardOpenDrafts || 'Ouvrir les brouillons'}
             </a>
           )}
         </div>
