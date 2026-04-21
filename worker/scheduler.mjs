@@ -36,7 +36,7 @@ const GLOBAL_SCHEDULE = [
   { cron: '0 14 * * *',   slot: 'prospect_external', label: 'Prospect External' },
   { cron: '0 17 * * *',   slot: 'evening_batch',     label: 'Evening Batch' },
   { cron: '0 18 * * *',   slot: 'publish_scheduled', label: 'Publish Scheduled (evening)' },
-  { cron: '0 20 * * *',   slot: 'ceo_daily',         label: 'CEO Daily + Ops Health' },
+  { cron: '30 18 * * *',  slot: 'ceo_daily',         label: 'CEO Daily + Ops Health + Client Evening Brief' },
   { cron: '0 */6 * * *',  slot: 'video_poll',        label: 'Video Poll' },
   { cron: '0 7 * * 1',    path: '/api/agents/weekly-trends', label: 'Weekly Trends (Monday)' },
   { cron: '0 7 1 * *',    path: '/api/agents/monthly-recap', label: 'Monthly Recap (1st)' },

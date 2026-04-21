@@ -487,7 +487,12 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'ceo_daily':
-      // 20:00 UTC — Evening pipeline: Marketing → CEO → AMIT → Ops → Client evening debrief.
+      // 18:30 UTC (20:30 Paris) — Evening pipeline: Marketing → CEO → AMIT → Ops
+      // → Engagement sync → Followers snapshot → Client evening debrief.
+      // Chosen so the client brief lands ~20:45 Paris: after the evening batch
+      // (17:00 UTC) has completed and Brevo engagement signals have settled,
+      // but while the client is still mentally in "end of day" mode and can
+      // act on tomorrow's todos before winding down.
       // All in background to avoid the 300s serverless timeout.
       fireBackground(async () => {
         // Marketing analysis first (feeds CEO)
