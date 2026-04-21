@@ -3782,8 +3782,19 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
             .order('created_at', { ascending: false })
             .limit(20);
 
-          const candidates = (uploads || []).filter((u: any) => !recentUrls.has(u.file_url));
-          const pick = candidates[0] || (uploads || [])[0];
+          // Filter to raster formats only — Seedream i2i rejects SVG/GIF
+          // with "UnsupportedImageFormat", and publishing an SVG directly
+          // to Instagram would fail too (IG Graph API wants JPG/PNG).
+          const isRaster = (u: any) => {
+            const ft = (u.file_type || '').toLowerCase();
+            const url = (u.file_url || '').toLowerCase();
+            if (ft.includes('svg') || ft.includes('gif') || url.endsWith('.svg') || url.endsWith('.gif')) return false;
+            return true;
+          };
+          const candidates = (uploads || [])
+            .filter(isRaster)
+            .filter((u: any) => !recentUrls.has(u.file_url));
+          const pick = candidates[0] || (uploads || []).filter(isRaster)[0];
           if (pick?.file_url) pickedUpload = { id: pick.id, file_url: pick.file_url };
         } catch (e: any) {
           console.warn('[Content] Upload pick failed:', String(e?.message || e).substring(0, 200));
