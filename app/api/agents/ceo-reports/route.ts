@@ -426,15 +426,51 @@ async function handleClientBrief(supabase: any, timeOfDay: 'morning' | 'evening'
       let briefHtml = '';
       const clientName = client.first_name || dossier?.company_name || 'cher client';
 
-      // Tally concrete execution counts for the punchy header + stats strip
+      // Tally concrete execution counts — query artifact tables directly
+      // because most agent_logs are inserted without user_id (global log
+      // stream) so counting from `logs` filtered by client.id would
+      // undercount drastically. Counting published posts / dm queue rows /
+      // prospects gives the real per-client picture.
+      const sinceIso = since; // lookback window (24h by default)
+      const [postsPublishedRes, postsDraftedRes, dmsSentRes, dmsPreparedRes, prospectsAddedRes, emailsSentRes] = await Promise.all([
+        supabase.from('content_calendar')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', client.id)
+          .eq('status', 'published')
+          .gte('published_at', sinceIso),
+        supabase.from('content_calendar')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', client.id)
+          .in('status', ['draft', 'approved'])
+          .gte('created_at', sinceIso),
+        supabase.from('dm_queue')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', client.id)
+          .eq('status', 'sent')
+          .gte('updated_at', sinceIso),
+        supabase.from('dm_queue')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', client.id)
+          .in('status', ['ready', 'pending'])
+          .gte('created_at', sinceIso),
+        supabase.from('crm_prospects')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', client.id)
+          .gte('created_at', sinceIso),
+        supabase.from('crm_activities')
+          .select('id', { count: 'exact', head: true })
+          .eq('type', 'email')
+          .contains('data', { direction: 'outbound' })
+          .gte('created_at', sinceIso),
+      ]);
       const doneCounts = {
-        posts_published: (logs || []).filter((l: any) => l.agent === 'content' && l.action === 'execute_publication' && (l.status === 'success' || l.status === 'ok')).length,
-        posts_drafted:   (logs || []).filter((l: any) => l.agent === 'content' && (l.action === 'daily_post_generated' || l.action === 'weekly_plan_generated')).length,
-        emails_sent:     (logs || []).filter((l: any) => l.agent === 'email' && (l.action === 'email_sent' || l.action === 'sequence_fired')).length,
-        dms_prepared:    (logs || []).filter((l: any) => l.agent === 'dm_instagram' && (l.action === 'dm_prepared' || l.action === 'queue_build')).length,
-        dms_sent:        (logs || []).filter((l: any) => l.agent === 'dm_instagram' && l.action === 'dm_sent').length,
-        comments_replied:(logs || []).filter((l: any) => l.agent === 'instagram_comments' && l.action === 'reply_sent').length,
-        prospects_added: (logs || []).filter((l: any) => l.agent === 'commercial' && l.action === 'prospects_imported').length,
+        posts_published: postsPublishedRes.count || 0,
+        posts_drafted: postsDraftedRes.count || 0,
+        emails_sent: emailsSentRes.count || 0,
+        dms_prepared: dmsPreparedRes.count || 0,
+        dms_sent: dmsSentRes.count || 0,
+        comments_replied: (logs || []).filter((l: any) => l.agent === 'instagram_comments' && l.action === 'reply_sent').length,
+        prospects_added: prospectsAddedRes.count || 0,
       };
       const errorCount  = (logs || []).filter((l: any) => l.status === 'error' || l.action === 'execution_failure').length;
       const totalDone   = Object.values(doneCounts).reduce((a, b) => a + b, 0);
@@ -484,6 +520,7 @@ REGLES ABSOLUES:
 - Pas de signature finale ("Noah", "A demain") — le template la gere.
 - Pas de mention KeiroAI, erreurs, taux d'erreur.
 - Si la journee est calme (0 action): reste positif ("Tes agents preparent la journee de demain").
+- SORTIE: HTML brut uniquement. NE PAS entourer la reponse de \`\`\`html ... \`\`\` ni de balises markdown. Commence directement par <p>.
 `,
               messages: [{ role: 'user', content:
 `Stats brutes 24h:
@@ -506,6 +543,11 @@ Rédige le brief.`
           if (res.ok) {
             const data = await res.json();
             briefHtml = data.content?.[0]?.text || '';
+            // Strip markdown code fences if the model wrapped output in ```html ... ```
+            briefHtml = briefHtml
+              .replace(/^\s*```(?:html)?\s*\n?/i, '')
+              .replace(/\n?```\s*$/i, '')
+              .trim();
           }
         } catch { /* silent */ }
       }
@@ -579,7 +621,7 @@ ${errorCount > 0 ? `<p style="font-size:11px;color:#9ca3af;margin:4px 0 0;">${er
                 ${briefHtml}
               </div>
               <div style="background:#f9fafb;padding:12px;text-align:center;color:#9ca3af;font-size:11px;border-radius:0 0 12px 12px;">
-                Noah — Ton strategist IA chez KeiroAI
+                Noah — Ton stratège chez KeiroAI
               </div>
             </div>`,
           }),

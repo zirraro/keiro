@@ -714,14 +714,12 @@ export async function GET(request: NextRequest) {
           console.log('[Scheduler/ceo] CEO Group report sent to admin');
         } catch (e: any) { console.error('[Scheduler/ceo] CEO Group error:', e.message?.substring(0, 200)); }
       });
-      // Phase 2: Orders + client briefs only (CEO brief no longer sent to admin)
+      // Phase 2: Orders only (no morning client brief — user asked for a
+      // single Noah email per day, fired in the evening slot so it reports
+      // what actually ran that day).
       fireBackground(async () => {
-        await delay(60000); // Wait 60s for reports to finish
-        // CEO Brief removed for admin — admin only gets CEO Group reco code report
+        await delay(60000);
         await callEndpoint('Execute Orders', '/api/agents/orders');
-        await delay(5000);
-        // Send Noah + AMI brief to each client (morning — 7h Paris)
-        await callEndpoint('Noah Client Brief', '/api/agents/ceo-reports?type=client_brief', 'POST');
       });
       results.push({ task: 'CEO Brief + Reports + Orders', ok: true, data: { status: 'dispatched_background' } });
       break;
