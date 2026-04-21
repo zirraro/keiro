@@ -433,10 +433,19 @@ async function handleClientBrief(supabase: any, timeOfDay: 'morning' | 'evening'
       // last_email_opened_at, dm_sent_at, verified_at), so filtering there
       // gives us accurate per-client counts without fragile PostgREST joins.
       const sinceIso = since; // lookback window (24h by default)
+      const oneWeekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+      const twoWeeksAgo = new Date(Date.now() - 14 * 86400000).toISOString();
       const [
         postsPublishedRes, postsDraftedRes,
         emailsSentRes, emailsOpenedRes, emailsClickedRes,
-        dmsSentRes, prospectsVerifiedRes, prospectsAddedRes,
+        dmsSentRes, dmsFollowedRes,
+        prospectsVerifiedRes, prospectsAddedRes, gmapsImportsRes,
+        // lifetime totals (for milestone achievements)
+        lifetimeEmailsRes, lifetimePostsRes, lifetimeProspectsRes, lifetimeDmsRes,
+        // streak data
+        streakDatesRes,
+        // week over week
+        thisWeekHotRes, prevWeekHotRes,
       ] = await Promise.all([
         supabase.from('content_calendar')
           .select('id', { count: 'exact', head: true })
@@ -467,11 +476,55 @@ async function handleClientBrief(supabase: any, timeOfDay: 'morning' | 'evening'
         supabase.from('crm_prospects')
           .select('id', { count: 'exact', head: true })
           .eq('user_id', client.id)
+          .gte('dm_followed_at', sinceIso),
+        supabase.from('crm_prospects')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', client.id)
           .gte('verified_at', sinceIso),
         supabase.from('crm_prospects')
           .select('id', { count: 'exact', head: true })
           .eq('user_id', client.id)
           .gte('created_at', sinceIso),
+        supabase.from('crm_prospects')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', client.id)
+          .eq('source_agent', 'gmaps')
+          .gte('created_at', sinceIso),
+        // lifetime totals — for milestone achievements
+        supabase.from('crm_prospects')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', client.id)
+          .not('last_email_sent_at', 'is', null),
+        supabase.from('content_calendar')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', client.id)
+          .eq('status', 'published'),
+        supabase.from('crm_prospects')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', client.id),
+        supabase.from('crm_prospects')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', client.id)
+          .not('dm_sent_at', 'is', null),
+        // streak data: published_at dates over last 14 days
+        supabase.from('content_calendar')
+          .select('published_at')
+          .eq('user_id', client.id)
+          .eq('status', 'published')
+          .gte('published_at', twoWeeksAgo)
+          .order('published_at', { ascending: false }),
+        // this week hot (last 7d) vs prev week hot (7-14d)
+        supabase.from('crm_prospects')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', client.id)
+          .eq('temperature', 'hot')
+          .gte('updated_at', oneWeekAgo),
+        supabase.from('crm_prospects')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', client.id)
+          .eq('temperature', 'hot')
+          .gte('updated_at', twoWeeksAgo)
+          .lt('updated_at', oneWeekAgo),
       ]);
       const doneCounts = {
         posts_published: postsPublishedRes.count || 0,
@@ -480,11 +533,78 @@ async function handleClientBrief(supabase: any, timeOfDay: 'morning' | 'evening'
         emails_opened: emailsOpenedRes.count || 0,
         emails_clicked: emailsClickedRes.count || 0,
         dms_sent: dmsSentRes.count || 0,
+        dms_followed: dmsFollowedRes.count || 0,
         prospects_verified: prospectsVerifiedRes.count || 0,
         prospects_added: prospectsAddedRes.count || 0,
+        gmaps_imports: gmapsImportsRes.count || 0,
+      };
+      const lifetimeCounts = {
+        emails: lifetimeEmailsRes.count || 0,
+        posts: lifetimePostsRes.count || 0,
+        prospects: lifetimeProspectsRes.count || 0,
+        dms: lifetimeDmsRes.count || 0,
       };
       const errorCount  = (logs || []).filter((l: any) => l.status === 'error' || l.action === 'execution_failure').length;
       const totalDone   = Object.values(doneCounts).reduce((a, b) => a + b, 0);
+
+      // ── Achievements: milestones, streaks, week-over-week growth ──
+      const achievements: string[] = [];
+      const MILESTONES = [10, 50, 100, 500, 1000, 5000, 10000, 25000, 50000];
+      const checkMilestone = (lifetime: number, delta: number, label: string, emoji: string) => {
+        const before = lifetime - delta;
+        for (const m of MILESTONES) {
+          if (before < m && lifetime >= m) {
+            return `${emoji} Cap historique franchi : <strong>${m.toLocaleString('fr-FR')} ${label}</strong> au total depuis le début — bravo !`;
+          }
+        }
+        return null;
+      };
+      const mEmails = checkMilestone(lifetimeCounts.emails, doneCounts.emails_sent, 'emails envoyés', '🏆');
+      if (mEmails) achievements.push(mEmails);
+      const mPosts = checkMilestone(lifetimeCounts.posts, doneCounts.posts_published, 'posts publiés', '📸');
+      if (mPosts) achievements.push(mPosts);
+      const mProspects = checkMilestone(lifetimeCounts.prospects, doneCounts.prospects_added, 'prospects dans ton CRM', '🎯');
+      if (mProspects) achievements.push(mProspects);
+      const mDms = checkMilestone(lifetimeCounts.dms, doneCounts.dms_sent, 'DMs envoyés', '💬');
+      if (mDms) achievements.push(mDms);
+
+      // Streak: consecutive days with at least 1 publication
+      const publishedDays = new Set(
+        ((streakDatesRes.data || []) as { published_at: string }[])
+          .map(r => r.published_at.slice(0, 10))
+      );
+      let streak = 0;
+      for (let i = 0; i < 14; i++) {
+        const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
+        if (publishedDays.has(d)) streak++;
+        else break;
+      }
+      if (streak >= 3) {
+        achievements.push(`🔥 <strong>${streak} jours d'affilée</strong> de publications Instagram — la régularité paie, continue !`);
+      }
+
+      // Week-over-week hot prospects
+      const thisW = thisWeekHotRes.count || 0;
+      const prevW = prevWeekHotRes.count || 0;
+      if (thisW > prevW && prevW > 0) {
+        const pct = Math.round(((thisW - prevW) / prevW) * 100);
+        achievements.push(`📈 <strong>+${pct}% de prospects chauds</strong> cette semaine (${prevW} → ${thisW}) — KeiroAI te remplit le pipeline.`);
+      } else if (thisW >= 10 && prevW === 0) {
+        achievements.push(`📈 <strong>${thisW} prospects chauds</strong> cette semaine — nouveau pipeline qui démarre fort.`);
+      }
+
+      // Personal record check (today vs lifetime daily average)
+      if (doneCounts.emails_sent >= 50 && lifetimeCounts.emails > 0) {
+        const dailyAvg = Math.max(1, Math.round(lifetimeCounts.emails / 30)); // rough 30d avg
+        if (doneCounts.emails_sent >= dailyAvg * 2) {
+          achievements.push(`⭐ Record du jour : <strong>${doneCounts.emails_sent} emails envoyés</strong> (soit ${Math.round(doneCounts.emails_sent / dailyAvg)}× ta moyenne habituelle).`);
+        }
+      }
+
+      const openRatePreview = doneCounts.emails_sent > 0
+        ? Math.round((doneCounts.emails_opened / doneCounts.emails_sent) * 100)
+        : 0;
+      const openRateHint = doneCounts.emails_opened > 0 ? ` (${openRatePreview}% d'ouverture)` : '';
 
       if (ANTHROPIC_KEY) {
         try {
@@ -493,60 +613,55 @@ async function handleClientBrief(supabase: any, timeOfDay: 'morning' | 'evening'
             headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
             body: JSON.stringify({
               model: 'claude-haiku-4-5-20251001',
-              max_tokens: 600,
-              system: `Tu es Noah (stratege KeiroAI). Tu envoies un ${isEvening ? 'DEBRIEF DU SOIR' : 'BRIEF DU MATIN'} SCANNABLE a ${clientName}.
+              max_tokens: 500,
+              system: `Tu es Noah, stratège chez KeiroAI. Tu envoies un ${isEvening ? 'DEBRIEF DU SOIR' : 'BRIEF DU MATIN'} court et chaleureux à ${clientName}.
 
 CONTEXTE CLIENT:
 ${clientContext || 'Nouveau client, pas encore de profil complet.'}
 
-FORMAT OBLIGATOIRE (HTML strict, tutoiement, zero jargon) — 4 blocs courts:
+FORMAT OBLIGATOIRE — HTML brut, tutoiement, zero jargon, 3 blocs SEULEMENT (les stats détaillées et la liste par agent sont ajoutées automatiquement par le template — tu n'as PAS à les réécrire):
 
-<p style="margin:0 0 12px;font-size:14px;"><strong>${isEvening ? `Bonsoir ${clientName} 🌙` : `Salut ${clientName} 👋`}</strong> — une phrase punchy qui dit en 1 ligne ${isEvening ? 'si la journee a ete productive ou calme, et si quelque chose necessite ton attention demain' : 'si la journee est productive, a surveiller, ou calme'}.</p>
+<p style="margin:0 0 14px;font-size:14px;"><strong>${isEvening ? `Bonsoir ${clientName} 🌙` : `Salut ${clientName} 👋`}</strong> — une phrase punchy de félicitations ou d'accompagnement. ${isEvening ? 'Reconnais le travail accompli (ex: "belle journée, tes agents ont poussé fort" ou "journée calme, on reprend demain").' : 'Donne le ton de la journée qui commence (ex: "journée à fort potentiel" ou "journée de consolidation").'}</p>
 
-<h4 style="margin:0 0 6px;color:#16a34a;font-size:13px;">✅ ${isEvening ? 'Ce qui a ete execute aujourd\u2019hui' : 'Ce que tes agents ont fait (24h)'}</h4>
+<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">${isEvening ? '📌 À lancer demain (tâche humaine)' : '📌 Ce que tu dois faire aujourd\u2019hui'}</h4>
 <ul style="margin:0 0 12px;padding-left:18px;font-size:13px;">
-  — 3 a 5 puces ULTRA COURTES (une ligne chacune).
-  — Preference: actions mesurables ("12 emails envoyes", "2 posts IG publies", "5 prospects chauds detectes").
-  — Si rien cote agent X, ne liste pas X — pas de "0 posts" inutile.
-</ul>
-
-<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">${isEvening ? '📌 A lancer demain (tache humaine)' : '📌 Ce que tu dois faire aujourd\u2019hui'}</h4>
-<ul style="margin:0 0 12px;padding-left:18px;font-size:13px;">
-  — 1 a 3 actions humaines concretes.
-  — Chaque action = 1 verbe d'action + lien mental (ex: "Valide les 3 posts en attente dans Léna").
-  — Si agent en MANUEL ou prospects chauds, priorise-les ici.
-  — Si rien d'urgent cote humain, dis-le: "${isEvening ? 'Rien a faire demain cote humain, tout tourne en auto' : 'Rien a faire aujourd\u2019hui, tout tourne en auto'}".
+  — 1 à 3 actions humaines concrètes. Verbe d'action + objet clair (ex: "Valide les 3 posts en attente dans Léna", "Relance les ${hotCount || 'X'} prospects chauds").
+  — Si agent en MANUEL ou prospects chauds en attente, priorise-les.
+  — Si rien d'urgent : dis-le simplement ("${isEvening ? 'Rien à faire demain côté humain, tout tourne en auto' : 'Rien à faire aujourd\u2019hui, tout tourne en auto'}").
 </ul>
 
 <h4 style="margin:0 0 6px;color:#a855f7;font-size:13px;">⚡ Sur les rails (auto)</h4>
 <ul style="margin:0 0 12px;padding-left:18px;font-size:13px;">
-  — 1 a 2 puces qui rassurent sur ce qui tourne en automatique sans intervention.
-  — Ex: "Hugo envoie la sequence fleuristes en Ile-de-France", "Léna publie demain 3 posts IG".
+  — 1 à 2 puces rassurantes sur ce qui tourne sans toi (ex: "Hugo continue la séquence fleuristes", "Léna prépare les posts de demain").
 </ul>
 
 REGLES ABSOLUES:
-- Tutoiement. Chaleureux.
-- Pas de phrase de transition ("Voici", "Je vous informe", "N'hesite pas").
-- Pas de bloc "Stats" — les stats sont ajoutees par le template.
-- Pas de signature finale ("Noah", "A demain") — le template la gere.
+- Tutoiement. Chaleureux, encourageant, comme un coach business.
+- NE PAS rédiger de bloc "ce qui a été fait / stats" — c'est le template qui ajoute les chiffres après ton texte.
+- Pas de phrase de transition ("Voici", "Je vous informe", "N'hésite pas").
+- Pas de signature ni "Noah" final — le template la gère.
 - Pas de mention KeiroAI, erreurs, taux d'erreur.
-- Si la journee est calme (0 action): reste positif ("Tes agents preparent la journee de demain").
-- SORTIE: HTML brut uniquement. NE PAS entourer la reponse de \`\`\`html ... \`\`\` ni de balises markdown. Commence directement par <p>.
+- Si journée calme (0 action) : reste positif ("Tes agents préparent la journée de demain").
+- SORTIE: HTML brut uniquement. NE PAS entourer la réponse de \`\`\`html ... \`\`\` ni de balises markdown. Commence directement par <p>.
 `,
               messages: [{ role: 'user', content:
 `Stats brutes 24h:
-- Posts publies: ${doneCounts.posts_published}
-- Posts en brouillon: ${doneCounts.posts_drafted}
-- Emails envoyes: ${doneCounts.emails_sent}
-- Emails ouverts: ${doneCounts.emails_opened}
+- Posts publies (Léna): ${doneCounts.posts_published}
+- Posts en préparation (Léna): ${doneCounts.posts_drafted}
+- Emails envoyes (Hugo): ${doneCounts.emails_sent}
+- Emails ouverts: ${doneCounts.emails_opened}${openRateHint}
 - Emails cliques: ${doneCounts.emails_clicked}
-- DMs envoyes: ${doneCounts.dms_sent}
-- Prospects verifies (Léo): ${doneCounts.prospects_verified}
-- Prospects ajoutes: ${doneCounts.prospects_added}
-- Prospects chauds (total): ${hotCount || 0} (sur ${prospectCount || 0})
+- DMs envoyes (Jade): ${doneCounts.dms_sent}
+- Nouveaux follows Insta (Jade): ${doneCounts.dms_followed}
+- Prospects ajoutes au CRM (Léo): ${doneCounts.prospects_added}
+- Prospects valides joignables (Léo): ${doneCounts.prospects_verified}
+- Commerces importes Google Maps (Théo): ${doneCounts.gmaps_imports}
+- Prospects chauds total: ${hotCount || 0} (sur ${prospectCount || 0})
 - Agents AUTO: ${autoAgents.join(', ') || 'aucun'}
 - Agents MANUEL: ${manualAgents.join(', ') || 'aucun'}
 - Plan: ${client.subscription_plan}
+
+IMPORTANT: la liste détaillée par agent et les tuiles de stats sont ajoutées automatiquement APRÈS ton texte. Ta mission = 1 phrase punchy + 2 blocs courts ("à faire demain" + "sur les rails"). Pas de liste de chiffres dans ton texte (pour éviter la redondance).
 
 Rédige le brief.`
               }],
@@ -564,34 +679,28 @@ Rédige le brief.`
         } catch { /* silent */ }
       }
 
-      // Fallback if AI fails — still scannable + structured
+      // Fallback if AI fails — short narrative, detail comes from template
       if (!briefHtml) {
-        briefHtml = `<p style="margin:0 0 12px;"><strong>Salut ${clientName} 👋</strong> — ${totalDone > 0 ? `tes agents ont realise ${totalDone} actions ces dernieres 24h.` : 'journee calme, tes agents preparent la suite.'}</p>
-${totalDone > 0 ? `<h4 style="margin:0 0 6px;color:#16a34a;">✅ Ce qui a ete fait</h4><ul style="margin:0 0 12px;padding-left:18px;">
-  ${doneCounts.posts_published > 0 ? `<li>${doneCounts.posts_published} post(s) publie(s)</li>` : ''}
-  ${doneCounts.emails_sent > 0 ? `<li>${doneCounts.emails_sent} email(s) envoye(s)${doneCounts.emails_opened > 0 ? ` — ${doneCounts.emails_opened} ouvert(s)` : ''}</li>` : ''}
-  ${doneCounts.dms_sent > 0 ? `<li>${doneCounts.dms_sent} DM(s) envoye(s)</li>` : ''}
-  ${doneCounts.prospects_verified > 0 ? `<li>${doneCounts.prospects_verified} prospect(s) verifie(s) par Léo</li>` : ''}
-  ${doneCounts.prospects_added > 0 ? `<li>${doneCounts.prospects_added} nouveau(x) prospect(s)</li>` : ''}
-</ul>` : ''}
-${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;">📌 A faire aujourd'hui</h4><ul style="margin:0 0 12px;padding-left:18px;"><li>Contacter ${hotCount} prospect(s) chaud(s) dans ton CRM</li></ul>` : ''}`;
+        briefHtml = `<p style="margin:0 0 14px;font-size:14px;"><strong>${isEvening ? `Bonsoir ${clientName} 🌙` : `Salut ${clientName} 👋`}</strong> — ${totalDone > 0 ? `tes agents ont poussé fort, ${totalDone} actions au compteur.` : 'journée calme, tes agents préparent la suite.'}</p>
+${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 À faire ${isEvening ? 'demain' : 'aujourd\u2019hui'}</h4><ul style="margin:0 0 12px;padding-left:18px;font-size:13px;"><li>Relancer tes ${hotCount} prospect${hotCount > 1 ? 's' : ''} chaud${hotCount > 1 ? 's' : ''} dans ton CRM</li></ul>` : `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 À faire ${isEvening ? 'demain' : 'aujourd\u2019hui'}</h4><ul style="margin:0 0 12px;padding-left:18px;font-size:13px;"><li>Rien d'urgent, tout tourne en auto</li></ul>`}
+<h4 style="margin:0 0 6px;color:#a855f7;font-size:13px;">⚡ Sur les rails (auto)</h4>
+<ul style="margin:0 0 12px;padding-left:18px;font-size:13px;"><li>Tes agents continuent leur travail en arrière-plan.</li></ul>`;
       }
 
-      // Stats strip — 6 tiles (3x2) so the client sees the whole funnel at
-      // a glance: production (posts) → outreach (emails/DMs) → engagement
-      // (opens/verified) → pipeline (chauds).
+      // Stats strip — 6 tiles (3x2): full funnel production → outreach → pipeline.
       const openRate = doneCounts.emails_sent > 0
         ? Math.round((doneCounts.emails_opened / doneCounts.emails_sent) * 100)
         : 0;
       const statsStripHtml = `
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0 8px;">
+<h4 style="margin:16px 0 8px;color:#374151;font-size:13px;">📊 Tes chiffres du jour</h4>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 12px;">
   <div style="background:#f0fdf4;border-radius:8px;padding:10px;text-align:center;">
     <div style="font-size:18px;font-weight:bold;color:#16a34a;">${doneCounts.posts_published}</div>
-    <div style="font-size:10px;color:#6b7280;">📸 Posts publies</div>
+    <div style="font-size:10px;color:#6b7280;">📸 Posts publiés</div>
   </div>
   <div style="background:#eff6ff;border-radius:8px;padding:10px;text-align:center;">
     <div style="font-size:18px;font-weight:bold;color:#2563eb;">${doneCounts.emails_sent}</div>
-    <div style="font-size:10px;color:#6b7280;">✉️ Emails envoyes</div>
+    <div style="font-size:10px;color:#6b7280;">✉️ Emails envoyés</div>
   </div>
   <div style="background:#ecfeff;border-radius:8px;padding:10px;text-align:center;">
     <div style="font-size:18px;font-weight:bold;color:#0891b2;">${doneCounts.emails_opened}${openRate > 0 ? ` <span style=\"font-size:11px;color:#6b7280;\">(${openRate}%)</span>` : ''}</div>
@@ -599,19 +708,68 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;">📌 A faire aujourd
   </div>
   <div style="background:#fdf4ff;border-radius:8px;padding:10px;text-align:center;">
     <div style="font-size:18px;font-weight:bold;color:#a855f7;">${doneCounts.dms_sent}</div>
-    <div style="font-size:10px;color:#6b7280;">💬 DMs envoyes</div>
+    <div style="font-size:10px;color:#6b7280;">💬 DMs envoyés</div>
   </div>
   <div style="background:#f5f3ff;border-radius:8px;padding:10px;text-align:center;">
-    <div style="font-size:18px;font-weight:bold;color:#7c3aed;">${doneCounts.prospects_verified}</div>
-    <div style="font-size:10px;color:#6b7280;">🔍 Prospects verifies</div>
+    <div style="font-size:18px;font-weight:bold;color:#7c3aed;">${doneCounts.prospects_added}</div>
+    <div style="font-size:10px;color:#6b7280;">📥 Prospects ajoutés</div>
   </div>
   <div style="background:${hotCount > 0 ? '#fef3c7' : '#f9fafb'};border-radius:8px;padding:10px;text-align:center;">
     <div style="font-size:18px;font-weight:bold;color:${hotCount > 0 ? '#d97706' : '#6b7280'};">${hotCount || 0}</div>
     <div style="font-size:10px;color:#6b7280;">🔥 Prospects chauds</div>
   </div>
-</div>
-${errorCount > 0 ? `<p style="font-size:11px;color:#9ca3af;margin:4px 0 0;">${errorCount} incident(s) technique(s) detecte(s) — notre equipe les regarde.</p>` : ''}`;
-      briefHtml = `${briefHtml}${statsStripHtml}`;
+</div>`;
+
+      // Per-agent breakdown — only agents that did something show up
+      const agentLines: string[] = [];
+      if (doneCounts.posts_published > 0 || doneCounts.posts_drafted > 0) {
+        const parts = [];
+        if (doneCounts.posts_published > 0) parts.push(`<strong>${doneCounts.posts_published}</strong> post${doneCounts.posts_published > 1 ? 's' : ''} publié${doneCounts.posts_published > 1 ? 's' : ''} sur Instagram`);
+        if (doneCounts.posts_drafted > 0) parts.push(`<strong>${doneCounts.posts_drafted}</strong> en préparation`);
+        agentLines.push(`<div style="margin:6px 0;"><strong style="color:#db2777;">🖼️ Léna</strong> <span style="color:#9ca3af;font-size:11px;">· content</span> — ${parts.join(', ')}</div>`);
+      }
+      if (doneCounts.emails_sent > 0 || doneCounts.emails_opened > 0) {
+        const parts = [];
+        if (doneCounts.emails_sent > 0) parts.push(`<strong>${doneCounts.emails_sent}</strong> envoyé${doneCounts.emails_sent > 1 ? 's' : ''}`);
+        if (doneCounts.emails_opened > 0) parts.push(`<strong>${doneCounts.emails_opened}</strong> ouvert${doneCounts.emails_opened > 1 ? 's' : ''} (${openRate}%)`);
+        if (doneCounts.emails_clicked > 0) parts.push(`<strong>${doneCounts.emails_clicked}</strong> clic${doneCounts.emails_clicked > 1 ? 's' : ''}`);
+        agentLines.push(`<div style="margin:6px 0;"><strong style="color:#2563eb;">✉️ Hugo</strong> <span style="color:#9ca3af;font-size:11px;">· email</span> — ${parts.join(', ')}</div>`);
+      }
+      if (doneCounts.prospects_added > 0 || doneCounts.prospects_verified > 0) {
+        const parts = [];
+        if (doneCounts.prospects_added > 0) parts.push(`<strong>${doneCounts.prospects_added}</strong> ajouté${doneCounts.prospects_added > 1 ? 's' : ''} au CRM`);
+        if (doneCounts.prospects_verified > 0) parts.push(`<strong>${doneCounts.prospects_verified}</strong> validé${doneCounts.prospects_verified > 1 ? 's' : ''} (joignables)`);
+        agentLines.push(`<div style="margin:6px 0;"><strong style="color:#7c3aed;">🎯 Léo</strong> <span style="color:#9ca3af;font-size:11px;">· commercial</span> — ${parts.join(', ')}</div>`);
+      }
+      if (doneCounts.dms_sent > 0 || doneCounts.dms_followed > 0) {
+        const parts = [];
+        if (doneCounts.dms_sent > 0) parts.push(`<strong>${doneCounts.dms_sent}</strong> DM${doneCounts.dms_sent > 1 ? 's' : ''} envoyé${doneCounts.dms_sent > 1 ? 's' : ''}`);
+        if (doneCounts.dms_followed > 0) parts.push(`<strong>${doneCounts.dms_followed}</strong> nouveau${doneCounts.dms_followed > 1 ? 'x' : ''} follow${doneCounts.dms_followed > 1 ? 's' : ''}`);
+        agentLines.push(`<div style="margin:6px 0;"><strong style="color:#a855f7;">💬 Jade</strong> <span style="color:#9ca3af;font-size:11px;">· DM Instagram</span> — ${parts.join(', ')}</div>`);
+      }
+      if (doneCounts.gmaps_imports > 0) {
+        agentLines.push(`<div style="margin:6px 0;"><strong style="color:#059669;">📍 Théo</strong> <span style="color:#9ca3af;font-size:11px;">· Google Maps</span> — <strong>${doneCounts.gmaps_imports}</strong> commerce${doneCounts.gmaps_imports > 1 ? 's' : ''} importé${doneCounts.gmaps_imports > 1 ? 's' : ''}</div>`);
+      }
+      const perAgentHtml = agentLines.length > 0 ? `
+<h4 style="margin:16px 0 8px;color:#374151;font-size:13px;">👥 Chaque agent en action</h4>
+<div style="background:#f9fafb;border-radius:8px;padding:12px 14px;font-size:13px;line-height:1.5;">
+  ${agentLines.join('')}
+</div>` : '';
+
+      // Achievements banner — shown at the very top when something to celebrate
+      const achievementsHtml = achievements.length > 0 ? `
+<div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border-left:4px solid #f59e0b;padding:12px 14px;border-radius:8px;margin:0 0 16px;">
+  <div style="font-size:11px;color:#92400e;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">🎉 À célébrer aujourd'hui</div>
+  ${achievements.map(a => `<div style="font-size:13px;color:#78350f;margin:4px 0;">${a}</div>`).join('')}
+</div>` : '';
+
+      const footerNote = errorCount > 0
+        ? `<p style="font-size:11px;color:#9ca3af;margin:12px 0 0;text-align:center;">${errorCount} incident(s) technique(s) détecté(s) — notre équipe les regarde.</p>`
+        : '';
+
+      // Assembly order: achievements on top (dopamine), then AI narrative,
+      // then per-agent detail, then stats tiles, then error footnote
+      briefHtml = `${achievementsHtml}${briefHtml}${perAgentHtml}${statsStripHtml}${footerNote}`;
 
       // Save as in-app notification
       if (prefs?.inapp_enabled !== false) {
