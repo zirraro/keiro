@@ -8,6 +8,7 @@ import { verifyCRMCoherence } from '@/lib/agents/business-timing';
 import { loadContextWithAvatar } from '@/lib/agents/shared-context';
 import { saveLearning, saveAgentFeedback } from '@/lib/agents/learning';
 import { verifyInstagramHandle } from '@/lib/agents/dm-verify';
+import { getInstagramProfileSnapshot, snapshotToPromptContext, type IgProfileSnapshot } from '@/lib/agents/ig-profile-snapshot';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -102,7 +103,11 @@ async function generateProspectVisual(prospect: any): Promise<string | null> {
 /**
  * Generate personalized DM via Claude Haiku
  */
-async function generateDM(prospect: any, platform: 'instagram' | 'tiktok' = 'instagram'): Promise<{ dm_text: string; personalization_detail: string; follow_up_3d: string; follow_up_7d?: string; response_interested?: string; response_skeptical?: string; tone_notes?: string; pre_comments?: string[] } | null> {
+async function generateDM(
+  prospect: any,
+  platform: 'instagram' | 'tiktok' = 'instagram',
+  liveSnapshot: IgProfileSnapshot | null = null,
+): Promise<{ dm_text: string; personalization_detail: string; follow_up_3d: string; follow_up_7d?: string; response_interested?: string; response_skeptical?: string; tone_notes?: string; pre_comments?: string[] } | null> {
   if (!process.env.GEMINI_API_KEY) return null;
 
   const isTikTok = platform === 'tiktok';
@@ -128,10 +133,18 @@ async function generateDM(prospect: any, platform: 'instagram' | 'tiktok' = 'ins
     platform,
   });
 
+  // Live snapshot injection: when we have fresh business_discovery data,
+  // prepend it to the user message so the DM can reference a concrete
+  // observation (a recent post, the bio, the website). Without this the
+  // model only sees stale DB fields and writes generic openers.
+  const liveContext = liveSnapshot && liveSnapshot.exists
+    ? `\n\n${snapshotToPromptContext(liveSnapshot)}\n\nIMPORTANT: écris un DM qui prouve que tu viens de regarder le profil — cite spécifiquement un élément ci-dessus (un post récent, la bio, le site). Sans cela le DM ne doit PAS être envoyé.`
+    : '';
+
   try {
     const rawText = await callGemini({
       system: getDMSystemPrompt(platform),
-      message: prospectData,
+      message: prospectData + liveContext,
       maxTokens: 1000,
       thinking: true,
     });
@@ -356,14 +369,24 @@ async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram', 
 
   console.log(`[DMAgent] ${eligibleProspects.length} prospects eligible, generating DMs in parallel batches...`);
 
-  // Generate DMs in parallel batches of 5
+  // Generate DMs in parallel batches of 5. For each Instagram prospect we
+  // first pull a live business_discovery snapshot (bio, website, last 5
+  // posts with captions + engagement) and hand it to generateDM so the
+  // opener references something real instead of template filler.
   const DM_BATCH_SIZE = 5;
-  const dmResults: Array<{ prospect: any; category: string; dm: any }> = [];
+  const dmResults: Array<{ prospect: any; category: string; dm: any; snapshot: IgProfileSnapshot | null }> = [];
   for (let b = 0; b < eligibleProspects.length; b += DM_BATCH_SIZE) {
     const batch = eligibleProspects.slice(b, b + DM_BATCH_SIZE);
     const batchDms = await Promise.all(batch.map(async ({ prospect, category }) => {
-      const dm = await generateDM(prospect, platform);
-      return { prospect, category, dm };
+      let snapshot: IgProfileSnapshot | null = null;
+      if (!isTikTok && adminIg && prospect.instagram) {
+        snapshot = await getInstagramProfileSnapshot(prospect.instagram, adminIg.id, adminIg.token);
+        // If the account is unreachable, stop here — no point burning an
+        // AI call to write a DM that won't be delivered.
+        if (!snapshot.exists) return { prospect, category, dm: null, snapshot };
+      }
+      const dm = await generateDM(prospect, platform, snapshot);
+      return { prospect, category, dm, snapshot };
     }));
     dmResults.push(...batchDms);
   }
@@ -388,7 +411,7 @@ async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram', 
     console.log(`[DMAgent] ${visualUrls.size}/${topProspects.length} visuals generated`);
   }
 
-  for (const { prospect, category, dm: rawDm } of dmResults) {
+  for (const { prospect, category, dm: rawDm, snapshot } of dmResults) {
     let dm = rawDm;
     if (!dm) {
       // Fallback template when AI fails — still send a DM
@@ -430,20 +453,38 @@ async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram', 
     let verifiedIgId: string | null = null;
     let verifiedMediaIds: string[] = [];
     if (!isTikTok && adminIg) {
-      const verify = await verifyInstagramHandle(handle, adminIg.id, adminIg.token);
-      if (!verify.exists) {
-        console.log(`[DMAgent] Skip @${handle} — not found via business_discovery: ${verify.rawError}`);
-        skippedVerification++;
-        // Clear the bad handle so Leo/Jade stop qualifying this prospect for DM
-        await supabase.from('crm_prospects').update({
-          instagram: null,
-          dm_status: 'invalid_handle',
-          updated_at: now,
-        }).eq('id', prospect.id);
-        continue;
+      // We already pulled a full snapshot upstream; reuse it instead of
+      // hitting business_discovery a second time. Only fall back to the
+      // cheaper verifyInstagramHandle if the snapshot path was skipped
+      // (e.g. no adminIg at snapshot time).
+      if (snapshot) {
+        if (!snapshot.exists) {
+          console.log(`[DMAgent] Skip @${handle} — not found via business_discovery: ${snapshot.rawError}`);
+          skippedVerification++;
+          await supabase.from('crm_prospects').update({
+            instagram: null,
+            dm_status: 'invalid_handle',
+            updated_at: now,
+          }).eq('id', prospect.id);
+          continue;
+        }
+        verifiedIgId = (snapshot as any).id || null;
+        verifiedMediaIds = snapshot.recent_posts.map(p => p.id).filter(Boolean);
+      } else {
+        const verify = await verifyInstagramHandle(handle, adminIg.id, adminIg.token);
+        if (!verify.exists) {
+          console.log(`[DMAgent] Skip @${handle} — not found via business_discovery: ${verify.rawError}`);
+          skippedVerification++;
+          await supabase.from('crm_prospects').update({
+            instagram: null,
+            dm_status: 'invalid_handle',
+            updated_at: now,
+          }).eq('id', prospect.id);
+          continue;
+        }
+        verifiedIgId = verify.igId || null;
+        verifiedMediaIds = verify.mediaIds || [];
       }
-      verifiedIgId = verify.igId || null;
-      verifiedMediaIds = verify.mediaIds || [];
     }
 
     // Insert into dm_queue. Mark as pre-verified when we just confirmed

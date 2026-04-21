@@ -219,6 +219,22 @@ export async function POST(req: NextRequest) {
           }
         } catch {}
 
+        // Pull a live IG profile snapshot for the sender so Jade can reply
+        // with context (her bio, recent posts, engagement). Without this the
+        // reply is generic and sounds bot-ish. We reuse fbToken+igUserId
+        // because business_discovery is only exposed on graph.facebook.com
+        // with a Page token.
+        let senderSnapshotText = '';
+        try {
+          if (fbToken && igUserId && senderName) {
+            const { getInstagramProfileSnapshot, snapshotToPromptContext } = await import('@/lib/agents/ig-profile-snapshot');
+            const snap = await getInstagramProfileSnapshot(senderName, igUserId, fbToken);
+            if (snap.exists) {
+              senderSnapshotText = '\n\n' + snapshotToPromptContext(snap);
+            }
+          }
+        } catch { /* snapshot is best-effort — fall through silently */ }
+
         // Generate AI response
         const { callGeminiChat } = await import('@/lib/agents/gemini');
         const { languagePromptDirective } = await import('@/lib/agents/language-detect');
@@ -248,7 +264,7 @@ REGLES DE TON:
 
 ${prospect?.type ? `Si le prospect demande un exemple visuel ET que tu connais son secteur (${prospect.type}), ajoute: [SEND_SHOWCASE:${prospect.type}]` : `IMPORTANT: Tu NE CONNAIS PAS encore le secteur du prospect. N'envoie AUCUN visuel generique — demande-lui d'abord ce qu'il fait. N'utilise PAS [SEND_SHOWCASE] tant que tu n'as pas identifie son business.`}
 
-PROSPECT: ${prospect?.company || prospect?.first_name || senderName} (${prospect?.type || 'secteur inconnu — demande-lui'}, score: ${prospect?.score || 0})
+PROSPECT: ${prospect?.company || prospect?.first_name || senderName} (${prospect?.type || 'secteur inconnu — demande-lui'}, score: ${prospect?.score || 0})${senderSnapshotText}
 ${ragContext}`;
 
         let aiReply = '';

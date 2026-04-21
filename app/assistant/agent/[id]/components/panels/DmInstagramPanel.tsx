@@ -89,6 +89,23 @@ function ManualFollowsList() {
   }>>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [batchBusy, setBatchBusy] = useState(false);
+
+  // Detect mobile once at mount. We use it to pick between the IG app
+  // deep link (instagram://user?username=X — opens the native app
+  // instantly on iOS/Android) and the web fallback (opens a browser tab
+  // on desktop). Doing this client-side avoids SSR mismatches.
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    if (typeof navigator !== 'undefined') {
+      setIsMobile(/Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
+    }
+  }, []);
+
+  const profileHref = (handle: string) =>
+    isMobile
+      ? `instagram://user?username=${encodeURIComponent(handle)}`
+      : `https://www.instagram.com/${encodeURIComponent(handle)}/`;
 
   const load = async () => {
     try {
@@ -118,6 +135,24 @@ function ManualFollowsList() {
     }
   };
 
+  const handleMarkAllDone = async () => {
+    const msg = en
+      ? `Mark all ${items.length} accounts as followed? Use this only if you've already tapped Follow on each profile on Instagram.`
+      : `Marquer les ${items.length} comptes comme suivis ? Utilise ce bouton uniquement si tu as déjà tapé Suivre sur chaque profil Instagram.`;
+    if (!window.confirm(msg)) return;
+    setBatchBusy(true);
+    try {
+      await fetch('/api/agents/dm-instagram/manual-follows', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'all_done' }),
+      });
+      setItems([]);
+    } finally {
+      setBatchBusy(false);
+    }
+  };
+
   if (loading) {
     return <div className="text-white/40 text-sm py-4 text-center">{en ? 'Loading…' : 'Chargement…'}</div>;
   }
@@ -136,8 +171,22 @@ function ManualFollowsList() {
     <div className="space-y-2">
       <div className="text-[11px] text-white/50 px-1 pb-1 leading-snug">
         {en
-          ? <>Open each profile on Instagram, tap Follow, then press ✓ here so Jade knows. She'll DM these accounts after a short warm-up period.</>
-          : <>Ouvre chaque profil sur Instagram, appuie sur Suivre, puis valide avec ✓ ici pour que Jade sache. Elle DM ces comptes après un petit temps de chauffe.</>}
+          ? <>Tap the handle to open Instagram{isMobile ? ' in the app' : ''}, tap Follow, then press ✓ here so Jade knows. She'll DM these accounts after a short warm-up period.</>
+          : <>Touche le handle pour ouvrir Instagram{isMobile ? ' dans l\'appli' : ''}, appuie sur Suivre, puis valide avec ✓ ici. Jade les DM après un petit temps de chauffe.</>}
+      </div>
+      <div className="flex items-center justify-between gap-2 pb-1">
+        <div className="text-[11px] text-white/60">
+          {items.length} {en ? 'pending' : 'en attente'}
+        </div>
+        <button
+          disabled={batchBusy}
+          onClick={handleMarkAllDone}
+          className="px-3 py-1 text-[11px] bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 rounded-md transition disabled:opacity-50"
+        >
+          {batchBusy
+            ? (en ? 'Marking…' : 'En cours…')
+            : (en ? `✓ Mark all ${items.length} as followed` : `✓ Tout marquer fait (${items.length})`)}
+        </button>
       </div>
       {items.map(item => {
         const handle = String(item.instagram || '').replace(/^@/, '');
@@ -147,7 +196,7 @@ function ManualFollowsList() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <a
-                  href={`https://instagram.com/${handle}`}
+                  href={profileHref(handle)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm text-white font-medium hover:underline truncate"
