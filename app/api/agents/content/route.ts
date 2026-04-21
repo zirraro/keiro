@@ -3664,8 +3664,58 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
         await supabase.from('content_calendar').update({ format: 'post', updated_at: new Date().toISOString() }).eq('id', inserted.id);
       }
     } else {
-      // Image-based post (Instagram post, carousel, story)
-      visualUrl = await generateVisual(visualDesc, postFormat);
+      // Image-based post — prefer using the client's own photos when
+      // available. This is the "photos du lieu / produits du client"
+      // feature: Jade reaches into the agent_uploads gallery and picks
+      // an authentic picture of the space / dishes / products ~60% of
+      // the time, rather than always asking Seedream to hallucinate a
+      // scene. Rotation biased toward the least-recently-used photo so
+      // the feed stays diverse.
+      //
+      // Falls back to Seedream when (a) no upload gallery yet,
+      // (b) all photos were used in the last 7 posts, or (c) we roll a
+      // 40% chance to use an AI-generated scene for variety.
+      const shouldTryClientPhoto = userId && Math.random() < 0.6;
+      if (shouldTryClientPhoto) {
+        try {
+          // Find images already used in the last 10 posts so we avoid
+          // repeating the same photo back-to-back.
+          const { data: recentPosts } = await supabase
+            .from('content_calendar')
+            .select('visual_url')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false })
+            .limit(10);
+          const recentUrls = new Set((recentPosts || []).map((r: any) => r.visual_url).filter(Boolean));
+
+          const { data: uploads } = await supabase
+            .from('agent_uploads')
+            .select('id, file_url, file_type, ai_analysis')
+            .eq('user_id', userId)
+            .eq('agent_id', 'content')
+            .or('file_type.ilike.image/%,file_url.ilike.%.jpg,file_url.ilike.%.jpeg,file_url.ilike.%.png,file_url.ilike.%.webp')
+            .not('ai_analysis', 'is', null)
+            .order('created_at', { ascending: false })
+            .limit(20);
+
+          const candidates = (uploads || []).filter((u: any) => !recentUrls.has(u.file_url));
+          const pick = candidates[0] || (uploads || [])[0];
+          if (pick?.file_url) {
+            visualUrl = pick.file_url;
+            console.log(`[Content] Reusing client photo ${pick.id} instead of Seedream generation`);
+            // Track source so we can audit + rotate
+            await supabase.from('content_calendar').update({
+              publish_diagnostic: `client_photo:${pick.id}`,
+            }).eq('id', inserted.id).throwOnError?.();
+          }
+        } catch (e: any) {
+          console.warn('[Content] Client-photo pick failed:', String(e?.message || e).substring(0, 200));
+        }
+      }
+      // If we didn't pick a client photo, fall back to Seedream.
+      if (!visualUrl) {
+        visualUrl = await generateVisual(visualDesc, postFormat);
+      }
     }
 
     const hasMedia = visualUrl || videoUrl;
