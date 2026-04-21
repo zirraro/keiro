@@ -4,7 +4,7 @@ import {
   classifyInbound,
   loadReplyContext,
   generateReply,
-  sendReplyViaBrevo,
+  sendReplyForClient,
   type InboundEmail,
 } from '@/lib/agents/hugo-reply';
 
@@ -173,18 +173,41 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, result: 'reply_generation_failed' });
   }
 
-  // Brevo is our only SMTP — same sender we use for the outbound campaign.
-  // Using the client's own "from" name improves authenticity.
+  // Route through the right channel: Gmail for clients who connected it,
+  // Brevo only for our admin (mrzirraro). Other clients with no connected
+  // provider get sent=false + a notification so the human acts.
   const senderName = dossier?.company_name || client?.first_name || 'KeiroAI';
-  const sent = await sendReplyViaBrevo({
+  const sendResult = await sendReplyForClient({
+    clientUserId: ownerId || null,
+    clientEmail: client?.email,
     toEmail: normalized.from_email,
     toName: normalized.from_name,
     subject: drafted.subject,
     body: drafted.body,
     inReplyTo: normalized.message_id,
-    senderEmail: 'contact@keiroai.com', // TODO: switch to per-client sender once each client has a verified Brevo sender
     senderName,
   });
+  const sent = sendResult.sent;
+
+  // If the reply couldn't be sent because the client hasn't connected
+  // their email yet, drop a visible notification so the client sees what
+  // Hugo WOULD have sent and can copy-paste it.
+  if (!sent && sendResult.reason === 'no_email_provider_connected' && ownerId) {
+    await supabase.from('client_notifications').insert({
+      user_id: ownerId,
+      agent: 'email',
+      type: 'reply_ready_manual',
+      title: `Hugo a préparé une réponse pour ${normalized.from_email}`,
+      message: drafted.body.substring(0, 280),
+      data: {
+        to: normalized.from_email,
+        subject: drafted.subject,
+        body: drafted.body,
+        inbound_preview: normalized.body.substring(0, 300),
+        reason: 'connecte_ton_email_pour_envoi_auto',
+      },
+    }).throwOnError?.();
+  }
 
   // Update CRM state — prospect now warm/hot, logged as replied.
   await supabase.from('crm_prospects').update({
@@ -197,11 +220,15 @@ export async function POST(req: NextRequest) {
     prospect_id: prospect.id,
     type: 'email_replied',
     description: sent
-      ? `Hugo a répondu automatiquement (${classification})`
-      : `Hugo a drafté une réponse mais Brevo a échoué`,
+      ? `Hugo a répondu automatiquement via ${sendResult.channel} (${classification})`
+      : sendResult.reason === 'no_email_provider_connected'
+        ? `Hugo a préparé une réponse — en attente que le client connecte son email`
+        : `Hugo a drafté une réponse mais l'envoi a échoué (${sendResult.reason || 'inconnu'})`,
     data: {
       classification,
       sent,
+      channel: sendResult.channel,
+      reason: sendResult.reason,
       reply_subject: drafted.subject,
       reply_body_preview: drafted.body.substring(0, 300),
       inbound_preview: normalized.body.substring(0, 300),
@@ -218,13 +245,17 @@ export async function POST(req: NextRequest) {
       message_id: normalized.message_id,
       from: normalized.from_email,
       classification,
-      decision: sent ? 'auto_replied' : 'reply_failed',
+      decision: sent ? 'auto_replied' : sendResult.reason === 'no_email_provider_connected' ? 'awaiting_email_connect' : 'reply_failed',
+      channel: sendResult.channel,
       subject_out: drafted.subject,
     },
     created_at: now,
   });
 
-  return NextResponse.json({ ok: true, result: sent ? 'auto_replied' : 'reply_failed' });
+  return NextResponse.json({
+    ok: true,
+    result: sent ? `auto_replied_${sendResult.channel}` : sendResult.reason || 'reply_failed',
+  });
 }
 
 function normalizePayload(raw: any): InboundEmail | null {

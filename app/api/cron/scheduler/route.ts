@@ -359,6 +359,17 @@ export async function GET(request: NextRequest) {
         await callEndpoint('Push Morning Follows', '/api/push/send-morning-follows', 'POST');
       });
 
+      // 2bis. Gmail inbound poll — for every client with Gmail connected.
+      // Lands any prospect reply into /api/webhooks/email-inbound where
+      // Hugo classifies + auto-replies. Runs in its own fireBackground so
+      // a slow Google API response doesn't block the DM chain above.
+      fireBackground(async () => {
+        for (const uid of getClientsWithAgent('email')) {
+          await callEndpoint(`Gmail Poll [${uid.substring(0, 8)}]`, `/api/agents/email/poll-inbound?user_id=${uid}`, 'POST');
+          await delay(1500);
+        }
+      });
+
       // 3bis. Email — separate fireBackground (was timing out when combined with DM)
       fireBackground(async () => {
         for (const uid of getClientsWithAgent('email')) {

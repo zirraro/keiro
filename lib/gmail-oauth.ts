@@ -24,7 +24,17 @@ export function getGmailOAuthUrl(redirectUri: string, state: string): string {
     client_id: process.env.GOOGLE_CLIENT_ID!,
     redirect_uri: redirectUri,
     response_type: 'code',
-    scope: 'https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/userinfo.email',
+    // readonly scope added so Hugo can poll the inbox for prospect replies
+    // and route them through the /api/webhooks/email-inbound pipeline.
+    // Existing clients who only granted .send will need to reconnect to
+    // get the new scope — listGmailUnread returns null for them and we
+    // prompt to reconnect.
+    scope: [
+      'https://www.googleapis.com/auth/gmail.send',
+      'https://www.googleapis.com/auth/gmail.readonly',
+      'https://www.googleapis.com/auth/gmail.modify', // needed to mark messages read after processing
+      'https://www.googleapis.com/auth/userinfo.email',
+    ].join(' '),
     access_type: 'offline',
     prompt: 'consent',
     state,
@@ -185,4 +195,112 @@ export async function isGmailConnected(userId: string): Promise<{ connected: boo
     connected: !!data?.gmail_refresh_token,
     email: data?.gmail_email || null,
   };
+}
+
+// ──────────────────────────────────────────────────────────
+// Gmail read helpers (used by the inbound poller)
+// ──────────────────────────────────────────────────────────
+
+const GMAIL_LIST_URL = 'https://gmail.googleapis.com/gmail/v1/users/me/messages';
+const GMAIL_MSG_URL = (id: string) => `https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}`;
+const GMAIL_MODIFY_URL = (id: string) => `https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}/modify`;
+
+export interface GmailMessageLite {
+  id: string;
+  threadId: string;
+  from_email: string;
+  from_name?: string;
+  subject?: string;
+  body: string;              // plain text extracted from text/plain part (or html stripped)
+  message_id?: string;       // RFC Message-Id header (for threading)
+  in_reply_to?: string;      // In-Reply-To header
+  received_at: string;       // ISO timestamp from internalDate
+}
+
+/**
+ * List unread messages in the inbox received after `sinceTimestamp` (ms).
+ * Returns message IDs only — fetch bodies with getGmailMessage.
+ */
+export async function listGmailUnread(accessToken: string, sinceMs: number, maxResults = 25): Promise<string[]> {
+  // Gmail search query — unread in inbox, newer_than fallback if sinceMs is old.
+  const afterSec = Math.floor(sinceMs / 1000);
+  const query = `in:inbox is:unread after:${afterSec}`;
+  const url = `${GMAIL_LIST_URL}?q=${encodeURIComponent(query)}&maxResults=${maxResults}`;
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!res.ok) {
+    // 403 typically means the scope wasn't granted (client consented on the
+    // old .send-only url and hasn't reconnected yet). Return empty so the
+    // poller just no-ops rather than crashing.
+    if (res.status === 403) return [];
+    throw new Error(`Gmail list failed: HTTP ${res.status}`);
+  }
+  const data = await res.json();
+  return (data.messages || []).map((m: any) => m.id);
+}
+
+/**
+ * Fetch one message and normalise it to a shape the inbound webhook
+ * already knows how to handle. We prefer the text/plain part when
+ * multipart; strip HTML tags if only html is present.
+ */
+export async function getGmailMessage(accessToken: string, messageId: string): Promise<GmailMessageLite | null> {
+  const url = `${GMAIL_MSG_URL(messageId)}?format=full`;
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!res.ok) return null;
+  const data = await res.json();
+  if (!data?.payload) return null;
+
+  const headers: Record<string, string> = {};
+  for (const h of data.payload.headers || []) {
+    headers[h.name.toLowerCase()] = h.value;
+  }
+
+  // Parse the "From" header into name + email.
+  const fromHeader = headers['from'] || '';
+  const fromMatch = fromHeader.match(/(?:"?([^"<]+)"?\s*)?<?([^<>\s]+@[^<>\s]+)>?/);
+  const from_email = (fromMatch?.[2] || fromHeader).toLowerCase().trim();
+  const from_name = fromMatch?.[1]?.trim() || undefined;
+
+  // Walk MIME parts to find text/plain (preferred) or text/html (fallback).
+  function extract(part: any): { plain?: string; html?: string } {
+    const out: { plain?: string; html?: string } = {};
+    if (part.mimeType === 'text/plain' && part.body?.data) {
+      out.plain = Buffer.from(part.body.data, 'base64').toString('utf8');
+    } else if (part.mimeType === 'text/html' && part.body?.data) {
+      out.html = Buffer.from(part.body.data, 'base64').toString('utf8');
+    }
+    if (Array.isArray(part.parts)) {
+      for (const sub of part.parts) {
+        const r = extract(sub);
+        out.plain = out.plain || r.plain;
+        out.html = out.html || r.html;
+      }
+    }
+    return out;
+  }
+  const { plain, html } = extract(data.payload);
+  const body = (plain || (html ? html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ') : '') || data.snippet || '').trim();
+
+  return {
+    id: data.id,
+    threadId: data.threadId,
+    from_email,
+    from_name,
+    subject: headers['subject'],
+    body,
+    message_id: headers['message-id'],
+    in_reply_to: headers['in-reply-to'],
+    received_at: data.internalDate ? new Date(parseInt(data.internalDate, 10)).toISOString() : new Date().toISOString(),
+  };
+}
+
+/**
+ * Mark a message as read so it doesn't come back on the next poll.
+ */
+export async function markGmailRead(accessToken: string, messageId: string): Promise<void> {
+  await fetch(GMAIL_MODIFY_URL(messageId), {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ removeLabelIds: ['UNREAD'] }),
+  }).catch(() => { /* non-fatal — next poll will re-process, idempotency handles that */ });
 }

@@ -257,7 +257,8 @@ ${context}`,
 /**
  * Send a reply via Brevo. Threads with In-Reply-To / References when we
  * have the original message-id so the reply lands in the same thread
- * in the prospect's inbox.
+ * in the prospect's inbox. Used as the fallback when the owning client
+ * has not connected their own email provider.
  */
 export async function sendReplyViaBrevo(params: {
   toEmail: string;
@@ -302,4 +303,77 @@ export async function sendReplyViaBrevo(params: {
   } catch {
     return false;
   }
+}
+
+/**
+ * Primary send path: route the reply through whatever channel the
+ * owning client has configured.
+ *
+ * Routing rules (approved by user, 2026-04-21):
+ * - The admin account (contact@keiroai.com / mrzirraro) keeps sending
+ *   via Brevo from contact@keiroai.com. That's our own client setup.
+ * - Any other client MUST have their own email connected. Gmail first
+ *   (OAuth today), Outlook/SMTP later. If they haven't connected, we
+ *   log the reply as prepared but not sent so the human sees it.
+ */
+export async function sendReplyForClient(params: {
+  clientUserId: string | null;
+  clientEmail?: string | null;
+  toEmail: string;
+  toName?: string;
+  subject: string;
+  body: string;
+  inReplyTo?: string;
+  senderName?: string;
+}): Promise<{ sent: boolean; channel: 'gmail' | 'brevo_admin' | 'none'; reason?: string }> {
+  const { clientUserId, clientEmail } = params;
+
+  // Admin fallback only for our internal account — hard-coded because
+  // Brevo-from-contact@keiroai.com is a branded sender we configured for
+  // KeiroAI as its own client, not a generic fallback for everyone.
+  const isAdminAccount = clientEmail === 'mrzirraro@gmail.com' || clientEmail === 'contact@keiroai.com';
+
+  // Try Gmail first when the client connected it.
+  if (clientUserId) {
+    try {
+      const { getValidGmailToken, sendViaGmail } = await import('@/lib/gmail-oauth');
+      const gmail = await getValidGmailToken(clientUserId);
+      if (gmail) {
+        const bodyHtml = params.body
+          .split(/\n\n+/)
+          .map(p => `<p style="margin:0 0 10px;">${p.replace(/\n/g, '<br>')}</p>`)
+          .join('');
+        await sendViaGmail(
+          gmail.accessToken,
+          params.toEmail,
+          params.subject,
+          `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.55;">${bodyHtml}</div>`,
+          params.senderName,
+          gmail.email,
+          gmail.email,
+        );
+        return { sent: true, channel: 'gmail' };
+      }
+    } catch (e: any) {
+      // fall through to Brevo only for admin; for other clients we stop here.
+      if (!isAdminAccount) {
+        return { sent: false, channel: 'none', reason: `gmail_send_failed:${String(e?.message || e).substring(0, 120)}` };
+      }
+    }
+  }
+
+  if (isAdminAccount) {
+    const sent = await sendReplyViaBrevo({
+      toEmail: params.toEmail,
+      toName: params.toName,
+      subject: params.subject,
+      body: params.body,
+      inReplyTo: params.inReplyTo,
+      senderEmail: 'contact@keiroai.com',
+      senderName: params.senderName,
+    });
+    return { sent, channel: 'brevo_admin' };
+  }
+
+  return { sent: false, channel: 'none', reason: 'no_email_provider_connected' };
 }
