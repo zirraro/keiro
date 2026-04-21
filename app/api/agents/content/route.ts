@@ -3751,16 +3751,25 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
     } else {
       // Image-based post — three-way choice when the client has
       // uploaded their own photos:
-      //   - 40% raw reuse   → publish the real photo untouched (fastest,
+      //   - 30% raw reuse   → publish the real photo untouched (fastest,
       //                        most authentic, 0 cost)
-      //   - 30% i2i pimp    → Seedream image-to-image re-renders the
-      //                        photo with editorial lighting + on-brand
-      //                        palette (subject stays recognisable)
-      //   - 30% pure gen    → Seedream text-to-image builds a net-new
+      //   - 45% i2i pimp    → Seedream image-to-image re-renders the
+      //                        photo with editorial lighting, on-brand
+      //                        palette AND elements tied to the current
+      //                        trend / news angle (subject still
+      //                        recognisable — we lift, don't replace)
+      //   - 25% pure gen    → Seedream text-to-image builds a net-new
       //                        scene from the visual_description
       // No uploads → always pure generation.
-      // The client's feed ends up with a healthy mix of authentic
-      // moments + polished shoots + creative scenes.
+      //
+      // Ratios updated 2026-04-21 (more balance + heavier i2i) after
+      // user feedback: "mettre le ratio à 30% pour equilibrer aussi
+      // plus et faire plus de reuse client + lift seedream pour
+      // ajouter des elements sur l'image".
+      //
+      // Anti-duplicate guard: we exclude any upload that appeared as
+      // visual_url in the last 15 posts so a restaurant with only 3
+      // photos doesn't spam the same shot twice this week.
       let pickedUpload: { id: string; file_url: string } | null = null;
       if (userId) {
         try {
@@ -3769,7 +3778,7 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
             .select('visual_url')
             .eq('user_id', userId)
             .order('created_at', { ascending: false })
-            .limit(10);
+            .limit(15);
           const recentUrls = new Set((recentPosts || []).map((r: any) => r.visual_url).filter(Boolean));
 
           const { data: uploads } = await supabase
@@ -3802,15 +3811,18 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
       }
 
       const rng = Math.random();
-      if (pickedUpload && rng < 0.40) {
-        // 40% — reuse raw client photo
+      if (pickedUpload && rng < 0.30) {
+        // 30% — reuse raw client photo (unchanged)
         visualUrl = pickedUpload.file_url;
         console.log(`[Content] Reusing client photo ${pickedUpload.id} (raw reuse)`);
         await supabase.from('content_calendar').update({
           publish_diagnostic: `client_photo_raw:${pickedUpload.id}`,
         }).eq('id', inserted.id).throwOnError?.();
-      } else if (pickedUpload && rng < 0.70) {
-        // 30% — pimp the client photo via Seedream image-to-image
+      } else if (pickedUpload && rng < 0.75) {
+        // 45% — pimp the client photo via Seedream image-to-image.
+        // We pass the trend/news context into the enhancement prompt so
+        // the re-render actually ties the client's space to what's
+        // happening in the world (trend-aligned i2i, not just polish).
         visualUrl = await generateVisualFromReference(pickedUpload.file_url, visualDesc, postFormat);
         if (visualUrl) {
           console.log(`[Content] Pimped client photo ${pickedUpload.id} via i2i`);

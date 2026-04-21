@@ -9,6 +9,7 @@ import { AnimatedGradientBG } from '@/components/ui/animated-gradient-bg';
 
 import { PageReveal } from '@/components/ui/page-reveal';
 import { KeiroLockup } from '@/components/ui/keiro-logo';
+import { KeiroIcon } from '@/components/ui/KeiroIcon';
 import { useLanguage } from '@/lib/i18n/context';
 import { useTheme } from '@/lib/theme/context';
 
@@ -295,7 +296,7 @@ function HomeKeiroInner() {
             <div className="rounded-2xl border border-white/10 overflow-hidden bg-white/5 backdrop-blur-sm shadow-xl">
               <div className="bg-white/10 p-5">
                 <h3 className="text-white font-bold text-lg flex items-center gap-2">
-                  <span>🎯</span> {t.home.aiStrategicTitle}
+                  <KeiroIcon name="target" className="w-5 h-5 text-cyan-300" /> {t.home.aiStrategicTitle}
                 </h3>
                 <p className="text-[#7fa0c4] text-sm mt-1">{t.home.aiStrategicSub}</p>
               </div>
@@ -304,7 +305,7 @@ function HomeKeiroInner() {
                 {/* Insight 1 */}
                 <div className="bg-white/5 rounded-lg p-4 border border-white/10">
                   <div className="flex items-start gap-2 mb-2">
-                    <span className="text-2xl">🎯</span>
+                    <KeiroIcon name="target" className="w-6 h-6 text-cyan-300 flex-shrink-0" />
                     <div className="flex-1">
                       <p className="text-sm font-bold text-white mb-1">{t.home.aiInsight1Title}</p>
                       <p className="text-xs text-[#a4bdd4] leading-relaxed mb-2" dangerouslySetInnerHTML={{ __html: t.home.aiInsight1Text }} />
@@ -318,7 +319,7 @@ function HomeKeiroInner() {
                 {/* Insight 2 */}
                 <div className="bg-white/5 rounded-lg p-4 border border-white/10">
                   <div className="flex items-start gap-2 mb-2">
-                    <span className="text-2xl">⏰</span>
+                    <KeiroIcon name="calendar" className="w-6 h-6 text-cyan-300 flex-shrink-0" />
                     <div className="flex-1">
                       <p className="text-sm font-bold text-white mb-1">{t.home.aiInsight2Title}</p>
                       <p className="text-xs text-[#a4bdd4] leading-relaxed mb-2" dangerouslySetInnerHTML={{ __html: t.home.aiInsight2Text }} />
@@ -332,7 +333,7 @@ function HomeKeiroInner() {
                 {/* Insight 3 */}
                 <div className="bg-white/5 rounded-lg p-4 border border-white/10">
                   <div className="flex items-start gap-2 mb-2">
-                    <span className="text-2xl">🔮</span>
+                    <KeiroIcon name="sparkle" className="w-6 h-6 text-cyan-300 flex-shrink-0" />
                     <div className="flex-1">
                       <p className="text-sm font-bold text-white mb-1">{t.home.aiInsight3Title}</p>
                       <p className="text-xs text-[#a4bdd4] leading-relaxed mb-2" dangerouslySetInnerHTML={{ __html: t.home.aiInsight3Text }} />
@@ -351,7 +352,7 @@ function HomeKeiroInner() {
               <div className="rounded-2xl border border-white/10 overflow-hidden bg-white/5 backdrop-blur-sm shadow-xl">
                 <div className="bg-white/10 p-5">
                   <h3 className="text-white font-bold text-lg flex items-center gap-2">
-                    <span>📊</span> {t.home.aiDashboardTitle}
+                    <KeiroIcon name="chart" className="w-5 h-5 text-cyan-300" /> {t.home.aiDashboardTitle}
                   </h3>
                   <p className="text-[#7fa0c4] text-sm mt-1">{t.home.aiDashboardSub}</p>
                 </div>
