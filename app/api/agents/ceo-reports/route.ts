@@ -438,7 +438,7 @@ async function handleClientBrief(supabase: any, timeOfDay: 'morning' | 'evening'
       const [
         postsPublishedRes, postsDraftedRes,
         emailsSentRes, emailsOpenedRes, emailsClickedRes,
-        dmsSentRes, dmsFollowedRes,
+        dmsSentRes, dmsFollowedRes, followsToDoRes,
         prospectsVerifiedRes, prospectsAddedRes, gmapsImportsRes,
         // lifetime totals (for milestone achievements)
         lifetimeEmailsRes, lifetimePostsRes, lifetimeProspectsRes, lifetimeDmsRes,
@@ -477,6 +477,11 @@ async function handleClientBrief(supabase: any, timeOfDay: 'morning' | 'evening'
           .select('id', { count: 'exact', head: true })
           .eq('user_id', client.id)
           .gte('dm_followed_at', sinceIso),
+        // Jade's "follow this manually" queue (always pending, not time-windowed)
+        supabase.from('crm_prospects')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', client.id)
+          .eq('dm_status', 'queued_for_manual_follow'),
         supabase.from('crm_prospects')
           .select('id', { count: 'exact', head: true })
           .eq('user_id', client.id)
@@ -526,6 +531,25 @@ async function handleClientBrief(supabase: any, timeOfDay: 'morning' | 'evening'
           .gte('updated_at', twoWeeksAgo)
           .lt('updated_at', oneWeekAgo),
       ]);
+
+      // Sum engagement from the last 7 days of published content
+      // (likes + comments received) — engagement_data is populated by
+      // /api/agents/content/sync-engagement which runs before this brief.
+      const { data: recentPosts } = await supabase
+        .from('content_calendar')
+        .select('engagement_data')
+        .eq('user_id', client.id)
+        .eq('status', 'published')
+        .eq('platform', 'instagram')
+        .gte('published_at', oneWeekAgo)
+        .not('engagement_data', 'is', null);
+      let weeklyLikes = 0, weeklyComments = 0, weeklyReach = 0;
+      for (const p of (recentPosts || [])) {
+        const e = (p as any).engagement_data || {};
+        weeklyLikes += e.like_count || 0;
+        weeklyComments += e.comments_count || 0;
+        weeklyReach += e.reach || 0;
+      }
       const doneCounts = {
         posts_published: postsPublishedRes.count || 0,
         posts_drafted: postsDraftedRes.count || 0,
@@ -534,6 +558,7 @@ async function handleClientBrief(supabase: any, timeOfDay: 'morning' | 'evening'
         emails_clicked: emailsClickedRes.count || 0,
         dms_sent: dmsSentRes.count || 0,
         dms_followed: dmsFollowedRes.count || 0,
+        follows_to_do: followsToDoRes.count || 0,
         prospects_verified: prospectsVerifiedRes.count || 0,
         prospects_added: prospectsAddedRes.count || 0,
         gmaps_imports: gmapsImportsRes.count || 0,
@@ -586,11 +611,21 @@ async function handleClientBrief(supabase: any, timeOfDay: 'morning' | 'evening'
       // Week-over-week hot prospects
       const thisW = thisWeekHotRes.count || 0;
       const prevW = prevWeekHotRes.count || 0;
-      if (thisW > prevW && prevW > 0) {
+      if (thisW >= 10 && prevW === 0) {
+        achievements.push(`📈 <strong>${thisW} prospects chauds</strong> cette semaine — nouveau pipeline qui démarre fort.`);
+      } else if (thisW > prevW && prevW >= 5) {
+        // Only flag % growth when the baseline is meaningful (>=5),
+        // otherwise "2 → 45" becomes "+2150%" which looks like a bug.
         const pct = Math.round(((thisW - prevW) / prevW) * 100);
         achievements.push(`📈 <strong>+${pct}% de prospects chauds</strong> cette semaine (${prevW} → ${thisW}) — KeiroAI te remplit le pipeline.`);
-      } else if (thisW >= 10 && prevW === 0) {
-        achievements.push(`📈 <strong>${thisW} prospects chauds</strong> cette semaine — nouveau pipeline qui démarre fort.`);
+      } else if (thisW > prevW && prevW > 0 && thisW - prevW >= 10) {
+        // Small baseline but meaningful absolute growth → use raw numbers
+        achievements.push(`📈 <strong>+${thisW - prevW} prospects chauds</strong> cette semaine (${prevW} → ${thisW}) — pipeline qui s'accélère.`);
+      }
+
+      // Engagement weekly milestones
+      if (weeklyLikes + weeklyComments >= 100) {
+        achievements.push(`❤️ <strong>${weeklyLikes + weeklyComments} interactions</strong> Instagram cette semaine (${weeklyLikes} likes + ${weeklyComments} commentaires) — ton audience s'engage.`);
       }
 
       // Personal record check (today vs lifetime daily average)
@@ -652,7 +687,9 @@ REGLES ABSOLUES:
 - Emails ouverts: ${doneCounts.emails_opened}${openRateHint}
 - Emails cliques: ${doneCounts.emails_clicked}
 - DMs envoyes (Jade): ${doneCounts.dms_sent}
-- Nouveaux follows Insta (Jade): ${doneCounts.dms_followed}
+- Follows Insta confirmes (Jade): ${doneCounts.dms_followed}
+- Comptes a suivre manuellement sur Insta (Jade, en attente): ${doneCounts.follows_to_do}
+- Engagement Instagram 7 jours: ${weeklyLikes} likes + ${weeklyComments} commentaires + ${weeklyReach} reach
 - Prospects ajoutes au CRM (Léo): ${doneCounts.prospects_added}
 - Prospects valides joignables (Léo): ${doneCounts.prospects_verified}
 - Commerces importes Google Maps (Théo): ${doneCounts.gmaps_imports}
@@ -722,10 +759,11 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
 
       // Per-agent breakdown — only agents that did something show up
       const agentLines: string[] = [];
-      if (doneCounts.posts_published > 0 || doneCounts.posts_drafted > 0) {
+      if (doneCounts.posts_published > 0 || doneCounts.posts_drafted > 0 || weeklyLikes + weeklyComments > 0) {
         const parts = [];
         if (doneCounts.posts_published > 0) parts.push(`<strong>${doneCounts.posts_published}</strong> post${doneCounts.posts_published > 1 ? 's' : ''} publié${doneCounts.posts_published > 1 ? 's' : ''} sur Instagram`);
         if (doneCounts.posts_drafted > 0) parts.push(`<strong>${doneCounts.posts_drafted}</strong> en préparation`);
+        if (weeklyLikes + weeklyComments > 0) parts.push(`<strong>${weeklyLikes}</strong> like${weeklyLikes > 1 ? 's' : ''} + <strong>${weeklyComments}</strong> commentaire${weeklyComments > 1 ? 's' : ''} reçu${weeklyComments > 1 ? 's' : ''} cette semaine`);
         agentLines.push(`<div style="margin:6px 0;"><strong style="color:#db2777;">🖼️ Léna</strong> <span style="color:#9ca3af;font-size:11px;">· content</span> — ${parts.join(', ')}</div>`);
       }
       if (doneCounts.emails_sent > 0 || doneCounts.emails_opened > 0) {
@@ -741,10 +779,11 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
         if (doneCounts.prospects_verified > 0) parts.push(`<strong>${doneCounts.prospects_verified}</strong> validé${doneCounts.prospects_verified > 1 ? 's' : ''} (joignables)`);
         agentLines.push(`<div style="margin:6px 0;"><strong style="color:#7c3aed;">🎯 Léo</strong> <span style="color:#9ca3af;font-size:11px;">· commercial</span> — ${parts.join(', ')}</div>`);
       }
-      if (doneCounts.dms_sent > 0 || doneCounts.dms_followed > 0) {
+      if (doneCounts.dms_sent > 0 || doneCounts.dms_followed > 0 || doneCounts.follows_to_do > 0) {
         const parts = [];
         if (doneCounts.dms_sent > 0) parts.push(`<strong>${doneCounts.dms_sent}</strong> DM${doneCounts.dms_sent > 1 ? 's' : ''} envoyé${doneCounts.dms_sent > 1 ? 's' : ''}`);
-        if (doneCounts.dms_followed > 0) parts.push(`<strong>${doneCounts.dms_followed}</strong> nouveau${doneCounts.dms_followed > 1 ? 'x' : ''} follow${doneCounts.dms_followed > 1 ? 's' : ''}`);
+        if (doneCounts.dms_followed > 0) parts.push(`<strong>${doneCounts.dms_followed}</strong> follow${doneCounts.dms_followed > 1 ? 's' : ''} confirmé${doneCounts.dms_followed > 1 ? 's' : ''}`);
+        if (doneCounts.follows_to_do > 0) parts.push(`<strong>${doneCounts.follows_to_do}</strong> compte${doneCounts.follows_to_do > 1 ? 's' : ''} à suivre manuellement (warm-up)`);
         agentLines.push(`<div style="margin:6px 0;"><strong style="color:#a855f7;">💬 Jade</strong> <span style="color:#9ca3af;font-size:11px;">· DM Instagram</span> — ${parts.join(', ')}</div>`);
       }
       if (doneCounts.gmaps_imports > 0) {

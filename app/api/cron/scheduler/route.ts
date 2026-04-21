@@ -497,6 +497,11 @@ export async function GET(request: NextRequest) {
         // Ops health check + send report
         await callEndpoint('Ops Health', '/api/agents/ops', 'POST', { action: 'health_check' });
         await delay(5000);
+        // Sync engagement (likes/comments/reach) from Instagram for every
+        // client before the brief is rendered — otherwise engagement_data
+        // stays null and the brief can't show real engagement numbers.
+        await callEndpoint('Content Sync Engagement', '/api/agents/content/sync-engagement', 'POST');
+        await delay(5000);
         // Client evening debrief — each client gets "what ran today + what to do
         // tomorrow". Mirror of the morning brief, firing at 20h UTC (~22h Paris).
         await callEndpoint('Noah Client Evening Brief', '/api/agents/ceo-reports?type=client_evening', 'POST');

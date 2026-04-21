@@ -9,28 +9,24 @@ export const maxDuration = 120;
 /**
  * POST /api/agents/dm-instagram/follow-prospects
  *
- * Daily auto-follow campaign for Jade: picks up to ~25 qualified prospect
- * accounts that we haven't followed yet, verifies each handle via
- * business_discovery, then follows them from the business owner's
- * Instagram account.
+ * Daily follow-warmup queue for Jade. The Instagram Graph API does NOT
+ * expose a programmatic follow endpoint for business accounts (we tried
+ * /{ig-user-id}/follows and it always returns "Object does not exist").
  *
- * Why it exists: warming up a prospect by following them (and liking a
- * couple of their posts) makes the later DM feel less cold. It also
- * tends to trigger a notification that drives the prospect back to our
- * profile, where the bio + recent content does the pre-selling before
- * the actual DM message is sent.
+ * So instead of attempting an impossible API call, we VERIFY each
+ * prospect's handle and queue the verified ones as "to follow manually".
+ * The client sees them in their daily brief and in Jade's workspace with
+ * a one-tap "mark as followed" button. This matches how IG actually
+ * works (follow gestures must be human) while still surfacing the
+ * warm-up action Jade recommends each day.
  *
  * Auth: CRON_SECRET for scheduled calls, or an admin session cookie.
  *
  * Body (optional):
  *   { user_id?: string }  — only pick prospects owned by this user_id
- *
- * Rate limit: MAX_FOLLOWS_PER_RUN (default 25) + 2s delay between follows
- * so Meta's anti-abuse heuristics stay happy.
  */
 
 const MAX_FOLLOWS_PER_RUN = 25;
-const DELAY_BETWEEN_FOLLOWS_MS = 2_000;
 
 function getSupabaseAdmin() {
   return createClient(
@@ -136,9 +132,8 @@ export async function POST(req: NextRequest) {
   }
 
   const now = new Date().toISOString();
-  let followed = 0;
+  let queued = 0;
   let skipped = 0;
-  let failed = 0;
   const details: Array<{ handle: string; status: string; reason?: string }> = [];
 
   for (const prospect of prospects) {
@@ -149,94 +144,60 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-      // Step 1: verify the target account is reachable (business/creator + active)
+      // Verify the target account is reachable (business/creator + active).
+      // Unreachable handles get flagged so we don't keep retrying them.
       const verify = await verifyInstagramHandle(handle, igBusinessId, fbPageToken);
       if (!verify.exists) {
-        details.push({ handle, status: 'skipped_not_found', reason: verify.rawError });
         await supabase.from('crm_prospects').update({
-          dm_follow_attempts: (prospect.dm_follow_attempts || 0) + 1,
           dm_status: 'invalid_handle',
           instagram: null,
           updated_at: now,
         }).eq('id', prospect.id);
         skipped++;
-        await new Promise(r => setTimeout(r, 500));
+        details.push({ handle, status: 'skipped_invalid', reason: verify.rawError });
+        await new Promise(r => setTimeout(r, 300));
         continue;
       }
 
-      // Step 2: attempt the follow via Graph API
-      // NOTE: the /{ig-user-id}/follows endpoint requires
-      // instagram_manage_insights scope. Until Meta approves it, we log
-      // the intent and mark the prospect as "pending follow" so the run
-      // still produces a trail we can review post-approval.
-      const followUrl = `https://graph.facebook.com/v21.0/${igBusinessId}/follows` +
-        `?user_id=${encodeURIComponent(verify.igId!)}&access_token=${encodeURIComponent(fbPageToken)}`;
-      let followOk = false;
-      let followError: string | undefined;
-      try {
-        const res = await fetch(followUrl, { method: 'POST' });
-        const resData = await res.json().catch(() => ({}));
-        if (res.ok && resData?.success !== false) {
-          followOk = true;
-        } else {
-          followError = resData?.error?.message || `HTTP ${res.status}`;
-        }
-      } catch (e: any) {
-        followError = e?.message || 'fetch_error';
-      }
+      // Queue for manual follow by the client — the IG Business API has no
+      // programmatic follow, so we surface the list to the human instead.
+      await supabase.from('crm_prospects').update({
+        dm_status: 'queued_for_manual_follow',
+        updated_at: now,
+      }).eq('id', prospect.id);
 
-      if (followOk) {
-        await supabase.from('crm_prospects').update({
-          dm_followed_at: now,
-          dm_follow_attempts: (prospect.dm_follow_attempts || 0) + 1,
-          updated_at: now,
-        }).eq('id', prospect.id);
+      await supabase.from('crm_activities').insert({
+        prospect_id: prospect.id,
+        type: 'dm_follow_queued',
+        description: `Jade suggère de suivre @${handle} (warm-up avant DM)`,
+        data: {
+          channel: 'instagram',
+          handle,
+          ig_id: verify.igId,
+          followers: verify.followersCount,
+          media_count: verify.mediaCount,
+        },
+        created_at: now,
+      });
 
-        await supabase.from('crm_activities').insert({
-          prospect_id: prospect.id,
-          type: 'dm_followed',
-          description: `Jade a suivi @${handle} (warm-up avant DM)`,
-          data: {
-            channel: 'instagram',
-            handle,
-            ig_id: verify.igId,
-            followers: verify.followersCount,
-            media_count: verify.mediaCount,
-          },
-          created_at: now,
-        });
-
-        followed++;
-        details.push({ handle, status: 'followed' });
-      } else {
-        // Even on failure, bump the attempt counter so we eventually
-        // stop retrying this prospect (max 3).
-        await supabase.from('crm_prospects').update({
-          dm_follow_attempts: (prospect.dm_follow_attempts || 0) + 1,
-          updated_at: now,
-        }).eq('id', prospect.id);
-        failed++;
-        details.push({ handle, status: 'failed', reason: followError });
-      }
+      queued++;
+      details.push({ handle, status: 'queued_manual' });
     } catch (e: any) {
-      failed++;
+      skipped++;
       details.push({ handle, status: 'exception', reason: e?.message });
     }
-
-    // Rate limit: wait between follows so Meta doesn't flag the account
-    await new Promise(r => setTimeout(r, DELAY_BETWEEN_FOLLOWS_MS));
   }
 
-  // Log the run summary
+  // Log the run summary — status is always success now since we're
+  // curating a list, not trying an impossible API call.
   await supabase.from('agent_logs').insert({
     agent: 'dm_instagram',
     action: 'follow_campaign',
-    status: followed > 0 ? 'success' : 'error',
+    status: 'success',
     data: {
       candidates: prospects.length,
-      followed,
+      queued_for_manual_follow: queued,
       skipped,
-      failed,
       details: details.slice(0, 50),
     },
     created_at: now,
@@ -246,9 +207,8 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     ok: true,
     candidates: prospects.length,
-    followed,
+    queued_for_manual_follow: queued,
     skipped,
-    failed,
   });
 }
 
