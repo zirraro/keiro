@@ -147,17 +147,45 @@ export async function searchKnowledge(
  * Save a new knowledge entry to the pool.
  * Called by agents after learning something new.
  */
+/**
+ * Strip client-identifying tokens from content before it enters the
+ * shared pool. This is cheap belt-and-suspenders so that a learning
+ * from "client@acme.com booked a meeting" doesn't leak that email into
+ * prompts for other clients. We redact:
+ *   - email addresses (→ [email])
+ *   - phone numbers (7+ digit sequences) (→ [phone])
+ *   - @handles (→ @user)
+ *   - obvious company names paired with common suffixes (Inc/SARL/SAS)
+ */
+function anonymizeForSharedPool(text: string): string {
+  return text
+    .replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g, '[email]')
+    .replace(/\+?\d[\d\s.-]{6,}\d/g, '[phone]')
+    .replace(/@[a-zA-Z0-9_.]{3,}/g, '@user')
+    .replace(/\b[A-Z][a-zA-Z0-9&'-]{2,}(?:\s[A-Z][a-zA-Z0-9&'-]{2,})*\s(SARL|SAS|Inc|LLC|Ltd|GmbH|SA|BV)\b/g, '[company]');
+}
+
 export async function saveKnowledge(
   supabase: SupabaseClient,
   entry: KnowledgeEntry
 ): Promise<string | null> {
-  const embedding = await getEmbedding(entry.content);
+  // Any learning without an org_id (i.e. destined to be readable by
+  // OTHER clients via the shared pool) must be anonymized first. Entries
+  // with an org_id stay as-is because they are only retrieved inside
+  // that org.
+  const isShared = !entry.org_id;
+  const content = isShared ? anonymizeForSharedPool(entry.content) : entry.content;
+  const summary = isShared
+    ? anonymizeForSharedPool(entry.summary || entry.content.substring(0, 100))
+    : (entry.summary || entry.content.substring(0, 100));
+
+  const embedding = await getEmbedding(content);
 
   const { data, error } = await supabase
     .from('agent_knowledge')
     .insert({
-      content: entry.content,
-      summary: entry.summary || entry.content.substring(0, 100),
+      content,
+      summary,
       agent: entry.agent || null,
       category: entry.category,
       source: entry.source || 'agent_auto',

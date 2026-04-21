@@ -124,12 +124,55 @@ export async function POST(request: NextRequest) {
 
     const publicUrl = publicUrlData?.publicUrl || '';
 
+    // Logo auto-analysis: when the client uploads their logo, run it
+    // through Claude Vision to extract the brand palette and persist
+    // it to business_dossiers.brand_colors + logo_url automatically.
+    // This lets agents use the RIGHT brand colors in every generation
+    // from day one — no manual hex entry needed.
+    let extractedPalette: string[] | null = null;
+    if (fileType === 'logo' && file.type.startsWith('image/')) {
+      try {
+        const { data: dossier } = await supabase
+          .from('business_dossiers')
+          .select('business_type, brand_colors')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        const { analyzeImageForAgent } = await import('@/lib/agents/visual-analyzer');
+        const analysis = await analyzeImageForAgent(publicUrl, 'content', dossier?.business_type || null);
+        if (analysis && analysis.color_palette && analysis.color_palette.length > 0) {
+          extractedPalette = analysis.color_palette;
+          // Format: "#FF6B6B, #4ECDC4, #2E86AB" — human-readable + easy
+          // for agents to pick from.
+          const paletteStr = extractedPalette.join(', ');
+          await supabase.from('business_dossiers').upsert({
+            user_id: user.id,
+            logo_url: publicUrl,
+            // Only overwrite brand_colors if the client hadn't manually
+            // set it — don't stomp on a deliberate choice.
+            ...(dossier?.brand_colors ? {} : { brand_colors: paletteStr }),
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'user_id' });
+        } else {
+          // Even without analysis, remember the logo URL.
+          await supabase.from('business_dossiers').upsert({
+            user_id: user.id,
+            logo_url: publicUrl,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'user_id' });
+        }
+      } catch (e: any) {
+        console.error('[Upload] Logo analysis failed:', String(e?.message || e).substring(0, 200));
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       url: publicUrl,
       name: file.name,
       type: file.type,
       size: file.size,
+      extracted_palette: extractedPalette,
     });
   } catch (error: any) {
     console.error('[Upload] Error:', error?.message);
