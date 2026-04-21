@@ -2010,23 +2010,32 @@ export async function POST(request: NextRequest) {
         const statuses = retryEnabled
           ? ['approved', 'publish_failed', 'retry_pending']
           : ['approved', 'publish_failed'];
+
+        // Compute the set of disabled platforms so we filter them OUT of
+        // the query (rather than finding them and then skipping the post).
+        // Previously the limit=1 query always returned the oldest approved
+        // post; if that post was TikTok but TikTok was disabled, the loop
+        // skipped and returned published=0 forever — the IG backlog
+        // never got touched.
+        const skipPlatforms = new Set<string>();
+        if (clientSettings.tt_enabled === false || (clientSettings.posts_per_day_tt != null && parseInt(clientSettings.posts_per_day_tt) === 0)) skipPlatforms.add('tiktok');
+        if (clientSettings.li_enabled === false || (clientSettings.posts_per_day_li != null && parseInt(clientSettings.posts_per_day_li) === 0)) skipPlatforms.add('linkedin');
+
         let visualQuery = supabase
           .from('content_calendar')
           .select('*')
           .in('status', statuses)
           .lte('scheduled_date', todayDate)
           .not('visual_url', 'is', null);
+        if (skipPlatforms.size > 0) {
+          visualQuery = visualQuery.not('platform', 'in', `(${Array.from(skipPlatforms).map(p => `"${p}"`).join(',')})`);
+        }
         if (retryEnabled) {
           visualQuery = visualQuery.or(`status.neq.retry_pending,next_retry_at.lte.${nowIso}`);
         }
         visualQuery = visualQuery.limit(1);
         if (userId) visualQuery = visualQuery.eq('user_id', userId);
         const { data: approvedWithVisuals } = await visualQuery;
-
-        // Skip TikTok/LinkedIn posts if client disabled them
-        const skipPlatforms = new Set<string>();
-        if (clientSettings.tt_enabled === false || (clientSettings.posts_per_day_tt != null && parseInt(clientSettings.posts_per_day_tt) === 0)) skipPlatforms.add('tiktok');
-        if (clientSettings.li_enabled === false || (clientSettings.posts_per_day_li != null && parseInt(clientSettings.posts_per_day_li) === 0)) skipPlatforms.add('linkedin');
 
         let publishedCount = 0;
         const publishedPosts: Array<{ platform: string; format: string; hook: string; instagram_permalink?: string; publication_error?: string }> = [];
