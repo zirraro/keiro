@@ -193,11 +193,30 @@ export async function getAgentKnowledgeContext(
   options: {
     businessType?: string;
     orgId?: string;
+    userId?: string;
   } = {}
 ): Promise<string> {
+  // Collective-intelligence pivot: when callers pass userId but not
+  // businessType we auto-resolve it from the dossier so each agent's
+  // knowledge retrieval is automatically biased toward learnings from
+  // similar businesses (a fleuriste reuses learnings tagged "fleuriste",
+  // a coach reuses learnings tagged "coach"). More similar clients →
+  // richer pool → better personalisation for every individual client.
+  let businessType = options.businessType;
+  if (!businessType && options.userId) {
+    try {
+      const { data: dossier } = await supabase
+        .from('business_dossiers')
+        .select('business_type')
+        .eq('user_id', options.userId)
+        .maybeSingle();
+      if (dossier?.business_type) businessType = String(dossier.business_type);
+    } catch { /* silent */ }
+  }
+
   const results = await searchKnowledge(supabase, taskDescription, {
     agent: agentId,
-    businessType: options.businessType,
+    businessType,
     orgId: options.orgId,
     threshold: 0.6,
     limit: 5,
@@ -209,7 +228,7 @@ export async function getAgentKnowledgeContext(
     `${i + 1}. [${r.category}${r.business_type ? `, ${r.business_type}` : ''}, confiance ${Math.round(r.confidence * 100)}%] ${r.content.substring(0, 300)}`
   );
 
-  return `\n\n--- CONNAISSANCES DU POOL (${results.length} pertinentes) ---\n${lines.join('\n')}\n--- FIN CONNAISSANCES ---\n\nUtilise ces connaissances pour optimiser ta reponse. Ne les cite pas directement.`;
+  return `\n\n--- CONNAISSANCES DU POOL (${results.length} pertinentes${businessType ? `, biaisées "${businessType}"` : ''}) ---\n${lines.join('\n')}\n--- FIN CONNAISSANCES ---\n\nUtilise ces connaissances pour optimiser ta reponse. Ne les cite pas directement.`;
 }
 
 // ─── Auto-Learning Loop ─────────────────────────────────────
