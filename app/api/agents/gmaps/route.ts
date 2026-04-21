@@ -193,7 +193,33 @@ export async function GET(request: NextRequest) {
   const clientUserId = request.nextUrl.searchParams.get('user_id') || null;
 
   if (isCron) {
-    return runGMapsScan(orgId);
+    const scanResult = await runGMapsScan(orgId, clientUserId);
+    // Chain review-reply when the client has auto_reply_reviews enabled.
+    // This is Theo's reputation-management half: scan → qualify →
+    // auto-reply to new Google reviews on the client's own listing. It
+    // used to live in a separate scheduler slot that the VPS worker
+    // never fired — hence review_reply_sent had 0 logs forever.
+    if (clientUserId) {
+      try {
+        const supabase = getSupabaseAdmin();
+        const { data: cfg } = await supabase
+          .from('org_agent_configs')
+          .select('config')
+          .eq('user_id', clientUserId)
+          .eq('agent_id', 'gmaps')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (cfg?.config?.auto_reply_reviews === true) {
+          const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://keiroai.com';
+          await fetch(`${baseUrl}/api/agents/google-reviews?user_id=${clientUserId}`, {
+            method: 'GET',
+            headers: { Authorization: `Bearer ${process.env.CRON_SECRET}` },
+          }).catch(() => {});
+        }
+      } catch { /* non-blocking — scan result is what the worker cares about */ }
+    }
+    return scanResult;
   }
 
   // Admin: last report
