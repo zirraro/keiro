@@ -721,7 +721,7 @@ REGLES ABSOLUES:
 - Follows Insta confirmes (Jade): ${doneCounts.dms_followed}
 - Comptes a suivre manuellement sur Insta (Jade, en attente): ${doneCounts.follows_to_do}
 - Engagement Instagram 7 jours: ${weeklyLikes} likes + ${weeklyComments} commentaires + ${weeklyReach} reach
-- Commentaires repondus par Nora: ${doneCounts.comments_replied}
+- Commentaires Instagram repondus (Jade): ${doneCounts.comments_replied}
 - Prospects ajoutes au CRM (Léo): ${doneCounts.prospects_added}
 - Prospects valides joignables (Léo): ${doneCounts.prospects_verified}
 - Commerces importes Google Maps (Théo): ${doneCounts.gmaps_imports}
@@ -798,9 +798,6 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
         if (weeklyLikes + weeklyComments > 0) parts.push(`<strong>${weeklyLikes}</strong> like${weeklyLikes > 1 ? 's' : ''} + <strong>${weeklyComments}</strong> commentaire${weeklyComments > 1 ? 's' : ''} reçu${weeklyComments > 1 ? 's' : ''} cette semaine`);
         agentLines.push(`<div style="margin:6px 0;"><strong style="color:#db2777;">🖼️ Léna</strong> <span style="color:#9ca3af;font-size:11px;">· content</span> — ${parts.join(', ')}</div>`);
       }
-      if (doneCounts.comments_replied > 0) {
-        agentLines.push(`<div style="margin:6px 0;"><strong style="color:#f97316;">💭 Nora</strong> <span style="color:#9ca3af;font-size:11px;">· commentaires Instagram</span> — <strong>${doneCounts.comments_replied}</strong> commentaire${doneCounts.comments_replied > 1 ? 's' : ''} répondu${doneCounts.comments_replied > 1 ? 's' : ''}</div>`);
-      }
       if (doneCounts.emails_sent > 0 || doneCounts.emails_opened > 0) {
         const parts = [];
         if (doneCounts.emails_sent > 0) parts.push(`<strong>${doneCounts.emails_sent}</strong> envoyé${doneCounts.emails_sent > 1 ? 's' : ''}`);
@@ -814,12 +811,13 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
         if (doneCounts.prospects_verified > 0) parts.push(`<strong>${doneCounts.prospects_verified}</strong> validé${doneCounts.prospects_verified > 1 ? 's' : ''} (joignables)`);
         agentLines.push(`<div style="margin:6px 0;"><strong style="color:#7c3aed;">🎯 Léo</strong> <span style="color:#9ca3af;font-size:11px;">· commercial</span> — ${parts.join(', ')}</div>`);
       }
-      if (doneCounts.dms_sent > 0 || doneCounts.dms_followed > 0 || doneCounts.follows_to_do > 0) {
+      if (doneCounts.dms_sent > 0 || doneCounts.dms_followed > 0 || doneCounts.follows_to_do > 0 || doneCounts.comments_replied > 0) {
         const parts = [];
         if (doneCounts.dms_sent > 0) parts.push(`<strong>${doneCounts.dms_sent}</strong> DM${doneCounts.dms_sent > 1 ? 's' : ''} envoyé${doneCounts.dms_sent > 1 ? 's' : ''}`);
+        if (doneCounts.comments_replied > 0) parts.push(`<strong>${doneCounts.comments_replied}</strong> commentaire${doneCounts.comments_replied > 1 ? 's' : ''} répondu${doneCounts.comments_replied > 1 ? 's' : ''}`);
         if (doneCounts.dms_followed > 0) parts.push(`<strong>${doneCounts.dms_followed}</strong> follow${doneCounts.dms_followed > 1 ? 's' : ''} confirmé${doneCounts.dms_followed > 1 ? 's' : ''}`);
         if (doneCounts.follows_to_do > 0) parts.push(`<strong>${doneCounts.follows_to_do}</strong> compte${doneCounts.follows_to_do > 1 ? 's' : ''} à suivre manuellement (warm-up)`);
-        agentLines.push(`<div style="margin:6px 0;"><strong style="color:#a855f7;">💬 Jade</strong> <span style="color:#9ca3af;font-size:11px;">· DM Instagram</span> — ${parts.join(', ')}</div>`);
+        agentLines.push(`<div style="margin:6px 0;"><strong style="color:#a855f7;">💬 Jade</strong> <span style="color:#9ca3af;font-size:11px;">· DM & commentaires Instagram</span> — ${parts.join(', ')}</div>`);
       }
       if (doneCounts.gmaps_imports > 0) {
         agentLines.push(`<div style="margin:6px 0;"><strong style="color:#059669;">📍 Théo</strong> <span style="color:#9ca3af;font-size:11px;">· Google Maps</span> — <strong>${doneCounts.gmaps_imports}</strong> commerce${doneCounts.gmaps_imports > 1 ? 's' : ''} importé${doneCounts.gmaps_imports > 1 ? 's' : ''}</div>`);
