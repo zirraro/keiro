@@ -527,6 +527,12 @@ export async function GET(request: NextRequest) {
         // brief can show "+X followers aujourd'hui" (diff vs yesterday).
         await callEndpoint('Content Sync Social Metrics', '/api/agents/content/sync-social-metrics', 'POST');
         await delay(5000);
+        // Clara proactive outreach: any client stuck under 50% dossier
+        // completion after 3+ days gets offered a setup call. Runs once
+        // per day from the ceo_daily slot so we don't spam at multiple
+        // touch points.
+        await callEndpoint('Clara Check Stuck', '/api/agents/onboarding/check-stuck', 'POST');
+        await delay(3000);
         // Client evening debrief — each client gets "what ran today + what to do
         // tomorrow". Mirror of the morning brief, firing at 20h UTC (~22h Paris).
         await callEndpoint('Noah Client Evening Brief', '/api/agents/ceo-reports?type=client_evening', 'POST');

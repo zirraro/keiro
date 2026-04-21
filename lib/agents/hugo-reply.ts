@@ -325,7 +325,7 @@ export async function sendReplyForClient(params: {
   body: string;
   inReplyTo?: string;
   senderName?: string;
-}): Promise<{ sent: boolean; channel: 'gmail' | 'brevo_admin' | 'none'; reason?: string }> {
+}): Promise<{ sent: boolean; channel: 'gmail' | 'smtp' | 'brevo_admin' | 'none'; reason?: string }> {
   const { clientUserId, clientEmail } = params;
 
   // Admin fallback only for our internal account — hard-coded because
@@ -333,7 +333,7 @@ export async function sendReplyForClient(params: {
   // KeiroAI as its own client, not a generic fallback for everyone.
   const isAdminAccount = clientEmail === 'mrzirraro@gmail.com' || clientEmail === 'contact@keiroai.com';
 
-  // Try Gmail first when the client connected it.
+  // 1. Gmail (OAuth) — most common
   if (clientUserId) {
     try {
       const { getValidGmailToken, sendViaGmail } = await import('@/lib/gmail-oauth');
@@ -355,13 +355,39 @@ export async function sendReplyForClient(params: {
         return { sent: true, channel: 'gmail' };
       }
     } catch (e: any) {
-      // fall through to Brevo only for admin; for other clients we stop here.
+      // Gmail present but failed — for non-admin clients, try SMTP next
+      // before giving up; for admin, fall through to Brevo.
       if (!isAdminAccount) {
-        return { sent: false, channel: 'none', reason: `gmail_send_failed:${String(e?.message || e).substring(0, 120)}` };
+        // don't return yet — try SMTP below
       }
     }
   }
 
+  // 2. Custom SMTP (client's own domain)
+  if (clientUserId) {
+    try {
+      const { sendViaSmtp, hasVerifiedSmtp } = await import('@/lib/agents/smtp-sender');
+      const smtpState = await hasVerifiedSmtp(clientUserId);
+      if (smtpState.connected) {
+        const r = await sendViaSmtp({
+          userId: clientUserId,
+          to: params.toEmail,
+          toName: params.toName,
+          subject: params.subject,
+          body: params.body,
+          inReplyTo: params.inReplyTo,
+        });
+        if (r.sent) return { sent: true, channel: 'smtp' };
+        if (!isAdminAccount) return { sent: false, channel: 'none', reason: `smtp_send_failed:${r.reason || 'unknown'}` };
+      }
+    } catch (e: any) {
+      if (!isAdminAccount) {
+        return { sent: false, channel: 'none', reason: `smtp_error:${String(e?.message || e).substring(0, 120)}` };
+      }
+    }
+  }
+
+  // 3. Brevo fallback (admin only)
   if (isAdminAccount) {
     const sent = await sendReplyViaBrevo({
       toEmail: params.toEmail,
