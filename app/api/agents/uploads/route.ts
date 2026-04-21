@@ -45,8 +45,20 @@ export async function GET(req: NextRequest) {
   if (agentId) query = query.eq('agent_id', agentId);
 
   const { data } = await query;
-  return NextResponse.json({ ok: true, uploads: data || [] });
+  const current = (data || []).length;
+  return NextResponse.json({
+    ok: true,
+    uploads: data || [],
+    limit: MAX_UPLOADS_PER_AGENT,
+    current,
+    remaining: Math.max(0, MAX_UPLOADS_PER_AGENT - current),
+  });
 }
+
+// Per-agent upload caps. We want enough samples for the analyzer to
+// produce a stable palette / style signal without letting a client dump
+// 500 photos that slow generation and bloat the prompt context.
+const MAX_UPLOADS_PER_AGENT = 20;
 
 export async function POST(req: NextRequest) {
   const { user, error } = await getAuthUser();
@@ -59,6 +71,21 @@ export async function POST(req: NextRequest) {
   }
 
   const supabase = getSupabaseAdmin();
+
+  // Cap check — reject cleanly with a client-readable message so the UI
+  // can show "Tu as atteint la limite — supprime d'anciens uploads".
+  const { count: existing } = await supabase
+    .from('agent_uploads')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .eq('agent_id', agent_id);
+  if ((existing || 0) >= MAX_UPLOADS_PER_AGENT) {
+    return NextResponse.json({
+      error: `Limite atteinte (${MAX_UPLOADS_PER_AGENT} uploads max pour cet agent). Supprime d'anciens uploads avant d'en ajouter.`,
+      limit: MAX_UPLOADS_PER_AGENT,
+      current: existing,
+    }, { status: 400 });
+  }
 
   // Look up business_type to hint the analyzer.
   const { data: dossier } = await supabase

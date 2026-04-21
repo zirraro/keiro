@@ -340,24 +340,55 @@ N'utilise les actions QUE quand le client DEMANDE explicitement.`;
       console.log(`[ClientChat] Response received: ${reply.substring(0, 80)}...`);
     }
 
-    // 9.4 Detect and save dossier updates from Clara's onboarding interview
-    // Supports both <dossier_update>...</dossier_update> and [dossier_update]...[/dossier_update]
-    const dossierMatch = reply.match(/<dossier_update>\s*(\{[\s\S]*?\})\s*<\/dossier_update>/) ||
-                          reply.match(/\[dossier_update\]\s*(\{[\s\S]*?\})\s*\[\/dossier_update\]/);
-    if (dossierMatch) {
-      try {
-        const dossierUpdates = JSON.parse(dossierMatch[1]);
-        if (Object.keys(dossierUpdates).length > 0) {
-          const { upsertBusinessDossier } = await import('@/lib/agents/client-context');
-          await upsertBusinessDossier(supabase, user.id, dossierUpdates);
-          console.log(`[ClientChat] Dossier updated: ${Object.keys(dossierUpdates).join(', ')}`);
-        }
-      } catch (e: any) {
-        console.warn('[ClientChat] Dossier update parse error:', e.message);
+    // 9.4 Detect and save dossier updates from Clara's onboarding interview.
+    // We now merge ALL blocks in a single reply (Clara sometimes emits two
+    // when she remembers info from earlier in the conversation) and we
+    // tolerate small JSON hiccups (trailing commas, smart quotes) that
+    // Haiku/Gemini occasionally emit when generating long responses.
+    const collectAll = (src: string) => {
+      const blocks: string[] = [];
+      const patterns = [
+        /<dossier_update>\s*(\{[\s\S]*?\})\s*<\/dossier_update>/g,
+        /\[dossier_update\]\s*(\{[\s\S]*?\})\s*\[\/dossier_update\]/g,
+      ];
+      for (const p of patterns) {
+        let m: RegExpExecArray | null;
+        while ((m = p.exec(src)) !== null) blocks.push(m[1]);
       }
-      // Remove the dossier block from visible reply
-      reply = reply.replace(/<dossier_update>[\s\S]*?<\/dossier_update>/, '')
-                    .replace(/\[dossier_update\][\s\S]*?\[\/dossier_update\]/, '').trim();
+      return blocks;
+    };
+    const tryParse = (raw: string): Record<string, any> | null => {
+      try { return JSON.parse(raw); } catch {}
+      // Best-effort: strip trailing commas + normalise smart quotes.
+      const cleaned = raw
+        .replace(/[\u2018\u2019\u201C\u201D]/g, '"')
+        .replace(/,\s*([}\]])/g, '$1');
+      try { return JSON.parse(cleaned); } catch {}
+      return null;
+    };
+
+    const blocks = collectAll(reply);
+    if (blocks.length > 0) {
+      const merged: Record<string, any> = {};
+      for (const raw of blocks) {
+        const parsed = tryParse(raw);
+        if (parsed && typeof parsed === 'object') Object.assign(merged, parsed);
+        else console.warn('[ClientChat] Dossier block failed to parse (kept client-side):', raw.substring(0, 100));
+      }
+      if (Object.keys(merged).length > 0) {
+        try {
+          const { upsertBusinessDossier } = await import('@/lib/agents/client-context');
+          await upsertBusinessDossier(supabase, user.id, merged);
+          console.log(`[ClientChat] Dossier updated (${blocks.length} block(s) merged): ${Object.keys(merged).join(', ')}`);
+        } catch (e: any) {
+          console.warn('[ClientChat] Dossier upsert error:', e.message);
+        }
+      }
+      // Strip ALL blocks before the reply is shown to the client.
+      reply = reply
+        .replace(/<dossier_update>[\s\S]*?<\/dossier_update>/g, '')
+        .replace(/\[dossier_update\][\s\S]*?\[\/dossier_update\]/g, '')
+        .trim();
     }
 
     // 9.5 Detect and execute ACTION from agent response

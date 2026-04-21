@@ -79,6 +79,8 @@ const KNOWN_DOSSIER_FIELDS = new Set([
   'website_url', 'google_maps_url', 'facebook_url', 'logo_url', 'uploaded_files', 'ai_summary',
   'value_proposition', 'business_model', 'market_segment', 'languages',
   'phone', 'email', 'horaires_ouverture', 'specialite',
+  // communication_language (fr/en/...) drives outbound agent output.
+  'communication_language',
 ]);
 
 export async function upsertBusinessDossier(
