@@ -325,7 +325,7 @@ export async function sendReplyForClient(params: {
   body: string;
   inReplyTo?: string;
   senderName?: string;
-}): Promise<{ sent: boolean; channel: 'gmail' | 'smtp' | 'brevo_admin' | 'none'; reason?: string }> {
+}): Promise<{ sent: boolean; channel: 'gmail' | 'outlook' | 'smtp' | 'brevo_admin' | 'none'; reason?: string }> {
   const { clientUserId, clientEmail } = params;
 
   // Admin fallback only for our internal account — hard-coded because
@@ -333,37 +333,53 @@ export async function sendReplyForClient(params: {
   // KeiroAI as its own client, not a generic fallback for everyone.
   const isAdminAccount = clientEmail === 'mrzirraro@gmail.com' || clientEmail === 'contact@keiroai.com';
 
-  // 1. Gmail (OAuth) — most common
+  const bodyHtml = params.body
+    .split(/\n\n+/)
+    .map(p => `<p style="margin:0 0 10px;">${p.replace(/\n/g, '<br>')}</p>`)
+    .join('');
+  const htmlWrapped = `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.55;">${bodyHtml}</div>`;
+
+  // 1. Gmail (OAuth) — most common among SMBs
   if (clientUserId) {
     try {
       const { getValidGmailToken, sendViaGmail } = await import('@/lib/gmail-oauth');
       const gmail = await getValidGmailToken(clientUserId);
       if (gmail) {
-        const bodyHtml = params.body
-          .split(/\n\n+/)
-          .map(p => `<p style="margin:0 0 10px;">${p.replace(/\n/g, '<br>')}</p>`)
-          .join('');
         await sendViaGmail(
           gmail.accessToken,
           params.toEmail,
           params.subject,
-          `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.55;">${bodyHtml}</div>`,
+          htmlWrapped,
           params.senderName,
           gmail.email,
           gmail.email,
         );
         return { sent: true, channel: 'gmail' };
       }
-    } catch (e: any) {
-      // Gmail present but failed — for non-admin clients, try SMTP next
-      // before giving up; for admin, fall through to Brevo.
-      if (!isAdminAccount) {
-        // don't return yet — try SMTP below
-      }
-    }
+    } catch { /* fall through to next provider */ }
   }
 
-  // 2. Custom SMTP (client's own domain)
+  // 2. Outlook / Microsoft 365 (OAuth) — second-most-common in pro SMBs
+  if (clientUserId) {
+    try {
+      const { getValidOutlookToken, sendViaOutlook } = await import('@/lib/outlook-oauth');
+      const outlook = await getValidOutlookToken(clientUserId);
+      if (outlook) {
+        const r = await sendViaOutlook(
+          outlook.accessToken,
+          params.toEmail,
+          params.subject,
+          htmlWrapped,
+          params.senderName,
+          outlook.email,
+          outlook.email,
+        );
+        if (r.sent) return { sent: true, channel: 'outlook' };
+      }
+    } catch { /* fall through */ }
+  }
+
+  // 3. Custom SMTP (client's own domain)
   if (clientUserId) {
     try {
       const { sendViaSmtp, hasVerifiedSmtp } = await import('@/lib/agents/smtp-sender');

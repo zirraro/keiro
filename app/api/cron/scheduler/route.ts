@@ -369,6 +369,8 @@ export async function GET(request: NextRequest) {
         for (const uid of getClientsWithAgent('email')) {
           await callEndpoint(`Gmail Poll [${uid.substring(0, 8)}]`, `/api/agents/email/poll-inbound?user_id=${uid}`, 'POST');
           await delay(1000);
+          await callEndpoint(`Outlook Poll [${uid.substring(0, 8)}]`, `/api/agents/email/poll-outlook?user_id=${uid}`, 'POST');
+          await delay(1000);
           await callEndpoint(`IMAP Poll [${uid.substring(0, 8)}]`, `/api/agents/email/poll-imap?user_id=${uid}`, 'POST');
           await delay(1500);
         }
