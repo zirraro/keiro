@@ -1,6 +1,7 @@
 import { getAuthUser } from '@/lib/auth-server';
 import { checkCredits, deductCredits, isAdmin, checkFreeGeneration, recordFreeGeneration, getClientIP } from '@/lib/credits/server';
 import { generateKlingI2I } from '@/lib/kling';
+import { generateJadeImageFromReference } from '@/lib/visuals/jade-prompter';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -85,8 +86,8 @@ export async function POST(request: Request) {
       }
     }
 
-    let resultImageUrl: string;
-    let provider: 'k' | 's';
+    let resultImageUrl: string = '';
+    let provider: 'k' | 's' = 's';
 
     // --- Pour I2I, adapter le prompt selon la force de modification ---
     const finalPrompt = prompt.trim();
@@ -157,13 +158,34 @@ export async function POST(request: Request) {
       throw new Error('Seedream returned no image');
     };
 
+    // Attempt 0: Jade-grade i2i (the same elite prompt pipeline used by
+    // the content agent). This gives /generate + /studio uploads the
+    // editorial lift Jade applies to her own daily posts. On failure we
+    // fall back to the existing robust retry chain below.
+    try {
+      const jadeStrength = strength <= 5 ? 0.25 : strength <= 7 ? 0.45 : 0.7;
+      const jadeFormat = (size || '2K').toLowerCase().includes('9:16') ? 'story' : 'post';
+      const jadeUrl = await generateJadeImageFromReference(sourceImage, finalPrompt, jadeFormat, jadeStrength);
+      if (jadeUrl) {
+        resultImageUrl = jadeUrl;
+        provider = 's';
+        console.log('[I2I] ✓ Jade prompter i2i OK');
+        // resultImageUrl is set → the guard on the retry chain below
+        // short-circuits so we skip straight to credit deduction.
+      }
+    } catch (jadeErr: any) {
+      console.warn('[I2I] Jade prompter path failed, falling back:', jadeErr?.message?.substring?.(0, 200));
+    }
+
     // Tentative 1: base64 (fiable, pas de dépendance réseau)
     // Tentative 2: URL originale (si base64 a échoué)
     // Tentative 3: Kling fallback
     try {
-      resultImageUrl = await trySeedream(imageForSeedream, 'Attempt 1 (base64)') as string;
-      provider = 's';
-      console.log('[I2I] ✓ Seedream 4.5 OK');
+      if (!resultImageUrl) {
+        resultImageUrl = await trySeedream(imageForSeedream, 'Attempt 1 (base64)') as string;
+        provider = 's';
+        console.log('[I2I] ✓ Seedream 4.5 OK');
+      }
     } catch (err1: any) {
       console.error('[I2I] Attempt 1 failed:', err1.message);
 

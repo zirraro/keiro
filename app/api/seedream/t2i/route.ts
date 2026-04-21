@@ -2,6 +2,7 @@ import { getAuthUser } from '@/lib/auth-server';
 import { checkCredits, deductCredits, isAdmin, checkFreeGeneration, recordFreeGeneration, getClientIP } from '@/lib/credits/server';
 import { generateKlingT2I } from '@/lib/kling';
 import { optimizePromptForImage, fetchNewsContext, analyzeTrendForVisuals } from '@/lib/prompt-optimizer';
+import { generateJadeImage } from '@/lib/visuals/jade-prompter';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -62,6 +63,11 @@ export async function POST(request: Request) {
     }
 
     // --- Étape 1: Deep trend analysis + optimize prompt ---
+    // We first weave in trend / news context via the legacy optimizer
+    // (still valuable because it pulls the article body), THEN we hand
+    // the enriched brief to Jade's shared prompter so the Seedream call
+    // goes through the same elite system used by the content agent
+    // (brand identity, quality rules, thumbnail readability, etc.)
     let trendAnalysis = '';
     if (newsUrl && newsTitle && businessType) {
       console.log('[T2I] Step 0: Deep trend analysis for', newsTitle);
@@ -69,10 +75,10 @@ export async function POST(request: Request) {
       trendAnalysis = await analyzeTrendForVisuals(newsTitle, newsDescription || '', articleContent, businessType, businessDescription);
     }
 
-    console.log('[T2I] Step 1: Optimizing prompt with Claude...', { rawLength: prompt.length, hasTrendAnalysis: !!trendAnalysis });
-    const visualPrompt = await optimizePromptForImage(prompt, trendAnalysis);
-    const finalPrompt = visualPrompt + NO_TEXT_SUFFIX;
-    console.log('[T2I] Optimized prompt:', finalPrompt.substring(0, 300));
+    console.log('[T2I] Step 1: Weaving trend context into brief...', { rawLength: prompt.length, hasTrendAnalysis: !!trendAnalysis });
+    const enrichedBrief = await optimizePromptForImage(prompt, trendAnalysis);
+    const finalPrompt = enrichedBrief + NO_TEXT_SUFFIX;
+    console.log('[T2I] Enriched brief:', finalPrompt.substring(0, 300));
 
     let imageUrl: string;
     let provider: 'k' | 's';
@@ -81,47 +87,20 @@ export async function POST(request: Request) {
     const seedreamPrompt = finalPrompt.length > 2000 ? finalPrompt.substring(0, 2000) : finalPrompt;
 
     try {
-      console.log('[T2I] Step 2: Generating with Seedream 4.5...', { promptLength: seedreamPrompt.length });
-      const seedreamRes = await fetch(SEEDREAM_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SEEDREAM_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: 'seedream-4-5-251128',
-          prompt: seedreamPrompt,
-          negative_prompt: 'text, words, letters, numbers, writing, typography, signs, labels, captions, watermarks, logos, headlines, slogans, brand names, price tags, menus, screens with text, readable characters',
-          response_format: 'url',
-          watermark: false,
-          size: size || '2K',
-          seed: -1,
-        }),
-      });
-
-      const seedreamData = await seedreamRes.json();
-      console.log('[T2I] Seedream 4.5 response:', seedreamRes.status);
-
-      if (!seedreamRes.ok) {
-        console.error('[T2I] Seedream error:', JSON.stringify(seedreamData).substring(0, 500));
-        throw new Error(seedreamData.error?.message || `Seedream HTTP ${seedreamRes.status}`);
+      // Run the brief through Jade's shared prompter — this is the same
+      // elite Seedream pipeline used by the content agent (brand identity
+      // rules, thumbnail readability, negative prompt, watermark=false,
+      // permanent Supabase caching). Users hitting /generate or /studio
+      // now get the same quality as Jade's daily posts.
+      console.log('[T2I] Step 2: Generating via Jade shared prompter…');
+      const format = (size || '2K').toLowerCase().includes('9:16') ? 'story' : 'post';
+      const jadeUrl = await generateJadeImage(seedreamPrompt, format);
+      if (!jadeUrl) {
+        throw new Error('Jade prompter returned no image');
       }
-
-      // Seedream 4.5 avec response_format=url renvoie une URL, sinon b64_image
-      const resultUrl = seedreamData.data?.[0]?.url;
-      const resultB64 = seedreamData.data?.[0]?.b64_image;
-
-      if (resultUrl) {
-        imageUrl = resultUrl;
-      } else if (resultB64) {
-        imageUrl = `data:image/png;base64,${resultB64}`;
-      } else {
-        console.error('[T2I] Seedream no image:', JSON.stringify(seedreamData).substring(0, 500));
-        throw new Error('Seedream returned no image');
-      }
-
+      imageUrl = jadeUrl;
       provider = 's';
-      console.log('[T2I] ✓ Seedream 4.5 OK');
+      console.log('[T2I] ✓ Jade prompter / Seedream 4.5 OK');
     } catch (seedreamError: any) {
       console.error('[T2I] Seedream failed:', seedreamError.message, '→ trying Kling');
 
