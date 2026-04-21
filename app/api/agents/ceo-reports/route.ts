@@ -38,8 +38,10 @@ export async function POST(req: NextRequest) {
   const reportType = new URL(req.url).searchParams.get('type') || 'status';
 
   // ─── Client brief: separate flow ─────────────────────
-  if (reportType === 'client_brief') {
-    return handleClientBrief(supabase);
+  // ?type=client_brief   — morning brief (7h Paris): today's plan
+  // ?type=client_evening — evening debrief (20h Paris): what ran today
+  if (reportType === 'client_brief' || reportType === 'client_evening') {
+    return handleClientBrief(supabase, reportType === 'client_evening' ? 'evening' : 'morning');
   }
   const now = new Date();
   const twelveHoursAgo = new Date(now.getTime() - 12 * 60 * 60 * 1000).toISOString();
@@ -301,7 +303,8 @@ Format HTML pour email. Sois direct et actionable.`,
  * Generate and send CEO brief to individual clients
  * Called by: scheduler slot or manually via ?type=client_brief
  */
-async function handleClientBrief(supabase: any) {
+async function handleClientBrief(supabase: any, timeOfDay: 'morning' | 'evening' = 'morning') {
+  const isEvening = timeOfDay === 'evening';
   const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
   const BREVO_CLIENT_KEY = process.env.BREVO_API_KEY;
 
@@ -444,28 +447,28 @@ async function handleClientBrief(supabase: any) {
             body: JSON.stringify({
               model: 'claude-haiku-4-5-20251001',
               max_tokens: 600,
-              system: `Tu es Noah (stratege KeiroAI). Tu envoies un brief quotidien SCANNABLE a ${clientName}.
+              system: `Tu es Noah (stratege KeiroAI). Tu envoies un ${isEvening ? 'DEBRIEF DU SOIR' : 'BRIEF DU MATIN'} SCANNABLE a ${clientName}.
 
 CONTEXTE CLIENT:
 ${clientContext || 'Nouveau client, pas encore de profil complet.'}
 
 FORMAT OBLIGATOIRE (HTML strict, tutoiement, zero jargon) — 4 blocs courts:
 
-<p style="margin:0 0 12px;font-size:14px;"><strong>Salut ${clientName} 👋</strong> — une phrase punchy qui dit en 1 ligne si la journee est productive, a surveiller, ou calme.</p>
+<p style="margin:0 0 12px;font-size:14px;"><strong>${isEvening ? `Bonsoir ${clientName} 🌙` : `Salut ${clientName} 👋`}</strong> — une phrase punchy qui dit en 1 ligne ${isEvening ? 'si la journee a ete productive ou calme, et si quelque chose necessite ton attention demain' : 'si la journee est productive, a surveiller, ou calme'}.</p>
 
-<h4 style="margin:0 0 6px;color:#16a34a;font-size:13px;">✅ Ce que tes agents ont fait (24h)</h4>
+<h4 style="margin:0 0 6px;color:#16a34a;font-size:13px;">✅ ${isEvening ? 'Ce qui a ete execute aujourd\u2019hui' : 'Ce que tes agents ont fait (24h)'}</h4>
 <ul style="margin:0 0 12px;padding-left:18px;font-size:13px;">
   — 3 a 5 puces ULTRA COURTES (une ligne chacune).
   — Preference: actions mesurables ("12 emails envoyes", "2 posts IG publies", "5 prospects chauds detectes").
   — Si rien cote agent X, ne liste pas X — pas de "0 posts" inutile.
 </ul>
 
-<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 Ce que tu dois faire aujourd'hui</h4>
+<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">${isEvening ? '📌 A lancer demain (tache humaine)' : '📌 Ce que tu dois faire aujourd\u2019hui'}</h4>
 <ul style="margin:0 0 12px;padding-left:18px;font-size:13px;">
   — 1 a 3 actions humaines concretes.
   — Chaque action = 1 verbe d'action + lien mental (ex: "Valide les 3 posts en attente dans Léna").
   — Si agent en MANUEL ou prospects chauds, priorise-les ici.
-  — Si rien d'urgent cote humain, dis-le: "Rien a faire aujourd'hui, tout tourne en auto".
+  — Si rien d'urgent cote humain, dis-le: "${isEvening ? 'Rien a faire demain cote humain, tout tourne en auto' : 'Rien a faire aujourd\u2019hui, tout tourne en auto'}".
 </ul>
 
 <h4 style="margin:0 0 6px;color:#a855f7;font-size:13px;">⚡ Sur les rails (auto)</h4>
@@ -550,7 +553,7 @@ ${errorCount > 0 ? `<p style="font-size:11px;color:#9ca3af;margin:4px 0 0;">${er
           user_id: client.id,
           agent: 'ceo',
           type: 'brief',
-          title: 'Brief Noah & AMI du jour',
+          title: isEvening ? 'Debrief du soir — Noah' : 'Brief du matin — Noah',
           message: briefHtml.replace(/<[^>]*>/g, '').substring(0, 300),
           data: { html: briefHtml, agentActivity: agentSummary, prospects: prospectCount, hot: hotCount },
         });
@@ -564,10 +567,12 @@ ${errorCount > 0 ? `<p style="font-size:11px;color:#9ca3af;margin:4px 0 0;">${er
           body: JSON.stringify({
             sender: { name: 'Noah CEO IA', email: 'contact@keiroai.com' },
             to: [{ email: client.email }],
-            subject: `\u{1F4CB} Noah — ${totalDone} actions aujourd'hui${hotCount > 0 ? ` · ${hotCount} chaud${hotCount > 1 ? 's' : ''} a contacter` : ''}`,
+            subject: isEvening
+              ? `\u{1F319} Noah — Debrief du soir · ${totalDone} actions${hotCount > 0 ? ` · ${hotCount} chaud${hotCount > 1 ? 's' : ''} a relancer demain` : ''}`
+              : `\u{1F4CB} Noah — ${totalDone} actions aujourd'hui${hotCount > 0 ? ` · ${hotCount} chaud${hotCount > 1 ? 's' : ''} a contacter` : ''}`,
             htmlContent: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
               <div style="background:linear-gradient(135deg,#0c1a3a,#1e3a5f);color:white;padding:16px 20px;border-radius:12px 12px 0 0;">
-                <h2 style="margin:0;font-size:16px;">\u{1F9E0} Noah — Brief du jour</h2>
+                <h2 style="margin:0;font-size:16px;">\u{1F9E0} Noah — ${isEvening ? 'Debrief du soir' : 'Brief du jour'}</h2>
                 <p style="margin:4px 0 0;color:#a0aec0;font-size:12px;">${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
               </div>
               <div style="background:white;padding:20px;border:1px solid #e5e7eb;">

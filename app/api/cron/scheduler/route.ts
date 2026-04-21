@@ -482,7 +482,8 @@ export async function GET(request: NextRequest) {
       break;
 
     case 'ceo_daily':
-      // 20:00 UTC — CEO + Marketing + AMIT + Ops — all in background to avoid timeout
+      // 20:00 UTC — Evening pipeline: Marketing → CEO → AMIT → Ops → Client evening debrief.
+      // All in background to avoid the 300s serverless timeout.
       fireBackground(async () => {
         // Marketing analysis first (feeds CEO)
         await callEndpoint('Marketing Learn', '/api/agents/marketing', 'POST', { action: 'learn' });
@@ -495,6 +496,10 @@ export async function GET(request: NextRequest) {
         await delay(3000);
         // Ops health check + send report
         await callEndpoint('Ops Health', '/api/agents/ops', 'POST', { action: 'health_check' });
+        await delay(5000);
+        // Client evening debrief — each client gets "what ran today + what to do
+        // tomorrow". Mirror of the morning brief, firing at 20h UTC (~22h Paris).
+        await callEndpoint('Noah Client Evening Brief', '/api/agents/ceo-reports?type=client_evening', 'POST');
       });
       results.push({ task: 'CEO Daily', ok: true, data: { status: 'dispatched_background' } });
       break;
