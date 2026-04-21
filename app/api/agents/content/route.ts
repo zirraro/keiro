@@ -155,6 +155,91 @@ async function cacheImageToStorage(tempUrl: string, postId: string): Promise<str
   }
 }
 
+/**
+ * Image-to-image Seedream call — takes the client's OWN uploaded photo
+ * as a reference, then asks the model to re-render it with improved
+ * lighting / composition / brand-aligned ambiance while keeping the
+ * subject + space recognisable. This is the "pimp my real photo" mode
+ * the user explicitly asked for.
+ *
+ * Seedream (ByteDance Ark) accepts a reference image via the `image`
+ * parameter in the generations endpoint. If the API rejects the call
+ * we return null so the caller can fall back to plain generation.
+ *
+ * strength: 0 = keep the original almost intact, 1 = fully re-imagine.
+ * We default to 0.4 — enough to polish without making the venue
+ * unrecognisable (a fleuriste must still look like THEIR fleuriste).
+ */
+async function generateVisualFromReference(
+  referenceImageUrl: string,
+  visualDescription: string,
+  format: string,
+  strength = 0.4,
+): Promise<string | null> {
+  try {
+    // Build an enhancement prompt — we don't want the model to invent
+    // a new scene, just elevate the existing one: better light, cleaner
+    // composition, colour cohesion with the brand, tasteful styling.
+    const optimizedText = await callClaude({
+      system: SEEDREAM_STYLE_GUIDE + `\n\nIMPORTANT: You are writing an IMAGE-TO-IMAGE prompt. The reference image is the client's REAL photo of their venue / product / space. Your job is to describe HOW to re-render it with: (a) better professional lighting (natural or warm editorial), (b) cleaner composition, (c) brand-aligned palette, (d) magazine-quality atmosphere. Keep the SUBJECT and SPACE recognisable — never invent new elements or change the venue type. Think "editorial photo shoot of the same place", not "generate a different place".`,
+      message: `Write the image-to-image enhancement prompt.\n\nOriginal brief: ${visualDescription}\n\nFormat: ${format}\n\nReturn just the prompt, no intro, no explanation.`,
+      maxTokens: 300,
+    });
+
+    const rawPrompt = (optimizedText || visualDescription) + NO_TEXT_SUFFIX;
+    const imagePrompt = rawPrompt.length > 1500 ? rawPrompt.substring(0, 1500) : rawPrompt;
+
+    let width = 1920;
+    let height = 1920;
+    if (format === 'story' || format === 'reel' || format === 'video') {
+      width = 1440; height = 2560;
+    } else if (format === 'text') {
+      width = 2560; height = 1440;
+    }
+
+    console.log(`[Content] Seedream image-to-image (${width}x${height}, strength=${strength}) from:`, referenceImageUrl);
+
+    const seedreamRes = await fetch(SEEDREAM_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SEEDREAM_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'seedream-4-5-251128',
+        prompt: imagePrompt,
+        image: referenceImageUrl,
+        image_strength: strength,
+        // Some Ark variants expect `strength` instead of `image_strength`.
+        // Sending both is safe — unknown fields are ignored.
+        strength,
+        negative_prompt: 'text, words, letters, numbers, writing, typography, signs, labels, watermarks, logos, price tags, screens with text, readable characters, digits, different building, different room, different venue',
+        size: `${width}x${height}`,
+        response_format: 'url',
+        seed: -1,
+        watermark: false,
+      }),
+    });
+
+    if (!seedreamRes.ok) {
+      const errBody = await seedreamRes.text().catch(() => '');
+      console.warn('[Content] Seedream i2i rejected:', seedreamRes.status, errBody.substring(0, 300));
+      return null;
+    }
+
+    const data = await seedreamRes.json();
+    const tempUrl = data.data?.[0]?.url || null;
+    if (!tempUrl) return null;
+
+    const postId = `i2i-${Date.now()}`;
+    const permanent = await cacheImageToStorage(tempUrl, postId);
+    return permanent || tempUrl;
+  } catch (e: any) {
+    console.warn('[Content] Seedream i2i error:', e?.message?.substring?.(0, 200));
+    return null;
+  }
+}
+
 async function generateVisual(visualDescription: string, format: string): Promise<string | null> {
   try {
     // Optimize the visual description into an elite Seedream prompt
@@ -3664,22 +3749,21 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
         await supabase.from('content_calendar').update({ format: 'post', updated_at: new Date().toISOString() }).eq('id', inserted.id);
       }
     } else {
-      // Image-based post — prefer using the client's own photos when
-      // available. This is the "photos du lieu / produits du client"
-      // feature: Jade reaches into the agent_uploads gallery and picks
-      // an authentic picture of the space / dishes / products ~60% of
-      // the time, rather than always asking Seedream to hallucinate a
-      // scene. Rotation biased toward the least-recently-used photo so
-      // the feed stays diverse.
-      //
-      // Falls back to Seedream when (a) no upload gallery yet,
-      // (b) all photos were used in the last 7 posts, or (c) we roll a
-      // 40% chance to use an AI-generated scene for variety.
-      const shouldTryClientPhoto = userId && Math.random() < 0.6;
-      if (shouldTryClientPhoto) {
+      // Image-based post — three-way choice when the client has
+      // uploaded their own photos:
+      //   - 40% raw reuse   → publish the real photo untouched (fastest,
+      //                        most authentic, 0 cost)
+      //   - 30% i2i pimp    → Seedream image-to-image re-renders the
+      //                        photo with editorial lighting + on-brand
+      //                        palette (subject stays recognisable)
+      //   - 30% pure gen    → Seedream text-to-image builds a net-new
+      //                        scene from the visual_description
+      // No uploads → always pure generation.
+      // The client's feed ends up with a healthy mix of authentic
+      // moments + polished shoots + creative scenes.
+      let pickedUpload: { id: string; file_url: string } | null = null;
+      if (userId) {
         try {
-          // Find images already used in the last 10 posts so we avoid
-          // repeating the same photo back-to-back.
           const { data: recentPosts } = await supabase
             .from('content_calendar')
             .select('visual_url')
@@ -3700,19 +3784,39 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
 
           const candidates = (uploads || []).filter((u: any) => !recentUrls.has(u.file_url));
           const pick = candidates[0] || (uploads || [])[0];
-          if (pick?.file_url) {
-            visualUrl = pick.file_url;
-            console.log(`[Content] Reusing client photo ${pick.id} instead of Seedream generation`);
-            // Track source so we can audit + rotate
-            await supabase.from('content_calendar').update({
-              publish_diagnostic: `client_photo:${pick.id}`,
-            }).eq('id', inserted.id).throwOnError?.();
-          }
+          if (pick?.file_url) pickedUpload = { id: pick.id, file_url: pick.file_url };
         } catch (e: any) {
-          console.warn('[Content] Client-photo pick failed:', String(e?.message || e).substring(0, 200));
+          console.warn('[Content] Upload pick failed:', String(e?.message || e).substring(0, 200));
         }
       }
-      // If we didn't pick a client photo, fall back to Seedream.
+
+      const rng = Math.random();
+      if (pickedUpload && rng < 0.40) {
+        // 40% — reuse raw client photo
+        visualUrl = pickedUpload.file_url;
+        console.log(`[Content] Reusing client photo ${pickedUpload.id} (raw reuse)`);
+        await supabase.from('content_calendar').update({
+          publish_diagnostic: `client_photo_raw:${pickedUpload.id}`,
+        }).eq('id', inserted.id).throwOnError?.();
+      } else if (pickedUpload && rng < 0.70) {
+        // 30% — pimp the client photo via Seedream image-to-image
+        visualUrl = await generateVisualFromReference(pickedUpload.file_url, visualDesc, postFormat);
+        if (visualUrl) {
+          console.log(`[Content] Pimped client photo ${pickedUpload.id} via i2i`);
+          await supabase.from('content_calendar').update({
+            publish_diagnostic: `client_photo_i2i:${pickedUpload.id}`,
+          }).eq('id', inserted.id).throwOnError?.();
+        } else {
+          // i2i rejected by API — salvage with raw reuse before falling
+          // back to a generic scene (authenticity > novelty).
+          console.log(`[Content] i2i failed, falling back to raw reuse of ${pickedUpload.id}`);
+          visualUrl = pickedUpload.file_url;
+          await supabase.from('content_calendar').update({
+            publish_diagnostic: `client_photo_raw_fallback:${pickedUpload.id}`,
+          }).eq('id', inserted.id).throwOnError?.();
+        }
+      }
+      // 30% — pure Seedream text-to-image (or whenever no client photo is available)
       if (!visualUrl) {
         visualUrl = await generateVisual(visualDesc, postFormat);
       }
