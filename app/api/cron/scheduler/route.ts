@@ -348,10 +348,15 @@ export async function GET(request: NextRequest) {
           await delay(2000);
           await callEndpoint(`DM Send Queue [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram/send-queue?user_id=${uid}`, 'POST');
           await delay(2000);
-          // Daily follow campaign: Jade follows ~25 qualified prospects to
-          // warm them up before any DM is sent. Rate-limited in the route.
+          // Daily follow campaign: Jade queues ~25 qualified prospects for
+          // manual warm-up follows. Rate-limited in the route.
           await callEndpoint(`DM Follow [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram/follow-prospects?user_id=${uid}`, 'POST', { user_id: uid });
         }
+        // Morning push: one notification per client with pending follows
+        // so they see the number on their phone before opening the app.
+        // Runs AFTER the follow queue is populated — order matters.
+        await delay(5000);
+        await callEndpoint('Push Morning Follows', '/api/push/send-morning-follows', 'POST');
       });
 
       // 3bis. Email — separate fireBackground (was timing out when combined with DM)

@@ -75,6 +75,17 @@ function JadeTabs({ gradientFrom, gradientTo }: { gradientFrom: string; gradient
   );
 }
 
+// Base64url → Uint8Array (needed by pushManager.subscribe). The VAPID
+// public key is shipped as base64url and has to be decoded before passing.
+function urlB64ToUint8Array(base64String: string) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = typeof atob === 'function' ? atob(base64) : Buffer.from(base64, 'base64').toString('binary');
+  const out = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+  return out;
+}
+
 function ManualFollowsList() {
   const { locale } = useLanguage();
   const en = locale === 'en';
@@ -91,6 +102,12 @@ function ManualFollowsList() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [batchBusy, setBatchBusy] = useState(false);
 
+  // Push-notification state. We reflect the current permission + our
+  // own subscription in state so the button shows the right label
+  // ("Activer les rappels" vs "Rappels activés").
+  const [pushState, setPushState] = useState<'loading' | 'unsupported' | 'denied' | 'off' | 'on'>('loading');
+  const [pushBusy, setPushBusy] = useState(false);
+
   // Detect mobile once at mount. We use it to pick between the IG app
   // deep link (instagram://user?username=X — opens the native app
   // instantly on iOS/Android) and the web fallback (opens a browser tab
@@ -99,6 +116,79 @@ function ManualFollowsList() {
   useEffect(() => {
     if (typeof navigator !== 'undefined') {
       setIsMobile(/Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
+    }
+  }, []);
+
+  // Probe push support + existing subscription at mount. We register
+  // the service worker lazily here (rather than at app boot) so users
+  // who never open Jade don't pay the cost.
+  useEffect(() => {
+    (async () => {
+      if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+        setPushState('unsupported');
+        return;
+      }
+      try {
+        const reg = await navigator.serviceWorker.register('/sw.js');
+        const existing = await reg.pushManager.getSubscription();
+        if (Notification.permission === 'denied') {
+          setPushState('denied');
+        } else if (existing) {
+          setPushState('on');
+        } else {
+          setPushState('off');
+        }
+      } catch {
+        setPushState('unsupported');
+      }
+    })();
+  }, []);
+
+  const enablePush = useCallback(async () => {
+    const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    if (!vapidKey) {
+      window.alert(en ? 'Push not configured on this server.' : 'Push non configuré sur ce serveur.');
+      return;
+    }
+    setPushBusy(true);
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        setPushState(permission === 'denied' ? 'denied' : 'off');
+        return;
+      }
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlB64ToUint8Array(vapidKey),
+      });
+      const res = await fetch('/api/push/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sub.toJSON()),
+      });
+      if (res.ok) setPushState('on');
+    } finally {
+      setPushBusy(false);
+    }
+  }, [en]);
+
+  const disablePush = useCallback(async () => {
+    setPushBusy(true);
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) {
+        await fetch('/api/push/subscribe', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ endpoint: sub.endpoint }),
+        });
+        await sub.unsubscribe();
+      }
+      setPushState('off');
+    } finally {
+      setPushBusy(false);
     }
   }, []);
 
@@ -174,19 +264,46 @@ function ManualFollowsList() {
           ? <>Tap the handle to open Instagram{isMobile ? ' in the app' : ''}, tap Follow, then press ✓ here so Jade knows. She'll DM these accounts after a short warm-up period.</>
           : <>Touche le handle pour ouvrir Instagram{isMobile ? ' dans l\'appli' : ''}, appuie sur Suivre, puis valide avec ✓ ici. Jade les DM après un petit temps de chauffe.</>}
       </div>
-      <div className="flex items-center justify-between gap-2 pb-1">
+      <div className="flex items-center justify-between gap-2 pb-1 flex-wrap">
         <div className="text-[11px] text-white/60">
           {items.length} {en ? 'pending' : 'en attente'}
         </div>
-        <button
-          disabled={batchBusy}
-          onClick={handleMarkAllDone}
-          className="px-3 py-1 text-[11px] bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 rounded-md transition disabled:opacity-50"
-        >
-          {batchBusy
-            ? (en ? 'Marking…' : 'En cours…')
-            : (en ? `✓ Mark all ${items.length} as followed` : `✓ Tout marquer fait (${items.length})`)}
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {pushState === 'on' && (
+            <button
+              disabled={pushBusy}
+              onClick={disablePush}
+              className="px-3 py-1 text-[11px] text-white/50 hover:text-white/80 border border-white/10 rounded-md transition disabled:opacity-50"
+              title={en ? 'Disable morning reminders' : 'Désactiver les rappels du matin'}
+            >
+              {'\u{1F514}'} {en ? 'Reminders on' : 'Rappels activés'}
+            </button>
+          )}
+          {pushState === 'off' && (
+            <button
+              disabled={pushBusy}
+              onClick={enablePush}
+              className="px-3 py-1 text-[11px] bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 rounded-md transition disabled:opacity-50"
+              title={en ? 'Enable morning push reminders' : 'Activer les rappels push chaque matin'}
+            >
+              {'\u{1F514}'} {en ? 'Enable morning reminders' : 'Activer les rappels matin'}
+            </button>
+          )}
+          {pushState === 'denied' && (
+            <span className="text-[10px] text-white/40" title={en ? 'Notifications blocked in browser settings' : 'Notifications bloquées dans les paramètres du navigateur'}>
+              {'\u{1F515}'} {en ? 'Notifications blocked' : 'Notifications bloquées'}
+            </span>
+          )}
+          <button
+            disabled={batchBusy}
+            onClick={handleMarkAllDone}
+            className="px-3 py-1 text-[11px] bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 rounded-md transition disabled:opacity-50"
+          >
+            {batchBusy
+              ? (en ? 'Marking…' : 'En cours…')
+              : (en ? `✓ Mark all ${items.length} as followed` : `✓ Tout marquer fait (${items.length})`)}
+          </button>
+        </div>
       </div>
       {items.map(item => {
         const handle = String(item.instagram || '').replace(/^@/, '');

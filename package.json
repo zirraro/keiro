@@ -57,6 +57,7 @@
     "rss-parser": "^3.13.0",
     "sharp": "^0.34.5",
     "stripe": "^20.3.1",
+    "web-push": "^3.6.7",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
@@ -67,6 +68,7 @@
     "@types/open-graph-scraper": "^5.2.3",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/web-push": "^3.6.4",
     "eslint": "^9",
     "eslint-config-next": "15.5.0",
     "pg": "^8.20.0",
