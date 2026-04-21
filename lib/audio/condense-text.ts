@@ -22,7 +22,8 @@ const anthropic = new Anthropic({
 export async function condenseText(
   text: string,
   targetWords: number = 15,
-  style: 'informative' | 'catchy' | 'storytelling' = 'informative'
+  style: 'informative' | 'catchy' | 'storytelling' = 'informative',
+  language: 'fr' | 'en' | 'es' | 'de' | 'it' | 'pt' = 'fr',
 ): Promise<string> {
   const currentWords = text.trim().split(/\s+/).length;
   const targetDuration = Math.ceil(targetWords / 2.5);
@@ -34,36 +35,57 @@ export async function condenseText(
     return text.trim();
   }
 
-  const styleInstructions: Record<string, string> = {
-    informative: 'Style journalistique factuel et clair',
-    catchy: 'Style accrocheur et viral pour TikTok/Instagram',
-    storytelling: 'Style narratif captivant avec suspense',
+  // Language-aware helpers. All non-FR branches are short so the
+  // condenser stays compact — the key invariant is "final text matches
+  // the CLIENT'S communication_language, not the source language".
+  const styleByLang = {
+    fr: { informative: 'Style journalistique factuel et clair', catchy: 'Style accrocheur et viral pour TikTok/Instagram', storytelling: 'Style narratif captivant avec suspense' },
+    en: { informative: 'Clear, factual, journalistic style', catchy: 'Punchy, viral social-media style', storytelling: 'Narrative style with suspense' },
+    es: { informative: 'Estilo periodístico claro', catchy: 'Estilo viral y pegadizo', storytelling: 'Estilo narrativo con suspenso' },
+    de: { informative: 'Klarer, journalistischer Stil', catchy: 'Virales Social-Media-Feeling', storytelling: 'Erzählstil mit Spannung' },
+    it: { informative: 'Stile giornalistico chiaro', catchy: 'Stile virale e accattivante', storytelling: 'Stile narrativo con suspense' },
+    pt: { informative: 'Estilo jornalístico claro', catchy: 'Estilo viral e cativante', storytelling: 'Estilo narrativo com suspense' },
+  } as const;
+  const langLabel: Record<string, string> = {
+    fr: 'FRANÇAIS', en: 'ENGLISH', es: 'ESPAÑOL', de: 'DEUTSCH', it: 'ITALIANO', pt: 'PORTUGUÊS',
   };
 
-  const action = currentWords > targetWords ? 'CONDENSE' : 'DÉVELOPPE';
-  const actionInstruction = currentWords > targetWords
-    ? `Condense ce texte en ${targetWords} mots maximum. Garde l'information essentielle.`
-    : `Développe ce texte pour atteindre ~${targetWords} mots (~${targetDuration} secondes de narration). Ajoute des détails, du contexte, des transitions naturelles. Enrichis le propos sans répéter. Crée un vrai script engageant qui remplit toute la durée.`;
+  const action = currentWords > targetWords ? 'CONDENSE' : 'EXPAND';
+  const isCondense = action === 'CONDENSE';
 
-  const prompt = `Tu es un expert en écriture de scripts audio pour réseaux sociaux.
+  // Compact bilingual action instructions (fr + en catch-all for others)
+  const actionInstr: Record<string, string> = {
+    fr: isCondense
+      ? `Condense ce texte en ${targetWords} mots maximum. Garde l'info essentielle.`
+      : `Développe ce texte pour atteindre ~${targetWords} mots (~${targetDuration}s de narration). Ajoute détails, contexte, transitions. Crée un vrai script engageant.`,
+    en: isCondense
+      ? `Condense this text to ${targetWords} words max. Keep the essentials.`
+      : `Expand this text to ~${targetWords} words (~${targetDuration}s of narration). Add details, context, transitions. Make it a real engaging script.`,
+    es: isCondense ? `Condensa este texto en máximo ${targetWords} palabras.` : `Expande este texto a ~${targetWords} palabras (~${targetDuration}s).`,
+    de: isCondense ? `Fasse diesen Text auf max. ${targetWords} Wörter zusammen.` : `Erweitere diesen Text auf ~${targetWords} Wörter (~${targetDuration}s).`,
+    it: isCondense ? `Condensa questo testo in ${targetWords} parole max.` : `Espandi questo testo a ~${targetWords} parole (~${targetDuration}s).`,
+    pt: isCondense ? `Condense este texto em ${targetWords} palavras no máximo.` : `Expanda este texto para ~${targetWords} palavras (~${targetDuration}s).`,
+  };
 
-${actionInstruction}
+  const styleChoice = styleByLang[language]?.[style] || styleByLang.fr[style];
 
-TEXTE ORIGINAL:
+  const prompt = `You write audio scripts for social media.
+
+${actionInstr[language] || actionInstr.en}
+
+OUTPUT LANGUAGE: the script MUST be written in ${langLabel[language] || 'FRANÇAIS'}. If the source text is in another language, translate naturally into ${langLabel[language] || 'FRANÇAIS'} first, then ${isCondense ? 'condense' : 'expand'}.
+
+SOURCE TEXT:
 ${text}
 
-CONTRAINTES:
-- OBLIGATOIRE : le texte final DOIT être en FRANÇAIS. Si le texte original est en anglais ou dans une autre langue, TRADUIS-LE en français naturel avant de le condenser/développer.
-- Objectif: ~${targetWords} mots pour ~${targetDuration} secondes de narration
-- ${styleInstructions[style] || styleInstructions.informative}
-- Phrases courtes (max 15 mots par phrase)
-- Pauses naturelles (virgules, points)
-- Le texte doit être agréable à ÉCOUTER à voix haute
-- Tutoyer le spectateur
-- Adapté pour narration audio (pas de texte écrit)
-
-JAMAIS de préfixe comme "Script voix off:", "Narration:" — commence DIRECTEMENT par le texte parlé.
-Réponds UNIQUEMENT avec le texte ${action === 'CONDENSE' ? 'condensé' : 'développé'} EN FRANÇAIS, sans introduction ni explication.`;
+CONSTRAINTS:
+- ~${targetWords} words for ~${targetDuration}s of narration
+- ${styleChoice}
+- Short sentences (15 words max)
+- Natural pauses (commas, periods)
+- Pleasant to listen to, tutoiement style where the language allows it
+- NEVER prefix with "Script voice-over:", "Narration:" — start DIRECTLY with the spoken text
+- Respond ONLY with the final ${isCondense ? 'condensed' : 'expanded'} script, no intro, no explanation.`;
 
   console.log(`[Condense] Calling Claude to ${action} text (${currentWords} → ${targetWords} words)...`);
 

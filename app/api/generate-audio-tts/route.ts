@@ -34,6 +34,7 @@ export async function POST(req: NextRequest) {
       targetDuration = 5,
       voice = DEFAULT_VOICE_ID,
       speed = 1.0,
+      language: overrideLanguage,
     } = await req.json();
 
     if (!text || typeof text !== 'string') {
@@ -43,10 +44,31 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Resolve client's communication language. Caller may override
+    // explicitly (useful for admin tools); otherwise we read it from the
+    // business_dossier so a French client's videos stay in French and
+    // an English client's videos stay in English.
+    // Important: this is the CLIENT's default language, not a
+    // detected language from inbound messages — replies use the
+    // mirror-the-prospect logic in languagePromptDirective.
+    let language: 'fr' | 'en' | 'es' | 'de' | 'it' | 'pt' = 'fr';
+    if (overrideLanguage && ['fr', 'en', 'es', 'de', 'it', 'pt'].includes(overrideLanguage)) {
+      language = overrideLanguage;
+    } else {
+      try {
+        // Dynamic import to stay Edge-compatible.
+        const { createClient } = await import('@supabase/supabase-js');
+        const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+        const { data: d } = await admin.from('business_dossiers').select('communication_language').eq('user_id', user.id).maybeSingle();
+        const v = String(d?.communication_language || '').toLowerCase().slice(0, 2);
+        if (['fr', 'en', 'es', 'de', 'it', 'pt'].includes(v)) language = v as typeof language;
+      } catch { /* default stays 'fr' */ }
+    }
+
     // Validate voice ID
     const voiceId = ELEVENLABS_VOICES[voice] ? voice : DEFAULT_VOICE_ID;
 
-    console.log('[GenerateAudioTTS] User:', user.id);
+    console.log('[GenerateAudioTTS] User:', user.id, 'Lang:', language);
     console.log('[GenerateAudioTTS] Text length:', text.length, 'characters');
     console.log('[GenerateAudioTTS] Target duration:', targetDuration, 'seconds');
     console.log('[GenerateAudioTTS] Voice:', voiceId, ELEVENLABS_VOICES[voiceId]?.name || 'unknown');
@@ -59,29 +81,36 @@ export async function POST(req: NextRequest) {
 
     let finalText = text.trim();
 
-    // Strip translation hint prefix if present
+    // Strip legacy translation hint prefix if present (from old UI).
     finalText = finalText.replace(/^\[TRADUIRE EN FRANÇAIS SI NÉCESSAIRE\]\s*/i, '');
+    finalText = finalText.replace(/^\[TRANSLATE TO [A-Z]+\s+IF NEEDED\]\s*/i, '');
 
-    // Always run through condenseText to ensure French language + proper duration
-    // condenseText enforces French output even if input is in English
+    // Run through condenseText when the source isn't already close to
+    // the target word count OR when we suspect it's not in the client's
+    // language (condenseText now translates + adapts in a single pass).
     const needsAdaptation = currentWords > targetWords * 1.2 || (currentWords < targetWords * 0.6 && targetDuration > 5);
-    const looksEnglish = /^[a-zA-Z\s,.'":;!?-]+$/.test(finalText.substring(0, 100)) && !/[àâäéèêëïîôùûüÿçœæ]/i.test(finalText.substring(0, 200));
+    const preview = finalText.substring(0, 200);
+    // Fast heuristic: only "looks wrong language" if we're targeting fr
+    // and see no French diacritics, OR targeting en and see lots of
+    // French diacritics. Not exhaustive, but keeps the condenser off
+    // when the input is already clean.
+    const looksMismatched = (language === 'fr'
+        ? (!/[àâäéèêëïîôùûüÿçœæ]/i.test(preview) && /\b(the|and|your|with|you|for)\b/i.test(preview))
+        : (language === 'en' && /[àâäéèêëïîôùûüÿçœæ]/i.test(preview)));
 
-    if (needsAdaptation || looksEnglish) {
-      const reason = looksEnglish ? 'translating to French +' : '';
-      const action = currentWords > targetWords ? 'condensing' : 'expanding';
-      console.log(`[GenerateAudioTTS] Text needs ${reason} ${action} (${currentWords} → ~${targetWords} words for ${targetDuration}s)...`);
+    if (needsAdaptation || looksMismatched) {
+      console.log(`[GenerateAudioTTS] Running condenseText (lang=${language}, ${currentWords} → ~${targetWords} words)...`);
       try {
-        finalText = await condenseText(finalText, targetWords, 'informative');
-        console.log(`[GenerateAudioTTS] Text ${reason}${action} done:`, finalText.substring(0, 100) + '...');
+        finalText = await condenseText(finalText, targetWords, 'informative', language);
+        console.log(`[GenerateAudioTTS] condenseText done:`, finalText.substring(0, 100) + '...');
       } catch (error: any) {
-        console.error(`[GenerateAudioTTS] Text ${reason}${action} failed:`, error);
+        console.error(`[GenerateAudioTTS] condenseText failed:`, error);
       }
     }
 
-    // 2. Generate audio with ElevenLabs TTS (always French)
-    console.log('[GenerateAudioTTS] Generating audio with ElevenLabs (language: fr)...');
-    const audioUrl = await generateAudioWithElevenLabs(finalText, voiceId, 'fr');
+    // 2. Generate audio with ElevenLabs TTS in the client's language
+    console.log(`[GenerateAudioTTS] Generating audio with ElevenLabs (language: ${language})...`);
+    const audioUrl = await generateAudioWithElevenLabs(finalText, voiceId, language);
 
     // 3. Estimate actual duration
     const estimatedDuration = estimateAudioDuration(finalText, speed);

@@ -48,6 +48,10 @@ export interface BusinessDossier {
   uploaded_files: Array<{ name: string; url: string; type: string; uploaded_at: string }>;
   // Custom fields (Clara adds these dynamically based on conversation)
   custom_fields: Record<string, string> | null;
+  // Outbound-first language for the client's agents (fr / en / es / de / it / pt)
+  // Drives TTS/video, cold emails, new posts, initial DMs. Replies still
+  // mirror the prospect's language via languagePromptDirective.
+  communication_language: string | null;
   // IA
   ai_summary: string | null;
   completeness_score: number;

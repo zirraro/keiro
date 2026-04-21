@@ -114,6 +114,7 @@ ${clientDossier.unique_selling_points ? `Points forts : ${clientDossier.unique_s
 ${clientDossier.business_goals ? `Objectifs : ${clientDossier.business_goals}` : ''}
 ${clientDossier.instagram_handle ? `Instagram : ${clientDossier.instagram_handle}` : ''}
 ${clientDossier.website_url ? `Site : ${clientDossier.website_url}` : ''}
+${(clientDossier as any).communication_language ? `Langue de communication client (OUTBOUND — posts, emails cold, DMs initiés, videos) : ${(clientDossier as any).communication_language}. Les REPLIES continuent de miroir la langue du prospect.` : ''}
 ${clientDossier.ai_summary ? `Resume IA : ${clientDossier.ai_summary}` : ''}`.replace(/\n{2,}/g, '\n');
   }
 

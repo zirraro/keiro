@@ -92,6 +92,11 @@ export async function PUT(request: NextRequest) {
       'legal_status', 'country', 'value_proposition', 'business_model', 'market_segment',
       'languages', 'visual_style', 'brand_colors', 'content_themes', 'preferred_channels',
       'phone', 'email', 'horaires_ouverture', 'specialite',
+      // Communication language (fr / en / es / de / it / pt) — drives the
+      // language of every outbound-first agent output: posts, videos, cold
+      // emails, DMs. Replies still mirror the prospect's language via
+      // languagePromptDirective; this is the DEFAULT for first-touch.
+      'communication_language',
     ]);
 
     const merged: Record<string, any> = { user_id: user.id };
