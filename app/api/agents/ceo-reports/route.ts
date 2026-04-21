@@ -550,6 +550,23 @@ async function handleClientBrief(supabase: any, timeOfDay: 'morning' | 'evening'
         weeklyComments += e.comments_count || 0;
         weeklyReach += e.reach || 0;
       }
+
+      // Followers delta from social_metrics — we snapshot daily, so
+      // compare today's row with yesterday's. Populated by
+      // /api/agents/content/sync-social-metrics which runs just before
+      // the brief. First-day clients show no delta (only a total).
+      const { data: metricsRows } = await supabase
+        .from('social_metrics')
+        .select('followers_count, recorded_on')
+        .eq('user_id', client.id)
+        .eq('platform', 'instagram')
+        .order('recorded_on', { ascending: false })
+        .limit(2);
+      const latestFollowers = metricsRows?.[0]?.followers_count ?? null;
+      const previousFollowers = metricsRows?.[1]?.followers_count ?? null;
+      const followersDelta = (latestFollowers !== null && previousFollowers !== null)
+        ? latestFollowers - previousFollowers
+        : null;
       const doneCounts = {
         posts_published: postsPublishedRes.count || 0,
         posts_drafted: postsDraftedRes.count || 0,
@@ -626,6 +643,11 @@ async function handleClientBrief(supabase: any, timeOfDay: 'morning' | 'evening'
       // Engagement weekly milestones
       if (weeklyLikes + weeklyComments >= 100) {
         achievements.push(`❤️ <strong>${weeklyLikes + weeklyComments} interactions</strong> Instagram cette semaine (${weeklyLikes} likes + ${weeklyComments} commentaires) — ton audience s'engage.`);
+      }
+
+      // Followers growth since yesterday
+      if (followersDelta !== null && followersDelta > 0) {
+        achievements.push(`👥 <strong>+${followersDelta} abonné${followersDelta > 1 ? 's' : ''}</strong> sur Instagram depuis hier (${latestFollowers} au total) — ton audience grandit.`);
       }
 
       // Personal record check (today vs lifetime daily average)

@@ -502,6 +502,10 @@ export async function GET(request: NextRequest) {
         // stays null and the brief can't show real engagement numbers.
         await callEndpoint('Content Sync Engagement', '/api/agents/content/sync-engagement', 'POST');
         await delay(5000);
+        // Snapshot followers/media counts into social_metrics so the
+        // brief can show "+X followers aujourd'hui" (diff vs yesterday).
+        await callEndpoint('Content Sync Social Metrics', '/api/agents/content/sync-social-metrics', 'POST');
+        await delay(5000);
         // Client evening debrief — each client gets "what ran today + what to do
         // tomorrow". Mirror of the morning brief, firing at 20h UTC (~22h Paris).
         await callEndpoint('Noah Client Evening Brief', '/api/agents/ceo-reports?type=client_evening', 'POST');
