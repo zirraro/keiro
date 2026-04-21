@@ -426,13 +426,18 @@ async function handleClientBrief(supabase: any, timeOfDay: 'morning' | 'evening'
       let briefHtml = '';
       const clientName = client.first_name || dossier?.company_name || 'cher client';
 
-      // Tally concrete execution counts — query artifact tables directly
-      // because most agent_logs are inserted without user_id (global log
-      // stream) so counting from `logs` filtered by client.id would
-      // undercount drastically. Counting published posts / dm queue rows /
-      // prospects gives the real per-client picture.
+      // Tally concrete execution counts — query artifact tables directly.
+      // Most agent_logs have null user_id (global log stream), so we cannot
+      // use them for per-client metrics. Luckily `crm_prospects` has user_id
+      // AND the per-prospect timestamps we need (last_email_sent_at,
+      // last_email_opened_at, dm_sent_at, verified_at), so filtering there
+      // gives us accurate per-client counts without fragile PostgREST joins.
       const sinceIso = since; // lookback window (24h by default)
-      const [postsPublishedRes, postsDraftedRes, dmsSentRes, dmsPreparedRes, prospectsAddedRes, emailsSentRes] = await Promise.all([
+      const [
+        postsPublishedRes, postsDraftedRes,
+        emailsSentRes, emailsOpenedRes, emailsClickedRes,
+        dmsSentRes, prospectsVerifiedRes, prospectsAddedRes,
+      ] = await Promise.all([
         supabase.from('content_calendar')
           .select('id', { count: 'exact', head: true })
           .eq('user_id', client.id)
@@ -443,33 +448,39 @@ async function handleClientBrief(supabase: any, timeOfDay: 'morning' | 'evening'
           .eq('user_id', client.id)
           .in('status', ['draft', 'approved'])
           .gte('created_at', sinceIso),
-        supabase.from('dm_queue')
-          .select('id', { count: 'exact', head: true })
-          .eq('user_id', client.id)
-          .eq('status', 'sent')
-          .gte('updated_at', sinceIso),
-        supabase.from('dm_queue')
-          .select('id', { count: 'exact', head: true })
-          .eq('user_id', client.id)
-          .in('status', ['ready', 'pending'])
-          .gte('created_at', sinceIso),
         supabase.from('crm_prospects')
           .select('id', { count: 'exact', head: true })
           .eq('user_id', client.id)
-          .gte('created_at', sinceIso),
-        supabase.from('crm_activities')
+          .gte('last_email_sent_at', sinceIso),
+        supabase.from('crm_prospects')
           .select('id', { count: 'exact', head: true })
-          .eq('type', 'email')
-          .contains('data', { direction: 'outbound' })
+          .eq('user_id', client.id)
+          .gte('last_email_opened_at', sinceIso),
+        supabase.from('crm_prospects')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', client.id)
+          .gte('last_email_clicked_at', sinceIso),
+        supabase.from('crm_prospects')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', client.id)
+          .gte('dm_sent_at', sinceIso),
+        supabase.from('crm_prospects')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', client.id)
+          .gte('verified_at', sinceIso),
+        supabase.from('crm_prospects')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', client.id)
           .gte('created_at', sinceIso),
       ]);
       const doneCounts = {
         posts_published: postsPublishedRes.count || 0,
         posts_drafted: postsDraftedRes.count || 0,
         emails_sent: emailsSentRes.count || 0,
-        dms_prepared: dmsPreparedRes.count || 0,
+        emails_opened: emailsOpenedRes.count || 0,
+        emails_clicked: emailsClickedRes.count || 0,
         dms_sent: dmsSentRes.count || 0,
-        comments_replied: (logs || []).filter((l: any) => l.agent === 'instagram_comments' && l.action === 'reply_sent').length,
+        prospects_verified: prospectsVerifiedRes.count || 0,
         prospects_added: prospectsAddedRes.count || 0,
       };
       const errorCount  = (logs || []).filter((l: any) => l.status === 'error' || l.action === 'execution_failure').length;
@@ -527,11 +538,12 @@ REGLES ABSOLUES:
 - Posts publies: ${doneCounts.posts_published}
 - Posts en brouillon: ${doneCounts.posts_drafted}
 - Emails envoyes: ${doneCounts.emails_sent}
-- DMs prepares: ${doneCounts.dms_prepared}
+- Emails ouverts: ${doneCounts.emails_opened}
+- Emails cliques: ${doneCounts.emails_clicked}
 - DMs envoyes: ${doneCounts.dms_sent}
-- Commentaires repondus: ${doneCounts.comments_replied}
+- Prospects verifies (Léo): ${doneCounts.prospects_verified}
 - Prospects ajoutes: ${doneCounts.prospects_added}
-- Prospects chauds: ${hotCount || 0} (sur ${prospectCount || 0})
+- Prospects chauds (total): ${hotCount || 0} (sur ${prospectCount || 0})
 - Agents AUTO: ${autoAgents.join(', ') || 'aucun'}
 - Agents MANUEL: ${manualAgents.join(', ') || 'aucun'}
 - Plan: ${client.subscription_plan}
@@ -557,33 +569,45 @@ Rédige le brief.`
         briefHtml = `<p style="margin:0 0 12px;"><strong>Salut ${clientName} 👋</strong> — ${totalDone > 0 ? `tes agents ont realise ${totalDone} actions ces dernieres 24h.` : 'journee calme, tes agents preparent la suite.'}</p>
 ${totalDone > 0 ? `<h4 style="margin:0 0 6px;color:#16a34a;">✅ Ce qui a ete fait</h4><ul style="margin:0 0 12px;padding-left:18px;">
   ${doneCounts.posts_published > 0 ? `<li>${doneCounts.posts_published} post(s) publie(s)</li>` : ''}
-  ${doneCounts.emails_sent > 0 ? `<li>${doneCounts.emails_sent} email(s) envoye(s)</li>` : ''}
+  ${doneCounts.emails_sent > 0 ? `<li>${doneCounts.emails_sent} email(s) envoye(s)${doneCounts.emails_opened > 0 ? ` — ${doneCounts.emails_opened} ouvert(s)` : ''}</li>` : ''}
   ${doneCounts.dms_sent > 0 ? `<li>${doneCounts.dms_sent} DM(s) envoye(s)</li>` : ''}
-  ${doneCounts.dms_prepared > 0 ? `<li>${doneCounts.dms_prepared} DM(s) prepare(s) — a valider</li>` : ''}
+  ${doneCounts.prospects_verified > 0 ? `<li>${doneCounts.prospects_verified} prospect(s) verifie(s) par Léo</li>` : ''}
   ${doneCounts.prospects_added > 0 ? `<li>${doneCounts.prospects_added} nouveau(x) prospect(s)</li>` : ''}
 </ul>` : ''}
 ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;">📌 A faire aujourd'hui</h4><ul style="margin:0 0 12px;padding-left:18px;"><li>Contacter ${hotCount} prospect(s) chaud(s) dans ton CRM</li></ul>` : ''}`;
       }
 
-      // Stats strip — same data but as big tiles, always appended after the
-      // AI-authored body so the client sees numbers at a glance
+      // Stats strip — 6 tiles (3x2) so the client sees the whole funnel at
+      // a glance: production (posts) → outreach (emails/DMs) → engagement
+      // (opens/verified) → pipeline (chauds).
+      const openRate = doneCounts.emails_sent > 0
+        ? Math.round((doneCounts.emails_opened / doneCounts.emails_sent) * 100)
+        : 0;
       const statsStripHtml = `
-<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:16px 0 8px;">
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0 8px;">
   <div style="background:#f0fdf4;border-radius:8px;padding:10px;text-align:center;">
     <div style="font-size:18px;font-weight:bold;color:#16a34a;">${doneCounts.posts_published}</div>
-    <div style="font-size:10px;color:#6b7280;">Posts publies</div>
+    <div style="font-size:10px;color:#6b7280;">📸 Posts publies</div>
   </div>
   <div style="background:#eff6ff;border-radius:8px;padding:10px;text-align:center;">
     <div style="font-size:18px;font-weight:bold;color:#2563eb;">${doneCounts.emails_sent}</div>
-    <div style="font-size:10px;color:#6b7280;">Emails envoyes</div>
+    <div style="font-size:10px;color:#6b7280;">✉️ Emails envoyes</div>
+  </div>
+  <div style="background:#ecfeff;border-radius:8px;padding:10px;text-align:center;">
+    <div style="font-size:18px;font-weight:bold;color:#0891b2;">${doneCounts.emails_opened}${openRate > 0 ? ` <span style=\"font-size:11px;color:#6b7280;\">(${openRate}%)</span>` : ''}</div>
+    <div style="font-size:10px;color:#6b7280;">👀 Emails ouverts</div>
   </div>
   <div style="background:#fdf4ff;border-radius:8px;padding:10px;text-align:center;">
-    <div style="font-size:18px;font-weight:bold;color:#a855f7;">${doneCounts.dms_sent + doneCounts.dms_prepared}</div>
-    <div style="font-size:10px;color:#6b7280;">DMs (envoyes + prets)</div>
+    <div style="font-size:18px;font-weight:bold;color:#a855f7;">${doneCounts.dms_sent}</div>
+    <div style="font-size:10px;color:#6b7280;">💬 DMs envoyes</div>
+  </div>
+  <div style="background:#f5f3ff;border-radius:8px;padding:10px;text-align:center;">
+    <div style="font-size:18px;font-weight:bold;color:#7c3aed;">${doneCounts.prospects_verified}</div>
+    <div style="font-size:10px;color:#6b7280;">🔍 Prospects verifies</div>
   </div>
   <div style="background:${hotCount > 0 ? '#fef3c7' : '#f9fafb'};border-radius:8px;padding:10px;text-align:center;">
     <div style="font-size:18px;font-weight:bold;color:${hotCount > 0 ? '#d97706' : '#6b7280'};">${hotCount || 0}</div>
-    <div style="font-size:10px;color:#6b7280;">Prospects chauds</div>
+    <div style="font-size:10px;color:#6b7280;">🔥 Prospects chauds</div>
   </div>
 </div>
 ${errorCount > 0 ? `<p style="font-size:11px;color:#9ca3af;margin:4px 0 0;">${errorCount} incident(s) technique(s) detecte(s) — notre equipe les regarde.</p>` : ''}`;
