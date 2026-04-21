@@ -40,7 +40,7 @@ function HomeKeiroInner() {
             <HeroTextReveal
               text={t.home.heroTitle}
               className="mt-3 text-2xl/tight sm:text-4xl/tight md:text-5xl/tight font-semibold text-white"
-              highlightWords={locale === 'fr' ? ['équipe marketing IA', 'publie, démarche, répond'] : ['AI marketing team', 'posting, prospecting, replying']}
+              highlightWords={locale === 'fr' ? ['équipe marketing', 'publie, démarche, répond'] : ['marketing team', 'posting, prospecting, replying']}
               highlightClassName="gradient-text"
             />
             <p className="mt-4 text-lg text-[#a4bdd4]/70">
