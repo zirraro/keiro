@@ -15,6 +15,7 @@ import { SocialConnectBanners, AgentNotifications } from './SharedBanners';
 import { InstagramAssetBadge } from './InstagramAssetBadge';
 import { useLanguage } from '@/lib/i18n/context';
 import type { PanelProps } from './types';
+import AgentUploadsPanel from '../AgentUploadsPanel';
 
 // Jade tabs: DMs + Comments switch
 
@@ -1356,6 +1357,12 @@ export function DmInstagramPanel({ data, agentName, gradientFrom, gradientTo }: 
           reviewers see which IG Business account is connected in every
           screencast (required by Platform Policies Section 1.6). */}
       <InstagramAssetBadge />
+
+      {/* Brand/product references Léna uses when replying to DMs and
+          commenting — uploaded photos + PDFs are analysed for palette,
+          voice and USPs and injected into every reply prompt so Léna's
+          tone stays on-brand. */}
+      <AgentUploadsPanel agentId="dm_instagram" />
 
       {/* Human Agent Protocol — required by Meta. Every DM is reviewed and
           sent by the human business owner (customer service agent). Jade

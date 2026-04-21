@@ -64,13 +64,55 @@ export async function POST(req: NextRequest) {
   const { user, error } = await getAuthUser();
   if (error || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const body = await req.json().catch(() => ({}));
-  const { agent_id, file_url, file_type, file_name, caption } = body || {};
-  if (!agent_id || !file_url || !file_type) {
-    return NextResponse.json({ error: 'agent_id, file_url, file_type requis' }, { status: 400 });
-  }
-
   const supabase = getSupabaseAdmin();
+  const contentType = req.headers.get('content-type') || '';
+
+  // Two input modes:
+  //  a) multipart/form-data — user uploads a file via drag-drop; we push
+  //     it to Supabase Storage then analyse.
+  //  b) application/json { agent_id, file_url, file_type, ... } — caller
+  //     already has a hosted URL (Instagram media, previous generation…).
+  let agent_id: string;
+  let file_url: string;
+  let file_type: string;
+  let file_name: string | null = null;
+  let caption: string | null = null;
+
+  if (contentType.startsWith('multipart/form-data')) {
+    const form = await req.formData();
+    const file = form.get('file') as File | null;
+    agent_id = String(form.get('agent_id') || '');
+    caption = (form.get('caption') as string) || null;
+    if (!file || !agent_id) {
+      return NextResponse.json({ error: 'file + agent_id requis' }, { status: 400 });
+    }
+    if (file.size > 15 * 1024 * 1024) {
+      return NextResponse.json({ error: 'Fichier trop lourd (15 MB max)' }, { status: 400 });
+    }
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const path = `${user.id}/${agent_id}/${Date.now()}_${safeName}`;
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const { error: upErr } = await supabase.storage
+      .from('business-assets')
+      .upload(path, buffer, { contentType: file.type, upsert: false });
+    if (upErr) {
+      return NextResponse.json({ error: `Upload failed: ${upErr.message}` }, { status: 500 });
+    }
+    const { data: urlData } = supabase.storage.from('business-assets').getPublicUrl(path);
+    file_url = urlData?.publicUrl || '';
+    file_type = file.type || 'application/octet-stream';
+    file_name = file.name;
+  } else {
+    const body = await req.json().catch(() => ({}));
+    agent_id = body?.agent_id;
+    file_url = body?.file_url;
+    file_type = body?.file_type;
+    file_name = body?.file_name || null;
+    caption = body?.caption || null;
+    if (!agent_id || !file_url || !file_type) {
+      return NextResponse.json({ error: 'agent_id, file_url, file_type requis' }, { status: 400 });
+    }
+  }
 
   // Cap check — reject cleanly with a client-readable message so the UI
   // can show "Tu as atteint la limite — supprime d'anciens uploads".
