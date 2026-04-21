@@ -952,50 +952,111 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
     } catch {} finally { setSending(null); }
   }, []);
 
-  // Live-check that the IG account is reachable BEFORE opening the profile,
-  // so we never send the user to an error page ("Une erreur s'est produite...").
-  // On failure the DM is also auto-removed from the queue and marked skipped
-  // server-side (the verify-handle route does the persistence).
+  // Per-DM status after a pre-flight check. We surface this inline (red
+  // banner for invalid handles, orange for low-activity warnings, green
+  // for "message copied, go paste it in IG") instead of a browser alert,
+  // which is jarring on mobile. The user controls when to mark the DM as
+  // sent — no auto-timeout that could mis-report a DM the user never
+  // actually pasted.
+  type DmStatus = {
+    kind: 'invalid' | 'warning' | 'ready';
+    text: string;
+    snapshot?: {
+      biography?: string;
+      followers_count?: number;
+      media_count?: number;
+      website?: string;
+      recent_post_caption?: string;
+    };
+    deeplink?: string;
+  };
   const [verifying, setVerifying] = useState<string | null>(null);
+  const [statuses, setStatuses] = useState<Record<string, DmStatus>>({});
+
   const handleEnvoyerDM = useCallback(async (dm: { id: string; handle: string; message: string }) => {
     const cleanHandle = (dm.handle || '').replace(/^@/, '').trim();
     if (!cleanHandle) return;
     setVerifying(dm.id);
     try {
-      const vres = await fetch('/api/agents/dm-instagram/verify-handle', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const vres = await fetch(`/api/agents/dm-instagram/preflight?dm_id=${encodeURIComponent(dm.id)}`, {
+        method: 'GET',
         credentials: 'include',
-        body: JSON.stringify({ dm_id: dm.id }),
       });
-      const v = await vres.json().catch(() => ({}));
-      if (v?.exists === false) {
-        alert(p.dmUnreachableAlert.replace('{handle}', cleanHandle).replace('{reason}', v.reason || 'private / inactive / no messaging'));
-        setQueue(prev => prev.filter(d => d.id !== dm.id));
-        setTotal(prev => prev - 1);
+      const v = await vres.json().catch(() => ({} as any));
+      const snap = v?.snapshot;
+      const firstPost = Array.isArray(snap?.recent_posts) && snap.recent_posts[0]?.caption
+        ? String(snap.recent_posts[0].caption)
+        : undefined;
+      const snapSummary = snap
+        ? {
+            biography: snap.biography,
+            followers_count: snap.followers_count,
+            media_count: snap.media_count,
+            website: snap.website,
+            recent_post_caption: firstPost,
+          }
+        : undefined;
+
+      if (v?.status === 'invalid_handle') {
+        setStatuses(prev => ({
+          ...prev,
+          [dm.id]: {
+            kind: 'invalid',
+            text: v.warning || p.dmUnreachableAlert.replace('{handle}', cleanHandle).replace('{reason}', 'compte introuvable'),
+          },
+        }));
         return;
       }
-      // exists === true OR exists === null (unknown: admin not connected → proceed)
-      // Copy the prepared message so the user can paste it into Instagram,
-      // then open the Meta-sanctioned ig.me/m/{handle} deep link which
-      // lands directly inside the DM thread (or shows Instagram's native
-      // "can't send message" screen if the prospect has DMs disabled —
-      // better than opening the profile and guessing).
+
+      // 'likely_blocked', 'no_creds' or 'ready': allow the user to
+      // proceed, but show any warning inline first so they know what
+      // to expect when they tap the deeplink.
+      const deeplink = v?.dm_deeplink || `https://ig.me/m/${cleanHandle}`;
+      const kind: DmStatus['kind'] = v?.status === 'likely_blocked' ? 'warning' : 'ready';
+      setStatuses(prev => ({
+        ...prev,
+        [dm.id]: {
+          kind,
+          text: v?.warning || 'Profil vérifié — message copié, ouvre Instagram pour le coller.',
+          snapshot: snapSummary,
+          deeplink,
+        },
+      }));
+
+      // Copy the message so the user only needs to paste + send in IG.
       navigator.clipboard.writeText(dm.message).catch(() => {});
-      window.open(`https://ig.me/m/${cleanHandle}`, '_blank');
-      // Mark as sent on the server after a short delay so the user has
-      // time to paste + send inside Instagram.
-      setTimeout(() => { sendDM(dm.id); }, 3000);
+      window.open(deeplink, '_blank');
+      // DO NOT auto-mark as sent — the user will click "✓ Envoyé"
+      // explicitly once they actually pasted the message in IG.
     } catch {
-      // If the verify endpoint itself fails, fall back to the direct DM
-      // deep link without verification. Better than blocking the click.
+      // Pre-flight itself failed (network hiccup, rate limit). Fall back
+      // to the direct deeplink — better to let the user through than
+      // block on a transient error.
       navigator.clipboard.writeText(dm.message).catch(() => {});
       window.open(`https://ig.me/m/${cleanHandle}`, '_blank');
-      setTimeout(() => { sendDM(dm.id); }, 3000);
+      setStatuses(prev => ({
+        ...prev,
+        [dm.id]: {
+          kind: 'warning',
+          text: 'Pré-vérification indisponible. Message copié, colle-le dans Instagram.',
+          deeplink: `https://ig.me/m/${cleanHandle}`,
+        },
+      }));
     } finally {
       setVerifying(null);
     }
-  }, [sendDM, p.dmUnreachableAlert]);
+  }, [p.dmUnreachableAlert]);
+
+  const confirmSent = useCallback(async (dmId: string) => {
+    setStatuses(prev => { const n = { ...prev }; delete n[dmId]; return n; });
+    await sendDM(dmId);
+  }, [sendDM]);
+
+  const removeFromQueue = useCallback((dmId: string) => {
+    setStatuses(prev => { const n = { ...prev }; delete n[dmId]; return n; });
+    setQueue(prev => prev.filter(d => d.id !== dmId));
+    setTotal(prev => prev - 1);
+  }, []);
 
   // Mark a DM as blocked by the prospect (they have DMs disabled or
   // declined the message request). Client clicks this after opening the
@@ -1038,6 +1099,7 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
           const cleanHandle = (dm.handle || '').replace(/^@/, '').trim();
           if (!cleanHandle) return null;
           const isVerified = (dm as any).verified_exists === true;
+          const status = statuses[dm.id];
           return (
           <div key={dm.id} className="bg-white/[0.03] border border-white/10 rounded-xl p-3">
             <div className="flex items-center gap-2 mb-2">
@@ -1050,32 +1112,99 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
               {dm.company && <span className="text-[10px] text-white/40">{dm.company}</span>}
             </div>
             <p className="text-[11px] text-white/60 leading-relaxed mb-2 line-clamp-3">{dm.message}</p>
+
+            {/* Pre-flight status banner — shown inline after "Envoyer" click */}
+            {status && (
+              <div
+                className={`mb-2 rounded-lg p-2.5 text-[11px] leading-relaxed border ${
+                  status.kind === 'invalid'
+                    ? 'bg-red-500/10 border-red-500/30 text-red-200'
+                    : status.kind === 'warning'
+                      ? 'bg-amber-500/10 border-amber-500/30 text-amber-200'
+                      : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-200'
+                }`}
+              >
+                <div>{status.text}</div>
+                {status.snapshot && (
+                  <div className="mt-1 text-[10px] text-white/60">
+                    {typeof status.snapshot.followers_count === 'number' && `${status.snapshot.followers_count} abonnés · `}
+                    {typeof status.snapshot.media_count === 'number' && `${status.snapshot.media_count} posts`}
+                    {status.snapshot.biography && (
+                      <div className="mt-1 italic line-clamp-2">« {status.snapshot.biography.substring(0, 120)} »</div>
+                    )}
+                    {status.snapshot.recent_post_caption && (
+                      <div className="mt-1 text-white/50 line-clamp-2">Dernier post : « {status.snapshot.recent_post_caption.substring(0, 100)} »</div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="flex items-center gap-2 flex-wrap">
-              <button
-                onClick={() => handleEnvoyerDM({ id: dm.id, handle: cleanHandle, message: dm.message })}
-                disabled={sending === dm.id || verifying === dm.id}
-                className="px-4 py-2.5 min-h-[44px] bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold rounded-lg hover:opacity-90 transition disabled:opacity-40"
-                title={p.dmBtnTooltip}
-              >
-                {verifying === dm.id
-                  ? `\u23F3 ${p.dmBtnVerifying}`
-                  : sending === dm.id
-                    ? `\u2713 ${p.dmBtnSent}`
-                    : `${'\u{1F4AC}'} ${p.dmBtnEnvoyerDM}`}
-              </button>
-              <button
-                onClick={() => markBlocked(dm.id)}
-                className="px-3 py-2.5 min-h-[44px] text-xs text-red-400/60 hover:text-red-400 transition"
-                title="Le prospect a bloqué les DMs — retire-le du canal"
-              >
-                {'\u{1F6AB}'} {p.dmBtnBlockedMark}
-              </button>
-              <button
-                onClick={() => setQueue(prev => prev.filter(d => d.id !== dm.id))}
-                className="px-3 py-2.5 min-h-[44px] text-xs text-white/30 hover:text-white/60 transition"
-              >
-                {p.dmBtnSkipDM}
-              </button>
+              {!status || status.kind === 'invalid' ? (
+                <>
+                  {status?.kind === 'invalid' ? (
+                    <button
+                      onClick={() => removeFromQueue(dm.id)}
+                      className="px-4 py-2.5 min-h-[44px] bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-300 text-xs font-bold rounded-lg transition"
+                    >
+                      {'\u{1F5D1}'} Retirer du canal DM
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleEnvoyerDM({ id: dm.id, handle: cleanHandle, message: dm.message })}
+                      disabled={sending === dm.id || verifying === dm.id}
+                      className="px-4 py-2.5 min-h-[44px] bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold rounded-lg hover:opacity-90 transition disabled:opacity-40"
+                      title={p.dmBtnTooltip}
+                    >
+                      {verifying === dm.id
+                        ? `\u23F3 ${p.dmBtnVerifying}`
+                        : sending === dm.id
+                          ? `\u2713 ${p.dmBtnSent}`
+                          : `${'\u{1F4AC}'} ${p.dmBtnEnvoyerDM}`}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => markBlocked(dm.id)}
+                    className="px-3 py-2.5 min-h-[44px] text-xs text-red-400/60 hover:text-red-400 transition"
+                    title="Le prospect a bloqué les DMs — retire-le du canal"
+                  >
+                    {'\u{1F6AB}'} {p.dmBtnBlockedMark}
+                  </button>
+                  <button
+                    onClick={() => setQueue(prev => prev.filter(d => d.id !== dm.id))}
+                    className="px-3 py-2.5 min-h-[44px] text-xs text-white/30 hover:text-white/60 transition"
+                  >
+                    {p.dmBtnSkipDM}
+                  </button>
+                </>
+              ) : (
+                // Pre-flight OK (ready or warning) — user has been sent to IG.
+                // Wait for them to confirm the outcome explicitly.
+                <>
+                  <button
+                    onClick={() => confirmSent(dm.id)}
+                    disabled={sending === dm.id}
+                    className="px-4 py-2.5 min-h-[44px] bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-xs font-bold rounded-lg transition disabled:opacity-40"
+                  >
+                    {'\u2713'} Bien envoyé
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (status?.deeplink) window.open(status.deeplink, '_blank');
+                    }}
+                    className="px-3 py-2.5 min-h-[44px] text-xs text-white/50 hover:text-white/80 border border-white/10 rounded-lg transition"
+                  >
+                    {'\u{1F517}'} Rouvrir Instagram
+                  </button>
+                  <button
+                    onClick={() => markBlocked(dm.id)}
+                    className="px-3 py-2.5 min-h-[44px] text-xs text-red-400/60 hover:text-red-400 transition"
+                  >
+                    {'\u{1F6AB}'} DMs bloqués
+                  </button>
+                </>
+              )}
             </div>
           </div>
           );
