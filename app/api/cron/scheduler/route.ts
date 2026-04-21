@@ -359,13 +359,17 @@ export async function GET(request: NextRequest) {
         await callEndpoint('Push Morning Follows', '/api/push/send-morning-follows', 'POST');
       });
 
-      // 2bis. Gmail inbound poll — for every client with Gmail connected.
+      // 2bis. Inbound email poll — two channels, per client with email agent.
       // Lands any prospect reply into /api/webhooks/email-inbound where
       // Hugo classifies + auto-replies. Runs in its own fireBackground so
-      // a slow Google API response doesn't block the DM chain above.
+      // a slow provider response doesn't block the DM chain above.
+      // Both pollers are idempotent (mark-as-read + last_poll_at) so
+      // calling both is safe even when the same client has two channels.
       fireBackground(async () => {
         for (const uid of getClientsWithAgent('email')) {
           await callEndpoint(`Gmail Poll [${uid.substring(0, 8)}]`, `/api/agents/email/poll-inbound?user_id=${uid}`, 'POST');
+          await delay(1000);
+          await callEndpoint(`IMAP Poll [${uid.substring(0, 8)}]`, `/api/agents/email/poll-imap?user_id=${uid}`, 'POST');
           await delay(1500);
         }
       });

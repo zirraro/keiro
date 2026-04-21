@@ -104,78 +104,216 @@ export function SocialConnectBanners({ agentId, networks, connections }: {
   );
 }
 
-// Email connection banner — encourage client to connect their Gmail/Outlook
+// Email connection banner — Gmail OAuth, custom SMTP form, or book a setup call.
 export function EmailConnectBanner({ connections }: { connections?: Record<string, boolean> }) {
+  const { locale } = useLanguage();
+  const en = locale === 'en';
   const [gmailConnected, setGmailConnected] = useState(false);
   const [gmailEmail, setGmailEmail] = useState<string | null>(null);
+  const [smtpConnected, setSmtpConnected] = useState(false);
+  const [smtpFromEmail, setSmtpFromEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showSmtpForm, setShowSmtpForm] = useState(false);
 
-  const handleDisconnect = useCallback(async () => {
-    if (typeof window !== 'undefined' && !window.confirm('Deconnecter Gmail ? Les emails partiront de contact@keiroai.com.')) return;
+  const refresh = useCallback(async () => {
     try {
-      await fetch('/api/agents/email/check-connection', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'disconnect_gmail' }) });
-      setGmailConnected(false);
-      setGmailEmail(null);
-    } catch {}
+      const [gmailRes, smtpRes] = await Promise.all([
+        fetch('/api/agents/email/check-connection', { credentials: 'include' }).then(r => r.json()).catch(() => ({})),
+        fetch('/api/auth/smtp', { credentials: 'include' }).then(r => r.json()).catch(() => ({})),
+      ]);
+      setGmailConnected(!!gmailRes.gmail_connected);
+      setGmailEmail(gmailRes.gmail_email || null);
+      setSmtpConnected(!!smtpRes.connected);
+      setSmtpFromEmail(smtpRes.from_email || null);
+      if (typeof window !== 'undefined') (window as any).__gmailConnected = gmailRes.gmail_connected;
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  useEffect(() => {
-    // Always check via direct API call — don't rely on cached connections
-    // This ensures Gmail is detected immediately after OAuth redirect
-    fetch('/api/agents/email/check-connection', { credentials: 'include' })
-      .then(r => r.json())
-      .then(d => {
-        setGmailConnected(d.gmail_connected || false);
-        setGmailEmail(d.gmail_email || null);
-        if (typeof window !== 'undefined') (window as any).__gmailConnected = d.gmail_connected;
-      })
-      .catch(() => {
-        // Fallback to cached connections
-        if (connections?.gmail) {
-          setGmailConnected(true);
-          setGmailEmail((connections as any).gmail_email || null);
-        }
-      })
-      .finally(() => setLoading(false));
-  }, [connections]);
+  useEffect(() => { refresh(); }, [refresh]);
+
+  const handleDisconnectGmail = useCallback(async () => {
+    const msg = en
+      ? 'Disconnect Gmail? Emails will fall back to your SMTP or contact@keiroai.com.'
+      : 'Déconnecter Gmail ? Les emails basculeront sur ton SMTP ou contact@keiroai.com.';
+    if (typeof window !== 'undefined' && !window.confirm(msg)) return;
+    try {
+      await fetch('/api/agents/email/check-connection', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'disconnect_gmail' }) });
+      await refresh();
+    } catch {}
+  }, [en, refresh]);
+
+  const handleDisconnectSmtp = useCallback(async () => {
+    const msg = en
+      ? 'Remove SMTP credentials? Hugo will fall back to Gmail or contact@keiroai.com.'
+      : 'Supprimer les identifiants SMTP ? Hugo basculera sur Gmail ou contact@keiroai.com.';
+    if (typeof window !== 'undefined' && !window.confirm(msg)) return;
+    try {
+      await fetch('/api/auth/smtp', { method: 'DELETE', credentials: 'include' });
+      await refresh();
+    } catch {}
+  }, [en, refresh]);
 
   if (loading) return null;
 
-  if (gmailConnected) {
+  // Connected state — show a compact status strip with both channels.
+  if (gmailConnected || smtpConnected) {
     return (
-      <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 mb-3 flex items-center gap-3">
-        <span className="text-lg">{'\u2709\uFE0F'}</span>
-        <div className="flex-1 min-w-0">
-          <p className="text-xs font-bold text-emerald-400">Email connecte</p>
-          <p className="text-[10px] text-white/50">Les emails partent de <strong className="text-white/80">{gmailEmail}</strong></p>
-        </div>
-        <button onClick={handleDisconnect} className="text-[9px] text-white/20 hover:text-red-400/60 transition">Deconnecter</button>
+      <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 mb-3 space-y-2">
+        {gmailConnected && (
+          <div className="flex items-center gap-3">
+            <span className="text-lg">{'\u2709\uFE0F'}</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold text-emerald-400">{en ? 'Gmail connected' : 'Gmail connecté'}</p>
+              <p className="text-[10px] text-white/50">{en ? 'Hugo sends from' : 'Hugo envoie depuis'} <strong className="text-white/80">{gmailEmail}</strong></p>
+            </div>
+            <button onClick={handleDisconnectGmail} className="text-[9px] text-white/20 hover:text-red-400/60 transition">{en ? 'Disconnect' : 'Déconnecter'}</button>
+          </div>
+        )}
+        {smtpConnected && (
+          <div className="flex items-center gap-3">
+            <span className="text-lg">{'\u2699\uFE0F'}</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold text-emerald-400">{en ? 'Custom SMTP connected' : 'SMTP personnalisé connecté'}</p>
+              <p className="text-[10px] text-white/50">{en ? 'Hugo sends from' : 'Hugo envoie depuis'} <strong className="text-white/80">{smtpFromEmail}</strong></p>
+            </div>
+            <button onClick={handleDisconnectSmtp} className="text-[9px] text-white/20 hover:text-red-400/60 transition">{en ? 'Remove' : 'Supprimer'}</button>
+          </div>
+        )}
       </div>
     );
   }
 
+  // No connection yet — show CTA block with 3 options.
   return (
     <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 mb-3">
       <div className="flex items-start gap-3">
         <span className="text-xl">{'\u{1F4E7}'}</span>
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-bold text-white mb-1">Connecte ton email pour plus d&apos;impact</p>
-          <p className="text-[10px] text-white/50 mb-3 leading-relaxed">
-            Hugo envoie actuellement depuis contact@keiroai.com. Connecte ton Gmail ou Outlook pour que les emails partent de <strong className="text-white/70">ton propre email</strong> — meilleur taux d&apos;ouverture et plus de confiance.
+          <p className="text-xs font-bold text-white mb-1">
+            {en ? 'Connect your email for maximum impact' : 'Connecte ton email pour plus d\'impact'}
           </p>
-          <div className="flex flex-wrap gap-2">
+          <p className="text-[10px] text-white/50 mb-3 leading-relaxed">
+            {en
+              ? <>Hugo is sending from contact@keiroai.com for now. Connect your Gmail or custom SMTP so emails leave from <strong className="text-white/70">your own address</strong> — better open rate, more trust.</>
+              : <>Hugo envoie actuellement depuis contact@keiroai.com. Connecte ton Gmail ou ton SMTP perso pour que les emails partent de <strong className="text-white/70">ton propre email</strong> — meilleur taux d&apos;ouverture et plus de confiance.</>}
+          </p>
+          <div className="flex flex-wrap gap-2 mb-2">
             <a href="/api/auth/gmail-oauth" className="inline-flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/15 text-white text-[10px] font-bold rounded-lg transition min-h-[36px]">
               <svg className="w-3.5 h-3.5" viewBox="0 0 24 24"><path fill="#EA4335" d="M5.266 9.765A7.077 7.077 0 0 1 12 4.909c1.69 0 3.218.6 4.418 1.582L19.91 3C17.782 1.145 15.055 0 12 0 7.27 0 3.198 2.698 1.24 6.65l4.026 3.115Z"/><path fill="#34A853" d="M16.04 18.013c-1.09.703-2.474 1.078-4.04 1.078a7.077 7.077 0 0 1-6.723-4.823l-4.04 3.067A11.965 11.965 0 0 0 12 24c2.933 0 5.735-1.043 7.834-3l-3.793-2.987Z"/><path fill="#4A90D9" d="M19.834 21c2.195-2.048 3.62-5.096 3.62-9 0-.71-.109-1.473-.272-2.182H12v4.637h6.436c-.317 1.559-1.17 2.766-2.395 3.558L19.834 21Z"/><path fill="#FBBC05" d="M5.277 14.268A7.12 7.12 0 0 1 4.909 12c0-.782.125-1.533.357-2.235L1.24 6.65A11.934 11.934 0 0 0 0 12c0 1.92.445 3.73 1.237 5.335l4.04-3.067Z"/></svg>
-              Connecter Gmail
+              {en ? 'Connect Gmail' : 'Connecter Gmail'}
             </a>
-            <div className="text-[9px] text-white/30 self-center">Outlook bientot</div>
+            <button onClick={() => setShowSmtpForm(v => !v)} className="inline-flex items-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/15 text-white text-[10px] font-bold rounded-lg transition min-h-[36px]">
+              {'\u2699\uFE0F'} {en ? (showSmtpForm ? 'Hide form' : 'Custom SMTP (my own domain)') : (showSmtpForm ? 'Masquer' : 'SMTP perso (domaine à moi)')}
+            </button>
+            <a
+              href={process.env.NEXT_PUBLIC_SETUP_CALL_URL || 'https://cal.com/keiroai/setup-30min'}
+              target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-2 border border-white/10 hover:border-white/20 text-white/70 text-[10px] font-bold rounded-lg transition min-h-[36px]"
+            >
+              {'\u{1F4C5}'} {en ? 'Book a setup call (30 min)' : 'Prendre un RDV setup (30 min)'}
+            </a>
           </div>
-          <p className="text-[9px] text-white/25 mt-2">
-            Pas de Gmail ? Tu peux aussi creer un gmail dedie a ta prospection (ex: contact@tonbusiness.com) ou <a href="https://cal.com" className="underline hover:text-white/40">prendre un RDV</a> pour qu&apos;on configure ton domaine custom.
-          </p>
+
+          {showSmtpForm && <SmtpCustomForm onDone={refresh} />}
         </div>
       </div>
     </div>
+  );
+}
+
+// Inline form to paste custom SMTP creds. Tests the connection server-side
+// (real handshake) before saving — bad creds never touch the DB.
+function SmtpCustomForm({ onDone }: { onDone: () => Promise<void> }) {
+  const { locale } = useLanguage();
+  const en = locale === 'en';
+  const [host, setHost] = useState('');
+  const [port, setPort] = useState('587');
+  const [smtpUser, setSmtpUser] = useState('');
+  const [password, setPassword] = useState('');
+  const [fromEmail, setFromEmail] = useState('');
+  const [fromName, setFromName] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await fetch('/api/auth/smtp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          host: host.trim(),
+          port: Number(port),
+          user: smtpUser.trim(),
+          password,
+          from_email: fromEmail.trim() || smtpUser.trim(),
+          from_name: fromName.trim() || undefined,
+          secure: Number(port) === 465,
+        }),
+      });
+      const data = await res.json().catch(() => ({} as any));
+      if (!res.ok) {
+        setErr(data?.error || (en ? 'Save failed' : 'Échec de l\'enregistrement'));
+      } else {
+        await onDone();
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const presets: Array<{ label: string; host: string; port: number }> = [
+    { label: 'OVH', host: 'ssl0.ovh.net', port: 587 },
+    { label: 'Gandi', host: 'mail.gandi.net', port: 587 },
+    { label: 'Infomaniak', host: 'mail.infomaniak.com', port: 587 },
+    { label: 'Outlook/365', host: 'smtp.office365.com', port: 587 },
+    { label: 'iCloud', host: 'smtp.mail.me.com', port: 587 },
+    { label: 'Zoho', host: 'smtp.zoho.com', port: 587 },
+  ];
+
+  return (
+    <form onSubmit={submit} className="mt-3 p-3 rounded-lg bg-black/20 border border-white/10 space-y-2">
+      <p className="text-[10px] text-white/60">
+        {en
+          ? <>Paste your SMTP credentials — we test the connection live and only save if it works. The password is encrypted at rest (AES-256-GCM).</>
+          : <>Colle tes identifiants SMTP — on teste la connexion en direct et on sauvegarde uniquement si ça marche. Le mot de passe est chiffré en base (AES-256-GCM).</>}
+      </p>
+      <div className="flex flex-wrap gap-1">
+        {presets.map(p => (
+          <button
+            key={p.label} type="button"
+            onClick={() => { setHost(p.host); setPort(String(p.port)); }}
+            className="px-2 py-1 text-[9px] bg-white/5 hover:bg-white/10 text-white/60 rounded"
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <input value={host} onChange={e => setHost(e.target.value)} placeholder="SMTP host (ssl0.ovh.net)" className="px-2 py-1.5 text-xs bg-black/30 border border-white/10 rounded text-white placeholder-white/30" required />
+        <input value={port} onChange={e => setPort(e.target.value)} placeholder="Port (587 or 465)" className="px-2 py-1.5 text-xs bg-black/30 border border-white/10 rounded text-white placeholder-white/30" required />
+        <input value={smtpUser} onChange={e => setSmtpUser(e.target.value)} placeholder={en ? 'SMTP user (your email)' : 'Utilisateur SMTP (ton email)'} className="px-2 py-1.5 text-xs bg-black/30 border border-white/10 rounded text-white placeholder-white/30" required />
+        <input value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder={en ? 'Password / app password' : 'Mot de passe / app password'} className="px-2 py-1.5 text-xs bg-black/30 border border-white/10 rounded text-white placeholder-white/30" required />
+        <input value={fromEmail} onChange={e => setFromEmail(e.target.value)} placeholder={en ? 'From email (default = user)' : 'Email expéditeur (défaut = user)'} className="px-2 py-1.5 text-xs bg-black/30 border border-white/10 rounded text-white placeholder-white/30" />
+        <input value={fromName} onChange={e => setFromName(e.target.value)} placeholder={en ? 'From name (optional)' : 'Nom expéditeur (optionnel)'} className="px-2 py-1.5 text-xs bg-black/30 border border-white/10 rounded text-white placeholder-white/30" />
+      </div>
+      {err && <p className="text-[10px] text-red-400">{err}</p>}
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[9px] text-white/40">
+          {en
+            ? <>Need help? <a href={process.env.NEXT_PUBLIC_SETUP_CALL_URL || 'https://cal.com/keiroai/setup-30min'} target="_blank" rel="noopener noreferrer" className="underline hover:text-white/70">Book a 30-min call</a> and we set it up together.</>
+            : <>Besoin d&apos;aide ? <a href={process.env.NEXT_PUBLIC_SETUP_CALL_URL || 'https://cal.com/keiroai/setup-30min'} target="_blank" rel="noopener noreferrer" className="underline hover:text-white/70">Prends un RDV 30 min</a> et on le fait ensemble.</>}
+        </p>
+        <button type="submit" disabled={busy} className="px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-[10px] font-bold rounded-lg transition disabled:opacity-50">
+          {busy ? (en ? 'Testing…' : 'Test en cours…') : (en ? 'Test & save' : 'Tester & sauvegarder')}
+        </button>
+      </div>
+    </form>
   );
 }
 

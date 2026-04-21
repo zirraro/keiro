@@ -63,6 +63,10 @@ const STEPS = [
     icon: '\u{1F3A8}',
     description: 'Comment tu communiques',
     fields: [
+      // Communication language — feeds all outbound-first output (videos,
+      // posts, cold emails, DMs initiated). REPLIES still mirror the
+      // prospect's language automatically.
+      { key: 'communication_language', label: 'Langue de communication (fr, en, es, de, it, pt)', placeholder: 'fr' },
       { key: 'brand_tone', label: 'Ton de communication', placeholder: 'Ex: chaleureux, premium, fun, pro' },
       { key: 'visual_style', label: 'Style visuel', placeholder: 'Ex: epure, colorful, rustique, moderne' },
       { key: 'brand_colors', label: 'Couleurs de marque', placeholder: 'Ex: marron, dore, blanc creme' },
