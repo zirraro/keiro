@@ -3071,6 +3071,32 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
     console.warn('[Content] Failed to load shared context:', e.message);
   }
 
+  // Load visual references uploaded by the client to Jade's workspace.
+  // Each upload comes with an AI analysis (palette, ambiance, visible
+  // elements). We merge them into a "visual reference" block so every
+  // generated post stays grounded in the client's real decor / products /
+  // brand — massive uplift in personalisation vs generic stock-photo prompts.
+  let visualReferences = '';
+  if (userId) {
+    try {
+      const { data: uploads } = await supabase
+        .from('agent_uploads')
+        .select('ai_analysis')
+        .eq('user_id', userId)
+        .eq('agent_id', 'content')
+        .not('ai_analysis', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(12);
+      const analyses = (uploads || []).map((u: any) => u.ai_analysis).filter(Boolean);
+      if (analyses.length > 0) {
+        const { analysesToPromptContext } = await import('@/lib/agents/visual-analyzer');
+        visualReferences = analysesToPromptContext(analyses);
+      }
+    } catch (e: any) {
+      console.warn('[Content] Failed to load visual references:', e.message);
+    }
+  }
+
   // CONTENT STRATEGY v4 — percentage-based, works for ANY posting frequency
   // DB pillar constraint: tips, demo, social_proof, trends
   //
@@ -3378,7 +3404,7 @@ Le lien doit etre NATUREL et PERCUTANT — pas force. Si aucune actu ne colle au
 
   const enhancedPrompt = `Génère 1 post ÉLITE pour aujourd'hui (${todayStr}).
 ${trendsContext}${eventContext}${directivesBlock}
-${sharedIntelligence ? `━━━ INTELLIGENCE PARTAGÉE (données de TOUS les agents) ━━━\n${sharedIntelligence}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` : ''}
+${sharedIntelligence ? `━━━ INTELLIGENCE PARTAGÉE (données de TOUS les agents) ━━━\n${sharedIntelligence}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` : ''}${visualReferences ? `\n${visualReferences}\n` : ''}
 Plateforme : ${platform}
 Format suggéré : ${format}
 Pilier suggéré : ${pillar}${avoidPillar ? `\nATTENTION : Le pilier "${avoidPillar}" a été trop utilisé récemment. CHANGE de pilier si possible.` : ''}${preferredFormats !== 'all' ? `\nPRÉFÉRENCE CLIENT : Le client préfère les ${preferredFormats}. Adapte le format en conséquence.` : ''}
