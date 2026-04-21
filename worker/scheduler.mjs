@@ -185,8 +185,10 @@ async function tick() {
     arr.slice(0, arr.length - 60).forEach(k => firedThisMinute.delete(k));
   }
 
-  // Refresh client schedules every 15 min
-  if (Date.now() - lastScheduleFetch > 15 * 60 * 1000) {
+  // Refresh client schedules every 60s so UI changes (custom schedule,
+  // auto_mode toggle, frequency) propagate to the next tick within 1 min
+  // instead of the original 15 min window — the endpoint is cheap.
+  if (Date.now() - lastScheduleFetch > 60 * 1000) {
     await fetchClientSchedules();
   }
 

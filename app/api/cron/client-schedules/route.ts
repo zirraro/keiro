@@ -37,11 +37,23 @@ export async function GET(req: NextRequest) {
 
   const userIds = profiles.map(p => p.id);
 
-  // Get all agent configs for these users
-  const { data: configs } = await supabase
+  // Get all agent configs for these users.
+  // NOTE: some accounts have duplicate (user_id, agent_id) rows (legacy
+  // setup flow inserted instead of upserting). We fetch all rows ordered
+  // by created_at DESC and dedupe in memory so the newest config wins —
+  // otherwise the worker would read an arbitrary/stale schedule.
+  const { data: configsRaw } = await supabase
     .from('org_agent_configs')
-    .select('user_id, agent_id, config')
-    .in('user_id', userIds);
+    .select('user_id, agent_id, config, created_at')
+    .in('user_id', userIds)
+    .order('created_at', { ascending: false });
+  const seen = new Set<string>();
+  const configs = (configsRaw || []).filter((c: any) => {
+    const key = `${c.user_id}|${c.agent_id}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 
   // Build per-client agent map
   const clientMap: Record<string, {
