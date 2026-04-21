@@ -186,12 +186,23 @@ export async function POST(req: NextRequest) {
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) return NextResponse.json({ error: 'ANTHROPIC_API_KEY missing' }, { status: 500 });
 
-    // Load dossier for context
+    // Resolve whose dossier we should use: prefer targetUserId from the
+    // body (cron + worker call with user_id), otherwise the authenticated
+    // user, otherwise fall back to admin for manual QA.
+    let dossierUserId: string | null = targetUserId || null;
+    if (!dossierUserId && !isCron) {
+      const { user } = await getAuthUser().catch(() => ({ user: null }));
+      dossierUserId = user?.id || null;
+    }
+    if (!dossierUserId) {
+      dossierUserId = (await supabase.from('profiles').select('id').eq('is_admin', true).single()).data?.id || null;
+    }
+
     const { data: dossier } = await supabase
       .from('business_dossiers')
       .select('company_name, business_type, brand_tone, main_products')
-      .eq('user_id', (await supabase.from('profiles').select('id').eq('is_admin', true).single()).data?.id)
-      .single();
+      .eq('user_id', dossierUserId)
+      .maybeSingle();
 
     const brandContext = dossier
       ? `Commerce: ${dossier.company_name || ''}. Type: ${dossier.business_type || ''}. Ton: ${dossier.brand_tone || 'chaleureux'}. Produits: ${dossier.main_products || ''}.`
@@ -256,6 +267,7 @@ Reponds UNIQUEMENT avec le texte de la reponse.`,
               status: 'success',
               data: { comment_id: c.id, username: c.username, comment: c.text.substring(0, 100), reply: reply.substring(0, 200), auto: true },
               created_at: now,
+              ...(dossierUserId ? { user_id: dossierUserId } : {}),
             });
           } catch {}
 

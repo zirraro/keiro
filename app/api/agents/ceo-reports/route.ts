@@ -440,6 +440,7 @@ async function handleClientBrief(supabase: any, timeOfDay: 'morning' | 'evening'
         emailsSentRes, emailsOpenedRes, emailsClickedRes,
         dmsSentRes, dmsFollowedRes, followsToDoRes,
         prospectsVerifiedRes, prospectsAddedRes, gmapsImportsRes,
+        commentsRepliedRes,
         // lifetime totals (for milestone achievements)
         lifetimeEmailsRes, lifetimePostsRes, lifetimeProspectsRes, lifetimeDmsRes,
         // streak data
@@ -494,6 +495,13 @@ async function handleClientBrief(supabase: any, timeOfDay: 'morning' | 'evening'
           .select('id', { count: 'exact', head: true })
           .eq('user_id', client.id)
           .eq('source_agent', 'gmaps')
+          .gte('created_at', sinceIso),
+        // instagram_comments.reply_sent logs tagged with this client's id
+        supabase.from('agent_logs')
+          .select('id', { count: 'exact', head: true })
+          .eq('agent', 'instagram_comments')
+          .eq('action', 'reply_sent')
+          .eq('user_id', client.id)
           .gte('created_at', sinceIso),
         // lifetime totals — for milestone achievements
         supabase.from('crm_prospects')
@@ -579,6 +587,7 @@ async function handleClientBrief(supabase: any, timeOfDay: 'morning' | 'evening'
         prospects_verified: prospectsVerifiedRes.count || 0,
         prospects_added: prospectsAddedRes.count || 0,
         gmaps_imports: gmapsImportsRes.count || 0,
+        comments_replied: commentsRepliedRes.count || 0,
       };
       const lifetimeCounts = {
         emails: lifetimeEmailsRes.count || 0,
@@ -712,6 +721,7 @@ REGLES ABSOLUES:
 - Follows Insta confirmes (Jade): ${doneCounts.dms_followed}
 - Comptes a suivre manuellement sur Insta (Jade, en attente): ${doneCounts.follows_to_do}
 - Engagement Instagram 7 jours: ${weeklyLikes} likes + ${weeklyComments} commentaires + ${weeklyReach} reach
+- Commentaires repondus par Nora: ${doneCounts.comments_replied}
 - Prospects ajoutes au CRM (Léo): ${doneCounts.prospects_added}
 - Prospects valides joignables (Léo): ${doneCounts.prospects_verified}
 - Commerces importes Google Maps (Théo): ${doneCounts.gmaps_imports}
@@ -787,6 +797,9 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
         if (doneCounts.posts_drafted > 0) parts.push(`<strong>${doneCounts.posts_drafted}</strong> en préparation`);
         if (weeklyLikes + weeklyComments > 0) parts.push(`<strong>${weeklyLikes}</strong> like${weeklyLikes > 1 ? 's' : ''} + <strong>${weeklyComments}</strong> commentaire${weeklyComments > 1 ? 's' : ''} reçu${weeklyComments > 1 ? 's' : ''} cette semaine`);
         agentLines.push(`<div style="margin:6px 0;"><strong style="color:#db2777;">🖼️ Léna</strong> <span style="color:#9ca3af;font-size:11px;">· content</span> — ${parts.join(', ')}</div>`);
+      }
+      if (doneCounts.comments_replied > 0) {
+        agentLines.push(`<div style="margin:6px 0;"><strong style="color:#f97316;">💭 Nora</strong> <span style="color:#9ca3af;font-size:11px;">· commentaires Instagram</span> — <strong>${doneCounts.comments_replied}</strong> commentaire${doneCounts.comments_replied > 1 ? 's' : ''} répondu${doneCounts.comments_replied > 1 ? 's' : ''}</div>`);
       }
       if (doneCounts.emails_sent > 0 || doneCounts.emails_opened > 0) {
         const parts = [];

@@ -44,14 +44,15 @@ const GLOBAL_SCHEDULE = [
 
 // Agent endpoint mapping (for per-client direct calls)
 const AGENT_ENDPOINTS = {
-  content:      { path: '/api/agents/content', method: 'GET' },
-  email:        { path: '/api/agents/email/daily?slot=morning&types=restaurant,traiteur,boutique,coiffeur,fleuriste', method: 'GET' },
-  commercial:   { path: '/api/agents/commercial', method: 'POST' },
-  dm_instagram: { path: '/api/agents/dm-instagram?slot=morning', method: 'POST' },
-  seo:          { path: '/api/agents/seo', method: 'GET' },
-  gmaps:        { path: '/api/agents/gmaps', method: 'GET' },
-  marketing:    { path: '/api/agents/marketing', method: 'GET' },
-  ceo:          { path: '/api/agents/ceo', method: 'POST' },
+  content:             { path: '/api/agents/content', method: 'GET' },
+  email:               { path: '/api/agents/email/daily?slot=morning&types=restaurant,traiteur,boutique,coiffeur,fleuriste', method: 'GET' },
+  commercial:          { path: '/api/agents/commercial', method: 'POST' },
+  dm_instagram:        { path: '/api/agents/dm-instagram?slot=morning', method: 'POST' },
+  instagram_comments:  { path: '/api/agents/instagram-comments', method: 'POST', body: { action: 'auto_reply_all' } },
+  seo:                 { path: '/api/agents/seo', method: 'GET' },
+  gmaps:               { path: '/api/agents/gmaps', method: 'GET' },
+  marketing:           { path: '/api/agents/marketing', method: 'GET' },
+  ceo:                 { path: '/api/agents/ceo', method: 'POST' },
 };
 
 // ──────────────────────────────────────────────────────────
@@ -243,7 +244,13 @@ async function tick() {
       const path = `${endpoint.path}${separator}user_id=${job.client.user_id}`;
       log('normal', `  ▶ ${job.agentId} for ${job.client.email} (${job.schedTime})`);
 
-      const result = await callEndpoint(path, endpoint.method);
+      // Some agents expect the user_id in the body too (so the handler
+      // can associate artifacts with the right client even when the
+      // endpoint has no query-string support).
+      const body = endpoint.body
+        ? { ...endpoint.body, user_id: job.client.user_id }
+        : null;
+      const result = await callEndpoint(path, endpoint.method, body);
       log('normal', result.ok
         ? `    ✓ Done in ${result.duration}s`
         : `    ✗ FAILED: ${result.error || `HTTP ${result.status}`}`);

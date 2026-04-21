@@ -74,14 +74,15 @@ export async function GET(req: NextRequest) {
 
   // Default schedule hours (UTC) per agent — used when client has no custom schedule
   const DEFAULT_SCHEDULES: Record<string, string[]> = {
-    content:      ['07:00', '10:00', '13:30', '17:00'],
-    email:        ['07:00', '10:00', '13:30', '17:00'],
-    commercial:   ['07:00', '14:00'],
-    dm_instagram: ['07:00', '13:30', '17:00'],
-    seo:          ['07:00'],
-    gmaps:        ['10:00'],
-    ceo:          ['05:00', '20:00'],
-    marketing:    ['05:00'],
+    content:             ['07:00', '10:00', '13:30', '17:00'],
+    email:               ['07:00', '10:00', '13:30', '17:00'],
+    commercial:          ['07:00', '14:00'],
+    dm_instagram:        ['07:00', '13:30', '17:00'],
+    instagram_comments:  ['09:30', '18:00'],
+    seo:                 ['07:00'],
+    gmaps:               ['10:00'],
+    ceo:                 ['05:00', '20:00'],
+    marketing:           ['05:00'],
   };
 
   for (const cfg of (configs || [])) {

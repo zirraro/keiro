@@ -19,9 +19,11 @@ import type { PanelProps } from './types';
 // Jade tabs: DMs + Comments switch
 
 function JadeTabs({ gradientFrom, gradientTo }: { gradientFrom: string; gradientTo: string }) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const p = t.panels;
-  const [tab, setTab] = useState<'dms' | 'comments'>('dms');
+  const [tab, setTab] = useState<'dms' | 'comments' | 'follows'>('dms');
+
+  const followsLabel = locale === 'en' ? 'Follows' : 'À suivre';
 
   return (
     <div>
@@ -42,6 +44,14 @@ function JadeTabs({ gradientFrom, gradientTo }: { gradientFrom: string; gradient
         >
           {'\u{1F4AC}'} {p.dmTabsComments}
         </button>
+        <button
+          onClick={() => setTab('follows')}
+          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all ${
+            tab === 'follows' ? 'bg-white/10 text-white shadow' : 'text-white/40 hover:text-white/60'
+          }`}
+        >
+          {'\u{1F91D}'} {followsLabel}
+        </button>
       </div>
 
       {tab === 'dms' && (
@@ -55,6 +65,130 @@ function JadeTabs({ gradientFrom, gradientTo }: { gradientFrom: string; gradient
           <LenaCommentsSection />
         </div>
       )}
+
+      {tab === 'follows' && (
+        <div data-tour="dm-follows">
+          <ManualFollowsList />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ManualFollowsList() {
+  const { locale } = useLanguage();
+  const en = locale === 'en';
+  const [items, setItems] = useState<Array<{
+    id: string;
+    company?: string;
+    instagram?: string;
+    score?: number;
+    angle_approche?: string;
+    note_google?: number;
+    google_rating?: number;
+  }>>([]);
+  const [loading, setLoading] = useState(true);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  const load = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch('/api/agents/dm-instagram/manual-follows');
+      if (!res.ok) return;
+      const data = await res.json();
+      setItems(data.follows || []);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const handleAction = async (prospectId: string, action: 'done' | 'skip') => {
+    setBusyId(prospectId);
+    try {
+      await fetch('/api/agents/dm-instagram/manual-follows', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prospect_id: prospectId, action }),
+      });
+      setItems(prev => prev.filter(x => x.id !== prospectId));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  if (loading) {
+    return <div className="text-white/40 text-sm py-4 text-center">{en ? 'Loading…' : 'Chargement…'}</div>;
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className="text-white/50 text-sm py-8 text-center leading-relaxed">
+        {en
+          ? <>🤝 No accounts queued right now. Jade adds suggestions every morning based on qualified prospects.</>
+          : <>🤝 Aucun compte en attente pour l'instant. Jade ajoute des suggestions chaque matin à partir des prospects qualifiés.</>}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="text-[11px] text-white/50 px-1 pb-1 leading-snug">
+        {en
+          ? <>Open each profile on Instagram, tap Follow, then press ✓ here so Jade knows. She'll DM these accounts after a short warm-up period.</>
+          : <>Ouvre chaque profil sur Instagram, appuie sur Suivre, puis valide avec ✓ ici pour que Jade sache. Elle DM ces comptes après un petit temps de chauffe.</>}
+      </div>
+      {items.map(item => {
+        const handle = String(item.instagram || '').replace(/^@/, '');
+        const rating = item.google_rating || item.note_google;
+        return (
+          <div key={item.id} className="bg-white/5 border border-white/10 rounded-lg p-3 flex items-start gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <a
+                  href={`https://instagram.com/${handle}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-white font-medium hover:underline truncate"
+                >
+                  @{handle}
+                </a>
+                {typeof item.score === 'number' && (
+                  <span className="text-[10px] text-white/40 bg-white/5 px-1.5 py-0.5 rounded">
+                    {en ? 'score' : 'score'} {item.score}
+                  </span>
+                )}
+                {typeof rating === 'number' && rating > 0 && (
+                  <span className="text-[10px] text-yellow-300/70">⭐ {rating}</span>
+                )}
+              </div>
+              {item.company && (
+                <div className="text-[11px] text-white/50 truncate mt-0.5">{item.company}</div>
+              )}
+              {item.angle_approche && (
+                <div className="text-[11px] text-white/40 mt-1 line-clamp-2">{item.angle_approche}</div>
+              )}
+            </div>
+            <div className="flex flex-col gap-1 shrink-0">
+              <button
+                disabled={busyId === item.id}
+                onClick={() => handleAction(item.id, 'done')}
+                className="px-2.5 py-1 text-[11px] bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 rounded-md transition disabled:opacity-50"
+              >
+                {en ? '✓ Followed' : '✓ Fait'}
+              </button>
+              <button
+                disabled={busyId === item.id}
+                onClick={() => handleAction(item.id, 'skip')}
+                className="px-2.5 py-1 text-[11px] text-white/40 hover:text-white/70 border border-white/10 rounded-md transition disabled:opacity-50"
+              >
+                {en ? 'Skip' : 'Passer'}
+              </button>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
