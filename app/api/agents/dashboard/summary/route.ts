@@ -14,18 +14,44 @@ function getSupabaseAdmin() {
 }
 
 /**
- * GET /api/agents/dashboard/summary
- * Returns mini dashboard stats for ALL agents + CRM data in a single call
+ * GET /api/agents/dashboard/summary?locale=fr|en
+ * Returns mini dashboard stats for ALL agents + CRM data in a single call.
+ * Action texts + deltas follow the requested locale so the page is fully
+ * bilingual without needing a client-side string table for dynamic copy.
  */
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const { user, error: authError } = await getAuthUser();
     if (authError || !user) {
       return NextResponse.json({ ok: false, error: 'Auth required' }, { status: 401 });
     }
 
+    const url = new URL(request.url);
+    const locale = url.searchParams.get('locale') === 'en' ? 'en' : 'fr';
+    const en = locale === 'en';
+
     const supabase = getSupabaseAdmin();
     const orgId = await resolveOrgId(supabase, user.id);
+
+    // ── Which agents has this client actually activated? ──
+    // Source of truth is org_agent_configs.auto_mode (or setup_completed
+    // for legacy rows). We read it once and use it in the "next action"
+    // generator so we stop recommending "Activer Hugo" when Hugo is
+    // already running per the user's config.
+    const { data: configs } = await supabase
+      .from('org_agent_configs')
+      .select('agent_id, config, created_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+    const activeAgents = new Set<string>();
+    const seenCfg = new Set<string>();
+    for (const c of configs || []) {
+      if (seenCfg.has(c.agent_id)) continue; // duplicate rows — newest wins
+      seenCfg.add(c.agent_id);
+      if (c.config?.auto_mode === true || c.config?.setup_completed === true) {
+        activeAgents.add(c.agent_id);
+      }
+    }
 
     // ─── Parallel data loading ─────────────────────────────
     const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
@@ -159,15 +185,30 @@ export async function GET() {
     };
 
     // ─── Email stats ──────────────────────────────────────
-    let emailsSent = 0, emailOpens = 0, emailClicks = 0;
+    // Column names on crm_prospects are email_opens_count / email_clicks_count
+    // (the old email_open_count / email_click_count never existed, which is
+    // why the dashboard used to report 0 opens/clicks forever).
+    // We also re-query crm_prospects with the columns we actually need —
+    // prospectList was selected with a minimal field set upstream.
+    const { data: emailProspects } = await supabase
+      .from('crm_prospects')
+      .select('email_sequence_step, email_sequence_status, email_opens_count, email_clicks_count, last_email_sent_at')
+      .eq(orgId ? 'org_id' : 'user_id', orgId || user.id);
+
+    let emailsSent = 0, emailOpens = 0, emailClicks = 0, emailsSentToday = 0;
     const emailSeqCounts: Record<string, number> = {};
-    for (const p of prospectList) {
+    const todayStart = new Date();
+    todayStart.setUTCHours(0, 0, 0, 0);
+    const todayIso = todayStart.toISOString();
+    for (const p of emailProspects || []) {
       const step = (p.email_sequence_step as number) ?? 0;
       const status = (p.email_sequence_status as string) || 'none';
       emailSeqCounts[status] = (emailSeqCounts[status] || 0) + 1;
-      emailOpens += (p.email_open_count as number) || 0;
-      emailClicks += (p.email_click_count as number) || 0;
+      emailOpens += (p.email_opens_count as number) || 0;
+      emailClicks += (p.email_clicks_count as number) || 0;
       if (step > 0) emailsSent += step;
+      const lastSent = p.last_email_sent_at as string | null;
+      if (lastSent && lastSent >= todayIso) emailsSentToday++;
     }
 
     // ─── DM stats ─────────────────────────────────────────
@@ -206,8 +247,6 @@ export async function GET() {
     }
 
     // ─── Prospects added today ──────────────────────────
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
     const prospectsToday = prospectList.filter(p => new Date(p.created_at as string) >= todayStart).length;
     const prospectsWithEmail = prospectList.filter(p => p.email).length;
     const prospectsWithIG = prospectList.filter(p => (p as any).instagram).length;
@@ -343,46 +382,118 @@ export async function GET() {
     }));
 
     // ─── Smart actions — what the client should do next ──────
+    // Each action is priority-sorted AND gated on real activation state
+    // (org_agent_configs) so we don't tell the user "Activer Hugo" when
+    // Hugo already ran 119 emails today. Copy is bilingual.
     const actions: Array<{ icon: string; text: string; cta?: string; link?: string; priority: number }> = [];
 
     if (!dossier?.completeness_score || dossier.completeness_score < 80) {
-      actions.push({ icon: '\u{1F4CB}', text: 'Complete ton profil business pour que tes agents soient plus efficaces', cta: 'Completer', link: '/assistant/agent/onboarding', priority: 1 });
+      actions.push({
+        icon: '\u{1F4CB}',
+        text: en
+          ? 'Complete your business profile so your agents are more effective'
+          : 'Complète ton profil business pour que tes agents soient plus efficaces',
+        cta: en ? 'Complete' : 'Compléter',
+        link: '/assistant/agent/onboarding', priority: 1,
+      });
     }
     if (temperatureCount.hot > 0) {
-      actions.push({ icon: '\u{1F525}', text: `${temperatureCount.hot} prospect${temperatureCount.hot > 1 ? 's' : ''} chaud${temperatureCount.hot > 1 ? 's' : ''} — contacte-les vite !`, cta: 'Voir le CRM', link: '/assistant?tab=crm', priority: 2 });
+      actions.push({
+        icon: '\u{1F525}',
+        text: en
+          ? `${temperatureCount.hot} hot prospect${temperatureCount.hot > 1 ? 's' : ''} — reach out now`
+          : `${temperatureCount.hot} prospect${temperatureCount.hot > 1 ? 's' : ''} chaud${temperatureCount.hot > 1 ? 's' : ''} — contacte-les vite !`,
+        cta: en ? 'Open CRM' : 'Voir le CRM',
+        link: '/assistant?tab=crm', priority: 2,
+      });
     }
     if (prospectsToday > 0) {
-      actions.push({ icon: '\u{1F4C8}', text: `+${prospectsToday} nouveaux prospects ajoutes aujourd'hui par Leo`, priority: 5 });
+      actions.push({
+        icon: '\u{1F4C8}',
+        text: en
+          ? `+${prospectsToday} new prospect${prospectsToday > 1 ? 's' : ''} added today by Léo`
+          : `+${prospectsToday} nouveau${prospectsToday > 1 ? 'x' : ''} prospect${prospectsToday > 1 ? 's' : ''} ajouté${prospectsToday > 1 ? 's' : ''} aujourd'hui par Léo`,
+        priority: 5,
+      });
     }
-    if (emailsSent === 0 && prospectsWithEmail > 0) {
-      actions.push({ icon: '\u{1F4E7}', text: `${prospectsWithEmail} prospects avec email — active Hugo pour lancer la prospection`, cta: 'Activer Hugo', link: '/assistant/agent/email', priority: 3 });
+    // "Activer Hugo" only when he has NEVER sent an email AND is not activated.
+    if (!activeAgents.has('email') && emailsSent === 0 && prospectsWithEmail > 0) {
+      actions.push({
+        icon: '\u{1F4E7}',
+        text: en
+          ? `${prospectsWithEmail} prospects with email — activate Hugo to start outreach`
+          : `${prospectsWithEmail} prospects avec email — active Hugo pour lancer la prospection`,
+        cta: en ? 'Activate Hugo' : 'Activer Hugo',
+        link: '/assistant/agent/email', priority: 3,
+      });
+    } else if (activeAgents.has('email') && emailsSentToday > 0) {
+      // Hugo is live and working — celebrate the delta instead of asking to activate.
+      actions.push({
+        icon: '\u{1F4E7}',
+        text: en
+          ? `Hugo sent ${emailsSentToday} email${emailsSentToday > 1 ? 's' : ''} today${emailOpens > 0 ? ` · ${emailOpens} opens so far` : ''}`
+          : `Hugo a envoyé ${emailsSentToday} email${emailsSentToday > 1 ? 's' : ''} aujourd'hui${emailOpens > 0 ? ` · ${emailOpens} ouvertures déjà` : ''}`,
+        priority: 6,
+      });
     }
-    if (dmsSent === 0 && prospectsWithIG > 0) {
-      actions.push({ icon: '\u{1F4AC}', text: `${prospectsWithIG} prospects Instagram — active Jade pour envoyer des DMs`, cta: 'Activer Jade', link: '/assistant/agent/dm_instagram', priority: 3 });
+    if (!activeAgents.has('dm_instagram') && dmsSent === 0 && prospectsWithIG > 0) {
+      actions.push({
+        icon: '\u{1F4AC}',
+        text: en
+          ? `${prospectsWithIG} Instagram prospects — activate Léna to send DMs`
+          : `${prospectsWithIG} prospects Instagram — active Léna pour envoyer des DMs`,
+        cta: en ? 'Activate Léna' : 'Activer Léna',
+        link: '/assistant/agent/dm_instagram', priority: 3,
+      });
     }
-    if (contentPublished === 0) {
-      actions.push({ icon: '\u{1F4F1}', text: 'Aucun contenu publie — active Lena pour commencer', cta: 'Activer Lena', link: '/assistant/agent/content', priority: 4 });
+    if (!activeAgents.has('content') && contentPublished === 0) {
+      actions.push({
+        icon: '\u{1F4F1}',
+        text: en
+          ? 'No content published yet — activate Jade to start posting'
+          : 'Aucun contenu publié — active Jade pour commencer',
+        cta: en ? 'Activate Jade' : 'Activer Jade',
+        link: '/assistant/agent/content', priority: 4,
+      });
     }
     if (emailsSent > 0 && emailOpenRate > 0) {
-      actions.push({ icon: '\u{1F4CA}', text: `Taux d'ouverture email : ${emailOpenRate}% — ${emailOpenRate > 30 ? 'excellent !' : emailOpenRate > 15 ? 'dans la moyenne' : 'a ameliorer'}`, priority: 6 });
+      actions.push({
+        icon: '\u{1F4CA}',
+        text: en
+          ? `Email open rate: ${emailOpenRate}% — ${emailOpenRate > 30 ? 'excellent!' : emailOpenRate > 15 ? 'average' : 'needs work'}`
+          : `Taux d'ouverture email : ${emailOpenRate}% — ${emailOpenRate > 30 ? 'excellent !' : emailOpenRate > 15 ? 'dans la moyenne' : 'à améliorer'}`,
+        priority: 6,
+      });
     }
 
     actions.sort((a, b) => a.priority - b.priority);
 
+    // Actions today from logs (used as "Actions" momentum stat — delta)
+    const actionsToday = logList.filter(l => l.created_at && (l.created_at as string) >= todayIso).length;
+
     // ─── Global stats (top of page) ──────────────────────
+    // We split every metric into TODAY (delta we want to see rise) and
+    // TOTAL (context). The UI renders the delta big and the total small.
     const globalStats = {
       prospectsTotal: prospectList.length,
       prospectsToday,
       prospectsHot: temperatureCount.hot,
       emailsSent,
+      emailsSentToday,
       emailOpenRate,
+      emailOpens,
       dmsSent,
       contentPublished,
       conversionRate: crm.conversionRate,
+      actionsToday,
+      actionsTotal: logList.length,
+      activeAgentsCount: activeAgents.size,
+      activeAgents: Array.from(activeAgents),
     };
 
     return NextResponse.json({
       ok: true,
+      locale,
       agents,
       teams,
       crm,

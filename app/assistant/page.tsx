@@ -608,7 +608,8 @@ export default function AssistantPage() {
     async function loadSummary() {
       setSummaryLoading(true);
       try {
-        const res = await fetch('/api/agents/dashboard/summary', { credentials: 'include' });
+        const loc = typeof window !== 'undefined' ? (localStorage.getItem('keiro_language') || 'fr') : 'fr';
+        const res = await fetch(`/api/agents/dashboard/summary?locale=${loc}`, { credentials: 'include' });
         if (res.ok) {
           const data = await res.json();
           if (data.ok) setSummary(data);
@@ -1157,8 +1158,11 @@ export default function AssistantPage() {
                 </div>
                 <span className="text-white/40 text-[10px] uppercase tracking-wider font-semibold">{nt.kpiActions || 'Actions'}</span>
               </div>
-              <div className="text-white text-2xl font-bold">{totalActions}</div>
-              <div className="text-white/30 text-[10px] mt-0.5">{nt.kpiActionsThisWeek || 'this week'}</div>
+              <div className="flex items-baseline gap-2">
+                <div className="text-cyan-400 text-2xl font-bold">+{summary?.globalStats?.actionsToday ?? 0}</div>
+                <div className="text-white/30 text-[10px]">/ {summary?.globalStats?.actionsTotal ?? totalActions}</div>
+              </div>
+              <div className="text-white/30 text-[10px] mt-0.5">{(nt.kpiActionsToday as string) || (summary?.locale === 'en' ? 'today · total' : "aujourd'hui · total")}</div>
             </div>
 
             <div className="rounded-xl bg-white/[0.04] border border-white/10 p-4">
@@ -1170,8 +1174,11 @@ export default function AssistantPage() {
                 </div>
                 <span className="text-white/40 text-[10px] uppercase tracking-wider font-semibold">{nt.kpiProspects || 'Prospects'}</span>
               </div>
-              <div className="text-white text-2xl font-bold">{totalProspects}</div>
-              <div className="text-white/30 text-[10px] mt-0.5">{nt.kpiProspectsInPipeline || 'in pipeline'}</div>
+              <div className="flex items-baseline gap-2">
+                <div className="text-cyan-400 text-2xl font-bold">+{summary?.globalStats?.prospectsToday ?? 0}</div>
+                <div className="text-white/30 text-[10px]">/ {totalProspects}</div>
+              </div>
+              <div className="text-white/30 text-[10px] mt-0.5">{(nt.kpiProspectsToday as string) || (summary?.locale === 'en' ? 'today · in pipeline' : "aujourd'hui · en pipeline")}</div>
             </div>
 
             <div className="rounded-xl bg-white/[0.04] border border-white/10 p-4">
@@ -1298,24 +1305,51 @@ export default function AssistantPage() {
                     </div>
                   )}
 
-                  {/* Mini stats bar */}
-                  {summary?.globalStats && (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4 pt-4 border-t border-white/5">
-                      <div className="text-center">
-                        <div className="text-white font-bold text-lg">{summary.globalStats.prospectsTotal}</div>
-                        <div className="text-white/30 text-[9px]">{nt.miniProspectsTotal || 'Prospects'}</div>
+                  {/* Live agent pulse — remplace le mini-stats redondant.
+                      Montre les 3 dernières actions avec nom d'agent + délai
+                      relatif. Adaptive, accurate, change à chaque exécution. */}
+                  {summary?.activityFeed && summary.activityFeed.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-white/5">
+                      <div className="text-white/40 text-[10px] uppercase tracking-wider font-semibold mb-2">
+                        {summary?.locale === 'en' ? 'Live pulse' : 'En direct'}
                       </div>
-                      <div className="text-center">
-                        <div className="text-cyan-400 font-bold text-lg">+{summary.globalStats.prospectsToday}</div>
-                        <div className="text-white/30 text-[9px]">{nt.miniProspectsToday || 'Today'}</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-amber-400 font-bold text-lg">{summary.globalStats.prospectsHot}</div>
-                        <div className="text-white/30 text-[9px]">{nt.miniProspectsHot || 'Hot'}</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-emerald-400 font-bold text-lg">{summary.globalStats.emailOpenRate}%</div>
-                        <div className="text-white/30 text-[9px]">{nt.miniEmailOpenRate || 'Open rate'}</div>
+                      <div className="space-y-1.5">
+                        {summary.activityFeed.slice(0, 3).map((log: any, i: number) => {
+                          const agentLabel = (() => {
+                            const a = (log.agent || '').toLowerCase();
+                            if (a === 'content') return '🎨 Jade';
+                            if (a === 'dm_instagram' || a === 'instagram_comments' || a === 'tiktok_comments') return '💬 Léna';
+                            if (a === 'email') return '✉️ Hugo';
+                            if (a === 'commercial' || (a === 'gmaps' && (log.action || '').includes('scan'))) return '🎯 Léo';
+                            if (a === 'gmaps' && (log.action || '').includes('review')) return '⭐ Théo';
+                            if (a === 'gmaps') return '🎯 Léo';
+                            if (a === 'ceo') return '🧠 Noah';
+                            if (a === 'marketing') return '📊 Ami';
+                            if (a === 'seo') return '🔍 Oscar';
+                            if (a === 'retention') return '💎 Théo';
+                            return `· ${log.agent}`;
+                          })();
+                          const whenMs = log.date || log.created_at ? Date.now() - new Date(log.date || log.created_at).getTime() : 0;
+                          const when = (() => {
+                            const s = Math.round(whenMs / 1000);
+                            if (s < 60) return summary?.locale === 'en' ? `${s}s ago` : `il y a ${s}s`;
+                            const m = Math.round(s / 60);
+                            if (m < 60) return summary?.locale === 'en' ? `${m}m ago` : `il y a ${m}m`;
+                            const h = Math.round(m / 60);
+                            if (h < 24) return summary?.locale === 'en' ? `${h}h ago` : `il y a ${h}h`;
+                            const d = Math.round(h / 24);
+                            return summary?.locale === 'en' ? `${d}d ago` : `il y a ${d}j`;
+                          })();
+                          const dot = log.status === 'success' || log.status === 'ok' ? 'bg-emerald-400' : log.status === 'error' ? 'bg-red-400' : 'bg-amber-400';
+                          return (
+                            <div key={i} className="flex items-center gap-2 text-[11px]">
+                              <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dot}`} />
+                              <span className="text-white/80 font-medium">{agentLabel}</span>
+                              <span className="text-white/50 flex-1 truncate">{log.action}</span>
+                              <span className="text-white/30 flex-shrink-0">{when}</span>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
