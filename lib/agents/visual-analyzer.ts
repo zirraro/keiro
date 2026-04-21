@@ -27,6 +27,12 @@ export interface VisualAnalysis {
   visible_elements: string[];
   suggested_use: string;
   summary: string;
+  // Logo-specific enrichments — only populated when Claude detects the
+  // image is a logo. Other image types leave these empty.
+  is_logo?: boolean;
+  typography_style?: string;   // "sans-serif modern", "serif editorial"…
+  brand_personality?: string[]; // ["premium", "playful", "minimalist"]
+  icon_style?: string;          // "monogram", "pictographic", "wordmark"
 }
 
 /**
@@ -60,17 +66,21 @@ export async function analyzeImageForAgent(
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 800,
+        max_tokens: 900,
         system: `You analyze a photo uploaded by a small business owner so AI agents can produce content that matches the REAL space / brand. Be concrete, grounded, never invent what you don't see. Reply ONLY with a valid JSON object matching this shape:
 
 {
-  "color_palette": ["#hex", "#hex", "#hex"],   // 2-5 dominant colors
+  "is_logo": true | false,                      // is this image a logo / wordmark / icon?
+  "color_palette": ["#hex", "#hex", "#hex"],   // 2-5 dominant colors (for logos, the brand palette)
   "ambiance": "one short phrase (max 8 words)",
   "style_descriptors": ["adj1", "adj2", "adj3"],
-  "lighting": "natural | warm | neon | dim | bright | mixed",
-  "space_type": "specific room or space type",
+  "lighting": "natural | warm | neon | dim | bright | mixed | N/A for logos",
+  "space_type": "specific room or space type (N/A for logos)",
   "visible_elements": ["item1", "item2", "item3"],   // 3-6 concrete things you see
-  "suggested_use": "one line: how should Jade use this in future social posts?",
+  "typography_style": "only for logos: describe the wordmark type, e.g. 'bold sans-serif modern', 'elegant serif editorial', 'handwritten script'",
+  "brand_personality": ["adj", "adj"],          // only for logos: ["premium", "playful", "minimalist", "artisanal"…]
+  "icon_style": "only for logos: 'wordmark' | 'monogram' | 'pictographic' | 'combination' | 'abstract'",
+  "suggested_use": "one line on how the content agent should use this in future posts",
   "summary": "one sentence describing the image for future prompts"
 }
 
@@ -105,6 +115,10 @@ ${bizHint}`,
       visible_elements: Array.isArray(parsed.visible_elements) ? parsed.visible_elements.slice(0, 8).map(String) : [],
       suggested_use: String(parsed.suggested_use || '').substring(0, 200),
       summary: String(parsed.summary || '').substring(0, 300),
+      is_logo: typeof parsed.is_logo === 'boolean' ? parsed.is_logo : undefined,
+      typography_style: parsed.typography_style ? String(parsed.typography_style).substring(0, 100) : undefined,
+      brand_personality: Array.isArray(parsed.brand_personality) ? parsed.brand_personality.slice(0, 5).map(String) : undefined,
+      icon_style: parsed.icon_style ? String(parsed.icon_style).substring(0, 40) : undefined,
     };
   } catch (e: any) {
     console.error('[VisualAnalyzer] Error:', String(e?.message || e).substring(0, 200));

@@ -145,14 +145,35 @@ export async function POST(request: NextRequest) {
           // Format: "#FF6B6B, #4ECDC4, #2E86AB" — human-readable + easy
           // for agents to pick from.
           const paletteStr = extractedPalette.join(', ');
-          await supabase.from('business_dossiers').upsert({
+
+          // Typography + personality + icon style also extracted when
+          // Claude detects the image is a logo. They get folded into
+          // the dossier alongside brand_colors so every agent sees a
+          // consistent brand signal downstream.
+          const updates: Record<string, any> = {
             user_id: user.id,
             logo_url: publicUrl,
-            // Only overwrite brand_colors if the client hadn't manually
-            // set it — don't stomp on a deliberate choice.
-            ...(dossier?.brand_colors ? {} : { brand_colors: paletteStr }),
             updated_at: new Date().toISOString(),
-          }, { onConflict: 'user_id' });
+          };
+          if (!dossier?.brand_colors) updates.brand_colors = paletteStr;
+          if (analysis.typography_style) {
+            // Merge into visual_style when empty; append otherwise so a
+            // hand-picked style isn't overwritten but is enriched.
+            const existing = (dossier as any)?.visual_style as string | undefined;
+            updates.visual_style = existing
+              ? `${existing} · typo logo : ${analysis.typography_style}`
+              : `typo logo : ${analysis.typography_style}`;
+          }
+          if (analysis.brand_personality && analysis.brand_personality.length > 0) {
+            // Brand personality goes into content_themes as a seed for
+            // Jade's tone (clients can refine later).
+            const existing = (dossier as any)?.content_themes as string | undefined;
+            const fromLogo = analysis.brand_personality.slice(0, 4).join(', ');
+            updates.content_themes = existing
+              ? `${existing} · vibes logo : ${fromLogo}`
+              : `vibes logo : ${fromLogo}`;
+          }
+          await supabase.from('business_dossiers').upsert(updates, { onConflict: 'user_id' });
         } else {
           // Even without analysis, remember the logo URL.
           await supabase.from('business_dossiers').upsert({
