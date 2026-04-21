@@ -9,6 +9,7 @@ import NewsPrefetcher from "@/components/NewsPrefetcher";
 import ChatbotWidget from "@/components/ChatbotWidget";
 import GlobalNotifBubble from "@/components/GlobalNotifBubble";
 import { VortexBackground } from "@/components/ui/vortex-bg";
+import { StickyCtaBar } from "@/components/ui/StickyCtaBar";
 
 export const metadata: Metadata = {
   title: {
@@ -143,6 +144,7 @@ export default function RootLayout({
             {children}
           </main>
           <BottomNav />
+          <StickyCtaBar />
           <GlobalNotifBubble />
           <ChatbotWidget />
         </LanguageProvider>

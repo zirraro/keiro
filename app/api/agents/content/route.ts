@@ -3071,27 +3071,16 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
     console.warn('[Content] Failed to load shared context:', e.message);
   }
 
-  // Load visual references uploaded by the client to Jade's workspace.
-  // Each upload comes with an AI analysis (palette, ambiance, visible
-  // elements). We merge them into a "visual reference" block so every
-  // generated post stays grounded in the client's real decor / products /
-  // brand — massive uplift in personalisation vs generic stock-photo prompts.
+  // Load all agent uploads (images + docs analysed) for Jade and format
+  // them as a combined visual + document reference block. This makes
+  // every generated post stay grounded in the client's REAL decor,
+  // products, brand guidelines, menu etc. — massive lift over generic
+  // stock-photo-style prompts.
   let visualReferences = '';
   if (userId) {
     try {
-      const { data: uploads } = await supabase
-        .from('agent_uploads')
-        .select('ai_analysis')
-        .eq('user_id', userId)
-        .eq('agent_id', 'content')
-        .not('ai_analysis', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(12);
-      const analyses = (uploads || []).map((u: any) => u.ai_analysis).filter(Boolean);
-      if (analyses.length > 0) {
-        const { analysesToPromptContext } = await import('@/lib/agents/visual-analyzer');
-        visualReferences = analysesToPromptContext(analyses);
-      }
+      const { loadAgentUploadsContext } = await import('@/lib/agents/visual-analyzer');
+      visualReferences = await loadAgentUploadsContext(supabase, userId, 'content');
     } catch (e: any) {
       console.warn('[Content] Failed to load visual references:', e.message);
     }

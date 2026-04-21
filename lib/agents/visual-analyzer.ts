@@ -113,6 +113,121 @@ ${bizHint}`,
 }
 
 /**
+ * Rich analysis of an uploaded PDF/document. The output schema is the
+ * superset of what the UI needs: brand info, tone, style cues, useful
+ * facts about the business. Every field is optional so we don't force
+ * hallucination when the doc doesn't cover it.
+ */
+export interface DocumentAnalysis {
+  doc_type: string;              // "brand guidelines" | "menu" | "price list" | "product catalogue" | ...
+  brand_colors: string[];        // hex
+  typography: string[];          // font names or family descriptors
+  brand_voice?: string;          // one line about tone
+  key_messages: string[];        // brand slogans / taglines extracted
+  products_services?: string[];  // for a menu / catalogue
+  unique_selling_points: string[];
+  facts: string[];               // concrete facts extractable (hours, address, specialties)
+  summary: string;
+}
+
+/**
+ * Extract raw text from a remote PDF via pdfjs-dist, then run Claude to
+ * structure it. Works for brand guidelines, menus, catalogs, company
+ * decks — anything text-based. For image-heavy PDFs we'd need per-page
+ * vision; out of scope for this pass.
+ */
+export async function analyzePdfForAgent(
+  pdfUrl: string,
+  agentId: string,
+  businessType: string | null,
+): Promise<DocumentAnalysis | null> {
+  const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
+  if (!ANTHROPIC_KEY) return null;
+
+  let text = '';
+  try {
+    const res = await fetch(pdfUrl);
+    if (!res.ok) return null;
+    const buf = new Uint8Array(await res.arrayBuffer());
+    // Lazy-load pdfjs so the module tree stays light for image-only flows.
+    const pdfjs: any = await import('pdfjs-dist/legacy/build/pdf.mjs').catch(() => null);
+    if (!pdfjs) return null;
+    const doc = await pdfjs.getDocument({ data: buf, useSystemFonts: true }).promise;
+    const maxPages = Math.min(doc.numPages, 20); // cap to avoid 100-page decks
+    for (let i = 1; i <= maxPages; i++) {
+      const page = await doc.getPage(i);
+      const content = await page.getTextContent();
+      text += content.items.map((it: any) => it.str).join(' ') + '\n\n';
+    }
+    text = text.trim().slice(0, 30_000); // 30k chars fits easily in Sonnet context
+  } catch {
+    return null;
+  }
+
+  if (!text) return null;
+
+  const bizHint = businessType ? `Business type: ${businessType}.` : '';
+  const agentHint = agentId === 'content'
+    ? 'This will feed Jade\'s content-generation prompts (posts / scripts / captions) so focus on VISUAL + TONE data.'
+    : agentId === 'email'
+      ? 'This will feed Hugo\'s email sequences so focus on BRAND VOICE + OFFER CLARITY + USPs.'
+      : agentId === 'gmaps'
+        ? 'This will feed Théo\'s Google review replies so focus on SPECIALTIES, HOURS, VALUES.'
+        : 'General business context for all agents.';
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': ANTHROPIC_KEY,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1200,
+        system: `You analyze a PDF uploaded by a small business owner so AI agents can ground their work in the client's real brand + offer. Never invent what's not in the text. Reply ONLY with a valid JSON matching this shape:
+
+{
+  "doc_type": "short label",
+  "brand_colors": ["#hex", ...],                 // colors explicitly cited OR described (translate "deep blue" → #1e3a5f only if confident)
+  "typography": ["Font name", ...],
+  "brand_voice": "one line on tone (friendly, formal, playful…)",
+  "key_messages": ["slogan 1", ...],
+  "products_services": ["item1", ...],           // only if the doc is a menu/catalog
+  "unique_selling_points": ["USP 1", ...],
+  "facts": ["hours: ...", "address: ...", "specialty: ..."],
+  "summary": "one-paragraph synthesis for agents"
+}
+
+${agentHint}
+${bizHint}`,
+        messages: [{ role: 'user', content: `PDF CONTENT (up to 20 pages, ~30k chars):\n\n${text}\n\nReturn the JSON.` }],
+      }),
+    });
+
+    if (!res.ok) return null;
+    const data = await res.json();
+    let txt = (data.content?.[0]?.text || '').trim();
+    txt = txt.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+    const parsed = JSON.parse(txt);
+    return {
+      doc_type: String(parsed.doc_type || '').substring(0, 50),
+      brand_colors: Array.isArray(parsed.brand_colors) ? parsed.brand_colors.slice(0, 8).map(String) : [],
+      typography: Array.isArray(parsed.typography) ? parsed.typography.slice(0, 5).map(String) : [],
+      brand_voice: parsed.brand_voice ? String(parsed.brand_voice).substring(0, 200) : undefined,
+      key_messages: Array.isArray(parsed.key_messages) ? parsed.key_messages.slice(0, 8).map(String) : [],
+      products_services: Array.isArray(parsed.products_services) ? parsed.products_services.slice(0, 20).map(String) : undefined,
+      unique_selling_points: Array.isArray(parsed.unique_selling_points) ? parsed.unique_selling_points.slice(0, 8).map(String) : [],
+      facts: Array.isArray(parsed.facts) ? parsed.facts.slice(0, 12).map(String) : [],
+      summary: String(parsed.summary || '').substring(0, 800),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Format a list of analyses into a compact "visual reference" block for
  * content-generation prompts. Designed to be injected AFTER the brand
  * context so agents produce content grounded in the client's actual
@@ -155,4 +270,88 @@ export function analysesToPromptContext(analyses: VisualAnalysis[], maxItems = 6
   lines.push('IMPORTANT : tes prompts visuels et tes suggestions de shots DOIVENT rester cohérents avec ce style et cette palette — c\'est le VRAI univers visuel du client. Ne propose pas un style contradictoire.');
 
   return lines.join('\n');
+}
+
+/**
+ * Format document analyses (PDF brand guidelines, menus, catalogs) into
+ * a prompt context block for any agent. Merges brand colors, USPs,
+ * key messages across all docs for a consolidated brand signal.
+ */
+export function documentsToPromptContext(docs: DocumentAnalysis[], maxItems = 4): string {
+  if (docs.length === 0) return '';
+  const picks = docs.slice(0, maxItems);
+
+  const colors = new Set<string>();
+  const usps = new Set<string>();
+  const messages = new Set<string>();
+  const facts = new Set<string>();
+  const products = new Set<string>();
+  for (const d of docs) {
+    for (const c of d.brand_colors) colors.add(c.toUpperCase());
+    for (const u of d.unique_selling_points) usps.add(u);
+    for (const m of d.key_messages) messages.add(m);
+    for (const f of d.facts) facts.add(f);
+    if (d.products_services) for (const p of d.products_services) products.add(p);
+  }
+
+  const lines: string[] = [];
+  lines.push('=== DOCUMENTS CLIENT ANALYSÉS ===');
+  if (colors.size > 0) lines.push(`Couleurs de marque : ${[...colors].slice(0, 8).join(', ')}`);
+  if (messages.size > 0) lines.push(`Messages-clés : ${[...messages].slice(0, 4).map(m => `"${m}"`).join(' / ')}`);
+  if (usps.size > 0) lines.push(`Points forts (USPs) : ${[...usps].slice(0, 4).join(' | ')}`);
+  if (facts.size > 0) lines.push(`Faits concrets : ${[...facts].slice(0, 8).join(' ; ')}`);
+  if (products.size > 0) lines.push(`Produits/services listés : ${[...products].slice(0, 10).join(', ')}`);
+  lines.push('');
+  lines.push('Documents :');
+  for (const d of picks) {
+    const voice = d.brand_voice ? ` — voix : ${d.brand_voice}` : '';
+    lines.push(`- [${d.doc_type}] ${d.summary.substring(0, 200)}${voice}`);
+  }
+
+  return lines.join('\n');
+}
+
+/**
+ * Load every analyzed upload for a given agent + format them as a
+ * single "client context" block mixing visual and document analyses.
+ *
+ * This is the one-call helper any agent uses to bring the client's
+ * uploaded material into its generation prompt. Used by Jade (content),
+ * Hugo (email), Léna (DMs), Théo (reviews), Clara (onboarding).
+ */
+export async function loadAgentUploadsContext(
+  supabase: any,
+  userId: string,
+  agentId: string,
+): Promise<string> {
+  const { data: rows } = await supabase
+    .from('agent_uploads')
+    .select('ai_analysis, file_type')
+    .eq('user_id', userId)
+    .eq('agent_id', agentId)
+    .not('ai_analysis', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(20);
+
+  if (!rows || rows.length === 0) return '';
+
+  const visuals: VisualAnalysis[] = [];
+  const docs: DocumentAnalysis[] = [];
+  for (const r of rows) {
+    const a = r.ai_analysis;
+    if (!a) continue;
+    // Document analyses have doc_type, visual analyses have color_palette + ambiance
+    if (a.doc_type !== undefined || a.brand_voice !== undefined || a.key_messages !== undefined) {
+      docs.push(a as DocumentAnalysis);
+    } else if (a.color_palette !== undefined || a.ambiance !== undefined) {
+      visuals.push(a as VisualAnalysis);
+    }
+  }
+
+  const blocks: string[] = [];
+  const v = analysesToPromptContext(visuals);
+  const d = documentsToPromptContext(docs);
+  if (v) blocks.push(v);
+  if (d) blocks.push(d);
+  return blocks.join('\n\n');
 }

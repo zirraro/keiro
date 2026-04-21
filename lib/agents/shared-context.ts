@@ -780,17 +780,30 @@ export async function loadContextWithAvatar(
     } catch { /* silent */ }
   }
 
-  const [context, avatar, orgContext] = await Promise.all([
+  const [context, avatar, orgContext, uploadsContext] = await Promise.all([
     loadSharedContext(supabase, agentName, orgId, resolvedUserId),
     getAgentAvatar(supabase, agentName, orgId),
     orgId ? getOrgContext(supabase, orgId) : Promise.resolve(null),
+    // Pull this agent's uploaded images + PDFs (analysed) so Jade sees
+    // the real decor, Hugo sees the brand guidelines, Théo sees the menu,
+    // etc. — all in one shared helper so every agent benefits automatically.
+    (async () => {
+      if (!resolvedUserId) return '';
+      try {
+        const { loadAgentUploadsContext } = await import('./visual-analyzer');
+        return await loadAgentUploadsContext(supabase, resolvedUserId, agentName);
+      } catch { return ''; }
+    })(),
   ]);
   const avatarBlock = formatAvatarForPrompt(avatar);
   const orgContextBlock = orgContext ? formatOrgContextForPrompt(orgContext) : undefined;
   const contextBlock = formatContextForPrompt(context, orgContextBlock);
+  const uploadsBlock = uploadsContext
+    ? `\n\n━━━ ASSETS CLIENT UPLOADÉS (utilise ces références pour rester grounded dans le vrai univers du client) ━━━\n${uploadsContext}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+    : '';
   return {
     context,
     avatar,
-    prompt: avatarBlock + '\n\n' + contextBlock,
+    prompt: avatarBlock + '\n\n' + contextBlock + uploadsBlock,
   };
 }

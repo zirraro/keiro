@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
-import { analyzeImageForAgent } from '@/lib/agents/visual-analyzer';
+import { analyzeImageForAgent, analyzePdfForAgent } from '@/lib/agents/visual-analyzer';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -113,21 +113,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: insertError.message }, { status: 500 });
   }
 
-  // Fire-and-analyze for images. Videos could be handled later via
-  // frame extraction + per-frame analysis; skipping for MVP.
-  if (file_type.startsWith('image/') || /\.(jpg|jpeg|png|webp|gif)$/i.test(file_url)) {
-    try {
-      const analysis = await analyzeImageForAgent(file_url, agent_id, dossier?.business_type || null);
-      if (analysis) {
-        await supabase
-          .from('agent_uploads')
-          .update({ ai_analysis: analysis, analyzed_at: new Date().toISOString() })
-          .eq('id', row.id);
-        return NextResponse.json({ ok: true, upload: { ...row, ai_analysis: analysis, analyzed_at: new Date().toISOString() } });
-      }
-    } catch (e: any) {
-      console.error('[agent-uploads] Analysis failed:', String(e?.message || e).substring(0, 200));
+  // Route to the right analyzer based on file type.
+  const isImage = file_type.startsWith('image/') || /\.(jpg|jpeg|png|webp|gif)$/i.test(file_url);
+  const isPdf = file_type === 'application/pdf' || /\.pdf$/i.test(file_url);
+
+  try {
+    let analysis: any = null;
+    if (isImage) {
+      analysis = await analyzeImageForAgent(file_url, agent_id, dossier?.business_type || null);
+    } else if (isPdf) {
+      analysis = await analyzePdfForAgent(file_url, agent_id, dossier?.business_type || null);
     }
+    if (analysis) {
+      await supabase
+        .from('agent_uploads')
+        .update({ ai_analysis: analysis, analyzed_at: new Date().toISOString() })
+        .eq('id', row.id);
+      return NextResponse.json({ ok: true, upload: { ...row, ai_analysis: analysis, analyzed_at: new Date().toISOString() } });
+    }
+  } catch (e: any) {
+    console.error('[agent-uploads] Analysis failed:', String(e?.message || e).substring(0, 200));
   }
 
   return NextResponse.json({ ok: true, upload: row });
