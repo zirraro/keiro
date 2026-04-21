@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { getValidToken, getReviews, replyToReview, starRatingToNumber } from '@/lib/google-business-oauth';
+import { generateReviewReply } from '@/lib/agents/theo-review-reply';
 
 export const runtime = 'nodejs';
+export const maxDuration = 120;
 
 /**
  * GET /api/agents/google-reviews
@@ -85,6 +87,109 @@ export async function GET(req: NextRequest) {
   try {
     const reviews = await getReviews(accessToken, profile.google_business_location_id, 20);
 
+    // Théo auto-reply flow: when the cron wakes us up with CRON_SECRET and
+    // the client has google_reviews_auto_reply=true, we iterate every
+    // unreplied review, classify it, generate a reply (or escalate), and
+    // post it via replyToReview. When invoked by a UI user this block is
+    // skipped — they'll see the raw reviews and reply manually.
+    const { data: autoReplyProfile } = await supabase
+      .from('profiles')
+      .select('google_reviews_auto_reply')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    const shouldAutoReply = !!autoReplyProfile?.google_reviews_auto_reply && req.headers.get('authorization') === `Bearer ${cronSecret}`;
+
+    const autoReport: { replied: number; escalated: number; skipped: number; details: Array<{ name: string; action: string; reason?: string }> } = {
+      replied: 0, escalated: 0, skipped: 0, details: [],
+    };
+
+    if (shouldAutoReply) {
+      const { data: dossier } = await supabase
+        .from('business_dossiers')
+        .select('company_name, business_type, brand_tone, main_products, target_audience, city, custom_fields')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      // Keep replies we already posted on the location — Théo can mirror
+      // the house tone and avoid writing in a voice the client doesn't use.
+      const pastReplies = reviews
+        .map(r => r.reviewReply?.comment)
+        .filter((x): x is string => !!x);
+
+      for (const r of reviews) {
+        if (r.reviewReply) continue; // already replied
+        const ctx = {
+          rating: starRatingToNumber(r.starRating),
+          text: r.comment || '',
+          author: r.reviewer.displayName,
+          created_at: r.createTime,
+          previous_replies: pastReplies,
+        };
+
+        const decision = await generateReviewReply(ctx, dossier || null);
+
+        if (decision.action === 'reply') {
+          const posted = await replyToReview(accessToken, r.name, decision.body).catch(() => false);
+          if (posted) {
+            autoReport.replied++;
+            autoReport.details.push({ name: r.name, action: 'replied' });
+            await supabase.from('agent_logs').insert({
+              agent: 'gmaps',
+              action: 'review_reply_sent',
+              user_id: user.id,
+              status: 'ok',
+              data: {
+                review_name: r.name,
+                rating: ctx.rating,
+                reply: decision.body.substring(0, 500),
+                rationale: decision.rationale.substring(0, 300),
+                auto: true,
+              },
+              created_at: new Date().toISOString(),
+            }).throwOnError?.();
+          } else {
+            autoReport.skipped++;
+            autoReport.details.push({ name: r.name, action: 'post_failed' });
+          }
+        } else {
+          // Escalate — notify the client so they handle it themselves.
+          autoReport.escalated++;
+          autoReport.details.push({ name: r.name, action: 'escalated', reason: decision.reason });
+          await supabase.from('client_notifications').insert({
+            user_id: user.id,
+            agent: 'gmaps',
+            type: 'review_escalation',
+            title: `Avis Google à gérer (${ctx.rating}⭐)`,
+            message: `${ctx.author} : "${ctx.text.substring(0, 140)}${ctx.text.length > 140 ? '…' : ''}" — ${decision.reason}`,
+            data: {
+              review_name: r.name,
+              rating: ctx.rating,
+              author: ctx.author,
+              text: ctx.text,
+              reason: decision.reason,
+              draft_for_human: decision.draft_for_human,
+            },
+          }).throwOnError?.();
+          await supabase.from('agent_logs').insert({
+            agent: 'gmaps',
+            action: 'review_escalated',
+            user_id: user.id,
+            status: 'ok',
+            data: {
+              review_name: r.name,
+              rating: ctx.rating,
+              reason: decision.reason,
+            },
+            created_at: new Date().toISOString(),
+          }).throwOnError?.();
+        }
+
+        // Respect Google API rate limits — keep it conservative.
+        await new Promise(res => setTimeout(res, 1500));
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       connected: true,
@@ -99,6 +204,7 @@ export async function GET(req: NextRequest) {
         replyText: r.reviewReply?.comment || null,
         replyDate: r.reviewReply?.updateTime || null,
       })),
+      ...(shouldAutoReply ? { auto_reply_report: autoReport } : {}),
     });
   } catch (e: any) {
     console.error('[GoogleReviews] Fetch error:', e.message);

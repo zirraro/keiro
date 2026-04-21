@@ -800,19 +800,23 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
 
       // Per-agent breakdown — only agents that did something show up
       const agentLines: string[] = [];
-      // Léna covers all social output: publishing + DMs + comments (admin
-      // taxonomy groups content + dm_instagram + instagram_comments +
-      // tiktok_comments under her). Merge everything into one line.
-      const lenaBits = doneCounts.posts_published + doneCounts.posts_drafted + doneCounts.dms_sent + doneCounts.dms_followed + doneCounts.follows_to_do + doneCounts.comments_replied + weeklyLikes + weeklyComments;
-      if (lenaBits > 0) {
+      // Jade = content publishing (posts + drafts + engagement received)
+      if (doneCounts.posts_published > 0 || doneCounts.posts_drafted > 0 || weeklyLikes + weeklyComments > 0) {
         const parts = [];
-        if (doneCounts.posts_published > 0) parts.push(`<strong>${doneCounts.posts_published}</strong> post${doneCounts.posts_published > 1 ? 's' : ''} publié${doneCounts.posts_published > 1 ? 's' : ''}`);
+        if (doneCounts.posts_published > 0) parts.push(`<strong>${doneCounts.posts_published}</strong> post${doneCounts.posts_published > 1 ? 's' : ''} publié${doneCounts.posts_published > 1 ? 's' : ''} sur Instagram`);
         if (doneCounts.posts_drafted > 0) parts.push(`<strong>${doneCounts.posts_drafted}</strong> en préparation`);
-        if (doneCounts.dms_sent > 0) parts.push(`<strong>${doneCounts.dms_sent}</strong> DM${doneCounts.dms_sent > 1 ? 's' : ''} envoyé${doneCounts.dms_sent > 1 ? 's' : ''}`);
-        if (doneCounts.comments_replied > 0) parts.push(`<strong>${doneCounts.comments_replied}</strong> commentaire${doneCounts.comments_replied > 1 ? 's' : ''} répondu${doneCounts.comments_replied > 1 ? 's' : ''}`);
-        if (doneCounts.follows_to_do > 0) parts.push(`<strong>${doneCounts.follows_to_do}</strong> compte${doneCounts.follows_to_do > 1 ? 's' : ''} à suivre manuellement`);
         if (weeklyLikes + weeklyComments > 0) parts.push(`<strong>${weeklyLikes}</strong> like${weeklyLikes > 1 ? 's' : ''} + <strong>${weeklyComments}</strong> com. reçus cette semaine`);
-        agentLines.push(`<div style="margin:6px 0;"><strong style="color:#db2777;">🎨 Léna</strong> <span style="color:#9ca3af;font-size:11px;">· contenu · DM · commentaires</span> — ${parts.join(', ')}</div>`);
+        agentLines.push(`<div style="margin:6px 0;"><strong style="color:#db2777;">🎨 Jade</strong> <span style="color:#9ca3af;font-size:11px;">· contenu & publication</span> — ${parts.join(', ')}</div>`);
+      }
+
+      // Léna = DMs + follows + commentaires (engagement humain sur les réseaux)
+      if (doneCounts.dms_sent > 0 || doneCounts.dms_followed > 0 || doneCounts.follows_to_do > 0 || doneCounts.comments_replied > 0) {
+        const parts = [];
+        if (doneCounts.dms_sent > 0) parts.push(`<strong>${doneCounts.dms_sent}</strong> DM${doneCounts.dms_sent > 1 ? 's' : ''} envoyé${doneCounts.dms_sent > 1 ? 's' : ''}`);
+        if (doneCounts.comments_replied > 0) parts.push(`<strong>${doneCounts.comments_replied}</strong> commentaire${doneCounts.comments_replied > 1 ? 's' : ''} Instagram répondu${doneCounts.comments_replied > 1 ? 's' : ''}`);
+        if (doneCounts.dms_followed > 0) parts.push(`<strong>${doneCounts.dms_followed}</strong> follow${doneCounts.dms_followed > 1 ? 's' : ''} confirmé${doneCounts.dms_followed > 1 ? 's' : ''}`);
+        if (doneCounts.follows_to_do > 0) parts.push(`<strong>${doneCounts.follows_to_do}</strong> compte${doneCounts.follows_to_do > 1 ? 's' : ''} à suivre manuellement`);
+        agentLines.push(`<div style="margin:6px 0;"><strong style="color:#a855f7;">💬 Léna</strong> <span style="color:#9ca3af;font-size:11px;">· DM · follows · commentaires</span> — ${parts.join(', ')}</div>`);
       }
       if (doneCounts.emails_sent > 0 || doneCounts.emails_opened > 0) {
         const parts = [];
@@ -821,16 +825,20 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
         if (doneCounts.emails_clicked > 0) parts.push(`<strong>${doneCounts.emails_clicked}</strong> clic${doneCounts.emails_clicked > 1 ? 's' : ''}`);
         agentLines.push(`<div style="margin:6px 0;"><strong style="color:#2563eb;">✉️ Hugo</strong> <span style="color:#9ca3af;font-size:11px;">· email</span> — ${parts.join(', ')}</div>`);
       }
-      // Léo covers commercial + gmaps (prospect scraping + Google Maps imports
-      // + Google review replies all roll up under him per the admin taxonomy).
-      const leoBits = doneCounts.prospects_added + doneCounts.prospects_verified + doneCounts.gmaps_imports + doneCounts.reviews_replied;
-      if (leoBits > 0) {
+      // Léo = commercial + prospect enrichment + Google Maps scanning (scraping).
+      // Léo's fiches exhaustives sont la base d'infos de Hugo, Léna, Théo — d'où
+      // l'importance de remonter ici ses chiffres d'enrichissement.
+      if (doneCounts.prospects_added > 0 || doneCounts.prospects_verified > 0 || doneCounts.gmaps_imports > 0) {
         const parts = [];
         if (doneCounts.prospects_added > 0) parts.push(`<strong>${doneCounts.prospects_added}</strong> prospect${doneCounts.prospects_added > 1 ? 's' : ''} ajouté${doneCounts.prospects_added > 1 ? 's' : ''} au CRM`);
-        if (doneCounts.prospects_verified > 0) parts.push(`<strong>${doneCounts.prospects_verified}</strong> validé${doneCounts.prospects_verified > 1 ? 's' : ''} (joignables)`);
-        if (doneCounts.gmaps_imports > 0) parts.push(`<strong>${doneCounts.gmaps_imports}</strong> commerce${doneCounts.gmaps_imports > 1 ? 's' : ''} Google Maps importé${doneCounts.gmaps_imports > 1 ? 's' : ''}`);
-        if (doneCounts.reviews_replied > 0) parts.push(`<strong>${doneCounts.reviews_replied}</strong> avis Google répondu${doneCounts.reviews_replied > 1 ? 's' : ''}`);
-        agentLines.push(`<div style="margin:6px 0;"><strong style="color:#7c3aed;">🎯 Léo</strong> <span style="color:#9ca3af;font-size:11px;">· commercial · Google Maps · avis</span> — ${parts.join(', ')}</div>`);
+        if (doneCounts.prospects_verified > 0) parts.push(`<strong>${doneCounts.prospects_verified}</strong> fiche${doneCounts.prospects_verified > 1 ? 's' : ''} enrichie${doneCounts.prospects_verified > 1 ? 's' : ''}`);
+        if (doneCounts.gmaps_imports > 0) parts.push(`<strong>${doneCounts.gmaps_imports}</strong> commerce${doneCounts.gmaps_imports > 1 ? 's' : ''} Google Maps scanné${doneCounts.gmaps_imports > 1 ? 's' : ''}`);
+        agentLines.push(`<div style="margin:6px 0;"><strong style="color:#7c3aed;">🎯 Léo</strong> <span style="color:#9ca3af;font-size:11px;">· commercial · CRM · scan Google Maps</span> — ${parts.join(', ')}</div>`);
+      }
+
+      // Théo = commentaires/avis Google (sous-partie gmaps côté reputation).
+      if (doneCounts.reviews_replied > 0) {
+        agentLines.push(`<div style="margin:6px 0;"><strong style="color:#059669;">⭐ Théo</strong> <span style="color:#9ca3af;font-size:11px;">· avis Google</span> — <strong>${doneCounts.reviews_replied}</strong> avis Google répondu${doneCounts.reviews_replied > 1 ? 's' : ''}</div>`);
       }
       const perAgentHtml = agentLines.length > 0 ? `
 <h4 style="margin:16px 0 8px;color:#374151;font-size:13px;">👥 Chaque agent en action</h4>
