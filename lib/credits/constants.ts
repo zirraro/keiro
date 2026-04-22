@@ -19,7 +19,17 @@ export const CREDIT_COSTS = {
   text_suggest: 1,
   narration_suggest: 1,
   marketing_chat: 1,
+  agent_chat: 1,
 } as const;
+
+/**
+ * Free agent-chat quota: every user gets N free messages per agent per month
+ * before 1 credit is deducted per additional message. With 15+ agents that's
+ * 150+ free chat msgs/month — enough for 95% of users to never hit a paywall
+ * while still capping power-user abuse (~$0.007 AI cost per msg vs €0.12
+ * credit value = ~94% margin once we bill).
+ */
+export const AGENT_CHAT_FREE_PER_MONTH = 10;
 
 // Crédits par plan — Nouvelle grille tarifaire mars 2026
 export const PLAN_CREDITS: Record<string, number> = {
@@ -158,6 +168,7 @@ export const FEATURE_LABELS: Record<string, string> = {
   text_suggest: 'Suggestion texte IA',
   narration_suggest: 'Suggestion narration IA',
   marketing_chat: 'Assistant marketing',
+  agent_chat: 'Conversation avec un agent',
   promo_code: 'Code promo',
   monthly_reset: 'Renouvellement mensuel',
   credit_pack: 'Pack crédits',

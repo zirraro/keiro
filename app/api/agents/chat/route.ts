@@ -4,6 +4,8 @@ import { getAuthUser } from '@/lib/auth-server';
 import { callGeminiChat } from '@/lib/agents/gemini';
 import { loadContextWithAvatar } from '@/lib/agents/shared-context';
 import { saveLearning } from '@/lib/agents/learning';
+import { getCreditsBalance, deductCredits, isAdmin } from '@/lib/credits/server';
+import { AGENT_CHAT_FREE_PER_MONTH } from '@/lib/credits/constants';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -454,6 +456,44 @@ export async function POST(request: NextRequest) {
   const supabase = getSupabaseAdmin();
   const now = new Date();
 
+  // ── Credit gating: first N msgs / agent / month are free, then 1 credit/msg ──
+  // Admins bypass the quota entirely.
+  let quotaStatus: { free_remaining: number; charged: boolean; monthly_count: number } = {
+    free_remaining: AGENT_CHAT_FREE_PER_MONTH,
+    charged: false,
+    monthly_count: 0,
+  };
+  const admin = await isAdmin(user.id).catch(() => false);
+  if (!admin) {
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    const { count: usedThisMonth } = await supabase
+      .from('agent_logs')
+      .select('id', { count: 'exact', head: true })
+      .eq('agent', agent)
+      .eq('action', 'chat')
+      .contains('data', { user_id: user.id })
+      .gte('created_at', monthStart);
+
+    const used = usedThisMonth ?? 0;
+    quotaStatus.monthly_count = used;
+    quotaStatus.free_remaining = Math.max(0, AGENT_CHAT_FREE_PER_MONTH - used);
+
+    if (used >= AGENT_CHAT_FREE_PER_MONTH) {
+      const balance = await getCreditsBalance(user.id);
+      if (balance < 1) {
+        return NextResponse.json({
+          ok: false,
+          error: 'insufficient_credits',
+          message: `Tu as utilisé tes ${AGENT_CHAT_FREE_PER_MONTH} messages gratuits avec cet agent ce mois-ci et ton solde crédits est à 0.`,
+          free_per_month: AGENT_CHAT_FREE_PER_MONTH,
+          balance,
+        }, { status: 402 });
+      }
+      quotaStatus.charged = true;
+      // Deduct AFTER a successful Gemini call — rolled back if the call crashes
+    }
+  }
+
   try {
     // Load agent's recent activity for context
     const { data: recentLogs } = await supabase
@@ -511,13 +551,24 @@ export async function POST(request: NextRequest) {
       thinking: true,
     });
 
-    // Log conversation
+    // Log conversation (include user_id so monthly chat quota can filter per-user)
     await supabase.from('agent_logs').insert({
       agent,
       action: 'chat',
-      data: { message, reply, history_length: history.length },
+      data: { message, reply, history_length: history.length, user_id: user.id },
       created_at: now.toISOString(),
     });
+
+    // Deduct 1 credit if quota was exceeded (non-blocking on DB failure)
+    if (quotaStatus.charged) {
+      const { newBalance } = await deductCredits(
+        user.id,
+        'agent_chat',
+        `Chat avec agent ${agentConfig.name}`,
+      );
+      quotaStatus.free_remaining = 0;
+      (quotaStatus as any).balance_after = newBalance;
+    }
 
     // Extract and execute orders from agent reply
     let ordersExecuted = 0;
@@ -741,6 +792,12 @@ Retourne UNIQUEMENT du JSON valide.`,
       reply,
       agent: agentConfig.name,
       orders: ordersExecuted > 0 ? { executed: ordersExecuted } : undefined,
+      quota: {
+        free_per_month: AGENT_CHAT_FREE_PER_MONTH,
+        monthly_count: quotaStatus.monthly_count + 1,
+        free_remaining: Math.max(0, quotaStatus.free_remaining - (quotaStatus.charged ? 0 : 1)),
+        charged: quotaStatus.charged,
+      },
     });
   } catch (error: any) {
     console.error(`[AgentChat] Error for ${agent}:`, error);
