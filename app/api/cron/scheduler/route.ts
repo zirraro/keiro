@@ -5,6 +5,7 @@ import { autoImprove } from '@/lib/agents/auto-improve';
 import { processEventPipeline } from '@/lib/agents/event-bus';
 import { analyzeAndFix } from '@/lib/agents/auto-fix';
 import { sendCeoGroupReport } from '@/lib/agents/ceo-group';
+import { sendAdminDailyDigest } from '@/lib/agents/admin-digest';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -724,10 +725,6 @@ export async function GET(request: NextRequest) {
           console.log(`[Scheduler/ceo] Event pipeline: ${eventResult.actions} actions dispatched`);
         } catch (e: any) { console.error('[Scheduler/ceo] Event pipeline error:', e.message?.substring(0, 200)); }
         await delay(3000);
-        // Only improvement report in the morning (includes stats + code reco)
-        // Status report removed to avoid double email
-        await callEndpoint('CEO Improvement Report', '/api/agents/ceo-reports?type=improvement', 'POST');
-
         // Phase 1.5: CEO auto-fix — analyze recent failures and fix configs
         try {
           const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
@@ -737,7 +734,6 @@ export async function GET(request: NextRequest) {
             .eq('action', 'execution_failure')
             .gte('created_at', twentyFourHoursAgo);
           if (recentFailures && recentFailures.length > 0) {
-            // Group by agent and count
             const issueMap: Record<string, { error: string; count: number }> = {};
             for (const f of recentFailures) {
               const key = f.agent;
@@ -750,11 +746,16 @@ export async function GET(request: NextRequest) {
           }
         } catch (e: any) { console.error('[Scheduler/ceo] Auto-fix error:', e.message?.substring(0, 200)); }
 
-        // Phase 1.6: CEO Group report — aggregate all client reports → admin code recommendations
+        // Phase 1.6: Unified admin digest — ONE email that merges what
+        // used to be the 'CEO Improvement Report' + 'CEO Group — Reco
+        // code' emails. Runs a Claude pass over the real failure logs
+        // to group by root cause and produce code-level recommendations
+        // (with affected file paths) so the user can jump straight to
+        // the fix.
         try {
-          await sendCeoGroupReport(aiSupabase);
-          console.log('[Scheduler/ceo] CEO Group report sent to admin');
-        } catch (e: any) { console.error('[Scheduler/ceo] CEO Group error:', e.message?.substring(0, 200)); }
+          await sendAdminDailyDigest(aiSupabase, 24);
+          console.log('[Scheduler/ceo] Admin daily digest sent');
+        } catch (e: any) { console.error('[Scheduler/ceo] Admin digest error:', e.message?.substring(0, 200)); }
       });
       // Phase 2: Orders only (no morning client brief — user asked for a
       // single Noah email per day, fired in the evening slot so it reports
@@ -849,13 +850,14 @@ export async function GET(request: NextRequest) {
 
     case 'ceo_evening':
       // 15:00 UTC — CEO evening: SPLIT into 2 background tasks to avoid 300s timeout
-      // Phase 1: Events only (fast, < 60s) — no status report to avoid double email
+      // Phase 1: Events only. We DO NOT send another admin digest here —
+      // the morning one (24h window) already covers the day. Duplicating
+      // in the evening was the "2 reports" problem the user flagged.
       fireBackground(async () => {
         try {
           const eventResult = await processEventPipeline(aiSupabase);
           console.log(`[Scheduler/ceo_evening] Event pipeline: ${eventResult.actions} actions dispatched`);
         } catch (e: any) { console.error('[Scheduler/ceo_evening] Event pipeline error:', e.message?.substring(0, 200)); }
-        try { await sendCeoGroupReport(aiSupabase); } catch {}
       });
       // Phase 2: Brief + orders (separate, can take up to 300s)
       fireBackground(async () => {
