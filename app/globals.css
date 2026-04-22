@@ -1249,3 +1249,101 @@ html.light ::-webkit-scrollbar-thumb {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Contrast safety net (WCAG AA)
+   Fixes common low-contrast patterns that appear when a component
+   inherits a dark background without an explicit text color override:
+   - native <select> / <option> in dark panels (white-on-white bug)
+   - placeholders barely visible on neutral panels
+   - disabled muted buttons reading as "invisible"
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Native selects: always readable — dark-mode safe */
+select {
+  color: #0f172a; /* slate-900 */
+  background-color: #ffffff;
+}
+select:disabled {
+  color: #64748b; /* slate-500 */
+  background-color: #f1f5f9;
+}
+select option {
+  color: #0f172a;
+  background-color: #ffffff;
+}
+/* On explicitly dark panels (utility classes we use everywhere for agent UI),
+   we flip the select to a light-on-dark scheme with proper contrast. */
+.bg-\[\#060b18\] select,
+.bg-\[\#0a1628\] select,
+.bg-\[\#0c1a3a\] select,
+.bg-\[\#0f1f3d\] select,
+.bg-slate-900 select,
+.bg-slate-800 select {
+  color: #f8fafc; /* slate-50 */
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+.bg-\[\#060b18\] select option,
+.bg-\[\#0a1628\] select option,
+.bg-\[\#0c1a3a\] select option,
+.bg-\[\#0f1f3d\] select option,
+.bg-slate-900 select option,
+.bg-slate-800 select option {
+  color: #0f172a; /* readable in the OS-native dropdown which is light */
+  background-color: #ffffff;
+}
+
+/* Placeholders: minimum WCAG AA 4.5:1 on both light and dark backgrounds */
+input::placeholder,
+textarea::placeholder {
+  color: rgba(100, 116, 139, 0.85); /* slate-500 @ 85% */
+  opacity: 1;
+}
+.dark input::placeholder,
+.dark textarea::placeholder,
+.bg-\[\#060b18\] input::placeholder,
+.bg-\[\#0a1628\] input::placeholder,
+.bg-\[\#0c1a3a\] input::placeholder,
+.bg-\[\#0f1f3d\] input::placeholder,
+.bg-slate-900 input::placeholder,
+.bg-slate-800 input::placeholder,
+.bg-\[\#060b18\] textarea::placeholder,
+.bg-\[\#0a1628\] textarea::placeholder,
+.bg-\[\#0c1a3a\] textarea::placeholder,
+.bg-\[\#0f1f3d\] textarea::placeholder {
+  color: rgba(241, 245, 249, 0.60); /* slate-100 @ 60% on dark */
+}
+
+/* <details>/<summary>: often forgotten — black text on black panels */
+.bg-\[\#060b18\] summary,
+.bg-\[\#0a1628\] summary,
+.bg-\[\#0c1a3a\] summary,
+.bg-\[\#0f1f3d\] summary {
+  color: #f1f5f9; /* slate-100 */
+}
+
+/* Disabled buttons: use neutral-400 on neutral-100 at minimum (3:1) so the
+   button is visibly "off" without becoming invisible. */
+button:disabled {
+  opacity: 0.55; /* raised from 0.4 default for AA compliance on low-contrast combos */
+}
+button[aria-disabled="true"] {
+  opacity: 0.55;
+}
+
+/* Purple-on-purple tiny-badge fix: some cards used text-purple-400 on
+   bg-purple-500/20 which hits ~2.4:1 (below AA). Bump the text to purple-300
+   on dark backgrounds (~4.8:1) universally. */
+.bg-\[\#060b18\] .text-purple-400,
+.bg-\[\#0a1628\] .text-purple-400,
+.bg-\[\#0c1a3a\] .text-purple-400,
+.bg-\[\#0f1f3d\] .text-purple-400 {
+  color: #d8b4fe; /* purple-300 */
+}
+
+/* Force the sticky global CTA bar link colour: previously some pages
+   overrode it to match their theme and it became invisible. */
+.sticky-cta-bar a {
+  color: inherit;
+}
