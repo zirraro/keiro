@@ -153,7 +153,8 @@ export function detectObjection(message: string): boolean {
 export function getReengagementMessage(
   currentPage: string,
   timeOnPage: number,
-  hasInteracted: boolean
+  hasInteracted: boolean,
+  locale: 'fr' | 'en' = 'fr'
 ): string | null {
   // Never re-engage if the visitor has already interacted
   if (hasInteracted) {
@@ -161,28 +162,37 @@ export function getReengagementMessage(
   }
 
   const page = currentPage.toLowerCase();
+  const fr = locale === 'fr';
 
   // Homepage after 90 seconds
   if (
     (page === '/' || page === '' || page.includes('accueil')) &&
     timeOnPage > 90
   ) {
-    return 'Salut ! Vous cherchez \u00E0 cr\u00E9er du contenu pro pour vos r\u00E9seaux sociaux ? Je peux vous montrer en 30 secondes ce que KeiroAI fait \uD83D\uDE80';
+    return fr
+      ? 'Salut ! Tu cherches à créer du contenu pro pour tes réseaux sociaux ? Je peux te montrer en 30 secondes ce que KeiroAI fait \uD83D\uDE80'
+      : 'Hey! Looking to create pro content for your social feeds? I can show you what KeiroAI does in 30 seconds \uD83D\uDE80';
   }
 
   // Pricing page after 60 seconds
   if (page.includes('/pricing') && timeOnPage > 60) {
-    return 'Une question sur les plans ? Le Fondateurs est le plus choisi \u2014 votre logo partout, 3 formats, TikTok. Il reste des places \u00E0 149\u20AC avant le passage \u00E0 199\u20AC.';
+    return fr
+      ? 'Une question sur les plans ? Le Business est le plus choisi \u2014 logo partout, 3 formats, TikTok.'
+      : 'Question about plans? Business is the most popular \u2014 branded everywhere, 3 formats, TikTok.';
   }
 
   // Generate page — DON'T interrupt, user is working (only after 3 minutes)
   if (page.includes('/generate') && timeOnPage > 180) {
-    return 'Besoin d\u2019aide pour votre cr\u00E9ation ? Je suis l\u00E0 si vous avez des questions \uD83D\uDE0A';
+    return fr
+      ? 'Besoin d\u2019aide pour ta création ? Je suis là si tu as des questions \uD83D\uDE0A'
+      : 'Need a hand with your creation? I\u2019m here if you have questions \uD83D\uDE0A';
   }
 
   // Any page after 3 minutes
   if (timeOnPage > 180) {
-    return 'Au fait, on g\u00E9n\u00E8re aussi des VID\u00C9OS pour TikTok et Instagram Reels. Aucun outil IA gratuit ne fait \u00E7a \uD83C\uDFAC';
+    return fr
+      ? 'Au fait, on génère aussi des VIDÉOS pour TikTok et Instagram Reels. Aucun outil gratuit ne fait ça \uD83C\uDFAC'
+      : 'By the way, we also generate VIDEOS for TikTok and Instagram Reels. No free tool does that \uD83C\uDFAC';
   }
 
   return null;

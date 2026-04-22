@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { MessageCircle, X, Send } from 'lucide-react';
 import { getReengagementMessage } from '@/lib/agents/chatbot-detection';
+import { useLanguage } from '@/lib/i18n/context';
 
 type ChatMessage = {
   role: 'user' | 'assistant';
@@ -22,6 +23,7 @@ function generateUUID(): string {
 
 export default function ChatbotWidget() {
   const pathname = usePathname();
+  const { locale } = useLanguage();
 
   // ─── State ─────────────────────────────────────────────
   const [isOpen, setIsOpen] = useState(false);
@@ -109,7 +111,8 @@ export default function ChatbotWidget() {
       const msg = getReengagementMessage(
         pathname || '/',
         timeOnCurrentPage,
-        hasInteracted
+        hasInteracted,
+        locale
       );
 
       if (msg) {
@@ -125,7 +128,7 @@ export default function ChatbotWidget() {
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [pathname, hasInteracted, utmSource, shouldHide, pageEnteredAt]);
+  }, [pathname, hasInteracted, utmSource, shouldHide, pageEnteredAt, locale]);
 
   // ─── Pulse animation for pending re-engagement ────────
   useEffect(() => {
@@ -147,13 +150,15 @@ export default function ChatbotWidget() {
       setMessages([
         {
           role: 'assistant',
-          content: "Salut ! \u{1F44B} Besoin de contenu pro pour vos r\u00E9seaux sociaux ? Je peux vous montrer ce que KeiroAI fait en 30 secondes.",
+          content: locale === 'fr'
+            ? "Salut ! \u{1F44B} Besoin de contenu pro pour tes réseaux sociaux ? Je peux te montrer ce que KeiroAI fait en 30 secondes."
+            : "Hey there! \u{1F44B} Need pro content for your social feeds? Let me show you what KeiroAI does in 30 seconds.",
           timestamp: new Date().toISOString(),
         },
       ]);
       setHasShownInitial(true);
     }
-  }, [isOpen, hasShownInitial, messages.length]);
+  }, [isOpen, hasShownInitial, messages.length, locale]);
 
   // ─── Focus input on open ──────────────────────────────
   useEffect(() => {
@@ -185,6 +190,7 @@ export default function ChatbotWidget() {
             visitorId,
             message: text,
             sessionId,
+            locale,
             visitorData: {
               currentPage: pathname,
               pagesVisited: Array.from(pagesVisitedRef.current),
@@ -212,7 +218,9 @@ export default function ChatbotWidget() {
             ...prev,
             {
               role: 'assistant',
-              content: "D\u00E9sol\u00E9, j'ai eu un petit souci technique. Essayez de reformuler votre question ou revenez dans quelques instants !",
+              content: locale === 'fr'
+                ? "Désolé, j'ai eu un petit souci technique. Essaie de reformuler ta question ou reviens dans quelques instants !"
+                : "Sorry, I hit a small technical hiccup. Try rephrasing your question or check back in a moment!",
               timestamp: new Date().toISOString(),
             },
           ]);
@@ -223,7 +231,9 @@ export default function ChatbotWidget() {
           ...prev,
           {
             role: 'assistant',
-            content: "Oups, probl\u00E8me de connexion. V\u00E9rifiez votre connexion internet et r\u00E9essayez.",
+            content: locale === 'fr'
+              ? "Oups, problème de connexion. Vérifie ta connexion internet et réessaie."
+              : "Oops, connection issue. Check your internet and try again.",
             timestamp: new Date().toISOString(),
           },
         ]);
@@ -231,7 +241,7 @@ export default function ChatbotWidget() {
         setIsLoading(false);
       }
     },
-    [isLoading, visitorId, sessionId, pathname, utmSource]
+    [isLoading, visitorId, sessionId, pathname, utmSource, locale]
   );
 
   // ─── Handle key press ─────────────────────────────────
@@ -261,7 +271,7 @@ export default function ChatbotWidget() {
             }`}
             whileHover={{ scale: 1.08 }}
             whileTap={{ scale: 0.95 }}
-            aria-label="Ouvrir le chat"
+            aria-label={locale === 'fr' ? 'Ouvrir le chat' : 'Open chat'}
           >
             <MessageCircle className="w-6 h-6" />
           </motion.button>
@@ -291,13 +301,13 @@ export default function ChatbotWidget() {
                 </div>
                 <div>
                   <h3 className="text-white font-semibold text-sm leading-tight">{avatarInfo?.name || 'Keiro'}</h3>
-                  <p className="text-white/70 text-xs">Votre assistant</p>
+                  <p className="text-white/70 text-xs">{locale === 'fr' ? 'Ton assistant' : 'Your assistant'}</p>
                 </div>
               </div>
               <button
                 onClick={() => setIsOpen(false)}
                 className="w-8 h-8 rounded-full hover:bg-white/20 flex items-center justify-center transition-colors"
-                aria-label="Fermer le chat"
+                aria-label={locale === 'fr' ? 'Fermer le chat' : 'Close chat'}
               >
                 <X className="w-5 h-5 text-white" />
               </button>
@@ -357,7 +367,7 @@ export default function ChatbotWidget() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Votre message..."
+                  placeholder={locale === 'fr' ? 'Ton message...' : 'Your message...'}
                   className="flex-1 px-3.5 py-2.5 border border-white/20 rounded-xl text-sm text-white placeholder-white/40 bg-white/5 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
                   disabled={isLoading}
                 />
@@ -365,7 +375,7 @@ export default function ChatbotWidget() {
                   onClick={() => sendMessage(input)}
                   disabled={isLoading || !input.trim()}
                   className="w-10 h-10 rounded-xl bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white flex items-center justify-center hover:from-purple-700 hover:to-[#1e3a5f] disabled:opacity-40 disabled:cursor-not-allowed transition-all flex-shrink-0"
-                  aria-label="Envoyer"
+                  aria-label={locale === 'fr' ? 'Envoyer' : 'Send'}
                 >
                   <Send className="w-4 h-4" />
                 </button>

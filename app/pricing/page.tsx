@@ -859,174 +859,96 @@ function PricingPageInner() {
             </p>
           </div>
 
-          {/* Tableau comparatif détaillé */}
+          {/* Tableau comparatif détaillé — data-driven for bilingual support */}
           <div className="bg-white dark:bg-white/5 rounded-2xl border border-neutral-200 dark:border-white/10 p-4 md:p-8">
             <div className="overflow-x-auto">
               <table className="w-full text-sm min-w-[700px]">
                 <thead>
                   <tr className="border-b-2 border-neutral-200">
-                    <th className="text-left py-3 px-3 font-semibold text-neutral-700">Fonctionnalité</th>
-                    <th className="text-center py-3 px-3 text-neutral-500 font-medium">ChatGPT/Claude Gratuit</th>
-                    <th className="text-center py-3 px-3 text-neutral-500 font-medium">ChatGPT/Claude Pro (20€)</th>
-                    <th className="text-center py-3 px-3 font-bold text-purple-700 bg-purple-50 rounded-t-lg">KeiroAI Créateur</th>
+                    <th className="text-left py-3 px-3 font-semibold text-neutral-700">{locale === 'fr' ? 'Fonctionnalité' : 'Feature'}</th>
+                    <th className="text-center py-3 px-3 text-neutral-500 font-medium">{locale === 'fr' ? 'ChatGPT/Claude Gratuit' : 'ChatGPT/Claude Free'}</th>
+                    <th className="text-center py-3 px-3 text-neutral-500 font-medium">{locale === 'fr' ? 'ChatGPT/Claude Pro (20\u20AC)' : 'ChatGPT/Claude Pro (\u20AC20)'}</th>
+                    <th className="text-center py-3 px-3 font-bold text-purple-700 bg-purple-50 rounded-t-lg">{locale === 'fr' ? 'KeiroAI Créateur' : 'KeiroAI Creator'}</th>
                     <th className="text-center py-3 px-3 font-bold text-amber-700 bg-amber-50 rounded-t-lg">KeiroAI Business</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {/* GÉNÉRATION DE VIDÉOS - highlighted */}
-                  <tr className="border-b bg-cyan-50 font-bold">
-                    <td className="py-4 px-3 text-base">{"GÉNÉRATION DE VIDÉOS"}</td>
-                    <td className="text-center py-4 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span> Impossible</td>
-                    <td className="text-center py-4 px-3 bg-purple-50/50"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Vidéos 5s-90s</td>
-                    <td className="text-center py-4 px-3 bg-amber-50/50"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Vidéos 5s-90s</td>
-                  </tr>
-                  {/* TikTok */}
-                  <tr className="border-b">
-                    <td className="py-3 px-3 font-medium">{"TikTok (format + publication)"}</td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
-                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Format optimisé</td>
-                  </tr>
-                  {/* Vidéo + audio narration */}
-                  <tr className="border-b">
-                    <td className="py-3 px-3 font-medium">{"Vidéo + audio narration"}</td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span> (audio séparé)</td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Intégré</td>
-                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Intégré</td>
-                  </tr>
-                  {/* Images IA */}
-                  <tr className="border-b">
-                    <td className="py-3 px-3 font-medium">{"Images IA"}</td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Meilleure qualité</td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Optimisé commerce</td>
-                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Optimisé commerce</td>
-                  </tr>
-                  {/* Qualité de génération - KEY differentiator */}
-                  <tr className="border-b bg-emerald-50/40 font-semibold">
-                    <td className="py-4 px-3 text-base">{"Qualité de génération"}</td>
-                    <td className="text-center py-4 px-3"><span className="text-neutral-600">Bonne</span><br/><span className="text-[10px] text-neutral-400">DALL-E 3 / GPT-4o</span></td>
-                    <td className="text-center py-4 px-3 bg-purple-50/50"><strong className="text-purple-700">Premium</strong><br/><span className="text-[10px] text-purple-500">Seedream 4.5 + Seedance</span></td>
-                    <td className="text-center py-4 px-3 bg-amber-50/50"><strong className="text-amber-700">Elite Studio</strong><br/><span className="text-[10px] text-amber-500">Niveau graphiste pro</span></td>
-                  </tr>
-                  {/* Rendus disponibles */}
-                  <tr className="border-b">
-                    <td className="py-3 px-3 font-medium">{"Rendus disponibles"}</td>
-                    <td className="text-center py-3 px-3"><span className="text-neutral-500">1 seul</span></td>
-                    <td className="text-center py-3 px-3"><strong className="text-green-600">6 rendus</strong><br/><span className="text-[10px] text-neutral-400">Photo, ciné, aquarelle...</span></td>
-                    <td className="text-center py-3 px-3 bg-amber-50/30"><strong className="text-green-600">6 rendus</strong><br/><span className="text-[10px] text-neutral-400">Photo, ciné, aquarelle...</span></td>
-                  </tr>
-                  {/* Temps par post - green bold for KeiroAI */}
-                  <tr className="border-b">
-                    <td className="py-3 px-3 font-medium">{"Temps par post"}</td>
-                    <td className="text-center py-3 px-3">20-30 min</td>
-                    <td className="text-center py-3 px-3"><strong className="text-green-600">3 min</strong></td>
-                    <td className="text-center py-3 px-3 bg-amber-50/30"><strong className="text-green-600">3 min</strong></td>
-                  </tr>
-                  {/* Compétence requise - green bold for KeiroAI */}
-                  <tr className="border-b">
-                    <td className="py-3 px-3 font-medium">{"Compétence requise"}</td>
-                    <td className="text-center py-3 px-3">Savoir écrire des prompts</td>
-                    <td className="text-center py-3 px-3"><strong className="text-green-600">Aucune</strong></td>
-                    <td className="text-center py-3 px-3 bg-amber-50/30"><strong className="text-green-600">Aucune</strong></td>
-                  </tr>
-                  {/* Lié à l'actu du jour */}
-                  <tr className="border-b">
-                    <td className="py-3 px-3 font-medium">{"Lié à l'actu du jour"}</td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span> Vous cherchez</td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Automatique</td>
-                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Automatique</td>
-                  </tr>
-                  {/* Branding */}
-                  <tr className="border-b">
-                    <td className="py-3 px-3 font-medium">{"Branding (logo + couleurs)"}</td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span> Re-décrire</td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
-                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Mémorisé, auto</td>
-                  </tr>
-                  {/* Multi-format */}
-                  <tr className="border-b">
-                    <td className="py-3 px-3 font-medium">{"Multi-format (post+Story+Reel)"}</td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span> 1 par 1</td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
-                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> 1 clic = 3 formats</td>
-                  </tr>
-                  {/* Légendes Instagram */}
-                  <tr className="border-b">
-                    <td className="py-3 px-3 font-medium">{"Légendes Instagram"}</td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-500 text-xs font-bold">!</span> Si demandé</td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Auto</td>
-                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Auto</td>
-                  </tr>
-                  {/* Hashtags */}
-                  <tr className="border-b">
-                    <td className="py-3 px-3 font-medium">{"Hashtags"}</td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-500 text-xs font-bold">!</span> Si demandé</td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Auto</td>
-                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Auto</td>
-                  </tr>
-                  {/* Text-to-speech */}
-                  <tr className="border-b">
-                    <td className="py-3 px-3 font-medium">{"Text-to-speech"}</td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> + MP3</td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Intégré vidéo</td>
-                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Intégré vidéo</td>
-                  </tr>
-                  {/* Calendrier publication */}
-                  <tr className="border-b">
-                    <td className="py-3 px-3 font-medium">{"Calendrier publication"}</td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span></td>
-                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span></td>
-                  </tr>
-                  {/* Stats Instagram */}
-                  <tr className="border-b">
-                    <td className="py-3 px-3 font-medium">{"Stats Instagram"}</td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span></td>
-                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span></td>
-                  </tr>
-                  {/* Stats multi-plateforme */}
-                  <tr className="border-b">
-                    <td className="py-3 px-3 font-medium">{"Stats multi-plateforme"}</td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
-                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span></td>
-                  </tr>
-                  {/* Recommandations IA */}
-                  <tr className="border-b">
-                    <td className="py-3 px-3 font-medium">{"Recommandations IA"}</td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span></td>
-                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span></td>
-                  </tr>
-                  {/* Publication multi-plateforme */}
-                  <tr className="border-b">
-                    <td className="py-3 px-3 font-medium">{"Publication multi-plateforme"}</td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> IG + LinkedIn</td>
-                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> IG + TikTok + LinkedIn</td>
-                  </tr>
-                  {/* Galerie organisée */}
-                  <tr className="border-b">
-                    <td className="py-3 px-3 font-medium">{"Galerie organisée"}</td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span> Historique chat</td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span></td>
-                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span></td>
-                  </tr>
-                  {/* Retouche visuelle */}
-                  <tr className="border-b">
-                    <td className="py-3 px-3 font-medium">{"Retouche visuelle"}</td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span> Regénérer</td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Lumière, ambiance</td>
-                    <td className="text-center py-3 px-3 bg-amber-50/30"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span> Lumière, ambiance</td>
-                  </tr>
-                  {/* Support */}
-                  <tr>
-                    <td className="py-3 px-3 font-medium">{"Support"}</td>
-                    <td className="text-center py-3 px-3"><span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span></td>
-                    <td className="text-center py-3 px-3">Email 48h</td>
-                    <td className="text-center py-3 px-3 bg-amber-50/30"><strong>Prioritaire 12h</strong></td>
-                  </tr>
+                  {(() => {
+                    const ko = <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-500 text-xs font-bold">✕</span>;
+                    const ok = <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 text-xs font-bold">✓</span>;
+                    const warn = <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-500 text-xs font-bold">!</span>;
+                    type Cell = { icon?: React.ReactNode; text?: string; strong?: string; note?: string };
+                    type Row = { feature: string; free: Cell; pro: Cell; createur: Cell; business: Cell; highlight?: 'cyan' | 'emerald'; bold?: boolean };
+                    const fr: Row[] = [
+                      { feature: 'GÉNÉRATION DE VIDÉOS', highlight: 'cyan', bold: true, free: { icon: ko, text: 'Impossible' }, pro: { icon: ok, text: 'Vidéos 5s-90s' }, createur: { icon: ok, text: 'Vidéos 5s-90s' }, business: { icon: ok, text: 'Vidéos 5s-90s' } },
+                      { feature: 'TikTok (format + publication)', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ko }, business: { icon: ok, text: 'Format optimisé' } },
+                      { feature: 'Vidéo + audio narration', free: { icon: ko, text: '(audio séparé)' }, pro: { icon: ok, text: 'Intégré' }, createur: { icon: ok, text: 'Intégré' }, business: { icon: ok, text: 'Intégré' } },
+                      { feature: 'Images', free: { icon: ok, text: 'Qualité correcte' }, pro: { icon: ok, text: 'Meilleure qualité' }, createur: { icon: ok, text: 'Optimisé commerce' }, business: { icon: ok, text: 'Optimisé commerce' } },
+                      { feature: 'Qualité de génération', highlight: 'emerald', bold: true, free: { text: 'Basique', note: 'DALL-E 3 basique' }, pro: { text: 'Bonne', note: 'DALL-E 3 / GPT-4o' }, createur: { strong: 'Premium', note: 'Seedream 4.5 + Seedance' }, business: { strong: 'Elite Studio', note: 'Niveau graphiste pro' } },
+                      { feature: 'Rendus disponibles', free: { text: '1 seul' }, pro: { text: '1 seul' }, createur: { strong: '6 rendus', note: 'Photo, ciné, aquarelle...' }, business: { strong: '6 rendus', note: 'Photo, ciné, aquarelle...' } },
+                      { feature: 'Temps par post', free: { text: '20-30 min' }, pro: { text: '20-30 min' }, createur: { strong: '3 min' }, business: { strong: '3 min' } },
+                      { feature: 'Compétence requise', free: { text: 'Savoir prompter' }, pro: { text: 'Savoir prompter' }, createur: { strong: 'Aucune' }, business: { strong: 'Aucune' } },
+                      { feature: 'Lié à l\u2019actu du jour', free: { icon: ko, text: 'Tu cherches' }, pro: { icon: ko, text: 'Tu cherches' }, createur: { icon: ok, text: 'Automatique' }, business: { icon: ok, text: 'Automatique' } },
+                      { feature: 'Branding (logo + couleurs)', free: { icon: ko, text: 'Re-décrire' }, pro: { icon: ko, text: 'Re-décrire' }, createur: { icon: ko }, business: { icon: ok, text: 'Mémorisé, auto' } },
+                      { feature: 'Multi-format (post + Story + Reel)', free: { icon: ko, text: '1 par 1' }, pro: { icon: ko, text: '1 par 1' }, createur: { icon: ko }, business: { icon: ok, text: '1 clic = 3 formats' } },
+                      { feature: 'Légendes Instagram', free: { icon: warn, text: 'Si demandé' }, pro: { icon: warn, text: 'Si demandé' }, createur: { icon: ok, text: 'Auto' }, business: { icon: ok, text: 'Auto' } },
+                      { feature: 'Hashtags', free: { icon: warn, text: 'Si demandé' }, pro: { icon: warn, text: 'Si demandé' }, createur: { icon: ok, text: 'Auto' }, business: { icon: ok, text: 'Auto' } },
+                      { feature: 'Text-to-speech', free: { icon: ko }, pro: { icon: ok, text: '+ MP3' }, createur: { icon: ok, text: 'Intégré vidéo' }, business: { icon: ok, text: 'Intégré vidéo' } },
+                      { feature: 'Calendrier publication', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ok }, business: { icon: ok } },
+                      { feature: 'Stats Instagram', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ok }, business: { icon: ok } },
+                      { feature: 'Stats multi-plateforme', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ko }, business: { icon: ok } },
+                      { feature: 'Recommandations auto', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ok }, business: { icon: ok } },
+                      { feature: 'Publication multi-plateforme', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ok, text: 'IG + LinkedIn' }, business: { icon: ok, text: 'IG + TikTok + LinkedIn' } },
+                      { feature: 'Galerie organisée', free: { icon: ko, text: 'Historique chat' }, pro: { icon: ko, text: 'Historique chat' }, createur: { icon: ok }, business: { icon: ok } },
+                      { feature: 'Retouche visuelle', free: { icon: ko, text: 'Regénérer' }, pro: { icon: ko, text: 'Regénérer' }, createur: { icon: ok, text: 'Lumière, ambiance' }, business: { icon: ok, text: 'Lumière, ambiance' } },
+                      { feature: 'Support', free: { icon: ko }, pro: { text: 'Email 48h' }, createur: { text: 'Email 48h' }, business: { strong: 'Prioritaire 12h' } },
+                    ];
+                    const en: Row[] = [
+                      { feature: 'VIDEO GENERATION', highlight: 'cyan', bold: true, free: { icon: ko, text: 'Impossible' }, pro: { icon: ok, text: '5s-90s videos' }, createur: { icon: ok, text: '5s-90s videos' }, business: { icon: ok, text: '5s-90s videos' } },
+                      { feature: 'TikTok (format + publishing)', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ko }, business: { icon: ok, text: 'Optimised format' } },
+                      { feature: 'Video + audio narration', free: { icon: ko, text: '(separate audio)' }, pro: { icon: ok, text: 'Built-in' }, createur: { icon: ok, text: 'Built-in' }, business: { icon: ok, text: 'Built-in' } },
+                      { feature: 'Images', free: { icon: ok, text: 'Decent quality' }, pro: { icon: ok, text: 'Better quality' }, createur: { icon: ok, text: 'Business-optimised' }, business: { icon: ok, text: 'Business-optimised' } },
+                      { feature: 'Generation quality', highlight: 'emerald', bold: true, free: { text: 'Basic', note: 'DALL-E 3 basic' }, pro: { text: 'Good', note: 'DALL-E 3 / GPT-4o' }, createur: { strong: 'Premium', note: 'Seedream 4.5 + Seedance' }, business: { strong: 'Elite Studio', note: 'Pro designer level' } },
+                      { feature: 'Available renders', free: { text: '1 only' }, pro: { text: '1 only' }, createur: { strong: '6 renders', note: 'Photo, cine, watercolor...' }, business: { strong: '6 renders', note: 'Photo, cine, watercolor...' } },
+                      { feature: 'Time per post', free: { text: '20-30 min' }, pro: { text: '20-30 min' }, createur: { strong: '3 min' }, business: { strong: '3 min' } },
+                      { feature: 'Skill required', free: { text: 'Prompting skill' }, pro: { text: 'Prompting skill' }, createur: { strong: 'None' }, business: { strong: 'None' } },
+                      { feature: 'Tied to today\u2019s news', free: { icon: ko, text: 'You search' }, pro: { icon: ko, text: 'You search' }, createur: { icon: ok, text: 'Automatic' }, business: { icon: ok, text: 'Automatic' } },
+                      { feature: 'Branding (logo + colors)', free: { icon: ko, text: 'Re-describe' }, pro: { icon: ko, text: 'Re-describe' }, createur: { icon: ko }, business: { icon: ok, text: 'Remembered, auto' } },
+                      { feature: 'Multi-format (post + Story + Reel)', free: { icon: ko, text: 'One by one' }, pro: { icon: ko, text: 'One by one' }, createur: { icon: ko }, business: { icon: ok, text: '1 click = 3 formats' } },
+                      { feature: 'Instagram captions', free: { icon: warn, text: 'If asked' }, pro: { icon: warn, text: 'If asked' }, createur: { icon: ok, text: 'Auto' }, business: { icon: ok, text: 'Auto' } },
+                      { feature: 'Hashtags', free: { icon: warn, text: 'If asked' }, pro: { icon: warn, text: 'If asked' }, createur: { icon: ok, text: 'Auto' }, business: { icon: ok, text: 'Auto' } },
+                      { feature: 'Text-to-speech', free: { icon: ko }, pro: { icon: ok, text: '+ MP3' }, createur: { icon: ok, text: 'In video' }, business: { icon: ok, text: 'In video' } },
+                      { feature: 'Publishing calendar', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ok }, business: { icon: ok } },
+                      { feature: 'Instagram stats', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ok }, business: { icon: ok } },
+                      { feature: 'Multi-platform stats', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ko }, business: { icon: ok } },
+                      { feature: 'Auto recommendations', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ok }, business: { icon: ok } },
+                      { feature: 'Multi-platform publishing', free: { icon: ko }, pro: { icon: ko }, createur: { icon: ok, text: 'IG + LinkedIn' }, business: { icon: ok, text: 'IG + TikTok + LinkedIn' } },
+                      { feature: 'Organised gallery', free: { icon: ko, text: 'Chat history' }, pro: { icon: ko, text: 'Chat history' }, createur: { icon: ok }, business: { icon: ok } },
+                      { feature: 'Visual retouch', free: { icon: ko, text: 'Regenerate' }, pro: { icon: ko, text: 'Regenerate' }, createur: { icon: ok, text: 'Light, mood' }, business: { icon: ok, text: 'Light, mood' } },
+                      { feature: 'Support', free: { icon: ko }, pro: { text: 'Email 48h' }, createur: { text: 'Email 48h' }, business: { strong: 'Priority 12h' } },
+                    ];
+                    const renderCell = (c: Cell) => (
+                      <>
+                        {c.icon}{c.icon && (c.text || c.strong) ? ' ' : ''}
+                        {c.strong ? <strong className="text-green-600">{c.strong}</strong> : c.text}
+                        {c.note ? <><br/><span className="text-[10px] text-neutral-400">{c.note}</span></> : null}
+                      </>
+                    );
+                    return (locale === 'fr' ? fr : en).map((row, i) => {
+                      const rowBg = row.highlight === 'cyan' ? 'bg-cyan-50' : row.highlight === 'emerald' ? 'bg-emerald-50/40' : '';
+                      const boldCls = row.bold ? 'font-bold' : '';
+                      const pad = row.bold ? 'py-4' : 'py-3';
+                      return (
+                        <tr key={i} className={`border-b ${rowBg} ${boldCls}`}>
+                          <td className={`${pad} px-3 font-medium ${row.bold ? 'text-base' : ''}`}>{row.feature}</td>
+                          <td className={`text-center ${pad} px-3`}>{renderCell(row.free)}</td>
+                          <td className={`text-center ${pad} px-3`}>{renderCell(row.pro)}</td>
+                          <td className={`text-center ${pad} px-3 bg-purple-50/40`}>{renderCell(row.createur)}</td>
+                          <td className={`text-center ${pad} px-3 bg-amber-50/40`}>{renderCell(row.business)}</td>
+                        </tr>
+                      );
+                    });
+                  })()}
                 </tbody>
               </table>
             </div>

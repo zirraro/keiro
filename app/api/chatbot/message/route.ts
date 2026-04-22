@@ -35,10 +35,11 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const orgId = body?.org_id || null;
-    const { visitorId, message, sessionId, visitorData } = body as {
+    const { visitorId, message, sessionId, visitorData, locale: rawLocale } = body as {
       visitorId: string;
       message: string;
       sessionId?: string;
+      locale?: string;
       visitorData?: {
         currentPage?: string;
         pagesVisited?: string[];
@@ -46,6 +47,7 @@ export async function POST(request: NextRequest) {
         source?: string;
       };
     };
+    const locale: 'fr' | 'en' = rawLocale === 'en' ? 'en' : 'fr';
 
     // Validation
     if (!visitorId || !message) {
@@ -224,8 +226,8 @@ export async function POST(request: NextRequest) {
     }
 
     // --- Build conversation history ---
-    const systemPrompt = getChatbotSystemPrompt();
-    const contextualInstructions = buildContextualInstructions(visitorData || {});
+    const systemPrompt = getChatbotSystemPrompt(locale);
+    const contextualInstructions = buildContextualInstructions(visitorData || {}, locale);
 
     const existingMessages: any[] = Array.isArray(session.messages) ? session.messages : [];
     // Take last 10 messages for context
@@ -269,18 +271,34 @@ export async function POST(request: NextRequest) {
       console.error('[Chatbot] Gemini failed:', geminiError?.message);
       // Fallback: respond with a contextual pre-written message instead of crashing
       const lowMsg = message.toLowerCase();
-      if (lowMsg.includes('prix') || lowMsg.includes('combien') || lowMsg.includes('tarif') || lowMsg.includes('coût') || lowMsg.includes('cout')) {
-        assistantMessage = "Le plan le plus populaire c'est le Pro a 99\u20AC/mois — 10 agents IA, SEO, chatbot, 800 credits. Et franchement, 1 seul client en plus et c'est rembourse ! Tu veux que je t'explique ce qui est inclus ?";
-      } else if (lowMsg.includes('resto') || lowMsg.includes('restaurant') || lowMsg.includes('cuisine')) {
-        assistantMessage = "Un resto ! Top 🔥 Avec du bon contenu sur Insta, c'est 5 couverts en plus facile. Et la vidéo TikTok c'est le jackpot. Tu postes déjà sur les réseaux ?";
-      } else if (lowMsg.includes('comment') || lowMsg.includes('marche') || lowMsg.includes('fonctionne')) {
-        assistantMessage = "C'est simple : tu décris ton business, on génère des visuels et vidéos pro en 3 min. Instagram, TikTok, LinkedIn — tout est automatisé. Tu veux voir un exemple pour ton secteur ?";
-      } else if (lowMsg.includes('bonjour') || lowMsg.includes('salut') || lowMsg.includes('hello') || lowMsg.includes('hey') || lowMsg.includes('coucou')) {
-        assistantMessage = "Salut ! 👋 Bienvenue. Tu cherches à booster ta présence sur les réseaux sociaux ? Dis-moi ton secteur et je te montre ce qu'on peut faire pour toi.";
-      } else if (lowMsg.includes('chatgpt') || lowMsg.includes('canva') || lowMsg.includes('ia') || lowMsg.includes('gratuit')) {
-        assistantMessage = "ChatGPT c'est top pour plein de trucs. Mais pour poster 3x/semaine, ça prend 30 min par post. Avec nous c'est 3 min. Et surtout : ChatGPT fait PAS de vidéo. Nous oui 🎬 Tu postes souvent en ce moment ?";
+      if (locale === 'en') {
+        if (/(price|cost|how much|pricing|plan)/.test(lowMsg)) {
+          assistantMessage = "The most popular plan is Pro at \u20AC99/month \u2014 10 agents, SEO, chatbot, 800 credits. Honestly, 1 extra client and it's paid back! Want me to walk you through what's included?";
+        } else if (/(restaurant|bistro|food)/.test(lowMsg)) {
+          assistantMessage = "A restaurant! Nice 🔥 With solid Insta content, 5 extra covers is easy. And TikTok video is the jackpot. Are you posting on socials already?";
+        } else if (/(how|work|use)/.test(lowMsg)) {
+          assistantMessage = "It's simple: you describe your business, we generate pro visuals and videos in 3 min. Instagram, TikTok, LinkedIn \u2014 all automated. Want to see an example for your sector?";
+        } else if (/(hi|hello|hey)/.test(lowMsg)) {
+          assistantMessage = "Hey! 👋 Welcome. Looking to boost your social presence? Tell me your sector and I'll show you what we can do for you.";
+        } else if (/(chatgpt|canva|free tool)/.test(lowMsg)) {
+          assistantMessage = "ChatGPT is great for lots of things. But to post 3\u00D7/week, it takes 30 min per post. With us it's 3 min. And crucially: ChatGPT does NOT do video. We do 🎬 Posting often right now?";
+        } else {
+          assistantMessage = "Good question! KeiroAI is the tool that creates your pro content in 3 min \u2014 images, videos, copy, everything. What's your business? I'll show you a concrete example 😊";
+        }
       } else {
-        assistantMessage = "Bonne question ! KeiroAI c'est l'outil qui crée ton contenu pro en 3 min — images, vidéos, textes, tout. C'est quoi ton activité ? Je te montre un exemple concret 😊";
+        if (/(prix|combien|tarif|co\u00FBt|cout)/.test(lowMsg)) {
+          assistantMessage = "Le plan le plus populaire c'est le Pro \u00E0 99\u20AC/mois \u2014 10 agents, SEO, chatbot, 800 credits. Et franchement, 1 seul client en plus et c'est rembours\u00E9 ! Tu veux que je t'explique ce qui est inclus ?";
+        } else if (/(resto|restaurant|cuisine)/.test(lowMsg)) {
+          assistantMessage = "Un resto ! Top 🔥 Avec du bon contenu sur Insta, c'est 5 couverts en plus facile. Et la vid\u00E9o TikTok c'est le jackpot. Tu postes d\u00E9j\u00E0 sur les r\u00E9seaux ?";
+        } else if (/(comment|marche|fonctionne)/.test(lowMsg)) {
+          assistantMessage = "C'est simple : tu d\u00E9cris ton business, on g\u00E9n\u00E8re des visuels et vid\u00E9os pro en 3 min. Instagram, TikTok, LinkedIn \u2014 tout est automatis\u00E9. Tu veux voir un exemple pour ton secteur ?";
+        } else if (/(bonjour|salut|hello|hey|coucou)/.test(lowMsg)) {
+          assistantMessage = "Salut ! 👋 Bienvenue. Tu cherches \u00E0 booster ta pr\u00E9sence sur les r\u00E9seaux sociaux ? Dis-moi ton secteur et je te montre ce qu'on peut faire pour toi.";
+        } else if (/(chatgpt|canva|gratuit)/.test(lowMsg)) {
+          assistantMessage = "ChatGPT c'est top pour plein de trucs. Mais pour poster 3\u00D7/semaine, \u00E7a prend 30 min par post. Avec nous c'est 3 min. Et surtout : ChatGPT fait PAS de vid\u00E9o. Nous oui 🎬 Tu postes souvent en ce moment ?";
+        } else {
+          assistantMessage = "Bonne question ! KeiroAI c'est l'outil qui cr\u00E9e ton contenu pro en 3 min \u2014 images, vid\u00E9os, textes, tout. C'est quoi ton activit\u00E9 ? Je te montre un exemple concret 😊";
+        }
       }
     }
 
