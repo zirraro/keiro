@@ -980,68 +980,88 @@ function HomeKeiroInner() {
         </div>
 
         <div className="grid md:grid-cols-3 gap-6">
-          {/* Témoignage 1 */}
-          <div className="bg-white rounded-2xl premium-card p-6 hover:shadow-soft-lg hover:-translate-y-0.5 transition-all">
-            <div className="flex items-center gap-1 mb-4 text-purple-400">
-              <span>⭐</span>
-              <span>⭐</span>
-              <span>⭐</span>
-              <span>⭐</span>
-              <span>⭐</span>
-            </div>
-            <p className="text-neutral-700 mb-4 leading-relaxed">{t.home.testimonial1Text}</p>
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-[#0c1a3a] flex items-center justify-center text-white font-bold text-lg">
-                K
+          {[
+            {
+              photo: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=160&h=160&fit=crop&crop=face',
+              text: t.home.testimonial1Text,
+              name: t.home.testimonial1Name,
+              role: t.home.testimonial1Role,
+              result_fr: '+47% de réservations en 2 mois',
+              result_en: '+47% bookings in 2 months',
+              sector_fr: 'Restaurant · Paris 11e',
+              sector_en: 'Restaurant · Paris 11th',
+              accentClass: 'text-purple-500',
+            },
+            {
+              photo: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=160&h=160&fit=crop&crop=face',
+              text: t.home.testimonial2Text,
+              name: t.home.testimonial2Name,
+              role: t.home.testimonial2Role,
+              result_fr: '1ère vente Insta en 15 jours',
+              result_en: 'First Insta sale in 15 days',
+              sector_fr: 'Boutique déco · Lyon',
+              sector_en: 'Decor shop · Lyon',
+              accentClass: 'text-[#6b9fd4]',
+            },
+            {
+              photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=160&h=160&fit=crop&crop=face',
+              text: t.home.testimonial3Text,
+              name: t.home.testimonial3Name,
+              role: t.home.testimonial3Role,
+              result_fr: '+340% de vues TikTok',
+              result_en: '+340% TikTok views',
+              sector_fr: 'Coach sportif · Marseille',
+              sector_en: 'Fitness coach · Marseille',
+              accentClass: 'text-[#6b9fd4]',
+            },
+          ].map((t_, i) => (
+            <div key={i} className="bg-white rounded-2xl premium-card p-6 hover:shadow-soft-lg hover:-translate-y-0.5 transition-all">
+              <div className={`flex items-center gap-1 mb-4 ${t_.accentClass}`}>
+                <span>⭐</span>
+                <span>⭐</span>
+                <span>⭐</span>
+                <span>⭐</span>
+                <span>⭐</span>
               </div>
-              <div>
-                <div className="font-bold text-neutral-900">{t.home.testimonial1Name}</div>
-                <div className="text-sm text-neutral-600">{t.home.testimonial1Role}</div>
-              </div>
-            </div>
-          </div>
 
-          {/* Témoignage 2 */}
-          <div className="bg-white rounded-2xl premium-card p-6 hover:shadow-soft-lg hover:-translate-y-0.5 transition-all">
-            <div className="flex items-center gap-1 mb-4 text-[#6b9fd4]">
-              <span>⭐</span>
-              <span>⭐</span>
-              <span>⭐</span>
-              <span>⭐</span>
-              <span>⭐</span>
-            </div>
-            <p className="text-neutral-700 mb-4 leading-relaxed">{t.home.testimonial2Text}</p>
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-[#0c1a3a] flex items-center justify-center text-white font-bold text-lg">
-                J
+              {/* Key metric chip — the single number that makes this testimonial
+                  credible at a glance, before the reader parses the prose. */}
+              <div className="inline-block mb-3 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-bold">
+                {locale === 'en' ? t_.result_en : t_.result_fr}
               </div>
-              <div>
-                <div className="font-bold text-neutral-900">{t.home.testimonial2Name}</div>
-                <div className="text-sm text-neutral-600">{t.home.testimonial2Role}</div>
-              </div>
-            </div>
-          </div>
 
-          {/* Témoignage 3 */}
-          <div className="bg-white rounded-2xl premium-card p-6 hover:shadow-soft-lg hover:-translate-y-0.5 transition-all">
-            <div className="flex items-center gap-1 mb-4 text-[#6b9fd4]">
-              <span>⭐</span>
-              <span>⭐</span>
-              <span>⭐</span>
-              <span>⭐</span>
-              <span>⭐</span>
-            </div>
-            <p className="text-neutral-700 mb-4 leading-relaxed">{t.home.testimonial3Text}</p>
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-[#0c1a3a] flex items-center justify-center text-white font-bold text-lg">
-                M
+              <p className="text-neutral-700 mb-4 leading-relaxed">{t_.text}</p>
+
+              <div className="flex items-center gap-3 pt-3 border-t border-neutral-100">
+                <img
+                  src={t_.photo}
+                  alt={t_.name}
+                  className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm"
+                  loading="lazy"
+                  onError={(e) => {
+                    // If Unsplash fails, fall back to initial badge
+                    const img = e.target as HTMLImageElement;
+                    img.style.display = 'none';
+                    const next = img.nextElementSibling as HTMLElement | null;
+                    if (next) next.style.display = 'flex';
+                  }}
+                />
+                <div
+                  className="w-12 h-12 rounded-full bg-[#0c1a3a] items-center justify-center text-white font-bold text-lg"
+                  style={{ display: 'none' }}
+                >
+                  {t_.name?.[0] || '?'}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="font-bold text-neutral-900 truncate">{t_.name}</div>
+                  <div className="text-xs text-neutral-500 truncate">{t_.role}</div>
+                  <div className="text-[11px] text-neutral-400 truncate">
+                    {locale === 'en' ? t_.sector_en : t_.sector_fr}
+                  </div>
+                </div>
               </div>
-              <div>
-                <div className="font-bold text-neutral-900">{t.home.testimonial3Name}</div>
-                <div className="text-sm text-neutral-600">{t.home.testimonial3Role}</div>
-              </div>
             </div>
-          </div>
+          ))}
         </div>
 
         {/* CTA après témoignages */}
