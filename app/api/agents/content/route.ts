@@ -3241,8 +3241,57 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
   // Determine which slot we're in
   const slotType = forcePillar === '__midday__' ? 'midday' : forcePillar === '__evening__' ? 'evening' : forcePillar === '__tiktok__' ? 'tiktok' : forcePillar === '__linkedin_1__' ? 'linkedin_1' : forcePillar === '__linkedin_2__' ? 'linkedin_2' : 'morning';
 
-  // ── CLIENT SETTINGS: skip slot if client reduced frequency or disabled platform ──
-  const postsPerDayIG = clientSettings.posts_per_day_ig != null ? parseInt(clientSettings.posts_per_day_ig) : 3;
+  // ── CLIENT SETTINGS: adaptive frequency based on plan + credits ──
+  //
+  // Two modes:
+  //   - 'manual': client (or we) sets posts_per_day_ig explicitly. Legacy.
+  //   - 'auto' (default): we compute the daily cap from the plan's weekly
+  //     target adjusted by credit burn rate — Créateur ≈ 5/week, Pro ≈ 10,
+  //     Business ≈ 18, Elite ≈ 25. Shrinks when credits run low, expands
+  //     when the client is under-using.
+  let postsPerDayIG: number;
+  let adaptiveReason = 'manual';
+
+  const freqMode = clientSettings.content_frequency_mode || 'auto';
+  if (freqMode === 'manual' && clientSettings.posts_per_day_ig != null) {
+    postsPerDayIG = parseInt(clientSettings.posts_per_day_ig);
+  } else if (userId) {
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('subscription_plan, credits_balance, credits_monthly_allowance')
+        .eq('id', userId)
+        .single();
+      const { getWeeklyContentTarget } = await import('@/lib/content/adaptive-frequency');
+      const now = new Date();
+      const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+      const allowance = profile?.credits_monthly_allowance || 400;
+      const balance = profile?.credits_balance || 0;
+      const { count: opsThisMonth } = await supabase
+        .from('credit_transactions')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .gte('created_at', new Date(now.getFullYear(), now.getMonth(), 1).toISOString());
+      const creditsUsed = Math.max(0, allowance - balance);
+      const adaptive = getWeeklyContentTarget({
+        plan: profile?.subscription_plan || 'free',
+        creditsBalance: balance,
+        creditsAllowance: allowance,
+        creditsUsedThisMonth: creditsUsed,
+        dayOfMonth: now.getDate(),
+        daysInMonth,
+      });
+      postsPerDayIG = adaptive.dailyCap;
+      adaptiveReason = `auto:${adaptive.reason}:weekly=${adaptive.weeklyTarget}`;
+    } catch (e: any) {
+      console.warn('[Content] adaptive frequency fallback:', e?.message);
+      postsPerDayIG = 1; // safe default
+    }
+  } else {
+    // Admin / no user context → 3 slots by default
+    postsPerDayIG = 3;
+  }
+
   const postsPerDayTT = clientSettings.posts_per_day_tt != null ? parseInt(clientSettings.posts_per_day_tt) : 0;
   const postsPerDayLI = clientSettings.posts_per_day_li != null ? parseInt(clientSettings.posts_per_day_li) : 0;
   const preferredFormats = clientSettings.formats_ig || clientSettings.formats || 'all';
@@ -3250,12 +3299,12 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
   const ttEnabled = clientSettings.tt_enabled === true && postsPerDayTT > 0;
   const liEnabled = clientSettings.li_enabled === true && postsPerDayLI > 0;
 
-  // Skip slots based on client settings
+  // Skip slots based on adaptive or manual cap
   if (slotType === 'midday' && postsPerDayIG < 2) {
-    return NextResponse.json({ ok: true, skipped: true, reason: 'Client frequency < 2 posts/day IG' });
+    return NextResponse.json({ ok: true, skipped: true, reason: `IG cap=${postsPerDayIG} (${adaptiveReason})` });
   }
   if (slotType === 'evening' && postsPerDayIG < 3) {
-    return NextResponse.json({ ok: true, skipped: true, reason: 'Client frequency < 3 posts/day IG' });
+    return NextResponse.json({ ok: true, skipped: true, reason: `IG cap=${postsPerDayIG} (${adaptiveReason})` });
   }
   if (slotType.startsWith('linkedin') && !liEnabled) {
     return NextResponse.json({ ok: true, skipped: true, reason: 'Client disabled LinkedIn' });

@@ -121,7 +121,7 @@ export async function POST(request: Request) {
       // now get the same quality as Jade's daily posts.
       console.log('[T2I] Step 2: Generating via Jade shared prompter…');
       const format = (size || '2K').toLowerCase().includes('9:16') ? 'story' : 'post';
-      const jadeUrl = await generateJadeImage(seedreamPrompt, format);
+      const jadeUrl = await generateJadeImage(seedreamPrompt, format, user?.id);
       if (!jadeUrl) {
         throw new Error('Jade prompter returned no image');
       }

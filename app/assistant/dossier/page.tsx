@@ -328,7 +328,10 @@ Reponds en JSON strict:
         auto_mode_instagram: true,
         auto_mode_tiktok: false,
         auto_mode_linkedin: false,
-        posts_per_day_ig: 3,
+        // Mode 'auto' → scheduler computes the target from the plan +
+        // credit burn. Client keeps control by switching to 'manual' +
+        // editing posts_per_day_ig in the agent settings UI.
+        content_frequency_mode: 'auto',
         formats_ig: isRestaurant ? 'all' : isCoach ? 'reels' : 'all',
         publish_morning: '09:00',
         publish_evening: '18:00',

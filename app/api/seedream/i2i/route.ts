@@ -188,7 +188,7 @@ export async function POST(request: Request) {
     try {
       const jadeStrength = strength <= 5 ? 0.25 : strength <= 7 ? 0.45 : 0.7;
       const jadeFormat = (size || '2K').toLowerCase().includes('9:16') ? 'story' : 'post';
-      const jadeUrl = await generateJadeImageFromReference(sourceImage, finalPrompt, jadeFormat, jadeStrength);
+      const jadeUrl = await generateJadeImageFromReference(sourceImage, finalPrompt, jadeFormat, jadeStrength, user?.id);
       if (jadeUrl) {
         resultImageUrl = jadeUrl;
         provider = 's';

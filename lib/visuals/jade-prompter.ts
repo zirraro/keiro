@@ -95,9 +95,47 @@ function formatBriefForClaude(format: string): string {
   }
 }
 
-async function optimiseBrief(visualBrief: string, format: string): Promise<string> {
+/**
+ * Pull the client's most recent imported design templates (if any) so the
+ * prompter can cite them as a brand-style reference. We feed the palette
+ * and one-line notes — not the full HTML — to keep the Claude call cheap
+ * and because Seedream reacts best to colour + mood cues rather than
+ * literal markup.
+ */
+async function loadDesignReferences(userId?: string): Promise<string> {
+  if (!userId) return '';
+  try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseUrl || !serviceKey) return '';
+    const { createClient } = await import('@supabase/supabase-js');
+    const sb = createClient(supabaseUrl, serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+    const { data } = await sb
+      .from('design_templates')
+      .select('name, category, palette, notes')
+      .eq('user_id', userId)
+      .in('category', ['social', 'landing', 'general'])
+      .order('created_at', { ascending: false })
+      .limit(3);
+
+    if (!data || data.length === 0) return '';
+    const lines = data.map(t => {
+      const palette = (t.palette || []).slice(0, 5).join(', ');
+      const note = t.notes ? ` — ${t.notes}` : '';
+      return `• "${t.name}" (${t.category}) palette ${palette}${note}`;
+    });
+    return `\n\nBRAND REFERENCES (from client's Claude Design imports):\n${lines.join('\n')}\nAlign the visual's colour mood to these palettes when relevant. Stay in the same editorial register.`;
+  } catch {
+    return '';
+  }
+}
+
+async function optimiseBrief(visualBrief: string, format: string, userId?: string): Promise<string> {
+  const designContext = await loadDesignReferences(userId);
   const optimized = await callClaude({
-    system: JADE_STYLE_GUIDE,
+    system: JADE_STYLE_GUIDE + designContext,
     message: `Create a PREMIUM visual prompt for a ${format} post.\n\nVisual brief: ${visualBrief}\n\nFormat context: ${formatBriefForClaude(format)}\n\nIMPORTANT: Do NOT include hex color codes, aspect ratios, numbers, or technical specs. Describe colors by name. Output a PURE VISUAL DESCRIPTION. Think Vogue / Apple / Nike quality — never generic.`,
   });
   return (optimized || visualBrief) + NO_TEXT_SUFFIX;
@@ -139,9 +177,10 @@ OUTPUT: the final video prompt, ready to be sent to the generation API. No intro
   }
 }
 
-async function optimiseI2iBrief(visualBrief: string, format: string): Promise<string> {
+async function optimiseI2iBrief(visualBrief: string, format: string, userId?: string): Promise<string> {
+  const designContext = await loadDesignReferences(userId);
   const optimized = await callClaude({
-    system: JADE_STYLE_GUIDE + `
+    system: JADE_STYLE_GUIDE + designContext + `
 
 CRITICAL: You are writing an IMAGE-TO-IMAGE enhancement prompt. The reference image is the CLIENT'S REAL photo of their space / product / moment — it is the FOUNDATION of the final image, not just a hint. Your job is to describe how to POLISH and MASTER the existing photo while keeping every identifiable element (same venue, same subjects, same products, same layout, same objects on the table…) intact.
 
@@ -193,9 +232,10 @@ async function cacheImageToStorage(sourceUrl: string, postId: string): Promise<s
 export async function generateJadeImage(
   visualBrief: string,
   format: string = 'post',
+  userId?: string,
 ): Promise<string | null> {
   try {
-    const prompt = (await optimiseBrief(visualBrief, format)).slice(0, 2000);
+    const prompt = (await optimiseBrief(visualBrief, format, userId)).slice(0, 2000);
     const { width, height } = sizeFor(format);
 
     const res = await fetch(SEEDREAM_API_URL, {
@@ -237,9 +277,10 @@ export async function generateJadeImageFromReference(
   visualBrief: string,
   format: string = 'post',
   strength: number = 0.3,
+  userId?: string,
 ): Promise<string | null> {
   try {
-    const prompt = (await optimiseI2iBrief(visualBrief, format)).slice(0, 1500);
+    const prompt = (await optimiseI2iBrief(visualBrief, format, userId)).slice(0, 1500);
     const { width, height } = sizeFor(format);
 
     const res = await fetch(SEEDREAM_API_URL, {
