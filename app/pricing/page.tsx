@@ -11,7 +11,7 @@ import { AnimatedGradientBG } from '@/components/ui/animated-gradient-bg';
 import { useLanguage } from '@/lib/i18n/context';
 
 function ContactFormPricing() {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [subject, setSubject] = useState('');
@@ -90,7 +90,7 @@ function ContactFormPricing() {
             onChange={(e) => setName(e.target.value)}
             required
             className="px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0c1a3a] focus:border-transparent"
-            placeholder="Nom"
+            placeholder={locale === 'fr' ? 'Nom' : 'Name'}
           />
           <input
             type="email"
@@ -106,13 +106,13 @@ function ContactFormPricing() {
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
           required
-          className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0c1a3a] focus:border-transparent cursor-pointer"
+          className="w-full px-3 py-2 bg-white text-neutral-900 border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0c1a3a] focus:border-transparent cursor-pointer"
         >
-          <option value="">{t.pricing.formSubjectPlaceholder}</option>
-          <option value="Question tarifs">{t.pricing.formSubjectPricing}</option>
-          <option value="Démonstration">{t.pricing.formSubjectDemo}</option>
-          <option value="Partenariat">{t.pricing.formSubjectPartnership}</option>
-          <option value="Autre">{t.pricing.formSubjectOther}</option>
+          <option value="" className="text-neutral-900 bg-white">{t.pricing.formSubjectPlaceholder}</option>
+          <option value="Question tarifs" className="text-neutral-900 bg-white">{t.pricing.formSubjectPricing}</option>
+          <option value="Démonstration" className="text-neutral-900 bg-white">{t.pricing.formSubjectDemo}</option>
+          <option value="Partenariat" className="text-neutral-900 bg-white">{t.pricing.formSubjectPartnership}</option>
+          <option value="Autre" className="text-neutral-900 bg-white">{t.pricing.formSubjectOther}</option>
         </select>
 
         <textarea
@@ -149,7 +149,7 @@ function ContactFormPricing() {
 }
 
 function PricingPageInner() {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const feedback = useFeedbackPopup();
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly');
 
@@ -211,28 +211,34 @@ function PricingPageInner() {
           <div className="bg-white dark:bg-[#0c1a3a] rounded-2xl border-2 border-purple-200 dark:border-purple-500/30 p-6 relative hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
             <div className="absolute -top-3 left-4">
               <span className="bg-gradient-to-r from-[#0c1a3a] to-purple-700 text-white px-3 py-1 rounded-full text-xs font-bold">
-                {t.pricing.freeTrialBadge || '🎁 Essai gratuit'}
+                {t.pricing.freeTrialBadge || (locale === 'fr' ? '🎁 Essai gratuit' : '🎁 Free trial')}
               </span>
             </div>
             <div className="mb-6 pt-2">
               <h3 className="text-xl sm:text-2xl font-bold mb-2 flex items-center gap-2">
-                <span>🎁</span> {t.pricing.freeTrialTitle || 'Essai gratuit 7 jours'}
+                <span>🎁</span> {t.pricing.freeTrialTitle || (locale === 'fr' ? 'Essai gratuit 7 jours' : '7-day free trial')}
               </h3>
               <div className="flex items-baseline gap-2 mb-4">
-                <span className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-[#0c1a3a] to-purple-600 bg-clip-text text-transparent">0€</span>
-                <span className="text-neutral-500">/ 7 jours</span>
+                <span className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-[#0c1a3a] to-purple-600 bg-clip-text text-transparent">{locale === 'fr' ? '0\u20AC' : '\u20AC0'}</span>
+                <span className="text-neutral-500">{locale === 'fr' ? '/ 7 jours' : '/ 7 days'}</span>
               </div>
-              <p className="text-neutral-600 dark:text-neutral-300 text-sm font-medium">{t.pricing.freeTrialSubtitle || 'Tous les agents débloqués — carte requise, aucun débit'}</p>
+              <p className="text-neutral-600 dark:text-neutral-300 text-sm font-medium">{t.pricing.freeTrialSubtitle || (locale === 'fr' ? 'Tous les agents débloqués — carte requise, aucun débit' : 'All agents unlocked — card required, no charge')}</p>
             </div>
 
             <ul className="space-y-4 mb-8">
-              {[
-                '<strong>Tous les agents IA</strong> débloqués pendant 7 jours',
-                '<strong>Vidéos IA</strong> + images + audio narration',
+              {(locale === 'fr' ? [
+                '<strong>Tous les agents</strong> débloqués pendant 7 jours',
+                '<strong>Vidéos</strong> + images + audio narration',
                 'Publication Instagram, LinkedIn, TikTok',
-                'Assistant marketing IA inclus',
-                'Carte bancaire requise — <strong>0€ débité</strong>',
-              ].map((bullet, i) => (
+                'Assistant marketing Ami inclus',
+                'Carte bancaire requise — <strong>0\u20AC débité</strong>',
+              ] : [
+                '<strong>All agents</strong> unlocked for 7 days',
+                '<strong>Videos</strong> + images + audio narration',
+                'Publish to Instagram, LinkedIn, TikTok',
+                'Marketing assistant Ami included',
+                'Card required — <strong>\u20AC0 charged</strong>',
+              ]).map((bullet, i) => (
                 <li key={i} className="flex items-start gap-3">
                   <svg className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -246,9 +252,9 @@ function PricingPageInner() {
               href="/checkout/upsell?plan=createur"
               className="block w-full py-3 px-6 text-center rounded-xl bg-gradient-to-r from-[#0c1a3a] to-purple-700 text-white font-bold hover:shadow-lg transition-all hover:scale-100 sm:hover:scale-105"
             >
-              {t.pricing.freeTrialCta || '→ Essai gratuit 7 jours'}
+              {t.pricing.freeTrialCta || (locale === 'fr' ? '\u2192 Essai gratuit 7 jours' : '\u2192 Start free trial')}
             </Link>
-            <p className="text-xs text-center text-neutral-500 mt-2">{t.pricing.freeTrialNote || '0€ pendant 7 jours • Carte requise • Annulation à tout moment'}</p>
+            <p className="text-xs text-center text-neutral-500 mt-2">{t.pricing.freeTrialNote || (locale === 'fr' ? '0\u20AC pendant 7 jours \u2022 Carte requise \u2022 Annulation à tout moment' : '\u20AC0 for 7 days \u2022 Card required \u2022 Cancel anytime')}</p>
           </div>
         </div>
 
@@ -347,7 +353,7 @@ function PricingPageInner() {
 
             {/* NON INCLUS */}
             <div className="border-t border-white/20 pt-3 mb-4">
-              <p className="text-xs font-bold text-purple-300 mb-2 uppercase">Non inclus</p>
+              <p className="text-xs font-bold text-purple-300 mb-2 uppercase">{locale === 'fr' ? 'Non inclus' : 'Not included'}</p>
               <ul className="space-y-1.5 text-xs">
                 {t.pricing.planCreateurNotIncluded.map((item, i) => (
                   <li key={i} className="flex gap-2 text-purple-300/70">
@@ -393,7 +399,7 @@ function PricingPageInner() {
 
             {/* NON INCLUS */}
             <div className="border-t border-white/20 pt-3 mb-4">
-              <p className="text-xs font-bold text-blue-300 mb-2 uppercase">Non inclus</p>
+              <p className="text-xs font-bold text-blue-300 mb-2 uppercase">{locale === 'fr' ? 'Non inclus' : 'Not included'}</p>
               <ul className="space-y-1.5 text-xs">
                 {t.pricing.planProNotIncluded.map((item: string, i: number) => (
                   <li key={i} className="flex gap-2 text-blue-300/70">
@@ -414,7 +420,7 @@ function PricingPageInner() {
           <div className="bg-gradient-to-br from-[#0c1a3a] to-[#1e3a5f] rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-100 sm:hover:scale-105 flex flex-col">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2">
               <span className="bg-[#0c1a3a] text-cyan-200 px-4 py-1 rounded-full text-xs font-bold shadow-lg">
-                PME & Multi-activité
+                {locale === 'fr' ? 'PME & Multi-activité' : 'SME & Multi-business'}
               </span>
             </div>
             <div className="mb-4 pt-2">
@@ -453,13 +459,13 @@ function PricingPageInner() {
         <div className="max-w-2xl mx-auto mb-10">
           <div className="bg-gradient-to-r from-slate-800 to-slate-700 rounded-2xl p-6 text-white text-center hover:shadow-xl transition-all">
             <h3 className="text-xl font-bold mb-2 flex items-center justify-center gap-2">
-              <span>🏗️</span> Agence — Sur devis
+              <span>🏗️</span> {locale === 'fr' ? 'Agence \u2014 Sur devis' : 'Agency \u2014 Custom quote'}
             </h3>
             <p className="text-slate-300 text-sm mb-4">
-              Réseau & distributeur — Crédits illimités, multi-comptes illimités, marque blanche
+              {locale === 'fr' ? 'Réseau & distributeur \u2014 Crédits illimités, multi-comptes illimités, marque blanche' : 'Network & reseller \u2014 Unlimited credits, unlimited multi-account, white label'}
             </p>
             <a href="https://calendly.com/contact-keiroai/demo-keiroai-15-minutes" target="_blank" rel="noopener noreferrer" className="inline-block py-3 px-8 rounded-xl bg-white text-slate-800 font-bold hover:bg-slate-100 transition-all shadow-lg">
-              Nous contacter
+              {locale === 'fr' ? 'Nous contacter' : 'Get in touch'}
             </a>
           </div>
         </div>
@@ -500,7 +506,7 @@ function PricingPageInner() {
 
             <div className="flex flex-col sm:flex-row gap-3 mt-auto">
               <a href="https://calendly.com/contact-keiroai/demo-keiroai-15-minutes" target="_blank" rel="noopener noreferrer" className="flex-1 py-3 text-center rounded-xl bg-white text-amber-700 font-bold hover:bg-amber-50 transition-all shadow-lg">
-                Contactez-nous
+                {locale === 'fr' ? 'Contactez-nous' : 'Get in touch'}
               </a>
               <button onClick={() => startCheckout('elite')} className="flex-1 py-3 text-center rounded-xl border-2 border-white/50 text-white font-bold hover:bg-white/10 transition-all">
                 {t.pricing.planEliteCta}
@@ -512,29 +518,29 @@ function PricingPageInner() {
         {/* Concrètement, c'est quoi la différence ? */}
 
         <div className="mb-16">
-          <h3 className="text-2xl font-bold text-center mb-8">{"Concrètement, c'est quoi la différence ?"}</h3>
+          <h3 className="text-2xl font-bold text-center mb-8">{locale === 'fr' ? 'Concrètement, c\u2019est quoi la différence ?' : 'In plain terms \u2014 what\u2019s the difference?'}</h3>
           <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
             {/* Créateur card */}
             <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl border-2 border-purple-200 p-6">
-              <h4 className="text-lg font-bold text-purple-900 mb-1">{"Votre vitrine Instagram, professionnelle et autonome"}</h4>
-              <p className="text-sm text-purple-600 font-semibold mb-4">Créateur — 49€/mois après essai</p>
+              <h4 className="text-lg font-bold text-purple-900 mb-1">{locale === 'fr' ? 'Ta vitrine Instagram, pro et autonome' : 'Your Instagram storefront, professional and autonomous'}</h4>
+              <p className="text-sm text-purple-600 font-semibold mb-4">{locale === 'fr' ? 'Créateur \u2014 49\u20AC/mois après essai' : 'Creator \u2014 \u20AC49/month after trial'}</p>
               <ul className="space-y-3 text-sm text-neutral-700">
-                <li><span className="font-semibold text-purple-700">{"C'est comme..."}</span> Un flyer distribué à 5 000 personnes — pro, ciblé et mesurable</li>
-                <li><span className="font-semibold text-purple-700">{"Ça remplace..."}</span> Le neveu qui poste 1x/mois + Canva</li>
-                <li><span className="font-semibold text-purple-700">{"En concret..."}</span> LÉNA + JADE + AMI basique + vidéos IA + trend surfing</li>
-                <li><span className="font-semibold text-purple-700">{"Ça coûte..."}</span> Le prix de 2 dîners au restaurant</li>
-                <li><span className="font-semibold text-purple-700">{"C'est rentabilisé si..."}</span> 1 vente en plus (boutique) / 5 couverts (resto)</li>
+                <li><span className="font-semibold text-purple-700">{locale === 'fr' ? 'C\u2019est comme...' : 'It\u2019s like...'}</span> {locale === 'fr' ? 'Un flyer distribué à 5 000 personnes \u2014 pro, ciblé et mesurable' : 'A flyer handed to 5,000 people \u2014 pro, targeted, measurable'}</li>
+                <li><span className="font-semibold text-purple-700">{locale === 'fr' ? 'Ça remplace...' : 'It replaces...'}</span> {locale === 'fr' ? 'Le neveu qui poste 1x/mois + Canva' : 'The nephew posting 1×/month + Canva'}</li>
+                <li><span className="font-semibold text-purple-700">{locale === 'fr' ? 'En concret...' : 'Concretely...'}</span> {locale === 'fr' ? 'LÉNA + JADE + AMI basique + vidéos + trend surfing' : 'LÉNA + JADE + basic AMI + videos + trend surfing'}</li>
+                <li><span className="font-semibold text-purple-700">{locale === 'fr' ? 'Ça coûte...' : 'It costs...'}</span> {locale === 'fr' ? 'Le prix de 2 dîners au restaurant' : 'The price of 2 dinners out'}</li>
+                <li><span className="font-semibold text-purple-700">{locale === 'fr' ? 'C\u2019est rentabilisé si...' : 'It pays for itself with...'}</span> {locale === 'fr' ? '1 vente en plus (boutique) / 5 couverts (resto)' : '1 extra sale (shop) / 5 covers (resto)'}</li>
               </ul>
             </div>
             {/* Business value card */}
             <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-2xl border-2 border-cyan-300 p-6 shadow-lg">
-              <h4 className="text-lg font-bold text-cyan-900 mb-1">{"Automatisation complete pour PME et multi-sites"}</h4>
-              <p className="text-sm text-cyan-600 font-semibold mb-4">Business — 199{'\u20AC'}/mois — 15+ agents IA</p>
+              <h4 className="text-lg font-bold text-cyan-900 mb-1">{locale === 'fr' ? 'Automatisation complète pour PME et multi-sites' : 'Complete automation for SMEs and multi-site'}</h4>
+              <p className="text-sm text-cyan-600 font-semibold mb-4">{locale === 'fr' ? 'Business \u2014 199\u20AC/mois \u2014 15+ agents' : 'Business \u2014 \u20AC199/month \u2014 15+ agents'}</p>
               <ul className="space-y-3 text-sm text-neutral-700">
-                <li><span className="font-semibold text-cyan-700">{"C'est comme..."}</span> Avoir une equipe marketing complete a temps plein</li>
-                <li><span className="font-semibold text-cyan-700">{"Ca remplace..."}</span> Un graphiste (800{'\u20AC'}) + un CM (1 500{'\u20AC'}) + un comptable (200{'\u20AC'}) + 3 outils SaaS</li>
-                <li><span className="font-semibold text-cyan-700">{"En concret..."}</span> 15+ agents IA, CRM, finance, juridique, chatbot, 2 000 credits/mois</li>
-                <li><span className="font-semibold text-cyan-700">{"C'est rentabilise si..."}</span> 3 clients en plus par mois (restaurant) / 2 ventes (boutique)</li>
+                <li><span className="font-semibold text-cyan-700">{locale === 'fr' ? 'C\u2019est comme...' : 'It\u2019s like...'}</span> {locale === 'fr' ? 'Avoir une équipe marketing complète à temps plein' : 'Having a full-time complete marketing team'}</li>
+                <li><span className="font-semibold text-cyan-700">{locale === 'fr' ? 'Ça remplace...' : 'It replaces...'}</span> {locale === 'fr' ? 'Un graphiste (800\u20AC) + un CM (1 500\u20AC) + un comptable (200\u20AC) + 3 outils SaaS' : 'A designer (\u20AC800) + a CM (\u20AC1,500) + an accountant (\u20AC200) + 3 SaaS tools'}</li>
+                <li><span className="font-semibold text-cyan-700">{locale === 'fr' ? 'En concret...' : 'Concretely...'}</span> {locale === 'fr' ? '15+ agents, CRM, finance, juridique, chatbot, 2 000 crédits/mois' : '15+ agents, CRM, finance, legal, chatbot, 2,000 credits/month'}</li>
+                <li><span className="font-semibold text-cyan-700">{locale === 'fr' ? 'C\u2019est rentabilisé si...' : 'It pays for itself with...'}</span> {locale === 'fr' ? '3 clients en plus par mois (restaurant) / 2 ventes (boutique)' : '3 extra clients/month (restaurant) / 2 sales (shop)'}</li>
               </ul>
             </div>
           </div>
@@ -545,31 +551,31 @@ function PricingPageInner() {
         <div className="bg-gradient-to-br from-[#0c1a3a] to-purple-900 rounded-2xl border border-purple-500/20 p-6 mb-10 text-white relative overflow-hidden">
           <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full -mr-24 -mt-24"></div>
           <h3 className="text-lg font-bold mb-2 flex items-center gap-2 relative z-10">
-            <span>🤖</span> Agents IA — Automatisation incluse
+            <span>🤖</span> {locale === 'fr' ? 'Agents \u2014 Automatisation incluse' : 'Agents \u2014 Automation included'}
           </h3>
           <p className="text-purple-200 text-sm mb-4 relative z-10">
-            Pas un chatbot. Des agents qui <strong>executent</strong> les taches a votre place, 24/7.
+            {locale === 'fr' ? 'Pas un chatbot. Des agents qui ' : 'Not a chatbot. Agents that '}<strong>{locale === 'fr' ? 'exécutent' : 'execute'}</strong>{locale === 'fr' ? ' les tâches à ta place, 24/7.' : ' tasks for you, 24/7.'}
           </p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 relative z-10">
             <div className="bg-white/10 rounded-lg p-3 border border-white/10">
-              <p className="text-xs font-bold text-green-300 mb-1">Gratuit</p>
-              <p className="text-[11px] text-purple-200">AMI (basique) + CLARA</p>
+              <p className="text-xs font-bold text-green-300 mb-1">{locale === 'fr' ? 'Gratuit' : 'Free'}</p>
+              <p className="text-[11px] text-purple-200">AMI ({locale === 'fr' ? 'basique' : 'basic'}) + CLARA</p>
             </div>
             <div className="bg-white/10 rounded-lg p-3 border border-white/10">
-              <p className="text-xs font-bold text-purple-300 mb-1">Créateur — 49€/mois après essai</p>
+              <p className="text-xs font-bold text-purple-300 mb-1">{locale === 'fr' ? 'Créateur \u2014 49\u20AC/mois après essai' : 'Creator \u2014 \u20AC49/month after trial'}</p>
               <p className="text-[11px] text-purple-200">+ LÉNA, JADE</p>
             </div>
             <div className="bg-white/10 rounded-lg p-3 border border-white/10">
-              <p className="text-xs font-bold text-blue-300 mb-1">Pro — 99€/mois après essai</p>
+              <p className="text-xs font-bold text-blue-300 mb-1">{locale === 'fr' ? 'Pro \u2014 99\u20AC/mois après essai' : 'Pro \u2014 \u20AC99/month after trial'}</p>
               <p className="text-[11px] text-purple-200">+ HUGO, FÉLIX, Branding</p>
             </div>
             <div className="bg-white/10 rounded-lg p-3 border border-white/10">
-              <p className="text-xs font-bold text-amber-300 mb-1">Business — 199€/mois après essai</p>
-              <p className="text-[11px] text-purple-200">+ OSCAR, SARA, CRM, Multi-comptes</p>
+              <p className="text-xs font-bold text-amber-300 mb-1">{locale === 'fr' ? 'Business \u2014 199\u20AC/mois après essai' : 'Business \u2014 \u20AC199/month after trial'}</p>
+              <p className="text-[11px] text-purple-200">+ OSCAR, SARA, CRM, {locale === 'fr' ? 'Multi-comptes' : 'Multi-account'}</p>
             </div>
           </div>
           <p className="text-[10px] text-purple-300 mt-3 relative z-10">
-            Tous les agents optimisent votre KeiroAI en arriere-plan, quel que soit votre plan.
+            {locale === 'fr' ? 'Tous les agents optimisent ton KeiroAI en arrière-plan, quel que soit ton plan.' : 'All agents optimise your KeiroAI in the background, whatever your plan.'}
           </p>
         </div>
 
@@ -596,9 +602,9 @@ function PricingPageInner() {
             <div className="p-3 bg-blue-50 dark:bg-blue-500/10 rounded-lg border border-blue-100 dark:border-blue-500/20"><p className="font-bold text-blue-800 dark:text-blue-300">3 cr</p><p className="text-xs text-neutral-600 dark:text-neutral-400">{t.pricing.creditImageEdit}</p></div>
             <div className="p-3 bg-purple-50 dark:bg-purple-500/10 rounded-lg border border-purple-100 dark:border-purple-500/20"><p className="font-bold text-purple-700 dark:text-purple-300">15 cr</p><p className="text-xs text-neutral-600 dark:text-neutral-400">{t.pricing.creditVideo5s}</p></div>
             <div className="p-3 bg-purple-50 dark:bg-purple-500/10 rounded-lg border border-purple-100 dark:border-purple-500/20"><p className="font-bold text-purple-700 dark:text-purple-300">25 cr</p><p className="text-xs text-neutral-600 dark:text-neutral-400">{t.pricing.creditVideo10s}</p></div>
-            <div className="p-3 bg-purple-50 dark:bg-purple-500/10 rounded-lg border border-purple-100 dark:border-purple-500/20"><p className="font-bold text-purple-700 dark:text-purple-300">35 cr</p><p className="text-xs text-neutral-600 dark:text-neutral-400">{"Vidéo 15s"}</p></div>
-            <div className="p-3 bg-purple-50 dark:bg-purple-500/10 rounded-lg border border-purple-100 dark:border-purple-500/20"><p className="font-bold text-purple-700 dark:text-purple-300">50 cr</p><p className="text-xs text-neutral-600 dark:text-neutral-400">{"Vidéo 30s"}</p></div>
-            <div className="p-3 bg-purple-50 dark:bg-purple-500/10 rounded-lg border border-purple-100 dark:border-purple-500/20"><p className="font-bold text-purple-700 dark:text-purple-300">65-110 cr</p><p className="text-xs text-neutral-600 dark:text-neutral-400">{"Vidéo 45-90s"}</p></div>
+            <div className="p-3 bg-purple-50 dark:bg-purple-500/10 rounded-lg border border-purple-100 dark:border-purple-500/20"><p className="font-bold text-purple-700 dark:text-purple-300">35 cr</p><p className="text-xs text-neutral-600 dark:text-neutral-400">{locale === 'fr' ? 'Vidéo 15s' : 'Video 15s'}</p></div>
+            <div className="p-3 bg-purple-50 dark:bg-purple-500/10 rounded-lg border border-purple-100 dark:border-purple-500/20"><p className="font-bold text-purple-700 dark:text-purple-300">50 cr</p><p className="text-xs text-neutral-600 dark:text-neutral-400">{locale === 'fr' ? 'Vidéo 30s' : 'Video 30s'}</p></div>
+            <div className="p-3 bg-purple-50 dark:bg-purple-500/10 rounded-lg border border-purple-100 dark:border-purple-500/20"><p className="font-bold text-purple-700 dark:text-purple-300">65-110 cr</p><p className="text-xs text-neutral-600 dark:text-neutral-400">{locale === 'fr' ? 'Vidéo 45-90s' : 'Video 45-90s'}</p></div>
             <div className="p-3 bg-green-50 dark:bg-green-500/10 rounded-lg border border-green-100 dark:border-green-500/20"><p className="font-bold text-green-700 dark:text-green-300">2 cr</p><p className="text-xs text-neutral-600 dark:text-neutral-400">{t.pricing.creditAudioNarration}</p></div>
             <div className="p-3 bg-green-50 dark:bg-green-500/10 rounded-lg border border-green-100 dark:border-green-500/20"><p className="font-bold text-green-700 dark:text-green-300">1 cr</p><p className="text-xs text-neutral-600 dark:text-neutral-400">{t.pricing.creditAiSuggestion}</p></div>
             <div className="p-3 bg-green-50 dark:bg-green-500/10 rounded-lg border border-green-100 dark:border-green-500/20"><p className="font-bold text-green-700 dark:text-green-300">1 cr</p><p className="text-xs text-neutral-600 dark:text-neutral-400">{t.pricing.creditMarketingAssistant}</p></div>
@@ -613,8 +619,8 @@ function PricingPageInner() {
             <table className="w-full text-[10px] sm:text-sm min-w-[480px]">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left py-3 px-2">Fonctionnalite</th>
-                  <th className="text-center py-3 px-2 text-purple-600">Createur 49{'\u20AC'}</th>
+                  <th className="text-left py-3 px-2">{locale === 'fr' ? 'Fonctionnalité' : 'Feature'}</th>
+                  <th className="text-center py-3 px-2 text-purple-600">{locale === 'fr' ? 'Créateur' : 'Creator'} 49{'\u20AC'}</th>
                   <th className="text-center py-3 px-2 text-blue-600">Pro 99{'\u20AC'}</th>
                   <th className="text-center py-3 px-2 bg-amber-50 font-bold text-amber-600">Business 199{'\u20AC'}</th>
                   <th className="text-center py-3 px-2 bg-yellow-50 font-bold">Elite 999{'\u20AC'}</th>
@@ -622,45 +628,68 @@ function PricingPageInner() {
               </thead>
               <tbody>
                 {/* Crédits */}
-                {[
-                  { name: 'Credits', c: '400/mois', p: '800/mois', b: '2 000/mois', e: '6 000/mois', bold: true },
-                  { name: 'Agents IA', c: '7', p: '10', b: '15+', e: '15+', bold: true },
-                  { name: 'LENA Contenu & Publication', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                {(locale === 'fr' ? [
+                  { name: 'Crédits', c: '400/mois', p: '800/mois', b: '2 000/mois', e: '6 000/mois', bold: true },
+                  { name: 'Agents', c: '7', p: '10', b: '15+', e: '15+', bold: true },
+                  { name: 'LÉNA Contenu & Publication', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
                   { name: 'HUGO Email Marketing', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
                   { name: 'JADE DM Instagram', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'LEO CRM & Prospection', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'THEO Avis Google', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'LÉO CRM & Prospection', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'THÉO Avis Google', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
                   { name: 'AMI Analytics', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
                   { name: 'CLARA Onboarding', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
                   { name: 'OSCAR SEO & Blog', c: '\u2014', p: '\u2713', b: '\u2713', e: '\u2713', pro: true },
                   { name: 'MAX Chatbot Site Web', c: '\u2014', p: '\u2713', b: '\u2713', e: '\u2713', pro: true },
                   { name: 'SARA Juridique & RH', c: '\u2014', p: '\u2713', b: '\u2713', e: '\u2713', pro: true },
-                  { name: 'LOUIS Finance & Tresorerie', c: '\u2014', p: '\u2014', b: '\u2713', e: '\u2713', biz: true },
-                  { name: 'FELIX Publicite (Meta/Google)', c: '\u2014', p: '\u2014', b: 'Bientot', e: 'Bientot', biz: true },
-                  { name: 'EMMA LinkedIn', c: '\u2014', p: '\u2014', b: 'Bientot', e: 'Bientot', biz: true },
-                  { name: 'STELLA WhatsApp', c: '\u2014', p: '\u2014', b: 'Bientot', e: 'Bientot', biz: true },
-                  { name: 'Videos IA', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'Images IA', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'Tendances en temps reel', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'Calendrier editorial', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'LOUIS Finance & Trésorerie', c: '\u2014', p: '\u2014', b: '\u2713', e: '\u2713', biz: true },
+                  { name: 'FÉLIX Publicité (Meta/Google)', c: '\u2014', p: '\u2014', b: 'Bientôt', e: 'Bientôt', biz: true },
+                  { name: 'EMMA LinkedIn', c: '\u2014', p: '\u2014', b: 'Bientôt', e: 'Bientôt', biz: true },
+                  { name: 'STELLA WhatsApp', c: '\u2014', p: '\u2014', b: 'Bientôt', e: 'Bientôt', biz: true },
+                  { name: 'Vidéos', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'Images', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'Tendances en temps réel', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'Calendrier éditorial', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
                   { name: 'Export documents', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'Multi-comptes', c: '\u2014', p: '\u2014', b: '1+5', e: 'Illimite' },
-                ].map((row, i) => (
+                  { name: 'Multi-comptes', c: '\u2014', p: '\u2014', b: '1+5', e: 'Illimité' },
+                ] : [
+                  { name: 'Credits', c: '400/month', p: '800/month', b: '2,000/month', e: '6,000/month', bold: true },
+                  { name: 'Agents', c: '7', p: '10', b: '15+', e: '15+', bold: true },
+                  { name: 'LENA Content & Publishing', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'HUGO Email Marketing', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'JADE DM Instagram', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'LEO CRM & Prospecting', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'THEO Google Reviews', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'AMI Analytics', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'CLARA Onboarding', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'OSCAR SEO & Blog', c: '\u2014', p: '\u2713', b: '\u2713', e: '\u2713', pro: true },
+                  { name: 'MAX Website Chatbot', c: '\u2014', p: '\u2713', b: '\u2713', e: '\u2713', pro: true },
+                  { name: 'SARA Legal & HR', c: '\u2014', p: '\u2713', b: '\u2713', e: '\u2713', pro: true },
+                  { name: 'LOUIS Finance & Cash', c: '\u2014', p: '\u2014', b: '\u2713', e: '\u2713', biz: true },
+                  { name: 'FELIX Ads (Meta/Google)', c: '\u2014', p: '\u2014', b: 'Soon', e: 'Soon', biz: true },
+                  { name: 'EMMA LinkedIn', c: '\u2014', p: '\u2014', b: 'Soon', e: 'Soon', biz: true },
+                  { name: 'STELLA WhatsApp', c: '\u2014', p: '\u2014', b: 'Soon', e: 'Soon', biz: true },
+                  { name: 'Videos', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'Images', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'Real-time trends', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'Editorial calendar', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'Document export', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'Multi-account', c: '\u2014', p: '\u2014', b: '1+5', e: 'Unlimited' },
+                ]).map((row, i) => (
                   <tr key={i} className={`border-b ${row.pro ? 'bg-blue-50/30' : row.biz ? 'bg-amber-50/30' : ''}`}>
                     <td className="py-3 px-2 font-medium">{row.name}</td>
                     <td className="text-center py-3 px-2">{row.bold ? <strong>{row.c}</strong> : row.c === '\u2713' ? <span className="text-green-600">{row.c}</span> : row.c === '\u2014' ? <span className="text-neutral-400">{row.c}</span> : row.c}</td>
                     <td className="text-center py-3 px-2">{row.bold ? <strong>{row.p}</strong> : row.p === '\u2713' ? <span className="text-green-600">{row.p}</span> : row.p === '\u2014' ? <span className="text-neutral-400">{row.p}</span> : row.p}</td>
-                    <td className="text-center py-3 px-2 bg-amber-50">{row.bold ? <strong>{row.b}</strong> : row.b === '\u2713' ? <span className="text-green-600">{row.b}</span> : row.b === '\u2014' ? <span className="text-neutral-400">{row.b}</span> : row.b === 'Bientot' ? <span className="text-amber-500 text-xs">Bientot</span> : row.b}</td>
-                    <td className="text-center py-3 px-2 bg-yellow-50">{row.bold ? <strong>{row.e}</strong> : row.e === '\u2713' ? <span className="text-green-600">{row.e}</span> : row.e === '\u2014' ? <span className="text-neutral-400">{row.e}</span> : row.e === 'Bientot' ? <span className="text-amber-500 text-xs">Bientot</span> : row.e}</td>
+                    <td className="text-center py-3 px-2 bg-amber-50">{row.bold ? <strong>{row.b}</strong> : row.b === '\u2713' ? <span className="text-green-600">{row.b}</span> : row.b === '\u2014' ? <span className="text-neutral-400">{row.b}</span> : (row.b === 'Bientôt' || row.b === 'Soon') ? <span className="text-amber-500 text-xs">{row.b}</span> : row.b}</td>
+                    <td className="text-center py-3 px-2 bg-yellow-50">{row.bold ? <strong>{row.e}</strong> : row.e === '\u2713' ? <span className="text-green-600">{row.e}</span> : row.e === '\u2014' ? <span className="text-neutral-400">{row.e}</span> : (row.e === 'Bientôt' || row.e === 'Soon') ? <span className="text-amber-500 text-xs">{row.e}</span> : row.e}</td>
                   </tr>
                 ))}
                 {/* Prix */}
                 <tr>
                   <td className="py-3 px-2 font-medium">{t.pricing.compPrice}</td>
-                  <td className="text-center py-3 px-2 font-bold text-purple-600">49{'\u20AC'}/mois</td>
-                  <td className="text-center py-3 px-2 font-bold text-blue-600">99{'\u20AC'}/mois</td>
-                  <td className="text-center py-3 px-2 bg-amber-50 font-bold text-amber-600">199{'\u20AC'}/mois</td>
-                  <td className="text-center py-3 px-2 bg-yellow-50 font-bold text-amber-700">999{'\u20AC'}/mois</td>
+                  <td className="text-center py-3 px-2 font-bold text-purple-600">{locale === 'fr' ? '49\u20AC/mois' : '\u20AC49/mo'}</td>
+                  <td className="text-center py-3 px-2 font-bold text-blue-600">{locale === 'fr' ? '99\u20AC/mois' : '\u20AC99/mo'}</td>
+                  <td className="text-center py-3 px-2 bg-amber-50 font-bold text-amber-600">{locale === 'fr' ? '199\u20AC/mois' : '\u20AC199/mo'}</td>
+                  <td className="text-center py-3 px-2 bg-yellow-50 font-bold text-amber-700">{locale === 'fr' ? '999\u20AC/mois' : '\u20AC999/mo'}</td>
                 </tr>
               </tbody>
             </table>
@@ -672,42 +701,42 @@ function PricingPageInner() {
 
         <div className="mb-16">
           <div className="text-center mb-10">
-            <h3 className="text-2xl md:text-3xl font-bold text-neutral-900 mb-3">{"Vous n'avez pas de graphiste ni de CM ? Le vrai coût, c'est l'invisibilité."}</h3>
-            <p className="text-neutral-600 max-w-2xl mx-auto">{"Chaque jour sans Instagram, des clients potentiels choisissent votre concurrent."}</p>
+            <h3 className="text-2xl md:text-3xl font-bold text-neutral-900 mb-3">{locale === 'fr' ? 'Pas de graphiste ni de CM ? Le vrai coût, c\u2019est l\u2019invisibilité.' : 'No designer or CM? The real cost is invisibility.'}</h3>
+            <p className="text-neutral-600 max-w-2xl mx-auto">{locale === 'fr' ? 'Chaque jour sans Instagram, des clients potentiels choisissent ton concurrent.' : 'Every day without Instagram, potential customers pick your competitor.'}</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
             {/* Card 1 - Ne rien faire */}
             <div className="bg-neutral-100 rounded-2xl border border-neutral-200 p-5">
-              <h4 className="font-bold text-neutral-600 mb-3">{"Ne rien faire"}</h4>
+              <h4 className="font-bold text-neutral-600 mb-3">{locale === 'fr' ? 'Ne rien faire' : 'Doing nothing'}</h4>
               <div className="space-y-2 text-sm">
-                <p><span className="font-semibold text-neutral-500">{"Coût :"}</span> 0€/mois</p>
-                <p><span className="font-semibold text-neutral-500">{"Résultat :"}</span> Invisible en ligne</p>
-                <p><span className="font-semibold text-neutral-500">{"Clients via Instagram :"}</span> 0</p>
+                <p><span className="font-semibold text-neutral-500">{locale === 'fr' ? 'Coût :' : 'Cost:'}</span> {locale === 'fr' ? '0\u20AC/mois' : '\u20AC0/month'}</p>
+                <p><span className="font-semibold text-neutral-500">{locale === 'fr' ? 'Résultat :' : 'Result:'}</span> {locale === 'fr' ? 'Invisible en ligne' : 'Invisible online'}</p>
+                <p><span className="font-semibold text-neutral-500">{locale === 'fr' ? 'Clients via Instagram :' : 'Customers via Instagram:'}</span> 0</p>
               </div>
-              <p className="text-xs text-neutral-400 mt-3 italic">{"\"Les 72% de 18-35 ans qui choisissent un commerce sur Instagram ne vous trouveront jamais.\""}</p>
+              <p className="text-xs text-neutral-400 mt-3 italic">{locale === 'fr' ? '« Les 72% de 18-35 ans qui choisissent un commerce sur Instagram ne te trouveront jamais. »' : '"72% of 18-35 year-olds pick a business on Instagram \u2014 they\u2019ll never find you."'}</p>
             </div>
 
             {/* Card 2 - Le neveu / le stagiaire */}
             <div className="bg-neutral-100 rounded-2xl border border-neutral-200 p-5">
-              <h4 className="font-bold text-neutral-600 mb-3">{"Le neveu / le stagiaire"}</h4>
+              <h4 className="font-bold text-neutral-600 mb-3">{locale === 'fr' ? 'Le neveu / le stagiaire' : 'The nephew / the intern'}</h4>
               <div className="space-y-2 text-sm">
-                <p><span className="font-semibold text-neutral-500">{"Coût :"}</span> {"\"Gratuit\" (mais votre temps + résultats amateurs)"}</p>
-                <p><span className="font-semibold text-neutral-500">{"Résultat :"}</span> 1 post par mois, photo floue</p>
-                <p><span className="font-semibold text-neutral-500">{"Clients via Instagram :"}</span> Quasi 0</p>
+                <p><span className="font-semibold text-neutral-500">{locale === 'fr' ? 'Coût :' : 'Cost:'}</span> {locale === 'fr' ? '« Gratuit » (mais ton temps + résultats amateurs)' : '"Free" (but your time + amateur results)'}</p>
+                <p><span className="font-semibold text-neutral-500">{locale === 'fr' ? 'Résultat :' : 'Result:'}</span> {locale === 'fr' ? '1 post par mois, photo floue' : '1 post per month, blurry photo'}</p>
+                <p><span className="font-semibold text-neutral-500">{locale === 'fr' ? 'Clients via Instagram :' : 'Customers via Instagram:'}</span> {locale === 'fr' ? 'Quasi 0' : 'Near zero'}</p>
               </div>
-              <p className="text-xs text-neutral-400 mt-3 italic">{"\"Un post tous les 2 mois avec une photo au smartphone ne trompe personne.\""}</p>
+              <p className="text-xs text-neutral-400 mt-3 italic">{locale === 'fr' ? '« Un post tous les 2 mois avec une photo au smartphone ne trompe personne. »' : '"A post every 2 months with a phone photo fools nobody."'}</p>
             </div>
 
             {/* Card 3 - KeiroAI */}
             <div className="bg-gradient-to-br from-[#0c1a3a]/5 to-purple-50 rounded-2xl border-2 border-[#0c1a3a]/20 p-5 shadow-lg">
               <h4 className="font-bold text-[#0c1a3a] mb-3 flex items-center gap-1">⭐ KeiroAI</h4>
               <div className="space-y-2 text-sm">
-                <p><span className="font-semibold text-[#0c1a3a]">{"Coût :"}</span> 7 jours gratuits, puis à partir de 49€/mois</p>
-                <p><span className="font-semibold text-[#0c1a3a]">{"Résultat :"}</span> 3 à 6 posts pro par semaine, brandés, liés à l{"'"}actu</p>
-                <p><span className="font-semibold text-[#0c1a3a]">{"Clients :"}</span> {"Le calcul est simple ↓"}</p>
+                <p><span className="font-semibold text-[#0c1a3a]">{locale === 'fr' ? 'Coût :' : 'Cost:'}</span> {locale === 'fr' ? '7 jours gratuits, puis à partir de 49\u20AC/mois' : '7 days free, then from \u20AC49/month'}</p>
+                <p><span className="font-semibold text-[#0c1a3a]">{locale === 'fr' ? 'Résultat :' : 'Result:'}</span> {locale === 'fr' ? '3 à 6 posts pro par semaine, brandés, liés à l\u2019actu' : '3-6 pro posts per week, branded, tied to today\u2019s news'}</p>
+                <p><span className="font-semibold text-[#0c1a3a]">{locale === 'fr' ? 'Clients :' : 'Customers:'}</span> {locale === 'fr' ? 'Le calcul est simple \u2193' : 'The math is simple \u2193'}</p>
               </div>
-              <p className="text-xs text-[#0c1a3a] mt-3 italic">{"\"Instagram crée pour vous + texte + hashtags + stats. Vous publiez en 30 secondes.\""}</p>
+              <p className="text-xs text-[#0c1a3a] mt-3 italic">{locale === 'fr' ? '« Instagram créé pour toi + texte + hashtags + stats. Tu publies en 30 secondes. »' : '"Instagram built for you + copy + hashtags + stats. Publish in 30 seconds."'}</p>
             </div>
           </div>
 
@@ -735,21 +764,21 @@ function PricingPageInner() {
                     <span className="text-red-400 text-lg">✗</span>
                   </div>
                   <div>
-                    <h4 className="font-bold text-sm">Graphiste freelance</h4>
-                    <p className="text-lg font-bold text-red-400">800 à 2 000€<span className="text-xs font-normal text-slate-400">/mois</span></p>
+                    <h4 className="font-bold text-sm">{locale === 'fr' ? 'Graphiste freelance' : 'Freelance designer'}</h4>
+                    <p className="text-lg font-bold text-red-400">{locale === 'fr' ? '800 à 2 000\u20AC' : '\u20AC800\u20132,000'}<span className="text-xs font-normal text-slate-400">{locale === 'fr' ? '/mois' : '/month'}</span></p>
                   </div>
                 </div>
                 <ul className="space-y-2 text-sm text-slate-300">
-                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> Délai : 2 à 5 jours par visuel</li>
-                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> Modifications payantes</li>
-                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> {"Pas de réactivité sur l'actualité"}</li>
-                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> Aucune vidéo incluse</li>
-                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> Pas de texte ni légendes</li>
-                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> Pas de hashtags ni stratégie</li>
-                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> Aucune statistique</li>
-                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> Pas de publication</li>
-                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> Briefings longs</li>
-                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> Congés, vacances, indisponibilités</li>
+                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> {locale === 'fr' ? 'Délai : 2 à 5 jours par visuel' : 'Delay: 2\u20135 days per visual'}</li>
+                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> {locale === 'fr' ? 'Modifications payantes' : 'Paid revisions'}</li>
+                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> {locale === 'fr' ? 'Pas de réactivité sur l\u2019actualité' : 'No responsiveness to current events'}</li>
+                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> {locale === 'fr' ? 'Aucune vidéo incluse' : 'No video included'}</li>
+                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> {locale === 'fr' ? 'Pas de texte ni légendes' : 'No copy or captions'}</li>
+                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> {locale === 'fr' ? 'Pas de hashtags ni stratégie' : 'No hashtags or strategy'}</li>
+                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> {locale === 'fr' ? 'Aucune statistique' : 'No analytics'}</li>
+                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> {locale === 'fr' ? 'Pas de publication' : 'No publishing'}</li>
+                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> {locale === 'fr' ? 'Briefings longs' : 'Long briefings'}</li>
+                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> {locale === 'fr' ? 'Congés, vacances, indisponibilités' : 'Vacation, off-days, downtime'}</li>
                 </ul>
               </div>
 
@@ -761,20 +790,20 @@ function PricingPageInner() {
                   </div>
                   <div>
                     <h4 className="font-bold text-sm">Community Manager</h4>
-                    <p className="text-lg font-bold text-red-400">1 500 à 3 000€<span className="text-xs font-normal text-slate-400">/mois</span></p>
+                    <p className="text-lg font-bold text-red-400">{locale === 'fr' ? '1 500 à 3 000\u20AC' : '\u20AC1,500\u20133,000'}<span className="text-xs font-normal text-slate-400">{locale === 'fr' ? '/mois' : '/month'}</span></p>
                   </div>
                 </div>
                 <ul className="space-y-2 text-sm text-slate-300">
-                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> Rédaction manuelle</li>
-                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> Planification basique</li>
-                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> 1 seul réseau en général</li>
-                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> Pas de génération IA</li>
-                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> Pas de branding automatique</li>
-                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> Pas de multi-format</li>
-                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> Congés, absences, rotation</li>
-                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> Qualité variable</li>
-                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> Pas de vidéo IA</li>
-                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> Reporting basique mensuel</li>
+                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> {locale === 'fr' ? 'Rédaction manuelle' : 'Manual copywriting'}</li>
+                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> {locale === 'fr' ? 'Planification basique' : 'Basic scheduling'}</li>
+                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> {locale === 'fr' ? '1 seul réseau en général' : 'Usually 1 network only'}</li>
+                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> {locale === 'fr' ? 'Pas de génération' : 'No auto-generation'}</li>
+                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> {locale === 'fr' ? 'Pas de branding automatique' : 'No automatic branding'}</li>
+                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> {locale === 'fr' ? 'Pas de multi-format' : 'No multi-format'}</li>
+                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> {locale === 'fr' ? 'Congés, absences, rotation' : 'Leave, absences, rotation'}</li>
+                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> {locale === 'fr' ? 'Qualité variable' : 'Variable quality'}</li>
+                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> {locale === 'fr' ? 'Pas de vidéo' : 'No video'}</li>
+                  <li className="flex gap-2"><span className="text-red-400 flex-shrink-0">✗</span> {locale === 'fr' ? 'Reporting basique mensuel' : 'Basic monthly reporting'}</li>
                 </ul>
               </div>
 
@@ -786,29 +815,29 @@ function PricingPageInner() {
                   </div>
                   <div>
                     <h4 className="font-bold text-sm">KeiroAI</h4>
-                    <p className="text-lg font-bold text-cyan-400">7 jours gratuits<span className="text-xs font-normal text-slate-400"> puis 49€/mois</span></p>
+                    <p className="text-lg font-bold text-cyan-400">{locale === 'fr' ? '7 jours gratuits' : '7 days free'}<span className="text-xs font-normal text-slate-400">{locale === 'fr' ? ' puis 49\u20AC/mois' : ' then \u20AC49/month'}</span></p>
                   </div>
                 </div>
                 <ul className="space-y-2 text-sm text-slate-200">
-                  <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> 3 minutes par visuel</li>
-                  <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> Modifications illimitées</li>
-                  <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> {"Visuels liés à l'actu du jour"}</li>
-                  <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> Vidéo IA + audio narration inclus</li>
-                  <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> Texte, légendes, hashtags auto</li>
+                  <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> {locale === 'fr' ? '3 minutes par visuel' : '3 minutes per visual'}</li>
+                  <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> {locale === 'fr' ? 'Modifications illimitées' : 'Unlimited revisions'}</li>
+                  <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> {locale === 'fr' ? 'Visuels liés à l\u2019actu du jour' : 'Visuals tied to today\u2019s news'}</li>
+                  <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> {locale === 'fr' ? 'Vidéo + audio narration inclus' : 'Video + audio narration included'}</li>
+                  <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> {locale === 'fr' ? 'Texte, légendes, hashtags auto' : 'Copy, captions, hashtags auto'}</li>
                   <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> Instagram + TikTok + LinkedIn</li>
-                  <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> Branding personnalisé (Business)</li>
-                  <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> Multi-format automatique (Business)</li>
-                  <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> Statistiques et analyse intégrées</li>
-                  <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> Assistant Marketing Intelligence</li>
-                  <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> Disponible 24/7</li>
-                  <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> Calendrier de planification</li>
+                  <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> {locale === 'fr' ? 'Branding personnalisé (Business)' : 'Custom branding (Business)'}</li>
+                  <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> {locale === 'fr' ? 'Multi-format automatique (Business)' : 'Auto multi-format (Business)'}</li>
+                  <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> {locale === 'fr' ? 'Statistiques et analyse intégrées' : 'Stats and analytics built in'}</li>
+                  <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> {locale === 'fr' ? 'Assistant Marketing Intelligence' : 'Marketing Intelligence assistant'}</li>
+                  <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> {locale === 'fr' ? 'Disponible 24/7' : 'Available 24/7'}</li>
+                  <li className="flex gap-2"><span className="text-cyan-400 font-bold flex-shrink-0">✓</span> {locale === 'fr' ? 'Calendrier de planification' : 'Scheduling calendar'}</li>
                 </ul>
               </div>
             </div>
 
             {/* Barre économie */}
             <div className="bg-green-500/15 backdrop-blur-sm rounded-xl border border-green-400/20 p-4 text-center">
-              <p className="text-green-400 font-bold text-lg">{"Économie moyenne constatée : "}<strong>-95%</strong>{" soit "}<strong>{"2 350€ à 4 850€ économisés"}</strong>{" chaque mois"}</p>
+              <p className="text-green-400 font-bold text-lg">{locale === 'fr' ? 'Économie moyenne constatée : ' : 'Average observed savings: '}<strong>-95%</strong>{locale === 'fr' ? ' soit ' : ' = '}<strong>{locale === 'fr' ? '2 350\u20AC à 4 850\u20AC économisés' : '\u20AC2,350\u20134,850 saved'}</strong>{locale === 'fr' ? ' chaque mois' : ' every month'}</p>
             </div>
           </div>
         </div>
@@ -817,16 +846,16 @@ function PricingPageInner() {
 
         <div className="mb-16">
           <h3 className="text-2xl md:text-3xl font-bold text-center mb-8">
-            {"KeiroAI vs outils IA gratuits — comparaison détaillée"}
+            {locale === 'fr' ? 'KeiroAI vs outils gratuits \u2014 comparaison détaillée' : 'KeiroAI vs free AI tools \u2014 detailed comparison'}
           </h3>
 
           {/* Banner highlight */}
           <div className="bg-gradient-to-r from-cyan-500 to-[#0c1a3a] text-white rounded-2xl p-6 mb-8">
             <p className="text-xl md:text-2xl font-bold mb-2">
-              {"La vidéo change tout. ChatGPT ne fait pas de vidéo."}
+              {locale === 'fr' ? 'La vidéo change tout. ChatGPT ne fait pas de vidéo.' : 'Video changes everything. ChatGPT doesn\u2019t do video.'}
             </p>
             <p className="text-cyan-100 text-sm md:text-base">
-              {"Sur TikTok, une vidéo de 15-30 secondes peut toucher 100 000 personnes gratuitement. ChatGPT génère des images. Pas des vidéos. KeiroAI génère des vidéos avec narration audio, prêtes à publier. En 3 minutes."}
+              {locale === 'fr' ? 'Sur TikTok, une vidéo de 15-30 secondes peut toucher 100 000 personnes gratuitement. ChatGPT génère des images. Pas des vidéos. KeiroAI génère des vidéos avec narration audio, prêtes à publier. En 3 minutes.' : 'On TikTok, a 15\u201330 second video can reach 100,000 people for free. ChatGPT generates images. Not videos. KeiroAI generates videos with audio narration, ready to publish. In 3 minutes.'}
             </p>
           </div>
 

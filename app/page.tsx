@@ -87,8 +87,8 @@ function HomeKeiroInner() {
               <div className="p-4 pb-2">
                 <div className="flex items-center justify-between mb-3">
                   <div>
-                    <h3 className="font-bold text-white text-sm">{locale === 'fr' ? '17 Agents IA' : '17 AI Agents'}</h3>
-                    <p className="text-[10px] text-white/40">{locale === 'fr' ? 'Votre equipe travaille 24/7' : 'Your team works 24/7'}</p>
+                    <h3 className="font-bold text-white text-sm">{locale === 'fr' ? 'Ton équipe de 17 agents' : 'Your team of 17 agents'}</h3>
+                    <p className="text-[10px] text-white/40">{locale === 'fr' ? 'Ton équipe bosse 24/7' : 'Your team works 24/7'}</p>
                   </div>
                   <div className="flex items-center gap-1.5 px-2 py-0.5 bg-green-500/20 rounded-full">
                     <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
@@ -103,12 +103,12 @@ function HomeKeiroInner() {
                   const agents = [
                     { id: 'ceo', name: 'Noah', color: 'from-indigo-500 to-blue-600', role: 'CEO', icon: '\uD83E\uDDE0' },
                     { id: 'marketing', name: 'Ami', color: 'from-pink-500 to-rose-500', role: 'Marketing', icon: '\uD83C\uDFAF' },
-                    { id: 'content', name: 'Lena', color: 'from-purple-500 to-violet-600', role: 'Contenu', icon: '\u2728' },
-                    { id: 'commercial', name: 'Leo', color: 'from-blue-500 to-cyan-500', role: 'Commercial', icon: '\uD83E\uDD1D' },
+                    { id: 'content', name: 'Lena', color: 'from-purple-500 to-violet-600', role: locale === 'fr' ? 'Contenu' : 'Content', icon: '\u2728' },
+                    { id: 'commercial', name: 'Leo', color: 'from-blue-500 to-cyan-500', role: locale === 'fr' ? 'Commercial' : 'Sales', icon: '\uD83E\uDD1D' },
                     { id: 'email', name: 'Hugo', color: 'from-cyan-500 to-blue-500', role: 'Email', icon: '\uD83D\uDCE7' },
                     { id: 'dm_instagram', name: 'Jade', color: 'from-rose-500 to-pink-600', role: 'DM', icon: '\uD83D\uDCAC' },
                     { id: 'seo', name: 'Oscar', color: 'from-amber-500 to-orange-500', role: 'SEO', icon: '\uD83D\uDD0D' },
-                    { id: 'ads', name: 'Felix', color: 'from-red-500 to-orange-500', role: 'Pub', icon: '\uD83D\uDCE2' },
+                    { id: 'ads', name: 'Felix', color: 'from-red-500 to-orange-500', role: locale === 'fr' ? 'Pub' : 'Ads', icon: '\uD83D\uDCE2' },
                     { id: 'whatsapp', name: 'Stella', color: 'from-green-500 to-emerald-600', role: 'WhatsApp', icon: '\uD83D\uDCF2' },
                     { id: 'chatbot', name: 'Max', color: 'from-violet-500 to-purple-600', role: 'Chatbot', icon: '\uD83E\uDD16' },
                     { id: 'tiktok_comments', name: 'Axel', color: 'from-gray-600 to-gray-800', role: 'TikTok', icon: '\uD83C\uDFB5' },
@@ -161,14 +161,14 @@ function HomeKeiroInner() {
 
                 {/* Stats bar */}
                 <div className="flex items-center justify-center gap-4 py-2 border-t border-white/5">
-                  <div className="text-center"><div className="text-white font-bold text-xs">17</div><div className="text-white/30 text-[9px]">Agents</div></div>
-                  <div className="text-center"><div className="text-white font-bold text-xs">24/7</div><div className="text-white/30 text-[9px]">Actifs</div></div>
-                  <div className="text-center"><div className="text-white font-bold text-xs">{'\u{1F52E}'}</div><div className="text-white/30 text-[9px]">Super entraines</div></div>
+                  <div className="text-center"><div className="text-white font-bold text-xs">17</div><div className="text-white/30 text-[9px]">{locale === 'fr' ? 'Agents' : 'Agents'}</div></div>
+                  <div className="text-center"><div className="text-white font-bold text-xs">24/7</div><div className="text-white/30 text-[9px]">{locale === 'fr' ? 'Actifs' : 'Active'}</div></div>
+                  <div className="text-center"><div className="text-white font-bold text-xs">{'\u{1F52E}'}</div><div className="text-white/30 text-[9px]">{locale === 'fr' ? 'Super entrainés' : 'Deeply trained'}</div></div>
                 </div>
               </div>
 
               <a href="/assistant" className="block p-3 bg-gradient-to-r from-purple-600/20 to-blue-600/20 border-t border-white/10 text-center hover:from-purple-600/30 hover:to-blue-600/30 transition-all">
-                <span className="text-xs text-purple-300 font-semibold">{locale === 'fr' ? 'Decouvrir votre equipe IA \u2192' : 'Discover your AI team \u2192'}</span>
+                <span className="text-xs text-purple-300 font-semibold">{locale === 'fr' ? 'Découvrir ton équipe \u2192' : 'Meet your team \u2192'}</span>
               </a>
             </div>
           </div>
@@ -189,12 +189,12 @@ function HomeKeiroInner() {
             <div className="flex items-center gap-2 sm:gap-3">
               <KeiroIcon name="sparkle" className="w-5 h-5 sm:w-6 sm:h-6 text-purple-300" />
               <div>
-                <p className="font-semibold text-sm sm:text-base">{t.home.freeTrialTitle || 'Essai gratuit 7 jours'}</p>
-                <p className="text-[10px] sm:text-xs text-purple-200">{t.home.freeTrialSubtitle || 'Carte requise, aucun debit. Annulation en 1 clic a tout moment.'}</p>
+                <p className="font-semibold text-sm sm:text-base">{t.home.freeTrialTitle || (locale === 'fr' ? 'Essai gratuit 7 jours' : '7-day free trial')}</p>
+                <p className="text-[10px] sm:text-xs text-purple-200">{t.home.freeTrialSubtitle || (locale === 'fr' ? 'Carte requise, aucun débit. Annulation en 1 clic à tout moment.' : 'Card required, no charge. Cancel in 1 click anytime.')}</p>
               </div>
             </div>
             <Link href="/checkout/upsell?plan=createur" className="px-7 py-3 rounded-xl bg-white text-[#0c1a3a] font-extrabold hover:bg-purple-50 transition-all text-sm whitespace-nowrap shadow-lg hover:shadow-2xl hover:scale-105">
-              {t.home.freeTrialCta || 'Essai gratuit 7 jours'} →
+              {t.home.freeTrialCta || (locale === 'fr' ? 'Essai gratuit 7 jours' : 'Start free trial')} →
             </Link>
           </div>
           </div>
@@ -427,7 +427,7 @@ function HomeKeiroInner() {
           <div className="text-center mb-6 sm:mb-12">
             <div className="inline-flex items-center gap-2 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-300 text-[10px] sm:text-xs font-semibold mb-3 sm:mb-4">
               <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-purple-400 animate-pulse" />
-              {locale === 'fr' ? '17 agents IA ultra-elite' : '17 ultra-elite AI agents'}
+              {locale === 'fr' ? '17 agents ultra-élite' : '17 ultra-elite agents'}
             </div>
             <h2 className="text-xl sm:text-3xl md:text-4xl font-bold text-white mb-2 sm:mb-3">
               {locale === 'fr' ? 'Une equipe complete qui travaille pour vous' : 'A complete team working for you'}
@@ -564,7 +564,7 @@ function HomeKeiroInner() {
               <div className="p-4">
                 <div className="grid grid-cols-2 gap-2 mb-3">
                   {[
-                    { icon: '\uD83E\uDDE0', name: 'Noah', role: locale === 'fr' ? 'CEO IA \u2014 pilote la strategie globale de l\'entreprise' : 'AI CEO \u2014 drives global business strategy' },
+                    { icon: '\uD83E\uDDE0', name: 'Noah', role: locale === 'fr' ? 'CEO \u2014 pilote la stratégie globale de l\'entreprise' : 'CEO \u2014 drives global business strategy' },
                     { icon: '\uD83C\uDFAF', name: 'Ami', role: locale === 'fr' ? 'Directrice marketing \u2014 coordonne tous les agents' : 'Marketing director \u2014 coordinates all agents' },
                     { icon: '\uD83D\uDD04', name: 'Theo R.', role: locale === 'fr' ? 'Retention \u2014 garde vos clients actifs' : 'Retention \u2014 keeps clients active' },
                     { icon: '\u2699\uFE0F', name: 'Ops', role: locale === 'fr' ? 'Diagnostic \u2014 sante du systeme 24/7' : 'Diagnostic \u2014 system health 24/7' },
@@ -614,7 +614,7 @@ function HomeKeiroInner() {
                     : 'Your agents publish, prospect, follow-up, optimize — while you run your business.'}
                 </p>
                 <a href="/assistant" className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-purple-500/30 transition-all text-sm">
-                  {locale === 'fr' ? 'Decouvrir vos agents IA' : 'Discover your AI agents'} →
+                  {locale === 'fr' ? 'Découvrir tes agents' : 'Meet your agents'} →
                 </a>
               </div>
             </div>
@@ -852,14 +852,14 @@ function HomeKeiroInner() {
               <div className="relative aspect-square bg-gradient-to-br from-orange-100 to-red-50 dark:from-orange-900/30 dark:to-red-900/30 flex items-center justify-center">
                 <div className="text-center px-4">
                   <div className="text-4xl mb-2">{'\u{1F35D}'}</div>
-                  <div className="bg-black/70 backdrop-blur-sm text-white px-4 py-2 rounded-lg text-sm font-bold">Les 5 plats que tout Paris s&apos;arrache cet hiver</div>
+                  <div className="bg-black/70 backdrop-blur-sm text-white px-4 py-2 rounded-lg text-sm font-bold">{locale === 'fr' ? 'Les 5 plats que tout Paris s\u2019arrache cet hiver' : 'The 5 dishes all of London is chasing this winter'}</div>
                 </div>
                 <div className="absolute top-2 right-2 bg-emerald-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full">KeiroAI</div>
               </div>
               <div className="p-3">
                 <p className="text-[11px] text-neutral-700 dark:text-white/70 leading-relaxed">
-                  <span className="font-bold">{'\u{1F525}'} Tendance food alert !</span> La truffe est de retour et on a cree un menu special...{'\n'}
-                  <span className="text-[10px] text-blue-500">#RestaurantParis #TruffeHiver #FoodParis #GastronomieIA</span>
+                  <span className="font-bold">{'\u{1F525}'} {locale === 'fr' ? 'Tendance food alert !' : 'Food trend alert!'}</span> {locale === 'fr' ? 'La truffe est de retour et on a créé un menu spécial...' : 'Truffle season is back and we\u2019ve crafted a special menu...'}{'\n'}
+                  <span className="text-[10px] text-blue-500">{locale === 'fr' ? '#RestaurantParis #TruffeHiver #FoodParis #Gastronomie' : '#LondonRestaurant #TruffleSeason #FoodLondon #Gastronomy'}</span>
                 </p>
                 <div className="flex items-center gap-3 mt-2 pt-2 border-t border-neutral-100 dark:border-white/5">
                   <span className="text-[10px] text-neutral-400">{'\u2764\uFE0F'} 847</span>
@@ -874,14 +874,14 @@ function HomeKeiroInner() {
               <div className="relative aspect-square bg-gradient-to-br from-pink-100 to-purple-50 dark:from-pink-900/30 dark:to-purple-900/30 flex items-center justify-center">
                 <div className="text-center px-4">
                   <div className="text-4xl mb-2">{'\u2702\uFE0F'}</div>
-                  <div className="bg-black/70 backdrop-blur-sm text-white px-4 py-2 rounded-lg text-sm font-bold">Cette coupe fait fureur sur TikTok — voici pourquoi</div>
+                  <div className="bg-black/70 backdrop-blur-sm text-white px-4 py-2 rounded-lg text-sm font-bold">{locale === 'fr' ? 'Cette coupe fait fureur sur TikTok \u2014 voici pourquoi' : 'This haircut is exploding on TikTok \u2014 here\u2019s why'}</div>
                 </div>
                 <div className="absolute top-2 right-2 bg-emerald-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full">KeiroAI</div>
               </div>
               <div className="p-3">
                 <p className="text-[11px] text-neutral-700 dark:text-white/70 leading-relaxed">
-                  <span className="font-bold">{'\u{1F4C8}'} +340% de vues sur ce type de Reel !</span> Le butterfly cut explose en ce moment...{'\n'}
-                  <span className="text-[10px] text-blue-500">#CoiffeurLyon #ButterflyCut #TendanceCoiffure #ReelCoiffure</span>
+                  <span className="font-bold">{'\u{1F4C8}'} {locale === 'fr' ? '+340% de vues sur ce type de Reel !' : '+340% views on this type of Reel!'}</span> {locale === 'fr' ? 'Le butterfly cut explose en ce moment...' : 'The butterfly cut is trending hard right now...'}{'\n'}
+                  <span className="text-[10px] text-blue-500">{locale === 'fr' ? '#CoiffeurLyon #ButterflyCut #TendanceCoiffure #ReelCoiffure' : '#HairstylistLondon #ButterflyCut #HairTrend #HairstyleReel'}</span>
                 </p>
                 <div className="flex items-center gap-3 mt-2 pt-2 border-t border-neutral-100 dark:border-white/5">
                   <span className="text-[10px] text-neutral-400">{'\u2764\uFE0F'} 1.2K</span>
@@ -896,14 +896,14 @@ function HomeKeiroInner() {
               <div className="relative aspect-square bg-gradient-to-br from-cyan-100 to-blue-50 dark:from-cyan-900/30 dark:to-blue-900/30 flex items-center justify-center">
                 <div className="text-center px-4">
                   <div className="text-4xl mb-2">{'\u{1F4AA}'}</div>
-                  <div className="bg-black/70 backdrop-blur-sm text-white px-4 py-2 rounded-lg text-sm font-bold">L&apos;erreur n{'\u00B0'}1 qui vous empeche de progresser</div>
+                  <div className="bg-black/70 backdrop-blur-sm text-white px-4 py-2 rounded-lg text-sm font-bold">{locale === 'fr' ? 'L\u2019erreur n\u00B01 qui vous empêche de progresser' : 'The #1 mistake stopping your progress'}</div>
                 </div>
                 <div className="absolute top-2 right-2 bg-emerald-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full">KeiroAI</div>
               </div>
               <div className="p-3">
                 <p className="text-[11px] text-neutral-700 dark:text-white/70 leading-relaxed">
-                  <span className="font-bold">{'\u{1F9E0}'} Etude du jour :</span> 73% des debutants font cette erreur au squat. Voici comment la corriger...{'\n'}
-                  <span className="text-[10px] text-blue-500">#CoachSportif #Musculation #FitnessMotivation #ConseilSport</span>
+                  <span className="font-bold">{'\u{1F9E0}'} {locale === 'fr' ? 'Étude du jour :' : 'Today\u2019s study:'}</span> {locale === 'fr' ? '73% des débutants font cette erreur au squat. Voici comment la corriger...' : '73% of beginners make this squat mistake. Here\u2019s the fix...'}{'\n'}
+                  <span className="text-[10px] text-blue-500">{locale === 'fr' ? '#CoachSportif #Musculation #FitnessMotivation #ConseilSport' : '#PersonalTrainer #Strength #FitnessMotivation #WorkoutTips'}</span>
                 </p>
                 <div className="flex items-center gap-3 mt-2 pt-2 border-t border-neutral-100 dark:border-white/5">
                   <span className="text-[10px] text-neutral-400">{'\u2764\uFE0F'} 2.1K</span>
@@ -919,15 +919,15 @@ function HomeKeiroInner() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-center">
               <div>
                 <div className="text-2xl font-black text-[#0c1a3a] dark:text-purple-300">{'\u{1F4C8}'} x12</div>
-                <div className="text-xs text-neutral-600 dark:text-white/50">plus d&apos;engagement moyen</div>
+                <div className="text-xs text-neutral-600 dark:text-white/50">{locale === 'fr' ? 'plus d\u2019engagement moyen' : 'more average engagement'}</div>
               </div>
               <div>
-                <div className="text-2xl font-black text-[#0c1a3a] dark:text-purple-300">{'\u{1F525}'} Tendance</div>
-                <div className="text-xs text-neutral-600 dark:text-white/50">contenu lie a l&apos;actualite du jour</div>
+                <div className="text-2xl font-black text-[#0c1a3a] dark:text-purple-300">{'\u{1F525}'} {locale === 'fr' ? 'Tendance' : 'Trending'}</div>
+                <div className="text-xs text-neutral-600 dark:text-white/50">{locale === 'fr' ? 'contenu lié à l\u2019actualité du jour' : 'content tied to today\u2019s news'}</div>
               </div>
               <div>
                 <div className="text-2xl font-black text-[#0c1a3a] dark:text-purple-300">{'\u{1F3AF}'} #Hashtags</div>
-                <div className="text-xs text-neutral-600 dark:text-white/50">optimises IA pour votre niche</div>
+                <div className="text-xs text-neutral-600 dark:text-white/50">{locale === 'fr' ? 'optimisés pour ta niche' : 'optimised for your niche'}</div>
               </div>
             </div>
           </div>
@@ -1053,7 +1053,7 @@ function HomeKeiroInner() {
             {t.home.testimonialCtaSub}
           </p>
         </div>
-        <p className="text-xs text-center text-neutral-400 mt-2 italic">Retours basés sur des tests utilisateurs</p>
+        <p className="text-xs text-center text-neutral-400 mt-2 italic">{locale === 'fr' ? 'Retours basés sur des tests utilisateurs' : 'Feedback collected from user tests'}</p>
       </section>
 
       {/* ═══ MORE HIDDEN SECTIONS ═══ */}
@@ -1385,13 +1385,13 @@ function HomeKeiroInner() {
           {/* Title */}
           <div className="text-center mb-8 sm:mb-14">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-red-500 to-orange-500 text-white text-xs font-bold mb-4 shadow-lg">
-              {'\u{1F525}'} La verite que personne ne vous dit
+              {'\u{1F525}'} {locale === 'fr' ? 'La vérité que personne ne te dit' : 'The truth no one tells you'}
             </div>
             <h2 className="text-2xl sm:text-4xl md:text-5xl font-black mb-3 sm:mb-4">
-              Pourquoi 95% des commerces<br className="hidden sm:block" /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-orange-500">abandonnent Instagram</span>
+              {locale === 'fr' ? 'Pourquoi 95% des commerces' : 'Why 95% of businesses'}<br className="hidden sm:block" /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-orange-500">{locale === 'fr' ? 'abandonnent Instagram' : 'abandon Instagram'}</span>
             </h2>
             <p className="text-sm sm:text-lg text-neutral-600 max-w-2xl mx-auto">
-              Vous avez deja essaye ChatGPT, Canva, ou meme un CM freelance. Voici ce qui se passe vraiment.
+              {locale === 'fr' ? 'Tu as déjà essayé ChatGPT, Canva, ou même un CM freelance. Voici ce qui se passe vraiment.' : 'You\u2019ve tried ChatGPT, Canva, or even a freelance CM. Here\u2019s what actually happens.'}
             </p>
           </div>
 
@@ -1404,7 +1404,7 @@ function HomeKeiroInner() {
           {/* Comparatif ChatGPT vs CM vs KeiroAI — tableau */}
           <div className="mb-10 sm:mb-16">
             <h3 className="text-xl sm:text-2xl font-bold text-center mb-6 sm:mb-8">
-              Le vrai comparatif <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#0c1a3a] to-purple-600">sans bullshit</span>
+              {locale === 'fr' ? 'Le vrai comparatif' : 'The real comparison'} <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#0c1a3a] to-purple-600">{locale === 'fr' ? 'sans bullshit' : 'no bullshit'}</span>
             </h3>
             <div className="overflow-x-auto -mx-4 px-4">
               <table className="w-full text-sm border-collapse min-w-[400px] sm:min-w-[600px]">
@@ -1417,18 +1417,29 @@ function HomeKeiroInner() {
                   </tr>
                 </thead>
                 <tbody>
-                  {[
-                    ['Prix', '0-20€/mois', '1 500-3 000€/mois', '49€/mois'],
+                  {(locale === 'fr' ? [
+                    ['Prix', '0-20\u20AC/mois', '1 500-3 000\u20AC/mois', '49\u20AC/mois'],
                     ['Visuels/semaine', '2-3 (manuels)', '5-10', '21+ (auto)'],
-                    ['Videos', '\u274C Non', '\u274C Non inclus', '\u2705 Reels + TikTok'],
+                    ['Vidéos', '\u274C Non', '\u274C Non inclus', '\u2705 Reels + TikTok'],
                     ['DMs automatiques', '\u274C Non', '\u274C Non', '\u2705 50/jour'],
-                    ['CRM integre', '\u274C Non', '\u274C Non', '\u2705 Scoring IA'],
-                    ['Emailing auto', '\u274C Non', '\u274C Non', '\u2705 Sequences 5 etapes'],
-                    ['Avis Google', '\u274C Non', '\u274C Rarement', '\u2705 Reponse auto IA'],
+                    ['CRM intégré', '\u274C Non', '\u274C Non', '\u2705 Scoring auto'],
+                    ['Emailing auto', '\u274C Non', '\u274C Non', '\u2705 Séquences 5 étapes'],
+                    ['Avis Google', '\u274C Non', '\u274C Rarement', '\u2705 Réponse auto Théo'],
                     ['SEO site web', '\u274C Non', '\u274C Non', '\u2705 Audit + reco'],
                     ['Temps requis', '5-10h/sem', '2h/sem briefing', '0h (100% auto)'],
-                    ['18 agents IA', '\u274C', '\u274C', '\u2705'],
-                  ].map(([feature, chatgpt, cm, keiro], i) => (
+                    ['17 agents', '\u274C', '\u274C', '\u2705'],
+                  ] : [
+                    ['Price', '\u20AC0-20/month', '\u20AC1,500-3,000/month', '\u20AC49/month'],
+                    ['Visuals/week', '2-3 (manual)', '5-10', '21+ (auto)'],
+                    ['Videos', '\u274C No', '\u274C Not included', '\u2705 Reels + TikTok'],
+                    ['Automatic DMs', '\u274C No', '\u274C No', '\u2705 50/day'],
+                    ['Integrated CRM', '\u274C No', '\u274C No', '\u2705 Auto scoring'],
+                    ['Auto emailing', '\u274C No', '\u274C No', '\u2705 5-step sequences'],
+                    ['Google reviews', '\u274C No', '\u274C Rarely', '\u2705 Auto reply by Theo'],
+                    ['Website SEO', '\u274C No', '\u274C No', '\u2705 Audit + recs'],
+                    ['Time required', '5-10h/week', '2h/week briefing', '0h (100% auto)'],
+                    ['17 agents', '\u274C', '\u274C', '\u2705'],
+                  ]).map(([feature, chatgpt, cm, keiro], i) => (
                     <tr key={i} className={`${i % 2 === 0 ? 'bg-neutral-50 dark:bg-white/5' : ''} border-b border-neutral-100 dark:border-white/5`}>
                       <td className="py-2.5 px-3 sm:px-4 font-medium text-neutral-700 dark:text-white/80 text-xs sm:text-sm">{feature}</td>
                       <td className="py-2.5 px-2 sm:px-4 text-center text-neutral-500 dark:text-white/40 text-xs sm:text-sm">{chatgpt}</td>
@@ -1444,15 +1455,15 @@ function HomeKeiroInner() {
           {/* Punchline finale */}
           <div className="bg-gradient-to-r from-[#0c1a3a] to-purple-900 text-white rounded-2xl p-6 sm:p-10 text-center">
             <p className="text-lg sm:text-2xl font-bold mb-2">
-              ChatGPT c&apos;est un couteau suisse. KeiroAI c&apos;est <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-orange-300">votre equipe marketing complete</span>.
+              {locale === 'fr' ? 'ChatGPT c\u2019est un couteau suisse. KeiroAI c\u2019est ' : 'ChatGPT is a Swiss army knife. KeiroAI is '}<span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-orange-300">{locale === 'fr' ? 'ton équipe marketing complète' : 'your complete marketing team'}</span>.
             </p>
             <p className="text-sm sm:text-base text-white/70 mb-4 sm:mb-6 max-w-2xl mx-auto">
-              18 agents IA specialises qui travaillent 24/7 : creation, publication, DMs, emails, SEO, avis Google, CRM, analytics. Tout est automatise.
+              {locale === 'fr' ? '17 agents spécialisés qui travaillent 24/7 : création, publication, DMs, emails, SEO, avis Google, CRM, analytics. Tout est automatisé.' : '17 specialised agents working 24/7: creation, publishing, DMs, emails, SEO, Google reviews, CRM, analytics. All automated.'}
             </p>
             <Link href="/checkout/upsell?plan=createur" className="inline-block px-6 sm:px-10 py-3 sm:py-4 bg-white text-[#0c1a3a] font-extrabold text-sm sm:text-base rounded-xl hover:shadow-2xl hover:scale-105 transition-all">
-              Essai gratuit 7 jours — 0€ {'\u2192'}
+              {locale === 'fr' ? 'Essai gratuit 7 jours \u2014 0\u20AC ' : 'Free trial 7 days \u2014 \u20AC0 '}{'\u2192'}
             </Link>
-            <p className="text-xs text-white/40 mt-2">Carte requise, aucun debit. Annulation en 1 clic.</p>
+            <p className="text-xs text-white/40 mt-2">{locale === 'fr' ? 'Carte requise, aucun débit. Annulation en 1 clic.' : 'Card required, no charge. Cancel in 1 click.'}</p>
           </div>
         </div>
       </section>
@@ -1502,15 +1513,15 @@ function HomeKeiroInner() {
           <div className="max-w-2xl mx-auto mb-10">
             <div className="bg-gradient-to-r from-[#0c1a3a]/5 to-purple-50 dark:from-[#0c1a3a] dark:to-purple-900/30 rounded-2xl border border-purple-200 dark:border-purple-500/20 p-5 flex flex-col sm:flex-row items-center gap-4">
               <div className="flex-1 text-center sm:text-left">
-                <p className="text-sm font-bold text-neutral-900 dark:text-white">🎁 {t.home.freeTrialTitle || 'Essai gratuit 7 jours'}</p>
-                <p className="text-xs text-neutral-600 dark:text-neutral-300 mt-0.5">{t.home.freeTrialPricingDesc || 'Tous les agents IA débloqués — carte requise, 0€ débité'}</p>
-                <p className="text-[11px] text-purple-700 dark:text-purple-300 mt-0.5">{t.home.freeTrialPricingNote || '0€ pendant 7 jours • Carte requise • Annulation à tout moment'}</p>
+                <p className="text-sm font-bold text-neutral-900 dark:text-white">🎁 {t.home.freeTrialTitle || (locale === 'fr' ? 'Essai gratuit 7 jours' : '7-day free trial')}</p>
+                <p className="text-xs text-neutral-600 dark:text-neutral-300 mt-0.5">{t.home.freeTrialPricingDesc || (locale === 'fr' ? 'Tous les agents débloqués — carte requise, 0€ débité' : 'All agents unlocked — card required, €0 charged')}</p>
+                <p className="text-[11px] text-purple-700 dark:text-purple-300 mt-0.5">{t.home.freeTrialPricingNote || (locale === 'fr' ? '0€ pendant 7 jours • Carte requise • Annulation à tout moment' : '€0 for 7 days • Card required • Cancel anytime')}</p>
               </div>
               <Link
                 href="/checkout/upsell?plan=createur"
                 className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#0c1a3a] to-purple-700 text-white text-sm font-bold hover:shadow-lg transition-all hover:-translate-y-0.5 whitespace-nowrap flex-shrink-0"
               >
-                {t.home.freeTrialCta || 'Essai gratuit 7 jours'}
+                {t.home.freeTrialCta || (locale === 'fr' ? 'Essai gratuit 7 jours' : 'Start free trial')}
               </Link>
             </div>
           </div>
@@ -1522,12 +1533,13 @@ function HomeKeiroInner() {
               price={billingPeriod === 'annual' ? `490\u20AC ${t.common.perYear}` : `49\u20AC ${t.common.perMonth}`}
               subtitle={locale === 'fr' ? 'Boutiques, restos, freelances' : 'Shops, restaurants, freelancers'}
               bullets={[
-                locale === 'fr' ? '7 agents IA inclus' : '7 AI agents included',
+                locale === 'fr' ? '7 agents inclus' : '7 agents included',
                 locale === 'fr' ? '400 credits/mois' : '400 credits/month',
                 locale === 'fr' ? 'Contenu, Email, DM, CRM' : 'Content, Email, DM, CRM',
                 locale === 'fr' ? 'Avis Google auto' : 'Google reviews auto',
               ]}
-              ctaLabel={locale === 'fr' ? 'Essai gratuit 7 jours' : 'Free trial 7 days'}
+              ctaLabel={locale === 'fr' ? 'Essai gratuit 7 jours' : 'Start free trial'}
+              trialNote={locale === 'fr' ? '0\u20AC pendant 7j \u00B7 Annulation en 1 clic' : '\u20AC0 for 7 days \u00B7 Cancel in 1 click'}
               ctaOnClick={() => {
                 if (billingPeriod === 'monthly') {
                   setShowUpsellPro(true);
@@ -1543,12 +1555,13 @@ function HomeKeiroInner() {
               priceNote={billingPeriod === 'annual' ? t.home.priceNotePro : undefined}
               subtitle={locale === 'fr' ? 'Restos, hotels, commerces qui veulent grandir' : 'Restaurants, hotels, growing businesses'}
               bullets={[
-                locale === 'fr' ? '10 agents IA inclus' : '10 AI agents included',
+                locale === 'fr' ? '10 agents inclus' : '10 agents included',
                 locale === 'fr' ? '800 credits/mois' : '800 credits/month',
                 locale === 'fr' ? 'Tout Createur + SEO' : 'All Creator + SEO',
                 locale === 'fr' ? 'Chatbot 24/7 + RH' : 'Chatbot 24/7 + HR',
               ]}
-              ctaLabel={billingPeriod === 'annual' ? t.home.ctaProAnnual : locale === 'fr' ? 'Essai gratuit 7 jours' : 'Free trial 7 days'}
+              ctaLabel={billingPeriod === 'annual' ? t.home.ctaProAnnual : locale === 'fr' ? 'Essai gratuit 7 jours' : 'Start free trial'}
+              trialNote={locale === 'fr' ? '0\u20AC pendant 7j \u00B7 Annulation en 1 clic' : '\u20AC0 for 7 days \u00B7 Cancel in 1 click'}
               ctaOnClick={() => startCheckout(billingPeriod === 'annual' ? 'pro_annual' : 'pro')}
             />
 
@@ -1560,12 +1573,13 @@ function HomeKeiroInner() {
               special
               highlight
               bullets={[
-                locale === 'fr' ? '15+ agents IA inclus' : '15+ AI agents included',
+                locale === 'fr' ? '15+ agents inclus' : '15+ agents included',
                 locale === 'fr' ? '2 000 credits/mois' : '2,000 credits/month',
                 locale === 'fr' ? 'Tout Pro + Finance' : 'All Pro + Finance',
-                locale === 'fr' ? 'LinkedIn, Ads, WhatsApp (bientot)' : 'LinkedIn, Ads, WhatsApp (soon)',
+                locale === 'fr' ? 'LinkedIn, Ads, WhatsApp (bientôt)' : 'LinkedIn, Ads, WhatsApp (soon)',
               ]}
               ctaLabel={billingPeriod === 'annual' ? t.home.ctaBusinessAnnual : t.home.ctaChooseBusiness}
+              trialNote={locale === 'fr' ? '0\u20AC pendant 7j \u00B7 Annulation en 1 clic' : '\u20AC0 for 7 days \u00B7 Cancel in 1 click'}
               ctaOnClick={() => startCheckout(billingPeriod === 'annual' ? 'business_annual' : 'business')}
             />
           </div>
@@ -1607,60 +1621,60 @@ function HomeKeiroInner() {
       {/* CONCRÈTEMENT LA DIFFÉRENCE */}
       <section className="hp-light-island mx-auto max-w-6xl px-6 py-16 mt-12">
         <div className="text-center mb-10">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3">Concrètement, c&apos;est quoi la différence ?</h2>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3">{locale === 'fr' ? 'Concrètement, c\u2019est quoi la différence ?' : 'In plain terms — what\u2019s the difference?'}</h2>
         </div>
 
         <div className="grid md:grid-cols-2 gap-4 md:gap-8 mb-10">
           {/* Pro card */}
           <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl border border-purple-200 p-6">
-            <h3 className="text-xl font-bold text-purple-900 mb-4">💎 Pro — Votre vitrine Instagram, professionnelle et autonome</h3>
+            <h3 className="text-xl font-bold text-purple-900 mb-4">💎 {locale === 'fr' ? 'Pro — Ta vitrine Instagram, pro et autonome' : 'Pro — Your Instagram storefront, professional and autonomous'}</h3>
             <ul className="space-y-3 text-sm text-neutral-700">
               <li className="flex items-start gap-2">
                 <span className="text-purple-500 font-bold mt-0.5">▸</span>
-                <span><strong>C&apos;est comme...</strong> Un flyer distribué à 5 000 personnes — pro, ciblé et mesurable</span>
+                <span><strong>{locale === 'fr' ? 'C\u2019est comme...' : 'It\u2019s like...'}</strong> {locale === 'fr' ? 'Un flyer distribué à 5 000 personnes \u2014 pro, ciblé et mesurable' : 'A flyer handed to 5,000 people \u2014 pro, targeted, measurable'}</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-purple-500 font-bold mt-0.5">▸</span>
-                <span><strong>Ça remplace...</strong> Le neveu qui poste 1x/mois + Canva</span>
+                <span><strong>{locale === 'fr' ? 'Ça remplace...' : 'It replaces...'}</strong> {locale === 'fr' ? 'Le neveu qui poste 1x/mois + Canva' : 'The nephew posting 1×/month + Canva'}</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-purple-500 font-bold mt-0.5">▸</span>
-                <span><strong>En concret...</strong> ~3 posts pro/semaine sur Instagram, avec texte et hashtags</span>
+                <span><strong>{locale === 'fr' ? 'En concret...' : 'Concretely...'}</strong> {locale === 'fr' ? '~3 posts pro/semaine sur Instagram, avec texte et hashtags' : '~3 pro posts/week on Instagram, with copy and hashtags'}</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-purple-500 font-bold mt-0.5">▸</span>
-                <span><strong>Ça coûte...</strong> Le prix de 2 dîners au restaurant</span>
+                <span><strong>{locale === 'fr' ? 'Ça coûte...' : 'It costs...'}</strong> {locale === 'fr' ? 'Le prix de 2 dîners au restaurant' : 'The price of 2 dinners out'}</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-purple-500 font-bold mt-0.5">▸</span>
-                <span><strong>C&apos;est rentabilisé si...</strong> 1 vente en plus (boutique) / 5 couverts (resto)</span>
+                <span><strong>{locale === 'fr' ? 'C\u2019est rentabilisé si...' : 'It pays for itself with...'}</strong> {locale === 'fr' ? '1 vente en plus (boutique) / 5 couverts (resto)' : '1 extra sale (shop) / 5 covers (resto)'}</span>
               </li>
             </ul>
           </div>
 
           {/* Business card */}
           <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl border-2 border-amber-400 p-6 shadow-lg">
-            <h3 className="text-xl font-bold text-amber-900 mb-4">{'\u{1F3E2}'} Business — Votre marque partout, sur Instagram ET TikTok, en 3 formats</h3>
+            <h3 className="text-xl font-bold text-amber-900 mb-4">{'\u{1F3E2}'} {locale === 'fr' ? 'Business \u2014 Ta marque partout, sur Instagram ET TikTok, en 3 formats' : 'Business \u2014 Your brand everywhere, Instagram AND TikTok, 3 formats'}</h3>
             <ul className="space-y-3 text-sm text-neutral-700">
               <li className="flex items-start gap-2">
                 <span className="text-amber-500 font-bold mt-0.5">▸</span>
-                <span><strong>C&apos;est comme...</strong> Avoir un directeur marketing à temps partiel</span>
+                <span><strong>{locale === 'fr' ? 'C\u2019est comme...' : 'It\u2019s like...'}</strong> {locale === 'fr' ? 'Avoir un directeur marketing à temps partiel' : 'Having a part-time marketing director'}</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-amber-500 font-bold mt-0.5">▸</span>
-                <span><strong>Ça remplace...</strong> Un graphiste (800€) + un CM (1 500€) + stats (100€) + Canva Pro (12€)</span>
+                <span><strong>{locale === 'fr' ? 'Ça remplace...' : 'It replaces...'}</strong> {locale === 'fr' ? 'Un graphiste (800\u20AC) + un CM (1 500\u20AC) + stats (100\u20AC) + Canva Pro (12\u20AC)' : 'A designer (\u20AC800) + a CM (\u20AC1,500) + analytics (\u20AC100) + Canva Pro (\u20AC12)'}</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-amber-500 font-bold mt-0.5">▸</span>
-                <span><strong>En concret...</strong> ~5-6 posts/semaine, VOTRE logo, post + Story + Reel, Instagram ET TikTok</span>
+                <span><strong>{locale === 'fr' ? 'En concret...' : 'Concretely...'}</strong> {locale === 'fr' ? '~5-6 posts/semaine, TON logo, post + Story + Reel, Instagram ET TikTok' : '~5-6 posts/week, YOUR logo, post + Story + Reel, Instagram AND TikTok'}</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-amber-500 font-bold mt-0.5">▸</span>
-                <span><strong>Ça coûte...</strong> Le prix de 5 dîners au restaurant</span>
+                <span><strong>{locale === 'fr' ? 'Ça coûte...' : 'It costs...'}</strong> {locale === 'fr' ? 'Le prix de 5 dîners au restaurant' : 'The price of 5 dinners out'}</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-amber-500 font-bold mt-0.5">▸</span>
-                <span><strong>C&apos;est rentabilisé si...</strong> 2 ventes (boutique) / 7 couverts (resto) / 2 séances (coach)</span>
+                <span><strong>{locale === 'fr' ? 'C\u2019est rentabilisé si...' : 'It pays for itself with...'}</strong> {locale === 'fr' ? '2 ventes (boutique) / 7 couverts (resto) / 2 séances (coach)' : '2 sales (shop) / 7 covers (resto) / 2 sessions (coach)'}</span>
               </li>
             </ul>
           </div>
@@ -1796,35 +1810,35 @@ function HomeKeiroInner() {
             {/* Badge offre exclusive */}
             <div className="absolute -top-3 left-1/2 -translate-x-1/2">
               <span className="px-4 py-1 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs font-bold rounded-full uppercase tracking-wide shadow-lg">
-                Offre unique
+                {locale === 'fr' ? 'Offre unique' : 'One-time offer'}
               </span>
             </div>
 
             <div className="text-center mt-4">
               <div className="text-3xl mb-2">🚀</div>
               <h3 className="text-xl font-bold text-neutral-900 mb-2">
-                Passez au Plan Pro pour seulement 10€ de plus !
+                {locale === 'fr' ? 'Passe au Plan Pro pour seulement 10\u20AC de plus !' : 'Upgrade to Pro for just \u20AC10 more!'}
               </h3>
               <p className="text-sm text-neutral-600 mb-4">
-                Pour <span className="font-bold text-green-600">59€/mois au lieu de 99€</span> le 1er mois
-                <br />(-40% de reduction exclusive)
+                {locale === 'fr' ? 'Pour ' : 'At '}<span className="font-bold text-green-600">{locale === 'fr' ? '59\u20AC/mois au lieu de 99\u20AC' : '\u20AC59/month instead of \u20AC99'}</span>{locale === 'fr' ? ' le 1er mois' : ' the first month'}
+                <br />{locale === 'fr' ? '(-40% de réduction exclusive)' : '(40% exclusive discount)'}
               </p>
 
               {/* Comparaison rapide */}
               <div className="bg-neutral-50 rounded-xl p-4 mb-4 text-left text-sm">
-                <p className="font-semibold text-neutral-800 mb-2">Le Plan Pro inclut en plus :</p>
+                <p className="font-semibold text-neutral-800 mb-2">{locale === 'fr' ? 'Le Plan Pro inclut en plus :' : 'Pro also includes:'}</p>
                 <ul className="space-y-1.5 text-neutral-700">
-                  <li className="flex items-start gap-2"><span className="text-green-500 mt-0.5">✓</span> 1 200 credits/mois (3x plus)</li>
-                  <li className="flex items-start gap-2"><span className="text-green-500 mt-0.5">✓</span> Publication auto Instagram + TikTok + LinkedIn</li>
-                  <li className="flex items-start gap-2"><span className="text-green-500 mt-0.5">✓</span> Agent commercial + Email + WhatsApp</li>
-                  <li className="flex items-start gap-2"><span className="text-green-500 mt-0.5">✓</span> CRM integre + pipeline de vente</li>
+                  <li className="flex items-start gap-2"><span className="text-green-500 mt-0.5">✓</span> {locale === 'fr' ? '1 200 credits/mois (3x plus)' : '1,200 credits/month (3× more)'}</li>
+                  <li className="flex items-start gap-2"><span className="text-green-500 mt-0.5">✓</span> {locale === 'fr' ? 'Publication auto Instagram + TikTok + LinkedIn' : 'Auto-publishing Instagram + TikTok + LinkedIn'}</li>
+                  <li className="flex items-start gap-2"><span className="text-green-500 mt-0.5">✓</span> {locale === 'fr' ? 'Agent commercial + Email + WhatsApp' : 'Sales agent + Email + WhatsApp'}</li>
+                  <li className="flex items-start gap-2"><span className="text-green-500 mt-0.5">✓</span> {locale === 'fr' ? 'CRM intégré + pipeline de vente' : 'Integrated CRM + sales pipeline'}</li>
                 </ul>
               </div>
 
               {/* Urgence */}
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-5 text-xs text-amber-800">
-                <strong>Cette offre est unique et ne sera plus proposee.</strong>
-                <br />C&apos;est votre seule chance d&apos;en profiter.
+                <strong>{locale === 'fr' ? 'Cette offre est unique et ne sera plus proposée.' : 'This offer is one-time only and won\u2019t be shown again.'}</strong>
+                <br />{locale === 'fr' ? 'C\u2019est ta seule chance d\u2019en profiter.' : 'Your only chance to grab it.'}
               </div>
 
               {/* CTA principal — upsell Pro */}
@@ -1835,7 +1849,7 @@ function HomeKeiroInner() {
                   startCheckout('pro', 'createur');
                 }}
               >
-                Oui, je prends le Pro a -40%
+                {locale === 'fr' ? 'Oui, je prends le Pro à -40%' : 'Yes, I\u2019ll take Pro at -40%'}
               </button>
               {/* CTA secondaire — continuer Créateur */}
               <button
@@ -1845,9 +1859,9 @@ function HomeKeiroInner() {
                   startCheckout('createur');
                 }}
               >
-                Non merci, je reste sur Createur
+                {locale === 'fr' ? 'Non merci, je reste sur Créateur' : 'No thanks, I\u2019ll stay on Creator'}
               </button>
-              <p className="text-center text-[10px] text-neutral-400 mt-2">0{'\u20AC'} pendant 7 jours {'\u00B7'} Annulation en 1 clic a tout moment</p>
+              <p className="text-center text-[10px] text-neutral-400 mt-2">{locale === 'fr' ? '0\u20AC pendant 7 jours \u00B7 Annulation en 1 clic à tout moment' : '\u20AC0 for 7 days \u00B7 Cancel in 1 click anytime'}</p>
             </div>
           </div>
         </div>
@@ -2182,7 +2196,7 @@ function Card({ children }: { children: React.ReactNode }) {
 }
 
 function Plan({
-  title, price, priceNote, promoPrice, promoNote, subtitle, bullets, ctaLabel, ctaHref, ctaOnClick, highlight, special
+  title, price, priceNote, promoPrice, promoNote, subtitle, bullets, ctaLabel, ctaHref, ctaOnClick, highlight, special, trialNote
 }: {
   title: string;
   price: string;
@@ -2196,6 +2210,7 @@ function Plan({
   ctaOnClick?: () => void;
   highlight?: boolean;
   special?: boolean;
+  trialNote?: string;
 }) {
   const ctaClassName = `mt-5 inline-flex w-full items-center justify-center rounded-xl font-medium px-4 py-3 hover:shadow-lg transition-all text-sm ${
     special ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white' :
@@ -2238,7 +2253,7 @@ function Plan({
           {ctaLabel}
         </a>
       )}
-      <p className="text-center text-[10px] text-neutral-400 mt-1.5">0{'\u20AC'} pendant 7j {'\u00B7'} Annulation en 1 clic</p>
+      <p className="text-center text-[10px] text-neutral-400 mt-1.5">{trialNote || '0\u20AC pendant 7j \u00B7 Annulation en 1 clic'}</p>
     </div>
   );
 }
