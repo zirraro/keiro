@@ -4,6 +4,7 @@ import { generateAudioWithElevenLabs, estimateAudioDuration, ELEVENLABS_VOICES, 
 import { condenseText } from '@/lib/audio/condense-text';
 import { checkCredits, deductCredits, isAdmin } from '@/lib/credits/server';
 import { checkTtsQuota, logQuotaUsage } from '@/lib/credits/quotas';
+import { isMarginSafe } from '@/lib/credits/margin';
 
 export const runtime = 'edge';
 
@@ -44,6 +45,13 @@ export async function POST(req: NextRequest) {
       if (!ttsQ.allowed) {
         return NextResponse.json(
           { ok: false, error: ttsQ.message, quotaExceeded: true, reason: ttsQ.reason, limit: ttsQ.limit, plan: ttsQ.plan },
+          { status: 429 }
+        );
+      }
+      const margin = await isMarginSafe(user.id);
+      if (!margin.safe) {
+        return NextResponse.json(
+          { ok: false, error: margin.message, marginBlocked: true, plan: margin.snapshot.plan, margin_pct: margin.snapshot.margin_pct },
           { status: 429 }
         );
       }

@@ -2,6 +2,7 @@ import { getAuthUser } from '@/lib/auth-server';
 import { checkCredits, deductCredits, isAdmin } from '@/lib/credits/server';
 import { createI2VTask, checkI2VTask } from '@/lib/kling';
 import { checkVideoQuota, logQuotaUsage } from '@/lib/credits/quotas';
+import { isMarginSafe } from '@/lib/credits/margin';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; // 5 minutes max pour le polling
@@ -85,6 +86,16 @@ export async function POST(request: Request) {
           reason: vidQ.reason,
           limit: vidQ.limit,
           plan: vidQ.plan,
+        }, { status: 429 });
+      }
+      const margin = await isMarginSafe(user.id);
+      if (!margin.safe) {
+        return Response.json({
+          ok: false,
+          error: margin.message,
+          marginBlocked: true,
+          plan: margin.snapshot.plan,
+          margin_pct: margin.snapshot.margin_pct,
         }, { status: 429 });
       }
     }

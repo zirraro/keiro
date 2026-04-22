@@ -3,6 +3,7 @@ import { checkCredits, deductCredits, isAdmin, checkFreeGeneration, recordFreeGe
 import { generateKlingI2I } from '@/lib/kling';
 import { generateJadeImageFromReference } from '@/lib/visuals/jade-prompter';
 import { checkImageQuota, logQuotaUsage } from '@/lib/credits/quotas';
+import { isMarginSafe } from '@/lib/credits/margin';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -60,6 +61,16 @@ export async function POST(request: Request) {
             reason: imgQ.reason,
             limit: imgQ.limit,
             plan: imgQ.plan,
+          }, { status: 429 });
+        }
+        const margin = await isMarginSafe(user.id);
+        if (!margin.safe) {
+          return Response.json({
+            ok: false,
+            error: margin.message,
+            marginBlocked: true,
+            plan: margin.snapshot.plan,
+            margin_pct: margin.snapshot.margin_pct,
           }, { status: 429 });
         }
       }
