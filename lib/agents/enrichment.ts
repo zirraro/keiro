@@ -31,7 +31,7 @@ const ENRICHMENT_BRIEFS: Record<string, {
   crossAgents?: string[]; // other agents whose domains intersect
 }> = {
   content: {
-    domain: 'social media content creation, Instagram/TikTok/LinkedIn posting, visual design, copywriting, hashtags, engagement optimization, audience psychology, trend surfing, content pillars, scroll-stopping hooks, platform algorithms',
+    domain: 'social media content creation, Instagram/TikTok/LinkedIn posting, visual design, copywriting, hashtags, engagement optimization, audience psychology, trend surfing, content pillars, scroll-stopping hooks, platform algorithms, natural conversational language that feels human and never corporate, reactivity to trending moments, adapting tone per audience segment',
     niches: [
       'restaurants and food service (bistros, cafes, gastronomy)',
       'coaches and freelancers (fitness, business, nutrition, life)',
@@ -66,7 +66,7 @@ const ENRICHMENT_BRIEFS: Record<string, {
     crossAgents: ['marketing', 'dm_instagram', 'email', 'seo'],
   },
   dm_instagram: {
-    domain: 'Instagram direct messaging, cold outreach to businesses, DM templates that convert, response patterns, handling objections, converting curious followers into paying customers, personalization at scale, voice memos, story replies',
+    domain: 'Instagram direct messaging, cold outreach to businesses, DM templates that convert, response patterns, handling objections, converting curious followers into paying customers, personalization at scale, voice memos, story replies, natural casual language (like texting a friend), reading emotional cues in messages, adapting mid-conversation to prospect\'s tone and pace',
     niches: [
       'restaurants',
       'fitness coaches',
@@ -90,7 +90,7 @@ const ENRICHMENT_BRIEFS: Record<string, {
     crossAgents: ['commercial', 'email', 'content'],
   },
   email: {
-    domain: 'cold email copywriting, follow-up sequences, subject lines, personalization tokens, deliverability, SPF/DKIM/DMARC, click rates, reply rates, objection handling, sender reputation, segmentation',
+    domain: 'cold email copywriting, follow-up sequences, subject lines, personalization tokens, deliverability, SPF/DKIM/DMARC, click rates, reply rates, objection handling, sender reputation, segmentation, natural friendly tone (not corporate), reading between the lines on replies, handling silent treatment vs firm refusal differently',
     niches: [
       'restaurant outreach campaigns',
       'B2B SaaS prospects',
@@ -114,7 +114,7 @@ const ENRICHMENT_BRIEFS: Record<string, {
     crossAgents: ['commercial', 'dm_instagram', 'retention'],
   },
   commercial: {
-    domain: 'prospect qualification, BANT scoring, lead enrichment, deduplication, lead scoring rubrics, handling no-shows, CRM hygiene, pipeline reviews, MQL/SQL conversion, geographic targeting, ICP definition',
+    domain: 'prospect qualification, BANT scoring, lead enrichment, deduplication, lead scoring rubrics, handling no-shows, CRM hygiene, pipeline reviews, MQL/SQL conversion, geographic targeting, ICP definition, information verification (never trust unverified scraped data), reactive detection of bad-fit prospects, adaptive scoring based on conversion results',
     niches: [
       'French SMB prospects (Paris, Lyon, Marseille, Bordeaux)',
       'restaurant chain prospects',
@@ -134,7 +134,7 @@ const ENRICHMENT_BRIEFS: Record<string, {
     crossAgents: ['email', 'dm_instagram', 'marketing'],
   },
   marketing: {
-    domain: 'marketing analytics, funnel optimisation, attribution, content performance metrics, A/B testing, ROI calculation, cross-channel lift, brand positioning, competitor analysis, customer journey mapping',
+    domain: 'marketing analytics, funnel optimisation, attribution, content performance metrics, A/B testing, ROI calculation, cross-channel lift, brand positioning, competitor analysis, customer journey mapping, clear actionable recommendations (not just data dumps), adapting advice to client\'s actual stage and budget, natural friendly brief writing',
     niches: [
       'Instagram analytics for SMBs',
       'email performance by business type',
@@ -154,7 +154,7 @@ const ENRICHMENT_BRIEFS: Record<string, {
     crossAgents: ['content', 'email', 'dm_instagram', 'commercial', 'seo'],
   },
   seo: {
-    domain: 'SEO article writing, keyword research, local SEO, Google My Business optimization, backlink strategy, technical SEO, schema.org markup, E-E-A-T signals, Core Web Vitals, internal linking',
+    domain: 'SEO article writing, keyword research, local SEO, Google My Business optimization, backlink strategy, technical SEO, schema.org markup, E-E-A-T signals, Core Web Vitals, internal linking, natural readable copy that ranks AND converts (not keyword-stuffed), search intent interpretation, adapting style per query type (informational vs transactional vs navigational)',
     niches: [
       'local SEO for physical businesses',
       'B2B SaaS SEO',
@@ -201,7 +201,7 @@ const ENRICHMENT_BRIEFS: Record<string, {
     crossAgents: ['marketing', 'commercial', 'retention'],
   },
   onboarding: {
-    domain: 'client onboarding flows, completion rates, activation milestones, time-to-first-value, dossier completion nudges, data collection minimization, progressive profiling',
+    domain: 'client onboarding flows, completion rates, activation milestones, time-to-first-value, dossier completion nudges, data collection minimization, progressive profiling, natural warm greeting that feels human, anticipating the client\'s confusion before they voice it, proactive problem solving, friction elimination, first-week retention obsession',
     niches: ['marketing SaaS onboarding', 'agency onboarding', 'B2B tool onboarding', 'creator platform onboarding'],
     hyperNiches: [
       'onboarding a restaurant with no IG presence',
@@ -309,14 +309,21 @@ export const PRIORITY_ORDER = [
 /**
  * The "angles" through which each topic is explored. Running the same
  * topic from multiple angles is how we get real depth — a strategist
- * writes different content than a tactician or an analyst.
+ * writes different content than an empath or a conversion specialist.
+ *
+ * 8 angles cover: strategy, tactics, metrics, data, creativity,
+ * customer psychology + language, conversion at each funnel step,
+ * retention + LTV, UX + friction.
  */
 const ANGLES = [
-  { key: 'strategist', description: 'high-level strategy, positioning, long-term planning, market trends, competitive moves' },
-  { key: 'tactician',  description: 'concrete playbooks, step-by-step recipes, what to do this week' },
-  { key: 'optimizer',  description: 'metrics, benchmarks, A/B test results, conversion rate improvements, efficiency' },
-  { key: 'analyst',    description: 'data patterns, cohort behaviour, segmentation insights, attribution, causal chains' },
-  { key: 'creative',   description: 'fresh angles, novel hooks, unconventional approaches, creative formats' },
+  { key: 'strategist',     description: 'high-level strategy, positioning, long-term planning, market trends, competitive moves' },
+  { key: 'tactician',      description: 'concrete playbooks, step-by-step recipes, what to do this week' },
+  { key: 'optimizer',      description: 'metrics, benchmarks, A/B test results, conversion rate improvements, efficiency' },
+  { key: 'analyst',        description: 'data patterns, cohort behaviour, segmentation insights, attribution, causal chains' },
+  { key: 'creative',       description: 'fresh angles, novel hooks, unconventional approaches, creative formats' },
+  { key: 'empath',         description: 'customer psychology, natural conversational language that matches the client\'s vernacular, emotional intelligence, avoiding corporate speak, building trust, listening cues, tone adaptation per persona' },
+  { key: 'conversion',     description: 'funnel-stage-specific conversion tactics (awareness → interest → desire → action), CTAs that close, objection handling, urgency without sleaze, friction points, signup-to-paid transitions' },
+  { key: 'retention_ux',   description: 'retention + user experience: first-week activation habits, churn prediction signals, win-back patterns, micro-interactions, cognitive load reduction, progressive disclosure, lifetime value optimisation' },
 ];
 
 export type Depth = 'shallow' | 'medium' | 'deep';
@@ -426,9 +433,9 @@ export type AutoGenResult = {
 
 /** How many angles to run per topic at each depth. */
 const ANGLES_PER_DEPTH: Record<Depth, number> = {
-  shallow: 1, // one pass, strategist only
-  medium:  2, // strategist + tactician
-  deep:    5, // all five angles = real depth
+  shallow: 1, // strategist only
+  medium:  3, // strategist + tactician + empath
+  deep:    8, // all eight angles including empath / conversion / retention_ux
 };
 
 export async function enrichAgentKnowledge(
