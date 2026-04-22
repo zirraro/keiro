@@ -3751,21 +3751,18 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
     } else {
       // Image-based post — three-way choice when the client has
       // uploaded their own photos:
-      //   - 30% raw reuse   → publish the real photo untouched (fastest,
-      //                        most authentic, 0 cost)
-      //   - 45% i2i pimp    → Seedream image-to-image re-renders the
+      //   - 10% raw reuse   → publish the real photo untouched (rare —
+      //                        most client photos benefit from a lift)
+      //   - 55% i2i pimp    → Seedream image-to-image re-renders the
       //                        photo with editorial lighting, on-brand
       //                        palette AND elements tied to the current
-      //                        trend / news angle (subject still
-      //                        recognisable — we lift, don't replace)
-      //   - 25% pure gen    → Seedream text-to-image builds a net-new
+      //                        trend / news angle (subject recognisable)
+      //   - 35% pure gen    → Seedream text-to-image builds a net-new
       //                        scene from the visual_description
       // No uploads → always pure generation.
       //
-      // Ratios updated 2026-04-21 (more balance + heavier i2i) after
-      // user feedback: "mettre le ratio à 30% pour equilibrer aussi
-      // plus et faire plus de reuse client + lift seedream pour
-      // ajouter des elements sur l'image".
+      // Ratios updated 2026-04-22 per user: "change le ratio pour 10%
+      // seulement de photo brut" — heavier Jade-lift emphasis.
       //
       // Anti-duplicate guard: we exclude any upload that appeared as
       // visual_url in the last 15 posts so a restaurant with only 3
@@ -3811,15 +3808,18 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
       }
 
       const rng = Math.random();
-      if (pickedUpload && rng < 0.30) {
-        // 30% — reuse raw client photo (unchanged)
+      if (pickedUpload && rng < 0.10) {
+        // 10% — reuse raw client photo (unchanged). Kept low per user
+        // feedback: the client's feed benefits more from Seedream lifts
+        // than from untouched photos (which can feel amateur vs the
+        // editorial standard Jade aims for).
         visualUrl = pickedUpload.file_url;
         console.log(`[Content] Reusing client photo ${pickedUpload.id} (raw reuse)`);
         await supabase.from('content_calendar').update({
           publish_diagnostic: `client_photo_raw:${pickedUpload.id}`,
         }).eq('id', inserted.id).throwOnError?.();
-      } else if (pickedUpload && rng < 0.75) {
-        // 45% — pimp the client photo via Seedream image-to-image.
+      } else if (pickedUpload && rng < 0.65) {
+        // 55% — pimp the client photo via Seedream image-to-image.
         // We pass the trend/news context into the enhancement prompt so
         // the re-render actually ties the client's space to what's
         // happening in the world (trend-aligned i2i, not just polish).

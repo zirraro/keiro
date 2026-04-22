@@ -187,7 +187,7 @@ function HomeKeiroInner() {
           <div className="bg-gradient-to-r from-[#0c1a3a] via-purple-900 to-indigo-900 rounded-xl sm:rounded-2xl px-4 sm:px-6 py-3 sm:py-4 border border-purple-500/20">
           <div className="flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4 text-white">
             <div className="flex items-center gap-2 sm:gap-3">
-              <span className="text-lg sm:text-xl">🎁</span>
+              <KeiroIcon name="sparkle" className="w-5 h-5 sm:w-6 sm:h-6 text-purple-300" />
               <div>
                 <p className="font-semibold text-sm sm:text-base">{t.home.freeTrialTitle || 'Essai gratuit 7 jours'}</p>
                 <p className="text-[10px] sm:text-xs text-purple-200">{t.home.freeTrialSubtitle || 'Carte requise, aucun debit. Annulation en 1 clic a tout moment.'}</p>
@@ -211,7 +211,7 @@ function HomeKeiroInner() {
             {/* Texte + Video à gauche */}
             <div className="md:w-2/5">
               <h3 className="text-lg font-bold mb-2 flex items-center gap-2">
-                <span>🎬</span>
+                <KeiroIcon name="video" className="w-5 h-5 text-purple-600" />
                 <span>{t.home.videoTitle}</span>
               </h3>
               <p className="text-sm text-neutral-600 mb-4">
@@ -235,17 +235,17 @@ function HomeKeiroInner() {
             {/* Points clés à droite */}
             <div className="md:w-3/5 grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="bg-white rounded-lg p-3 premium-card hover:shadow-soft-lg hover:-translate-y-0.5 transition-all">
-                <div className="text-xl mb-1">⚡</div>
+                <KeiroIcon name="bolt" className="w-5 h-5 mb-1 text-purple-600" />
                 <div className="font-semibold text-xs mb-0.5">{t.home.videoCard1Title}</div>
                 <div className="text-[10px] text-neutral-600">{t.home.videoCard1Desc}</div>
               </div>
               <div className="bg-white rounded-lg p-3 premium-card hover:shadow-soft-lg hover:-translate-y-0.5 transition-all">
-                <div className="text-xl mb-1">🎯</div>
+                <KeiroIcon name="target" className="w-5 h-5 mb-1 text-purple-600" />
                 <div className="font-semibold text-xs mb-0.5">{t.home.videoCard2Title}</div>
                 <div className="text-[10px] text-neutral-600">{t.home.videoCard2Desc}</div>
               </div>
               <div className="bg-white rounded-lg p-3 premium-card hover:shadow-soft-lg hover:-translate-y-0.5 transition-all">
-                <div className="text-xl mb-1">📈</div>
+                <KeiroIcon name="chart" className="w-5 h-5 mb-1 text-purple-600" />
                 <div className="font-semibold text-xs mb-0.5">{t.home.videoCard3Title}</div>
                 <div className="text-[10px] text-neutral-600">{t.home.videoCard3Desc}</div>
               </div>
@@ -375,7 +375,7 @@ function HomeKeiroInner() {
               {/* Features list */}
               <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-5 shadow-lg">
                 <h4 className="font-bold text-white mb-3 flex items-center gap-2">
-                  <span>✨</span> {t.home.aiFeaturesTitle}
+                  <KeiroIcon name="sparkle" className="w-5 h-5 text-cyan-300" /> {t.home.aiFeaturesTitle}
                 </h4>
                 <ul className="space-y-2 text-sm">
                   <li className="flex items-start gap-2">
@@ -634,7 +634,7 @@ function HomeKeiroInner() {
           <div className="rounded-2xl premium-card overflow-hidden bg-white hover:shadow-soft-lg hover:-translate-y-0.5 transition-all">
             <div className="bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] p-4">
               <h3 className="text-white font-bold flex items-center gap-2">
-                <span>📁</span> {t.home.galleryOrganized}
+                <KeiroIcon name="palette" className="w-5 h-5" /> {t.home.galleryOrganized}
               </h3>
             </div>
             <div className="p-5">
@@ -703,7 +703,7 @@ function HomeKeiroInner() {
           <div className="rounded-2xl premium-card overflow-hidden bg-white hover:shadow-soft-lg hover:-translate-y-0.5 transition-all">
             <div className="bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500 p-4">
               <h3 className="text-white font-bold flex items-center gap-2">
-                <span>📱</span> {t.home.galleryPostsTitle}
+                <KeiroIcon name="video" className="w-5 h-5" /> {t.home.galleryPostsTitle}
               </h3>
             </div>
             <div className="p-5 space-y-3">
@@ -1630,7 +1630,7 @@ function HomeKeiroInner() {
           <div className="max-w-3xl mx-auto mb-8">
             <div className="rounded-2xl border-2 border-purple-500 bg-gradient-to-br from-purple-50 to-pink-50 p-6 shadow-xl flex flex-col">
               <div className="flex items-center gap-3 mb-3">
-                <h3 className="text-xl font-bold">🏆 {t.home.planEliteTitle}</h3>
+                <h3 className="text-xl font-bold flex items-center gap-2"><KeiroIcon name="star" className="w-5 h-5 text-purple-600" /> {t.home.planEliteTitle}</h3>
                 <span className="px-3 py-0.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-bold rounded-full">PREMIUM</span>
               </div>
               <div className="text-2xl sm:text-3xl font-black mb-1">{billingPeriod === 'annual' ? `9 990€ ${t.common.perYear}` : `999€ ${t.common.perMonth}`}</div>
