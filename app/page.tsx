@@ -1395,67 +1395,11 @@ function HomeKeiroInner() {
             </p>
           </div>
 
-          {/* Avant / Apres visual */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-10 sm:mb-16">
-            {/* AVANT */}
-            <div className="bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 rounded-2xl border-2 border-red-200 dark:border-red-800/30 p-5 sm:p-8">
-              <div className="flex items-center gap-2 mb-4 sm:mb-6">
-                <div className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-800/30 flex items-center justify-center text-red-500 text-lg">{'\u274C'}</div>
-                <h3 className="text-lg sm:text-xl font-bold text-red-600 dark:text-red-400">AVANT KeiroAI</h3>
-              </div>
-              <ul className="space-y-3 sm:space-y-4">
-                {[
-                  { label: 'Temps par post', before: '45 min a 2h', icon: '\u23F0' },
-                  { label: 'Frequence reelle', before: '1 post/semaine (au mieux)', icon: '\u{1F4C5}' },
-                  { label: 'Qualite visuelle', before: 'Templates Canva vus 1000x', icon: '\u{1F3A8}' },
-                  { label: 'Video', before: 'Impossible sans monteur', icon: '\u{1F3AC}' },
-                  { label: 'Legende', before: 'Copiee de ChatGPT (generique)', icon: '\u{270D}\uFE0F' },
-                  { label: 'DMs prospects', before: '0 (pas le temps)', icon: '\u{1F4E9}' },
-                  { label: 'Suivi clients', before: 'Un fichier Excel oublie', icon: '\u{1F4CA}' },
-                  { label: 'Cout total', before: '0€ + votre temps (= 2000€/mois)', icon: '\u{1F4B8}' },
-                ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <span className="text-base sm:text-lg mt-0.5">{item.icon}</span>
-                    <div>
-                      <div className="text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">{item.label}</div>
-                      <div className="text-sm sm:text-base font-medium text-red-700 dark:text-red-300">{item.before}</div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* APRES */}
-            <div className="bg-gradient-to-br from-emerald-50 to-cyan-50 dark:from-emerald-900/20 dark:to-cyan-900/20 rounded-2xl border-2 border-emerald-300 dark:border-emerald-700/30 p-5 sm:p-8 relative">
-              <div className="absolute -top-3 right-4">
-                <span className="bg-gradient-to-r from-emerald-500 to-cyan-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">{'\u2728'} KeiroAI</span>
-              </div>
-              <div className="flex items-center gap-2 mb-4 sm:mb-6">
-                <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-800/30 flex items-center justify-center text-emerald-500 text-lg">{'\u2705'}</div>
-                <h3 className="text-lg sm:text-xl font-bold text-emerald-600 dark:text-emerald-400">AVEC KeiroAI</h3>
-              </div>
-              <ul className="space-y-3 sm:space-y-4">
-                {[
-                  { label: 'Temps par post', after: '3 minutes, cle en main', icon: '\u26A1' },
-                  { label: 'Frequence reelle', after: 'Publications regulieres, automatiques, selon ton plan', icon: '\u{1F680}' },
-                  { label: 'Qualite visuelle', after: 'Visuels IA uniques, brandes a ton image', icon: '\u{1F3A8}' },
-                  { label: 'Video', after: 'Reels + TikTok generes en 1 clic', icon: '\u{1F3AC}' },
-                  { label: 'Legende', after: 'Personnalisee, optimisee, avec hashtags', icon: '\u{270D}\uFE0F' },
-                  { label: 'DMs prospects', after: '50 DMs/jour automatiques + suivi', icon: '\u{1F4E9}' },
-                  { label: 'Suivi clients', after: 'CRM IA avec scoring + relance auto', icon: '\u{1F4CA}' },
-                  { label: 'Cout total', after: '7 jours gratuits, puis 49€/mois', icon: '\u{1F4B0}' },
-                ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <span className="text-base sm:text-lg mt-0.5">{item.icon}</span>
-                    <div>
-                      <div className="text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">{item.label}</div>
-                      <div className="text-sm sm:text-base font-bold text-emerald-700 dark:text-emerald-300">{item.after}</div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
+          {/* Avant/Après visual — retiré (redondant avec la case study
+              concrète à #exemple qui prouve déjà le passage amateur →
+              pro avec de vrais chiffres Instagram). La comparaison
+              structurelle reste via le tableau ChatGPT/CM/KeiroAI
+              ci-dessous qui apporte une information différente. */}
 
           {/* Comparatif ChatGPT vs CM vs KeiroAI — tableau */}
           <div className="mb-10 sm:mb-16">

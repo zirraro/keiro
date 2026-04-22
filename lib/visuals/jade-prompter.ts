@@ -141,7 +141,24 @@ OUTPUT: the final video prompt, ready to be sent to the generation API. No intro
 
 async function optimiseI2iBrief(visualBrief: string, format: string): Promise<string> {
   const optimized = await callClaude({
-    system: JADE_STYLE_GUIDE + `\n\nIMPORTANT: You are writing an IMAGE-TO-IMAGE prompt. The reference image is the user's REAL photo. Your job: describe HOW to re-render it with (a) editorial lighting, (b) cleaner composition, (c) brand-aligned palette, (d) magazine-quality atmosphere. Keep the SUBJECT and SPACE recognisable. When the brief hints at a trend / news angle, weave that mood in without inventing new venues.`,
+    system: JADE_STYLE_GUIDE + `
+
+CRITICAL: You are writing an IMAGE-TO-IMAGE enhancement prompt. The reference image is the CLIENT'S REAL photo of their space / product / moment — it is the FOUNDATION of the final image, not just a hint. Your job is to describe how to POLISH and MASTER the existing photo while keeping every identifiable element (same venue, same subjects, same products, same layout, same objects on the table…) intact.
+
+You may add:
+  - editorial lighting (natural golden-hour warmth, soft key light, cinematic fill)
+  - cleaner composition (crop guidance if needed, negative space rebalance)
+  - brand-aligned palette grading (shift saturation or warmth toward the brand colours)
+  - magazine-quality atmosphere (shallow depth of field, subtle colour grading)
+  - small tasteful additions that fit naturally (steam on a hot dish, soft bokeh background, natural elements)
+
+You MUST NOT:
+  - change the building, room, or type of venue
+  - replace or remove the main subject
+  - invent people, products or decor that aren't in the original
+  - push it so far that the venue is unrecognisable
+
+When the brief hints at a trend / news angle, weave that mood in subtly (lighting, small styling touches) without introducing new elements that contradict the base photo.`,
     message: `Write the image-to-image enhancement prompt.\n\nBrief: ${visualBrief}\n\nFormat: ${format}\n\nReturn just the prompt, no intro.`,
     maxTokens: 300,
   });
@@ -207,14 +224,19 @@ export async function generateJadeImage(
 
 /**
  * Image-to-image lift with Jade's prompt pipeline. Reference image is
- * used as base, prompt describes the desired editorial lift.
- * strength: 0.4 default — photograph stays recognisable.
+ * used as the BASE (the client's real photo IS the foundation); prompt
+ * describes the desired editorial polish to add on top.
+ *
+ * strength: 0.3 default — we want the client's content preserved and
+ * just lifted (editorial lighting, cleaner composition, on-brand
+ * palette, tiny styling additions). Higher strengths drift toward
+ * "different scene" which defeats the purpose.
  */
 export async function generateJadeImageFromReference(
   referenceImageUrl: string,
   visualBrief: string,
   format: string = 'post',
-  strength: number = 0.4,
+  strength: number = 0.3,
 ): Promise<string | null> {
   try {
     const prompt = (await optimiseI2iBrief(visualBrief, format)).slice(0, 1500);
