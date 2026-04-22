@@ -328,7 +328,7 @@ Reponds en JSON strict:
         auto_mode_instagram: true,
         auto_mode_tiktok: false,
         auto_mode_linkedin: false,
-        posts_per_day_ig: isRestaurant ? 2 : 1,
+        posts_per_day_ig: 3,
         formats_ig: isRestaurant ? 'all' : isCoach ? 'reels' : 'all',
         publish_morning: '09:00',
         publish_evening: '18:00',
