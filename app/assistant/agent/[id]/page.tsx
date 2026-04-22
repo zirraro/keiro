@@ -836,40 +836,73 @@ export default function AgentWorkspacePage() {
           const d = await r.json();
           setFiles(p => [...p, { id: d.id || generateId(), name: fl[i].name, size: fl[i].size, uploaded_at: new Date().toISOString(), url: d.file?.url || d.url }]);
 
-          // If dossier was auto-updated from file content, show confirmation in chat
-          if (d.dossier_updated && d.fields_extracted) {
-            const fieldLabels: Record<string, string> = {
-              company_name: 'nom de l\'entreprise', company_description: 'description', business_type: 'type d\'activite',
-              founder_name: 'fondateur', employees_count: 'nb employes', city: 'ville', address: 'adresse',
-              catchment_area: 'zone', main_products: 'produits/services', price_range: 'gamme de prix',
-              unique_selling_points: 'points forts', competitors: 'concurrents', target_audience: 'cible',
-              ideal_customer_profile: 'profil client ideal', customer_pain_points: 'problemes clients',
-              brand_tone: 'ton de marque', visual_style: 'style visuel', brand_colors: 'couleurs',
-              business_goals: 'objectifs business', marketing_goals: 'objectifs marketing',
-              website_url: 'site web', instagram_handle: 'Instagram', tiktok_handle: 'TikTok',
-              facebook_url: 'Facebook', google_maps_url: 'Google Maps',
-              phone: 'telephone', email: 'email', horaires_ouverture: 'horaires',
-              specialite: 'specialite', posting_frequency: 'frequence', monthly_budget: 'budget',
-            };
+          // Build the acknowledgement message. Two independent signals can
+          // fire: dossier_updated (business info extracted), visual_classified
+          // (image classified + indexed in agent_uploads). We combine them
+          // into one message instead of two awkward bubbles. Each agent has
+          // its own voice so Clara and Léna don't sound like twins.
+          const fieldLabels: Record<string, string> = {
+            company_name: 'nom de l\'entreprise', company_description: 'description', business_type: 'type d\'activite',
+            founder_name: 'fondateur', employees_count: 'nb employes', city: 'ville', address: 'adresse',
+            catchment_area: 'zone', main_products: 'produits/services', price_range: 'gamme de prix',
+            unique_selling_points: 'points forts', competitors: 'concurrents', target_audience: 'cible',
+            ideal_customer_profile: 'profil client ideal', customer_pain_points: 'problemes clients',
+            brand_tone: 'ton de marque', visual_style: 'style visuel', brand_colors: 'couleurs',
+            business_goals: 'objectifs business', marketing_goals: 'objectifs marketing',
+            website_url: 'site web', instagram_handle: 'Instagram', tiktok_handle: 'TikTok',
+            facebook_url: 'Facebook', google_maps_url: 'Google Maps',
+            phone: 'telephone', email: 'email', horaires_ouverture: 'horaires',
+            specialite: 'specialite', posting_frequency: 'frequence', monthly_budget: 'budget',
+          };
+          const contentTypeLabels: Record<string, string> = {
+            product: 'un produit', dish: 'un plat', space: 'ton espace',
+            ambiance: 'une ambiance', team: 'ton equipe', behind_scenes: 'un behind-the-scenes',
+            customer: 'un client', logo: 'ton logo', document: 'un document', other: 'un visuel',
+          };
+
+          // Voice per agent — Clara collects business context, Léna thinks
+          // about content angles, Jade thinks DM hook, Hugo thinks email,
+          // etc. Default voice for unknown agents mirrors Clara.
+          const voices: Record<string, { name: string; role: string }> = {
+            onboarding: { name: 'Clara', role: 'onboarding' },
+            content:    { name: 'Lena',  role: 'contenu' },
+            dm_instagram: { name: 'Jade', role: 'DM' },
+            email:      { name: 'Hugo',  role: 'email' },
+            commercial: { name: 'Leo',   role: 'prospection' },
+            marketing:  { name: 'Ami',   role: 'marketing' },
+          };
+          const voice = voices[agentId] || { name: 'Ton agent', role: 'travail' };
+
+          const lines: string[] = [];
+          if (d.dossier_updated && d.fields_extracted?.length) {
             const extracted = d.fields_extracted.map((f: string) => fieldLabels[f] || f).join(', ');
-            const count = d.fields_extracted.length;
-            setMessages(prev => [...prev, {
-              id: `file_${Date.now()}`,
-              role: 'assistant',
-              content: `\u2705 Parfait ! J'ai analyse ton fichier "${fl[i].name}" et j'ai rempli ${count} champs de ton profil :\n\n**${extracted}**\n\nTon dossier est a jour et tous les agents y ont acces immediatement !`,
-              created_at: new Date().toISOString(),
-            }]);
-            setChatOpen(true);
-          } else if (!d.dossier_updated) {
-            // File uploaded but nothing extracted — notify user
-            setMessages(prev => [...prev, {
-              id: `file_${Date.now()}`,
-              role: 'assistant',
-              content: `J'ai bien recu ton fichier "${fl[i].name}" et je l'ai sauvegarde. L'extraction automatique n'a pas detecte d'infos business exploitables — essaie de me decrire ton activite directement ici et je remplis ton profil instantanement ! (ex: "Je suis un restaurant italien a Lyon, ma cible c'est les 25-40 ans...")`,
-              created_at: new Date().toISOString(),
-            }]);
-            setChatOpen(true);
+            lines.push(`\u2705 ${d.fields_extracted.length} champs du profil remplis : **${extracted}**.`);
           }
+          if (d.visual_classified) {
+            const what = contentTypeLabels[d.content_type || 'other'] || 'un visuel';
+            lines.push(`\u{1F3A8} C'est ${what}. Je l'ai classe dans ton workspace pour reutilisation — ${voice.name} va pouvoir le prendre pour les prochains posts.`);
+            if (d.post_angle) lines.push(`\u{1F4A1} Angle suggere : *${d.post_angle}*.`);
+          }
+          if (lines.length === 0) {
+            // Truly nothing exploitable — give a per-agent contextual prompt
+            const agentAsk: Record<string, string> = {
+              onboarding: 'decris-moi ton activite directement ici et je remplis ton profil instantanement (ex: "Je suis un restaurant italien a Lyon, ma cible c\'est les 25-40 ans...")',
+              content:    'raconte-moi ce que tu veux faire avec ce fichier — theme, angle, format cible — et je te prepare un post ou une campagne autour.',
+              dm_instagram: 'envoie-moi le contexte DM que tu veux autour de ce fichier et je prepare un hook personnalise.',
+              email:      'dis-moi a quel type de prospect tu veux envoyer ca et je prepare un email autour.',
+              commercial: 'precise-moi la cible (type de commerce, zone) pour que je qualifie a partir de ce fichier.',
+              marketing:  'dis-moi quel canal tu veux optimiser et j\'analyse le fichier sous cet angle.',
+            };
+            lines.push(`J'ai bien recu "${fl[i].name}" et je l'ai sauvegarde dans ton workspace. ${agentAsk[agentId] || 'Donne-moi le contexte autour de ce fichier et je l\'exploite.'}`);
+          }
+
+          setMessages(prev => [...prev, {
+            id: `file_${Date.now()}`,
+            role: 'assistant',
+            content: lines.join('\n\n'),
+            created_at: new Date().toISOString(),
+          }]);
+          setChatOpen(true);
         }
       } catch {}
     } setUploading(false);

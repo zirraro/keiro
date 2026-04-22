@@ -470,6 +470,69 @@ export async function POST(req: NextRequest) {
       console.warn('[agent-files] Auto-extract error (non-fatal):', e.message);
     }
 
+    // ── Visual classification + agent_uploads registration ──
+    // Every uploaded image also gets classified and indexed in agent_uploads
+    // so Léna (content) / Jade (DM) can discover it later for reuse. This
+    // used to only fire via a separate /api/agents/uploads endpoint — if
+    // the user drag-dropped in an agent workspace, the file was invisible
+    // to the content pipeline. Now one upload = dossier extraction +
+    // visual analysis + agent_uploads indexing in a single shot.
+    let visualClassification: any = null;
+    try {
+      if (['png', 'jpg', 'jpeg'].includes(ext)) {
+        const { analyzeImageForAgent } = await import('@/lib/agents/visual-analyzer');
+        const { data: dossierForType } = await supabase
+          .from('business_dossiers')
+          .select('business_type')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        visualClassification = await analyzeImageForAgent(
+          urlData.publicUrl,
+          agentId,
+          dossierForType?.business_type || null,
+        );
+
+        if (visualClassification) {
+          // Auto-classify into a folder based on content_type so the
+          // workspace UI can group files without the client sorting them.
+          const folderMap: Record<string, string> = {
+            product: 'products', dish: 'products',
+            space: 'venue', ambiance: 'venue',
+            team: 'team', behind_scenes: 'team',
+            customer: 'social_proof',
+            logo: 'brand', document: 'brand',
+          };
+          const folder = visualClassification.content_type
+            ? folderMap[visualClassification.content_type] || 'other'
+            : 'other';
+
+          // Save to agent_uploads so content agent's reference-lookup sees it.
+          // Attempt with folder column first; if the column doesn't exist yet
+          // fall back to the legacy schema without breaking the upload.
+          const insertBase = {
+            user_id: user.id,
+            agent_id: agentId,
+            file_url: urlData.publicUrl,
+            file_type: `image/${ext}`,
+            file_name: safeName,
+            caption: null,
+            ai_analysis: visualClassification,
+            analyzed_at: now,
+            created_at: now,
+          };
+          const { error: withFolderErr } = await supabase
+            .from('agent_uploads')
+            .insert({ ...insertBase, folder });
+          if (withFolderErr?.message?.includes('folder')) {
+            // Legacy schema — retry without the column
+            await supabase.from('agent_uploads').insert(insertBase);
+          }
+        }
+      }
+    } catch (err: any) {
+      console.warn('[agent-files] Visual classification non-fatal:', err?.message);
+    }
+
     return NextResponse.json({
       ok: true,
       file: {
@@ -480,6 +543,13 @@ export async function POST(req: NextRequest) {
         uploaded_at: now,
       },
       ...(extracted ? { dossier_updated: true, fields_extracted: Object.keys(extracted) } : {}),
+      ...(visualClassification ? {
+        visual_classified: true,
+        content_type: visualClassification.content_type,
+        post_angle: visualClassification.post_angle,
+        relevant_agents: visualClassification.relevant_agents,
+        summary: visualClassification.summary,
+      } : {}),
     });
   } catch (err: any) {
     console.error('[agent-files] POST error:', err);
