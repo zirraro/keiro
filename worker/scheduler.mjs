@@ -43,6 +43,10 @@ const GLOBAL_SCHEDULE = [
 ];
 
 // Agent endpoint mapping (for per-client direct calls)
+// Only the agents listed here are firable — WhatsApp/TikTok DM/Ads/RH/Finance
+// are intentionally absent (desactivés le temps de peaufiner les autres).
+// When ready to ship, add the endpoint here AND remove from DISABLED_AGENTS
+// in lib/agents/feature-flags.ts.
 const AGENT_ENDPOINTS = {
   content:             { path: '/api/agents/content', method: 'GET' },
   email:               { path: '/api/agents/email/daily?slot=morning&types=restaurant,traiteur,boutique,coiffeur,fleuriste', method: 'GET' },
@@ -53,7 +57,18 @@ const AGENT_ENDPOINTS = {
   gmaps:               { path: '/api/agents/gmaps', method: 'GET' },
   marketing:           { path: '/api/agents/marketing', method: 'GET' },
   ceo:                 { path: '/api/agents/ceo', method: 'POST' },
+  // chatbot fires only for Business+ clients via the client-schedules endpoint
+  chatbot:             { path: '/api/agents/chatbot/sync', method: 'POST' },
 };
+
+// Hard block: agents that are *never* ready to fire right now. Source of
+// truth kept in lib/agents/feature-flags.ts but mirrored here because the
+// worker is pure JS (no TS import in prod build).
+const DISABLED_AGENTS_WORKER = new Set([
+  'ads', 'rh', 'comptable', 'whatsapp', 'tiktok_comments',
+  'tiktok_dm', 'dm_tiktok', 'linkedin', 'emma', 'felix',
+  'sara', 'stella', 'louis', 'axel',
+]);
 
 // ──────────────────────────────────────────────────────────
 // Per-client schedules — fetched from DB every 15 min
@@ -234,6 +249,12 @@ async function tick() {
     log('normal', `${'─'.repeat(60)}`);
 
     for (const job of clientJobs) {
+      // Feature-flag block — ads/rh/comptable/whatsapp/tiktok* are paused
+      // while the other agents get polished. Safe to bypass via DB config.
+      if (DISABLED_AGENTS_WORKER.has(job.agentId)) {
+        log('verbose', `  ⏸ ${job.agentId} for ${job.client.email} — agent disabled globally`);
+        continue;
+      }
       const endpoint = AGENT_ENDPOINTS[job.agentId];
       if (!endpoint) {
         log('verbose', `  ⏭ ${job.agentId} — no endpoint mapped, skipping`);

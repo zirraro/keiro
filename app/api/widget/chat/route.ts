@@ -51,13 +51,33 @@ export async function POST(req: NextRequest) {
     // Validate widget key and get org config
     const { data: widgetConfig } = await supabase
       .from('widget_configs')
-      .select('*, organizations(name, business_type, industry, locale)')
+      .select('*, organizations(name, business_type, industry, locale, owner_user_id)')
       .eq('widget_key', widget_key)
       .eq('is_active', true)
       .single();
 
     if (!widgetConfig) {
       return NextResponse.json({ error: 'Invalid or inactive widget key' }, { status: 403, headers: corsHeaders(origin) });
+    }
+
+    // Plan gate — Max chatbot is a Business+ feature (widget on client site).
+    // Créateur/Pro plans see a 403 so they can't enable it accidentally.
+    const ownerId = widgetConfig.organizations?.owner_user_id;
+    if (ownerId) {
+      const { data: ownerProfile } = await supabase
+        .from('profiles')
+        .select('subscription_plan, is_admin')
+        .eq('id', ownerId)
+        .maybeSingle();
+      const plan = (ownerProfile?.subscription_plan || '').toLowerCase();
+      const planAllowsChatbot = ownerProfile?.is_admin
+        || ['business', 'fondateurs', 'elite', 'agence'].includes(plan);
+      if (!planAllowsChatbot) {
+        return NextResponse.json(
+          { error: 'chatbot_not_in_plan', message: 'Max chatbot requiert le plan Business.' },
+          { status: 403, headers: corsHeaders(origin) },
+        );
+      }
     }
 
     const orgId = widgetConfig.org_id;

@@ -207,8 +207,11 @@ export function getAvailableAddons(plan: string): Array<{ agentId: string; name:
   // Pro: + SEO, chatbot, legal (growth stage)
   // Business: + finance, LinkedIn, ads, WhatsApp (full automation)
   const CREATEUR_AGENTS = new Set(['marketing', 'onboarding', 'content', 'dm_instagram', 'email', 'commercial', 'gmaps']);
-  const PRO_AGENTS = new Set([...CREATEUR_AGENTS, 'seo', 'chatbot', 'rh']);
-  const BUSINESS_AGENTS = new Set([...PRO_AGENTS, 'comptable', 'ads', 'tiktok_comments', 'linkedin', 'whatsapp']);
+  // Pro: + SEO. Chatbot reste OFF sur Pro (réservé Business car il s'intègre sur le SITE client, lourd à supporter).
+  const PRO_AGENTS = new Set([...CREATEUR_AGENTS, 'seo']);
+  // Business: + chatbot Max (intégration site client). ads/rh/tiktok_comments/linkedin/whatsapp/comptable désactivés temporairement
+  // le temps de peaufiner les autres agents — ils seront réactivés plus tard.
+  const BUSINESS_AGENTS = new Set([...PRO_AGENTS, 'chatbot']);
   const planAgents: Record<string, Set<string>> = {
     free: new Set(['marketing', 'onboarding']),
     gratuit: new Set(['marketing', 'onboarding']),

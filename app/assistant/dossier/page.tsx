@@ -321,6 +321,18 @@ Reponds en JSON strict:
     const isBeauty = ['coiffeur', 'barbier', 'salon', 'beaute', 'esthetique', 'spa'].some(t => (businessType || '').toLowerCase().includes(t));
     const isCoach = ['coach', 'formation', 'consulting', 'freelance'].some(t => (businessType || '').toLowerCase().includes(t));
 
+    // Seed publish hours from expert-recommended defaults for this business
+    // type. Keeps the UI coherent with what the scheduler actually uses on
+    // day 0 (before any engagement data is collected). Dynamically imported
+    // so the onboarding page stays lean.
+    let publishHour1 = '09:00', publishHour2 = '13:30', publishHour3 = '19:30';
+    try {
+      const { getDefaultOptimalHour } = await import('@/lib/content/default-timing');
+      publishHour1 = getDefaultOptimalHour(businessType, 'morning');
+      publishHour2 = getDefaultOptimalHour(businessType, 'midday');
+      publishHour3 = getDefaultOptimalHour(businessType, 'evening');
+    } catch {}
+
     // Base settings all plans get
     const agents: Array<{ agent_id: string; config: Record<string, any> }> = [
       { agent_id: 'content', config: {
@@ -333,8 +345,15 @@ Reponds en JSON strict:
         // editing posts_per_day_ig in the agent settings UI.
         content_frequency_mode: 'auto',
         formats_ig: isRestaurant ? 'all' : isCoach ? 'reels' : 'all',
-        publish_morning: '09:00',
-        publish_evening: '18:00',
+        // Expert-recommended hours for this business vertical — the UI
+        // shows these pre-filled so the client sees reasonable defaults
+        // instead of 12:00. Scheduler will drift them toward the client's
+        // data-driven optimal hours once ~10 posts of engagement exist.
+        publish_hour_1: publishHour1,
+        publish_hour_2: publishHour2,
+        publish_hour_3: publishHour3,
+        publish_morning: publishHour1,
+        publish_evening: publishHour3,
         setup_completed: true,
       }},
       { agent_id: 'email', config: {
