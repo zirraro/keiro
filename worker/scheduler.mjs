@@ -38,6 +38,13 @@ const GLOBAL_SCHEDULE = [
   { cron: '0 18 * * *',   slot: 'publish_scheduled', label: 'Publish Scheduled (evening)' },
   { cron: '30 18 * * *',  slot: 'ceo_daily',         label: 'CEO Daily + Ops Health + Client Evening Brief' },
   { cron: '0 */6 * * *',  slot: 'video_poll',        label: 'Video Poll' },
+  // Inbound email poll every 2h (8 fires/day) so prospect replies get
+  // classified and auto-responded within ~2h instead of waiting for the
+  // morning batch. Hugo triggers auto-dead on STOP / unsubscribe / refus.
+  { cron: '0 */2 * * *',  slot: 'email_inbound_poll', label: 'Inbound Email Poll (Gmail/Outlook/IMAP)' },
+  // Instagram comments auto-reply hourly (client-side cadence too strict
+  // would trip Meta; hourly is comfortable on all plans).
+  { cron: '15 * * * *',   slot: 'ig_comments_reply', label: 'IG Comments Auto-Reply (all active clients)' },
   { cron: '0 7 * * 1',    path: '/api/agents/weekly-trends', label: 'Weekly Trends (Monday)' },
   { cron: '0 7 1 * *',    path: '/api/agents/monthly-recap', label: 'Monthly Recap (1st)' },
 ];

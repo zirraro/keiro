@@ -220,7 +220,14 @@ export async function GET(request: NextRequest) {
   function getClientsWithAgent(agentId: string): string[] {
     return clientUserIds.filter(uid => {
       const cfg = clientAgentConfigs[uid]?.[agentId];
-      const isActive = cfg?.auto_mode === true || cfg?.setup_completed === true;
+      let isActive = cfg?.auto_mode === true || cfg?.setup_completed === true;
+      // instagram_comments always travels with dm_instagram — if the
+      // client activated DM Jade, they implicitly want comment auto-reply
+      // on too. Saves them from a second activation step in the UI.
+      if (!isActive && agentId === 'instagram_comments') {
+        const dmCfg = clientAgentConfigs[uid]?.['dm_instagram'];
+        isActive = dmCfg?.auto_mode === true || dmCfg?.setup_completed === true;
+      }
       if (!isActive) return false;
       // Plan-based throttle: check if this slot is allowed for the client's plan
       const plan = clientPlans[uid] || 'créateur';
@@ -967,6 +974,40 @@ export async function GET(request: NextRequest) {
       // Every 10 min (via external cron) — Poll & advance async video generation jobs
       // Advances multi-segment video jobs (30s+ TikTok) and publishes when complete
       await callEndpoint('Video Poll', '/api/cron/video-poll');
+      break;
+
+    case 'email_inbound_poll':
+      // Every 2h — Poll Gmail / Outlook / IMAP for every client with email
+      // agent active, classify + auto-reply + auto-dead via Hugo.
+      fireBackground(async () => {
+        for (const uid of getClientsWithAgent('email')) {
+          await callEndpoint(`Gmail Poll [${uid.substring(0, 8)}]`, `/api/agents/email/poll-inbound?user_id=${uid}`, 'POST');
+          await delay(800);
+          await callEndpoint(`Outlook Poll [${uid.substring(0, 8)}]`, `/api/agents/email/poll-outlook?user_id=${uid}`, 'POST');
+          await delay(800);
+          await callEndpoint(`IMAP Poll [${uid.substring(0, 8)}]`, `/api/agents/email/poll-imap?user_id=${uid}`, 'POST');
+          await delay(1200);
+        }
+      });
+      results.push({ task: 'Email Inbound Poll', ok: true, data: { status: 'dispatched_background' } });
+      break;
+
+    case 'ig_comments_reply':
+      // Hourly — IG comments auto-reply for every client with the
+      // instagram_comments agent marked active. Hourly cadence matches
+      // Meta rate-limits comfortably on all plans.
+      fireBackground(async () => {
+        for (const uid of getClientsWithAgent('instagram_comments')) {
+          await callEndpoint(
+            `IG Comments [${uid.substring(0, 8)}]`,
+            `/api/agents/instagram-comments?user_id=${uid}`,
+            'POST',
+            { action: 'auto_reply_all' },
+          );
+          await delay(1500);
+        }
+      });
+      results.push({ task: 'IG Comments Auto-Reply', ok: true, data: { status: 'dispatched_background' } });
       break;
 
     case 'publish_scheduled':

@@ -185,23 +185,42 @@ export async function analyzeTrendForVisuals(
   try {
     const message = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 500,
+      max_tokens: 650,
       messages: [{
         role: 'user',
-        content: `Analyse cette actualité et trouve des PONTS VISUELS CONCRETS avec le business.
+        content: `Tu construis le pont visuel entre une actualité et le business d'un client. Les scènes générées DOIVENT représenter les personnalités et lieux cités dans l'article, pas des remplacements génériques — et toujours lier visuellement ces éléments au business.
 
 ACTUALITÉ: ${newsTitle}
 ${newsDescription ? `DÉTAILS: ${newsDescription}` : ''}
-${articleContent ? `CONTENU ARTICLE: ${articleContent.substring(0, 800)}` : ''}
+${articleContent ? `CONTENU ARTICLE: ${articleContent.substring(0, 1200)}` : ''}
 
 BUSINESS: ${businessType}${businessDescription ? ` — ${businessDescription}` : ''}
 
-En 3-5 lignes maximum, donne:
-1. Les FAITS CLÉS de l'actu (chiffres, personnes, lieux, dates)
-2. Les OBJETS VISUELS CONCRETS associés à cette actu (pas abstraits, des CHOSES qu'on peut photographier)
-3. 2-3 SCÈNES précises où le business et l'actu se rencontrent visuellement dans un même cadre
+Sortie en anglais, PAS de JSON, exactement ces 5 sections :
 
-Réponds en anglais, format concis, PAS de JSON.`
+PEOPLE:       personnes nommées dans l'article (acteurs, sportifs,
+              politiques, chefs, influenceurs) avec leurs traits visuels
+              reconnaissables (coupe, tenue signature, posture). Mets
+              (none) si aucune personne réelle.
+
+PLACES:       lieux nommés (ville, rue, monument, venue) avec leurs
+              traits visuels reconnaissables (Tour Eiffel, parvis du
+              Sacré-Cœur, enseigne Shibuya…). Mets (none) si aucun.
+
+OBJECTS:      3-5 objets photographiables concrets liés à l'actu.
+
+BUSINESS_BRIDGE: UNE phrase qui dit COMMENT cette actualité et le
+              business partagent plausiblement une scène (ex. "Une
+              pâtisserie prépare un entremet aux couleurs de l'équipe
+              de France après leur victoire").
+
+SCENE_IDEAS:  2-3 scènes précises combinant explicitement les PEOPLE ou
+              PLACES nommés ci-dessus AVEC l'environnement du business
+              dans un seul cadre. Les noms de l'article doivent
+              apparaître ; pas de substitut générique.
+
+Si PEOPLE et PLACES sont tous deux (none), concentre SCENE_IDEAS sur
+OBJECTS × BUSINESS.`
       }],
     });
 
@@ -250,32 +269,35 @@ ${rawPrompt}
 ${trendAnalysis ? `\nANALYSE APPROFONDIE DE L'ACTUALITE (utilise ces details pour un lien FORT et VISIBLE entre business et actu):\n${trendAnalysis}` : ''}
 
 METHODE EN 2 TEMPS:
-A) D'abord, IDENTIFIE:
+A) D'abord, IDENTIFIE depuis l'ANALYSE APPROFONDIE si fournie :
    - Le BUSINESS exact: quel metier, quels produits/services, quel univers visuel ?
    - L'ACTUALITE exacte: quel evenement, quelle situation, quelles images ca evoque ?
-   - Le PONT NARRATIF: quelle scene CONCRETE reunit les deux ?
+   - Les PEOPLE nommes dans l'actu (si presents) avec leurs traits visuels
+   - Les PLACES nommes dans l'actu (si presents) avec leurs reperes
+   - Le BUSINESS_BRIDGE — le lien explicite qui doit transparaitre dans la scene
 
 B) Ensuite, DECRIS cette scene en detaillant:
    - FOREGROUND (devant): le business en action — produits, outils, artisan, client, comptoir
-   - BACKGROUND (fond): l'actualite traduite en DECOR VISUEL — objets, ambiance, elements reconnaissables
-   - L'INTERACTION: comment les deux plans se repondent visuellement
+   - BACKGROUND (fond): l'actualite traduite en DECOR VISUEL — objets, ambiance, elements reconnaissables, ET si PEOPLE/PLACES nommes : inclure leurs traits distinctifs (skyline specifique, monument, uniforme, coiffure signature, couleur d'equipe)
+   - L'INTERACTION: comment les deux plans se repondent visuellement, le bridge doit etre evident
 
 EXEMPLES DE PONTS VISUELS:
-- Boulangerie + Inflation → artisan qui petrit la pate, clients qui remplissent leurs paniers, etageres bien garnies
-- Coach sportif + Canicule → seance d'entrainement outdoor au lever du soleil, brumisateurs, soleil rasant
-- Bijoutier + Finale foot → vitrine avec bijoux sous eclairage stadium, ballons decoratifs dores
-- Fleuriste + Elections → compositions florales tricolores, drapeaux integres dans les bouquets
+- Boulangerie + victoire Equipe de France (personnes: joueurs, place: stade) → vitrine avec entremets bleu-blanc-rouge, ballon au premier plan, maillots floutes en arriere-plan a travers la vitrine
+- Coach sportif + Canicule a Marseille (place: Vieux-Port) → seance outdoor au lever du soleil avec la Bonne Mere en silhouette, brumisateurs et ombre rasante
+- Bijoutier + Mariage royal britannique (people: couple, place: Westminster) → vitrine avec bijoux fins, decor de pierre claire, halo de lumiere rappelant l'abbaye
+- Fleuriste + Cannes Festival (place: Croisette, people: celebrites en robe) → bouquet glamour avec lys et roses blanches, reflets dores suggerant les spots, palmiers en arriere-plan
 
 REGLES:
-1. INTERPRETE la direction creative (camera, lumiere) — ne copie pas mot pour mot
-2. Business ET actualite a POIDS EGAL — les deux reconnaissables au premier regard
-3. AUCUN TEXTE dans la description — pas de panneaux, enseignes lisibles, ecrans avec du texte, tableaux ecrits, menus, etiquettes, prix. Remplace par des FORMES, COULEURS, OBJETS
-4. VOCABULAIRE VARIE — JAMAIS "warm lighting", "vibrant colors", "cinematic feel"
-5. Diversite naturelle si personnes presentes
-6. Maximum 500 caracteres
-7. PAS d'instruction "no text" explicite — mais ta description ne doit JAMAIS suggerer des elements contenant du texte lisible
-8. En ANGLAIS
-9. RESPECTE le style de rendu demande dans le prompt original (PHOTOREALISTIC = photo reelle, pas illustration/3D)
+1. Si PEOPLE ou PLACES sont nommes dans l'analyse, ils DOIVENT apparaitre visuellement (traits, silhouette, uniforme, architecture) — pas de remplacement generique
+2. Business ET actualite a POIDS EGAL — les deux reconnaissables au premier regard, le bridge narratif evident
+3. INTERPRETE la direction creative (camera, lumiere) — ne copie pas mot pour mot
+4. AUCUN TEXTE dans la description — pas de panneaux, enseignes lisibles, ecrans avec du texte, tableaux ecrits, menus, etiquettes, prix. Remplace par des FORMES, COULEURS, OBJETS
+5. VOCABULAIRE VARIE — JAMAIS "warm lighting", "vibrant colors", "cinematic feel"
+6. Diversite naturelle si personnes presentes
+7. Maximum 550 caracteres
+8. PAS d'instruction "no text" explicite — mais ta description ne doit JAMAIS suggerer des elements contenant du texte lisible
+9. En ANGLAIS
+10. RESPECTE le style de rendu demande dans le prompt original (PHOTOREALISTIC = photo reelle, pas illustration/3D)
 
 REPONDS uniquement avec le prompt visuel, rien d'autre.`
       }],
