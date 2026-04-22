@@ -534,6 +534,12 @@ export async function GET(request: NextRequest) {
         // brief can show "+X followers aujourd'hui" (diff vs yesterday).
         await callEndpoint('Content Sync Social Metrics', '/api/agents/content/sync-social-metrics', 'POST');
         await delay(5000);
+        // Adaptive strategy: after fresh engagement data is in, compute
+        // each client's performance ranking (best-performing format +
+        // pillar + hours) and store it on their content config so the
+        // next day's publication picks are biased toward what works.
+        await callEndpoint('Content Performance Analysis', '/api/cron/content-performance', 'GET');
+        await delay(3000);
         // Clara proactive outreach: any client stuck under 50% dossier
         // completion after 3+ days gets offered a setup call. Runs once
         // per day from the ceo_daily slot so we don't spam at multiple

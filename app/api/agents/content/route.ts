@@ -3190,9 +3190,16 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
   // via rotation that respects these percentages over a 7-day cycle.
 
   const PILLAR_ROTATION = ['trends', 'tips', 'trends', 'demo', 'trends', 'social_proof', 'trends'];
-  const FORMAT_ROTATION_MORNING = ['post', 'carrousel', 'story', 'carrousel', 'post', 'story', 'post'];
-  const FORMAT_ROTATION_MIDDAY = ['carrousel', 'post', 'post', 'story', 'carrousel', 'post', 'story'];
-  const FORMAT_ROTATION_EVENING = ['reel', 'reel', 'reel', 'reel', 'reel', 'reel', 'reel'];
+  // New rotation strategy (2026-04):
+  //   - Morning = visibility/reach (posts + carousels, rarely a story)
+  //   - Midday = engagement peak (reels for algorithmic lift)
+  //   - Evening = community + lift (posts + 2 stories/week, occasional reel)
+  // Stories still exist (2-3/week) but concentrated in evening when
+  // audience is more relaxed and a 24h-ephemeral piece fits naturally.
+  // Sun=0, Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6
+  const FORMAT_ROTATION_MORNING = ['post', 'carrousel', 'post', 'carrousel', 'post', 'carrousel', 'carrousel'];
+  const FORMAT_ROTATION_MIDDAY  = ['reel', 'reel', 'carrousel', 'reel', 'reel', 'reel', 'carrousel'];
+  const FORMAT_ROTATION_EVENING = ['post', 'story', 'reel', 'story', 'post', 'post', 'reel'];
 
   // Pick pillar: 50% trends via rotation + offset per slot
   const pickPillar = (day: number, slotOffset: number) => {
@@ -3328,13 +3335,35 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
   const schedule = activeSchedule[dayOfWeek] || morningSchedule[1];
   const platform = (forcePlatform && forcePlatform !== 'all') ? forcePlatform : schedule.platform;
   const rawForcePillar = (slotType !== 'morning' ? undefined : forcePillar);
-  const pillar = (rawForcePillar && !rawForcePillar.startsWith('__')) ? rawForcePillar : schedule.pillar;
+  let pillar = (rawForcePillar && !rawForcePillar.startsWith('__')) ? rawForcePillar : schedule.pillar;
 
   // Override format based on client preference (if they prefer reels/stories/carousel)
   let format = schedule.format;
   if (preferredFormats === 'reels' && platform === 'instagram') format = 'reel';
   else if (preferredFormats === 'stories' && platform === 'instagram') format = 'story';
   else if (preferredFormats === 'carousel' && platform === 'instagram') format = 'carousel';
+
+  // ── Adaptive bias from performance ranking ──
+  // If the client has a recent performance_ranking (computed nightly
+  // by /api/cron/content-performance), use it to steer format and pillar
+  // choice toward what's been getting engagement for THIS client. Low
+  // confidence (< 10 samples) leaves the schedule untouched.
+  const ranking = clientSettings.performance_ranking;
+  if (ranking && platform === 'instagram' && preferredFormats === 'all') {
+    try {
+      const { pickFormatWithRanking, pickPillarWithRanking } = await import('@/lib/content/performance-analyzer');
+      const allowedForSlot = slotType === 'morning'
+        ? ['post', 'carrousel']
+        : slotType === 'midday'
+          ? ['reel', 'carrousel']
+          : ['post', 'story', 'reel'];
+      format = pickFormatWithRanking(format, ranking, allowedForSlot);
+      pillar = pickPillarWithRanking(pillar, ranking);
+    } catch (e: any) {
+      // Non-fatal: fall back to static schedule
+      console.warn('[Content] performance-ranking bias failed:', e?.message);
+    }
+  }
 
   // Get recent posts for visual coherence + strategy context
   const { data: recentGrid } = await supabase
