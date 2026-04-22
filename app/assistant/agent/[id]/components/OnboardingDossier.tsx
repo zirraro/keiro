@@ -180,6 +180,13 @@ export default function OnboardingDossier() {
 
   return (
     <div className="p-5 space-y-5">
+      {/* Autofill from URL / IG handle — massive UX boost on first load */}
+      <AutofillWidget
+        onApplied={async () => {
+          await loadDossier();
+        }}
+      />
+
       {/* Step indicators */}
       <div className="flex items-center justify-between gap-0.5 sm:gap-1 overflow-x-auto">
         {STEPS.map((s, i) => {
@@ -279,6 +286,98 @@ export default function OnboardingDossier() {
         <p className="text-teal-300/80 text-[11px]">
           Tu peux aussi remplir tout ca en discutant avec Clara dans le chat ! Clique sur le bouton chat en bas a droite.
         </p>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Autofill widget — one-click dossier boost from website + IG handle
+// ─────────────────────────────────────────────────────────────
+function AutofillWidget({ onApplied }: { onApplied: () => Promise<void> }) {
+  const [website, setWebsite] = useState('');
+  const [instagram, setInstagram] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<{
+    applied_count: number; score_before: number; score_after: number;
+  } | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  const submit = async () => {
+    if (!website.trim() && !instagram.trim()) {
+      setErr('Mets au moins une URL de site OU un handle Instagram.');
+      return;
+    }
+    setBusy(true);
+    setErr(null);
+    setResult(null);
+    try {
+      const res = await fetch('/api/business-dossier/autofill', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          website: website.trim() || undefined,
+          instagram: instagram.trim() || undefined,
+        }),
+      });
+      const data = await res.json().catch(() => ({} as any));
+      if (!res.ok) {
+        setErr(data?.error || `Echec (${res.status})`);
+        return;
+      }
+      setResult({
+        applied_count: data.applied_count || 0,
+        score_before: data.score_before || 0,
+        score_after: data.score_after || 0,
+      });
+      await onApplied();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="rounded-xl border border-teal-500/20 bg-gradient-to-br from-teal-500/10 to-blue-500/10 p-4">
+      <div className="flex items-start gap-2 mb-3">
+        <span className="text-xl shrink-0">{'\u26A1'}</span>
+        <div className="flex-1">
+          <p className="text-white text-sm font-bold">Remplissage express</p>
+          <p className="text-white/60 text-[11px] leading-relaxed mt-0.5">
+            Colle l&apos;URL de ton site + ton handle Instagram. Clara scanne ton site + ton profil et remplit ton dossier en quelques secondes — tu n&apos;as plus qu&apos;a corriger ce qui manque.
+          </p>
+        </div>
+      </div>
+      <div className="grid sm:grid-cols-2 gap-2 mb-2">
+        <input
+          type="url"
+          value={website}
+          onChange={e => setWebsite(e.target.value)}
+          placeholder="https://mon-business.com"
+          className="bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm placeholder-white/25 focus:outline-none focus:ring-2 focus:ring-teal-500/40"
+        />
+        <input
+          type="text"
+          value={instagram}
+          onChange={e => setInstagram(e.target.value)}
+          placeholder="@moncommerce"
+          className="bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-white text-sm placeholder-white/25 focus:outline-none focus:ring-2 focus:ring-teal-500/40"
+        />
+      </div>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={submit}
+          disabled={busy}
+          className="px-4 py-2 bg-gradient-to-r from-teal-500 to-blue-500 text-white text-xs font-bold rounded-lg hover:opacity-90 transition disabled:opacity-50"
+        >
+          {busy ? 'Analyse en cours\u2026' : 'Remplir mon dossier'}
+        </button>
+        {result && (
+          <p className="text-[11px] text-emerald-400">
+            {'\u2713'} {result.applied_count} champs remplis — score {result.score_before}% \u2192 <strong>{result.score_after}%</strong>
+          </p>
+        )}
+        {err && <p className="text-[11px] text-red-400">{err}</p>}
       </div>
     </div>
   );
