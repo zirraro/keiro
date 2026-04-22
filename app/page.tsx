@@ -1792,6 +1792,12 @@ function HomeKeiroInner() {
                     privacy@keiroai.com
                   </a>
                 </li>
+                <li>
+                  <a href="/status" className="text-sm text-neutral-400 hover:text-cyan-400 transition-colors flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    {locale === 'fr' ? 'Statut de la plateforme' : 'Platform status'}
+                  </a>
+                </li>
               </ul>
             </div>
           </div>
