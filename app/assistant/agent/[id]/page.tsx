@@ -857,7 +857,9 @@ export default function AgentWorkspacePage() {
           const contentTypeLabels: Record<string, string> = {
             product: 'un produit', dish: 'un plat', space: 'ton espace',
             ambiance: 'une ambiance', team: 'ton equipe', behind_scenes: 'un behind-the-scenes',
-            customer: 'un client', logo: 'ton logo', document: 'un document', other: 'un visuel',
+            customer: 'un client', logo: 'ton logo', document: 'un document',
+            video: 'une video', data: 'un fichier de donnees (Excel)', deck: 'une presentation (slides)', audio: 'un fichier audio',
+            other: 'un visuel',
           };
 
           // Voice per agent — Clara collects business context, Léna thinks

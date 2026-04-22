@@ -470,16 +470,26 @@ export async function POST(req: NextRequest) {
       console.warn('[agent-files] Auto-extract error (non-fatal):', e.message);
     }
 
-    // ── Visual classification + agent_uploads registration ──
-    // Every uploaded image also gets classified and indexed in agent_uploads
-    // so Léna (content) / Jade (DM) can discover it later for reuse. This
-    // used to only fire via a separate /api/agents/uploads endpoint — if
-    // the user drag-dropped in an agent workspace, the file was invisible
-    // to the content pipeline. Now one upload = dossier extraction +
-    // visual analysis + agent_uploads indexing in a single shot.
+    // ── Universal file classification + agent_uploads registration ──
+    // EVERY upload (image, video, audio, doc, excel, pptx, pdf) gets
+    // classified and indexed in agent_uploads so any agent can discover
+    // it later. This used to only fire for images — now the full workspace
+    // is searchable across file types.
     let visualClassification: any = null;
+    let fileFolder: string = 'other';
+
+    // Derive folder for non-image files by extension — cheap, no AI call
+    const folderByExt: Record<string, string> = {
+      pdf: 'documents', docx: 'documents', doc: 'documents', txt: 'documents',
+      xlsx: 'data', xls: 'data', csv: 'data',
+      pptx: 'decks', ppt: 'decks',
+      mp4: 'videos', mov: 'videos', webm: 'videos', avi: 'videos',
+      mp3: 'audio', wav: 'audio', m4a: 'audio',
+    };
+
     try {
       if (['png', 'jpg', 'jpeg'].includes(ext)) {
+        // Images: run Claude Vision for content-type classification
         const { analyzeImageForAgent } = await import('@/lib/agents/visual-analyzer');
         const { data: dossierForType } = await supabase
           .from('business_dossiers')
@@ -493,8 +503,6 @@ export async function POST(req: NextRequest) {
         );
 
         if (visualClassification) {
-          // Auto-classify into a folder based on content_type so the
-          // workspace UI can group files without the client sorting them.
           const folderMap: Record<string, string> = {
             product: 'products', dish: 'products',
             space: 'venue', ambiance: 'venue',
@@ -502,35 +510,53 @@ export async function POST(req: NextRequest) {
             customer: 'social_proof',
             logo: 'brand', document: 'brand',
           };
-          const folder = visualClassification.content_type
+          fileFolder = visualClassification.content_type
             ? folderMap[visualClassification.content_type] || 'other'
             : 'other';
+        }
+      } else if (folderByExt[ext]) {
+        // Non-image: derive folder from extension, use extracted text (if any)
+        // as ai_analysis summary so agents can search it too.
+        fileFolder = folderByExt[ext];
+        visualClassification = {
+          content_type: ext === 'mp4' || ext === 'mov' || ext === 'webm' ? 'video'
+            : ext === 'xlsx' || ext === 'xls' || ext === 'csv' ? 'data'
+            : ext === 'pptx' || ext === 'ppt' ? 'deck'
+            : ext === 'mp3' || ext === 'wav' || ext === 'm4a' ? 'audio'
+            : 'document',
+          summary: extracted && Object.keys(extracted).length > 0
+            ? `File "${safeName}" — business info extracted: ${Object.keys(extracted).join(', ')}`
+            : `File "${safeName}" — ${ext.toUpperCase()} in folder ${fileFolder}`,
+          relevant_agents: (ext === 'xlsx' || ext === 'xls' || ext === 'csv') ? ['comptable', 'commercial']
+            : (ext === 'docx' || ext === 'doc') ? ['rh', 'content', 'marketing']
+            : (ext === 'mp4' || ext === 'mov' || ext === 'webm') ? ['content', 'dm_instagram']
+            : (ext === 'pptx' || ext === 'ppt') ? ['marketing', 'ceo']
+            : ['content'],
+          post_angle: ext === 'mp4' || ext === 'mov' || ext === 'webm' ? 'Reuse as a reel clip or edit for TikTok' : null,
+        };
+      }
 
-          // Save to agent_uploads so content agent's reference-lookup sees it.
-          // Attempt with folder column first; if the column doesn't exist yet
-          // fall back to the legacy schema without breaking the upload.
-          const insertBase = {
-            user_id: user.id,
-            agent_id: agentId,
-            file_url: urlData.publicUrl,
-            file_type: `image/${ext}`,
-            file_name: safeName,
-            caption: null,
-            ai_analysis: visualClassification,
-            analyzed_at: now,
-            created_at: now,
-          };
-          const { error: withFolderErr } = await supabase
-            .from('agent_uploads')
-            .insert({ ...insertBase, folder });
-          if (withFolderErr?.message?.includes('folder')) {
-            // Legacy schema — retry without the column
-            await supabase.from('agent_uploads').insert(insertBase);
-          }
+      if (visualClassification) {
+        const insertBase = {
+          user_id: user.id,
+          agent_id: agentId,
+          file_url: urlData.publicUrl,
+          file_type: `${ext === 'mp4' || ext === 'mov' || ext === 'webm' ? 'video' : ext === 'mp3' || ext === 'wav' ? 'audio' : 'image'}/${ext}`,
+          file_name: safeName,
+          caption: null,
+          ai_analysis: visualClassification,
+          analyzed_at: now,
+          created_at: now,
+        };
+        const { error: withFolderErr } = await supabase
+          .from('agent_uploads')
+          .insert({ ...insertBase, folder: fileFolder });
+        if (withFolderErr?.message?.includes('folder')) {
+          await supabase.from('agent_uploads').insert(insertBase);
         }
       }
     } catch (err: any) {
-      console.warn('[agent-files] Visual classification non-fatal:', err?.message);
+      console.warn('[agent-files] Classification non-fatal:', err?.message);
     }
 
     return NextResponse.json({

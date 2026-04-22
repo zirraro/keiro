@@ -340,9 +340,9 @@ async function generateEnrichmentPass(
 
   try {
     const res = await claude().messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 2800,
-      system: `You are a top-tier ${angle.key} in ${brief.domain}. Your output is saved to a RAG knowledge base so other AI agents can retrieve it later. Write 6-10 DISTINCT, ACTIONABLE, PROFESSIONAL knowledge items — no fluff, no marketing speak. Each item must be a concrete tactic, metric, pattern, or playbook an agent can apply immediately. Angle: ${angle.description}.
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1500,
+      system: `You are a top-tier ${angle.key} in ${brief.domain}. Your output is saved to a RAG knowledge base so other AI agents can retrieve it later. Write 5-8 DISTINCT, ACTIONABLE, PROFESSIONAL knowledge items — no fluff, no marketing speak. Each item must be a concrete tactic, metric, pattern, or playbook an agent can apply immediately. Angle: ${angle.description}.
 
 Format (strict JSON array, no markdown fences):
 [
@@ -382,9 +382,9 @@ async function generateCrossConnection(
 
   try {
     const res = await claude().messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 2500,
-      system: `You produce cross-agent knowledge that makes two AI agents smarter together than apart. Return 6-8 concrete patterns where agent "${agentId}" (${a.domain.split(',')[0]}) and agent "${otherAgentId}" (${b.domain.split(',')[0]}) benefit from each other's signals. Each item must describe:
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1200,
+      system: `You produce cross-agent knowledge that makes two AI agents smarter together than apart. Return 4-6 concrete patterns where agent "${agentId}" (${a.domain.split(',')[0]}) and agent "${otherAgentId}" (${b.domain.split(',')[0]}) benefit from each other's signals. Each item must describe:
 - the SIGNAL one agent detects
 - how the OTHER agent should use that signal in its own work
 - a measurable outcome when the connection works
