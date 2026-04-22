@@ -4023,17 +4023,22 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
       }
 
       const rng = Math.random();
-      if (pickedUpload && rng < 0.10) {
-        // 10% — reuse raw client photo (unchanged). Kept low per user
-        // feedback: the client's feed benefits more from Seedream lifts
-        // than from untouched photos (which can feel amateur vs the
-        // editorial standard Jade aims for).
+      const hasVenuePair = !!(pickedUpload as any)?.venueContext;
+      // When we have a product+venue pair available, SKIP the raw reuse
+      // branch entirely — the whole point of the pairing is that we need
+      // i2i to compose the dish into the real dining room. Raw reuse of
+      // just the dish would miss the client's brand signature (their
+      // actual space). Same for boutique product × shop interior.
+      if (pickedUpload && !hasVenuePair && rng < 0.10) {
+        // 10% — raw reuse only when NO venue pair exists (no composition
+        // opportunity). If venuePair exists, we always route through i2i
+        // below so the dish lands in the real space.
         visualUrl = pickedUpload.file_url;
-        console.log(`[Content] Reusing client photo ${pickedUpload.id} (raw reuse)`);
+        console.log(`[Content] Reusing client photo ${pickedUpload.id} (raw reuse, no venue pair)`);
         await supabase.from('content_calendar').update({
           publish_diagnostic: `client_photo_raw:${pickedUpload.id}`,
         }).eq('id', inserted.id).throwOnError?.();
-      } else if (pickedUpload && rng < 0.65) {
+      } else if (pickedUpload && (hasVenuePair || rng < 0.65)) {
         // 55% — pimp the client photo via Seedream image-to-image.
         // We pass the trend/news context into the enhancement prompt so
         // the re-render actually ties the client's space to what's
@@ -4047,8 +4052,9 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
         );
         if (visualUrl) {
           console.log(`[Content] Pimped client photo ${pickedUpload.id} via i2i`);
+          const diagMode = hasVenuePair ? 'dish_in_venue' : 'i2i';
           await supabase.from('content_calendar').update({
-            publish_diagnostic: `client_photo_i2i:${pickedUpload.id}`,
+            publish_diagnostic: `client_photo_${diagMode}:${pickedUpload.id}${hasVenuePair ? `+venue:${(pickedUpload as any).venueContext?.analysis?.space_type || 'space'}` : ''}`,
           }).eq('id', inserted.id).throwOnError?.();
         } else {
           // i2i rejected by API — salvage with raw reuse before falling
