@@ -84,9 +84,25 @@ export async function POST(request: Request) {
     let resultTaskId: string;
     let provider: 'k' | 's';
 
+    // Run the raw client brief through Jade's video-optimiser first so
+    // every t2v hitting /generate and /studio gets the same elite prompt
+    // treatment as Jade's own daily reels (camera movement, lighting
+    // evolution, subject action, composition discipline).
+    let optimisedBrief = prompt;
+    try {
+      const { optimiseJadeVideoPrompt } = await import('@/lib/visuals/jade-prompter');
+      optimisedBrief = await optimiseJadeVideoPrompt(prompt, {
+        aspectRatio,
+        duration: Number(duration) || 5,
+        hasReferenceImage: false,
+      });
+    } catch (e: any) {
+      console.warn('[T2V] Jade prompter fallback (using raw brief):', e?.message?.substring?.(0, 200));
+    }
+
     // Seedance prompt formatting (used when Seedance is primary or fallback)
     const ratioFlag = aspectRatio ? ` --ratio ${aspectRatio}` : '';
-    const truncatedPrompt = prompt.length > 250 ? prompt.substring(0, 250) : prompt;
+    const truncatedPrompt = optimisedBrief.length > 250 ? optimisedBrief.substring(0, 250) : optimisedBrief;
     const formattedPrompt = `${truncatedPrompt} --camerafixed false${ratioFlag} --duration ${duration}`;
 
     // --- Primary provider ---
@@ -94,7 +110,7 @@ export async function POST(request: Request) {
       if (PRIMARY_PROVIDER === 'kling') {
         console.log('[T2V] Trying Kling (primary)...');
         const klingTaskId = await createT2VTask({
-          prompt,
+          prompt: optimisedBrief,
           duration: String(duration),
           aspect_ratio: aspectRatio || '16:9',
         });
@@ -132,7 +148,7 @@ export async function POST(request: Request) {
       try {
         if (FALLBACK_PROVIDER === 'kling') {
           const klingTaskId = await createT2VTask({
-            prompt,
+            prompt: optimisedBrief,
             duration: String(duration),
             aspect_ratio: aspectRatio || '16:9',
           });

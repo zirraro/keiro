@@ -103,6 +103,42 @@ async function optimiseBrief(visualBrief: string, format: string): Promise<strin
   return (optimized || visualBrief) + NO_TEXT_SUFFIX;
 }
 
+/**
+ * Video-specific Jade prompt. Used by /api/seedream/t2v, /api/seedream/i2v,
+ * and any other video generation surface. The style guide is the same
+ * but we inject video-specific guidance: camera movement, rhythm,
+ * lighting shifts, subject behaviour.
+ *
+ * Exposed so callers can fetch the optimised prompt then submit it to
+ * whichever video API they use (Seedance, Kling, etc.).
+ */
+export async function optimiseJadeVideoPrompt(
+  videoBrief: string,
+  opts: { aspectRatio?: string; duration?: number; hasReferenceImage?: boolean } = {},
+): Promise<string> {
+  try {
+    const optimized = await callClaude({
+      system: JADE_STYLE_GUIDE + `
+
+VIDEO-SPECIFIC GUIDANCE:
+- Describe camera movement explicitly (slow dolly-in, handheld, static lock-off, top-down reveal…)
+- Describe lighting evolution if relevant (natural daylight, golden hour spill, neon glow)
+- Describe subject behaviour (pouring, kneading, arranging, gesturing) — action beats state
+- Keep the opening frame strong enough to work as a thumbnail in social feeds
+- Duration ${opts.duration || 5}s — match pacing to duration (faster cuts for short, slower for long)
+- Aspect ratio ${opts.aspectRatio || '9:16'} — stage composition accordingly
+- ${opts.hasReferenceImage ? 'This is IMAGE-TO-VIDEO — keep subject + space recognisable, animate the existing scene naturally.' : 'This is TEXT-TO-VIDEO — no reference, invent a premium scene from scratch.'}
+
+OUTPUT: the final video prompt, ready to be sent to the generation API. No intro, no explanation.`,
+      message: `Brief: ${videoBrief}\n\nWrite the optimised video prompt.`,
+      maxTokens: 450,
+    });
+    return (optimized || videoBrief) + NO_TEXT_SUFFIX;
+  } catch {
+    return videoBrief + NO_TEXT_SUFFIX;
+  }
+}
+
 async function optimiseI2iBrief(visualBrief: string, format: string): Promise<string> {
   const optimized = await callClaude({
     system: JADE_STYLE_GUIDE + `\n\nIMPORTANT: You are writing an IMAGE-TO-IMAGE prompt. The reference image is the user's REAL photo. Your job: describe HOW to re-render it with (a) editorial lighting, (b) cleaner composition, (c) brand-aligned palette, (d) magazine-quality atmosphere. Keep the SUBJECT and SPACE recognisable. When the brief hints at a trend / news angle, weave that mood in without inventing new venues.`,

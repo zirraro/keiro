@@ -84,11 +84,23 @@ export async function POST(request: Request) {
     let resultTaskId: string;
     let provider: 'k' | 's';
 
+    // Run the raw brief through Jade's video-optimiser so i2v output
+    // (triggered from /generate, /studio or gallery regeneration) gets
+    // the same camera + lighting + action direction as Jade's own reels.
+    let optimisedBrief = prompt || '';
+    try {
+      const { optimiseJadeVideoPrompt } = await import('@/lib/visuals/jade-prompter');
+      optimisedBrief = await optimiseJadeVideoPrompt(
+        prompt && prompt.trim() ? prompt : 'Animate this image with smooth cinematic camera movement, natural editorial lighting, subject staying in frame',
+        { duration: Number(duration) || 5, hasReferenceImage: true },
+      );
+    } catch (e: any) {
+      console.warn('[I2V] Jade prompter fallback:', e?.message?.substring?.(0, 200));
+    }
+
     // Seedance prompt formatting
-    const truncatedPrompt = prompt && prompt.trim() ? (prompt.length > 250 ? prompt.substring(0, 250) : prompt) : '';
-    const textPrompt = truncatedPrompt
-      ? `${truncatedPrompt} --camerafixed false --duration ${duration}`
-      : `Animate this image with smooth cinematic camera movement --camerafixed false --duration ${duration}`;
+    const truncatedPrompt = optimisedBrief.length > 250 ? optimisedBrief.substring(0, 250) : optimisedBrief;
+    const textPrompt = `${truncatedPrompt} --camerafixed false --duration ${duration}`;
 
     // Helper: convert URL to base64 for Kling
     async function toBase64(url: string): Promise<string> {
@@ -116,7 +128,7 @@ export async function POST(request: Request) {
         const imageBase64 = await toBase64(imageUrl);
         const klingTaskId = await createI2VTask({
           image: imageBase64,
-          prompt: prompt || 'Animate this image with smooth cinematic camera movement',
+          prompt: optimisedBrief || 'Animate this image with smooth cinematic camera movement',
           duration: String(duration),
         });
         resultTaskId = klingTaskId;
@@ -159,7 +171,7 @@ export async function POST(request: Request) {
           const imageBase64 = await toBase64(imageUrl);
           const klingTaskId = await createI2VTask({
             image: imageBase64,
-            prompt: prompt || 'Animate this image with smooth cinematic camera movement',
+            prompt: optimisedBrief || 'Animate this image with smooth cinematic camera movement',
             duration: String(duration),
           });
           resultTaskId = klingTaskId;
