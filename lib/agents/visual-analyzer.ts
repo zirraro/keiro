@@ -30,9 +30,16 @@ export interface VisualAnalysis {
   // Logo-specific enrichments — only populated when Claude detects the
   // image is a logo. Other image types leave these empty.
   is_logo?: boolean;
-  typography_style?: string;   // "sans-serif modern", "serif editorial"…
-  brand_personality?: string[]; // ["premium", "playful", "minimalist"]
-  icon_style?: string;          // "monogram", "pictographic", "wordmark"
+  typography_style?: string;
+  brand_personality?: string[];
+  icon_style?: string;
+  // Content-type tags so each agent can pick only what's relevant to it.
+  // Computed by Clara at upload time and by the content agent on retrieval.
+  content_type?: 'product' | 'dish' | 'space' | 'ambiance' | 'team' | 'behind_scenes' | 'customer' | 'logo' | 'document' | 'other';
+  /** Which agents should consider this upload when pulling references. */
+  relevant_agents?: string[]; // ['content', 'dm_instagram', 'marketing']
+  /** One-line tag describing ideal post angle (dish hero, team story, etc.). */
+  post_angle?: string;
 }
 
 /**
@@ -80,6 +87,9 @@ export async function analyzeImageForAgent(
   "typography_style": "only for logos: describe the wordmark type, e.g. 'bold sans-serif modern', 'elegant serif editorial', 'handwritten script'",
   "brand_personality": ["adj", "adj"],          // only for logos: ["premium", "playful", "minimalist", "artisanal"…]
   "icon_style": "only for logos: 'wordmark' | 'monogram' | 'pictographic' | 'combination' | 'abstract'",
+  "content_type": "product | dish | space | ambiance | team | behind_scenes | customer | logo | document | other",
+  "relevant_agents": ["content", "dm_instagram", "marketing"],   // agents whose work would reference this photo; exclude if irrelevant. Example: a logo → ["content", "marketing"] (brand ref); a dish photo → ["content", "dm_instagram"]; a team photo → ["content"]; a customer photo → ["content"]; a contract PDF → ["rh"] only.
+  "post_angle": "ideal post angle in 6-10 words (e.g. 'hero shot of signature dish', 'team behind-the-scenes story')",
   "suggested_use": "one line on how the content agent should use this in future posts",
   "summary": "one sentence describing the image for future prompts"
 }
@@ -119,6 +129,9 @@ ${bizHint}`,
       typography_style: parsed.typography_style ? String(parsed.typography_style).substring(0, 100) : undefined,
       brand_personality: Array.isArray(parsed.brand_personality) ? parsed.brand_personality.slice(0, 5).map(String) : undefined,
       icon_style: parsed.icon_style ? String(parsed.icon_style).substring(0, 40) : undefined,
+      content_type: typeof parsed.content_type === 'string' ? parsed.content_type.toLowerCase() as any : undefined,
+      relevant_agents: Array.isArray(parsed.relevant_agents) ? parsed.relevant_agents.slice(0, 6).map(String) : undefined,
+      post_angle: parsed.post_angle ? String(parsed.post_angle).substring(0, 120) : undefined,
     };
   } catch (e: any) {
     console.error('[VisualAnalyzer] Error:', String(e?.message || e).substring(0, 200));

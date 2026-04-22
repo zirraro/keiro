@@ -3887,7 +3887,7 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
       // Anti-duplicate guard: we exclude any upload that appeared as
       // visual_url in the last 15 posts so a restaurant with only 3
       // photos doesn't spam the same shot twice this week.
-      let pickedUpload: { id: string; file_url: string } | null = null;
+      let pickedUpload: { id: string; file_url: string; analysis?: any } | null = null;
       if (userId) {
         try {
           const { data: recentPosts } = await supabase
@@ -3898,15 +3898,19 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
             .limit(15);
           const recentUrls = new Set((recentPosts || []).map((r: any) => r.visual_url).filter(Boolean));
 
+          // Cross-agent sharing: pull images from EVERY agent workspace
+          // of this user (onboarding/Clara, content/Léna, dm_instagram/Jade,
+          // marketing/Ami, etc.). All information flows between agents —
+          // Clara collecting the restaurant's dish photos benefits Jade
+          // and Léna directly, no duplicate upload needed.
           const { data: uploads } = await supabase
             .from('agent_uploads')
-            .select('id, file_url, file_type, ai_analysis')
+            .select('id, file_url, file_type, agent_id, ai_analysis, caption, created_at')
             .eq('user_id', userId)
-            .eq('agent_id', 'content')
             .or('file_type.ilike.image/%,file_url.ilike.%.jpg,file_url.ilike.%.jpeg,file_url.ilike.%.png,file_url.ilike.%.webp')
             .not('ai_analysis', 'is', null)
             .order('created_at', { ascending: false })
-            .limit(20);
+            .limit(60);
 
           // Filter to raster formats only — Seedream i2i rejects SVG/GIF
           // with "UnsupportedImageFormat", and publishing an SVG directly
@@ -3917,11 +3921,56 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
             if (ft.includes('svg') || ft.includes('gif') || url.endsWith('.svg') || url.endsWith('.gif')) return false;
             return true;
           };
+
+          // Skip logos / brand marks / business cards — those are for
+          // brand reference (palette extraction, typo), NOT for use as a
+          // post hero image. A restaurant's feed shouldn't re-post their
+          // logo every week.
+          const isPostWorthy = (u: any) => {
+            const a = u.ai_analysis || {};
+            if (a.is_logo === true) return false;
+            const elements = Array.isArray(a.visible_elements) ? a.visible_elements.join(' ').toLowerCase() : '';
+            if (/business card|logo only|text only/.test(elements)) return false;
+            return true;
+          };
+
+          // Topic-aware relevance: boost photos whose visible_elements or
+          // ambiance match the current post's pillar. A "trends" post about
+          // a dish gets a food photo first; a "tips" post gets a behind-
+          // the-scenes / team photo first. Falls back gracefully when no
+          // strong match exists — any authentic client photo beats a
+          // generic generation.
+          const pillarHints: Record<string, string[]> = {
+            trends:       ['dish', 'plate', 'menu', 'product', 'storefront', 'drink', 'counter'],
+            tips:         ['team', 'behind', 'process', 'hands', 'ingredient', 'tool', 'workshop'],
+            demo:         ['dish', 'product', 'detail', 'close-up', 'packaging', 'signature'],
+            social_proof: ['customer', 'happy', 'smile', 'group', 'celebration', 'full table'],
+          };
+          const hintsForThisPost = pillarHints[pillar as string] || [];
+
+          const scoreRelevance = (u: any): number => {
+            const a = u.ai_analysis || {};
+            const blob = `${a.ambiance || ''} ${(Array.isArray(a.visible_elements) ? a.visible_elements.join(' ') : '')} ${(Array.isArray(a.style_descriptors) ? a.style_descriptors.join(' ') : '')} ${u.caption || ''}`.toLowerCase();
+            let score = 0;
+            for (const hint of hintsForThisPost) if (blob.includes(hint)) score += 2;
+            // Uploads dropped in by Clara (onboarding) or content workspace
+            // are the intent-tagged ones. DMs workspace is secondary.
+            if (u.agent_id === 'content' || u.agent_id === 'onboarding') score += 1;
+            return score;
+          };
+
           const candidates = (uploads || [])
             .filter(isRaster)
-            .filter((u: any) => !recentUrls.has(u.file_url));
-          const pick = candidates[0] || (uploads || []).filter(isRaster)[0];
-          if (pick?.file_url) pickedUpload = { id: pick.id, file_url: pick.file_url };
+            .filter(isPostWorthy)
+            .filter((u: any) => !recentUrls.has(u.file_url))
+            .map((u: any) => ({ u, score: scoreRelevance(u) }))
+            .sort((a: { score: number }, b: { score: number }) => b.score - a.score);
+
+          const pick = candidates[0]?.u || (uploads || []).filter(isRaster).filter(isPostWorthy)[0];
+          if (pick?.file_url) {
+            pickedUpload = { id: pick.id, file_url: pick.file_url, analysis: pick.ai_analysis };
+            console.log(`[Content] Picked upload ${pick.id} from agent=${pick.agent_id} score=${candidates.find((c: { u: any; score: number }) => c.u.id === pick.id)?.score || 0}`);
+          }
         } catch (e: any) {
           console.warn('[Content] Upload pick failed:', String(e?.message || e).substring(0, 200));
         }

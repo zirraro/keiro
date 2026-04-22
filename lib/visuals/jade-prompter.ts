@@ -37,6 +37,17 @@ BRAND / VISUAL PRINCIPLES:
 - Magazine-quality atmosphere (Vogue, Apple, Nike benchmark)
 - Respect the client's brand colours and tone when mentioned in the brief
 
+AUTHENTICITY — THE HARD RULE:
+The image must represent the CLIENT'S OWN REALITY. Never invent products,
+dishes, items, or spaces that aren't part of this specific client's
+business. A restaurant's post must show food the restaurant actually
+serves (from their menu, style, cuisine). A boutique's post must show
+items the boutique actually sells. A coach's post must show their real
+training style / environment. If the brief doesn't carry enough
+specifics about the client's actual offering, default to a neutral
+ambiance shot of the SPACE / environment / mood, NEVER a generic
+product shot that could belong to any competitor.
+
 FOR SOCIAL THUMBNAILS:
 - Readable at 100×100 px thumbnail size
 - Strong contrast between subject and background
@@ -47,7 +58,11 @@ ABSOLUTELY FORBIDDEN:
 - Any text, letters, numbers, signs, watermarks, logos
 - Smartphones, phones, tablets, screens, mockups, UI
 - Hex color codes — use colour names (deep violet, soft amber…)
-- Generic stock-photo feel`;
+- Generic stock-photo feel
+- Stereotypical "restaurant food" or "boutique item" that doesn't match
+  the client's brand (e.g. a pizza for a sushi place, a tech gadget for
+  a vintage clothing store, a dumbbell for a yoga studio). When in doubt
+  describe the SPACE, not a specific product`;
 
 const NEGATIVE_PROMPT = 'text, words, letters, numbers, writing, typography, signs, labels, captions, watermarks, logos, headlines, slogans, brand names, price tags, menus, screens with text, readable characters, digits';
 const NO_TEXT_SUFFIX = '\nCRITICAL: Absolutely NO text, NO letters, NO words, NO numbers, NO writing, NO signs, NO labels, NO watermarks, NO logos, NO digits, NO characters, NO typography anywhere in the image. The image must contain ZERO readable text or number-like shapes. Pure photographic visual only.';
