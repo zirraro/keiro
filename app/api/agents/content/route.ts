@@ -3702,21 +3702,41 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
   }
 
   // ── Override with the client's data-driven optimal hour for this slot ──
-  // performance_ranking.optimal_hours is the 3 best-engagement hours for
-  // THIS client's past posts. We match each slot type to the first hour
-  // in the matching time range (morning 5-11, midday 11-16, evening 16-23).
-  // Falls back to the Claude guess or 12:00 when we don't have data yet.
+  // Three-tier fallback:
+  //   1. performance_ranking.optimal_hours (≥ medium confidence) — data-driven
+  //   2. expert-recommended hour per business type (day 0, no data yet)
+  //   3. Claude's best_time guess or 12:00 default
   const optimalHours: string[] = clientSettings?.performance_ranking?.optimal_hours || [];
-  if (optimalHours.length > 0 && clientSettings?.performance_ranking?.confidence !== 'low') {
-    const slotRange = slotType === 'morning' ? [5, 11] : slotType === 'midday' ? [11, 16] : slotType === 'evening' ? [16, 23] : null;
+  const rankingConfidence = clientSettings?.performance_ranking?.confidence;
+  const slotTypeLC = slotType as 'morning' | 'midday' | 'evening' | 'tiktok' | 'linkedin_1' | 'linkedin_2';
+
+  if (optimalHours.length > 0 && rankingConfidence !== 'low') {
+    const slotRange = slotTypeLC === 'morning' ? [5, 11] : slotTypeLC === 'midday' ? [11, 16] : slotTypeLC === 'evening' ? [16, 23] : null;
     if (slotRange) {
       const match = optimalHours.find(hh => {
         const h = parseInt(hh.split(':')[0] || '0');
         return h >= slotRange[0] && h < slotRange[1];
       });
-      if (match) {
-        scheduledTime = match;
+      if (match) scheduledTime = match;
+    }
+  } else if (slotTypeLC === 'morning' || slotTypeLC === 'midday' || slotTypeLC === 'evening') {
+    // No reliable data yet — use expert default for this business type
+    try {
+      const { getDefaultOptimalHour } = await import('@/lib/content/default-timing');
+      // Read business_type off the profile if we have it
+      let businessType: string | null = null;
+      if (userId) {
+        const { data: dossier } = await supabase
+          .from('business_dossiers')
+          .select('business_type')
+          .eq('user_id', userId)
+          .maybeSingle();
+        businessType = dossier?.business_type || null;
       }
+      scheduledTime = getDefaultOptimalHour(businessType, slotTypeLC);
+    } catch (e: any) {
+      // Fall back to whatever best_time gave us or 12:00
+      console.warn('[Content] default-timing fallback failed:', e?.message);
     }
   }
 

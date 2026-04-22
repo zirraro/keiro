@@ -285,7 +285,9 @@ export async function GET(request: NextRequest) {
       console.log(`[Scheduler/${slot}] ← ${name}: ${data.ok ? 'OK' : 'FAIL'} (${duration}ms)`);
 
       // Auto-improve: log result for learning
-      const agentName = path.split('/agents/')[1]?.split(/[?/]/)[0] || name.toLowerCase();
+      // Normalise URL slug (dm-instagram) to canonical agent id (dm_instagram)
+      // so autoImprove writes land in the same RAG bucket as saveLearning.
+      const agentName = (path.split('/agents/')[1]?.split(/[?/]/)[0] || name.toLowerCase()).replace(/-/g, '_');
       waitUntil(autoImprove(aiSupabase, {
         agent: agentName,
         action: `cron_${slot}_${name.toLowerCase().replace(/\s+/g, '_')}`,
@@ -300,7 +302,9 @@ export async function GET(request: NextRequest) {
       console.error(`[Scheduler/${slot}] ✗ ${name}: ${e.message} (${duration}ms)`);
 
       // Auto-improve: log failure
-      const agentName = path.split('/agents/')[1]?.split(/[?/]/)[0] || name.toLowerCase();
+      // Normalise URL slug (dm-instagram) to canonical agent id (dm_instagram)
+      // so autoImprove writes land in the same RAG bucket as saveLearning.
+      const agentName = (path.split('/agents/')[1]?.split(/[?/]/)[0] || name.toLowerCase()).replace(/-/g, '_');
       waitUntil(autoImprove(aiSupabase, {
         agent: agentName,
         action: `cron_${slot}_${name.toLowerCase().replace(/\s+/g, '_')}`,
