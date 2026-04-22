@@ -992,6 +992,21 @@ export async function GET(request: NextRequest) {
       results.push({ task: 'Email Inbound Poll', ok: true, data: { status: 'dispatched_background' } });
       break;
 
+    case 'weekly_enrichment':
+      // Sunday 02:00 UTC — weekly refresh of agent knowledge to keep
+      // them current with market trends. Light depth (1 angle) to cap
+      // cost at ~€5-10/week total Anthropic spend.
+      fireBackground(async () => {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://keiroai.com';
+        const cronSecret = process.env.CRON_SECRET;
+        await fetch(`${appUrl}/api/admin/enrich-agents?depth=shallow`, {
+          method: 'POST',
+          headers: cronSecret ? { 'Authorization': `Bearer ${cronSecret}` } : {},
+        }).catch((e) => console.error('[Scheduler/weekly_enrichment]', e?.message));
+      });
+      results.push({ task: 'Weekly Enrichment', ok: true, data: { status: 'dispatched_background' } });
+      break;
+
     case 'ig_comments_reply':
       // Hourly — IG comments auto-reply for every client with the
       // instagram_comments agent marked active. Hourly cadence matches

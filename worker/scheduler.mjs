@@ -47,6 +47,10 @@ const GLOBAL_SCHEDULE = [
   { cron: '15 * * * *',   slot: 'ig_comments_reply', label: 'IG Comments Auto-Reply (all active clients)' },
   { cron: '0 7 * * 1',    path: '/api/agents/weekly-trends', label: 'Weekly Trends (Monday)' },
   { cron: '0 7 1 * *',    path: '/api/agents/monthly-recap', label: 'Monthly Recap (1st)' },
+  // Weekly enrichment refresh — keeps each agent's knowledge current with
+  // market changes. Light depth so it doesn't balloon credits; the deep
+  // campaign is manual / on-demand.
+  { cron: '0 2 * * 0',    slot: 'weekly_enrichment', label: 'Weekly Agent Knowledge Refresh' },
 ];
 
 // Agent endpoint mapping (for per-client direct calls)
