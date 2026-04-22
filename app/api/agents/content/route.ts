@@ -175,15 +175,34 @@ async function generateVisualFromReference(
   visualDescription: string,
   format: string,
   strength = 0.4,
+  venueContext?: { file_url: string; analysis: any } | null,
 ): Promise<string | null> {
   try {
-    // Build an enhancement prompt — we don't want the model to invent
-    // a new scene, just elevate the existing one: better light, cleaner
-    // composition, colour cohesion with the brand, tasteful styling.
+    // When we have a venue/ambiance photo paired with the product/dish,
+    // we tell Claude to compose the product INTO the real venue so the
+    // final image shows the client's actual dish on their actual table,
+    // not a generic studio shot. This keeps Seedream grounded in the
+    // client's reality end-to-end. Same logic for a boutique product
+    // shown inside the actual shop interior.
+    const venueBlock = venueContext?.analysis ? `
+
+VENUE CONTEXT (the client's real dining room / shop interior — use as the setting):
+- Ambiance: ${venueContext.analysis.ambiance || 'unspecified'}
+- Style: ${(venueContext.analysis.style_descriptors || []).join(', ') || 'unspecified'}
+- Lighting: ${venueContext.analysis.lighting || 'unspecified'}
+- Space type: ${venueContext.analysis.space_type || 'unspecified'}
+- Visible elements: ${(venueContext.analysis.visible_elements || []).join(', ') || 'unspecified'}
+- Palette: ${(venueContext.analysis.color_palette || []).join(', ') || 'unspecified'}
+
+IMPORTANT: the reference image is the PRODUCT. Compose the final frame so
+the product sits in this real venue — use the venue's lighting, palette,
+and ambiance elements as background context. Never invent a generic
+studio or cafe — stay grounded in THIS specific venue's feel.` : '';
+
     const optimizedText = await callClaude({
-      system: SEEDREAM_STYLE_GUIDE + `\n\nIMPORTANT: You are writing an IMAGE-TO-IMAGE prompt. The reference image is the client's REAL photo of their venue / product / space. Your job is to describe HOW to re-render it with: (a) better professional lighting (natural or warm editorial), (b) cleaner composition, (c) brand-aligned palette, (d) magazine-quality atmosphere. Keep the SUBJECT and SPACE recognisable — never invent new elements or change the venue type. Think "editorial photo shoot of the same place", not "generate a different place".`,
+      system: SEEDREAM_STYLE_GUIDE + `\n\nIMPORTANT: You are writing an IMAGE-TO-IMAGE prompt. The reference image is the client's REAL photo of their venue / product / space. Your job is to describe HOW to re-render it with: (a) better professional lighting (natural or warm editorial), (b) cleaner composition, (c) brand-aligned palette, (d) magazine-quality atmosphere. Keep the SUBJECT and SPACE recognisable — never invent new elements or change the venue type. Think "editorial photo shoot of the same place", not "generate a different place".${venueBlock}`,
       message: `Write the image-to-image enhancement prompt.\n\nOriginal brief: ${visualDescription}\n\nFormat: ${format}\n\nReturn just the prompt, no intro, no explanation.`,
-      maxTokens: 300,
+      maxTokens: 350,
     });
 
     const rawPrompt = (optimizedText || visualDescription) + NO_TEXT_SUFFIX;
@@ -3970,6 +3989,33 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
           if (pick?.file_url) {
             pickedUpload = { id: pick.id, file_url: pick.file_url, analysis: pick.ai_analysis };
             console.log(`[Content] Picked upload ${pick.id} from agent=${pick.agent_id} score=${candidates.find((c: { u: any; score: number }) => c.u.id === pick.id)?.score || 0}`);
+
+            // ── Secondary context pick: the venue ──
+            // If the primary pick is a PRODUCT/DISH and the client also
+            // uploaded a SPACE/VENUE/AMBIANCE photo, use the venue as a
+            // context reference so the generated visual shows the real
+            // product INSIDE the real space — not a generic studio
+            // plate isolated from the restaurant. Same logic for a
+            // boutique: product photo + shop interior = product shown
+            // in the actual boutique. Authenticity over stock.
+            const pickType = pick.ai_analysis?.content_type;
+            const needsVenueContext = ['product', 'dish'].includes(pickType);
+            if (needsVenueContext) {
+              const venueCandidate = (uploads || [])
+                .filter(isRaster)
+                .filter(isPostWorthy)
+                .find((u: any) => {
+                  const ct = u.ai_analysis?.content_type;
+                  return u.file_url !== pick.file_url && ['space', 'ambiance'].includes(ct);
+                });
+              if (venueCandidate) {
+                (pickedUpload as any).venueContext = {
+                  file_url: venueCandidate.file_url,
+                  analysis: venueCandidate.ai_analysis,
+                };
+                console.log(`[Content] Paired ${pickType} ${pick.id} with venue ${venueCandidate.id} — real product-in-venue composition`);
+              }
+            }
           }
         } catch (e: any) {
           console.warn('[Content] Upload pick failed:', String(e?.message || e).substring(0, 200));
@@ -3992,7 +4038,13 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
         // We pass the trend/news context into the enhancement prompt so
         // the re-render actually ties the client's space to what's
         // happening in the world (trend-aligned i2i, not just polish).
-        visualUrl = await generateVisualFromReference(pickedUpload.file_url, visualDesc, postFormat);
+        visualUrl = await generateVisualFromReference(
+          pickedUpload.file_url,
+          visualDesc,
+          postFormat,
+          0.4,
+          (pickedUpload as any).venueContext || null,
+        );
         if (visualUrl) {
           console.log(`[Content] Pimped client photo ${pickedUpload.id} via i2i`);
           await supabase.from('content_calendar').update({
