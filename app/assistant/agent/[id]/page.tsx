@@ -1414,6 +1414,77 @@ export default function AgentWorkspacePage() {
               </div>
             </div>
 
+            {/* Adaptive performance insights — shown for the content agent
+                when we have a performance_ranking in settings. Helps the
+                client see the auto-optimisation loop at work. */}
+            {agentId === 'content' && settings?.performance_ranking && (
+              <div className="rounded-xl bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 px-4 py-4">
+                <div className="flex items-start gap-3 mb-3">
+                  <span className="text-lg">{'\uD83D\uDCCA'}</span>
+                  <div className="flex-1">
+                    <div className="text-emerald-300 text-xs font-semibold">Stratégie adaptative active</div>
+                    <div className="text-white/50 text-[10px] mt-0.5">
+                      Mise à jour chaque nuit à partir de l&apos;engagement IG de tes 30 derniers posts.
+                      Confiance : {settings.performance_ranking.confidence === 'high' ? '\uD83D\uDFE2 élevée' : settings.performance_ranking.confidence === 'medium' ? '\uD83D\uDFE1 moyenne' : '\uD83D\uDD34 faible (patiente encore quelques jours)'}
+                    </div>
+                  </div>
+                </div>
+
+                {settings.performance_ranking.confidence !== 'low' && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wide text-white/40 mb-1.5">Meilleurs formats</div>
+                      <div className="space-y-1">
+                        {(settings.performance_ranking.by_format || []).slice(0, 3).map((f: any, i: number) => (
+                          <div key={f.format} className="flex items-center justify-between text-[11px]">
+                            <span className={i === 0 ? 'text-emerald-300 font-semibold capitalize' : 'text-white/60 capitalize'}>
+                              {i === 0 ? '\u2B50 ' : `${i + 1}. `}{f.format}
+                            </span>
+                            <span className="text-white/40">{f.sample_size} posts</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wide text-white/40 mb-1.5">Sujets qui marchent</div>
+                      <div className="space-y-1">
+                        {(settings.performance_ranking.by_pillar || []).slice(0, 3).map((p: any, i: number) => (
+                          <div key={p.pillar} className="flex items-center justify-between text-[11px]">
+                            <span className={i === 0 ? 'text-emerald-300 font-semibold' : 'text-white/60'}>
+                              {i === 0 ? '\u2B50 ' : `${i + 1}. `}{p.pillar === 'tips' ? 'Conseils' : p.pillar === 'trends' ? 'Tendances' : p.pillar === 'demo' ? 'Démo produit' : p.pillar === 'social_proof' ? 'Preuve sociale' : p.pillar}
+                            </span>
+                            <span className="text-white/40">{p.sample_size}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-[10px] uppercase tracking-wide text-white/40 mb-1.5">Heures optimales</div>
+                      <div className="space-y-1">
+                        {(settings.performance_ranking.optimal_hours || []).length > 0 ? (
+                          settings.performance_ranking.optimal_hours.map((h: string, i: number) => (
+                            <div key={h} className="flex items-center gap-1.5 text-[11px]">
+                              <span className={i === 0 ? 'text-emerald-300 font-semibold' : 'text-white/60'}>
+                                {i === 0 ? '\u2B50 ' : ''}{h}
+                              </span>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-[11px] text-white/40 italic">Plus de data requise</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="mt-3 pt-3 border-t border-white/5 text-[10px] text-white/40">
+                  Jade utilise ces signaux automatiquement pour choisir format, sujet et heure de publication du prochain post.
+                </div>
+              </div>
+            )}
+
             {/* Settings fields — grouped by category with step indicators */}
             {(() => {
               // Group settings by category (inferred from field keys)

@@ -1153,7 +1153,10 @@ async function publishToTikTok(
     const refreshToken = adminProfile.tiktok_refresh_token;
 
     if (!accessToken || !refreshToken) {
-      return { success: false, error: 'TikTok tokens not configured for admin' };
+      // Not configured → silently skip (not a real error). The cron keeps
+      // running normally, the admin can connect TikTok later. Prevents the
+      // "error_escalated_publish_tiktok" noise in every cron log cycle.
+      return { success: false, error: 'tiktok_not_connected', unaudited: true };
     }
 
     // Refresh token if expired
@@ -3691,11 +3694,30 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
     return NextResponse.json({ ok: false, error: 'Failed to parse post' }, { status: 500 });
   }
 
-  // Parse time
+  // Parse time — default starts with post.best_time (Claude's guess)
   let scheduledTime = '12:00';
   if (post.best_time) {
     const timeMatch = post.best_time.match(/(\d{1,2})[h:](\d{2})?/);
     if (timeMatch) scheduledTime = `${timeMatch[1].padStart(2, '0')}:${timeMatch[2] || '00'}`;
+  }
+
+  // ── Override with the client's data-driven optimal hour for this slot ──
+  // performance_ranking.optimal_hours is the 3 best-engagement hours for
+  // THIS client's past posts. We match each slot type to the first hour
+  // in the matching time range (morning 5-11, midday 11-16, evening 16-23).
+  // Falls back to the Claude guess or 12:00 when we don't have data yet.
+  const optimalHours: string[] = clientSettings?.performance_ranking?.optimal_hours || [];
+  if (optimalHours.length > 0 && clientSettings?.performance_ranking?.confidence !== 'low') {
+    const slotRange = slotType === 'morning' ? [5, 11] : slotType === 'midday' ? [11, 16] : slotType === 'evening' ? [16, 23] : null;
+    if (slotRange) {
+      const match = optimalHours.find(hh => {
+        const h = parseInt(hh.split(':')[0] || '0');
+        return h >= slotRange[0] && h < slotRange[1];
+      });
+      if (match) {
+        scheduledTime = match;
+      }
+    }
   }
 
   // Sanitize values to match DB check constraints

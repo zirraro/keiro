@@ -31,7 +31,22 @@ interface ErrorReport {
 /**
  * Escalade une erreur agent : log + RAG + solution IA + email admin
  */
+/**
+ * Known non-error conditions that callers wrap as "error" for control flow
+ * but shouldn't trigger a real escalation (email to admin, RAG save, Claude
+ * analysis). Silently swallowed here so cron logs stay clean.
+ */
+const NON_ERROR_SENTINELS = new Set([
+  'tiktok_not_connected',
+  'linkedin_not_connected',
+  'TikTok tokens not configured for admin',
+  'LinkedIn tokens not configured',
+]);
+
 export async function escalateAgentError(report: ErrorReport): Promise<void> {
+  // Skip known non-errors — nothing to learn from, nothing to email about
+  if (NON_ERROR_SENTINELS.has(report.error)) return;
+
   const supabase = getSupabase();
   const now = new Date().toISOString();
 
