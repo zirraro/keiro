@@ -3967,10 +3967,37 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
           };
           const hintsForThisPost = pillarHints[pillar as string] || [];
 
+          // Preferred content_type per pillar — the HERO of the post.
+          // Dish/product for trends+demo, team/behind_scenes for tips,
+          // customer for social_proof. Venue photos are secondary context
+          // (they compose WITH the hero via venueContext), never the
+          // primary subject — otherwise a restaurant's whole feed becomes
+          // dining-room wallpaper with no food in sight.
+          const preferredTypes: Record<string, string[]> = {
+            trends:       ['dish', 'product'],
+            demo:         ['dish', 'product'],
+            tips:         ['team', 'behind_scenes', 'process'],
+            social_proof: ['customer', 'dish', 'product'],
+          };
+          const preferredForPillar = preferredTypes[pillar as string] || [];
+
           const scoreRelevance = (u: any): number => {
             const a = u.ai_analysis || {};
             const blob = `${a.ambiance || ''} ${(Array.isArray(a.visible_elements) ? a.visible_elements.join(' ') : '')} ${(Array.isArray(a.style_descriptors) ? a.style_descriptors.join(' ') : '')} ${u.caption || ''}`.toLowerCase();
             let score = 0;
+            // Massive boost when the upload's content_type is the
+            // preferred hero type for this pillar. This dwarfs keyword
+            // matching so the right hero always wins.
+            if (a.content_type && preferredForPillar.includes(a.content_type)) {
+              score += 10;
+            }
+            // Penalty for space/ambiance as PRIMARY — they belong as
+            // secondary venueContext, not as the hero (unless we have
+            // nothing else). Small penalty so they still land if no
+            // product/dish is available.
+            if (a.content_type === 'space' || a.content_type === 'ambiance') {
+              score -= 3;
+            }
             for (const hint of hintsForThisPost) if (blob.includes(hint)) score += 2;
             // Uploads dropped in by Clara (onboarding) or content workspace
             // are the intent-tagged ones. DMs workspace is secondary.
