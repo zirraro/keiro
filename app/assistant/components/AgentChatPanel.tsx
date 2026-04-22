@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { ClientAgent } from '@/lib/agents/client-context';
 import { useLanguage } from '@/lib/i18n/context';
+import PostArtifactPreview, { extractPostArtifacts } from '@/components/PostArtifactPreview';
 
 export interface ChatMessage {
   id: string;
@@ -169,9 +170,17 @@ export default function AgentChatPanel({
         )}
 
         {messages.map((msg) => {
+          // First parse action cards / redirects, then pull out any
+          // [POST_PREVIEW:{...}] artifacts so Jade/Léna drafts render
+          // as interactive mockups below the chat bubble.
+          let working = msg.content;
+          const { artifacts, cleanText: noArtifacts } = msg.role === 'assistant'
+            ? extractPostArtifacts(working)
+            : { artifacts: [], cleanText: msg.content };
+          working = noArtifacts;
           const { text, actions, redirect } = msg.role === 'assistant'
-            ? parseActionCards(msg.content)
-            : { text: msg.content, actions: [], redirect: undefined };
+            ? parseActionCards(working)
+            : { text: working, actions: [], redirect: undefined };
 
           return (
             <div
@@ -192,6 +201,12 @@ export default function AgentChatPanel({
                     </p>
                   ))}
                 </div>
+
+                {/* Claude-Artifacts-style post previews — shown when the
+                    agent returns a structured draft in the message. */}
+                {artifacts.map((a, i) => (
+                  <PostArtifactPreview key={`artifact-${msg.id}-${i}`} post={a} />
+                ))}
 
                 {/* Document download + save buttons */}
                 {msg.role === 'assistant' && (msg.content.includes('[DOCUMENT_READY]') || msg.content.includes('[EXCEL_READY]')) && (

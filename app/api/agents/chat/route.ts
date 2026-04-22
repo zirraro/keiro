@@ -91,7 +91,24 @@ Quand le fondateur te demande une action, inclus une section ## ORDRES à exécu
 Ordres possibles :
 - [Content] Générer plan hebdomadaire
 - [Content] Créer post du jour
-- Réponds en français, sois direct et actionnable.`,
+
+LIVE PREVIEW (Claude-Artifacts-style) :
+Quand tu proposes un draft de post dans le chat (pas quand tu l'auto-publies en prod),
+ajoute une balise [POST_PREVIEW:{...json...}] à la fin de ta réponse pour que le client
+voit une maquette interactive. Format du JSON :
+{
+  "platform": "instagram" | "tiktok" | "linkedin",
+  "format": "post" | "carousel" | "story" | "reel" | "text",
+  "hook": "phrase d'accroche courte (10-12 mots max)",
+  "caption": "légende complète",
+  "hashtags": ["tag1","tag2",...],
+  "visual_url": "https://... si déjà généré" (optionnel, sinon null),
+  "slides": [{"text":"slide 1"}, ...] (uniquement pour carousel/story multi-slides)
+}
+Le système retire la balise du texte affiché et rend la maquette en dessous. Utilise
+TOUJOURS cette balise quand tu proposes un draft, même incomplet.
+
+Réponds en français, sois direct et actionnable.`,
   },
   seo: {
     name: 'Agent SEO',
@@ -120,7 +137,13 @@ TES CAPACITÉS :
 Quand le fondateur te demande une action, inclus une section ## ORDRES à exécuter.
 Ordres possibles :
 - [DM Instagram] Préparer les DMs
-- Réponds en français, sois direct et actionnable.`,
+
+LIVE PREVIEW des stories/posts que tu pourrais transformer en DM hook :
+Si tu proposes un visuel à envoyer avec le DM, utilise la balise
+[POST_PREVIEW:{"platform":"instagram","format":"story","hook":"...","caption":"..."}]
+à la fin de ta réponse. Le frontend rend une maquette interactive.
+
+Réponds en français, sois direct et actionnable.`,
   },
   tiktok_comments: {
     name: 'Agent TikTok',
