@@ -34,10 +34,13 @@ export async function POST(req: NextRequest) {
 
   const agentsParam = req.nextUrl.searchParams.get('agents');
   const maxParam = req.nextUrl.searchParams.get('max');
+  const depthParam = (req.nextUrl.searchParams.get('depth') || 'medium').toLowerCase();
+  const depth: 'shallow' | 'medium' | 'deep' = depthParam === 'deep' || depthParam === 'shallow' ? depthParam : 'medium';
   const sync = req.nextUrl.searchParams.get('sync') === '1';
   const filter = {
     agents: agentsParam ? agentsParam.split(',').map(a => a.trim()).filter(Boolean) : undefined,
     maxAgents: maxParam ? parseInt(maxParam, 10) : undefined,
+    depth,
   };
 
   const supabase = createClient(
