@@ -862,41 +862,69 @@ export default function AgentWorkspacePage() {
             other: 'un visuel',
           };
 
-          // Voice per agent — Clara collects business context, Léna thinks
-          // about content angles, Jade thinks DM hook, Hugo thinks email,
-          // etc. Default voice for unknown agents mirrors Clara.
-          const voices: Record<string, { name: string; role: string }> = {
-            onboarding: { name: 'Clara', role: 'onboarding' },
-            content:    { name: 'Lena',  role: 'contenu' },
-            dm_instagram: { name: 'Jade', role: 'DM' },
-            email:      { name: 'Hugo',  role: 'email' },
-            commercial: { name: 'Leo',   role: 'prospection' },
-            marketing:  { name: 'Ami',   role: 'marketing' },
+          // Each agent ACTS, doesn't wait. The client gave us a file —
+          // the default should be "I'm integrating it into my work now",
+          // with an OPTIONAL invitation to redirect if the client has a
+          // specific angle in mind. Never make the client feel like the
+          // agent is idle awaiting instructions.
+          const voices: Record<string, { name: string; autoAction: string; optionalAsk: string }> = {
+            onboarding: {
+              name: 'Clara',
+              autoAction: "Je l'integre a ton dossier et je le partage avec les autres agents (Lena, Jade, Hugo…) pour qu'ils puissent s'en servir.",
+              optionalAsk: "Si t'as un contexte precis a ajouter (quand c'etait pris, qui figure dessus, info a retenir), dis-le moi.",
+            },
+            content: {
+              name: 'Lena',
+              autoAction: "Je l'integre a ta strategie de contenu et je l'utilise pour tes prochains posts Instagram / LinkedIn / TikTok.",
+              optionalAsk: "Si tu veux que je parte dans une direction precise (theme, angle, format, ton), dis-le moi, sinon je choisis selon ce qui matche ton business et l'actu.",
+            },
+            dm_instagram: {
+              name: 'Jade',
+              autoAction: "Je l'integre a tes DMs — je peux l'envoyer comme reponse visuelle ou comme hook quand je prospecte des comptes pertinents.",
+              optionalAsk: "Tu veux que je l'envoie a un segment precis (nouveaux followers, prospects) ou je choisis selon la conversation ?",
+            },
+            email: {
+              name: 'Hugo',
+              autoAction: "Je l'integre a tes sequences email — je peux l'inserer dans un visuel accroche ou comme preuve sociale.",
+              optionalAsk: "Tu veux qu'il parte a un type de prospect specifique ou je l'utilise dans la sequence la plus pertinente ?",
+            },
+            commercial: {
+              name: 'Leo',
+              autoAction: "Je l'integre a ton enrichissement CRM — si c'est un prospect / contact je mets a jour la fiche.",
+              optionalAsk: "Si c'est un type de cible precis a ajouter au pipeline, dis-le moi.",
+            },
+            marketing: {
+              name: 'Ami',
+              autoAction: "Je l'integre a mon analyse marketing et je le cite dans ton brief quotidien.",
+              optionalAsk: "Tu veux que je l'utilise pour un canal specifique (Instagram, LinkedIn, email, ads) ou je l'exploite la ou il rendra le mieux ?",
+            },
+            rh: { name: 'Sara', autoAction: "Je l'archive dans tes documents RH/juridique.", optionalAsk: "Dis-moi si tu veux une action specifique dessus (contrat a rediger, verification legale…)." },
+            comptable: { name: 'Louis', autoAction: "Je l'integre a ta compta — je peux en extraire les chiffres et l'inclure dans ton previsionnel.", optionalAsk: "Tu veux un traitement specifique (analyse de marge, extraction de postes) ?" },
           };
-          const voice = voices[agentId] || { name: 'Ton agent', role: 'travail' };
+          const voice = voices[agentId] || {
+            name: 'Ton agent',
+            autoAction: "Je l'integre a mon travail et je le partage avec les autres agents pertinents.",
+            optionalAsk: "Si tu veux une direction precise, dis-le moi.",
+          };
 
           const lines: string[] = [];
-          if (d.dossier_updated && d.fields_extracted?.length) {
-            const extracted = d.fields_extracted.map((f: string) => fieldLabels[f] || f).join(', ');
-            lines.push(`\u2705 ${d.fields_extracted.length} champs du profil remplis : **${extracted}**.`);
-          }
+          // Always open with confirmation + what I see
           if (d.visual_classified) {
             const what = contentTypeLabels[d.content_type || 'other'] || 'un visuel';
-            lines.push(`\u{1F3A8} C'est ${what}. Je l'ai classe dans ton workspace pour reutilisation — ${voice.name} va pouvoir le prendre pour les prochains posts.`);
-            if (d.post_angle) lines.push(`\u{1F4A1} Angle suggere : *${d.post_angle}*.`);
+            lines.push(`\u{1F4C1} Recu "${fl[i].name}" — c'est ${what}${d.post_angle ? `, angle reconnu : *${d.post_angle}*` : ''}.`);
+          } else {
+            lines.push(`\u{1F4C1} Recu "${fl[i].name}" — sauvegarde dans ton workspace.`);
           }
-          if (lines.length === 0) {
-            // Truly nothing exploitable — give a per-agent contextual prompt
-            const agentAsk: Record<string, string> = {
-              onboarding: 'decris-moi ton activite directement ici et je remplis ton profil instantanement (ex: "Je suis un restaurant italien a Lyon, ma cible c\'est les 25-40 ans...")',
-              content:    'raconte-moi ce que tu veux faire avec ce fichier — theme, angle, format cible — et je te prepare un post ou une campagne autour.',
-              dm_instagram: 'envoie-moi le contexte DM que tu veux autour de ce fichier et je prepare un hook personnalise.',
-              email:      'dis-moi a quel type de prospect tu veux envoyer ca et je prepare un email autour.',
-              commercial: 'precise-moi la cible (type de commerce, zone) pour que je qualifie a partir de ce fichier.',
-              marketing:  'dis-moi quel canal tu veux optimiser et j\'analyse le fichier sous cet angle.',
-            };
-            lines.push(`J'ai bien recu "${fl[i].name}" et je l'ai sauvegarde dans ton workspace. ${agentAsk[agentId] || 'Donne-moi le contexte autour de ce fichier et je l\'exploite.'}`);
+
+          if (d.dossier_updated && d.fields_extracted?.length) {
+            const extracted = d.fields_extracted.map((f: string) => fieldLabels[f] || f).join(', ');
+            lines.push(`\u2705 ${d.fields_extracted.length} champs du profil remplis automatiquement : **${extracted}**.`);
           }
+
+          // Agent takes action proactively
+          lines.push(voice.autoAction);
+          // Optional redirect invitation — always at the end, low-key
+          lines.push(`\u{1F4AD} ${voice.optionalAsk}`);
 
           setMessages(prev => [...prev, {
             id: `file_${Date.now()}`,
