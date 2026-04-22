@@ -1,6 +1,7 @@
 import { getAuthUser } from '@/lib/auth-server';
 import { checkCredits, deductCredits, isAdmin } from '@/lib/credits/server';
 import { createT2VTask, checkT2VTask } from '@/lib/kling';
+import { checkVideoQuota, logQuotaUsage } from '@/lib/credits/quotas';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; // 5 minutes max pour le polling
@@ -73,6 +74,18 @@ export async function POST(request: Request) {
           cost: check.cost,
           balance: check.balance,
         }, { status: 402 });
+      }
+      // Plan-level hard quota: monthly count + max duration
+      const vidQ = await checkVideoQuota(user.id, Number(duration) || 5);
+      if (!vidQ.allowed) {
+        return Response.json({
+          ok: false,
+          error: vidQ.message,
+          quotaExceeded: true,
+          reason: vidQ.reason,
+          limit: vidQ.limit,
+          plan: vidQ.plan,
+        }, { status: 429 });
       }
     }
 
@@ -189,6 +202,7 @@ export async function POST(request: Request) {
     if (user && !isAdminUser) {
       const result = await deductCredits(user.id, 'video_t2v', `Vid\u00e9o T2V ${duration}s`, duration);
       newBalance = result.newBalance;
+      logQuotaUsage(user.id, 'video_generated', { mode: 't2v', duration: Number(duration) || 5 }).catch(() => {});
     }
 
     return Response.json({

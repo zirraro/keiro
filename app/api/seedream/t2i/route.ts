@@ -3,6 +3,7 @@ import { checkCredits, deductCredits, isAdmin, checkFreeGeneration, recordFreeGe
 import { generateKlingT2I } from '@/lib/kling';
 import { optimizePromptForImage, fetchNewsContext, analyzeTrendForVisuals } from '@/lib/prompt-optimizer';
 import { generateJadeImage } from '@/lib/visuals/jade-prompter';
+import { checkImageQuota, logQuotaUsage } from '@/lib/credits/quotas';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -43,6 +44,20 @@ export async function POST(request: Request) {
             cost: check.cost,
             balance: check.balance,
           }, { status: 402 });
+        }
+        // Hard monthly quota on top of credits — protects margin against
+        // power users who'd otherwise spend all their credits on the
+        // costliest operation type.
+        const imgQ = await checkImageQuota(user.id);
+        if (!imgQ.allowed) {
+          return Response.json({
+            ok: false,
+            error: imgQ.message,
+            quotaExceeded: true,
+            reason: imgQ.reason,
+            limit: imgQ.limit,
+            plan: imgQ.plan,
+          }, { status: 429 });
         }
       }
     } else {
@@ -123,6 +138,8 @@ export async function POST(request: Request) {
     if (user && !isAdminUser) {
       const result = await deductCredits(user.id, 'image_t2i', 'Génération image T2I');
       newBalance = result.newBalance;
+      // Register against the monthly image quota (fire-and-forget)
+      logQuotaUsage(user.id, 'image_generated', { provider }).catch(() => {});
     } else if (isFreeMode) {
       const ip = getClientIP(request);
       const fingerprint = request.headers.get('x-fingerprint');

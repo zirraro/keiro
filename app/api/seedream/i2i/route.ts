@@ -2,6 +2,7 @@ import { getAuthUser } from '@/lib/auth-server';
 import { checkCredits, deductCredits, isAdmin, checkFreeGeneration, recordFreeGeneration, getClientIP } from '@/lib/credits/server';
 import { generateKlingI2I } from '@/lib/kling';
 import { generateJadeImageFromReference } from '@/lib/visuals/jade-prompter';
+import { checkImageQuota, logQuotaUsage } from '@/lib/credits/quotas';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -49,6 +50,17 @@ export async function POST(request: Request) {
             cost: check.cost,
             balance: check.balance,
           }, { status: 402 });
+        }
+        const imgQ = await checkImageQuota(user.id);
+        if (!imgQ.allowed) {
+          return Response.json({
+            ok: false,
+            error: imgQ.message,
+            quotaExceeded: true,
+            reason: imgQ.reason,
+            limit: imgQ.limit,
+            plan: imgQ.plan,
+          }, { status: 429 });
         }
       }
     } else {
@@ -225,6 +237,7 @@ export async function POST(request: Request) {
     if (user && !isAdminUser) {
       const result = await deductCredits(user.id, 'image_i2i', 'Modification image I2I');
       newBalance = result.newBalance;
+      logQuotaUsage(user.id, 'image_generated', { mode: 'i2i' }).catch(() => {});
     } else if (isFreeMode) {
       const ip = getClientIP(request);
       const fingerprint = request.headers.get('x-fingerprint');

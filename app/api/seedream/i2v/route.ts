@@ -1,6 +1,7 @@
 import { getAuthUser } from '@/lib/auth-server';
 import { checkCredits, deductCredits, isAdmin } from '@/lib/credits/server';
 import { createI2VTask, checkI2VTask } from '@/lib/kling';
+import { checkVideoQuota, logQuotaUsage } from '@/lib/credits/quotas';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; // 5 minutes max pour le polling
@@ -74,6 +75,17 @@ export async function POST(request: Request) {
           cost: check.cost,
           balance: check.balance,
         }, { status: 402 });
+      }
+      const vidQ = await checkVideoQuota(user.id, Number(duration) || 5);
+      if (!vidQ.allowed) {
+        return Response.json({
+          ok: false,
+          error: vidQ.message,
+          quotaExceeded: true,
+          reason: vidQ.reason,
+          limit: vidQ.limit,
+          plan: vidQ.plan,
+        }, { status: 429 });
       }
     }
 
@@ -215,6 +227,7 @@ export async function POST(request: Request) {
     if (user && !isAdminUser) {
       const result = await deductCredits(user.id, 'video_i2v', `Vid\u00e9o I2V ${duration}s`, duration);
       newBalance = result.newBalance;
+      logQuotaUsage(user.id, 'video_generated', { mode: 'i2v', duration: Number(duration) || 5 }).catch(() => {});
     }
 
     return Response.json({

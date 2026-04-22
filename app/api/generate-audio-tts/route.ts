@@ -3,6 +3,7 @@ import { getAuthUser } from '@/lib/auth-server';
 import { generateAudioWithElevenLabs, estimateAudioDuration, ELEVENLABS_VOICES, DEFAULT_VOICE_ID } from '@/lib/audio/elevenlabs-tts';
 import { condenseText } from '@/lib/audio/condense-text';
 import { checkCredits, deductCredits, isAdmin } from '@/lib/credits/server';
+import { checkTtsQuota, logQuotaUsage } from '@/lib/credits/quotas';
 
 export const runtime = 'edge';
 
@@ -36,6 +37,17 @@ export async function POST(req: NextRequest) {
       speed = 1.0,
       language: overrideLanguage,
     } = await req.json();
+
+    // Plan-level TTS minutes quota (checked AFTER parsing so we know duration)
+    if (!isAdminUser) {
+      const ttsQ = await checkTtsQuota(user.id, Number(targetDuration) || 5);
+      if (!ttsQ.allowed) {
+        return NextResponse.json(
+          { ok: false, error: ttsQ.message, quotaExceeded: true, reason: ttsQ.reason, limit: ttsQ.limit, plan: ttsQ.plan },
+          { status: 429 }
+        );
+      }
+    }
 
     if (!text || typeof text !== 'string') {
       return NextResponse.json(
@@ -124,6 +136,7 @@ export async function POST(req: NextRequest) {
     if (!isAdminUser) {
       const result = await deductCredits(user.id, 'audio_tts', 'Audio narration TTS (ElevenLabs)');
       newBalance = result.newBalance;
+      logQuotaUsage(user.id, 'tts_generated', { seconds: Number(targetDuration) || 5, voice }).catch(() => {});
     }
 
     return NextResponse.json({

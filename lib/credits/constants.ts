@@ -31,6 +31,109 @@ export const CREDIT_COSTS = {
  */
 export const AGENT_CHAT_FREE_PER_MONTH = 10;
 
+/**
+ * Per-plan hard monthly caps on COGS-heavy generation features.
+ *
+ * Philosophy: credits alone don't protect unit economics because 400 credits
+ * spent on video_90s (4 videos × €2.70 API cost) costs us much more than the
+ * same 400 credits spent on images (100 × €0.025). We impose hard monthly
+ * caps per feature so the worst-case client can't blow through our margin
+ * target of 75-80%. Duration caps on video are the single biggest lever
+ * (video cost scales linearly with seconds).
+ *
+ * These caps are CEILINGS, not budgets — the user still consumes credits
+ * normally, and the cap just prevents overshoot on the dimensions we can't
+ * price per-credit (agent ambient DMs, emails, scoring, etc.).
+ */
+export const PLAN_QUOTAS: Record<string, {
+  images_per_month: number;
+  videos_per_month: number;
+  video_max_seconds: number;
+  tts_minutes_per_month: number;
+  dms_per_day: number;        // Jade Instagram DM cap
+  chatbot_sessions_per_day: number; // Max website chatbot cap
+  agent_chat_free_per_month: number;
+}> = {
+  free: {
+    images_per_month: 3,
+    videos_per_month: 0,
+    video_max_seconds: 0,
+    tts_minutes_per_month: 0,
+    dms_per_day: 0,
+    chatbot_sessions_per_day: 0,
+    agent_chat_free_per_month: 5,
+  },
+  createur: {
+    images_per_month: 30,
+    videos_per_month: 5,
+    video_max_seconds: 15,
+    tts_minutes_per_month: 10,
+    dms_per_day: 30,
+    chatbot_sessions_per_day: 0,   // Max not included on Créateur
+    agent_chat_free_per_month: 10,
+  },
+  pro: {
+    images_per_month: 80,
+    videos_per_month: 10,
+    video_max_seconds: 30,
+    tts_minutes_per_month: 30,
+    dms_per_day: 70,
+    chatbot_sessions_per_day: 30,
+    agent_chat_free_per_month: 10,
+  },
+  fondateurs: {
+    images_per_month: 200,
+    videos_per_month: 25,
+    video_max_seconds: 60,
+    tts_minutes_per_month: 60,
+    dms_per_day: 150,
+    chatbot_sessions_per_day: 100,
+    agent_chat_free_per_month: 10,
+  },
+  business: {
+    images_per_month: 200,
+    videos_per_month: 25,
+    video_max_seconds: 60,
+    tts_minutes_per_month: 60,
+    dms_per_day: 150,
+    chatbot_sessions_per_day: 100,
+    agent_chat_free_per_month: 10,
+  },
+  elite: {
+    images_per_month: 999999,
+    videos_per_month: 200,
+    video_max_seconds: 90,
+    tts_minutes_per_month: 300,
+    dms_per_day: 500,
+    chatbot_sessions_per_day: 999999,
+    agent_chat_free_per_month: 20,
+  },
+  agence: {
+    images_per_month: 999999,
+    videos_per_month: 999999,
+    video_max_seconds: 90,
+    tts_minutes_per_month: 999999,
+    dms_per_day: 999999,
+    chatbot_sessions_per_day: 999999,
+    agent_chat_free_per_month: 50,
+  },
+  admin: {
+    images_per_month: 999999,
+    videos_per_month: 999999,
+    video_max_seconds: 90,
+    tts_minutes_per_month: 999999,
+    dms_per_day: 999999,
+    chatbot_sessions_per_day: 999999,
+    agent_chat_free_per_month: 999999,
+  },
+};
+
+/** Resolve the quotas object for a given plan id (falls back to `free`). */
+export function getPlanQuotas(plan: string | null | undefined) {
+  const key = (plan || 'free').toLowerCase();
+  return PLAN_QUOTAS[key] || PLAN_QUOTAS.free;
+}
+
 // Crédits par plan — Nouvelle grille tarifaire mars 2026
 export const PLAN_CREDITS: Record<string, number> = {
   free: 20,
