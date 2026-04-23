@@ -4090,49 +4090,64 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
         }).eq('id', inserted.id).throwOnError?.();
       } else if (pickedUpload && (hasVenuePair || rng < 0.65)) {
         const venueCtx = (pickedUpload as any).venueContext;
-        let compositeUsed = false;
 
-        if (hasVenuePair) {
+        // PROFESSIONAL MULTI-PASS STRATEGY (replaces the amateur sharp
+        // paste that was floating a 2D circle above the tables):
+        //
+        //   Pass 1: Seedream i2i on the DISH photo at moderate strength
+        //           (0.45). The dish stays recognisable (it's the hero
+        //           and the client's actual dish), and the background
+        //           morphs into the venue-aligned setting described in
+        //           the prompt. Venue description comes from Claude
+        //           Vision's full analysis of the venue photo: wall
+        //           colour, lighting, furniture style, visible plants /
+        //           windows / decor.
+        //   Pass 2 (QA): Claude Vision scores the output 0-10 against
+        //           the brief. If < 7, we either retry or fall back to
+        //           single-photo i2i polish.
+        //
+        // The venue photo is consulted for visual DNA, not literally
+        // overlaid — that avoids the "dish pasted onto empty table"
+        // artefact while still anchoring the scene in the client's
+        // brand-specific environment.
+        visualUrl = await generateVisualFromReference(
+          pickedUpload.file_url,
+          visualDesc,
+          postFormat,
+          hasVenuePair ? 0.45 : 0.4,
+          hasVenuePair ? { file_url: venueCtx.file_url, analysis: venueCtx.analysis } : null,
+        );
+
+        // QA pass: ask Claude Vision to rate the generated image and
+        // retry once if it flags amateur / unrealistic results. Kept
+        // cheap via Haiku + 100 tokens, a couple of cents at most.
+        if (visualUrl) {
           try {
-            const { compositeDishOnVenue } = await import('@/lib/visuals/dish-in-venue');
-            const aspectLabel: 'square' | 'story' =
-              postFormat === 'story' || postFormat === 'reel' ? 'story' : 'square';
-            const compositedUrl = await compositeDishOnVenue({
-              venueUrl: venueCtx.file_url,
-              dishUrl: pickedUpload.file_url,
-              postId: inserted.id,
-              aspect: aspectLabel,
-            });
-            if (compositedUrl) {
-              console.log(`[Content] Real composite (dish on venue) used DIRECTLY (no Seedream i2i): ${compositedUrl}`);
-              // USE THE COMPOSITE DIRECTLY — no Seedream pass.
-              // Seedream at any strength invents elements (projectors,
-              // studio lights, furniture) that break the "real venue"
-              // promise. The sharp composite already has the dish
-              // feathered + shadowed onto the real table, so the raw
-              // output is what we want on Instagram.
-              visualUrl = compositedUrl;
-              compositeUsed = true;
+            const { scoreVisualQuality } = await import('@/lib/visuals/qa-check');
+            const score = await scoreVisualQuality(visualUrl, visualDesc, pickedUpload.analysis?.content_type || 'visual');
+            console.log(`[Content] QA score for generated visual: ${score.score}/10 — ${score.notes}`);
+            if (score.score < 7) {
+              console.log('[Content] QA below threshold, regenerating with adjusted strength');
+              const retryUrl = await generateVisualFromReference(
+                pickedUpload.file_url,
+                visualDesc,
+                postFormat,
+                0.3, // lower strength for retry — preserve more of the dish
+                null, // skip venue this time to avoid hallucinations
+              );
+              if (retryUrl) {
+                const score2 = await scoreVisualQuality(retryUrl, visualDesc, pickedUpload.analysis?.content_type || 'visual');
+                console.log(`[Content] QA score retry: ${score2.score}/10`);
+                if (score2.score >= score.score) visualUrl = retryUrl;
+              }
             }
-          } catch (e: any) {
-            console.warn('[Content] compositeDishOnVenue failed, falling back to i2i:', e?.message);
+          } catch (qaErr: any) {
+            console.warn('[Content] QA non-fatal:', qaErr?.message);
           }
-        }
-
-        // Only hit Seedream if the composite path wasn't used — i.e.
-        // single-upload polish (no venue pair) or composite failed.
-        if (!compositeUsed) {
-          visualUrl = await generateVisualFromReference(
-            pickedUpload.file_url,
-            visualDesc,
-            postFormat,
-            0.4,
-            null,
-          );
         }
         if (visualUrl) {
           console.log(`[Content] Pimped client photo ${pickedUpload.id} via i2i`);
-          const diagMode = compositeUsed ? 'composite_dish_in_venue' : (hasVenuePair ? 'i2i_venue_with_dish_prompt' : 'i2i');
+          const diagMode = hasVenuePair ? 'i2i_dish_with_venue_context_QA' : 'i2i';
           await supabase.from('content_calendar').update({
             publish_diagnostic: `client_photo_${diagMode}:${pickedUpload.id}${hasVenuePair ? `+venue:${(pickedUpload as any).venueContext?.analysis?.space_type || 'space'}` : ''}`,
           }).eq('id', inserted.id).throwOnError?.();
