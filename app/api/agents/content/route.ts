@@ -4091,54 +4091,74 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
       } else if (pickedUpload && (hasVenuePair || rng < 0.65)) {
         const venueCtx = (pickedUpload as any).venueContext;
 
-        // PROFESSIONAL MULTI-PASS STRATEGY (replaces the amateur sharp
-        // paste that was floating a 2D circle above the tables):
-        //
-        //   Pass 1: Seedream i2i on the DISH photo at moderate strength
-        //           (0.45). The dish stays recognisable (it's the hero
-        //           and the client's actual dish), and the background
-        //           morphs into the venue-aligned setting described in
-        //           the prompt. Venue description comes from Claude
-        //           Vision's full analysis of the venue photo: wall
-        //           colour, lighting, furniture style, visible plants /
-        //           windows / decor.
-        //   Pass 2 (QA): Claude Vision scores the output 0-10 against
-        //           the brief. If < 7, we either retry or fall back to
-        //           single-photo i2i polish.
-        //
-        // The venue photo is consulted for visual DNA, not literally
-        // overlaid — that avoids the "dish pasted onto empty table"
-        // artefact while still anchoring the scene in the client's
-        // brand-specific environment.
+        // ASSET-GROUNDED visual description: when Léna has concrete
+        // client photos (a specific dish + venue), the post visual
+        // description MUST describe those specific assets, not whatever
+        // random vertical the pillar ended up on. If Léna is writing
+        // about a "fleuriste" but the client uploaded a dish photo,
+        // we'd get nonsense at QA — the dish regenerates into flowers.
+        // By overriding the brief with what's actually in the uploads,
+        // we keep the visual pipeline grounded in the client's reality.
+        let effectiveVisualDesc = visualDesc;
+        if (hasVenuePair) {
+          const dishSummary = pickedUpload.analysis?.summary || 'a signature dish';
+          const dishAngle = pickedUpload.analysis?.post_angle || 'hero shot';
+          const venueSummary = venueCtx.analysis?.summary || 'the restaurant interior';
+          effectiveVisualDesc = `Editorial food photography: ${dishSummary}. ${dishAngle}. Setting: ${venueSummary}. Warm cinematic lighting, shallow depth of field, 4K detail. The dish is the hero, the venue is the background context (tables, chairs, wall colour, ambient light visible). Realistic, natural, magazine-quality. No text, no logos, no studio equipment, no projectors.`;
+          console.log(`[Content] Asset-grounded visualDesc override for hasVenuePair: ${effectiveVisualDesc.substring(0, 200)}`);
+        }
+
         visualUrl = await generateVisualFromReference(
           pickedUpload.file_url,
-          visualDesc,
+          effectiveVisualDesc,
           postFormat,
-          hasVenuePair ? 0.45 : 0.4,
+          hasVenuePair ? 0.35 : 0.4,
           hasVenuePair ? { file_url: venueCtx.file_url, analysis: venueCtx.analysis } : null,
         );
 
-        // QA pass: ask Claude Vision to rate the generated image and
-        // retry once if it flags amateur / unrealistic results. Kept
-        // cheap via Haiku + 100 tokens, a couple of cents at most.
+        // QA pass — Claude Vision scores the output 0-10. Below 7 we
+        // retry with a tighter approach (low strength, no venue). If
+        // still below 7, use the client's raw photo — authenticity
+        // beats a bad generation every time. Never publish < 7.
         if (visualUrl) {
           try {
             const { scoreVisualQuality } = await import('@/lib/visuals/qa-check');
-            const score = await scoreVisualQuality(visualUrl, visualDesc, pickedUpload.analysis?.content_type || 'visual');
-            console.log(`[Content] QA score for generated visual: ${score.score}/10 — ${score.notes}`);
+            const expectedSubject = pickedUpload.analysis?.content_type === 'dish'
+              ? 'a specific gourmet dish on a plate (hero subject)'
+              : pickedUpload.analysis?.content_type === 'product'
+                ? 'a specific product (hero subject)'
+                : 'the uploaded subject';
+            const score = await scoreVisualQuality(visualUrl, effectiveVisualDesc, expectedSubject);
+            console.log(`[Content] QA score: ${score.score}/10 — flags: ${score.amateur_flags.join(',')} — ${score.notes}`);
+
             if (score.score < 7) {
-              console.log('[Content] QA below threshold, regenerating with adjusted strength');
+              console.log('[Content] QA below 7, retry with strength 0.25, no venue');
               const retryUrl = await generateVisualFromReference(
                 pickedUpload.file_url,
-                visualDesc,
+                effectiveVisualDesc,
                 postFormat,
-                0.3, // lower strength for retry — preserve more of the dish
-                null, // skip venue this time to avoid hallucinations
+                0.25,
+                null,
               );
               if (retryUrl) {
-                const score2 = await scoreVisualQuality(retryUrl, visualDesc, pickedUpload.analysis?.content_type || 'visual');
-                console.log(`[Content] QA score retry: ${score2.score}/10`);
-                if (score2.score >= score.score) visualUrl = retryUrl;
+                const score2 = await scoreVisualQuality(retryUrl, effectiveVisualDesc, expectedSubject);
+                console.log(`[Content] QA retry: ${score2.score}/10`);
+                if (score2.score >= 7) {
+                  visualUrl = retryUrl;
+                } else if (score2.score > score.score) {
+                  visualUrl = retryUrl;
+                }
+              }
+              // Still below threshold — use the client's RAW photo
+              // rather than publish a bad generation.
+              const { scoreVisualQuality: rescore } = await import('@/lib/visuals/qa-check');
+              const finalScore = await rescore(visualUrl, effectiveVisualDesc, expectedSubject);
+              if (finalScore.score < 6) {
+                console.log('[Content] Final QA still under 6, reverting to raw client photo');
+                visualUrl = pickedUpload.file_url;
+                await supabase.from('content_calendar').update({
+                  publish_diagnostic: `client_photo_raw_qa_salvage:${pickedUpload.id}`,
+                }).eq('id', inserted.id).throwOnError?.();
               }
             }
           } catch (qaErr: any) {
