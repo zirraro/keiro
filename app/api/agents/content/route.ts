@@ -4089,20 +4089,54 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
           publish_diagnostic: `client_photo_raw:${pickedUpload.id}`,
         }).eq('id', inserted.id).throwOnError?.();
       } else if (pickedUpload && (hasVenuePair || rng < 0.65)) {
-        // When we have a product+venue pair: swap so the VENUE becomes
-        // the i2i base (keeps the real dining room recognisable at low
-        // strength) and the DISH analysis is passed as the composition
-        // target in the prompt. That's how "dish IN real restaurant"
-        // actually happens end-to-end. Without a pair, normal i2i on the
-        // single upload as before.
         const venueCtx = (pickedUpload as any).venueContext;
-        const baseUrl = hasVenuePair ? venueCtx.file_url : pickedUpload.file_url;
-        const secondaryCtx = hasVenuePair
-          ? { file_url: pickedUpload.file_url, analysis: pickedUpload.analysis || {} }
-          : null;
-        // Low strength (0.25) when composing so the venue stays intact;
-        // moderate (0.4) when i2i-polishing a single upload.
-        const i2iStrength = hasVenuePair ? 0.25 : 0.4;
+
+        // REAL COMPOSITING: when we have a dish + venue pair, we first
+        // composite the dish photo onto the venue photo using sharp
+        // (pixel-level overlay with feathered edges + shadow, dish placed
+        // lower-center where the table is). Then i2i at very low strength
+        // (0.18) blends the seam — unified lighting + colour grade — so
+        // the final image looks like the dish was photographed on an
+        // actual table in the real venue, not a Photoshop paste.
+        // Seedream alone can't do this; its i2i would regenerate the
+        // whole scene and ignore the venue at any practical strength.
+        let baseUrl = pickedUpload.file_url;
+        let secondaryCtx: any = null;
+        let i2iStrength = 0.4;
+        let compositeUsed = false;
+
+        if (hasVenuePair) {
+          try {
+            const { compositeDishOnVenue } = await import('@/lib/visuals/dish-in-venue');
+            const aspectLabel: 'square' | 'story' =
+              postFormat === 'story' || postFormat === 'reel' ? 'story' : 'square';
+            const compositedUrl = await compositeDishOnVenue({
+              venueUrl: venueCtx.file_url,
+              dishUrl: pickedUpload.file_url,
+              postId: inserted.id,
+              aspect: aspectLabel,
+            });
+            if (compositedUrl) {
+              console.log(`[Content] Real composite (dish on venue) uploaded: ${compositedUrl}`);
+              baseUrl = compositedUrl;
+              i2iStrength = 0.18; // very low — just harmonise the seam
+              compositeUsed = true;
+              secondaryCtx = {
+                file_url: pickedUpload.file_url,
+                analysis: pickedUpload.analysis || {},
+              };
+            }
+          } catch (e: any) {
+            console.warn('[Content] compositeDishOnVenue failed, falling back:', e?.message);
+          }
+          if (!compositeUsed) {
+            // Fallback: venue as base, dish in prompt. Better than nothing.
+            baseUrl = venueCtx.file_url;
+            i2iStrength = 0.25;
+            secondaryCtx = { file_url: pickedUpload.file_url, analysis: pickedUpload.analysis || {} };
+          }
+        }
+
         visualUrl = await generateVisualFromReference(
           baseUrl,
           visualDesc,
@@ -4112,7 +4146,7 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
         );
         if (visualUrl) {
           console.log(`[Content] Pimped client photo ${pickedUpload.id} via i2i`);
-          const diagMode = hasVenuePair ? 'dish_in_venue' : 'i2i';
+          const diagMode = compositeUsed ? 'composite_dish_in_venue' : (hasVenuePair ? 'i2i_venue_with_dish_prompt' : 'i2i');
           await supabase.from('content_calendar').update({
             publish_diagnostic: `client_photo_${diagMode}:${pickedUpload.id}${hasVenuePair ? `+venue:${(pickedUpload as any).venueContext?.analysis?.space_type || 'space'}` : ''}`,
           }).eq('id', inserted.id).throwOnError?.();
