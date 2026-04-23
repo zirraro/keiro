@@ -4090,19 +4090,6 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
         }).eq('id', inserted.id).throwOnError?.();
       } else if (pickedUpload && (hasVenuePair || rng < 0.65)) {
         const venueCtx = (pickedUpload as any).venueContext;
-
-        // REAL COMPOSITING: when we have a dish + venue pair, we first
-        // composite the dish photo onto the venue photo using sharp
-        // (pixel-level overlay with feathered edges + shadow, dish placed
-        // lower-center where the table is). Then i2i at very low strength
-        // (0.18) blends the seam — unified lighting + colour grade — so
-        // the final image looks like the dish was photographed on an
-        // actual table in the real venue, not a Photoshop paste.
-        // Seedream alone can't do this; its i2i would regenerate the
-        // whole scene and ignore the venue at any practical strength.
-        let baseUrl = pickedUpload.file_url;
-        let secondaryCtx: any = null;
-        let i2iStrength = 0.4;
         let compositeUsed = false;
 
         if (hasVenuePair) {
@@ -4117,33 +4104,32 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
               aspect: aspectLabel,
             });
             if (compositedUrl) {
-              console.log(`[Content] Real composite (dish on venue) uploaded: ${compositedUrl}`);
-              baseUrl = compositedUrl;
-              i2iStrength = 0.18; // very low — just harmonise the seam
+              console.log(`[Content] Real composite (dish on venue) used DIRECTLY (no Seedream i2i): ${compositedUrl}`);
+              // USE THE COMPOSITE DIRECTLY — no Seedream pass.
+              // Seedream at any strength invents elements (projectors,
+              // studio lights, furniture) that break the "real venue"
+              // promise. The sharp composite already has the dish
+              // feathered + shadowed onto the real table, so the raw
+              // output is what we want on Instagram.
+              visualUrl = compositedUrl;
               compositeUsed = true;
-              secondaryCtx = {
-                file_url: pickedUpload.file_url,
-                analysis: pickedUpload.analysis || {},
-              };
             }
           } catch (e: any) {
-            console.warn('[Content] compositeDishOnVenue failed, falling back:', e?.message);
-          }
-          if (!compositeUsed) {
-            // Fallback: venue as base, dish in prompt. Better than nothing.
-            baseUrl = venueCtx.file_url;
-            i2iStrength = 0.25;
-            secondaryCtx = { file_url: pickedUpload.file_url, analysis: pickedUpload.analysis || {} };
+            console.warn('[Content] compositeDishOnVenue failed, falling back to i2i:', e?.message);
           }
         }
 
-        visualUrl = await generateVisualFromReference(
-          baseUrl,
-          visualDesc,
-          postFormat,
-          i2iStrength,
-          secondaryCtx,
-        );
+        // Only hit Seedream if the composite path wasn't used — i.e.
+        // single-upload polish (no venue pair) or composite failed.
+        if (!compositeUsed) {
+          visualUrl = await generateVisualFromReference(
+            pickedUpload.file_url,
+            visualDesc,
+            postFormat,
+            0.4,
+            null,
+          );
+        }
         if (visualUrl) {
           console.log(`[Content] Pimped client photo ${pickedUpload.id} via i2i`);
           const diagMode = compositeUsed ? 'composite_dish_in_venue' : (hasVenuePair ? 'i2i_venue_with_dish_prompt' : 'i2i');
