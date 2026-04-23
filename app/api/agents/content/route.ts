@@ -4002,30 +4002,36 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
             const a = u.ai_analysis || {};
             const blob = `${a.ambiance || ''} ${(Array.isArray(a.visible_elements) ? a.visible_elements.join(' ') : '')} ${(Array.isArray(a.style_descriptors) ? a.style_descriptors.join(' ') : '')} ${u.caption || ''}`.toLowerCase();
             let score = 0;
-            // Massive boost when the upload's content_type is the
-            // preferred hero type for this pillar. This dwarfs keyword
-            // matching so the right hero always wins.
+            // HUGE boost for preferred hero content_type — dish/product
+            // wins over space easily when pillar is trends/demo.
             if (a.content_type && preferredForPillar.includes(a.content_type)) {
-              score += 10;
+              score += 20;
+            }
+            // Strong base boost for ANY product/dish (these are the heroes
+            // for a restaurant / boutique feed) even on pillars not in
+            // preferredForPillar, so they always beat a space photo.
+            if (['dish', 'product'].includes(a.content_type)) {
+              score += 5;
             }
             // Penalty for space/ambiance as PRIMARY — they belong as
-            // secondary venueContext, not as the hero (unless we have
-            // nothing else). Small penalty so they still land if no
-            // product/dish is available.
+            // venueContext, not hero. Only picked when no dish available.
             if (a.content_type === 'space' || a.content_type === 'ambiance') {
               score -= 3;
             }
             for (const hint of hintsForThisPost) if (blob.includes(hint)) score += 2;
-            // Uploads dropped in by Clara (onboarding) or content workspace
-            // are the intent-tagged ones. DMs workspace is secondary.
             if (u.agent_id === 'content' || u.agent_id === 'onboarding') score += 1;
+            // Soft penalty for recently-used (last 15 posts) instead of
+            // hard-filter. Lets the same dish land again when composed
+            // with a venue produces a genuinely different scene. Prevents
+            // "no hero available" edge case where we fall back to a
+            // stale space photo.
+            if (recentUrls.has(u.file_url)) score -= 4;
             return score;
           };
 
           const candidates = (uploads || [])
             .filter(isRaster)
             .filter(isPostWorthy)
-            .filter((u: any) => !recentUrls.has(u.file_url))
             .map((u: any) => ({ u, score: scoreRelevance(u) }))
             .sort((a: { score: number }, b: { score: number }) => b.score - a.score);
 
