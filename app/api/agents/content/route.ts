@@ -3931,23 +3931,36 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
             .order('created_at', { ascending: false })
             .limit(60);
 
-          // Filter to raster formats only — Seedream i2i rejects SVG/GIF
-          // with "UnsupportedImageFormat", and publishing an SVG directly
-          // to Instagram would fail too (IG Graph API wants JPG/PNG).
+          // STRICT image filter — a post visual must be a real raster
+          // photograph (jpg/jpeg/png). Excludes logos-by-ext, svg/gif/video,
+          // and crucially: any document file (docx/pdf/xlsx/pptx etc.)
+          // which would crash Seedream i2i and Instagram's media upload.
           const isRaster = (u: any) => {
             const ft = (u.file_type || '').toLowerCase();
             const url = (u.file_url || '').toLowerCase();
+            // Accept only these extensions
+            const okExt = /\.(jpg|jpeg|png)(\?|$)/.test(url)
+              || ft === 'image/jpeg'
+              || ft === 'image/jpg'
+              || ft === 'image/png'
+              || ft === 'jpg'
+              || ft === 'jpeg'
+              || ft === 'png';
+            if (!okExt) return false;
             if (ft.includes('svg') || ft.includes('gif') || url.endsWith('.svg') || url.endsWith('.gif')) return false;
             return true;
           };
 
-          // Skip logos / brand marks / business cards — those are for
-          // brand reference (palette extraction, typo), NOT for use as a
-          // post hero image. A restaurant's feed shouldn't re-post their
-          // logo every week.
+          // Skip logos / brand marks / business cards / documents — those
+          // are brand reference material (palette/typo extraction), NOT
+          // post hero images. Also skip content_type='document'/'data'/
+          // 'deck'/'video'/'audio' explicitly so only photo-like uploads
+          // land as heroes.
           const isPostWorthy = (u: any) => {
             const a = u.ai_analysis || {};
             if (a.is_logo === true) return false;
+            const heroTypes = ['product', 'dish', 'space', 'ambiance', 'team', 'behind_scenes', 'customer', 'other'];
+            if (a.content_type && !heroTypes.includes(a.content_type)) return false;
             const elements = Array.isArray(a.visible_elements) ? a.visible_elements.join(' ').toLowerCase() : '';
             if (/business card|logo only|text only/.test(elements)) return false;
             return true;
