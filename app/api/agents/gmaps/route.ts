@@ -79,7 +79,14 @@ const ZONES = [
   { name: 'Libération Nice', lat: 43.7060, lng: 7.2730, radius: 800 },
 ];
 
-const MAX_RESULTS_PER_QUERY = 20; // Scale up for 200+ prospects/day
+const MAX_RESULTS_PER_QUERY = 10;
+// Hard budget cap for paid Places API calls per run. Historical runs
+// without this cap burned ~€150/day per client (Apr 19-23 2026). Each
+// details fetch bills ~€0.04; 80 calls/run × 1 run/day × N clients is
+// the sustainable ceiling.
+const MAX_DETAILS_PER_RUN = 80;
+// Rotate the query list so we cover all 13 categories across the week.
+const QUERIES_PER_RUN = 4;
 
 /**
  * Score a prospect based on Google data
@@ -265,9 +272,11 @@ async function runGMapsScan(orgId: string | null = null, userId: string | null =
   // Load shared context
   const { prompt: sharedPrompt } = await loadContextWithAvatar(supabase, 'gmaps', orgId || undefined);
 
-  // Rotate zones: scan 5 zones per run for higher volume
+  // Rotate zones: scan 2 zones per run. Paired with QUERIES_PER_RUN=4
+  // and MAX_DETAILS_PER_RUN=80 this keeps each run under the Places API
+  // budget. Full coverage of 33 zones still happens every ~16 days.
   const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
-  const ZONES_PER_RUN = 5;
+  const ZONES_PER_RUN = 2;
   const startIdx = (dayOfYear * ZONES_PER_RUN) % ZONES.length;
   const dailyZones = [];
   for (let i = 0; i < ZONES_PER_RUN; i++) {
@@ -282,14 +291,31 @@ async function runGMapsScan(orgId: string | null = null, userId: string | null =
   const importedNames: string[] = [];
   const scannedZones: string[] = [];
 
-  // Use custom query if provided, otherwise use ALL 13 default queries
-  const queries = customQuery ? [customQuery] : [...SEARCH_QUERIES];
+  // Use custom query if provided, otherwise rotate through 4 categories
+  // per run (so full coverage of 13 categories happens over ~3-4 days).
+  let queries;
+  if (customQuery) {
+    queries = [customQuery];
+  } else {
+    const qStart = (dayOfYear * QUERIES_PER_RUN) % SEARCH_QUERIES.length;
+    queries = [];
+    for (let i = 0; i < QUERIES_PER_RUN; i++) {
+      queries.push(SEARCH_QUERIES[(qStart + i) % SEARCH_QUERIES.length]);
+    }
+  }
+
+  let detailsCallsUsed = 0;
 
   for (const zone of dailyZones) {
+    if (detailsCallsUsed >= MAX_DETAILS_PER_RUN) {
+      console.log(`[GMaps] Budget cap reached (${detailsCallsUsed}/${MAX_DETAILS_PER_RUN}) — stopping scan`);
+      break;
+    }
     console.log(`[GMaps] --- Zone: ${zone.name} ---`);
     scannedZones.push(zone.name);
 
     for (const query of queries) {
+      if (detailsCallsUsed >= MAX_DETAILS_PER_RUN) break;
       const searchQuery = customQuery ? query : `${query} ${zone.name.split(' ')[0]}`;
       console.log(`[GMaps] Searching: "${searchQuery}"`);
 
@@ -306,12 +332,24 @@ async function runGMapsScan(orgId: string | null = null, userId: string | null =
 
           if (existing) { totalSkipped++; continue; }
 
-          // Get details
+          // Budget check BEFORE the paid call — each details fetch bills ~€0.04.
+          if (detailsCallsUsed >= MAX_DETAILS_PER_RUN) {
+            console.log(`[GMaps] Budget cap hit mid-zone — skipping remaining places`);
+            break;
+          }
+
+          // Get details (PAID — Places API)
+          detailsCallsUsed++;
           const details = await getPlaceDetails(place.place_id);
           if (!details || details.business_status === 'CLOSED_PERMANENTLY') continue;
 
-          // Try to find Instagram
-          const instagram = details.website ? await findInstagramFromWebsite(details.website) : null;
+          // Instagram extraction via website scrape is expensive (5s per
+          // non-responsive site, chains 300s+ timeouts that trigger worker
+          // retries which each re-run the whole Places scan). The handle
+          // enrichment is nice-to-have — scraped cheaply later by the
+          // prospect-enrichment agent when the record is actually being
+          // contacted. Keep the column null here.
+          const instagram = null;
 
           const businessType = mapGoogleType(details.types || place.types || []);
           const score = scoreProspect({

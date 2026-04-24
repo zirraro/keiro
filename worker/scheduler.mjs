@@ -83,6 +83,12 @@ const DISABLED_AGENTS_WORKER = new Set([
   'sara', 'stella', 'louis', 'axel',
 ]);
 
+// Agents that should NEVER be retried on network/timeout failure.
+// gmaps: each attempt burns ~1300 Places API calls; a timeout followed by
+// 3 retries (April 2026 pattern) racked up ~€150/day per client until
+// billing credits ran out. Cost-sensitive agents go here.
+const NO_RETRY_AGENTS = new Set(['gmaps']);
+
 // ──────────────────────────────────────────────────────────
 // Per-client schedules — fetched from DB every 15 min
 // ──────────────────────────────────────────────────────────
@@ -284,7 +290,11 @@ async function tick() {
       const body = endpoint.body
         ? { ...endpoint.body, user_id: job.client.user_id }
         : null;
-      const result = await callEndpoint(path, endpoint.method, body);
+      // Cost-sensitive agents (Places API, paid third-party): one attempt
+      // only. A timeout usually means the scan hit the 300s cap — retrying
+      // re-runs the whole scan and doubles the API bill.
+      const retries = NO_RETRY_AGENTS.has(job.agentId) ? 1 : 3;
+      const result = await callEndpoint(path, endpoint.method, body, retries);
       log('normal', result.ok
         ? `    ✓ Done in ${result.duration}s`
         : `    ✗ FAILED: ${result.error || `HTTP ${result.status}`}`);
