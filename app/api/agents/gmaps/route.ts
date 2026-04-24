@@ -80,12 +80,37 @@ const ZONES = [
 ];
 
 const MAX_RESULTS_PER_QUERY = 10;
-// Hard budget cap for paid Places API calls per run. Historical runs
-// without this cap burned ~€150/day per client (Apr 19-23 2026). Each
-// details fetch bills ~€0.04; 80 calls/run × 1 run/day × N clients is
-// the sustainable ceiling.
-const MAX_DETAILS_PER_RUN = 80;
-// Rotate the query list so we cover all 13 categories across the week.
+
+// Per-plan daily budget for paid Places Details fetches. Derived from
+// the target 75% margin on each plan: we carve out a max €/month for
+// Places and divide by 30 days × €0.021/call to get the daily call cap.
+//
+//   Pro (€99/mo)         → €5/mo   →  ~10 calls/day → ~180 prospects/mo
+//   Business (€199/mo)   → €19/mo  →  ~30 calls/day → ~540 prospects/mo
+//   Agency (€499/mo)     → €38/mo  →  ~60 calls/day → ~1080 prospects/mo
+//   Starter / free       → 0       →  gmaps disabled entirely
+//
+// Google Cloud grants €185/mo of free Places credits on the account, so
+// the first ~9k calls/month across ALL clients are free. Billing only
+// starts once total platform volume > free credit pool.
+const GMAPS_PLAN_CAPS: Record<string, number> = {
+  starter: 0,
+  free: 0,
+  pro: 10,
+  business: 30,
+  agence: 60,
+  agency: 60,
+  elite: 60,
+  fondateurs: 60,
+  admin: 80,
+};
+function capForPlan(plan: string | null | undefined): number {
+  const key = (plan || '').toLowerCase();
+  if (key in GMAPS_PLAN_CAPS) return GMAPS_PLAN_CAPS[key];
+  return GMAPS_PLAN_CAPS.pro; // sensible default for unknown plans
+}
+const DEFAULT_MAX_DETAILS_PER_RUN = GMAPS_PLAN_CAPS.pro;
+// Rotate query list so we cover all 13 categories across the week.
 const QUERIES_PER_RUN = 4;
 
 /**
@@ -269,12 +294,32 @@ async function runGMapsScan(orgId: string | null = null, userId: string | null =
   const supabase = getSupabaseAdmin();
   const now = new Date().toISOString();
 
+  // Per-plan cap. Starter/Free gets gmaps=0 — Places API is a paid cost
+  // and the free plan cannot carry it. Pro=10, Business=30, Agency=60.
+  let planCap = DEFAULT_MAX_DETAILS_PER_RUN;
+  if (userId) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('subscription_plan, is_admin')
+      .eq('id', userId)
+      .maybeSingle();
+    const plan = profile?.is_admin ? 'admin' : (profile?.subscription_plan || 'free');
+    planCap = capForPlan(plan);
+    if (planCap === 0) {
+      console.log(`[GMaps] Plan ${plan} has no gmaps quota — skipping scan for user ${userId.substring(0, 8)}`);
+      return NextResponse.json({ ok: true, skipped: true, reason: 'plan_disabled', plan });
+    }
+    console.log(`[GMaps] Plan ${plan} → cap ${planCap} details/run`);
+  }
+  const MAX_DETAILS_PER_RUN = planCap;
+
   // Load shared context
   const { prompt: sharedPrompt } = await loadContextWithAvatar(supabase, 'gmaps', orgId || undefined);
 
   // Rotate zones: scan 2 zones per run. Paired with QUERIES_PER_RUN=4
-  // and MAX_DETAILS_PER_RUN=80 this keeps each run under the Places API
-  // budget. Full coverage of 33 zones still happens every ~16 days.
+  // and the per-plan MAX_DETAILS_PER_RUN (Pro=10, Business=30, Agency=60),
+  // each run stays inside the plan's monthly Places budget. Full 33-zone
+  // coverage still rotates over ~16 days.
   const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
   const ZONES_PER_RUN = 2;
   const startIdx = (dayOfYear * ZONES_PER_RUN) % ZONES.length;

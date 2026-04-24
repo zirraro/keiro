@@ -346,18 +346,35 @@ async function handleClientBrief(supabase: any, timeOfDay: 'morning' | 'evening'
       // Skip clients who haven't activated Noah
       if (!ceoConfig?.config?.auto_mode && !ceoConfig?.config?.setup_completed) continue;
 
-      // Frequency gating: daily (default), every_2_days, weekly, biweekly, monthly
-      // Read from prefs or from ceo agent config
-      const freq: string = prefs?.frequency || ceoConfig?.config?.report_frequency || 'daily';
+      // Frequency gating: weekly (DEFAULT — included in plan), every_2_days, biweekly,
+      // monthly, OR daily (paid-only, consumes credits per extra brief).
+      // Read from prefs > ceo agent config > global default.
+      //
+      // Per-client `preferred_day` (0=Sun..6=Sat) overrides the default
+      // Sunday for the weekly brief — Noah picks the best engagement day
+      // based on Brevo opens (populated by the weekly best-day analysis cron).
+      const freq: string = prefs?.frequency || ceoConfig?.config?.report_frequency || 'weekly';
+      const preferredDay: number = typeof prefs?.preferred_day === 'number'
+        ? prefs.preferred_day
+        : 0; // default: Sunday
       const now = new Date();
       const dayOfMonth = now.getUTCDate();
       const dayOfWeek = now.getUTCDay(); // 0=Sun, 1=Mon...
       const dayOfYear = Math.floor((now.getTime() - new Date(now.getUTCFullYear(), 0, 0).getTime()) / 86400000);
 
       if (freq === 'every_2_days' && dayOfYear % 2 !== 0) continue;
-      if (freq === 'weekly' && dayOfWeek !== 1) continue;       // Monday only
-      if (freq === 'biweekly' && (dayOfWeek !== 1 || Math.floor(dayOfYear / 7) % 2 !== 0)) continue;
-      if (freq === 'monthly' && dayOfMonth !== 1) continue;      // 1st of month
+      if (freq === 'weekly' && dayOfWeek !== preferredDay) continue;
+      if (freq === 'biweekly' && (dayOfWeek !== preferredDay || Math.floor(dayOfYear / 7) % 2 !== 0)) continue;
+      if (freq === 'monthly' && dayOfMonth !== 1) continue;
+
+      // Daily frequency is a paid upgrade — billed per extra brief. The
+      // debit is handled at the `/api/billing/debit-credit` endpoint so
+      // we only send when the client has enough credits. For now, daily
+      // clients go through unconditionally — wire credit debit before
+      // marketing "daily CEO brief" as an upsell.
+      if (freq === 'daily') {
+        // TODO(credits): debit 1 credit here or skip if client has 0.
+      }
 
       // Get client's agent activity — lookback matches frequency
       const lookbackHours: Record<string, number> = {
@@ -896,6 +913,11 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
                 Noah — Ton stratège chez KeiroAI
               </div>
             </div>`,
+            // Tag so the Brevo webhook can identify brief opens and feed
+            // the best-day analysis. X-Mailin-custom carries user_id for
+            // fast idempotent lookup in /api/webhooks/brevo.
+            tags: ['noah_brief', isEvening ? 'evening' : 'morning'],
+            headers: { 'X-Mailin-custom': JSON.stringify({ uid: client.id, kind: 'noah_brief', slot: isEvening ? 'evening' : 'morning' }) },
           }),
         }).catch(() => {});
       }
