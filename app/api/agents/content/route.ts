@@ -4097,19 +4097,28 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
             const pickType = pick.ai_analysis?.content_type;
             const needsVenueContext = ['product', 'dish'].includes(pickType);
             if (needsVenueContext) {
-              const venueCandidate = (uploads || [])
+              // Rotate across ALL venue photos the client uploaded. A
+              // client with 3 café shots shouldn't see the same room in
+              // every post — variety signals an active, living place.
+              // Order: venues NOT used in the last 15 posts first, then
+              // pick randomly among that pool. If every venue was recently
+              // used (small client with 1 photo), fall back to any of them.
+              const allVenues = (uploads || [])
                 .filter(isRaster)
                 .filter(isPostWorthy)
-                .find((u: any) => {
+                .filter((u: any) => {
                   const ct = u.ai_analysis?.content_type;
                   return u.file_url !== pick.file_url && ['space', 'ambiance'].includes(ct);
                 });
+              const freshVenues = allVenues.filter((v: any) => !recentUrls.has(v.file_url));
+              const pool = freshVenues.length > 0 ? freshVenues : allVenues;
+              const venueCandidate = pool.length > 0 ? pool[Math.floor(Math.random() * pool.length)] : null;
               if (venueCandidate) {
                 (pickedUpload as any).venueContext = {
                   file_url: venueCandidate.file_url,
                   analysis: venueCandidate.ai_analysis,
                 };
-                console.log(`[Content] Paired ${pickType} ${pick.id} with venue ${venueCandidate.id} — real product-in-venue composition`);
+                console.log(`[Content] Paired ${pickType} ${pick.id} with venue ${venueCandidate.id} (${pool.length} venue(s) in rotation, ${freshVenues.length} fresh) — real product-in-venue composition`);
               }
             }
           }
