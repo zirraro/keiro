@@ -1679,7 +1679,7 @@ export async function POST(request: NextRequest) {
       case 'generate_post': {
         const todayStr = new Date().toISOString().split('T')[0];
         const dayOfWeek = new Date().getDay();
-        return generateDailyPost(supabase, todayStr, dayOfWeek, body.platform, body.pillar, body.draftOnly, orgId, userId, clientSettings);
+        return generateDailyPost(supabase, todayStr, dayOfWeek, body.platform, body.pillar, body.draftOnly, orgId, userId, clientSettings, body.format);
       }
 
       case 'generate_week': {
@@ -3214,7 +3214,7 @@ async function generateWeekWithVisuals(supabase: any, publishAll: boolean, orgId
 // ──────────────────────────────────────
 // Generate a single daily post
 // ──────────────────────────────────────
-async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: number, forcePlatform?: string, forcePillar?: string, draftOnly?: boolean, orgId: string | null = null, userId: string | null = null, clientSettings: Record<string, any> = {}) {
+async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: number, forcePlatform?: string, forcePillar?: string, draftOnly?: boolean, orgId: string | null = null, userId: string | null = null, clientSettings: Record<string, any> = {}, forceFormat?: string) {
   const nowISO = new Date().toISOString();
 
   // Load shared intelligence pool (all agents' data + active directives)
@@ -3412,6 +3412,7 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
   if (preferredFormats === 'reels' && platform === 'instagram') format = 'reel';
   else if (preferredFormats === 'stories' && platform === 'instagram') format = 'story';
   else if (preferredFormats === 'carousel' && platform === 'instagram') format = 'carousel';
+  if (forceFormat) format = forceFormat;
 
   // ── Adaptive bias from performance ranking ──
   // If the client has a recent performance_ranking (computed nightly
