@@ -349,7 +349,10 @@ async function handleIncomingMessage(
       history: historyForAI,
       message: messageText,
       maxTokens: 300, // WhatsApp = short messages
-      thinking: true,
+      // WA messages are short (300 tok cap). Thinking:false fits the
+      // format — Gemini 2.5 Flash replies fine without reasoning for
+      // 1-2 sentence exchanges. Saves 6× per inbound message.
+      thinking: false,
     });
   } catch (aiErr: any) {
     console.error('[WhatsApp] AI error:', aiErr.message);

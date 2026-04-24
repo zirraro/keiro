@@ -264,7 +264,11 @@ export async function POST(request: NextRequest) {
         })),
         message,
         maxTokens: 2000,
-        thinking: true,
+        // thinking:false here saves ~6× on each visitor reply. Gemini 2.5
+        // Flash without thinking still handles pricing Q&A, greetings and
+        // FAQ-style chats well. If retention/quality drops on this bot,
+        // flip back to thinking:true for business+ clients only.
+        thinking: false,
       });
       console.log('[Chatbot] Response:', assistantMessage.substring(0, 100));
     } catch (geminiError: any) {
