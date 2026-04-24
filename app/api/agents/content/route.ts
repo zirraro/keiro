@@ -195,13 +195,12 @@ DISH / PRODUCT TO COMPOSE INTO THIS VENUE:
 - Palette: ${(dishContext.analysis.color_palette || []).join(', ') || 'unspecified'}
 - Style: ${(dishContext.analysis.style_descriptors || []).join(', ') || 'unspecified'}
 
-COMPOSITION RULE: the reference image is the client's REAL dining room /
-boutique interior. Place this specific dish / product (as described
-above) naturally on a table inside this space. The venue's furniture,
-lighting, walls, decoration MUST remain recognisably the same — the
-restaurant's brand IS its space. Strength is intentionally low so the
-room is preserved; the dish is added onto the scene, not replaced. No
-generic food — only the dish described above belongs in the frame.` : '';
+COMPOSITION RULE — CRITICAL:
+- The reference image is the client's REAL dining room / boutique interior. It MUST remain the dominant subject of the frame (65%+ of the image is the room itself: walls, tables, windows, ambient light).
+- Place the dish / product as a SINGLE TASTEFUL ACCENT on one of the visible tables — MID-GROUND, not pushed to the camera. The dish takes AT MOST 25% of the frame area. Think "a plate on a table in a restaurant wide shot", NOT "macro food-photography close-up".
+- Do NOT zoom into the dish. Do NOT use aggressive bokeh that erases the room. Do NOT invent new furniture. Keep the room's layout, furniture, wall colour, lighting EXACTLY as shown in the reference.
+- The viewer's eye should land on the room first, then notice the plate. The restaurant's brand IS its space — the plate is one detail among many, never the whole frame.
+- Only the dish described above belongs in the frame — no generic food, no props that weren't already in the reference room.` : '';
 
     const optimizedText = await callClaude({
       system: SEEDREAM_STYLE_GUIDE + `\n\nIMPORTANT: You are writing an IMAGE-TO-IMAGE prompt. ${dishContext ? 'The reference image is the client\'s REAL restaurant / boutique interior — it must stay recognisable. A specific dish / product must be composed INTO this scene (see DISH block below).' : 'The reference image is the client\'s REAL photo of their venue / product / space. Your job is to describe HOW to re-render it with: (a) better professional lighting, (b) cleaner composition, (c) brand-aligned palette, (d) magazine-quality atmosphere. Keep the SUBJECT and SPACE recognisable — never invent new elements or change the venue type. Think "editorial photo shoot of the same place", not "generate a different place".'}${dishBlock}`,
@@ -4157,9 +4156,14 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
         let effectiveVisualDesc = visualDesc;
         if (hasVenuePair) {
           const dishSummary = pickedUpload.analysis?.summary || 'a signature dish';
-          const dishAngle = pickedUpload.analysis?.post_angle || 'hero shot';
           const venueSummary = venueCtx.analysis?.summary || 'the restaurant interior';
-          effectiveVisualDesc = `Preserve the exact dining room / venue shown in the reference: keep the same tables, chairs, walls, windows, light fixtures, colours, materials. Add a plated dish on a front table: ${dishSummary}. ${dishAngle}. Warm cinematic lighting matching the room's existing ambience, shallow depth of field, 4K detail. The venue MUST remain recognisable — do not change the layout, do not invent new furniture, do not alter wall colour. No text, no logos, no studio equipment, no projectors.`;
+          effectiveVisualDesc = `Preserve the exact dining room / venue shown in the reference: keep the same tables, chairs, walls, windows, light fixtures, colours, materials, decor. The venue must stay DOMINANT in the frame (at least 65% of the image is the room itself — walls, tables, light, atmosphere).
+
+Add a SINGLE plated dish on ONE of the visible tables — ideally mid-ground, NOT front-camera. The dish occupies at most 25% of the frame (small, tasteful accent in a living room, not a macro hero shot). The dish: ${dishSummary}.
+
+Composition: wide editorial shot of the room, the dish is one detail among many; the viewer's eye lands on the room first, then notices the plate. Warm cinematic lighting matching the room's existing ambience, natural depth of field (no aggressive macro blur), 4K detail.
+
+The venue MUST remain recognisable — do not change the layout, do not invent new furniture, do not alter wall colour, do not zoom into the dish. No text, no logos, no studio equipment, no projectors.`;
           console.log(`[Content] Asset-grounded visualDesc override for hasVenuePair: ${effectiveVisualDesc.substring(0, 200)}`);
         }
 
