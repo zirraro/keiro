@@ -4196,6 +4196,7 @@ The venue MUST remain recognisable — do not change the layout, do not invent n
             const score = await scoreVisualQuality(visualUrl, effectiveVisualDesc, expectedSubject);
             console.log(`[Content] QA score: ${score.score}/10 — flags: ${score.amateur_flags.join(',')} — ${score.notes}`);
 
+            let bestScore = score.score;
             if (score.score < 7) {
               // Retry: stay on venue as base (if we had a pair) at a
               // slightly tighter strength — we want the venue preserved,
@@ -4212,21 +4213,22 @@ The venue MUST remain recognisable — do not change the layout, do not invent n
               if (retryUrl) {
                 const score2 = await scoreVisualQuality(retryUrl, effectiveVisualDesc, expectedSubject);
                 console.log(`[Content] QA retry: ${score2.score}/10`);
-                if (score2.score >= 7) {
+                if (score2.score >= score.score) {
                   visualUrl = retryUrl;
-                } else if (score2.score > score.score) {
-                  visualUrl = retryUrl;
+                  bestScore = score2.score;
                 }
               }
-              // Still below threshold — use the client's RAW photo
-              // rather than publish a bad generation.
-              const { scoreVisualQuality: rescore } = await import('@/lib/visuals/qa-check');
-              const finalScore = await rescore(visualUrl, effectiveVisualDesc, expectedSubject);
-              if (finalScore.score < 6) {
-                console.log('[Content] Final QA still under 6, reverting to raw client photo');
-                visualUrl = pickedUpload.file_url;
+              // Best score still below 6 — use the client's RAW photo
+              // rather than publish a bad generation. For a dish+venue
+              // pair, the client's REAL VENUE is the salvage (the whole
+              // point was to show their restaurant), not the dish alone.
+              if (bestScore < 6) {
+                const salvageUrl = hasVenuePair ? venueCtx.file_url : pickedUpload.file_url;
+                const salvageLabel = hasVenuePair ? 'raw_venue_qa_salvage' : 'raw_dish_qa_salvage';
+                console.log(`[Content] Final QA ${bestScore}/10 under 6, reverting to ${hasVenuePair ? 'raw VENUE photo' : 'raw client photo'}`);
+                visualUrl = salvageUrl;
                 await supabase.from('content_calendar').update({
-                  publish_diagnostic: `client_photo_raw_qa_salvage:${pickedUpload.id}`,
+                  publish_diagnostic: `client_photo_${salvageLabel}:${pickedUpload.id}`,
                 }).eq('id', inserted.id).throwOnError?.();
               }
             }
