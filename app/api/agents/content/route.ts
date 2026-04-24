@@ -475,6 +475,9 @@ async function publishToInstagram(
   orgId?: string | null,
   userId?: string | null
 ): Promise<{ success: boolean; permalink?: string; error?: string }> {
+  // Declared here so the catch block at the bottom can reference it for
+  // the token-expiry auto-disconnect flow.
+  let effectivePostOwnerId: string | null = userId || (post as any).user_id || null;
   try {
     // ── Dedup check: prevent publishing the same image twice ──
     const dupCheck = await checkDuplicatePublication(supabase, post.visual_url, post.video_url, 'instagram');
@@ -488,10 +491,6 @@ async function publishToInstagram(
 
     // Multi-tenant: find IG tokens by org_id first, fallback to admin
     let publishProfile: any = null;
-    // Track which client user_id the post belongs to, so instagram_posts.user_id
-    // is written under the actual owner (not the admin) — otherwise the library
-    // widget's `WHERE user_id = client.id` filter hides the freshly published post.
-    let effectivePostOwnerId: string | null = userId || (post as any).user_id || null;
 
     if (orgId) {
       // Try to find the org owner's IG tokens
@@ -639,8 +638,53 @@ async function publishToInstagram(
 
     return { success: true, permalink: result.permalink };
   } catch (error: any) {
-    console.error('[Content] Instagram publish error:', error.message || error);
-    return { success: false, error: error.message || 'Unknown Instagram publishing error' };
+    const msg = error.message || String(error);
+    console.error('[Content] Instagram publish error:', msg);
+
+    // Detect Meta token expiry / revocation — codes 190 or subcode
+    // 463/467/458/464 (various OAuthException flavours). When hit, we
+    // clear the client's IG tokens from profiles and email them to
+    // reconnect. Keeps the 90-day token lifecycle safe without
+    // silently accumulating publish_failed records.
+    const tokenExpired = /code.?:?\s*190\b/.test(msg)
+      || /error_subcode.?:?\s*(463|467|458|464)\b/.test(msg)
+      || /access token.*expired/i.test(msg)
+      || /permissions.*revoked/i.test(msg)
+      || /session has expired/i.test(msg);
+
+    if (tokenExpired && effectivePostOwnerId) {
+      try {
+        await supabase
+          .from('profiles')
+          .update({
+            instagram_business_account_id: null,
+            facebook_page_access_token: null,
+            instagram_igaa_token: null,
+            instagram_username: null,
+          })
+          .eq('id', effectivePostOwnerId);
+        console.log(`[Content] IG tokens cleared for ${effectivePostOwnerId} (token expired/revoked)`);
+
+        // Notify the client via a crm_activity row + ops escalation so
+        // Hugo's next outbound can send the re-auth email.
+        await supabase.from('agent_logs').insert({
+          agent: 'content',
+          action: 'ig_token_expired_auto_disconnect',
+          status: 'warning',
+          error_message: msg.substring(0, 500),
+          data: {
+            user_id: effectivePostOwnerId,
+            action: 'email_client_to_reconnect',
+            reconnect_url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://keiroai.com'}/integrations/meta`,
+          },
+          created_at: new Date().toISOString(),
+        });
+      } catch (cleanupErr: any) {
+        console.error('[Content] IG token cleanup failed:', cleanupErr?.message);
+      }
+    }
+
+    return { success: false, error: msg };
   }
 }
 
@@ -3928,9 +3972,10 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
           // and Léna directly, no duplicate upload needed.
           const { data: uploads } = await supabase
             .from('agent_uploads')
-            .select('id, file_url, file_type, agent_id, ai_analysis, caption, created_at')
+            .select('id, file_url, file_type, agent_id, ai_analysis, caption, created_at, archived_at')
             .eq('user_id', userId)
             .or('file_type.ilike.image/%,file_url.ilike.%.jpg,file_url.ilike.%.jpeg,file_url.ilike.%.png,file_url.ilike.%.webp')
+            .is('archived_at', null)
             .not('ai_analysis', 'is', null)
             .order('created_at', { ascending: false })
             .limit(60);

@@ -153,14 +153,34 @@ ${failures.slice(0, 25).map((f, i) => `${i + 1}. [${f.agent} / ${f.action}] ${f.
         max_tokens: 3000,
         system: `Tu es le CEO technique de KeiroAI, tu rédiges le brief quotidien pour le fondateur qui va exécuter les fixes lui-même. Il n'a pas besoin de reco génériques — il a besoin de SAVOIR ce qui a cassé et OÙ corriger dans le code.
 
+INFRA DÉPLOIEMENT (IMPORTANT — NE PAS SE TROMPER) :
+- Plus AUCUN cron Vercel — vercel.json.crons = []. Ne JAMAIS suggérer "vérifier vercel.json" comme fix.
+- Tous les crons tournent sur un VPS OVH (Gravelines) via PM2 :
+    - keiro-app   : Next.js, port 3000
+    - keiro-worker: /opt/keiro/worker/scheduler.mjs (le vrai cron)
+- Le worker fire sur deux canaux :
+    - GLOBAL_SCHEDULE[] : slots à heure fixe (ceo 05:00, morning_batch 07:00,
+      midday_batch 10:00, afternoon_batch 13:30, evening_batch 17:00,
+      ceo_daily 18:30, email_inbound_poll */2h, ig_comments_reply :15,
+      weekly_enrichment Sun 02:00, weekly-trends Mon 07:00)
+    - Per-client schedules depuis /api/cron/client-schedules (DB-driven)
+- Quand un agent est "DOWN" ou "Aucun run" : le fix à suggérer est
+  d'abord "vérifier que l'agentId est bien dans GLOBAL_SCHEDULE ou
+  dans AGENT_ENDPOINTS du worker, puis pm2 restart keiro-worker".
+
 Le projet est une app Next.js avec des agents sous /app/api/agents/<agent_id>/route.ts :
   - ceo, commercial, email, content, dm_instagram, instagram_comments, gmaps,
     google-reviews, seo, onboarding, retention, marketing, ads, comptable,
     rh, whatsapp, ops
 
-Le worker per-client vit dans /worker/scheduler.mjs. Les libs partagées
-sont sous /lib/agents/ (ceo-group, hugo-engine, hugo-reply, theo-review-reply,
-visual-analyzer, knowledge-rag, client-context, shared-context, etc.)
+Les libs partagées sont sous /lib/agents/ (ceo-group, hugo-engine, hugo-reply,
+theo-review-reply, visual-analyzer, knowledge-rag, client-context,
+shared-context, feature-flags, enrichment, etc.)
+
+AGENTS DÉSACTIVÉS TEMPORAIREMENT (lib/agents/feature-flags.ts DISABLED_AGENTS) :
+ads, rh, comptable, whatsapp, tiktok_comments, tiktok_dm, linkedin. Si le
+digest montre un de ces agents sans run, c'est NORMAL — ne pas lister
+comme issue critique, mentionner simplement "désactivé, sera réactivé".
 
 Tu dois produire un JSON STRICT de cette forme :
 

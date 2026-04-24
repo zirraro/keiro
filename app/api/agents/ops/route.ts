@@ -225,9 +225,9 @@ async function runHealthCheck(orgId: string | null = null): Promise<HealthReport
     let suggestedFix = '';
 
     if (!agent.last_success) {
-      suggestedFix = 'Vérifier que le cron est configuré dans vercel.json et que la route répond correctement.';
+      suggestedFix = 'Vérifier que le cron est bien dans worker/scheduler.mjs (PM2 keiro-worker, VPS OVH) et que la route /api/agents/' + agent.agent + ' répond. Consulter `pm2 logs keiro-worker` sur le VPS.';
     } else if (agent.total_runs_24h === 0) {
-      suggestedFix = 'Le cron ne semble pas se déclencher. Vérifier vercel.json et les logs Vercel.';
+      suggestedFix = 'Le cron ne déclenche plus. Vérifier worker/scheduler.mjs GLOBAL_SCHEDULE et AGENT_ENDPOINTS, puis `pm2 restart keiro-worker` sur le VPS.';
     } else if (agent.success_rate >= 0 && agent.success_rate < 30) {
       suggestedFix = 'Taux d\'erreur très élevé. Vérifier les logs d\'erreur récents et les variables d\'environnement.';
     } else {

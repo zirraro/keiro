@@ -51,6 +51,8 @@ const GLOBAL_SCHEDULE = [
   // market changes. Light depth so it doesn't balloon credits; the deep
   // campaign is manual / on-demand.
   { cron: '0 2 * * 0',    slot: 'weekly_enrichment', label: 'Weekly Agent Knowledge Refresh' },
+  // Hourly check for Instagram token expiry → email client to reconnect
+  { cron: '30 * * * *',   path: '/api/cron/process-ig-reauth', label: 'IG Reauth Email' },
 ];
 
 // Agent endpoint mapping (for per-client direct calls)

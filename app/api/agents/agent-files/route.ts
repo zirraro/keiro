@@ -693,6 +693,22 @@ export async function DELETE(req: NextRequest) {
       // Table may not exist yet — not critical
     }
 
+    // Archive (soft-delete) the corresponding agent_uploads row so
+    // Léna / Jade don't reuse the image in future posts. Keep the row
+    // for history + undo — the client asked for "archived, not deleted".
+    try {
+      const publicUrl = supabase.storage
+        .from(BUCKET)
+        .getPublicUrl(storagePath).data?.publicUrl;
+      await supabase
+        .from('agent_uploads')
+        .update({ archived_at: new Date().toISOString() })
+        .eq('user_id', user.id)
+        .or(`file_url.eq.${publicUrl},file_name.eq.${fileName}`);
+    } catch (archErr: any) {
+      console.warn('[agent-files] agent_uploads archive failed:', archErr?.message);
+    }
+
     return NextResponse.json({ ok: true });
   } catch (err: any) {
     console.error('[agent-files] DELETE error:', err);
