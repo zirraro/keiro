@@ -39,6 +39,8 @@ export const OP_COST_EUR = {
   seo_article: 0.10,           // Oscar SEO article (Sonnet long-form)
   analytics_report: 0.015,     // Ami daily brief (Sonnet)
   review_reply: 0.005,         // Théo Google review response
+  gmaps_search: 0.035,         // Places API text search (paid, even when 0 new)
+  gmaps_details: 0.021,        // Places API details fetch (per new prospect)
 } as const;
 
 /** Plan HT revenue in EUR for margin calculation. */
@@ -59,10 +61,17 @@ const PLAN_REVENUE_HT: Record<string, number> = {
  */
 const INFRA_PER_CLIENT_EUR = 2.5;
 
-/** Hard-block threshold: if live margin drops below this, refuse further generation. */
-export const MARGIN_BLOCK_THRESHOLD = 0.60;
-/** Warning threshold: surfaced in admin dashboard (yellow). */
-export const MARGIN_WARN_THRESHOLD = 0.70;
+/**
+ * Hard-block threshold: if live margin drops below this, refuse further
+ * generation. Raised from 60→70% on 2026-04-24 — founder wants margins
+ * strictly above 75% ideally above 80%, so the block kicks in earlier
+ * to leave headroom for unexpected cost spikes (API price changes, new
+ * features). The 70% floor preserves enough buffer for infra overhead
+ * while still protecting the bottom line.
+ */
+export const MARGIN_BLOCK_THRESHOLD = 0.70;
+/** Warning threshold: surfaced in admin dashboard (yellow) + triggers upsell widget. */
+export const MARGIN_WARN_THRESHOLD = 0.80;
 
 export type MarginSnapshot = {
   userId: string;
@@ -79,6 +88,7 @@ export type MarginSnapshot = {
     analytics: number;
     seo: number;
     reviews: number;
+    gmaps: number;
     infra: number;
     total: number;
   };
@@ -128,6 +138,8 @@ export async function computeClientMargin(userId: string): Promise<MarginSnapsho
   let analyticsCount = 0;
   let seoCount = 0;
   let reviewCount = 0;
+  let gmapsSearches = 0;
+  let gmapsDetails = 0;
 
   for (const r of rows) {
     switch (r.action) {
@@ -162,6 +174,14 @@ export async function computeClientMargin(userId: string): Promise<MarginSnapsho
       case 'review_reply':
         reviewCount++;
         break;
+      case 'daily_scan':
+        // gmaps daily scan report. data.imported = new prospects saved,
+        // data.skipped = duplicates. Billing: each run does ~queries*zones
+        // text searches (paid even when every result is a dup), plus one
+        // details fetch per new prospect imported.
+        gmapsSearches += (r.data?.zones?.length || 0) * (r.data?.queries?.length || 0);
+        gmapsDetails += r.data?.imported || 0;
+        break;
     }
   }
 
@@ -176,11 +196,12 @@ export async function computeClientMargin(userId: string): Promise<MarginSnapsho
     analytics: analyticsCount * OP_COST_EUR.analytics_report,
     seo: seoCount * OP_COST_EUR.seo_article,
     reviews: reviewCount * OP_COST_EUR.review_reply,
+    gmaps: gmapsSearches * OP_COST_EUR.gmaps_search + gmapsDetails * OP_COST_EUR.gmaps_details,
     infra: INFRA_PER_CLIENT_EUR,
     total: 0,
   };
   cogs.total = cogs.images + cogs.videos + cogs.tts + cogs.dms + cogs.emails
-    + cogs.chatbot + cogs.agent_chat + cogs.analytics + cogs.seo + cogs.reviews + cogs.infra;
+    + cogs.chatbot + cogs.agent_chat + cogs.analytics + cogs.seo + cogs.reviews + cogs.gmaps + cogs.infra;
 
   const margin_abs = revenueHT - cogs.total;
   const margin_pct = revenueHT > 0 ? margin_abs / revenueHT : 1;

@@ -53,6 +53,9 @@ const GLOBAL_SCHEDULE = [
   { cron: '0 2 * * 0',    slot: 'weekly_enrichment', label: 'Weekly Agent Knowledge Refresh' },
   // Hourly check for Instagram token expiry → email client to reconnect
   { cron: '30 * * * *',   path: '/api/cron/process-ig-reauth', label: 'IG Reauth Email' },
+  // Weekly — pick each client's best-engagement weekday for Noah's
+  // brief based on Brevo open signals over the last 8 weeks.
+  { cron: '0 3 * * 1',    path: '/api/cron/compute-best-brief-day', label: 'Best Brief Day Analysis (Monday)' },
 ];
 
 // Agent endpoint mapping (for per-client direct calls)

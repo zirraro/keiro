@@ -60,6 +60,35 @@ export async function POST(request: NextRequest) {
 
       console.log(`[BrevoWebhook] Processing event: ${eventType} for ${email}`);
 
+      // --- Noah brief opens: non-prospect path ---
+      // Brief emails are sent to clients (profiles.email), not prospects.
+      // The X-Mailin-custom header carries { uid, kind: 'noah_brief', slot }
+      // so we can log the open with user_id for the weekly best-day analysis.
+      try {
+        const customHeader = event['X-Mailin-custom'] || event.headers?.['X-Mailin-custom'];
+        if (customHeader && eventType === 'opened') {
+          const parsed = typeof customHeader === 'string' ? JSON.parse(customHeader) : customHeader;
+          if (parsed?.kind === 'noah_brief' && parsed?.uid) {
+            await supabase.from('agent_logs').insert({
+              agent: 'email',
+              action: 'webhook_opened',
+              data: {
+                email,
+                user_id: parsed.uid,
+                uid: parsed.uid,
+                kind: 'noah_brief',
+                slot: parsed.slot || null,
+                message_id: String(messageId || ''),
+              },
+              created_at: now,
+            });
+            // Also log a friendly marker for the best-day cron to pick
+            // up (in case agent/action evolves later).
+            continue; // Noah brief open is not a prospect event, skip scoring
+          }
+        }
+      } catch { /* malformed header — fall through to prospect path */ }
+
       // --- Find prospect by email first (truth source), then validate header ---
       let prospect: any = null;
 

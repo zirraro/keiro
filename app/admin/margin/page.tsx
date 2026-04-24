@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 type CogsBreakdown = {
   images: number; videos: number; tts: number; dms: number; emails: number;
   chatbot: number; agent_chat: number; analytics: number; seo: number;
-  reviews: number; infra: number; total: number;
+  reviews: number; gmaps: number; infra: number; total: number;
 };
 
 type Snapshot = {

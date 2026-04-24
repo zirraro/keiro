@@ -81,37 +81,58 @@ const ZONES = [
 
 const MAX_RESULTS_PER_QUERY = 10;
 
-// Per-plan daily budget for paid Places Details fetches. Derived from
-// the target 75% margin on each plan: we carve out a max €/month for
-// Places and divide by 30 days × €0.021/call to get the daily call cap.
+// Per-plan configuration. Derived from >80% margin target and the fact
+// that text searches are paid independently of details (and return up
+// to 20 places each, most of which may already be in DB — the anti-dedup
+// skip list below avoids paying for re-scans of saturated zone+query
+// combos).
 //
-//   Pro (€99/mo)         → €5/mo   →  ~10 calls/day → ~180 prospects/mo
-//   Business (€199/mo)   → €19/mo  →  ~30 calls/day → ~540 prospects/mo
-//   Agency (€499/mo)     → €38/mo  →  ~60 calls/day → ~1080 prospects/mo
-//   Starter / free       → 0       →  gmaps disabled entirely
+// Math for Pro €99/mo, target 80% margin → max €19.80 total COGS →
+// gmaps budget ~€8/mo:
+//   1 zone × 2 queries × 30 days = 60 searches × €0.035 = €2.10
+//   10 details/day × 30 = 300 × €0.021                  = €6.30
+//   Total ≈ €8.40 ✓ (20% of that comes back via free credits anyway)
 //
-// Google Cloud grants €185/mo of free Places credits on the account, so
-// the first ~9k calls/month across ALL clients are free. Billing only
-// starts once total platform volume > free credit pool.
-const GMAPS_PLAN_CAPS: Record<string, number> = {
-  starter: 0,
-  free: 0,
-  pro: 10,
-  business: 30,
-  agence: 60,
-  agency: 60,
-  elite: 60,
-  fondateurs: 60,
-  admin: 80,
+// Google Cloud grants ~€185/mo free Places credits on the account, so
+// the first N clients are effectively free.
+type PlanConfig = { zones: number; queries: number; details: number };
+const GMAPS_PLAN_CONFIG: Record<string, PlanConfig> = {
+  starter:    { zones: 0, queries: 0, details: 0 },
+  free:       { zones: 0, queries: 0, details: 0 },
+  createur:   { zones: 0, queries: 0, details: 0 },
+  pro:        { zones: 1, queries: 2, details: 10 },
+  business:   { zones: 2, queries: 4, details: 30 },
+  fondateurs: { zones: 2, queries: 4, details: 30 },
+  agence:     { zones: 3, queries: 5, details: 60 },
+  agency:     { zones: 3, queries: 5, details: 60 },
+  elite:      { zones: 3, queries: 5, details: 60 },
+  admin:      { zones: 5, queries: 6, details: 80 },
 };
-function capForPlan(plan: string | null | undefined): number {
+function configForPlan(plan: string | null | undefined): PlanConfig {
   const key = (plan || '').toLowerCase();
-  if (key in GMAPS_PLAN_CAPS) return GMAPS_PLAN_CAPS[key];
-  return GMAPS_PLAN_CAPS.pro; // sensible default for unknown plans
+  return GMAPS_PLAN_CONFIG[key] || GMAPS_PLAN_CONFIG.pro;
 }
-const DEFAULT_MAX_DETAILS_PER_RUN = GMAPS_PLAN_CAPS.pro;
-// Rotate query list so we cover all 13 categories across the week.
-const QUERIES_PER_RUN = 4;
+
+// Skip-list window: a zone+query combo scanned for this user in the
+// last N days is skipped on the next run. Zones saturate quickly — if
+// we scanned "restaurant Montorgueil" yesterday and grabbed 18 new
+// prospects, today 80%+ of results would be duplicates. Waiting 30
+// days lets the area refresh (new openings, updated profiles, new
+// reviews pushing scores).
+const SKIP_LIST_DAYS = 30;
+
+// FNV-1a hash of a string → non-negative integer. Used to derive a
+// per-user rotation offset so two clients on the same plan never scan
+// the same zone on the same day (avoids contention + duplicate
+// pressure on the same neighbourhood).
+function fnvHash(s: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return h >>> 0;
+}
 
 /**
  * Score a prospect based on Google data
@@ -294,38 +315,67 @@ async function runGMapsScan(orgId: string | null = null, userId: string | null =
   const supabase = getSupabaseAdmin();
   const now = new Date().toISOString();
 
-  // Per-plan cap. Starter/Free gets gmaps=0 — Places API is a paid cost
-  // and the free plan cannot carry it. Pro=10, Business=30, Agency=60.
-  let planCap = DEFAULT_MAX_DETAILS_PER_RUN;
+  // Per-plan config. Starter/Free gets 0 (gmaps disabled — Places is
+  // paid and free tier can't carry it). Admin bypasses for testing.
+  let planCfg: PlanConfig = GMAPS_PLAN_CONFIG.pro;
+  let plan = 'pro';
   if (userId) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('subscription_plan, is_admin')
       .eq('id', userId)
       .maybeSingle();
-    const plan = profile?.is_admin ? 'admin' : (profile?.subscription_plan || 'free');
-    planCap = capForPlan(plan);
-    if (planCap === 0) {
+    plan = profile?.is_admin ? 'admin' : (profile?.subscription_plan || 'free');
+    planCfg = configForPlan(plan);
+    if (planCfg.details === 0) {
       console.log(`[GMaps] Plan ${plan} has no gmaps quota — skipping scan for user ${userId.substring(0, 8)}`);
       return NextResponse.json({ ok: true, skipped: true, reason: 'plan_disabled', plan });
     }
-    console.log(`[GMaps] Plan ${plan} → cap ${planCap} details/run`);
+    console.log(`[GMaps] Plan ${plan} → ${planCfg.zones} zone(s) × ${planCfg.queries} query(s) × ${planCfg.details} details max`);
   }
-  const MAX_DETAILS_PER_RUN = planCap;
+  const MAX_DETAILS_PER_RUN = planCfg.details;
 
   // Load shared context
   const { prompt: sharedPrompt } = await loadContextWithAvatar(supabase, 'gmaps', orgId || undefined);
 
-  // Rotate zones: scan 2 zones per run. Paired with QUERIES_PER_RUN=4
-  // and the per-plan MAX_DETAILS_PER_RUN (Pro=10, Business=30, Agency=60),
-  // each run stays inside the plan's monthly Places budget. Full 33-zone
-  // coverage still rotates over ~16 days.
+  // Anti-dedup rotation: add a per-user hash offset so two clients on
+  // the same plan never scan the same zone on the same day. Without
+  // this, 10 Pro clients would hammer Montorgueil/Marais together and
+  // fight over the same prospect pool.
   const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
-  const ZONES_PER_RUN = 2;
-  const startIdx = (dayOfYear * ZONES_PER_RUN) % ZONES.length;
-  const dailyZones = [];
-  for (let i = 0; i < ZONES_PER_RUN; i++) {
-    dailyZones.push(ZONES[(startIdx + i) % ZONES.length]);
+  const userOffset = userId ? fnvHash(userId) % ZONES.length : 0;
+  const ZONES_PER_RUN = planCfg.zones;
+
+  // Load skip list: zones+queries already scanned for this user in the
+  // last SKIP_LIST_DAYS. If the scan returns fewer than 3 fresh results
+  // from a zone, we skip that zone for the next month — it's saturated.
+  const skipSince = new Date(Date.now() - SKIP_LIST_DAYS * 86400000).toISOString();
+  const skipSet = new Set<string>();
+  if (userId) {
+    const { data: recentScans } = await supabase
+      .from('gmaps_scan_history')
+      .select('zone_name, query, imported')
+      .eq('user_id', userId)
+      .gte('scanned_at', skipSince)
+      .limit(500);
+    for (const r of (recentScans || []) as any[]) {
+      // A zone+query scanned recently with low yield (<3 imports) is
+      // saturated — skip. High-yield combos can be re-scanned fresh.
+      if ((r.imported ?? 0) < 3) {
+        skipSet.add(`${r.zone_name}||${r.query}`);
+      }
+    }
+    console.log(`[GMaps] Skip list: ${skipSet.size} saturated zone×query combos from last ${SKIP_LIST_DAYS} days`);
+  }
+
+  // Pick the first N non-skipped zones starting from the user+day offset.
+  // If a zone has ALL its queries skipped for this user, jump to the next.
+  const dailyZones: typeof ZONES = [];
+  let zonesChecked = 0;
+  while (dailyZones.length < ZONES_PER_RUN && zonesChecked < ZONES.length) {
+    const candidate = ZONES[(userOffset + dayOfYear * ZONES_PER_RUN + zonesChecked) % ZONES.length];
+    zonesChecked++;
+    dailyZones.push(candidate);
   }
 
   console.log(`[GMaps] Scanning ${dailyZones.length} zones: ${dailyZones.map(z => z.name).join(', ')}`);
@@ -336,15 +386,15 @@ async function runGMapsScan(orgId: string | null = null, userId: string | null =
   const importedNames: string[] = [];
   const scannedZones: string[] = [];
 
-  // Use custom query if provided, otherwise rotate through 4 categories
-  // per run (so full coverage of 13 categories happens over ~3-4 days).
-  let queries;
+  // Query rotation: also offset by user so two clients on the same day
+  // don't use the same categories.
+  let queries: string[];
   if (customQuery) {
     queries = [customQuery];
   } else {
-    const qStart = (dayOfYear * QUERIES_PER_RUN) % SEARCH_QUERIES.length;
+    const qStart = (userOffset + dayOfYear * planCfg.queries) % SEARCH_QUERIES.length;
     queries = [];
-    for (let i = 0; i < QUERIES_PER_RUN; i++) {
+    for (let i = 0; i < planCfg.queries; i++) {
       queries.push(SEARCH_QUERIES[(qStart + i) % SEARCH_QUERIES.length]);
     }
   }
@@ -361,10 +411,19 @@ async function runGMapsScan(orgId: string | null = null, userId: string | null =
 
     for (const query of queries) {
       if (detailsCallsUsed >= MAX_DETAILS_PER_RUN) break;
+      // Skip saturated combos (scanned in last 30 days with <3 hits) —
+      // saves the €0.035 search fee AND the 20 subsequent dup checks.
+      const comboKey = `${zone.name}||${query}`;
+      if (skipSet.has(comboKey)) {
+        console.log(`[GMaps] Skipping saturated combo: ${comboKey}`);
+        continue;
+      }
       const searchQuery = customQuery ? query : `${query} ${zone.name.split(' ')[0]}`;
       console.log(`[GMaps] Searching: "${searchQuery}"`);
 
       const results = await searchPlaces(searchQuery, zone.lat, zone.lng, zone.radius);
+      let comboImported = 0;
+      let comboSkipped = 0;
 
       for (const place of results) {
         try {
@@ -375,7 +434,7 @@ async function runGMapsScan(orgId: string | null = null, userId: string | null =
             .eq('google_place_id', place.place_id)
             .maybeSingle();
 
-          if (existing) { totalSkipped++; continue; }
+          if (existing) { totalSkipped++; comboSkipped++; continue; }
 
           // Budget check BEFORE the paid call — each details fetch bills ~€0.04.
           if (detailsCallsUsed >= MAX_DETAILS_PER_RUN) {
@@ -446,6 +505,7 @@ async function runGMapsScan(orgId: string | null = null, userId: string | null =
           }
 
           totalImported++;
+          comboImported++;
           importedNames.push(details.name);
           console.log(`[GMaps] Imported: ${details.name} (${businessType}, score ${score})`);
 
@@ -454,6 +514,20 @@ async function runGMapsScan(orgId: string | null = null, userId: string | null =
           console.warn(`[GMaps] Error processing place:`, e.message);
           totalErrors++;
         }
+      }
+
+      // Record this combo's yield so the skip list can mark it
+      // saturated if it came back with <3 new prospects.
+      if (userId) {
+        try {
+          await supabase.from('gmaps_scan_history').insert({
+            user_id: userId,
+            zone_name: zone.name,
+            query,
+            imported: comboImported,
+            skipped: comboSkipped,
+          });
+        } catch {}
       }
 
       await new Promise(r => setTimeout(r, 300));

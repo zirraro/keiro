@@ -6,6 +6,7 @@ import { useLanguage } from '@/lib/i18n/context';
 import dynamic from 'next/dynamic';
 import type { ClientAgent } from '@/lib/agents/client-context';
 import { CLIENT_AGENTS } from '@/lib/agents/client-context';
+import UpsellBanner from '@/app/components/UpsellBanner';
 
 const CrmDashboard = dynamic(() => import('./components/CrmDashboard'), { ssr: false });
 const AgentDashboard = dynamic(() => import('./components/AgentDashboard'), { ssr: false });
@@ -991,6 +992,9 @@ export default function AgentWorkspacePage() {
       )}
 
       <div className={`max-w-7xl mx-auto px-4 py-6 pb-28 sm:pb-8 ${isVisitor ? 'pointer-events-none select-none' : ''}`}>
+
+        {/* Upsell banner — only shown when credits low or margin < warn threshold */}
+        {!isVisitor && <UpsellBanner />}
 
         {/* ═══ HEADER ═══ */}
         <div className="flex items-center gap-4 mb-6">
