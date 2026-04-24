@@ -4250,6 +4250,63 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
       if (!visualUrl) {
         visualUrl = await generateVisual(visualDesc, postFormat);
       }
+
+      // ── CAPTION RE-GROUNDING ──
+      // Léna wrote hook/caption/hashtags BEFORE we decided which upload
+      // to use. If the final visual is driven by a client upload (raw
+      // reuse or i2i from a dish/product/venue), the caption she wrote
+      // from the generic business profile may contradict the actual
+      // image — that's why agencies posting a restaurant shot end up
+      // with "Ce fleuriste a triplé ses commandes…" under a plate of
+      // octopus. Re-ground the copy on the specific asset so every
+      // post reads as one coherent piece.
+      if (pickedUpload && visualUrl) {
+        try {
+          const dishA = pickedUpload.analysis || {};
+          const venueA = (pickedUpload as any).venueContext?.analysis || null;
+          const subjectSummary = dishA.summary || 'le sujet de la photo';
+          const subjectElements = Array.isArray(dishA.visible_elements) ? dishA.visible_elements.join(', ') : '';
+          const subjectType = dishA.content_type || 'scene';
+          const venueLine = venueA ? `\nLieu : ${venueA.summary || 'intérieur du commerce'}${venueA.visible_elements ? ` (${(venueA.visible_elements || []).join(', ')})` : ''}.` : '';
+          const regenPrompt = `Réécris UNIQUEMENT hook + caption + hashtags pour qu'ils collent parfaitement à l'image qui sera publiée.
+
+IMAGE À DÉCRIRE :
+Sujet : ${subjectSummary}${subjectElements ? ` — éléments visibles : ${subjectElements}` : ''}
+Type : ${subjectType}${venueLine}
+
+Plateforme : ${postPlatform}. Pilier : ${post.pillar}. Format : ${postFormat}.
+
+RÈGLES ABSOLUES :
+- Parle exactement du sujet / lieu décrit ci-dessus. Si c'est un plat dans un restaurant : parle du plat et du restaurant. Si c'est un bouquet dans une boutique : parle du bouquet. JAMAIS un autre commerce.
+- Hook : 5-12 mots accrocheurs ancrés dans le sujet réel
+- Caption : 3-5 lignes aérées (saut de ligne entre blocs), style incarné, 1 emoji max par ligne, finit par un CTA naturel non agressif
+- Hashtags : 5-8 hashtags pertinents au sujet/lieu, minuscules sans accents, pas de générique SaaS/marketing sauf si vraiment pertinent
+- JSON strict uniquement, clés : hook (string), caption (string), hashtags (array of strings). Aucun markdown, aucun \`\`\`.`;
+
+          const regen = await callClaude({
+            system: 'Tu es un copywriter lifestyle/commerce local. Tu écris des captions Instagram qui respirent, incarnent le sujet exact de la photo et donnent envie. Retourne du JSON strict.',
+            message: regenPrompt,
+            maxTokens: 600,
+          });
+          const match = regen.match(/\{[\s\S]*\}/);
+          if (match) {
+            const parsed = JSON.parse(match[0]);
+            if (parsed.hook && parsed.caption && Array.isArray(parsed.hashtags)) {
+              post.hook = parsed.hook;
+              post.caption = parsed.caption;
+              post.hashtags = parsed.hashtags;
+              await supabase.from('content_calendar').update({
+                hook: parsed.hook,
+                caption: parsed.caption,
+                hashtags: parsed.hashtags,
+              }).eq('id', inserted.id);
+              console.log(`[Content] Caption re-grounded on ${subjectType}${venueA ? '+venue' : ''}: "${parsed.hook.substring(0, 60)}..."`);
+            }
+          }
+        } catch (regenErr: any) {
+          console.warn('[Content] Caption re-grounding failed (non-fatal):', regenErr?.message);
+        }
+      }
     }
 
     const hasMedia = visualUrl || videoUrl;
