@@ -99,13 +99,17 @@ type PlanConfig = { zones: number; queries: number; details: number };
 const GMAPS_PLAN_CONFIG: Record<string, PlanConfig> = {
   starter:    { zones: 0, queries: 0, details: 0 },
   free:       { zones: 0, queries: 0, details: 0 },
-  createur:   { zones: 0, queries: 0, details: 0 },
-  pro:        { zones: 1, queries: 2, details: 10 },
-  business:   { zones: 2, queries: 4, details: 30 },
-  fondateurs: { zones: 2, queries: 4, details: 30 },
-  agence:     { zones: 3, queries: 5, details: 60 },
-  agency:     { zones: 3, queries: 5, details: 60 },
-  elite:      { zones: 3, queries: 5, details: 60 },
+  // Créateur €49 — ~60 qualified prospects/mo, €2.30/mo cost (>80% margin)
+  createur:   { zones: 1, queries: 1, details: 2 },
+  // Pro €99 — ~240/mo, €7/mo cost (>80% margin)
+  pro:        { zones: 1, queries: 2, details: 8 },
+  // Business / Fondateurs €199/149 — ~750/mo, €22/mo cost (>80% margin)
+  business:   { zones: 2, queries: 3, details: 25 },
+  fondateurs: { zones: 2, queries: 3, details: 25 },
+  // Elite €999 / Agency — ~1500/mo, €40/mo cost (>95% margin on Elite)
+  agence:     { zones: 3, queries: 4, details: 50 },
+  agency:     { zones: 3, queries: 4, details: 50 },
+  elite:      { zones: 3, queries: 4, details: 50 },
   admin:      { zones: 5, queries: 6, details: 80 },
 };
 function configForPlan(plan: string | null | undefined): PlanConfig {
