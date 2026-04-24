@@ -4149,16 +4149,22 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
           const dishSummary = pickedUpload.analysis?.summary || 'a signature dish';
           const dishAngle = pickedUpload.analysis?.post_angle || 'hero shot';
           const venueSummary = venueCtx.analysis?.summary || 'the restaurant interior';
-          effectiveVisualDesc = `Editorial food photography: ${dishSummary}. ${dishAngle}. Setting: ${venueSummary}. Warm cinematic lighting, shallow depth of field, 4K detail. The dish is the hero, the venue is the background context (tables, chairs, wall colour, ambient light visible). Realistic, natural, magazine-quality. No text, no logos, no studio equipment, no projectors.`;
+          effectiveVisualDesc = `Preserve the exact dining room / venue shown in the reference: keep the same tables, chairs, walls, windows, light fixtures, colours, materials. Add a plated dish on a front table: ${dishSummary}. ${dishAngle}. Warm cinematic lighting matching the room's existing ambience, shallow depth of field, 4K detail. The venue MUST remain recognisable — do not change the layout, do not invent new furniture, do not alter wall colour. No text, no logos, no studio equipment, no projectors.`;
           console.log(`[Content] Asset-grounded visualDesc override for hasVenuePair: ${effectiveVisualDesc.substring(0, 200)}`);
         }
 
+        // When we have a dish+venue pair: use the VENUE as the i2i base
+        // (Seedream preserves the base image → the real restaurant room
+        // stays intact) and pass the DISH as dishContext so the prompt
+        // describes what to add. Low strength (0.18) keeps the venue
+        // recognisable — the client must see their own restaurant.
+        // Without a venue pair, fall back to dish-as-base at 0.4.
         visualUrl = await generateVisualFromReference(
-          pickedUpload.file_url,
+          hasVenuePair ? venueCtx.file_url : pickedUpload.file_url,
           effectiveVisualDesc,
           postFormat,
-          hasVenuePair ? 0.35 : 0.4,
-          hasVenuePair ? { file_url: venueCtx.file_url, analysis: venueCtx.analysis } : null,
+          hasVenuePair ? 0.18 : 0.4,
+          hasVenuePair ? { file_url: pickedUpload.file_url, analysis: pickedUpload.analysis } : null,
         );
 
         // QA pass — Claude Vision scores the output 0-10. Below 7 we
@@ -4177,13 +4183,17 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
             console.log(`[Content] QA score: ${score.score}/10 — flags: ${score.amateur_flags.join(',')} — ${score.notes}`);
 
             if (score.score < 7) {
-              console.log('[Content] QA below 7, retry with strength 0.25, no venue');
+              // Retry: stay on venue as base (if we had a pair) at a
+              // slightly tighter strength — we want the venue preserved,
+              // not swapped for the dish. Without a pair, fall back to
+              // dish-as-base at 0.25.
+              console.log(`[Content] QA below 7, retry ${hasVenuePair ? 'venue-base strength 0.12' : 'dish-base strength 0.25'}`);
               const retryUrl = await generateVisualFromReference(
-                pickedUpload.file_url,
+                hasVenuePair ? venueCtx.file_url : pickedUpload.file_url,
                 effectiveVisualDesc,
                 postFormat,
-                0.25,
-                null,
+                hasVenuePair ? 0.12 : 0.25,
+                hasVenuePair ? { file_url: pickedUpload.file_url, analysis: pickedUpload.analysis } : null,
               );
               if (retryUrl) {
                 const score2 = await scoreVisualQuality(retryUrl, effectiveVisualDesc, expectedSubject);
@@ -4212,7 +4222,7 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
         }
         if (visualUrl) {
           console.log(`[Content] Pimped client photo ${pickedUpload.id} via i2i`);
-          const diagMode = hasVenuePair ? 'i2i_dish_with_venue_context_QA' : 'i2i';
+          const diagMode = hasVenuePair ? 'i2i_venue_base_dish_added_QA' : 'i2i';
           await supabase.from('content_calendar').update({
             publish_diagnostic: `client_photo_${diagMode}:${pickedUpload.id}${hasVenuePair ? `+venue:${(pickedUpload as any).venueContext?.analysis?.space_type || 'space'}` : ''}`,
           }).eq('id', inserted.id).throwOnError?.();
