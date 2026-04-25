@@ -4301,14 +4301,16 @@ Real natural light matching the room's existing ambience. The dish must look pro
             let bestScore = score.score;
             let bestFlags = score.amateur_flags;
             // Acceptance rule for venue+dish pairs:
-            //   - venue_changed flag = HARD reject regardless of score
-            //     (it's the DA priority — never publish a fake venue).
-            //   - Otherwise score ≥ 5 = accept. Allows minor lighting
-            //     or composition imperfections through.
+            //   - venue_changed at score ≤ 3 = HARD reject (major DA
+            //     violation: sea view added, wrong chair style, etc).
+            //   - venue_changed at score 5-6 = accept (minor stylistic
+            //     edits like slight pendant shift — within editorial
+            //     license, not a DA cassée).
+            //   - Otherwise score ≥ 5 = accept.
             // Without a venue pair we keep score ≥ 7.
             const isAcceptable = (s: number, flags: string[]) =>
               hasVenuePair
-                ? (s >= 5 && !flags.includes('venue_changed'))
+                ? (s >= 5 && !(flags.includes('venue_changed') && s <= 3))
                 : s >= 7;
 
             if (!isAcceptable(score.score, score.amateur_flags)) {
@@ -4342,12 +4344,10 @@ Real natural light matching the room's existing ambience. The dish must look pro
                 if (!retryUrl) continue;
                 const sN = await scoreVisualQuality(retryUrl, briefForQA, expectedSubject, venueRefForQA);
                 console.log(`[Content] QA ${r.label}: ${sN.score}/10 — flags: ${sN.amateur_flags.join(',')}`);
-                // Take this attempt only if it strictly improves on
-                // current best AND doesn't introduce venue_changed.
-                const improvedAndSafe =
-                  sN.score >= bestScore &&
-                  (!hasVenuePair || !sN.amateur_flags.includes('venue_changed'));
-                if (improvedAndSafe) {
+                // Take this attempt if it strictly improves the score.
+                // We let the isAcceptable check at the end decide
+                // whether the BEST attempt clears the DA bar.
+                if (sN.score >= bestScore) {
                   visualUrl = retryUrl;
                   bestScore = sN.score;
                   bestFlags = sN.amateur_flags;

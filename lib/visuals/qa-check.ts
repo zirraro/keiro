@@ -45,7 +45,10 @@ CRITICAL FLAGS:
 - invented_props: image contains objects that don't belong (studio projectors in a restaurant, mountain view added to a city café, etc).
 - wrong_subject: image doesn't show what the brief asks for.
 - proportions_unrealistic: the hero subject (dish, product) is sized wrong for the camera distance described in the brief. If the brief says "wide shot, dish 10-15% of frame" and the dish takes 40% of the frame, this flag fires and score MUST be ≤ 5. A real plate is ~25cm — at the camera distance implied by the shot type it should look proportional, not oversized.${referenceImageUrl ? `
-- venue_changed: image 1 (REFERENCE — client's actual venue) and image 2 (GENERATED) show DIFFERENT places. Look at: window views (no sea/mountain/garden if reference has urban/courtyard), chair style, table shape, wall material, door style, ceiling height, layout. If the generated image invented elements absent from the reference, this flag fires and the score MUST be ≤ 4. The whole point is preserving the client's real space.` : ''}
+- venue_changed: image 1 (REFERENCE — client's actual venue) and image 2 (GENERATED) show DIFFERENT places. GRADUATED severity:
+  * MAJOR change (score MUST be ≤ 3): different window VIEW (sea/mountain/garden when reference shows urban or courtyard), different building TYPE (modern when reference is haussmannien), swapped chair STYLE (modern when reference is wooden bistro), additional rooms/balconies that didn't exist, fundamentally altered wall material (brick when reference is plaster).
+  * MINOR change (score 5-6): slight shift in pendant lamp position, marginal table surface variation (white marble vs cream marble), lighting angle subtly different, small chair count difference. These are acceptable editorial liberties — flag the change but DO NOT lower the score below 5 just for these.
+  Default to MINOR unless the change clearly invents an element that wasn't there.` : ''}
 
 Expected subject: "${expectedSubject}".
 Brief context: "${brief.substring(0, 300)}".
