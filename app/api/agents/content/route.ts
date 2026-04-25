@@ -3255,6 +3255,33 @@ async function generateWeekWithVisuals(supabase: any, publishAll: boolean, orgId
 async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: number, forcePlatform?: string, forcePillar?: string, draftOnly?: boolean, orgId: string | null = null, userId: string | null = null, clientSettings: Record<string, any> = {}, forceFormat?: string) {
   const nowISO = new Date().toISOString();
 
+  // ── PER-PLAN QUOTA ENFORCEMENT ──
+  // Block image/video generation when the client's monthly quota is
+  // exhausted. The block is graceful — we fall back to no-visual draft
+  // mode and surface the upsell banner client-side. Without this gate,
+  // a client could generate 200 images/month on a 30-image Créateur
+  // plan and burn through margin.
+  let imageQuotaExhausted = false;
+  let videoQuotaExhausted = false;
+  if (userId) {
+    try {
+      const { checkImageQuota, checkVideoQuota } = await import('@/lib/credits/quotas');
+      const imgCheck = await checkImageQuota(userId);
+      if (!imgCheck.allowed) {
+        imageQuotaExhausted = true;
+        console.warn(`[Content] Image quota exhausted for user ${userId.substring(0, 8)} (plan ${imgCheck.plan}, ${imgCheck.limit} max). Skipping i2i, will reuse client uploads or fall back to draft-only.`);
+      }
+      // Video quota requires duration — pre-check at 15s as a baseline.
+      const vidCheck = await checkVideoQuota(userId, 15);
+      if (!vidCheck.allowed && vidCheck.reason === 'video_quota_exceeded') {
+        videoQuotaExhausted = true;
+        console.warn(`[Content] Video quota exhausted for user ${userId.substring(0, 8)}. Skipping video generation.`);
+      }
+    } catch (qerr: any) {
+      console.warn('[Content] Quota check failed (non-fatal, allowing generation):', qerr?.message);
+    }
+  }
+
   // Load shared intelligence pool (all agents' data + active directives)
   let sharedIntelligence = '';
   try {
@@ -4258,6 +4285,17 @@ Real natural light matching the room's existing ambience. The dish must look pro
           (pickedUpload as any).chosenShot = shot;
         }
 
+        // Quota guard — when monthly image quota is exhausted, skip
+        // the i2i call entirely and reuse the raw client upload as the
+        // visual. The post still ships; the user just doesn't burn
+        // beyond their plan.
+        if (imageQuotaExhausted) {
+          visualUrl = pickedUpload.file_url;
+          console.log(`[Content] Image quota exhausted — reusing raw client photo ${pickedUpload.id}`);
+          await supabase.from('content_calendar').update({
+            publish_diagnostic: `client_photo_quota_exhausted:${pickedUpload.id}`,
+          }).eq('id', inserted.id).throwOnError?.();
+        } else {
         // First i2i pass — venue-base at strength 0.10. Maximum
         // venue preservation; dish gets added as a subtle composition.
         // The previous default (0.12) sometimes made Seedream re-render
@@ -4404,10 +4442,19 @@ Real natural light matching the room's existing ambience. The dish must look pro
             publish_diagnostic: `client_photo_raw_fallback:${pickedUpload.id}`,
           }).eq('id', inserted.id).throwOnError?.();
         }
+        } // close: else (not imageQuotaExhausted)
       }
       // 30% — pure Seedream text-to-image (or whenever no client photo is available)
-      if (!visualUrl) {
+      if (!visualUrl && !imageQuotaExhausted) {
         visualUrl = await generateVisual(visualDesc, postFormat);
+      }
+      // Log quota usage AFTER successful generation (only when we
+      // actually called Seedream — raw reuses don't count).
+      if (visualUrl && !imageQuotaExhausted && userId && !visualUrl.includes('caption.jpg') && !visualUrl.includes('6-scaled.jpg')) {
+        try {
+          const { logQuotaUsage } = await import('@/lib/credits/quotas');
+          await logQuotaUsage(userId, 'image_generated', { post_id: inserted.id, format: postFormat });
+        } catch {}
       }
 
       // ── CAPTION RE-GROUNDING ──
