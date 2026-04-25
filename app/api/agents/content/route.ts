@@ -4258,20 +4258,16 @@ Real natural light matching the room's existing ambience. The dish must look pro
           (pickedUpload as any).chosenShot = shot;
         }
 
-        // When we have a dish+venue pair: use the VENUE as the i2i base
-        // (Seedream preserves the base image → the real restaurant room
-        // stays intact) and pass the DISH as dishContext so the prompt
-        // describes what to add. Low strength (0.18) keeps the venue
-        // recognisable — the client must see their own restaurant.
-        // Without a venue pair, fall back to dish-as-base at 0.4.
+        // First i2i pass — venue-base at strength 0.10. Maximum
+        // venue preservation; dish gets added as a subtle composition.
+        // The previous default (0.12) sometimes made Seedream re-render
+        // pendant lights or chair shapes; 0.10 cuts that re-interpret
+        // budget while still giving Seedream room to place the dish.
         visualUrl = await generateVisualFromReference(
           hasVenuePair ? venueCtx.file_url : pickedUpload.file_url,
           effectiveVisualDesc,
           postFormat,
-          // Lower strength on venue+dish (0.12) to stop Seedream from
-          // re-rendering the room as a 3D visualization. Single-asset
-          // i2i can still use 0.4 to actually polish the shot.
-          hasVenuePair ? 0.12 : 0.4,
+          hasVenuePair ? 0.10 : 0.4,
           hasVenuePair ? { file_url: pickedUpload.file_url, analysis: pickedUpload.analysis } : null,
         );
 
@@ -4303,39 +4299,58 @@ Real natural light matching the room's existing ambience. The dish must look pro
             console.log(`[Content] QA score: ${score.score}/10 — flags: ${score.amateur_flags.join(',')} — ${score.notes}`);
 
             let bestScore = score.score;
-            // Lower the QA acceptance bar for venue+dish pairs to 6.
-            // Some venues (like the warm-toned Parisian café) make
-            // Seedream interpret the room as a 3D render no matter how
-            // low the strength. A 6/10 composed scene still beats a
-            // raw photo-with-no-dish for "the restaurant has new dishes
-            // tonight" social proof.
-            const qaTarget = hasVenuePair ? 6 : 7;
-            if (score.score < qaTarget) {
-              // Two-pass retry strategy when venue+dish:
-              //   Pass 2a: flip to DISH as the i2i base at strength 0.40
-              //            (dish photos are easy to anchor — Seedream
-              //            doesn't 3D-render food). Venue described in
-              //            the prompt becomes background context.
-              //   Pass 2b: if 2a still under qaTarget, last resort —
-              //            venue-base at strength 0.08 (almost identity)
-              //            so we at least get the room with a hint of
-              //            re-rendered dish on top.
-              // Without a venue pair we just retry dish-base at 0.25.
-              const retryStrategy = hasVenuePair ? 'dish-base strength 0.40 with venue prompt' : 'dish-base strength 0.25';
-              console.log(`[Content] QA ${score.score}/10 < ${qaTarget}, retry: ${retryStrategy}`);
-              const retryUrl = await generateVisualFromReference(
-                pickedUpload.file_url, // ALWAYS dish as base on retry
-                effectiveVisualDesc,
-                postFormat,
-                hasVenuePair ? 0.40 : 0.25,
-                hasVenuePair ? { file_url: venueCtx.file_url, analysis: venueCtx.analysis } : null,
-              );
-              if (retryUrl) {
-                const score2 = await scoreVisualQuality(retryUrl, briefForQA, expectedSubject, venueRefForQA);
-                console.log(`[Content] QA retry: ${score2.score}/10 — flags: ${score2.amateur_flags.join(',')}`);
-                if (score2.score >= score.score) {
+            let bestFlags = score.amateur_flags;
+            // Acceptance rule for venue+dish pairs:
+            //   - venue_changed flag = HARD reject regardless of score
+            //     (it's the DA priority — never publish a fake venue).
+            //   - Otherwise score ≥ 5 = accept. Allows minor lighting
+            //     or composition imperfections through.
+            // Without a venue pair we keep score ≥ 7.
+            const isAcceptable = (s: number, flags: string[]) =>
+              hasVenuePair
+                ? (s >= 5 && !flags.includes('venue_changed'))
+                : s >= 7;
+
+            if (!isAcceptable(score.score, score.amateur_flags)) {
+              // Multi-pass retry — try DIFFERENT strengths/bases until
+              // we hit an acceptable score. Each pass costs ~$0.04;
+              // capped at 2 retries (3 total Seedream calls per post)
+              // to keep the per-post cost under €0.20.
+              const retries: Array<{ label: string; base: 'venue' | 'dish'; strength: number }> = hasVenuePair
+                ? [
+                    { label: 'venue-base 0.20', base: 'venue', strength: 0.20 },
+                    { label: 'dish-base 0.30 with venue prompt', base: 'dish', strength: 0.30 },
+                  ]
+                : [
+                    { label: 'dish-base 0.25', base: 'dish', strength: 0.25 },
+                  ];
+
+              for (const r of retries) {
+                if (isAcceptable(bestScore, bestFlags)) break;
+                console.log(`[Content] QA ${bestScore}/10 not acceptable, retry: ${r.label}`);
+                const retryUrl = await generateVisualFromReference(
+                  r.base === 'venue' ? venueCtx!.file_url : pickedUpload.file_url,
+                  effectiveVisualDesc,
+                  postFormat,
+                  r.strength,
+                  hasVenuePair
+                    ? (r.base === 'venue'
+                      ? { file_url: pickedUpload.file_url, analysis: pickedUpload.analysis }
+                      : { file_url: venueCtx!.file_url, analysis: venueCtx!.analysis })
+                    : null,
+                );
+                if (!retryUrl) continue;
+                const sN = await scoreVisualQuality(retryUrl, briefForQA, expectedSubject, venueRefForQA);
+                console.log(`[Content] QA ${r.label}: ${sN.score}/10 — flags: ${sN.amateur_flags.join(',')}`);
+                // Take this attempt only if it strictly improves on
+                // current best AND doesn't introduce venue_changed.
+                const improvedAndSafe =
+                  sN.score >= bestScore &&
+                  (!hasVenuePair || !sN.amateur_flags.includes('venue_changed'));
+                if (improvedAndSafe) {
                   visualUrl = retryUrl;
-                  bestScore = score2.score;
+                  bestScore = sN.score;
+                  bestFlags = sN.amateur_flags;
                 }
               }
               // Best score still below 5 — use the client's RAW photos.
@@ -4344,9 +4359,10 @@ Real natural light matching the room's existing ambience. The dish must look pro
               // the room, others show the plate. Both are real photos —
               // no AI artifacts, no 3D-render giveaways, no client
               // confusion about "why is my restaurant suddenly 3D".
-              // Salvage threshold dropped 6→5: we'd rather accept a
-              // "decent" composed scene than fall back to a raw photo.
-              if (bestScore < 5) {
+              // Salvage when no acceptable result across all attempts.
+              // venue_changed in best result = always salvage even at
+              // high score, since DA preservation is the priority.
+              if (!isAcceptable(bestScore, bestFlags)) {
                 let salvageUrl: string;
                 let salvageLabel: string;
                 if (hasVenuePair) {
@@ -4362,7 +4378,7 @@ Real natural light matching the room's existing ambience. The dish must look pro
                   salvageUrl = pickedUpload.file_url;
                   salvageLabel = 'raw_dish_qa_salvage';
                 }
-                console.log(`[Content] Final QA ${bestScore}/10 under 6 — salvage: ${salvageLabel}`);
+                console.log(`[Content] Final QA ${bestScore}/10 (flags: ${bestFlags.join(',') || 'none'}) — salvage: ${salvageLabel}`);
                 visualUrl = salvageUrl;
                 await supabase.from('content_calendar').update({
                   publish_diagnostic: `client_photo_${salvageLabel}:${pickedUpload.id}`,

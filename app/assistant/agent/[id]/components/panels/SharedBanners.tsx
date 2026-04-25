@@ -293,7 +293,7 @@ function SmtpCustomForm({ onDone }: { onDone: () => Promise<void> }) {
     }
   };
 
-  const presets: Array<{ label: string; host: string; port: number }> = [
+  const presets: Array<{ label: string; host: string; port: number; help?: string }> = [
     { label: 'OVH', host: 'ssl0.ovh.net', port: 587 },
     { label: 'Gandi', host: 'mail.gandi.net', port: 587 },
     { label: 'Infomaniak', host: 'mail.infomaniak.com', port: 587 },
@@ -303,6 +303,8 @@ function SmtpCustomForm({ onDone }: { onDone: () => Promise<void> }) {
   ];
 
   return (
+    <>
+    <SmtpFieldStyles />
     <form onSubmit={submit} className="mt-3 p-3 rounded-lg bg-black/20 border border-white/10 space-y-2">
       <p className="text-[10px] text-white/60">
         {en
@@ -321,13 +323,60 @@ function SmtpCustomForm({ onDone }: { onDone: () => Promise<void> }) {
         ))}
       </div>
       <div className="grid grid-cols-2 gap-2">
-        <input value={host} onChange={e => setHost(e.target.value)} placeholder="SMTP host (ssl0.ovh.net)" className="px-2 py-1.5 text-xs bg-black/30 border border-white/10 rounded text-white placeholder-white/30" required />
-        <input value={port} onChange={e => setPort(e.target.value)} placeholder="Port (587 or 465)" className="px-2 py-1.5 text-xs bg-black/30 border border-white/10 rounded text-white placeholder-white/30" required />
-        <input value={smtpUser} onChange={e => setSmtpUser(e.target.value)} placeholder={en ? 'SMTP user (your email)' : 'Utilisateur SMTP (ton email)'} className="px-2 py-1.5 text-xs bg-black/30 border border-white/10 rounded text-white placeholder-white/30" required />
-        <input value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder={en ? 'Password / app password' : 'Mot de passe / app password'} className="px-2 py-1.5 text-xs bg-black/30 border border-white/10 rounded text-white placeholder-white/30" required />
-        <input value={fromEmail} onChange={e => setFromEmail(e.target.value)} placeholder={en ? 'From email (default = user)' : 'Email expéditeur (défaut = user)'} className="px-2 py-1.5 text-xs bg-black/30 border border-white/10 rounded text-white placeholder-white/30" />
-        <input value={fromName} onChange={e => setFromName(e.target.value)} placeholder={en ? 'From name (optional)' : 'Nom expéditeur (optionnel)'} className="px-2 py-1.5 text-xs bg-black/30 border border-white/10 rounded text-white placeholder-white/30" />
+        <SmtpField
+          label={en ? 'SMTP host' : 'Serveur SMTP'}
+          help={en
+            ? 'Your provider\'s server name. OVH: ssl0.ovh.net · Gandi: mail.gandi.net · Infomaniak: mail.infomaniak.com · Office 365: smtp.office365.com · iCloud: smtp.mail.me.com · Zoho: smtp.zoho.com. For others, search "[provider name] SMTP settings".'
+            : 'Le nom du serveur de ton hébergeur. OVH : ssl0.ovh.net · Gandi : mail.gandi.net · Infomaniak : mail.infomaniak.com · Office 365 : smtp.office365.com · iCloud : smtp.mail.me.com · Zoho : smtp.zoho.com. Pour un autre provider, cherche "[nom du provider] paramètres SMTP".'}
+        >
+          <input value={host} onChange={e => setHost(e.target.value)} placeholder="ssl0.ovh.net" className="w-full px-2 py-1.5 text-xs bg-black/30 border border-white/10 rounded text-white placeholder-white/30" required />
+        </SmtpField>
+        <SmtpField
+          label="Port"
+          help={en
+            ? 'Almost always 587 (STARTTLS). Use 465 only if your provider explicitly requires SSL/TLS direct. Avoid 25 (often blocked).'
+            : 'Quasi toujours 587 (STARTTLS). Utilise 465 uniquement si ton provider demande explicitement SSL/TLS direct. Évite 25 (souvent bloqué).'}
+        >
+          <input value={port} onChange={e => setPort(e.target.value)} placeholder="587" className="w-full px-2 py-1.5 text-xs bg-black/30 border border-white/10 rounded text-white placeholder-white/30" required />
+        </SmtpField>
+        <SmtpField
+          label={en ? 'SMTP user' : 'Utilisateur SMTP'}
+          help={en
+            ? 'Your full email address (e.g. contact@yourdomain.com). For Office 365 and Google Workspace, this is the same as your login.'
+            : 'Ton adresse email complète (ex : contact@tondomaine.com). Pour Office 365 et Google Workspace, c\'est la même que ton login.'}
+        >
+          <input value={smtpUser} onChange={e => setSmtpUser(e.target.value)} placeholder="contact@tondomaine.com" className="w-full px-2 py-1.5 text-xs bg-black/30 border border-white/10 rounded text-white placeholder-white/30" required />
+        </SmtpField>
+        <SmtpField
+          label={en ? 'Password' : 'Mot de passe'}
+          help={en
+            ? 'The PASSWORD OF THE EMAIL ACCOUNT (not your provider account / billing password). For Gmail or Outlook 365, generate an "app password" in your Google or Microsoft security settings (2FA must be on).'
+            : 'Le mot de passe DU COMPTE EMAIL (pas ton mot de passe provider / facturation). Pour Gmail ou Outlook 365, génère un "mot de passe d\'application" dans les paramètres de sécurité Google ou Microsoft (2FA obligatoire).'}
+        >
+          <input value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="••••••••••" className="w-full px-2 py-1.5 text-xs bg-black/30 border border-white/10 rounded text-white placeholder-white/30" required />
+        </SmtpField>
+        <SmtpField
+          label={en ? 'From email (optional)' : 'Email expéditeur (optionnel)'}
+          help={en
+            ? 'Address shown in the "From" header to recipients. Defaults to the SMTP user. Useful if you want to send from "hello@yourdomain.com" but authenticate with "smtp@yourdomain.com".'
+            : 'Adresse affichée dans le champ "De" côté destinataire. Par défaut = utilisateur SMTP. Utile si tu veux envoyer depuis "hello@tondomaine.com" mais t\'authentifier avec "smtp@tondomaine.com".'}
+        >
+          <input value={fromEmail} onChange={e => setFromEmail(e.target.value)} placeholder="contact@tondomaine.com" className="w-full px-2 py-1.5 text-xs bg-black/30 border border-white/10 rounded text-white placeholder-white/30" />
+        </SmtpField>
+        <SmtpField
+          label={en ? 'From name (optional)' : 'Nom expéditeur (optionnel)'}
+          help={en
+            ? 'Display name shown to recipients. e.g. "Hugo de KeiroAI" or "Anna - Bistrot du Coin". Personalises your prospect outreach.'
+            : 'Nom affiché côté destinataire. Ex : "Hugo de KeiroAI" ou "Anna - Bistrot du Coin". Personnalise tes envois prospects.'}
+        >
+          <input value={fromName} onChange={e => setFromName(e.target.value)} placeholder="Anna - Bistrot du Coin" className="w-full px-2 py-1.5 text-xs bg-black/30 border border-white/10 rounded text-white placeholder-white/30" />
+        </SmtpField>
       </div>
+      <p className="text-[9px] text-white/40 leading-relaxed">
+        {en
+          ? <>Once saved, Hugo also reads your inbox via IMAP (auto-derived host, port 993, SSL). New replies are classified within 10 minutes — unsubscribe requests automatically remove the prospect from your list.</>
+          : <>Une fois sauvé, Hugo lit aussi ta boîte via IMAP (host auto-deviné, port 993, SSL). Les nouvelles réponses sont classées en moins de 10 min — les demandes de désabonnement retirent automatiquement le prospect de ta liste.</>}
+      </p>
       {err && <p className="text-[10px] text-red-400">{err}</p>}
       <div className="flex items-center justify-between gap-2">
         <p className="text-[9px] text-white/40">
@@ -340,6 +389,74 @@ function SmtpCustomForm({ onDone }: { onDone: () => Promise<void> }) {
         </button>
       </div>
     </form>
+    </>
+  );
+}
+
+// Tiny labelled wrapper with an info icon. The tooltip is keyboard-
+// focusable and visible on hover via the SmtpFieldStyles below.
+function SmtpField({ label, help, children }: { label: string; help: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-0.5">
+      <label className="flex items-center gap-1 text-[9px] font-bold text-white/60 uppercase tracking-wide">
+        {label}
+        <span className="smtp-help" data-help={help} tabIndex={0} aria-label={help}>
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="16" x2="12" y2="12" />
+            <line x1="12" y1="8" x2="12.01" y2="8" />
+          </svg>
+        </span>
+      </label>
+      {children}
+    </div>
+  );
+}
+
+function SmtpFieldStyles() {
+  return (
+    <style jsx global>{`
+      .smtp-help {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        cursor: help;
+        color: rgba(255, 255, 255, 0.4);
+        outline: none;
+      }
+      .smtp-help:hover, .smtp-help:focus { color: rgba(255, 255, 255, 0.8); }
+      .smtp-help::after {
+        content: attr(data-help);
+        position: absolute;
+        z-index: 50;
+        top: calc(100% + 6px);
+        left: 0;
+        max-width: 320px;
+        min-width: 240px;
+        padding: 8px 10px;
+        font-size: 10px;
+        line-height: 1.4;
+        font-weight: 400;
+        text-transform: none;
+        letter-spacing: normal;
+        color: #f1f5f9;
+        background: #0c1a3a;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 8px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        white-space: normal;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-4px);
+        transition: opacity 0.15s, transform 0.15s, visibility 0.15s;
+        pointer-events: none;
+      }
+      .smtp-help:hover::after, .smtp-help:focus::after {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+      }
+    `}</style>
   );
 }
 
