@@ -122,11 +122,12 @@ CRITICAL — RESPECT THE CLIENT'S OWN BRAND:
 - Match the reference's existing colour palette word-for-word — terracotta walls stay terracotta, marble stays marble, wood stays wood.
 
 QUALITY STANDARDS:
-- Editorial / magazine-quality lifestyle photography
+- Editorial / magazine-quality lifestyle photography — REAL PHOTOGRAPH, not CGI
+- Phrasing to use: "documentary photo", "natural light photograph", "shot on Leica with 35mm lens", "photographic still"
 - Soft natural light matching the time of day implied by the reference
 - Shallow depth of field where appropriate, NEVER aggressive macro bokeh
-- Realistic textures — no rendered/CGI look, no 3D-cartoon feel
-- The frame should look like a real photo a journalist would shoot in this place
+- Realistic textures: visible wood grain, real ceramic glaze, real fabric weave, light reflections that look photographed (not rendered)
+- The frame should look like a real photo a food/travel journalist would shoot in this place — not an architectural visualization, not a 3D render, not a video game scene
 
 ABSOLUTELY FORBIDDEN:
 - Text, letters, numbers, writing, signs, watermarks, logos
@@ -273,7 +274,7 @@ COMPOSITION RULE — CRITICAL:
         // Some Ark variants expect `strength` instead of `image_strength`.
         // Sending both is safe — unknown fields are ignored.
         strength,
-        negative_prompt: 'text, words, letters, numbers, writing, typography, signs, labels, watermarks, logos, price tags, screens with text, readable characters, digits, different building, different room, different venue',
+        negative_prompt: 'text, words, letters, numbers, writing, typography, signs, labels, watermarks, logos, price tags, screens with text, readable characters, digits, different building, different room, different venue, 3D render, CGI, architectural visualization, video game graphics, unreal engine, plastic look, cartoon, illustration, painting, drawing, isometric, low-poly, smooth plastic surfaces, oversaturated colors',
         size: `${width}x${height}`,
         response_format: 'url',
         seed: -1,
@@ -4218,7 +4219,10 @@ The venue MUST remain recognisable — do not change the layout, do not invent n
           hasVenuePair ? venueCtx.file_url : pickedUpload.file_url,
           effectiveVisualDesc,
           postFormat,
-          hasVenuePair ? 0.18 : 0.4,
+          // Lower strength on venue+dish (0.12) to stop Seedream from
+          // re-rendering the room as a 3D visualization. Single-asset
+          // i2i can still use 0.4 to actually polish the shot.
+          hasVenuePair ? 0.12 : 0.4,
           hasVenuePair ? { file_url: pickedUpload.file_url, analysis: pickedUpload.analysis } : null,
         );
 
@@ -4259,14 +4263,29 @@ The venue MUST remain recognisable — do not change the layout, do not invent n
                   bestScore = score2.score;
                 }
               }
-              // Best score still below 6 — use the client's RAW photo
-              // rather than publish a bad generation. For a dish+venue
-              // pair, the client's REAL VENUE is the salvage (the whole
-              // point was to show their restaurant), not the dish alone.
+              // Best score still below 6 — use the client's RAW photos.
+              // For a dish+venue pair, ALTERNATE between dish and venue
+              // (50/50 random) so the feed has variety: some posts show
+              // the room, others show the plate. Both are real photos —
+              // no AI artifacts, no 3D-render giveaways, no client
+              // confusion about "why is my restaurant suddenly 3D".
               if (bestScore < 6) {
-                const salvageUrl = hasVenuePair ? venueCtx.file_url : pickedUpload.file_url;
-                const salvageLabel = hasVenuePair ? 'raw_venue_qa_salvage' : 'raw_dish_qa_salvage';
-                console.log(`[Content] Final QA ${bestScore}/10 under 6, reverting to ${hasVenuePair ? 'raw VENUE photo' : 'raw client photo'}`);
+                let salvageUrl: string;
+                let salvageLabel: string;
+                if (hasVenuePair) {
+                  // Coin flip — venue OR dish, both authentic
+                  if (Math.random() < 0.5) {
+                    salvageUrl = venueCtx.file_url;
+                    salvageLabel = 'raw_venue_qa_salvage';
+                  } else {
+                    salvageUrl = pickedUpload.file_url;
+                    salvageLabel = 'raw_dish_qa_salvage';
+                  }
+                } else {
+                  salvageUrl = pickedUpload.file_url;
+                  salvageLabel = 'raw_dish_qa_salvage';
+                }
+                console.log(`[Content] Final QA ${bestScore}/10 under 6 — salvage: ${salvageLabel}`);
                 visualUrl = salvageUrl;
                 await supabase.from('content_calendar').update({
                   publish_diagnostic: `client_photo_${salvageLabel}:${pickedUpload.id}`,
