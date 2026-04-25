@@ -173,13 +173,24 @@ export async function POST(req: NextRequest) {
           results.push({ uid, result: wj.result || (webhookRes.ok ? 'ok' : 'webhook_failed') });
 
           // Mark processed in agent_logs for idempotency on next poll.
+          // Store the body (truncated) so the inbox UI can render the
+          // full message without re-fetching IMAP.
           if (parsed.messageId) {
             try {
               await supabase.from('agent_logs').insert({
                 agent: 'email',
                 action: 'inbound_processed',
                 user_id: userId,
-                data: { message_id: parsed.messageId, from_email: fromEmail, subject: parsed.subject, result: wj.result || 'ok' },
+                data: {
+                  message_id: parsed.messageId,
+                  from_email: fromEmail,
+                  from_name: fromName || null,
+                  subject: parsed.subject || '',
+                  body: body.substring(0, 5000),
+                  in_reply_to: parsed.inReplyTo || null,
+                  result: wj.result || 'ok',
+                  classification: wj.classification || null,
+                },
                 created_at: new Date().toISOString(),
               });
             } catch {}
