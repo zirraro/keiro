@@ -4197,16 +4197,29 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
           const dishSummary = pickedUpload.analysis?.summary || 'a signature dish';
           const venueSummary = venueCtx.analysis?.summary || 'the restaurant interior';
           const venuePalette = (venueCtx.analysis?.color_palette || []).slice(0, 5).join(', ') || 'as in reference';
+          const venueElements = (venueCtx.analysis?.visible_elements || []).slice(0, 8).join(', ') || 'as in reference';
+          const venueSpaceType = venueCtx.analysis?.space_type || 'urban indoor space';
           effectiveVisualDesc = `Preserve the exact dining room / venue shown in the reference: same tables, chairs, walls, windows, light fixtures, materials, decor. The venue must DOMINATE the frame (at least 75% of the image is the room itself).
 
-Reference palette to match: ${venuePalette}. Do NOT introduce violet, purple, lilac, magenta or amber tones unless the reference photo already contains them.
+REFERENCE VENUE — STRICT MATCH:
+- Type: ${venueSpaceType}
+- Visible elements that MUST stay: ${venueElements}
+- Palette: ${venuePalette}
 
-Add a SINGLE plated dish on a DISTANT or MID-GROUND table — never the foreground, never close to the camera. The dish takes AT MOST 15% of the frame, like a plate seen from across the room. The dish itself: ${dishSummary}.
+ABSOLUTELY FORBIDDEN — DO NOT INVENT:
+- NO sea view, ocean, beach, harbour, or water through windows unless the reference has it
+- NO mountain view, valley, sunset, or vista unless the reference has it
+- NO different chair styles, different table shapes, different door styles, or different ceiling
+- NO additional rooms, balconies, or terraces beyond what the reference shows
+- NO violet, purple, lilac, magenta or amber tones unless the reference contains them
+- NO change to wall colour or material — keep terracotta as terracotta, brick as brick, etc.
 
-Composition: WIDE editorial shot of the room. The viewer's eye lands on the venue first, then notices the plate as one detail among many. Natural light matching the room's existing ambience. Realistic, photographic — no aggressive macro bokeh, no studio gradient, no 3D-render look.
+Add a SINGLE plated dish on a DISTANT or MID-GROUND table — never close to the camera. The dish takes AT MOST 15% of the frame, like a plate seen from across the room. The dish itself: ${dishSummary}.
+
+Composition: WIDE editorial photograph (real photo, not 3D render). The viewer's eye lands on the venue first, then notices the plate as one detail among many. Natural light matching the room's existing ambience.
 
 The venue MUST remain recognisable — do not change the layout, do not invent new furniture, do not alter wall colour, do not zoom into the dish. No text, no logos.`;
-          console.log(`[Content] Asset-grounded visualDesc override for hasVenuePair (palette: ${venuePalette}): ${effectiveVisualDesc.substring(0, 200)}`);
+          console.log(`[Content] Asset-grounded visualDesc (palette: ${venuePalette}, elements: ${venueElements.substring(0, 80)}…)`);
         }
 
         // When we have a dish+venue pair: use the VENUE as the i2i base
@@ -4238,7 +4251,11 @@ The venue MUST remain recognisable — do not change the layout, do not invent n
               : pickedUpload.analysis?.content_type === 'product'
                 ? 'a specific product (hero subject)'
                 : 'the uploaded subject';
-            const score = await scoreVisualQuality(visualUrl, effectiveVisualDesc, expectedSubject);
+            // When we have a venue+dish pair, pass the venue photo as
+            // the reference so QA can flag 'venue_changed' if Seedream
+            // invented elements (sea view, different chairs, etc).
+            const venueRefForQA = hasVenuePair ? venueCtx?.file_url : undefined;
+            const score = await scoreVisualQuality(visualUrl, effectiveVisualDesc, expectedSubject, venueRefForQA);
             console.log(`[Content] QA score: ${score.score}/10 — flags: ${score.amateur_flags.join(',')} — ${score.notes}`);
 
             let bestScore = score.score;
@@ -4270,8 +4287,8 @@ The venue MUST remain recognisable — do not change the layout, do not invent n
                 hasVenuePair ? { file_url: venueCtx.file_url, analysis: venueCtx.analysis } : null,
               );
               if (retryUrl) {
-                const score2 = await scoreVisualQuality(retryUrl, effectiveVisualDesc, expectedSubject);
-                console.log(`[Content] QA retry: ${score2.score}/10`);
+                const score2 = await scoreVisualQuality(retryUrl, effectiveVisualDesc, expectedSubject, venueRefForQA);
+                console.log(`[Content] QA retry: ${score2.score}/10 — flags: ${score2.amateur_flags.join(',')}`);
                 if (score2.score >= score.score) {
                   visualUrl = retryUrl;
                   bestScore = score2.score;
