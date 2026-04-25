@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useLanguage } from '@/lib/i18n/context';
 import dynamic from 'next/dynamic';
@@ -260,141 +260,462 @@ const DAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 // ─── Main Component ─────────────────────────────────────────
 
 // ─── Editorial Calendar Full (Planning tab) ──────────────────
-function EditorialCalendarFull({ agentId }: { agentId: string }) {
+type ViewMode = 'day' | 'week' | 'month';
+
+const STATUS_COLORS: Record<string, string> = {
+  draft: 'border-amber-500/40 bg-amber-500/10',
+  approved: 'border-blue-500/40 bg-blue-500/10',
+  published: 'border-emerald-500/40 bg-emerald-500/10',
+  publish_failed: 'border-red-500/40 bg-red-500/10',
+  skipped: 'border-gray-500/30 bg-gray-500/5',
+};
+const STATUS_DOT: Record<string, string> = {
+  draft: 'bg-amber-400',
+  approved: 'bg-blue-400',
+  published: 'bg-emerald-400',
+  publish_failed: 'bg-red-400',
+  skipped: 'bg-gray-400',
+};
+const STATUS_LABELS: Record<string, string> = {
+  draft: 'Brouillon',
+  approved: 'Programmé',
+  published: 'Publié',
+  publish_failed: 'Échec',
+  skipped: 'Ignoré',
+};
+const PLATFORM_META: Record<string, { label: string; emoji: string; tag: string }> = {
+  instagram: { label: 'Instagram', emoji: '\u{1F4F7}', tag: 'IG' },
+  tiktok:    { label: 'TikTok',    emoji: '\u{1F3B5}', tag: 'TT' },
+  linkedin:  { label: 'LinkedIn',  emoji: '\u{1F4BC}', tag: 'LI' },
+};
+
+function ymd(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function EditorialCalendarFull({ agentId: _agentId }: { agentId: string }) {
+  void _agentId;
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<string>('all');
-  const [platformFilter, setPlatformFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<Set<string>>(new Set(['draft', 'approved', 'published']));
+  const [platformFilter, setPlatformFilter] = useState<Set<string>>(new Set(['instagram', 'tiktok', 'linkedin']));
   const [selected, setSelected] = useState<any>(null);
+  const [view, setView] = useState<ViewMode>('week');
+  const [cursor, setCursor] = useState<Date>(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  });
+  // Active platforms — derived from connection state. Hides TikTok and
+  // LinkedIn from filters when the client has nothing scheduled there
+  // AND no connection. We treat "no posts in window" as "deactivated"
+  // for the purpose of the filter chips so the UI stays clean.
+  const [activePlatforms, setActivePlatforms] = useState<Set<string>>(new Set(['instagram']));
 
   useEffect(() => {
     fetch('/api/agents/content', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
-      body: JSON.stringify({ action: 'calendar', startDate: new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0], endDate: new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0] }),
+      body: JSON.stringify({
+        action: 'calendar',
+        startDate: ymd(new Date(Date.now() - 60 * 86400000)),
+        endDate: ymd(new Date(Date.now() + 60 * 86400000)),
+      }),
     }).then(r => r.json()).then(d => setPosts(d.posts || [])).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
-  const STATUS_COLORS: Record<string, string> = { draft: 'border-amber-500/30 bg-amber-500/5', approved: 'border-blue-500/30 bg-blue-500/5', published: 'border-emerald-500/30 bg-emerald-500/5', publish_failed: 'border-red-500/30 bg-red-500/5', skipped: 'border-gray-500/30 bg-gray-500/5' };
-  const STATUS_DOT: Record<string, string> = { draft: 'bg-amber-500', approved: 'bg-blue-500', published: 'bg-emerald-500', publish_failed: 'bg-red-500', skipped: 'bg-gray-500' };
-  const STATUS_LABELS: Record<string, string> = { draft: 'Brouillon', approved: 'Programmé', published: 'Publié', publish_failed: 'Échec', skipped: 'Ignoré' };
+  // Refresh active platform set whenever posts arrive. Instagram always
+  // shown; TikTok/LinkedIn shown only if the client has any post on
+  // them (active subscription) or has them connected.
+  useEffect(() => {
+    const seen = new Set<string>(['instagram']);
+    for (const p of posts) {
+      const plat = p.platform || 'instagram';
+      if (PLATFORM_META[plat]) seen.add(plat);
+    }
+    setActivePlatforms(seen);
+    // When a platform disappears from active list, also drop it from
+    // the user's filter so they don't accidentally hide everything.
+    setPlatformFilter(prev => {
+      const next = new Set<string>();
+      for (const p of prev) if (seen.has(p)) next.add(p);
+      // If user filtered out everything that's still active, default to all active.
+      if (next.size === 0) seen.forEach(p => next.add(p));
+      return next;
+    });
+  }, [posts]);
 
-  const filtered = posts.filter(p => {
-    if (filter !== 'all' && p.status !== filter) return false;
-    if (platformFilter !== 'all' && (p.platform || 'instagram') !== platformFilter) return false;
+  const filteredAll = useMemo(() => posts.filter(p => {
+    if (!statusFilter.has(p.status)) return false;
+    if (!platformFilter.has(p.platform || 'instagram')) return false;
     return true;
-  }).sort((a, b) => new Date(b.scheduled_date || b.created_at).getTime() - new Date(a.scheduled_date || a.created_at).getTime());
+  }), [posts, statusFilter, platformFilter]);
 
-  const counts = {
-    all: posts.length,
+  const counts = useMemo(() => ({
     draft: posts.filter(p => p.status === 'draft').length,
     approved: posts.filter(p => p.status === 'approved').length,
     published: posts.filter(p => p.status === 'published').length,
     failed: posts.filter(p => p.status === 'publish_failed').length,
     skipped: posts.filter(p => p.status === 'skipped').length,
+  }), [posts]);
+
+  // Group posts by ymd date string for fast day-cell rendering.
+  const byDay = useMemo(() => {
+    const map = new Map<string, any[]>();
+    for (const p of filteredAll) {
+      const key = (p.scheduled_date || ymd(new Date(p.created_at))).substring(0, 10);
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(p);
+    }
+    return map;
+  }, [filteredAll]);
+
+  const toggleStatus = (s: string) => {
+    setStatusFilter(prev => {
+      const next = new Set(prev);
+      if (next.has(s)) next.delete(s); else next.add(s);
+      return next;
+    });
   };
-  const platformCounts = {
-    all: filtered.length,
-    instagram: posts.filter(p => (p.platform || 'instagram') === 'instagram').length,
-    tiktok: posts.filter(p => p.platform === 'tiktok').length,
-    linkedin: posts.filter(p => p.platform === 'linkedin').length,
+  const togglePlatform = (p: string) => {
+    setPlatformFilter(prev => {
+      const next = new Set(prev);
+      if (next.has(p)) next.delete(p); else next.add(p);
+      return next;
+    });
   };
+
+  const navigate = (delta: number) => {
+    setCursor(prev => {
+      const n = new Date(prev);
+      if (view === 'day') n.setDate(n.getDate() + delta);
+      else if (view === 'week') n.setDate(n.getDate() + 7 * delta);
+      else n.setMonth(n.getMonth() + delta);
+      return n;
+    });
+  };
+  const goToday = () => {
+    const t = new Date();
+    t.setHours(0, 0, 0, 0);
+    setCursor(t);
+  };
+
+  const cursorLabel = useMemo(() => {
+    const opts: Intl.DateTimeFormatOptions = view === 'month'
+      ? { month: 'long', year: 'numeric' }
+      : view === 'week'
+        ? { day: 'numeric', month: 'short' }
+        : { weekday: 'long', day: 'numeric', month: 'long' };
+    if (view === 'week') {
+      const start = new Date(cursor);
+      start.setDate(cursor.getDate() - cursor.getDay());
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      return `${start.toLocaleDateString('fr-FR', opts)} – ${end.toLocaleDateString('fr-FR', opts)}`;
+    }
+    return cursor.toLocaleDateString('fr-FR', opts);
+  }, [cursor, view]);
 
   if (loading) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400" /></div>;
 
   return (
-    <div className="space-y-4">
-      {/* Status filters — clear labels with counts */}
-      <div className="flex flex-wrap gap-1.5">
-        {[
-          { key: 'all', label: 'Tous', count: counts.all, color: 'bg-purple-600' },
-          { key: 'published', label: 'Publies', count: counts.published, color: 'bg-emerald-600' },
-          { key: 'approved', label: 'Programmes', count: counts.approved, color: 'bg-blue-600' },
-          { key: 'draft', label: 'Brouillons', count: counts.draft, color: 'bg-amber-600' },
-          ...(counts.failed > 0 ? [{ key: 'publish_failed', label: 'Echoues', count: counts.failed, color: 'bg-red-600' }] : []),
-        ].map(f => (
-          <button key={f.key} onClick={() => setFilter(f.key)} className={`px-3 py-2 rounded-lg text-xs font-medium transition-all min-h-[36px] flex items-center gap-1.5 ${filter === f.key ? f.color + ' text-white shadow-lg' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}>
-            {f.label}
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${filter === f.key ? 'bg-white/20' : 'bg-white/10'}`}>{f.count}</span>
-          </button>
-        ))}
+    <div className="space-y-3">
+      {/* Top bar: view switcher + nav */}
+      <div className="flex flex-wrap items-center justify-between gap-2 bg-white/[0.02] border border-white/10 rounded-xl p-2">
+        <div className="flex items-center gap-1">
+          {(['day', 'week', 'month'] as const).map(v => (
+            <button
+              key={v}
+              onClick={() => setView(v)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${view === v ? 'bg-purple-600 text-white shadow' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}
+            >
+              {v === 'day' ? 'Jour' : v === 'week' ? 'Semaine' : 'Mois'}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-1">
+          <button onClick={() => navigate(-1)} className="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 text-xs" aria-label="Précédent">‹</button>
+          <button onClick={goToday} className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 text-xs">Aujourd'hui</button>
+          <button onClick={() => navigate(1)} className="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 text-xs" aria-label="Suivant">›</button>
+          <span className="ml-2 text-xs font-semibold text-white/80 capitalize">{cursorLabel}</span>
+        </div>
       </div>
-      {/* Platform filters */}
-      <div className="flex gap-1.5">
-        {[
-          { key: 'all', label: 'Toutes plateformes', count: platformCounts.all },
-          { key: 'instagram', label: '\u{1F4F7} Instagram', count: platformCounts.instagram },
-          { key: 'tiktok', label: '\u{1F3B5} TikTok', count: platformCounts.tiktok },
-          { key: 'linkedin', label: '\u{1F4BC} LinkedIn', count: platformCounts.linkedin },
-        ].map(p => (
-          <button key={p.key} onClick={() => setPlatformFilter(p.key)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1 ${platformFilter === p.key ? 'bg-white/20 text-white' : 'bg-white/5 text-white/30 hover:bg-white/10'}`}>
-            {p.label} <span className="text-[9px] text-white/40">{p.count}</span>
-          </button>
-        ))}
-      </div>
-      <p className="text-[10px] text-white/20">{filtered.length} post{filtered.length > 1 ? 's' : ''} affiches</p>
 
-      {/* Grid */}
-      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-1.5">
-        {filtered.slice(0, 60).map(post => (
-          <button key={post.id} onClick={() => setSelected(post)} className={`relative aspect-square rounded-lg overflow-hidden border ${STATUS_COLORS[post.status] || 'border-white/10'} hover:ring-2 hover:ring-purple-500/50 transition group`}>
-            {post.visual_url ? (
-              <img src={post.visual_url} alt="" className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-900/20 to-pink-900/20">
-                <span className="text-[10px] text-white/30 px-1 text-center line-clamp-2">{(post.hook || post.caption || '').substring(0, 40)}</span>
-              </div>
-            )}
-            <div className={`absolute top-1 right-1 w-2 h-2 rounded-full ${STATUS_DOT[post.status] || 'bg-gray-500'}`} />
-            <div className="absolute bottom-0 inset-x-0 bg-black/60 px-1 py-0.5">
-              <div className="text-[7px] text-white/70">{post.scheduled_date?.substring(5) || ''} {post.platform === 'tiktok' ? 'TT' : post.platform === 'linkedin' ? 'LI' : 'IG'}</div>
-            </div>
-          </button>
-        ))}
+      {/* Filters: status (multi-select) + platform (multi-select) */}
+      <div className="flex flex-wrap items-center gap-2 bg-white/[0.02] border border-white/10 rounded-xl p-2">
+        <div className="flex items-center flex-wrap gap-1.5">
+          <span className="text-[9px] font-bold text-white/40 uppercase tracking-wide mr-1">Statut</span>
+          {[
+            { key: 'published', label: 'Publiés', count: counts.published, color: 'bg-emerald-500' },
+            { key: 'approved', label: 'Programmés', count: counts.approved, color: 'bg-blue-500' },
+            { key: 'draft', label: 'Brouillons', count: counts.draft, color: 'bg-amber-500' },
+            ...(counts.failed > 0 ? [{ key: 'publish_failed', label: 'Échecs', count: counts.failed, color: 'bg-red-500' }] : []),
+            ...(counts.skipped > 0 ? [{ key: 'skipped', label: 'Ignorés', count: counts.skipped, color: 'bg-gray-500' }] : []),
+          ].map(f => {
+            const active = statusFilter.has(f.key);
+            return (
+              <button
+                key={f.key}
+                onClick={() => toggleStatus(f.key)}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition flex items-center gap-1 ${active ? f.color + ' text-white' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${active ? 'bg-white/80' : 'bg-white/30'}`} />
+                {f.label}
+                <span className={`text-[9px] px-1 py-0.5 rounded-full ${active ? 'bg-white/20' : 'bg-white/10'}`}>{f.count}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="w-px h-5 bg-white/10 mx-1" />
+        <div className="flex items-center flex-wrap gap-1.5">
+          <span className="text-[9px] font-bold text-white/40 uppercase tracking-wide mr-1">Réseau</span>
+          {Array.from(activePlatforms).map(p => {
+            const meta = PLATFORM_META[p];
+            const active = platformFilter.has(p);
+            return (
+              <button
+                key={p}
+                onClick={() => togglePlatform(p)}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition flex items-center gap-1 ${active ? 'bg-white/15 text-white' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}
+              >
+                <span>{meta?.emoji || ''}</span>
+                {meta?.label || p}
+              </button>
+            );
+          })}
+          {!activePlatforms.has('tiktok') && !activePlatforms.has('linkedin') && (
+            <span className="text-[9px] text-white/20 italic ml-1">(TikTok / LinkedIn désactivés — réactiver dans le panneau principal)</span>
+          )}
+        </div>
       </div>
+
+      {/* CALENDAR */}
+      {view === 'month' && <MonthGrid cursor={cursor} byDay={byDay} onSelect={setSelected} />}
+      {view === 'week' && <WeekStrip cursor={cursor} byDay={byDay} onSelect={setSelected} />}
+      {view === 'day' && <DayList cursor={cursor} byDay={byDay} onSelect={setSelected} />}
 
       {/* Selected post modal */}
       {selected && (
-        <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-2 sm:p-4" onClick={() => setSelected(null)}>
-          <div className="bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-              <div>
-                <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${STATUS_DOT[selected.status]?.replace('bg-', 'bg-') || 'bg-white/10'} text-white`}>{STATUS_LABELS[selected.status] || selected.status}</span>
-                <span className="text-[10px] text-white/30 ml-2">{selected.platform} | {selected.format} | {selected.scheduled_date}</span>
-              </div>
-              <button onClick={() => setSelected(null)} className="text-white/30 hover:text-white/60 p-2"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
-            </div>
-            {selected.visual_url && <img src={selected.visual_url} alt="" className="w-full max-h-[50vh] object-contain" />}
-            <div className="px-4 py-3 space-y-2">
-              {selected.hook && <p className="text-sm font-bold text-white">{selected.hook}</p>}
-              {(selected.status === 'draft' || selected.status === 'approved') ? (
-                <textarea
-                  defaultValue={selected.caption || ''}
-                  onBlur={async (e) => {
-                    if (e.target.value !== selected.caption) {
-                      try { await fetch('/api/agents/content', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'update_caption', postId: selected.id, caption: e.target.value }) }); } catch {}
-                    }
-                  }}
-                  className="w-full text-xs text-white/70 bg-white/5 border border-white/10 rounded-lg p-2 min-h-[60px] resize-y focus:ring-1 focus:ring-purple-500/50 focus:outline-none"
-                  placeholder="Description du post..."
-                />
-              ) : (
-                <p className="text-xs text-white/70 whitespace-pre-wrap">{selected.caption}</p>
-              )}
-              {selected.hashtags && <p className="text-xs text-blue-400">{Array.isArray(selected.hashtags) ? selected.hashtags.join(' ') : selected.hashtags}</p>}
-              {selected.instagram_permalink && <a href={selected.instagram_permalink} target="_blank" rel="noopener" className="text-[10px] text-purple-400 hover:underline">Voir sur Instagram {'\u2197'}</a>}
-            </div>
-            {(selected.status === 'draft' || selected.status === 'approved') && (
-              <div className="px-4 pb-4 flex gap-2">
-                <button onClick={async () => { try { await fetch('/api/agents/content', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'publish_single', postId: selected.id }) }); setSelected(null); window.location.reload(); } catch {} }} className="flex-1 py-2.5 bg-purple-600 text-white text-xs font-bold rounded-xl min-h-[44px]">{'\uD83D\uDE80'} Publier</button>
-                <button onClick={async () => { try { await fetch('/api/agents/content', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'regenerate_single', postId: selected.id }) }); setSelected(null); } catch {} }} className="py-2.5 px-4 bg-amber-600/20 text-amber-400 text-[10px] font-medium rounded-xl min-h-[44px]">{'\uD83D\uDD04'} Régénérer</button>
-                <button onClick={async () => { if (!confirm('Supprimer ?')) return; try { await fetch('/api/agents/content', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'skip_single', postId: selected.id }) }); setSelected(null); window.location.reload(); } catch {} }} className="py-2.5 px-4 bg-red-600/20 text-red-400 text-[10px] font-medium rounded-xl min-h-[44px]">{'\uD83D\uDDD1'} Suppr</button>
-              </div>
-            )}
-          </div>
-        </div>
+        <PostModal selected={selected} onClose={() => setSelected(null)} />
       )}
 
-      {filtered.length === 0 && <div className="text-center py-8 text-white/30 text-sm">Aucun contenu — lance une campagne pour commencer</div>}
+      {filteredAll.length === 0 && <div className="text-center py-8 text-white/30 text-sm">Aucun contenu — lance une campagne pour commencer</div>}
+    </div>
+  );
+}
+
+// MONTH GRID — classic 5-6 row × 7 column calendar
+function MonthGrid({ cursor, byDay, onSelect }: { cursor: Date; byDay: Map<string, any[]>; onSelect: (p: any) => void }) {
+  const today = ymd(new Date());
+  const firstOfMonth = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
+  const lastOfMonth = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0);
+  // Calendar starts on Monday — push back to first Mon ≤ firstOfMonth
+  const gridStart = new Date(firstOfMonth);
+  const dow = (firstOfMonth.getDay() + 6) % 7; // 0 = Mon
+  gridStart.setDate(firstOfMonth.getDate() - dow);
+  // 6 weeks max (covers any month)
+  const days: Date[] = [];
+  for (let i = 0; i < 42; i++) {
+    const d = new Date(gridStart);
+    d.setDate(gridStart.getDate() + i);
+    days.push(d);
+  }
+  const dayNames = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+  return (
+    <div className="bg-white/[0.02] border border-white/10 rounded-xl overflow-hidden">
+      <div className="grid grid-cols-7 border-b border-white/10">
+        {dayNames.map(n => (
+          <div key={n} className="px-2 py-2 text-[10px] font-bold text-white/40 uppercase tracking-wide text-center">{n}</div>
+        ))}
+      </div>
+      <div className="grid grid-cols-7">
+        {days.map((d, i) => {
+          const k = ymd(d);
+          const inMonth = d.getMonth() === cursor.getMonth();
+          const isToday = k === today;
+          const dayPosts = byDay.get(k) || [];
+          return (
+            <div key={i} className={`min-h-[88px] p-1.5 border-b border-r border-white/5 last:border-r-0 ${inMonth ? '' : 'bg-black/20 opacity-40'} ${isToday ? 'bg-purple-500/5' : ''}`}>
+              <div className={`text-[10px] font-bold mb-1 ${isToday ? 'text-purple-300' : inMonth ? 'text-white/60' : 'text-white/20'}`}>{d.getDate()}</div>
+              <div className="space-y-0.5">
+                {dayPosts.slice(0, 3).map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => onSelect(p)}
+                    className={`w-full flex items-center gap-1 px-1 py-0.5 rounded border ${STATUS_COLORS[p.status] || 'border-white/10'} hover:scale-[1.02] transition group`}
+                  >
+                    {p.visual_url ? (
+                      <img src={p.visual_url} alt="" className="w-6 h-6 object-cover rounded shrink-0" />
+                    ) : (
+                      <div className="w-6 h-6 bg-gradient-to-br from-purple-900/30 to-pink-900/30 rounded shrink-0" />
+                    )}
+                    <div className="text-[8px] text-white/70 truncate text-left flex-1">{(p.hook || p.caption || '').substring(0, 22)}</div>
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_DOT[p.status] || 'bg-white/20'}`} />
+                  </button>
+                ))}
+                {dayPosts.length > 3 && (
+                  <div className="text-[8px] text-white/40 text-center">+{dayPosts.length - 3}</div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="text-[9px] text-white/30 text-right px-3 py-1.5 border-t border-white/10">
+        {byDay.size > 0 ? `${Array.from(byDay.values()).reduce((a, b) => a + b.length, 0)} post(s) ce mois` : 'Aucun post'}
+        <span className="ml-2 text-white/20">(jusqu'au {lastOfMonth.getDate()})</span>
+      </div>
+    </div>
+  );
+}
+
+// WEEK STRIP — 7 columns with full-card thumbnails
+function WeekStrip({ cursor, byDay, onSelect }: { cursor: Date; byDay: Map<string, any[]>; onSelect: (p: any) => void }) {
+  const today = ymd(new Date());
+  const start = new Date(cursor);
+  start.setDate(cursor.getDate() - ((cursor.getDay() + 6) % 7)); // Mon
+  const days: Date[] = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    days.push(d);
+  }
+  const dayShort = ['LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM', 'DIM'];
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-7 gap-2">
+      {days.map((d, i) => {
+        const k = ymd(d);
+        const isToday = k === today;
+        const dayPosts = byDay.get(k) || [];
+        return (
+          <div key={k} className={`bg-white/[0.02] border ${isToday ? 'border-purple-500/40' : 'border-white/10'} rounded-xl p-2 min-h-[160px]`}>
+            <div className="flex items-center justify-between mb-2">
+              <div className={`text-[10px] font-bold uppercase ${isToday ? 'text-purple-300' : 'text-white/40'}`}>{dayShort[i]} {d.getDate()}</div>
+              {dayPosts.length > 0 && <span className="text-[9px] text-white/40">{dayPosts.length}</span>}
+            </div>
+            <div className="space-y-1.5">
+              {dayPosts.map(p => {
+                const meta = PLATFORM_META[p.platform || 'instagram'];
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => onSelect(p)}
+                    className={`w-full text-left rounded-lg border ${STATUS_COLORS[p.status] || 'border-white/10'} overflow-hidden hover:ring-1 hover:ring-purple-500/40 transition`}
+                  >
+                    {p.visual_url ? (
+                      <div className="relative aspect-square">
+                        <img src={p.visual_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                        <div className={`absolute top-1 right-1 w-2 h-2 rounded-full ${STATUS_DOT[p.status] || 'bg-white/30'}`} />
+                        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent px-1.5 py-1">
+                          <div className="text-[8px] text-white/90 font-medium truncate">{p.scheduled_time?.substring(0, 5) || ''} {meta?.tag}</div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="aspect-square bg-gradient-to-br from-purple-900/30 to-pink-900/30 flex items-center justify-center p-2">
+                        <span className="text-[9px] text-white/50 text-center line-clamp-3">{(p.hook || p.caption || '').substring(0, 60)}</span>
+                      </div>
+                    )}
+                    <div className="px-1.5 py-1 text-[9px] text-white/60 truncate">{(p.hook || '').substring(0, 30)}</div>
+                  </button>
+                );
+              })}
+              {dayPosts.length === 0 && <div className="text-[9px] text-white/15 text-center py-4">—</div>}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// DAY LIST — vertical timeline with large cards
+function DayList({ cursor, byDay, onSelect }: { cursor: Date; byDay: Map<string, any[]>; onSelect: (p: any) => void }) {
+  const k = ymd(cursor);
+  const dayPosts = byDay.get(k) || [];
+  return (
+    <div className="bg-white/[0.02] border border-white/10 rounded-xl p-3 space-y-2">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-sm font-bold text-white capitalize">{cursor.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</h3>
+        <span className="text-[10px] text-white/40">{dayPosts.length} post{dayPosts.length > 1 ? 's' : ''}</span>
+      </div>
+      {dayPosts.length === 0 ? (
+        <div className="text-center py-12 text-white/20 text-sm">Aucun post programmé ce jour</div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+          {dayPosts.map(p => {
+            const meta = PLATFORM_META[p.platform || 'instagram'];
+            return (
+              <button
+                key={p.id}
+                onClick={() => onSelect(p)}
+                className={`text-left rounded-xl border ${STATUS_COLORS[p.status] || 'border-white/10'} overflow-hidden hover:ring-1 hover:ring-purple-500/40 transition`}
+              >
+                {p.visual_url ? (
+                  <div className="aspect-video relative">
+                    <img src={p.visual_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                    <span className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-[9px] font-bold text-white ${STATUS_DOT[p.status] || 'bg-white/20'}`}>{STATUS_LABELS[p.status]}</span>
+                    <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[9px] font-bold bg-black/60 text-white">{meta?.emoji} {meta?.label}</span>
+                  </div>
+                ) : (
+                  <div className="aspect-video bg-gradient-to-br from-purple-900/30 to-pink-900/30 flex items-center justify-center p-3">
+                    <span className="text-xs text-white/60 text-center line-clamp-3">{(p.hook || p.caption || '').substring(0, 100)}</span>
+                  </div>
+                )}
+                <div className="p-2 space-y-1">
+                  <div className="text-[10px] text-white/50">{p.scheduled_time?.substring(0, 5) || ''} {p.format ? `· ${p.format}` : ''}</div>
+                  <div className="text-xs text-white/80 line-clamp-2">{p.hook || (p.caption || '').substring(0, 80)}</div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Modal — kept similar to the previous design
+function PostModal({ selected, onClose }: { selected: any; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-2 sm:p-4" onClick={onClose}>
+      <div className="bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+          <div className="flex items-center gap-2">
+            <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${STATUS_DOT[selected.status] || 'bg-white/10'} text-white`}>{STATUS_LABELS[selected.status] || selected.status}</span>
+            <span className="text-[10px] text-white/40">{PLATFORM_META[selected.platform || 'instagram']?.label} · {selected.format} · {selected.scheduled_date}</span>
+          </div>
+          <button onClick={onClose} className="text-white/40 hover:text-white p-1.5"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
+        </div>
+        {selected.visual_url && <img src={selected.visual_url} alt="" className="w-full max-h-[50vh] object-contain bg-black" />}
+        <div className="px-4 py-3 space-y-2">
+          {selected.hook && <p className="text-sm font-bold text-white">{selected.hook}</p>}
+          {(selected.status === 'draft' || selected.status === 'approved') ? (
+            <textarea
+              defaultValue={selected.caption || ''}
+              onBlur={async (e) => {
+                if (e.target.value !== selected.caption) {
+                  try { await fetch('/api/agents/content', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'update_caption', postId: selected.id, caption: e.target.value }) }); } catch {}
+                }
+              }}
+              className="w-full text-xs text-white/70 bg-white/5 border border-white/10 rounded-lg p-2 min-h-[80px] resize-y focus:ring-1 focus:ring-purple-500/50 focus:outline-none"
+              placeholder="Description du post..."
+            />
+          ) : (
+            <p className="text-xs text-white/70 whitespace-pre-wrap">{selected.caption}</p>
+          )}
+          {selected.hashtags && <p className="text-xs text-blue-400">{Array.isArray(selected.hashtags) ? selected.hashtags.join(' ') : selected.hashtags}</p>}
+          {selected.instagram_permalink && <a href={selected.instagram_permalink} target="_blank" rel="noopener" className="text-[10px] text-purple-400 hover:underline">Voir sur Instagram {'\u2197'}</a>}
+        </div>
+        {(selected.status === 'draft' || selected.status === 'approved') && (
+          <div className="px-4 pb-4 flex gap-2">
+            <button onClick={async () => { try { await fetch('/api/agents/content', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'publish_single', postId: selected.id }) }); onClose(); window.location.reload(); } catch {} }} className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-xl min-h-[44px]">{'\uD83D\uDE80'} Publier</button>
+            <button onClick={async () => { try { await fetch('/api/agents/content', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'regenerate_single', postId: selected.id }) }); onClose(); } catch {} }} className="py-2.5 px-4 bg-amber-600/20 hover:bg-amber-600/30 text-amber-400 text-[10px] font-medium rounded-xl min-h-[44px]">{'\uD83D\uDD04'} Régénérer</button>
+            <button onClick={async () => { if (!confirm('Supprimer ?')) return; try { await fetch('/api/agents/content', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'skip_single', postId: selected.id }) }); onClose(); window.location.reload(); } catch {} }} className="py-2.5 px-4 bg-red-600/20 hover:bg-red-600/30 text-red-400 text-[10px] font-medium rounded-xl min-h-[44px]">{'\uD83D\uDDD1'} Suppr</button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
