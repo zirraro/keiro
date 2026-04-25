@@ -73,10 +73,16 @@ const SEEDREAM_API_KEY = process.env.SEEDREAM_API_KEY || '341cd095-2c11-49da-82e
 const SEEDREAM_API_URL = 'https://ark.ap-southeast.bytepluses.com/api/v3/images/generations';
 const NO_TEXT_SUFFIX = '\nCRITICAL: Absolutely NO text, NO letters, NO words, NO numbers, NO writing, NO signs, NO labels, NO watermarks, NO logos, NO digits, NO characters, NO typography anywhere in the image. The image must contain ZERO readable text or number-like shapes. Pure photographic visual only. If there would be a sign or screen in the scene, make it blank or blurred.';
 
-const SEEDREAM_STYLE_GUIDE = `You are an elite prompt engineer for Seedream (text-to-image AI).
+/**
+ * KEIROAI brand style guide — used ONLY for KeiroAI's own marketing
+ * posts (when there is no client business context). Injects the violet
+ * brand identity. NEVER use this for client-facing posts about their
+ * restaurant / florist / boutique — see CLIENT_STYLE_GUIDE below.
+ */
+const SEEDREAM_STYLE_GUIDE_KEIROAI = `You are an elite prompt engineer for Seedream (text-to-image AI).
 Your goal: create premium, brand-consistent visuals for KeiroAI (AI marketing tool for local businesses).
 
-BRAND VISUAL IDENTITY:
+BRAND VISUAL IDENTITY (KeiroAI ONLY — does NOT apply to client posts):
 - Primary color: deep violet — innovation, premium tech
 - Secondary: soft purple, deep black, warm white
 - Accent: amber for energy
@@ -91,29 +97,52 @@ QUALITY STANDARDS:
 - 4K detail level, sharp focus on subject
 - Depth of field when appropriate
 
-FOR SOCIAL MEDIA THUMBNAILS:
-- The image must be READABLE at 100x100px thumbnail size
-- Strong contrast between subject and background
-- Single clear focal point (not cluttered)
-- Bold color blocks rather than detailed textures
-
 ABSOLUTELY FORBIDDEN:
 - Any text, letters, numbers, writing, signs, watermarks, logos
-- Smartphones, phones, tablets, screens, devices, mockups, UI screenshots (unless explicitly requested)
-- Hex color codes (like #7C3AED) — use color names instead (deep violet, soft purple, amber)
-- Aspect ratios or technical specs (like 9:16, 1:1, 4K) — describe the feeling not the format
+- Smartphones, phones, tablets, screens, devices, mockups, UI screenshots
+- Hex color codes — use color names instead
+- Aspect ratios or technical specs — describe the feeling not the format
 - Cluttered compositions with too many elements
 - Stock photo aesthetic (generic, lifeless)
-- Low contrast or muddy colors
-
-PREFERRED SUBJECTS (vary creatively):
-- Real-life scenes: merchants working, cooking, arranging flowers, styling hair, serving customers
-- Conceptual illustrations: abstract shapes, isometric scenes, geometric compositions
-- Objects: artisan products, food, flowers, storefronts, workshops, tools of the trade
-- People: stylized characters, silhouettes, creative portraits (NOT behind screens)
-- Environments: cozy shops, vibrant markets, modern boutiques, sunny terraces
 
 Output ONLY the optimized English prompt — pure visual description, no technical jargon. Nothing else.`;
+
+/**
+ * CLIENT style guide — used for posts about a client's actual business
+ * (their restaurant, boutique, salon, etc.). The whole point is to
+ * respect THEIR palette, THEIR lighting, THEIR ambience — never inject
+ * KeiroAI's violet brand identity into a client's content.
+ */
+const SEEDREAM_STYLE_GUIDE_CLIENT = `You are an elite prompt engineer for Seedream (image-to-image AI). You serve a local-business client (restaurant, café, boutique, salon, florist, etc.).
+
+CRITICAL — RESPECT THE CLIENT'S OWN BRAND:
+- The reference image IS the client's real space / product / dish — keep its palette, lighting, mood, materials EXACTLY as they appear.
+- DO NOT inject KeiroAI brand colors. NO violet, NO purple, NO amber accents unless those colours already exist in the reference photo.
+- Use natural editorial photography language: warm/cool natural light, real textures (wood, marble, stone, linen, ceramic), authentic restaurant/shop atmosphere.
+- Match the reference's existing colour palette word-for-word — terracotta walls stay terracotta, marble stays marble, wood stays wood.
+
+QUALITY STANDARDS:
+- Editorial / magazine-quality lifestyle photography
+- Soft natural light matching the time of day implied by the reference
+- Shallow depth of field where appropriate, NEVER aggressive macro bokeh
+- Realistic textures — no rendered/CGI look, no 3D-cartoon feel
+- The frame should look like a real photo a journalist would shoot in this place
+
+ABSOLUTELY FORBIDDEN:
+- Text, letters, numbers, writing, signs, watermarks, logos
+- Phones, tablets, screens, mockups, UI elements
+- Violet, purple, lilac, magenta, amber tinting (unless the reference photo has it)
+- Studio gradients, flat-design backgrounds, isometric/3D-render aesthetics
+- Stock-photo cliché props (Macbook, coffee + notebook combo, etc.)
+- Saturated post-processing — keep it natural and grounded
+
+Output ONLY the optimized English prompt — pure visual description, no jargon, no markdown.`;
+
+// Default export — keep the legacy name pointing to the KeiroAI guide
+// so existing callers (text-to-image generations on KeiroAI's own
+// account) keep their brand identity. Client paths explicitly use
+// SEEDREAM_STYLE_GUIDE_CLIENT.
+const SEEDREAM_STYLE_GUIDE = SEEDREAM_STYLE_GUIDE_KEIROAI;
 
 /**
  * Cache a temporary Seedream URL to Supabase Storage for permanent access.
@@ -196,16 +225,25 @@ DISH / PRODUCT TO COMPOSE INTO THIS VENUE:
 - Style: ${(dishContext.analysis.style_descriptors || []).join(', ') || 'unspecified'}
 
 COMPOSITION RULE — CRITICAL:
-- The reference image is the client's REAL dining room / boutique interior. It MUST remain the dominant subject of the frame (65%+ of the image is the room itself: walls, tables, windows, ambient light).
-- Place the dish / product as a SINGLE TASTEFUL ACCENT on one of the visible tables — MID-GROUND, not pushed to the camera. The dish takes AT MOST 25% of the frame area. Think "a plate on a table in a restaurant wide shot", NOT "macro food-photography close-up".
-- Do NOT zoom into the dish. Do NOT use aggressive bokeh that erases the room. Do NOT invent new furniture. Keep the room's layout, furniture, wall colour, lighting EXACTLY as shown in the reference.
-- The viewer's eye should land on the room first, then notice the plate. The restaurant's brand IS its space — the plate is one detail among many, never the whole frame.
-- Only the dish described above belongs in the frame — no generic food, no props that weren't already in the reference room.` : '';
+- The reference image is the client's REAL dining room / boutique interior. It MUST remain the dominant subject of the frame (75%+ of the image is the room itself: walls, tables, windows, ambient light).
+- Place the dish / product on a DISTANT or MID-GROUND table, not the foreground. The dish takes AT MOST 15% of the frame area — like seeing a plate on a table while walking into a restaurant. The viewer's first impression is THE ROOM, then they notice the plate as one of many details.
+- Camera distance: WIDE shot of the room. The plate sits at natural eating distance from another diner's POV, NOT close to the lens. NO macro photography. NO food-photography hero crop.
+- Do NOT zoom into the dish. Do NOT use aggressive bokeh that erases the room. Do NOT invent new furniture. Keep the room's layout, furniture, wall colour, lighting, materials EXACTLY as shown in the reference.
+- Match the reference's natural colour palette — terracotta walls stay terracotta, marble stays marble, wood stays wood. NO violet, NO purple, NO amber unless the reference photo itself contains them.
+- Only the dish described above belongs in the frame — no generic food, no props that were not already in the reference room.` : '';
+
+    // Pick the right style guide. When we have a dishContext (meaning
+    // we're working from a real client's dish+venue pair), use the
+    // CLIENT guide that respects their natural palette. Otherwise we're
+    // generating either a KeiroAI marketing visual OR a single-asset
+    // i2i where the asset is the source of truth — both use the
+    // KeiroAI guide as the brand baseline.
+    const styleGuideForI2I = dishContext ? SEEDREAM_STYLE_GUIDE_CLIENT : SEEDREAM_STYLE_GUIDE_KEIROAI;
 
     const optimizedText = await callClaude({
-      system: SEEDREAM_STYLE_GUIDE + `\n\nIMPORTANT: You are writing an IMAGE-TO-IMAGE prompt. ${dishContext ? 'The reference image is the client\'s REAL restaurant / boutique interior — it must stay recognisable. A specific dish / product must be composed INTO this scene (see DISH block below).' : 'The reference image is the client\'s REAL photo of their venue / product / space. Your job is to describe HOW to re-render it with: (a) better professional lighting, (b) cleaner composition, (c) brand-aligned palette, (d) magazine-quality atmosphere. Keep the SUBJECT and SPACE recognisable — never invent new elements or change the venue type. Think "editorial photo shoot of the same place", not "generate a different place".'}${dishBlock}`,
+      system: styleGuideForI2I + `\n\nIMPORTANT: You are writing an IMAGE-TO-IMAGE prompt. ${dishContext ? 'The reference image is the client\'s REAL restaurant / boutique interior — it must stay recognisable AND the room (not the dish) must be the visual subject. The dish is a tasteful accent, not the hero.' : 'The reference image is the client\'s REAL photo. Re-render with: (a) better professional lighting, (b) cleaner composition, (c) magazine-quality atmosphere. Keep the SUBJECT and SPACE recognisable — never invent new elements or change the venue type.'}${dishBlock}`,
       message: `Write the image-to-image prompt.\n\nPost brief: ${visualDescription}\n\nFormat: ${format}\n\nReturn just the prompt, no intro, no explanation.`,
-      maxTokens: dishContext ? 450 : 350,
+      maxTokens: dishContext ? 500 : 350,
     });
 
     const rawPrompt = (optimizedText || visualDescription) + NO_TEXT_SUFFIX;
@@ -4157,14 +4195,17 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
         if (hasVenuePair) {
           const dishSummary = pickedUpload.analysis?.summary || 'a signature dish';
           const venueSummary = venueCtx.analysis?.summary || 'the restaurant interior';
-          effectiveVisualDesc = `Preserve the exact dining room / venue shown in the reference: keep the same tables, chairs, walls, windows, light fixtures, colours, materials, decor. The venue must stay DOMINANT in the frame (at least 65% of the image is the room itself — walls, tables, light, atmosphere).
+          const venuePalette = (venueCtx.analysis?.color_palette || []).slice(0, 5).join(', ') || 'as in reference';
+          effectiveVisualDesc = `Preserve the exact dining room / venue shown in the reference: same tables, chairs, walls, windows, light fixtures, materials, decor. The venue must DOMINATE the frame (at least 75% of the image is the room itself).
 
-Add a SINGLE plated dish on ONE of the visible tables — ideally mid-ground, NOT front-camera. The dish occupies at most 25% of the frame (small, tasteful accent in a living room, not a macro hero shot). The dish: ${dishSummary}.
+Reference palette to match: ${venuePalette}. Do NOT introduce violet, purple, lilac, magenta or amber tones unless the reference photo already contains them.
 
-Composition: wide editorial shot of the room, the dish is one detail among many; the viewer's eye lands on the room first, then notices the plate. Warm cinematic lighting matching the room's existing ambience, natural depth of field (no aggressive macro blur), 4K detail.
+Add a SINGLE plated dish on a DISTANT or MID-GROUND table — never the foreground, never close to the camera. The dish takes AT MOST 15% of the frame, like a plate seen from across the room. The dish itself: ${dishSummary}.
 
-The venue MUST remain recognisable — do not change the layout, do not invent new furniture, do not alter wall colour, do not zoom into the dish. No text, no logos, no studio equipment, no projectors.`;
-          console.log(`[Content] Asset-grounded visualDesc override for hasVenuePair: ${effectiveVisualDesc.substring(0, 200)}`);
+Composition: WIDE editorial shot of the room. The viewer's eye lands on the venue first, then notices the plate as one detail among many. Natural light matching the room's existing ambience. Realistic, photographic — no aggressive macro bokeh, no studio gradient, no 3D-render look.
+
+The venue MUST remain recognisable — do not change the layout, do not invent new furniture, do not alter wall colour, do not zoom into the dish. No text, no logos.`;
+          console.log(`[Content] Asset-grounded visualDesc override for hasVenuePair (palette: ${venuePalette}): ${effectiveVisualDesc.substring(0, 200)}`);
         }
 
         // When we have a dish+venue pair: use the VENUE as the i2i base
