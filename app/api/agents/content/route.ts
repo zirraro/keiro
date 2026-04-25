@@ -3457,12 +3457,22 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
   if (slotType === 'tiktok' && !ttEnabled) {
     return NextResponse.json({ ok: true, skipped: true, reason: 'Client disabled TikTok' });
   }
-  // Skip TikTok generation entirely if no token (avoids wasting AI credits on unpublishable content)
-  if (slotType === 'tiktok') {
-    const { data: ttProfile } = await supabase.from('profiles').select('tiktok_access_token').eq(userId ? 'id' : 'is_admin', userId || true).single();
+  // Skip TikTok / LinkedIn generation when no OAuth token. Generating
+  // unpublishable content burns credits + clutters the planning UI
+  // with stuck drafts on networks the client never connected.
+  if (slotType === 'tiktok' && userId) {
+    const { data: ttProfile } = await supabase.from('profiles').select('tiktok_access_token').eq('id', userId).maybeSingle();
     if (!ttProfile?.tiktok_access_token) {
-      console.log(`[Content] Skipping TikTok generation — no token for ${userId || 'admin'}`);
+      console.log(`[Content] Skipping TikTok generation — no token for ${userId.substring(0, 8)}`);
       return NextResponse.json({ ok: true, skipped: true, reason: 'TikTok not connected' });
+    }
+  }
+  if (slotType.startsWith('linkedin') && userId) {
+    const { data: liProfile } = await supabase.from('profiles').select('linkedin_access_token, linkedin_refresh_token').eq('id', userId).maybeSingle();
+    const hasLi = liProfile?.linkedin_access_token || liProfile?.linkedin_refresh_token;
+    if (!hasLi) {
+      console.log(`[Content] Skipping LinkedIn generation — no token for ${userId.substring(0, 8)}`);
+      return NextResponse.json({ ok: true, skipped: true, reason: 'LinkedIn not connected' });
     }
   }
 
