@@ -138,6 +138,25 @@ export async function callGemini({ system, message, maxTokens = 2000, thinking =
     };
   }
 
+  return await callGeminiWithRetry(apiKey, body, system, cachedId);
+}
+
+/**
+ * Wrap the actual fetch in exponential backoff so 503/429/500 from
+ * Google ("model is overloaded", "high demand") don't cascade into
+ * agent failures. Backoff: 1s → 4s → 12s → fail.
+ *
+ * Cost-safe: each retry is exactly the same call, so spend stays
+ * flat — we never amplify load on Gemini under pressure.
+ */
+const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
+async function callGeminiWithRetry(
+  apiKey: string,
+  body: any,
+  system: string,
+  cachedId: string | null,
+  attempt = 0,
+): Promise<string> {
   const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -146,12 +165,26 @@ export async function callGemini({ system, message, maxTokens = 2000, thinking =
 
   if (!response.ok) {
     const errText = await response.text();
-    // If cached content expired/invalid, retry without cache
+    // Cached content expired/invalid — drop cache and retry once without it.
     if (cachedId && (response.status === 400 || response.status === 404)) {
       systemPromptCache.delete(hashPrompt(system));
-      return callGemini({ system, message, maxTokens, thinking });
+      return callGemini({
+        system,
+        message: body.contents?.[0]?.parts?.[0]?.text || '',
+        maxTokens: body.generationConfig?.maxOutputTokens,
+        thinking: !body.generationConfig?.thinkingConfig,
+      });
     }
-    throw new Error(`Gemini API error ${response.status}: ${errText}`);
+    // Transient overload (503, 429, 500…) — exponential backoff up to
+    // 3 retries (~1s + 4s + 12s = 17s max wait). After that we surface
+    // the error so callers can fall back to Claude or skip the run.
+    if (RETRYABLE_STATUS.has(response.status) && attempt < 3) {
+      const delay = Math.pow(4, attempt) * 1000;
+      console.warn(`[Gemini] ${response.status} retry ${attempt + 1}/3 in ${delay}ms`);
+      await new Promise(r => setTimeout(r, delay));
+      return callGeminiWithRetry(apiKey, body, system, cachedId, attempt + 1);
+    }
+    throw new Error(`Gemini API error ${response.status}: ${errText.substring(0, 300)}`);
   }
 
   const data = await response.json();
@@ -214,6 +247,20 @@ export async function callGeminiChat({
     };
   }
 
+  return await callGeminiChatWithRetry(apiKey, body, system, cachedId, history, message, maxTokens, thinking);
+}
+
+async function callGeminiChatWithRetry(
+  apiKey: string,
+  body: any,
+  system: string,
+  cachedId: string | null,
+  history: Array<{ role: 'user' | 'assistant'; content: string }>,
+  message: string,
+  maxTokens: number,
+  thinking: boolean,
+  attempt = 0,
+): Promise<string> {
   const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -226,7 +273,13 @@ export async function callGeminiChat({
       systemPromptCache.delete(hashPrompt(system));
       return callGeminiChat({ system, history, message, maxTokens, thinking });
     }
-    throw new Error(`Gemini Chat API error ${response.status}: ${errText}`);
+    if (RETRYABLE_STATUS.has(response.status) && attempt < 3) {
+      const delay = Math.pow(4, attempt) * 1000;
+      console.warn(`[GeminiChat] ${response.status} retry ${attempt + 1}/3 in ${delay}ms`);
+      await new Promise(r => setTimeout(r, delay));
+      return callGeminiChatWithRetry(apiKey, body, system, cachedId, history, message, maxTokens, thinking, attempt + 1);
+    }
+    throw new Error(`Gemini Chat API error ${response.status}: ${errText.substring(0, 300)}`);
   }
 
   const data = await response.json();
@@ -266,7 +319,29 @@ export async function callGeminiWithSearch({ system, message, maxTokens = 2000 }
 
   if (!response.ok) {
     const errText = await response.text();
-    throw new Error(`Gemini Search API error ${response.status}: ${errText}`);
+    // Search API also benefits from retry on overload, but its
+    // implementation is single-call so we just retry the whole function
+    // once before failing. Search costs more than text-gen so we cap
+    // at 1 retry (not 3) to avoid amplifying paid Search usage.
+    if (RETRYABLE_STATUS.has(response.status)) {
+      console.warn(`[GeminiSearch] ${response.status} single retry in 4s`);
+      await new Promise(r => setTimeout(r, 4000));
+      const r2 = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: system }] },
+          contents: [{ role: 'user', parts: [{ text: message }] }],
+          tools: [{ google_search: {} }],
+          generationConfig: { maxOutputTokens: maxTokens, temperature: 0.3 },
+        }),
+      });
+      if (r2.ok) {
+        const d2 = await r2.json();
+        return (d2.candidates?.[0]?.content?.parts?.filter((p: any) => p.text).map((p: any) => p.text).join('\n') || '');
+      }
+    }
+    throw new Error(`Gemini Search API error ${response.status}: ${errText.substring(0, 300)}`);
   }
 
   const data = await response.json();
