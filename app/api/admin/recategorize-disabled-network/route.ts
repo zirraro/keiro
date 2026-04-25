@@ -53,7 +53,8 @@ export async function POST(req: NextRequest) {
         .from('content_calendar')
         .update({
           status: 'skipped',
-          publish_diagnostic: `network_disabled:${plat}_no_token`,
+          // publish_diagnostic is jsonb in DB
+          publish_diagnostic: { reason: 'network_disabled', platform: plat, no_token: true },
           updated_at: new Date().toISOString(),
         })
         .eq('user_id', p.id)
