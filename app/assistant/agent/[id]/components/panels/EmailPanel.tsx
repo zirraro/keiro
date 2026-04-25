@@ -511,14 +511,23 @@ function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: str
               <div className="text-[10px] text-white/30 truncate mt-0.5">
                 {p.latest.direction === 'incoming' ? '\u2709\uFE0F ' : ''}{p.latest.message?.substring(0, 80) || p.latest.type}
               </div>
-              <div className="flex items-center gap-2 mt-1">
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
                 <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
                   p.latest.status === 'repondu' ? 'bg-emerald-400/15 text-emerald-400' :
                   p.latest.status === 'ouvert' ? 'bg-amber-400/15 text-amber-400' :
                   p.latest.status === 'clique' ? 'bg-purple-400/15 text-purple-400' :
                   'bg-blue-400/15 text-blue-400'
                 }`}>{p.latest.status}</span>
-                <span className="text-[9px] text-white/15">{new Date(p.latest.date).toLocaleDateString(dateLocale, { day: '2-digit', month: '2-digit' })}</span>
+                {p.latest.direction === 'outgoing' && (
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
+                    p.latest.auto || p.latest.type?.includes('auto') || p.latest.type?.includes('step_')
+                      ? 'bg-emerald-500/15 text-emerald-300'
+                      : 'bg-amber-500/15 text-amber-300'
+                  }`}>
+                    {p.latest.auto || p.latest.type?.includes('auto') || p.latest.type?.includes('step_') ? '\u{1F916} IA' : '\u270D\uFE0F Toi'}
+                  </span>
+                )}
+                <span className="text-[9px] text-white/15 ml-auto">{new Date(p.latest.date).toLocaleDateString(dateLocale, { day: '2-digit', month: '2-digit' })}</span>
               </div>
             </button>
           ))}
@@ -552,24 +561,45 @@ function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: str
               ) : thread.length === 0 ? (
                 <div className="text-center py-8 text-white/20 text-xs">Aucun echange pour ce prospect</div>
               ) : (
-                thread.map((msg, i) => (
-                  <div key={msg.id || i} className={`flex ${msg.direction === 'outgoing' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[85%] px-3 py-2 rounded-2xl text-xs leading-relaxed ${
-                      msg.direction === 'outgoing'
-                        ? 'bg-gradient-to-r from-cyan-600 to-blue-700 text-white rounded-br-md'
-                        : 'bg-white/10 text-white/80 rounded-bl-md'
-                    }`}>
-                      {msg.direction === 'incoming' && <div className="text-[9px] text-cyan-300/60 mb-0.5">{'\u2709\uFE0F'} Reponse recue</div>}
-                      {msg.auto && <div className="text-[9px] text-white/40 mb-0.5">{'\u{1F916}'} Auto</div>}
-                      {msg.subject && <div className="font-semibold text-[11px] mb-1 opacity-90">{msg.subject}</div>}
-                      <div className="whitespace-pre-wrap">{msg.message || '[pas de contenu]'}</div>
-                      <div className={`text-[10px] mt-1 flex items-center gap-1.5 ${msg.direction === 'outgoing' ? 'text-cyan-200/50' : 'text-white/20'}`}>
-                        {msg.date ? new Date(msg.date).toLocaleString(dateLocale, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}
-                        {msg.step && <span>· Etape {msg.step}</span>}
+                thread.map((msg, i) => {
+                  // Badge logic: outgoing messages get AI (Hugo) vs
+                  // Human (toi) badge so the founder can tell at a
+                  // glance which messages he wrote vs which Hugo
+                  // sent automatically. Incoming = received reply.
+                  const isOutgoing = msg.direction === 'outgoing';
+                  const isAuto = !!msg.auto;
+                  const badgeLabel = !isOutgoing
+                    ? { text: '\u2709\uFE0F Reçu', cls: 'bg-cyan-500/15 text-cyan-300' }
+                    : isAuto
+                      ? { text: '\u{1F916} Hugo IA', cls: 'bg-emerald-500/20 text-emerald-200' }
+                      : { text: '\u270D\uFE0F Toi', cls: 'bg-amber-500/20 text-amber-200' };
+                  return (
+                    <div key={msg.id || i} className={`flex ${isOutgoing ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[85%] px-3 py-2 rounded-2xl text-xs leading-relaxed ${
+                        isOutgoing
+                          ? (isAuto
+                            ? 'bg-gradient-to-r from-cyan-600 to-blue-700 text-white rounded-br-md'
+                            : 'bg-gradient-to-r from-amber-700 to-amber-600 text-white rounded-br-md')
+                          : 'bg-white/10 text-white/80 rounded-bl-md'
+                      }`}>
+                        <div className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold mb-1 ${badgeLabel.cls}`}>
+                          {badgeLabel.text}
+                        </div>
+                        {msg.subject && <div className="font-semibold text-[11px] mb-1 opacity-90">{msg.subject}</div>}
+                        <div className="whitespace-pre-wrap">{msg.message || '[pas de contenu]'}</div>
+                        <div className={`text-[10px] mt-1 flex items-center gap-1.5 ${isOutgoing ? 'text-white/60' : 'text-white/20'}`}>
+                          {msg.date ? new Date(msg.date).toLocaleString(dateLocale, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}
+                          {msg.step && <span>· Etape {msg.step}</span>}
+                          {msg.action_taken && (msg.action_taken === 'blacklisted' || msg.action_taken === 'stopped') && (
+                            <span className="px-1.5 py-0.5 rounded bg-red-500/20 text-red-300 text-[9px]">
+                              {msg.action_taken === 'blacklisted' ? '\u{1F6AB} Désabonné' : '\u23F8 Stoppé'}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
               <div ref={threadEndRef} />
             </div>

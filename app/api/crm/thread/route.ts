@@ -64,9 +64,15 @@ export async function GET(req: NextRequest) {
       message,
       channel: a.type?.includes('dm') ? 'dm_instagram' : a.type?.includes('email') ? 'email' : a.type || 'other',
       date: a.created_at,
-      auto: !!(d?.auto_reply || d?.auto),
+      // auto = AI authored (cold sequence step OR Hugo auto-reply).
+      // manual_reply = founder typed it from the panel — explicitly not auto.
+      auto: !!(d?.auto_reply || d?.auto || d?.is_sequence_step) && !d?.manual_reply,
       provider: d?.provider || null,
       step: d?.step || null,
+      // Hugo unsubscribe / blacklist flags surface on the message
+      // bubble so the founder sees at a glance which conversations
+      // were closed automatically.
+      action_taken: d?.action_taken || null,
     };
   });
 
