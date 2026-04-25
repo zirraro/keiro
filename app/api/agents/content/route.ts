@@ -4199,12 +4199,48 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
           const venuePalette = (venueCtx.analysis?.color_palette || []).slice(0, 5).join(', ') || 'as in reference';
           const venueElements = (venueCtx.analysis?.visible_elements || []).slice(0, 8).join(', ') || 'as in reference';
           const venueSpaceType = venueCtx.analysis?.space_type || 'urban indoor space';
-          effectiveVisualDesc = `Preserve the exact dining room / venue shown in the reference: same tables, chairs, walls, windows, light fixtures, materials, decor. The venue must DOMINATE the frame (at least 75% of the image is the room itself).
+
+          // Camera-angle variation — rotate across 4 editorial shot
+          // types so the feed doesn't read as one repeated composition.
+          // Each shot type fixes the dish-to-frame ratio so the QA can
+          // catch outliers (e.g. dish at 50% on a "wide" shot = wrong).
+          const SHOT_TYPES = [
+            {
+              id: 'wide',
+              prompt: 'WIDE editorial restaurant shot — camera back, room dominant. Dish on a mid-ground or distant table, ~10-15% of frame. Viewer takes in the whole space first, plate is one detail among many.',
+              dishPct: '10-15%',
+            },
+            {
+              id: 'medium_table',
+              prompt: 'MEDIUM table-level shot — camera at diner eye level, focal point is one table with the plate. Plate ~20-25% of frame. Soft natural depth-of-field; the rest of the room visible in the background, slightly out of focus, recognisable but not sharp.',
+              dishPct: '20-25%',
+            },
+            {
+              id: 'three_quarter',
+              prompt: 'THREE-QUARTER angle — camera ~45° above table, plate at lower-third or side of frame, ~20% area. Empty chairs, neighbouring tables, walls clearly visible behind. Editorial lifestyle look, not food-photography hero crop.',
+              dishPct: '~20%',
+            },
+            {
+              id: 'overhead_partial',
+              prompt: 'OVERHEAD PARTIAL — top-down on a corner of one table, plate fills lower-half corner ~25-30%. Other table edge, cutlery, glass, fabric napkin or marble visible; one chair and ambient room light reaching the table edge. Real photo, not flat lay.',
+              dishPct: '25-30%',
+            },
+          ];
+          const shotIdx = Math.floor(Math.random() * SHOT_TYPES.length);
+          const shot = SHOT_TYPES[shotIdx];
+
+          effectiveVisualDesc = `Preserve the exact dining room / venue shown in the reference: same tables, chairs, walls, windows, light fixtures, materials, decor. Real photograph (not 3D render).
 
 REFERENCE VENUE — STRICT MATCH:
 - Type: ${venueSpaceType}
 - Visible elements that MUST stay: ${venueElements}
 - Palette: ${venuePalette}
+
+CAMERA / SHOT TYPE — ${shot.id.toUpperCase()}:
+${shot.prompt}
+Dish proportion target: ${shot.dishPct} of total frame area. Anything bigger looks artificial.
+
+DISH: ${dishSummary}. Plated as in the reference photo of the dish — same plate shape and colour, same garnish, same sauce — placed naturally on a real restaurant table inside this venue.
 
 ABSOLUTELY FORBIDDEN — DO NOT INVENT:
 - NO sea view, ocean, beach, harbour, or water through windows unless the reference has it
@@ -4213,13 +4249,13 @@ ABSOLUTELY FORBIDDEN — DO NOT INVENT:
 - NO additional rooms, balconies, or terraces beyond what the reference shows
 - NO violet, purple, lilac, magenta or amber tones unless the reference contains them
 - NO change to wall colour or material — keep terracotta as terracotta, brick as brick, etc.
+- NO oversized dish — proportion must match the camera distance defined above
 
-Add a SINGLE plated dish on a DISTANT or MID-GROUND table — never close to the camera. The dish takes AT MOST 15% of the frame, like a plate seen from across the room. The dish itself: ${dishSummary}.
-
-Composition: WIDE editorial photograph (real photo, not 3D render). The viewer's eye lands on the venue first, then notices the plate as one detail among many. Natural light matching the room's existing ambience.
-
-The venue MUST remain recognisable — do not change the layout, do not invent new furniture, do not alter wall colour, do not zoom into the dish. No text, no logos.`;
-          console.log(`[Content] Asset-grounded visualDesc (palette: ${venuePalette}, elements: ${venueElements.substring(0, 80)}…)`);
+Real natural light matching the room's existing ambience. The dish must look proportional — a real plate on a real table, the same scale you'd see in a documentary photograph. No text, no logos.`;
+          console.log(`[Content] Asset-grounded visualDesc — shot=${shot.id} (dish ${shot.dishPct}), elements: ${venueElements.substring(0, 80)}…`);
+          // Stash chosen shot type for downstream QA — passes alongside
+          // the brief so the auditor knows what proportion is "correct".
+          (pickedUpload as any).chosenShot = shot;
         }
 
         // When we have a dish+venue pair: use the VENUE as the i2i base
@@ -4255,7 +4291,15 @@ The venue MUST remain recognisable — do not change the layout, do not invent n
             // the reference so QA can flag 'venue_changed' if Seedream
             // invented elements (sea view, different chairs, etc).
             const venueRefForQA = hasVenuePair ? venueCtx?.file_url : undefined;
-            const score = await scoreVisualQuality(visualUrl, effectiveVisualDesc, expectedSubject, venueRefForQA);
+            // Stash the chosen shot type so QA can verify proportions
+            // against the camera distance the prompt asked for.
+            const expectedShot = (pickedUpload as any).chosenShot
+              ? `Shot type ordered: ${(pickedUpload as any).chosenShot.id} (dish should occupy ${(pickedUpload as any).chosenShot.dishPct} of frame). Flag proportions_unrealistic if the dish is significantly larger than this target.`
+              : '';
+            const briefForQA = expectedShot
+              ? `${effectiveVisualDesc}\n\n[QA-INSTRUCTION] ${expectedShot}`
+              : effectiveVisualDesc;
+            const score = await scoreVisualQuality(visualUrl, briefForQA, expectedSubject, venueRefForQA);
             console.log(`[Content] QA score: ${score.score}/10 — flags: ${score.amateur_flags.join(',')} — ${score.notes}`);
 
             let bestScore = score.score;
@@ -4287,7 +4331,7 @@ The venue MUST remain recognisable — do not change the layout, do not invent n
                 hasVenuePair ? { file_url: venueCtx.file_url, analysis: venueCtx.analysis } : null,
               );
               if (retryUrl) {
-                const score2 = await scoreVisualQuality(retryUrl, effectiveVisualDesc, expectedSubject, venueRefForQA);
+                const score2 = await scoreVisualQuality(retryUrl, briefForQA, expectedSubject, venueRefForQA);
                 console.log(`[Content] QA retry: ${score2.score}/10 — flags: ${score2.amateur_flags.join(',')}`);
                 if (score2.score >= score.score) {
                   visualUrl = retryUrl;

@@ -36,14 +36,15 @@ export async function scoreVisualQuality(
 {
   "score": 0-10,              // 10 = magazine-quality, 6 = publishable, <6 = retry
   "notes": "one-line reason",
-  "amateur_flags": ["2d_paste", "lighting_mismatch", "invented_props", "wrong_subject", "low_detail", "uncanny_composition", "venue_changed"]
+  "amateur_flags": ["2d_paste", "lighting_mismatch", "invented_props", "wrong_subject", "low_detail", "uncanny_composition", "venue_changed", "proportions_unrealistic"]
 }
 
 CRITICAL FLAGS:
 - 2d_paste: subject looks layered on top of background (floating circle, feathered edges, no contact shadow, perspective-free).
 - lighting_mismatch: hero and background have incompatible light sources.
 - invented_props: image contains objects that don't belong (studio projectors in a restaurant, mountain view added to a city café, etc).
-- wrong_subject: image doesn't show what the brief asks for.${referenceImageUrl ? `
+- wrong_subject: image doesn't show what the brief asks for.
+- proportions_unrealistic: the hero subject (dish, product) is sized wrong for the camera distance described in the brief. If the brief says "wide shot, dish 10-15% of frame" and the dish takes 40% of the frame, this flag fires and score MUST be ≤ 5. A real plate is ~25cm — at the camera distance implied by the shot type it should look proportional, not oversized.${referenceImageUrl ? `
 - venue_changed: image 1 (REFERENCE — client's actual venue) and image 2 (GENERATED) show DIFFERENT places. Look at: window views (no sea/mountain/garden if reference has urban/courtyard), chair style, table shape, wall material, door style, ceiling height, layout. If the generated image invented elements absent from the reference, this flag fires and the score MUST be ≤ 4. The whole point is preserving the client's real space.` : ''}
 
 Expected subject: "${expectedSubject}".
