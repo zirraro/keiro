@@ -298,6 +298,35 @@ function ymd(d: Date): string {
 
 function EditorialCalendarFull({ agentId: _agentId }: { agentId: string }) {
   void _agentId;
+  const { locale } = useLanguage();
+  const en = locale === 'en';
+  const tCal = en
+    ? {
+        day: 'Day', week: 'Week', month: 'Month', today: 'Today',
+        status: 'STATUS', network: 'NETWORK',
+        published: 'Published', scheduled: 'Scheduled', drafts: 'Drafts',
+        failed: 'Failed', skipped: 'Skipped',
+        noContent: "No content yet — launch a campaign to get started",
+        noPostsToday: 'No posts scheduled for this day',
+        disabledHint: '(TikTok / LinkedIn disabled — re-enable from the main agent panel)',
+        nPosts: (n: number) => `${n} post${n > 1 ? 's' : ''}`,
+        thisMonth: (n: number, last: number) => `${n} post(s) this month  (through day ${last})`,
+        none: 'None',
+        delete: 'Delete', publish: 'Publish', regenerate: 'Regenerate', confirmDelete: 'Delete?',
+      }
+    : {
+        day: 'Jour', week: 'Semaine', month: 'Mois', today: "Aujourd'hui",
+        status: 'STATUT', network: 'RÉSEAU',
+        published: 'Publiés', scheduled: 'Programmés', drafts: 'Brouillons',
+        failed: 'Échecs', skipped: 'Ignorés',
+        noContent: 'Aucun contenu — lance une campagne pour commencer',
+        noPostsToday: 'Aucun post programmé ce jour',
+        disabledHint: '(TikTok / LinkedIn désactivés — réactiver dans le panneau principal)',
+        nPosts: (n: number) => `${n} post${n > 1 ? 's' : ''}`,
+        thisMonth: (n: number, last: number) => `${n} post(s) ce mois  (jusqu'au ${last})`,
+        none: 'Aucune',
+        delete: 'Suppr', publish: 'Publier', regenerate: 'Régénérer', confirmDelete: 'Supprimer ?',
+      };
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<Set<string>>(new Set(['draft', 'approved', 'published']));
@@ -429,48 +458,48 @@ function EditorialCalendarFull({ agentId: _agentId }: { agentId: string }) {
             <button
               key={v}
               onClick={() => setView(v)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${view === v ? 'bg-purple-600 text-white shadow' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${view === v ? 'bg-purple-600 text-white shadow' : 'bg-white/5 text-white/70 hover:bg-white/10'}`}
             >
-              {v === 'day' ? 'Jour' : v === 'week' ? 'Semaine' : 'Mois'}
+              {v === 'day' ? tCal.day : v === 'week' ? tCal.week : tCal.month}
             </button>
           ))}
         </div>
         <div className="flex items-center gap-1">
-          <button onClick={() => navigate(-1)} className="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 text-xs" aria-label="Précédent">‹</button>
-          <button onClick={goToday} className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 text-xs">Aujourd'hui</button>
-          <button onClick={() => navigate(1)} className="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 text-xs" aria-label="Suivant">›</button>
-          <span className="ml-2 text-xs font-semibold text-white/80 capitalize">{cursorLabel}</span>
+          <button onClick={() => navigate(-1)} className="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 text-xs" aria-label={en ? 'Previous' : 'Précédent'}>‹</button>
+          <button onClick={goToday} className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 text-xs">{tCal.today}</button>
+          <button onClick={() => navigate(1)} className="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 text-xs" aria-label={en ? 'Next' : 'Suivant'}>›</button>
+          <span className="ml-2 text-xs font-semibold text-white/90 capitalize">{cursorLabel}</span>
         </div>
       </div>
 
       {/* Filters: status (multi-select) + platform (multi-select) */}
       <div className="flex flex-wrap items-center gap-2 bg-white/[0.02] border border-white/10 rounded-xl p-2">
         <div className="flex items-center flex-wrap gap-1.5">
-          <span className="text-[9px] font-bold text-white/40 uppercase tracking-wide mr-1">Statut</span>
+          <span className="text-[9px] font-bold text-white/60 uppercase tracking-wide mr-1">{tCal.status}</span>
           {[
-            { key: 'published', label: 'Publiés', count: counts.published, color: 'bg-emerald-500' },
-            { key: 'approved', label: 'Programmés', count: counts.approved, color: 'bg-blue-500' },
-            { key: 'draft', label: 'Brouillons', count: counts.draft, color: 'bg-amber-500' },
-            ...(counts.failed > 0 ? [{ key: 'publish_failed', label: 'Échecs', count: counts.failed, color: 'bg-red-500' }] : []),
-            ...(counts.skipped > 0 ? [{ key: 'skipped', label: 'Ignorés', count: counts.skipped, color: 'bg-gray-500' }] : []),
+            { key: 'published', label: tCal.published, count: counts.published, color: 'bg-emerald-500' },
+            { key: 'approved', label: tCal.scheduled, count: counts.approved, color: 'bg-blue-500' },
+            { key: 'draft', label: tCal.drafts, count: counts.draft, color: 'bg-amber-500' },
+            ...(counts.failed > 0 ? [{ key: 'publish_failed', label: tCal.failed, count: counts.failed, color: 'bg-red-500' }] : []),
+            ...(counts.skipped > 0 ? [{ key: 'skipped', label: tCal.skipped, count: counts.skipped, color: 'bg-gray-500' }] : []),
           ].map(f => {
             const active = statusFilter.has(f.key);
             return (
               <button
                 key={f.key}
                 onClick={() => toggleStatus(f.key)}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition flex items-center gap-1 ${active ? f.color + ' text-white' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition flex items-center gap-1 ${active ? f.color + ' text-white' : 'bg-white/5 text-white/70 hover:bg-white/10'}`}
               >
-                <span className={`w-1.5 h-1.5 rounded-full ${active ? 'bg-white/80' : 'bg-white/30'}`} />
+                <span className={`w-1.5 h-1.5 rounded-full ${active ? 'bg-white/80' : 'bg-white/40'}`} />
                 {f.label}
-                <span className={`text-[9px] px-1 py-0.5 rounded-full ${active ? 'bg-white/20' : 'bg-white/10'}`}>{f.count}</span>
+                <span className={`text-[9px] px-1 py-0.5 rounded-full ${active ? 'bg-white/20' : 'bg-white/15'}`}>{f.count}</span>
               </button>
             );
           })}
         </div>
         <div className="w-px h-5 bg-white/10 mx-1" />
         <div className="flex items-center flex-wrap gap-1.5">
-          <span className="text-[9px] font-bold text-white/40 uppercase tracking-wide mr-1">Réseau</span>
+          <span className="text-[9px] font-bold text-white/60 uppercase tracking-wide mr-1">{tCal.network}</span>
           {Array.from(activePlatforms).map(p => {
             const meta = PLATFORM_META[p];
             const active = platformFilter.has(p);
@@ -478,7 +507,7 @@ function EditorialCalendarFull({ agentId: _agentId }: { agentId: string }) {
               <button
                 key={p}
                 onClick={() => togglePlatform(p)}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition flex items-center gap-1 ${active ? 'bg-white/15 text-white' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition flex items-center gap-1 ${active ? 'bg-white/15 text-white' : 'bg-white/5 text-white/70 hover:bg-white/10'}`}
               >
                 <span>{meta?.emoji || ''}</span>
                 {meta?.label || p}
@@ -486,28 +515,28 @@ function EditorialCalendarFull({ agentId: _agentId }: { agentId: string }) {
             );
           })}
           {!activePlatforms.has('tiktok') && !activePlatforms.has('linkedin') && (
-            <span className="text-[9px] text-white/20 italic ml-1">(TikTok / LinkedIn désactivés — réactiver dans le panneau principal)</span>
+            <span className="text-[9px] text-white/40 italic ml-1">{tCal.disabledHint}</span>
           )}
         </div>
       </div>
 
       {/* CALENDAR */}
-      {view === 'month' && <MonthGrid cursor={cursor} byDay={byDay} onSelect={setSelected} />}
-      {view === 'week' && <WeekStrip cursor={cursor} byDay={byDay} onSelect={setSelected} />}
-      {view === 'day' && <DayList cursor={cursor} byDay={byDay} onSelect={setSelected} />}
+      {view === 'month' && <MonthGrid cursor={cursor} byDay={byDay} onSelect={setSelected} en={en} tCal={tCal} />}
+      {view === 'week' && <WeekStrip cursor={cursor} byDay={byDay} onSelect={setSelected} en={en} />}
+      {view === 'day' && <DayList cursor={cursor} byDay={byDay} onSelect={setSelected} en={en} tCal={tCal} />}
 
       {/* Selected post modal */}
       {selected && (
-        <PostModal selected={selected} onClose={() => setSelected(null)} />
+        <PostModal selected={selected} onClose={() => setSelected(null)} en={en} tCal={tCal} />
       )}
 
-      {filteredAll.length === 0 && <div className="text-center py-8 text-white/30 text-sm">Aucun contenu — lance une campagne pour commencer</div>}
+      {filteredAll.length === 0 && <div className="text-center py-8 text-white/50 text-sm">{tCal.noContent}</div>}
     </div>
   );
 }
 
 // MONTH GRID — classic 5-6 row × 7 column calendar
-function MonthGrid({ cursor, byDay, onSelect }: { cursor: Date; byDay: Map<string, any[]>; onSelect: (p: any) => void }) {
+function MonthGrid({ cursor, byDay, onSelect, en, tCal }: { cursor: Date; byDay: Map<string, any[]>; onSelect: (p: any) => void; en: boolean; tCal: any }) {
   const today = ymd(new Date());
   const firstOfMonth = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
   const lastOfMonth = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0);
@@ -522,7 +551,9 @@ function MonthGrid({ cursor, byDay, onSelect }: { cursor: Date; byDay: Map<strin
     d.setDate(gridStart.getDate() + i);
     days.push(d);
   }
-  const dayNames = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+  const dayNames = en
+    ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    : ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
   return (
     <div className="bg-white/[0.02] border border-white/10 rounded-xl overflow-hidden">
       <div className="grid grid-cols-7 border-b border-white/10">
@@ -563,16 +594,17 @@ function MonthGrid({ cursor, byDay, onSelect }: { cursor: Date; byDay: Map<strin
           );
         })}
       </div>
-      <div className="text-[9px] text-white/30 text-right px-3 py-1.5 border-t border-white/10">
-        {byDay.size > 0 ? `${Array.from(byDay.values()).reduce((a, b) => a + b.length, 0)} post(s) ce mois` : 'Aucun post'}
-        <span className="ml-2 text-white/20">(jusqu'au {lastOfMonth.getDate()})</span>
+      <div className="text-[9px] text-white/50 text-right px-3 py-1.5 border-t border-white/10">
+        {byDay.size > 0
+          ? tCal.thisMonth(Array.from(byDay.values()).reduce((a, b) => a + b.length, 0), lastOfMonth.getDate())
+          : (en ? 'No posts' : 'Aucun post')}
       </div>
     </div>
   );
 }
 
 // WEEK STRIP — 7 columns with full-card thumbnails
-function WeekStrip({ cursor, byDay, onSelect }: { cursor: Date; byDay: Map<string, any[]>; onSelect: (p: any) => void }) {
+function WeekStrip({ cursor, byDay, onSelect, en }: { cursor: Date; byDay: Map<string, any[]>; onSelect: (p: any) => void; en: boolean }) {
   const today = ymd(new Date());
   const start = new Date(cursor);
   start.setDate(cursor.getDate() - ((cursor.getDay() + 6) % 7)); // Mon
@@ -582,7 +614,9 @@ function WeekStrip({ cursor, byDay, onSelect }: { cursor: Date; byDay: Map<strin
     d.setDate(start.getDate() + i);
     days.push(d);
   }
-  const dayShort = ['LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM', 'DIM'];
+  const dayShort = en
+    ? ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
+    : ['LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM', 'DIM'];
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-7 gap-2">
       {days.map((d, i) => {
@@ -631,17 +665,18 @@ function WeekStrip({ cursor, byDay, onSelect }: { cursor: Date; byDay: Map<strin
 }
 
 // DAY LIST — vertical timeline with large cards
-function DayList({ cursor, byDay, onSelect }: { cursor: Date; byDay: Map<string, any[]>; onSelect: (p: any) => void }) {
+function DayList({ cursor, byDay, onSelect, en, tCal }: { cursor: Date; byDay: Map<string, any[]>; onSelect: (p: any) => void; en: boolean; tCal: any }) {
   const k = ymd(cursor);
   const dayPosts = byDay.get(k) || [];
+  const dateLocale = en ? 'en-US' : 'fr-FR';
   return (
     <div className="bg-white/[0.02] border border-white/10 rounded-xl p-3 space-y-2">
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-bold text-white capitalize">{cursor.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</h3>
-        <span className="text-[10px] text-white/40">{dayPosts.length} post{dayPosts.length > 1 ? 's' : ''}</span>
+        <h3 className="text-sm font-bold text-white capitalize">{cursor.toLocaleDateString(dateLocale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</h3>
+        <span className="text-[10px] text-white/60">{tCal.nPosts(dayPosts.length)}</span>
       </div>
       {dayPosts.length === 0 ? (
-        <div className="text-center py-12 text-white/20 text-sm">Aucun post programmé ce jour</div>
+        <div className="text-center py-12 text-white/40 text-sm">{tCal.noPostsToday}</div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
           {dayPosts.map(p => {
@@ -677,7 +712,8 @@ function DayList({ cursor, byDay, onSelect }: { cursor: Date; byDay: Map<string,
 }
 
 // Modal — kept similar to the previous design
-function PostModal({ selected, onClose }: { selected: any; onClose: () => void }) {
+function PostModal({ selected, onClose, en, tCal }: { selected: any; onClose: () => void; en: boolean; tCal: any }) {
+  void en;
   return (
     <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-2 sm:p-4" onClick={onClose}>
       <div className="bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
@@ -710,9 +746,9 @@ function PostModal({ selected, onClose }: { selected: any; onClose: () => void }
         </div>
         {(selected.status === 'draft' || selected.status === 'approved') && (
           <div className="px-4 pb-4 flex gap-2">
-            <button onClick={async () => { try { await fetch('/api/agents/content', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'publish_single', postId: selected.id }) }); onClose(); window.location.reload(); } catch {} }} className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-xl min-h-[44px]">{'\uD83D\uDE80'} Publier</button>
-            <button onClick={async () => { try { await fetch('/api/agents/content', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'regenerate_single', postId: selected.id }) }); onClose(); } catch {} }} className="py-2.5 px-4 bg-amber-600/20 hover:bg-amber-600/30 text-amber-400 text-[10px] font-medium rounded-xl min-h-[44px]">{'\uD83D\uDD04'} Régénérer</button>
-            <button onClick={async () => { if (!confirm('Supprimer ?')) return; try { await fetch('/api/agents/content', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'skip_single', postId: selected.id }) }); onClose(); window.location.reload(); } catch {} }} className="py-2.5 px-4 bg-red-600/20 hover:bg-red-600/30 text-red-400 text-[10px] font-medium rounded-xl min-h-[44px]">{'\uD83D\uDDD1'} Suppr</button>
+            <button onClick={async () => { try { await fetch('/api/agents/content', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'publish_single', postId: selected.id }) }); onClose(); window.location.reload(); } catch {} }} className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-xl min-h-[44px]">{'\uD83D\uDE80'} {tCal.publish}</button>
+            <button onClick={async () => { try { await fetch('/api/agents/content', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'regenerate_single', postId: selected.id }) }); onClose(); } catch {} }} className="py-2.5 px-4 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 text-[10px] font-medium rounded-xl min-h-[44px]">{'\uD83D\uDD04'} {tCal.regenerate}</button>
+            <button onClick={async () => { if (!confirm(tCal.confirmDelete)) return; try { await fetch('/api/agents/content', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'skip_single', postId: selected.id }) }); onClose(); window.location.reload(); } catch {} }} className="py-2.5 px-4 bg-red-600/20 hover:bg-red-600/30 text-red-300 text-[10px] font-medium rounded-xl min-h-[44px]">{'\uD83D\uDDD1'} {tCal.delete}</button>
           </div>
         )}
       </div>
