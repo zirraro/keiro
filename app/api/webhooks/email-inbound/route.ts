@@ -96,13 +96,78 @@ export async function POST(req: NextRequest) {
           reason: 'unsubscribe_unknown_sender',
           source: 'prospect_reply',
         }, { onConflict: 'client_id,email' });
+
+        // Secondary lookup — sender's email isn't in CRM but the
+        // subject is usually "Re: <COMPANY NAME> — …". Try to find
+        // the prospect by company name fuzzy match so we can mark
+        // the original cold-targeted business as dead too.
+        // Owners reply from personal emails (gmail, free.fr) all
+        // the time; without this link the CRM stays stale.
+        let linkedProspectId: string | null = null;
+        const subj = normalized.subject || '';
+        const reSubj = subj.replace(/^(Re:|Fwd?:|TR:)\s*/i, '').trim();
+        // Take the chunk before the first em-dash, hyphen or pipe —
+        // that's typically the company name in our cold templates.
+        const companyGuess = reSubj.split(/[—–\-|:]/)[0].trim();
+        if (companyGuess && companyGuess.length >= 4 && companyGuess.length <= 80) {
+          const { data: matches } = await supabase
+            .from('crm_prospects')
+            .select('id, company, email')
+            .eq('user_id', ownerHeader)
+            .ilike('company', `%${companyGuess}%`)
+            .limit(3);
+          if (matches && matches.length > 0) {
+            linkedProspectId = matches[0].id;
+            for (const m of matches) {
+              await supabase.from('crm_prospects').update({
+                temperature: 'dead',
+                status: 'perdu',
+                email_sequence_status: 'stopped',
+                updated_at: now,
+              }).eq('id', m.id);
+              if (m.email) {
+                await supabase.from('email_blacklist').upsert({
+                  client_id: ownerHeader,
+                  email: m.email,
+                  reason: 'unsubscribe_linked_via_subject',
+                  source: 'prospect_reply',
+                }, { onConflict: 'client_id,email' });
+              }
+              await supabase.from('crm_activities').insert({
+                prospect_id: m.id,
+                type: 'email_replied',
+                description: `Désabonnement détecté via "${normalized.from_email}" (sujet "${subj.substring(0, 80)}") — prospect marqué dead`,
+                data: { classification: 'unsubscribe', linked_via: 'subject_company_match', source_email: normalized.from_email },
+                created_at: now,
+              });
+            }
+          }
+        }
+
+        await supabase.from('agent_logs').insert({
+          agent: 'email', action: 'inbound_processed', status: 'ok',
+          data: {
+            message_id: normalized.message_id,
+            from: normalized.from_email,
+            classification,
+            decision: linkedProspectId ? 'blacklisted_linked_via_subject' : 'blacklisted_no_prospect',
+            linked_prospect_id: linkedProspectId,
+            company_guess: companyGuess,
+          },
+          created_at: now,
+        });
+        return NextResponse.json({
+          ok: true,
+          result: linkedProspectId ? 'blacklisted_linked_via_subject' : 'blacklisted_no_prospect',
+          linked_prospect_id: linkedProspectId,
+        });
       }
       await supabase.from('agent_logs').insert({
         agent: 'email', action: 'inbound_processed', status: 'ok',
-        data: { message_id: normalized.message_id, from: normalized.from_email, classification, decision: 'blacklisted_no_prospect' },
+        data: { message_id: normalized.message_id, from: normalized.from_email, classification, decision: 'blacklisted_no_owner' },
         created_at: now,
       });
-      return NextResponse.json({ ok: true, result: 'blacklisted_no_prospect' });
+      return NextResponse.json({ ok: true, result: 'blacklisted_no_owner' });
     }
     await supabase.from('agent_logs').insert({
       agent: 'email',
