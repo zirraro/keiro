@@ -4401,20 +4401,21 @@ Real natural light matching the room's existing ambience. The dish must look pro
                   bestFlags = sN.amateur_flags;
                 }
               }
-              // Best score still below 5 — use the client's RAW photos.
-              // For a dish+venue pair, ALTERNATE between dish and venue
-              // (50/50 random) so the feed has variety: some posts show
-              // the room, others show the plate. Both are real photos —
-              // no AI artifacts, no 3D-render giveaways, no client
-              // confusion about "why is my restaurant suddenly 3D".
-              // Salvage when no acceptable result across all attempts.
-              // venue_changed in best result = always salvage even at
-              // high score, since DA preservation is the priority.
-              if (!isAcceptable(bestScore, bestFlags)) {
+              // Final salvage rule (founder ask: "pas plusieurs fail
+              // d'affilé qui envoi l'image brut"):
+              //   - If best score < 3 (catastrophic — every pass had
+              //     MAJOR DA violations + no usable composition), fall
+              //     back to a raw photo, alternated 50/50 venue/dish
+              //     for feed variety.
+              //   - If best score 3-4 (QA over-reports minor drift on
+              //     this venue), KEEP the best i2i. A composed scene
+              //     with slight pendant shift beats spamming the feed
+              //     with raw photos.
+              //   - Score ≥ 5 = isAcceptable already kept it.
+              if (bestScore < 3) {
                 let salvageUrl: string;
                 let salvageLabel: string;
                 if (hasVenuePair) {
-                  // Coin flip — venue OR dish, both authentic
                   if (Math.random() < 0.5) {
                     salvageUrl = venueCtx.file_url;
                     salvageLabel = 'raw_venue_qa_salvage';
@@ -4426,10 +4427,16 @@ Real natural light matching the room's existing ambience. The dish must look pro
                   salvageUrl = pickedUpload.file_url;
                   salvageLabel = 'raw_dish_qa_salvage';
                 }
-                console.log(`[Content] Final QA ${bestScore}/10 (flags: ${bestFlags.join(',') || 'none'}) — salvage: ${salvageLabel}`);
+                console.log(`[Content] Final QA ${bestScore}/10 catastrophic — salvage: ${salvageLabel}`);
                 visualUrl = salvageUrl;
                 await supabase.from('content_calendar').update({
                   publish_diagnostic: `client_photo_${salvageLabel}:${pickedUpload.id}`,
+                }).eq('id', inserted.id).throwOnError?.();
+              } else if (!isAcceptable(bestScore, bestFlags)) {
+                // Score 3-4 — keep the best i2i (already in visualUrl).
+                console.log(`[Content] Final QA ${bestScore}/10 (flags: ${bestFlags.join(',') || 'none'}) — keeping best i2i (better than raw fallback)`);
+                await supabase.from('content_calendar').update({
+                  publish_diagnostic: `client_photo_i2i_kept_low_qa:${pickedUpload.id}+score=${bestScore}`,
                 }).eq('id', inserted.id).throwOnError?.();
               }
             }
