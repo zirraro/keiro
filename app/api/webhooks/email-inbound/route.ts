@@ -80,8 +80,30 @@ export async function POST(req: NextRequest) {
   // Load the prospect + owning client + dossier (Léo's enrichment data).
   const ctx = await loadReplyContext(supabase, normalized.from_email);
   if (!ctx) {
-    // Unknown sender — might be cold inbound to the shared inbox. Log for
-    // manual review but don't reply from Hugo's voice.
+    // Unknown sender — might be cold inbound to the shared inbox.
+    // Special case: even WITHOUT a CRM match, if the classifier flagged
+    // unsubscribe we add the address to the global email_blacklist so
+    // we never accidentally cold-mail this person later. The blacklist
+    // check is per (client_id, email) so we'll need an owner id —
+    // grab it from the polling user via the X-User-Id header set by
+    // the polling routes (otherwise skip blacklist).
+    if (classification === 'unsubscribe') {
+      const ownerHeader = req.headers.get('x-user-id');
+      if (ownerHeader) {
+        await supabase.from('email_blacklist').upsert({
+          client_id: ownerHeader,
+          email: normalized.from_email,
+          reason: 'unsubscribe_unknown_sender',
+          source: 'prospect_reply',
+        }, { onConflict: 'client_id,email' });
+      }
+      await supabase.from('agent_logs').insert({
+        agent: 'email', action: 'inbound_processed', status: 'ok',
+        data: { message_id: normalized.message_id, from: normalized.from_email, classification, decision: 'blacklisted_no_prospect' },
+        created_at: now,
+      });
+      return NextResponse.json({ ok: true, result: 'blacklisted_no_prospect' });
+    }
     await supabase.from('agent_logs').insert({
       agent: 'email',
       action: 'inbound_processed',

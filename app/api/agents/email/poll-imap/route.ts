@@ -153,7 +153,13 @@ export async function POST(req: NextRequest) {
 
           const webhookRes = await fetch(`${baseUrl}/api/webhooks/email-inbound`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              // Tell the webhook which client owns this inbox so the
+              // unknown-sender unsubscribe branch can write to the
+              // right blacklist.
+              'X-User-Id': userId!,
+            },
             body: JSON.stringify({
               from_email: fromEmail,
               from_name: fromName,
