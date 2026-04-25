@@ -79,9 +79,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'decrypt_failed' }, { status: 500 });
   }
 
-  const sinceDate = profile.imap_last_poll_at
+  // Window for the search. First-time poll OR a manual rescan reaches
+  // back 30 days so we catch unsubscribe replies the user already
+  // opened in their own inbox client. Subsequent polls just look since
+  // last_poll_at.
+  const REQUEST_BACKFILL = req.nextUrl.searchParams.get('backfill') === '1';
+  const defaultLookback = REQUEST_BACKFILL ? 30 * 86400000 : 24 * 86400000;
+  const sinceDate = profile.imap_last_poll_at && !REQUEST_BACKFILL
     ? new Date(profile.imap_last_poll_at)
-    : new Date(Date.now() - 24 * 60 * 60 * 1000);
+    : new Date(Date.now() - defaultLookback);
 
   const client = new ImapFlow({
     host: imapHost,
@@ -99,10 +105,12 @@ export async function POST(req: NextRequest) {
     const lock = await client.getMailboxLock('INBOX');
 
     try {
-      // Search for UNSEEN messages received since last poll. IMAP SEARCH
-      // with SINCE has day-level precision; we still re-filter with
-      // internalDate below for accuracy.
-      const uids = await client.search({ seen: false, since: sinceDate }, { uid: true });
+      // Drop the `seen: false` filter — many users read emails in their
+      // own inbox client (phone, webmail) BEFORE we poll, marking them
+      // SEEN. If we required UNSEEN we'd miss every reply the user
+      // touched first. Instead we pull everything since last_poll_at and
+      // dedupe via message_id below (agent_logs lookup).
+      const uids = await client.search({ since: sinceDate }, { uid: true });
 
       for (const uid of (uids || []).slice(0, 30)) {
         try {
@@ -126,6 +134,23 @@ export async function POST(req: NextRequest) {
           const body = (parsed.text || htmlStr.replace(/<[^>]+>/g, ' ') || '').trim();
           if (!body) { results.push({ uid, result: 'empty_body' }); continue; }
 
+          // Idempotency check — skip messages we already processed
+          // (poll runs every 10 min and we no longer rely on UNSEEN).
+          if (parsed.messageId) {
+            const { data: alreadyProcessed } = await supabase
+              .from('agent_logs')
+              .select('id')
+              .eq('agent', 'email')
+              .eq('action', 'inbound_processed')
+              .contains('data', { message_id: parsed.messageId })
+              .limit(1)
+              .maybeSingle();
+            if (alreadyProcessed) {
+              results.push({ uid, result: 'already_processed' });
+              continue;
+            }
+          }
+
           const webhookRes = await fetch(`${baseUrl}/api/webhooks/email-inbound`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -141,7 +166,20 @@ export async function POST(req: NextRequest) {
           const wj = await webhookRes.json().catch(() => ({}));
           results.push({ uid, result: wj.result || (webhookRes.ok ? 'ok' : 'webhook_failed') });
 
-          await client.messageFlagsAdd(String(uid), ['\\Seen'], { uid: true });
+          // Mark processed in agent_logs for idempotency on next poll.
+          if (parsed.messageId) {
+            try {
+              await supabase.from('agent_logs').insert({
+                agent: 'email',
+                action: 'inbound_processed',
+                user_id: userId,
+                data: { message_id: parsed.messageId, from_email: fromEmail, subject: parsed.subject, result: wj.result || 'ok' },
+                created_at: new Date().toISOString(),
+              });
+            } catch {}
+          }
+          // No longer flag SEEN — leave the user's read state alone.
+          // The agent_logs idempotency check above prevents reprocessing.
         } catch (e: any) {
           results.push({ uid, result: `error:${String(e?.message || e).substring(0, 100)}` });
         }
