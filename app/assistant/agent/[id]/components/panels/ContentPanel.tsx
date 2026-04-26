@@ -15,13 +15,11 @@ import {
   fmt,
   KpiCard, SectionTitle, DonutChart, ProgressBar,
 } from './Primitives';
-import { SocialConnectBanners } from './SharedBanners';
-import { NetworkAutoModeToggles, NetworkControls } from './AutoModeToggle';
+import { NetworkControls } from './AutoModeToggle';
 import { InstagramAssetBadge } from './InstagramAssetBadge';
 import VideoMontageBox from './VideoMontageBox';
 import { useLanguage } from '@/lib/i18n/context';
 import type { PanelProps } from './types';
-import AgentUploadsPanel from '../AgentUploadsPanel';
 
 // ─── Inline Editorial Calendar for Content Agent ─────────────
 function ContentCalendarInline({ posts, onSelectPost }: { posts: any[]; onSelectPost: (p: any) => void }) {
@@ -590,12 +588,10 @@ function ContentProductionSection({ data, gradientFrom, gradientTo, stats, p }: 
       {/* Content direction — client can guide what to publish */}
       <ContentDirectionInput />
 
-      {/* Visual assets the client wants Jade to reference — photos of their
-          space, product shots, brand guidelines PDF. Each upload is
-          analysed (palette, ambiance, USPs) and fed into every content
-          generation prompt so posts stay grounded in the client's real
-          brand universe. */}
-      <AgentUploadsPanel agentId="content" />
+      {/* NOTE: Brand photos & documents (AgentUploadsPanel) moved to
+          the Documents tab so the main Content panel stays focused on
+          production + planning + perf. The brand assets still feed
+          every generation through the same /api/agents/uploads source. */}
 
       {/* Stories suggestion tip */}
       <div className="rounded-lg border border-purple-500/10 bg-purple-500/5 px-3 py-2 mb-3 flex items-center gap-2">

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import AgentUploadsPanel from './AgentUploadsPanel';
 
 /**
  * AgentDocuments — Real file manager for agent workspace.
@@ -186,8 +187,26 @@ export default function AgentDocuments({ agentId, gradientFrom }: { agentId: str
   }
 
   return (
-    <div className="space-y-4">
-      {/* Toolbar */}
+    <div className="space-y-6">
+      {/* Brand assets section — photos + brand-guideline PDFs analysed
+          for palette, ambiance, voice. Feeds every content generation,
+          DM, and email so agents stay grounded in the client's real
+          brand universe. Moved here from the Content panel main view. */}
+      {(agentId === 'content' || agentId === 'dm_instagram' || agentId === 'email' || agentId === 'jade' || agentId === 'hugo' || agentId === 'lena') && (
+        <div className="rounded-2xl border border-purple-500/15 bg-purple-500/5 p-3 sm:p-4">
+          <div className="mb-2 sm:mb-3">
+            <h3 className="text-xs sm:text-sm font-bold text-purple-200">
+              {'\u{1F3A8}'} Photos & documents de marque
+            </h3>
+            <p className="text-[10px] text-white/45 leading-relaxed">
+              Ces fichiers sont <strong className="text-white/65">analysés par les agents</strong> (palette, ambiance, ton) et nourrissent chaque post, email et réponse pour que la marque reste cohérente.
+            </p>
+          </div>
+          <AgentUploadsPanel agentId={agentId} />
+        </div>
+      )}
+
+      {/* Generic file manager toolbar */}
       <div className="flex items-center gap-2 flex-wrap">
         <input ref={fileInputRef} type="file" multiple accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.txt,.md,.png,.jpg,.jpeg,.gif" onChange={handleUpload} className="hidden" />
         <button
