@@ -1021,8 +1021,12 @@ export async function GET(request: NextRequest) {
   let prospectCount = 0;
 
   // ── DAILY EMAIL LIMITER ──
-  // Brevo free = 300/day. Quota resets at midnight PARIS time (UTC+1 winter, UTC+2 summer).
-  const DAILY_EMAIL_LIMIT = 300;
+  // Brevo daily cap. Was 300 (free tier) — bumped to 500 for paid plan.
+  // For Plan Business clients we also raise the per-slot batch cap so
+  // mrzirraro etc. can use more of the global pool when other clients
+  // are quiet. If we ever hit Brevo's actual ceiling we'll see it as
+  // SMTP errors and the caller can fall back to Resend automatically.
+  const DAILY_EMAIL_LIMIT = 500;
   // Calculate midnight Paris time (CET/CEST)
   const parisOffset = now.getMonth() >= 2 && now.getMonth() <= 9 ? 2 : 1; // Simple DST: March-October = +2, else +1
   const todayStart = new Date(now);
@@ -1323,7 +1327,9 @@ export async function GET(request: NextRequest) {
       const runStart = Date.now();
 
       // Cap batch to remaining daily quota — 60 per slot allows ~280/day across 5-6 slots
-      const maxBatchSize = Math.min(remainingQuota, 60);
+      // Bumped per-slot batch cap 60 → 100 so a single slot can ship
+      // more when daily headroom exists. Pairs with the 500/day cap.
+      const maxBatchSize = Math.min(remainingQuota, 100);
 
       for (const prospect of prospects) {
         // Quota guard — stop when we've queued enough for this slot

@@ -99,13 +99,18 @@ type PlanConfig = { zones: number; queries: number; details: number };
 const GMAPS_PLAN_CONFIG: Record<string, PlanConfig> = {
   starter:    { zones: 0, queries: 0, details: 0 },
   free:       { zones: 0, queries: 0, details: 0 },
+  // Plans below were tuned conservatively in April after the Places
+  // runaway incident. Now that the budget cap + check-constraint
+  // bug are fixed, Business especially needs more room — the user's
+  // current cap was 2×3×25 = max 150 prospect tries/day which is too
+  // light for a 49€+/mo plan that promises real prospection.
   // Créateur €49 — ~60 qualified prospects/mo, €2.30/mo cost (>80% margin)
-  createur:   { zones: 1, queries: 1, details: 2 },
+  createur:   { zones: 1, queries: 2, details: 8 },
   // Pro €99 — ~240/mo, €7/mo cost (>80% margin)
-  pro:        { zones: 1, queries: 2, details: 8 },
+  pro:        { zones: 2, queries: 3, details: 20 },
   // Business / Fondateurs €199/149 — ~750/mo, €22/mo cost (>80% margin)
-  business:   { zones: 2, queries: 3, details: 25 },
-  fondateurs: { zones: 2, queries: 3, details: 25 },
+  business:   { zones: 4, queries: 5, details: 60 },
+  fondateurs: { zones: 4, queries: 5, details: 60 },
   // Elite €999 / Agency — ~1500/mo, €40/mo cost (>95% margin on Elite)
   agence:     { zones: 3, queries: 4, details: 50 },
   agency:     { zones: 3, queries: 4, details: 50 },
