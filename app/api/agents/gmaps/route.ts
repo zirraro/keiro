@@ -387,6 +387,10 @@ async function runGMapsScan(orgId: string | null = null, userId: string | null =
   let totalImported = 0;
   let totalSkipped = 0;
   let totalErrors = 0;
+  // Diagnostic samples captured into the daily_scan log so we can
+  // tell WHY errors happened (RLS? constraint? schema drift?) without
+  // having to re-run with extra logging.
+  const errorSamples: string[] = [];
   const importedNames: string[] = [];
   const scannedZones: string[] = [];
 
@@ -493,7 +497,17 @@ async function runGMapsScan(orgId: string | null = null, userId: string | null =
 
           if (insertError) {
             if (insertError.code === '23505') { totalSkipped++; }
-            else { console.warn(`[GMaps] Insert error:`, insertError.message); totalErrors++; }
+            else {
+              console.warn(`[GMaps] Insert error:`, insertError.code, insertError.message, insertError.details);
+              totalErrors++;
+              // Capture first 5 distinct error messages so the daily_scan
+              // log row carries actionable diagnostics. Without this we see
+              // 'errors: 25' with no idea WHAT failed.
+              const errMsg = `${insertError.code || 'unknown'}: ${insertError.message || 'no message'}`;
+              if (errorSamples.length < 5 && !errorSamples.includes(errMsg)) {
+                errorSamples.push(errMsg);
+              }
+            }
             continue;
           }
 
@@ -517,6 +531,10 @@ async function runGMapsScan(orgId: string | null = null, userId: string | null =
         } catch (e: any) {
           console.warn(`[GMaps] Error processing place:`, e.message);
           totalErrors++;
+          const msg = `caught: ${e?.message || 'no message'}`;
+          if (errorSamples.length < 5 && !errorSamples.includes(msg)) {
+            errorSamples.push(msg);
+          }
         }
       }
 
@@ -545,6 +563,7 @@ async function runGMapsScan(orgId: string | null = null, userId: string | null =
     imported: totalImported,
     skipped: totalSkipped,
     errors: totalErrors,
+    error_samples: errorSamples,
     imported_names: importedNames.slice(0, 50),
     total_names: importedNames.length,
     timestamp: now,

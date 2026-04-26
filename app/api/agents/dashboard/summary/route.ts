@@ -195,7 +195,7 @@ export async function GET(request: Request) {
       .select('email_sequence_step, email_sequence_status, email_opens_count, email_clicks_count, last_email_sent_at')
       .eq(orgId ? 'org_id' : 'user_id', orgId || user.id);
 
-    let emailsSent = 0, emailOpens = 0, emailClicks = 0, emailsSentToday = 0;
+    let emailsSent = 0, emailOpens = 0, emailClicks = 0;
     const emailSeqCounts: Record<string, number> = {};
     const todayStart = new Date();
     todayStart.setUTCHours(0, 0, 0, 0);
@@ -207,8 +207,24 @@ export async function GET(request: Request) {
       emailOpens += (p.email_opens_count as number) || 0;
       emailClicks += (p.email_clicks_count as number) || 0;
       if (step > 0) emailsSent += step;
-      const lastSent = p.last_email_sent_at as string | null;
-      if (lastSent && lastSent >= todayIso) emailsSentToday++;
+    }
+
+    // ── ACCURATE 'emails today' from crm_activities ──
+    // The previous counter was emailProspects.filter(last_email_sent_at >= today)
+    // which counts UNIQUE PROSPECTS contacted today, not emails sent.
+    // A prospect that received 2 emails today only counted as 1 → undercount.
+    // crm_activities has one row per actual send.
+    let emailsSentToday = 0;
+    try {
+      const { count: countToday } = await supabase
+        .from('crm_activities')
+        .select('id, crm_prospects!inner(user_id, org_id)', { count: 'exact', head: true })
+        .eq(orgId ? 'crm_prospects.org_id' : 'crm_prospects.user_id', orgId || user.id)
+        .eq('type', 'email')
+        .gte('created_at', todayIso);
+      emailsSentToday = countToday || 0;
+    } catch (e: any) {
+      console.warn('[dashboard] emails_today count failed:', e?.message);
     }
 
     // ─── DM stats ─────────────────────────────────────────
