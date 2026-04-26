@@ -637,44 +637,59 @@ function WeekStrip({ cursor, byDay, onSelect, en }: { cursor: Date; byDay: Map<s
     ? ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
     : ['LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM', 'DIM'];
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-7 gap-2">
+    <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-7 gap-2 sm:gap-3">
       {days.map((d, i) => {
         const k = ymd(d);
         const isToday = k === today;
         const dayPosts = byDay.get(k) || [];
         return (
-          <div key={k} className={`bg-white/[0.02] border ${isToday ? 'border-purple-500/40' : 'border-white/10'} rounded-xl p-2 min-h-[160px]`}>
-            <div className="flex items-center justify-between mb-2">
-              <div className={`text-[10px] font-bold uppercase ${isToday ? 'text-purple-300' : 'text-white/40'}`}>{dayShort[i]} {d.getDate()}</div>
-              {dayPosts.length > 0 && <span className="text-[9px] text-white/40">{dayPosts.length}</span>}
+          <div key={k} className={`bg-white/[0.02] border ${isToday ? 'border-purple-500/50 ring-1 ring-purple-500/20' : 'border-white/10'} rounded-xl p-2.5 min-h-[180px]`}>
+            <div className="flex items-baseline justify-between mb-2.5 pb-2 border-b border-white/5">
+              <div className={`flex items-baseline gap-1.5 ${isToday ? 'text-purple-300' : 'text-white/70'}`}>
+                <span className="text-[10px] font-bold uppercase tracking-wider opacity-70">{dayShort[i]}</span>
+                <span className="text-lg font-black leading-none">{d.getDate()}</span>
+              </div>
+              {dayPosts.length > 0 && (
+                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${isToday ? 'bg-purple-500/30 text-purple-200' : 'bg-white/10 text-white/60'}`}>
+                  {dayPosts.length}
+                </span>
+              )}
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               {dayPosts.map(p => {
                 const meta = PLATFORM_META[p.platform || 'instagram'];
                 return (
                   <button
                     key={p.id}
                     onClick={() => onSelect(p)}
-                    className={`w-full text-left rounded-lg border ${STATUS_COLORS[p.status] || 'border-white/10'} overflow-hidden hover:ring-1 hover:ring-purple-500/40 transition`}
+                    className={`w-full text-left rounded-xl border ${STATUS_COLORS[p.status] || 'border-white/10'} overflow-hidden hover:ring-2 hover:ring-purple-500/40 transition shadow-sm`}
                   >
                     {p.visual_url ? (
                       <div className="relative aspect-square">
                         <img src={p.visual_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                        <div className={`absolute top-1 right-1 w-2 h-2 rounded-full ${STATUS_DOT[p.status] || 'bg-white/30'}`} />
-                        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent px-1.5 py-1">
-                          <div className="text-[8px] text-white/90 font-medium truncate">{p.scheduled_time?.substring(0, 5) || ''} {meta?.tag}</div>
-                        </div>
+                        <span className={`absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full ring-2 ring-black/40 ${STATUS_DOT[p.status] || 'bg-white/30'}`} />
+                        {meta?.tag && (
+                          <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-md bg-black/65 text-white text-[9px] font-bold tracking-wide">
+                            {meta.tag}
+                          </span>
+                        )}
+                        {p.scheduled_time && (
+                          <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/85 to-transparent px-2 py-1.5">
+                            <div className="text-[10px] text-white font-bold">{p.scheduled_time.substring(0, 5)}</div>
+                          </div>
+                        )}
                       </div>
                     ) : (
-                      <div className="aspect-square bg-gradient-to-br from-purple-900/30 to-pink-900/30 flex items-center justify-center p-2">
-                        <span className="text-[9px] text-white/50 text-center line-clamp-3">{(p.hook || p.caption || '').substring(0, 60)}</span>
+                      <div className="aspect-square bg-gradient-to-br from-purple-900/30 to-pink-900/30 flex items-center justify-center p-2.5">
+                        <span className="text-[10px] text-white/70 text-center line-clamp-4 leading-snug">{(p.hook || p.caption || '').substring(0, 80)}</span>
                       </div>
                     )}
-                    <div className="px-1.5 py-1 text-[9px] text-white/60 truncate">{(p.hook || '').substring(0, 30)}</div>
                   </button>
                 );
               })}
-              {dayPosts.length === 0 && <div className="text-[9px] text-white/15 text-center py-4">—</div>}
+              {dayPosts.length === 0 && (
+                <div className="flex items-center justify-center text-[10px] text-white/15 py-6 italic">{en ? '· empty' : '· vide'}</div>
+              )}
             </div>
           </div>
         );
