@@ -231,7 +231,15 @@ COMPOSITION RULE — CRITICAL:
 - Camera distance: WIDE shot of the room. The plate sits at natural eating distance from another diner's POV, NOT close to the lens. NO macro photography. NO food-photography hero crop.
 - Do NOT zoom into the dish. Do NOT use aggressive bokeh that erases the room. Do NOT invent new furniture. Keep the room's layout, furniture, wall colour, lighting, materials EXACTLY as shown in the reference.
 - Match the reference's natural colour palette — terracotta walls stay terracotta, marble stays marble, wood stays wood. NO violet, NO purple, NO amber unless the reference photo itself contains them.
-- Only the dish described above belongs in the frame — no generic food, no props that were not already in the reference room.` : '';
+- Only the dish described above belongs in the frame — no generic food, no props that were not already in the reference room.
+
+⛔ DISH FIDELITY — TRUTH-IN-MENU RULE ⛔
+The dish you depict will be SEEN BY FUTURE CUSTOMERS who then come to the restaurant expecting that exact plate. If the photo shows what they don't get, they're disappointed and the restaurant loses trust.
+- KEEP the source dish's QUANTITY: same number of pieces, same portion size, same protein-to-side ratio. If the source plate has 3 prawns, do NOT show 6. If there's one glass of wine, do NOT add two.
+- KEEP the same INGREDIENTS visible. If there are radishes on top, keep radishes. Do NOT swap herbs (basil → cilantro), do NOT add ingredients that weren't there (no extra micro-greens, no decorative flowers, no sauce drizzle the chef doesn't actually do).
+- KEEP the tableware count: same number of plates, glasses, cutlery in frame. Do NOT multiply.
+- You CAN improve LIGHTING (warmer, softer), CAMERA ANGLE (slightly higher/lower), DEPTH OF FIELD, and the AMBIENT BACKGROUND. You CAN clean clutter. You CANNOT change WHAT IS ON THE PLATE.
+- If you're unsure whether something would change quantity/ingredient identity, the answer is: keep it as the source has it.` : '';
 
     // Pick the right style guide. When we have a dishContext (meaning
     // we're working from a real client's dish+venue pair), use the
@@ -242,8 +250,17 @@ COMPOSITION RULE — CRITICAL:
     const styleGuideForI2I = dishContext ? SEEDREAM_STYLE_GUIDE_CLIENT : SEEDREAM_STYLE_GUIDE_KEIROAI;
 
     const optimizedText = await callClaude({
-      system: styleGuideForI2I + `\n\nIMPORTANT: You are writing an IMAGE-TO-IMAGE prompt. ${dishContext ? 'The reference image is the client\'s REAL restaurant / boutique interior — it must stay recognisable AND the room (not the dish) must be the visual subject. The dish is a tasteful accent, not the hero.' : 'The reference image is the client\'s REAL photo. Re-render with: (a) better professional lighting, (b) cleaner composition, (c) magazine-quality atmosphere. Keep the SUBJECT and SPACE recognisable — never invent new elements or change the venue type.'}${dishBlock}`,
-      message: `Write the image-to-image prompt.\n\nPost brief: ${visualDescription}\n\nFormat: ${format}\n\nReturn just the prompt, no intro, no explanation.`,
+      system: styleGuideForI2I + `\n\nIMPORTANT: You are writing an IMAGE-TO-IMAGE prompt. ${dishContext ? 'The reference image is the client\'s REAL restaurant / boutique interior — it must stay recognisable AND the room (not the dish) must be the visual subject. The dish is a tasteful accent, not the hero.' : `The reference image is the client\'s REAL photo. Re-render with: (a) better professional lighting, (b) cleaner composition, (c) magazine-quality atmosphere.
+
+⛔ TRUTH-IN-MENU RULE — applies to ANY dish/product/item shot:
+- Keep the EXACT QUANTITY shown in the source. 3 prawns stays 3 prawns. One glass stays one glass.
+- Keep the SAME INGREDIENTS visible. Don't swap herbs, don't add micro-greens that aren't there, don't drizzle a sauce the chef doesn't use.
+- Keep the SAME TABLEWARE COUNT. Don't multiply plates, glasses, cutlery.
+- You CAN improve: lighting, depth-of-field, camera angle slightly, ambient background, clean clutter.
+- You CANNOT change: what's on the plate, how much of it, the chef's presentation choices.
+- A future customer will order based on this photo. If they don't get what they saw, the restaurant loses trust.
+Keep the SUBJECT and SPACE recognisable — never invent new elements or change the venue type.`}${dishBlock}`,
+      message: `Write the image-to-image prompt.\n\nPost brief: ${visualDescription}\n\nFormat: ${format}\n\n${dishContext ? '⛔ TRUTH-IN-MENU REMINDER: A future customer will see this image and order based on it. Preserve quantity, ingredients, plate count, glass count exactly as the source. Improve lighting/composition, never change WHAT is on the plate.\n\n' : ''}Return just the prompt, no intro, no explanation.`,
       maxTokens: dishContext ? 500 : 350,
     });
 

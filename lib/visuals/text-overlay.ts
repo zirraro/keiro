@@ -80,14 +80,20 @@ When NO (silence is louder):
 - You'd write something generic ("Tradition & Modernité", "Le goût du vrai") — DON'T.
 - The line you'd write is just the hook with the same energy → caption already does the job.
 
-⛔ HARDEST RULE — VISUAL-TEXT COHERENCE ⛔
-Before you say YES, READ the visual_description carefully and ask yourself: "Does any element in this image VISUALLY support the line I want to write?"
-- If the visual is a plate of food and you want to write "Sondages vs résultats" — that's NONSENSE. The food has nothing to do with elections. The viewer is confused, not stopped.
-- If the visual is a coffee shop interior and you want to write "Le goût des choses simples" — that COULD work because the visual literally IS a coffee shop.
-- If the visual is abstract / 3D / split-screen and your line is news-related — only YES if the abstract elements directly evoke the news (e.g. ballot boxes for elections, charts for economy).
-- If the line introduces a concept that does NOT appear in the visual_description, the answer is NO. Period.
+⛔ HARDEST RULE — SURGICAL VISUAL-TEXT COHERENCE ⛔
+Before you say YES, name AT LEAST ONE specific element from the visual_description that VISUALLY anchors the line you want to write. If you can't name a concrete visual anchor, the answer is NO.
 
-The viewer reads the image first. The text MUST land as "ah of course" — not as "what does this have to do with anything?".
+This is surgical — not "vaguely on theme":
+- ❌ NO: visual is a plate of grilled octopus. Line: "Sondages vs résultats". → octopus has zero visual link to elections. The viewer asks "what?". REFUSE.
+- ❌ NO: visual is a coffee shop interior. Line: "L'IA va remplacer les baristas ?". → no AI element in the image, no robot, no screen. REFUSE even if the news is hot.
+- ❌ NO: visual is a fleuriste close-up. Line: "Le coiffeur qui a publié pendant la finale". → coiffeur has no anchor in a fleuriste image. REFUSE.
+- ✅ YES: visual is a plate with one tiny portion of food, lots of empty plate. Line: "On t'a vendu plus que ça". → the empty space IS the anchor, the line names it.
+- ✅ YES: visual is a barber with a single chair empty, mid-day. Line: "Personne ne veut payer ça". → empty chair IS the anchor.
+- ✅ YES: visual is a salon interior with old equipment. Line: "Des outils qui ont fait 10 000 coupes". → old equipment IS the anchor.
+
+The line must FEEL inevitable once you read the image. The viewer's brain should connect text↔image in <500ms without effort. If they need to read the caption to "get" why the text is there, the overlay has failed.
+
+ABSTRACT / METAPHORICAL lines are usually a refusal unless the image itself contains the metaphor's anchor (e.g. line about "starting from scratch" + image of empty workspace = OK because the empty workspace IS the scratch).
 
 CRITICAL CALIBRATION: Across 100 posts in a typical month for ONE business, no more than ~10-15 should have an overlay. We have a deterministic upstream gate that already kills overlay if recent rate ≥20%. So when this prompt fires, you have a chance — make it count or pass. DEFAULT TO NO. Only YES when:
 1. The line is exceptional — better than 90% of overlays in the wild.
