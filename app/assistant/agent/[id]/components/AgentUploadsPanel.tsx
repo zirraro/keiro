@@ -55,7 +55,16 @@ export default function AgentUploadsPanel({
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch(`/api/agents/uploads?agent_id=${agentId}`, { credentials: 'include' });
+      // For the content panel, show photos from EVERY agent the user
+      // has uploaded under. Clara's onboarding photos, Jade's
+      // workspace photos, Léna's content photos all surface here so
+      // the user has a single place to manage assets that Léna might
+      // pick. Without cross_agent=true the user can't see — and so
+      // can't delete — photos uploaded via another panel.
+      const url = agentId === 'content'
+        ? `/api/agents/uploads?agent_id=${agentId}&cross_agent=true`
+        : `/api/agents/uploads?agent_id=${agentId}`;
+      const res = await fetch(url, { credentials: 'include' });
       if (!res.ok) return;
       const data = await res.json();
       setUploads(data.uploads || []);

@@ -34,15 +34,22 @@ export async function GET(req: NextRequest) {
   if (error || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const agentId = req.nextUrl.searchParams.get('agent_id');
+  // crossAgent=true returns all of the user's image uploads regardless
+  // of which agent panel they were uploaded under. The content panel
+  // uses this so the user sees every asset Léna can actually pick from
+  // (previously photos uploaded via Clara/onboarding were invisible
+  // here but kept being reused by Léna — confusing).
+  const crossAgent = req.nextUrl.searchParams.get('cross_agent') === 'true';
   const supabase = getSupabaseAdmin();
 
   let query = supabase
     .from('agent_uploads')
     .select('id, agent_id, file_url, file_type, file_name, caption, ai_analysis, analyzed_at, created_at')
     .eq('user_id', user.id)
+    .is('archived_at', null)
     .order('created_at', { ascending: false })
-    .limit(50);
-  if (agentId) query = query.eq('agent_id', agentId);
+    .limit(80);
+  if (agentId && !crossAgent) query = query.eq('agent_id', agentId);
 
   const { data } = await query;
   const current = (data || []).length;
@@ -188,6 +195,33 @@ export async function DELETE(req: NextRequest) {
   if (!id) return NextResponse.json({ error: 'id requis' }, { status: 400 });
 
   const supabase = getSupabaseAdmin();
-  await supabase.from('agent_uploads').delete().eq('id', id).eq('user_id', user.id);
+  // First read the row so we can find SAME file_url under OTHER agent_ids.
+  // Without this, deleting a photo from the content panel leaves the same
+  // file under agent_id='onboarding' (Clara's earlier scan) and Léna's
+  // cross-agent asset picker keeps using it — we saw this for mrzirraro.
+  const { data: row } = await supabase
+    .from('agent_uploads')
+    .select('file_url')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .maybeSingle();
+  if (row?.file_url) {
+    // Archive every row for this user+file_url (any agent). archived_at
+    // is what Léna's generator filters on, so the photo is excluded
+    // from any future generation immediately.
+    await supabase
+      .from('agent_uploads')
+      .update({ archived_at: new Date().toISOString() })
+      .eq('user_id', user.id)
+      .eq('file_url', row.file_url);
+  } else {
+    // Fallback: archive just this row by id (preserves history if
+    // file_url couldn't be resolved — e.g. row already removed).
+    await supabase
+      .from('agent_uploads')
+      .update({ archived_at: new Date().toISOString() })
+      .eq('id', id)
+      .eq('user_id', user.id);
+  }
   return NextResponse.json({ ok: true });
 }
