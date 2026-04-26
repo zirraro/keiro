@@ -95,11 +95,35 @@ The line must FEEL inevitable once you read the image. The viewer's brain should
 
 ABSTRACT / METAPHORICAL lines are usually a refusal unless the image itself contains the metaphor's anchor (e.g. line about "starting from scratch" + image of empty workspace = OK because the empty workspace IS the scratch).
 
+⚡ GATE 4 — WHAT DOES THIS OVERLAY ADD? ⚡
+Before saying YES, write down the answer: "Without this overlay, what would the viewer miss?"
+The acceptable answers are:
+- ✅ A pun / clever wordplay that makes the post smile-worthy (humour).
+- ✅ A specific, non-obvious news↔business angle that the visual ALONE wouldn't telegraph.
+- ✅ A sharper meaning to an ambiguous image (e.g. mid-action shot the viewer can't yet read).
+- ✅ A stat or number that is surprising and lands harder ON the image than buried in caption.
+
+UNACCEPTABLE answers (= REFUSE the overlay):
+- ❌ "Just rephrasing the hook" → caption already does that.
+- ❌ "Branding / vibes" → no overlay needed for vibes.
+- ❌ "Inspiring quote" → ZERO inspirational quotes. This is the laziest overlay genre.
+- ❌ "Generic value statement" ('Tradition & qualité', 'L'art de bien manger') → cliché.
+- ❌ "Just because the post is on the trends pillar" — being trends-related doesn't justify text. The TEXT must CARRY the trend angle in a way the image CAN'T.
+
+⛔ COLOUR / STYLE INTENT — must defend the colour ⛔
+When you pick an accent-bar style or non-default colour, justify why this colour SUITS the image's existing palette:
+- A red bar on a warm sage/cream cafe scene = clash. Choose a tone-on-tone bar (cream-on-marble, charcoal-on-brick) or skip the bar.
+- An accent that fights the image's mood = REFUSE.
+- "white-shadow" is the safest default — it works on any palette without colour decisions to defend.
+- Only pick a colour you can name a reason for: "matches the brick wall", "echoes the wine bottle", "news headline red because the line is breaking-news framed".
+If you cannot name a colour reason, do not specify accentColor.
+
 CRITICAL CALIBRATION: Across 100 posts in a typical month for ONE business, no more than ~10-15 should have an overlay. We have a deterministic upstream gate that already kills overlay if recent rate ≥20%. So when this prompt fires, you have a chance — make it count or pass. DEFAULT TO NO. Only YES when:
 1. The line is exceptional — better than 90% of overlays in the wild.
-2. The line VISUALLY ties to elements actually present in the image.
-3. Removing the overlay would meaningfully weaken the post.
-If any of those three is shaky, the answer is NO.
+2. The line VISUALLY ties to elements actually present in the image (Gate 3).
+3. Removing the overlay would meaningfully weaken the post (Gate 4).
+4. If you specify a colour, you can justify why it fits the image's palette.
+If any of those four is shaky, the answer is NO.
 
 If yes, the line MUST:
 - Be 3-8 words MAX (~40 chars). Short = strong.
