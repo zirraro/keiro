@@ -128,7 +128,11 @@ export default function ImageGrid({
       {/* Upload Zone */}
       {user && <UploadZone type="image" onUpload={handleUpload} />}
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      {/* Tighter responsive grid. Was 2/3/4 with gap-4 — produced 480px
+          tiles on a 1920px desktop, way too big. Now scales 3 → 7 with
+          smaller gap so each thumb stays around 200-250px max even on
+          ultrawide. Feels like a real Instagram desktop view. */}
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-2 sm:gap-3">
         {images.map((image) => (
         <ImageCard
           key={image.id}

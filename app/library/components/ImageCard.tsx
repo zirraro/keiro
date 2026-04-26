@@ -91,7 +91,10 @@ export default function ImageCard({
   return (
     <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden group hover:shadow-lg transition-shadow">
       {/* Image preview */}
-      <div className="relative aspect-video bg-neutral-900 cursor-pointer overflow-hidden" onClick={() => setShowPreview(true)}>
+      {/* Square aspect for IG-style consistency. Was aspect-video which
+          made every gallery tile a wide cinema crop, very off for what
+          is overwhelmingly square IG content. */}
+      <div className="relative aspect-square bg-neutral-900 cursor-pointer overflow-hidden" onClick={() => setShowPreview(true)}>
         <img
           src={image.thumbnail_url || image.image_url}
           alt={image.title || image.news_title || 'Image'}

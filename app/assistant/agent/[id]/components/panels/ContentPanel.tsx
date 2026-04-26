@@ -478,11 +478,13 @@ function NetworkPreviewTab() {
         </div>
       )}
 
-      {/* Instagram-profile-style tight grid: 3 columns, no card chrome,
-          square thumbnails. Tap to open the lightbox with caption +
-          metrics + native link. Matches the actual IG profile look so
-          the user sees their feed as their followers see it. */}
-      <div className="grid grid-cols-3 gap-0.5 sm:gap-1 rounded-xl overflow-hidden bg-black/20">
+      {/* Instagram-profile-style tight grid. Capped at max-w-md so on
+          desktop the thumbs stay phone-sized — matches what the
+          client's followers actually see when they open IG on mobile.
+          Without the cap, 3 cols on a 1200px+ viewport blew up to
+          400px tiles, which felt like a TV display, not a feed
+          preview. Mobile already lands at ~120px tiles. */}
+      <div className="grid grid-cols-3 gap-0.5 sm:gap-1 rounded-xl overflow-hidden bg-black/20 max-w-md mx-auto">
         {cur.posts.map(post => (
           <button
             key={post.id}
