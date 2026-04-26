@@ -2733,6 +2733,83 @@ Retourne UNIQUEMENT le JSON.`,
         }
       }
 
+      case 'batch_plan': {
+        // ── Plan N days of drafts in one shot ──
+        // Body: {
+        //   days: number,                 // 1..31
+        //   platforms?: string[],          // default: client's connected list (or 'instagram')
+        //   publishMode?: 'auto'|'notify', // sets publish_mode logged for downstream cron
+        //   skipExistingDates?: boolean,   // default true — don't double-book a day
+        // }
+        // Drafts are status='draft' so the user reviews before publish, regardless
+        // of publishMode. publishMode only kicks in when the post is later approved
+        // and the cron picks it up (cf. publish-scheduled).
+        const days = Math.max(1, Math.min(31, Number(body.days) || 7));
+        const requestedPlatforms: string[] = Array.isArray(body.platforms) && body.platforms.length > 0
+          ? body.platforms
+          : ['instagram'];
+        const publishMode = body.publishMode === 'notify' ? 'notify' : 'auto';
+        const skipExisting = body.skipExistingDates !== false;
+
+        // Persist publish_mode preference so cron honours it
+        try {
+          await supabase.from('agent_logs').insert({
+            agent: 'content',
+            action: 'publish_mode_config',
+            status: 'success',
+            data: { publish_mode: publishMode, set_via: 'batch_plan' },
+            ...(orgId ? { org_id: orgId } : {}),
+          });
+        } catch {}
+
+        // Find dates already covered so we don't double-book
+        const startDate = new Date();
+        const endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + days - 1);
+        let existingDates = new Set<string>();
+        if (skipExisting && userId) {
+          const { data: existing } = await supabase
+            .from('content_calendar')
+            .select('scheduled_date, platform')
+            .eq('user_id', userId)
+            .gte('scheduled_date', startDate.toISOString().split('T')[0])
+            .lte('scheduled_date', endDate.toISOString().split('T')[0])
+            .in('status', ['draft', 'approved', 'published']);
+          existingDates = new Set((existing || []).map((r: any) => `${r.scheduled_date}|${r.platform}`));
+        }
+
+        const created: any[] = [];
+        const failed: any[] = [];
+        for (let d = 0; d < days; d++) {
+          const dateObj = new Date(startDate);
+          dateObj.setDate(dateObj.getDate() + d);
+          const dateStr = dateObj.toISOString().split('T')[0];
+          const dow = dateObj.getDay();
+          for (const plat of requestedPlatforms) {
+            if (existingDates.has(`${dateStr}|${plat}`)) continue;
+            try {
+              const res = await generateDailyPost(supabase, dateStr, dow, plat, undefined, true, orgId, userId, clientSettings);
+              const j: any = await (res as any).json?.();
+              if (j?.ok) {
+                created.push({ date: dateStr, platform: plat, id: j.post?.id || null });
+              } else {
+                failed.push({ date: dateStr, platform: plat, error: j?.error || 'unknown' });
+              }
+            } catch (e: any) {
+              failed.push({ date: dateStr, platform: plat, error: e?.message || 'failed' });
+            }
+          }
+        }
+
+        return NextResponse.json({
+          ok: true,
+          created: created.length,
+          failed: failed.length,
+          publishMode,
+          details: { created, failed: failed.slice(0, 10) },
+        });
+      }
+
       case 'calendar': {
         const startDate = body.startDate || new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
         const endDate = body.endDate || new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0];

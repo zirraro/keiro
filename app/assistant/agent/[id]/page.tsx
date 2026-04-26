@@ -334,6 +334,35 @@ function EditorialCalendarFull({ agentId: _agentId }: { agentId: string }) {
   const [statusFilter, setStatusFilter] = useState<Set<string>>(new Set(['draft', 'approved', 'published']));
   const [platformFilter, setPlatformFilter] = useState<Set<string>>(new Set(['instagram', 'tiktok', 'linkedin']));
   const [selected, setSelected] = useState<any>(null);
+  const [batchOpen, setBatchOpen] = useState(false);
+  const [batchDays, setBatchDays] = useState<number>(7);
+  const [batchMode, setBatchMode] = useState<'auto' | 'notify'>('notify');
+  const [batchBusy, setBatchBusy] = useState(false);
+  const [batchResult, setBatchResult] = useState<string | null>(null);
+  const launchBatch = useCallback(async () => {
+    setBatchBusy(true);
+    setBatchResult(null);
+    try {
+      const platforms = Array.from(platformFilter);
+      const res = await fetch('/api/agents/content', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'batch_plan', days: batchDays, platforms, publishMode: batchMode }),
+      });
+      const j = await res.json();
+      if (j?.ok) {
+        setBatchResult(`✓ ${j.created} brouillons créés${j.failed ? ` · ${j.failed} échecs` : ''}`);
+        setTimeout(() => { setBatchOpen(false); window.location.reload(); }, 1200);
+      } else {
+        setBatchResult(j?.error || 'Échec planification');
+      }
+    } catch (e: any) {
+      setBatchResult(e?.message || 'Échec planification');
+    } finally {
+      setBatchBusy(false);
+    }
+  }, [batchDays, batchMode, platformFilter]);
   const [view, setView] = useState<ViewMode>('week');
   const [cursor, setCursor] = useState<Date>(() => {
     const d = new Date();
@@ -530,8 +559,89 @@ function EditorialCalendarFull({ agentId: _agentId }: { agentId: string }) {
           {!activePlatforms.has('tiktok') && !activePlatforms.has('linkedin') && (
             <span className="text-[9px] text-white/40 italic ml-1">{tCal.disabledHint}</span>
           )}
+          <button
+            onClick={() => setBatchOpen(true)}
+            className="ml-auto px-3 py-1.5 min-h-[36px] rounded-lg text-[11px] font-bold bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-white border border-emerald-300/40 shadow-lg shadow-emerald-500/30 transition flex items-center gap-1.5"
+            title={en ? 'Plan a batch of drafts (week / month)' : 'Planifier un lot de brouillons (semaine / mois)'}
+          >
+            <span>{'\uD83D\uDDD3\uFE0F'}</span> {en ? 'Plan batch' : 'Planifier'}
+          </button>
         </div>
       </div>
+
+      {/* Batch planning modal */}
+      {batchOpen && (
+        <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-3" onClick={() => !batchBusy && setBatchOpen(false)}>
+          <div className="bg-gray-900 rounded-3xl shadow-2xl max-w-md w-full p-5 sm:p-6 border border-white/10" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <h3 className="text-base font-black text-white mb-1">{en ? 'Plan a batch' : 'Planifier un lot'}</h3>
+                <p className="text-[11px] text-white/60 leading-relaxed">{en ? 'Léna creates a stack of drafts for the next N days. Review then publish — or let auto-publish handle it.' : 'Léna crée un stack de brouillons pour les N prochains jours. Tu valides puis publies — ou tu laisses la publication auto.'}</p>
+              </div>
+              <button onClick={() => !batchBusy && setBatchOpen(false)} className="text-white/40 hover:text-white text-lg p-1 -mt-1">×</button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wide text-white/60 mb-1.5">{en ? 'How far ahead?' : 'Jusqu\'à quand ?'}</label>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {[3, 7, 14, 30].map(n => (
+                    <button
+                      key={n}
+                      onClick={() => setBatchDays(n)}
+                      className={`px-2 py-2 min-h-[44px] rounded-lg text-xs font-bold transition border ${batchDays === n ? 'bg-emerald-500 text-white border-emerald-300 shadow-lg shadow-emerald-500/30' : 'bg-white/5 text-white/70 border-white/10 hover:bg-white/10'}`}
+                    >
+                      {n === 3 ? (en ? '3d' : '3j') : n === 7 ? (en ? '1 wk' : '1 sem') : n === 14 ? (en ? '2 wks' : '2 sem') : (en ? '1 mo' : '1 mois')}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wide text-white/60 mb-1.5">{en ? 'Networks' : 'Réseaux'}</label>
+                <p className="text-[10px] text-white/50 italic">
+                  {Array.from(platformFilter).map(p => PLATFORM_META[p]?.label || p).join(' · ') || (en ? 'Pick at least one network filter above.' : 'Sélectionne au moins un réseau dans les filtres ci-dessus.')}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wide text-white/60 mb-1.5">{en ? 'Publication mode' : 'Mode publication'}</label>
+                <div className="space-y-1.5">
+                  <button
+                    onClick={() => setBatchMode('notify')}
+                    className={`w-full text-left p-3 min-h-[56px] rounded-xl border transition ${batchMode === 'notify' ? 'bg-amber-500/15 border-amber-400 shadow-lg shadow-amber-500/20' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}
+                  >
+                    <div className="text-xs font-bold text-white mb-0.5">{'\uD83D\uDD14'} {en ? 'Notify + I validate (1 credit / post)' : 'Me notifier + je valide (1 crédit / post)'}</div>
+                    <div className="text-[10px] text-white/60 leading-relaxed">{en ? 'You get an email/notif before each publish, you click to confirm.' : 'Tu reçois un email/notif avant chaque publication, tu cliques pour confirmer.'}</div>
+                  </button>
+                  <button
+                    onClick={() => setBatchMode('auto')}
+                    className={`w-full text-left p-3 min-h-[56px] rounded-xl border transition ${batchMode === 'auto' ? 'bg-purple-500/15 border-purple-400 shadow-lg shadow-purple-500/20' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}
+                  >
+                    <div className="text-xs font-bold text-white mb-0.5">{'\u26A1'} {en ? 'Auto-publish (hands-off)' : 'Publication auto (mains libres)'}</div>
+                    <div className="text-[10px] text-white/60 leading-relaxed">{en ? 'Léna publishes at the optimal time. No validation needed.' : 'Léna publie au meilleur moment. Pas de validation à faire.'}</div>
+                  </button>
+                </div>
+              </div>
+
+              {batchResult && (
+                <div className={`p-2.5 rounded-lg text-[11px] ${batchResult.startsWith('✓') ? 'bg-emerald-500/15 border border-emerald-400/30 text-emerald-200' : 'bg-red-500/15 border border-red-400/30 text-red-200'}`}>
+                  {batchResult}
+                </div>
+              )}
+
+              <button
+                onClick={launchBatch}
+                disabled={batchBusy || platformFilter.size === 0}
+                className="w-full py-3 min-h-[48px] rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-white font-black text-sm disabled:opacity-50 transition shadow-lg shadow-emerald-500/30"
+              >
+                {batchBusy ? (en ? 'Generating...' : 'Génération en cours...') : (en ? `Plan ${batchDays} days` : `Planifier ${batchDays} jour${batchDays > 1 ? 's' : ''}`)}
+              </button>
+              <p className="text-[10px] text-white/40 text-center leading-relaxed">{en ? 'Each draft uses ~3 credits to generate. You can review/edit/skip them in the calendar.' : 'Chaque brouillon coûte ~3 crédits à générer. Tu peux les relire/éditer/zapper dans le calendrier.'}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* CALENDAR */}
       {view === 'month' && <MonthGrid cursor={cursor} byDay={byDay} onSelect={setSelected} en={en} tCal={tCal} />}
