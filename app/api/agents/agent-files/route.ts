@@ -518,8 +518,9 @@ export async function POST(req: NextRequest) {
         // Non-image: derive folder from extension, use extracted text (if any)
         // as ai_analysis summary so agents can search it too.
         fileFolder = folderByExt[ext];
+        const isVideo = ext === 'mp4' || ext === 'mov' || ext === 'webm';
         visualClassification = {
-          content_type: ext === 'mp4' || ext === 'mov' || ext === 'webm' ? 'video'
+          content_type: isVideo ? 'video'
             : ext === 'xlsx' || ext === 'xls' || ext === 'csv' ? 'data'
             : ext === 'pptx' || ext === 'ppt' ? 'deck'
             : ext === 'mp3' || ext === 'wav' || ext === 'm4a' ? 'audio'
@@ -529,11 +530,34 @@ export async function POST(req: NextRequest) {
             : `File "${safeName}" — ${ext.toUpperCase()} in folder ${fileFolder}`,
           relevant_agents: (ext === 'xlsx' || ext === 'xls' || ext === 'csv') ? ['comptable', 'commercial']
             : (ext === 'docx' || ext === 'doc') ? ['rh', 'content', 'marketing']
-            : (ext === 'mp4' || ext === 'mov' || ext === 'webm') ? ['content', 'dm_instagram']
+            : isVideo ? ['content', 'dm_instagram']
             : (ext === 'pptx' || ext === 'ppt') ? ['marketing', 'ceo']
             : ['content'],
-          post_angle: ext === 'mp4' || ext === 'mov' || ext === 'webm' ? 'Reuse as a reel clip or edit for TikTok' : null,
+          post_angle: isVideo ? 'Reuse as a reel clip or edit for TikTok' : null,
         };
+
+        // For videos: enrich with keyframe + Claude Vision analysis so
+        // Léna can reference content (subject, tone, suggested_use)
+        // not just the filename.
+        if (isVideo) {
+          try {
+            const { analyzeVideo } = await import('@/lib/visuals/video-analyzer');
+            const va = await analyzeVideo({
+              videoUrl: urlData.publicUrl,
+              uploadId: `${user.id.substring(0, 8)}-${Date.now()}`,
+              agentId,
+            });
+            if (va) {
+              visualClassification = {
+                ...visualClassification,
+                ...va,
+                summary: va.summary || visualClassification.summary,
+              };
+            }
+          } catch (e: any) {
+            console.warn('[agent-files] video analyze non-fatal:', e?.message);
+          }
+        }
       }
 
       if (visualClassification) {
