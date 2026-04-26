@@ -62,16 +62,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, removed: true });
   }
 
-  const position = ['top', 'bottom', 'center'].includes(body.position) ? body.position : (cur.position || 'bottom');
+  const validPositions = ['top', 'bottom', 'center', 'top-left', 'bottom-right', 'left-strip', 'right-strip'];
+  const validStyles = ['white-shadow', 'dark-on-light', 'light-on-dark', 'accent-bar', 'outline-only'];
+  const position = validPositions.includes(body.position) ? body.position : (validPositions.includes(cur.position) ? cur.position : 'bottom');
   const tone = ['punchy', 'elegant', 'playful'].includes(body.tone) ? body.tone : (cur.tone || 'punchy');
+  const style = validStyles.includes(body.style) ? body.style : (validStyles.includes(cur.style) ? cur.style : 'white-shadow');
+  const accentColor = typeof body.accentColor === 'string' && /^#[0-9A-Fa-f]{6}$/.test(body.accentColor)
+    ? body.accentColor
+    : (typeof cur.accentColor === 'string' ? cur.accentColor : undefined);
 
   const { applyTextOverlay } = await import('@/lib/visuals/text-overlay');
-  const newUrl = await applyTextOverlay(baseUrl, { needsText: true, text, position, tone }, postId);
+  const newUrl = await applyTextOverlay(baseUrl, { needsText: true, text, position, tone, style, ...(accentColor ? { accentColor } : {}) }, postId);
   if (!newUrl) return NextResponse.json({ ok: false, error: 'Composite failed' }, { status: 500 });
 
   await sb.from('content_calendar').update({
     visual_url: newUrl,
-    overlay_text: { text, position, tone, original_visual_url: baseUrl },
+    overlay_text: { text, position, tone, style, accentColor: accentColor || null, original_visual_url: baseUrl },
     updated_at: new Date().toISOString(),
   }).eq('id', postId);
 

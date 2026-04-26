@@ -4665,10 +4665,12 @@ Real natural light matching the room's existing ambience. The dish must look pro
                   text: decision.text,
                   position: decision.position,
                   tone: decision.tone,
+                  style: (decision as any).style || 'white-shadow',
+                  accentColor: (decision as any).accentColor || null,
                   original_visual_url: originalUrl,
                 },
               }).eq('id', inserted.id);
-              console.log(`[Content] Text overlay applied: "${decision.text}" (${decision.position}, ${decision.tone})`);
+              console.log(`[Content] Text overlay applied: "${decision.text}" (${decision.position}, ${decision.tone}, ${(decision as any).style || 'white-shadow'})`);
             }
           } else {
             console.log('[Content] Text overlay: not needed for this post');

@@ -16,13 +16,33 @@
 import sharp from 'sharp';
 import { createClient } from '@supabase/supabase-js';
 
+export type OverlayPosition =
+  | 'top'           // top center, classic ad
+  | 'bottom'        // bottom center, classic
+  | 'center'        // centered over negative space
+  | 'top-left'      // editorial corner
+  | 'bottom-right'  // signature corner
+  | 'left-strip'    // left vertical strip
+  | 'right-strip';  // right vertical strip
+
+export type OverlayStyle =
+  | 'white-shadow'      // white text + dark shadow (any background)
+  | 'dark-on-light'     // dark text on a light translucent panel
+  | 'light-on-dark'     // light text on a dark translucent panel
+  | 'accent-bar'        // accent-colored side bar with light text
+  | 'outline-only';     // outlined text, transparent fill (lifestyle/editorial)
+
+export type OverlayTone = 'punchy' | 'elegant' | 'playful';
+
 export type OverlayDecision = {
   needsText: false;
 } | {
   needsText: true;
   text: string;            // 3-8 words, max ~40 chars
-  position: 'top' | 'bottom' | 'center';
-  tone: 'punchy' | 'elegant' | 'playful';
+  position: OverlayPosition;
+  tone: OverlayTone;
+  style?: OverlayStyle;    // optional, default chosen from tone
+  accentColor?: string;    // optional hex (e.g. '#FF3B6E') for accent-bar style
 };
 
 /** Ask Claude whether a text overlay would help, and draft it. */
@@ -47,18 +67,20 @@ export async function decideTextOverlay(input: {
 Your single decision: does this image NEED a short text overlay to land harder, or is it already complete?
 
 When YES (overlay amplifies):
-- A genuine wordplay / double meaning ties the visual to the business reality (not a generic restaurant cliché — something specific to THIS business or THIS news angle if pillar=trends).
-- The visual is beautiful but slightly ambiguous and a 3-8 word line clarifies the intent.
-- The post would scroll past without text but stops the scroll WITH it.
-- The line is memorable and brand-coherent.
+- The line creates a STRONG, NON-OBVIOUS link between business reality and a current news angle (when pillar=trends, this is your bread and butter — but make it sharp, not banal).
+- A genuine wordplay / double meaning that ONLY this business could write.
+- The visual is beautiful but ambiguous, and a 3-8 word line clarifies what's really at stake.
+- The post would scroll past silent but the overlay stops the thumb cold.
 
 When NO (silence is louder):
 - The visual already tells the story (a perfectly plated dish doesn't need "Délicieux ✨").
-- The hook belongs in the caption, not on the image.
+- The hook belongs in the caption, not on the image — you'd just be shouting it.
 - Restaurant hero dish, fleuriste close-up, beauty before-after — let the image breathe.
 - The image is detailed / busy → overlay would clutter.
+- You'd write something generic ("Tradition & Modernité", "Le goût du vrai") — DON'T.
+- The line you'd write is just the hook with the same energy → caption already does the job.
 
-DEFAULT TO NO. Only say YES when the line is ACTUALLY good — better than 80% of overlays you see in the wild. If you're unsure, the answer is no.
+CRITICAL CALIBRATION: Across 100 posts in a typical month for ONE business, no more than ~25-30 should have an overlay. If every post has one, the feed becomes a billboard. DEFAULT TO NO. Only YES when the line is actually exceptional — better than 90% of overlays you see in the wild. If you're unsure, the answer is no. If the line you'd write is "just OK", the answer is no.
 
 If yes, the line MUST:
 - Be 3-8 words MAX (~40 chars). Short = strong.
@@ -66,8 +88,20 @@ If yes, the line MUST:
 - Use the business REALITY (type + offer + sometimes news), not a clichéd template.
 - Tie visual ↔ business in a way only THIS business could say.
 - Have NO emoji, NO hashtag, NO punctuation overload.
-- Position chosen for composition: top (above subject), bottom (below subject), center (over negative space).
-- Tone: punchy (Helvetica bold) for restos/sport/agence; elegant (Georgia serif) for beauté/spa/boutiques luxe; playful (Comic-style) for kids/desserts/fun.
+- Position chosen for composition. The image dictates this — read the visual_description and pick the placement that USES the empty space, doesn't fight the subject:
+  * top, bottom, center — classic centered placements over negative space
+  * top-left, bottom-right — editorial corner placements (great for asymmetric compositions)
+  * left-strip, right-strip — vertical column over a side margin (good for portrait shots with subject on one side)
+- Tone (font family): punchy (Helvetica bold) for restos/sport/agence; elegant (Georgia serif) for beauté/spa/boutiques luxe; playful (Comic-style) for kids/desserts/fun.
+- Style (treatment): pick what suits the underlying image so the text is legible AND coherent with the brand:
+  * white-shadow — white text + dark drop-shadow (default, works on any background)
+  * dark-on-light — dark text on a light translucent panel (use when image is dark or busy with bright text would clash)
+  * light-on-dark — light text on a dark translucent panel (use when image is bright/overexposed and white-shadow would still get lost)
+  * accent-bar — solid accent-colored bar (use accentColor) with white text (great for sport/promo/news pillar — gives news-headline feel)
+  * outline-only — outlined text, transparent fill (luxury/editorial feel, lifestyle brands)
+- accentColor (only relevant for style=accent-bar): a HEX color from the brand palette or a culturally-resonant news color (red for breaking news, etc).
+
+VARY YOUR CHOICES: across many decisions for the same business, mix positions (don't always pick "bottom"), mix styles (not every overlay is "white-shadow"). The combination of position + style + tone should feel like a deliberate art direction choice, not a default.
 
 Return STRICT JSON:
 {
@@ -75,11 +109,13 @@ Return STRICT JSON:
 } OR {
   "needsText": true,
   "text": "string",
-  "position": "top|bottom|center",
-  "tone": "punchy|elegant|playful"
+  "position": "top|bottom|center|top-left|bottom-right|left-strip|right-strip",
+  "tone": "punchy|elegant|playful",
+  "style": "white-shadow|dark-on-light|light-on-dark|accent-bar|outline-only",
+  "accentColor": "#RRGGBB"
 }
 
-JSON only — no preamble, no explanation, no markdown.`;
+style and accentColor are optional. JSON only — no preamble, no explanation, no markdown.`;
 
   const businessContext = [
     input.businessType && `Type: ${input.businessType}`,
@@ -129,11 +165,23 @@ Décide. JSON strict.`;
     if (!parsed.needsText) return { needsText: false };
     const cleanText = String(parsed.text || '').trim().substring(0, 60);
     if (cleanText.length < 3) return { needsText: false };
+
+    const validPositions: OverlayPosition[] = ['top', 'bottom', 'center', 'top-left', 'bottom-right', 'left-strip', 'right-strip'];
+    const validStyles: OverlayStyle[] = ['white-shadow', 'dark-on-light', 'light-on-dark', 'accent-bar', 'outline-only'];
+    const position: OverlayPosition = validPositions.includes(parsed.position) ? parsed.position : 'bottom';
+    const tone: OverlayTone = ['punchy', 'elegant', 'playful'].includes(parsed.tone) ? parsed.tone : 'punchy';
+    const style: OverlayStyle = validStyles.includes(parsed.style) ? parsed.style : 'white-shadow';
+    const accentColor = typeof parsed.accentColor === 'string' && /^#[0-9A-Fa-f]{6}$/.test(parsed.accentColor)
+      ? parsed.accentColor
+      : undefined;
+
     return {
       needsText: true,
       text: cleanText,
-      position: ['top', 'bottom', 'center'].includes(parsed.position) ? parsed.position : 'bottom',
-      tone: ['punchy', 'elegant', 'playful'].includes(parsed.tone) ? parsed.tone : 'punchy',
+      position,
+      tone,
+      style,
+      ...(accentColor ? { accentColor } : {}),
     };
   } catch {
     return { needsText: false };
@@ -145,8 +193,10 @@ function buildOverlaySvg(
   text: string,
   width: number,
   height: number,
-  position: 'top' | 'bottom' | 'center',
-  tone: 'punchy' | 'elegant' | 'playful',
+  position: OverlayPosition,
+  tone: OverlayTone,
+  style: OverlayStyle = 'white-shadow',
+  accentColor: string = '#FF3B6E',
 ): string {
   // Font choices per tone — kept to web-safe + free families likely
   // present in the Sharp/librsvg font cache on the VPS.
@@ -157,17 +207,23 @@ function buildOverlaySvg(
       : 'Helvetica, Arial, sans-serif';
   const weight = tone === 'elegant' ? 600 : 800;
 
-  // Auto-size: scale font with the shorter side. Cap so 8-word
-  // punchlines wrap reasonably.
+  const isStrip = position === 'left-strip' || position === 'right-strip';
+
+  // Auto-size: scale font with the shorter side. Strip layouts are
+  // narrower so we shrink the font further; corners go a touch smaller.
   const baseFontSize = Math.round(Math.min(width, height) * 0.06);
-  // If text is long (>30 chars), drop one notch.
-  const fontSize = text.length > 30 ? Math.round(baseFontSize * 0.85) : baseFontSize;
+  let fontSize = text.length > 30 ? Math.round(baseFontSize * 0.85) : baseFontSize;
+  if (isStrip) fontSize = Math.round(fontSize * 0.78);
+  if (position === 'top-left' || position === 'bottom-right') fontSize = Math.round(fontSize * 0.92);
 
   const padding = Math.round(width * 0.05);
   const lineHeight = Math.round(fontSize * 1.15);
 
-  // Naive word-wrap to ~22-24 chars per line for readability.
-  const maxCharsPerLine = Math.max(14, Math.floor(width / (fontSize * 0.55)));
+  // Naive word-wrap. For strips we wrap MUCH harder (8-12 chars) so
+  // the column reads cleanly. Corners stay at normal width.
+  const stripWidth = Math.round(width * 0.28);
+  const usableWidth = isStrip ? stripWidth : width;
+  const maxCharsPerLine = Math.max(isStrip ? 8 : 14, Math.floor(usableWidth / (fontSize * 0.55)));
   const words = text.split(/\s+/);
   const lines: string[] = [];
   let cur = '';
@@ -182,22 +238,106 @@ function buildOverlaySvg(
   if (cur) lines.push(cur);
 
   const blockHeight = lines.length * lineHeight;
+  // Compute anchor X (text-anchor) and Y (yStart) per position.
+  let textAnchor: 'start' | 'middle' | 'end' = 'middle';
+  let xAnchor: number = width / 2;
   let yStart: number;
-  if (position === 'top') {
-    yStart = padding + fontSize;
-  } else if (position === 'center') {
-    yStart = Math.round((height - blockHeight) / 2) + fontSize;
-  } else {
-    // bottom
-    yStart = height - padding - blockHeight + fontSize;
+  // Optional background panel coordinates (for dark-on-light, light-on-dark, accent-bar).
+  let panelX = 0;
+  let panelY = 0;
+  let panelW = width;
+  let panelH = blockHeight + padding;
+
+  switch (position) {
+    case 'top':
+      yStart = padding + fontSize;
+      panelX = 0; panelY = 0; panelW = width; panelH = blockHeight + padding * 1.5;
+      break;
+    case 'center':
+      yStart = Math.round((height - blockHeight) / 2) + fontSize;
+      panelX = 0; panelY = Math.round((height - blockHeight - padding) / 2); panelW = width; panelH = blockHeight + padding;
+      break;
+    case 'top-left':
+      textAnchor = 'start';
+      xAnchor = padding;
+      yStart = padding + fontSize;
+      panelX = 0; panelY = 0; panelW = Math.round(width * 0.55); panelH = blockHeight + padding * 1.2;
+      break;
+    case 'bottom-right':
+      textAnchor = 'end';
+      xAnchor = width - padding;
+      yStart = height - padding - blockHeight + fontSize;
+      panelX = Math.round(width * 0.45); panelY = height - blockHeight - padding * 1.2; panelW = Math.round(width * 0.55); panelH = blockHeight + padding * 1.2;
+      break;
+    case 'left-strip':
+      textAnchor = 'start';
+      xAnchor = padding;
+      yStart = Math.round((height - blockHeight) / 2) + fontSize;
+      panelX = 0; panelY = 0; panelW = stripWidth; panelH = height;
+      break;
+    case 'right-strip':
+      textAnchor = 'end';
+      xAnchor = width - padding;
+      yStart = Math.round((height - blockHeight) / 2) + fontSize;
+      panelX = width - stripWidth; panelY = 0; panelW = stripWidth; panelH = height;
+      break;
+    case 'bottom':
+    default:
+      yStart = height - padding - blockHeight + fontSize;
+      panelX = 0; panelY = height - blockHeight - padding * 1.5; panelW = width; panelH = blockHeight + padding * 1.5;
   }
 
-  // Strong contrast: white text + dark drop shadow + thin dark stroke.
-  // Works on any background (light or dark) without needing to sample
-  // the underlying image.
+  // Style → fill, stroke, panel rect, shadow.
+  let textFill = '#ffffff';
+  let textStroke = '#000000';
+  let textStrokeWidth = Math.round(fontSize * 0.04);
+  let useShadow = true;
+  let panelFill: string | null = null;
+  let panelOpacity = 0;
+  switch (style) {
+    case 'dark-on-light':
+      textFill = '#0f1115';
+      textStroke = 'none';
+      textStrokeWidth = 0;
+      useShadow = false;
+      panelFill = '#ffffff';
+      panelOpacity = 0.85;
+      break;
+    case 'light-on-dark':
+      textFill = '#ffffff';
+      textStroke = 'none';
+      textStrokeWidth = 0;
+      useShadow = false;
+      panelFill = '#0a0a0d';
+      panelOpacity = 0.7;
+      break;
+    case 'accent-bar':
+      textFill = '#ffffff';
+      textStroke = 'none';
+      textStrokeWidth = 0;
+      useShadow = false;
+      panelFill = accentColor;
+      panelOpacity = 0.92;
+      break;
+    case 'outline-only':
+      textFill = 'none';
+      textStroke = '#ffffff';
+      textStrokeWidth = Math.max(2, Math.round(fontSize * 0.05));
+      useShadow = true;
+      break;
+    case 'white-shadow':
+    default:
+      // defaults already set
+      break;
+  }
+
   const tspans = lines.map((line, i) => `
-    <tspan x="${width / 2}" y="${yStart + i * lineHeight}">${escapeXml(line)}</tspan>
+    <tspan x="${xAnchor}" y="${yStart + i * lineHeight}">${escapeXml(line)}</tspan>
   `).join('');
+
+  const panelSvg = panelFill
+    ? `<rect x="${panelX}" y="${panelY}" width="${panelW}" height="${panelH}" fill="${panelFill}" fill-opacity="${panelOpacity}" />`
+    : '';
 
   return `
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
@@ -213,16 +353,17 @@ function buildOverlaySvg(
       </feMerge>
     </filter>
   </defs>
+  ${panelSvg}
   <text
-    text-anchor="middle"
+    text-anchor="${textAnchor}"
     font-family='${fontFamily}'
     font-size="${fontSize}"
     font-weight="${weight}"
-    fill="#ffffff"
-    stroke="#000000"
-    stroke-width="${Math.round(fontSize * 0.04)}"
+    fill="${textFill}"
+    stroke="${textStroke}"
+    stroke-width="${textStrokeWidth}"
     paint-order="stroke fill"
-    filter="url(#shadow)"
+    ${useShadow ? 'filter="url(#shadow)"' : ''}
     style="letter-spacing: -0.5px;"
   >${tspans}</text>
 </svg>`.trim();
@@ -257,7 +398,15 @@ export async function applyTextOverlay(
     const width = meta.width || 1080;
     const height = meta.height || 1080;
 
-    const svg = buildOverlaySvg(decision.text, width, height, decision.position, decision.tone);
+    const svg = buildOverlaySvg(
+      decision.text,
+      width,
+      height,
+      decision.position,
+      decision.tone,
+      decision.style || 'white-shadow',
+      decision.accentColor || '#FF3B6E',
+    );
     const composited = await sharp(inputBuf)
       .composite([{ input: Buffer.from(svg), top: 0, left: 0 }])
       .jpeg({ quality: 88 })
