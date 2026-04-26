@@ -1546,6 +1546,186 @@ function HomeKeiroInner() {
             </div>
           </div>
 
+          {/* CRÉATEUR AGENTS — detailed roster shown above the pricing grid
+              so visitors understand what they actually GET (not just "7 agents")
+              before clicking the trial CTA. Especially the auto-generation +
+              auto-publication of social posts which is the headline value. */}
+          <div className="max-w-6xl mx-auto mb-8 sm:mb-10">
+            <div className="text-center mb-5">
+              <span className="inline-block px-3 py-1 bg-purple-100 text-purple-700 text-[11px] font-bold rounded-full mb-2 uppercase tracking-wide">{locale === 'fr' ? 'Inclus dès le plan Créateur' : 'Included with Creator plan'}</span>
+              <h3 className="text-xl sm:text-2xl font-black text-neutral-900 mb-1">
+                {locale === 'fr' ? '7 agents IA qui bossent pour toi 24/7' : '7 AI agents working for you 24/7'}
+              </h3>
+              <p className="text-sm text-neutral-600 max-w-2xl mx-auto">
+                {locale === 'fr'
+                  ? 'Tu ne touches à rien. Ils génèrent, publient, prospectent et répondent — pendant que tu fais ton métier.'
+                  : "You don't touch anything. They generate, publish, prospect and reply — while you focus on your craft."}
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* Léna — the headline value */}
+              <div className="rounded-2xl border-2 border-purple-300 bg-gradient-to-br from-purple-50 to-pink-50 p-4 shadow-md hover:shadow-lg transition relative overflow-hidden">
+                <span className="absolute top-2 right-2 text-[8px] font-bold px-1.5 py-0.5 bg-purple-600 text-white rounded uppercase tracking-wide">{locale === 'fr' ? '⭐ Star' : '⭐ Top'}</span>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-lg">🎨</div>
+                  <div>
+                    <div className="font-bold text-sm text-neutral-900">Léna</div>
+                    <div className="text-[10px] text-purple-700 font-semibold">{locale === 'fr' ? 'Contenu social' : 'Social content'}</div>
+                  </div>
+                </div>
+                <p className="text-[11px] text-neutral-700 leading-relaxed mb-1.5">
+                  {locale === 'fr'
+                    ? 'Génère + publie automatiquement tes posts Instagram, TikTok, LinkedIn.'
+                    : 'Generates + auto-publishes your Instagram, TikTok, LinkedIn posts.'}
+                </p>
+                <ul className="text-[10px] text-neutral-600 space-y-0.5">
+                  <li>✓ {locale === 'fr' ? '~10 publications/semaine' : '~10 posts/week'}</li>
+                  <li>✓ {locale === 'fr' ? 'Visuels pro depuis tes photos' : 'Pro visuals from your photos'}</li>
+                  <li>✓ {locale === 'fr' ? 'Captions + hashtags optimisés' : 'Captions + hashtags optimized'}</li>
+                </ul>
+              </div>
+
+              {/* Hugo */}
+              <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm hover:shadow-md transition">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-lg">📧</div>
+                  <div>
+                    <div className="font-bold text-sm text-neutral-900">Hugo</div>
+                    <div className="text-[10px] text-cyan-700 font-semibold">{locale === 'fr' ? 'Emails prospection' : 'Email prospecting'}</div>
+                  </div>
+                </div>
+                <p className="text-[11px] text-neutral-700 leading-relaxed mb-1.5">
+                  {locale === 'fr'
+                    ? "Envoie tes emails de prospection + relances depuis ton domaine."
+                    : 'Sends your prospection + follow-up emails from your domain.'}
+                </p>
+                <ul className="text-[10px] text-neutral-600 space-y-0.5">
+                  <li>✓ {locale === 'fr' ? 'Séquences automatiques' : 'Automated sequences'}</li>
+                  <li>✓ {locale === 'fr' ? 'Détecte désabonnements' : 'Detects unsubscribes'}</li>
+                  <li>✓ {locale === 'fr' ? 'Lit ta boîte (IMAP/Gmail)' : 'Reads your inbox (IMAP/Gmail)'}</li>
+                </ul>
+              </div>
+
+              {/* Jade */}
+              <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm hover:shadow-md transition">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center text-lg">💬</div>
+                  <div>
+                    <div className="font-bold text-sm text-neutral-900">Jade</div>
+                    <div className="text-[10px] text-pink-700 font-semibold">{locale === 'fr' ? 'DM Instagram' : 'Instagram DMs'}</div>
+                  </div>
+                </div>
+                <p className="text-[11px] text-neutral-700 leading-relaxed mb-1.5">
+                  {locale === 'fr'
+                    ? 'Répond à tes DMs 24/7 avec ton ton de voix. Tu reprends quand tu veux.'
+                    : 'Replies to DMs 24/7 in your voice. Take over anytime.'}
+                </p>
+                <ul className="text-[10px] text-neutral-600 space-y-0.5">
+                  <li>✓ {locale === 'fr' ? 'Auto-réponse intelligente' : 'Smart auto-reply'}</li>
+                  <li>✓ {locale === 'fr' ? 'Mode humain en 1 clic' : 'Human mode in 1 click'}</li>
+                  <li>✓ {locale === 'fr' ? 'Comments auto aussi' : 'Auto-replies on comments too'}</li>
+                </ul>
+              </div>
+
+              {/* Léo */}
+              <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm hover:shadow-md transition">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-lg">🎯</div>
+                  <div>
+                    <div className="font-bold text-sm text-neutral-900">Léo</div>
+                    <div className="text-[10px] text-emerald-700 font-semibold">{locale === 'fr' ? 'Prospection CRM' : 'CRM prospecting'}</div>
+                  </div>
+                </div>
+                <p className="text-[11px] text-neutral-700 leading-relaxed mb-1.5">
+                  {locale === 'fr'
+                    ? 'Trouve + qualifie ~60 nouveaux prospects par mois sur Google Maps.'
+                    : 'Finds + qualifies ~60 new prospects per month on Google Maps.'}
+                </p>
+                <ul className="text-[10px] text-neutral-600 space-y-0.5">
+                  <li>✓ {locale === 'fr' ? 'Score automatique (hot/warm)' : 'Auto-scoring (hot/warm)'}</li>
+                  <li>✓ {locale === 'fr' ? 'CRM intégré + pipeline' : 'Built-in CRM + pipeline'}</li>
+                  <li>✓ {locale === 'fr' ? 'Anti-doublon par zone' : 'Anti-duplicate by zone'}</li>
+                </ul>
+              </div>
+
+              {/* Théo */}
+              <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm hover:shadow-md transition">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-lg">⭐</div>
+                  <div>
+                    <div className="font-bold text-sm text-neutral-900">Théo</div>
+                    <div className="text-[10px] text-amber-700 font-semibold">{locale === 'fr' ? 'Avis Google' : 'Google reviews'}</div>
+                  </div>
+                </div>
+                <p className="text-[11px] text-neutral-700 leading-relaxed mb-1.5">
+                  {locale === 'fr'
+                    ? 'Répond à tes avis Google automatiquement, ton de marque préservé.'
+                    : 'Auto-replies to your Google reviews while keeping your brand voice.'}
+                </p>
+                <ul className="text-[10px] text-neutral-600 space-y-0.5">
+                  <li>✓ {locale === 'fr' ? 'Réponses personnalisées' : 'Personalised replies'}</li>
+                  <li>✓ {locale === 'fr' ? 'Escalade des avis -3★' : 'Escalates ≤3★ reviews'}</li>
+                  <li>✓ {locale === 'fr' ? 'Boost SEO local' : 'Local SEO boost'}</li>
+                </ul>
+              </div>
+
+              {/* Clara */}
+              <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm hover:shadow-md transition">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-lg">👋</div>
+                  <div>
+                    <div className="font-bold text-sm text-neutral-900">Clara</div>
+                    <div className="text-[10px] text-violet-700 font-semibold">{locale === 'fr' ? 'Onboarding' : 'Onboarding'}</div>
+                  </div>
+                </div>
+                <p className="text-[11px] text-neutral-700 leading-relaxed mb-1.5">
+                  {locale === 'fr'
+                    ? "Configure tes agents en 10 min, te guide quand tu bloques, suit ta progression."
+                    : 'Sets up your agents in 10 min, helps when stuck, tracks progress.'}
+                </p>
+                <ul className="text-[10px] text-neutral-600 space-y-0.5">
+                  <li>✓ {locale === 'fr' ? 'Setup guidé pas à pas' : 'Step-by-step guided setup'}</li>
+                  <li>✓ {locale === 'fr' ? 'Analyse de tes uploads' : 'Analyses your uploads'}</li>
+                  <li>✓ {locale === 'fr' ? 'Anti-blocage proactif' : 'Proactive anti-blocking'}</li>
+                </ul>
+              </div>
+
+              {/* Ami */}
+              <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm hover:shadow-md transition">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center text-lg">📊</div>
+                  <div>
+                    <div className="font-bold text-sm text-neutral-900">Ami</div>
+                    <div className="text-[10px] text-indigo-700 font-semibold">{locale === 'fr' ? 'Marketing IA' : 'Marketing AI'}</div>
+                  </div>
+                </div>
+                <p className="text-[11px] text-neutral-700 leading-relaxed mb-1.5">
+                  {locale === 'fr'
+                    ? "Analyse tes performances, conseille les agents, calibre tes prochaines campagnes."
+                    : 'Analyses your performance, advises agents, calibrates next campaigns.'}
+                </p>
+                <ul className="text-[10px] text-neutral-600 space-y-0.5">
+                  <li>✓ {locale === 'fr' ? 'Reporting hebdo' : 'Weekly reporting'}</li>
+                  <li>✓ {locale === 'fr' ? 'Best-day analysis' : 'Best-day analysis'}</li>
+                  <li>✓ {locale === 'fr' ? 'Coordonne tous les agents' : 'Coordinates all agents'}</li>
+                </ul>
+              </div>
+
+              {/* Bonus highlight card — auto-publication callout */}
+              <div className="rounded-2xl border-2 border-emerald-400 bg-gradient-to-br from-emerald-50 to-teal-50 p-4 shadow-md flex flex-col justify-center">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-lg">🚀</div>
+                  <div className="font-bold text-sm text-emerald-900">{locale === 'fr' ? 'Génération + publication AUTO' : 'AUTO generation + publication'}</div>
+                </div>
+                <p className="text-[11px] text-emerald-900 leading-relaxed">
+                  {locale === 'fr'
+                    ? 'Tu connectes tes comptes une fois. Léna génère 10 posts/semaine, les programme, les publie aux meilleures heures. Tu valides quand tu veux ou tu laisses tourner en auto.'
+                    : 'Connect your accounts once. Léna generates 10 posts/week, schedules them, publishes at peak hours. Approve whenever you want, or let it run on auto.'}
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Plans Grid — 3 plans principaux */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
             <Plan
