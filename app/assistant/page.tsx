@@ -13,6 +13,7 @@ import WorkspaceCrm from './components/WorkspaceCrm';
 import NotificationBell, { AgentNotifBadge } from './components/NotificationBell';
 import InstagramTokenAlert from './components/InstagramTokenAlert';
 import StrategyOnboarding from './components/StrategyOnboarding';
+import FirstVisitTour from '@/app/components/FirstVisitTour';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -1200,6 +1201,9 @@ export default function AssistantPage() {
 
         {/* Coming soon banner */}
         {COMING_SOON_MODE && <ComingSoonBanner />}
+
+        {/* First-visit coachmark tour — shows once for authenticated users */}
+        {!isVisitor && <FirstVisitTour />}
 
         {/* Dossier banner */}
         <DossierBanner profile={profile} claraAvatarUrl={claraAvatarUrl} />
