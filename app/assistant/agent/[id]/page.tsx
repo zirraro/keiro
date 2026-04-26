@@ -764,6 +764,38 @@ function PostModal({ selected: initial, onClose, en, tCal }: { selected: any; on
   const [overlayPos, setOverlayPos] = useState<'top' | 'bottom' | 'center'>(cur?.position || 'bottom');
   const [overlayTone, setOverlayTone] = useState<'punchy' | 'elegant' | 'playful'>(cur?.tone || 'punchy');
   const [overlayBusy, setOverlayBusy] = useState(false);
+  const [overlaySuggestBusy, setOverlaySuggestBusy] = useState(false);
+  const [overlaySuggestNote, setOverlaySuggestNote] = useState<string | null>(null);
+
+  const suggestOverlay = useCallback(async () => {
+    setOverlaySuggestBusy(true);
+    setOverlaySuggestNote(null);
+    try {
+      const res = await fetch('/api/me/overlay-text/suggest', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ postId: selected.id, tone: overlayTone }),
+      });
+      const j = await res.json();
+      if (j.ok) {
+        if (j.suggestion) {
+          setOverlayText(j.suggestion.text || '');
+          if (j.suggestion.position) setOverlayPos(j.suggestion.position);
+          if (j.suggestion.tone) setOverlayTone(j.suggestion.tone);
+          setOverlaySuggestNote(en ? '✨ Suggestion ready — review then Apply.' : '✨ Suggestion prête — relis puis Appliquer.');
+        } else {
+          setOverlaySuggestNote(j.reason || (en ? 'Image is stronger without text.' : 'Image plus forte sans texte.'));
+        }
+      } else {
+        setOverlaySuggestNote(j.error || (en ? 'Suggestion failed' : 'Suggestion échouée'));
+      }
+    } catch (e: any) {
+      setOverlaySuggestNote(e?.message || (en ? 'Suggestion failed' : 'Suggestion échouée'));
+    } finally {
+      setOverlaySuggestBusy(false);
+    }
+  }, [selected.id, overlayTone, en]);
 
   const applyOverlay = useCallback(async () => {
     setOverlayBusy(true);
@@ -830,7 +862,17 @@ function PostModal({ selected: initial, onClose, en, tCal }: { selected: any; on
           <div className="px-4 py-3 border-t border-white/10 bg-white/[0.02]">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[10px] font-bold uppercase tracking-wide text-white/60">{en ? 'Text overlay' : 'Texte sur l\'image'}</span>
-              {selected.overlay_text?.text && <span className="text-[9px] text-white/40 italic">{en ? 'Active' : 'Actif'}</span>}
+              <div className="flex items-center gap-2">
+                {selected.overlay_text?.text && <span className="text-[9px] text-white/40 italic">{en ? 'Active' : 'Actif'}</span>}
+                <button
+                  onClick={suggestOverlay}
+                  disabled={overlaySuggestBusy}
+                  className="px-2 py-1 min-h-[28px] rounded-md text-[10px] font-bold bg-gradient-to-r from-fuchsia-600/30 to-purple-600/30 hover:from-fuchsia-600/50 hover:to-purple-600/50 text-fuchsia-200 border border-fuchsia-400/30 disabled:opacity-50 transition flex items-center gap-1"
+                  title={en ? 'Ask Léna for a punchline based on this post' : 'Demander à Léna une punchline pour ce post'}
+                >
+                  {overlaySuggestBusy ? '...' : '\u2728'} {en ? 'Suggest' : 'Suggestion IA'}
+                </button>
+              </div>
             </div>
             <textarea
               value={overlayText}
@@ -840,6 +882,9 @@ function PostModal({ selected: initial, onClose, en, tCal }: { selected: any; on
               maxLength={60}
               className="w-full bg-black/30 border border-white/10 rounded-lg p-2 text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-purple-500/50"
             />
+            {overlaySuggestNote && (
+              <p className="text-[10px] text-fuchsia-200/80 mt-1.5 italic leading-snug">{overlaySuggestNote}</p>
+            )}
             <div className="flex items-center gap-2 mt-2 flex-wrap">
               <select value={overlayPos} onChange={e => setOverlayPos(e.target.value as any)} className="bg-black/30 border border-white/10 rounded px-2 py-1 text-[10px] text-white/80">
                 <option value="top">{en ? 'Top' : 'Haut'}</option>
