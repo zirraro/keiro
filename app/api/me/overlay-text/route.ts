@@ -21,8 +21,18 @@ export const maxDuration = 60;
  * When text is empty, restores original_visual_url and clears overlay_text.
  */
 export async function POST(req: NextRequest) {
-  const { user } = await getAuthUser();
-  if (!user) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+  // Cron / admin secret bypass — lets us apply or strip overlays from
+  // server-side scripts (test triggers, admin overrides, batch fixes).
+  const cronSecret = process.env.CRON_SECRET;
+  const authHeader = req.headers.get('authorization');
+  const isCron = !!cronSecret && authHeader === `Bearer ${cronSecret}`;
+
+  let user: { id: string } | null = null;
+  if (!isCron) {
+    const auth = await getAuthUser();
+    if (!auth.user) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+    user = auth.user;
+  }
 
   const body = await req.json().catch(() => ({}));
   const postId = String(body.postId || '');
@@ -40,7 +50,7 @@ export async function POST(req: NextRequest) {
     .eq('id', postId)
     .maybeSingle();
   if (!post) return NextResponse.json({ ok: false, error: 'Post not found' }, { status: 404 });
-  if (post.user_id && post.user_id !== user.id) {
+  if (!isCron && post.user_id && user && post.user_id !== user.id) {
     // Allow admin too
     const { data: profile } = await sb.from('profiles').select('is_admin').eq('id', user.id).single();
     if (!profile?.is_admin) return NextResponse.json({ ok: false, error: 'Forbidden' }, { status: 403 });
