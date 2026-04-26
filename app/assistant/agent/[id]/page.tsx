@@ -712,8 +712,43 @@ function DayList({ cursor, byDay, onSelect, en, tCal }: { cursor: Date; byDay: M
 }
 
 // Modal — kept similar to the previous design
-function PostModal({ selected, onClose, en, tCal }: { selected: any; onClose: () => void; en: boolean; tCal: any }) {
-  void en;
+function PostModal({ selected: initial, onClose, en, tCal }: { selected: any; onClose: () => void; en: boolean; tCal: any }) {
+  const [selected, setSelected] = useState<any>(initial);
+  const cur = selected.overlay_text || null;
+  const [overlayText, setOverlayText] = useState<string>(cur?.text || '');
+  const [overlayPos, setOverlayPos] = useState<'top' | 'bottom' | 'center'>(cur?.position || 'bottom');
+  const [overlayTone, setOverlayTone] = useState<'punchy' | 'elegant' | 'playful'>(cur?.tone || 'punchy');
+  const [overlayBusy, setOverlayBusy] = useState(false);
+
+  const applyOverlay = useCallback(async () => {
+    setOverlayBusy(true);
+    try {
+      const res = await fetch('/api/me/overlay-text', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ postId: selected.id, text: overlayText, position: overlayPos, tone: overlayTone }),
+      });
+      const j = await res.json();
+      if (j.ok) {
+        if (j.removed) {
+          // overlay stripped — visual_url reverted by API
+          setSelected((s: any) => ({ ...s, overlay_text: null }));
+        } else {
+          setSelected((s: any) => ({
+            ...s,
+            visual_url: j.visual_url,
+            overlay_text: { text: overlayText, position: overlayPos, tone: overlayTone, original_visual_url: cur?.original_visual_url || s.visual_url },
+          }));
+        }
+      } else {
+        alert(j.error || (en ? 'Failed' : 'Échec'));
+      }
+    } finally {
+      setOverlayBusy(false);
+    }
+  }, [selected.id, overlayText, overlayPos, overlayTone, cur, en]);
+
   return (
     <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-2 sm:p-4" onClick={onClose}>
       <div className="bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
@@ -744,6 +779,43 @@ function PostModal({ selected, onClose, en, tCal }: { selected: any; onClose: ()
           {selected.hashtags && <p className="text-xs text-blue-400">{Array.isArray(selected.hashtags) ? selected.hashtags.join(' ') : selected.hashtags}</p>}
           {selected.instagram_permalink && <a href={selected.instagram_permalink} target="_blank" rel="noopener" className="text-[10px] text-purple-400 hover:underline">Voir sur Instagram {'\u2197'}</a>}
         </div>
+
+        {/* Text overlay editor */}
+        {selected.visual_url && !selected.visual_url.endsWith('.mp4') && (
+          <div className="px-4 py-3 border-t border-white/10 bg-white/[0.02]">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-bold uppercase tracking-wide text-white/60">{en ? 'Text overlay' : 'Texte sur l\'image'}</span>
+              {selected.overlay_text?.text && <span className="text-[9px] text-white/40 italic">{en ? 'Active' : 'Actif'}</span>}
+            </div>
+            <textarea
+              value={overlayText}
+              onChange={e => setOverlayText(e.target.value)}
+              placeholder={en ? 'Short punchline (3-8 words). Empty = remove.' : 'Punchline courte (3-8 mots). Vide = supprimer.'}
+              rows={2}
+              maxLength={60}
+              className="w-full bg-black/30 border border-white/10 rounded-lg p-2 text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-purple-500/50"
+            />
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
+              <select value={overlayPos} onChange={e => setOverlayPos(e.target.value as any)} className="bg-black/30 border border-white/10 rounded px-2 py-1 text-[10px] text-white/80">
+                <option value="top">{en ? 'Top' : 'Haut'}</option>
+                <option value="center">{en ? 'Center' : 'Centre'}</option>
+                <option value="bottom">{en ? 'Bottom' : 'Bas'}</option>
+              </select>
+              <select value={overlayTone} onChange={e => setOverlayTone(e.target.value as any)} className="bg-black/30 border border-white/10 rounded px-2 py-1 text-[10px] text-white/80">
+                <option value="punchy">{en ? 'Punchy' : 'Punchy'}</option>
+                <option value="elegant">{en ? 'Elegant' : 'Élégant'}</option>
+                <option value="playful">{en ? 'Playful' : 'Joueur'}</option>
+              </select>
+              <button
+                onClick={applyOverlay}
+                disabled={overlayBusy}
+                className="ml-auto px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-[10px] font-bold rounded-lg disabled:opacity-50"
+              >
+                {overlayBusy ? '...' : (overlayText.trim() ? (en ? 'Apply' : 'Appliquer') : (en ? 'Remove' : 'Supprimer'))}
+              </button>
+            </div>
+          </div>
+        )}
         {(selected.status === 'draft' || selected.status === 'approved') && (
           <div className="px-4 pb-4 flex gap-2">
             <button onClick={async () => { try { await fetch('/api/agents/content', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'publish_single', postId: selected.id }) }); onClose(); window.location.reload(); } catch {} }} className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-xl min-h-[44px]">{'\uD83D\uDE80'} {tCal.publish}</button>

@@ -4474,6 +4474,47 @@ Real natural light matching the room's existing ambience. The dish must look pro
         } catch {}
       }
 
+      // ── OPTIONAL TEXT OVERLAY ──
+      // Claude Haiku judges whether a punchy 3-8 word overlay would
+      // amplify the post (jeu de mots, link business ↔ visual). If yes,
+      // we composite it on top via Sharp (Seedream never renders text
+      // itself — it's bad at it). Stored in overlay_text so the user
+      // can edit it later from the post modal.
+      if (visualUrl && !visualUrl.includes('.mp4')) {
+        try {
+          const { decideTextOverlay, applyTextOverlay } = await import('@/lib/visuals/text-overlay');
+          const decision = await decideTextOverlay({
+            hook: post.hook || '',
+            caption: post.caption || '',
+            visualDescription: visualDesc,
+            businessType: (clientSettings as any)?.business_type || '',
+            pillar: post.pillar || '',
+            format: postFormat,
+            language: 'fr',
+          });
+          if (decision.needsText) {
+            const overlaidUrl = await applyTextOverlay(visualUrl, decision, inserted.id);
+            if (overlaidUrl) {
+              const originalUrl = visualUrl;
+              visualUrl = overlaidUrl;
+              await supabase.from('content_calendar').update({
+                overlay_text: {
+                  text: decision.text,
+                  position: decision.position,
+                  tone: decision.tone,
+                  original_visual_url: originalUrl,
+                },
+              }).eq('id', inserted.id);
+              console.log(`[Content] Text overlay applied: "${decision.text}" (${decision.position}, ${decision.tone})`);
+            }
+          } else {
+            console.log('[Content] Text overlay: not needed for this post');
+          }
+        } catch (overlayErr: any) {
+          console.warn('[Content] Text overlay non-fatal:', overlayErr?.message);
+        }
+      }
+
       // ── CAPTION RE-GROUNDING ──
       // Léna wrote hook/caption/hashtags BEFORE we decided which upload
       // to use. If the final visual is driven by a client upload (raw
