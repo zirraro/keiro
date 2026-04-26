@@ -18,6 +18,7 @@ import {
 import { SocialConnectBanners } from './SharedBanners';
 import { NetworkAutoModeToggles } from './AutoModeToggle';
 import { InstagramAssetBadge } from './InstagramAssetBadge';
+import VideoMontageBox from './VideoMontageBox';
 import { useLanguage } from '@/lib/i18n/context';
 import type { PanelProps } from './types';
 import AgentUploadsPanel from '../AgentUploadsPanel';
@@ -545,6 +546,9 @@ export function ContentPanel({ data, agentName, gradientFrom, gradientTo }: Pane
 
       {/* IG inspiration input */}
       <IgInspirationBox />
+
+      {/* Video montage CTA — visible only when ≥2 video uploads exist */}
+      <VideoMontageBox />
 
       {/* Main tabs: Production workflow (default) vs Aperçu réseaux */}
       <div className="flex gap-1 bg-white/5 rounded-lg p-0.5 border border-white/10 mb-3">
