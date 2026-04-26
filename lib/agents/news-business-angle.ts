@@ -42,6 +42,11 @@ export async function pickBusinessNewsAngle(input: {
   upcomingEvents: string[];   // e.g. ["AUJOURD'HUI: Fête nationale"]
   // Avoid re-picking what was already used.
   recentAnglesUsed?: string[];
+  // Optional preference: 'news' = only pick from real news headlines,
+  // 'trend' = only pick from trending queries (recurring social
+  // media themes), 'event' = upcoming calendar events. Default lets
+  // Sonnet choose whichever source has the strongest angle.
+  prefer?: 'news' | 'trend' | 'event';
 }): Promise<BusinessNewsAngle | null> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
@@ -84,23 +89,34 @@ JSON only. No preamble, no markdown.`;
     input.city && `Ville: ${input.city}`,
   ].filter(Boolean).join('\n') || 'Inconnu';
 
+  // When a preference is specified, the other sources are hidden
+  // entirely — Sonnet can only choose from the requested category.
+  // This is how the caller forces a NEWS-pillar post vs a TREND-pillar
+  // post, since each plays a different role in social-media reach.
+  const showNews = !input.prefer || input.prefer === 'news';
+  const showTrends = !input.prefer || input.prefer === 'trend';
+  const showEvents = !input.prefer || input.prefer === 'event';
+  const preferNote = input.prefer
+    ? `\n=== PRÉFÉRENCE EXPLICITE DU CALLER ===\nLe post doit être ancré sur ${input.prefer === 'news' ? "une ACTUALITÉ (vraie news du jour, ce que rapportent les médias)" : input.prefer === 'trend' ? "une TENDANCE (sujet qui revient sur les réseaux, format viral, sound, débat communautaire)" : "un ÉVÉNEMENT calendaire à venir"}. N'utilise QUE les items listés dans cette catégorie ci-dessous, pas les autres.\n`
+    : '';
+
   const message = `=== BUSINESS ===
 ${businessBlock}
-
-=== ACTUALITÉS DU JOUR (FRANCE) ===
-${input.newsHeadlines.slice(0, 8).map((h, i) => `${i + 1}. ${h}`).join('\n') || '(aucune)'}
-
-=== TRENDS GOOGLE / TIKTOK ===
-${input.trendQueries.slice(0, 8).map((t, i) => `${i + 1}. ${t}`).join('\n') || '(aucune)'}
-
-=== ÉVÉNEMENTS PROCHES ===
+${preferNote}
+${showNews ? `=== ACTUALITÉS DU JOUR (FRANCE) ===
+${input.newsHeadlines.slice(0, 10).map((h, i) => `${i + 1}. ${h}`).join('\n') || '(aucune)'}
+` : ''}
+${showTrends ? `=== TRENDS GOOGLE / TIKTOK / RÉSEAUX ===
+${input.trendQueries.slice(0, 10).map((t, i) => `${i + 1}. ${t}`).join('\n') || '(aucune)'}
+` : ''}
+${showEvents ? `=== ÉVÉNEMENTS PROCHES ===
 ${input.upcomingEvents.slice(0, 4).map((e, i) => `${i + 1}. ${e}`).join('\n') || '(aucun)'}
-
+` : ''}
 ${input.recentAnglesUsed && input.recentAnglesUsed.length > 0
-  ? `=== ANGLES DÉJÀ UTILISÉS (À NE PAS REPRENDRE) ===\n${input.recentAnglesUsed.slice(0, 5).map((a, i) => `${i + 1}. ${a}`).join('\n')}\n`
+  ? `=== ANGLES DÉJÀ UTILISÉS RÉCEMMENT (NE PAS REPRENDRE — varie les thèmes) ===\n${input.recentAnglesUsed.slice(0, 8).map((a, i) => `${i + 1}. ${a}`).join('\n')}\n`
   : ''}
 
-Choose the strongest connection and return JSON. If nothing connects genuinely, return { "picked": null }.`;
+Choose the strongest connection and return JSON. If nothing in ${input.prefer ? `the ${input.prefer.toUpperCase()} category` : 'any category'} connects genuinely, return { "picked": null }.`;
 
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {

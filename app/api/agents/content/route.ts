@@ -1828,7 +1828,12 @@ export async function POST(request: NextRequest) {
       case 'generate_post': {
         const todayStr = new Date().toISOString().split('T')[0];
         const dayOfWeek = new Date().getDay();
-        return generateDailyPost(supabase, todayStr, dayOfWeek, body.platform, body.pillar, body.draftOnly, orgId, userId, clientSettings, body.format);
+        // Allow caller to force the news-angle source ('news' | 'trend' | 'event')
+        // via body.preferAngleSource — handy for A/B testing the 2 modes.
+        const callSettings = body.preferAngleSource
+          ? { ...clientSettings, _prefer_angle_source: body.preferAngleSource }
+          : clientSettings;
+        return generateDailyPost(supabase, todayStr, dayOfWeek, body.platform, body.pillar, body.draftOnly, orgId, userId, callSettings, body.format);
       }
 
       case 'generate_week': {
@@ -4099,6 +4104,12 @@ Le lien doit etre NATUREL et PERCUTANT — pas force. Si aucune actu ne colle au
       const dossierSummary = dossierForAngle?.ai_summary || dossierForAngle?.company_description;
       const dossierOffer = dossierForAngle?.value_proposition || dossierForAngle?.unique_selling_points;
       const dossierCity = dossierForAngle?.address ? String(dossierForAngle.address).split(',').pop()?.trim() : undefined;
+      // Optional override from caller — useful for A/B testing news vs
+      // trend angles, or when the client explicitly asks for one mode.
+      const preferRaw = (clientSettings as any)?._prefer_angle_source as string | undefined;
+      const prefer = preferRaw === 'news' || preferRaw === 'trend' || preferRaw === 'event'
+        ? preferRaw
+        : undefined;
       const angle = await pickBusinessNewsAngle({
         businessType: dossierForAngle?.business_type || detectedBusinessType || (clientSettings as any)?.business_type,
         businessSummary: dossierSummary,
@@ -4109,6 +4120,7 @@ Le lien doit etre NATUREL et PERCUTANT — pas force. Si aucune actu ne colle au
         trendQueries: trendsTrendItems,
         upcomingEvents: trendsUpcomingEvents,
         recentAnglesUsed,
+        prefer,
       });
       if (angle) {
         newsAngleBlock = angleToPromptBlock(angle);
