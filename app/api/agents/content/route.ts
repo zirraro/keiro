@@ -3714,20 +3714,29 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
   const recentSubjects = recentVisuals.map(categorizeVisual);
   const subjectCounts: Record<string, number> = {};
   for (const s of recentSubjects) subjectCounts[s] = (subjectCounts[s] || 0) + 1;
-  // FORBIDDEN = anything used in last 2 posts back-to-back (hard rule)
-  // OVERUSED = appeared ≥2 times in window (strong avoid)
+  // FORBIDDEN list — combined hard rules:
+  //   (a) Anything used in last 2 posts back-to-back
+  //   (b) Anything that's already ≥30% of the visible feed (3+ in last 10)
+  //   The user wants the IG GRID to feel varied, not just the 2 most recent.
   const last2Subjects = recentSubjects.slice(0, 2);
-  const forbiddenSubjects = Array.from(new Set(last2Subjects));
+  const dominantThreshold = Math.max(3, Math.ceil(Math.max(recentSubjects.length, 10) * 0.30));
+  const dominantSubjects = Object.entries(subjectCounts).filter(([_, n]) => n >= dominantThreshold).map(([k]) => k);
+  const forbiddenSubjects = Array.from(new Set([...last2Subjects, ...dominantSubjects]));
   const overusedSubjects = Object.entries(subjectCounts).filter(([_, n]) => n >= 2).map(([k]) => k);
   const dueSubjects = SUBJECT_CATEGORIES.filter(c => !subjectCounts[c]);
-  const subjectGuidance = `\n━━━ ROTATION DES SUJETS (RÈGLE DURE — ne pas s'enfermer sur plat+lieu) ━━━\n`
+  const subjectGuidance = `\n━━━ ROTATION DES SUJETS — VUE FEED GLOBALE (RÈGLE DURE) ━━━\n`
     + `Les ${recentSubjects.length} derniers posts ont concerné : ${recentSubjects.length > 0 ? recentSubjects.join(', ') : '(aucun)'}.\n`
-    + (forbiddenSubjects.length > 0 ? `🚫 INTERDIT pour ce post (utilisé dans les 2 derniers) : ${forbiddenSubjects.join(', ')}\n` : '')
+    + (dominantSubjects.length > 0 ? `🚫 SATURÉS DANS LE FEED (≥30% des posts récents — INTERDIT pour rééquilibrer) : ${dominantSubjects.join(', ')}\n` : '')
+    + (last2Subjects.length > 0 ? `🚫 INTERDIT (utilisé dans les 2 derniers, pas de doublon back-to-back) : ${Array.from(new Set(last2Subjects)).join(', ')}\n` : '')
     + (overusedSubjects.length > 0 ? `→ SUR-UTILISÉS (à ÉVITER fort) : ${overusedSubjects.join(', ')}\n` : '')
-    + (dueSubjects.length > 0 ? `→ JAMAIS UTILISÉS RÉCEMMENT (à privilégier) : ${dueSubjects.slice(0, 4).join(', ')}\n` : '')
-    + `Le visual_description de ce post NE DOIT PAS correspondre aux catégories INTERDITES. Choisis une catégorie "DUE" en priorité, sinon une non-utilisée.\n`
+    + (dueSubjects.length > 0 ? `→ JAMAIS UTILISÉS RÉCEMMENT (à privilégier en PRIORITÉ) : ${dueSubjects.slice(0, 4).join(', ')}\n` : '')
+    + `\nObjectif : un feed Instagram VARIÉ. Si le client regarde son profil, il doit voir des SUJETS DIFFÉRENTS, pas la même scène déclinée. Le visual_description NE DOIT PAS correspondre aux catégories INTERDITES.\n`
     + `Catégories disponibles : ${SUBJECT_CATEGORIES.join(' / ')}.\n`
-    + `Si la catégorie INTERDITE est "product_hero" et qu'on est dans la restauration, NE MONTRE PAS le plat seul comme sujet principal. Montre les mains du chef qui le fait, le client qui le mange, la salle qui s'anime, le marché à l'aube — JAMAIS encore une fois le plat sur la table.\n`
+    + `\nPour la RESTAURATION en particulier :\n`
+    + `- Si product_hero (plat) saturé → montre le LIEU SEUL (venue_atmosphere) sans assiette, ou les MAINS du chef (process_craft), ou un CLIENT qui mange (people_customer).\n`
+    + `- Si venue_atmosphere saturé → montre le PLAT seul, ou un DÉTAIL (texture, matière, ingrédient brut).\n`
+    + `- Le LIEU SANS PLAT est une option valide — une vue de la salle, de la terrasse, du comptoir, un coin de marbre, une lumière du matin. Pas besoin de food sur chaque post.\n`
+    + `Pour les AUTRES MÉTIERS : applique la même logique — varier hero/process/customer/detail/behind_scenes/news_tie/lifestyle/social_proof.\n`
     + `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
 
   // ── COLOR ROTATION: Detect dominant colors to force variety ──
@@ -3888,6 +3897,25 @@ Le lien doit etre NATUREL et PERCUTANT — pas force. Si aucune actu ne colle au
     console.warn('[Content] channel-voice load failed:', e?.message);
   }
 
+  // ── DISSATISFACTION SIGNALS ──
+  // The client clicking "skip" or "delete" on Léna's drafts is a
+  // strong opinion signal. Aggregate the patterns and warn Léna
+  // before she generates the next post so she stops repeating
+  // whatever the client has been killing.
+  let dissatisfactionBlock = '';
+  if (userId) {
+    try {
+      const { loadDissatisfactionSummary, dissatisfactionPromptBlock } = await import('@/lib/agents/dissatisfaction-signals');
+      const sum = await loadDissatisfactionSummary(supabase, userId, 30);
+      dissatisfactionBlock = dissatisfactionPromptBlock(sum);
+      if (dissatisfactionBlock) {
+        console.log(`[Content] Dissatisfaction signal active: ${sum?.totalSkipped}/${sum?.totalGenerated} skipped (${Math.round((sum?.skipRate || 0) * 100)}%)`);
+      }
+    } catch (e: any) {
+      console.warn('[Content] dissatisfaction signal load failed:', e?.message?.substring(0, 80));
+    }
+  }
+
   // ── BUSINESS ↔ NEWS ANGLE (Sonnet) ──
   // Only fire when the post is meant to surf actuality (pillar=trends
   // OR there's a real upcoming event in the calendar). Sonnet analyzes
@@ -3938,7 +3966,7 @@ Le lien doit etre NATUREL et PERCUTANT — pas force. Si aucune actu ne colle au
 
   const enhancedPrompt = `Génère 1 post ÉLITE pour aujourd'hui (${todayStr}).
 ${trendsContext}${eventContext}${directivesBlock}
-${sharedIntelligence ? `━━━ INTELLIGENCE PARTAGÉE (données de TOUS les agents) ━━━\n${sharedIntelligence}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` : ''}${visualReferences ? `\n${visualReferences}\n` : ''}${naturalismBlock}${inspirationBlock}${channelVoice}${newsAngleBlock}
+${sharedIntelligence ? `━━━ INTELLIGENCE PARTAGÉE (données de TOUS les agents) ━━━\n${sharedIntelligence}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` : ''}${visualReferences ? `\n${visualReferences}\n` : ''}${naturalismBlock}${inspirationBlock}${channelVoice}${newsAngleBlock}${dissatisfactionBlock}
 Plateforme : ${platform}
 Format suggéré : ${format}
 Pilier suggéré : ${pillar}${avoidPillar ? `\nATTENTION : Le pilier "${avoidPillar}" a été trop utilisé récemment. CHANGE de pilier si possible.` : ''}${preferredFormats !== 'all' ? `\nPRÉFÉRENCE CLIENT : Le client préfère les ${preferredFormats}. Adapte le format en conséquence.` : ''}
@@ -4358,26 +4386,37 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
           };
           const preferredForPillar = preferredTypes[pillar as string] || [];
 
+          // Detect dish-saturation: how many of the last 5 posts used a
+          // dish/product as PRIMARY hero? When it's ≥3, we flip the bias
+          // and let space/ambiance photos surface as the hero so the feed
+          // gets a venue-only post instead of yet another plate.
+          const recentHeroes = (recentGrid || []).slice(0, 5).map((p: any) => {
+            const v = (p.visual_description || '').toLowerCase();
+            if (/(plat|dish|bouquet|soin|product|produit|pi.ce|montre|robe|sac)/.test(v)) return 'product';
+            if (/(int.rieur|interior|salle|devanture|fa.ade|room|venue|terrasse|comptoir|atelier)/.test(v)) return 'space';
+            return 'other';
+          });
+          const dishSaturated = recentHeroes.filter(h => h === 'product').length >= 3;
+
           const scoreRelevance = (u: any): number => {
             const a = u.ai_analysis || {};
             const blob = `${a.ambiance || ''} ${(Array.isArray(a.visible_elements) ? a.visible_elements.join(' ') : '')} ${(Array.isArray(a.style_descriptors) ? a.style_descriptors.join(' ') : '')} ${u.caption || ''}`.toLowerCase();
             let score = 0;
-            // HUGE boost for preferred hero content_type — dish/product
-            // wins over space easily when pillar is trends/demo.
-            if (a.content_type && preferredForPillar.includes(a.content_type)) {
-              score += 20;
+
+            if (dishSaturated) {
+              // Feed has been dish-heavy — promote space/ambiance to hero
+              // so the next post is the room, the terrasse, the marble
+              // counter, the morning light — not another plate.
+              if (a.content_type === 'space' || a.content_type === 'ambiance') score += 18;
+              if (['dish', 'product'].includes(a.content_type)) score -= 10;
+            } else {
+              // Normal regime — dish/product is the natural hero, space
+              // belongs in venueContext, not as primary.
+              if (a.content_type && preferredForPillar.includes(a.content_type)) score += 20;
+              if (['dish', 'product'].includes(a.content_type)) score += 5;
+              if (a.content_type === 'space' || a.content_type === 'ambiance') score -= 3;
             }
-            // Strong base boost for ANY product/dish (these are the heroes
-            // for a restaurant / boutique feed) even on pillars not in
-            // preferredForPillar, so they always beat a space photo.
-            if (['dish', 'product'].includes(a.content_type)) {
-              score += 5;
-            }
-            // Penalty for space/ambiance as PRIMARY — they belong as
-            // venueContext, not hero. Only picked when no dish available.
-            if (a.content_type === 'space' || a.content_type === 'ambiance') {
-              score -= 3;
-            }
+
             for (const hint of hintsForThisPost) if (blob.includes(hint)) score += 2;
             if (u.agent_id === 'content' || u.agent_id === 'onboarding') score += 1;
             // Strong penalty for recently-used. Used to be -4 (soft) which
