@@ -31,6 +31,9 @@ export async function decideTextOverlay(input: {
   caption?: string;
   visualDescription?: string;
   businessType?: string;
+  businessSummary?: string;     // dossier.summary — adds real context
+  signatureOffer?: string;       // dossier.signature_offer
+  recentNews?: string;           // top news headline if pillar=trends
   pillar?: string;
   format?: string;
   language?: 'fr' | 'en';
@@ -39,30 +42,34 @@ export async function decideTextOverlay(input: {
   if (!apiKey) return { needsText: false };
 
   const lang = input.language || 'fr';
-  const system = `You are a copy art director for social media visuals. Your job is to decide whether a SHORT punchy text overlay would amplify the impact of a generated image — or whether the image stands alone.
+  const system = `You are an elite copy art director for premium social media visuals (luxury hospitality, fashion, beauté, gastronomie). You are NOT a generic punchline generator — your taste is sharp, your French (or English) writing is impeccable, and you know when silence beats noise.
 
-When to add text (overlay HELPS):
-- A wordplay or pun naturally ties the visual to the business
-- The image is striking but ambiguous (text disambiguates the hook)
-- A short punchline (3-8 words) makes the viewer stop scrolling
+Your single decision: does this image NEED a short text overlay to land harder, or is it already complete?
 
-When NOT to add text (image stands alone):
-- The visual already tells the story clearly
-- The hook is best read in the caption, not on the image
-- A restaurant dish hero shot — the dish + caption already deliver
-- The image is busy / detailed (overlay would clutter)
+When YES (overlay amplifies):
+- A genuine wordplay / double meaning ties the visual to the business reality (not a generic restaurant cliché — something specific to THIS business or THIS news angle if pillar=trends).
+- The visual is beautiful but slightly ambiguous and a 3-8 word line clarifies the intent.
+- The post would scroll past without text but stops the scroll WITH it.
+- The line is memorable and brand-coherent.
 
-Default to NO TEXT. Only say yes when the punchline is GENUINELY impactful, not just decorative.
+When NO (silence is louder):
+- The visual already tells the story (a perfectly plated dish doesn't need "Délicieux ✨").
+- The hook belongs in the caption, not on the image.
+- Restaurant hero dish, fleuriste close-up, beauty before-after — let the image breathe.
+- The image is detailed / busy → overlay would clutter.
 
-If yes:
-- Text MUST be 3-8 words (~40 characters max), in ${lang === 'fr' ? 'French' : 'English'}
-- Use the business type to find the punchline (e.g. florist + product photo: "Ne dis rien. Dis-le avec des fleurs." / restaurant + dish: "Une assiette qui parle pour elle.")
-- NO emojis in the overlay text
-- NO hashtags
-- Choose position based on composition (top/bottom/center)
-- Choose tone (punchy / elegant / playful) based on business
+DEFAULT TO NO. Only say YES when the line is ACTUALLY good — better than 80% of overlays you see in the wild. If you're unsure, the answer is no.
 
-Return JSON only:
+If yes, the line MUST:
+- Be 3-8 words MAX (~40 chars). Short = strong.
+- Be in ${lang === 'fr' ? 'French (perfect French — no anglicisms unless intentional)' : 'English'}.
+- Use the business REALITY (type + offer + sometimes news), not a clichéd template.
+- Tie visual ↔ business in a way only THIS business could say.
+- Have NO emoji, NO hashtag, NO punctuation overload.
+- Position chosen for composition: top (above subject), bottom (below subject), center (over negative space).
+- Tone: punchy (Helvetica bold) for restos/sport/agence; elegant (Georgia serif) for beauté/spa/boutiques luxe; playful (Comic-style) for kids/desserts/fun.
+
+Return STRICT JSON:
 {
   "needsText": false
 } OR {
@@ -70,16 +77,30 @@ Return JSON only:
   "text": "string",
   "position": "top|bottom|center",
   "tone": "punchy|elegant|playful"
-}`;
+}
 
-  const message = `Hook: ${input.hook}
-Business: ${input.businessType || 'unknown'}
-Pillar: ${input.pillar || ''}
-Format: ${input.format || ''}
-Visual: ${(input.visualDescription || '').substring(0, 300)}
-Caption (first 200 chars): ${(input.caption || '').substring(0, 200)}
+JSON only — no preamble, no explanation, no markdown.`;
 
-Decide. JSON only.`;
+  const businessContext = [
+    input.businessType && `Type: ${input.businessType}`,
+    input.businessSummary && `Activité: ${input.businessSummary.substring(0, 200)}`,
+    input.signatureOffer && `Offre signature: ${input.signatureOffer.substring(0, 150)}`,
+  ].filter(Boolean).join('\n');
+
+  const message = `=== POST ===
+Hook : ${input.hook}
+Caption (200 premiers char) : ${(input.caption || '').substring(0, 200)}
+Pilier : ${input.pillar || ''}
+Format : ${input.format || ''}
+
+=== VISUEL ===
+${(input.visualDescription || '').substring(0, 400)}
+
+=== BUSINESS ===
+${businessContext || 'Inconnu'}
+${input.recentNews ? `\n=== ACTUALITÉ DU JOUR (pour pillar=trends) ===\n${input.recentNews.substring(0, 250)}\n` : ''}
+
+Décide. JSON strict.`;
 
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -90,8 +111,11 @@ Decide. JSON only.`;
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 200,
+        // Sonnet 4: better French, sharper editorial taste, fewer
+        // generic punchlines than Haiku. ~€0.015 per call vs €0.005.
+        // Worth the bump because the overlay is what stops the scroll.
+        model: 'claude-sonnet-4-5-20250929',
+        max_tokens: 250,
         system,
         messages: [{ role: 'user', content: message }],
       }),

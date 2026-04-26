@@ -3282,6 +3282,33 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
     }
   }
 
+  // ── PER-BUSINESS NATURALISM PROFILE ──
+  // Different businesses need different "natural" — a fleuriste post
+  // shouldn't look like a restaurant post. We pull the dossier's
+  // business_type, look up the matching naturalism profile, and inject
+  // explicit rules (people / lighting / skin / palette / avoid) into
+  // Léna's prompt for THIS generation.
+  let naturalismBlock = '';
+  let detectedBusinessType: string | null = null;
+  if (userId) {
+    try {
+      const { data: dossier } = await supabase
+        .from('business_dossiers')
+        .select('business_type')
+        .eq('user_id', userId)
+        .maybeSingle();
+      if (dossier?.business_type) {
+        detectedBusinessType = dossier.business_type;
+        const { naturalismProfileFor, naturalismToPromptBlock } = await import('@/lib/agents/business-naturalism');
+        const profile = naturalismProfileFor(dossier.business_type);
+        naturalismBlock = naturalismToPromptBlock(profile);
+        console.log(`[Content] Naturalism profile applied: ${profile.id} for business "${dossier.business_type}"`);
+      }
+    } catch (e: any) {
+      console.warn('[Content] naturalism block load failed:', e?.message);
+    }
+  }
+
   // ── INSPIRATION (optional IG account brief) ──
   // When the client saved an Instagram account as inspiration via
   // /api/agents/content/inspiration, we inject the style brief into
@@ -3718,7 +3745,7 @@ Le lien doit etre NATUREL et PERCUTANT — pas force. Si aucune actu ne colle au
 
   const enhancedPrompt = `Génère 1 post ÉLITE pour aujourd'hui (${todayStr}).
 ${trendsContext}${eventContext}${directivesBlock}
-${sharedIntelligence ? `━━━ INTELLIGENCE PARTAGÉE (données de TOUS les agents) ━━━\n${sharedIntelligence}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` : ''}${visualReferences ? `\n${visualReferences}\n` : ''}${inspirationBlock}
+${sharedIntelligence ? `━━━ INTELLIGENCE PARTAGÉE (données de TOUS les agents) ━━━\n${sharedIntelligence}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` : ''}${visualReferences ? `\n${visualReferences}\n` : ''}${naturalismBlock}${inspirationBlock}
 Plateforme : ${platform}
 Format suggéré : ${format}
 Pilier suggéré : ${pillar}${avoidPillar ? `\nATTENTION : Le pilier "${avoidPillar}" a été trop utilisé récemment. CHANGE de pilier si possible.` : ''}${preferredFormats !== 'all' ? `\nPRÉFÉRENCE CLIENT : Le client préfère les ${preferredFormats}. Adapte le format en conséquence.` : ''}
@@ -4282,7 +4309,19 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
           const shotIdx = Math.floor(Math.random() * SHOT_TYPES.length);
           const shot = SHOT_TYPES[shotIdx];
 
-          effectiveVisualDesc = `Preserve the exact dining room / venue shown in the reference: same tables, chairs, walls, windows, light fixtures, materials, decor. Real photograph (not 3D render).
+          // Add per-business naturalism context to the visual brief
+          // so e.g. an institut beauté generation respects skin/lighting
+          // rules even when only one upload is being i2i'd.
+          let naturalismHints = '';
+          if (detectedBusinessType) {
+            try {
+              const { naturalismProfileFor } = await import('@/lib/agents/business-naturalism');
+              const np = naturalismProfileFor(detectedBusinessType);
+              naturalismHints = `\nBUSINESS NATURALISM (${np.label}):\n- People: ${np.rules.people}\n- Lighting: ${np.rules.lighting}\n- Skin / texture: ${np.rules.skin}\n- Avoid: ${np.rules.avoid.join('; ')}\n`;
+            } catch {}
+          }
+
+          effectiveVisualDesc = `Preserve the exact dining room / venue shown in the reference: same tables, chairs, walls, windows, light fixtures, materials, decor. Real photograph (not 3D render).${naturalismHints}
 
 REFERENCE VENUE — STRICT MATCH:
 - Type: ${venueSpaceType}
@@ -4491,19 +4530,39 @@ Real natural light matching the room's existing ambience. The dish must look pro
       }
 
       // ── OPTIONAL TEXT OVERLAY ──
-      // Claude Haiku judges whether a punchy 3-8 word overlay would
-      // amplify the post (jeu de mots, link business ↔ visual). If yes,
-      // we composite it on top via Sharp (Seedream never renders text
-      // itself — it's bad at it). Stored in overlay_text so the user
-      // can edit it later from the post modal.
+      // Claude Sonnet 4 judges whether a punchy 3-8 word overlay would
+      // amplify the post (jeu de mots, link business ↔ visual + news).
+      // Sonnet > Haiku here because the overlay is what stops the scroll —
+      // generic punchlines lose conversion. Stored in overlay_text so
+      // the user can edit it later from the post modal.
       if (visualUrl && !visualUrl.includes('.mp4')) {
         try {
+          // Pull richer business context for the overlay copy.
+          let businessSummary: string | undefined;
+          let signatureOffer: string | undefined;
+          if (userId) {
+            try {
+              const { data: dossier } = await supabase
+                .from('business_dossiers')
+                .select('summary, signature_offer')
+                .eq('user_id', userId)
+                .maybeSingle();
+              businessSummary = dossier?.summary || undefined;
+              signatureOffer = dossier?.signature_offer || undefined;
+            } catch {}
+          }
+          const recentNews = post.pillar === 'trends'
+            ? (typeof trendsContext === 'string' ? trendsContext.substring(0, 300) : undefined)
+            : undefined;
           const { decideTextOverlay, applyTextOverlay } = await import('@/lib/visuals/text-overlay');
           const decision = await decideTextOverlay({
             hook: post.hook || '',
             caption: post.caption || '',
             visualDescription: visualDesc,
-            businessType: (clientSettings as any)?.business_type || '',
+            businessType: detectedBusinessType || (clientSettings as any)?.business_type || '',
+            businessSummary,
+            signatureOffer,
+            recentNews,
             pillar: post.pillar || '',
             format: postFormat,
             language: 'fr',
