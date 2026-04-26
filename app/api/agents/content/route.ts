@@ -3743,9 +3743,20 @@ Le lien doit etre NATUREL et PERCUTANT — pas force. Si aucune actu ne colle au
     ? `\n━━━ DIRECTIVES CLIENT (instructions données par le client dans le chat) ━━━\n${clientDirectives.map((d: string, i: number) => `${i + 1}. ${d}`).join('\n')}\n→ RESPECTE ces directives en PRIORITÉ — elles viennent du client.\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`
     : '';
 
+  // Channel-aware voice — without this Léna leaks LinkedIn-isms onto IG
+  // captions ("algo LinkedIn", "B2B", "decision-makers") or talks
+  // about FYP on a LinkedIn post. Each platform has its own voice.
+  let channelVoice = '';
+  try {
+    const { channelVoiceBlock } = await import('@/lib/agents/channel-voice');
+    channelVoice = channelVoiceBlock(platform);
+  } catch (e: any) {
+    console.warn('[Content] channel-voice load failed:', e?.message);
+  }
+
   const enhancedPrompt = `Génère 1 post ÉLITE pour aujourd'hui (${todayStr}).
 ${trendsContext}${eventContext}${directivesBlock}
-${sharedIntelligence ? `━━━ INTELLIGENCE PARTAGÉE (données de TOUS les agents) ━━━\n${sharedIntelligence}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` : ''}${visualReferences ? `\n${visualReferences}\n` : ''}${naturalismBlock}${inspirationBlock}
+${sharedIntelligence ? `━━━ INTELLIGENCE PARTAGÉE (données de TOUS les agents) ━━━\n${sharedIntelligence}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` : ''}${visualReferences ? `\n${visualReferences}\n` : ''}${naturalismBlock}${inspirationBlock}${channelVoice}
 Plateforme : ${platform}
 Format suggéré : ${format}
 Pilier suggéré : ${pillar}${avoidPillar ? `\nATTENTION : Le pilier "${avoidPillar}" a été trop utilisé récemment. CHANGE de pilier si possible.` : ''}${preferredFormats !== 'all' ? `\nPRÉFÉRENCE CLIENT : Le client préfère les ${preferredFormats}. Adapte le format en conséquence.` : ''}
