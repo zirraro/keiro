@@ -775,6 +775,34 @@ export default function GeneratePage() {
     localStorage.removeItem('keiro_generate_form_state');
   }, [authUserId]);
 
+  // Seed business identity from the signup questionnaire (business_dossiers)
+  // when no localStorage state restored anything. Founder ask: business
+  // + description should pre-fill from signup, the other generation
+  // params should always start clean for a new gen.
+  useEffect(() => {
+    if (!authUserId) return;
+    if (businessType && businessDescription) return; // already seeded
+    (async () => {
+      try {
+        const sb = supabaseBrowser();
+        const { data } = await sb
+          .from('business_dossiers')
+          .select('business_type, summary, signature_offer')
+          .eq('user_id', authUserId)
+          .maybeSingle();
+        if (data) {
+          if (!businessType && data.business_type) setBusinessType(data.business_type);
+          if (!businessDescription && (data.summary || data.signature_offer)) {
+            setBusinessDescription(data.summary || data.signature_offer || '');
+          }
+        }
+      } catch (e: any) {
+        console.warn('[Generate] business seed failed:', e?.message);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authUserId]);
+
   /* --- Charger les stats mensuelles (visuels + vidéos créés ce mois) --- */
   useEffect(() => {
     const fetchMonthlyStats = async () => {
@@ -1958,6 +1986,23 @@ export default function GeneratePage() {
         }
       } catch {}
 
+      // Reset the form-state cache so the NEXT visit starts clean —
+      // keep only businessType + businessDescription (those come from
+      // the signup questionnaire and stay stable). Founder feedback:
+      // "quand on revient sur la page pour une nouvelle génération
+      // on doit pas avoir les mêmes infos pré-enregistrées comme la
+      // dernière génération sauf pour le business / description".
+      try {
+        if (authUserId) {
+          const minimalState = {
+            businessType: businessType || '',
+            businessDescription: businessDescription || '',
+            savedAt: new Date().toISOString(),
+          };
+          localStorage.setItem(`keiro_form_${authUserId}`, JSON.stringify(minimalState));
+        }
+      } catch {}
+
       // Génération audio TTS si demandée
       if (addAudio) {
         setGeneratingAudio(true);
@@ -3033,6 +3078,20 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                 setGeneratingVideo(false);
                 setVideoLongProgress(100);
                 setVideoLongStatus('');
+
+                // Reset form-state cache (keep business identity only)
+                // so the next visit doesn't pre-fill last video's params.
+                try {
+                  if (authUserId) {
+                    const minimalState = {
+                      businessType: businessType || '',
+                      businessDescription: businessDescription || '',
+                      savedAt: new Date().toISOString(),
+                    };
+                    localStorage.setItem(`keiro_form_${authUserId}`, JSON.stringify(minimalState));
+                  }
+                  if (typeof window !== 'undefined') window.dispatchEvent(new Event('keiro:generation-success'));
+                } catch {}
 
                 // Auto-save
                 try {
