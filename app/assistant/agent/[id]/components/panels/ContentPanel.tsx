@@ -401,6 +401,7 @@ function NetworkPreviewTab() {
     { key: 'linkedin', label: 'LinkedIn', color: '#0A66C2', icon: '\u{1F4BC}' },
   ];
   const [active, setActive] = useState<'instagram' | 'tiktok' | 'linkedin'>('instagram');
+  const [lightbox, setLightbox] = useState<any>(null);
   const [state, setState] = useState<Record<string, { loading: boolean; connected: boolean; posts: any[]; error?: string }>>({
     instagram: { loading: true, connected: false, posts: [] },
     tiktok: { loading: true, connected: false, posts: [] },
@@ -477,56 +478,99 @@ function NetworkPreviewTab() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-        {cur.posts.map(post => {
-          const metrics = post.metrics || {};
-          const metricEntries: Array<[string, any]> = Object.entries(metrics).filter(([, v]) => v !== null && v !== undefined);
-          return (
-            <div key={post.id} className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden flex flex-col">
-              {post.media_url ? (
-                <div className="aspect-square bg-black/40 overflow-hidden">
-                  <img src={post.media_url} alt="" className="w-full h-full object-cover" />
-                </div>
-              ) : (
-                <div className="aspect-square bg-white/5 flex items-center justify-center text-2xl text-white/20">{net.icon}</div>
-              )}
-              <div className="p-2 flex-1 flex flex-col">
-                {post.caption && (
-                  <p className="text-[10px] text-white/60 line-clamp-2 mb-1.5">{post.caption}</p>
-                )}
-                {metricEntries.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mb-2 text-[9px] text-white/50">
-                    {metricEntries.slice(0, 4).map(([k, v]) => (
-                      <span key={k} className="px-1.5 py-0.5 rounded-full bg-white/5 border border-white/10">
-                        {k}: {fmt(Number(v) || 0)}
-                      </span>
-                    ))}
-                  </div>
-                )}
-                <div className="mt-auto flex items-center gap-1">
-                  {post.permalink ? (
-                    <a
-                      href={post.permalink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1 text-center px-2 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-[10px] text-white/70 transition min-h-[32px] flex items-center justify-center gap-1"
-                      title={`Ouvrir dans ${net.label} (supprimer via les 3 points)`}
-                    >
-                      {'\u2197'} Ouvrir / supprimer
-                    </a>
-                  ) : (
-                    <span className="flex-1 text-center px-2 py-1.5 text-[10px] text-white/30">Pas de lien natif</span>
-                  )}
-                </div>
-              </div>
-            </div>
-          );
-        })}
+      {/* Instagram-profile-style tight grid: 3 columns, no card chrome,
+          square thumbnails. Tap to open the lightbox with caption +
+          metrics + native link. Matches the actual IG profile look so
+          the user sees their feed as their followers see it. */}
+      <div className="grid grid-cols-3 gap-0.5 sm:gap-1 rounded-xl overflow-hidden bg-black/20">
+        {cur.posts.map(post => (
+          <button
+            key={post.id}
+            onClick={() => setLightbox(post)}
+            className="relative aspect-square bg-black/40 overflow-hidden group"
+          >
+            {post.media_url ? (
+              <img src={post.media_url} alt="" loading="lazy" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-2xl text-white/20">{net.icon}</div>
+            )}
+            {post.media_type === 'VIDEO' && (
+              <div className="absolute top-1 right-1 text-white text-xs drop-shadow-lg">{'\u25B6\uFE0F'}</div>
+            )}
+            {post.media_type === 'CAROUSEL_ALBUM' && (
+              <div className="absolute top-1 right-1 text-white text-xs drop-shadow-lg">{'\u29C9'}</div>
+            )}
+          </button>
+        ))}
       </div>
 
       <p className="text-[9px] text-white/30 mt-3 text-center">
-        Meta et TikTok n'autorisent pas la suppression par API. Le bouton ouvre ton post, la suppression se fait dans l'app (...).
+        Tap une vignette pour voir caption, stats et lien natif. La suppression côté Instagram/TikTok se fait dans l'app native (Meta n'autorise pas la suppression par API).
       </p>
+
+      {/* Lightbox — mobile-first bottom sheet, modal on desktop */}
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-sm flex items-end sm:items-center justify-center p-2 sm:p-4"
+          onClick={() => setLightbox(null)}
+        >
+          <div
+            className="bg-gray-950 rounded-2xl shadow-2xl max-w-md w-full max-h-[92vh] overflow-y-auto border border-white/10"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-3 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <span className="text-base">{net.icon}</span>
+                <span className="text-xs font-bold text-white/80">{net.label}</span>
+              </div>
+              <button
+                onClick={() => setLightbox(null)}
+                className="text-white/40 hover:text-white text-lg w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10"
+              >×</button>
+            </div>
+            {lightbox.media_url && (
+              <div className="aspect-square bg-black/40 overflow-hidden">
+                <img src={lightbox.media_url} alt="" className="w-full h-full object-cover" />
+              </div>
+            )}
+            <div className="p-4 space-y-3">
+              {lightbox.caption && (
+                <p className="text-xs text-white/80 whitespace-pre-wrap leading-relaxed">{lightbox.caption}</p>
+              )}
+              {(() => {
+                const m = lightbox.metrics || {};
+                const entries: Array<[string, any]> = Object.entries(m).filter(([, v]) => v !== null && v !== undefined);
+                if (entries.length === 0) return null;
+                return (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                    {entries.slice(0, 8).map(([k, v]) => (
+                      <div key={k} className="px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-center">
+                        <div className="text-[9px] text-white/40 uppercase tracking-wide">{k}</div>
+                        <div className="text-xs font-bold text-white">{fmt(Number(v) || 0)}</div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+              {lightbox.timestamp && (
+                <p className="text-[10px] text-white/40">
+                  Publié le {new Date(lightbox.timestamp).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                </p>
+              )}
+              {lightbox.permalink && (
+                <a
+                  href={lightbox.permalink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-full text-center px-3 py-3 min-h-[48px] rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 hover:opacity-90 text-white text-xs font-bold transition flex items-center justify-center gap-1.5"
+                >
+                  Ouvrir dans {net.label} {'\u2197'}
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

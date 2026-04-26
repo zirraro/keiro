@@ -74,6 +74,55 @@ export async function GET(req: NextRequest) {
           saved: m.saved ?? null,
         },
       }));
+
+      // ── DELETION DETECTION ──
+      // Posts we marked 'published' but IG doesn't return = deleted on
+      // the platform side (via the IG app). We mark them as
+      // 'deleted_on_ig' so subject rotation / asset reuse / dissatisfaction
+      // queries exclude them from strategy. Archive only on our side —
+      // not a hard delete.
+      try {
+        const livePermalinks = new Set(media.map(m => m.permalink).filter(Boolean));
+        const liveIds = new Set(media.map(m => m.id).filter(Boolean));
+        // Pull recent (last 60 days) published rows for this user
+        const sixtyDaysAgo = new Date(Date.now() - 60 * 86400000).toISOString();
+        const { data: ourPublished } = await supabase
+          .from('content_calendar')
+          .select('id, instagram_permalink, scheduled_date')
+          .eq('user_id', user.id)
+          .eq('platform', 'instagram')
+          .eq('status', 'published')
+          .gte('scheduled_date', sixtyDaysAgo)
+          .not('instagram_permalink', 'is', null)
+          .limit(200);
+        if (ourPublished && ourPublished.length > 0) {
+          // We only act when IG returned a non-empty list — otherwise we'd
+          // false-positive on rate-limits. Also require IG returned ≥3 to
+          // be confident the list is healthy.
+          if (media.length >= 3) {
+            const goneOnIG = ourPublished.filter((row: any) => {
+              const pl = row.instagram_permalink;
+              if (!pl) return false;
+              return !livePermalinks.has(pl);
+            });
+            if (goneOnIG.length > 0) {
+              const ids = goneOnIG.map((r: any) => r.id);
+              await supabase
+                .from('content_calendar')
+                .update({
+                  status: 'deleted_on_ig',
+                  publish_diagnostic: 'detected_deleted_on_platform_via_network_preview',
+                  updated_at: new Date().toISOString(),
+                })
+                .in('id', ids);
+              console.log(`[NetworkPreview] Detected ${goneOnIG.length} IG-side deletions for user ${user.id.slice(0, 8)}`);
+            }
+          }
+        }
+      } catch (delErr: any) {
+        console.warn('[NetworkPreview] deletion detection failed:', delErr?.message);
+      }
+
       return NextResponse.json({ ok: true, network, connected: true, posts });
     }
 

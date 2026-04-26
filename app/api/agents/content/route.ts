@@ -3978,7 +3978,7 @@ Le lien doit etre NATUREL et PERCUTANT — pas force. Si aucune actu ne colle au
     console.warn('[Content] channel-voice load failed:', e?.message);
   }
 
-  // ── DISSATISFACTION SIGNALS ──
+  // ── DISSATISFACTION SIGNALS (per-client) ──
   // The client clicking "skip" or "delete" on Léna's drafts is a
   // strong opinion signal. Aggregate the patterns and warn Léna
   // before she generates the next post so she stops repeating
@@ -3995,6 +3995,22 @@ Le lien doit etre NATUREL et PERCUTANT — pas force. Si aucune actu ne colle au
     } catch (e: any) {
       console.warn('[Content] dissatisfaction signal load failed:', e?.message?.substring(0, 80));
     }
+  }
+
+  // ── GLOBAL LEARNING (cross-client) ──
+  // Aggregate patterns across ALL KeiroAI clients. When 50+ users skip
+  // the same hook template, every future client benefits from Léna
+  // avoiding it. Cached in-memory for 1 hour so it's free per call.
+  let globalLearningBlock = '';
+  try {
+    const { computeGlobalLearning, globalLearningPromptBlock } = await import('@/lib/agents/global-content-learning');
+    const g = await computeGlobalLearning(supabase, { windowDays: 30 });
+    globalLearningBlock = globalLearningPromptBlock(g);
+    if (globalLearningBlock && g) {
+      console.log(`[Content] Global learning active: ${g.totalKilled}/${g.totalGenerated} kills across all clients (${Math.round(g.killRate * 100)}%)`);
+    }
+  } catch (e: any) {
+    console.warn('[Content] global learning load failed:', e?.message?.substring(0, 80));
   }
 
   // ── BUSINESS ↔ NEWS ANGLE (Sonnet) ──
@@ -4047,7 +4063,7 @@ Le lien doit etre NATUREL et PERCUTANT — pas force. Si aucune actu ne colle au
 
   const enhancedPrompt = `Génère 1 post ÉLITE pour aujourd'hui (${todayStr}).
 ${trendsContext}${eventContext}${directivesBlock}
-${sharedIntelligence ? `━━━ INTELLIGENCE PARTAGÉE (données de TOUS les agents) ━━━\n${sharedIntelligence}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` : ''}${visualReferences ? `\n${visualReferences}\n` : ''}${naturalismBlock}${inspirationBlock}${channelVoice}${newsAngleBlock}${dissatisfactionBlock}
+${sharedIntelligence ? `━━━ INTELLIGENCE PARTAGÉE (données de TOUS les agents) ━━━\n${sharedIntelligence}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` : ''}${visualReferences ? `\n${visualReferences}\n` : ''}${naturalismBlock}${inspirationBlock}${channelVoice}${newsAngleBlock}${globalLearningBlock}${dissatisfactionBlock}
 Plateforme : ${platform}
 Format suggéré : ${format}
 Pilier suggéré : ${pillar}${avoidPillar ? `\nATTENTION : Le pilier "${avoidPillar}" a été trop utilisé récemment. CHANGE de pilier si possible.` : ''}${preferredFormats !== 'all' ? `\nPRÉFÉRENCE CLIENT : Le client préfère les ${preferredFormats}. Adapte le format en conséquence.` : ''}

@@ -63,7 +63,15 @@ export async function loadDissatisfactionSummary(
     .limit(200);
   if (error || !rows) return null;
 
-  const killed = rows.filter(r => r.status === 'skipped' || r.status === 'deleted' || r.status === 'rejected');
+  // 'deleted_on_ig' is the strongest signal — the user published it,
+  // saw it live, and chose to remove it. We count it like 'skipped'
+  // here but it's a stronger 'no' than a draft skip.
+  const killed = rows.filter(r =>
+    r.status === 'skipped' ||
+    r.status === 'deleted' ||
+    r.status === 'deleted_on_ig' ||
+    r.status === 'rejected'
+  );
   const summary: DissatisfactionSummary = {
     totalSkipped: killed.length,
     totalGenerated: rows.length,
