@@ -3679,6 +3679,51 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
   // ── ANTI-DUPLICATE: Extract recent visual descriptions to prevent repetition ──
   const recentVisuals = recentGrid?.map((p: any) => (p.visual_description || '').substring(0, 120)).filter((v: string) => v.length > 10) || [];
 
+  // ── SUBJECT-CATEGORY ROTATION ──
+  // Léna kept falling back to "le plat et le lieu" (dish + venue) for
+  // restos, "le bouquet" for fleuristes, etc. Map each recent visual
+  // to a category bucket so the prompt can explicitly tell her which
+  // categories have been overused and which are due.
+  // Categories are intentionally generic — they apply across business types.
+  const SUBJECT_CATEGORIES = [
+    'product_hero',     // the thing you sell (plat, bouquet, soin, vêtement)
+    'venue_atmosphere', // the place itself (intérieur, devanture, salle)
+    'people_team',      // the team / craftsperson at work
+    'people_customer',  // a customer enjoying / using
+    'process_craft',    // close-up on the making (mains, geste, ingrédient)
+    'detail_texture',   // a detail / texture (matière, bois, fleur, peau)
+    'behind_scenes',    // off-hours / backstage feel (preparation, cleanup)
+    'news_tie',         // explicit tie to a current news / cultural moment
+    'lifestyle',        // adjacent lifestyle (coffee, music, mood)
+    'social_proof',     // testimonial card / before-after / numbers
+  ];
+
+  function categorizeVisual(visual: string): string {
+    const v = (visual || '').toLowerCase();
+    if (/(plat|dish|bouquet|soin|product|produit|item|pièce|montre|robe|sac)/.test(v)) return 'product_hero';
+    if (/(intérieur|interior|salle|devanture|façade|room|venue|terrasse|comptoir|atelier)/.test(v)) return 'venue_atmosphere';
+    if (/(équipe|team|chef|artisan|barbier|coiffeur|fleuriste|esthéticien|barista)/.test(v)) return 'people_team';
+    if (/(client|customer|consumer|cliente|guest|visiteur)/.test(v)) return 'people_customer';
+    if (/(main|hand|geste|gesture|making|fabrication|cooking|knead|cut|découpe)/.test(v)) return 'process_craft';
+    if (/(détail|detail|texture|gros plan|close-up|macro)/.test(v)) return 'detail_texture';
+    if (/(coulisse|backstage|behind|prepa|setup|installation)/.test(v)) return 'behind_scenes';
+    if (/(actu|news|trend|breaking|today|aujourd|tendance)/.test(v)) return 'news_tie';
+    if (/(testimonial|témoignage|avant.après|before.after|résultat)/.test(v)) return 'social_proof';
+    return 'lifestyle';
+  }
+  const recentSubjects = recentVisuals.map(categorizeVisual);
+  const subjectCounts: Record<string, number> = {};
+  for (const s of recentSubjects) subjectCounts[s] = (subjectCounts[s] || 0) + 1;
+  const overusedSubjects = Object.entries(subjectCounts).filter(([_, n]) => n >= 2).map(([k]) => k);
+  const dueSubjects = SUBJECT_CATEGORIES.filter(c => !subjectCounts[c]);
+  const subjectGuidance = `\n━━━ ROTATION DES SUJETS (CRITIQUE — ne pas s'enfermer sur plat+lieu) ━━━\n`
+    + `Les ${recentSubjects.length} derniers posts ont concerné : ${recentSubjects.length > 0 ? recentSubjects.join(', ') : '(aucun)'}.\n`
+    + (overusedSubjects.length > 0 ? `→ SUR-UTILISÉS (à ÉVITER pour ce post) : ${overusedSubjects.join(', ')}\n` : '')
+    + (dueSubjects.length > 0 ? `→ JAMAIS UTILISÉS RÉCEMMENT (à privilégier) : ${dueSubjects.slice(0, 4).join(', ')}\n` : '')
+    + `Le visual_description de ce post DOIT correspondre à une catégorie différente des sur-utilisés. Si tu ne sais pas, prends une catégorie "JAMAIS UTILISÉS RÉCEMMENT".\n`
+    + `Catégories disponibles : ${SUBJECT_CATEGORIES.join(' / ')}.\n`
+    + `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+
   // ── COLOR ROTATION: Detect dominant colors to force variety ──
   const recentColors: string[] = [];
   for (const p of (recentGrid || []).slice(0, 5)) {
@@ -3712,6 +3757,9 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
 
   // ── LOAD TRENDS & NEWS for content inspiration ──
   let trendsContext = '';
+  let trendsTrendItems: string[] = [];
+  let trendsNewsItems: string[] = [];
+  let trendsUpcomingEvents: string[] = [];
   try {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keiroai.com';
     const [trendsRes, newsRes] = await Promise.allSettled([
@@ -3726,6 +3774,8 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
     const trendItems = googleTrends.slice(0, 10).map((t: any) => t.title || t.query || t.name).filter(Boolean);
     // Get news articles
     const newsItems = (news?.articles || news?.items || news?.data || []).slice(0, 8).map((n: any) => n.title || n.headline).filter(Boolean);
+    trendsTrendItems = trendItems;
+    trendsNewsItems = newsItems;
 
     // Event calendar — key dates to leverage in content
     const now = new Date();
@@ -3765,6 +3815,7 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
     if (upcomingEvents.length > 0) {
       eventContext = `\nCALENDRIER EVENEMENTS : ${upcomingEvents.join(' | ')}\nSi pertinent, integre cet evenement dans le post pour surfer sur le moment.\n`;
     }
+    trendsUpcomingEvents = upcomingEvents;
 
     if (trendItems.length > 0 || newsItems.length > 0 || upcomingEvents.length > 0) {
       trendsContext = '\n━━━ TENDANCES & ACTUALITES DU JOUR — 50% DU CONTENU ━━━\n';
@@ -3831,9 +3882,54 @@ Le lien doit etre NATUREL et PERCUTANT — pas force. Si aucune actu ne colle au
     console.warn('[Content] channel-voice load failed:', e?.message);
   }
 
+  // ── BUSINESS ↔ NEWS ANGLE (Sonnet) ──
+  // Only fire when the post is meant to surf actuality (pillar=trends
+  // OR there's a real upcoming event in the calendar). Sonnet analyzes
+  // the dossier vs flat news/trend list and returns ONE sharp angle
+  // that Léna executes. Without this, Léna picks a random headline and
+  // writes "happy [holiday] from [business]".
+  let newsAngleBlock = '';
+  try {
+    const shouldPickAngle = pillar === 'trends' || trendsUpcomingEvents.length > 0;
+    if (shouldPickAngle && (trendsTrendItems.length > 0 || trendsNewsItems.length > 0 || trendsUpcomingEvents.length > 0)) {
+      let dossierForAngle: any = null;
+      if (userId) {
+        const { data: d } = await supabase
+          .from('business_dossiers')
+          .select('business_type, summary, signature_offer, city')
+          .eq('user_id', userId)
+          .maybeSingle();
+        dossierForAngle = d;
+      }
+      // Pull recent angles used so Sonnet doesn't repeat itself
+      const recentAnglesUsed: string[] = (recentGrid || [])
+        .map((p: any) => p.content_angle || '')
+        .filter((a: string) => a && a.length > 0)
+        .slice(0, 5);
+      const { pickBusinessNewsAngle, angleToPromptBlock } = await import('@/lib/agents/news-business-angle');
+      const angle = await pickBusinessNewsAngle({
+        businessType: dossierForAngle?.business_type || detectedBusinessType || (clientSettings as any)?.business_type,
+        businessSummary: dossierForAngle?.summary,
+        signatureOffer: dossierForAngle?.signature_offer,
+        city: dossierForAngle?.city,
+        language: 'fr',
+        newsHeadlines: trendsNewsItems,
+        trendQueries: trendsTrendItems,
+        upcomingEvents: trendsUpcomingEvents,
+        recentAnglesUsed,
+      });
+      if (angle) {
+        newsAngleBlock = angleToPromptBlock(angle);
+        console.log(`[Content] News angle picked (Sonnet): "${angle.picked.substring(0, 60)}..." → ${angle.angle.substring(0, 60)}`);
+      }
+    }
+  } catch (e: any) {
+    console.warn('[Content] News angle step failed (non-fatal):', e?.message?.substring(0, 100));
+  }
+
   const enhancedPrompt = `Génère 1 post ÉLITE pour aujourd'hui (${todayStr}).
 ${trendsContext}${eventContext}${directivesBlock}
-${sharedIntelligence ? `━━━ INTELLIGENCE PARTAGÉE (données de TOUS les agents) ━━━\n${sharedIntelligence}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` : ''}${visualReferences ? `\n${visualReferences}\n` : ''}${naturalismBlock}${inspirationBlock}${channelVoice}
+${sharedIntelligence ? `━━━ INTELLIGENCE PARTAGÉE (données de TOUS les agents) ━━━\n${sharedIntelligence}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` : ''}${visualReferences ? `\n${visualReferences}\n` : ''}${naturalismBlock}${inspirationBlock}${channelVoice}${newsAngleBlock}
 Plateforme : ${platform}
 Format suggéré : ${format}
 Pilier suggéré : ${pillar}${avoidPillar ? `\nATTENTION : Le pilier "${avoidPillar}" a été trop utilisé récemment. CHANGE de pilier si possible.` : ''}${preferredFormats !== 'all' ? `\nPRÉFÉRENCE CLIENT : Le client préfère les ${preferredFormats}. Adapte le format en conséquence.` : ''}
@@ -3850,6 +3946,7 @@ ${recentVisuals.map((v: string, i: number) => `${i + 1}. ${v}`).join('\n') || '(
 ${colorWarning ? `\n${colorWarning}` : ''}
 ${targetWarning ? `\n${targetWarning}` : ''}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${subjectGuidance}
 
 CTA RÉCENTS UTILISÉS : ${[...new Set(recentCTAs)].join(', ') || 'aucun'}
 → VARIE le CTA ! Si "save" a été fait, utilise "tag un ami" ou "commente" ou "lien en bio".
