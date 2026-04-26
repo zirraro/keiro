@@ -16,7 +16,7 @@ import {
   KpiCard, SectionTitle, DonutChart, ProgressBar,
 } from './Primitives';
 import { SocialConnectBanners } from './SharedBanners';
-import { NetworkAutoModeToggles } from './AutoModeToggle';
+import { NetworkAutoModeToggles, NetworkControls } from './AutoModeToggle';
 import { InstagramAssetBadge } from './InstagramAssetBadge';
 import VideoMontageBox from './VideoMontageBox';
 import { useLanguage } from '@/lib/i18n/context';
@@ -582,12 +582,9 @@ export function ContentPanel({ data, agentName, gradientFrom, gradientTo }: Pane
 function ContentProductionSection({ data, gradientFrom, gradientTo, stats, p }: { data: any; gradientFrom: string; gradientTo: string; stats: any; p: any }) {
   return (
     <>
-      {/* Connect social networks — hide if already connected */}
-      <SocialConnectBanners agentId="content" networks={['instagram', 'tiktok', 'linkedin']} connections={(data as any).connections} />
-
-      {/* Auto mode toggles per network */}
+      {/* Unified per-network controls — connect/disconnect + publication auto in ONE row */}
       <div data-tour="auto-toggle">
-        <NetworkAutoModeToggles agentId="content" />
+        <NetworkControls agentId="content" connections={(data as any).connections} />
       </div>
 
       {/* Content direction — client can guide what to publish */}
