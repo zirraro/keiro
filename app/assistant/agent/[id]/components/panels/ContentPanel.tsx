@@ -43,16 +43,16 @@ function ContentCalendarInline({ posts, onSelectPost }: { posts: any[]; onSelect
           const dayPosts = posts.filter(p => p.scheduled_date === dateStr || (p.published_at && p.published_at.startsWith(dateStr)));
           return (
             <div key={i} className={`rounded-lg p-1 ${isToday ? 'bg-purple-500/10 border border-purple-500/20' : ''}`}>
-              <div className={`text-center text-[8px] ${isToday ? 'text-purple-400 font-bold' : 'text-white/30'}`}>{dayNames[d.getDay()]}</div>
-              <div className={`text-center text-[10px] font-bold mb-1 ${isToday ? 'text-purple-400' : 'text-white/50'}`}>{d.getDate()}</div>
+              <div className={`text-center text-[10px] ${isToday ? 'text-purple-400 font-bold' : 'text-white/40'}`}>{dayNames[d.getDay()]}</div>
+              <div className={`text-center text-xs font-bold mb-1 ${isToday ? 'text-purple-400' : 'text-white/60'}`}>{d.getDate()}</div>
               <div className="space-y-0.5 max-h-[80px] overflow-y-auto">
                 {dayPosts.slice(0, 3).map((p, j) => (
                   <button key={j} onClick={() => onSelectPost(p)} className="w-full aspect-square rounded overflow-hidden bg-white/5 hover:ring-1 hover:ring-purple-500/50 transition relative">
-                    {p.visual_url ? <img src={p.visual_url} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[7px] text-white/30">{p.format === 'reel' ? '\uD83C\uDFAC' : '\uD83D\uDCDD'}</div>}
+                    {p.visual_url ? <img src={p.visual_url} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[10px] text-white/40">{p.format === 'reel' ? '\uD83C\uDFAC' : '\uD83D\uDCDD'}</div>}
                     <div className={`absolute top-0 right-0 w-1.5 h-1.5 rounded-full ${STATUS_DOT[p.status] || 'bg-gray-500'}`} />
                   </button>
                 ))}
-                {dayPosts.length > 3 && <div className="text-[7px] text-white/20 text-center">+{dayPosts.length - 3}</div>}
+                {dayPosts.length > 3 && <div className="text-[9px] text-white/40 text-center">+{dayPosts.length - 3}</div>}
               </div>
             </div>
           );
@@ -265,21 +265,21 @@ function ContentWorkflow({ isConnected }: { isConnected?: boolean }) {
             {/* Status dot */}
             <div className={`absolute top-1 right-1 w-2 h-2 rounded-full ${STATUS_COLORS[post.status] || 'bg-gray-500'}`} />
             {/* Platform badge */}
-            <div className="absolute bottom-0.5 left-0.5 text-[7px] font-bold text-white/60 bg-black/40 px-1 rounded">
+            <div className="absolute bottom-0.5 left-0.5 text-[10px] font-bold text-white bg-black/55 px-1.5 py-0.5 rounded">
               {post.platform === 'tiktok' ? 'TT' : post.platform === 'linkedin' ? 'LI' : 'IG'}
             </div>
             {/* Scheduled date for approved posts */}
             {post.status === 'approved' && post.scheduled_date && (
-              <div className="absolute bottom-0.5 right-0.5 text-[6px] text-white/50 bg-black/50 px-0.5 rounded">
-                {post.scheduled_date.substring(5)}{post.scheduled_time ? ` ${post.scheduled_time}` : ''}
+              <div className="absolute bottom-0.5 right-0.5 text-[10px] text-white/85 bg-black/55 px-1.5 py-0.5 rounded">
+                {post.scheduled_date.substring(5)}{post.scheduled_time ? ` ${post.scheduled_time.slice(0, 5)}` : ''}
               </div>
             )}
             {/* Hover: reel/carousel indicator */}
             {(post.format === 'reel' || post.format === 'video') && (
-              <div className="absolute top-1 left-1 text-[8px] text-white/70">{'\u{1F3AC}'}</div>
+              <div className="absolute top-1 left-1 text-xs text-white drop-shadow">{'\u{1F3AC}'}</div>
             )}
             {(post.format === 'carrousel' || post.format === 'carousel') && (
-              <div className="absolute top-1 left-1 text-[8px] text-white/70">{'\u{1F4DA}'}</div>
+              <div className="absolute top-1 left-1 text-xs text-white drop-shadow">{'\u{1F4DA}'}</div>
             )}
           </button>
         ))}

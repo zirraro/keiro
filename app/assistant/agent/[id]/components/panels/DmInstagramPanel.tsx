@@ -620,7 +620,7 @@ function DmConversationsLive() {
         <p className="text-[10px] text-white/25 mt-0.5">{p.dmEmptyConversationsSubtitle}</p>
       </div>
     )}
-    <div className={`rounded-xl border-2 ${isDemo ? 'border-amber-500/20 opacity-90' : 'border-purple-500/20'} bg-gradient-to-b from-purple-900/10 to-transparent overflow-hidden shadow-lg shadow-purple-500/5 h-[calc(60vh-60px)] md:h-[420px] mb-16 lg:mb-0`}>
+    <div className={`rounded-xl border-2 ${isDemo ? 'border-amber-500/20 opacity-90' : 'border-purple-500/20'} bg-gradient-to-b from-purple-900/10 to-transparent overflow-hidden shadow-lg shadow-purple-500/5 max-h-[60vh] md:h-[420px] min-h-[320px] mb-4 lg:mb-0`}>
       <div className="flex h-full">
         {/* Conversation list */}
         <div className={`${selectedConv ? 'hidden sm:block' : ''} w-full sm:w-56 border-r border-white/10 overflow-y-auto`}>

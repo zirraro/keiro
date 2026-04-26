@@ -96,18 +96,18 @@ export function CommercialPanel({ data, agentName, gradientFrom, gradientTo }: P
       </div>
 
       <SectionTitle>{p.commercialSectionPeriod}</SectionTitle>
-      <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-xl bg-white/[0.03] border border-white/10 p-3 text-center">
-          <div className="text-xl font-bold text-white">{today}</div>
-          <div className="text-[10px] text-white/40">{p.commercialLabelToday}</div>
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+        <div className="rounded-xl bg-white/[0.03] border border-white/10 p-2 sm:p-3 text-center">
+          <div className="text-lg sm:text-xl font-bold text-white">{today}</div>
+          <div className="text-[10px] text-white/50">{p.commercialLabelToday}</div>
         </div>
-        <div className="rounded-xl bg-white/[0.03] border border-white/10 p-3 text-center">
-          <div className="text-xl font-bold text-white">{thisWeek}</div>
-          <div className="text-[10px] text-white/40">{p.commercialLabelThisWeek}</div>
+        <div className="rounded-xl bg-white/[0.03] border border-white/10 p-2 sm:p-3 text-center">
+          <div className="text-lg sm:text-xl font-bold text-white">{thisWeek}</div>
+          <div className="text-[10px] text-white/50">{p.commercialLabelThisWeek}</div>
         </div>
-        <div className="rounded-xl bg-white/[0.03] border border-white/10 p-3 text-center">
-          <div className="text-xl font-bold text-white">{thisMonth}</div>
-          <div className="text-[10px] text-white/40">{p.commercialLabelThisMonth}</div>
+        <div className="rounded-xl bg-white/[0.03] border border-white/10 p-2 sm:p-3 text-center">
+          <div className="text-lg sm:text-xl font-bold text-white">{thisMonth}</div>
+          <div className="text-[10px] text-white/50">{p.commercialLabelThisMonth}</div>
         </div>
       </div>
 
@@ -116,12 +116,12 @@ export function CommercialPanel({ data, agentName, gradientFrom, gradientTo }: P
         <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-2 text-center">
           <div className="text-lg font-bold text-blue-400">{stats.withEmail || 0}</div>
           <div className="text-[9px] text-blue-400/60">{p.commercialWithEmail}</div>
-          <div className="text-[8px] text-blue-400/40">{stats.emailNotStarted || 0} a contacter</div>
+          <div className="text-[10px] text-blue-300/60">{stats.emailNotStarted || 0} à contacter</div>
         </div>
         <div className="rounded-lg bg-pink-500/10 border border-pink-500/20 p-2 text-center">
           <div className="text-lg font-bold text-pink-400">{stats.withInstagram || 0}</div>
           <div className="text-[9px] text-pink-400/60">{p.commercialWithInstagram}</div>
-          <div className="text-[8px] text-pink-400/40">{stats.dmNotStarted || 0} a DM</div>
+          <div className="text-[10px] text-pink-300/60">{stats.dmNotStarted || 0} à DM</div>
         </div>
         <div className="rounded-lg bg-purple-500/10 border border-purple-500/20 p-2 text-center">
           <div className="text-lg font-bold text-purple-400">{stats.withTiktok || 0}</div>
