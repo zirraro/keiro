@@ -59,12 +59,19 @@ function HomeKeiroInner() {
               />
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
+              {/* Primary CTA — anonymous visitors land DIRECTLY in /generate
+                  to test (1 free gen no account, then ultra-simple signup
+                  for 2 more, then card-collection trial). Logged users with
+                  no plan get redirected to checkout from /generate's
+                  FreeTrialGate when their quota fills. Reduces friction
+                  from "click → choose plan → enter card → pay → test"
+                  down to "click → test". */}
               <MagneticButton>
-              <a href="/checkout/upsell?plan=createur" className="cta-keep-white inline-block px-5 py-3 rounded-xl bg-white font-semibold shadow-lg shadow-white/20 hover:shadow-xl hover:shadow-white/30 hover:-translate-y-0.5 transition-all" style={{ color: '#0c1a3a' }}>
-                {t.common.tryFree}
+              <a href="/generate" className="cta-keep-white inline-block px-5 py-3 min-h-[48px] rounded-xl bg-white font-semibold shadow-lg shadow-white/20 hover:shadow-xl hover:shadow-white/30 hover:-translate-y-0.5 transition-all flex items-center gap-1.5" style={{ color: '#0c1a3a' }}>
+                ⚡ {locale === 'fr' ? 'Tester gratuitement (sans carte)' : 'Try for free (no card)'}
               </a>
               </MagneticButton>
-              <a href="#exemple" className="px-5 py-3 rounded-xl border-2 border-white/40 text-white font-medium hover:bg-white/10 hover:border-white/60 transition-all">
+              <a href="#exemple" className="px-5 py-3 min-h-[48px] rounded-xl border-2 border-white/40 text-white font-medium hover:bg-white/10 hover:border-white/60 transition-all flex items-center">
                 {t.common.seeExample}
               </a>
               <BookDemoButton variant="outline" size="md" className="!border-white/40 !bg-transparent !text-white hover:!bg-white/10" />
@@ -203,6 +210,58 @@ function HomeKeiroInner() {
 
       {/* QUIZ INTERACTIF — hidden for cleaner UX */}
       {false && <QuizAndCalculator />}
+
+      {/* ═══ AGENTS PREVIEW — second thing visible after hero on mobile.
+          Tells the visitor in 5 seconds what they GET. Detailed
+          breakdown stays further down right above the pricing grid. ═══ */}
+      <section className="py-4 sm:py-6">
+        <div className="max-w-5xl mx-auto px-3 sm:px-6">
+          <div className="text-center mb-3 sm:mb-4">
+            {/* Automation-first headline — KeiroAI's real value isn't
+                a 1-click image generator (that's AI-table-stakes); it's
+                that 7 agents AUTOMATE social media + prospecting end-to-end. */}
+            <span className="inline-block px-3 py-1 bg-emerald-100 text-emerald-700 text-[10px] sm:text-[11px] font-bold rounded-full mb-2 uppercase tracking-wide">
+              {locale === 'fr' ? '🚀 Automatisation 24/7' : '🚀 24/7 automation'}
+            </span>
+            <h2 className="text-xl sm:text-2xl font-black text-neutral-900 leading-tight mb-1">
+              {locale === 'fr' ? '7 agents IA qui font le travail à ta place' : '7 AI agents that do the work for you'}
+            </h2>
+            <p className="text-xs sm:text-sm text-neutral-600 max-w-xl mx-auto">
+              {locale === 'fr'
+                ? 'Génèrent + publient sur tes réseaux, prospectent, répondent aux DMs et avis. Tu valides ou tu laisses tourner en pilote auto.'
+                : 'Generate + auto-publish on your socials, prospect, reply to DMs and reviews. Approve or let it fly on autopilot.'}
+            </p>
+          </div>
+          {/* 4-col grid (compact on mobile, larger on desktop) */}
+          <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5 sm:gap-2 mb-3 sm:mb-4">
+            {[
+              { emoji: '🎨', label: 'Léna', role: locale === 'fr' ? 'Posts auto' : 'Auto posts', accent: 'from-purple-500 to-pink-500' },
+              { emoji: '📧', label: 'Hugo', role: locale === 'fr' ? 'Emails' : 'Emails', accent: 'from-cyan-500 to-blue-500' },
+              { emoji: '💬', label: 'Jade', role: locale === 'fr' ? 'DMs IG' : 'IG DMs', accent: 'from-pink-500 to-rose-500' },
+              { emoji: '🎯', label: 'Léo', role: locale === 'fr' ? 'Prospects' : 'Prospects', accent: 'from-emerald-500 to-teal-500' },
+              { emoji: '⭐', label: 'Théo', role: locale === 'fr' ? 'Avis Google' : 'Reviews', accent: 'from-amber-500 to-orange-500' },
+              { emoji: '👋', label: 'Clara', role: locale === 'fr' ? 'Onboarding' : 'Onboarding', accent: 'from-violet-500 to-purple-600' },
+              { emoji: '📊', label: 'Ami', role: locale === 'fr' ? 'Analyse' : 'Analytics', accent: 'from-indigo-500 to-blue-600' },
+            ].map(a => (
+              <div key={a.label} className="rounded-xl bg-white border border-neutral-200 p-2 sm:p-3 text-center shadow-sm hover:shadow-md transition">
+                <div className={`w-9 h-9 sm:w-11 sm:h-11 rounded-full mx-auto mb-1 bg-gradient-to-br ${a.accent} flex items-center justify-center text-base sm:text-lg`}>
+                  {a.emoji}
+                </div>
+                <div className="text-[10px] sm:text-xs font-bold text-neutral-900 leading-tight">{a.label}</div>
+                <div className="text-[9px] sm:text-[10px] text-neutral-500 leading-tight">{a.role}</div>
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center justify-center gap-3 flex-wrap">
+            <a href="#tarifs" className="text-xs sm:text-sm text-purple-700 font-semibold hover:text-purple-900 underline-offset-4 hover:underline">
+              {locale === 'fr' ? 'Voir tout en détail ↓' : 'See everything ↓'}
+            </a>
+            <Link href="/checkout/upsell?plan=createur" className="px-4 py-2 min-h-[40px] rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white text-xs sm:text-sm font-bold shadow hover:shadow-lg transition">
+              {locale === 'fr' ? '⚡ Essai gratuit 7j' : '⚡ Start free trial'}
+            </Link>
+          </div>
+        </div>
+      </section>
 
       {/* VIDÉO WORKFLOW - Compact version */}
       <section className="section-light section-divider">
@@ -1550,7 +1609,7 @@ function HomeKeiroInner() {
               so visitors understand what they actually GET (not just "7 agents")
               before clicking the trial CTA. Especially the auto-generation +
               auto-publication of social posts which is the headline value. */}
-          <div className="max-w-6xl mx-auto mb-8 sm:mb-10 px-1 sm:px-0">
+          <div id="tarifs" className="max-w-6xl mx-auto mb-8 sm:mb-10 px-1 sm:px-0">
             <div className="text-center mb-4 sm:mb-5">
               <span className="inline-block px-3 py-1 bg-purple-100 text-purple-700 text-[10px] sm:text-[11px] font-bold rounded-full mb-2 uppercase tracking-wide">{locale === 'fr' ? 'Inclus dès le plan Créateur' : 'Included with Creator plan'}</span>
               <h3 className="text-lg sm:text-2xl font-black text-neutral-900 mb-1 leading-tight">
