@@ -299,7 +299,7 @@ export async function GET(request: NextRequest) {
  * Body: { query?: string, city?: string, org_id?: string }
  */
 export async function POST(request: NextRequest) {
-  const { authorized, userId } = await verifyAuth(request);
+  const { authorized, userId, isCron } = await verifyAuth(request);
   if (!authorized) return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
 
   let body: any = {};
@@ -307,7 +307,14 @@ export async function POST(request: NextRequest) {
   const orgId = body?.org_id || request.nextUrl.searchParams.get('org_id') || null;
   const customQuery = body?.query || null;
 
-  return runGMapsScan(orgId, userId, customQuery);
+  // Cron / admin can target a specific client by passing ?user_id=...
+  // The cron secret has no userId of its own (cron is system-level), so
+  // without this override every cron-driven scan inserted prospects
+  // with user_id=null — they'd never reach a client's CRM.
+  const queryUserId = request.nextUrl.searchParams.get('user_id') || null;
+  const effectiveUserId = isCron && queryUserId ? queryUserId : userId;
+
+  return runGMapsScan(orgId, effectiveUserId, customQuery);
 }
 
 async function runGMapsScan(orgId: string | null = null, userId: string | null = null, customQuery: string | null = null): Promise<NextResponse> {
