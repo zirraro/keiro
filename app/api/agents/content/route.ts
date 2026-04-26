@@ -3282,6 +3282,22 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
     }
   }
 
+  // ── INSPIRATION (optional IG account brief) ──
+  // When the client saved an Instagram account as inspiration via
+  // /api/agents/content/inspiration, we inject the style brief into
+  // Léna's prompt so the visual + hook adopt that aesthetic. Soft
+  // layer — never a copy/paste, just stylistic cues.
+  let inspirationBlock = '';
+  try {
+    const inspiration = (clientSettings as any)?.inspiration;
+    if (inspiration && inspiration.handle) {
+      const { formatInspirationForPrompt } = await import('@/lib/visuals/ig-inspiration');
+      inspirationBlock = formatInspirationForPrompt(inspiration);
+    }
+  } catch (e: any) {
+    console.warn('[Content] inspiration block load failed:', e?.message);
+  }
+
   // Load shared intelligence pool (all agents' data + active directives)
   let sharedIntelligence = '';
   try {
@@ -3702,7 +3718,7 @@ Le lien doit etre NATUREL et PERCUTANT — pas force. Si aucune actu ne colle au
 
   const enhancedPrompt = `Génère 1 post ÉLITE pour aujourd'hui (${todayStr}).
 ${trendsContext}${eventContext}${directivesBlock}
-${sharedIntelligence ? `━━━ INTELLIGENCE PARTAGÉE (données de TOUS les agents) ━━━\n${sharedIntelligence}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` : ''}${visualReferences ? `\n${visualReferences}\n` : ''}
+${sharedIntelligence ? `━━━ INTELLIGENCE PARTAGÉE (données de TOUS les agents) ━━━\n${sharedIntelligence}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` : ''}${visualReferences ? `\n${visualReferences}\n` : ''}${inspirationBlock}
 Plateforme : ${platform}
 Format suggéré : ${format}
 Pilier suggéré : ${pillar}${avoidPillar ? `\nATTENTION : Le pilier "${avoidPillar}" a été trop utilisé récemment. CHANGE de pilier si possible.` : ''}${preferredFormats !== 'all' ? `\nPRÉFÉRENCE CLIENT : Le client préfère les ${preferredFormats}. Adapte le format en conséquence.` : ''}

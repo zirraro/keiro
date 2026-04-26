@@ -543,6 +543,9 @@ export function ContentPanel({ data, agentName, gradientFrom, gradientTo }: Pane
       {/* Instagram asset badge — visible for Meta reviewers */}
       <InstagramAssetBadge />
 
+      {/* IG inspiration input */}
+      <IgInspirationBox />
+
       {/* Main tabs: Production workflow (default) vs Aperçu réseaux */}
       <div className="flex gap-1 bg-white/5 rounded-lg p-0.5 border border-white/10 mb-3">
         <button
@@ -679,5 +682,120 @@ function ContentProductionSection({ data, gradientFrom, gradientTo, stats, p }: 
 
       {/* Instagram Comments moved to Jade (DM agent) via JadeTabs */}
     </>
+  );
+}
+
+// IG inspiration box — collapsed by default, lets the founder paste an
+// IG handle and Léna analyses the visual style + tone, persisting it as
+// a soft inspiration layer for future generations.
+function IgInspirationBox() {
+  const [open, setOpen] = useState(false);
+  const [handle, setHandle] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [brief, setBrief] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Load existing brief on first expand
+  const loadBrief = useCallback(async () => {
+    try {
+      const res = await fetch('/api/agents/content/inspiration', { credentials: 'include' });
+      const j = await res.json();
+      if (j.ok) setBrief(j.brief || null);
+    } catch {}
+  }, []);
+
+  useEffect(() => { if (open && brief === null) loadBrief(); }, [open, brief, loadBrief]);
+
+  const submit = async () => {
+    const clean = handle.replace(/^@/, '').trim();
+    if (!clean) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/agents/content/inspiration', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ handle: clean, save: true }),
+      });
+      const j = await res.json();
+      if (!j.ok) {
+        setError(j.error || 'Échec analyse');
+      } else {
+        setBrief(j.brief);
+      }
+    } catch (e: any) {
+      setError(e.message || 'Erreur');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const removeBrief = async () => {
+    if (!confirm('Supprimer cette inspiration ?')) return;
+    setBusy(true);
+    try {
+      await fetch('/api/agents/content/inspiration', { method: 'DELETE', credentials: 'include' });
+      setBrief(null);
+      setHandle('');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="rounded-xl border border-purple-500/20 bg-purple-500/5 mb-3 overflow-hidden">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-purple-500/10 transition"
+      >
+        <div className="flex items-center gap-2 text-left">
+          <span>✨</span>
+          <div>
+            <div className="text-xs font-bold text-white">Inspiration Instagram</div>
+            <div className="text-[10px] text-white/60">
+              {brief ? <>Léna s&apos;inspire de <strong className="text-purple-300">@{brief.handle}</strong></> : 'Donne un compte IG comme référence stylistique'}
+            </div>
+          </div>
+        </div>
+        <span className="text-white/40 text-xs">{open ? '▲' : '▼'}</span>
+      </button>
+      {open && (
+        <div className="px-4 pb-3 space-y-2 border-t border-purple-500/10 pt-3">
+          {brief ? (
+            <div className="space-y-2">
+              <div className="bg-black/30 border border-white/10 rounded-lg p-3 text-[11px] text-white/80 space-y-1.5">
+                <div><strong className="text-purple-300">Style :</strong> {brief.visual_style}</div>
+                <div><strong className="text-purple-300">Ton :</strong> {brief.tone}</div>
+                {brief.palette_hints?.length > 0 && <div><strong className="text-purple-300">Palette :</strong> {brief.palette_hints.join(', ')}</div>}
+                {brief.composition_hints?.length > 0 && <div><strong className="text-purple-300">Composition :</strong> {brief.composition_hints.join(' · ')}</div>}
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={removeBrief} disabled={busy} className="text-[10px] text-red-400 hover:text-red-300 px-2 py-1 disabled:opacity-50">Retirer</button>
+                <button onClick={() => { setBrief(null); setHandle(''); }} className="text-[10px] text-white/50 hover:text-white px-2 py-1">Changer</button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={handle}
+                  onChange={e => setHandle(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') submit(); }}
+                  placeholder="@bistrot_marais"
+                  className="flex-1 bg-black/30 border border-white/10 rounded px-3 py-2 text-xs text-white placeholder-white/30"
+                />
+                <button onClick={submit} disabled={busy || !handle.trim()} className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded disabled:opacity-50">
+                  {busy ? '...' : 'Analyser'}
+                </button>
+              </div>
+              {error && <p className="text-[10px] text-red-400">{error}</p>}
+              <p className="text-[9px] text-white/40">Léna analysera 6 posts récents et adoptera la palette + le ton (sans copier).</p>
+            </>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
