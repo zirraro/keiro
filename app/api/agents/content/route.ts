@@ -3805,13 +3805,13 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
   const forbiddenSubjects = Array.from(new Set([...last2Subjects, ...dominantSubjects]));
   const overusedSubjects = Object.entries(subjectCounts).filter(([_, n]) => n >= 2).map(([k]) => k);
   const dueSubjects = SUBJECT_CATEGORIES.filter(c => !subjectCounts[c]);
-  const subjectGuidance = `\n━━━ ROTATION DES SUJETS — VUE FEED GLOBALE (RÈGLE DURE) ━━━\n`
+  const subjectGuidance = `\n━━━ ROTATION DES SUJETS — VUE FEED GLOBALE ━━━\n`
     + `Les ${recentSubjects.length} derniers posts ont concerné : ${recentSubjects.length > 0 ? recentSubjects.join(', ') : '(aucun)'}.\n`
-    + (dominantSubjects.length > 0 ? `🚫 SATURÉS DANS LE FEED (≥30% des posts récents — INTERDIT pour rééquilibrer) : ${dominantSubjects.join(', ')}\n` : '')
-    + (last2Subjects.length > 0 ? `🚫 INTERDIT (utilisé dans les 2 derniers, pas de doublon back-to-back) : ${Array.from(new Set(last2Subjects)).join(', ')}\n` : '')
-    + (overusedSubjects.length > 0 ? `→ SUR-UTILISÉS (à ÉVITER fort) : ${overusedSubjects.join(', ')}\n` : '')
+    + (dominantSubjects.length > 0 ? `⚠️ SATURÉS DANS LE FEED (≥30% des posts récents — à éviter sauf si vraiment pertinent) : ${dominantSubjects.join(', ')}\n` : '')
+    + (last2Subjects.length > 0 ? `⚠️ À éviter (utilisé dans les 2 derniers — préfère un autre sujet pour casser la répétition) : ${Array.from(new Set(last2Subjects)).join(', ')}\n` : '')
+    + (overusedSubjects.length > 0 ? `→ SUR-UTILISÉS : ${overusedSubjects.join(', ')}\n` : '')
     + (dueSubjects.length > 0 ? `→ JAMAIS UTILISÉS RÉCEMMENT (à privilégier en PRIORITÉ) : ${dueSubjects.slice(0, 4).join(', ')}\n` : '')
-    + `\nObjectif : un feed Instagram VARIÉ. Si le client regarde son profil, il doit voir des SUJETS DIFFÉRENTS, pas la même scène déclinée. Le visual_description NE DOIT PAS correspondre aux catégories INTERDITES.\n`
+    + `\nObjectif : un feed Instagram VARIÉ. Si le client regarde son profil, il doit voir des SUJETS DIFFÉRENTS, pas la même scène déclinée. Choisis de préférence un sujet hors des catégories saturées.\n`
     + `Catégories disponibles : ${SUBJECT_CATEGORIES.join(' / ')}.\n`
     + `\nPour la RESTAURATION en particulier :\n`
     + `- Si product_hero (plat) saturé → montre le LIEU SEUL (venue_atmosphere) sans assiette, ou les MAINS du chef (process_craft), ou un CLIENT qui mange (people_customer).\n`
@@ -4091,8 +4091,8 @@ RÈGLES :
 - Plateformes autorisées : instagram, tiktok, linkedin
 - Tu DOIS fournir un champ "visual_description" ULTRA DÉTAILLÉ — c'est un PROMPT SEEDREAM complet EN ANGLAIS pour générer un visuel professionnel
 - INTERDIT : téléphone, smartphone, écran, mockup, device dans le visuel (sauf 1 post sur 10 max)
-- INTERDIT (qualité) : visuels abstraits 3D / cubes glowing / cyberpunk / sci-fi visualisations / waveforms / hologrammes / split-screen abstrait — ce sont des visuels AMATEURS de stock photo. SAUF si le business est genuinely tech/3D/IA et que l'esthétique fait sens (rare). Pour un resto, un coiffeur, un fleuriste, un coach, etc. → ALWAYS éditorial photo réelle, lifestyle, monde tangible.
-- INTERDIT (qualité) : split-screen "concept A vs concept B" avec une moitié abstraite et l'autre réelle. C'est le cliché des designers paresseux. Si tu veux contraster deux idées, fais-le avec UNE scène réelle qui contient le contraste (ex : une assiette à moitié vide, deux coiffures côte-à-côte, une boutique avant/après).
+- À ÉVITER (qualité) : visuels abstraits 3D / cubes glowing / cyberpunk / sci-fi visualisations / waveforms / hologrammes / split-screen abstrait — ce sont des visuels AMATEURS de stock photo. Acceptable seulement si le business est genuinely tech/3D/IA. Pour un resto, un coiffeur, un fleuriste, un coach, etc. → préfère ÉDITORIAL photo réelle, lifestyle, monde tangible.
+- À ÉVITER (qualité) : split-screen "concept A vs concept B" avec une moitié abstraite et l'autre réelle. C'est un cliché de designer paresseux. Si tu veux contraster deux idées, fais-le plutôt avec UNE scène réelle qui contient le contraste (ex : une assiette à moitié vide, deux coiffures côte-à-côte, une boutique avant/après).
 - Exemples de BONS visual_description :
   * "Isometric 3D scene of a cozy French bakery with fresh croissants on display, warm golden lighting, deep violet accents, miniature people walking by, clean render, no text no letters"
   * "Cinematic photo of a florist arranging a vibrant bouquet in a sunlit workshop, shallow depth of field, warm amber tones with violet shadows, editorial style, no text"

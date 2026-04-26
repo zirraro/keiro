@@ -101,32 +101,32 @@ export function dissatisfactionPromptBlock(s: DissatisfactionSummary | null): st
   // Most-killed pillar
   const pillarTop = Object.entries(s.byPillar).sort((a, b) => b[1] - a[1])[0];
   if (pillarTop && pillarTop[1] >= 2) {
-    lines.push(`- Pilier "${pillarTop[0]}" : ${pillarTop[1]} suppressions sur ${s.totalSkipped} → réduire ce pilier ou changer de traitement`);
+    lines.push(`- Pilier "${pillarTop[0]}" : ${pillarTop[1]} suppressions sur ${s.totalSkipped} → réduire ou changer de traitement`);
   }
   // Most-killed format
   const formatTop = Object.entries(s.byFormat).sort((a, b) => b[1] - a[1])[0];
   if (formatTop && formatTop[1] >= 2) {
-    lines.push(`- Format "${formatTop[0]}" : ${formatTop[1]} suppressions → le client n'aime pas ce format, baisse sa fréquence`);
+    lines.push(`- Format "${formatTop[0]}" : ${formatTop[1]} suppressions → le client semble moins aimer ce format, baisse sa fréquence`);
   }
   // Most-killed subject
   const subjectTop = Object.entries(s.bySubject).sort((a, b) => b[1] - a[1])[0];
   if (subjectTop && subjectTop[1] >= 2) {
-    lines.push(`- Sujet "${subjectTop[0]}" : ${subjectTop[1]} suppressions → INTERDIT pour le prochain post`);
+    lines.push(`- Sujet "${subjectTop[0]}" : ${subjectTop[1]} suppressions → à éviter pour le prochain post sauf raison forte`);
   }
   // Overlay verdict
   if (s.withOverlay >= 3 && s.withOverlay > s.withoutOverlay) {
-    lines.push(`- ${s.withOverlay} posts AVEC overlay supprimés (vs ${s.withoutOverlay} sans) → le client préfère SANS texte sur l'image, encore plus strict sur la décision overlay`);
+    lines.push(`- ${s.withOverlay} posts AVEC overlay supprimés (vs ${s.withoutOverlay} sans) → le client préfère SANS texte sur l'image, sois plus strict sur l'overlay`);
   }
   if (s.withoutOverlay >= 3 && s.withoutOverlay > s.withOverlay * 1.5) {
-    lines.push(`- ${s.withoutOverlay} posts SANS overlay supprimés (vs ${s.withOverlay} avec) → le client semble VOULOIR plus de texte stratégique sur les visuels`);
+    lines.push(`- ${s.withoutOverlay} posts SANS overlay supprimés (vs ${s.withOverlay} avec) → le client semble vouloir plus de texte stratégique sur les visuels`);
   }
 
   if (lines.length === 0) return '';
 
-  return `\n━━━ SIGNAUX DE DISSATISFACTION CLIENT (CRITIQUE — intégrer à la stratégie) ━━━
-Le client a SUPPRIMÉ ou IGNORÉ ${s.totalSkipped} de tes ${s.totalGenerated} derniers posts (${Math.round(s.skipRate * 100)}%). Ce n'est pas neutre — c'est un signal qu'il n'aime pas certains choix. Patterns observés :
+  return `\n━━━ SIGNAUX CLIENT (à intégrer à la stratégie) ━━━
+Le client a supprimé ou ignoré ${s.totalSkipped} de tes ${s.totalGenerated} derniers posts (${Math.round(s.skipRate * 100)}%). Patterns observés :
 ${lines.join('\n')}
 
-→ Pour ce post, AJUSTE ta stratégie en conséquence. Ne reproduis pas ce qui a été tué. Le client te dit (sans le dire) ce qu'il veut.
+→ Pour ce post, ajuste en conséquence. Évite de reproduire ce qui a été supprimé sauf si tu as une vraie nouvelle raison de le faire.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
 }
