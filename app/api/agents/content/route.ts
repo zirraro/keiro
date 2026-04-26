@@ -1511,6 +1511,42 @@ export async function GET(request: NextRequest) {
             }
           }
 
+          // ── REEL QA ──
+          // Sonnet keyframe review to catch nonsense actions (scissors
+          // cutting empty air, melted faces, identity swaps). One call
+          // per reel before we ship it to Instagram. hard_fail means we
+          // downgrade to a still post and skip publishing the broken
+          // reel. soft_fail logs but proceeds.
+          if (videoUrl && (postFormat === 'reel' || postFormat === 'video')) {
+            try {
+              const { reviewGeneratedReel } = await import('@/lib/visuals/reel-qa');
+              const qa = await reviewGeneratedReel({
+                videoUrl,
+                postId: post.id,
+                visualBrief: fullPost.visual_description || fullPost.hook || '',
+                businessType: clientSettings?.business_type || undefined,
+              });
+              if (qa.verdict === 'hard_fail') {
+                console.warn(`[Content] Reel QA HARD FAIL for ${post.id}: ${qa.issue}. Downgrading to still post.`);
+                videoUrl = null;
+                await supabase.from('content_calendar').update({
+                  format: 'post',
+                  publish_diagnostic: `reel_qa_hard_fail:${(qa.issue || 'unknown').substring(0, 100)}`,
+                  updated_at: new Date().toISOString(),
+                }).eq('id', post.id);
+              } else if (qa.verdict === 'soft_fail') {
+                console.warn(`[Content] Reel QA soft fail for ${post.id}: ${qa.issue} (proceeding)`);
+                await supabase.from('content_calendar').update({
+                  publish_diagnostic: `reel_qa_soft_fail:${(qa.issue || 'unknown').substring(0, 100)}`,
+                }).eq('id', post.id);
+              } else {
+                console.log(`[Content] Reel QA pass for ${post.id}`);
+              }
+            } catch (qaErr: any) {
+              console.warn('[Content] Reel QA non-fatal:', qaErr?.message);
+            }
+          }
+
           // Publish to platform
           const postWithMedia = { ...fullPost, visual_url: visualUrl, video_url: videoUrl };
           const updateFields: Record<string, any> = { updated_at: new Date().toISOString() };
@@ -2269,6 +2305,34 @@ export async function POST(request: NextRequest) {
                 videoUrl = vr.videoUrl;
                 if (videoUrl) updateData.video_url = videoUrl;
               }
+            }
+          }
+
+          // ── REEL QA (cron-side) ──
+          // Same Sonnet keyframe review as the manual publish path.
+          // Catches scissors-cutting-empty-air style nonsense before
+          // the cron ships the reel to IG / TikTok.
+          if (videoUrl && (pFormat === 'reel' || pFormat === 'video')) {
+            try {
+              const { reviewGeneratedReel } = await import('@/lib/visuals/reel-qa');
+              const qa = await reviewGeneratedReel({
+                videoUrl,
+                postId: post.id,
+                visualBrief: post.visual_description || post.hook || '',
+                businessType: clientSettings?.business_type || undefined,
+              });
+              if (qa.verdict === 'hard_fail') {
+                console.warn(`[Content] cron Reel QA HARD FAIL for ${post.id}: ${qa.issue}. Downgrading to still post.`);
+                videoUrl = null;
+                updateData.video_url = null;
+                updateData.format = 'post';
+                updateData.publish_diagnostic = `reel_qa_hard_fail:${(qa.issue || 'unknown').substring(0, 100)}`;
+              } else if (qa.verdict === 'soft_fail') {
+                console.warn(`[Content] cron Reel QA soft fail for ${post.id}: ${qa.issue} (proceeding)`);
+                updateData.publish_diagnostic = `reel_qa_soft_fail:${(qa.issue || 'unknown').substring(0, 100)}`;
+              }
+            } catch (qaErr: any) {
+              console.warn('[Content] cron Reel QA non-fatal:', qaErr?.message);
             }
           }
 
