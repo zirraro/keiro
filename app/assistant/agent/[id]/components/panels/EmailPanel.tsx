@@ -200,13 +200,10 @@ export function EmailPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
       {/* Hot prospects — direct notification */}
       {/* HotProspectsAlert removed */}
 
-      {/* Full inbox (sent + received, including non-prospect) */}
-      <FullInbox />
-
-      {/* Email Inbox (prospect-scoped threads) */}
+      {/* Hugo's mailbox — unified view (sent + received + non-prospect)
+          with view toggle (list / split-pane) and inline stats. */}
       <div data-tour="email-inbox">
-        <SectionTitle>{p.emailInboxTitle}</SectionTitle>
-        <EmailInbox emails={(data as any).recentEmails || (stats as any).recentEmails || []} gradientFrom={gradientFrom} />
+        <FullInbox />
       </div>
 
       {/* Custom domain — discrete option */}
@@ -643,9 +640,9 @@ function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: str
   );
 }
 
-// FullInbox — shows ALL emails for the user (sent + received), including
-// senders not in the CRM. Each row opens a modal with the full body and
-// a reply box wired to /api/me/send-email.
+// FullInbox — unified Hugo mailbox: sent + received + non-CRM senders.
+// View toggle: 'list' (compact rows + popup modal) for mobile,
+// 'split' (Gmail-style two-pane) for desktop. Stats banner up top.
 function FullInbox() {
   const { locale } = useLanguage();
   const en = locale === 'en';
@@ -653,6 +650,10 @@ function FullInbox() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'inbox' | 'sent'>('all');
+  const [view, setView] = useState<'list' | 'split'>(() => {
+    if (typeof window === 'undefined') return 'list';
+    return window.innerWidth >= 768 ? 'split' : 'list';
+  });
   const [selected, setSelected] = useState<any>(null);
   const [replyText, setReplyText] = useState('');
   const [sending, setSending] = useState(false);
@@ -668,6 +669,13 @@ function FullInbox() {
   }, [filter]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Auto-select first item in split view when items arrive
+  useEffect(() => {
+    if (view === 'split' && items.length > 0 && !selected) {
+      setSelected(items[0]);
+    }
+  }, [view, items, selected]);
 
   const sendReply = useCallback(async () => {
     if (!selected || !replyText.trim()) return;
@@ -703,61 +711,142 @@ function FullInbox() {
 
   const inboxCount = items.filter(i => i.direction === 'inbox').length;
   const sentCount = items.filter(i => i.direction === 'sent').length;
+  const aiSentCount = items.filter(i => i.direction === 'sent' && i.auto).length;
+  const humanSentCount = sentCount - aiSentCount;
+  const unsubCount = items.filter(i => i.classification === 'unsubscribe' || i.blacklisted).length;
+
+  // Reusable list rendering used by both views
+  const ListRows = ({ compact = false }: { compact?: boolean }) => (
+    <>
+      {loading ? (
+        <div className="text-center py-6 text-white/40 text-xs">{en ? 'Loading…' : 'Chargement…'}</div>
+      ) : items.length === 0 ? (
+        <div className="text-center py-6 text-white/40 text-xs">{en ? 'No emails yet' : 'Aucun email'}</div>
+      ) : (
+        items.map((it: any) => (
+          <button
+            key={it.id}
+            onClick={() => { setSelected(it); setReplyText(''); }}
+            className={`w-full text-left ${compact ? 'px-2.5 py-2' : 'px-3 py-2.5'} hover:bg-white/5 transition flex items-center gap-2 ${selected?.id === it.id ? 'bg-cyan-500/10' : ''}`}
+          >
+            <span className={`shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold ${it.direction === 'inbox' ? 'bg-cyan-500/20 text-cyan-300' : (it.auto ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300')}`}>
+              {it.direction === 'inbox' ? '✉' : (it.auto ? '🤖' : '✍')}
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-semibold text-white truncate">
+                  {it.direction === 'inbox' ? (it.from_name || it.from_email) : it.to_email}
+                </span>
+                {it.blacklisted && <span className="text-[8px] px-1 rounded bg-red-500/20 text-red-300 shrink-0">BL</span>}
+                {it.classification === 'unsubscribe' && <span className="text-[8px] px-1 rounded bg-red-500/20 text-red-300 shrink-0">{en ? 'unsub' : 'désabo'}</span>}
+              </div>
+              <div className="text-[10px] text-white/60 truncate">{it.subject || '(sans objet)'}</div>
+            </div>
+            <span className="shrink-0 text-[9px] text-white/30">{new Date(it.date).toLocaleDateString(dateLocale, { day: '2-digit', month: '2-digit' })}</span>
+          </button>
+        ))
+      )}
+    </>
+  );
 
   return (
-    <div className="mt-4">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-bold text-white">{en ? 'Full mailbox' : 'Boîte complète'}</h3>
-        <span className="text-[10px] text-white/40">{en ? 'Sent + received, including non-CRM senders' : 'Envoyés + reçus, même hors CRM'}</span>
+    <div className="mt-4 space-y-2">
+      {/* Header — title + view toggle */}
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div>
+          <h3 className="text-sm font-bold text-white">{en ? 'Hugo mailbox' : 'Boîte mail Hugo'}</h3>
+          <p className="text-[10px] text-white/40">{en ? 'Sent + received, including non-CRM' : 'Envoyés + reçus, même hors CRM'}</p>
+        </div>
+        <div className="flex items-center gap-1 bg-white/5 rounded-lg p-0.5 border border-white/10">
+          <button
+            onClick={() => setView('list')}
+            className={`px-2.5 py-1.5 text-[10px] font-medium rounded transition ${view === 'list' ? 'bg-cyan-600 text-white' : 'text-white/60 hover:text-white'}`}
+            title={en ? 'List view' : 'Vue liste'}
+          >
+            ☰ {en ? 'Liste' : 'Liste'}
+          </button>
+          <button
+            onClick={() => setView('split')}
+            className={`px-2.5 py-1.5 text-[10px] font-medium rounded transition ${view === 'split' ? 'bg-cyan-600 text-white' : 'text-white/60 hover:text-white'}`}
+            title={en ? 'Split-pane view' : 'Vue boîte mail'}
+          >
+            ☐ {en ? 'Boîte' : 'Boîte'}
+          </button>
+        </div>
       </div>
-      <div className="flex gap-1.5 mb-2">
+
+      {/* Stats banner */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+        <div className="bg-cyan-500/5 border border-cyan-500/15 rounded-lg p-2">
+          <div className="text-[9px] text-cyan-300/70 uppercase font-bold">{en ? 'Received' : 'Reçus'}</div>
+          <div className="text-base font-black text-white">{inboxCount}</div>
+        </div>
+        <div className="bg-emerald-500/5 border border-emerald-500/15 rounded-lg p-2">
+          <div className="text-[9px] text-emerald-300/70 uppercase font-bold">{en ? 'Sent (AI)' : 'Hugo IA'}</div>
+          <div className="text-base font-black text-white">{aiSentCount}</div>
+        </div>
+        <div className="bg-amber-500/5 border border-amber-500/15 rounded-lg p-2">
+          <div className="text-[9px] text-amber-300/70 uppercase font-bold">{en ? 'Sent (you)' : 'Toi'}</div>
+          <div className="text-base font-black text-white">{humanSentCount}</div>
+        </div>
+        <div className="bg-red-500/5 border border-red-500/15 rounded-lg p-2">
+          <div className="text-[9px] text-red-300/70 uppercase font-bold">{en ? 'Unsub/BL' : 'Désabo'}</div>
+          <div className="text-base font-black text-white">{unsubCount}</div>
+        </div>
+      </div>
+
+      {/* Filter chips */}
+      <div className="flex gap-1.5 items-center">
         {[
-          { key: 'all', label: en ? 'All' : 'Tous', count: items.length },
-          { key: 'inbox', label: en ? 'Received' : 'Reçus', count: inboxCount },
-          { key: 'sent', label: en ? 'Sent' : 'Envoyés', count: sentCount },
+          { key: 'all', label: en ? 'Tous' : 'Tous', count: items.length },
+          { key: 'inbox', label: en ? 'Reçus' : 'Reçus', count: inboxCount },
+          { key: 'sent', label: en ? 'Envoyés' : 'Envoyés', count: sentCount },
         ].map(t => (
           <button
             key={t.key}
             onClick={() => setFilter(t.key as any)}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${filter === t.key ? 'bg-cyan-600 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
+            className={`px-3 py-2 min-h-[40px] text-xs font-medium rounded-lg transition ${filter === t.key ? 'bg-cyan-600 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
           >
-            {t.label} <span className="text-[9px] opacity-60">{t.count}</span>
+            {t.label} <span className="text-[9px] opacity-60 ml-0.5">{t.count}</span>
           </button>
         ))}
-        <button onClick={load} className="ml-auto px-2 py-1.5 text-[10px] text-white/40 hover:text-white/70" title={en ? 'Refresh' : 'Rafraîchir'}>↻</button>
-      </div>
-      <div className="bg-white/[0.02] border border-white/10 rounded-xl overflow-hidden divide-y divide-white/5 max-h-[400px] overflow-y-auto">
-        {loading ? (
-          <div className="text-center py-6 text-white/40 text-xs">{en ? 'Loading…' : 'Chargement…'}</div>
-        ) : items.length === 0 ? (
-          <div className="text-center py-6 text-white/40 text-xs">{en ? 'No emails yet' : 'Aucun email'}</div>
-        ) : (
-          items.map((it: any) => (
-            <button
-              key={it.id}
-              onClick={() => { setSelected(it); setReplyText(''); }}
-              className="w-full text-left px-3 py-2.5 hover:bg-white/5 transition flex items-center gap-3"
-            >
-              <span className={`shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold ${it.direction === 'inbox' ? 'bg-cyan-500/20 text-cyan-300' : (it.auto ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300')}`}>
-                {it.direction === 'inbox' ? (en ? '✉ IN' : '✉ Reçu') : (it.auto ? '🤖 IA' : '✍ Toi')}
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-white truncate">
-                    {it.direction === 'inbox' ? (it.from_name || it.from_email) : it.to_email}
-                  </span>
-                  {it.blacklisted && <span className="text-[9px] px-1 rounded bg-red-500/20 text-red-300">BL</span>}
-                  {it.classification === 'unsubscribe' && <span className="text-[9px] px-1 rounded bg-red-500/20 text-red-300">{en ? 'unsub' : 'désabo'}</span>}
-                </div>
-                <div className="text-[10px] text-white/60 truncate">{it.subject}</div>
-              </div>
-              <span className="shrink-0 text-[9px] text-white/30">{new Date(it.date).toLocaleDateString(dateLocale, { day: '2-digit', month: '2-digit' })}</span>
-            </button>
-          ))
-        )}
+        <button onClick={load} className="ml-auto px-2 py-2 min-h-[40px] text-base text-white/40 hover:text-white/70" title={en ? 'Refresh' : 'Rafraîchir'} aria-label="Refresh">↻</button>
       </div>
 
-      {selected && (
+      {view === 'list' && (
+        <div className="bg-white/[0.02] border border-white/10 rounded-xl overflow-hidden divide-y divide-white/5 max-h-[400px] overflow-y-auto">
+          <ListRows />
+        </div>
+      )}
+
+      {view === 'split' && (
+        <div className="bg-white/[0.02] border border-white/10 rounded-xl overflow-hidden grid grid-cols-1 md:grid-cols-[280px_1fr] divide-y md:divide-y-0 md:divide-x divide-white/10 min-h-[480px]">
+          <div className="overflow-y-auto max-h-[480px]">
+            <ListRows compact />
+          </div>
+          <div className="overflow-y-auto max-h-[480px]">
+            {selected ? (
+              <SplitPaneContent
+                selected={selected}
+                en={en}
+                dateLocale={dateLocale}
+                replyText={replyText}
+                setReplyText={setReplyText}
+                sending={sending}
+                sentOk={sentOk}
+                onSend={sendReply}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full text-xs text-white/40 italic p-8">
+                {en ? 'Pick an email on the left' : 'Sélectionne un email à gauche'}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal popup — only in 'list' view (split view shows content inline) */}
+      {selected && view === 'list' && (
         <div className="fixed inset-0 z-[210] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-2 sm:p-4" onClick={() => setSelected(null)}>
           <div className="bg-gray-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
@@ -802,6 +891,63 @@ function FullInbox() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// SplitPaneContent — right-pane email body + reply for the Gmail-style
+// split view. Reuses the same shape as the modal but inline.
+function SplitPaneContent({
+  selected, en, dateLocale, replyText, setReplyText, sending, sentOk, onSend,
+}: {
+  selected: any;
+  en: boolean;
+  dateLocale: string;
+  replyText: string;
+  setReplyText: (s: string) => void;
+  sending: boolean;
+  sentOk: boolean;
+  onSend: () => void;
+}) {
+  return (
+    <div className="flex flex-col h-full">
+      <div className="px-4 py-3 border-b border-white/10 space-y-1">
+        <div className="flex items-center gap-2">
+          <span className={`shrink-0 px-2 py-0.5 rounded text-[10px] font-bold ${selected.direction === 'inbox' ? 'bg-cyan-500/20 text-cyan-300' : (selected.auto ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300')}`}>
+            {selected.direction === 'inbox' ? (en ? '✉ Reçu' : '✉ Reçu') : (selected.auto ? '🤖 Hugo IA' : '✍ Toi')}
+          </span>
+          <div className="text-[10px] text-white/60 truncate">
+            {selected.direction === 'inbox' ? `${en ? 'From:' : 'De :'} ${selected.from_name || ''} <${selected.from_email}>` : `${en ? 'To:' : 'À :'} ${selected.to_email}`}
+          </div>
+        </div>
+        <h4 className="text-sm font-bold text-white">{selected.subject || '(sans objet)'}</h4>
+        <div className="text-[10px] text-white/40">{new Date(selected.date).toLocaleString(dateLocale, { dateStyle: 'medium', timeStyle: 'short' })}</div>
+        {selected.classification === 'unsubscribe' && <div className="text-[10px] px-2 py-1 rounded bg-red-500/20 text-red-300 inline-block">🚫 {en ? 'Detected as unsubscribe — sender blacklisted' : 'Détecté comme désabonnement — expéditeur blacklisté'}</div>}
+      </div>
+      <div className="flex-1 px-4 py-4 text-xs text-white/80 whitespace-pre-wrap leading-relaxed overflow-y-auto">
+        {selected.body || (en ? '(no body)' : '(pas de contenu)')}
+      </div>
+      {(selected.direction === 'inbox' || selected.to_email) && (
+        <div className="border-t border-white/10 px-4 py-3 space-y-2">
+          <div className="text-[10px] text-white/50">{en ? 'Reply to' : 'Répondre à'} <strong className="text-white/80">{selected.direction === 'inbox' ? selected.from_email : selected.to_email}</strong></div>
+          <textarea
+            value={replyText}
+            onChange={e => setReplyText(e.target.value)}
+            placeholder={en ? 'Type your reply…' : 'Tape ta réponse…'}
+            rows={3}
+            className="w-full bg-black/30 border border-white/10 rounded-lg p-2 text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
+          />
+          <div className="flex items-center justify-end">
+            <button
+              onClick={onSend}
+              disabled={sending || !replyText.trim()}
+              className={`px-4 py-2 min-h-[40px] text-xs font-bold rounded-lg transition ${sentOk ? 'bg-emerald-500/30 text-emerald-200' : 'bg-cyan-600 hover:bg-cyan-500 text-white'} disabled:opacity-40`}
+            >
+              {sentOk ? (en ? 'Sent ✓' : 'Envoyé ✓') : sending ? '...' : (en ? 'Send' : 'Envoyer')}
+            </button>
           </div>
         </div>
       )}
