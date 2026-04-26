@@ -3953,7 +3953,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                               onChange={(e) => setBusinessType(e.target.value)}
                               placeholder={t.generate.businessPlaceholder}
                               autoComplete="off"
-                              className="w-full text-sm rounded-xl border-2 border-neutral-200 px-4 py-2.5 bg-white focus:outline-none focus:border-[#0c1a3a] focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all"
+                              className="w-full text-sm rounded-xl border-2 border-neutral-200 px-4 py-3 min-h-[48px] bg-white focus:outline-none focus:border-[#0c1a3a] focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all"
                             />
                           </div>
                           <div>
@@ -3984,7 +3984,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                               value={targetAudience}
                               onChange={(e) => setTargetAudience(e.target.value)}
                               placeholder={t.generate.audiencePlaceholder}
-                              className="w-full text-sm rounded-xl border-2 border-neutral-200 px-4 py-2.5 bg-white focus:outline-none focus:border-[#0c1a3a] focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all"
+                              className="w-full text-sm rounded-xl border-2 border-neutral-200 px-4 py-3 min-h-[48px] bg-white focus:outline-none focus:border-[#0c1a3a] focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all"
                             />
                           </div>
                         </div>
@@ -4402,7 +4402,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                         <select
                           value={platform}
                           onChange={(e) => setPlatform(e.target.value)}
-                          className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-[#0c1a3a] focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all cursor-pointer"
+                          className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-3 min-h-[44px] bg-white focus:outline-none focus:border-[#0c1a3a] focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all cursor-pointer"
                         >
                           <option>Instagram</option>
                           <option>LinkedIn</option>
@@ -4423,7 +4423,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                         <select
                           value={visualStyle}
                           onChange={(e) => setVisualStyle(e.target.value)}
-                          className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-2 bg-white focus:outline-none focus:border-[#0c1a3a] focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all cursor-pointer"
+                          className="w-full text-xs rounded-lg border-2 border-neutral-200 px-3 py-3 min-h-[44px] bg-white focus:outline-none focus:border-[#0c1a3a] focus:ring-2 focus:ring-[#0c1a3a]/10 transition-all cursor-pointer"
                         >
                           <optgroup label={t.generate.profileStyles}>
                             <option value="Lumineux et \u00e9pur\u00e9">{t.generate.styleBrightClean}</option>

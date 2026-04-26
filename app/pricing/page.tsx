@@ -314,9 +314,9 @@ function PricingPageInner() {
         <h3 className="text-2xl font-bold text-center mb-2">{t.pricing.comparisonTitle}</h3>
         <p className="text-center text-neutral-600 mb-8">{t.pricing.subtitle}</p>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mb-16">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mb-10 sm:mb-16 px-1 sm:px-0">
           {/* Créateur 49€ */}
-          <div id="createur" className="bg-gradient-to-br from-purple-600 to-indigo-600 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-100 sm:hover:scale-105 flex flex-col">
+          <div id="createur" className="bg-gradient-to-br from-purple-600 to-indigo-600 rounded-2xl p-5 sm:p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-100 sm:hover:scale-105 flex flex-col">
             <div className="mb-4 pt-2">
               <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
                 <span>💎</span> {t.pricing.planCreateurTitle}
@@ -371,7 +371,7 @@ function PricingPageInner() {
           </div>
 
           {/* Pro 99€ */}
-          <div id="pro" className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-100 sm:hover:scale-105 flex flex-col">
+          <div id="pro" className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-5 sm:p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-100 sm:hover:scale-105 flex flex-col">
             <div className="mb-4 pt-2">
               <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
                 <span>🚀</span> {t.pricing.planProTitle}
@@ -417,7 +417,7 @@ function PricingPageInner() {
           </div>
 
           {/* Business 199€ — POPULAIRE */}
-          <div className="bg-gradient-to-br from-[#0c1a3a] to-[#1e3a5f] rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-100 sm:hover:scale-105 flex flex-col">
+          <div className="bg-gradient-to-br from-[#0c1a3a] to-[#1e3a5f] rounded-2xl p-5 sm:p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-100 sm:hover:scale-105 flex flex-col">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2">
               <span className="bg-[#0c1a3a] text-cyan-200 px-4 py-1 rounded-full text-xs font-bold shadow-lg">
                 {locale === 'fr' ? 'PME & Multi-activité' : 'SME & Multi-business'}
@@ -474,7 +474,7 @@ function PricingPageInner() {
         {/* Elite - Plan complet */}
 
         <div className="max-w-lg mx-auto mb-16">
-          <div className="bg-gradient-to-br from-amber-600 to-yellow-700 rounded-2xl p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-100 sm:hover:scale-105 flex flex-col">
+          <div className="bg-gradient-to-br from-amber-600 to-yellow-700 rounded-2xl p-5 sm:p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-100 sm:hover:scale-105 flex flex-col">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2">
               <span className="bg-gradient-to-r from-yellow-400 to-amber-400 text-amber-900 px-4 py-1 rounded-full text-xs font-bold shadow-lg">
                 {t.pricing.planEliteBadge}
