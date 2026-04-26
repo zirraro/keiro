@@ -90,16 +90,23 @@ export function EmailPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
       {/* Email connection banner */}
       <EmailConnectBanner connections={(data as any).connections} />
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KpiCard label={p.emailKpiSent} value={fmt(stats.sent)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        <KpiCard label={p.emailKpiOpenRate} value={fmtPercent(stats.openRate)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        <KpiCard label={p.emailKpiClickRate} value={fmtPercent(stats.clickRate)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        <KpiCard label={p.emailSectionSequences} value={fmt(seqEntries.length)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-      </div>
-
-      {/* Workflow visual — pipeline Email */}
-      <SectionTitle>Email Workflow</SectionTitle>
-      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+      {/* ── UNIFIED STATS SECTION ─────────────────────────────────
+          User feedback: too many stat blocks repeated in different
+          shapes (KPI cards + circular progress + bar chart all
+          showing the same Sent/Opened/Clicked numbers). Consolidated
+          into ONE section: a single funnel pipeline (telling the
+          'sent→opened→clicked→replied' story) + the open/click %
+          inline. Removed redundant Performance circulars and the
+          recent-perf bar chart.
+      */}
+      <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-3 sm:p-4">
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <h3 className="text-xs sm:text-sm font-bold text-white">Funnel email Hugo</h3>
+          <div className="flex items-center gap-3 text-[10px] sm:text-xs">
+            <span className="text-white/50">Open <strong className="text-cyan-300">{fmtPercent(stats.openRate)}</strong></span>
+            <span className="text-white/50">Click <strong className="text-purple-300">{fmtPercent(stats.clickRate)}</strong></span>
+          </div>
+        </div>
         <div className="flex items-center justify-between gap-1 text-center">
           {[
             { label: 'Prospects', value: emailProspects, icon: '\u{1F465}', color: '#94a3b8' },
@@ -108,49 +115,24 @@ export function EmailPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
             { label: 'Clicked', value: stats.clicked, icon: '\u{1F517}', color: '#a855f7' },
             { label: p.emailCardStatusReplied, value: emailReplied, icon: '\u{1F4AC}', color: '#22c55e' },
           ].map((step, i) => (
-            <div key={step.label} className="flex items-center flex-1">
-              <div className="flex-1 text-center">
-                <div className="text-lg mb-1">{step.icon}</div>
-                <div className="text-sm font-bold text-white" style={{ color: step.color }}>{step.value}</div>
-                <div className="text-[9px] text-white/40 mt-0.5">{step.label}</div>
+            <div key={step.label} className="flex items-center flex-1 min-w-0">
+              <div className="flex-1 text-center min-w-0">
+                <div className="text-base sm:text-lg mb-0.5">{step.icon}</div>
+                <div className="text-xs sm:text-sm font-bold" style={{ color: step.color }}>{fmt(step.value)}</div>
+                <div className="text-[9px] text-white/40 mt-0.5 truncate">{step.label}</div>
               </div>
-              {i < 4 && <div className="text-white/20 text-xs mx-1">{'\u2192'}</div>}
+              {i < 4 && <div className="text-white/20 text-[10px] mx-0.5 flex-shrink-0">{'\u2192'}</div>}
             </div>
           ))}
         </div>
-        <div className="mt-3 pt-3 border-t border-white/5 flex items-center gap-2">
-          <span className="text-[10px] text-cyan-400">{'\u{1F4E8}'}</span>
-          <span className="text-[10px] text-white/50">Prospects who <strong className="text-cyan-400">reply</strong> are automatically flagged in the CRM</span>
-        </div>
-      </div>
-
-      {/* Quick actions */}
-      <div className="flex flex-wrap gap-2 mt-3">
-        <a href="/generate" className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 text-white text-xs font-semibold rounded-xl hover:opacity-90 transition-all">
-          {'\u2728'} Create email template
-        </a>
-        <a href="/assistant/crm" className="px-4 py-2 bg-white/10 text-white/70 text-xs font-medium rounded-xl hover:bg-white/15">
-          {'\u{1F4CA}'} {p.viewCrm}
-        </a>
-      </div>
-
-      <SectionTitle>Performance rates</SectionTitle>
-      <div className="flex justify-center gap-8">
-        <CircularProgress value={stats.openRate} label="Open rate" gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        <CircularProgress value={stats.clickRate} label="Click rate" gradientFrom={gradientFrom} gradientTo={gradientTo} />
-      </div>
-
-      <SectionTitle>Sequences pipeline</SectionTitle>
-      <div className="bg-white/5 rounded-xl border border-white/10 p-4">
-        {seqEntries.length === 0 ? (
-          <p className="text-sm text-white/40 text-center">No active sequence</p>
-        ) : (
-          <>
-            <div className="flex h-6 rounded-full overflow-hidden">
+        {seqEntries.length > 0 && (
+          <div className="mt-3 pt-3 border-t border-white/5">
+            <div className="text-[10px] text-white/50 mb-1.5">Séquences en cours</div>
+            <div className="flex h-4 rounded-full overflow-hidden">
               {seqEntries.map(([name, count], i) => (
                 <div
                   key={name}
-                  className="h-full flex items-center justify-center text-[10px] font-medium text-white"
+                  className="h-full flex items-center justify-center text-[9px] font-medium text-white"
                   style={{
                     width: `${(count / seqTotal) * 100}%`,
                     background: `linear-gradient(135deg, ${gradientFrom}, ${gradientTo})`,
@@ -158,43 +140,29 @@ export function EmailPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
                   }}
                   title={`${name}: ${count}`}
                 >
-                  {count > 0 ? name : ''}
+                  {count > 1 ? name : ''}
                 </div>
               ))}
             </div>
-            <div className="flex flex-wrap gap-3 mt-3">
+            <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2">
               {seqEntries.map(([name, count]) => (
-                <span key={name} className="text-xs text-white/50">
+                <span key={name} className="text-[10px] text-white/50">
                   {name}: <span className="text-white/80 font-medium">{fmt(count)}</span>
                 </span>
               ))}
             </div>
-          </>
+          </div>
         )}
       </div>
 
-      <SectionTitle>Recent performance</SectionTitle>
-      <div className="bg-white/5 rounded-xl border border-white/10 p-4">
-        <div className="flex items-end gap-1 h-24">
-          {[stats.sent, stats.opened, stats.clicked].map((val, i) => {
-            const max = Math.max(stats.sent, 1);
-            const labels = ['Sent', 'Opened', 'Clicked'];
-            return (
-              <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                <div
-                  className="w-full rounded-t-md"
-                  style={{
-                    height: `${(val / max) * 100}%`,
-                    minHeight: 4,
-                    background: `linear-gradient(to top, ${gradientFrom}, ${gradientTo})`,
-                  }}
-                />
-                <span className="text-[10px] text-white/50">{labels[i]}</span>
-                <span className="text-xs text-white/70 font-medium">{fmt(val)}</span>
-              </div>
-            );
-          })}
-        </div>
+      {/* Quick actions */}
+      <div className="flex flex-wrap gap-2 mt-3">
+        <a href="/generate" className="px-3 py-2 min-h-[40px] bg-gradient-to-r from-cyan-600 to-blue-600 text-white text-xs font-semibold rounded-xl hover:opacity-90 transition-all flex items-center gap-1.5">
+          {'\u2728'} Create email template
+        </a>
+        <a href="/assistant/crm" className="px-3 py-2 min-h-[40px] bg-white/10 text-white/70 text-xs font-medium rounded-xl hover:bg-white/15 flex items-center gap-1.5">
+          {'\u{1F4CA}'} {p.viewCrm}
+        </a>
       </div>
 
       {/* Hot prospects — direct notification */}
@@ -775,24 +743,21 @@ function FullInbox() {
         </div>
       </div>
 
-      {/* Stats banner */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-        <div className="bg-cyan-500/5 border border-cyan-500/15 rounded-lg p-2">
-          <div className="text-[9px] text-cyan-300/70 uppercase font-bold">{en ? 'Received' : 'Reçus'}</div>
-          <div className="text-base font-black text-white">{inboxCount}</div>
-        </div>
-        <div className="bg-emerald-500/5 border border-emerald-500/15 rounded-lg p-2">
-          <div className="text-[9px] text-emerald-300/70 uppercase font-bold">{en ? 'Sent (AI)' : 'Hugo IA'}</div>
-          <div className="text-base font-black text-white">{aiSentCount}</div>
-        </div>
-        <div className="bg-amber-500/5 border border-amber-500/15 rounded-lg p-2">
-          <div className="text-[9px] text-amber-300/70 uppercase font-bold">{en ? 'Sent (you)' : 'Toi'}</div>
-          <div className="text-base font-black text-white">{humanSentCount}</div>
-        </div>
-        <div className="bg-red-500/5 border border-red-500/15 rounded-lg p-2">
-          <div className="text-[9px] text-red-300/70 uppercase font-bold">{en ? 'Unsub/BL' : 'Désabo'}</div>
-          <div className="text-base font-black text-white">{unsubCount}</div>
-        </div>
+      {/* Compact inline counters — removed the big 4-card banner since
+          the funnel above already shows Sent / Opened / etc. We keep
+          ONLY what the funnel doesn't carry: who-sent and unsub. */}
+      <div className="flex items-center gap-3 text-[10px] text-white/50 flex-wrap">
+        <span>{en ? 'Received' : 'Reçus'} <strong className="text-cyan-300">{inboxCount}</strong></span>
+        <span className="text-white/20">·</span>
+        <span>{en ? 'AI sent' : 'Hugo IA'} <strong className="text-emerald-300">{aiSentCount}</strong></span>
+        <span className="text-white/20">·</span>
+        <span>{en ? 'You sent' : 'Toi'} <strong className="text-amber-300">{humanSentCount}</strong></span>
+        {unsubCount > 0 && (
+          <>
+            <span className="text-white/20">·</span>
+            <span>{en ? 'Unsub' : 'Désabo'} <strong className="text-red-300">{unsubCount}</strong></span>
+          </>
+        )}
       </div>
 
       {/* Filter chips */}
