@@ -42,6 +42,9 @@ export async function pickBusinessNewsAngle(input: {
   upcomingEvents: string[];   // e.g. ["AUJOURD'HUI: Fête nationale"]
   // Avoid re-picking what was already used.
   recentAnglesUsed?: string[];
+  // Hard list of topics Sonnet must NOT pick (independent of recentAnglesUsed
+  // which depends on content_angle being stored — not always reliable).
+  avoidTopics?: string[];
   // Optional preference: 'news' = only pick from real news headlines,
   // 'trend' = only pick from trending queries (recurring social
   // media themes), 'event' = upcoming calendar events. Default lets
@@ -114,6 +117,9 @@ ${input.upcomingEvents.slice(0, 4).map((e, i) => `${i + 1}. ${e}`).join('\n') ||
 ` : ''}
 ${input.recentAnglesUsed && input.recentAnglesUsed.length > 0
   ? `=== ANGLES DÉJÀ UTILISÉS RÉCEMMENT (NE PAS REPRENDRE — varie les thèmes) ===\n${input.recentAnglesUsed.slice(0, 8).map((a, i) => `${i + 1}. ${a}`).join('\n')}\n`
+  : ''}
+${input.avoidTopics && input.avoidTopics.length > 0
+  ? `=== INTERDICTION ABSOLUE — NE PAS UTILISER CES THÈMES ===\nLe caller a explicitement banni ces sujets pour ce post (déjà sur-utilisés cette journée) :\n${input.avoidTopics.map((t, i) => `${i + 1}. ${t}`).join('\n')}\nSi tu veux te référer à un de ces thèmes, return { "picked": null } — on préfère pas de post du tout que de re-tourner sur ${input.avoidTopics[0]}.\n`
   : ''}
 
 Choose the strongest connection and return JSON. If nothing in ${input.prefer ? `the ${input.prefer.toUpperCase()} category` : 'any category'} connects genuinely, return { "picked": null }.`;

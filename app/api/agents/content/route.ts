@@ -1830,8 +1830,12 @@ export async function POST(request: NextRequest) {
         const dayOfWeek = new Date().getDay();
         // Allow caller to force the news-angle source ('news' | 'trend' | 'event')
         // via body.preferAngleSource — handy for A/B testing the 2 modes.
-        const callSettings = body.preferAngleSource
-          ? { ...clientSettings, _prefer_angle_source: body.preferAngleSource }
+        const callSettings = (body.preferAngleSource || body.avoidTopics)
+          ? {
+              ...clientSettings,
+              ...(body.preferAngleSource ? { _prefer_angle_source: body.preferAngleSource } : {}),
+              ...(Array.isArray(body.avoidTopics) ? { _avoid_topics: body.avoidTopics } : {}),
+            }
           : clientSettings;
         return generateDailyPost(supabase, todayStr, dayOfWeek, body.platform, body.pillar, body.draftOnly, orgId, userId, callSettings, body.format);
       }
@@ -4110,6 +4114,12 @@ Le lien doit etre NATUREL et PERCUTANT — pas force. Si aucune actu ne colle au
       const prefer = preferRaw === 'news' || preferRaw === 'trend' || preferRaw === 'event'
         ? preferRaw
         : undefined;
+      // Hard avoid list — passed via body / clientSettings to force
+      // variety when content_angle history isn't reliable.
+      const avoidTopicsRaw = (clientSettings as any)?._avoid_topics;
+      const avoidTopics = Array.isArray(avoidTopicsRaw)
+        ? avoidTopicsRaw.map((t: any) => String(t).slice(0, 80)).slice(0, 10)
+        : undefined;
       const angle = await pickBusinessNewsAngle({
         businessType: dossierForAngle?.business_type || detectedBusinessType || (clientSettings as any)?.business_type,
         businessSummary: dossierSummary,
@@ -4120,6 +4130,7 @@ Le lien doit etre NATUREL et PERCUTANT — pas force. Si aucune actu ne colle au
         trendQueries: trendsTrendItems,
         upcomingEvents: trendsUpcomingEvents,
         recentAnglesUsed,
+        avoidTopics,
         prefer,
       });
       if (angle) {
