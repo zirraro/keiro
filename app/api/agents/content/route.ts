@@ -4742,10 +4742,13 @@ Real natural light matching the room's existing ambience. The dish must look pro
             //     license, not a DA cassée).
             //   - Otherwise score ≥ 5 = accept.
             // Without a venue pair we keep score ≥ 7.
-            const isAcceptable = (s: number, flags: string[]) =>
-              hasVenuePair
+            const isAcceptable = (s: number, flags: string[]) => {
+              // Blur is a HARD reject — never publish a soft hero.
+              if (flags.includes('blurry_subject') || flags.includes('out_of_focus')) return false;
+              return hasVenuePair
                 ? (s >= 5 && !(flags.includes('venue_changed') && s <= 3))
                 : s >= 7;
+            };
 
             if (!isAcceptable(score.score, score.amateur_flags)) {
               // Multi-pass retry — try DIFFERENT strengths/bases until

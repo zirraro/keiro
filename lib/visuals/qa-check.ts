@@ -36,10 +36,12 @@ export async function scoreVisualQuality(
 {
   "score": 0-10,              // 10 = magazine-quality, 6 = publishable, <6 = retry
   "notes": "one-line reason",
-  "amateur_flags": ["2d_paste", "lighting_mismatch", "invented_props", "wrong_subject", "low_detail", "uncanny_composition", "venue_changed", "proportions_unrealistic"]
+  "amateur_flags": ["2d_paste", "lighting_mismatch", "invented_props", "wrong_subject", "low_detail", "uncanny_composition", "venue_changed", "proportions_unrealistic", "blurry_subject", "out_of_focus"]
 }
 
 CRITICAL FLAGS:
+- blurry_subject: the HERO subject (dish / product / face / hands) is soft, smudged, or out-of-focus where it should be tack sharp. Even minor softness on the focal point = HARD FAIL — score MUST be ≤ 3 and we regenerate. Background bokeh is fine, but the subject must be crisp. NO publishable post has a fuzzy hero.
+- out_of_focus: composition is overall soft (wrong focal point, focus missed, motion blur where there shouldn't be any). Score ≤ 4.
 - 2d_paste: subject looks layered on top of background (floating circle, feathered edges, no contact shadow, perspective-free).
 - lighting_mismatch: hero and background have incompatible light sources.
 - invented_props: image contains objects that don't belong (studio projectors in a restaurant, mountain view added to a city café, etc).

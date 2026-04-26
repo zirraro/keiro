@@ -717,6 +717,37 @@ async function sendEmail(
       t = t.replace(/([.!?])\s*\n\s*([a-zà-ü])/g, '$1\n\n$2'); // Ensure paragraph breaks
       template[key] = t;
     }
+
+    // ── Victor signature with KeiroAI link ──
+    // The AI sometimes signs "Victor de KeiroAI" without any link — the
+    // user has to Google to find us. Append a deterministic signature
+    // block with a clear CTA URL on every send. We only append when
+    // it's not already there (idempotent in case the AI included it).
+    const signatureUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keiroai.com';
+    const signatureTextHasLink = /keiroai\.(com|fr|io)/i.test(template.textBody);
+    if (!signatureTextHasLink) {
+      // Append text signature with bare URL (most robust across email clients)
+      const textSig = `\n\nVictor — KeiroAI\n${signatureUrl}\nP.S. Tu peux tester gratuitement sans carte : ${signatureUrl}/generate`;
+      // If the body already ends with "Victor", replace that line; else append.
+      if (/\n\s*Victor[^\n]*$/i.test(template.textBody)) {
+        template.textBody = template.textBody.replace(/\n\s*Victor[^\n]*$/i, textSig);
+      } else {
+        template.textBody = template.textBody.trimEnd() + textSig;
+      }
+    }
+    const signatureHtmlHasLink = /href=["'][^"']*keiroai\.(com|fr|io)/i.test(template.htmlBody);
+    if (!signatureHtmlHasLink && template.htmlBody) {
+      const htmlSig = `<br><br>—<br>Victor · <strong>KeiroAI</strong><br><a href="${signatureUrl}" style="color:#7c3aed;text-decoration:none;font-weight:600">${signatureUrl.replace(/^https?:\/\//, '')}</a><br><span style="color:#999;font-size:12px">P.S. Tu peux tester gratuitement sans carte → <a href="${signatureUrl}/generate" style="color:#7c3aed">${signatureUrl.replace(/^https?:\/\//, '')}/generate</a></span>`;
+      // If body has a closing "Victor" line, splice the signature after; else append at end of body
+      if (/<br>\s*Victor\b[^<]*/i.test(template.htmlBody)) {
+        template.htmlBody = template.htmlBody.replace(/<br>\s*Victor\b[^<]*/i, htmlSig);
+      } else if (/<\/body>/i.test(template.htmlBody)) {
+        template.htmlBody = template.htmlBody.replace(/<\/body>/i, `${htmlSig}</body>`);
+      } else {
+        template.htmlBody = template.htmlBody + htmlSig;
+      }
+    }
+
     // Business coherence: if quartier is empty but email mentions a specific quartier, strip it
     if (!prospect.quartier) {
       // Remove phrases like "du Opéra", "du 9ème", "du Marais" if quartier wasn't in CRM
