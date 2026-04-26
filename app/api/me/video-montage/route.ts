@@ -40,6 +40,7 @@ export async function POST(req: NextRequest) {
     .from('agent_uploads')
     .select('id, file_url, file_type, ai_analysis')
     .eq('user_id', user.id)
+    .is('archived_at', null)
     .in('id', uploadIds);
 
   if (!uploads || uploads.length < 2) {

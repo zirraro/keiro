@@ -73,6 +73,7 @@ async function collectBrandContext(supabase: SupabaseClient, userId: string): Pr
     .from('agent_uploads')
     .select('ai_analysis, agent_id, file_type, created_at')
     .eq('user_id', userId)
+    .is('archived_at', null)
     .not('ai_analysis', 'is', null)
     .order('created_at', { ascending: false })
     .limit(30);

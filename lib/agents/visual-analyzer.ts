@@ -356,6 +356,7 @@ export async function loadAgentUploadsContext(
     .select('ai_analysis, file_type')
     .eq('user_id', userId)
     .eq('agent_id', agentId)
+    .is('archived_at', null)
     .not('ai_analysis', 'is', null)
     .order('created_at', { ascending: false })
     .limit(20);
