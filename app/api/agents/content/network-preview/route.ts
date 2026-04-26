@@ -25,12 +25,16 @@ export async function GET(req: NextRequest) {
   const network = (req.nextUrl.searchParams.get('network') || 'instagram').toLowerCase();
   const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('id, instagram_business_account_id, instagram_igaa_token, facebook_page_access_token, tiktok_access_token, tiktok_open_id, linkedin_access_token, linkedin_user_id')
+    .select('id, instagram_business_account_id, instagram_igaa_token, facebook_page_access_token, tiktok_access_token, tiktok_user_id, linkedin_access_token, linkedin_user_id')
     .eq('id', user.id)
     .maybeSingle();
 
+  if (profileError) {
+    console.error('[NetworkPreview] Profile lookup failed:', profileError.message);
+    return NextResponse.json({ ok: false, error: profileError.message }, { status: 500 });
+  }
   if (!profile) return NextResponse.json({ ok: false, error: 'Profil introuvable' }, { status: 404 });
 
   try {
