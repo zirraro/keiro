@@ -329,6 +329,8 @@ function EditorialCalendarFull({ agentId: _agentId }: { agentId: string }) {
       };
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  // Skipped is HIDDEN by default — those are noise (network disabled,
+  // QA salvaged after retry, etc). User can opt-in via the chip.
   const [statusFilter, setStatusFilter] = useState<Set<string>>(new Set(['draft', 'approved', 'published']));
   const [platformFilter, setPlatformFilter] = useState<Set<string>>(new Set(['instagram', 'tiktok', 'linkedin']));
   const [selected, setSelected] = useState<any>(null);
@@ -505,11 +507,20 @@ function EditorialCalendarFull({ agentId: _agentId }: { agentId: string }) {
           {Array.from(activePlatforms).map(p => {
             const meta = PLATFORM_META[p];
             const active = platformFilter.has(p);
+            // Per-network active colour so the user can SEE which
+            // network is filtering the calendar at a glance.
+            const activeStyle = p === 'instagram'
+              ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white border-pink-400 shadow-lg shadow-pink-500/30'
+              : p === 'tiktok'
+                ? 'bg-black text-white border-fuchsia-400 shadow-lg shadow-fuchsia-500/30'
+                : p === 'linkedin'
+                  ? 'bg-blue-600 text-white border-blue-400 shadow-lg shadow-blue-500/30'
+                  : 'bg-white/15 text-white border-white/30';
             return (
               <button
                 key={p}
                 onClick={() => togglePlatform(p)}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition flex items-center gap-1 ${active ? 'bg-white/15 text-white' : 'bg-white/5 text-white/70 hover:bg-white/10'}`}
+                className={`px-3 py-1.5 min-h-[36px] rounded-lg text-[11px] font-bold transition flex items-center gap-1 border ${active ? activeStyle : 'bg-white/5 text-white/70 hover:bg-white/10 border-transparent'}`}
               >
                 <span>{meta?.emoji || ''}</span>
                 {meta?.label || p}
