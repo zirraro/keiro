@@ -451,24 +451,26 @@ function EditorialCalendarFull({ agentId: _agentId }: { agentId: string }) {
 
   return (
     <div className="space-y-3">
-      {/* Top bar: view switcher + nav */}
+      {/* Top bar: view switcher + nav — wraps on mobile, full-width buttons */}
       <div className="flex flex-wrap items-center justify-between gap-2 bg-white/[0.02] border border-white/10 rounded-xl p-2">
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 flex-1 sm:flex-initial">
           {(['day', 'week', 'month'] as const).map(v => (
             <button
               key={v}
               onClick={() => setView(v)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${view === v ? 'bg-purple-600 text-white shadow' : 'bg-white/5 text-white/70 hover:bg-white/10'}`}
+              className={`flex-1 sm:flex-initial px-3 py-2 min-h-[40px] rounded-lg text-xs font-medium transition ${view === v ? 'bg-purple-600 text-white shadow' : 'bg-white/5 text-white/70 hover:bg-white/10'}`}
             >
               {v === 'day' ? tCal.day : v === 'week' ? tCal.week : tCal.month}
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-1">
-          <button onClick={() => navigate(-1)} className="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 text-xs" aria-label={en ? 'Previous' : 'Précédent'}>‹</button>
-          <button onClick={goToday} className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 text-xs">{tCal.today}</button>
-          <button onClick={() => navigate(1)} className="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 text-xs" aria-label={en ? 'Next' : 'Suivant'}>›</button>
-          <span className="ml-2 text-xs font-semibold text-white/90 capitalize">{cursorLabel}</span>
+        <div className="flex items-center gap-1 w-full sm:w-auto justify-between sm:justify-end">
+          <div className="flex items-center gap-1">
+            <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 text-base flex items-center justify-center" aria-label={en ? 'Previous' : 'Précédent'}>‹</button>
+            <button onClick={goToday} className="px-3 py-2 min-h-[40px] rounded-lg bg-white/5 hover:bg-white/10 text-white/70 text-xs whitespace-nowrap">{tCal.today}</button>
+            <button onClick={() => navigate(1)} className="w-10 h-10 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 text-base flex items-center justify-center" aria-label={en ? 'Next' : 'Suivant'}>›</button>
+          </div>
+          <span className="ml-2 text-[11px] sm:text-xs font-semibold text-white/90 capitalize truncate max-w-[200px]">{cursorLabel}</span>
         </div>
       </div>
 
@@ -568,28 +570,45 @@ function MonthGrid({ cursor, byDay, onSelect, en, tCal }: { cursor: Date; byDay:
           const isToday = k === today;
           const dayPosts = byDay.get(k) || [];
           return (
-            <div key={i} className={`min-h-[88px] p-1.5 border-b border-r border-white/5 last:border-r-0 ${inMonth ? '' : 'bg-black/20 opacity-40'} ${isToday ? 'bg-purple-500/5' : ''}`}>
-              <div className={`text-[10px] font-bold mb-1 ${isToday ? 'text-purple-300' : inMonth ? 'text-white/60' : 'text-white/20'}`}>{d.getDate()}</div>
-              <div className="space-y-0.5">
-                {dayPosts.slice(0, 3).map(p => (
+            <div key={i} className={`min-h-[60px] sm:min-h-[88px] p-1 sm:p-1.5 border-b border-r border-white/5 last:border-r-0 ${inMonth ? '' : 'bg-black/20 opacity-40'} ${isToday ? 'bg-purple-500/5' : ''}`}>
+              <div className={`text-[10px] sm:text-[11px] font-bold mb-1 ${isToday ? 'text-purple-300' : inMonth ? 'text-white/70' : 'text-white/30'}`}>{d.getDate()}</div>
+              {/* Mobile: tap whole cell → open day list. Desktop: per-post pills. */}
+              {dayPosts.length > 0 && (
+                <>
+                  {/* Mobile dot summary (≤sm) */}
                   <button
-                    key={p.id}
-                    onClick={() => onSelect(p)}
-                    className={`w-full flex items-center gap-1 px-1 py-0.5 rounded border ${STATUS_COLORS[p.status] || 'border-white/10'} hover:scale-[1.02] transition group`}
+                    onClick={() => dayPosts[0] && onSelect(dayPosts[0])}
+                    className="sm:hidden w-full flex flex-wrap gap-0.5 items-center"
+                    aria-label={`${dayPosts.length} post(s)`}
                   >
-                    {p.visual_url ? (
-                      <img src={p.visual_url} alt="" className="w-6 h-6 object-cover rounded shrink-0" />
-                    ) : (
-                      <div className="w-6 h-6 bg-gradient-to-br from-purple-900/30 to-pink-900/30 rounded shrink-0" />
-                    )}
-                    <div className="text-[8px] text-white/70 truncate text-left flex-1">{(p.hook || p.caption || '').substring(0, 22)}</div>
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_DOT[p.status] || 'bg-white/20'}`} />
+                    {dayPosts.slice(0, 4).map(p => (
+                      <span key={p.id} className={`w-2 h-2 rounded-full ${STATUS_DOT[p.status] || 'bg-white/20'}`} />
+                    ))}
+                    {dayPosts.length > 4 && <span className="text-[8px] text-white/50">+{dayPosts.length - 4}</span>}
                   </button>
-                ))}
-                {dayPosts.length > 3 && (
-                  <div className="text-[8px] text-white/40 text-center">+{dayPosts.length - 3}</div>
-                )}
-              </div>
+                  {/* Desktop full pills (≥sm) */}
+                  <div className="hidden sm:block space-y-0.5">
+                    {dayPosts.slice(0, 3).map(p => (
+                      <button
+                        key={p.id}
+                        onClick={() => onSelect(p)}
+                        className={`w-full flex items-center gap-1 px-1 py-0.5 rounded border ${STATUS_COLORS[p.status] || 'border-white/10'} hover:scale-[1.02] transition group`}
+                      >
+                        {p.visual_url ? (
+                          <img src={p.visual_url} alt="" className="w-6 h-6 object-cover rounded shrink-0" />
+                        ) : (
+                          <div className="w-6 h-6 bg-gradient-to-br from-purple-900/30 to-pink-900/30 rounded shrink-0" />
+                        )}
+                        <div className="text-[8px] text-white/80 truncate text-left flex-1">{(p.hook || p.caption || '').substring(0, 22)}</div>
+                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_DOT[p.status] || 'bg-white/20'}`} />
+                      </button>
+                    ))}
+                    {dayPosts.length > 3 && (
+                      <div className="text-[8px] text-white/50 text-center">+{dayPosts.length - 3}</div>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           );
         })}
