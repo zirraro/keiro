@@ -75,36 +75,32 @@ export async function GET(req: NextRequest) {
   }
 
   if (direction === 'all' || direction === 'sent') {
-    // Outbound: pull from crm_activities (where Hugo's actual sent
-    // emails are logged with body) for prospects belonging to this user.
-    const { data: prospects } = await sb
-      .from('crm_prospects')
-      .select('id')
-      .eq('user_id', user.id)
-      .limit(2000);
-    const prospectIds = (prospects || []).map((p: any) => p.id);
-    if (prospectIds.length > 0) {
-      const { data: outbound } = await sb
-        .from('crm_activities')
-        .select('id, prospect_id, type, description, data, created_at')
-        .in('prospect_id', prospectIds)
-        .eq('type', 'email')
-        .order('created_at', { ascending: false })
-        .limit(limit);
-      for (const row of (outbound || []) as any[]) {
-        const d = row.data || {};
-        items.push({
-          id: row.id,
-          direction: 'sent',
-          date: row.created_at,
-          to_email: d.to_email || d.email || undefined,
-          subject: d.subject || (row.description || '').substring(0, 80),
-          body: d.body || d.message || row.description || '',
-          message_id: d.message_id,
-          auto: !!(d.auto_reply || d.auto || d.is_sequence_step) && !d.manual_reply,
-          prospect_id: row.prospect_id,
-        });
-      }
+    // Outbound: pull from crm_activities via inner-join on
+    // crm_prospects so we filter server-side on prospect.user_id.
+    // Previous version did `.in('prospect_id', [2000 ids])` which
+    // built a URL > 8 KB and silently failed (no sent emails ever
+    // showed up for users with many prospects).
+    const { data: outbound, error: outboundErr } = await sb
+      .from('crm_activities')
+      .select('id, prospect_id, type, description, data, created_at, crm_prospects!inner(user_id)')
+      .eq('crm_prospects.user_id', user.id)
+      .eq('type', 'email')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    if (outboundErr) console.warn('[inbox] outbound query failed:', outboundErr.message);
+    for (const row of (outbound || []) as any[]) {
+      const d = row.data || {};
+      items.push({
+        id: row.id,
+        direction: 'sent',
+        date: row.created_at,
+        to_email: d.to_email || d.email || undefined,
+        subject: d.subject || (row.description || '').substring(0, 80),
+        body: d.body || d.message || row.description || '',
+        message_id: d.message_id,
+        auto: !!(d.auto_reply || d.auto || d.is_sequence_step) && !d.manual_reply,
+        prospect_id: row.prospect_id,
+      });
     }
   }
 
