@@ -534,6 +534,64 @@ async function publishToInstagram(
   // the token-expiry auto-disconnect flow.
   let effectivePostOwnerId: string | null = userId || (post as any).user_id || null;
   try {
+    // ── DAILY CAP — never publish more than N posts/day for this user ──
+    // Today mrzirraro hit 16 IG posts in 12h (mix of cron + tests +
+    // auto-publish). Without a deterministic cap the agent will spam
+    // the feed and get rate-limited or shadow-banned. Default 3/day,
+    // overridable via org_agent_configs.config.daily_publish_limit_instagram.
+    if (effectivePostOwnerId) {
+      try {
+        let dailyLimit = 3;
+        const { data: cfg } = await supabase
+          .from('org_agent_configs')
+          .select('config')
+          .eq('user_id', effectivePostOwnerId)
+          .eq('agent_id', 'content')
+          .maybeSingle();
+        const cfgLimit = (cfg?.config as any)?.daily_publish_limit_instagram;
+        if (Number.isInteger(cfgLimit) && cfgLimit >= 0 && cfgLimit <= 50) dailyLimit = cfgLimit;
+
+        const todayStart = new Date();
+        todayStart.setUTCHours(0, 0, 0, 0);
+        const { count: publishedToday } = await supabase
+          .from('content_calendar')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', effectivePostOwnerId)
+          .eq('platform', 'instagram')
+          .eq('status', 'published')
+          .gte('published_at', todayStart.toISOString());
+        if ((publishedToday || 0) >= dailyLimit) {
+          console.warn(`[Content] Daily IG cap reached for user ${effectivePostOwnerId.slice(0, 8)}: ${publishedToday}/${dailyLimit} — postponing to tomorrow`);
+          // Reschedule this post to tomorrow so the cron doesn't loop
+          // on it every 30 min for the rest of the day. Keep status
+          // 'approved' — it'll fire naturally at the new date.
+          if (post.id) {
+            try {
+              const tomorrow = new Date();
+              tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+              const tomorrowDate = tomorrow.toISOString().split('T')[0];
+              await supabase
+                .from('content_calendar')
+                .update({
+                  scheduled_date: tomorrowDate,
+                  publish_diagnostic: `daily_cap_${publishedToday}/${dailyLimit}_postponed_to_${tomorrowDate}`,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('id', post.id);
+            } catch {}
+          }
+          return {
+            success: false,
+            error: `daily_cap_reached:${publishedToday}/${dailyLimit}`,
+          };
+        }
+      } catch (capErr: any) {
+        // If the cap check itself fails we don't block the publish —
+        // we'd rather a degraded check than a stuck pipeline.
+        console.warn('[Content] daily cap check failed (non-fatal):', capErr?.message);
+      }
+    }
+
     // ── Dedup check: prevent publishing the same image twice ──
     const dupCheck = await checkDuplicatePublication(supabase, post.visual_url, post.video_url, 'instagram');
     if (dupCheck.isDuplicate) {
