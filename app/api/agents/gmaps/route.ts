@@ -486,7 +486,16 @@ async function runGMapsScan(orgId: string | null = null, userId: string | null =
             google_reviews: details.user_ratings_total || null,
             score,
             temperature: getTemperature(score),
-            source: 'google_maps',
+            // CHECK constraint crm_prospects_source_check restricts source
+            // to a fixed taxonomy (dm_instagram, email, telephone, linkedin,
+            // terrain, facebook, tiktok, recommandation, import, chatbot,
+            // prospection_commerciale, other). 'google_maps' was never
+            // valid — every Léo insert silently failed with errors=N until
+            // we caught it. Use 'prospection_commerciale' (the same
+            // bucket Victor's commercial agent uses for outbound sourcing)
+            // and keep source_agent='gmaps' so we still know it came from
+            // Léo's gmaps scan vs Victor's other discovery flows.
+            source: 'prospection_commerciale',
             source_agent: 'gmaps',
             status: 'identifie',
             created_at: now,
