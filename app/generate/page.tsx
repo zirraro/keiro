@@ -13,6 +13,7 @@ import { useEditLimit } from '@/hooks/useEditLimit';
 import { useCredits } from '@/hooks/useCredits';
 import { useFeedbackPopup } from '@/hooks/useFeedbackPopup';
 import FeedbackPopup from '@/components/FeedbackPopup';
+import FreeTrialGate from '@/app/components/FreeTrialGate';
 import FeedbackModal from '@/components/FeedbackModal';
 import { CREDIT_COSTS, getVideoCreditCost, VIDEO_DURATIONS } from '@/lib/credits/constants';
 import { supabase } from '@/lib/supabase';
@@ -1946,6 +1947,16 @@ export default function GeneratePage() {
 
       // Incrémenter le compteur de génération pour le freemium
       generationLimit.incrementCount();
+
+      // Increment server-side free-trial counter (no-card flow).
+      // Fire-and-forget — non-blocking, gate component listens for the
+      // dispatched event below to refresh its state.
+      try {
+        await fetch('/api/me/free-trial-status', { method: 'POST', credentials: 'include' });
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('keiro:generation-success'));
+        }
+      } catch {}
 
       // Génération audio TTS si demandée
       if (addAudio) {
@@ -4273,14 +4284,46 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                       )}
 
                       {/* Navigation */}
-                      <div className="flex items-center justify-between mt-4">
+                      <div className="flex items-center justify-between mt-4 flex-wrap gap-2">
                         <button onClick={() => { if (creativeSubStep === 'expert') { setCreativeSubStep('content'); } else if (creativeSubStep === 'content') { setCreativeSubStep('direction'); } else { setFormStep(2); } }} className="flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-700 transition">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                           {t.generate.back}
                         </button>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 flex-wrap justify-end">
                           <button onClick={() => setFormStep(4)} className="text-xs text-neutral-400 hover:text-neutral-600 transition">
                             {t.generate.skipOptionalSteps}
+                          </button>
+                          {/* EXPRESS MODE — auto-fill all 3 sub-steps + jump to result.
+                              For users who want zero friction. The per-step auto-fill
+                              button (top of card) stays for power users who want to
+                              personalise step by step. */}
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              setAutoFillLoading(true);
+                              try {
+                                await handleAiAutoFill('direction');
+                                await handleAiAutoFill('creatif');
+                                await handleAiAutoFill('expert');
+                                setFormStep(4);
+                                // Smooth scroll to generate area on next tick
+                                setTimeout(() => {
+                                  const el = document.getElementById('generate-cta');
+                                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                }, 100);
+                              } finally {
+                                setAutoFillLoading(false);
+                              }
+                            }}
+                            disabled={autoFillLoading}
+                            className="px-4 py-2 bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-700 hover:to-fuchsia-700 text-white text-xs font-bold rounded-lg shadow disabled:opacity-50 flex items-center gap-1.5"
+                            title={locale === 'fr' ? 'Tout remplir automatiquement et passer à la génération' : 'Auto-fill everything and jump to generation'}
+                          >
+                            {autoFillLoading ? (
+                              <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> {t.generate.analyzing}</>
+                            ) : (
+                              <>⚡ {locale === 'fr' ? 'Express : tout remplir + générer' : 'Express: fill all + generate'}</>
+                            )}
                           </button>
                           <button onClick={() => { if (creativeSubStep === 'direction') { setCreativeSubStep('content'); } else if (creativeSubStep === 'content') { setCreativeSubStep('expert'); } else { setFormStep(4); } }} className="px-6 py-2 bg-[#0c1a3a] text-white text-sm font-semibold rounded-lg hover:bg-[#1e3a5f] transition flex items-center gap-2">
                             {creativeSubStep === 'direction'
@@ -4670,6 +4713,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
 
                       {/* Generate button */}
                       <button
+                        id="generate-cta"
                         onClick={generationMode === 'video' ? handleGenerateVideo : handleGenerate}
                         disabled={generating || generatingVideo || (useNewsMode && !selectedNews) || (!useNewsMode && !businessDescription.trim()) || !businessType.trim()}
                         className={`w-full py-3 text-sm font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
@@ -6877,6 +6921,10 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
           isOpen={showSubscriptionModal}
           onClose={() => setShowSubscriptionModal(false)}
         />
+
+        {/* Free-trial gate — soft warn at 1 left, hard modal at 0
+            (3 free generations then card-collected 7-day trial). */}
+        <FreeTrialGate />
 
         {/* Popup de conversion après 1ère gen gratuite */}
         <ConversionPopup
