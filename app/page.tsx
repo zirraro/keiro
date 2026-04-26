@@ -1550,19 +1550,19 @@ function HomeKeiroInner() {
               so visitors understand what they actually GET (not just "7 agents")
               before clicking the trial CTA. Especially the auto-generation +
               auto-publication of social posts which is the headline value. */}
-          <div className="max-w-6xl mx-auto mb-8 sm:mb-10">
-            <div className="text-center mb-5">
-              <span className="inline-block px-3 py-1 bg-purple-100 text-purple-700 text-[11px] font-bold rounded-full mb-2 uppercase tracking-wide">{locale === 'fr' ? 'Inclus dès le plan Créateur' : 'Included with Creator plan'}</span>
-              <h3 className="text-xl sm:text-2xl font-black text-neutral-900 mb-1">
+          <div className="max-w-6xl mx-auto mb-8 sm:mb-10 px-1 sm:px-0">
+            <div className="text-center mb-4 sm:mb-5">
+              <span className="inline-block px-3 py-1 bg-purple-100 text-purple-700 text-[10px] sm:text-[11px] font-bold rounded-full mb-2 uppercase tracking-wide">{locale === 'fr' ? 'Inclus dès le plan Créateur' : 'Included with Creator plan'}</span>
+              <h3 className="text-lg sm:text-2xl font-black text-neutral-900 mb-1 leading-tight">
                 {locale === 'fr' ? '7 agents IA qui bossent pour toi 24/7' : '7 AI agents working for you 24/7'}
               </h3>
-              <p className="text-sm text-neutral-600 max-w-2xl mx-auto">
+              <p className="text-xs sm:text-sm text-neutral-600 max-w-2xl mx-auto px-2">
                 {locale === 'fr'
                   ? 'Tu ne touches à rien. Ils génèrent, publient, prospectent et répondent — pendant que tu fais ton métier.'
                   : "You don't touch anything. They generate, publish, prospect and reply — while you focus on your craft."}
               </p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
               {/* Léna — the headline value */}
               <div className="rounded-2xl border-2 border-purple-300 bg-gradient-to-br from-purple-50 to-pink-50 p-4 shadow-md hover:shadow-lg transition relative overflow-hidden">
                 <span className="absolute top-2 right-2 text-[8px] font-bold px-1.5 py-0.5 bg-purple-600 text-white rounded uppercase tracking-wide">{locale === 'fr' ? '⭐ Star' : '⭐ Top'}</span>
