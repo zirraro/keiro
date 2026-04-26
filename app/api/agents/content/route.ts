@@ -3896,7 +3896,7 @@ Le lien doit etre NATUREL et PERCUTANT — pas force. Si aucune actu ne colle au
       if (userId) {
         const { data: d } = await supabase
           .from('business_dossiers')
-          .select('business_type, summary, signature_offer, city')
+          .select('business_type, ai_summary, company_description, value_proposition, unique_selling_points, address')
           .eq('user_id', userId)
           .maybeSingle();
         dossierForAngle = d;
@@ -3907,11 +3907,14 @@ Le lien doit etre NATUREL et PERCUTANT — pas force. Si aucune actu ne colle au
         .filter((a: string) => a && a.length > 0)
         .slice(0, 5);
       const { pickBusinessNewsAngle, angleToPromptBlock } = await import('@/lib/agents/news-business-angle');
+      const dossierSummary = dossierForAngle?.ai_summary || dossierForAngle?.company_description;
+      const dossierOffer = dossierForAngle?.value_proposition || dossierForAngle?.unique_selling_points;
+      const dossierCity = dossierForAngle?.address ? String(dossierForAngle.address).split(',').pop()?.trim() : undefined;
       const angle = await pickBusinessNewsAngle({
         businessType: dossierForAngle?.business_type || detectedBusinessType || (clientSettings as any)?.business_type,
-        businessSummary: dossierForAngle?.summary,
-        signatureOffer: dossierForAngle?.signature_offer,
-        city: dossierForAngle?.city,
+        businessSummary: dossierSummary,
+        signatureOffer: dossierOffer,
+        city: dossierCity,
         language: 'fr',
         newsHeadlines: trendsNewsItems,
         trendQueries: trendsTrendItems,
