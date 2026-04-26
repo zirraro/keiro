@@ -4471,13 +4471,13 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
           // dish/product as PRIMARY hero? When it's ≥3, we flip the bias
           // and let space/ambiance photos surface as the hero so the feed
           // gets a venue-only post instead of yet another plate.
-          const recentHeroes = (recentGrid || []).slice(0, 5).map((p: any) => {
+          const recentHeroes: string[] = (recentGrid || []).slice(0, 5).map((p: any): string => {
             const v = (p.visual_description || '').toLowerCase();
             if (/(plat|dish|bouquet|soin|product|produit|pi.ce|montre|robe|sac)/.test(v)) return 'product';
             if (/(int.rieur|interior|salle|devanture|fa.ade|room|venue|terrasse|comptoir|atelier)/.test(v)) return 'space';
             return 'other';
           });
-          const dishSaturated = recentHeroes.filter(h => h === 'product').length >= 3;
+          const dishSaturated = recentHeroes.filter((h: string) => h === 'product').length >= 3;
 
           const scoreRelevance = (u: any): number => {
             const a = u.ai_analysis || {};
