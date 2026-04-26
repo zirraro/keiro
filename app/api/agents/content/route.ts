@@ -3714,14 +3714,20 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
   const recentSubjects = recentVisuals.map(categorizeVisual);
   const subjectCounts: Record<string, number> = {};
   for (const s of recentSubjects) subjectCounts[s] = (subjectCounts[s] || 0) + 1;
+  // FORBIDDEN = anything used in last 2 posts back-to-back (hard rule)
+  // OVERUSED = appeared ≥2 times in window (strong avoid)
+  const last2Subjects = recentSubjects.slice(0, 2);
+  const forbiddenSubjects = Array.from(new Set(last2Subjects));
   const overusedSubjects = Object.entries(subjectCounts).filter(([_, n]) => n >= 2).map(([k]) => k);
   const dueSubjects = SUBJECT_CATEGORIES.filter(c => !subjectCounts[c]);
-  const subjectGuidance = `\n━━━ ROTATION DES SUJETS (CRITIQUE — ne pas s'enfermer sur plat+lieu) ━━━\n`
+  const subjectGuidance = `\n━━━ ROTATION DES SUJETS (RÈGLE DURE — ne pas s'enfermer sur plat+lieu) ━━━\n`
     + `Les ${recentSubjects.length} derniers posts ont concerné : ${recentSubjects.length > 0 ? recentSubjects.join(', ') : '(aucun)'}.\n`
-    + (overusedSubjects.length > 0 ? `→ SUR-UTILISÉS (à ÉVITER pour ce post) : ${overusedSubjects.join(', ')}\n` : '')
+    + (forbiddenSubjects.length > 0 ? `🚫 INTERDIT pour ce post (utilisé dans les 2 derniers) : ${forbiddenSubjects.join(', ')}\n` : '')
+    + (overusedSubjects.length > 0 ? `→ SUR-UTILISÉS (à ÉVITER fort) : ${overusedSubjects.join(', ')}\n` : '')
     + (dueSubjects.length > 0 ? `→ JAMAIS UTILISÉS RÉCEMMENT (à privilégier) : ${dueSubjects.slice(0, 4).join(', ')}\n` : '')
-    + `Le visual_description de ce post DOIT correspondre à une catégorie différente des sur-utilisés. Si tu ne sais pas, prends une catégorie "JAMAIS UTILISÉS RÉCEMMENT".\n`
+    + `Le visual_description de ce post NE DOIT PAS correspondre aux catégories INTERDITES. Choisis une catégorie "DUE" en priorité, sinon une non-utilisée.\n`
     + `Catégories disponibles : ${SUBJECT_CATEGORIES.join(' / ')}.\n`
+    + `Si la catégorie INTERDITE est "product_hero" et qu'on est dans la restauration, NE MONTRE PAS le plat seul comme sujet principal. Montre les mains du chef qui le fait, le client qui le mange, la salle qui s'anime, le marché à l'aube — JAMAIS encore une fois le plat sur la table.\n`
     + `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
 
   // ── COLOR ROTATION: Detect dominant colors to force variety ──
@@ -3976,6 +3982,8 @@ RÈGLES :
 - Plateformes autorisées : instagram, tiktok, linkedin
 - Tu DOIS fournir un champ "visual_description" ULTRA DÉTAILLÉ — c'est un PROMPT SEEDREAM complet EN ANGLAIS pour générer un visuel professionnel
 - INTERDIT : téléphone, smartphone, écran, mockup, device dans le visuel (sauf 1 post sur 10 max)
+- INTERDIT (qualité) : visuels abstraits 3D / cubes glowing / cyberpunk / sci-fi visualisations / waveforms / hologrammes / split-screen abstrait — ce sont des visuels AMATEURS de stock photo. SAUF si le business est genuinely tech/3D/IA et que l'esthétique fait sens (rare). Pour un resto, un coiffeur, un fleuriste, un coach, etc. → ALWAYS éditorial photo réelle, lifestyle, monde tangible.
+- INTERDIT (qualité) : split-screen "concept A vs concept B" avec une moitié abstraite et l'autre réelle. C'est le cliché des designers paresseux. Si tu veux contraster deux idées, fais-le avec UNE scène réelle qui contient le contraste (ex : une assiette à moitié vide, deux coiffures côte-à-côte, une boutique avant/après).
 - Exemples de BONS visual_description :
   * "Isometric 3D scene of a cozy French bakery with fresh croissants on display, warm golden lighting, deep violet accents, miniature people walking by, clean render, no text no letters"
   * "Cinematic photo of a florist arranging a vibrant bouquet in a sunlit workshop, shallow depth of field, warm amber tones with violet shadows, editorial style, no text"
@@ -4372,12 +4380,11 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
             }
             for (const hint of hintsForThisPost) if (blob.includes(hint)) score += 2;
             if (u.agent_id === 'content' || u.agent_id === 'onboarding') score += 1;
-            // Soft penalty for recently-used (last 15 posts) instead of
-            // hard-filter. Lets the same dish land again when composed
-            // with a venue produces a genuinely different scene. Prevents
-            // "no hero available" edge case where we fall back to a
-            // stale space photo.
-            if (recentUrls.has(u.file_url)) score -= 4;
+            // Strong penalty for recently-used. Used to be -4 (soft) which
+            // didn't stop the same octopus dish landing twice in a row.
+            // -25 makes it almost impossible to pick again unless no
+            // alternative exists at all.
+            if (recentUrls.has(u.file_url)) score -= 25;
             return score;
           };
 
@@ -4725,6 +4732,26 @@ Real natural light matching the room's existing ambience. The dish must look pro
       // the user can edit it later from the post modal.
       if (visualUrl && !visualUrl.includes('.mp4')) {
         try {
+          // ── HARD RATE GATE ──
+          // Sonnet self-discipline failed in practice — overlays were
+          // landing on every post. Count overlays in the last 10 posts
+          // for this user; if ≥2 already have one, skip the call
+          // entirely so the rate stays ≤20% deterministically.
+          let recentOverlayCount = 0;
+          if (userId) {
+            try {
+              const { data: recentForOverlay } = await supabase
+                .from('content_calendar')
+                .select('overlay_text')
+                .eq('user_id', userId)
+                .order('created_at', { ascending: false })
+                .limit(10);
+              recentOverlayCount = (recentForOverlay || []).filter((r: any) => r.overlay_text && r.overlay_text.text).length;
+            } catch {}
+          }
+          if (recentOverlayCount >= 2) {
+            console.log(`[Content] Overlay rate gate: ${recentOverlayCount}/10 recent posts already have overlay — skipping`);
+          } else {
           // Pull richer business context for the overlay copy.
           let businessSummary: string | undefined;
           let signatureOffer: string | undefined;
@@ -4732,11 +4759,11 @@ Real natural light matching the room's existing ambience. The dish must look pro
             try {
               const { data: dossier } = await supabase
                 .from('business_dossiers')
-                .select('summary, signature_offer')
+                .select('ai_summary, value_proposition')
                 .eq('user_id', userId)
                 .maybeSingle();
-              businessSummary = dossier?.summary || undefined;
-              signatureOffer = dossier?.signature_offer || undefined;
+              businessSummary = dossier?.ai_summary || undefined;
+              signatureOffer = dossier?.value_proposition || undefined;
             } catch {}
           }
           const recentNews = post.pillar === 'trends'
@@ -4775,6 +4802,7 @@ Real natural light matching the room's existing ambience. The dish must look pro
           } else {
             console.log('[Content] Text overlay: not needed for this post');
           }
+          } // end overlay rate gate else
         } catch (overlayErr: any) {
           console.warn('[Content] Text overlay non-fatal:', overlayErr?.message);
         }

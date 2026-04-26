@@ -80,7 +80,20 @@ When NO (silence is louder):
 - You'd write something generic ("Tradition & Modernité", "Le goût du vrai") — DON'T.
 - The line you'd write is just the hook with the same energy → caption already does the job.
 
-CRITICAL CALIBRATION: Across 100 posts in a typical month for ONE business, no more than ~25-30 should have an overlay. If every post has one, the feed becomes a billboard. DEFAULT TO NO. Only YES when the line is actually exceptional — better than 90% of overlays you see in the wild. If you're unsure, the answer is no. If the line you'd write is "just OK", the answer is no.
+⛔ HARDEST RULE — VISUAL-TEXT COHERENCE ⛔
+Before you say YES, READ the visual_description carefully and ask yourself: "Does any element in this image VISUALLY support the line I want to write?"
+- If the visual is a plate of food and you want to write "Sondages vs résultats" — that's NONSENSE. The food has nothing to do with elections. The viewer is confused, not stopped.
+- If the visual is a coffee shop interior and you want to write "Le goût des choses simples" — that COULD work because the visual literally IS a coffee shop.
+- If the visual is abstract / 3D / split-screen and your line is news-related — only YES if the abstract elements directly evoke the news (e.g. ballot boxes for elections, charts for economy).
+- If the line introduces a concept that does NOT appear in the visual_description, the answer is NO. Period.
+
+The viewer reads the image first. The text MUST land as "ah of course" — not as "what does this have to do with anything?".
+
+CRITICAL CALIBRATION: Across 100 posts in a typical month for ONE business, no more than ~10-15 should have an overlay. We have a deterministic upstream gate that already kills overlay if recent rate ≥20%. So when this prompt fires, you have a chance — make it count or pass. DEFAULT TO NO. Only YES when:
+1. The line is exceptional — better than 90% of overlays in the wild.
+2. The line VISUALLY ties to elements actually present in the image.
+3. Removing the overlay would meaningfully weaken the post.
+If any of those three is shaky, the answer is NO.
 
 If yes, the line MUST:
 - Be 3-8 words MAX (~40 chars). Short = strong.
