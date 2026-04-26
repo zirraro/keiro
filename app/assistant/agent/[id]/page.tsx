@@ -1510,31 +1510,61 @@ export default function AgentWorkspacePage() {
           />
         )}
 
-        {/* ═══ TABS ═══ */}
-        <div className="flex items-center gap-1 bg-white/5 rounded-xl p-1 border border-white/10 mb-6 overflow-x-auto whitespace-nowrap scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
-          {([
-            { key: 'dashboard' as const, label: 'Dashboard', icon: '\uD83D\uDCCA' },
-            ...(agentId === 'onboarding' ? [{ key: 'profile' as const, label: 'Mon profil', icon: '\uD83D\uDCCB' }] : []),
-            ...(['email', 'ads', 'commercial', 'dm_instagram'].includes(agentId) ? [{ key: 'campaigns' as const, label: 'Campagnes', icon: '\u{1F3AF}' }] : []),
-            ...(['content', 'email'].includes(agentId) ? [{ key: 'planning' as const, label: 'Planning', icon: '\uD83D\uDCC5' }] : []),
-            ...(['rh', 'comptable'].includes(agentId) ? [{ key: 'editor' as const, label: 'Editeur', icon: '\u270D\uFE0F' }] : []),
-            { key: 'documents' as const, label: 'Documents', icon: '\uD83D\uDCC1' },
-            { key: 'history' as const, label: 'Historique', icon: '\u26A1' },
-            { key: 'settings' as const, label: 'Parametres', icon: '\u2699\uFE0F' },
-          ]).map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
-                activeTab === tab.key
-                  ? 'text-white shadow-md'
-                  : 'text-white/50 hover:text-white/70 hover:bg-white/5'
-              }`}
-              style={activeTab === tab.key ? { background: `linear-gradient(135deg, ${gf}, ${gt})` } : undefined}
-            >
-              <span>{tab.icon}</span> {tab.label}
-            </button>
-          ))}
+        {/* ═══ TABS — sticky so navigation is always reachable while scrolling ═══ */}
+        <div className="sticky top-16 z-40 -mx-4 px-4 py-2 mb-5 bg-[#0c1a3a]/85 backdrop-blur-md border-b border-white/5">
+          <div className="flex items-center gap-1 bg-white/5 rounded-xl p-1 border border-white/10 overflow-x-auto whitespace-nowrap scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
+            {([
+              { key: 'dashboard' as const, label: isEn ? 'Dashboard' : 'Tableau de bord', icon: '\uD83D\uDCCA' },
+              ...(agentId === 'onboarding' ? [{ key: 'profile' as const, label: isEn ? 'My profile' : 'Mon profil', icon: '\uD83D\uDCCB' }] : []),
+              ...(['email', 'ads', 'commercial', 'dm_instagram'].includes(agentId) ? [{ key: 'campaigns' as const, label: isEn ? 'Campaigns' : 'Campagnes', icon: '\u{1F3AF}' }] : []),
+              ...(['content', 'email'].includes(agentId) ? [{ key: 'planning' as const, label: isEn ? 'Planning' : 'Planning', icon: '\uD83D\uDCC5' }] : []),
+              ...(['rh', 'comptable'].includes(agentId) ? [{ key: 'editor' as const, label: isEn ? 'Editor' : 'Éditeur', icon: '\u270D\uFE0F' }] : []),
+              { key: 'documents' as const, label: 'Documents', icon: '\uD83D\uDCC1' },
+              { key: 'history' as const, label: isEn ? 'History' : 'Historique', icon: '\u26A1' },
+              { key: 'settings' as const, label: isEn ? 'Settings' : 'Paramètres', icon: '\u2699\uFE0F' },
+            ]).map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => {
+                  setActiveTab(tab.key);
+                  // Sync URL so back/forward + bookmarks work
+                  try {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('tab', tab.key);
+                    window.history.replaceState({}, '', url.toString());
+                  } catch {}
+                }}
+                className={`flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
+                  activeTab === tab.key
+                    ? 'text-white shadow-md'
+                    : 'text-white/70 hover:text-white hover:bg-white/10'
+                }`}
+                style={activeTab === tab.key ? { background: `linear-gradient(135deg, ${gf}, ${gt})` } : undefined}
+              >
+                <span>{tab.icon}</span> {tab.label}
+              </button>
+            ))}
+          </div>
+          {/* Cross-tab quick switch CTA — content + email show a one-click
+              jump to Planning since it's the most-used 2nd tab. Reduces
+              the navigation friction the founder flagged. */}
+          {['content', 'email'].includes(agentId) && activeTab === 'dashboard' && (
+            <div className="mt-2 flex items-center justify-end">
+              <button
+                onClick={() => {
+                  setActiveTab('planning');
+                  try {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('tab', 'planning');
+                    window.history.replaceState({}, '', url.toString());
+                  } catch {}
+                }}
+                className="text-[11px] text-purple-300 hover:text-purple-200 font-semibold flex items-center gap-1"
+              >
+                {isEn ? 'See full planning calendar' : 'Voir le planning complet'} →
+              </button>
+            </div>
+          )}
         </div>
 
         {/* ═══ TAB: DASHBOARD ═══ */}
