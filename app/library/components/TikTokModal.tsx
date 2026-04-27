@@ -809,6 +809,14 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
       alert('Le contenu de marque (Branded Content) nécessite une visibilité publique ou amis');
       return;
     }
+    // POINT 1 enforcement: video duration must respect creator's
+    // max_video_post_duration_sec returned by /v2/post/publish/creator_info/.
+    // Without this, TikTok rejects the upload silently and the user sees
+    // a confusing error. We block client-side AND surface a clear msg.
+    if (creatorInfo?.max_video_post_duration_sec && videoDuration && videoDuration > creatorInfo.max_video_post_duration_sec) {
+      alert(`Cette vidéo (${Math.round(videoDuration)}s) dépasse la durée max autorisée par TikTok pour ton compte (${creatorInfo.max_video_post_duration_sec}s). Raccourcis-la avant de publier.`);
+      return;
+    }
 
     let videoUrlToPublish = reviewVideoUrl!;
     let videoIdToUpdate: string | null = null;
@@ -2210,8 +2218,10 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
             ) : (
               <div className="p-6 space-y-5">
 
-                {/* ═══ POINT 1: Creator Info ═══ */}
-                {/* Display creator nickname so user knows which TikTok account receives content */}
+                {/* ═══ POINT 1 — Creator Info Display (TikTok UX Guideline) ═══ */}
+                <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wide">Étape 1/5 — Compte de publication</div>
+                {/* Display creator nickname so user knows which TikTok account receives content.
+                    Also note max_video_post_duration_sec for guideline Point 1. */}
                 <div className="bg-gradient-to-r from-pink-50 to-cyan-50 rounded-xl p-4 border border-pink-200/50">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-400 to-pink-500 flex items-center justify-center text-white font-bold text-sm">
@@ -2287,7 +2297,8 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                   </div>
                 </div>
 
-                {/* ═══ POINT 2: Privacy Level — NO default value, user MUST select ═══ */}
+                {/* ═══ POINT 2 — Privacy Status Selection (TikTok UX Guideline) ═══ */}
+                <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wide">Étape 2/5 — Confidentialité</div>
                 <div>
                   <label className="block text-xs font-semibold text-neutral-700 mb-2">
                     Qui peut voir cette vidéo <span className="text-red-500">*</span>
@@ -2335,7 +2346,8 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                   </div>
                 </div>
 
-                {/* ═══ POINT 2: Interaction Settings — ALL unchecked by default ═══ */}
+                {/* ═══ POINT 3 — Interaction Ability Controls (TikTok UX Guideline) ═══ */}
+                <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wide">Étape 3/5 — Interactions autorisées</div>
                 <div>
                   <label className="block text-xs font-semibold text-neutral-700 mb-2">Interactions autorisées</label>
                   <p className="text-xs text-neutral-400 mb-2">Cochez les interactions que vous souhaitez autoriser sur cette publication</p>
@@ -2376,7 +2388,8 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                   </div>
                 </div>
 
-                {/* ═══ POINT 3: Content Disclosure — toggle OFF by default ═══ */}
+                {/* ═══ POINT 4 — Commercial Content Disclosure (TikTok UX Guideline) ═══ */}
+                <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wide">Étape 4/5 — Divulgation commerciale</div>
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="block text-xs font-semibold text-neutral-700">Content Disclosure</label>
@@ -2453,7 +2466,8 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                   )}
                 </div>
 
-                {/* ═══ POINT 5: User Consent & Legal Compliance ═══ */}
+                {/* ═══ POINT 5 — User Consent & Legal Compliance (TikTok UX Guideline) ═══ */}
+                <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wide">Étape 5/5 — Confirmation & consentement</div>
                 <div className="border-t pt-4 space-y-3">
                   {/* Music Usage Confirmation — Required by TikTok */}
                   <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
