@@ -2,6 +2,10 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   eslint: { ignoreDuringBuilds: true },
+  // Hide the X-Powered-By: Next.js header so enterprise security
+  // scanners don't flag a tech-stack disclosure. Vercel did this
+  // automatically; we have to opt-in on self-hosted.
+  poweredByHeader: false,
   serverExternalPackages: ['ffmpeg-static', 'fluent-ffmpeg'],
   experimental: {
     serverActions: {
