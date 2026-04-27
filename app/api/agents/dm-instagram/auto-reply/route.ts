@@ -227,10 +227,14 @@ export async function POST(req: NextRequest) {
         let senderSnapshotText = '';
         try {
           if (fbToken && igUserId && senderName) {
-            const { getInstagramProfileSnapshot, snapshotToPromptContext } = await import('@/lib/agents/ig-profile-snapshot');
+            const { getInstagramProfileSnapshot, snapshotToPromptContext, readProfileFromVisuals } = await import('@/lib/agents/ig-profile-snapshot');
             const snap = await getInstagramProfileSnapshot(senderName, igUserId, fbToken);
             if (snap.exists) {
-              senderSnapshotText = '\n\n' + snapshotToPromptContext(snap);
+              // Sonnet vision pass over the last 3 posts + bio so Jade
+              // gets a 'has_business' / 'entrepreneur_curious' verdict
+              // and the right offer (B2C vs B2B white-label).
+              const vision = await readProfileFromVisuals(snap).catch(() => null);
+              senderSnapshotText = '\n\n' + snapshotToPromptContext(snap, vision);
             }
           }
         } catch { /* snapshot is best-effort — fall through silently */ }
