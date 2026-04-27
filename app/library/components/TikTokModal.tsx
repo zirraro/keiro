@@ -50,7 +50,8 @@ interface TikTokModalProps {
 }
 
 export default function TikTokModal({ image, images, video, videos, onClose, onPublishSuccess, onSave, draftCaption, draftHashtags }: TikTokModalProps) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const en = locale === 'en';
   const [caption, setCaption] = useState(draftCaption || '');
   const [hashtags, setHashtags] = useState<string[]>(draftHashtags || []);
   const [hashtagInput, setHashtagInput] = useState('');
@@ -2219,7 +2220,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
               <div className="p-6 space-y-5">
 
                 {/* ═══ POINT 1 — Creator Info Display (TikTok UX Guideline) ═══ */}
-                <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wide">Étape 1/5 — Compte de publication</div>
+                <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wide">{en ? 'Step 1/5 — Publishing account' : 'Étape 1/5 — Compte de publication'}</div>
                 {/* Display creator nickname so user knows which TikTok account receives content.
                     Also note max_video_post_duration_sec for guideline Point 1. */}
                 <div className="bg-gradient-to-r from-pink-50 to-cyan-50 rounded-xl p-4 border border-pink-200/50">
@@ -2236,19 +2237,19 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                       )}
                     </div>
                     {creatorInfo?.can_post ? (
-                      <span className="ml-auto text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">Prêt à publier</span>
+                      <span className="ml-auto text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">{en ? 'Ready to publish' : 'Prêt à publier'}</span>
                     ) : (
-                      <span className="ml-auto text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full font-medium">Publication indisponible</span>
+                      <span className="ml-auto text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full font-medium">{en ? 'Publishing unavailable' : 'Publication indisponible'}</span>
                     )}
                   </div>
                   {!creatorInfo?.can_post && (
-                    <p className="text-xs text-red-600 mt-2">TikTok indique que la publication n&apos;est pas disponible pour ce compte actuellement. Veuillez réessayer plus tard.</p>
+                    <p className="text-xs text-red-600 mt-2">{en ? 'TikTok indicates publishing is unavailable for this account. Please try again later.' : 'TikTok indique que la publication n\u2019est pas disponible pour ce compte actuellement. Veuillez réessayer plus tard.'}</p>
                   )}
                 </div>
 
                 {/* Content Preview — TikTok phone frame */}
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-700 mb-2">Aperçu de la publication</label>
+                  <label className="block text-xs font-semibold text-neutral-700 mb-2">{en ? 'Post preview' : 'Aperçu de la publication'}</label>
                   <div className="flex justify-center">
                     <div className="relative w-[200px] bg-black rounded-[24px] overflow-hidden border-[3px] border-neutral-800 shadow-xl" style={{ aspectRatio: '9/16' }}>
                       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-4 bg-black rounded-b-xl z-20" />
@@ -2298,13 +2299,13 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                 </div>
 
                 {/* ═══ POINT 2 — Privacy Status Selection (TikTok UX Guideline) ═══ */}
-                <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wide">Étape 2/5 — Confidentialité</div>
+                <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wide">{en ? 'Step 2/5 — Privacy' : 'Étape 2/5 — Confidentialité'}</div>
                 <div>
                   <label className="block text-xs font-semibold text-neutral-700 mb-2">
-                    Qui peut voir cette vidéo <span className="text-red-500">*</span>
+                    {en ? 'Who can view this video' : 'Qui peut voir cette vidéo'} <span className="text-red-500">*</span>
                   </label>
                   {!privacyLevel && (
-                    <p className="text-xs text-amber-600 mb-2">Veuillez sélectionner un niveau de confidentialité</p>
+                    <p className="text-xs text-amber-600 mb-2">{en ? 'Please select a privacy level' : 'Veuillez sélectionner un niveau de confidentialité'}</p>
                   )}
                   <div className="space-y-2">
                     {(creatorInfo?.privacy_level_options || ['SELF_ONLY']).map((option) => {
@@ -2331,13 +2332,13 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                           />
                           <div>
                             <p className="text-sm font-medium text-neutral-900">
-                              {option === 'PUBLIC_TO_EVERYONE' ? 'Public' : option === 'MUTUAL_FOLLOW_FRIENDS' ? 'Amis' : option === 'FOLLOWER_OF_CREATOR' ? 'Abonnés' : option === 'SELF_ONLY' ? 'Moi uniquement' : option}
+                              {option === 'PUBLIC_TO_EVERYONE' ? (en ? 'Public' : 'Public') : option === 'MUTUAL_FOLLOW_FRIENDS' ? (en ? 'Friends' : 'Amis') : option === 'FOLLOWER_OF_CREATOR' ? (en ? 'Followers' : 'Abonnés') : option === 'SELF_ONLY' ? (en ? 'Only me' : 'Moi uniquement') : option}
                             </p>
                             <p className="text-xs text-neutral-500">
-                              {option === 'PUBLIC_TO_EVERYONE' ? 'Tout le monde peut voir' : option === 'MUTUAL_FOLLOW_FRIENDS' ? 'Seuls vos amis mutuels' : option === 'FOLLOWER_OF_CREATOR' ? 'Vos abonnés uniquement' : option === 'SELF_ONLY' ? 'Visible uniquement par vous' : ''}
+                              {option === 'PUBLIC_TO_EVERYONE' ? (en ? 'Everyone can view' : 'Tout le monde peut voir') : option === 'MUTUAL_FOLLOW_FRIENDS' ? (en ? 'Only your mutual friends' : 'Seuls vos amis mutuels') : option === 'FOLLOWER_OF_CREATOR' ? (en ? 'Your followers only' : 'Vos abonnés uniquement') : option === 'SELF_ONLY' ? (en ? 'Only visible to you' : 'Visible uniquement par vous') : ''}
                             </p>
                             {disabledByBrandContent && (
-                              <p className="text-xs text-amber-600 mt-0.5">Le contenu de marque ne peut pas être défini en privé</p>
+                              <p className="text-xs text-amber-600 mt-0.5">{en ? 'Branded content visibility cannot be set to private' : 'Le contenu de marque ne peut pas être défini en privé'}</p>
                             )}
                           </div>
                         </label>
@@ -2347,10 +2348,10 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                 </div>
 
                 {/* ═══ POINT 3 — Interaction Ability Controls (TikTok UX Guideline) ═══ */}
-                <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wide">Étape 3/5 — Interactions autorisées</div>
+                <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wide">{en ? 'Step 3/5 — Allowed interactions' : 'Étape 3/5 — Interactions autorisées'}</div>
                 <div>
-                  <label className="block text-xs font-semibold text-neutral-700 mb-2">Interactions autorisées</label>
-                  <p className="text-xs text-neutral-400 mb-2">Cochez les interactions que vous souhaitez autoriser sur cette publication</p>
+                  <label className="block text-xs font-semibold text-neutral-700 mb-2">{en ? 'Allowed interactions' : 'Interactions autorisées'}</label>
+                  <p className="text-xs text-neutral-400 mb-2">{en ? 'Check the interactions you want to allow on this post' : 'Cochez les interactions que vous souhaitez autoriser sur cette publication'}</p>
                   <div className="space-y-2">
                     <label className={`flex items-center gap-3 p-2.5 rounded-lg border border-neutral-200 ${creatorInfo?.comment_disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-neutral-50'}`}>
                       <input type="checkbox" checked={allowComments} onChange={(e) => setAllowComments(e.target.checked)} disabled={creatorInfo?.comment_disabled} className="w-4 h-4 rounded text-[#0c1a3a]" />
@@ -2361,7 +2362,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                           <div className="hidden group-hover:block absolute left-5 top-0 z-10 w-48 p-2 bg-neutral-800 text-white text-[11px] rounded-lg shadow-lg leading-snug">Les utilisateurs peuvent commenter votre vidéo</div>
                         </div>
                       </div>
-                      {creatorInfo?.comment_disabled && <p className="text-xs text-neutral-400 ml-7">Désactivé par vos paramètres TikTok</p>}
+                      {creatorInfo?.comment_disabled && <p className="text-xs text-neutral-400 ml-7">{en ? 'Disabled by your TikTok settings' : 'Désactivé par vos paramètres TikTok'}</p>}
                     </label>
                     <label className={`flex items-center gap-3 p-2.5 rounded-lg border border-neutral-200 ${creatorInfo?.duet_disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-neutral-50'}`}>
                       <input type="checkbox" checked={allowDuet} onChange={(e) => setAllowDuet(e.target.checked)} disabled={creatorInfo?.duet_disabled} className="w-4 h-4 rounded text-[#0c1a3a]" />
@@ -2372,7 +2373,7 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                           <div className="hidden group-hover:block absolute left-5 top-0 z-10 w-52 p-2 bg-neutral-800 text-white text-[11px] rounded-lg shadow-lg leading-snug">Les utilisateurs peuvent créer un Duet (vidéo côte à côte avec la vôtre)</div>
                         </div>
                       </div>
-                      {creatorInfo?.duet_disabled && <p className="text-xs text-neutral-400 ml-7">Désactivé par vos paramètres TikTok</p>}
+                      {creatorInfo?.duet_disabled && <p className="text-xs text-neutral-400 ml-7">{en ? 'Disabled by your TikTok settings' : 'Désactivé par vos paramètres TikTok'}</p>}
                     </label>
                     <label className={`flex items-center gap-3 p-2.5 rounded-lg border border-neutral-200 ${creatorInfo?.stitch_disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-neutral-50'}`}>
                       <input type="checkbox" checked={allowStitch} onChange={(e) => setAllowStitch(e.target.checked)} disabled={creatorInfo?.stitch_disabled} className="w-4 h-4 rounded text-[#0c1a3a]" />
@@ -2383,16 +2384,16 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                           <div className="hidden group-hover:block absolute left-5 top-0 z-10 w-52 p-2 bg-neutral-800 text-white text-[11px] rounded-lg shadow-lg leading-snug">Les utilisateurs peuvent intégrer un extrait de votre vidéo dans la leur</div>
                         </div>
                       </div>
-                      {creatorInfo?.stitch_disabled && <p className="text-xs text-neutral-400 ml-7">Désactivé par vos paramètres TikTok</p>}
+                      {creatorInfo?.stitch_disabled && <p className="text-xs text-neutral-400 ml-7">{en ? 'Disabled by your TikTok settings' : 'Désactivé par vos paramètres TikTok'}</p>}
                     </label>
                   </div>
                 </div>
 
                 {/* ═══ POINT 4 — Commercial Content Disclosure (TikTok UX Guideline) ═══ */}
-                <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wide">Étape 4/5 — Divulgation commerciale</div>
+                <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wide">{en ? 'Step 4/5 — Commercial disclosure' : 'Étape 4/5 — Divulgation commerciale'}</div>
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="block text-xs font-semibold text-neutral-700">Content Disclosure</label>
+                    <label className="block text-xs font-semibold text-neutral-700">{en ? 'Content Disclosure' : 'Divulgation du contenu'}</label>
                     <div className="group relative">
                       <svg className="w-4 h-4 text-neutral-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -2412,8 +2413,8 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                       <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${contentDisclosure ? 'translate-x-5' : ''}`} />
                     </button>
                     <div>
-                      <p className="text-sm font-medium text-neutral-700">This content promotes goods or services</p>
-                      <p className="text-xs text-neutral-500">Turn on to disclose that this content promotes goods or services in exchange for something of value</p>
+                      <p className="text-sm font-medium text-neutral-700">{en ? 'This content promotes goods or services' : 'Ce contenu promeut un bien ou un service'}</p>
+                      <p className="text-xs text-neutral-500">{en ? 'Turn on to disclose that this content promotes goods or services in exchange for something of value' : 'Active si ce contenu promeut un produit ou service en échange d\u2019une contrepartie'}</p>
                     </div>
                   </div>
 
@@ -2423,9 +2424,9 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                       <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition ${brandOrganic ? 'border-[#0c1a3a] bg-[#0c1a3a]/5' : 'border-neutral-200 hover:bg-neutral-50'}`}>
                         <input type="checkbox" checked={brandOrganic} onChange={(e) => setBrandOrganic(e.target.checked)} className="w-4 h-4 rounded text-[#0c1a3a]" />
                         <div>
-                          <p className="text-sm font-medium text-neutral-700">Your Brand</p>
-                          <p className="text-xs text-neutral-500">You are promoting yourself or your own business</p>
-                          {brandOrganic && <p className="text-xs text-[#0c1a3a] mt-1">Your photo/video will be labeled as &quot;Promotional content&quot;</p>}
+                          <p className="text-sm font-medium text-neutral-700">{en ? 'Your Brand' : 'Votre marque'}</p>
+                          <p className="text-xs text-neutral-500">{en ? 'You are promoting yourself or your own business' : 'Vous faites la promotion de vous-même ou de votre propre entreprise'}</p>
+                          {brandOrganic && <p className="text-xs text-[#0c1a3a] mt-1">{en ? 'Your photo/video will be labeled as "Promotional content"' : 'Votre photo/vidéo sera étiquetée « Contenu promotionnel »'}</p>}
                         </div>
                       </label>
                       {/* Branded Content */}
@@ -2450,24 +2451,24 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                           className="w-4 h-4 rounded text-[#0c1a3a]"
                         />
                         <div>
-                          <p className="text-sm font-medium text-neutral-700">Branded Content</p>
-                          <p className="text-xs text-neutral-500">You are promoting another brand or a third party</p>
-                          {brandContent && <p className="text-xs text-[#0c1a3a] mt-1">Your photo/video will be labeled as &quot;Paid partnership&quot;</p>}
+                          <p className="text-sm font-medium text-neutral-700">{en ? 'Branded Content' : 'Contenu de marque'}</p>
+                          <p className="text-xs text-neutral-500">{en ? 'You are promoting another brand or a third party' : 'Vous faites la promotion d\u2019une autre marque ou d\u2019un tiers'}</p>
+                          {brandContent && <p className="text-xs text-[#0c1a3a] mt-1">{en ? 'Your photo/video will be labeled as "Paid partnership"' : 'Votre photo/vidéo sera étiquetée « Partenariat rémunéré »'}</p>}
                           {(privacyLevel === 'SELF_ONLY' || privacyLevel === 'FOLLOWER_OF_CREATOR') && (
-                            <p className="text-xs text-amber-600 mt-1">Branded content visibility cannot be set to private. Select Public or Friends visibility above.</p>
+                            <p className="text-xs text-amber-600 mt-1">{en ? 'Branded content cannot be set to private. Select Public or Friends visibility above.' : 'Le contenu de marque ne peut pas être défini en privé. Choisis Public ou Amis ci-dessus.'}</p>
                           )}
                         </div>
                       </label>
 
                       {contentDisclosure && !brandOrganic && !brandContent && (
-                        <p className="text-xs text-red-500 mt-1">Please select at least one option when content disclosure is enabled</p>
+                        <p className="text-xs text-red-500 mt-1">{en ? 'Please select at least one option when content disclosure is enabled' : 'Sélectionne au moins une option quand la divulgation est activée'}</p>
                       )}
                     </div>
                   )}
                 </div>
 
                 {/* ═══ POINT 5 — User Consent & Legal Compliance (TikTok UX Guideline) ═══ */}
-                <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wide">Étape 5/5 — Confirmation & consentement</div>
+                <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wide">{en ? 'Step 5/5 — Confirmation & consent' : 'Étape 5/5 — Confirmation & consentement'}</div>
                 <div className="border-t pt-4 space-y-3">
                   {/* Music Usage Confirmation — Required by TikTok */}
                   <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
