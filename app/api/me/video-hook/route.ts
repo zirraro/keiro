@@ -41,8 +41,11 @@ export async function POST(req: NextRequest) {
   const network = body.network as 'instagram' | 'tiktok' | 'linkedin';
   const style = body.style as 'three_word_punch' | 'pov_opener' | 'stat_carton' | 'clean_cut_intro';
   const keyframeUrl = body.keyframeUrl ? String(body.keyframeUrl) : undefined;
-  const hookOverride = body.hookOverride && typeof body.hookOverride.primary === 'string'
-    ? { primary: String(body.hookOverride.primary).slice(0, 80), secondary: body.hookOverride.secondary ? String(body.hookOverride.secondary).slice(0, 60) : undefined }
+  const hookOverride: { primary: string; secondary?: string } | undefined = body.hookOverride && typeof body.hookOverride.primary === 'string'
+    ? {
+        primary: String(body.hookOverride.primary).slice(0, 80),
+        ...(body.hookOverride.secondary ? { secondary: String(body.hookOverride.secondary).slice(0, 60) } : {}),
+      }
     : undefined;
 
   if (!sourceVideoUrl) return NextResponse.json({ ok: false, error: 'sourceVideoUrl required' }, { status: 400 });
@@ -71,19 +74,20 @@ export async function POST(req: NextRequest) {
     const { draftHookText, applyVideoHook } = await import('@/lib/visuals/video-hook');
 
     // Either Sonnet drafts the hook, or the caller provides an override.
-    let hook = hookOverride;
+    let hook: { primary: string; secondary?: string } | undefined = hookOverride;
     if (!hook) {
       if (!keyframeUrl) {
         return NextResponse.json({ ok: false, error: 'keyframeUrl required when no hookOverride provided' }, { status: 400 });
       }
-      hook = await draftHookText({
+      const drafted = await draftHookText({
         keyframeUrl,
         network,
         style,
         businessType,
         businessSummary,
         language: 'fr',
-      }) || undefined;
+      });
+      if (drafted) hook = drafted;
     }
     if (!hook || !hook.primary) {
       return NextResponse.json({ ok: false, error: 'Could not produce a hook' }, { status: 422 });
