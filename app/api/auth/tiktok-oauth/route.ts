@@ -32,20 +32,23 @@ export async function GET(req: NextRequest) {
 
     // Required scopes for TikTok integration
     // Note: video.* scopes require Content Posting API to be enabled
-    // Only currently APPROVED scopes — adding scopes that aren't yet
-    // granted by TikTok app review causes /oauth/authorize to error
-    // 'scope' before the user even sees the page.
-    // Pending review (apply for these via the Direct Post API + Comment
-    // API request forms in the dev portal):
-    //   user.info.profile, user.info.stats,
-    //   comment.list, comment.list.manage
-    // Once granted, re-add them here and existing users can re-auth.
-    const scopes = [
-      'user.info.basic',      // Get user info (username, avatar)
-      'video.list',           // List published videos
-      'video.publish',        // Publish videos
-      'video.upload',         // Upload video files
-    ].join(',');
+    // ⚠️ TikTok auto-rejects /oauth/authorize with `scope` error if any
+    // requested scope isn't granted to this app. video.publish + video.upload
+    // require Content Posting API approval — which is exactly what we're
+    // currently waiting for. Until granted, request only the truly basic
+    // scopes that every dev app gets by default.
+    //
+    // After Content Posting API review passes, re-enable the publish scopes
+    // here and have users re-authorize.
+    const TIKTOK_PUBLISH_APPROVED = process.env.TIKTOK_PUBLISH_APPROVED === '1';
+    const scopes = TIKTOK_PUBLISH_APPROVED
+      ? [
+          'user.info.basic',
+          'video.list',
+          'video.publish',
+          'video.upload',
+        ].join(',')
+      : 'user.info.basic';
 
     // TEMPORARY: If Content Posting API not yet approved, use only:
     // const scopes = 'user.info.basic';
