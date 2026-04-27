@@ -428,9 +428,16 @@ export async function GET(request: NextRequest) {
       for (const uid of getClientsWithAgent('email')) {
         await callEndpoint(`Email Cold [${uid.substring(0, 8)}]`, `/api/agents/email/daily?slot=midday&types=coach,freelance,services,professionnel&user_id=${uid}`);
       }
-      // Community (comments + follows)
+      // Community (comments + follows) — Jade IG
       for (const uid of getClientsWithAgent('content')) {
         callEndpoint(`Community [${uid.substring(0, 8)}]`, `/api/agents/content?slot=community&user_id=${uid}`).catch(() => {});
+      }
+      // Axel — TikTok comments auto-reply (mirror of Jade for IG).
+      // When the user hasn't yet re-authed for comment.list.manage,
+      // Axel queues the draft replies in agent_logs so the dashboard
+      // can surface them; otherwise it posts directly.
+      for (const uid of getClientsWithAgent('content')) {
+        callEndpoint(`Axel TT comments [${uid.substring(0, 8)}]`, `/api/agents/tiktok-comments?user_id=${uid}`).catch(() => {});
       }
       // GMaps
       for (const uid of getClientsWithAgent('gmaps')) {
@@ -705,6 +712,11 @@ export async function GET(request: NextRequest) {
         await callEndpoint('Community Follow IG PM', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'instagram', count: 15 });
         await delay(15000);
         await callEndpoint('Community Follow TT PM', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'tiktok', count: 10 });
+        // Axel TT comments auto-reply per client (afternoon pass).
+        for (const uid of clientUserIds) {
+          callEndpoint(`Axel TT comments PM [${uid.substring(0, 8)}]`, `/api/agents/tiktok-comments?user_id=${uid}`).catch(() => {});
+          await delay(2000);
+        }
       });
       results.push({ task: 'Community PM', ok: true, data: { status: 'dispatched_background' } });
       break;
@@ -718,6 +730,11 @@ export async function GET(request: NextRequest) {
         await callEndpoint('Lena Community: Follow IG', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'instagram', count: 15 });
         await delay(15000);
         await callEndpoint('Lena Community: Follow TT', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'tiktok', count: 10 });
+        // Axel TT comments auto-reply per client (morning pass).
+        for (const uid of clientUserIds) {
+          callEndpoint(`Axel TT comments AM [${uid.substring(0, 8)}]`, `/api/agents/tiktok-comments?user_id=${uid}`).catch(() => {});
+          await delay(2000);
+        }
       });
       results.push({ task: 'Lena Community (comments + follows)', ok: true, data: { status: 'dispatched_background' } });
       break;
