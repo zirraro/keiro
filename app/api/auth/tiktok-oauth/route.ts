@@ -53,8 +53,14 @@ export async function GET(req: NextRequest) {
     // TEMPORARY: If Content Posting API not yet approved, use only:
     // const scopes = 'user.info.basic';
 
-    // Capture the origin domain so the callback redirects to the correct domain
-    const origin = `${req.nextUrl.protocol}//${req.nextUrl.host}`;
+    // Capture the origin domain so the callback redirects to the correct domain.
+    // Behind nginx, req.nextUrl.host is 'localhost:3000' (the upstream port),
+    // not the public host. Prefer NEXT_PUBLIC_SITE_URL → X-Forwarded-Host
+    // header → finally fall back to req.nextUrl.host as a last resort.
+    const fwdHost = req.headers.get('x-forwarded-host') || req.headers.get('host');
+    const fwdProto = req.headers.get('x-forwarded-proto') || 'https';
+    const origin = process.env.NEXT_PUBLIC_SITE_URL
+      || (fwdHost ? `${fwdProto}://${fwdHost}` : `${req.nextUrl.protocol}//${req.nextUrl.host}`);
 
     // Encode user_id + origin in state parameter to maintain context during OAuth redirect
     const statePayload = {
