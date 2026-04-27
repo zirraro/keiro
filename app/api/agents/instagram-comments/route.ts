@@ -237,6 +237,33 @@ export async function POST(req: NextRequest) {
           // Skip spam
           if (c.text.length < 3 || /follow|dm me|check|click/i.test(c.text)) continue;
 
+          // Pull a quick profile snapshot of the commenter so the
+          // reply can use their first name / niche / aspiration. Same
+          // mechanism Jade uses for inbound DMs. Best-effort — falls
+          // through silently if business_discovery rejects.
+          let commenterPersonalisation = '';
+          try {
+            const igUserIdForLookup = (typeof igUserId !== 'undefined' ? igUserId : null) as string | null;
+            const tokenForLookup = (typeof token !== 'undefined' ? token : null) as string | null;
+            if (igUserIdForLookup && tokenForLookup) {
+              const { getInstagramProfileSnapshot, readProfileFromVisuals } = await import('@/lib/agents/ig-profile-snapshot');
+              const snap = await getInstagramProfileSnapshot(c.username, igUserIdForLookup, tokenForLookup);
+              if (snap.exists) {
+                const vision = await readProfileFromVisuals(snap).catch(() => null);
+                const p = vision?.personalization || {};
+                const bits: string[] = [];
+                if (p.first_name) bits.push(`Prénom: ${p.first_name}`);
+                if (p.role_title) bits.push(`Métier: ${p.role_title}`);
+                if (p.niche) bits.push(`Niche: ${p.niche}`);
+                if (p.location) bits.push(`Ville: ${p.location}`);
+                if (snap.biography) bits.push(`Bio: "${snap.biography.substring(0, 200)}"`);
+                if (bits.length) {
+                  commenterPersonalisation = `\n\nProfil du commentateur (utilise ces infos pour personnaliser sans stalker) :\n${bits.join('\n')}`;
+                }
+              }
+            }
+          } catch { /* best-effort */ }
+
           // Generate reply — mirror the commenter's language
           const { languagePromptDirective } = await import('@/lib/agents/language-detect');
           const langHint = languagePromptDirective(c.text);
@@ -248,7 +275,10 @@ export async function POST(req: NextRequest) {
               content: `${langHint}
 
 Tu geres les commentaires Instagram d'un commerce. Reponds a ce commentaire de maniere naturelle, chaleureuse et engageante. Max 2 phrases.
+
+Si tu connais le prénom du commentateur, utilise-le. Si tu connais sa niche/métier, glisse une référence courte qui montre que tu l'as remarqué — sans en faire trop, ça doit rester naturel.
 ${brandContext}
+${commenterPersonalisation}
 Commentaire de @${c.username}: "${c.text}"
 Reponds UNIQUEMENT avec le texte de la reponse.`,
             }],

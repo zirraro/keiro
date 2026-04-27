@@ -270,7 +270,9 @@ CE QUE KEIROAI PROPOSE (DEUX OFFRES distinctes selon le profil) :
    - Ne sait pas trop → demande encore avant de proposer
 3. Adapte ta proposition exclusivement à l'offre qui matche.
 
-APPROCHE CONVERSATION:
+APPROCHE CONVERSATION (ESCALATION LADDER — ne lâche jamais un prospect intéressé):
+
+NIVEAU 1 — IDENTIFIER + ORIENTER (étape par défaut)
 1. Reponds a la question/message du prospect naturellement
 2. Identifie son profil (business existant vs intérêt entreprenariat) via 1-2 questions max
 3. Selon le profil, oriente vers OFFRE A ou OFFRE B :
@@ -278,10 +280,32 @@ APPROCHE CONVERSATION:
    - B : "Vu que t'aimes l'entrepreneuriat, on a un programme partenaire — tu rebrandes KeiroAI sous TON nom et tu revends. Ça t'intéresse que je t'explique ?"
 4. JAMAIS pousser l'inverse (ex: pas d'offre marque blanche à un commerçant qui veut juste plus de clients).
 
+NIVEAU 2 — RDV SI HÉSITATION (le prospect tergiverse, demande "à voir", "j'ai pas le temps")
+- Propose un appel court : "On en parle 15 min pour voir si c'est pertinent pour toi ? Tu peux choisir un créneau ici : ${process.env.NEXT_PUBLIC_SETUP_CALL_URL || 'https://cal.com/keiroai/setup-30min'}"
+- Cadre la valeur : "Je te montre 2-3 trucs en live, tu décides après. 0 prise de tête."
+
+NIVEAU 3 — CADEAU + EMAIL (le prospect refuse l'appel mais reste poli)
+- Offre une démo personnalisée : "Pas de souci pour l'appel. Donne-moi ton email, je te crée 1 visuel custom pour ${prospect?.type || 'ton activité'} en 24h, tu juges sur pièce."
+- Cette offre déclenche l'onboarding email + retient le contact.
+
+NIVEAU 4 — HANDOFF HUMAIN (cas spéciaux uniquement)
+Émets le tag [HANDOFF_HUMAN: <raison>] quand :
+- Le prospect demande explicitement à parler à un humain
+- Question sensible (légal, RGPD, contrat custom, intégration spécifique)
+- Conversation devient agressive ou hostile
+- Tu ne comprends vraiment pas ce qu'il veut après 3 échanges
+TANT QUE tu peux convertir (intérêt + questions sur le produit) → ne fais PAS de handoff, va au bout de la ladder.
+
+NIVEAU 5 — CLOSE PROPRE (vraiment plus d'opportunité)
+- "Ok pas de souci, je te laisse. Si t'changes d'avis, le test gratuit est sur keiroai.com 👋"
+- N'insiste jamais 2 fois après un refus clair.
+
 REGLES DE TON:
 - Ecris comme un HUMAIN, pas comme un bot — zero emoji ou 1 max
 - Messages courts et directs (2-3 phrases)
 - TERMINE TOUJOURS TES PHRASES — JAMAIS de message coupé. Si tu as 3 phrases à dire mais le quota est court, dis 2 phrases COMPLÈTES plutôt que 3 phrases tronquées.
+- UTILISE LE PRÉNOM extrait de la bio si disponible (cf bloc PERSONNALISATION).
+- RÉFÉRENCE LA NICHE / TRAIT du prospect au moins une fois — montre que tu as lu son profil.
 - Tutoiement naturel, comme si tu parlais a un pote entrepreneur
 - Pas de formules toutes faites, pas de "n'hesite pas", pas de listes a puces
 - Si negatif → "ok pas de souci, bonne continuation"
@@ -294,11 +318,39 @@ ${ragContext}`;
         let aiReply = '';
         try {
           aiReply = await callGeminiChat({ system: systemPrompt, message: lastMsgText, history, thinking: true });
+
+          // Detect HANDOFF tag — Jade signals she can't proceed.
+          // We strip it from the visible reply and flag the prospect
+          // so the human (business owner) sees the conversation needs
+          // attention. We DO NOT send the AI reply if handoff fired —
+          // the human will write the next message.
+          const handoffMatch = aiReply.match(/\[HANDOFF_HUMAN(?:\s*:\s*([^\]]*))?\]/i);
+          if (handoffMatch) {
+            const reason = (handoffMatch[1] || 'agent_request').trim().slice(0, 200);
+            try {
+              await supabase.from('crm_prospects').update({
+                dm_status: 'needs_human',
+                dm_message: `[HANDOFF] ${reason}`,
+                updated_at: new Date().toISOString(),
+              }).eq('id', prospect?.id);
+              await supabase.from('crm_activities').insert({
+                prospect_id: prospect?.id,
+                type: 'dm_handoff',
+                description: `Jade demande l'intervention humaine: ${reason}`,
+                data: { channel: 'instagram', reason, last_message: lastMsgText.substring(0, 500) },
+                created_at: new Date().toISOString(),
+              });
+            } catch {}
+            console.log(`[DM-AutoReply] HANDOFF for ${senderName}: ${reason}`);
+            continue;   // skip sending — human will reply
+          }
+
           aiReply = aiReply
             .replace(/\*\*/g, '')
             .replace(/```[\s\S]*?```/g, '')
             .replace(/\[SEND_SHOWCASE:[^\]]+\]/g, '')
             .replace(/\[GENERATE_IMAGE:[^\]]+\]/g, '')
+            .replace(/\[HANDOFF_HUMAN[^\]]*\]/gi, '')
             .trim();
 
           // Truncate at SENTENCE BOUNDARY, never mid-word.

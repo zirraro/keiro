@@ -156,6 +156,20 @@ export type ProfileVisionRead = {
   best_offer: 'use_keiroai' | 'white_label_agency' | 'unsure';
   // Confidence 0..1
   confidence: number;
+  // Structured personalisation data extracted from the bio so Jade
+  // can address the person by name and reference their actual
+  // niche / aspirations / specifics. Each field optional.
+  personalization: {
+    first_name?: string;       // detected name (Sarah, Marc...)
+    role_title?: string;       // 'coach sportif', 'fleuriste', 'dev freelance'
+    niche?: string;            // 'véganisme', 'business B2B', 'fitness mums'
+    location?: string;         // 'Paris 11e', 'Lyon', 'Bordeaux'
+    languages?: string[];      // ['fr', 'en']
+    aspirations?: string[];    // 1-3 things they aspire to ('liberté financière', 'communauté engagée')
+    pain_points?: string[];    // 1-3 frustrations mentioned in bio
+    notable_traits?: string[]; // distinct attributes ('mom of 3', 'ex-corporate', 'self-taught')
+    hook_quote?: string;       // a short phrase from bio Jade can echo back verbatim
+  };
 };
 
 export async function readProfileFromVisuals(snap: IgProfileSnapshot): Promise<ProfileVisionRead | null> {
@@ -168,27 +182,52 @@ export async function readProfileFromVisuals(snap: IgProfileSnapshot): Promise<P
     .map(p => p.media_url!) as string[];
   if (images.length === 0) return null;
 
-  const system = `You analyse an Instagram profile to help an outbound DM agent (Jade) pick the RIGHT offer for the person. There are TWO products:
+  const system = `You analyse an Instagram profile to help an outbound DM agent (Jade) PICK THE RIGHT OFFER and write a DEEPLY PERSONALISED reply. Two products:
 
 A. USE KeiroAI directly — for someone who has a business / is about to launch / has a clear project. Subscription, 7-day free trial, B2C.
 B. WHITE-LABEL AGENCY — for someone who's curious about entrepreneurship but has NO business yet. They rebrand KeiroAI under their name and resell to clients. B2B partner program.
 
-You see 1-3 recent posts from their account + their bio + stats. Classify them.
+You see 1-3 recent posts from their account + their bio + stats. Two jobs:
 
-CLASSIFICATION RULES:
+JOB 1 — CLASSIFY
 - "has_business" → bio mentions a business name, posts show products/services/customers/team. Offer A.
 - "launching" → bio mentions 'coming soon', 'lance', 'projet en cours'. Offer A.
-- "entrepreneur_curious" → bio mentions 'entrepreneur', 'business mindset', 'startup life', 'side hustle' WITHOUT a clear business. Posts are mostly motivational quotes, business tips, mindset content. → Offer B (white label).
+- "entrepreneur_curious" → bio mentions 'entrepreneur', 'business mindset', 'startup life', 'side hustle' WITHOUT a clear business. Motivational/mindset content. → Offer B (white label).
 - "personal" → no business signal at all (lifestyle, family, travel, food). Probably skip both.
 - "creator" → influencer / artist / coach with engaged audience. Offer A makes sense.
 - "unclear" → not enough signal.
 
-Return STRICT JSON:
+JOB 2 — EXTRACT PERSONALISATION FROM BIO + IMAGES
+The reply Jade writes must feel like a HUMAN read this profile. Pull out everything that helps:
+- first_name: their actual first name (often found at the start of bio with emoji or 'I'm X', 'Je suis X'). NULL if not visible.
+- role_title: their professional identity in 2-4 words. 'coach sportif Paris', 'fleuriste Lyon', 'dev freelance', 'consultante mode'. NULL if no business signal.
+- niche: their specific angle. 'véganisme cuisine', 'fitness mamans', 'business B2B SaaS'. NULL if generic.
+- location: city / area mentioned in bio (📍 emoji is a giveaway).
+- languages: language tags they self-declare ('🇫🇷 🇬🇧') as ISO codes ['fr', 'en'].
+- aspirations: 1-3 short phrases of what they want ('liberté financière', 'créer une vraie communauté', 'aider les femmes').
+- pain_points: 1-3 frustrations they explicitly mention ('marre du 9-5', 'plus de temps', 'pas de visibilité').
+- notable_traits: distinguishing facts ('mom of 3', 'ex-corporate', 'self-taught', 'cancer survivor'). Real traits only.
+- hook_quote: a short phrase (≤8 words) FROM the bio that Jade can echo back verbatim — gives the strongest 'I read your profile' signal.
+
+If a field is unknown, OMIT IT. NEVER make up data — wrong personalisation is worse than none.
+
+Return STRICT JSON (all fields shown, optional ones may be missing):
 {
   "intent": "has_business" | "launching" | "entrepreneur_curious" | "personal" | "creator" | "unclear",
   "visual_summary": "1 sentence describing what we see (the actual images)",
   "best_offer": "use_keiroai" | "white_label_agency" | "unsure",
-  "confidence": 0..1
+  "confidence": 0..1,
+  "personalization": {
+    "first_name": "...",
+    "role_title": "...",
+    "niche": "...",
+    "location": "...",
+    "languages": ["fr"],
+    "aspirations": ["..."],
+    "pain_points": ["..."],
+    "notable_traits": ["..."],
+    "hook_quote": "..."
+  }
 }
 
 JSON only.`;
@@ -222,11 +261,27 @@ JSON only.`;
     const parsed = JSON.parse(m[0]);
     const validIntents = ['has_business', 'launching', 'entrepreneur_curious', 'personal', 'creator', 'unclear'];
     const validOffers = ['use_keiroai', 'white_label_agency', 'unsure'];
+    const pers = parsed.personalization || {};
+    const stringOrUndef = (v: any, max = 80) =>
+      typeof v === 'string' && v.trim().length > 0 ? v.trim().slice(0, max) : undefined;
+    const stringArr = (v: any, max = 60, count = 3) =>
+      Array.isArray(v) ? v.map(x => stringOrUndef(x, max)).filter((x): x is string => !!x).slice(0, count) : undefined;
     return {
       intent: validIntents.includes(parsed.intent) ? parsed.intent : 'unclear',
       visual_summary: typeof parsed.visual_summary === 'string' ? parsed.visual_summary.slice(0, 200) : '',
       best_offer: validOffers.includes(parsed.best_offer) ? parsed.best_offer : 'unsure',
       confidence: Number.isFinite(parsed.confidence) ? Math.max(0, Math.min(1, parsed.confidence)) : 0.5,
+      personalization: {
+        first_name: stringOrUndef(pers.first_name, 40),
+        role_title: stringOrUndef(pers.role_title, 80),
+        niche: stringOrUndef(pers.niche, 80),
+        location: stringOrUndef(pers.location, 60),
+        languages: stringArr(pers.languages, 4, 4),
+        aspirations: stringArr(pers.aspirations, 80, 3),
+        pain_points: stringArr(pers.pain_points, 80, 3),
+        notable_traits: stringArr(pers.notable_traits, 80, 3),
+        hook_quote: stringOrUndef(pers.hook_quote, 120),
+      },
     };
   } catch {
     return null;
@@ -276,6 +331,26 @@ export function snapshotToPromptContext(snap: IgProfileSnapshot, vision?: Profil
     lines.push(`- Profil détecté : ${vision.intent} (confiance ${Math.round(vision.confidence * 100)}%)`);
     lines.push(`- Identité visuelle : ${vision.visual_summary}`);
     lines.push(`- Offre recommandée : ${vision.best_offer === 'use_keiroai' ? 'OFFRE A — utiliser KeiroAI directement (B2C)' : vision.best_offer === 'white_label_agency' ? 'OFFRE B — marque blanche / agence partenaire (B2B)' : 'incertain — pose une question avant de choisir'}`);
+
+    // Personalisation block — Jade MUST use these in her reply if
+    // present. Each datum is a hook to make the message feel human.
+    const p = vision.personalization || {};
+    const personals: string[] = [];
+    if (p.first_name) personals.push(`Prénom : ${p.first_name} (à utiliser au début de la réponse)`);
+    if (p.role_title) personals.push(`Métier : ${p.role_title}`);
+    if (p.niche) personals.push(`Niche : ${p.niche}`);
+    if (p.location) personals.push(`Localisation : ${p.location}`);
+    if (p.languages && p.languages.length) personals.push(`Langues : ${p.languages.join(', ')}`);
+    if (p.aspirations && p.aspirations.length) personals.push(`Aspirations : ${p.aspirations.join(' · ')}`);
+    if (p.pain_points && p.pain_points.length) personals.push(`Frustrations : ${p.pain_points.join(' · ')}`);
+    if (p.notable_traits && p.notable_traits.length) personals.push(`Traits distinctifs : ${p.notable_traits.join(' · ')}`);
+    if (p.hook_quote) personals.push(`Citation à éventuellement reprendre : "${p.hook_quote}"`);
+    if (personals.length > 0) {
+      lines.push('');
+      lines.push(`PERSONNALISATION (extraite de la bio + posts — UTILISE-LES dans la réponse) :`);
+      for (const item of personals) lines.push(`- ${item}`);
+      lines.push(`→ Adresse-toi à la personne par son prénom si connu. Référence sa niche/aspiration au moins une fois pour montrer que tu as VRAIMENT lu son profil.`);
+    }
   }
 
   return lines.join('\n');
