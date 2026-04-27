@@ -473,6 +473,11 @@ export default function AssistantPage() {
   // Dashboard summary data
   const [summary, setSummary] = useState<any>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
+  // Track when summary data was last successfully loaded so we can
+  // show 'mis à jour il y a X min' next to KPI blocks. Without this
+  // the user has no signal whether 0 means '0 today' or 'we haven't
+  // refreshed yet'.
+  const [summaryUpdatedAt, setSummaryUpdatedAt] = useState<Date | null>(null);
 
   // Agent activation states (auto_mode per agent)
   const [agentActivations, setAgentActivations] = useState<Record<string, boolean>>({});
@@ -609,18 +614,25 @@ export default function AssistantPage() {
     async function loadSummary() {
       setSummaryLoading(true);
       try {
+        // Cache-busting query param so the browser never serves stale
+        // data even if some intermediary cache forgets the API's
+        // force-dynamic header.
         const loc = typeof window !== 'undefined' ? (localStorage.getItem('keiro_language') || 'fr') : 'fr';
-        const res = await fetch(`/api/agents/dashboard/summary?locale=${loc}`, { credentials: 'include' });
+        const res = await fetch(`/api/agents/dashboard/summary?locale=${loc}&t=${Date.now()}`, { credentials: 'include', cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
-          if (data.ok) setSummary(data);
+          if (data.ok) {
+            setSummary(data);
+            setSummaryUpdatedAt(new Date());
+          }
         }
       } catch { /* silent */ }
       setSummaryLoading(false);
     }
     loadSummary();
-    // Auto-refresh summary every 90s for real-time agent activity
-    const interval = setInterval(loadSummary, 90000);
+    // Auto-refresh summary every 60s (was 90s) so '0 prospects today'
+    // never lingers stale into mid-morning.
+    const interval = setInterval(loadSummary, 60000);
     return () => clearInterval(interval);
   }, [user]);
 
@@ -1006,6 +1018,19 @@ export default function AssistantPage() {
                 <>
                   <span className="text-white/20">|</span>
                   <span className="text-emerald-400 text-sm font-medium">{summary.globalStats.emailOpenRate}% ouverture</span>
+                </>
+              )}
+              {summaryUpdatedAt && (
+                <>
+                  <span className="text-white/20">|</span>
+                  <span className="text-white/30 text-[11px] flex items-center gap-1" title={summaryUpdatedAt.toLocaleString('fr-FR')}>
+                    {summaryLoading ? (
+                      <span className="inline-block w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                    ) : (
+                      <span className="inline-block w-2 h-2 rounded-full bg-emerald-400" />
+                    )}
+                    Maj {summaryUpdatedAt.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
                 </>
               )}
             </div>
