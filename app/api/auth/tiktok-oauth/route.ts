@@ -34,9 +34,13 @@ export async function GET(req: NextRequest) {
     // Note: video.* scopes require Content Posting API to be enabled
     const scopes = [
       'user.info.basic',      // Get user info (username, avatar)
+      'user.info.profile',    // Profile fields needed for Axel comment-reply context
+      'user.info.stats',      // Followers / following / video counts
       'video.list',           // List published videos
       'video.publish',        // Publish videos
       'video.upload',         // Upload video files
+      'comment.list',         // Axel: read comments on user's videos
+      'comment.list.manage',  // Axel: reply / pin / hide comments
     ].join(',');
 
     // TEMPORARY: If Content Posting API not yet approved, use only:
