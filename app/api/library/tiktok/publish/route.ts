@@ -56,6 +56,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // ── TikTok UX Guideline enforcement (server-side mirror of the
+    //    client modal). Even if the modal is bypassed, the publish
+    //    request must carry a user-selected privacy_level and respect
+    //    the branded-content visibility constraint. Mirrors Points
+    //    2 + 4 of https://developers.tiktok.com/doc/content-sharing-guidelines.
+    const VALID_PRIVACY = ['PUBLIC_TO_EVERYONE', 'MUTUAL_FOLLOW_FRIENDS', 'FOLLOWER_OF_CREATOR', 'SELF_ONLY'];
+    if (!privacyLevel || !VALID_PRIVACY.includes(privacyLevel)) {
+      return NextResponse.json(
+        { ok: false, error: 'privacy_level requis (Point 2 — UX Guideline). Aucun défaut autorisé.' },
+        { status: 400 }
+      );
+    }
+    if (brandContentToggle && (privacyLevel === 'SELF_ONLY' || privacyLevel === 'FOLLOWER_OF_CREATOR')) {
+      return NextResponse.json(
+        { ok: false, error: 'Branded Content ne peut pas être en privé/abonnés (Point 4 — UX Guideline). Choisis Public ou Amis.' },
+        { status: 400 }
+      );
+    }
+
     console.log('[TikTokPublish] Starting TikTok publication');
     console.log('[TikTokPublish] Video URL type:', typeof videoUrl);
     console.log('[TikTokPublish] Video URL length:', videoUrl?.length);
@@ -150,7 +169,9 @@ export async function POST(req: NextRequest) {
         videoUrl,
         finalCaption,
         {
-          privacy_level: privacyLevel || 'SELF_ONLY',
+          // privacy_level is now validated at the top of the handler;
+          // we never silently default to SELF_ONLY anymore.
+          privacy_level: privacyLevel,
           disable_duet: disableDuet ?? false,
           disable_comment: disableComment ?? false,
           disable_stitch: disableStitch ?? false,
