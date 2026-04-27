@@ -4015,9 +4015,42 @@ Le lien doit etre NATUREL et PERCUTANT — pas force. Si aucune actu ne colle au
   }
 
   // ── CLIENT DIRECTIVES: persistent instructions from chat ──
-  const clientDirectives: string[] = clientSettings.content_directives || [];
-  const directivesBlock = clientDirectives.length > 0
-    ? `\n━━━ DIRECTIVES CLIENT (instructions données par le client dans le chat) ━━━\n${clientDirectives.map((d: string, i: number) => `${i + 1}. ${d}`).join('\n')}\n→ RESPECTE ces directives en PRIORITÉ — elles viennent du client.\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`
+  // Per-client directives (extracted from chat conversations)
+  // The legacy key was 'content_directives'; the new extractor writes
+  // to '<agent>_directives' = 'content_directives' (same name for
+  // content agent), so they merge naturally.
+  const clientDirectives: string[] = (clientSettings as any).content_directives || [];
+
+  // Cross-client directives — patterns extracted from OTHER clients of
+  // the same business_type that translated to durable rules. Applied
+  // by anticipation (similar businesses benefit from each other's
+  // refinements). Only loaded when we have a known business_type.
+  let globalDirectives: string[] = [];
+  if (detectedBusinessType) {
+    try {
+      const { data: globalRows } = await supabase
+        .from('global_agent_directives')
+        .select('directive')
+        .eq('agent_id', 'content')
+        .eq('business_type', detectedBusinessType)
+        .gte('confidence', 40)
+        .order('usage_count', { ascending: false })
+        .limit(8);
+      globalDirectives = (globalRows || []).map((r: any) => r.directive).filter(Boolean);
+    } catch (e: any) {
+      console.warn('[Content] global directives load failed:', e?.message);
+    }
+  }
+
+  const allDirectives = [
+    ...clientDirectives.map((d) => ({ text: d, source: 'client' })),
+    ...globalDirectives
+      .filter((d) => !clientDirectives.includes(d))
+      .map((d) => ({ text: d, source: 'business_type' })),
+  ];
+
+  const directivesBlock = allDirectives.length > 0
+    ? `\n━━━ DIRECTIVES STRATÉGIQUES (à RESPECTER en priorité) ━━━\n${allDirectives.map((d, i) => `${i + 1}. ${d.text}${d.source === 'business_type' ? '  (commun aux ' + detectedBusinessType + 's)' : ''}`).join('\n')}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`
     : '';
 
   // Channel-aware voice — without this Léna leaks LinkedIn-isms onto IG

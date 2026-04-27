@@ -561,6 +561,37 @@ N'utilise les actions QUE quand le client DEMANDE explicitement.`;
       });
     }
 
+    // 10.4 Extract durable strategy directive from the user message
+    // (e.g. "no red overlays", "always show people"). Persists to
+    // org_agent_configs.config.<agent>_directives for THIS client,
+    // and to global_agent_directives for all clients of the same
+    // business_type when Sonnet judges the rule generalizable.
+    try {
+      const { extractDirective, persistDirective } = await import('@/lib/agents/extract-directive');
+      const { data: dossier } = await supabase
+        .from('business_dossiers')
+        .select('business_type')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      const directive = await extractDirective({
+        agentId: agent_id,
+        message,
+        businessType: dossier?.business_type || undefined,
+        language: 'fr',
+      });
+      if (directive) {
+        await persistDirective(supabase, {
+          userId: user.id,
+          agentId: agent_id,
+          directive,
+          businessType: dossier?.business_type || undefined,
+        });
+        console.log(`[ClientChat] Directive captured for ${agent_id}: "${directive.text.slice(0, 60)}..." (scope=${directive.scope})`);
+      }
+    } catch (e: any) {
+      console.warn('[ClientChat] directive extraction non-fatal:', e?.message);
+    }
+
     // 10.5 Share key insights from this conversation to RAG (cross-agent learning)
     if (reply.length > 80) {
       try {
