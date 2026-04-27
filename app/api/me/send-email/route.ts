@@ -52,6 +52,44 @@ export async function POST(req: NextRequest) {
         user_id: user.id,
         data: { to, subject, body: text.substring(0, 5000), via: 'smtp', in_reply_to: inReplyTo },
       });
+
+      // Also write to crm_activities so the manual send appears in
+      // the inbox panel under "Toi" (humanSentCount). Without this,
+      // /api/me/inbox only reads crm_activities and misses every
+      // manual send — user wouldn't see what they sent themselves.
+      // We attach to a CRM prospect when the recipient already exists,
+      // otherwise insert with prospect_id=null + flag manual_reply.
+      try {
+        const recipientLower = (to || '').toLowerCase();
+        const { data: prospect } = await sb
+          .from('crm_prospects')
+          .select('id')
+          .eq('user_id', user.id)
+          .ilike('email', recipientLower)
+          .maybeSingle();
+        if (prospect?.id) {
+          await sb.from('crm_activities').insert({
+            prospect_id: prospect.id,
+            type: 'email',
+            description: `Email envoyé manuellement: "${(subject || '').substring(0, 80)}"`,
+            data: {
+              to_email: to,
+              subject,
+              body: text.substring(0, 8000),
+              message_id: undefined,
+              manual_reply: true,            // ← KEY flag for inbox attribution
+              auto: false,
+              auto_reply: false,
+              is_sequence_step: false,
+              via: 'smtp',
+              in_reply_to: inReplyTo,
+            },
+            created_at: new Date().toISOString(),
+          });
+        }
+      } catch (e: any) {
+        console.warn('[send-email] crm_activities write failed:', e?.message);
+      }
       return NextResponse.json({ ok: true, via: 'smtp' });
     }
     return NextResponse.json({

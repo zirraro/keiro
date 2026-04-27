@@ -112,7 +112,13 @@ export async function POST(req: NextRequest) {
       // dedupe via message_id below (agent_logs lookup).
       const uids = await client.search({ since: sinceDate }, { uid: true });
 
-      for (const uid of (uids || []).slice(0, 30)) {
+      // Bug previously: .slice(0, 30) kept the 30 OLDEST since IMAP
+      // search returns UIDs ascending. We were systematically missing
+      // the newest mails when there were more than 30 in the window.
+      // Now: take the 100 newest (slice(-100)) and process newest-first
+      // so the inbox panel surfaces fresh replies first.
+      const newestFirst = (uids || []).slice(-100).reverse();
+      for (const uid of newestFirst) {
         try {
           const msg: any = await client.fetchOne(String(uid), { source: true, envelope: true, internalDate: true }, { uid: true });
           if (!msg || !msg.source) { results.push({ uid, result: 'no_source' }); continue; }

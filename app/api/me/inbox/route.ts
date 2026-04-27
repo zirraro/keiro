@@ -90,6 +90,24 @@ export async function GET(req: NextRequest) {
     if (outboundErr) console.warn('[inbox] outbound query failed:', outboundErr.message);
     for (const row of (outbound || []) as any[]) {
       const d = row.data || {};
+      // Attribution rule:
+      //   manual_reply=true  → human (Toi)         — explicit override
+      //   ai_generated=true  → AI   (Hugo)         — explicit
+      //   source='daily_cron'/'sequence' → AI      — Hugo's cron path
+      //   step or is_sequence_step       → AI      — Hugo's sequence flag
+      //   auto_reply / auto              → AI      — Hugo replied to inbound
+      //   else default to AI (legacy rows lacking flags are almost
+      //   always Hugo since manual sends used to be agent_logs only).
+      const isManual = d.manual_reply === true;
+      const isAi = !isManual && (
+        d.ai_generated === true ||
+        d.auto_reply === true ||
+        d.auto === true ||
+        d.is_sequence_step === true ||
+        typeof d.step === 'number' ||
+        d.source === 'daily_cron' ||
+        d.source === 'sequence'
+      );
       items.push({
         id: row.id,
         direction: 'sent',
@@ -98,7 +116,7 @@ export async function GET(req: NextRequest) {
         subject: d.subject || (row.description || '').substring(0, 80),
         body: d.body || d.message || row.description || '',
         message_id: d.message_id,
-        auto: !!(d.auto_reply || d.auto || d.is_sequence_step) && !d.manual_reply,
+        auto: isAi || (!isManual && !isAi), // default → AI when ambiguous
         prospect_id: row.prospect_id,
       });
     }
