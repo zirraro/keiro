@@ -266,22 +266,31 @@ const STATUS_COLORS: Record<string, string> = {
   draft: 'border-amber-500/40 bg-amber-500/10',
   approved: 'border-blue-500/40 bg-blue-500/10',
   published: 'border-emerald-500/40 bg-emerald-500/10',
-  publish_failed: 'border-red-500/40 bg-red-500/10',
-  skipped: 'border-gray-500/30 bg-gray-500/5',
+  // Soften 'failed' so the client doesn't see a red flag. The cron
+  // retries automatically; if it stays failed long enough we'll show
+  // a 'Recharger' inline action via the modal.
+  publish_failed: 'border-amber-500/30 bg-amber-500/5',
+  retry_pending: 'border-amber-500/30 bg-amber-500/5',
+  skipped: 'border-gray-500/20 bg-gray-500/5',
+  deleted_on_ig: 'border-gray-500/20 bg-gray-500/5',
 };
 const STATUS_DOT: Record<string, string> = {
   draft: 'bg-amber-400',
   approved: 'bg-blue-400',
   published: 'bg-emerald-400',
-  publish_failed: 'bg-red-400',
+  publish_failed: 'bg-amber-400',
+  retry_pending: 'bg-amber-400',
   skipped: 'bg-gray-400',
+  deleted_on_ig: 'bg-gray-400',
 };
 const STATUS_LABELS: Record<string, string> = {
   draft: 'Brouillon',
   approved: 'Programmé',
   published: 'Publié',
-  publish_failed: 'Échec',
-  skipped: 'Ignoré',
+  publish_failed: 'En attente de relance',
+  retry_pending: 'En attente de relance',
+  skipped: 'En pause',
+  deleted_on_ig: 'Archivé',
 };
 const PLATFORM_META: Record<string, { label: string; emoji: string; tag: string }> = {
   instagram: { label: 'Instagram', emoji: '\u{1F4F7}', tag: 'IG' },
@@ -509,12 +518,15 @@ function EditorialCalendarFull({ agentId: _agentId }: { agentId: string }) {
       <div className="flex flex-wrap items-center gap-2 bg-white/[0.02] border border-white/10 rounded-xl p-2">
         <div className="flex items-center flex-wrap gap-1.5">
           <span className="text-[9px] font-bold text-white/60 uppercase tracking-wide mr-1">{tCal.status}</span>
+          {/* Failed + skipped chips intentionally NOT shown — the
+              client doesn't need to be confronted with 'échec' or
+              'ignoré' badges. Failed posts are silently retried by
+              the cron; skipped become reschedulable from the modal.
+              We keep only the 3 forward-looking statuses. */}
           {[
             { key: 'published', label: tCal.published, count: counts.published, color: 'bg-emerald-500' },
             { key: 'approved', label: tCal.scheduled, count: counts.approved, color: 'bg-blue-500' },
             { key: 'draft', label: tCal.drafts, count: counts.draft, color: 'bg-amber-500' },
-            ...(counts.failed > 0 ? [{ key: 'publish_failed', label: tCal.failed, count: counts.failed, color: 'bg-red-500' }] : []),
-            ...(counts.skipped > 0 ? [{ key: 'skipped', label: tCal.skipped, count: counts.skipped, color: 'bg-gray-500' }] : []),
           ].map(f => {
             const active = statusFilter.has(f.key);
             return (
@@ -1023,6 +1035,49 @@ function PostModal({ selected: initial, onClose, en, tCal }: { selected: any; on
             <button onClick={async () => { if (!confirm(tCal.confirmDelete)) return; try { await fetch('/api/agents/content', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ action: 'skip_single', postId: selected.id }) }); onClose(); window.location.reload(); } catch {} }} className="py-2.5 px-4 bg-red-600/20 hover:bg-red-600/30 text-red-300 text-[10px] font-medium rounded-xl min-h-[44px]">{'\uD83D\uDDD1'} {tCal.delete}</button>
           </div>
         )}
+        {/* Republier — for posts that previously failed or were skipped.
+            One click resets status to 'approved' and reschedules to today
+            so the cron can pick it up again. The client never has to think
+            about 'failed' / 'skipped' as terminal states. */}
+        {(selected.status === 'publish_failed' || selected.status === 'retry_pending' || selected.status === 'skipped') && (
+          <div className="px-4 pb-4 flex gap-2">
+            <button
+              onClick={async () => {
+                try {
+                  await fetch('/api/agents/content', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ action: 'republish_single', postId: selected.id }),
+                  });
+                  onClose();
+                  window.location.reload();
+                } catch {}
+              }}
+              className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl min-h-[44px]"
+            >
+              {'\uD83D\uDE80'} Republier
+            </button>
+            <button
+              onClick={async () => {
+                if (!confirm(tCal.confirmDelete)) return;
+                try {
+                  await fetch('/api/agents/content', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ action: 'delete_post', postId: selected.id }),
+                  });
+                  onClose();
+                  window.location.reload();
+                } catch {}
+              }}
+              className="py-2.5 px-4 bg-red-600/20 hover:bg-red-600/30 text-red-300 text-[10px] font-medium rounded-xl min-h-[44px]"
+            >
+              {'\uD83D\uDDD1'} {tCal.delete}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1072,6 +1127,10 @@ export default function AgentWorkspacePage() {
 
   // Chat (slide-over)
   const [chatOpen, setChatOpen] = useState(false);
+  // chatMinimised: chat is "alive" but collapsed to a small floating
+  // bubble so the user can read/scroll the screen without losing the
+  // conversation context. Tapping the bubble re-expands.
+  const [chatMinimised, setChatMinimised] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -2524,26 +2583,59 @@ export default function AgentWorkspacePage() {
       </div>
 
       {/* ═══ FLOATING CHAT BUTTON ═══ */}
-      {!chatOpen && (
-        <button onClick={() => setChatOpen(true)} className="fixed bottom-20 right-4 z-40 w-14 h-14 rounded-full shadow-2xl hover:scale-105 flex items-center justify-center transition-all lg:bottom-8 lg:right-8" style={{ background: `linear-gradient(135deg, ${gf}, ${gt})` }}>
-          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-          {/* Badge shows only pending action notifications, not message count */}
+      {/* Visible when chat is fully closed OR minimised — same bubble
+          re-expands the chat. Avatar visible when minimised so the
+          user knows the conversation is still alive (vs the generic
+          chat icon when starting fresh). */}
+      {(!chatOpen || chatMinimised) && (
+        <button
+          onClick={() => { setChatOpen(true); setChatMinimised(false); }}
+          className="fixed bottom-20 right-4 z-40 w-14 h-14 rounded-full shadow-2xl hover:scale-105 flex items-center justify-center transition-all lg:bottom-8 lg:right-8 overflow-hidden"
+          style={{ background: `linear-gradient(135deg, ${gf}, ${gt})` }}
+          aria-label={chatMinimised ? `Rouvrir la conversation avec ${dn}` : `Ouvrir une conversation avec ${dn}`}
+          title={chatMinimised ? `Rouvrir la conversation avec ${dn}` : `Ouvrir une conversation avec ${dn}`}
+        >
+          {chatMinimised && av ? (
+            <img src={av} alt={dn} className="w-full h-full object-cover" style={{ objectPosition: 'top center' }} />
+          ) : (
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+          )}
+          {chatMinimised && messages.length > 0 && (
+            <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-400 border-2 border-[#0a1628]" />
+          )}
         </button>
       )}
 
       {/* ═══ CHAT SLIDE-OVER ═══ */}
-      {chatOpen && (
+      {chatOpen && !chatMinimised && (
         <>
-          {isMobile && <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" onClick={() => setChatOpen(false)} />}
+          {isMobile && <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" onClick={() => setChatMinimised(true)} />}
           <div className={`fixed z-50 flex flex-col ${isMobile ? 'inset-0' : 'bottom-4 right-4 w-[380px] rounded-2xl shadow-2xl shadow-black/50 overflow-hidden'}`} style={{ animation: 'slideIn 0.25s ease-out', ...(!isMobile ? { height: 'min(480px, calc(100vh - 100px))' } : {}), ...(isMobile ? { paddingTop: 'env(safe-area-inset-top, 0px)' } : {}) }}>
             {/* Header */}
-            <div className="flex items-center gap-3 px-4 py-3 flex-shrink-0" style={{ background: `linear-gradient(135deg, ${gf}, ${gt})` }}>
+            <div className="flex items-center gap-2 px-3 py-3 flex-shrink-0" style={{ background: `linear-gradient(135deg, ${gf}, ${gt})` }}>
               <div className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 bg-white/15">
                 {av ? <img src={av} alt={dn} className="w-full h-full object-cover" style={{ objectPosition: 'top center' }} /> : <span className="text-lg">{icon}</span>}
               </div>
-              <div className="flex-1 min-w-0"><h3 className="text-white font-semibold text-sm">{dn}</h3><div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-green-400" /><span className="text-white/60 text-[10px]">En ligne</span></div></div>
-              <button onClick={() => setChatOpen(false)} className="w-10 h-10 min-w-[44px] min-h-[44px] rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              <div className="flex-1 min-w-0"><h3 className="text-white font-semibold text-sm truncate">{dn}</h3><div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-green-400" /><span className="text-white/60 text-[10px]">En ligne</span></div></div>
+              {/* Minimise — keeps the conversation alive but collapses
+                  to the floating bubble so the user can read the screen
+                  without losing context. Mobile users get this by tapping
+                  the backdrop too. */}
+              <button
+                onClick={() => setChatMinimised(true)}
+                className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors flex-shrink-0"
+                aria-label="Réduire la conversation"
+                title="Réduire (garde la conversation ouverte)"
+              >
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 12h14" /></svg>
+              </button>
+              <button
+                onClick={() => { setChatOpen(false); setChatMinimised(false); }}
+                className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors flex-shrink-0"
+                aria-label="Fermer la conversation"
+                title="Fermer"
+              >
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
             {/* Messages */}
