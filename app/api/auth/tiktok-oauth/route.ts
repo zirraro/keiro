@@ -32,15 +32,19 @@ export async function GET(req: NextRequest) {
 
     // Required scopes for TikTok integration
     // Note: video.* scopes require Content Posting API to be enabled
+    // Only currently APPROVED scopes — adding scopes that aren't yet
+    // granted by TikTok app review causes /oauth/authorize to error
+    // 'scope' before the user even sees the page.
+    // Pending review (apply for these via the Direct Post API + Comment
+    // API request forms in the dev portal):
+    //   user.info.profile, user.info.stats,
+    //   comment.list, comment.list.manage
+    // Once granted, re-add them here and existing users can re-auth.
     const scopes = [
       'user.info.basic',      // Get user info (username, avatar)
-      'user.info.profile',    // Profile fields needed for Axel comment-reply context
-      'user.info.stats',      // Followers / following / video counts
       'video.list',           // List published videos
       'video.publish',        // Publish videos
       'video.upload',         // Upload video files
-      'comment.list',         // Axel: read comments on user's videos
-      'comment.list.manage',  // Axel: reply / pin / hide comments
     ].join(',');
 
     // TEMPORARY: If Content Posting API not yet approved, use only:
