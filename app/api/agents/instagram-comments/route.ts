@@ -243,11 +243,11 @@ export async function POST(req: NextRequest) {
           // through silently if business_discovery rejects.
           let commenterPersonalisation = '';
           try {
-            const igUserIdForLookup = (typeof igUserId !== 'undefined' ? igUserId : null) as string | null;
-            const tokenForLookup = (typeof token !== 'undefined' ? token : null) as string | null;
-            if (igUserIdForLookup && tokenForLookup) {
+            // igId + token are the IG business account + page token
+            // declared at the top of this handler (lines 76-80).
+            if (igId && token) {
               const { getInstagramProfileSnapshot, readProfileFromVisuals } = await import('@/lib/agents/ig-profile-snapshot');
-              const snap = await getInstagramProfileSnapshot(c.username, igUserIdForLookup, tokenForLookup);
+              const snap = await getInstagramProfileSnapshot(c.username, igId, token);
               if (snap.exists) {
                 const vision = await readProfileFromVisuals(snap).catch(() => null);
                 const p = vision?.personalization || {};
