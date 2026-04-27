@@ -3913,7 +3913,11 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keiroai.com';
     const [trendsRes, newsRes] = await Promise.allSettled([
       fetch(`${baseUrl}/api/trends`, { signal: AbortSignal.timeout(5000) }),
-      fetch(`${baseUrl}/api/news`, { signal: AbortSignal.timeout(5000) }),
+      // Pull the FULL news list so we can stratify by category (same
+      // source the /generate page uses for diversity). Without this
+      // we always got the top 8 = mostly politics → Sonnet keeps
+      // picking sondages / élections.
+      fetch(`${baseUrl}/api/news?all=true`, { signal: AbortSignal.timeout(6000) }),
     ]);
     const trends = trendsRes.status === 'fulfilled' && trendsRes.value.ok ? await trendsRes.value.json() : null;
     const news = newsRes.status === 'fulfilled' && newsRes.value.ok ? await newsRes.value.json() : null;
@@ -3921,8 +3925,31 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
     // Get Google Trends (nested structure)
     const googleTrends = trends?.data?.googleTrends || trends?.trends || [];
     const trendItems = googleTrends.slice(0, 10).map((t: any) => t.title || t.query || t.name).filter(Boolean);
-    // Get news articles
-    const newsItems = (news?.articles || news?.items || news?.data || []).slice(0, 8).map((n: any) => n.title || n.headline).filter(Boolean);
+
+    // Get news articles — STRATIFIED by category for diversity. Pick
+    // up to 2 per distinct category, cap total at 12. This way Sonnet
+    // sees Tech, Sport, Culture, Sciences, International — not 8x
+    // 'Politique' headlines.
+    const allNews = (news?.articles || news?.items || news?.data || []) as Array<{ title?: string; headline?: string; category?: string }>;
+    const byCategory = new Map<string, string[]>();
+    for (const n of allNews) {
+      const title = (n.title || n.headline || '').trim();
+      if (!title) continue;
+      const cat = (n.category || 'Autre').trim();
+      const arr = byCategory.get(cat) || [];
+      if (arr.length < 2) arr.push(title);
+      byCategory.set(cat, arr);
+    }
+    // Round-robin merge so Sonnet sees a varied list, not category-ordered
+    const stratified: string[] = [];
+    const cats = Array.from(byCategory.keys());
+    for (let i = 0; i < 2; i++) {
+      for (const c of cats) {
+        const a = byCategory.get(c) || [];
+        if (a[i]) stratified.push(`[${c}] ${a[i]}`);
+      }
+    }
+    const newsItems = stratified.slice(0, 12);
     trendsTrendItems = trendItems;
     trendsNewsItems = newsItems;
 
