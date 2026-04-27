@@ -3042,23 +3042,15 @@ async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftO
 
   let weekPlan: any[];
   try {
-    const cleanText = rawText.replace(/```[\w]*\s*/g, '').trim();
-    const jsonMatch = cleanText.match(/\[[\s\S]*\]/);
-    if (jsonMatch) {
-      weekPlan = JSON.parse(jsonMatch[0]);
-    } else {
-      // Try to salvage truncated JSON array
-      const partialMatch = cleanText.match(/\[[\s\S]*/);
-      if (partialMatch) {
-        let salvaged = partialMatch[0]
-          .replace(/,\s*\{[^}]*$/, '') // remove last incomplete object
-          .replace(/,\s*$/, '');
-        if (!salvaged.endsWith(']')) salvaged += ']';
-        weekPlan = JSON.parse(salvaged);
-        console.log('[Content] Salvaged truncated weekly plan JSON');
-      } else {
-        throw new Error('No JSON array found in response');
+    const { tolerantArrayParse } = await import('@/lib/agents/json-tolerant');
+    const parseResult = tolerantArrayParse<any>(rawText);
+    if (parseResult.ok && parseResult.data && parseResult.data.length > 0) {
+      weekPlan = parseResult.data;
+      if (parseResult.partial) {
+        console.log(`[Content] Weekly plan: salvaged ${weekPlan.length} objects from partial JSON`);
       }
+    } else {
+      throw new Error(parseResult.reason || 'tolerant parse failed');
     }
   } catch (parseError) {
     console.error('[Content] Weekly plan parse error — falling back to daily post. Raw:', rawText.substring(0, 300));
@@ -3259,21 +3251,15 @@ async function generateWeekWithVisuals(supabase: any, publishAll: boolean, orgId
 
   let weekPlan: any[];
   try {
-    const cleanText = rawText.replace(/```[\w]*\s*/g, '').trim();
-    const jsonMatch = cleanText.match(/\[[\s\S]*\]/);
-    if (jsonMatch) {
-      weekPlan = JSON.parse(jsonMatch[0]);
-    } else {
-      // Try to salvage truncated JSON
-      const partialMatch = cleanText.match(/\[[\s\S]*/);
-      if (partialMatch) {
-        let salvaged = partialMatch[0].replace(/,\s*\{[^}]*$/, '').replace(/,\s*$/, '');
-        if (!salvaged.endsWith(']')) salvaged += ']';
-        weekPlan = JSON.parse(salvaged);
-        console.log('[Content] Salvaged truncated generate_week JSON');
-      } else {
-        throw new Error('No JSON array found in response');
+    const { tolerantArrayParse } = await import('@/lib/agents/json-tolerant');
+    const parseResult = tolerantArrayParse<any>(rawText);
+    if (parseResult.ok && parseResult.data && parseResult.data.length > 0) {
+      weekPlan = parseResult.data;
+      if (parseResult.partial) {
+        console.log(`[Content] generate_week: salvaged ${weekPlan.length} objects from partial JSON`);
       }
+    } else {
+      throw new Error(parseResult.reason || 'tolerant parse failed');
     }
   } catch (parseError) {
     console.error('[Content] generate_week parse error:', parseError, 'Raw:', rawText.substring(0, 300));
@@ -4969,7 +4955,11 @@ Real natural light matching the room's existing ambience. The dish must look pro
               recentOverlayCount = (recentForOverlay || []).filter((r: any) => r.overlay_text && r.overlay_text.text).length;
             } catch {}
           }
-          if (recentOverlayCount >= 2) {
+          if (recentOverlayCount >= 1) {
+            // Lowered from 2 → 1 after user feedback: text overlays
+            // were appearing too often and not always adding value.
+            // Now ≤10% of posts get overlay deterministically, and
+            // Sonnet's gates 1-4 still further filter that 10%.
             console.log(`[Content] Overlay rate gate: ${recentOverlayCount}/10 recent posts already have overlay — skipping`);
           } else {
           // Pull richer business context for the overlay copy.
