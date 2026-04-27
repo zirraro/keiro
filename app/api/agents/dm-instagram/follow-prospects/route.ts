@@ -159,6 +159,35 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
+      // Deep snapshot + Sonnet vision read so the client sees WHO this
+      // person is before deciding to follow them. Bio + 3 visuals →
+      // intent classification (has_business / entrepreneur_curious / …)
+      // and best_offer recommendation (B2C use_keiroai / B2B
+      // white_label_agency). Stored on the activity for the dashboard.
+      let snapshotData: any = null;
+      let visionData: any = null;
+      try {
+        const { getInstagramProfileSnapshot, readProfileFromVisuals } = await import('@/lib/agents/ig-profile-snapshot');
+        const snap = await getInstagramProfileSnapshot(handle, igBusinessId, fbPageToken);
+        if (snap.exists) {
+          snapshotData = {
+            biography: snap.biography,
+            website: snap.website,
+            followers: snap.followers_count,
+            media_count: snap.media_count,
+            recent_posts: snap.recent_posts.slice(0, 3).map(p => ({
+              caption: p.caption,
+              like_count: p.like_count,
+              comments_count: p.comments_count,
+              media_url: p.media_url,
+              permalink: p.permalink,
+            })),
+          };
+          // Vision read — only for accounts with at least one image post.
+          visionData = await readProfileFromVisuals(snap).catch(() => null);
+        }
+      } catch { /* best-effort, never blocks the queue */ }
+
       // Queue for manual follow by the client — the IG Business API has no
       // programmatic follow, so we surface the list to the human instead.
       await supabase.from('crm_prospects').update({
@@ -169,13 +198,15 @@ export async function POST(req: NextRequest) {
       await supabase.from('crm_activities').insert({
         prospect_id: prospect.id,
         type: 'dm_follow_queued',
-        description: `Jade suggère de suivre @${handle} (warm-up avant DM)`,
+        description: `Jade suggère de suivre @${handle}${visionData ? ` — ${visionData.intent}, offre ${visionData.best_offer}` : ' (warm-up avant DM)'}`,
         data: {
           channel: 'instagram',
           handle,
           ig_id: verify.igId,
           followers: verify.followersCount,
           media_count: verify.mediaCount,
+          ...(snapshotData ? { profile_snapshot: snapshotData } : {}),
+          ...(visionData ? { vision: visionData } : {}),
         },
         created_at: now,
       });
