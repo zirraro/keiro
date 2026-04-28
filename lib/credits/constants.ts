@@ -209,9 +209,14 @@ export function getAvailableAddons(plan: string): Array<{ agentId: string; name:
   const CREATEUR_AGENTS = new Set(['marketing', 'onboarding', 'content', 'dm_instagram', 'email', 'commercial', 'gmaps']);
   // Pro: + SEO. Chatbot reste OFF sur Pro (réservé Business car il s'intègre sur le SITE client, lourd à supporter).
   const PRO_AGENTS = new Set([...CREATEUR_AGENTS, 'seo']);
-  // Business: + chatbot Max (intégration site client). ads/rh/tiktok_comments/linkedin/whatsapp/comptable désactivés temporairement
-  // le temps de peaufiner les autres agents — ils seront réactivés plus tard.
-  const BUSINESS_AGENTS = new Set([...PRO_AGENTS, 'chatbot']);
+  // Business = tier le plus haut, TOUS les agents inclus.
+  // Fondateurs = même périmètre fonctionnel que Business (juste un prix
+  // verrouillé pour les early-adopters), donc même set d'agents.
+  const BUSINESS_AGENTS = new Set([
+    ...PRO_AGENTS,
+    'chatbot', 'comptable', 'rh', 'ads',
+    'whatsapp', 'linkedin', 'tiktok_comments',
+  ]);
   const planAgents: Record<string, Set<string>> = {
     free: new Set(['marketing', 'onboarding']),
     gratuit: new Set(['marketing', 'onboarding']),

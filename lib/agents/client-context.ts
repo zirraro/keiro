@@ -486,19 +486,31 @@ export const CLIENT_AGENTS: ClientAgent[] = [
   },
 ];
 
-// Agents not yet functional — show "à venir" regardless of plan
-export const FORCED_COMING_SOON_AGENTS = new Set(['tiktok_comments', 'linkedin', 'whatsapp', 'ads']);
+// Agents en bêta — afficher "à venir" pour les plans en dessous de
+// Business. Sur Business / Fondateurs / Elite / Agence, ces agents
+// sont actifs (Business est le tier qui débloque TOUT).
+//
+// 'ads' reste partout en coming_soon tant qu'aucune API ads n'est
+// branchée (Meta Ads + Google Ads), même pour Business.
+export const FORCED_COMING_SOON_AGENTS = new Set(['ads']);
+const BETA_AGENTS_BELOW_BUSINESS = new Set(['tiktok_comments', 'linkedin', 'whatsapp']);
 
 export function getVisibleAgents(plan: string, isAdmin = false): (ClientAgent & { notReleased?: boolean })[] {
   const planOrder = ['gratuit', 'free', 'sprint', 'solo', 'solo_promo', 'createur', 'pro', 'pro_promo', 'fondateurs', 'standard', 'business', 'elite', 'agence'];
   const userPlanIndex = planOrder.indexOf(plan || 'gratuit');
+  const businessIndex = planOrder.indexOf('business');
+  const hasBusinessAccess = isAdmin || userPlanIndex >= businessIndex
+    || ['fondateurs', 'elite', 'agence'].includes((plan || '').toLowerCase());
 
   return CLIENT_AGENTS
     .filter(a => a.visibility !== 'background' && (a.visibility !== 'admin_only' || isAdmin))
     .map(a => {
       const requiredIndex = planOrder.indexOf(a.minPlan);
       const isAccessible = isAdmin || userPlanIndex >= requiredIndex;
-      const isNotReleased = FORCED_COMING_SOON_AGENTS.has(a.id) && !isAdmin;
+      const isHardComingSoon = FORCED_COMING_SOON_AGENTS.has(a.id) && !isAdmin;
+      // Beta agents: hidden for plans below Business, active for Business+
+      const isBetaLocked = BETA_AGENTS_BELOW_BUSINESS.has(a.id) && !hasBusinessAccess;
+      const isNotReleased = isHardComingSoon || isBetaLocked;
 
       return {
         ...a,
