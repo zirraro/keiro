@@ -59,26 +59,61 @@ export async function POST(req: NextRequest) {
   const msgPayload = { text: String(message).substring(0, 1000) };
   const recipientPayload = { id: String(recipient_id) };
 
+  // Meta returns this message body when the recipient hasn't messaged us in
+  // the last 24h. The only way to retry is with messaging_type=MESSAGE_TAG &
+  // tag=HUMAN_AGENT, which requires the human_agent permission to be approved.
+  // We attempt the standard send first, and only retry tagged on this error
+  // — keeps us safe on 24h-window sends and auto-activates the moment Meta
+  // approves the human_agent permission, no redeploy needed.
+  const isOutsideWindowError = (text: string) =>
+    /outside.*allowed.*window|24[- ]?hour.*window|2018|messages outside the/i.test(text);
+
+  // Inside-24h-window send first, then optional human-agent retry.
+  const sendAttempt = async (
+    url: string,
+    base: Record<string, string>,
+  ): Promise<{ ok: boolean; status: number; body: string }> => {
+    const standard = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(base),
+    });
+    if (standard.ok) return { ok: true, status: standard.status, body: '' };
+    const errBody = await standard.text().catch(() => '');
+    if (!isOutsideWindowError(errBody)) {
+      return { ok: false, status: standard.status, body: errBody };
+    }
+    // Outside 24h — retry with HUMAN_AGENT tag (requires approved permission).
+    const tagged = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        ...base,
+        messaging_type: 'MESSAGE_TAG',
+        tag: 'HUMAN_AGENT',
+      }),
+    });
+    if (tagged.ok) return { ok: true, status: tagged.status, body: 'human_agent' };
+    const taggedBody = await tagged.text().catch(() => '');
+    return { ok: false, status: tagged.status, body: `outside-window + human_agent retry: ${taggedBody}` };
+  };
+
   // 1. IGAA token — the only one Meta lets us use for conversation content,
   //    so try it first. graph.instagram.com expects the access_token as a
   //    URLSearchParams field, not JSON, for POST.
   if (igaaToken) {
     try {
-      const res = await fetch('https://graph.instagram.com/v21.0/me/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          recipient: JSON.stringify(recipientPayload),
-          message: JSON.stringify(msgPayload),
-          access_token: igaaToken,
-        }),
+      const r = await sendAttempt('https://graph.instagram.com/v21.0/me/messages', {
+        recipient: JSON.stringify(recipientPayload),
+        message: JSON.stringify(msgPayload),
+        access_token: igaaToken,
       });
-      if (res.ok) {
-        console.log(`[DM-send] Sent via IGAA to ${recipient_id}`);
-        return NextResponse.json({ ok: true, sent: true, method: 'instagram_igaa' });
+      if (r.ok) {
+        const tagged = r.body === 'human_agent';
+        console.log(`[DM-send] Sent via IGAA to ${recipient_id}${tagged ? ' (HUMAN_AGENT tag)' : ''}`);
+        return NextResponse.json({ ok: true, sent: true, method: 'instagram_igaa', human_agent: tagged });
       }
-      const err = await res.text().catch(() => '');
-      errors.push(`IGAA: ${res.status} ${err.substring(0, 150)}`);
+      errors.push(`IGAA: ${r.status} ${r.body.substring(0, 200)}`);
     } catch (e: any) {
       errors.push(`IGAA error: ${e.message}`);
     }
@@ -87,21 +122,17 @@ export async function POST(req: NextRequest) {
   // 2. Legacy Instagram Graph token (only if distinct from the IGAA one)
   if (igToken && igToken !== igaaToken) {
     try {
-      const res = await fetch('https://graph.instagram.com/v21.0/me/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          recipient: JSON.stringify(recipientPayload),
-          message: JSON.stringify(msgPayload),
-          access_token: igToken,
-        }),
+      const r = await sendAttempt('https://graph.instagram.com/v21.0/me/messages', {
+        recipient: JSON.stringify(recipientPayload),
+        message: JSON.stringify(msgPayload),
+        access_token: igToken,
       });
-      if (res.ok) {
-        console.log(`[DM-send] Sent via IG access_token to ${recipient_id}`);
-        return NextResponse.json({ ok: true, sent: true, method: 'instagram_access_token' });
+      if (r.ok) {
+        const tagged = r.body === 'human_agent';
+        console.log(`[DM-send] Sent via IG access_token to ${recipient_id}${tagged ? ' (HUMAN_AGENT tag)' : ''}`);
+        return NextResponse.json({ ok: true, sent: true, method: 'instagram_access_token', human_agent: tagged });
       }
-      const err = await res.text().catch(() => '');
-      errors.push(`IG: ${res.status} ${err.substring(0, 150)}`);
+      errors.push(`IG: ${r.status} ${r.body.substring(0, 200)}`);
     } catch (e: any) {
       errors.push(`IG error: ${e.message}`);
     }
@@ -113,21 +144,17 @@ export async function POST(req: NextRequest) {
   const fbTokenLooksValid = fbToken && !fbToken.startsWith('IGAA') && fbToken !== igaaToken;
   if (fbTokenLooksValid && igUserId) {
     try {
-      const res = await fetch(`https://graph.facebook.com/v21.0/${igUserId}/messages`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          recipient: JSON.stringify(recipientPayload),
-          message: JSON.stringify(msgPayload),
-          access_token: fbToken,
-        }),
+      const r = await sendAttempt(`https://graph.facebook.com/v21.0/${igUserId}/messages`, {
+        recipient: JSON.stringify(recipientPayload),
+        message: JSON.stringify(msgPayload),
+        access_token: fbToken!,
       });
-      if (res.ok) {
-        console.log(`[DM-send] Sent via Facebook page token to ${recipient_id}`);
-        return NextResponse.json({ ok: true, sent: true, method: 'facebook_api' });
+      if (r.ok) {
+        const tagged = r.body === 'human_agent';
+        console.log(`[DM-send] Sent via Facebook page token to ${recipient_id}${tagged ? ' (HUMAN_AGENT tag)' : ''}`);
+        return NextResponse.json({ ok: true, sent: true, method: 'facebook_api', human_agent: tagged });
       }
-      const err = await res.text().catch(() => '');
-      errors.push(`FB: ${res.status} ${err.substring(0, 150)}`);
+      errors.push(`FB: ${r.status} ${r.body.substring(0, 200)}`);
     } catch (e: any) {
       errors.push(`FB error: ${e.message}`);
     }
