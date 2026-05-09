@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     'Public guide for Meta App Review reviewers. Contains test credentials, login link, and step-by-step instructions to exercise every permission requested.',
 };
 
-const REVIEWER_EMAIL = 'metareview@keiroai.com';
+const REVIEWER_EMAIL = 'mrzirraro+metareview@gmail.com';
 const REVIEWER_PASSWORD = 'METAREVIEW2026';
 const SITE = 'https://keiroai.com';
 
@@ -75,10 +75,12 @@ export default function MetaReviewPage() {
           <p className="text-xs text-neutral-500 mt-3">
             The link above opens the login form in English (<code>?lang=en</code>) and
             redirects you to the workspace dashboard after sign-in. The reviewer
-            account is already pre-provisioned with an Instagram Business account
-            (<strong>@keiro_ai</strong>) and a connected Facebook Page (<strong>KeiroAI</strong>),
-            so you do not have to perform the Meta login flow manually unless you
-            wish to verify it.
+            account is <strong>email-confirmed and ready to use immediately</strong> —
+            no email verification click is required. It is pre-provisioned with
+            an Instagram Business account (<strong>@keiro_ai</strong>), a connected
+            Facebook Page (<strong>KeiroAI</strong>), the Business plan (top tier,
+            all features unlocked), and 5,000 credits. The trial period extends
+            to April 2027, so the entire review window is covered.
           </p>
         </section>
 
