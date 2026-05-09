@@ -213,29 +213,102 @@ export default function MetaReviewPage() {
           </ol>
 
           <h3 className="text-base font-semibold text-neutral-900 mt-6 mb-3">
-            human_agent — replying to a customer &gt; 24h after their last message
+            human_agent — late reply to a customer-service inquiry
           </h3>
+          <p className="text-sm text-neutral-700 mb-3">
+            We use the <code>HUMAN_AGENT</code> tag exclusively in the cases
+            Meta&apos;s policy explicitly allows: a real human agent (the
+            business owner) replying to a customer-initiated service inquiry
+            after the standard 24-hour window has closed, within the 7-day
+            extended window, with no promotional content. The five concrete
+            scenarios below cover 100% of how the permission is used in
+            KeiroAI.
+          </p>
+
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-4 mb-4">
+            <div className="text-sm font-semibold text-emerald-900 mb-2">
+              Real customer-service scenarios that require human_agent
+            </div>
+            <ul className="text-sm text-emerald-900/90 space-y-2 list-disc pl-5">
+              <li>
+                <strong>Restaurant reservation availability</strong> — a customer
+                DMs Saturday at 8 pm asking if a table for 6 is available next
+                Friday. The owner is in service all weekend; he reads the DM
+                Monday morning (~36h later) and replies after checking the
+                reservation book.
+              </li>
+              <li>
+                <strong>Hair salon booking inquiry</strong> — a customer asks if
+                a specific stylist is free this Thursday. The owner needs to
+                consult the team&apos;s shared schedule before answering;
+                response goes out 30–48h later.
+              </li>
+              <li>
+                <strong>Florist custom-arrangement quote</strong> — a customer
+                requests a quote for a specific funeral or wedding arrangement.
+                The owner has to call the supplier to confirm flower
+                availability; reply lands 48–72h later.
+              </li>
+              <li>
+                <strong>Boutique stock check</strong> — a customer asks if a
+                specific size or colour is in stock. The owner runs an inventory
+                check during the next opening hours; reply 24–48h later.
+              </li>
+              <li>
+                <strong>Coach / consultant tailored proposal</strong> — a
+                prospective client asks for a custom programme. The owner
+                drafts a proposal between two coaching sessions; reply 48h+ later.
+              </li>
+            </ul>
+          </div>
+
+          <div className="rounded-lg border border-rose-200 bg-rose-50/60 p-4 mb-5">
+            <div className="text-sm font-semibold text-rose-900 mb-2">
+              Cases we will NEVER use human_agent for
+            </div>
+            <ul className="text-sm text-rose-900/90 space-y-1 list-disc pl-5">
+              <li>Promotional or marketing content of any kind.</li>
+              <li>First-contact / proactive outreach to people who have not messaged us.</li>
+              <li>Re-engaging a lapsed contact more than 7 days after their last message.</li>
+              <li>Bulk messaging of any sort.</li>
+              <li>Anything other than a direct response to the customer&apos;s own inquiry.</li>
+            </ul>
+          </div>
+
           <ol className="space-y-3 mb-6">
             <Step n={1} title="Open a thread that is older than 24 hours.">
-              In the Jade DMs panel, locate a conversation where the last
-              customer message was received more than 24h ago. KeiroAI shows a
-              banner: &quot;Outside the standard 24h window — the human owner
-              must explicitly approve.&quot;
+              In the Jade DMs panel, locate a conversation where the customer
+              sent the last message more than 24h ago. KeiroAI surfaces an
+              orange banner: &quot;Outside the 24h messaging window — the human
+              owner must explicitly approve before sending.&quot;
             </Step>
-            <Step n={2} title="The human reviews and edits the suggested draft.">
-              The owner edits the AI draft if needed. Nothing is sent yet.
+            <Step n={2} title="The human reviews the AI draft.">
+              Jade has composed a draft tailored to the inquiry. The owner
+              reads, edits, and either approves or discards. Nothing is sent yet.
             </Step>
-            <Step n={3} title="Click Send as Human Agent — manual click only.">
-              KeiroAI calls the Graph API with the
-              <code> messaging_type=MESSAGE_TAG</code> +
-              <code> tag=HUMAN_AGENT</code> parameters because the human owner
-              is replying to a legitimate customer-service inquiry. The audit
-              log captures user_id, timestamp, and conversation_id.
+            <Step n={3} title="Click 'Send as Human Agent' — explicit human action.">
+              KeiroAI POSTs to the Graph API with
+              <code> messaging_type=MESSAGE_TAG&amp;tag=HUMAN_AGENT</code>
+              because the human owner is responding to a legitimate
+              customer-service inquiry. Our audit log records user_id, IP,
+              timestamp, conversation_id, and message content.
             </Step>
             <Step n={4} title="Verify the message lands in Instagram.">
-              Confirm on the native Instagram app that the message was delivered.
+              Open Instagram natively and confirm the message arrived.
+              The audit log entry is visible in the workspace under
+              <em> Settings → Audit log → Human Agent sends</em>.
             </Step>
           </ol>
+
+          <p className="text-xs text-neutral-500 mb-2">
+            Compliance commitments: (1) we never auto-send under HUMAN_AGENT —
+            every send is a fresh human click; (2) we expose a real-time audit
+            log of every HUMAN_AGENT-tagged call so Meta can verify the
+            human-in-the-loop guarantee on demand; (3) if Meta determines a
+            specific thread should not have used HUMAN_AGENT, we disable the
+            extended window for that thread within 24 hours of receiving the
+            notice.
+          </p>
 
           <h3 className="text-base font-semibold text-neutral-900 mt-6 mb-3">
             Meta oEmbed Read
