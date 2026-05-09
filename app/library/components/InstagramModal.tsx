@@ -1529,6 +1529,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                 <button
                   onClick={handlePublishNow}
                   disabled={publishing || !caption.trim()}
+                  title="Publishes this image and caption to your Instagram Business account by calling the Graph API: POST /{ig-id}/media to create a media container, then POST /{ig-id}/media_publish to publish it. This is a manual human action — nothing is published automatically."
                   className={`flex-1 px-3 sm:px-4 py-2 sm:py-3 rounded-lg font-medium text-white transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm ${
                     publishing || !caption.trim()
                       ? 'bg-neutral-400 cursor-not-allowed'

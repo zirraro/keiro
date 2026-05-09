@@ -324,6 +324,112 @@ export default function MetaReviewPage() {
         </section>
 
         <section className="bg-white border border-neutral-200 rounded-2xl p-6 mb-8 shadow-sm">
+          <h2 className="text-lg font-bold text-neutral-900 mb-3">3.bis Authentication flow</h2>
+          <p className="text-sm text-neutral-700 mb-3">
+            <strong>Auth type:</strong> KeiroAI is a web application that uses
+            standard <strong>Instagram Business Login (user-token OAuth)</strong>.
+            We are <strong>not</strong> a server-to-server app and we do
+            <strong> not</strong> use a system-user token. Every connected
+            account is the result of an explicit user OAuth grant captured in
+            the Meta login dialog. The frontend authentication flow IS visible
+            in the screencasts.
+          </p>
+          <p className="text-sm text-neutral-700 mb-3">
+            <strong>Required permissions per request:</strong>
+          </p>
+          <ul className="text-sm text-neutral-700 space-y-1 list-disc pl-5 mb-3">
+            <li><code>instagram_business_basic</code> + <code>pages_show_list</code> + <code>business_management</code> — to identify the IG Business account.</li>
+            <li><code>instagram_business_manage_messages</code> — DM read &amp; send.</li>
+            <li><code>instagram_business_content_publish</code> — image/video publishing.</li>
+            <li><code>instagram_business_manage_insights</code> — analytics read-only.</li>
+            <li><code>instagram_business_manage_comments</code> — comments read &amp; reply.</li>
+            <li><code>human_agent</code> — late customer-service replies (24h–7d window).</li>
+          </ul>
+          <p className="text-sm text-neutral-700 mb-3">
+            <strong>End-to-end OAuth grant flow that the reviewer will see in
+            the screencast:</strong>
+          </p>
+          <ol className="space-y-3 mb-3">
+            <Step n={1} title="Click 'Connect Instagram Business' inside KeiroAI.">
+              The button is in the workspace header (yellow asset badge if not
+              connected) and on the Settings page.
+            </Step>
+            <Step n={2} title="Redirect to facebook.com/dialog/oauth.">
+              Standard Meta-hosted dialog. The reviewer is asked to log in to
+              Facebook (if not already) and select a Business Page.
+            </Step>
+            <Step n={3} title="Asset selection screen.">
+              Meta presents the list of Pages and the linked IG Business
+              accounts. The reviewer picks <strong>KeiroAI</strong> Page and
+              <strong> @keiro_ai</strong> Instagram Business account.
+            </Step>
+            <Step n={4} title="Permission grant screen — the human action.">
+              Meta presents the full list of permissions our app is asking
+              for. The reviewer reviews and clicks <em>Continue</em>. This is
+              the &quot;person granting access&quot; step Meta requires to be
+              visible.
+            </Step>
+            <Step n={5} title="Redirect back to /api/auth/instagram-callback.">
+              We exchange the short-lived code for a long-lived IGAA access
+              token + Page access token, store them encrypted, and bounce the
+              reviewer back to the workspace dashboard.
+            </Step>
+            <Step n={6} title="Asset badge turns green.">
+              The IG asset badge in the workspace header now shows
+              <strong> @keiro_ai</strong> with profile picture and follower
+              count, confirming the OAuth grant succeeded.
+            </Step>
+          </ol>
+          <p className="text-xs text-neutral-500">
+            Hovering any Meta-relevant button in the workspace (Send DM, Post
+            Comment Reply, Publish to Instagram, Connect Instagram) reveals a
+            tooltip describing the exact Graph API endpoint that will be hit
+            on click. These tooltips are intentionally exhaustive so a reviewer
+            can pause the screencast on any UI element and read what it does.
+          </p>
+        </section>
+
+        <section className="bg-white border border-neutral-200 rounded-2xl p-6 mb-8 shadow-sm">
+          <h2 className="text-lg font-bold text-neutral-900 mb-3">3.ter API endpoints used per permission</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs border border-neutral-200 rounded-lg">
+              <thead className="bg-neutral-50">
+                <tr>
+                  <th className="text-left px-3 py-2 border-b">Permission</th>
+                  <th className="text-left px-3 py-2 border-b">Endpoint(s)</th>
+                  <th className="text-left px-3 py-2 border-b">Trigger</th>
+                </tr>
+              </thead>
+              <tbody className="text-neutral-700">
+                <tr><td className="px-3 py-2 border-b align-top"><code>instagram_business_basic</code></td><td className="px-3 py-2 border-b align-top"><code>GET /{`<ig-id>`}?fields=id,username,profile_picture_url,followers_count</code></td><td className="px-3 py-2 border-b align-top">On dashboard load</td></tr>
+                <tr><td className="px-3 py-2 border-b align-top"><code>manage_messages</code></td><td className="px-3 py-2 border-b align-top"><code>GET /me/conversations</code><br/><code>POST /me/messages</code></td><td className="px-3 py-2 border-b align-top">DM panel open / Send click</td></tr>
+                <tr><td className="px-3 py-2 border-b align-top"><code>content_publish</code></td><td className="px-3 py-2 border-b align-top"><code>POST /{`<ig-id>`}/media</code><br/><code>POST /{`<ig-id>`}/media_publish</code></td><td className="px-3 py-2 border-b align-top">Publish click in Library</td></tr>
+                <tr><td className="px-3 py-2 border-b align-top"><code>manage_insights</code></td><td className="px-3 py-2 border-b align-top"><code>GET /{`<ig-id>`}/insights?metric=...</code><br/><code>GET /{`<media-id>`}/insights?metric=...</code></td><td className="px-3 py-2 border-b align-top">Léna dashboard open</td></tr>
+                <tr><td className="px-3 py-2 border-b align-top"><code>manage_comments</code></td><td className="px-3 py-2 border-b align-top"><code>GET /{`<media-id>`}/comments</code><br/><code>POST /{`<comment-id>`}/replies</code></td><td className="px-3 py-2 border-b align-top">Comments panel / Reply click</td></tr>
+                <tr><td className="px-3 py-2 align-top"><code>human_agent</code></td><td className="px-3 py-2 align-top"><code>POST /me/messages?messaging_type=MESSAGE_TAG&amp;tag=HUMAN_AGENT</code></td><td className="px-3 py-2 align-top">Send click on conversation older than 24h</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="bg-white border border-neutral-200 rounded-2xl p-6 mb-8 shadow-sm">
+          <h2 className="text-lg font-bold text-neutral-900 mb-3">3.quater Audit log — verify human-in-the-loop yourself</h2>
+          <p className="text-sm text-neutral-700 mb-3">
+            Once logged in as the reviewer, open <a className="text-blue-700 underline" href="/meta-audit?lang=en">/meta-audit</a>.
+            This page lists the last 50 Graph API write calls our app has
+            made (DM sends, comment replies, publishes, HUMAN_AGENT-tagged
+            sends), along with the user_id that triggered each call, the
+            exact endpoint, the timestamp, and a snippet of the payload. You
+            can confirm in real time that no call ever fires without an
+            explicit human click.
+          </p>
+          <p className="text-xs text-neutral-500">
+            The audit log is read-only and visible to anyone logged in as the
+            reviewer account or as an admin. It is not exposed publicly.
+          </p>
+        </section>
+
+        <section className="bg-white border border-neutral-200 rounded-2xl p-6 mb-8 shadow-sm">
           <h2 className="text-lg font-bold text-neutral-900 mb-3">4. Human-in-the-loop guarantees</h2>
           <ul className="text-sm text-neutral-700 space-y-2 list-disc pl-5">
             <li>

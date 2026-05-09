@@ -762,7 +762,7 @@ function DmConversationsLive() {
                 onClick={sendReply}
                 disabled={sending || !replyText.trim()}
                 className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white text-xs font-medium rounded-xl disabled:opacity-40 transition-all active:scale-95"
-                title={p.sendBtn}
+                title="Sends this reply via the Instagram Graph API (POST /me/messages with the recipient and message text). The send fires only on this click — no automation, no cron. If the conversation is older than 24h we add messaging_type=MESSAGE_TAG&tag=HUMAN_AGENT (Meta's customer-service human-agent window) so the human owner can finish the customer service inquiry."
               >
                 {sending ? (
                   <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white" />
@@ -943,7 +943,12 @@ function CommentCard({ comment: c, isDemo, onUpdate }: { comment: any; isDemo: b
         <div className="px-3 pb-3">
           {!showReply ? (
             <div className="flex items-center gap-1.5">
-              <button onClick={() => sendReply()} disabled={sending} className="px-2.5 py-1.5 bg-emerald-600/20 text-emerald-400 text-[9px] font-medium rounded-lg hover:bg-emerald-600/30 transition min-h-[32px] disabled:opacity-50">
+              <button
+                onClick={() => sendReply()}
+                disabled={sending}
+                title="Posts a reply to this Instagram comment via the Graph API (POST /{comment-id}/replies). Axel composes the suggestion using the post context; the human business owner triggers this manual send."
+                className="px-2.5 py-1.5 bg-emerald-600/20 text-emerald-400 text-[9px] font-medium rounded-lg hover:bg-emerald-600/30 transition min-h-[32px] disabled:opacity-50"
+              >
                 {sending ? '...' : p.dmCommentCardReplyAuto}
               </button>
               <button onClick={() => setShowReply(true)} className="px-2.5 py-1.5 bg-blue-600/20 text-blue-400 text-[9px] font-medium rounded-lg hover:bg-blue-600/30 transition min-h-[32px]">
@@ -961,7 +966,12 @@ function CommentCard({ comment: c, isDemo, onUpdate }: { comment: any; isDemo: b
                 autoFocus
                 className="flex-1 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-[11px] text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
               />
-              <button onClick={() => sendReply(replyText)} disabled={sending || !replyText.trim()} className="px-3 py-1.5 bg-blue-600 text-white text-[9px] font-bold rounded-lg disabled:opacity-40 min-h-[32px]">
+              <button
+                onClick={() => sendReply(replyText)}
+                disabled={sending || !replyText.trim()}
+                title="Sends your custom reply to this Instagram comment via the Graph API (POST /{comment-id}/replies). The reply will be visible publicly under the original comment."
+                className="px-3 py-1.5 bg-blue-600 text-white text-[9px] font-bold rounded-lg disabled:opacity-40 min-h-[32px]"
+              >
                 {sending ? '...' : p.sendBtn}
               </button>
               <button onClick={() => setShowReply(false)} className="text-white/30 hover:text-white/60 text-xs px-1">✕</button>
