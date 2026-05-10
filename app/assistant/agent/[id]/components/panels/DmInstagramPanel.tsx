@@ -1354,6 +1354,86 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
   );
 }
 
+// JadeHeader — compact identity + Human Agent Protocol in a single card.
+// Replaces the previous stack of (InstagramAssetBadge + protocol banner +
+// SocialConnectBanners) which was three banners visually competing for
+// the same space at the top of the panel.
+function JadeHeader({ connected, p }: { connected: boolean; p: any }) {
+  const [profile, setProfile] = useState<{ ig?: string; followers?: number; pic?: string; pageName?: string } | null>(null);
+
+  useEffect(() => {
+    if (!connected) { setProfile(null); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const sb = (await import('@/lib/supabase/client')).supabaseBrowser();
+        const { data: { user } } = await sb.auth.getUser();
+        if (!user) return;
+        const { data } = await sb.from('profiles')
+          .select('instagram_username, instagram_followers_count, instagram_profile_picture_url, facebook_page_name')
+          .eq('id', user.id)
+          .maybeSingle();
+        if (!cancelled) setProfile({
+          ig: data?.instagram_username || undefined,
+          followers: typeof data?.instagram_followers_count === 'number' ? data.instagram_followers_count : undefined,
+          pic: data?.instagram_profile_picture_url || undefined,
+          pageName: data?.facebook_page_name || undefined,
+        });
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, [connected]);
+
+  return (
+    <div className="rounded-2xl border border-pink-500/25 bg-gradient-to-br from-pink-500/10 via-purple-500/10 to-transparent p-4 mb-3">
+      {/* Row 1 — identity + connect/disconnect */}
+      <div className="flex items-center gap-3">
+        {connected && profile?.pic ? (
+          <img src={profile.pic} alt={profile.ig || 'Instagram'} className="w-11 h-11 rounded-xl object-cover" />
+        ) : (
+          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-lg">
+            {'\u{1F4F8}'}
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-bold text-white truncate">
+            {connected && profile?.ig ? `@${profile.ig}` : 'Instagram'}
+          </div>
+          {connected ? (
+            <div className="text-[10px] text-emerald-300 flex items-center gap-2 flex-wrap">
+              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Connected</span>
+              {typeof profile?.followers === 'number' && <span className="text-white/50">· {fmt(profile.followers)} followers</span>}
+              {profile?.pageName && <span className="text-white/40 truncate">· FB {profile.pageName}</span>}
+            </div>
+          ) : (
+            <div className="text-[10px] text-white/40">No Instagram Business account connected</div>
+          )}
+        </div>
+        {!connected ? (
+          <a
+            href="/api/auth/instagram-oauth"
+            className="px-3 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 text-white text-[11px] font-bold hover:opacity-90 transition flex-shrink-0"
+            title="Standard Meta OAuth flow — select your Page and IG Business account, grant permissions, return here."
+          >
+            ⚡ Connect
+          </a>
+        ) : null}
+      </div>
+
+      {/* Row 2 — Human Agent Protocol (kept compact) */}
+      <div className="mt-3 pt-3 border-t border-white/10 flex items-start gap-2">
+        <div className="w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center text-[10px] flex-shrink-0 mt-0.5">{'\u{1F9D1}'}</div>
+        <div className="flex-1">
+          <div className="text-[11px] font-semibold text-blue-300">{p.dmHumanProtocolTitle}</div>
+          <p className="text-[10px] text-white/50 mt-0.5">
+            {p.dmHumanProtocolDesc.split('**').map((seg: string, i: number) => i % 2 ? <strong key={i} className="text-white/70">{seg}</strong> : <span key={i}>{seg}</span>)}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function DmInstagramPanel({ data, agentName, gradientFrom, gradientTo }: PanelProps) {
   const { t } = useLanguage();
   const p = t.panels;
@@ -1373,48 +1453,19 @@ export function DmInstagramPanel({ data, agentName, gradientFrom, gradientTo }: 
     ignore: '#f87171',
   };
 
+  const igConnected = !!(data as any).connections?.instagram;
+
   return (
     <>
-      {/* Instagram asset badge — always visible at the top so Meta
-          reviewers see which IG Business account is connected in every
-          screencast (required by Platform Policies Section 1.6). */}
-      <InstagramAssetBadge />
+      {/* Single Jade header card — merges what used to be three stacked
+          banners (InstagramAssetBadge + Human Agent Protocol + Social
+          Connect prompt) into one clear section. Shows the connected IG
+          identity, Human Agent compliance line, and only one Connect CTA
+          when the account is missing. */}
+      <JadeHeader connected={igConnected} p={p} />
 
-      {/* NOTE: Brand photos & documents (AgentUploadsPanel) moved to
-          the Documents tab so the main panel stays focused. The brand
-          assets still feed every reply through the same /api/agents/uploads
-          source. */}
-
-      {/* Human Agent Protocol — required by Meta. Every DM is reviewed and
-          sent by the human business owner (customer service agent). Jade
-          only prepares drafts; nothing is sent automatically. */}
-      <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-3 mb-3">
-        <div className="flex items-center gap-2 mb-2">
-          <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center text-xs">{'\u{1F9D1}'}</div>
-          <span className="text-xs font-semibold text-blue-300">{p.dmHumanProtocolTitle}</span>
-        </div>
-        <p className="text-[10px] text-white/50 mb-2">{p.dmHumanProtocolDesc.split('**').map((seg, i) => i % 2 ? <strong key={i} className="text-white/70">{seg}</strong> : <span key={i}>{seg}</span>)}</p>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-blue-500/10 border border-blue-500/20">
-            <div className="w-2 h-2 rounded-full bg-blue-400" />
-            <span className="text-[10px] text-blue-400 font-medium">{p.dmYouRespondBadge}</span>
-          </div>
-          <span className="text-white/20 text-[10px]">+</span>
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-purple-500/10 border border-purple-500/20">
-            <div className="w-2 h-2 rounded-full bg-purple-400" />
-            <span className="text-[10px] text-purple-400 font-medium">{p.dmJadePreparesBadge}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Connect banner — the auto/manual toggle moved inline above the
-          conversation composer so it sits where the client actually works.
-          See JadeTabs → DmConversationsLive. */}
-      <div className="mb-3">
-        <SocialConnectBanners agentId="dm_instagram" networks={['instagram']} connections={(data as any).connections} />
-      </div>
-
-      {/* KPI cards */}
+      {/* KPI cards — kept tight (4) and aligned with the funnel below so
+          the same numbers are not repeated lower on the page. */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
         <KpiCard label={p.dmKpiSent} value={fmt(stats.dmsSent)} gradientFrom="#3b82f6" gradientTo="#2563eb" />
         <KpiCard label={p.dmKpiResponses} value={fmt(stats.responses)} gradientFrom="#f59e0b" gradientTo="#d97706" />
@@ -1515,32 +1566,18 @@ export function DmInstagramPanel({ data, agentName, gradientFrom, gradientTo }: 
         )}
       </div>
 
-      {/* Queue + engagement stats */}
-      <SectionTitle>{p.dmSectionActivity}</SectionTitle>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
-        <div className="rounded-lg bg-pink-500/10 border border-pink-500/20 p-2 text-center">
-          <div className="text-sm font-bold text-pink-400">{fmt((stats as any).likesGiven || 0)}</div>
-          <div className="text-[8px] text-white/30">{'\u2764\uFE0F'} {p.dmStatLikes}</div>
+      {/* Removed redundant Queue + engagement grid (duplicate of KPIs/funnel)
+          and the standalone CRM button (kept inline below if there's activity). */}
+      {(((stats as any).likesGiven || 0) > 0) && (
+        <div className="flex items-center gap-2 mb-3 text-[11px]">
+          <span className="px-2.5 py-1 rounded-full bg-pink-500/10 border border-pink-500/20 text-pink-300 font-medium flex items-center gap-1.5">
+            <span>❤️</span> {fmt((stats as any).likesGiven || 0)} {p.dmStatLikes}
+          </span>
+          <a href="/assistant/crm" className="ml-auto text-white/40 hover:text-white text-[11px]">
+            📊 CRM →
+          </a>
         </div>
-        <div className="rounded-lg bg-purple-500/10 border border-purple-500/20 p-2 text-center">
-          <div className="text-sm font-bold text-purple-400">{fmt((stats as any).queuePending || 0)}</div>
-          <div className="text-[8px] text-white/30">{'\u{1F4DD}'} {p.dmStatWaiting}</div>
-        </div>
-        <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-2 text-center">
-          <div className="text-sm font-bold text-emerald-400">{fmt((stats as any).queueSent || 0)}</div>
-          <div className="text-[8px] text-white/30">{'\u2705'} {p.dmStatSent}</div>
-        </div>
-        <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-2 text-center">
-          <div className="text-sm font-bold text-red-400">{fmt((stats as any).queueFailed || 0)}</div>
-          <div className="text-[8px] text-white/30">{'\u274C'} {p.dmStatFailed}</div>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2 mb-3">
-        <a href="/assistant/crm" className="px-3 py-2 bg-purple-600/20 text-purple-300 text-xs font-medium rounded-lg hover:bg-purple-600/30 transition border border-purple-500/20">
-          {'\u{1F4CA}'} CRM
-        </a>
-      </div>
+      )}
 
       {/* Pending notifications for this agent — "Reprends la main" */}
       <AgentNotifications agentId="dm_instagram" />

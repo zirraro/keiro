@@ -1775,7 +1775,7 @@ export default function AgentWorkspacePage() {
             {([
               { key: 'dashboard' as const, label: isEn ? 'Dashboard' : 'Tableau de bord', icon: '\uD83D\uDCCA' },
               ...(agentId === 'onboarding' ? [{ key: 'profile' as const, label: isEn ? 'My profile' : 'Mon profil', icon: '\uD83D\uDCCB' }] : []),
-              ...(['email', 'ads', 'commercial', 'dm_instagram'].includes(agentId) ? [{ key: 'campaigns' as const, label: isEn ? 'Campaigns' : 'Campagnes', icon: '\u{1F3AF}' }] : []),
+              // Campaigns tab removed (empty/redundant — Launch button + agent inline lists do the job)
               ...(['content', 'email'].includes(agentId) ? [{ key: 'planning' as const, label: isEn ? 'Planning' : 'Planning', icon: '\uD83D\uDCC5' }] : []),
               ...(['rh', 'comptable'].includes(agentId) ? [{ key: 'editor' as const, label: isEn ? 'Editor' : 'Éditeur', icon: '\u270D\uFE0F' }] : []),
               { key: 'documents' as const, label: 'Documents', icon: '\uD83D\uDCC1' },
