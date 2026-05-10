@@ -459,7 +459,14 @@ async function getContentData(
     tiktokConnected = !!(profile as any)?.tiktok_username;
     linkedinConnected = !!(profile as any)?.linkedin_username;
 
-    const shouldFetch = igConnected && published.length > 0;
+    // Once the IG Business account is connected we DO fetch the live
+    // metrics — followers, total likes on recent media, daily reach. These
+    // are the user's own real Instagram numbers, not anything invented by
+    // KeiroAI, and the dashboard would feel broken if we hid them just
+    // because the user hasn't published THROUGH KeiroAI yet. The UI labels
+    // them as "your Instagram account totals" and surfaces a separate
+    // "KeiroAI-published" indicator when published.length > 0.
+    const shouldFetch = igConnected;
     const token = profile?.instagram_igaa_token || profile?.instagram_access_token;
     if (shouldFetch && token) {
       // Fetch likes + comments from recent media (real data)
@@ -520,8 +527,11 @@ async function getContentData(
       recentContent: allPosts.slice(0, 30),
       // Per-network breakdown for the Content panel.
       // - `connected` tells the UI whether to render the connect-CTA tile or a stats tile.
-      // - `hasActivity` tells the UI whether the metrics are real (>=1 published post) or
-      //   should be hidden behind an empty state ("Publish your first post to see stats").
+      // - `hasActivity` is true when KeiroAI has published at least one post on this
+      //   network — used to show a "KeiroAI-published" badge alongside the stats.
+      // The metric values themselves are now sourced from the user's REAL Instagram
+      // account (followers, recent likes, comments, daily reach) as soon as the
+      // account is connected, so the dashboard never feels empty.
       byNetwork: {
         instagram: {
           connected: igConnected,
@@ -532,8 +542,8 @@ async function getContentData(
           likes: totalLikes,
           comments: totalComments,
           reach: igInsights?.reach || 0,
-          engagement: followersCount > 0 && published.length > 0
-            ? Math.round(((totalLikes + totalComments) / published.length / followersCount) * 10000) / 100
+          engagement: followersCount > 0 && (totalLikes + totalComments) > 0
+            ? Math.round(((totalLikes + totalComments) / Math.max(byPlatform['instagram']?.published || 1, 1) / followersCount) * 10000) / 100
             : 0,
         },
         tiktok: {

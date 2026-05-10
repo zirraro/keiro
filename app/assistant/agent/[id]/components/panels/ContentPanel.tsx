@@ -469,13 +469,28 @@ function PerNetworkStats({ stats }: { stats: any }) {
 // and a native deep-link so the client can jump straight into the platform
 // (only place where posts can actually be deleted — none of the APIs we use
 // authorize DELETE for IG or TikTok).
-function NetworkPreviewTab({ initialNetwork }: { initialNetwork?: 'instagram' | 'tiktok' | 'linkedin' } = {}) {
+function NetworkPreviewTab({
+  initialNetwork,
+  singleNetwork,
+}: {
+  initialNetwork?: 'instagram' | 'tiktok' | 'linkedin';
+  // When set, hide the inner network sub-tabs entirely — used by the
+  // top-level Léna restructure where the parent already drives which
+  // network is active. Showing nested IG/TT/LI tabs underneath the page
+  // selector creates visual duplication and lets the user end up on a
+  // mismatched network inside the per-network section.
+  singleNetwork?: boolean;
+} = {}) {
   const NETWORKS = [
     { key: 'instagram', label: 'Instagram', color: '#e1306c', icon: '\u{1F4F8}' },
     { key: 'tiktok', label: 'TikTok', color: '#00f2ea', icon: '\u{1F3B5}' },
     { key: 'linkedin', label: 'LinkedIn', color: '#0A66C2', icon: '\u{1F4BC}' },
   ];
   const [active, setActive] = useState<'instagram' | 'tiktok' | 'linkedin'>(initialNetwork ?? 'instagram');
+  // Keep `active` in sync with the parent's selection in single-network mode.
+  useEffect(() => {
+    if (singleNetwork && initialNetwork) setActive(initialNetwork);
+  }, [singleNetwork, initialNetwork]);
   const [lightbox, setLightbox] = useState<any>(null);
   const [state, setState] = useState<Record<string, { loading: boolean; connected: boolean; posts: any[]; error?: string }>>({
     instagram: { loading: true, connected: false, posts: [] },
@@ -506,20 +521,22 @@ function NetworkPreviewTab({ initialNetwork }: { initialNetwork?: 'instagram' | 
 
   return (
     <div>
-      <div className="flex gap-1 bg-white/5 rounded-lg p-0.5 border border-white/10 mb-3">
-        {NETWORKS.map(n => (
-          <button
-            key={n.key}
-            onClick={() => setActive(n.key as any)}
-            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all ${
-              active === n.key ? 'bg-white/10 text-white shadow' : 'text-white/40 hover:text-white/60'
-            }`}
-          >
-            <span>{n.icon}</span> {n.label}
-            {state[n.key].connected && <span className="ml-1 w-1.5 h-1.5 rounded-full bg-emerald-400" />}
-          </button>
-        ))}
-      </div>
+      {!singleNetwork && (
+        <div className="flex gap-1 bg-white/5 rounded-lg p-0.5 border border-white/10 mb-3">
+          {NETWORKS.map(n => (
+            <button
+              key={n.key}
+              onClick={() => setActive(n.key as any)}
+              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all ${
+                active === n.key ? 'bg-white/10 text-white shadow' : 'text-white/40 hover:text-white/60'
+              }`}
+            >
+              <span>{n.icon}</span> {n.label}
+              {state[n.key].connected && <span className="ml-1 w-1.5 h-1.5 rounded-full bg-emerald-400" />}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs text-white/40">
@@ -795,23 +812,29 @@ function NetworkSection({
           When disconnected, single Connect CTA. */}
       <NetworkConnectionCard network={network} connected={connected} />
 
-      {/* Section 2 — Discreet stats. Only renders real numbers when the user
-          has KeiroAI-published activity on this network. Otherwise empty
-          hint, never fake numbers. */}
+      {/* Section 2 — Discreet stats. When the network is connected we
+          ALWAYS surface the user's real organic numbers (followers, likes,
+          reach pulled live from the platform API) — these are the user's
+          own data, not anything KeiroAI invented. A small secondary note
+          flags whether KeiroAI has already published on this network so
+          the user can see what's KeiroAI-attributable vs organic baseline. */}
       <div className="rounded-xl bg-black/20 border border-white/5 p-3 mb-4">
         {!connected ? (
           <div className="text-[11px] text-white/50">
-            Connect {meta.label} to see live performance metrics. Until then
-            Léna will not display any numbers — we never show demo or
-            organic-account data.
-          </div>
-        ) : !hasActivity ? (
-          <div className="text-[11px] text-white/60">
-            <strong className="text-white/80">No published content yet on {meta.label}.</strong>{' '}
-            Stats will appear here once Léna publishes the first post.
+            Connect {meta.label} to see live performance metrics from your
+            actual account. We never display demo or invented numbers.
           </div>
         ) : (
-          <NetworkStatsRow network={network} netStats={netStats} stats={stats} />
+          <>
+            <NetworkStatsRow network={network} netStats={netStats} stats={stats} />
+            {!hasActivity && (
+              <div className="mt-2 pt-2 border-t border-white/5 text-[10px] text-white/40">
+                These are your account totals on {meta.label}. KeiroAI hasn&apos;t
+                published a post yet — once Léna publishes, we&apos;ll add a
+                KeiroAI-attributable engagement section here.
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -821,11 +844,12 @@ function NetworkSection({
       {/* Section 4 — Topic of the week applies across all networks. */}
       <ContentDirectionInput />
 
-      {/* Section 5 — Recent published posts on THIS network. The component
-          accepts an initialNetwork prop so the inner sub-tabs land on the
-          tab the user just clicked at the top of Léna. */}
+      {/* Section 5 — Recent published posts on THIS network. singleNetwork
+          tells the component to drop its own IG/TT/LI tab bar (the parent
+          selector at the top of Léna already drives the active network) so
+          the user does not see two stacked network selectors. */}
       <SectionTitle>{p.contentSectionPerf || 'Recent posts'}</SectionTitle>
-      <NetworkPreviewTab initialNetwork={network} />
+      <NetworkPreviewTab initialNetwork={network} singleNetwork />
 
       {/* Production gallery + workflow lived here in the previous version
           but the actual gallery is now in /library + the Planning tab. The

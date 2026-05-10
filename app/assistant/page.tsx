@@ -385,6 +385,48 @@ function PlanningCalendar() {
   );
 }
 
+// DemoModeToggle — surfaces the ?demo=1 flag on a button right inside
+// the workspace header so the founder can flip it on before recording a
+// Meta App Review screencast (or before sharing the URL with a Meta
+// reviewer) and turn it off afterwards. The reviewer also lands on the
+// flag automatically when they follow the deep link from /meta-review,
+// but having a manual switch makes the founder's own demo recordings
+// trivial.
+function DemoModeToggle() {
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    try {
+      setOn(localStorage.getItem('keiro_demo_mode') === '1');
+      const url = new URL(window.location.href);
+      const v = url.searchParams.get('demo');
+      if (v === '1') setOn(true);
+      if (v === '0') setOn(false);
+    } catch {}
+  }, []);
+  const toggle = () => {
+    const next = !on;
+    setOn(next);
+    try {
+      if (next) localStorage.setItem('keiro_demo_mode', '1');
+      else localStorage.removeItem('keiro_demo_mode');
+      const url = new URL(window.location.href);
+      url.searchParams.set('demo', next ? '1' : '0');
+      // Force a soft reload so any panel that read the flag at mount picks up the new state.
+      window.location.href = url.toString();
+    } catch {}
+  };
+  return (
+    <button
+      onClick={toggle}
+      title={on ? 'Demo mode ON — every Meta-critical button shows the Graph API caption underneath. Click to turn OFF for a clean client view.' : 'Demo mode OFF — clean client view. Click to turn ON for a Meta App Review screencast (Graph API captions appear under each button).'}
+      className={`hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${on ? 'bg-blue-600/30 border-blue-500/40 text-blue-200' : 'bg-white/5 border-white/10 text-white/55 hover:text-white/80'}`}
+    >
+      <span className={`w-1.5 h-1.5 rounded-full ${on ? 'bg-blue-300 animate-pulse' : 'bg-white/30'}`} />
+      Demo mode {on ? 'ON' : 'OFF'}
+    </button>
+  );
+}
+
 export default function AssistantPage() {
   const isMobile = useIsMobile();
   const router = useRouter();
@@ -1011,6 +1053,7 @@ export default function AssistantPage() {
                     </svg>
                     Mon CRM
                   </button>
+                  <DemoModeToggle />
                 </>
               )}
             </div>

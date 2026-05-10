@@ -12,6 +12,14 @@ const PLAN_LABELS: Record<string, string> = {
   elite: 'Elite (999\u20AC/mois)',
 };
 
+const PLAN_SHORT: Record<string, string> = {
+  createur: 'Créateur 49€',
+  pro: 'Pro 99€',
+  fondateurs: 'Business 199€',
+  business: 'Business 199€',
+  elite: 'Elite 999€',
+};
+
 interface AgentCardProps {
   agent: ClientAgent;
   avatarUrl: string | null;
@@ -54,7 +62,11 @@ export default function AgentCard({ agent, avatarUrl, isSelected, onClick, comin
         }}
       />
 
-      {/* Locked overlay — coming soon or plan upgrade */}
+      {/* Locked overlay — coming soon or plan upgrade. The plan-locked
+          variant offers TWO routes: upgrade the whole plan (cheaper if
+          the user wants several agents) OR add this agent alone as a
+          paid add-on. The user explicitly asked for both options to be
+          visible per agent so they can pick the cheapest path. */}
       {isLocked && (() => {
         if (isComingSoon) {
           return (
@@ -66,29 +78,31 @@ export default function AgentCard({ agent, avatarUrl, isSelected, onClick, comin
           );
         }
         const addonPrice = AGENT_ADDON_PRICES[agent.id];
+        const planAnchor = `/pricing?focus=${agent.minPlan}#${agent.minPlan}`;
+        const addonAnchor = `/pricing?focus=addon&agent=${agent.id}#addons`;
         return (
-          <div className="absolute inset-0 z-20 bg-black/50 backdrop-blur-[2px] flex flex-col items-center justify-center gap-2 px-3">
+          <div className="absolute inset-0 z-20 bg-black/55 backdrop-blur-[2px] flex flex-col items-center justify-center gap-1.5 px-2.5">
             <svg className="w-5 h-5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
-            {addonPrice && addonPrice > 0 ? (
-              <>
-                <span className="text-white/90 text-xs font-semibold text-center">
-                  Disponible avec le plan {PLAN_LABELS[agent.minPlan] || agent.minPlan}
-                </span>
-                <a href="/pricing" className="px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-[10px] font-bold rounded-lg hover:opacity-90 transition-all">
-                  Passer au {agent.minPlan === 'pro' ? 'Pro' : 'Business'}
-                </a>
-              </>
-            ) : (
-              <>
-                <span className="text-white/90 text-xs font-semibold text-center">
-                  Plan {PLAN_LABELS[agent.minPlan] || agent.minPlan}
-                </span>
-                <a href="/pricing" className="px-3 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-[10px] font-bold rounded-lg hover:opacity-90 transition-all">
-                  Voir les offres
-                </a>
-              </>
+            <span className="text-white/85 text-[11px] font-semibold text-center leading-tight">
+              Plan {PLAN_LABELS[agent.minPlan] || agent.minPlan}
+            </span>
+            <a
+              href={planAnchor}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full px-2.5 py-1.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-[10px] font-bold rounded-lg hover:opacity-90 transition-all text-center"
+            >
+              {'⚡'} Passer {PLAN_SHORT[agent.minPlan] || agent.minPlan}
+            </a>
+            {addonPrice && addonPrice > 0 && (
+              <a
+                href={addonAnchor}
+                onClick={(e) => e.stopPropagation()}
+                className="w-full px-2.5 py-1 bg-white/10 hover:bg-white/15 text-white/80 text-[10px] font-medium rounded-lg transition-all text-center border border-white/15"
+              >
+                Ou ajouter seul · {addonPrice}€/mois
+              </a>
             )}
           </div>
         );
