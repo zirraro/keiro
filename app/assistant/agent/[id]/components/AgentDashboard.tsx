@@ -279,8 +279,10 @@ export default function AgentDashboard({ agentId, agentName, gradientFrom, gradi
         </div>
       </div>
 
-      {/* Agent activity indicator */}
-      <AgentActivityBanner agentId={agentId} data={data} gradientFrom={gradientFrom} />
+      {/* AgentActivityBanner removed — its data source (recentLogs) used to
+          include system-level logs that leaked across accounts, and the
+          per-agent stats already show evolution which makes this banner
+          redundant. */}
 
       {/* Launch campaign button — all agents */}
       {!isAdmin && agentId !== 'onboarding' && agentId !== 'ceo' && agentId !== 'qa' && agentId !== 'content' && (

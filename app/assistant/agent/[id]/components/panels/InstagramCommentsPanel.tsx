@@ -70,7 +70,9 @@ export function InstagramCommentsPanel({ data, agentName, gradientFrom, gradient
 
   return (
     <>
-      <InstagramAssetBadge />
+      {/* Asset badge removed — comments are nested under the Jade panel which
+          already shows the asset badge once at the top. Avoids duplication
+          when the user navigates between Jade tabs. */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <KpiCard label={p.igCommentsKpiTotal} value={fmt(comments.length)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
         <KpiCard label={p.igCommentsKpiUnanswered} value={fmt(unreplied)} gradientFrom={unreplied > 0 ? '#ef4444' : gradientFrom} gradientTo={unreplied > 0 ? '#dc2626' : gradientTo} />

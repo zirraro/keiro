@@ -76,7 +76,7 @@ export async function GET(request: Request) {
     const logsQuery = supabase
       .from('agent_logs')
       .select('id, agent, action, result, status, created_at')
-      .or(`user_id.eq.${user.id},user_id.is.null`)
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(500);
 

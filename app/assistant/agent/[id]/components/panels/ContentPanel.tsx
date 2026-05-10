@@ -320,9 +320,10 @@ function PerNetworkStats({ stats }: { stats: any }) {
 
   const NETWORKS = [
     {
-      key: 'instagram',
+      key: 'instagram' as const,
       label: 'Instagram',
       icon: '\u{1F4F8}',
+      connectUrl: '/api/auth/instagram-oauth',
       gradient: 'from-pink-500/20 to-purple-500/20',
       border: 'border-pink-500/30',
       accent: 'text-pink-300',
@@ -337,9 +338,10 @@ function PerNetworkStats({ stats }: { stats: any }) {
       ],
     },
     {
-      key: 'tiktok',
+      key: 'tiktok' as const,
       label: 'TikTok',
       icon: '\u{1F3B5}',
+      connectUrl: '/api/auth/tiktok-oauth',
       gradient: 'from-cyan-500/20 to-emerald-500/20',
       border: 'border-cyan-500/30',
       accent: 'text-cyan-300',
@@ -350,9 +352,10 @@ function PerNetworkStats({ stats }: { stats: any }) {
       ],
     },
     {
-      key: 'linkedin',
+      key: 'linkedin' as const,
       label: 'LinkedIn',
       icon: '\u{1F4BC}',
+      connectUrl: '/api/auth/linkedin-oauth',
       gradient: 'from-blue-500/20 to-sky-500/20',
       border: 'border-blue-500/30',
       accent: 'text-blue-300',
@@ -364,27 +367,100 @@ function PerNetworkStats({ stats }: { stats: any }) {
     },
   ];
 
+  // Only render tabs for networks the user has actually connected.
+  const connected = NETWORKS.filter(n => n.data?.connected);
+  const [active, setActive] = useState<'instagram' | 'tiktok' | 'linkedin'>(
+    (connected[0]?.key as any) || 'instagram',
+  );
+
+  // No network connected — single CTA, no fake metrics.
+  if (connected.length === 0) {
+    return (
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-6 text-center">
+        <div className="text-3xl mb-3">{'\u{1F4F1}'}</div>
+        <div className="text-sm font-semibold text-white mb-1">Connect a social network to see your performance</div>
+        <p className="text-xs text-white/50 max-w-md mx-auto mb-4">
+          Léna shows real Instagram, TikTok or LinkedIn metrics fetched from
+          the official APIs — no demo numbers. Pick a network below to start
+          publishing and tracking real results.
+        </p>
+        <div className="flex flex-wrap justify-center gap-2">
+          {NETWORKS.map(net => (
+            <a
+              key={net.key}
+              href={net.connectUrl}
+              className={`px-3 py-1.5 rounded-lg border ${net.border} bg-white/5 text-xs font-semibold ${net.accent} hover:bg-white/10 transition`}
+            >
+              {net.icon} Connect {net.label}
+            </a>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const cur = NETWORKS.find(n => n.key === active) || connected[0];
+  const showMetrics = cur.data?.hasActivity;
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-      {NETWORKS.map(net => (
-        <div
-          key={net.key}
-          className={`rounded-xl border ${net.border} bg-gradient-to-br ${net.gradient} p-3`}
-        >
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-base">{net.icon}</span>
-            <span className={`text-xs font-bold ${net.accent}`}>{net.label}</span>
-          </div>
-          <div className="space-y-1">
-            {net.metrics.map(m => (
-              <div key={m.label} className="flex items-center justify-between">
-                <span className="text-[10px] text-white/50">{m.label}</span>
-                <span className="text-[11px] font-semibold text-white">{m.value}</span>
+    <div>
+      {/* Network sub-tabs — only connected networks appear here. Disconnected
+          ones are hidden so the client never sees noise about a network they
+          do not use. */}
+      <div className="flex gap-1 bg-white/5 rounded-lg p-0.5 border border-white/10 mb-3 overflow-x-auto">
+        {connected.map(n => (
+          <button
+            key={n.key}
+            onClick={() => setActive(n.key as any)}
+            className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all ${
+              active === n.key ? 'bg-white/10 text-white shadow' : 'text-white/50 hover:text-white/70'
+            }`}
+          >
+            <span>{n.icon}</span> {n.label}
+            <span className="ml-1 w-1.5 h-1.5 rounded-full bg-emerald-400" />
+          </button>
+        ))}
+        {/* Show disconnected networks as small "+ Add" chips */}
+        {NETWORKS.filter(n => !n.data?.connected).map(n => (
+          <a
+            key={n.key}
+            href={n.connectUrl}
+            className="flex-shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-md text-[11px] font-medium text-white/30 hover:text-white/60 transition"
+          >
+            <span>+</span> {n.label}
+          </a>
+        ))}
+      </div>
+
+      <div className={`rounded-xl border ${cur.border} bg-gradient-to-br ${cur.gradient} p-4`}>
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-lg">{cur.icon}</span>
+          <span className={`text-sm font-bold ${cur.accent}`}>{cur.label}</span>
+        </div>
+
+        {showMetrics ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {cur.metrics.map(m => (
+              <div key={m.label} className="rounded-lg bg-black/20 p-2">
+                <div className="text-[10px] text-white/50">{m.label}</div>
+                <div className="text-sm font-bold text-white mt-0.5">{m.value}</div>
               </div>
             ))}
           </div>
-        </div>
-      ))}
+        ) : (
+          <div className="rounded-lg bg-black/20 p-4 text-center">
+            <div className="text-xs text-white/70 font-semibold mb-1">
+              No published content yet on {cur.label}
+            </div>
+            <p className="text-[11px] text-white/40 max-w-sm mx-auto">
+              Léna will only show real numbers once you publish your first
+              post. We do not display demo or fake metrics — your stats are
+              fetched live from the {cur.label} API only when there is
+              activity to report.
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

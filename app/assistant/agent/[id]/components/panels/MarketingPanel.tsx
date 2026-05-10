@@ -24,11 +24,10 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
   if (gs) {
     return (
       <>
-        {/* Meta App Review: asset badge required for insights screencast */}
-        <InstagramAssetBadge />
-
-        {/* Connect social networks — hide if already connected */}
-        <SocialConnectBanners agentId="marketing" networks={['instagram', 'tiktok', 'linkedin']} connections={(data as any).connections} />
+        {/* Asset badge / connect prompts removed from Marketing — they live in
+            the dedicated Jade (DM) and Léna (Content) panels. Showing the same
+            "Connect Instagram" / asset card on every agent created visual
+            redundancy. The marketing panel focuses on cross-network KPIs. */}
 
         {/* Hot prospects alert */}
         {/* HotProspectsAlert removed — too much space, only useful for visitor mode */}

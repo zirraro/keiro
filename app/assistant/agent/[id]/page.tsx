@@ -1779,7 +1779,8 @@ export default function AgentWorkspacePage() {
               ...(['content', 'email'].includes(agentId) ? [{ key: 'planning' as const, label: isEn ? 'Planning' : 'Planning', icon: '\uD83D\uDCC5' }] : []),
               ...(['rh', 'comptable'].includes(agentId) ? [{ key: 'editor' as const, label: isEn ? 'Editor' : 'Éditeur', icon: '\u270D\uFE0F' }] : []),
               { key: 'documents' as const, label: 'Documents', icon: '\uD83D\uDCC1' },
-              { key: 'history' as const, label: isEn ? 'History' : 'Historique', icon: '\u26A1' },
+              // History tab removed: was leaking system-level logs (user_id IS NULL)
+              // across accounts, and live agent stats already show activity.
               { key: 'settings' as const, label: isEn ? 'Settings' : 'Paramètres', icon: '\u2699\uFE0F' },
             ]).map(tab => (
               <button

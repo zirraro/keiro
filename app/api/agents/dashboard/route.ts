@@ -140,28 +140,50 @@ async function getMarketingData(
       'Votre visibilité est faible. Publiez plus de contenu et activez les agents SEO et TikTok.';
   }
 
-  // Instagram stats — load from real IG API
-  let igStats = { postsCount: 0, followersCount: 0, reach: 0, likes: 0, engagement: 0 };
+  // Instagram stats — load from real IG API only when the user has actually
+  // published something through KeiroAI. Showing followers/reach for a freshly
+  // connected Instagram account that has zero KeiroAI activity creates the
+  // (correct) impression that the dashboard is making numbers up.
+  let igStats: any = {
+    connected: false,
+    hasActivity: false,
+    postsCount: 0,
+    followersCount: 0,
+    reach: 0,
+    likes: 0,
+    engagement: 0,
+  };
   try {
-    // IGAA token takes priority — classic instagram_access_token is often
-    // null after the new OAuth flow, which made stats come back as zeros.
-    const { data: igProfile } = await supabase.from('profiles').select('instagram_access_token, instagram_igaa_token, instagram_business_account_id').eq('id', userId).single();
+    const { data: igProfile } = await supabase
+      .from('profiles')
+      .select('instagram_access_token, instagram_igaa_token, instagram_business_account_id')
+      .eq('id', userId)
+      .single();
     const igToken = igProfile?.instagram_igaa_token || igProfile?.instagram_access_token;
-    if (igToken) {
-      // Profile stats
+    igStats.connected = !!(igProfile?.instagram_business_account_id || igProfile?.instagram_igaa_token || igProfile?.instagram_access_token);
+
+    // Count user's KeiroAI-published posts before deciding whether the IG
+    // metrics are meaningful.
+    const { count: keiroPublished } = await supabase
+      .from('content_calendar')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('status', 'published');
+    const hasActivity = (keiroPublished || 0) > 0;
+    igStats.hasActivity = igStats.connected && hasActivity;
+
+    if (igToken && igStats.hasActivity) {
       const profileRes = await fetch(`https://graph.instagram.com/v21.0/me?fields=followers_count,media_count&access_token=${igToken}`, { signal: AbortSignal.timeout(5000) });
       if (profileRes.ok) {
         const profileData = await profileRes.json();
         igStats.postsCount = profileData.media_count || 0;
         igStats.followersCount = profileData.followers_count || 0;
       }
-      // Insights
       const insightsRes = await fetch(`https://graph.instagram.com/v21.0/me/insights?metric=reach&metric_type=total_value&period=day&access_token=${igToken}`, { signal: AbortSignal.timeout(5000) });
       if (insightsRes.ok) {
         const insightsData = await insightsRes.json();
         igStats.reach = insightsData.data?.[0]?.total_value?.value || 0;
       }
-      // Recent media likes
       const mediaRes = await fetch(`https://graph.instagram.com/v21.0/me/media?fields=like_count&limit=20&access_token=${igToken}`, { signal: AbortSignal.timeout(5000) });
       if (mediaRes.ok) {
         const mediaData = await mediaRes.json();
@@ -401,18 +423,37 @@ async function getContentData(
   const scheduled = allPosts.filter(p => p.status === 'approved');
   const drafts = allPosts.filter(p => p.status === 'draft');
 
-  // Load REAL engagement stats from Instagram API (not from DB which is empty)
+  // Load REAL engagement stats from Instagram API (not from DB which is empty).
+  // We only fetch live IG metrics when there is at least one post the user
+  // actually published THROUGH KeiroAI — otherwise showing follower counts /
+  // reach figures pulled from the user's organic Instagram presence creates
+  // the impression that KeiroAI invented those numbers, which is exactly the
+  // confusion that came up in user feedback. If nothing has been published
+  // via KeiroAI yet, we return all zeros and let the UI render an empty state.
   let totalLikes = 0;
   let totalComments = 0;
   let totalViews = 0;
   let igInsights: any = null;
   let followersCount = 0;
+  let igConnected = false;
 
+  // Detect connection independently of activity so the UI can distinguish
+  // "no Instagram connected" vs "connected but nothing published yet".
+  let tiktokConnected = false;
+  let linkedinConnected = false;
   try {
-    const { data: profile } = await supabase.from('profiles').select('instagram_access_token, instagram_igaa_token').eq('id', userId).single();
-    const token = profile?.instagram_igaa_token || profile?.instagram_access_token;
-    if (token) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('instagram_business_account_id, instagram_access_token, instagram_igaa_token, tiktok_username, linkedin_username')
+      .eq('id', userId)
+      .single();
+    igConnected = !!(profile?.instagram_business_account_id || profile?.instagram_igaa_token || profile?.instagram_access_token);
+    tiktokConnected = !!(profile as any)?.tiktok_username;
+    linkedinConnected = !!(profile as any)?.linkedin_username;
 
+    const shouldFetch = igConnected && published.length > 0;
+    const token = profile?.instagram_igaa_token || profile?.instagram_access_token;
+    if (shouldFetch && token) {
       // Fetch likes + comments from recent media (real data)
       const mediaRes = await fetch(`https://graph.instagram.com/v21.0/me/media?fields=like_count,comments_count&limit=50&access_token=${token}`, { signal: AbortSignal.timeout(5000) });
       if (mediaRes.ok) {
@@ -469,9 +510,14 @@ async function getContentData(
       accountsEngaged: igInsights?.accounts_engaged || 0,
       engagement: followersCount > 0 && published.length > 0 ? Math.round(((totalLikes + totalComments) / published.length / followersCount) * 10000) / 100 : 0,
       recentContent: allPosts.slice(0, 30),
-      // Per-network breakdown for the Content panel
+      // Per-network breakdown for the Content panel.
+      // - `connected` tells the UI whether to render the connect-CTA tile or a stats tile.
+      // - `hasActivity` tells the UI whether the metrics are real (>=1 published post) or
+      //   should be hidden behind an empty state ("Publish your first post to see stats").
       byNetwork: {
         instagram: {
+          connected: igConnected,
+          hasActivity: published.length > 0 && igConnected,
           posts: byPlatform['instagram']?.published || 0,
           scheduled: byPlatform['instagram']?.scheduled || 0,
           followers: followersCount,
@@ -483,10 +529,14 @@ async function getContentData(
             : 0,
         },
         tiktok: {
+          connected: tiktokConnected,
+          hasActivity: tiktokConnected && (byPlatform['tiktok']?.published || 0) > 0,
           posts: byPlatform['tiktok']?.published || 0,
           scheduled: byPlatform['tiktok']?.scheduled || 0,
         },
         linkedin: {
+          connected: linkedinConnected,
+          hasActivity: linkedinConnected && (byPlatform['linkedin']?.published || 0) > 0,
           posts: byPlatform['linkedin']?.published || 0,
           scheduled: byPlatform['linkedin']?.scheduled || 0,
         },
@@ -1058,7 +1108,7 @@ export async function GET(request: NextRequest) {
         .from('agent_logs')
         .select('id, agent, action, status, data, created_at')
         .eq('agent', agentId)
-        .or(`user_id.eq.${user.id},user_id.is.null`)
+        .eq('user_id', user.id)
         .not('action', 'like', '%report_to_ceo%')
         .order('created_at', { ascending: false })
         .limit(30);
@@ -1186,7 +1236,7 @@ export async function GET(request: NextRequest) {
           .from('agent_logs')
           .select('id, action, data, status, created_at')
           .eq('agent', 'dm_instagram')
-          .or(`user_id.eq.${user.id},user_id.is.null`)
+          .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(30);
         for (const l of (logs || [])) {
@@ -1341,7 +1391,7 @@ export async function GET(request: NextRequest) {
         const { data: allLogs } = await supabase
           .from('agent_logs')
           .select('agent, action, status, created_at')
-          .or(`user_id.eq.${user.id},user_id.is.null`)
+          .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(50);
         agentData = {
