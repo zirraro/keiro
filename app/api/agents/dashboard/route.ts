@@ -346,13 +346,21 @@ async function getEmailData(
     sequenceProgress[step] = (sequenceProgress[step] || 0) + 1;
   }
 
-  // Recent email activities (sent, opened, replied)
+  // Recent email activities (sent, opened, replied) — strict per-account
+  // isolation. crm_activities carries user_id + org_id; older rows may have
+  // user_id NULL (back-filled before the column existed) so we additionally
+  // scope through the user's own prospect IDs as a second guard.
   const activityQuery = supabase
     .from('crm_activities')
     .select('prospect_id, type, description, created_at, data')
     .eq('type', 'email')
     .order('created_at', { ascending: false })
     .limit(15);
+  if (orgId) {
+    activityQuery.eq('org_id', orgId);
+  } else {
+    activityQuery.eq('user_id', userId);
+  }
 
   const { data: recentActivities } = await activityQuery;
 
@@ -878,11 +886,17 @@ async function getDmInstagramData(
     queueVerifiedReady = qv.count ?? 0;
   }
 
-  // Prospects with Instagram for DM potential
-  const { count: prospectsWithIG } = await supabase.from('crm_prospects')
+  // Prospects with Instagram for DM potential — strict per-account isolation.
+  const igProspectsQuery = supabase.from('crm_prospects')
     .select('id', { count: 'exact', head: true })
     .not('instagram', 'is', null)
     .neq('instagram', '');
+  if (orgId) {
+    igProspectsQuery.eq('org_id', orgId);
+  } else {
+    igProspectsQuery.eq('user_id', userId);
+  }
+  const { count: prospectsWithIG } = await igProspectsQuery;
 
   // Likes given (from send-queue pre-engagement) — note the column is `data`,
   // not `result`, so the previous read was always undefined.
@@ -1190,13 +1204,15 @@ export async function GET(request: NextRequest) {
           });
         }
       } else if (agentId === 'email') {
-        // Emails sent + prospects in sequence
+        // Emails sent + prospects in sequence — strict per-account isolation.
         let query = supabase
           .from('crm_activities')
           .select('id, prospect_id, type, description, data, created_at')
           .ilike('type', 'email%')
           .order('created_at', { ascending: false })
           .limit(50);
+        if (orgId) query = query.eq('org_id', orgId);
+        else query = query.eq('user_id', user.id);
         const { data: activities } = await query;
         for (const a of (activities || [])) {
           const d = a.data as any;

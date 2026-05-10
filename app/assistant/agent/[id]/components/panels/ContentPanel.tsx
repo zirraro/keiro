@@ -727,8 +727,13 @@ function ContentProductionSection({ data, gradientFrom, gradientTo, stats, p }: 
       <SectionTitle>{p.contentSectionPerf}</SectionTitle>
       <PerNetworkStats stats={stats} />
 
+      {/* Live performance KPIs — strictly count posts the user actually
+          PUBLISHED. The previous fallback "publishedPosts || postsGenerated"
+          made drafts and publish_failed entries surface as if they had been
+          published, which confused clients (and looked like fake numbers
+          to a Meta reviewer). */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-3">
-        <KpiCard label={p.contentKpiPublished} value={fmt((stats as any).publishedPosts || stats.postsGenerated || 0)} gradientFrom="#8b5cf6" gradientTo="#6d28d9" />
+        <KpiCard label={p.contentKpiPublished} value={fmt((stats as any).publishedPosts || 0)} gradientFrom="#8b5cf6" gradientTo="#6d28d9" />
         <KpiCard label={p.contentKpiLikes} value={fmt((stats as any).totalLikes || 0)} gradientFrom="#ec4899" gradientTo="#f43f5e" />
         <KpiCard label={p.contentKpiReach} value={fmt((stats as any).reach || 0)} gradientFrom="#06b6d4" gradientTo="#0891b2" />
         <KpiCard label={p.contentKpiEngagement} value={`${((stats as any).accountsEngaged || (stats as any).engagement || 0)}%`} gradientFrom="#10b981" gradientTo="#059669" />

@@ -72,22 +72,62 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
           </a>
         </div>
 
-        {/* Visibilite bloc */}
+        {/* Visibilité bloc — only the metrics that are decoupled from
+            Instagram activity belong here. Followers were previously double-
+            counted as both "Followers" (this section) and "Posts" (next
+            section), and the value silently fell back to gs.visibility.traffic
+            which was itself the same IG followers count — leaking organic
+            audience figures even when no KeiroAI content had been published. */}
         <SectionTitle>{p.marketingSectionVisibility}</SectionTitle>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          <KpiCard label={p.marketingLabelFollowers} value={fmt((gs as any).instagram?.followersCount || gs.visibility?.traffic || 0)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
           <KpiCard label={p.marketingLabelActions} value={fmt(gs.visibility?.totalActions || 0)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
           <KpiCard label={p.marketingLabelRecommendation} value={gs.recommendation ? '1' : '0'} gradientFrom={gradientFrom} gradientTo={gradientTo} />
         </div>
 
-        {/* Instagram engagement bloc */}
+        {/* Instagram engagement — three states:
+            (1) not connected → CTA to connect.
+            (2) connected but no KeiroAI-published content yet → empty state
+                so we never surface organic follower figures as if they were
+                produced by KeiroAI.
+            (3) connected + at least one published post → real Graph API
+                metrics.
+            The `connected` and `hasActivity` flags come from the dashboard
+            API and are the single source of truth across Léna / Ami / CEO. */}
         <SectionTitle>{p.marketingSectionInstagram}</SectionTitle>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-          <KpiCard label={p.marketingLabelPosts} value={fmt((gs as any).instagram?.postsCount || 0)} gradientFrom="#8b5cf6" gradientTo="#6d28d9" />
-          <KpiCard label={p.marketingLabelLikes} value={fmt((gs as any).instagram?.likes || 0)} gradientFrom="#ec4899" gradientTo="#f43f5e" />
-          <KpiCard label={p.marketingLabelReach} value={fmt((gs as any).instagram?.reach || 0)} gradientFrom="#06b6d4" gradientTo="#0891b2" />
-          <KpiCard label={p.marketingLabelEngagement} value={`${((gs as any).instagram?.engagement || 0).toFixed?.(1) || '0'}%`} gradientFrom="#10b981" gradientTo="#059669" />
-        </div>
+        {!(gs as any).instagram?.connected ? (
+          <div className="rounded-xl border border-white/10 bg-white/[0.02] p-5 text-center">
+            <div className="text-2xl mb-2">{'\u{1F4F8}'}</div>
+            <div className="text-sm font-semibold text-white mb-1">Connect Instagram to see engagement</div>
+            <p className="text-[11px] text-white/50 max-w-md mx-auto mb-3">
+              Ami&apos;s Instagram metrics come straight from Meta&apos;s Graph
+              API once you connect a Business account and publish at least one
+              post.
+            </p>
+            <a
+              href="/api/auth/instagram-oauth"
+              className="inline-flex items-center px-4 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold hover:opacity-90 transition"
+            >
+              {'⚡'} Connect Instagram Business
+            </a>
+          </div>
+        ) : !(gs as any).instagram?.hasActivity ? (
+          <div className="rounded-xl border border-white/10 bg-white/[0.02] p-5 text-center">
+            <div className="text-sm font-semibold text-white mb-1">No published content yet</div>
+            <p className="text-[11px] text-white/50 max-w-md mx-auto">
+              Ami will display real Instagram engagement (posts, likes, reach,
+              engagement rate) once Léna publishes the first post. We never
+              show demo or organic-account numbers here.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            <KpiCard label={p.marketingLabelFollowers} value={fmt((gs as any).instagram?.followersCount || 0)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+            <KpiCard label={p.marketingLabelPosts} value={fmt((gs as any).instagram?.postsCount || 0)} gradientFrom="#8b5cf6" gradientTo="#6d28d9" />
+            <KpiCard label={p.marketingLabelLikes} value={fmt((gs as any).instagram?.likes || 0)} gradientFrom="#ec4899" gradientTo="#f43f5e" />
+            <KpiCard label={p.marketingLabelReach} value={fmt((gs as any).instagram?.reach || 0)} gradientFrom="#06b6d4" gradientTo="#0891b2" />
+            <KpiCard label={p.marketingLabelEngagement} value={`${((gs as any).instagram?.engagement || 0).toFixed?.(1) || '0'}%`} gradientFrom="#10b981" gradientTo="#059669" />
+          </div>
+        )}
 
         {/* Finance bloc */}
         <SectionTitle>{p.marketingSectionFinance}</SectionTitle>
