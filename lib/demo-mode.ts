@@ -19,6 +19,31 @@ import { useEffect, useState } from 'react';
 
 const KEY = 'keiro_demo_mode';
 
+// Reviewer accounts that should land with demo annotations on by default
+// — Meta's App Review reviewer logs in here, so we want every Graph API
+// caption visible without them having to click any toggle. Email-based
+// match means the flag survives password resets and email changes inside
+// the same auth user.
+const AUTO_DEMO_EMAILS = new Set([
+  'mrzirraro+metareview@gmail.com',
+  'metareview@keiroai.com',
+]);
+const AUTO_DEMO_USER_IDS = new Set([
+  '84ab08f0-f653-4c82-be28-4dd6a65dfbf2', // Meta App Review reviewer
+]);
+
+async function readReviewerHints(): Promise<{ email?: string; userId?: string } | null> {
+  try {
+    const { supabaseBrowser } = await import('@/lib/supabase/client');
+    const sb = supabaseBrowser();
+    const { data: { user } } = await sb.auth.getUser();
+    if (!user) return null;
+    return { email: user.email || undefined, userId: user.id };
+  } catch {
+    return null;
+  }
+}
+
 export function useDemoMode(): boolean {
   const [on, setOn] = useState(false);
 
@@ -37,7 +62,24 @@ export function useDemoMode(): boolean {
         setOn(false);
         return;
       }
-      setOn(localStorage.getItem(KEY) === '1');
+      // localStorage seed
+      if (localStorage.getItem(KEY) === '1') {
+        setOn(true);
+        return;
+      }
+      // Auto-enable for the Meta App Review reviewer accounts so they don't
+      // need to flip a switch when filming or testing — the captions are
+      // only useful to them and to the founder while filming demos.
+      readReviewerHints().then(hints => {
+        if (!hints) return;
+        const isReviewer =
+          (hints.email && AUTO_DEMO_EMAILS.has(hints.email)) ||
+          (hints.userId && AUTO_DEMO_USER_IDS.has(hints.userId));
+        if (isReviewer) {
+          try { localStorage.setItem(KEY, '1'); } catch {}
+          setOn(true);
+        }
+      });
     } catch {
       setOn(false);
     }

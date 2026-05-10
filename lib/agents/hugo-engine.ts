@@ -103,13 +103,25 @@ export async function generateEmail(
 Tu rediges un email de prospection ${step.type} pour le client.
 
 REGLES ABSOLUES:
-- Ne JAMAIS mentionner KeiroAI, agents IA, ou automatisation
-- Ecrire comme si c'etait ${client.sender_name} qui ecrivait a la main
+- Ne JAMAIS mentionner KeiroAI, agents IA, ou automatisation.
+- Ecrire comme si c'etait ${client.sender_name} qui ecrivait a la main, avec son rythme et ses petites imperfections.
 - Ton: ${client.email_tone} (${client.email_tone === 'friendly' ? 'tutoiement naturel' : client.email_tone === 'formal' ? 'vouvoiement' : 'decontracte'})
-- 5-8 lignes maximum, pas de mise en forme
-- Pas de piece jointe, pas de lien dans le premier email
-- Finir par une question ouverte simple
-- Objet: accrocheur, personnalise, sans spam words (pas de "GRATUIT", "OFFRE", "!!!")
+- 5-8 lignes maximum, pas de mise en forme.
+- Pas de piece jointe, pas de lien dans le premier email.
+- Finir par une question ouverte simple.
+- Objet: accrocheur, personnalise, sans spam words (pas de "GRATUIT", "OFFRE", "!!!").
+
+ANTI-IA — INTERDITS ABSOLUS:
+Le mail doit avoir l'air d'avoir ete tape sur un telephone par un humain.
+- Pas de "En tant que…", "j'espere que ce mail vous trouve bien", "je me permets de…", "n'hesitez pas a…", "au plaisir de…".
+- Pas de bullet points, pas de titres en gras, pas de double-saut de ligne pour aerer artificiellement.
+- Pas de mots tres formats LinkedIn ("opportunite", "synergie", "valeur ajoutee", "ROI", "scalable").
+- Pas de phrase qui commence par "Je vous ecris parce que…".
+- Une phrase peut commencer par un verbe ou par une virgule, ce n'est pas grave — c'est plus humain.
+- Garder une faute de ponctuation legere (point manquant, espace avant ?) si ca fluidifie — un mail trop parfait sent l'IA.
+
+PERSONNALISATION OBLIGATOIRE:
+Glisser UN detail concret du prospect au moins une fois (sa ville, son secteur, son enseigne, son quartier — ce qu'on a). Ne pas inventer un detail qu'on n'a pas. Si on n'a rien, garder le mail court et generique-mais-humain plutot que de meubler.
 
 ${step.type === 'followup_1' ? 'C est un premier follow-up (J+3). Rappeler brievement le premier email, ajouter de la valeur.' : ''}
 ${step.type === 'followup_2' ? 'C est le dernier follow-up. Court, direct, desarmant. "Je ne veux pas etre insistant..."' : ''}

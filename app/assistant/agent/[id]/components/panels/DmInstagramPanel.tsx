@@ -1354,6 +1354,123 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
   );
 }
 
+// JadeCampaignActions — five "fire and acknowledge" buttons. Each click
+// hits the relevant /api/agents/dm-instagram/* endpoint and surfaces an
+// inline toast so the user actually sees that the click went through.
+// Previously the buttons silently POST'd which felt like "clic sans effet".
+function JadeCampaignActions({ p }: { p: any }) {
+  const [busy, setBusy] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
+
+  const fire = useCallback(async (kind: string, fn: () => Promise<{ ok: boolean; text: string }>) => {
+    if (busy) return;
+    setBusy(kind);
+    setToast(null);
+    try {
+      const r = await fn();
+      setToast({ kind: r.ok ? 'ok' : 'err', text: r.text });
+    } catch (e: any) {
+      setToast({ kind: 'err', text: e?.message || 'Erreur réseau' });
+    } finally {
+      setBusy(null);
+      setTimeout(() => setToast(null), 4500);
+    }
+  }, [busy]);
+
+  const actions = [
+    {
+      key: 'prepare',
+      label: p.dmCampaignPrepare,
+      desc: p.dmCampaignPrepareDesc,
+      icon: '\u{1F4AC}',
+      classes: 'bg-pink-500/10 border-pink-500/20 hover:bg-pink-500/20 text-pink-400',
+      run: async () => {
+        const r = await fetch('/api/agents/dm-instagram?slot=morning', { method: 'POST', credentials: 'include' });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok) return { ok: false, text: j.error || 'Préparation échouée' };
+        const prepared = j?.prepared ?? j?.queued ?? null;
+        return { ok: true, text: prepared !== null ? `${prepared} DM préparés et prêts à envoyer.` : 'Préparation lancée — vérifie la file dans quelques secondes.' };
+      },
+    },
+    {
+      key: 'follow',
+      label: p.dmCampaignFollow,
+      desc: p.dmCampaignFollowDesc,
+      icon: '\u{1F465}',
+      classes: 'bg-cyan-500/10 border-cyan-500/20 hover:bg-cyan-500/20 text-cyan-400',
+      run: async () => {
+        const r = await fetch('/api/agents/dm-instagram/follow-prospects', { method: 'POST', credentials: 'include' });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok) return { ok: false, text: j.error || 'Échec du follow' };
+        return { ok: true, text: `${j.followed ?? 0} comptes suivis · ${j.skipped ?? 0} ignorés · ${j.failed ?? 0} échecs.` };
+      },
+    },
+    {
+      key: 'likes',
+      label: p.dmCampaignLikes,
+      desc: p.dmCampaignLikesDesc,
+      icon: '❤️',
+      classes: 'bg-purple-500/10 border-purple-500/20 hover:bg-purple-500/20 text-purple-400',
+      run: async () => {
+        const r = await fetch('/api/agents/dm-instagram/send-queue', { method: 'POST', credentials: 'include' });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok) return { ok: false, text: j.error || 'Envoi de la file échoué' };
+        const sent = j?.sent ?? j?.delivered ?? null;
+        return { ok: true, text: sent !== null ? `${sent} DM envoyés depuis la file.` : 'File traitée — refresh dans 30 sec pour voir les envois.' };
+      },
+    },
+    {
+      key: 'comments',
+      label: p.dmCampaignComments,
+      desc: p.dmCampaignCommentsDesc,
+      icon: '\u{1F4DD}',
+      classes: 'bg-blue-500/10 border-blue-500/20 hover:bg-blue-500/20 text-blue-400',
+      run: async () => {
+        const r = await fetch('/api/agents/content?slot=community', { method: 'GET', credentials: 'include' });
+        if (!r.ok) return { ok: false, text: 'Génération commentaires échouée' };
+        return { ok: true, text: 'Commentaires communautaires en cours de génération.' };
+      },
+    },
+    {
+      key: 'autoreply',
+      label: p.dmCampaignAutoReply,
+      desc: p.dmCampaignAutoReplyDesc,
+      icon: '\u{1F504}',
+      classes: 'bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/20 text-emerald-400',
+      run: async () => {
+        const r = await fetch('/api/agents/dm-instagram/auto-reply', { method: 'POST', credentials: 'include' });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok) return { ok: false, text: j.error || 'Réponses auto échouées' };
+        return { ok: true, text: `${j.replied ?? 0} réponses préparées en attente de validation.` };
+      },
+    },
+  ];
+
+  return (
+    <div>
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-3">
+        {actions.map(a => (
+          <button
+            key={a.key}
+            onClick={() => fire(a.key, a.run)}
+            disabled={busy !== null}
+            className={`flex flex-col items-center gap-1 p-3 border rounded-xl transition text-center disabled:opacity-50 ${a.classes}`}
+          >
+            <span className="text-lg">{busy === a.key ? '...' : a.icon}</span>
+            <span className="text-[10px] font-bold">{a.label}</span>
+            <span className="text-[8px] text-white/30 leading-tight">{a.desc}</span>
+          </button>
+        ))}
+      </div>
+      {toast && (
+        <div className={`mb-3 px-3 py-2 rounded-lg text-[11px] border ${toast.kind === 'ok' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' : 'bg-rose-500/10 border-rose-500/20 text-rose-300'}`}>
+          {toast.kind === 'ok' ? '✓ ' : '⚠ '}{toast.text}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // JadeHeader — compact identity + Human Agent Protocol in a single card.
 // Replaces the previous stack of (InstagramAssetBadge + protocol banner +
 // SocialConnectBanners) which was three banners visually competing for
@@ -1473,99 +1590,17 @@ export function DmInstagramPanel({ data, agentName, gradientFrom, gradientTo }: 
         <KpiCard label={p.dmKpiProspects} value={fmt((stats as any).prospectsWithIG || 0)} gradientFrom="#ec4899" gradientTo="#db2777" />
       </div>
 
-      {/* Campaign actions */}
+      {/* Campaign actions — replaced by an interactive component that
+          toasts feedback so the user sees what each click triggered. The
+          previous implementation fired the fetch silently which felt like
+          "clic sans effet". */}
       <SectionTitle>{p.dmSectionCampaign}</SectionTitle>
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-3">
-        <button
-          onClick={() => {
-            fetch('/api/agents/dm-instagram?slot=morning', { method: 'POST', credentials: 'include' }).catch(() => {});
-          }}
-          className="flex flex-col items-center gap-1 p-3 bg-pink-500/10 border border-pink-500/20 rounded-xl hover:bg-pink-500/20 transition text-center"
-        >
-          <span className="text-lg">{'\u{1F4AC}'}</span>
-          <span className="text-[10px] text-pink-400 font-bold">{p.dmCampaignPrepare}</span>
-          <span className="text-[8px] text-white/30">{p.dmCampaignPrepareDesc}</span>
-        </button>
-        <button
-          onClick={() => {
-            fetch('/api/agents/dm-instagram/follow-prospects', { method: 'POST', credentials: 'include' })
-              .then(r => r.json())
-              .then(d => { if (d?.ok) alert(`${d.followed ?? 0} accounts followed. ${d.skipped ?? 0} skipped, ${d.failed ?? 0} failed.`); })
-              .catch(() => {});
-          }}
-          className="flex flex-col items-center gap-1 p-3 bg-cyan-500/10 border border-cyan-500/20 rounded-xl hover:bg-cyan-500/20 transition text-center"
-          title={p.dmCampaignFollowDesc}
-        >
-          <span className="text-lg">{'\u{1F465}'}</span>
-          <span className="text-[10px] text-cyan-400 font-bold">{p.dmCampaignFollow}</span>
-          <span className="text-[8px] text-white/30">{p.dmCampaignFollowDesc}</span>
-        </button>
-        <button
-          onClick={() => {
-            fetch('/api/agents/dm-instagram/send-queue', { method: 'POST', credentials: 'include' }).catch(() => {});
-          }}
-          className="flex flex-col items-center gap-1 p-3 bg-purple-500/10 border border-purple-500/20 rounded-xl hover:bg-purple-500/20 transition text-center"
-        >
-          <span className="text-lg">{'\u2764\uFE0F'}</span>
-          <span className="text-[10px] text-purple-400 font-bold">{p.dmCampaignLikes}</span>
-          <span className="text-[8px] text-white/30">{p.dmCampaignLikesDesc}</span>
-        </button>
-        <button
-          onClick={() => {
-            fetch('/api/agents/content?slot=community', { method: 'GET', credentials: 'include' }).catch(() => {});
-          }}
-          className="flex flex-col items-center gap-1 p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl hover:bg-blue-500/20 transition text-center"
-        >
-          <span className="text-lg">{'\u{1F4DD}'}</span>
-          <span className="text-[10px] text-blue-400 font-bold">{p.dmCampaignComments}</span>
-          <span className="text-[8px] text-white/30">{p.dmCampaignCommentsDesc}</span>
-        </button>
-        <button
-          onClick={() => {
-            fetch('/api/agents/dm-instagram/auto-reply', { method: 'POST', credentials: 'include' }).catch(() => {});
-          }}
-          className="flex flex-col items-center gap-1 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl hover:bg-emerald-500/20 transition text-center"
-        >
-          <span className="text-lg">{'\u{1F504}'}</span>
-          <span className="text-[10px] text-emerald-400 font-bold">{p.dmCampaignAutoReply}</span>
-          <span className="text-[8px] text-white/30">{p.dmCampaignAutoReplyDesc}</span>
-        </button>
-      </div>
+      <JadeCampaignActions p={p} />
 
-      {/* Pipeline funnel — full DM attribution chain */}
-      <div data-tour="dm-stats" className="rounded-xl border border-white/10 bg-white/[0.02] p-3 mb-3">
-        <div className="flex items-center justify-between gap-1 text-center">
-          {[
-            { label: p.dmFunnelProspects, value: (stats as any).prospectsWithIG || 0, icon: '\u{1F4F8}', color: '#ec4899' },
-            { label: p.dmFunnelVerified, value: (stats as any).queueVerifiedReady || 0, icon: '\u2705', color: '#8b5cf6' },
-            { label: p.dmFunnelSent, value: (stats as any).queueSent || stats.dmsSent || 0, icon: '\u{1F4AC}', color: '#3b82f6' },
-            { label: p.dmFunnelReplies, value: (stats as any).queueResponded || stats.responses || 0, icon: '\u{1F4EC}', color: '#f59e0b' },
-            { label: p.dmFunnelConversions, value: stats.rdvGenerated || 0, icon: '\u{1F525}', color: '#22c55e' },
-          ].map((step, i) => (
-            <div key={step.label} className="flex items-center flex-1">
-              <div className="flex-1 text-center">
-                <div className="text-sm mb-0.5">{step.icon}</div>
-                <div className="text-sm font-bold" style={{ color: step.color }}>{fmt(step.value)}</div>
-                <div className="text-[8px] text-white/30 mt-0.5">{step.label}</div>
-              </div>
-              {i < 4 && <div className="text-white/15 text-[10px]">{'\u2192'}</div>}
-            </div>
-          ))}
-        </div>
-        {((stats as any).queueSkipped || 0) > 0 && (
-          <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between text-[10px]">
-            <span className="text-white/40">{p.dmFunnelFilteredLabel}</span>
-            <span className="text-red-400 font-semibold">{fmt((stats as any).queueSkipped || 0)} {p.dmFunnelFilteredBadge}</span>
-          </div>
-        )}
-        {(stats as any).queueSent > 0 && (
-          <div className="mt-1 flex items-center justify-between text-[10px]">
-            <span className="text-white/40">{p.dmFunnelResponseRate}</span>
-            <span className="text-emerald-400 font-semibold">{stats.responseRate || 0}%</span>
-          </div>
-        )}
-      </div>
-
+      {/* DM funnel (prospects → conversion) moved to /assistant/crm where
+          the conversion view belongs. The Jade panel keeps only the live
+          stats that matter for daily action: KPIs at the top, pending
+          DMs queue, conversations + comments below. */}
       {/* Removed redundant Queue + engagement grid (duplicate of KPIs/funnel)
           and the standalone CRM button (kept inline below if there's activity). */}
       {(((stats as any).likesGiven || 0) > 0) && (
