@@ -3949,8 +3949,42 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
         if (a[i]) stratified.push(`[${c}] ${a[i]}`);
       }
     }
-    const newsItems = stratified.slice(0, 12);
-    trendsTrendItems = trendItems;
+    // Cap reuse of any single news headline to MAX 2 times in the last 14
+    // days for this client. The previous logic happily reshuffled the same
+    // 12 news to Sonnet every day, so the same "Euro 2024" / "Soldes d'été"
+    // could anchor 4 posts in a row. Match by 12-char rolling subsequence
+    // against recent post hooks/captions/visual descriptions to catch
+    // paraphrases too.
+    const fortnightAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+    let recentTextBlob = '';
+    try {
+      const { data: priorPosts } = await supabase
+        .from('content_calendar')
+        .select('hook, caption, visual_description')
+        .eq('user_id', userId)
+        .gte('created_at', fortnightAgo)
+        .limit(60);
+      recentTextBlob = (priorPosts || [])
+        .map((p: any) => `${p.hook || ''} ${p.caption || ''} ${p.visual_description || ''}`.toLowerCase())
+        .join(' ');
+    } catch {}
+    const countOccurrences = (haystack: string, needle: string) => {
+      if (!needle || needle.length < 8) return 0;
+      let count = 0;
+      let idx = 0;
+      const n = needle.toLowerCase();
+      while ((idx = haystack.indexOf(n, idx)) !== -1) { count++; idx += n.length; }
+      return count;
+    };
+    const NEWS_REUSE_CAP = 2;
+    const filteredNews = stratified.filter(headline => {
+      // headline format: "[Catégorie] Titre…" — keep the title slice
+      const title = headline.replace(/^\[[^\]]+\]\s*/, '').slice(0, 60);
+      return countOccurrences(recentTextBlob, title) < NEWS_REUSE_CAP;
+    });
+    const filteredTrends = trendItems.filter((t: string) => countOccurrences(recentTextBlob, String(t).toLowerCase().slice(0, 40)) < NEWS_REUSE_CAP);
+    const newsItems = filteredNews.slice(0, 12);
+    trendsTrendItems = filteredTrends;
     trendsNewsItems = newsItems;
 
     // Event calendar — key dates to leverage in content

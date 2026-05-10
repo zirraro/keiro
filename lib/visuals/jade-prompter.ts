@@ -57,12 +57,23 @@ FOR SOCIAL THUMBNAILS:
 ABSOLUTELY FORBIDDEN:
 - Any text, letters, numbers, signs, watermarks, logos
 - Smartphones, phones, tablets, screens, mockups, UI
-- Hex color codes — use colour names (deep violet, soft amber…)
+- Hex color codes — use colour names (warm amber, sage green, deep terracotta, soft cream, charcoal, ochre…)
 - Generic stock-photo feel
+- "AI-looking" colour aesthetics: avoid the saturated purple / magenta /
+  electric violet / neon-cyan gradients that scream "this was generated".
+  No glowing aurora-style backdrops. No pink-to-purple synthwave skies.
+  Default to grounded, photographic palettes drawn from the client's
+  actual brand colours and venue lighting.
 - Stereotypical "restaurant food" or "boutique item" that doesn't match
   the client's brand (e.g. a pizza for a sushi place, a tech gadget for
   a vintage clothing store, a dumbbell for a yoga studio). When in doubt
-  describe the SPACE, not a specific product`;
+  describe the SPACE, not a specific product
+
+LANGUAGE OF ANY TEXT (only relevant if the no-text rule is explicitly
+overridden by the brief): default to FRENCH. Captions, signs or in-image
+words must be French unless the brief states the client's audience is
+non-French-speaking. This avoids broken-English overlays that look
+imported from a US template.`;
 
 const NEGATIVE_PROMPT = 'text, words, letters, numbers, writing, typography, signs, labels, captions, watermarks, logos, headlines, slogans, brand names, price tags, menus, screens with text, readable characters, digits';
 const NO_TEXT_SUFFIX = '\nCRITICAL: Absolutely NO text, NO letters, NO words, NO numbers, NO writing, NO signs, NO labels, NO watermarks, NO logos, NO digits, NO characters, NO typography anywhere in the image. The image must contain ZERO readable text or number-like shapes. Pure photographic visual only.';
