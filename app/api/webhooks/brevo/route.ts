@@ -343,14 +343,36 @@ export async function POST(request: NextRequest) {
         case 'unsubscribed':
         case 'spam':
         case 'complaint': {
+          // Hard-stop the sequence and persist to the legal blacklist so
+          // the Hugo send route refuses any future delivery attempt for
+          // this email — required by GDPR / CAN-SPAM. We also flip the
+          // prospect to "perdu" (was "paused" before, which a re-import
+          // could accidentally undo).
           await supabase
             .from('crm_prospects')
             .update({
-              email_sequence_status: 'paused',
+              email_sequence_status: 'stopped',
+              status: 'perdu',
               temperature: 'dead',
               updated_at: now,
             })
             .eq('id', prospect.id);
+
+          if (prospect.user_id || (prospect as any).org_id) {
+            const clientId = (prospect.user_id || (prospect as any).org_id) as string;
+            await supabase
+              .from('email_blacklist')
+              .upsert(
+                {
+                  client_id: clientId,
+                  email: prospect.email,
+                  reason: `brevo_${eventType}`,
+                  created_at: now,
+                },
+                { onConflict: 'client_id,email' }
+              );
+            // upsert errors are non-fatal: prospect record is already flipped above
+          }
 
           await supabase.from('crm_activities').insert({
             prospect_id: prospect.id,
@@ -450,9 +472,27 @@ ${replyContent.substring(0, 2000)}
             status: classification.newStatus,
             updated_at: now,
           };
-          // Stop email sequence for negative intents
+          // Stop email sequence for negative intents and add explicit
+          // unsubscribes to the legal blacklist (GDPR + CAN-SPAM). Even if
+          // an incoming reply was misclassified, the prospect record is
+          // already flipped to "perdu" so a single replay won't slip past.
           if (['closed_business', 'unsubscribe', 'negative'].includes(classification.intent)) {
             updateData.email_sequence_status = 'stopped';
+          }
+          if (classification.intent === 'unsubscribe' && (prospect.user_id || (prospect as any).org_id)) {
+            const clientId = (prospect.user_id || (prospect as any).org_id) as string;
+            await supabase
+              .from('email_blacklist')
+              .upsert(
+                {
+                  client_id: clientId,
+                  email: prospect.email,
+                  reason: 'reply_unsubscribe',
+                  created_at: now,
+                },
+                { onConflict: 'client_id,email' }
+              );
+            // upsert errors are non-fatal: prospect record is already flipped above
           }
 
           await supabase.from('crm_prospects').update(updateData).eq('id', prospect.id);

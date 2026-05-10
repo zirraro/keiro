@@ -4,6 +4,7 @@ import { getAuthUser } from '@/lib/auth-server';
 import { getEmailTemplate } from '@/lib/agents/email-templates';
 import { getSequenceForProspect } from '@/lib/agents/scoring';
 import { canSendEmail } from '@/lib/agents/email-dedup';
+import { isBlacklisted } from '@/lib/agents/hugo-engine';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -97,6 +98,42 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { ok: false, error: 'Prospect sans email' },
         { status: 400 }
+      );
+    }
+
+    // --- Unsubscribe / blacklist guard (legal: GDPR + CAN-SPAM) ---
+    // Hugo's reply analyser already adds an entry to email_blacklist when it
+    // detects an unsubscribe intent (see hugo-engine.ts isBlacklisted /
+    // markBlacklisted, fed by hugo-reply.ts). Check it here before EVERY send
+    // so a follow-up email never lands on someone who asked us to stop. Also
+    // refuse to send if the prospect record itself was flipped to dead/stopped
+    // (safety belt — Brevo webhook unsubscribes flip the prospect status).
+    const ownerForBlacklist = body?.user_id || prospect.user_id || null;
+    if (ownerForBlacklist) {
+      const blocked = await isBlacklisted(supabase, ownerForBlacklist, prospect.email).catch(() => false);
+      if (blocked) {
+        await supabase.from('agent_logs').insert({
+          agent: 'email',
+          action: 'send_blocked_blacklist',
+          data: { prospect_id, prospect_email: prospect.email, reason: 'unsubscribe' },
+          status: 'success',
+          user_id: ownerForBlacklist,
+          ...(orgId ? { org_id: orgId } : {}),
+        });
+        return NextResponse.json(
+          { ok: false, error: 'Prospect a demandé l\'arrêt des emails', blocked: 'unsubscribed' },
+          { status: 410 }
+        );
+      }
+    }
+    if (
+      prospect.email_sequence_status === 'stopped' ||
+      prospect.temperature === 'dead' ||
+      prospect.status === 'perdu'
+    ) {
+      return NextResponse.json(
+        { ok: false, error: 'Prospect marqué dead / sequence stopped — relance bloquée' },
+        { status: 410 }
       );
     }
 
