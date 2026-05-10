@@ -94,6 +94,7 @@ export function InstagramAssetBadge() {
         </div>
         <a
           href="/api/auth/instagram-oauth"
+          data-meta-review="connect-instagram"
           title="Starts the standard Meta OAuth flow: redirects to Facebook, you select the Page and Instagram Business account, you grant the requested permissions, and you are returned here. We store only access tokens and the IG Business account ID."
           className="flex-shrink-0 px-3 py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white text-[11px] font-bold rounded-lg hover:opacity-90 transition"
         >

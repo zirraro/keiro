@@ -1,0 +1,56 @@
+/**
+ * Demo / Meta App Review mode.
+ *
+ * When the URL carries `?demo=1` the workspace renders extra inline
+ * explanations under every Meta-critical button and during every Graph
+ * API call, so a reviewer can record a screencast WITHOUT subtitles or
+ * narration and still understand exactly what each click triggers.
+ *
+ * Activated by the public /meta-review page when the reviewer clicks the
+ * deep links — every workspace URL receives `?lang=en&demo=1`.
+ *
+ * Persisted in localStorage so the flag survives navigation within the
+ * SPA. Cleared with `?demo=0`.
+ */
+
+'use client';
+
+import { useEffect, useState } from 'react';
+
+const KEY = 'keiro_demo_mode';
+
+export function useDemoMode(): boolean {
+  const [on, setOn] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const url = new URL(window.location.href);
+      const v = url.searchParams.get('demo');
+      if (v === '1') {
+        localStorage.setItem(KEY, '1');
+        setOn(true);
+        return;
+      }
+      if (v === '0') {
+        localStorage.removeItem(KEY);
+        setOn(false);
+        return;
+      }
+      setOn(localStorage.getItem(KEY) === '1');
+    } catch {
+      setOn(false);
+    }
+  }, []);
+
+  return on;
+}
+
+export function isDemoModeSync(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return localStorage.getItem(KEY) === '1';
+  } catch {
+    return false;
+  }
+}

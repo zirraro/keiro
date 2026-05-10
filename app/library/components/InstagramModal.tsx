@@ -6,6 +6,7 @@ import InstagramCarouselModal from './InstagramCarouselModal';
 import AudioEditorWidget from './AudioEditorWidget';
 import ImageEditModal from './ImageEditModal';
 import { useLanguage } from '@/lib/i18n/context';
+import { DemoCaption } from '@/components/meta/DemoCaption';
 
 type SavedImage = {
   id: string;
@@ -1526,11 +1527,12 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
             {/* Boutons de publication Instagram (seulement si connecté) */}
             {isInstagramConnected ? (
               <>
+                <div className="flex-1 flex flex-col">
                 <button
                   onClick={handlePublishNow}
                   disabled={publishing || !caption.trim()}
                   title="Publishes this image and caption to your Instagram Business account by calling the Graph API: POST /{ig-id}/media to create a media container, then POST /{ig-id}/media_publish to publish it. This is a manual human action — nothing is published automatically."
-                  className={`flex-1 px-3 sm:px-4 py-2 sm:py-3 rounded-lg font-medium text-white transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm ${
+                  className={`w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg font-medium text-white transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm ${
                     publishing || !caption.trim()
                       ? 'bg-neutral-400 cursor-not-allowed'
                       : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl'
@@ -1548,6 +1550,10 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                     </>
                   )}
                 </button>
+                <DemoCaption variant="light">
+                  Manual click → POST /{`<ig-id>`}/media (create container) → POST /{`<ig-id>`}/media_publish. Permission: instagram_business_content_publish.
+                </DemoCaption>
+                </div>
                 <button
                   onClick={() => setShowCarouselModal(true)}
                   className="flex-1 px-3 sm:px-4 py-2 sm:py-3 rounded-lg font-medium text-white transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm bg-gradient-to-r from-purple-500 to-[#1e3a5f] hover:from-purple-600 hover:to-[#0c1a3a] shadow-lg hover:shadow-xl"

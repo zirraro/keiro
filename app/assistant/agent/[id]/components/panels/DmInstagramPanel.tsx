@@ -14,6 +14,7 @@ import { fmt, KpiCard, SectionTitle } from './Primitives';
 import { SocialConnectBanners, AgentNotifications } from './SharedBanners';
 import { InstagramAssetBadge } from './InstagramAssetBadge';
 import { useLanguage } from '@/lib/i18n/context';
+import { DemoCaption } from '@/components/meta/DemoCaption';
 import type { PanelProps } from './types';
 
 // Jade tabs: DMs + Comments switch
@@ -762,6 +763,7 @@ function DmConversationsLive() {
                 onClick={sendReply}
                 disabled={sending || !replyText.trim()}
                 className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white text-xs font-medium rounded-xl disabled:opacity-40 transition-all active:scale-95"
+                data-meta-review="dm-send"
                 title="Sends this reply via the Instagram Graph API (POST /me/messages with the recipient and message text). The send fires only on this click — no automation, no cron. If the conversation is older than 24h we add messaging_type=MESSAGE_TAG&tag=HUMAN_AGENT (Meta's customer-service human-agent window) so the human owner can finish the customer service inquiry."
               >
                 {sending ? (
@@ -770,6 +772,12 @@ function DmConversationsLive() {
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
                 )}
               </button>
+            </div>
+            {/* Demo-mode caption explaining the API call — visible only when ?demo=1 so a Meta App Review reviewer recording the screencast can see what each click triggers without any subtitles or narration. */}
+            <div className="px-3 pb-2">
+              <DemoCaption>
+                Manual click → POST /me/messages (recipient_id, message). Permission: instagram_business_manage_messages. If the customer&apos;s last message is older than 24h, we add messaging_type=MESSAGE_TAG&amp;tag=HUMAN_AGENT (permission: human_agent).
+              </DemoCaption>
             </div>
           </div>
         ) : (
@@ -942,6 +950,7 @@ function CommentCard({ comment: c, isDemo, onUpdate }: { comment: any; isDemo: b
       {!c.replied && !isDemo && (
         <div className="px-3 pb-3">
           {!showReply ? (
+            <>
             <div className="flex items-center gap-1.5">
               <button
                 onClick={() => sendReply()}
@@ -955,6 +964,10 @@ function CommentCard({ comment: c, isDemo, onUpdate }: { comment: any; isDemo: b
                 {p.dmCommentCardReplyManual}
               </button>
             </div>
+            <DemoCaption>
+              Manual click → POST /{`<comment-id>`}/replies. Permission: instagram_business_manage_comments. AI suggests the draft, owner sends.
+            </DemoCaption>
+            </>
           ) : (
             <div className="flex items-center gap-1.5">
               <input
