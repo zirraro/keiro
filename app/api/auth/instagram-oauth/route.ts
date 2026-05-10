@@ -74,6 +74,17 @@ export async function GET(req: NextRequest) {
     authUrl.searchParams.set('response_type', 'code');
     authUrl.searchParams.set('state', stateEncoded); // Pass user_id in state
 
+    // Re-prompt Meta's permission dialog. Used when recording the App
+    // Review screencast: a returning user normally sees only "Continue as
+    // Name", which hides the Page selector + IG account selector + the
+    // permissions grant screen Meta requires reviewers to see. Passing
+    // ?reauth=1 forces Meta to re-display the full dialog. This does not
+    // change which permissions are requested; it only affects what the
+    // user is shown.
+    if (req.nextUrl.searchParams.get('reauth') === '1') {
+      authUrl.searchParams.set('auth_type', 'rerequest');
+    }
+
     console.log('[InstagramOAuth] Redirecting to Meta OAuth:', authUrl.toString().substring(0, 100));
 
     // Rediriger vers Meta OAuth

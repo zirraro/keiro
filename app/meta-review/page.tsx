@@ -397,13 +397,46 @@ export default function MetaReviewPage() {
               count, confirming the OAuth grant succeeded.
             </Step>
           </ol>
-          <p className="text-xs text-neutral-500">
+          <p className="text-xs text-neutral-500 mb-4">
             Hovering any Meta-relevant button in the workspace (Send DM, Post
             Comment Reply, Publish to Instagram, Connect Instagram) reveals a
             tooltip describing the exact Graph API endpoint that will be hit
             on click. These tooltips are intentionally exhaustive so a reviewer
             can pause the screencast on any UI element and read what it does.
           </p>
+
+          <div className="rounded-lg border border-amber-300 bg-amber-50 p-4">
+            <div className="text-sm font-semibold text-amber-900 mb-2">
+              How to force the full Meta permissions dialog (Page selector + IG selector + grant screen)
+            </div>
+            <p className="text-xs text-amber-900/90 leading-relaxed mb-2">
+              On a returning Facebook account, Meta hides the full grant
+              dialog and only shows &quot;Continue as Name&quot;. To see the
+              entire flow (which is what App Review wants to see in the
+              screencast), use one of the two methods below:
+            </p>
+            <ol className="text-xs text-amber-900/90 list-decimal pl-5 space-y-2">
+              <li>
+                <strong>Force re-prompt via URL parameter (recommended for
+                screencasts).</strong> Use the link
+                <a
+                  href="/api/auth/instagram-oauth?reauth=1"
+                  className="text-blue-700 underline ml-1"
+                >
+                  /api/auth/instagram-oauth?reauth=1
+                </a>
+                — this passes <code>auth_type=rerequest</code> to Meta and
+                forces the full permissions dialog.
+              </li>
+              <li>
+                <strong>Manually revoke the app from Facebook (cleanest).</strong>
+                Open <a className="text-blue-700 underline" href="https://www.facebook.com/settings_and_privacy/business_integrations/" target="_blank" rel="noopener noreferrer">facebook.com/settings_and_privacy/business_integrations</a>,
+                find <em>KeiroAI</em>, click Remove, then click
+                &quot;Connect Instagram Business&quot; in the workspace. Meta
+                will display the entire flow because the integration is fresh.
+              </li>
+            </ol>
+          </div>
         </section>
 
         <section className="bg-white border border-neutral-200 rounded-2xl p-6 mb-8 shadow-sm">
