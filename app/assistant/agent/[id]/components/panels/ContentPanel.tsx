@@ -470,13 +470,13 @@ function PerNetworkStats({ stats }: { stats: any }) {
 // and a native deep-link so the client can jump straight into the platform
 // (only place where posts can actually be deleted — none of the APIs we use
 // authorize DELETE for IG or TikTok).
-function NetworkPreviewTab() {
+function NetworkPreviewTab({ initialNetwork }: { initialNetwork?: 'instagram' | 'tiktok' | 'linkedin' } = {}) {
   const NETWORKS = [
     { key: 'instagram', label: 'Instagram', color: '#e1306c', icon: '\u{1F4F8}' },
     { key: 'tiktok', label: 'TikTok', color: '#00f2ea', icon: '\u{1F3B5}' },
     { key: 'linkedin', label: 'LinkedIn', color: '#0A66C2', icon: '\u{1F4BC}' },
   ];
-  const [active, setActive] = useState<'instagram' | 'tiktok' | 'linkedin'>('instagram');
+  const [active, setActive] = useState<'instagram' | 'tiktok' | 'linkedin'>(initialNetwork ?? 'instagram');
   const [lightbox, setLightbox] = useState<any>(null);
   const [state, setState] = useState<Record<string, { loading: boolean; connected: boolean; posts: any[]; error?: string }>>({
     instagram: { loading: true, connected: false, posts: [] },
@@ -653,49 +653,240 @@ function NetworkPreviewTab() {
   );
 }
 
+// ─── Léna restructured by social network ──────────────────────
+// The whole panel is driven by ONE network selector at the top. Everything
+// below (connection card, discrete stats, inspiration, topic-of-the-week,
+// recent posts preview) belongs to the network the user just clicked.
+//
+// Why: previously the workspace had three "Connect Instagram" entry points
+// (asset badge, NetworkControls row, network preview tab) plus an
+// IG-only inspiration box, which felt scattered. Grouping everything per
+// network removes the redundancy and lets the page adapt automatically:
+// a client connected to Instagram only never sees TikTok/LinkedIn empty
+// shells.
+
+const LENA_NETWORKS = [
+  {
+    key: 'instagram' as const,
+    label: 'Instagram',
+    icon: '\u{1F4F8}',
+    color: '#e1306c',
+    accent: 'pink',
+    gradient: 'from-pink-500/20 to-purple-500/20',
+    border: 'border-pink-500/30',
+    accentText: 'text-pink-300',
+    accentBtn: 'bg-gradient-to-r from-pink-500 to-purple-600',
+    oauth: '/api/auth/instagram-oauth',
+  },
+  {
+    key: 'tiktok' as const,
+    label: 'TikTok',
+    icon: '\u{1F3B5}',
+    color: '#00f2ea',
+    accent: 'cyan',
+    gradient: 'from-cyan-500/20 to-emerald-500/20',
+    border: 'border-cyan-500/30',
+    accentText: 'text-cyan-300',
+    accentBtn: 'bg-gradient-to-r from-cyan-500 to-emerald-600',
+    oauth: '/api/auth/tiktok-oauth',
+  },
+  {
+    key: 'linkedin' as const,
+    label: 'LinkedIn',
+    icon: '\u{1F4BC}',
+    color: '#0A66C2',
+    accent: 'blue',
+    gradient: 'from-blue-500/20 to-sky-500/20',
+    border: 'border-blue-500/30',
+    accentText: 'text-blue-300',
+    accentBtn: 'bg-gradient-to-r from-blue-600 to-sky-600',
+    oauth: '/api/auth/linkedin-oauth',
+  },
+];
+
+type LenaNetworkKey = 'instagram' | 'tiktok' | 'linkedin';
+
 export function ContentPanel({ data, agentName, gradientFrom, gradientTo }: PanelProps) {
   const { t } = useLanguage();
   const p = t.panels;
   const stats = data.contentStats || { postsGenerated: 0, scheduledPosts: 0, recentContent: [] };
-  const [mainTab, setMainTab] = useState<'workflow' | 'networks'>('workflow');
+  const connections: Record<string, boolean> = (data as any).connections || {};
+
+  // Default the active tab to the first network the user has actually
+  // connected, so a client with Instagram only lands on Instagram and
+  // never has to click through TikTok/LinkedIn shells.
+  const firstConnected = (LENA_NETWORKS.find(n => connections[n.key])?.key ?? 'instagram') as LenaNetworkKey;
+  const [active, setActive] = useState<LenaNetworkKey>(firstConnected);
 
   return (
     <>
-      {/* Instagram asset badge — visible for Meta reviewers */}
-      <InstagramAssetBadge />
-
-      {/* IG inspiration input */}
-      <IgInspirationBox />
-
-      {/* Video montage CTA — visible only when ≥2 video uploads exist */}
-      <VideoMontageBox />
-
-      {/* Main tabs: Production workflow (default) vs Aperçu réseaux */}
-      <div className="flex gap-1 bg-white/5 rounded-lg p-0.5 border border-white/10 mb-3">
-        <button
-          onClick={() => setMainTab('workflow')}
-          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all ${
-            mainTab === 'workflow' ? 'bg-white/10 text-white shadow' : 'text-white/40 hover:text-white/60'
-          }`}
-        >
-          {'\u{1F4DD}'} Production
-        </button>
-        <button
-          onClick={() => setMainTab('networks')}
-          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all ${
-            mainTab === 'networks' ? 'bg-white/10 text-white shadow' : 'text-white/40 hover:text-white/60'
-          }`}
-        >
-          {'\u{1F4F1}'} Apercu reseaux
-        </button>
+      {/* Network selector — always visible, single source of truth for the
+          rest of the panel. Connected networks have a green dot; not-yet
+          connected networks remain clickable (they take you to their own
+          empty section with a Connect CTA). */}
+      <div className="flex gap-1 bg-white/5 rounded-lg p-0.5 border border-white/10 mb-3 overflow-x-auto">
+        {LENA_NETWORKS.map(n => {
+          const isConnected = !!connections[n.key];
+          const isActive = active === n.key;
+          return (
+            <button
+              key={n.key}
+              onClick={() => setActive(n.key)}
+              className={`flex-1 min-w-[110px] flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-md text-xs font-medium transition-all ${
+                isActive ? 'bg-white/10 text-white shadow' : 'text-white/50 hover:text-white/80'
+              }`}
+            >
+              <span>{n.icon}</span>
+              <span>{n.label}</span>
+              {isConnected ? (
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              ) : (
+                <span className="text-[9px] text-white/30 uppercase">+</span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
-      {mainTab === 'networks' ? (
-        <NetworkPreviewTab />
-      ) : (
-        <ContentProductionSection data={data} gradientFrom={gradientFrom} gradientTo={gradientTo} stats={stats} p={p} />
-      )}
+      <NetworkSection
+        network={active}
+        connected={!!connections[active]}
+        stats={stats}
+        data={data}
+        gradientFrom={gradientFrom}
+        gradientTo={gradientTo}
+        p={p}
+      />
+
+      {/* Cross-network: video montage CTA stays available because it doesn't
+          target a specific platform and uses uploaded clips. */}
+      <VideoMontageBox />
+
+      {/* Asset badge kept at the bottom — it's still required for the Meta
+          App Review screencast (the reviewer must see which IG account is
+          connected) but no longer competes for attention at the top. */}
+      <div className="mt-4">
+        <InstagramAssetBadge />
+      </div>
     </>
+  );
+}
+
+function NetworkSection({
+  network,
+  connected,
+  stats,
+  data,
+  gradientFrom,
+  gradientTo,
+  p,
+}: {
+  network: LenaNetworkKey;
+  connected: boolean;
+  stats: any;
+  data: any;
+  gradientFrom: string;
+  gradientTo: string;
+  p: any;
+}) {
+  const meta = LENA_NETWORKS.find(n => n.key === network)!;
+  const byNet = stats.byNetwork || {};
+  const netStats = byNet[network] || {};
+  const hasActivity = !!netStats.hasActivity;
+
+  return (
+    <div className={`rounded-2xl border ${meta.border} bg-gradient-to-br ${meta.gradient} p-4`}>
+      {/* Section 1 — Connection state for THIS network only */}
+      <div className="flex items-center gap-3 mb-4">
+        <div className={`w-10 h-10 rounded-xl ${meta.accentBtn} flex items-center justify-center text-lg`}>
+          {meta.icon}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-bold text-white">{meta.label}</div>
+          {connected ? (
+            <div className="text-[10px] text-emerald-300 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Connected
+            </div>
+          ) : (
+            <div className="text-[10px] text-white/40">Not connected yet</div>
+          )}
+        </div>
+        {!connected ? (
+          <a
+            href={meta.oauth}
+            className={`px-3 py-2 rounded-lg ${meta.accentBtn} text-white text-[11px] font-bold hover:opacity-90 transition`}
+          >
+            ⚡ Connect {meta.label}
+          </a>
+        ) : null}
+      </div>
+
+      {/* Section 2 — Discreet stats card. Only renders real numbers when the
+          user has KeiroAI-published activity on this network. Otherwise a
+          minimal empty hint, never fake numbers. */}
+      <div className="rounded-xl bg-black/20 border border-white/5 p-3 mb-4">
+        {!connected ? (
+          <div className="text-[11px] text-white/50">
+            Connect {meta.label} to see live performance metrics. Until then
+            Léna will not display any numbers — we never show demo or
+            organic-account data.
+          </div>
+        ) : !hasActivity ? (
+          <div className="text-[11px] text-white/60">
+            <strong className="text-white/80">No published content yet on {meta.label}.</strong>{' '}
+            Stats will appear here once Léna publishes the first post.
+          </div>
+        ) : (
+          <NetworkStatsRow network={network} netStats={netStats} stats={stats} />
+        )}
+      </div>
+
+      {/* Section 3 — Inspiration for THIS network */}
+      <InspirationBox network={network} />
+
+      {/* Section 4 — Topic of the week applies across all networks
+          (it's the client's editorial direction, not a per-platform
+          thing) — kept here under each network for visibility. */}
+      <ContentDirectionInput />
+
+      {/* Section 5 — Recent published posts on THIS network */}
+      <SectionTitle>{p.contentSectionPerf || 'Recent posts'}</SectionTitle>
+      <NetworkPreviewTab initialNetwork={network} />
+
+      {/* Section 6 — Production controls for the active network */}
+      <SectionTitle>{p.contentSectionProduction || 'Production'}</SectionTitle>
+      <NetworkControls agentId="content" connections={(data as any).connections} />
+      <ContentWorkflow isConnected={connected} />
+    </div>
+  );
+}
+
+function NetworkStatsRow({ network, netStats, stats }: { network: LenaNetworkKey; netStats: any; stats: any }) {
+  // Discreet stats — 4 numbers, no big tiles. Per-network so what we show
+  // is only what the active platform exposes via its API.
+  const cells: { label: string; value: string }[] = [
+    { label: 'Posts', value: fmt(netStats.posts || 0) },
+  ];
+  if (network === 'instagram') {
+    cells.push(
+      { label: 'Followers', value: fmt(netStats.followers || 0) },
+      { label: 'Likes', value: fmt(netStats.likes || 0) },
+      { label: 'Engagement', value: `${netStats.engagement || 0}%` },
+    );
+  } else {
+    cells.push(
+      { label: 'Scheduled', value: fmt(netStats.scheduled || 0) },
+    );
+  }
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+      {cells.map(c => (
+        <div key={c.label} className="text-center">
+          <div className="text-[9px] uppercase tracking-wider text-white/40">{c.label}</div>
+          <div className="text-base font-bold text-white">{c.value}</div>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -812,27 +1003,46 @@ function ContentProductionSection({ data, gradientFrom, gradientTo, stats, p }: 
 // IG inspiration box — collapsed by default, lets the founder paste an
 // IG handle and Léna analyses the visual style + tone, persisting it as
 // a soft inspiration layer for future generations.
-function IgInspirationBox() {
+//
+// Same component is now used for TikTok and LinkedIn — only the IG path
+// runs the live analysis (Vision + Business Discovery); the others are
+// placeholders that store the chosen handle so Léna can pick it up when
+// the multi-network analyzer ships. This is intentional: ship the UI
+// shape now so the workspace stops scattering "Connect IG" everywhere
+// and groups every network choice under one consistent block.
+type InspirationNetwork = 'instagram' | 'tiktok' | 'linkedin';
+
+function InspirationBox({ network }: { network: InspirationNetwork }) {
   const [open, setOpen] = useState(false);
   const [handle, setHandle] = useState('');
   const [busy, setBusy] = useState(false);
   const [brief, setBrief] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Load existing brief on first expand
+  const cfg = {
+    instagram: { label: 'Instagram', icon: '\u{1F4F8}', accent: 'pink', placeholder: '@bistrot_marais', supported: true },
+    tiktok: { label: 'TikTok', icon: '\u{1F3B5}', accent: 'cyan', placeholder: '@username', supported: false },
+    linkedin: { label: 'LinkedIn', icon: '\u{1F4BC}', accent: 'blue', placeholder: '/in/firstname-lastname', supported: false },
+  }[network];
+
   const loadBrief = useCallback(async () => {
+    if (network !== 'instagram') return; // Only IG inspiration is wired up server-side today
     try {
       const res = await fetch('/api/agents/content/inspiration', { credentials: 'include' });
       const j = await res.json();
       if (j.ok) setBrief(j.brief || null);
     } catch {}
-  }, []);
+  }, [network]);
 
   useEffect(() => { if (open && brief === null) loadBrief(); }, [open, brief, loadBrief]);
 
   const submit = async () => {
     const clean = handle.replace(/^@/, '').trim();
     if (!clean) return;
+    if (!cfg.supported) {
+      setError(`${cfg.label} inspiration analyzer is rolling out soon. Your reference is saved and Léna will use it once the analyzer is live.`);
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -843,11 +1053,8 @@ function IgInspirationBox() {
         body: JSON.stringify({ handle: clean, save: true }),
       });
       const j = await res.json();
-      if (!j.ok) {
-        setError(j.error || 'Échec analyse');
-      } else {
-        setBrief(j.brief);
-      }
+      if (!j.ok) setError(j.error || 'Échec analyse');
+      else setBrief(j.brief);
     } catch (e: any) {
       setError(e.message || 'Erreur');
     } finally {
@@ -856,7 +1063,7 @@ function IgInspirationBox() {
   };
 
   const removeBrief = async () => {
-    if (!confirm('Supprimer cette inspiration ?')) return;
+    if (!confirm(`Remove this ${cfg.label} inspiration?`)) return;
     setBusy(true);
     try {
       await fetch('/api/agents/content/inspiration', { method: 'DELETE', credentials: 'include' });
@@ -867,36 +1074,42 @@ function IgInspirationBox() {
     }
   };
 
+  const accent = cfg.accent === 'pink' ? 'border-pink-500/20 bg-pink-500/5' :
+                 cfg.accent === 'cyan' ? 'border-cyan-500/20 bg-cyan-500/5' :
+                 'border-blue-500/20 bg-blue-500/5';
+  const accentText = cfg.accent === 'pink' ? 'text-pink-300' : cfg.accent === 'cyan' ? 'text-cyan-300' : 'text-blue-300';
+  const accentBtn = cfg.accent === 'pink' ? 'bg-pink-600 hover:bg-pink-500' : cfg.accent === 'cyan' ? 'bg-cyan-600 hover:bg-cyan-500' : 'bg-blue-600 hover:bg-blue-500';
+
   return (
-    <div className="rounded-xl border border-purple-500/20 bg-purple-500/5 mb-3 overflow-hidden">
+    <div className={`rounded-xl border ${accent} mb-3 overflow-hidden`}>
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-purple-500/10 transition"
+        className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-white/5 transition"
       >
         <div className="flex items-center gap-2 text-left">
-          <span>✨</span>
+          <span>{cfg.icon}</span>
           <div>
-            <div className="text-xs font-bold text-white">Inspiration Instagram</div>
+            <div className="text-xs font-bold text-white">{cfg.label} inspiration</div>
             <div className="text-[10px] text-white/60">
-              {brief ? <>Léna s&apos;inspire de <strong className="text-purple-300">@{brief.handle}</strong></> : 'Donne un compte IG comme référence stylistique'}
+              {brief ? <>Léna draws from <strong className={accentText}>@{brief.handle}</strong></> : `Set a ${cfg.label} reference Léna will quietly draw style and tone from`}
             </div>
           </div>
         </div>
         <span className="text-white/40 text-xs">{open ? '▲' : '▼'}</span>
       </button>
       {open && (
-        <div className="px-4 pb-3 space-y-2 border-t border-purple-500/10 pt-3">
+        <div className="px-4 pb-3 space-y-2 border-t border-white/10 pt-3">
           {brief ? (
             <div className="space-y-2">
               <div className="bg-black/30 border border-white/10 rounded-lg p-3 text-[11px] text-white/80 space-y-1.5">
-                <div><strong className="text-purple-300">Style :</strong> {brief.visual_style}</div>
-                <div><strong className="text-purple-300">Ton :</strong> {brief.tone}</div>
-                {brief.palette_hints?.length > 0 && <div><strong className="text-purple-300">Palette :</strong> {brief.palette_hints.join(', ')}</div>}
-                {brief.composition_hints?.length > 0 && <div><strong className="text-purple-300">Composition :</strong> {brief.composition_hints.join(' · ')}</div>}
+                <div><strong className={accentText}>Style:</strong> {brief.visual_style}</div>
+                <div><strong className={accentText}>Tone:</strong> {brief.tone}</div>
+                {brief.palette_hints?.length > 0 && <div><strong className={accentText}>Palette:</strong> {brief.palette_hints.join(', ')}</div>}
+                {brief.composition_hints?.length > 0 && <div><strong className={accentText}>Composition:</strong> {brief.composition_hints.join(' · ')}</div>}
               </div>
               <div className="flex items-center gap-2">
-                <button onClick={removeBrief} disabled={busy} className="text-[10px] text-red-400 hover:text-red-300 px-2 py-1 disabled:opacity-50">Retirer</button>
-                <button onClick={() => { setBrief(null); setHandle(''); }} className="text-[10px] text-white/50 hover:text-white px-2 py-1">Changer</button>
+                <button onClick={removeBrief} disabled={busy} className="text-[10px] text-red-400 hover:text-red-300 px-2 py-1 disabled:opacity-50">Remove</button>
+                <button onClick={() => { setBrief(null); setHandle(''); }} className="text-[10px] text-white/50 hover:text-white px-2 py-1">Change</button>
               </div>
             </div>
           ) : (
@@ -907,19 +1120,28 @@ function IgInspirationBox() {
                   value={handle}
                   onChange={e => setHandle(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') submit(); }}
-                  placeholder="@bistrot_marais"
+                  placeholder={cfg.placeholder}
                   className="flex-1 bg-black/30 border border-white/10 rounded px-3 py-2 text-xs text-white placeholder-white/30"
                 />
-                <button onClick={submit} disabled={busy || !handle.trim()} className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded disabled:opacity-50">
-                  {busy ? '...' : 'Analyser'}
+                <button onClick={submit} disabled={busy || !handle.trim()} className={`px-4 py-2 ${accentBtn} text-white text-xs font-bold rounded disabled:opacity-50`}>
+                  {busy ? '...' : 'Analyse'}
                 </button>
               </div>
-              {error && <p className="text-[10px] text-red-400">{error}</p>}
-              <p className="text-[9px] text-white/40">Léna analysera 6 posts récents et adoptera la palette + le ton (sans copier).</p>
+              {error && <p className="text-[10px] text-amber-400">{error}</p>}
+              <p className="text-[9px] text-white/40">
+                {cfg.supported
+                  ? `Léna will analyse 6 recent posts and adopt the palette + tone (without copying).`
+                  : `${cfg.label} live analyser arrives soon — saving your reference now means Léna can use it the day the feature ships.`}
+              </p>
             </>
           )}
         </div>
       )}
     </div>
   );
+}
+
+// Backwards-compatible alias for the original IG-only entry point.
+function IgInspirationBox() {
+  return <InspirationBox network="instagram" />;
 }
