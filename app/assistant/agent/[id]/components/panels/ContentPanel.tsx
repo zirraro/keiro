@@ -15,9 +15,8 @@ import {
   fmt,
   KpiCard, SectionTitle, DonutChart, ProgressBar,
 } from './Primitives';
-import { NetworkControls } from './AutoModeToggle';
-import { InstagramAssetBadge } from './InstagramAssetBadge';
 import VideoMontageBox from './VideoMontageBox';
+import { supabaseBrowser } from '@/lib/supabase/client';
 import { useLanguage } from '@/lib/i18n/context';
 import type { PanelProps } from './types';
 
@@ -761,13 +760,6 @@ export function ContentPanel({ data, agentName, gradientFrom, gradientTo }: Pane
       {/* Cross-network: video montage CTA stays available because it doesn't
           target a specific platform and uses uploaded clips. */}
       <VideoMontageBox />
-
-      {/* Asset badge kept at the bottom — it's still required for the Meta
-          App Review screencast (the reviewer must see which IG account is
-          connected) but no longer competes for attention at the top. */}
-      <div className="mt-4">
-        <InstagramAssetBadge />
-      </div>
     </>
   );
 }
@@ -796,34 +788,16 @@ function NetworkSection({
 
   return (
     <div className={`rounded-2xl border ${meta.border} bg-gradient-to-br ${meta.gradient} p-4`}>
-      {/* Section 1 — Connection state for THIS network only */}
-      <div className="flex items-center gap-3 mb-4">
-        <div className={`w-10 h-10 rounded-xl ${meta.accentBtn} flex items-center justify-center text-lg`}>
-          {meta.icon}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="text-sm font-bold text-white">{meta.label}</div>
-          {connected ? (
-            <div className="text-[10px] text-emerald-300 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Connected
-            </div>
-          ) : (
-            <div className="text-[10px] text-white/40">Not connected yet</div>
-          )}
-        </div>
-        {!connected ? (
-          <a
-            href={meta.oauth}
-            className={`px-3 py-2 rounded-lg ${meta.accentBtn} text-white text-[11px] font-bold hover:opacity-90 transition`}
-          >
-            ⚡ Connect {meta.label}
-          </a>
-        ) : null}
-      </div>
+      {/* Section 1 — Connection card. When connected we surface the actual
+          handle / page name / follower count + per-network auto-mode toggle
+          + disconnect link, so the bottom-of-page InstagramAssetBadge and
+          NetworkControls duplications can be removed cleanly.
+          When disconnected, single Connect CTA. */}
+      <NetworkConnectionCard network={network} connected={connected} />
 
-      {/* Section 2 — Discreet stats card. Only renders real numbers when the
-          user has KeiroAI-published activity on this network. Otherwise a
-          minimal empty hint, never fake numbers. */}
+      {/* Section 2 — Discreet stats. Only renders real numbers when the user
+          has KeiroAI-published activity on this network. Otherwise empty
+          hint, never fake numbers. */}
       <div className="rounded-xl bg-black/20 border border-white/5 p-3 mb-4">
         {!connected ? (
           <div className="text-[11px] text-white/50">
@@ -844,19 +818,173 @@ function NetworkSection({
       {/* Section 3 — Inspiration for THIS network */}
       <InspirationBox network={network} />
 
-      {/* Section 4 — Topic of the week applies across all networks
-          (it's the client's editorial direction, not a per-platform
-          thing) — kept here under each network for visibility. */}
+      {/* Section 4 — Topic of the week applies across all networks. */}
       <ContentDirectionInput />
 
-      {/* Section 5 — Recent published posts on THIS network */}
+      {/* Section 5 — Recent published posts on THIS network. The component
+          accepts an initialNetwork prop so the inner sub-tabs land on the
+          tab the user just clicked at the top of Léna. */}
       <SectionTitle>{p.contentSectionPerf || 'Recent posts'}</SectionTitle>
       <NetworkPreviewTab initialNetwork={network} />
 
-      {/* Section 6 — Production controls for the active network */}
-      <SectionTitle>{p.contentSectionProduction || 'Production'}</SectionTitle>
-      <NetworkControls agentId="content" connections={(data as any).connections} />
-      <ContentWorkflow isConnected={connected} />
+      {/* Production gallery + workflow lived here in the previous version
+          but the actual gallery is now in /library + the Planning tab. The
+          duplicate "Connect / NetworkControls" row that used to sit here
+          is replaced by the inline auto-mode toggle in the connection card
+          above. */}
+    </div>
+  );
+}
+
+function NetworkConnectionCard({ network, connected }: { network: LenaNetworkKey; connected: boolean }) {
+  const meta = LENA_NETWORKS.find(n => n.key === network)!;
+  const [profile, setProfile] = useState<any>(null);
+  const [autoMode, setAutoMode] = useState<boolean>(false);
+  const [autoLoaded, setAutoLoaded] = useState(false);
+  const [savingAuto, setSavingAuto] = useState(false);
+
+  // Pull the live identity for the active network so the connection card
+  // can show "@keiro_ai · 1.2k followers" — equivalent to the previous
+  // bottom-of-page InstagramAssetBadge but inline where it belongs.
+  useEffect(() => {
+    if (!connected) { setProfile(null); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const sb = supabaseBrowser();
+        const { data: { user } } = await sb.auth.getUser();
+        if (!user) return;
+        const { data } = await sb.from('profiles')
+          .select('instagram_username, instagram_followers_count, instagram_profile_picture_url, facebook_page_name, tiktok_username, linkedin_username')
+          .eq('id', user.id)
+          .maybeSingle();
+        if (!cancelled) setProfile(data);
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, [network, connected]);
+
+  // Auto-mode toggle (per-network) — same setting the previous
+  // NetworkControls block exposed but scoped to the active tab.
+  useEffect(() => {
+    if (!connected) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch('/api/agents/settings?agent_id=content', { credentials: 'include' });
+        const j = await r.json();
+        if (cancelled) return;
+        const cfg = j.settings || {};
+        setAutoMode(cfg[`auto_mode_${network}`] ?? cfg.auto_mode ?? false);
+        setAutoLoaded(true);
+      } catch { setAutoLoaded(true); }
+    })();
+    return () => { cancelled = true; };
+  }, [network, connected]);
+
+  const toggleAuto = useCallback(async () => {
+    const next = !autoMode;
+    setAutoMode(next);
+    setSavingAuto(true);
+    try {
+      await fetch('/api/agents/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          agent_id: 'content',
+          auto_mode: next,
+          [`auto_mode_${network}`]: next,
+        }),
+      });
+    } catch { setAutoMode(!next); } finally { setSavingAuto(false); }
+  }, [autoMode, network]);
+
+  const disconnect = useCallback(async () => {
+    if (typeof window !== 'undefined' && !window.confirm(`Disconnect ${meta.label}?`)) return;
+    try {
+      await fetch('/api/agents/disconnect-network', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ network }),
+      });
+      window.location.reload();
+    } catch {}
+  }, [network, meta.label]);
+
+  // Build the identity line for the currently selected network.
+  let identity: string | null = null;
+  let followers: number | null = null;
+  if (connected && profile) {
+    if (network === 'instagram') {
+      identity = profile.instagram_username ? `@${profile.instagram_username}` : null;
+      followers = typeof profile.instagram_followers_count === 'number' ? profile.instagram_followers_count : null;
+    } else if (network === 'tiktok') {
+      identity = profile.tiktok_username ? `@${profile.tiktok_username.replace(/^@/, '')}` : null;
+    } else if (network === 'linkedin') {
+      identity = profile.linkedin_username || null;
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-3 mb-4">
+      {network === 'instagram' && profile?.instagram_profile_picture_url ? (
+        <img
+          src={profile.instagram_profile_picture_url}
+          alt={identity || 'Instagram account'}
+          className="w-10 h-10 rounded-xl object-cover"
+        />
+      ) : (
+        <div className={`w-10 h-10 rounded-xl ${meta.accentBtn} flex items-center justify-center text-lg`}>
+          {meta.icon}
+        </div>
+      )}
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-bold text-white truncate">
+          {identity || meta.label}
+        </div>
+        {connected ? (
+          <div className="text-[10px] text-emerald-300 flex items-center gap-2">
+            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Connected</span>
+            {followers !== null && <span className="text-white/50">· {fmt(followers)} followers</span>}
+            {network === 'instagram' && profile?.facebook_page_name && (
+              <span className="text-white/40 truncate">· FB {profile.facebook_page_name}</span>
+            )}
+          </div>
+        ) : (
+          <div className="text-[10px] text-white/40">Not connected yet</div>
+        )}
+      </div>
+      {!connected ? (
+        <a
+          href={meta.oauth}
+          className={`px-3 py-2 rounded-lg ${meta.accentBtn} text-white text-[11px] font-bold hover:opacity-90 transition`}
+        >
+          ⚡ Connect {meta.label}
+        </a>
+      ) : (
+        <div className="flex items-center gap-2">
+          {autoLoaded && (
+            <button
+              onClick={toggleAuto}
+              disabled={savingAuto}
+              title={autoMode ? `Auto-publish on ${meta.label} is ON — click to disable` : `Auto-publish on ${meta.label} is OFF — click to enable`}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition ${autoMode ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-white/5 text-white/50 border border-white/10 hover:text-white/80'}`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${autoMode ? 'bg-emerald-400' : 'bg-white/30'}`} />
+              Auto-publish {autoMode ? 'ON' : 'OFF'}
+            </button>
+          )}
+          <button
+            onClick={disconnect}
+            title={`Disconnect ${meta.label}`}
+            className="text-white/30 hover:text-rose-400 text-xs px-1 transition"
+          >
+            ✕
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -890,115 +1018,9 @@ function NetworkStatsRow({ network, netStats, stats }: { network: LenaNetworkKey
   );
 }
 
-function ContentProductionSection({ data, gradientFrom, gradientTo, stats, p }: { data: any; gradientFrom: string; gradientTo: string; stats: any; p: any }) {
-  return (
-    <>
-      {/* Unified per-network controls — connect/disconnect + publication auto in ONE row */}
-      <div data-tour="auto-toggle">
-        <NetworkControls agentId="content" connections={(data as any).connections} />
-      </div>
-
-      {/* Content direction — client can guide what to publish */}
-      <ContentDirectionInput />
-
-      {/* NOTE: Brand photos & documents (AgentUploadsPanel) moved to
-          the Documents tab so the main Content panel stays focused on
-          production + planning + perf. The brand assets still feed
-          every generation through the same /api/agents/uploads source. */}
-
-      {/* Stories suggestion tip */}
-      <div className="rounded-lg border border-purple-500/10 bg-purple-500/5 px-3 py-2 mb-3 flex items-center gap-2">
-        <span className="text-sm">{'\u{1F4A1}'}</span>
-        <p className="text-[10px] text-white/50">{p.contentStoriesTip}</p>
-      </div>
-
-      {/* Per-network performance — Instagram first because it has real
-          engagement data, TikTok and LinkedIn follow. Pulls straight from
-          the dashboard's IG Graph fetch so numbers match what Meta shows. */}
-      <SectionTitle>{p.contentSectionPerf}</SectionTitle>
-      <PerNetworkStats stats={stats} />
-
-      {/* Live performance KPIs — strictly count posts the user actually
-          PUBLISHED. The previous fallback "publishedPosts || postsGenerated"
-          made drafts and publish_failed entries surface as if they had been
-          published, which confused clients (and looked like fake numbers
-          to a Meta reviewer). */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-3">
-        <KpiCard label={p.contentKpiPublished} value={fmt((stats as any).publishedPosts || 0)} gradientFrom="#8b5cf6" gradientTo="#6d28d9" />
-        <KpiCard label={p.contentKpiLikes} value={fmt((stats as any).totalLikes || 0)} gradientFrom="#ec4899" gradientTo="#f43f5e" />
-        <KpiCard label={p.contentKpiReach} value={fmt((stats as any).reach || 0)} gradientFrom="#06b6d4" gradientTo="#0891b2" />
-        <KpiCard label={p.contentKpiEngagement} value={`${((stats as any).accountsEngaged || (stats as any).engagement || 0)}%`} gradientFrom="#10b981" gradientTo="#059669" />
-      </div>
-
-      {/* Quick actions */}
-      <div className="flex flex-wrap gap-2 mt-3">
-        <a href="/generate" className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs font-semibold rounded-xl hover:opacity-90 transition-all">
-          {'\u2728'} {p.contentBtnCreateVisual}
-        </a>
-        <a href="/library" className="px-4 py-2 bg-white/10 text-white/70 text-xs font-medium rounded-xl hover:bg-white/15">
-          {'\u{1F4DA}'} {p.contentBtnGallery}
-        </a>
-      </div>
-
-      <SectionTitle>{p.contentSectionProduction}</SectionTitle>
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <KpiCard label={p.contentKpiGenerated} value={fmt(stats.postsGenerated)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        <KpiCard label={p.contentKpiScheduled} value={fmt(stats.scheduledPosts)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        <KpiCard label={p.contentKpiThisWeek} value={fmt(stats.recentContent.length)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-      </div>
-
-      {/* Visual: content type distribution */}
-      <SectionTitle>{p.contentSectionDistribution}</SectionTitle>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="rounded-xl border border-white/10 p-4 bg-white/[0.02]">
-          <DonutChart
-            segments={[
-              { value: (stats.recentContent || []).filter((c: any) => c.type === 'Reel' || c.type === 'reel').length, color: '#e879f9', label: p.contentTypeReels },
-              { value: (stats.recentContent || []).filter((c: any) => c.type === 'Carousel' || c.type === 'carrousel').length, color: '#60a5fa', label: p.contentTypeCarousels },
-              { value: (stats.recentContent || []).filter((c: any) => c.type === 'Post' || c.type === 'post').length, color: '#34d399', label: p.contentTypePosts },
-              { value: (stats.recentContent || []).filter((c: any) => c.type === 'Story' || c.type === 'story').length, color: '#fbbf24', label: p.contentTypeStories },
-            ]}
-            label={`${stats.postsGenerated}`}
-          />
-        </div>
-        <div className="rounded-xl border border-white/10 p-4 bg-white/[0.02] space-y-3">
-          <ProgressBar value={stats.postsGenerated} max={Math.max(stats.postsGenerated + stats.scheduledPosts, 1)} color={gradientFrom} label={p.contentLabelGenerated} />
-          <ProgressBar value={stats.scheduledPosts} max={Math.max(stats.postsGenerated + stats.scheduledPosts, 1)} color={gradientTo} label={p.contentLabelScheduled} />
-        </div>
-      </div>
-
-      {/* Content workflow: prepared → validate → scheduled → published */}
-      <div data-tour="content-workflow"><SectionTitle>{p.contentSectionFile}</SectionTitle>
-      {stats.postsGenerated === 0 && !(data as any).connections?.instagram && (
-        <PreviewBanner
-          agentName="Lena"
-          connectLabel={p.assetBadgeConnectCta}
-          connectUrl="/api/auth/instagram-oauth"
-          claraMessage={p.contentConnectFirstBody}
-          gradientFrom="#8b5cf6"
-          gradientTo="#6d28d9"
-        />
-      )}
-      {/* Launch campaign — inside content panel, above posts */}
-      <div data-tour="launch-campaign" className="flex items-center gap-2 mb-3">
-        <button
-          onClick={() => { try { (window as any).__openCampaignWizard?.(); } catch {} }}
-          className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-bold rounded-xl hover:shadow-lg hover:shadow-emerald-500/20 transition-all min-h-[44px] flex items-center gap-2"
-        >
-          <span>{'\u26A1'}</span> {p.contentBtnLaunchCampaign}
-        </button>
-        {(data as any).connections?.instagram && <span className="text-[9px] text-emerald-400/50">{'\u2713'} {p.contentConnectedBadge}</span>}
-      </div>
-      <ContentWorkflow isConnected={!!(data as any).connections?.instagram} />
-
-      </div>{/* close content-workflow data-tour */}
-
-      {/* Calendar is inside ContentWorkflow (has access to setSelectedPost) */}
-
-      {/* Instagram Comments moved to Jade (DM agent) via JadeTabs */}
-    </>
-  );
-}
+// ContentProductionSection / PerNetworkStats removed: replaced by the
+// per-network NetworkSection. The IG-style content gallery lives in /library
+// and the Planning tab is the single place where the workflow timeline is shown.
 
 // IG inspiration box — collapsed by default, lets the founder paste an
 // IG handle and Léna analyses the visual style + tone, persisting it as
