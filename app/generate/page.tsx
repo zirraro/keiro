@@ -1979,6 +1979,16 @@ export default function GeneratePage() {
       setGeneratedImageUrl(finalImageUrl);
       setGeneratedPrompt(fullPrompt);
 
+      // Auto-save to gallery on every successful generation. Logged-in
+      // users no longer have to click the Save button — if they later
+      // edit the image, the next save PATCHes the same gallery row
+      // (saveToLibrary already detects lastSavedImageId for that). Fire
+      // and forget: failure does not block the rest of the post-gen
+      // flow (the user can still click Save manually as a backup).
+      if (authUserId && generationLimit.canDownload) {
+        saveToLibrary().catch(err => console.warn('[Generate] auto-save failed:', err));
+      }
+
       // Incrémenter le compteur de génération pour le freemium
       generationLimit.incrementCount();
 
@@ -2146,6 +2156,22 @@ export default function GeneratePage() {
     }
   }
 
+  // Convert a `data:image/...;base64,XXXX` URL into a Blob without going
+  // through fetch(), because the production CSP (`connect-src 'self'
+  // https: wss:`) refuses fetches against the data: scheme. The previous
+  // `await fetch(dataUrl).blob()` therefore threw "Failed to fetch" and
+  // the gallery save silently failed.
+  function dataUrlToBlob(dataUrl: string): Blob {
+    const [meta, b64] = dataUrl.split(',');
+    const mimeMatch = meta.match(/data:([^;]+);base64/);
+    const mime = (mimeMatch?.[1]) || 'image/png';
+    const binary = atob(b64);
+    const len = binary.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
+    return new Blob([bytes], { type: mime });
+  }
+
   // Download an image even when the host server doesn't return CORS
   // headers. Strategy:
   //   1. Try a direct fetch (works for same-origin and CORS-friendly hosts
@@ -2284,9 +2310,13 @@ export default function GeneratePage() {
       if (imageToSave.startsWith('data:')) {
         console.log('[SaveToLibrary] Data URL detected, uploading to Supabase Storage...');
 
-        // Convertir data URL en Blob
-        const response = await fetch(imageToSave);
-        const blob = await response.blob();
+        // Convert data URL → Blob via a synchronous parse (atob + Uint8Array).
+        // We used to do `fetch(dataUrl).blob()` but the production CSP
+        // (`connect-src 'self' https: wss:`) refuses fetches against the
+        // data: scheme, so the call would throw "Failed to fetch" and the
+        // image was never saved. Parsing the data URL by hand stays inside
+        // the page's JS sandbox — no CSP to worry about.
+        const blob = dataUrlToBlob(imageToSave);
 
         // Générer un nom de fichier unique
         const fileName = `${user.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.png`;
@@ -6108,8 +6138,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                                     let finalImageUrl = imageWithOverlays;
                                     if (imageWithOverlays.startsWith('data:')) {
                                       console.log('[EditStudio/Mobile] Data URL detected, uploading to Storage...');
-                                      const response = await fetch(imageWithOverlays);
-                                      const blob = await response.blob();
+                                      const blob = dataUrlToBlob(imageWithOverlays);
                                       const fileName = `${user.id}/${Date.now()}_v${idx + 1}_${Math.random().toString(36).substring(7)}.png`;
 
                                       const { error: uploadError } = await supabaseClient.storage
@@ -6276,8 +6305,7 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                                 let finalImageUrl = imageWithOverlays;
                                 if (imageWithOverlays.startsWith('data:')) {
                                   console.log('[EditStudio/Desktop] Data URL detected, uploading to Storage...');
-                                  const response = await fetch(imageWithOverlays);
-                                  const blob = await response.blob();
+                                  const blob = dataUrlToBlob(imageWithOverlays);
                                   const fileName = `${user.id}/${Date.now()}_v${idx + 1}_${Math.random().toString(36).substring(7)}.png`;
 
                                   const { error: uploadError } = await supabaseClient.storage
