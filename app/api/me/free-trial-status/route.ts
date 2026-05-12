@@ -32,7 +32,7 @@ export async function GET() {
 
   const { data: profile } = await sb
     .from('profiles')
-    .select('subscription_plan, free_generations_used, is_admin, stripe_customer_id')
+    .select('subscription_plan, free_generations_used, is_admin, stripe_customer_id, credits_balance, trial_ends_at')
     .eq('id', user.id)
     .maybeSingle();
 
@@ -40,8 +40,29 @@ export async function GET() {
   if (profile.is_admin) return NextResponse.json({ ok: true, requires_card: false, plan: 'admin' });
 
   const plan = (profile.subscription_plan || 'free').toLowerCase();
-  const isPaying = !!profile.stripe_customer_id && plan !== 'free' && plan !== 'gratuit';
-  if (isPaying) return NextResponse.json({ ok: true, requires_card: false, plan });
+
+  // Unlock the workspace whenever the user clearly belongs to one of
+  // the "paid" worlds — even if Stripe is not the source of truth.
+  // Without this, accounts created via promo code, admin provisioning
+  // (Meta App Review reviewer), founder gifts or annual prepayments
+  // all stayed gated behind the card-collection modal. Triggers:
+  //   - Plan flipped to anything other than free/gratuit
+  //   - Existing Stripe customer (any plan)
+  //   - Credits balance above the signup bonus (49) → meaningful grant
+  //   - Active trial window (trial_ends_at in the future)
+  const paidPlan = plan !== 'free' && plan !== 'gratuit';
+  const hasCredits = (profile.credits_balance ?? 0) > 49;
+  const inTrial = !!profile.trial_ends_at && new Date(profile.trial_ends_at) > new Date();
+  const unlocked = paidPlan || hasCredits || inTrial || !!profile.stripe_customer_id;
+  if (unlocked) {
+    return NextResponse.json({
+      ok: true,
+      requires_card: false,
+      plan,
+      credits_balance: profile.credits_balance ?? 0,
+      trial_ends_at: profile.trial_ends_at || null,
+    });
+  }
 
   const used = profile.free_generations_used ?? 0;
   const remaining = Math.max(0, FREE_LIMIT - used);
