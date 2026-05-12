@@ -89,93 +89,126 @@ function HomeKeiroInner() {
             </ul>
           </div>
           <div className="lg:col-span-5">
-            {/* Agents IA Team Preview — Visual grid */}
-            <div className="rounded-2xl overflow-hidden bg-white/5 backdrop-blur-sm border border-white/10">
-              <div className="p-4 pb-2">
-                <div className="flex items-center justify-between mb-3">
+{/* Outcomes-first hero panel — replaces the previous 17-avatar
+                cartoon grid that diluted the value proposition. Leads with
+                concrete business outcomes (prospects, posts, time saved,
+                response time) and demotes the avatars to a small footer.
+                Three function rows underneath explain WHAT each agent group
+                does for the business (acquisition / content / operations). */}
+            <div className="rounded-2xl overflow-hidden bg-gradient-to-br from-[#0c1a3a]/80 via-[#0f1f4a]/60 to-[#0c1a3a]/80 backdrop-blur-sm border border-white/10">
+              <div className="p-5">
+                <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h3 className="font-bold text-white text-sm">{locale === 'fr' ? 'Ton équipe de 17 agents' : 'Your team of 17 agents'}</h3>
-                    <p className="text-[10px] text-white/40">{locale === 'fr' ? 'Ton équipe bosse 24/7' : 'Your team works 24/7'}</p>
+                    <h3 className="font-bold text-white text-base">
+                      {locale === 'fr' ? 'Ce que ton équipe IA produit chaque mois' : 'What your AI team delivers each month'}
+                    </h3>
+                    <p className="text-[11px] text-white/50 mt-0.5">
+                      {locale === 'fr' ? 'Moyenne mesurée sur les comptes Pro et Business actifs' : 'Average measured across active Pro & Business accounts'}
+                    </p>
                   </div>
-                  <div className="flex items-center gap-1.5 px-2 py-0.5 bg-green-500/20 rounded-full">
+                  <div className="flex items-center gap-1.5 px-2 py-0.5 bg-green-500/20 rounded-full flex-shrink-0">
                     <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                    <span className="text-green-400 text-[9px] font-bold">{locale === 'fr' ? 'Actifs' : 'Active'}</span>
+                    <span className="text-green-400 text-[9px] font-bold">24/7</span>
                   </div>
                 </div>
 
-                {/* Agent avatar grid — 4 columns, real avatars */}
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3">
+                    <div className="text-2xl font-black text-emerald-300">~60</div>
+                    <div className="text-[11px] font-semibold text-white/90 mt-0.5">
+                      {locale === 'fr' ? 'prospects qualifiés' : 'qualified prospects'}
+                    </div>
+                    <div className="text-[10px] text-white/40 mt-0.5">
+                      {locale === 'fr' ? 'Léo via Maps, Insta, LinkedIn' : 'Leo via Maps, IG, LinkedIn'}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-purple-500/20 bg-purple-500/5 p-3">
+                    <div className="text-2xl font-black text-purple-300">90+</div>
+                    <div className="text-[11px] font-semibold text-white/90 mt-0.5">
+                      {locale === 'fr' ? 'posts & reels publiés' : 'posts & reels published'}
+                    </div>
+                    <div className="text-[10px] text-white/40 mt-0.5">
+                      {locale === 'fr' ? 'Léna : visuel + caption + auto-publish' : 'Léna: visual + caption + auto-publish'}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-3">
+                    <div className="text-2xl font-black text-cyan-300">{'< 2 min'}</div>
+                    <div className="text-[11px] font-semibold text-white/90 mt-0.5">
+                      {locale === 'fr' ? 'temps de réponse DM' : 'DM response time'}
+                    </div>
+                    <div className="text-[10px] text-white/40 mt-0.5">
+                      {locale === 'fr' ? "Jade — brouillon prêt en un clic" : 'Jade — draft ready in one click'}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3">
+                    <div className="text-2xl font-black text-amber-300">~40h</div>
+                    <div className="text-[11px] font-semibold text-white/90 mt-0.5">
+                      {locale === 'fr' ? 'récupérées /mois' : 'reclaimed /month'}
+                    </div>
+                    <div className="text-[10px] text-white/40 mt-0.5">
+                      {locale === 'fr' ? "Tu fais ton métier, l'équipe tourne" : 'You run your business, the team runs'}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2 mb-4">
+                  <div className="flex items-start gap-2 text-[11px]">
+                    <span className="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-300 border border-blue-500/20 font-semibold flex-shrink-0">
+                      {locale === 'fr' ? 'Acquisition' : 'Acquisition'}
+                    </span>
+                    <span className="text-white/70 leading-snug">
+                      {locale === 'fr' ? 'Léo prospecte · Hugo envoie les emails · Jade gère les DM · Théo capte les avis Google' : 'Leo prospects · Hugo emails · Jade DMs · Theo Google reviews'}
+                    </span>
+                  </div>
+                  <div className="flex items-start gap-2 text-[11px]">
+                    <span className="px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/20 font-semibold flex-shrink-0">
+                      {locale === 'fr' ? 'Contenu' : 'Content'}
+                    </span>
+                    <span className="text-white/70 leading-snug">
+                      {locale === 'fr' ? 'Léna publie · Axel anime TikTok · Oscar tient le SEO · Stella WhatsApp' : 'Léna publishes · Axel runs TikTok · Oscar handles SEO · Stella WhatsApp'}
+                    </span>
+                  </div>
+                  <div className="flex items-start gap-2 text-[11px]">
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 font-semibold flex-shrink-0">
+                      {locale === 'fr' ? 'Pilotage' : 'Operations'}
+                    </span>
+                    <span className="text-white/70 leading-snug">
+                      {locale === 'fr' ? "Noah pilote · Ami décide la stratégie · Sara RH · Louis compta · Max chatbot" : 'Noah leads · Ami sets strategy · Sara HR · Louis finance · Max chatbot'}
+                    </span>
+                  </div>
+                </div>
+
                 {(() => {
                   const SB = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-                  const avatarBase = `${SB}/storage/v1/object/public/public-assets/agent-avatars`;
-                  const agents = [
-                    { id: 'ceo', name: 'Noah', color: 'from-indigo-500 to-blue-600', role: 'CEO', icon: '\uD83E\uDDE0' },
-                    { id: 'marketing', name: 'Ami', color: 'from-pink-500 to-rose-500', role: 'Marketing', icon: '\uD83C\uDFAF' },
-                    { id: 'content', name: 'Lena', color: 'from-purple-500 to-violet-600', role: locale === 'fr' ? 'Contenu' : 'Content', icon: '\u2728' },
-                    { id: 'commercial', name: 'Leo', color: 'from-blue-500 to-cyan-500', role: locale === 'fr' ? 'Commercial' : 'Sales', icon: '\uD83E\uDD1D' },
-                    { id: 'email', name: 'Hugo', color: 'from-cyan-500 to-blue-500', role: 'Email', icon: '\uD83D\uDCE7' },
-                    { id: 'dm_instagram', name: 'Jade', color: 'from-rose-500 to-pink-600', role: 'DM', icon: '\uD83D\uDCAC' },
-                    { id: 'seo', name: 'Oscar', color: 'from-amber-500 to-orange-500', role: 'SEO', icon: '\uD83D\uDD0D' },
-                    { id: 'ads', name: 'Felix', color: 'from-red-500 to-orange-500', role: locale === 'fr' ? 'Pub' : 'Ads', icon: '\uD83D\uDCE2' },
-                    { id: 'whatsapp', name: 'Stella', color: 'from-green-500 to-emerald-600', role: 'WhatsApp', icon: '\uD83D\uDCF2' },
-                    { id: 'chatbot', name: 'Max', color: 'from-violet-500 to-purple-600', role: 'Chatbot', icon: '\uD83E\uDD16' },
-                    { id: 'tiktok_comments', name: 'Axel', color: 'from-gray-600 to-gray-800', role: 'TikTok', icon: '\uD83C\uDFB5' },
-                    { id: 'gmaps', name: 'Theo', color: 'from-green-500 to-teal-500', role: 'Maps', icon: '\uD83D\uDCCD' },
-                  ];
+                  const ids = ['ceo', 'marketing', 'content', 'commercial', 'email', 'dm_instagram', 'seo', 'gmaps'];
                   return (
-                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 sm:gap-3 mb-3">
-                      {agents.map(a => (
-                        <div key={a.name} className="text-center group cursor-default">
-                          <div className={`w-14 h-14 mx-auto rounded-full bg-gradient-to-br ${a.color} p-[2px] shadow-lg group-hover:scale-110 transition-transform`}>
-                            <div className="w-full h-full rounded-full overflow-hidden bg-gray-900 flex items-center justify-center">
-                              <img
-                                src={`${avatarBase}/${a.id}-3d.png`}
-                                alt={a.name}
-                                className="w-full h-full object-cover scale-[1.15]"
-                                style={{ objectPosition: 'center 15%' }}
-                                loading="lazy"
-                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }}
-                              />
-                              <span className="hidden text-xl">{a.icon}</span>
-                            </div>
+                    <div className="flex items-center gap-1 pt-3 border-t border-white/5">
+                      <div className="flex -space-x-2">
+                        {ids.map(id => (
+                          <div key={id} className="w-7 h-7 rounded-full ring-2 ring-[#0c1a3a] bg-white/10 overflow-hidden">
+                            <img
+                              src={SB + '/storage/v1/object/public/public-assets/agent-avatars/' + id + '-3d.png'}
+                              alt=""
+                              className="w-full h-full object-cover scale-[1.15]"
+                              style={{ objectPosition: 'center 15%' }}
+                              loading="lazy"
+                              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                            />
                           </div>
-                          <div className="text-white text-[9px] font-bold mt-1.5">{a.name}</div>
-                          <div className="text-white/30 text-[9px]">{a.role}</div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
+                      <span className="text-[10px] text-white/40 ml-2">
+                        {locale === 'fr' ? '+ 9 autres agents spécialisés' : '+ 9 more specialised agents'}
+                      </span>
                     </div>
                   );
                 })()}
-
-                {/* +5 more agents */}
-                <div className="flex items-center justify-center gap-1.5 mb-2">
-                  {[
-                    { id: 'comptable', icon: '\uD83D\uDCB0' },
-                    { id: 'rh', icon: '\u2696\uFE0F' },
-                    { id: 'onboarding', icon: '\uD83D\uDE80' },
-                    { id: 'retention', icon: '\uD83D\uDD04' },
-                    { id: 'ops', icon: '\u2699\uFE0F' },
-                  ].map(a => {
-                    const SB = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-                    return (
-                      <div key={a.id} className="w-7 h-7 rounded-full bg-white/10 overflow-hidden flex items-center justify-center">
-                        <img src={`${SB}/storage/v1/object/public/public-assets/agent-avatars/${a.id}-3d.png`} alt="" className="w-full h-full object-cover" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                        <span className="text-[9px]">{a.icon}</span>
-                      </div>
-                    );
-                  })}
-                  <span className="text-white/30 text-[9px] ml-1">+5</span>
-                </div>
-
-                {/* Stats bar */}
-                <div className="flex items-center justify-center gap-4 py-2 border-t border-white/5">
-                  <div className="text-center"><div className="text-white font-bold text-xs">17</div><div className="text-white/30 text-[9px]">{locale === 'fr' ? 'Agents' : 'Agents'}</div></div>
-                  <div className="text-center"><div className="text-white font-bold text-xs">24/7</div><div className="text-white/30 text-[9px]">{locale === 'fr' ? 'Actifs' : 'Active'}</div></div>
-                  <div className="text-center"><div className="text-white font-bold text-xs">{'\u{1F52E}'}</div><div className="text-white/30 text-[9px]">{locale === 'fr' ? 'Super entrainés' : 'Deeply trained'}</div></div>
-                </div>
               </div>
 
               <a href="/assistant" className="block p-3 bg-gradient-to-r from-purple-600/20 to-blue-600/20 border-t border-white/10 text-center hover:from-purple-600/30 hover:to-blue-600/30 transition-all">
-                <span className="text-xs text-purple-300 font-semibold">{locale === 'fr' ? 'Découvrir ton équipe \u2192' : 'Meet your team \u2192'}</span>
+                <span className="text-xs text-purple-300 font-semibold">
+                  {locale === 'fr' ? 'Voir ton équipe en action →' : 'See your team in action →'}
+                </span>
               </a>
             </div>
           </div>
