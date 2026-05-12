@@ -1486,10 +1486,24 @@ function JadeHeader({ connected, p }: { connected: boolean; p: any }) {
         const sb = (await import('@/lib/supabase/client')).supabaseBrowser();
         const { data: { user } } = await sb.auth.getUser();
         if (!user) return;
-        const { data } = await sb.from('profiles')
+        const readProfile = async () => sb.from('profiles')
           .select('instagram_username, instagram_followers_count, instagram_profile_picture_url, facebook_page_name')
           .eq('id', user.id)
           .maybeSingle();
+        let { data } = await readProfile();
+        // Auto-refresh when the cached follower count is null/0 even
+        // though the account is marked connected — same root cause as
+        // Léna's NetworkConnectionCard (silent OAuth-callback enrichment
+        // failure). One round-trip to /api/instagram/refresh-profile
+        // brings real numbers back without the user having to click
+        // anything.
+        if (!data || data.instagram_followers_count == null || data.instagram_followers_count === 0) {
+          try {
+            await fetch('/api/instagram/refresh-profile', { method: 'POST', credentials: 'include' });
+            const fresh = await readProfile();
+            if (!cancelled && fresh.data) data = fresh.data;
+          } catch {}
+        }
         if (!cancelled) setProfile({
           ig: data?.instagram_username || undefined,
           followers: typeof data?.instagram_followers_count === 'number' ? data.instagram_followers_count : undefined,

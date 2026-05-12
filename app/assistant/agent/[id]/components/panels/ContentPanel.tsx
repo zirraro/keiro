@@ -870,6 +870,11 @@ function NetworkConnectionCard({ network, connected }: { network: LenaNetworkKey
   // Pull the live identity for the active network so the connection card
   // can show "@keiro_ai · 1.2k followers" — equivalent to the previous
   // bottom-of-page InstagramAssetBadge but inline where it belongs.
+  // If the cached followers count is null/0 but the network is marked
+  // connected (OAuth callback enrichment may have failed silently),
+  // we hit /api/instagram/refresh-profile to repopulate live, then
+  // re-read the row. This is what removes the "tout à 0 juste après
+  // connexion" issue the founder caught.
   useEffect(() => {
     if (!connected) { setProfile(null); return; }
     let cancelled = false;
@@ -878,10 +883,22 @@ function NetworkConnectionCard({ network, connected }: { network: LenaNetworkKey
         const sb = supabaseBrowser();
         const { data: { user } } = await sb.auth.getUser();
         if (!user) return;
-        const { data } = await sb.from('profiles')
+        const readProfile = async () => sb.from('profiles')
           .select('instagram_username, instagram_followers_count, instagram_profile_picture_url, facebook_page_name, tiktok_username, linkedin_username')
           .eq('id', user.id)
           .maybeSingle();
+        let { data } = await readProfile();
+        // Auto-refresh stale Instagram cache (followers null/0 but token exists).
+        if (
+          network === 'instagram' &&
+          (!data || data.instagram_followers_count == null || data.instagram_followers_count === 0)
+        ) {
+          try {
+            await fetch('/api/instagram/refresh-profile', { method: 'POST', credentials: 'include' });
+            const fresh = await readProfile();
+            if (!cancelled && fresh.data) data = fresh.data;
+          } catch {}
+        }
         if (!cancelled) setProfile(data);
       } catch {}
     })();
