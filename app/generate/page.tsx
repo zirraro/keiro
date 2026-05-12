@@ -2146,24 +2146,47 @@ export default function GeneratePage() {
     }
   }
 
-  // Telecharger une image (cross-origin safe via fetch+blob)
+  // Download an image even when the host server doesn't return CORS
+  // headers. Strategy:
+  //   1. Try a direct fetch (works for same-origin and CORS-friendly hosts
+  //      like our Supabase storage bucket).
+  //   2. If CORS blocks the blob read, fall back to /api/instagram/proxy-image
+  //      which streams the image through our own origin.
+  //   3. Last resort: open in a new tab so the user can right-click → Save.
   async function handleDownloadImage(url: string, filename: string = 'keiro-visual.png') {
-    try {
-      const response = await fetch(url);
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
+    const triggerSave = (blobUrl: string) => {
       const a = document.createElement('a');
       a.href = blobUrl;
       a.download = filename;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(blobUrl);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    };
+
+    try {
+      const response = await fetch(url, { mode: 'cors' });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const blob = await response.blob();
+      triggerSave(URL.createObjectURL(blob));
+      return;
     } catch (err) {
-      console.error('[Download] Error:', err);
-      // Fallback: open in new tab
-      window.open(url, '_blank');
+      console.warn('[Download] Direct fetch blocked (likely CORS), trying proxy:', err);
     }
+
+    try {
+      const proxyUrl = `/api/instagram/proxy-image?url=${encodeURIComponent(url)}`;
+      const proxied = await fetch(proxyUrl);
+      if (!proxied.ok) throw new Error(`Proxy HTTP ${proxied.status}`);
+      const blob = await proxied.blob();
+      triggerSave(URL.createObjectURL(blob));
+      return;
+    } catch (err) {
+      console.error('[Download] Proxy fallback failed:', err);
+    }
+
+    // Last resort — open in new tab so user can save manually.
+    window.open(url, '_blank', 'noopener,noreferrer');
   }
 
   // Sauvegarder l'image dans la galerie
@@ -5218,22 +5241,46 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-0">
             <div className="bg-white w-full h-full lg:rounded-xl lg:max-w-7xl lg:h-[90vh] lg:m-4 flex flex-col">
               {/* Header du studio */}
-              <div className="flex items-center justify-between border-b px-4 py-3">
-                <h2 className="text-lg font-semibold flex items-center gap-2">
+              <div className="flex items-center justify-between border-b px-4 py-3 gap-2">
+                <h2 className="text-lg font-semibold flex items-center gap-2 shrink-0">
                   {t.generate.editStudio}
                   {lastProvider && (
                     <span className={`w-2 h-2 rounded-full inline-block opacity-50 ${lastProvider === 'k' ? 'bg-emerald-500' : 'bg-orange-500'}`} />
                   )}
                 </h2>
-                <button
-                  onClick={() => {
-                    setShowEditStudio(false);
-                    setActiveTab('image');
-                  }}
-                  className="text-2xl text-neutral-500 hover:text-neutral-900"
-                >
-                  ×
-                </button>
+
+                <div className="flex items-center gap-2">
+                  {/* Continue preparing the Instagram post — also reachable
+                      from inside the edit studio so the user does not have
+                      to close the studio first. Uses the currently-selected
+                      edit version. */}
+                  <button
+                    onClick={() => {
+                      const finalUrl = selectedEditVersion || imageWithWatermarkOnly || generatedImageUrl;
+                      if (!finalUrl) return;
+                      if (!imageSavedToLibrary && !savingToLibrary && generationLimit.canDownload) {
+                        saveToLibrary().catch(() => {});
+                      }
+                      setShowEditStudio(false);
+                      setShowIgComposer(true);
+                    }}
+                    disabled={!selectedEditVersion && !generatedImageUrl}
+                    className="px-3 py-1.5 text-xs font-bold rounded-lg text-white bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-600 hover:opacity-90 disabled:opacity-50 flex items-center gap-1.5"
+                  >
+                    <span>{'\u{1F4F8}'}</span>
+                    <span className="hidden sm:inline">{t.generate.continuePreparePost || 'Continue preparing the Instagram post'}</span>
+                    <span className="sm:hidden">Post</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowEditStudio(false);
+                      setActiveTab('image');
+                    }}
+                    className="text-2xl text-neutral-500 hover:text-neutral-900"
+                  >
+                    ×
+                  </button>
+                </div>
               </div>
 
               {/* MOBILE : Onglets de navigation (< lg) */}
