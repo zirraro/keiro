@@ -72,19 +72,20 @@ export async function POST(req: NextRequest) {
   }
 
   // Whether or not the Graph API call succeeded (some tokens just don't
-  // have permission to call DELETE /me/permissions), wipe the locally
-  // stored credentials so the workspace UI reflects "not connected"
-  // immediately. The next OAuth grant flow will hydrate fresh tokens.
-  await supabase
-    .from('profiles')
-    .update({
-      instagram_access_token: null,
-      instagram_igaa_token: null,
-      facebook_page_access_token: null,
-      // We intentionally keep instagram_business_account_id + page id
-      // for audit purposes; the OAuth callback will overwrite them.
-    })
-    .eq('id', user.id);
+  // We intentionally do NOT wipe instagram_igaa_token here even when
+  // the Graph-side revoke succeeds. The IGAA token is the permanent
+  // tester-grade credential the Meta App Review reviewer relies on to
+  // exercise DM / comment / publish flows; if we cleared it, the next
+  // OAuth round-trip would have to fully re-acquire it (and that fails
+  // when the user is filming a screencast on the wrong Facebook
+  // account). Same reasoning for facebook_page_access_token. Force-
+  // fresh's job is to make Meta re-display the full grant dialog —
+  // achieved by auth_type=reauthenticate in /api/auth/instagram-oauth
+  // ?reauth=full — not to break the agent stack.
+  //
+  // If a future workflow legitimately needs to clear the cached tokens
+  // it can DELETE the columns explicitly; the standard "Disconnect"
+  // button in Settings → Connections already does that path.
 
   try {
     await supabase.from('agent_logs').insert({
