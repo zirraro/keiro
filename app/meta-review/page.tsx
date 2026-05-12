@@ -13,6 +13,7 @@
  */
 
 import type { Metadata } from 'next';
+import ForceFreshButton from './ForceFreshButton';
 
 export const metadata: Metadata = {
   title: 'KeiroAI — Meta App Review reviewer guide',
@@ -409,33 +410,43 @@ export default function MetaReviewPage() {
             <div className="text-sm font-semibold text-amber-900 mb-2">
               How to force the full Meta permissions dialog (Page selector + IG selector + grant screen)
             </div>
-            <p className="text-xs text-amber-900/90 leading-relaxed mb-2">
+            <p className="text-xs text-amber-900/90 leading-relaxed mb-3">
               On a returning Facebook account, Meta hides the full grant
-              dialog and only shows &quot;Continue as Name&quot;. To see the
-              entire flow (which is what App Review wants to see in the
-              screencast), use one of the two methods below:
+              dialog and only shows &quot;Continue as Name&quot; / &quot;Réassocier&quot;.
+              The button below revokes the app server-side and reopens the
+              full dialog in a single click — no Facebook settings hunting
+              needed. (Two slower fallbacks are documented underneath.)
             </p>
-            <ol className="text-xs text-amber-900/90 list-decimal pl-5 space-y-2">
-              <li>
-                <strong>Force re-prompt via URL parameter (recommended for
-                screencasts).</strong> Use the link
-                <a
-                  href="/api/auth/instagram-oauth?reauth=1"
-                  className="text-blue-700 underline ml-1"
-                >
-                  /api/auth/instagram-oauth?reauth=1
-                </a>
-                — this passes <code>auth_type=rerequest</code> to Meta and
-                forces the full permissions dialog.
-              </li>
-              <li>
-                <strong>Manually revoke the app from Facebook (cleanest).</strong>
-                Open <a className="text-blue-700 underline" href="https://www.facebook.com/settings_and_privacy/business_integrations/" target="_blank" rel="noopener noreferrer">facebook.com/settings_and_privacy/business_integrations</a>,
-                find <em>KeiroAI</em>, click Remove, then click
-                &quot;Connect Instagram Business&quot; in the workspace. Meta
-                will display the entire flow because the integration is fresh.
-              </li>
-            </ol>
+
+            <ForceFreshButton />
+
+            <details className="mt-4 text-xs text-amber-900/80">
+              <summary className="cursor-pointer font-semibold">Fallback methods</summary>
+              <ol className="list-decimal pl-5 space-y-2 mt-2">
+                <li>
+                  <strong>URL-only force re-prompt.</strong> Hit
+                  <a className="text-blue-700 underline ml-1" href="/api/auth/instagram-oauth?reauth=full">
+                    /api/auth/instagram-oauth?reauth=full
+                  </a>
+                  directly. Passes <code>auth_type=reauthenticate</code> to
+                  Meta so Facebook re-asks for the password and re-renders
+                  the full permissions screen. (No token revocation — if Meta
+                  still skips the grant screen, use the button above which
+                  revokes first.)
+                </li>
+                <li>
+                  <strong>Manual revoke from Facebook (cleanest baseline).</strong>
+                  In Facebook on desktop: profile picture → <em>Paramètres et
+                  confidentialité</em> → <em>Paramètres</em> → left sidebar
+                  <em> Applications et sites Web</em> (or <em>Intégrations
+                  professionnelles</em>) → find <em>KeiroAI</em> → click
+                  <em> Supprimer</em>. <strong>Do NOT</strong> check the
+                  &quot;Supprimer toutes les publications, vidéos et événements
+                  liés à KeiroAI&quot; option — that one would delete your
+                  published Instagram content. Just click <em>Remove</em>.
+                </li>
+              </ol>
+            </details>
           </div>
         </section>
 

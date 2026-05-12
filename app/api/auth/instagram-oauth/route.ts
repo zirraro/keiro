@@ -77,11 +77,20 @@ export async function GET(req: NextRequest) {
     // Re-prompt Meta's permission dialog. Used when recording the App
     // Review screencast: a returning user normally sees only "Continue as
     // Name", which hides the Page selector + IG account selector + the
-    // permissions grant screen Meta requires reviewers to see. Passing
-    // ?reauth=1 forces Meta to re-display the full dialog. This does not
-    // change which permissions are requested; it only affects what the
-    // user is shown.
-    if (req.nextUrl.searchParams.get('reauth') === '1') {
+    // permissions grant screen Meta requires reviewers to see.
+    //
+    // ?reauth=1  — auth_type=rerequest (re-prompts declined perms only)
+    // ?reauth=full — auth_type=reauthenticate (forces FB password + full
+    //               permissions screen — closest thing to a fresh install)
+    //
+    // The "full" variant is what we expose from /meta-review's "Force
+    // fresh OAuth grant" button so the founder can record the screencast
+    // without having to navigate Facebook's app-revocation UI.
+    const reauth = req.nextUrl.searchParams.get('reauth');
+    if (reauth === 'full') {
+      authUrl.searchParams.set('auth_type', 'reauthenticate');
+      authUrl.searchParams.set('auth_nonce', Date.now().toString(36));
+    } else if (reauth === '1') {
       authUrl.searchParams.set('auth_type', 'rerequest');
     }
 
