@@ -15,6 +15,7 @@ import { useFeedbackPopup } from '@/hooks/useFeedbackPopup';
 import FeedbackPopup from '@/components/FeedbackPopup';
 import FreeTrialGate from '@/app/components/FreeTrialGate';
 import FeedbackModal from '@/components/FeedbackModal';
+import InstagramModal from '@/app/library/components/InstagramModal';
 import { CREDIT_COSTS, getVideoCreditCost, VIDEO_DURATIONS } from '@/lib/credits/constants';
 import { supabase } from '@/lib/supabase';
 import { supabaseBrowser } from '@/lib/supabase/client';
@@ -434,6 +435,11 @@ export default function GeneratePage() {
   /* --- États pour la génération --- */
   const [generating, setGenerating] = useState(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+  // Controls the Instagram post composer popped DIRECTLY from /generate
+  // (no /library redirect — the user clicks "Continue preparing the post"
+  // and the modal opens right here with the freshly generated visual,
+  // even if the gallery save round-trip is slow or failed).
+  const [showIgComposer, setShowIgComposer] = useState(false);
   const [originalImageUrl, setOriginalImageUrl] = useState<string | null>(null); // Image SANS overlays pour édition studio
   const [imageWithWatermarkOnly, setImageWithWatermarkOnly] = useState<string | null>(null); // Image avec watermark SEULEMENT (sans texte overlay)
   const [generatedPrompt, setGeneratedPrompt] = useState<string | null>(null);
@@ -5013,34 +5019,56 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                       </button>
                     </div>
 
-                    {/* "Continue preparing the post" — push the freshly
-                        generated image straight into the Instagram post
-                        composer at /library?compose=ig&image=<id>. We save
-                        first (so the image exists in the user's gallery
-                        with an id) and then redirect; falls back to the
-                        URL-based modal entry when the save round-trip is
-                        slow. */}
+                    {/* "Continue preparing the post" — opens the Instagram
+                        composer DIRECTLY on this page (no /library redirect),
+                        so the founder/reviewer can demo the full
+                        generate-then-publish flow without the save round-trip
+                        having to succeed first. We attempt the save in the
+                        background so the published post is linked to a real
+                        gallery row, but the composer can publish even on the
+                        raw generated URL if the save is slow/failed. */}
                     <button
-                      onClick={async () => {
-                        const finalUrl = selectedEditVersion || imageWithWatermarkOnly || generatedImageUrl;
-                        if (!finalUrl) return;
-                        // Try to save first so the modal opens on a saved
-                        // gallery entry (id). If save fails / hasn't run
-                        // yet, fall through to the URL-only deep link.
+                      onClick={() => {
+                        if (!generatedImageUrl) return;
+                        // Best-effort background save so the published post
+                        // has a saved-image row associated with it. Failure
+                        // is non-fatal: the modal already has the image.
                         if (!imageSavedToLibrary && !savingToLibrary && generationLimit.canDownload) {
-                          try { await saveToLibrary(); } catch {}
+                          saveToLibrary().catch(() => {});
                         }
-                        const idParam = lastSavedImageId ? `&image=${encodeURIComponent(lastSavedImageId)}` : '';
-                        const urlParam = !lastSavedImageId ? `&url=${encodeURIComponent(finalUrl)}` : '';
-                        window.location.href = `/library?compose=ig${idParam}${urlParam}`;
+                        setShowIgComposer(true);
                       }}
                       disabled={!generatedImageUrl}
                       className="mt-3 w-full py-3 text-sm font-bold rounded-xl text-white transition-all bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 shadow-lg shadow-pink-500/20 disabled:opacity-50 flex items-center justify-center gap-2"
                     >
                       <span>{'\u{1F4F8}'}</span>
-                      <span>{t.generate.continuePreparePost || 'Continue preparing the Instagram post →'}</span>
+                      <span>{t.generate.continuePreparePost || 'Continue preparing the Instagram post'}</span>
                     </button>
                   </div>
+                )}
+
+                {/* Instagram composer popped directly from /generate. The
+                    image prop accepts a transient SavedImage shape that
+                    references the URL (or the saved id when available),
+                    so the publish flow doesn't depend on the save
+                    completing first. */}
+                {showIgComposer && generatedImageUrl && (
+                  <InstagramModal
+                    image={{
+                      id: lastSavedImageId || `transient-${Date.now()}`,
+                      image_url: selectedEditVersion || imageWithWatermarkOnly || generatedImageUrl,
+                      title: 'New visual',
+                      is_favorite: false,
+                      created_at: new Date().toISOString(),
+                    } as any}
+                    onClose={() => setShowIgComposer(false)}
+                    onSave={async () => {
+                      // The modal handles its own publish path; this is the
+                      // "save as draft" branch which we treat as a no-op
+                      // here because the image is already (being) saved to
+                      // the gallery in the background.
+                    }}
+                  />
                 )}
 
                 {/* === RÉSULTAT VIDÉO === */}
