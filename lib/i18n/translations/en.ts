@@ -1154,6 +1154,7 @@ export const en: Translations = {
     saving: 'Saving...',
     save: 'Save',
     newGeneration: 'New',
+    continuePreparePost: 'Continue preparing the Instagram post',
     generatedVideo: 'Generated video',
     closeEditor: 'Close editor',
     saveToGallery: 'Save to my gallery',

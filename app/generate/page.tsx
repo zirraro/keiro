@@ -5012,6 +5012,34 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                         {t.generate.newGeneration}
                       </button>
                     </div>
+
+                    {/* "Continue preparing the post" — push the freshly
+                        generated image straight into the Instagram post
+                        composer at /library?compose=ig&image=<id>. We save
+                        first (so the image exists in the user's gallery
+                        with an id) and then redirect; falls back to the
+                        URL-based modal entry when the save round-trip is
+                        slow. */}
+                    <button
+                      onClick={async () => {
+                        const finalUrl = selectedEditVersion || imageWithWatermarkOnly || generatedImageUrl;
+                        if (!finalUrl) return;
+                        // Try to save first so the modal opens on a saved
+                        // gallery entry (id). If save fails / hasn't run
+                        // yet, fall through to the URL-only deep link.
+                        if (!imageSavedToLibrary && !savingToLibrary && generationLimit.canDownload) {
+                          try { await saveToLibrary(); } catch {}
+                        }
+                        const idParam = lastSavedImageId ? `&image=${encodeURIComponent(lastSavedImageId)}` : '';
+                        const urlParam = !lastSavedImageId ? `&url=${encodeURIComponent(finalUrl)}` : '';
+                        window.location.href = `/library?compose=ig${idParam}${urlParam}`;
+                      }}
+                      disabled={!generatedImageUrl}
+                      className="mt-3 w-full py-3 text-sm font-bold rounded-xl text-white transition-all bg-gradient-to-r from-pink-500 via-fuchsia-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 shadow-lg shadow-pink-500/20 disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      <span>{'\u{1F4F8}'}</span>
+                      <span>{t.generate.continuePreparePost || 'Continue preparing the Instagram post →'}</span>
+                    </button>
                   </div>
                 )}
 

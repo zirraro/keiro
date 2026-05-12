@@ -705,6 +705,45 @@ function LibraryContent() {
     }
   }, [loadImages, loadMyVideos, loadTikTokPosts, user]);
 
+  // Auto-open the Instagram composer when the user lands from /generate
+  // with ?compose=ig&image=<id> (or ?compose=ig&url=<url>). The "Continue
+  // preparing the Instagram post" button on the generate page targets
+  // this route so the workflow goes: generate → save → straight into the
+  // post composer with the caption + hashtag editor open.
+  useEffect(() => {
+    if (!user || images.length === 0) return;
+    try {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get('compose') !== 'ig') return;
+      const imageId = url.searchParams.get('image');
+      const imageUrl = url.searchParams.get('url');
+      let match: SavedImage | null = null;
+      if (imageId) match = images.find(i => i.id === imageId) || null;
+      if (!match && imageUrl) {
+        match = images.find(i => i.image_url === imageUrl) || null;
+        if (!match) {
+          // Save round-trip wasn't fast enough — fabricate a transient
+          // SavedImage so the composer still opens with the new visual.
+          match = {
+            id: 'transient-' + Date.now(),
+            image_url: imageUrl,
+            title: 'New visual',
+            is_favorite: false,
+            created_at: new Date().toISOString(),
+          } as SavedImage;
+        }
+      }
+      if (match) {
+        openInstagramModal(match);
+        // Clean the query string so a refresh doesn't loop the modal open.
+        url.searchParams.delete('compose');
+        url.searchParams.delete('image');
+        url.searchParams.delete('url');
+        window.history.replaceState({}, '', url.toString());
+      }
+    } catch {}
+  }, [user, images]);
+
   // Memoize filtered images for performance
   const filteredImages = useMemo(() => {
     return images.filter(img => {

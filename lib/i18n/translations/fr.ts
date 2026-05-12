@@ -1187,6 +1187,7 @@ export const fr: Translations = {
     saving: 'Sauvegarde...',
     save: 'Sauvegarder',
     newGeneration: 'Nouveau',
+    continuePreparePost: 'Continuer la préparation du post Instagram',
     // Generated video
     generatedVideo: 'Vid\u00e9o g\u00e9n\u00e9r\u00e9e',
     closeEditor: 'Fermer l\'\u00e9diteur',
