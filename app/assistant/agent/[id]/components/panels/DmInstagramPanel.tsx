@@ -198,19 +198,43 @@ function ManualFollowsList() {
       ? `instagram://user?username=${encodeURIComponent(handle)}`
       : `https://www.instagram.com/${encodeURIComponent(handle)}/`;
 
-  const load = async () => {
+  // Auto-seed strategy: on the very first time the client opens this
+  // tab after connecting Instagram, if our manual-follows queue is
+  // empty, fire a Léo prospection run to populate real follow
+  // candidates. We track the seed attempt in localStorage so we never
+  // loop (one seed per browser, per network). Subsequent loads keep
+  // enriching naturally via the daily cron without showing examples
+  // again — once we have real items, examples are gone for good.
+  const SEED_KEY = 'jade_follows_seeded_v1';
+  const load = async (allowSeed = false) => {
     try {
       setLoading(true);
       const res = await fetch('/api/agents/dm-instagram/manual-follows');
       if (!res.ok) return;
       const data = await res.json();
-      setItems(data.follows || []);
+      const list = data.follows || [];
+      setItems(list);
+
+      // First-connection seeding: empty queue + IG connected + never
+      // seeded yet → trigger Léo prospection then re-fetch.
+      const igConnected = (typeof window !== 'undefined' && (window as any).__igConnected) || false;
+      const alreadySeeded = typeof window !== 'undefined' && localStorage.getItem(SEED_KEY) === '1';
+      if (allowSeed && igConnected && list.length === 0 && !alreadySeeded) {
+        try {
+          localStorage.setItem(SEED_KEY, '1');
+          // Kick off a small follow-prospects pass — async, fire-and-forget
+          // for the user; we re-fetch after a short delay so the first
+          // batch lands as soon as Léo finishes scraping.
+          fetch('/api/agents/dm-instagram/follow-prospects', { method: 'POST', credentials: 'include' }).catch(() => {});
+          setTimeout(() => { load(false); }, 6000);
+        } catch {}
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(true); }, []);
 
   const handleAction = async (prospectId: string, action: 'done' | 'skip') => {
     setBusyId(prospectId);
@@ -284,12 +308,40 @@ function ManualFollowsList() {
         </div>
       );
     }
-    // Connected with empty queue → real "no data yet" state
+    // Connected with empty queue. If we just kicked off the first
+    // seeding pass (SEED_KEY set this session), show a clear "Léo is
+    // preparing recommendations" state so the user understands the
+    // wait. Otherwise it's the steady-state "morning batch" message.
+    const seedInFlight = typeof window !== 'undefined' && localStorage.getItem(SEED_KEY) === '1' && !items.length;
     return (
-      <div className="text-white/50 text-sm py-8 text-center leading-relaxed">
-        {en
-          ? <>🤝 No accounts queued right now. Jade adds suggestions every morning based on Léo&apos;s qualified prospects.</>
-          : <>🤝 Aucun compte en attente pour l&apos;instant. Jade ajoute des suggestions chaque matin à partir des prospects qualifiés par Léo.</>}
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 text-center leading-relaxed">
+        {seedInFlight ? (
+          <>
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <div className="w-3 h-3 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+              <span className="text-xs text-purple-300 font-semibold">
+                {en ? 'Léo is preparing your first recommendations…' : 'Léo prépare tes premières recommandations…'}
+              </span>
+            </div>
+            <p className="text-[11px] text-white/50">
+              {en
+                ? 'A first batch of qualified accounts should appear within ~30 seconds. From there Jade keeps enriching the queue every morning.'
+                : 'Un premier lot de comptes qualifiés arrive dans ~30 secondes. Jade enrichit ensuite la liste chaque matin.'}
+            </p>
+          </>
+        ) : (
+          <>
+            <span className="text-xl">{'\u{1F91D}'}</span>
+            <p className="text-xs text-white/60 mt-1">
+              {en ? 'No accounts queued right now' : 'Aucun compte en attente'}
+            </p>
+            <p className="text-[10px] text-white/40 mt-1">
+              {en
+                ? 'Jade adds new suggestions every morning from Léo\'s qualified prospects.'
+                : 'Jade ajoute des suggestions chaque matin à partir des prospects qualifiés par Léo.'}
+            </p>
+          </>
+        )}
       </div>
     );
   }
