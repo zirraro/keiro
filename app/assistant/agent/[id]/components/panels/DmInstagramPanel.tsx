@@ -1045,6 +1045,11 @@ function LenaCommentsSection() {
   const p = t.panels;
   const [comments, setComments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [autoReply, setAutoReply] = useState<boolean>(false);
+  const [autoReplyLoaded, setAutoReplyLoaded] = useState(false);
+  const [filter, setFilter] = useState<'pending' | 'all' | 'replied'>('pending');
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [replyingBatch, setReplyingBatch] = useState(false);
 
   useEffect(() => {
     fetch('/api/agents/instagram-comments', {
@@ -1059,55 +1064,200 @@ function LenaCommentsSection() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Load + persist Axel's auto-reply setting.
+  useEffect(() => {
+    fetch('/api/agents/settings?agent_id=instagram_comments', { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => { setAutoReply(!!d.settings?.auto_mode); setAutoReplyLoaded(true); })
+      .catch(() => setAutoReplyLoaded(true));
+  }, []);
+
+  const toggleAutoReply = useCallback(async () => {
+    const next = !autoReply;
+    setAutoReply(next);
+    try {
+      await fetch('/api/agents/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ agent_id: 'instagram_comments', auto_mode: next }),
+      });
+    } catch { setAutoReply(!next); }
+  }, [autoReply]);
+
+  const replySingle = useCallback(async (commentId: string, mediaId: string, customReply?: string) => {
+    try {
+      await fetch('/api/agents/instagram-comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action: 'reply_comment', comment_id: commentId, media_id: mediaId, ...(customReply ? { custom_reply: customReply } : {}) }),
+      });
+      setComments(prev => prev.map(c => c.comment_id === commentId ? { ...c, replied: true } : c));
+      setSelected(prev => { const n = new Set(prev); n.delete(commentId); return n; });
+    } catch {}
+  }, []);
+
+  const replySelected = useCallback(async () => {
+    if (selected.size === 0) return;
+    setReplyingBatch(true);
+    try {
+      await Promise.all(Array.from(selected).map(id => {
+        const c = comments.find(x => x.comment_id === id);
+        if (!c) return Promise.resolve();
+        return fetch('/api/agents/instagram-comments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ action: 'reply_comment', comment_id: id, media_id: c.media_id }),
+        }).catch(() => {});
+      }));
+      setComments(prev => prev.map(c => selected.has(c.comment_id) ? { ...c, replied: true } : c));
+      setSelected(new Set());
+    } finally { setReplyingBatch(false); }
+  }, [selected, comments]);
+
   if (loading) return <div className="text-center py-4"><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-400 mx-auto" /></div>;
 
   // STRICT rule: sample comments ONLY when Instagram is NOT connected.
-  // When connected, even with zero real comments, we show the real
-  // (empty) state with a clear "no comments yet" message — never
-  // sample data masking the truth.
   const igConnected = !!(window as any).__igConnected;
   const showSamples = !igConnected && comments.length === 0;
-  const displayComments = comments.length > 0 ? comments : (showSamples ? DEMO_IG_COMMENTS : []);
+  const sourceList: any[] = comments.length > 0 ? comments : (showSamples ? DEMO_IG_COMMENTS : []);
   const isDemo = showSamples;
 
+  const pending = sourceList.filter(c => !c.replied);
+  const replied = sourceList.filter(c => c.replied);
+  const counts = { all: sourceList.length, pending: pending.length, replied: replied.length };
+  const visible = filter === 'all' ? sourceList : filter === 'replied' ? replied : pending;
+
   return (
-    <div className={isDemo ? 'opacity-90' : ''}>
+    <div className={isDemo ? 'opacity-95' : ''}>
+      {/* Sample-data badge — when Instagram is not connected. */}
       {isDemo && (
-        <div className="flex items-center gap-2 mb-2 text-[10px]">
+        <div className="flex items-center gap-2 mb-3 text-[10px]">
           <span className="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 font-semibold">Sample data</span>
           <span className="text-white/40">Example comments — connect Instagram to replace them with your real ones.</span>
         </div>
       )}
-      {!isDemo && comments.length === 0 && (
+
+      {/* Auto-reply master toggle — clear on/off so the client knows
+          exactly whether Axel will reply on his own. When ON, every new
+          comment gets an AI reply automatically; when OFF, the client
+          handles each one from this list. */}
+      {!isDemo && (
+        <div className="rounded-xl border border-emerald-500/15 bg-emerald-500/5 p-3 mb-3 flex items-center gap-3">
+          <button
+            onClick={toggleAutoReply}
+            disabled={!autoReplyLoaded}
+            aria-label={autoReply ? 'Disable Axel auto-reply' : 'Enable Axel auto-reply'}
+            className={`w-11 h-6 rounded-full relative transition-colors flex-shrink-0 ${autoReply ? 'bg-emerald-500' : 'bg-white/15'}`}
+          >
+            <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${autoReply ? 'right-0.5' : 'left-0.5'}`} />
+          </button>
+          <div className="flex-1 min-w-0">
+            <div className="text-[11px] font-semibold text-white">
+              {autoReply ? 'Auto-reply ON — Axel répond seul' : 'Auto-reply OFF — tu valides chaque réponse'}
+            </div>
+            <div className="text-[10px] text-white/50 mt-0.5">
+              {autoReply
+                ? "Chaque nouveau commentaire est posté avec une réponse IA pertinente dans les 5 min."
+                : "Sélectionne les commentaires en attente ci-dessous et choisis Reply, Suggest ou Skip."}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Filter chips — never let an active client lose track of pending vs replied. */}
+      <div className="flex items-center gap-1 mb-2 text-[10px]">
+        {(['pending', 'all', 'replied'] as const).map(f => (
+          <button
+            key={f}
+            onClick={() => { setFilter(f); setSelected(new Set()); }}
+            className={`px-2.5 py-1 rounded-full font-semibold transition ${
+              filter === f
+                ? 'bg-purple-500/30 text-white border border-purple-500/40'
+                : 'bg-white/5 text-white/50 border border-white/10 hover:text-white/80'
+            }`}
+          >
+            {f === 'pending' ? `À répondre (${counts.pending})` : f === 'replied' ? `Répondus (${counts.replied})` : `Tous (${counts.all})`}
+          </button>
+        ))}
+        {filter === 'pending' && counts.pending > 0 && (
+          <button
+            onClick={() => {
+              const ids = pending.map(c => c.comment_id);
+              if (selected.size === ids.length) setSelected(new Set());
+              else setSelected(new Set(ids));
+            }}
+            className="ml-auto text-[10px] text-white/40 hover:text-white"
+          >
+            {selected.size === counts.pending ? 'Tout désélectionner' : 'Tout sélectionner'}
+          </button>
+        )}
+      </div>
+
+      {/* Bulk-reply bar — appears the moment the client has selected at least one pending comment. */}
+      {filter === 'pending' && selected.size > 0 && (
+        <div className="rounded-lg border border-purple-500/30 bg-purple-500/10 p-2 mb-2 flex items-center gap-2">
+          <span className="text-[11px] text-purple-200 font-semibold flex-1">{selected.size} sélectionné(s)</span>
+          <button
+            onClick={replySelected}
+            disabled={replyingBatch}
+            className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-[10px] font-bold rounded-lg disabled:opacity-50"
+          >
+            {replyingBatch ? '...' : `IA répond aux ${selected.size}`}
+          </button>
+          <button onClick={() => setSelected(new Set())} className="text-[10px] text-white/40 hover:text-white px-2">
+            Annuler
+          </button>
+        </div>
+      )}
+
+      {/* Empty state when Instagram is connected but no comments at all */}
+      {!isDemo && counts.all === 0 && (
         <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 text-center">
           <span className="text-xl">{'\u{1F4AC}'}</span>
           <p className="text-xs text-white/60 mt-1">No comments yet on @keiro_ai</p>
-          <p className="text-[10px] text-white/40 mt-1">Your real Instagram comments appear here as soon as visitors comment on a published post. Fetched live via GET /&lt;media-id&gt;/comments.</p>
+          <p className="text-[10px] text-white/40 mt-1">Your real Instagram comments will appear here as soon as visitors comment on a published post. Fetched live via GET /&lt;media-id&gt;/comments.</p>
         </div>
       )}
-      <div className="space-y-2 max-h-[350px] overflow-y-auto">
-        {displayComments.slice(0, 10).map((c: any, i: number) => (
-          <CommentCard key={c.comment_id || i} comment={c} isDemo={isDemo} onUpdate={(id, data) => setComments(prev => prev.map(cc => cc.comment_id === id ? { ...cc, ...data } : cc))} />
-        ))}
-      </div>
-      {!isDemo && comments.length > 0 && (
-        <button
-          onClick={async () => {
-            try {
-              await fetch('/api/agents/instagram-comments', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ action: 'auto_reply_all' }),
-              });
-              setComments(prev => prev.map(c => ({ ...c, replied: true })));
-            } catch {}
-          }}
-          className="mt-2 w-full py-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-[10px] font-bold rounded-xl hover:opacity-90 transition min-h-[36px]"
-        >
-          {p.dmCommentsLegacyReplyAllBtn}
-        </button>
+
+      {/* Empty state within a filter (e.g. all replied) */}
+      {!isDemo && counts.all > 0 && visible.length === 0 && (
+        <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3 text-center text-[11px] text-white/40">
+          {filter === 'pending' ? 'Tous les commentaires sont traités 👌' : 'Aucun commentaire répondu pour le moment.'}
+        </div>
       )}
+
+      {/* Comment list with per-card selection checkbox for pending comments */}
+      <div className="space-y-2 max-h-[420px] overflow-y-auto">
+        {visible.slice(0, 30).map((c: any, i: number) => {
+          const isPending = !c.replied;
+          const checked = selected.has(c.comment_id);
+          return (
+            <div key={c.comment_id || i} className={`relative ${isPending && filter === 'pending' ? 'pl-7' : ''}`}>
+              {isPending && filter === 'pending' && (
+                <button
+                  onClick={() => setSelected(prev => {
+                    const n = new Set(prev);
+                    if (n.has(c.comment_id)) n.delete(c.comment_id); else n.add(c.comment_id);
+                    return n;
+                  })}
+                  aria-label={checked ? 'Désélectionner' : 'Sélectionner'}
+                  className={`absolute left-0 top-3 w-5 h-5 rounded border-2 ${checked ? 'bg-purple-500 border-purple-500' : 'bg-transparent border-white/30'} flex items-center justify-center`}
+                >
+                  {checked && <span className="text-white text-[10px] font-bold">✓</span>}
+                </button>
+              )}
+              <CommentCard
+                comment={c}
+                isDemo={isDemo}
+                onUpdate={(id, data) => setComments(prev => prev.map(cc => cc.comment_id === id ? { ...cc, ...data } : cc))}
+              />
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
