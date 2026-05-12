@@ -249,42 +249,47 @@ function ManualFollowsList() {
   }
 
   if (items.length === 0) {
-    // Render labelled example accounts so the user (and a Meta App
-    // Review reviewer) understands what this tab will look like once
-    // Léo's prospection queue starts producing matches. Real items
-    // replace the sample list as soon as the first prospect is queued.
-    const sample = [
-      { id: 'sample-1', company: 'Pizzeria Da Marco', instagram: 'pizzeria_damarco', score: 78, note_google: 4.6, angle_approche: en ? 'New menu spotted on Instagram — opportunity to highlight signature pizza in a Reel' : "Nouvelle carte vue sur Instagram — opportunité de mettre en avant la pizza signature en Reel" },
-      { id: 'sample-2', company: 'Salon Léa Coiffure', instagram: 'salon_lea', score: 71, note_google: 4.8, angle_approche: en ? 'Strong before/after engagement — could be a recurring DM hook with a free consultation slot' : 'Forte engagement avant/après — accroche DM récurrente avec un créneau diagnostic gratuit' },
-      { id: 'sample-3', company: 'Atelier Fleurs du Marais', instagram: 'fleurs_marais', score: 66, note_google: 4.5, angle_approche: en ? 'Active during weddings season — DM angle: tailored arrangements for May couples' : "Active sur la saison mariages — angle DM : compositions sur-mesure pour les couples de mai" },
-    ];
-    return (
-      <div className="space-y-2">
-        <div className="flex items-center gap-2 text-[11px]">
-          <span className="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 font-semibold">Sample data</span>
-          <span className="text-white/40">
-            {en
-              ? 'Example accounts Jade would queue — replaced with real prospects from Léo as soon as they\'re scraped.'
-              : 'Comptes d\'exemple que Jade mettrait en file — remplacés par les vrais prospects de Léo dès qu\'ils sont scrapés.'}
-          </span>
-        </div>
-        {sample.map(s => (
-          <div key={s.id} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-            <div className="flex items-start gap-3">
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold text-white">{s.company}</div>
-                <div className="text-[11px] text-white/40">@{s.instagram} · ⭐ {s.note_google} · {en ? 'score' : 'score'} {s.score}/100</div>
-                <p className="text-[11px] text-white/60 mt-1 leading-snug">{s.angle_approche}</p>
-              </div>
-              <span className="text-[10px] text-white/30 px-2 py-1 rounded bg-white/5 flex-shrink-0">{en ? 'Example' : 'Exemple'}</span>
-            </div>
+    // STRICT rule: sample accounts ONLY when Instagram is NOT connected.
+    // When connected, the empty state is "no accounts queued yet" — real
+    // suggestions come in as Léo's prospection queue produces matches.
+    const igConnected = (typeof window !== 'undefined' && (window as any).__igConnected) || false;
+    if (!igConnected) {
+      const sample = [
+        { id: 'sample-1', company: 'Pizzeria Da Marco', instagram: 'pizzeria_damarco', score: 78, note_google: 4.6, angle_approche: en ? 'New menu spotted on Instagram — opportunity to highlight signature pizza in a Reel' : "Nouvelle carte vue sur Instagram — opportunité de mettre en avant la pizza signature en Reel" },
+        { id: 'sample-2', company: 'Salon Léa Coiffure', instagram: 'salon_lea', score: 71, note_google: 4.8, angle_approche: en ? 'Strong before/after engagement — could be a recurring DM hook with a free consultation slot' : 'Forte engagement avant/après — accroche DM récurrente avec un créneau diagnostic gratuit' },
+        { id: 'sample-3', company: 'Atelier Fleurs du Marais', instagram: 'fleurs_marais', score: 66, note_google: 4.5, angle_approche: en ? 'Active during weddings season — DM angle: tailored arrangements for May couples' : "Active sur la saison mariages — angle DM : compositions sur-mesure pour les couples de mai" },
+      ];
+      return (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-[11px]">
+            <span className="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 font-semibold">Sample data</span>
+            <span className="text-white/40">
+              {en
+                ? 'Example accounts Jade would queue — connect Instagram + run Léo prospection to see real candidates.'
+                : 'Comptes d\'exemple que Jade mettrait en file — connecte Instagram + lance Léo pour voir tes vrais candidats.'}
+            </span>
           </div>
-        ))}
-        <p className="text-[10px] text-white/40 text-center pt-2">
-          {en
-            ? '🤝 No real accounts queued yet. Jade adds new suggestions every morning based on Léo\'s qualified prospects.'
-            : '🤝 Aucun compte réel en attente. Jade ajoute des suggestions chaque matin à partir des prospects qualifiés par Léo.'}
-        </p>
+          {sample.map(s => (
+            <div key={s.id} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+              <div className="flex items-start gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold text-white">{s.company}</div>
+                  <div className="text-[11px] text-white/40">@{s.instagram} · ⭐ {s.note_google} · {en ? 'score' : 'score'} {s.score}/100</div>
+                  <p className="text-[11px] text-white/60 mt-1 leading-snug">{s.angle_approche}</p>
+                </div>
+                <span className="text-[10px] text-white/30 px-2 py-1 rounded bg-white/5 flex-shrink-0">{en ? 'Example' : 'Exemple'}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    // Connected with empty queue → real "no data yet" state
+    return (
+      <div className="text-white/50 text-sm py-8 text-center leading-relaxed">
+        {en
+          ? <>🤝 No accounts queued right now. Jade adds suggestions every morning based on Léo&apos;s qualified prospects.</>
+          : <>🤝 Aucun compte en attente pour l&apos;instant. Jade ajoute des suggestions chaque matin à partir des prospects qualifiés par Léo.</>}
       </div>
     );
   }
@@ -1056,21 +1061,28 @@ function LenaCommentsSection() {
 
   if (loading) return <div className="text-center py-4"><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-400 mx-auto" /></div>;
 
-  const displayComments = comments.length > 0 ? comments : DEMO_IG_COMMENTS;
-  const isDemo = comments.length === 0;
+  // STRICT rule: sample comments ONLY when Instagram is NOT connected.
+  // When connected, even with zero real comments, we show the real
+  // (empty) state with a clear "no comments yet" message — never
+  // sample data masking the truth.
+  const igConnected = !!(window as any).__igConnected;
+  const showSamples = !igConnected && comments.length === 0;
+  const displayComments = comments.length > 0 ? comments : (showSamples ? DEMO_IG_COMMENTS : []);
+  const isDemo = showSamples;
 
   return (
-    <div className={isDemo ? 'opacity-80' : ''}>
-      {isDemo && !(window as any).__igConnected && (
+    <div className={isDemo ? 'opacity-90' : ''}>
+      {isDemo && (
         <div className="flex items-center gap-2 mb-2 text-[10px]">
           <span className="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 font-semibold">Sample data</span>
-          <span className="text-white/40">Example comments — replaced by your real Instagram comments once connected.</span>
+          <span className="text-white/40">Example comments — connect Instagram to replace them with your real ones.</span>
         </div>
       )}
-      {isDemo && (window as any).__igConnected && (
-        <div className="flex items-center gap-2 mb-2 text-[10px]">
-          <span className="px-2 py-0.5 rounded-full bg-white/10 border border-white/20 text-white/60 font-semibold">No comments yet</span>
-          <span className="text-white/40">Your real comments will appear here once visitors comment on a published post.</span>
+      {!isDemo && comments.length === 0 && (
+        <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 text-center">
+          <span className="text-xl">{'\u{1F4AC}'}</span>
+          <p className="text-xs text-white/60 mt-1">No comments yet on @keiro_ai</p>
+          <p className="text-[10px] text-white/40 mt-1">Your real Instagram comments appear here as soon as visitors comment on a published post. Fetched live via GET /&lt;media-id&gt;/comments.</p>
         </div>
       )}
       <div className="space-y-2 max-h-[350px] overflow-y-auto">
@@ -1644,12 +1656,12 @@ export function DmInstagramPanel({ data, agentName, gradientFrom, gradientTo }: 
           when the account is missing. */}
       <JadeHeader connected={igConnected} p={p} />
 
-      {/* KPI cards — when the account has no Jade activity yet we surface
-          a typical-month preview (clearly labelled "Sample data") so the
-          dashboard is never empty on day 1. The real numbers slot in as
-          soon as Jade actually sends / receives / drafts / verifies
-          prospects, so the user (and Meta App Review) sees a coherent
-          progression from sample → real. */}
+      {/* KPI cards — STRICT rule (founder feedback):
+          - Instagram NOT connected → sample numbers labelled "Sample data".
+          - Instagram CONNECTED → real numbers, even when 0. No more
+            sample masking the truth once the account is linked.
+          Real numbers auto-populate via the dashboard API as soon as
+          the IG connection is detected anywhere in the workspace. */}
       {(() => {
         const real = {
           sent: stats.dmsSent || 0,
@@ -1657,18 +1669,15 @@ export function DmInstagramPanel({ data, agentName, gradientFrom, gradientTo }: 
           drafted: (stats as any).queuePending || 0,
           prospects: (stats as any).prospectsWithIG || 0,
         };
-        const hasAnyActivity = real.sent + real.replies + real.drafted + real.prospects > 0;
-        // Sample numbers reflect a typical active client's first week —
-        // anchored to KeiroAI's cross-client median, not invented.
         const sample = { sent: 12, replies: 4, drafted: 8, prospects: 27 };
-        const display = hasAnyActivity ? real : sample;
+        const display = igConnected ? real : sample;
         return (
           <>
-            {!hasAnyActivity && (
+            {!igConnected && (
               <div className="flex items-center gap-2 mb-2 text-[10px]">
                 <span className="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 font-semibold">Sample data</span>
                 <span className="text-white/40">
-                  Typical first-week numbers · will switch to your real data once Jade starts sending.
+                  Connect Instagram to replace these typical-week figures with your live Jade activity.
                 </span>
               </div>
             )}
