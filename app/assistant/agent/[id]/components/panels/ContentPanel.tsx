@@ -823,10 +823,20 @@ function NetworkSection({
           their sector. */}
       <div className="rounded-xl bg-black/20 border border-white/5 p-3 mb-4">
         {!connected ? (
-          <div className="text-[11px] text-white/50">
-            Connect {meta.label} to see live performance metrics from your
-            actual account. We never display demo or invented numbers.
-          </div>
+          <>
+            {/* Sample preview before connection — clearly labelled so
+                the user understands these are typical numbers, not their
+                own. Switches to the live API + cached counts as soon as
+                the network is connected. */}
+            <div className="flex items-center gap-2 mb-2 text-[10px]">
+              <span className="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 font-semibold">Sample data</span>
+              <span className="text-white/40">
+                Typical {meta.label} numbers — replaced by YOUR live stats once you connect.
+              </span>
+            </div>
+            <NetworkStatsRow network={network} netStats={{}} stats={{}} sample />
+            <NetworkStrategyHints network={network} hasActivity={false} />
+          </>
         ) : (
           <>
             <NetworkStatsRow network={network} netStats={netStats} stats={stats} />
@@ -1027,7 +1037,17 @@ function NetworkConnectionCard({ network, connected }: { network: LenaNetworkKey
   );
 }
 
-function NetworkStatsRow({ network, netStats, stats }: { network: LenaNetworkKey; netStats: any; stats: any }) {
+function NetworkStatsRow({ network, netStats, stats, sample }: { network: LenaNetworkKey; netStats: any; stats: any; sample?: boolean }) {
+  // Sample numbers shown before the network is connected, anchored to a
+  // typical active small-business account so the founder/client sees
+  // what a "good week" looks like even on day 1. Switched to the user's
+  // real numbers (live API + cached profile) as soon as connected.
+  const SAMPLE: Record<string, any> = {
+    instagram: { posts: 24, followers: 1840, likes: 1320, engagement: 4.2, scheduled: 6 },
+    tiktok: { posts: 12, scheduled: 4 },
+    linkedin: { posts: 8, scheduled: 3 },
+  };
+  if (sample) netStats = SAMPLE[network] || {};
   // When the dashboard API returned 0 (rate-limit / failed call) but
   // the cached profile row has real numbers (filled by OAuth callback
   // or by /api/instagram/refresh-profile), prefer the cached numbers
