@@ -4374,7 +4374,15 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                       {/* Navigation — mobile: Express button full-width on its own row.
                           Then back/next on a second row. Desktop keeps inline layout. */}
                       <div className="mt-4 space-y-2">
-                        {/* EXPRESS MODE — primary CTA, full-width on mobile */}
+                        {/* EXPRESS MODE — primary CTA, full-width on mobile.
+                            The button used to fill the 3 steps then leave the
+                            user staring at the Generate button. With "auto +
+                            generate" semantics, after the 3 fills we trigger
+                            handleGenerate() so the image actually appears
+                            without an extra click. The user explicitly asked
+                            for this: "il passe en auto sur la page generate
+                            visual il clique en auto dessus et lance la
+                            generation direct". */}
                         <button
                           type="button"
                           onClick={async () => {
@@ -4391,10 +4399,21 @@ ZERO text, words, letters, numbers, signs, logos, watermarks. Pure visual storyt
                             } finally {
                               setAutoFillLoading(false);
                             }
+                            // Chain straight into the actual image generation
+                            // once the auto-fill is done — no manual click on
+                            // Generate needed. Wrapped in a tiny delay so
+                            // setState from the auto-fill settles into the
+                            // payload that handleGenerate reads.
+                            try {
+                              await new Promise(r => setTimeout(r, 150));
+                              await handleGenerate();
+                            } catch (e) {
+                              console.warn('[ExpressMode] handleGenerate failed:', e);
+                            }
                           }}
                           disabled={autoFillLoading}
                           className="w-full px-4 py-3 min-h-[48px] bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-700 hover:to-fuchsia-700 text-white text-sm font-bold rounded-xl shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
-                          title={locale === 'fr' ? 'Tout remplir automatiquement et passer à la génération' : 'Auto-fill everything and jump to generation'}
+                          title={locale === 'fr' ? 'Tout remplir automatiquement et lancer la génération' : 'Auto-fill everything and generate immediately'}
                         >
                           {autoFillLoading ? (
                             <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> {t.generate.analyzing}</>
