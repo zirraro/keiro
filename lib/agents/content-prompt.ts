@@ -79,15 +79,28 @@ TEXTE INTÉGRÉ DANS LES IMAGES IA
 DIMENSIONS D'AMPLIFICATION SÉLECTIVE (catchy / urgency / authority)
 Au-delà du framework Émotion × Preuve × Autorité (qui coche 2/3 sur chaque post), certains posts gagnent à monter d'un cran sur UNE dimension supplémentaire pour stopper le scroll. NE PAS LE FAIRE SUR TOUS LES POSTS — saturer = agressif → unfollow.
 
-PERMISSION DE DRAMATISER (CRITIQUE)
-Quand une amplification est activée, la règle "tech accessible jamais intimidant" est temporairement RELAXÉE pour CE post. Tu as la permission explicite de pousser le visuel à 8/10 sur l'échelle dramatique (au lieu du 5/10 par défaut). Un visuel amplifié qui reste sage = échec. Le scroll moyen dure 1.3 sec — un visuel sage à 5/10 ne stoppe pas le scroll, un visuel à 8/10 oui. Concrètement :
-- Profondeur de champ extrême (f/1.2-f/1.4 lookalike, bokeh massif)
-- Lumière directionnelle dure (clair-obscur, single key light, harsh sidelight, rim light)
-- Sujet qui occupe 60-80% du cadre, le reste plongé dans l'ombre ou flou
-- Action figée mi-mouvement (motion blur partiel sur le geste, gel net sur le sujet)
-- Expression humaine forte (regard caméra direct, mâchoire serrée, sourire intense, geste suspendu juste avant l'impact)
-- Composition asymétrique tranchée (règle des tiers cassée volontairement, sujet décentré au max)
-INTERDIT MÊME AMPLIFIÉ : couleurs néons, gradients synthwave, look "AI flashy", saturation cartoon. La dramatisation passe par la LUMIÈRE et le CADRAGE photographique cinéma, pas par des couleurs criardes.
+PERMISSION DE DRAMATISER (CRITIQUE — niveau 9/10)
+Quand une amplification est activée, la règle "tech accessible jamais intimidant" est SUSPENDUE pour CE post. Tu as la permission explicite de pousser le visuel à 9/10 sur l'échelle dramatique. Un visuel amplifié sage = échec total — le scroll moyen dure 1.3 sec, seul le 9/10 stoppe le pouce. Tu peux et DOIS utiliser ces techniques :
+- Profondeur de champ extrême (f/1.0-f/1.4 lookalike, bokeh massif qui dissout 70% du cadre)
+- Lumière directionnelle violente (clair-obscur tranché, single key light très dure, harsh sidelight créant des ombres dures avec contours nets, rim light qui détache le sujet du fond noir)
+- Sujet qui occupe 70-90% du cadre, le reste plongé dans l'ombre profonde ou complètement flou
+- Action figée à HAUTE vitesse d'obturation — gouttes en suspension, éclaboussures gelées mi-vol, miettes/poussière en suspension, fumée prise en vol, liquide qui chute frozen
+- "Controlled chaos" — élément qui semble sur le point de tomber/déborder/se renverser, déséquilibre maîtrisé qui crée tension visuelle
+- Expression humaine sans filtre — regard caméra LASER (pas de sourire poli), mâchoire serrée, sueur sur le front du chef, mains qui tremblent légèrement de concentration, expression "moment de vérité"
+- Composition agressivement asymétrique — sujet collé à un bord, négatif space massif, règle des tiers brisée pour créer pression visuelle
+- Texture / matière hyperréaliste — pores de la peau, croûte du pain qui craque encore, sauce qui glisse en filaments visibles, fibres d'un tissu, micro-bulles, poussière d'épice en suspension
+
+INSPIRATIONS DE STYLE (références à invoquer) :
+- "The Bear" (la série) — kitchen pressure, sueur, gestes précis, light tungstène dur, cadrages serrés
+- Photographie de Wong Kar-wai — single source light, motion blur dans la couleur saturée, mouvement figé
+- Frame-grabs d'Anthony Bourdain Parts Unknown — humain au premier plan, lumière naturelle dure
+- Steven Klein editorial — high contrast B&W lookalike (même en couleur), composition radicale
+
+INTERDIT MÊME EN MODE 9/10 :
+- Couleurs néons / synthwave / aurores violettes (la dramatisation passe par LUMIÈRE et CADRAGE, jamais par des couleurs criardes)
+- Look "AI flashy" / saturation cartoon
+- Composition centrée fade / lumière soft uniforme / regard souriant poli (= 5/10, échec)
+- Multiples sujets également importants (le scroll lit UN sujet à la fois)
 
 ⚡ DIMENSION CATCHY / PROVOCATION (max 1-2 posts par semaine — saturation = unfollow)
 Quand l'activer : sujet polarisant, pattern interrupt utile (lundi matin / vendredi soir), feed trop sage depuis 4-5 posts, changement d'algo majeur, polémique sectorielle.
