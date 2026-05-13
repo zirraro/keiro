@@ -36,21 +36,86 @@ const META_ACTIONS = [
   'fetch_comments',
 ];
 
-function actionDescription(agent: string, action: string): string {
+// Tag each row with the Meta permission it exercised — lets a Meta App
+// Review reviewer scan the log and verify each granted permission is
+// actually being used for the documented purpose.
+type PermissionTag =
+  | 'instagram_business_manage_messages'
+  | 'instagram_business_manage_comments'
+  | 'instagram_business_content_publish'
+  | 'instagram_business_manage_insights'
+  | 'instagram_business_basic'
+  | 'human_agent'
+  | 'pages_show_list'
+  | 'oembed_read'
+  | 'none';
+
+function actionMeta(agent: string, action: string, data: any): { description: string; permission: PermissionTag; method: 'READ' | 'WRITE' | 'WEBHOOK' | 'INTERNAL' } {
   if (agent === 'dm_instagram' && action === 'execution_success')
-    return 'DM batch processed via Graph API (POST /me/messages, manual trigger)';
-  if (agent === 'dm_instagram' && action === 'dm_auto_reply')
-    return 'Reply drafted by Jade and sent on owner click (POST /me/messages)';
+    return { description: 'DM batch processed via Graph API (POST /me/messages, manual trigger)', permission: 'instagram_business_manage_messages', method: 'WRITE' };
+  if (agent === 'dm_instagram' && action === 'dm_auto_reply') {
+    const usedHumanAgent = !!(data && (data as any).human_agent);
+    return {
+      description: usedHumanAgent
+        ? 'Reply sent on owner click with MESSAGE_TAG=HUMAN_AGENT (POST /me/messages, customer >24h)'
+        : 'Reply drafted by Jade and sent on owner click (POST /me/messages, within 24h window)',
+      permission: usedHumanAgent ? 'human_agent' : 'instagram_business_manage_messages',
+      method: 'WRITE',
+    };
+  }
   if (agent === 'dm_instagram' && action === 'webhook_dm_received')
-    return 'Inbound DM received from Meta webhook (read-only)';
-  if (agent === 'instagram_comments' && action === 'reply_comment')
-    return 'Reply posted to Instagram comment (POST /{comment-id}/replies)';
-  if (agent === 'content' && action === 'publish_diagnostic')
-    return 'Publish attempt logged (POST /{ig-id}/media + /media_publish)';
+    return { description: 'Inbound DM received from Meta webhook (read-only)', permission: 'instagram_business_manage_messages', method: 'WEBHOOK' };
   if (agent === 'dm_instagram' && action === 'follow_campaign')
-    return 'Manual follow batch run by owner';
-  return `${agent} → ${action}`;
+    return { description: 'Manual follow batch run by owner', permission: 'instagram_business_basic', method: 'INTERNAL' };
+  if (agent === 'dm_instagram' && action === 'send_blocked_blacklist')
+    return { description: 'Send refused by blacklist guard (GDPR/CAN-SPAM)', permission: 'none', method: 'INTERNAL' };
+  if (agent === 'instagram_comments' && action === 'reply_comment')
+    return { description: 'Reply posted to Instagram comment (POST /<comment-id>/replies)', permission: 'instagram_business_manage_comments', method: 'WRITE' };
+  if (agent === 'instagram_comments' && action === 'fetch_comments')
+    return { description: 'Comments fetched from /<media-id>/comments', permission: 'instagram_business_manage_comments', method: 'READ' };
+  if (agent === 'instagram_comments' && action === 'auto_reply_all')
+    return { description: 'Bulk reply to all pending comments (POST /<comment-id>/replies × N)', permission: 'instagram_business_manage_comments', method: 'WRITE' };
+  if (agent === 'content' && action === 'publish_diagnostic')
+    return { description: 'Publish attempt logged (POST /<ig-id>/media + /media_publish)', permission: 'instagram_business_content_publish', method: 'WRITE' };
+  if (agent === 'content' && action === 'error_escalated_publish_instagram')
+    return { description: 'Publish error escalated to admin', permission: 'instagram_business_content_publish', method: 'WRITE' };
+  if (agent === 'lena' && action === 'insights_fetched')
+    return { description: 'Insights metrics read from /<ig-id>/insights', permission: 'instagram_business_manage_insights', method: 'READ' };
+  if (agent === 'auth' && action === 'instagram_force_fresh')
+    return { description: 'OAuth permissions revoked via DELETE /me/permissions (manual refresh)', permission: 'none', method: 'INTERNAL' };
+  return { description: `${agent} → ${action}`, permission: 'none', method: 'INTERNAL' };
 }
+
+const PERMISSION_LABEL: Record<PermissionTag, string> = {
+  instagram_business_manage_messages: 'manage_messages',
+  instagram_business_manage_comments: 'manage_comments',
+  instagram_business_content_publish: 'content_publish',
+  instagram_business_manage_insights: 'manage_insights',
+  instagram_business_basic: 'business_basic',
+  human_agent: 'human_agent',
+  pages_show_list: 'pages_show_list',
+  oembed_read: 'oembed_read',
+  none: '—',
+};
+
+const PERMISSION_COLOR: Record<PermissionTag, string> = {
+  instagram_business_manage_messages: 'bg-blue-100 text-blue-800',
+  instagram_business_manage_comments: 'bg-purple-100 text-purple-800',
+  instagram_business_content_publish: 'bg-emerald-100 text-emerald-800',
+  instagram_business_manage_insights: 'bg-orange-100 text-orange-800',
+  instagram_business_basic: 'bg-neutral-100 text-neutral-700',
+  human_agent: 'bg-amber-100 text-amber-900',
+  pages_show_list: 'bg-neutral-100 text-neutral-700',
+  oembed_read: 'bg-cyan-100 text-cyan-800',
+  none: 'bg-neutral-100 text-neutral-500',
+};
+
+const METHOD_COLOR: Record<string, string> = {
+  WRITE: 'bg-rose-100 text-rose-800',
+  READ: 'bg-emerald-100 text-emerald-800',
+  WEBHOOK: 'bg-blue-100 text-blue-800',
+  INTERNAL: 'bg-neutral-100 text-neutral-600',
+};
 
 export default function MetaAuditPage() {
   const [rows, setRows] = useState<LogRow[]>([]);
@@ -132,6 +197,47 @@ export default function MetaAuditPage() {
           </div>
         </header>
 
+        {/* Aggregated counts per permission — gives a Meta App Review
+            reviewer a one-glance picture of which permissions are
+            actually exercised on this account. Computed live from the
+            same row data the table renders. */}
+        {!loading && rows.length > 0 && (() => {
+          const tally = new Map<PermissionTag, { reads: number; writes: number; webhooks: number }>();
+          for (const r of rows) {
+            const meta = actionMeta(r.agent, r.action, r.data);
+            const t = tally.get(meta.permission) || { reads: 0, writes: 0, webhooks: 0 };
+            if (meta.method === 'READ') t.reads++;
+            else if (meta.method === 'WRITE') t.writes++;
+            else if (meta.method === 'WEBHOOK') t.webhooks++;
+            tally.set(meta.permission, t);
+          }
+          const entries = Array.from(tally.entries()).filter(([p]) => p !== 'none');
+          if (entries.length === 0) return null;
+          return (
+            <section className="bg-white border border-neutral-200 rounded-2xl p-5 mb-6 shadow-sm">
+              <h2 className="text-sm font-bold text-neutral-900 mb-3">Permissions exercised in the last 80 events</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                {entries.map(([perm, counts]) => (
+                  <div key={perm} className={`rounded-xl border border-neutral-200 p-3`}>
+                    <div className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${PERMISSION_COLOR[perm]}`}>
+                      {PERMISSION_LABEL[perm]}
+                    </div>
+                    <div className="mt-2 flex items-baseline gap-2">
+                      <span className="text-xl font-black text-neutral-900">{counts.reads + counts.writes + counts.webhooks}</span>
+                      <span className="text-[10px] text-neutral-500">total</span>
+                    </div>
+                    <div className="mt-1 text-[10px] text-neutral-500 space-x-2">
+                      {counts.writes > 0 && <span><span className="text-rose-700 font-bold">{counts.writes}</span> write</span>}
+                      {counts.reads > 0 && <span><span className="text-emerald-700 font-bold">{counts.reads}</span> read</span>}
+                      {counts.webhooks > 0 && <span><span className="text-blue-700 font-bold">{counts.webhooks}</span> webhook</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          );
+        })()}
+
         <section className="bg-white border border-neutral-200 rounded-2xl overflow-hidden shadow-sm">
           {loading ? (
             <div className="p-12 text-center text-neutral-400 text-sm">Loading audit log…</div>
@@ -149,46 +255,57 @@ export default function MetaAuditPage() {
                 <thead className="bg-neutral-50 text-neutral-500 uppercase tracking-wider">
                   <tr>
                     <th className="text-left px-4 py-3 font-semibold">When</th>
-                    <th className="text-left px-4 py-3 font-semibold">Agent / action</th>
+                    <th className="text-left px-4 py-3 font-semibold">Permission</th>
+                    <th className="text-left px-4 py-3 font-semibold">Method</th>
                     <th className="text-left px-4 py-3 font-semibold">Status</th>
-                    <th className="text-left px-4 py-3 font-semibold">What this maps to (Graph API)</th>
+                    <th className="text-left px-4 py-3 font-semibold">Agent / action / Graph API call</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-100">
-                  {rows.map((row) => (
-                    <tr key={row.id} className="hover:bg-neutral-50">
-                      <td className="px-4 py-3 text-neutral-600 whitespace-nowrap">
-                        {new Date(row.created_at).toLocaleString('en-US', {
-                          year: 'numeric',
-                          month: 'short',
-                          day: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          second: '2-digit',
-                        })}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="font-mono text-neutral-900">{row.agent}</div>
-                        <div className="text-neutral-500 text-[11px]">{row.action}</div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase ${
-                            row.status === 'success' || row.status === 'ok'
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : row.status === 'error' || row.status === 'failure'
-                              ? 'bg-rose-100 text-rose-800'
-                              : 'bg-neutral-100 text-neutral-700'
-                          }`}
-                        >
-                          {row.status || 'n/a'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-neutral-700">
-                        {actionDescription(row.agent, row.action)}
-                      </td>
-                    </tr>
-                  ))}
+                  {rows.map((row) => {
+                    const meta = actionMeta(row.agent, row.action, row.data);
+                    return (
+                      <tr key={row.id} className="hover:bg-neutral-50">
+                        <td className="px-4 py-3 text-neutral-600 whitespace-nowrap">
+                          {new Date(row.created_at).toLocaleString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                          })}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${PERMISSION_COLOR[meta.permission]}`}>
+                            {PERMISSION_LABEL[meta.permission]}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${METHOD_COLOR[meta.method]}`}>
+                            {meta.method}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase ${
+                              row.status === 'success' || row.status === 'ok'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : row.status === 'error' || row.status === 'failure'
+                                ? 'bg-rose-100 text-rose-800'
+                                : 'bg-neutral-100 text-neutral-700'
+                            }`}
+                          >
+                            {row.status || 'n/a'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="font-mono text-[11px] text-neutral-900">{row.agent} · {row.action}</div>
+                          <div className="text-neutral-600 text-[11px] mt-0.5">{meta.description}</div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
