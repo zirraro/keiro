@@ -105,9 +105,10 @@ export default function StrategyOnboarding() {
   const [show, setShow] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [applying, setApplying] = useState(false);
-  const [step, setStep] = useState<'choose' | 'done'>('choose');
+  const [step, setStep] = useState<'choose' | 'connect' | 'done'>('choose');
   const [plan, setPlan] = useState<string>('createur');
   const [planCredits, setPlanCredits] = useState<number>(400);
+  const [connections, setConnections] = useState<{ instagram: boolean; google: boolean; linkedin: boolean }>({ instagram: false, google: false, linkedin: false });
 
   useEffect(() => {
     const check = async () => {
@@ -193,11 +194,36 @@ export default function StrategyOnboarding() {
         localStorage.setItem('keiro_strategy_date', new Date().toISOString());
       } catch {}
 
-      setStep('done');
+      // Check existing connections so we don't bother the user with a
+      // "connect Instagram" button when they already are connected.
+      try {
+        const dashRes = await fetch('/api/agents/dashboard?agent_id=marketing', { credentials: 'include' });
+        if (dashRes.ok) {
+          const d = await dashRes.json();
+          setConnections({
+            instagram: !!(d.connections?.instagram),
+            google: !!(d.connections?.google || d.connections?.gmaps),
+            linkedin: !!(d.connections?.linkedin),
+          });
+        }
+      } catch {}
+
+      // Networks needed by the picked focuses
+      const needsInstagram = focusesArr.includes('instagram') || focusesArr.includes('prospection');
+      const needsGoogle = focusesArr.includes('reputation') || focusesArr.includes('seo');
+      const needsLinkedin = focusesArr.includes('linkedin');
+
+      // If everything they need is already connected, jump to done.
+      // Otherwise, show the connect step so they can wire each in 1 click.
+      const allConnected =
+        (!needsInstagram || connections.instagram) &&
+        (!needsGoogle || connections.google) &&
+        (!needsLinkedin || connections.linkedin);
+      setStep(allConnected ? 'done' : 'connect');
     } catch {} finally {
       setApplying(false);
     }
-  }, [selected]);
+  }, [selected, connections]);
 
   const skip = useCallback(async () => {
     setShow(false);
@@ -328,6 +354,55 @@ export default function StrategyOnboarding() {
               </button>
             </>
           )}
+
+          {step === 'connect' && (() => {
+            const focusesArr = [...selected];
+            const needsInstagram = focusesArr.includes('instagram') || focusesArr.includes('prospection');
+            const needsGoogle = focusesArr.includes('reputation') || focusesArr.includes('seo');
+            const needsLinkedin = focusesArr.includes('linkedin');
+            const networks: { id: 'instagram' | 'google' | 'linkedin'; needed: boolean; connected: boolean; label: string; icon: string; href: string; color: string }[] = [
+              { id: 'instagram', needed: needsInstagram, connected: connections.instagram, label: 'Instagram Business', icon: '\u{1F4F8}', href: '/api/auth/instagram-oauth', color: 'from-pink-500 to-purple-600' },
+              { id: 'google',    needed: needsGoogle,    connected: connections.google,    label: 'Google Business',   icon: '⭐',       href: '/api/auth/google-oauth',    color: 'from-blue-500 to-cyan-600' },
+              { id: 'linkedin',  needed: needsLinkedin,  connected: connections.linkedin,  label: 'LinkedIn',           icon: '\u{1F4BC}',    href: '/api/auth/linkedin-oauth',  color: 'from-blue-600 to-indigo-700' },
+            ].filter(n => n.needed);
+            return (
+              <>
+                <h3 className="text-white font-bold text-base mb-1">Dernière étape : connecte tes comptes</h3>
+                <p className="text-white/60 text-xs mb-4">Sans ça, tes agents ne peuvent pas publier ni envoyer. 1 clic par réseau.</p>
+                <div className="space-y-2 mb-4">
+                  {networks.map(n => (
+                    <a
+                      key={n.id}
+                      href={n.connected ? undefined : n.href}
+                      onClick={n.connected ? (e) => e.preventDefault() : undefined}
+                      className={`flex items-center justify-between rounded-xl p-3 border transition ${
+                        n.connected
+                          ? 'bg-emerald-500/10 border-emerald-500/30 cursor-default'
+                          : `bg-gradient-to-r ${n.color} border-white/10 hover:opacity-90`
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">{n.icon}</span>
+                        <div>
+                          <div className="text-white font-bold text-sm">{n.label}</div>
+                          <div className="text-white/70 text-[10px]">{n.connected ? 'Déjà connecté ✓' : '1 clic — OAuth officiel'}</div>
+                        </div>
+                      </div>
+                      <span className="text-white text-xs font-bold">
+                        {n.connected ? '✓' : 'Connecter →'}
+                      </span>
+                    </a>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setStep('done')}
+                  className="w-full py-3 bg-white/10 hover:bg-white/15 text-white/80 font-semibold text-sm rounded-xl transition min-h-[44px]"
+                >
+                  Plus tard, je connecte depuis le dashboard →
+                </button>
+              </>
+            );
+          })()}
 
           {step === 'done' && (
             <div className="text-center py-6">
