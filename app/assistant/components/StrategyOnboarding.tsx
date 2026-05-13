@@ -360,10 +360,10 @@ export default function StrategyOnboarding() {
             const needsInstagram = focusesArr.includes('instagram') || focusesArr.includes('prospection');
             const needsGoogle = focusesArr.includes('reputation') || focusesArr.includes('seo');
             const needsLinkedin = focusesArr.includes('linkedin');
-            const networks: { id: 'instagram' | 'google' | 'linkedin'; needed: boolean; connected: boolean; label: string; icon: string; href: string; color: string }[] = [
+            const networks = [
               { id: 'instagram', needed: needsInstagram, connected: connections.instagram, label: 'Instagram Business', icon: '\u{1F4F8}', href: '/api/auth/instagram-oauth', color: 'from-pink-500 to-purple-600' },
-              { id: 'google',    needed: needsGoogle,    connected: connections.google,    label: 'Google Business',   icon: '⭐',       href: '/api/auth/google-oauth',    color: 'from-blue-500 to-cyan-600' },
-              { id: 'linkedin',  needed: needsLinkedin,  connected: connections.linkedin,  label: 'LinkedIn',           icon: '\u{1F4BC}',    href: '/api/auth/linkedin-oauth',  color: 'from-blue-600 to-indigo-700' },
+              { id: 'google',    needed: needsGoogle,    connected: connections.google,    label: 'Google Business',   icon: '\u{2B50}',  href: '/api/auth/google-oauth',    color: 'from-blue-500 to-cyan-600' },
+              { id: 'linkedin',  needed: needsLinkedin,  connected: connections.linkedin,  label: 'LinkedIn',           icon: '\u{1F4BC}', href: '/api/auth/linkedin-oauth',  color: 'from-blue-600 to-indigo-700' },
             ].filter(n => n.needed);
             return (
               <>
