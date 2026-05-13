@@ -16,7 +16,8 @@
  * threats — without staring at production data.
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { getAuthUser } from '@/lib/auth-server';
 import { generateReviewReply } from '@/lib/agents/theo-review-reply';
 
 export const runtime = 'nodejs';
@@ -91,7 +92,20 @@ Regles:
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  // Auth: either logged-in user OR CRON_SECRET. The endpoint costs
+  // Claude tokens per call (10 scenarios × Haiku/Sonnet), so we don't
+  // want it open to the public web.
+  const cronSecret = process.env.CRON_SECRET;
+  const authHeader = req.headers.get('authorization');
+  const isCron = cronSecret && authHeader === `Bearer ${cronSecret}`;
+  if (!isCron) {
+    const { user, error } = await getAuthUser();
+    if (error || !user) {
+      return NextResponse.json({ ok: false, error: 'Authentication required' }, { status: 401 });
+    }
+  }
+
   const results: CheckResult[] = [];
 
   // ─────────────────────────────────────────────────────────
