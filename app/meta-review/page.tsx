@@ -14,6 +14,7 @@
 
 import type { Metadata } from 'next';
 import ForceFreshButton from './ForceFreshButton';
+import HealthCheckButton from './HealthCheckButton';
 
 export const metadata: Metadata = {
   title: 'KeiroAI — Meta App Review reviewer guide',
@@ -471,6 +472,18 @@ export default function MetaReviewPage() {
               </tbody>
             </table>
           </div>
+        </section>
+
+        <section className="bg-white border border-neutral-200 rounded-2xl p-6 mb-8 shadow-sm">
+          <h2 className="text-lg font-bold text-neutral-900 mb-2">3.quint Live permission health check</h2>
+          <p className="text-sm text-neutral-700 mb-4">
+            Once logged in as the reviewer, click the button below. We hit
+            the Graph API (read-only) for each requested permission and
+            return a live pass/fail report. This proves on the spot — no
+            screencast required — that every permission is granted and
+            functional for the test account.
+          </p>
+          <HealthCheckButton />
         </section>
 
         <section className="bg-white border border-neutral-200 rounded-2xl p-6 mb-8 shadow-sm">
