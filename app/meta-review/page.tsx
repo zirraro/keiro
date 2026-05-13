@@ -15,6 +15,7 @@
 import type { Metadata } from 'next';
 import ForceFreshButton from './ForceFreshButton';
 import HealthCheckButton from './HealthCheckButton';
+import AgentChecksButton from './AgentChecksButton';
 
 export const metadata: Metadata = {
   title: 'KeiroAI — Meta App Review reviewer guide',
@@ -484,6 +485,22 @@ export default function MetaReviewPage() {
             functional for the test account.
           </p>
           <HealthCheckButton />
+        </section>
+
+        <section className="bg-white border border-neutral-200 rounded-2xl p-6 mb-8 shadow-sm">
+          <h2 className="text-lg font-bold text-neutral-900 mb-2">3.sext Agent quality checks (Hugo + Théo)</h2>
+          <p className="text-sm text-neutral-700 mb-4">
+            Functional smoke test for the agents that make autonomous
+            decisions on inbound signals. We replay a fixed set of
+            canonical inputs (email replies for Hugo, Google reviews for
+            Théo) and assert the agent reaches the same verdict we expect
+            in production — e.g. an unsubscribe must flip the prospect to
+            <code className="text-[10px] bg-neutral-100 px-1 rounded mx-1">temperature=dead</code>
+            and a legal threat in a 1★ review must escalate to a human
+            instead of getting an auto-reply. Read-only, no production
+            data is touched.
+          </p>
+          <AgentChecksButton />
         </section>
 
         <section className="bg-white border border-neutral-200 rounded-2xl p-6 mb-8 shadow-sm">
