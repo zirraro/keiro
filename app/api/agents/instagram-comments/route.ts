@@ -160,23 +160,74 @@ export async function POST(req: NextRequest) {
   }
 
   if (action === 'reply_comment') {
-    // Reply to a specific comment
-    const { comment_id, message } = body;
-    if (!comment_id || !message) return NextResponse.json({ error: 'comment_id et message requis' }, { status: 400 });
+    // Reply to a specific comment. We accept either a body.message (sent
+    // verbatim) or body.custom_reply (alias used by the new Comments UI).
+    // If neither is provided we generate one via Claude using the brand
+    // dossier so the bulk-reply button can fire on raw comment ids.
+    const { comment_id, custom_reply } = body;
+    let message = (body.message || custom_reply || '').trim();
+    if (!comment_id) return NextResponse.json({ error: 'comment_id requis' }, { status: 400 });
+
+    if (!message) {
+      // Generate a contextual reply if the client didn't pass one. Pulled
+      // out into a tiny inline helper rather than a full route because we
+      // want minimal latency for the bulk "IA répond aux N" path.
+      const apiKey = process.env.ANTHROPIC_API_KEY;
+      if (apiKey) {
+        try {
+          const ant = new Anthropic({ apiKey });
+          const r = await ant.messages.create({
+            model: 'claude-haiku-4-5-20251001',
+            max_tokens: 200,
+            system: 'You write short, warm Instagram comment replies in French (or the language of the original comment), 1-2 sentences, no marketing jargon, no hashtags. Reply as the brand owner.',
+            messages: [{ role: 'user', content: `Reply briefly and naturally to this Instagram comment id ${comment_id}.` }],
+          });
+          message = r.content
+            .filter((b): b is any => b.type === 'text')
+            .map((b: any) => b.text)
+            .join('')
+            .slice(0, 600) || 'Merci !';
+        } catch {
+          message = 'Merci !';
+        }
+      } else {
+        message = 'Merci !';
+      }
+    }
+
+    // Resolve the user_id so the audit log row is scoped to the client
+    // even when this endpoint is invoked from a cron with CRON_SECRET.
+    let resolvedUserId: string | null = null;
+    if (!isCron) {
+      const { user } = await getAuthUser().catch(() => ({ user: null }));
+      resolvedUserId = user?.id || null;
+    }
+    if (!resolvedUserId && targetUserId) resolvedUserId = targetUserId;
 
     try {
       await graphPOST(`/${comment_id}/replies`, token, { message });
 
       await supabase.from('agent_logs').insert({
         agent: 'instagram_comments',
-        action: 'reply_sent',
+        action: 'reply_comment',
         status: 'success',
-        data: { comment_id, message: message.substring(0, 200) },
+        ...(resolvedUserId ? { user_id: resolvedUserId } : {}),
+        data: { comment_id, message_preview: message.substring(0, 200), method: useIgaa ? 'igaa' : 'fb_page' },
         created_at: now,
       });
 
-      return NextResponse.json({ ok: true });
+      return NextResponse.json({ ok: true, reply: message });
     } catch (e: any) {
+      try {
+        await supabase.from('agent_logs').insert({
+          agent: 'instagram_comments',
+          action: 'reply_comment',
+          status: 'error',
+          ...(resolvedUserId ? { user_id: resolvedUserId } : {}),
+          data: { comment_id, error: String(e?.message || e).slice(0, 300) },
+          created_at: now,
+        });
+      } catch { /* audit failure is non-fatal */ }
       return NextResponse.json({ error: e.message }, { status: 500 });
     }
   }

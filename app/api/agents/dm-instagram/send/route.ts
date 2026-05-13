@@ -55,6 +55,28 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, sent: false, error: 'Instagram non connecte' }, { status: 400 });
   }
 
+  // Audit log helper — every successful Graph API DM send writes a row
+  // to agent_logs so /meta-audit can show what permission was used
+  // (manage_messages inside the 24h window, human_agent outside). Errors
+  // are also logged so the reviewer can see why a send failed.
+  const auditSend = async (params: { ok: boolean; method: string; tagged: boolean; errorDetail?: string }) => {
+    try {
+      await supabase.from('agent_logs').insert({
+        agent: 'dm_instagram',
+        action: 'dm_auto_reply',
+        user_id: user.id,
+        status: params.ok ? 'success' : 'error',
+        data: {
+          method: params.method,
+          recipient_id: String(recipient_id).slice(0, 32),
+          human_agent: params.tagged,
+          message_preview: String(message).slice(0, 80),
+          error: params.errorDetail,
+        },
+      });
+    } catch {}
+  };
+
   const errors: string[] = [];
   const msgPayload = { text: String(message).substring(0, 1000) };
   const recipientPayload = { id: String(recipient_id) };
@@ -111,6 +133,7 @@ export async function POST(req: NextRequest) {
       if (r.ok) {
         const tagged = r.body === 'human_agent';
         console.log(`[DM-send] Sent via IGAA to ${recipient_id}${tagged ? ' (HUMAN_AGENT tag)' : ''}`);
+        await auditSend({ ok: true, method: 'instagram_igaa', tagged });
         return NextResponse.json({ ok: true, sent: true, method: 'instagram_igaa', human_agent: tagged });
       }
       errors.push(`IGAA: ${r.status} ${r.body.substring(0, 200)}`);
@@ -130,6 +153,7 @@ export async function POST(req: NextRequest) {
       if (r.ok) {
         const tagged = r.body === 'human_agent';
         console.log(`[DM-send] Sent via IG access_token to ${recipient_id}${tagged ? ' (HUMAN_AGENT tag)' : ''}`);
+        await auditSend({ ok: true, method: 'instagram_access_token', tagged });
         return NextResponse.json({ ok: true, sent: true, method: 'instagram_access_token', human_agent: tagged });
       }
       errors.push(`IG: ${r.status} ${r.body.substring(0, 200)}`);
@@ -152,6 +176,7 @@ export async function POST(req: NextRequest) {
       if (r.ok) {
         const tagged = r.body === 'human_agent';
         console.log(`[DM-send] Sent via Facebook page token to ${recipient_id}${tagged ? ' (HUMAN_AGENT tag)' : ''}`);
+        await auditSend({ ok: true, method: 'facebook_api', tagged });
         return NextResponse.json({ ok: true, sent: true, method: 'facebook_api', human_agent: tagged });
       }
       errors.push(`FB: ${r.status} ${r.body.substring(0, 200)}`);
@@ -161,5 +186,6 @@ export async function POST(req: NextRequest) {
   }
 
   console.warn('[DM-send] All send methods failed:', errors);
+  await auditSend({ ok: false, method: 'none', tagged: false, errorDetail: errors.join(' | ').slice(0, 400) });
   return NextResponse.json({ ok: false, sent: false, errors });
 }
