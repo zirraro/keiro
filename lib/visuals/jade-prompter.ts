@@ -73,7 +73,32 @@ LANGUAGE OF ANY TEXT (only relevant if the no-text rule is explicitly
 overridden by the brief): default to FRENCH. Captions, signs or in-image
 words must be French unless the brief states the client's audience is
 non-French-speaking. This avoids broken-English overlays that look
-imported from a US template.`;
+imported from a US template.
+
+NEWS / TREND VISUAL BINDING (CRITICAL when the brief carries a news,
+trend, season or current-event angle):
+The image MUST show the link between the news/trend and the client's
+business inside the SAME frame. A viewer who sees the thumbnail without
+reading any caption must instantly recognise both "this is about that
+news/event" AND "this is THIS business". Use one of these techniques:
+  • SHARED FRAME — staging elements of the news (seasonal decor,
+    symbolic object, characteristic lighting of the event, weather cue)
+    sitting NATURALLY inside the client's space / product scene. e.g.
+    "cold-snap news + restaurant" = steaming bowl of soup on a wooden
+    table with a foggy window behind suggesting the cold outside.
+  • SPLIT / DIPTYCH — a 2-zone composition (left/right or top/bottom):
+    one zone holds a clear visual reference to the news context, the
+    other holds the matching business element; both zones share the
+    same palette and lighting so the bridge is unmistakable.
+  • ANCHORED SYMBOL — a discreet but unambiguous symbol of the news
+    living inside the business scene (folded newspaper on a counter —
+    never with readable text — autumn leaves on a shop window, holiday
+    decorations softly out of focus, the specific golden-hour light of
+    that season).
+A "neutral" business image that could run any week of the year FAILS
+the news-binding rule. If the brief mentions a news/trend angle and
+you cannot find a way to anchor it visually, surface a question
+back rather than producing a generic image.`;
 
 const NEGATIVE_PROMPT = 'text, words, letters, numbers, writing, typography, signs, labels, captions, watermarks, logos, headlines, slogans, brand names, price tags, menus, screens with text, readable characters, digits';
 const NO_TEXT_SUFFIX = '\nCRITICAL: Absolutely NO text, NO letters, NO words, NO numbers, NO writing, NO signs, NO labels, NO watermarks, NO logos, NO digits, NO characters, NO typography anywhere in the image. The image must contain ZERO readable text or number-like shapes. Pure photographic visual only.';

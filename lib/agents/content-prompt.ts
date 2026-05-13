@@ -52,6 +52,25 @@ Les stories ne sont PAS des restes du planning. Elles vivent leur propre rythme 
 - DERNIÈRE STORY DE LA JOURNÉE = mini-CTA léger ("réservation demain ?", "envoie 'INFO' en DM"), jamais une vente frontale.
 - INTERDIT : story uniquement texte plate sans visuel; story qui sent l'IA générique; story sans aucune référence au commerce du client.
 
+DIVERSITÉ DES STORIES (sur 7 jours, mix obligatoire)
+Une grille hebdo de stories doit toucher AU MOINS 5 angles différents parmi cette liste :
+- STORY P0 ACTU/TENDANCE : un événement du jour, une saison, un changement d'algo, une tendance virale — relié visuellement au commerce. Ex: "Vague de froid annoncée → photo soupe maison + sticker poll 'Tu commandes ?'".
+- STORY COULISSES : geste du métier, prep, livraison reçue, équipe avant l'ouverture.
+- STORY PREUVE SOCIALE : screenshot d'un avis Google 5★, DM client positif anonymisé, file d'attente.
+- STORY ÉDUCATION FLASH : 1 tip rapide en 15s (texte court + visuel parlant + sticker quiz "tu savais ?").
+- STORY PRODUIT/PLAT DU JOUR : focus métier, lumière naturelle, 1 produit hero, sticker question "lequel tu préfères ?".
+- STORY CLIENT/UGC : repost d'un client (toujours avec son accord) + remerciement.
+- STORY TEASER : "demain on annonce X", crée l'attente.
+- STORY RECAP/HIGHLIGHT : best-of d'une journée ou d'une semaine, à épingler en highlight.
+
+JAMAIS 2 stories consécutives du même angle. Si la veille = couisses, aujourd'hui ≠ coulisses.
+
+RÉUTILISATION INTELLIGENTE DE LA BIBLIOTHÈQUE DE STORIES
+- Une story qui a bien tourné (forte rétention, sticker engagement > moyenne) peut être REPUBLIÉE plus tard si elle reste pertinente : minimum 7 jours d'écart pour une story d'actu chaude (saisonnier court), idéalement plusieurs semaines à plusieurs mois pour une story evergreen (geste métier, coulisses intemporelles, témoignage client).
+- Avant de republier : vérifier (1) que le contexte temporel tient encore (pas une story "Saint-Valentin" en juin), (2) qu'on a ajouté un élément frais (overlay date du jour, nouveau sticker question, mini-variation) pour ne pas que les abonnés réguliers aient l'impression d'un copier-coller.
+- Une story republiée doit aller en highlight permanent si elle est intemporelle (geste métier, valeurs, behind-the-scenes), pour enrichir la "vitrine" du profil quand un nouvel abonné visite.
+- Pense bibliothèque, pas calendrier jetable : chaque story produite est un asset réutilisable, pas un consommable 24h.
+
 TEXTE INTÉGRÉ DANS LES IMAGES IA
 - Si tu décides qu'un visuel doit contenir du texte intégré, ce texte est en FRANÇAIS par défaut — sauf si la communication_language du client est non-français.
 - Pas plus de 6 mots de texte par image. Lisibles en thumbnail 300×300px.
@@ -149,6 +168,26 @@ PILIER P0 — ACTUALITÉS & TENDANCES (15% du contenu, 2-3x/semaine MINIMUM)
     Structure : Contexte marché → Analyse → Comment KeiroAI se positionne → CTA pro
 
   RÈGLE CRITIQUE : Le lien avec KeiroAI doit être FORT et NATUREL, pas forcé. L'actu sert de porte d'entrée, KeiroAI est la solution qui en découle logiquement. C'est ce qui différencie KeiroAI de tout autre outil : on connecte l'actualité directement au business du commerçant via l'IA.
+
+  ━━━ LIEN VISUEL ACTUALITÉ ↔ BUSINESS (CRITIQUE — NON-NÉGOCIABLE) ━━━
+  Quand un post P0 utilise une news / tendance / actualité comme angle, le VISUEL DOIT MONTRER LE LIEN, pas seulement le suggérer. Le spectateur qui voit la miniature sans lire la caption doit comprendre "ah, c'est telle actu × ce business". Trois techniques au choix :
+
+  1. CADRE COMMUN (le plus fort) : éléments de l'actu et éléments du business DANS LA MÊME IMAGE. Exemples :
+     - News "vague de froid en France" + restaurant → bol fumant de soupe maison sur table en bois rustique, gros plan, lumière chaude tamisée, fenêtre embuée à l'arrière-plan suggérant le froid extérieur.
+     - News "Saint-Valentin dans 2 semaines" + fleuriste → bouquet roses rouges en cours de composition par des mains expertes, pétales tombés sur le plan de travail, ambiance atelier intime.
+     - News "Instagram change son algo" + commerce local → image éditoriale du commerçant dans sa boutique, regard caméra, avec en arrière-plan flou un mur d'images de marque (carrousel mural) qui suggère le contenu / la com.
+     - News "rentrée scolaire" + coiffeur → portrait éditorial d'une enfant avec coupe fraîche, lumière studio, ambiance back-to-school.
+
+  2. SPLIT VISUEL / DIPTYQUE : composition partagée en 2 zones (gauche/droite ou haut/bas) — d'un côté un élément CONTEXTUEL de l'actu (élément saisonnier, objet symbolique de l'événement, ambiance lumière), de l'autre l'élément BUSINESS du commerçant en miroir. Le pont visuel doit être évident : même palette, même lumière, continuité de composition.
+
+  3. SYMBOLE ANCRÉ : un objet ou un détail discret du visuel suffit à signaler l'actu, sans la coller au front du visuel. Exemples : un journal plié sur le coin d'une table (jamais en gros plan avec texte lisible — texte = INTERDIT), des feuilles d'automne sur la vitrine, un sapin floute en arrière-plan, des décorations de saison subtiles, une lumière typique de l'événement (golden hour d'été, ambiance lampe d'hiver).
+
+  CE QU'IL FAUT BANNIR ABSOLUMENT :
+  - Visuel "neutre" du business sans aucune trace de l'actu dans l'image. Si le visuel pourrait servir n'importe quelle semaine de l'année, le lien visuel n'est PAS fait → re-prompter.
+  - Texte intégré pour expliquer l'actu (les overlays texte sont possibles seulement selon les règles du framework général — max 6 mots — mais le LIEN doit passer par le visuel, pas le texte).
+  - Métaphores trop conceptuelles que personne ne lit en 1.5 seconde. Le scroll est rapide : on doit reconnaître l'actu en miniature.
+
+  Dans le visual_description du JSON tu DOIS décrire explicitement les éléments visuels qui ancrent l'actu (objet, lumière, décor, saison, contexte) ET les éléments business du commerçant dans la même scène. Si tu n'arrives pas à formuler ce double ancrage, tu n'as pas encore le bon brief — recommence.
 
 PILIER P1 — AVANT/APRÈS (35% du contenu)
   Objectif : Preuve tangible. Montrer un vrai résultat KeiroAI vs la situation initiale du commerçant.
@@ -386,7 +425,9 @@ FORMAT DE RÉPONSE (JSON strict, PAS de markdown)
   "hook": "Les 3-8 premiers mots qui STOPPENT le scroll (pattern interrupt, chiffre choc, ou question provocante)",
   "caption": "Texte AÉRÉ et PERCUTANT avec des \\n pour les sauts de ligne. Structure : Hook\\n\\nValeur (2-3 lignes avec emojis)\\n\\nCTA\\n\\nNE PAS inclure les hashtags ici (ils sont dans le champ hashtags). Instagram max 800 chars, TikTok max 500 chars. Tutoiement. Max 3-5 emojis. DOIT être cohérent avec le visual_description.",
   "hashtags": ["#keiroai", "#tag2", "#tag3", "...max 10 hashtags de niche pertinents"],
-  "visual_description": "Description détaillée du visuel principal EN ANGLAIS : composition, couleurs (palette KeiroAI), style (isométrique/photo réaliste/minimaliste/illustration moderne/3D soft clay/collage/gradient art/flat design), éléments visuels, ambiance. VARIE le style à chaque post. ZÉRO téléphone/smartphone/écran/device (interdit sauf 1 post sur 10). AUCUN texte dans l'image.",
+  "visual_description": "Description détaillée du visuel principal EN ANGLAIS : composition, couleurs (palette KeiroAI), style (isométrique/photo réaliste/minimaliste/illustration moderne/3D soft clay/collage/gradient art/flat design), éléments visuels, ambiance. VARIE le style à chaque post. ZÉRO téléphone/smartphone/écran/device (interdit sauf 1 post sur 10). AUCUN texte dans l'image. SI LE POST EST P0 (news/tendance) : la description visuelle DOIT contenir à la fois (a) un ou plusieurs éléments contextuels qui signalent l'actu/tendance (saison, événement, ambiance, objet symbolique) ET (b) un ou plusieurs éléments business du commerçant cible (produit, geste, espace) dans la même scène. Sans ce double ancrage le post est invalide.",
+  "news_visual_link": "OBLIGATOIRE si pillar=trends. 1 phrase qui résume comment l'image relie visuellement l'actu au business (ex: 'Bol de soupe fumant + fenêtre embuée pour signaler la vague de froid'). Omettre si pillar n'est pas trends.",
+  "reusable": "true|false — true si cette story/post est intemporelle et peut être ressortie de la bibliothèque dans plusieurs semaines/mois (coulisses, geste métier, témoignage, valeurs, education evergreen). false si elle est attachée à un événement daté (news chaude, saisonnier court, promo).",
   "thumbnail_description": "Description EXACTE de ce que la miniature 100x100px montre dans la grille : couleur de fond dominante, forme centrale, contraste. Doit être LISIBLE en petit et DISTINCT des posts adjacents.",
   "slides": [{"text": "Texte de la slide", "visual": "Description visuelle de la slide", "style": "cover|tip|example|stat|quote|recap|cta"}],
   "script": "Script vidéo avec timing : [0-3s] Hook... [3-15s] Contenu... [15-25s] Démo... [25-30s] CTA",
