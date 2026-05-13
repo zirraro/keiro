@@ -60,18 +60,54 @@ export async function mirrorToShowcaseAccount(
   }
 
   try {
+    // Gate: only fire the mirror if the metareview account currently
+    // has @keiro_ai (or any IG Business account) connected. Without
+    // this, we'd be populating a calendar that the reviewer cannot
+    // actually publish from — which is confusing during App Review.
+    const { data: metareviewProfile } = await supabase
+      .from('profiles')
+      .select('instagram_business_account_id, instagram_username')
+      .eq('id', METAREVIEW_USER_ID)
+      .maybeSingle();
+
+    if (!metareviewProfile?.instagram_business_account_id) {
+      return { mirrored: false, reason: 'metareview_ig_not_connected' };
+    }
+
+    // If a 'scheduled' row already exists for this visual_url (typical
+    // case — populate-metareview-gallery.mjs queued matching slots on
+    // both accounts), flip it to 'published' rather than inserting a
+    // duplicate. This keeps the metareview content workspace in lock-
+    // step with the showcase account: scheduled before, published after.
     const { data: existing } = await supabase
       .from('content_calendar')
-      .select('id')
+      .select('id, status')
       .eq('user_id', METAREVIEW_USER_ID)
       .eq('visual_url', post.visual_url)
       .maybeSingle();
 
+    const now = new Date();
+
     if (existing) {
-      return { mirrored: false, reason: 'already_mirrored' };
+      if (existing.status === 'published') {
+        return { mirrored: false, reason: 'already_published' };
+      }
+      const { error } = await supabase
+        .from('content_calendar')
+        .update({
+          status: 'published',
+          published_at: now.toISOString(),
+        })
+        .eq('id', existing.id);
+      if (error) {
+        console.warn(`[ShowcaseMirror] Update failed for ${METAREVIEW_USER_EMAIL}: ${error.message}`);
+        return { mirrored: false, reason: error.message };
+      }
+      console.log(`[ShowcaseMirror] ✓ Flipped existing scheduled row to published for ${METAREVIEW_USER_EMAIL}`);
+      return { mirrored: true };
     }
 
-    const now = new Date();
+    // No matching scheduled row — insert a fresh published row.
     const { error } = await supabase.from('content_calendar').insert({
       user_id: METAREVIEW_USER_ID,
       platform: post.platform,
@@ -92,8 +128,8 @@ export async function mirrorToShowcaseAccount(
       return { mirrored: false, reason: error.message };
     }
 
-    // Also mirror into saved_images so the reviewer sees the asset in
-    // the /library gallery — it's the most-visited surface during the
+    // Mirror into saved_images so the reviewer sees the asset in the
+    // /library gallery too — it's the most-visited surface during the
     // App Review walkthrough.
     try {
       await supabase.from('saved_images').insert({
@@ -103,7 +139,7 @@ export async function mirrorToShowcaseAccount(
       });
     } catch { /* non-fatal */ }
 
-    console.log(`[ShowcaseMirror] ✓ Mirrored ${post.platform} post to ${METAREVIEW_USER_EMAIL}`);
+    console.log(`[ShowcaseMirror] ✓ Inserted new published row for ${METAREVIEW_USER_EMAIL}`);
     return { mirrored: true };
   } catch (e: any) {
     console.warn(`[ShowcaseMirror] Unexpected error: ${e?.message}`);

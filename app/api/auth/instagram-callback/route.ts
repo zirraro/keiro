@@ -218,6 +218,48 @@ export async function POST(req: NextRequest) {
 
     console.log('[InstagramCallback] Instagram account connected successfully for user:', userId);
 
+    // Auto-kickstart: if this client has NO scheduled / draft / published
+    // posts yet, fire a weekly plan generation in the background so the
+    // content calendar populates within ~30 sec of OAuth completion.
+    // This is the "stats & scheduling visible the moment the client
+    // connects" UX rule — no empty grid for new connections. Fire-and-
+    // forget so the OAuth response is not delayed.
+    (async () => {
+      try {
+        const { count: existingPosts } = await supabase
+          .from('content_calendar')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', userId);
+
+        if ((existingPosts ?? 0) > 0) {
+          console.log(`[InstagramCallback] Skip kickstart — user has ${existingPosts} existing posts.`);
+          return;
+        }
+
+        const cronSecret = process.env.CRON_SECRET;
+        if (!cronSecret) {
+          console.warn('[InstagramCallback] CRON_SECRET missing — kickstart skipped.');
+          return;
+        }
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://keiroai.com';
+        const r = await fetch(`${baseUrl}/api/agents/content?user_id=${userId}`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${cronSecret}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ action: 'generate_weekly', platform: 'instagram', draftOnly: false }),
+        });
+        if (r.ok) {
+          console.log(`[InstagramCallback] ✓ Kickstart fired for ${userId.substring(0, 8)} — weekly plan generation in progress.`);
+        } else {
+          console.warn(`[InstagramCallback] Kickstart HTTP ${r.status}.`);
+        }
+      } catch (e: any) {
+        console.warn(`[InstagramCallback] Kickstart fire-and-forget error: ${e?.message}`);
+      }
+    })().catch(() => {});
+
     return NextResponse.json({
       ok: true,
       instagram: {

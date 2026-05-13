@@ -40,34 +40,20 @@ const { createClient } = require('@supabase/supabase-js');
 const sb = createClient(SB_URL, SB_KEY);
 
 // Curated list of validated images — the ones we generated end-to-end
-// via scripts/validate-lena-news-visuals.mjs. Both the sage versions
-// (5/10) and the amplified versions (8-9/10) are included so the
-// reviewer sees the full range.
+// via scripts/validate-lena-news-visuals.mjs. Sage versions (5/10) and
+// the 8/10 amplified batch are included. The 9/10 batch was rejected
+// by the founder ("trop fort") and is excluded — cleanupRejected()
+// removes any leftover row from previous runs.
+const REJECTED_IMAGE_URLS = [
+  'https://duxjdlzdfjrhyojjwnig.supabase.co/storage/v1/object/public/business-assets/validation/lena-news/1778686111451-catchy_authority_resto.jpeg',
+  'https://duxjdlzdfjrhyojjwnig.supabase.co/storage/v1/object/public/business-assets/validation/lena-news/1778686111451-urgency_florist_valentine.jpeg',
+  'https://duxjdlzdfjrhyojjwnig.supabase.co/storage/v1/object/public/business-assets/validation/lena-news/1778686111451-cold_snap_restaurant.jpeg',
+  'https://duxjdlzdfjrhyojjwnig.supabase.co/storage/v1/object/public/business-assets/validation/lena-news/1778686111451-valentines_florist.jpeg',
+  'https://duxjdlzdfjrhyojjwnig.supabase.co/storage/v1/object/public/business-assets/validation/lena-news/1778686111451-back_to_school_barber.jpeg',
+];
+
 const IMAGES = [
-  // Latest 9/10 amplified batch
-  {
-    image_url: 'https://duxjdlzdfjrhyojjwnig.supabase.co/storage/v1/object/public/business-assets/validation/lena-news/1778686111451-catchy_authority_resto.jpeg',
-    title: 'STOP. 47% des restaurants postent encore comme en 2024',
-    hook: 'STOP. 47% des restaurants postent encore comme en 2024. L\'algo a changé en mars. Regarde.',
-    pillar: 'trends',
-    platform: 'instagram',
-    format: 'post',
-    amplification: ['catchy', 'authority'],
-    caption: 'STOP. 47% des restaurants postent encore comme en 2024.\n\nL\'algo Instagram a changé en mars. Les photos plates sont pénalisées.\n\nLa solution ? La dramaturgie visuelle — gros plans, lumière dure, action en cours.\n\nKeiroAI le fait pour toi automatiquement.',
-    hashtags: ['#keiroai', '#instagramalgorithm', '#restaurantmarketing', '#marketingrestaurants', '#contentcreation'],
-  },
-  {
-    image_url: 'https://duxjdlzdfjrhyojjwnig.supabase.co/storage/v1/object/public/business-assets/validation/lena-news/1778686111451-urgency_florist_valentine.jpeg',
-    title: 'J-5 Saint-Valentin. Plus que 3 créneaux',
-    hook: 'J-5 Saint-Valentin. Plus que 3 créneaux.',
-    pillar: 'trends',
-    platform: 'instagram',
-    format: 'post',
-    amplification: ['urgency'],
-    caption: 'J-5 Saint-Valentin.\n\nIl reste 3 créneaux pour une composition sur-mesure.\n\nChaque bouquet est arrangé à la main par notre fleuriste.\n\nRéserve en DM avant qu\'il soit trop tard.',
-    hashtags: ['#keiroai', '#fleuristelyon', '#saintvalentin2026', '#bouquetsurmesure', '#artisanat'],
-  },
-  // 8/10 amplified batch (kept for variety)
+  // 8/10 amplified batch (validated by founder — kept)
   {
     image_url: 'https://duxjdlzdfjrhyojjwnig.supabase.co/storage/v1/object/public/business-assets/validation/lena-news/1778685259445-catchy_authority_resto.jpeg',
     title: 'STOP. 47% des restaurateurs ignorent ce changement',
@@ -123,8 +109,19 @@ async function findUserByEmail(email) {
   return data?.users?.find(u => u.email === email) || null;
 }
 
-async function populateForUser(userId, email) {
-  console.log(`\n━━━ ${email} (${userId.substring(0, 8)}…) ━━━`);
+async function cleanupRejected(userId, email) {
+  if (REJECTED_IMAGE_URLS.length === 0) return;
+  const { count: c1 } = await sb.from('saved_images').delete({ count: 'exact' }).eq('user_id', userId).in('image_url', REJECTED_IMAGE_URLS);
+  const { count: c2 } = await sb.from('content_calendar').delete({ count: 'exact' }).eq('user_id', userId).in('visual_url', REJECTED_IMAGE_URLS);
+  if ((c1 || 0) + (c2 || 0) > 0) {
+    console.log(`  ✗ cleanup ${email}: removed ${c1 || 0} saved_images + ${c2 || 0} content_calendar rows (rejected 9/10 batch)`);
+  }
+}
+
+async function populateForUser(userId, email, isShowcase) {
+  console.log(`\n━━━ ${email} (${userId.substring(0, 8)}…) ${isShowcase ? '[showcase — real publish]' : '[mirror]'} ━━━`);
+
+  await cleanupRejected(userId, email);
 
   // saved_images — the /library gallery surface
   let savedInserted = 0;
@@ -151,29 +148,30 @@ async function populateForUser(userId, email) {
   }
   console.log(`  saved_images: +${savedInserted} new · ${savedSkipped} already present`);
 
-  // content_calendar — the agent content workspace surface
-  let calInserted = 0;
+  // content_calendar — schedule the 6 posts for REAL publication over
+  // the next 6 days. The publish-scheduled cron picks them up at their
+  // scheduled time and publishes them to @keiro_ai for the showcase
+  // account. For the mirror account they stay 'scheduled' until the
+  // showcase publish completes — at that point showcase-mirror.ts
+  // flips them to 'published' (no second IG API call, since @keiro_ai
+  // is the same business account on both sides).
+  let calInsertedOrUpdated = 0;
   let calSkipped = 0;
-  for (const img of IMAGES) {
-    const { data: existing } = await sb
-      .from('content_calendar')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('visual_url', img.image_url)
-      .maybeSingle();
-    if (existing) { calSkipped++; continue; }
+  for (let i = 0; i < IMAGES.length; i++) {
+    const img = IMAGES[i];
 
-    // Stagger published_at over the last 7 days so the calendar shows
-    // a real-looking spread rather than 6 posts at the same timestamp.
-    const daysAgo = Math.floor(Math.random() * 7);
-    const publishedAt = new Date(Date.now() - daysAgo * 86400e3);
+    // Spread 1 post per day over the next 6 days at varied times of
+    // day so the calendar reads as a credible weekly grid.
+    const daysAhead = i + 1; // post #0 → tomorrow, post #5 → in 6 days
+    const slots = ['10:00', '13:30', '18:00'];
+    const slotHHMM = slots[i % slots.length];
+    const [hh, mm] = slotHHMM.split(':').map(Number);
+    const scheduledAt = new Date();
+    scheduledAt.setDate(scheduledAt.getDate() + daysAhead);
+    scheduledAt.setHours(hh, mm, 0, 0);
 
-    // Note: amplification metadata stays in the visual_description body
-    // until the content_calendar.amplification column is added via
-    // migration. The reviewer still sees the intensity in the rendered
-    // image + hook.
     const amplificationTag = img.amplification ? ` [amplification: ${img.amplification.join('+')}]` : '';
-    const { error } = await sb.from('content_calendar').insert({
+    const payload = {
       user_id: userId,
       platform: img.platform,
       format: img.format,
@@ -183,17 +181,43 @@ async function populateForUser(userId, email) {
       hashtags: img.hashtags,
       visual_url: img.image_url,
       visual_description: `Generated by Léna (validation suite). ${img.title}${amplificationTag}`,
-      status: 'published',
-      scheduled_date: publishedAt.toISOString().split('T')[0],
-      published_at: publishedAt.toISOString(),
-    });
-    if (error) {
-      console.log(`  ✗ content_calendar error for "${img.title.substring(0, 40)}": ${error.message}`);
+      status: 'scheduled',
+      scheduled_date: scheduledAt.toISOString().split('T')[0],
+      scheduled_time: slotHHMM,
+      published_at: null,
+    };
+
+    // Upsert: if a row already exists (from previous run that marked
+    // them 'published'), update it back to 'scheduled' with the new
+    // date/time so re-running the script always produces a clean
+    // future grid.
+    const { data: existing } = await sb
+      .from('content_calendar')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('visual_url', img.image_url)
+      .maybeSingle();
+
+    if (existing) {
+      const { error } = await sb
+        .from('content_calendar')
+        .update(payload)
+        .eq('id', existing.id);
+      if (error) {
+        console.log(`  ✗ update error for "${img.title.substring(0, 40)}": ${error.message}`);
+      } else {
+        calInsertedOrUpdated++;
+      }
     } else {
-      calInserted++;
+      const { error } = await sb.from('content_calendar').insert(payload);
+      if (error) {
+        console.log(`  ✗ insert error for "${img.title.substring(0, 40)}": ${error.message}`);
+      } else {
+        calInsertedOrUpdated++;
+      }
     }
   }
-  console.log(`  content_calendar: +${calInserted} new · ${calSkipped} already present`);
+  console.log(`  content_calendar: ${calInsertedOrUpdated} rows (scheduled over next 6 days)`);
 }
 
 async function main() {
@@ -213,8 +237,8 @@ async function main() {
   console.log(`mrzirraro:  ${mrzirraro.id}`);
   console.log(`metareview: ${metareview.id}`);
 
-  await populateForUser(mrzirraro.id, 'mrzirraro@gmail.com');
-  await populateForUser(metareview.id, 'mrzirraro+metareview@gmail.com');
+  await populateForUser(mrzirraro.id, 'mrzirraro@gmail.com', true);
+  await populateForUser(metareview.id, 'mrzirraro+metareview@gmail.com', false);
 
   console.log('\nDone.');
 }
