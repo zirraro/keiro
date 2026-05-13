@@ -170,6 +170,17 @@ export async function GET(req: NextRequest) {
       expectedTemp: 'hot',
       expectedStop: false,
     },
+    {
+      name: 'Vague single-word reply ("ok") — should not over-classify',
+      reply: 'ok',
+      // "ok" alone is too ambiguous to be treated as a hot lead — Hugo
+      // should NOT flip the prospect to interesse+hot, but also NOT
+      // stop the sequence. Other/neutral is the safe default.
+      expectedIntent: 'other',
+      expectedStatus: 'repondu',
+      expectedTemp: 'warm',
+      expectedStop: false,
+    },
   ];
 
   for (const sc of hugoScenarios) {
@@ -177,14 +188,23 @@ export async function GET(req: NextRequest) {
       const got = await classifyEmailReply(sc.reply);
       const intentOk = sc.name === 'Positive — interested'
         ? (got.intent === 'positive' || got.intent === 'interested')
-        : got.intent === sc.expectedIntent;
+        : sc.name === 'Vague single-word reply ("ok") — should not over-classify'
+          // Accept any non-stopping classification — Hugo can label it
+          // "other", "neutral", "question", whatever — as long as it
+          // doesn't aggressively act on the ambiguous input.
+          ? (got.intent !== 'unsubscribe' && got.intent !== 'closed_business' && got.intent !== 'negative')
+          : got.intent === sc.expectedIntent;
       // For the positive-interested case, accept either "interesse" or
       // "demo" — both are valid progression statuses depending on
       // whether the prospect mentions a meeting/call. The point of the
       // test is that the prospect is NOT marked perdu/dead.
       const statusOk = sc.name === 'Positive — interested'
         ? (got.newStatus === 'interesse' || got.newStatus === 'demo')
-        : got.newStatus === sc.expectedStatus;
+        : sc.name === 'Vague single-word reply ("ok") — should not over-classify'
+          // Accept anything that's not perdu — vague "ok" must not flip
+          // the prospect into a dead state.
+          ? (got.newStatus !== 'perdu')
+          : got.newStatus === sc.expectedStatus;
       const tempOk = got.newTemp === sc.expectedTemp;
       const stopOk = got.stopSequence === sc.expectedStop;
       const pass = intentOk && statusOk && tempOk && stopOk;
@@ -252,6 +272,22 @@ export async function GET(req: NextRequest) {
       },
       expectAction: 'escalate',
     },
+    {
+      name: '3★ mitigated with specific complaint — reply with action OR escalate',
+      review: {
+        rating: 3,
+        text: 'Plats excellents mais service très long, on a attendu 40 min entre l\'entrée et le plat.',
+        author: 'Léa',
+        created_at: new Date().toISOString(),
+      },
+      // A 3-star with a concrete service complaint is the textbook case
+      // for a thoughtful reply that acknowledges the issue and proposes
+      // a concrete next step. Théo MAY also escalate if he judges the
+      // dossier doesn't give him enough to commit to an action — both
+      // outcomes are acceptable, what's not acceptable is silence or a
+      // generic "merci" reply (which falls outside this test scope).
+      expectAction: 'reply',
+    },
   ];
 
   for (const sc of theoScenarios) {
@@ -262,7 +298,12 @@ export async function GET(req: NextRequest) {
         brand_tone: 'friendly',
         city: 'Paris',
       });
-      const pass = verdict.action === sc.expectAction;
+      // For the 3⭐ mitigated case, accept either reply OR escalate —
+      // both are defensible. Hard fail only if Théo silently does
+      // neither.
+      const pass = sc.name.startsWith('3★ mitigated')
+        ? (verdict.action === 'reply' || verdict.action === 'escalate')
+        : verdict.action === sc.expectAction;
       results.push({
         agent: 'Théo',
         scenario: sc.name,
@@ -356,11 +397,83 @@ Retourne UNIQUEMENT le JSON strict défini dans le system prompt, sans markdown.
   }
 
   // ─────────────────────────────────────────────────────────
-  // JADE — DM quality: personalization_detail must be specific
+  // JADE — TikTok DM quality: pre_comments + creator-tone hook
   // ─────────────────────────────────────────────────────────
-  // Ask Jade to produce a DM for a fictional restaurant prospect and
-  // assert that the DM text references a CONCRETE detail (a dish, a
-  // post, a quartier) rather than a vague compliment.
+  try {
+    const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
+    if (ANTHROPIC_KEY) {
+      const { getDMSystemPrompt } = await import('@/lib/agents/dm-prompt');
+      const jadeTtRes = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 900,
+          system: getDMSystemPrompt('tiktok'),
+          messages: [{
+            role: 'user',
+            content: `Génère un DM TikTok pour ce créateur :
+Compte : @studio_kbarber — barber shop Marseille, 3 vidéos virales sur le dégradé fade
+Dernière vidéo : transition before/after sur fade très net, son trending
+Bio : "barber · sneakers · vibes — booking link"
+
+Réponds UNIQUEMENT en JSON strict.`,
+          }],
+        }),
+      });
+
+      let raw = '';
+      let parsed: any = null;
+      if (jadeTtRes.ok) {
+        const data = await jadeTtRes.json();
+        raw = (data.content?.[0]?.text || '').trim();
+        const stripped = raw.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+        const fb = stripped.indexOf('{');
+        const lb = stripped.lastIndexOf('}');
+        try { parsed = JSON.parse(fb >= 0 && lb > fb ? stripped.slice(fb, lb + 1) : stripped); } catch {}
+      }
+
+      const dmText = (parsed?.dm_text || '').toLowerCase();
+      const preComments = parsed?.pre_comments;
+      // TikTok ask: a specific video reference + 2-3 distinct pre-comments
+      const hasVideoHook = ['fade', 'dégradé', 'degrade', 'before', 'after', 'transition', 'vidéo', 'video', 'reel'].some(k => dmText.includes(k));
+      const hasPreCommentsArr = Array.isArray(preComments) && preComments.length >= 2;
+      const distinctPreComments = hasPreCommentsArr
+        ? new Set(preComments.map((p: any) => String(p).trim().toLowerCase())).size >= 2
+        : false;
+      const hasIaWord = ['intelligence artificielle', ' ia ', 'automatisé', 'généré par'].some(p => dmText.includes(p));
+      // TikTok DMs should be even tighter than IG — 30 to 500 chars
+      const lengthOk = dmText.length > 20 && dmText.length < 600;
+
+      const pass = !!parsed && hasVideoHook && hasPreCommentsArr && distinctPreComments && !hasIaWord && lengthOk;
+
+      results.push({
+        agent: 'Jade',
+        scenario: 'TikTok DM — video hook + 2+ distinct pre_comments',
+        pass,
+        expected: 'DM references a specific video, pre_comments array has ≥2 distinct entries, no IA mention, tight TikTok length',
+        actual: parsed
+          ? `video_hook=${hasVideoHook} · pre_comments_count=${preComments?.length ?? 0} · distinct=${distinctPreComments} · IA_word=${hasIaWord} · len=${dmText.length}`
+          : `Could not parse JSON: ${raw.substring(0, 160)}`,
+        detail: pass ? undefined : 'Jade TikTok DM failed the quality bar — missing video hook or pre_comments diversity.',
+      });
+    } else {
+      results.push({ agent: 'Jade', scenario: 'TikTok DM — video hook + 2+ distinct pre_comments', pass: false, expected: 'creator-tone DM', actual: 'no_anthropic_key' });
+    }
+  } catch (e: any) {
+    results.push({
+      agent: 'Jade',
+      scenario: 'TikTok DM — video hook + 2+ distinct pre_comments',
+      pass: false,
+      expected: 'creator-tone DM',
+      actual: 'error',
+      detail: e?.message?.substring(0, 200) || 'unknown error',
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // JADE — Instagram DM quality: concrete personalization_detail
+  // ─────────────────────────────────────────────────────────
   try {
     const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
     if (ANTHROPIC_KEY) {
