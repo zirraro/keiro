@@ -9,6 +9,7 @@ import {
   publishTikTokVideoViaFileUpload,
   refreshTikTokToken
 } from '@/lib/tiktok';
+import { mirrorToShowcaseAccount } from '@/lib/agents/showcase-mirror';
 
 export const runtime = 'edge';
 
@@ -299,6 +300,16 @@ export async function POST(req: NextRequest) {
         },
       });
     } catch { /* audit failure is non-fatal */ }
+
+    // Showcase mirror — replicate to metareview's content_calendar
+    // when mrzirraro publishes (no-op otherwise).
+    await mirrorToShowcaseAccount(supabase, userId, {
+      platform: 'tiktok',
+      format: 'video',
+      caption: finalCaption,
+      hashtags: hashtags || [],
+      visual_url: videoUrl,
+    }).catch(() => {});
 
     return NextResponse.json({
       ok: true,

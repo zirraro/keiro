@@ -8,6 +8,7 @@ import {
   uploadLinkedInVideo,
   publishLinkedInVideoPost,
 } from '@/lib/linkedin';
+import { mirrorToShowcaseAccount } from '@/lib/agents/showcase-mirror';
 
 export const runtime = 'edge';
 
@@ -182,6 +183,16 @@ export async function POST(req: NextRequest) {
         },
       });
     } catch { /* audit failure is non-fatal */ }
+
+    // Showcase mirror — replicate to metareview's content_calendar
+    // when mrzirraro publishes (no-op otherwise).
+    await mirrorToShowcaseAccount(supabase, userId, {
+      platform: 'linkedin',
+      format: mediaType === 'video' ? 'video' : mediaType === 'image' ? 'post' : 'text',
+      caption: fullText,
+      hashtags: hashtags || [],
+      visual_url: mediaUrl || '',
+    }).catch(() => {});
 
     console.log('[LinkedInPublish] Post published successfully');
 

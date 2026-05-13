@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { publishImageToInstagram } from '@/lib/meta';
+import { mirrorToShowcaseAccount } from '@/lib/agents/showcase-mirror';
 
 export const runtime = 'edge';
 
@@ -201,6 +202,18 @@ export async function POST(req: NextRequest) {
         },
       });
     } catch { /* audit failure is non-fatal */ }
+
+    // Showcase mirror — if the showcase account just published, also
+    // create a content_calendar row for the metareview account so the
+    // reviewer's content workspace stays populated with real posts.
+    // No-op for any other user. Silent on failure.
+    await mirrorToShowcaseAccount(supabase, userId, {
+      platform: 'instagram',
+      format: 'post',
+      caption: finalCaption,
+      hashtags: hashtags || [],
+      visual_url: imageUrl,
+    }).catch(() => {});
 
     return NextResponse.json({
       ok: true,
