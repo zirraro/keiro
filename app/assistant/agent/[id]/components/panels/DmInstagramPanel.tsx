@@ -727,6 +727,16 @@ function DmConversationsLive() {
           {displayConvs.map(conv => {
             const lastMsg = conv.messages[conv.messages.length - 1];
             const isUnread = lastMsg && !lastMsg.fromMe;
+            // Compute Meta's 24h messaging window state for this conv.
+            // We look at the LAST INBOUND message (customer-side) — that's
+            // what resets the standard window per Meta policy. If the
+            // newest message is from us, the window is whatever the last
+            // inbound was; if no inbound exists, treat as in-window so
+            // the UI doesn't shout "needs human agent" on fresh threads.
+            const lastInbound = [...conv.messages].reverse().find((m: any) => !m.fromMe);
+            const lastInboundTime = lastInbound?.created_time ? new Date(lastInbound.created_time).getTime() : null;
+            const hoursSince = lastInboundTime ? (Date.now() - lastInboundTime) / 3600000 : 0;
+            const outsideWindow = hoursSince > 24;
             return (
               <button
                 key={conv.id}
@@ -735,7 +745,17 @@ function DmConversationsLive() {
               >
                 <div className="flex items-center gap-2">
                   {isUnread && <div className="w-2 h-2 rounded-full bg-purple-400 animate-pulse flex-shrink-0" />}
-                  <span className="text-xs font-medium text-white">@{conv.participant.username}</span>
+                  <span className="text-xs font-medium text-white truncate">@{conv.participant.username}</span>
+                  {/* Window badge — orange when >24h so the user spots
+                      conversations that will need the HUMAN_AGENT tag. */}
+                  {outsideWindow && lastInbound && (
+                    <span
+                      className="ml-auto px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex-shrink-0"
+                      title="Outside the 24h messaging window — send will use messaging_type=MESSAGE_TAG, tag=HUMAN_AGENT"
+                    >
+                      &gt;24h
+                    </span>
+                  )}
                 </div>
                 <div className="text-[10px] text-white/30 truncate mt-0.5 pl-4">
                   {lastMsg?.fromMe ? p.dmConvsToMe : ''}{lastMsg?.message?.substring(0, 50) || '...'}
@@ -774,6 +794,39 @@ function DmConversationsLive() {
                 </div>
               </div>
             </div>
+
+            {/* 24h messaging window state \u2014 tells the user (and a Meta
+                App Review reviewer) exactly which Graph API path this
+                send will take. Recomputed from the selected conv's last
+                inbound message every render so it stays accurate as new
+                messages arrive. */}
+            {(() => {
+              const lastInbound = [...selected.messages].reverse().find((m: any) => !m.fromMe);
+              const lastInboundTime = lastInbound?.created_time ? new Date(lastInbound.created_time).getTime() : null;
+              if (!lastInbound || !lastInboundTime) {
+                return (
+                  <div className="px-3 py-2 border-b border-white/5 bg-white/[0.02] text-[10px] text-white/40">
+                    {'\u{1F4AC}'} No inbound message yet \u2014 auto-reply will trigger as soon as @{selected.participant.username} writes first.
+                  </div>
+                );
+              }
+              const hours = (Date.now() - lastInboundTime) / 3600000;
+              const inWindow = hours <= 24;
+              const days = Math.floor(hours / 24);
+              return inWindow ? (
+                <div className="px-3 py-2 border-b border-white/5 bg-emerald-500/[0.06] flex items-center gap-2 text-[10px]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
+                  <span className="text-emerald-300 font-semibold">In the 24h messaging window</span>
+                  <span className="text-white/40">\u00b7 Last customer message {Math.floor(hours)}h ago. Sends use the standard <code>POST /me/messages</code> path.</span>
+                </div>
+              ) : (
+                <div className="px-3 py-2 border-b border-white/5 bg-amber-500/[0.08] flex items-center gap-2 text-[10px]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
+                  <span className="text-amber-300 font-semibold">Outside 24h \u00b7 Human Agent mode</span>
+                  <span className="text-white/50">\u00b7 Customer wrote {days}d{Math.floor(hours - days * 24)}h ago. Your manual reply is sent with <code>messaging_type=MESSAGE_TAG&amp;tag=HUMAN_AGENT</code>.</span>
+                </div>
+              );
+            })()}
             {/* Messages */}
             <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2.5">
               {(selected.messages as any[]).map((msg: any, i: number) => (
@@ -855,19 +908,40 @@ function DmConversationsLive() {
                 className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-purple-500/50 focus:border-purple-500/30"
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && replyText.trim()) { e.preventDefault(); sendReply(); } }}
               />
-              <button
-                onClick={sendReply}
-                disabled={sending || !replyText.trim()}
-                className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 text-white text-xs font-medium rounded-xl disabled:opacity-40 transition-all active:scale-95"
-                data-meta-review="dm-send"
-                title="Sends this reply via the Instagram Graph API (POST /me/messages with the recipient and message text). The send fires only on this click — no automation, no cron. If the conversation is older than 24h we add messaging_type=MESSAGE_TAG&tag=HUMAN_AGENT (Meta's customer-service human-agent window) so the human owner can finish the customer service inquiry."
-              >
-                {sending ? (
-                  <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white" />
-                ) : (
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
-                )}
-              </button>
+              {(() => {
+                // Same 24h window check as the header banner — the send
+                // button label flips to "Send as Human Agent" when we
+                // know the message will be tagged. That way the founder
+                // (and Meta App Review reviewer) sees in one glance which
+                // path the click will hit.
+                const lastInbound = [...selected.messages].reverse().find((m: any) => !m.fromMe);
+                const lastInboundTime = lastInbound?.created_time ? new Date(lastInbound.created_time).getTime() : null;
+                const outside = lastInboundTime ? (Date.now() - lastInboundTime) / 3600000 > 24 : false;
+                const cls = outside
+                  ? 'px-3 py-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500'
+                  : 'px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600';
+                return (
+                  <button
+                    onClick={sendReply}
+                    disabled={sending || !replyText.trim()}
+                    className={`${cls} text-white text-xs font-medium rounded-xl disabled:opacity-40 transition-all active:scale-95 flex items-center gap-1.5`}
+                    data-meta-review="dm-send"
+                    title={outside
+                      ? 'Conversation is older than 24h. This send will use POST /me/messages with messaging_type=MESSAGE_TAG&tag=HUMAN_AGENT (requires the human_agent permission). The click is a manual human action — no automation.'
+                      : 'In the 24h messaging window. Standard POST /me/messages send. Manual click only — no automation, no cron.'}
+                  >
+                    {sending ? (
+                      <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white" />
+                    ) : (
+                      <>
+                        {outside && <span className="text-[10px]">🧑</span>}
+                        <span className="hidden sm:inline">{outside ? 'Send (Human Agent)' : 'Send'}</span>
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+                      </>
+                    )}
+                  </button>
+                );
+              })()}
             </div>
             {/* Demo-mode caption explaining the API call — visible only when ?demo=1 so a Meta App Review reviewer recording the screencast can see what each click triggers without any subtitles or narration. */}
             <div className="px-3 pb-2">
