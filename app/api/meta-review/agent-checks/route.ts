@@ -283,6 +283,158 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // ─────────────────────────────────────────────────────────
+  // LÉNA — content quality: visual link news↔business when pillar=trends
+  // ─────────────────────────────────────────────────────────
+  // We ask Sonnet to produce one P0 post (news/trend pillar) and check
+  // that the generated visual_description anchors BOTH the news context
+  // AND a business element in the same scene. This is the rule we just
+  // added to content-prompt.ts — drift would mean Léna's visuals stop
+  // showing the news↔business connection users explicitly asked for.
+  try {
+    const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
+    if (ANTHROPIC_KEY) {
+      const { getContentSystemPrompt } = await import('@/lib/agents/content-prompt');
+      const lenaRes = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 1200,
+          system: getContentSystemPrompt(),
+          messages: [{
+            role: 'user',
+            content: `Génère UN post P0 (pillar=trends) pour Instagram.
+Cible : restaurant à Paris. Tendance à exploiter : vague de froid annoncée cette semaine en France.
+Retourne UNIQUEMENT le JSON strict défini dans le system prompt, sans markdown.`,
+          }],
+        }),
+      });
+
+      let raw = '';
+      let parsed: any = null;
+      if (lenaRes.ok) {
+        const data = await lenaRes.json();
+        raw = (data.content?.[0]?.text || '').trim();
+        const stripped = raw.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+        const fb = stripped.indexOf('{');
+        const lb = stripped.lastIndexOf('}');
+        try { parsed = JSON.parse(fb >= 0 && lb > fb ? stripped.slice(fb, lb + 1) : stripped); } catch {}
+      }
+
+      const visual = (parsed?.visual_description || '').toLowerCase();
+      const newsLink = (parsed?.news_visual_link || '').toLowerCase();
+      // Anchored news cue: any word that signals the cold-snap context
+      const hasNewsCue = ['cold', 'froid', 'foggy', 'embuée', 'embuee', 'snow', 'neige', 'frost', 'winter', 'hiver', 'steam', 'fumant', 'fume', 'breath', 'condensation', 'window'].some(k => visual.includes(k));
+      // Anchored business cue: restaurant scene element
+      const hasBusinessCue = ['soup', 'soupe', 'broth', 'bowl', 'bol', 'table', 'plate', 'plat', 'dish', 'kitchen', 'cuisine', 'restaurant', 'meal', 'food', 'tea', 'thé', 'coffee', 'café', 'cup', 'tasse', 'wine', 'bistrot', 'tableware'].some(k => visual.includes(k));
+      const hasNewsLinkField = newsLink.length > 10; // sentence that summarises the bridge
+      const pass = !!parsed && hasNewsCue && hasBusinessCue && hasNewsLinkField;
+
+      results.push({
+        agent: 'Léna',
+        scenario: 'P0 trends — news↔business visual anchoring',
+        pass,
+        expected: 'visual_description contains BOTH a news cue (cold/steam/foggy window) AND a business cue (soup/bowl/restaurant scene), plus news_visual_link sentence',
+        actual: parsed
+          ? `news_cue=${hasNewsCue} · business_cue=${hasBusinessCue} · news_visual_link="${(parsed.news_visual_link || '').substring(0, 80)}"`
+          : `Could not parse JSON: ${raw.substring(0, 160)}`,
+        detail: pass ? undefined : 'Léna generated a P0 trends post without the double anchoring required — visual would not show the news connection.',
+      });
+    } else {
+      results.push({ agent: 'Léna', scenario: 'P0 trends — news↔business visual anchoring', pass: false, expected: 'visual_description double-anchored', actual: 'no_anthropic_key', detail: 'ANTHROPIC_API_KEY missing' });
+    }
+  } catch (e: any) {
+    results.push({
+      agent: 'Léna',
+      scenario: 'P0 trends — news↔business visual anchoring',
+      pass: false,
+      expected: 'visual_description double-anchored',
+      actual: 'error',
+      detail: e?.message?.substring(0, 200) || 'unknown error',
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // JADE — DM quality: personalization_detail must be specific
+  // ─────────────────────────────────────────────────────────
+  // Ask Jade to produce a DM for a fictional restaurant prospect and
+  // assert that the DM text references a CONCRETE detail (a dish, a
+  // post, a quartier) rather than a vague compliment.
+  try {
+    const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
+    if (ANTHROPIC_KEY) {
+      const { getDMSystemPrompt } = await import('@/lib/agents/dm-prompt');
+      const jadeRes = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 800,
+          system: getDMSystemPrompt('instagram'),
+          messages: [{
+            role: 'user',
+            content: `Génère un premier DM pour ce prospect :
+Compte : @bistrot_dumarais — restaurant bistronomique, Paris 4e
+Dernier post : photo du tartare de bœuf de la maison avec frites maison
+Story récente : équipe en cuisine pendant le service du soir
+Bio : "Bistrot du Marais · cuisine de produit · réservation en DM"
+
+Réponds UNIQUEMENT en JSON strict comme défini dans le system prompt.`,
+          }],
+        }),
+      });
+
+      let raw = '';
+      let parsed: any = null;
+      if (jadeRes.ok) {
+        const data = await jadeRes.json();
+        raw = (data.content?.[0]?.text || '').trim();
+        const stripped = raw.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+        const fb = stripped.indexOf('{');
+        const lb = stripped.lastIndexOf('}');
+        try { parsed = JSON.parse(fb >= 0 && lb > fb ? stripped.slice(fb, lb + 1) : stripped); } catch {}
+      }
+
+      const dmText = (parsed?.dm_text || '').toLowerCase();
+      const persoDetail = (parsed?.personalization_detail || '').toLowerCase();
+      // Specific markers we'd expect Jade to hook on
+      const hasSpecificHook = ['tartare', 'frites', 'marais', '4e', 'bistrot', 'cuisine', 'soir', 'équipe', 'equipe', 'service'].some(k => dmText.includes(k) || persoDetail.includes(k));
+      // Ban list — generic compliments that would fail the quality bar
+      const bannedPhrases = ['j\'adore votre page', 'j\'aime votre profil', 'votre compte est super', 'nice page', 'love your page'];
+      const hasBannedPhrase = bannedPhrases.some(p => dmText.includes(p));
+      // Anti-IA markers
+      const hasIaWord = ['intelligence artificielle', ' ia ', 'automatisé', 'généré par'].some(p => dmText.includes(p));
+      // Length sanity (DM, not email)
+      const dmLength = dmText.length;
+      const lengthOk = dmLength > 30 && dmLength < 800;
+
+      const pass = !!parsed && hasSpecificHook && !hasBannedPhrase && !hasIaWord && lengthOk;
+
+      results.push({
+        agent: 'Jade',
+        scenario: 'IG DM — concrete personalization_detail',
+        pass,
+        expected: 'DM references a concrete profile detail (tartare/frites/marais/équipe…), no generic "j\'adore votre page", no IA mention, sensible length',
+        actual: parsed
+          ? `specific_hook=${hasSpecificHook} · banned=${hasBannedPhrase} · IA_word=${hasIaWord} · len=${dmLength} · detail="${(parsed.personalization_detail || '').substring(0, 80)}"`
+          : `Could not parse JSON: ${raw.substring(0, 160)}`,
+        detail: pass ? undefined : 'Jade DM failed the quality bar — generic, AI-flavoured, or off-length.',
+      });
+    } else {
+      results.push({ agent: 'Jade', scenario: 'IG DM — concrete personalization_detail', pass: false, expected: 'specific DM', actual: 'no_anthropic_key', detail: 'ANTHROPIC_API_KEY missing' });
+    }
+  } catch (e: any) {
+    results.push({
+      agent: 'Jade',
+      scenario: 'IG DM — concrete personalization_detail',
+      pass: false,
+      expected: 'specific DM',
+      actual: 'error',
+      detail: e?.message?.substring(0, 200) || 'unknown error',
+    });
+  }
+
   const failures = results.filter(r => !r.pass).length;
   const byAgent: Record<string, { pass: number; total: number }> = {};
   for (const r of results) {
