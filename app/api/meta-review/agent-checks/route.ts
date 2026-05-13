@@ -78,7 +78,17 @@ Regles:
     return { intent: 'unknown', newStatus: 'repondu', newTemp: 'warm', stopSequence: false };
   }
   const data = await res.json();
-  const txt = (data.content?.[0]?.text || '').trim();
+  let txt = (data.content?.[0]?.text || '').trim();
+  // Claude Haiku sometimes wraps JSON in ```json ... ``` fences despite
+  // the "no markdown" instruction. Strip them before parsing.
+  txt = txt.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+  // If the response contains prose before/after the JSON, extract the
+  // outermost {...} block.
+  const firstBrace = txt.indexOf('{');
+  const lastBrace = txt.lastIndexOf('}');
+  if (firstBrace >= 0 && lastBrace > firstBrace) {
+    txt = txt.slice(firstBrace, lastBrace + 1);
+  }
   try {
     const parsed = JSON.parse(txt);
     return {
