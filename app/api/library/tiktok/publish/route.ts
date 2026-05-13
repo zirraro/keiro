@@ -182,20 +182,51 @@ export async function POST(req: NextRequest) {
       );
     } catch (publishError: any) {
       console.error('[TikTokPublish] ❌ PUBLICATION FAILED');
-      console.error('[TikTokPublish] Error type:', publishError.constructor.name);
       console.error('[TikTokPublish] Error message:', publishError.message);
-      console.error('[TikTokPublish] Error stack:', publishError.stack);
 
-      // CRITICAL: ALWAYS show the exact TikTok error message
-      // Remove all filtering to see what TikTok really says
-      const userMessage = `❌ Erreur lors de la publication TikTok\n\n🔍 Message exact de TikTok:\n${publishError.message}`;
+      // Map common TikTok errors to actionable French messages, while
+      // ALWAYS keeping the raw error appended so we can diagnose any
+      // new TikTok-side change without losing detail.
+      const rawErr = String(publishError.message || '');
+      let friendly: string | null = null;
+      if (/access[_ ]?token/i.test(rawErr) || /401|unauthor/i.test(rawErr)) {
+        friendly = 'Le token TikTok a expiré ou a été révoqué. Reconnecte ton compte TikTok depuis Léna → TikTok → Reconnecter.';
+      } else if (/spam[_ ]?risk|spam_risk_user|spam_risk_too_many/i.test(rawErr)) {
+        friendly = 'TikTok a détecté un risque de spam sur ton compte. Attends 24h avant de republier — le risque s\'efface tout seul.';
+      } else if (/audit[_ ]?in[_ ]?progress|under[_ ]?review/i.test(rawErr)) {
+        friendly = 'La vidéo est en revue TikTok. Elle apparaîtra dans le feed dès validation (généralement <10 min).';
+      } else if (/video[_ ]?too[_ ]?(long|short)|invalid[_ ]?duration/i.test(rawErr)) {
+        friendly = 'Durée de vidéo invalide. TikTok accepte 3s à 10min pour les comptes vérifiés, 3s à 3min sinon.';
+      } else if (/file[_ ]?too[_ ]?(large|big)|exceed|max[_ ]?size/i.test(rawErr)) {
+        friendly = 'Vidéo trop lourde pour TikTok (max ~287 MB en upload direct). Compresse ou réduit la résolution.';
+      } else if (/format|codec|invalid[_ ]?video/i.test(rawErr)) {
+        friendly = 'Format vidéo non supporté. TikTok accepte MP4 (H.264) ou MOV en 9:16, max 287 MB.';
+      } else if (/privacy/i.test(rawErr)) {
+        friendly = 'Paramètre de confidentialité refusé par TikTok. Réessaie en Public ou Amis.';
+      } else if (/scope|permission/i.test(rawErr)) {
+        friendly = 'Permission TikTok manquante. Reconnecte le compte en acceptant toutes les permissions cette fois.';
+      }
+      const userMessage = friendly
+        ? `${friendly}\n\nMessage technique TikTok : ${rawErr.substring(0, 200)}`
+        : `Erreur TikTok : ${rawErr}`;
 
-      /* Commented out - we need to see the raw error first
-      if (publishError.message.includes('chunk') || publishError.message.includes('size')) {
-        ...
-      */
+      // Audit log failure for /meta-audit visibility
+      try {
+        await supabase.from('agent_logs').insert({
+          agent: 'content',
+          action: 'publish_diagnostic',
+          user_id: userId,
+          status: 'error',
+          data: {
+            platform: 'tiktok',
+            video_url_domain: (() => { try { return new URL(videoUrl).hostname; } catch { return null; } })(),
+            error_preview: rawErr.substring(0, 200),
+            mapped_error: friendly || null,
+            method: 'graph_api_tiktok_publish',
+          },
+        });
+      } catch { /* non-fatal */ }
 
-      // Throw the raw error to see what TikTok actually says
       throw new Error(userMessage);
     }
 
@@ -240,10 +271,40 @@ export async function POST(req: NextRequest) {
 
     console.log('[TikTokPublish] Post published successfully');
 
+    // Construct a best-effort share URL. TikTok doesn't give us the
+    // final video URL synchronously (their pipeline assigns one once
+    // the moderation pass clears), so we fall back to the user's
+    // profile URL — the reviewer can verify the post exists on the
+    // account without needing to wait for moderation.
+    const shareUrl = profile.tiktok_username
+      ? `https://www.tiktok.com/@${profile.tiktok_username.replace(/^@/, '')}`
+      : null;
+
+    // Audit log — every successful TikTok publish leaves a trail
+    // visible in /meta-audit, matching the IG publish behaviour so
+    // the founder/reviewer sees both networks side-by-side.
+    try {
+      await supabase.from('agent_logs').insert({
+        agent: 'content',
+        action: 'publish_diagnostic',
+        user_id: userId,
+        status: 'success',
+        data: {
+          platform: 'tiktok',
+          publish_id: publishResult.publish_id,
+          share_url: shareUrl,
+          caption_preview: finalCaption.substring(0, 120),
+          privacy_level: privacyLevel,
+          method: 'tiktok_content_publish_file_upload',
+        },
+      });
+    } catch { /* audit failure is non-fatal */ }
+
     return NextResponse.json({
       ok: true,
       post: {
         id: publishResult.publish_id,
+        share_url: shareUrl,
         caption: finalCaption,
         posted_at: new Date().toISOString()
       }

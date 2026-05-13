@@ -84,31 +84,69 @@ export async function POST(req: NextRequest) {
 
     console.log('[LinkedInPublish] Publishing post, mediaType:', mediaType);
 
-    let result;
+    let result: any;
+    try {
+      switch (mediaType) {
+        case 'text-only': {
+          result = await publishLinkedInTextPost(accessToken, authorUrn, fullText);
+          break;
+        }
+        case 'image': {
+          if (!mediaUrl) {
+            return NextResponse.json({ ok: false, error: 'URL de l\'image requise' }, { status: 400 });
+          }
+          const imageUrn = await uploadLinkedInImage(accessToken, authorUrn, mediaUrl);
+          result = await publishLinkedInImagePost(accessToken, authorUrn, fullText, imageUrn);
+          break;
+        }
+        case 'video': {
+          if (!mediaUrl) {
+            return NextResponse.json({ ok: false, error: 'URL de la vidéo requise' }, { status: 400 });
+          }
+          const videoUrn = await uploadLinkedInVideo(accessToken, authorUrn, mediaUrl);
+          result = await publishLinkedInVideoPost(accessToken, authorUrn, fullText, videoUrn);
+          break;
+        }
+        default:
+          return NextResponse.json({ ok: false, error: `Type de média non supporté: ${mediaType}` }, { status: 400 });
+      }
+    } catch (publishErr: any) {
+      const rawErr = String(publishErr?.message || '');
+      let friendly: string | null = null;
+      if (/401|unauthor|invalid[_ ]?token|access[_ ]?token/i.test(rawErr)) {
+        friendly = 'Le token LinkedIn a expiré ou a été révoqué. Reconnecte ton compte LinkedIn depuis Léna → LinkedIn → Reconnecter.';
+      } else if (/403|forbidden|insufficient[_ ]?scope/i.test(rawErr)) {
+        friendly = 'Permission LinkedIn manquante (w_member_social). Reconnecte en acceptant toutes les permissions.';
+      } else if (/429|rate[_ ]?limit|too[_ ]?many/i.test(rawErr)) {
+        friendly = 'LinkedIn a rate-limité ton compte. Attends ~15 min avant de réessayer.';
+      } else if (/text[_ ]?too[_ ]?long|exceed|max[_ ]?length/i.test(rawErr)) {
+        friendly = 'Texte trop long. LinkedIn limite à 3000 caractères pour un post.';
+      } else if (/image[_ ]?(size|format)|invalid[_ ]?image/i.test(rawErr)) {
+        friendly = 'Image refusée par LinkedIn. Formats acceptés : JPG/PNG/GIF, max 7 MB, 552×276 minimum.';
+      } else if (/video[_ ]?(size|format|duration)|invalid[_ ]?video/i.test(rawErr)) {
+        friendly = 'Vidéo refusée par LinkedIn. Formats acceptés : MP4/MOV, max 5 GB, 3 sec à 10 min.';
+      }
+      const userMessage = friendly
+        ? `${friendly}\n\nMessage technique LinkedIn : ${rawErr.substring(0, 200)}`
+        : `Erreur LinkedIn : ${rawErr}`;
 
-    switch (mediaType) {
-      case 'text-only': {
-        result = await publishLinkedInTextPost(accessToken, authorUrn, fullText);
-        break;
-      }
-      case 'image': {
-        if (!mediaUrl) {
-          return NextResponse.json({ error: 'URL de l\'image requise' }, { status: 400 });
-        }
-        const imageUrn = await uploadLinkedInImage(accessToken, authorUrn, mediaUrl);
-        result = await publishLinkedInImagePost(accessToken, authorUrn, fullText, imageUrn);
-        break;
-      }
-      case 'video': {
-        if (!mediaUrl) {
-          return NextResponse.json({ error: 'URL de la vidéo requise' }, { status: 400 });
-        }
-        const videoUrn = await uploadLinkedInVideo(accessToken, authorUrn, mediaUrl);
-        result = await publishLinkedInVideoPost(accessToken, authorUrn, fullText, videoUrn);
-        break;
-      }
-      default:
-        return NextResponse.json({ error: `Type de média non supporté: ${mediaType}` }, { status: 400 });
+      try {
+        await supabase.from('agent_logs').insert({
+          agent: 'content',
+          action: 'publish_diagnostic',
+          user_id: userId,
+          status: 'error',
+          data: {
+            platform: 'linkedin',
+            media_type: mediaType,
+            error_preview: rawErr.substring(0, 200),
+            mapped_error: friendly || null,
+            method: 'linkedin_ugc_post',
+          },
+        });
+      } catch { /* non-fatal */ }
+
+      throw new Error(userMessage);
     }
 
     // Update draft status to published if draftId provided
@@ -120,14 +158,39 @@ export async function POST(req: NextRequest) {
         .eq('user_id', userId);
     }
 
+    // LinkedIn returns the URN of the activity (e.g. urn:li:share:123…
+    // or urn:li:ugcPost:123…). Convert to the public share URL so
+    // downstream UI / audit log can deep-link the post.
+    const activityUrn = result?.id || result?.activity || result?.urn || null;
+    const shareUrl = activityUrn
+      ? `https://www.linkedin.com/feed/update/${encodeURIComponent(activityUrn)}/`
+      : null;
+
+    try {
+      await supabase.from('agent_logs').insert({
+        agent: 'content',
+        action: 'publish_diagnostic',
+        user_id: userId,
+        status: 'success',
+        data: {
+          platform: 'linkedin',
+          activity_urn: activityUrn,
+          share_url: shareUrl,
+          media_type: mediaType,
+          caption_preview: fullText.substring(0, 120),
+          method: 'linkedin_ugc_post',
+        },
+      });
+    } catch { /* audit failure is non-fatal */ }
+
     console.log('[LinkedInPublish] Post published successfully');
 
-    return NextResponse.json({ ok: true, post: result });
+    return NextResponse.json({ ok: true, post: result, share_url: shareUrl });
 
   } catch (error: any) {
     console.error('[LinkedInPublish] Error:', error);
     return NextResponse.json(
-      { error: error.message || 'Erreur lors de la publication' },
+      { ok: false, error: error.message || 'Erreur lors de la publication' },
       { status: 500 }
     );
   }
