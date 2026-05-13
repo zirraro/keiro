@@ -1044,8 +1044,8 @@ function NetworkStatsRow({ network, netStats, stats, sample }: { network: LenaNe
   // real numbers (live API + cached profile) as soon as connected.
   const SAMPLE: Record<string, any> = {
     instagram: { posts: 24, followers: 1840, likes: 1320, engagement: 4.2, scheduled: 6 },
-    tiktok: { posts: 12, scheduled: 4 },
-    linkedin: { posts: 8, scheduled: 3 },
+    tiktok:    { posts: 18, followers: 8400, views: 145000, engagement: 8.2, scheduled: 5 },
+    linkedin:  { posts: 12, followers: 1240, reactions: 850, engagement: 3.8, scheduled: 3 },
   };
   if (sample) netStats = SAMPLE[network] || {};
   // When the dashboard API returned 0 (rate-limit / failed call) but
@@ -1093,6 +1093,18 @@ function NetworkStatsRow({ network, netStats, stats, sample }: { network: LenaNe
     cells.push(
       { label: 'Followers', value: fmt(followersValue ?? 0) },
       { label: 'Likes', value: fmt(netStats.likes || 0) },
+      { label: 'Engagement', value: `${netStats.engagement || 0}%` },
+    );
+  } else if (network === 'tiktok') {
+    cells.push(
+      { label: 'Followers', value: fmt(netStats.followers || 0) },
+      { label: 'Avg views', value: fmt(netStats.views || 0) },
+      { label: 'Engagement', value: `${netStats.engagement || 0}%` },
+    );
+  } else if (network === 'linkedin') {
+    cells.push(
+      { label: 'Connections', value: fmt(netStats.followers || 0) },
+      { label: 'Reactions', value: fmt(netStats.reactions || 0) },
       { label: 'Engagement', value: `${netStats.engagement || 0}%` },
     );
   } else {
@@ -1152,16 +1164,16 @@ function NetworkStrategyHints({ network, hasActivity }: { network: LenaNetworkKe
       { label: 'Sector peers', value: businessType === 'restaurant' ? '~2.1k median followers' : businessType === 'salon' ? '~1.4k median followers' : '~1.6k median followers' },
     ],
     tiktok: [
-      { label: 'Best slot', value: 'Wed–Sun · 18h–22h' },
+      { label: 'Best slot', value: businessType === 'restaurant' ? 'Wed–Sun · 18h–22h' : businessType === 'salon' ? 'Thu–Sat · 19h–22h' : 'Wed–Sun · 18h–22h' },
       { label: 'Hook length', value: '< 2.5 sec · vertical 9:16' },
       { label: 'Video length', value: '21–35 sec sweet spot' },
-      { label: 'Sound', value: 'Trending audio + native voiceover FR' },
+      { label: 'Sector peers', value: businessType === 'restaurant' ? '~14k median views' : businessType === 'salon' ? '~9k median views' : '~11k median views' },
     ],
     linkedin: [
       { label: 'Best slot', value: 'Tue + Wed · 8h–10h' },
       { label: 'Format mix', value: '70% Text + native image · 30% Carousels' },
       { label: 'Hook', value: '1 sentence per line, story-first' },
-      { label: 'Hashtags', value: '3 max, broad + specific blend' },
+      { label: 'Sector peers', value: businessType === 'restaurant' ? '~900 median connections' : businessType === 'salon' ? '~720 median connections' : '~1.1k median connections' },
     ],
   };
 
