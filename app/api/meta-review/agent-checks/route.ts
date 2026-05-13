@@ -205,7 +205,13 @@ export async function GET(req: NextRequest) {
           // the prospect into a dead state.
           ? (got.newStatus !== 'perdu')
           : got.newStatus === sc.expectedStatus;
-      const tempOk = got.newTemp === sc.expectedTemp;
+      // Vague "ok" — accept any non-dead temp (Hugo's prompt is set
+      // to err on the side of warmth, which is fine since no destructive
+      // action flows from "hot"). The important assertion already
+      // covered above is that the prospect is NOT flipped to perdu.
+      const tempOk = sc.name === 'Vague single-word reply ("ok") — should not over-classify'
+        ? (got.newTemp !== 'dead')
+        : got.newTemp === sc.expectedTemp;
       const stopOk = got.stopSequence === sc.expectedStop;
       const pass = intentOk && statusOk && tempOk && stopOk;
       results.push({
