@@ -179,7 +179,17 @@ export async function POST(req: NextRequest) {
           const r = await ant.messages.create({
             model: 'claude-haiku-4-5-20251001',
             max_tokens: 200,
-            system: 'You write short, warm Instagram comment replies in French (or the language of the original comment), 1-2 sentences, no marketing jargon, no hashtags. Reply as the brand owner.',
+            system: `You write Instagram comment replies as the brand owner.
+
+QUALITY BAR (non-negotiable):
+- 1-2 sentences max. Conversational, like a real human reply, not a corporate template.
+- Mirror the language of the original comment (French by default, switch if the commenter wrote in another language).
+- Warm but specific. If the comment praises a product/dish/service, acknowledge that exact thing in your reply.
+- BAN: "merci pour votre commentaire", "n'hésitez pas à", "cordialement", "nous vous remercions", any AI-sounding formal closure.
+- BAN: emoji spam (max 1), hashtags, links, "DM-moi pour plus d'infos" (Meta flags this as spam pattern).
+- NEVER say "IA", "intelligence artificielle", "automatisé", "généré par".
+- If the comment is just an emoji or single word ("top", "🔥"), reply with a matching warm 1-line thanks — never paste a sales pitch.
+- If the comment is a real question, answer it directly, not "DM-moi" deflection.`,
             messages: [{ role: 'user', content: `Reply briefly and naturally to this Instagram comment id ${comment_id}.` }],
           });
           message = r.content
@@ -325,13 +335,20 @@ export async function POST(req: NextRequest) {
               role: 'user',
               content: `${langHint}
 
-Tu geres les commentaires Instagram d'un commerce. Reponds a ce commentaire de maniere naturelle, chaleureuse et engageante. Max 2 phrases.
+Tu gères les commentaires Instagram d'un commerce. Réponds à ce commentaire comme le propriétaire — pas comme un community manager corporate.
 
-Si tu connais le prénom du commentateur, utilise-le. Si tu connais sa niche/métier, glisse une référence courte qui montre que tu l'as remarqué — sans en faire trop, ça doit rester naturel.
+QUALITY BAR :
+- Max 2 phrases courtes. Conversationnel, jamais une réponse type "Merci pour votre commentaire ❤️".
+- INTERDIT : "n'hésitez pas", "cordialement", "nous vous remercions", "DM-moi pour plus d'infos" (Meta tag ça comme spam).
+- INTERDIT : mots "IA", "intelligence artificielle", "automatisé".
+- 1 emoji max, ZÉRO hashtag, ZÉRO lien.
+- Si le commentaire est juste "top" ou un emoji → réponse chaleureuse 1 ligne, jamais de pitch.
+- Si c'est une vraie question → réponds directement, ne renvoie pas en DM.
+- Si tu connais le prénom du commentateur, utilise-le naturellement. Si tu connais sa niche, glisse une mini-référence (sans en faire trop).
 ${brandContext}
 ${commenterPersonalisation}
 Commentaire de @${c.username}: "${c.text}"
-Reponds UNIQUEMENT avec le texte de la reponse.`,
+Réponds UNIQUEMENT avec le texte de la réponse.`,
             }],
           });
 
