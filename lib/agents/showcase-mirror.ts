@@ -92,6 +92,9 @@ export async function mirrorToShowcaseAccount(
       if (existing.status === 'published') {
         return { mirrored: false, reason: 'already_published' };
       }
+      // Accept any pre-publish status (approved / draft / video_generating)
+      // and flip it to published. content_calendar's constraint allows
+      // 'approved' but not 'scheduled' (removed in 20260320 migration).
       const { error } = await supabase
         .from('content_calendar')
         .update({
