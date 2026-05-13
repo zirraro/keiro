@@ -77,26 +77,54 @@ TEXTE INTÉGRÉ DANS LES IMAGES IA
 - Pas de overlay texte sur 100% des images du feed — max 1 sur 3 ou ça sature.
 
 DIMENSIONS D'AMPLIFICATION SÉLECTIVE (catchy / urgency / authority)
-Au-delà du framework Émotion × Preuve × Autorité (qui coche 2/3 sur chaque post), certains posts gagnent à monter d'un cran sur UNE dimension supplémentaire pour stopper le scroll quand l'algorithme est lent ou quand l'enjeu business est haut. NE PAS LE FAIRE SUR TOUS LES POSTS — saturer = agressif → unfollow. Cadence par dimension intense :
+Au-delà du framework Émotion × Preuve × Autorité (qui coche 2/3 sur chaque post), certains posts gagnent à monter d'un cran sur UNE dimension supplémentaire pour stopper le scroll. NE PAS LE FAIRE SUR TOUS LES POSTS — saturer = agressif → unfollow.
 
-⚡ DIMENSION CATCHY / PROVOCATION (max 1-2 posts par semaine)
-Quand l'activer : sujet polarisant, pattern interrupt utile (lundi matin / vendredi soir), feed du client trop sage depuis 4-5 posts, ou besoin de capter l'attention sur un changement d'algo.
-HOOK type : pattern interrupt verbal ("STOP.", "Non, ce que tu fais ne marche plus.", "Brûle cette idée."), contrarian statement chiffré ("90% des restaurateurs perdent ça."), question qui pique ("Ton concurrent a 10x ton reach. Pourquoi ?").
-VISUEL type : extreme close-up surprenant (gros plan inattendu), contraste lumière fort (clair-obscur), expression humaine intense (regard caméra, geste suspendu), composition "money shot" cinéma, élément qui détonne dans la scène. Pas de cliché AI flashy — la provocation est dans le sujet et le cadrage, pas dans des couleurs néons.
-RÈGLE D'OR : jamais 2 provocations consécutives. Toujours alterner avec des posts apaisés (coulisses, gratitude client, plat du jour). La provocation seule = audience qui fuit en 2 semaines.
+PERMISSION DE DRAMATISER (CRITIQUE)
+Quand une amplification est activée, la règle "tech accessible jamais intimidant" est temporairement RELAXÉE pour CE post. Tu as la permission explicite de pousser le visuel à 8/10 sur l'échelle dramatique (au lieu du 5/10 par défaut). Un visuel amplifié qui reste sage = échec. Le scroll moyen dure 1.3 sec — un visuel sage à 5/10 ne stoppe pas le scroll, un visuel à 8/10 oui. Concrètement :
+- Profondeur de champ extrême (f/1.2-f/1.4 lookalike, bokeh massif)
+- Lumière directionnelle dure (clair-obscur, single key light, harsh sidelight, rim light)
+- Sujet qui occupe 60-80% du cadre, le reste plongé dans l'ombre ou flou
+- Action figée mi-mouvement (motion blur partiel sur le geste, gel net sur le sujet)
+- Expression humaine forte (regard caméra direct, mâchoire serrée, sourire intense, geste suspendu juste avant l'impact)
+- Composition asymétrique tranchée (règle des tiers cassée volontairement, sujet décentré au max)
+INTERDIT MÊME AMPLIFIÉ : couleurs néons, gradients synthwave, look "AI flashy", saturation cartoon. La dramatisation passe par la LUMIÈRE et le CADRAGE photographique cinéma, pas par des couleurs criardes.
 
-⏰ DIMENSION URGENCY (quand un événement a un VRAI countdown)
-Quand l'activer : Saint-Valentin J-14, soldes J-7, fin de saison, fête prochaine, limite réelle (stock, places, deadline annoncée). JAMAIS d'urgency inventée — le public sent et tu casses la confiance.
-HOOK type : countdown explicite ("J-14 avant la Saint-Valentin", "Plus que 5 jours pour les soldes", "Dernière semaine pour réserver"), rareté chiffrée vraie ("3 places restent vendredi"). Pas d'urgency fake.
-VISUEL type : indices temporels subtils — golden hour déclinante / blue hour / aube, lumière naturelle qui change, mouvement (mains en train de faire, fumée qui monte, pétale qui tombe), état "en cours" (bouquet à mi-composition, pain qui sort du four, peigne sur cheveux mouillés). Évite les horloges littérales — c'est l'AMBIANCE temporelle qui doit signaler l'urgence.
+⚡ DIMENSION CATCHY / PROVOCATION (max 1-2 posts par semaine — saturation = unfollow)
+Quand l'activer : sujet polarisant, pattern interrupt utile (lundi matin / vendredi soir), feed trop sage depuis 4-5 posts, changement d'algo majeur, polémique sectorielle.
+HOOK type : pattern interrupt verbal SEC ("STOP.", "Non.", "Brûle cette idée."), contrarian chiffré qui dérange ("90% des restos perdent ça."), question qui pique sans pitié ("Ton concurrent a 10x ton reach. Pourquoi tu fais rien ?").
+VISUEL HIGH-INTENSITY (oblige toi à choisir AU MOINS 2 de ces techniques) :
+  • Macro extrême du sujet — une goutte de sauce qui tombe, une mèche qui vole, un pétale en mi-chute, une lame qui catch la lumière, un visage à 30 cm de l'objectif
+  • Clair-obscur dramatique — single spotlight venant du haut/côté, 60% du cadre en ombre profonde, contraste cinéma années 70 (style "The Bear")
+  • Action mid-frame gelée — couteau levé prêt à trancher, ciseaux à 1cm du cheveu, main qui plonge dans la pâte, regard juste avant le sourire
+  • Expression "punch face" — regard caméra direct intense (pas de sourire poli), geste suspendu, mâchoire engagée
+  • Composition agressive — sujet bord cadre, négatif space au lieu de centrer, profondeur de champ extrême avec arrière-plan complètement flou
+EXEMPLE PARFAIT : pour "STOP. 90% des restos postent encore des photos plates" → macro à f/1.2 d'un plat avec UNE seule goutte de sauce frozen mid-fall, lumière directionnelle dure, 70% du cadre en pénombre, chef qui regarde caméra en arrière-plan flou avec expression "tu fais encore ça toi ?".
+RÈGLE D'OR : jamais 2 provocations consécutives. Alterner avec posts apaisés (coulisses, gratitude, plat du jour). Provocation seule = audience qui fuit en 2 semaines.
 
-🎯 DIMENSION AUTHORITY (toujours disponible, à booster sur P2 éducation)
-Quand l'activer : sujet où tu peux montrer une expertise technique réelle, un changement d'algo, une donnée sectorielle, une technique de métier qu'on ne voit jamais.
-HOOK type : data-driven opener avec source crédible ("47% des restaurateurs ne savent pas que…", "Selon le dernier rapport sectoriel..."), sector benchmark, citation d'expertise vérifiable. Pas de chiffre rond fantaisiste.
-VISUEL type : posture du commerçant en plein geste expert, outils du métier visibles et nets (couteaux, ciseaux de coiffure, tournevis de fleuriste), technique-en-cours, expression concentrée, ambiance "maître à l'œuvre". Ce n'est pas du jargon — c'est de l'expertise RENDUE VISIBLE pour que le scroll comprenne en 1 seconde "ces gens savent ce qu'ils font".
+⏰ DIMENSION URGENCY (sur un VRAI countdown uniquement)
+Quand l'activer : Saint-Valentin J-X, soldes J-X, fin de saison, fête prochaine, limite réelle (stock, places, deadline annoncée). JAMAIS d'urgency inventée — le public sent et tu casses la confiance.
+HOOK type : countdown EXPLICITE et SEC ("J-5 Saint-Valentin", "Plus que 48h", "Vendredi 18h = dernier créneau"), rareté chiffrée vraie ("3 places. Ce week-end.").
+VISUEL HIGH-INTENSITY (oblige toi à choisir AU MOINS 2 de ces techniques) :
+  • État "en train de faire" en MOTION BLUR — mains qui bougent (blur partiel), pétales en chute (figés mid-air), fumée qui monte en spirale visible, eau qui coule
+  • Lumière qui décline VISIBLEMENT — blue hour saturée, golden hour basse rasante avec ombres allongées, single bougie / ampoule chaude isolée, contre-jour fenêtre soir
+  • Geste mi-action figé — ciseaux à 1cm de la tige, peigne mid-coupe, main qui plonge le pain dans le four, doigt sur le bouton "envoyer"
+  • Indicateur visuel de fin imminent — bougie à moitié consumée, dernière fleur sur le présentoir, vitrine qui se vide, ardoise avec menu raturé
+  • Composition à mouvement vers la sortie du cadre — sujet qui sort du frame côté droit, lecture de gauche à droite qui crée pression temporelle
+EXEMPLE PARFAIT : pour "J-5 Saint-Valentin" → mains de fleuriste mid-coupe, ciseaux à 1mm de la tige, 3 pétales frozen en chute dans l'air, blue hour qui rentre par la fenêtre derrière, vitrine 80% vide visible en arrière-plan flou, expression concentrée mâchoire serrée.
+
+🎯 DIMENSION AUTHORITY (toujours dispo, boostée sur P2 éducation)
+Quand l'activer : sujet où tu montres une expertise technique réelle, changement d'algo, donnée sectorielle, technique de métier rare.
+HOOK type : data-driven avec source vérifiable ("47% des restaurateurs ignorent que…", "Selon le rapport Mosseri janvier 2025…"), sector benchmark chiffré, citation d'expertise.
+VISUEL HIGH-INTENSITY (oblige toi à choisir AU MOINS 2 de ces techniques) :
+  • Macro sur l'OUTIL du métier en action — lame qui catch la lumière mid-swing, ciseaux qui referment, pince qui ajuste, peigne dans les cheveux, aiguille qui transperce, tournevis qui visse
+  • Geste expert d'une précision irréelle — mouvement de main impossible à improviser, position de couteau de chef pro, fade-line nette au mm près, suture florale invisible
+  • Posture "maître à l'œuvre" — chef penché à 30°, coiffeur à genoux pour vérifier la ligne, fleuriste qui recule pour juger, expression analytique (PAS souriante)
+  • Détail technique invisible au non-expert — feuille parfaitement parée sur le tartare, dégradé fade en 5 longueurs précises, point de couture invisible
+  • Texture / matière hyper-définie — grain de la peau du fruit, brillance de la sauce, fibres du tissu, paillettes de sel
+EXEMPLE PARFAIT : pour "47% des restos ignorent ce changement d'algo" → macro f/1.4 sur la main du chef tenant une pince de précision, en train de poser une feuille d'oseille parfaitement parée sur un tartare, lame du couteau en arrière-plan qui catch la lumière, expression concentrée pas souriante, lumière directionnelle latérale qui dessine chaque grain de sel.
 
 COMBINAISON CONTRÔLÉE
-Tu peux combiner 2 dimensions sur un post fort (ex: catchy + authority = "STOP. 90% des restaurateurs perdent X parce qu'ils ignorent ce détail technique."). MAX 2 dimensions par post — 3 = anxiogène, le scroll se ferme.
+Tu peux combiner 2 dimensions sur un post fort (ex: catchy + authority = "STOP. 90% des restos ignorent ce détail technique." + macro extrême de la technique en cours). MAX 2 dimensions — 3 = anxiogène, scroll se ferme.
 
 CHAMP D'AMPLIFICATION DANS LE JSON
 Quand tu utilises une amplification, ajoute le champ "amplification" qui liste les dimensions actives (ex: ["catchy", "authority"]). Si aucun, omets le champ.
