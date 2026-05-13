@@ -90,6 +90,18 @@ export async function POST() {
 
   await supabase.from('profiles').update(patch).eq('id', user.id);
 
+  // Audit — refresh-profile reads the IG Business basic fields and shows
+  // up in /meta-audit under instagram_business_basic (READ method).
+  try {
+    await supabase.from('agent_logs').insert({
+      agent: 'lena',
+      action: 'insights_fetched',
+      user_id: user.id,
+      status: 'success',
+      data: { ig_business_id: igId, fields: ['username', 'profile_picture_url', 'followers_count', 'media_count'], attempts: attempts.length },
+    });
+  } catch { /* audit failure is non-fatal */ }
+
   return NextResponse.json({
     ok: true,
     instagram_username: result.username,

@@ -183,6 +183,25 @@ export async function POST(req: NextRequest) {
       console.log('[PublishInstagram] ✅ Post saved to database');
     }
 
+    // Audit log — every successful publish leaves a trail visible in
+    // /meta-audit under the instagram_business_content_publish tag.
+    // The action name matches what actionMeta() in the audit page maps
+    // to a WRITE on content_publish.
+    try {
+      await supabase.from('agent_logs').insert({
+        agent: 'content',
+        action: 'publish_diagnostic',
+        user_id: userId,
+        status: 'success',
+        data: {
+          ig_post_id: result.id,
+          permalink: result.permalink,
+          caption_preview: finalCaption.substring(0, 120),
+          method: 'graph_api_media_publish',
+        },
+      });
+    } catch { /* audit failure is non-fatal */ }
+
     return NextResponse.json({
       ok: true,
       post: {
