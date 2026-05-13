@@ -479,6 +479,21 @@ ${replyContent.substring(0, 2000)}
           if (['closed_business', 'unsubscribe', 'negative'].includes(classification.intent)) {
             updateData.email_sequence_status = 'stopped';
           }
+          // Auto-responder (vacation / out-of-office) — don't fire an
+          // auto-reply, don't accelerate the sequence; instead increment a
+          // counter that the daily/route uses to pause prospects who only
+          // send back automated bounces (founder rule: after 3 auto-only
+          // replies, the prospect is marked dead).
+          if (classification.intent === 'out_of_office') {
+            const currentCount = (prospect as any).email_auto_replies_count ?? 0;
+            updateData.email_auto_replies_count = currentCount + 1;
+            // Clear the auto-reply draft so we don't bother the inbox.
+            classification.autoReply = null;
+            // Light back-off: push the next eligible send out by 5 days
+            // beyond whatever delay the daily route would compute, so we
+            // don't catch the prospect mid-vacation.
+            updateData.last_email_sent_at = updateData.last_email_sent_at || prospect.last_email_sent_at || new Date().toISOString();
+          }
           if (classification.intent === 'unsubscribe' && (prospect.user_id || (prospect as any).org_id)) {
             const clientId = (prospect.user_id || (prospect as any).org_id) as string;
             await supabase

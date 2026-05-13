@@ -1422,6 +1422,40 @@ export async function GET(request: NextRequest) {
         const hoursSinceCreation = (now.getTime() - created.getTime()) / (1000 * 60 * 60);
         const daysSinceLastSent = lastSent ? (now.getTime() - lastSent.getTime()) / (1000 * 60 * 60 * 24) : Infinity;
 
+        // ── Auto-reply guard (per founder feedback) ──────────────────
+        // If the prospect has only ever sent us automated responses
+        // (out-of-office, holiday replies), we stop the sequence after
+        // 3 of them — re-engaging a mailbox that only echoes auto-bots
+        // is wasted volume and looks spammy. The counter is incremented
+        // by the Brevo webhook when classification.intent === 'out_of_office'.
+        const autoReplies = (prospect as any).email_auto_replies_count ?? 0;
+        if (autoReplies >= 3) {
+          await supabase.from('crm_prospects').update({
+            email_sequence_status: 'paused',
+            status: prospect.status === 'client' || prospect.status === 'repondu' ? prospect.status : 'perdu',
+            temperature: 'dead',
+            updated_at: nowISO,
+          }).eq('id', prospect.id);
+          skippedCompleted++;
+          continue;
+        }
+
+        // ── Engagement-aware delay calculation ───────────────────────
+        // Hot prospects who opened our email deserve more thinking time
+        // before the next nudge — chasing them too fast feels pushy.
+        // Cold prospects (no opens after step 2) get accelerated to
+        // catch disengagement signal earlier.
+        const openedAt = (prospect as any).last_email_opened_at ? new Date((prospect as any).last_email_opened_at) : null;
+        const hoursSinceOpen = openedAt ? (now.getTime() - openedAt.getTime()) / (1000 * 60 * 60) : Infinity;
+        const isHot = (prospect as any).temperature === 'hot' || ((prospect as any).score ?? 0) >= 50;
+        const recentlyOpened = hoursSinceOpen < 48;
+        const noOpens = step >= 2 && !openedAt && ((prospect as any).email_opens_count ?? 0) === 0;
+        const baseGap = STEP_GAP_DAYS[step as 1|2|3|4] ?? 0;
+        // Hot + recent open → +3 days (give them space to decide).
+        // Recently opened (warm) → +1 day. Cold/no opens → -1 day (gentle accel).
+        const adjust = isHot && recentlyOpened ? 3 : recentlyOpened ? 1 : noOpens ? -1 : 0;
+        const effectiveGap = Math.max(MIN_DAYS_BETWEEN_ANY_EMAIL, baseGap + adjust);
+
         // DEDUP: Per-prospect rate limit — never email same person more than once per 3 days
         if (lastSent && daysSinceLastSent < MIN_DAYS_BETWEEN_ANY_EMAIL) {
           skippedWaitingNextStep++;
@@ -1450,20 +1484,22 @@ export async function GET(request: NextRequest) {
           batchForAI.push({ prospect, category, step: 1 });
           step1Count++;
         } else if (step === 1 && lastSent) {
-          // Step 1 → step 2 (relance douce)
-          if (daysSinceLastSent < STEP_GAP_DAYS[1]) { skippedWaitingNextStep++; continue; }
+          // Step 1 → step 2 (relance douce). Gap adapts to engagement.
+          if (daysSinceLastSent < effectiveGap) { skippedWaitingNextStep++; continue; }
           batchForAI.push({ prospect, category, step: 2 });
         } else if (step === 2 && lastSent) {
-          // Step 2 → step 3 (valeur gratuite)
-          if (daysSinceLastSent < STEP_GAP_DAYS[2]) { skippedWaitingNextStep++; continue; }
+          // Step 2 → step 3 (valeur gratuite). Gap adapts to engagement.
+          if (daysSinceLastSent < effectiveGap) { skippedWaitingNextStep++; continue; }
           batchForAI.push({ prospect, category, step: 3 });
         } else if (step === 3 && lastSent) {
-          // Step 3 → step 4 (FOMO concurrents)
-          if (daysSinceLastSent < STEP_GAP_DAYS[3]) { skippedWaitingNextStep++; continue; }
+          // Step 3 → step 4 (FOMO concurrents). Gap adapts to engagement.
+          if (daysSinceLastSent < effectiveGap) { skippedWaitingNextStep++; continue; }
           batchForAI.push({ prospect, category, step: 4 });
         } else if (step === 4 && lastSent) {
-          // Step 4 → step 5 (derniere chance)
-          if (daysSinceLastSent < STEP_GAP_DAYS[4]) { skippedWaitingNextStep++; continue; }
+          // Step 4 → step 5 (derniere chance) — last step deserves the
+          // longest breathing room. effectiveGap already adds +1 / +3 day
+          // for hot prospects; we still floor it at 7 days here.
+          if (daysSinceLastSent < Math.max(effectiveGap, 7)) { skippedWaitingNextStep++; continue; }
           batchForAI.push({ prospect, category, step: 5 });
         } else if (step === 5) {
           // Step 5 completed → mark sequence as completed + perdu (3 relances, no response)
