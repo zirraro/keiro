@@ -22,17 +22,18 @@ import { createRequire } from 'module';
 import { readFileSync } from 'fs';
 const require = createRequire(import.meta.url);
 
-// Manually load .env.production if the env isn't already populated
-// (helps when invoked via `node` instead of `npm run`).
-try {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    const raw = readFileSync('.env.production', 'utf8');
+// Manually load whichever .env file exists (.env.local on the VPS,
+// .env.production on a typical Vercel-style setup). Helps when invoked
+// via `node` instead of `npm run`.
+for (const envPath of ['.env.local', '.env.production', '.env']) {
+  try {
+    const raw = readFileSync(envPath, 'utf8');
     for (const line of raw.split('\n')) {
-      const m = line.match(/^([A-Z_]+)="?([^"\n]+)"?$/);
+      const m = line.match(/^([A-Z_][A-Z0-9_]*)\s*=\s*"?([^"\n]+?)"?\s*$/);
       if (m && !process.env[m[1]]) process.env[m[1]] = m[2];
     }
-  }
-} catch {}
+  } catch {}
+}
 
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
 const SEEDREAM_KEY = process.env.SEEDREAM_API_KEY || '341cd095-2c11-49da-82e7-dc2db23c565c';
