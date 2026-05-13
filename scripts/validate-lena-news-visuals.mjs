@@ -67,6 +67,23 @@ const SCENARIOS = [
     expectedNewsCues: ['school', 'rentrée', 'rentree', 'back-to-school', 'september', 'septembre', 'student', 'kid', 'enfant', 'pencil', 'cartable', 'backpack', 'autumn', 'morning light'],
     expectedBizCues: ['hair', 'cheveux', 'cut', 'coupe', 'fade', 'barber', 'salon', 'chair', 'mirror', 'clipper'],
   },
+  // ── Amplification scenarios (new) ────────────────────────────
+  {
+    id: 'urgency_florist_valentine',
+    business: 'fleuriste indépendant à Lyon (compositions sur-mesure, bouquets de saison)',
+    news: 'Saint-Valentin dans 5 jours, derniers créneaux pour les commandes sur-mesure',
+    amplify: ['urgency'],
+    expectedNewsCues: ['rose', 'red', 'petal', 'valentin', 'pétal'],
+    expectedBizCues: ['bouquet', 'hands', 'atelier', 'composition', 'stem'],
+  },
+  {
+    id: 'catchy_authority_resto',
+    business: 'restaurant bistronomique à Paris (cuisine de marché)',
+    news: '47% des restaurateurs ne savent pas que leur algo Insta a changé en mars 2026, pénalisant les photos plates classiques',
+    amplify: ['catchy', 'authority'],
+    expectedNewsCues: ['close', 'extreme', 'macro', 'detail', 'texture'],
+    expectedBizCues: ['plate', 'plat', 'dish', 'food', 'kitchen', 'chef'],
+  },
 ];
 
 // Lazy-load the content prompt by reading the TS file and crudely
@@ -110,7 +127,7 @@ async function callClaudeForPost(systemPrompt, scenario) {
 
 Business cible : ${scenario.business}
 Actualité / tendance à exploiter : ${scenario.news}
-
+${scenario.amplify ? `\nAMPLIFICATION DEMANDÉE : active la/les dimensions ${scenario.amplify.map(a => `"${a}"`).join(' + ')}. Suis strictement les règles de la section DIMENSIONS D'AMPLIFICATION SÉLECTIVE du system prompt.\n` : ''}
 Rappel critique : le visual_description DOIT contenir explicitement à la fois (a) un ou plusieurs éléments contextuels qui signalent l'actu (saison, événement, ambiance, objet symbolique) ET (b) un ou plusieurs éléments business du commerçant cible (produit, geste, espace) dans la même scène. Tu DOIS aussi remplir le champ news_visual_link avec une phrase qui résume le pont visuel.
 
 Réponds UNIQUEMENT en JSON strict, sans markdown.`,
@@ -201,6 +218,11 @@ async function main() {
 
     console.log(`\n• Hook            : ${(post.hook || '').slice(0, 120)}`);
     console.log(`• news_visual_link: ${newsLink || '<empty>'}`);
+    if (sc.amplify) {
+      const got = Array.isArray(post.amplification) ? post.amplification : [];
+      const matchedAll = sc.amplify.every(d => got.includes(d));
+      console.log(`• Amplification   : requested=[${sc.amplify.join(',')}] got=[${got.join(',')}] ${matchedAll ? '✓' : '✗'}`);
+    }
     console.log(`• Visual desc     : ${visual.slice(0, 280)}${visual.length > 280 ? '…' : ''}`);
     console.log(`• News cues found : ${foundNews.join(', ') || '<NONE — fail>'}`);
     console.log(`• Biz cues found  : ${foundBiz.join(', ') || '<NONE — fail>'}`);
