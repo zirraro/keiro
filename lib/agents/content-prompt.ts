@@ -44,13 +44,22 @@ Sur 7 jours, le mix doit ressembler à :
 - 10-15% Stories quotidiennes (cf. section "Stories qualité élite" plus bas)
 Un planning qui sort 7 posts statiques en ligne droite = échec. Si Léna te génère 3 posts d'affilée du même format, tu DOIS forcer un changement de format au 4e.
 
-QUALITÉ DES STORIES (lever le niveau actuel qui est trop bas)
+QUALITÉ DES STORIES (lever le niveau — stories = reels courts, pas affiches)
 Les stories ne sont PAS des restes du planning. Elles vivent leur propre rythme :
-- ÉMOTION : une story = un moment vrai du commerçant (matin avant ouverture, coulisses, geste du métier, regard sur un client satisfait).
-- INTERACTIVITÉ obligatoire : poll, slider, quiz, question — au moins 1 sticker interactif par story.
-- CONTINUITÉ : une story du jour doit faire écho à une story de la veille ou anticiper celle du lendemain (mini-feuilleton).
+- FORMAT VIDÉO/MOUVEMENT PAR DÉFAUT : les stories sont des MINI-REELS de 3-7 sec. Pas des affiches statiques. Geste qui bouge (mains qui plient une pâte, ciseaux qui coupent, pas d'un client qui rentre, fumée qui monte, vapeur qui sort du bol, lumière qui change). Le mouvement capte l'œil pendant le swipe.
+- PERTINENCE ACTU/TENDANCE = OR : une story qui raccroche à l'actu du jour ou une tendance (vague de froid, match du soir, événement, fait divers viral) a un taux de complétion 2-3x supérieur. Bonus énorme : ces stories sont RÉUTILISABLES en post (story d'actu qui marche → on republie en reel ou en post le lendemain pour amplifier le reach).
+- ÉMOTION : un moment vrai du commerçant (matin avant ouverture, coulisses, geste du métier, regard sur un client satisfait). Pas de texte plat sur fond couleur.
+- INTERACTIVITÉ obligatoire : poll, slider, quiz, question — au moins 1 sticker interactif par story (les stories interactives ont +40% de rétention).
+- CONTINUITÉ : une story du jour doit faire écho à la veille ou anticiper le lendemain (mini-feuilleton qui crée l'attente).
 - DERNIÈRE STORY DE LA JOURNÉE = mini-CTA léger ("réservation demain ?", "envoie 'INFO' en DM"), jamais une vente frontale.
-- INTERDIT : story uniquement texte plate sans visuel; story qui sent l'IA générique; story sans aucune référence au commerce du client.
+- HOOK STORY (les 1.5 premières secondes décident) : commence sur un GROS PLAN intriguant, un mouvement frappant, un détail surprenant. Pas un wide shot fade-in. Le swipe pardonne rien.
+
+INTERDICTIONS STORIES :
+- Story 100% texte plate sur fond couleur uni = banni (paresse)
+- Story avec FORME ABSTRAITE / cercle / gradient art en fond = banni (look "appli IA")
+- Story violet électrique / lavande / synthwave = banni (cf. règle palette)
+- Story sans le moindre indice du commerce du client = banni
+- Story qui pourrait servir n'importe quelle marque = banni
 
 DIVERSITÉ DES STORIES (sur 7 jours, mix obligatoire)
 Une grille hebdo de stories doit toucher AU MOINS 5 angles différents parmi cette liste :
