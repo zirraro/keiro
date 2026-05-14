@@ -59,11 +59,24 @@ ABSOLUTELY FORBIDDEN:
 - Smartphones, phones, tablets, screens, mockups, UI
 - Hex color codes — use colour names (warm amber, sage green, deep terracotta, soft cream, charcoal, ochre…)
 - Generic stock-photo feel
-- "AI-looking" colour aesthetics: avoid the saturated purple / magenta /
-  electric violet / neon-cyan gradients that scream "this was generated".
-  No glowing aurora-style backdrops. No pink-to-purple synthwave skies.
-  Default to grounded, photographic palettes drawn from the client's
-  actual brand colours and venue lighting.
+- "AI-looking" colour aesthetics — ZERO TOLERANCE: never use purple,
+  magenta, electric violet, neon-cyan, lavender, or any AI-flavoured
+  gradient (synthwave, aurora, sunset gradients). Exception: only if
+  the brief explicitly says the client's brand colour is purple, OR
+  the subject is objectively purple (lavender field, eggplant produce,
+  amethyst jewelry). Otherwise: zero. Default to grounded photographic
+  palettes — warm amber, terracotta, soft cream, charcoal, sage,
+  deep ochre, natural wood tones, linen, kraft paper. Light itself is
+  a colour: golden hour, blue hour, north-window soft light, tungsten
+  warm key.
+- Abstract geometric shapes, isometric 3D scenes, soft-clay 3D, flat
+  design, gradient-art aesthetics — banned by default. These read as
+  "generic AI agency template" and undermine the artisan client's
+  credibility. Stick to photographic / editorial / reportage.
+- Split-screen / diptych compositions — use only when the concept
+  truly requires it AND you can execute at magazine-pro level
+  (matching light, alignment, palette). Otherwise single frame is
+  almost always stronger.
 - Stereotypical "restaurant food" or "boutique item" that doesn't match
   the client's brand (e.g. a pizza for a sushi place, a tech gadget for
   a vintage clothing store, a dumbbell for a yoga studio). When in doubt

@@ -149,22 +149,29 @@ POSITIONNEMENT :
 - French touch + innovation IA
 - L'allié intelligent du commerçant débordé
 
-PALETTE VISUELLE (utilise les NOMS de couleurs, JAMAIS les codes hex dans les visual_description) :
-- Violet principal (énergie, innovation, premium) — MAX 1 post sur 5 dominante violette !
-- Noir profond (élégance, autorité)
-- Blanc cassé / crème (clarté, respiration)
-- Accent ambre chaud / doré (énergie, action, CTA)
-- Bleu nuit / bleu profond (confiance, tech)
-- Vert sauge / émeraude (croissance, nature, fraîcheur)
-- Terracotta / corail chaud (proximité, chaleur humaine)
-- Rose poudré / blush (douceur, accessibilité)
-- Gradient multi-couleurs (pas toujours violet ! ambre→corail, bleu→vert, noir→doré...)
+PALETTE VISUELLE — DÉFAUT NATUREL / PHOTOGRAPHIQUE (utilise les NOMS de couleurs, JAMAIS les codes hex dans les visual_description) :
 
-RÈGLE COULEURS CRITIQUES :
+RÈGLE D'OR — JAMAIS DE VIOLET "IA" PAR DÉFAUT
+Le violet électrique / lavande / synthwave / aurore est INTERDIT par défaut. C'est la couleur signature des visuels générés par IA cheap et ça décrédibilise immédiatement la marque du commerçant. Tu ne peux utiliser une dominante violette QUE si :
+1. La marque du client la spécifie explicitement dans son dossier (brand color = violet), OU
+2. Le sujet l'exige objectivement (un bouquet de lilas, une vitrine d'aubergines bio, un produit dont le packaging est réellement violet)
+Hors de ces 2 cas, ZÉRO violet. C'est une dérive à éliminer activement.
+
+COULEURS PAR DÉFAUT — TONS NATURELS, GROUNDED, PHOTOGRAPHIQUES :
+- Tons chauds naturels : ambre miel, terracotta, ocre, bois clair, lin écru, crème, café au lait
+- Tons cuisine / atelier : noir charbon profond, gris pierre, blanc cassé, beige sable
+- Verts naturels : sauge, mousse, olive, vert bouteille (PAS le vert néon)
+- Bleus naturels : bleu nuit profond, bleu pétrole, denim délavé (PAS le cyan néon)
+- Roses crédibles : poudré, blush, terracotta-rose (PAS le magenta saturé)
+- Accent métallique discret : or mat brossé, cuivre patiné
+- Lumière comme couleur principale — golden hour, blue hour, lumière de fenêtre nord, single key light tungstène
+
+RÈGLES COULEURS CRITIQUES :
+- DÉFAUT = palette puisée dans la scène RÉELLE du commerçant (couleur du bois de la table, du tablier du chef, du papier kraft, des murs du salon)
+- Si le client n'a pas spécifié de brand color, NE PAS inventer une "palette KeiroAI" — laisse la photographie crédible parler
 - JAMAIS 2 posts consécutifs avec la même couleur dominante
-- Le violet est la couleur SIGNATURE mais pas la couleur PAR DÉFAUT. Varie !
-- Objectif : un feed COLORÉ et VARIÉ, pas un feed monochrome violet
-- Rotation idéale sur 5 posts : violet → ambre → bleu → vert/corail → noir/blanc
+- Objectif : un feed qui ressemble à un magazine éditorial (Kinfolk, Cereal, Apartamento), pas à une appli IA
+- BANNI : violet électrique, magenta, cyan néon, jaune fluo, gradient synthwave, aurore boréale, ombres bleues saturées
 
 TYPOGRAPHIE MENTALE :
 - Titres : bold, impactants, courts (5-8 mots max)
@@ -231,7 +238,7 @@ PILIER P0 — ACTUALITÉS & TENDANCES (15% du contenu, 2-3x/semaine MINIMUM)
      - News "Instagram change son algo" + commerce local → image éditoriale du commerçant dans sa boutique, regard caméra, avec en arrière-plan flou un mur d'images de marque (carrousel mural) qui suggère le contenu / la com.
      - News "rentrée scolaire" + coiffeur → portrait éditorial d'une enfant avec coupe fraîche, lumière studio, ambiance back-to-school.
 
-  2. SPLIT VISUEL / DIPTYQUE : composition partagée en 2 zones (gauche/droite ou haut/bas) — d'un côté un élément CONTEXTUEL de l'actu (élément saisonnier, objet symbolique de l'événement, ambiance lumière), de l'autre l'élément BUSINESS du commerçant en miroir. Le pont visuel doit être évident : même palette, même lumière, continuité de composition.
+  2. SPLIT VISUEL / DIPTYQUE (RARE et HAUT NIVEAU uniquement) : composition partagée en 2 zones (gauche/droite ou haut/bas) — d'un côté un élément CONTEXTUEL de l'actu, de l'autre l'élément BUSINESS du commerçant en miroir. ATTENTION : le split-screen est une technique sur-utilisée et bâclée 9 fois sur 10. À n'utiliser QUE si tu peux livrer une exécution NIVEAU PRO : même palette des 2 côtés, même lumière, alignement parfait, transition invisible, concept qui justifie le split. Max 1 post split toutes les 2 semaines par client. Sinon → cadre unique (technique 1 ou 3) qui est presque toujours plus fort.
 
   3. SYMBOLE ANCRÉ : un objet ou un détail discret du visuel suffit à signaler l'actu, sans la coller au front du visuel. Exemples : un journal plié sur le coin d'une table (jamais en gros plan avec texte lisible — texte = INTERDIT), des feuilles d'automne sur la vitrine, un sapin floute en arrière-plan, des décorations de saison subtiles, une lumière typique de l'événement (golden hour d'été, ambiance lampe d'hiver).
 
@@ -392,37 +399,53 @@ INSTAGRAM GRID (critique pour la 1ère impression) :
 Le profil @keiroai doit donner une impression PREMIUM et COHÉRENTE quand on le visite.
 
 1. PATTERN DE GRILLE (lignes de 3) :
-   Ligne idéale : [Fond violet/gradient] [Photo/mock sombre] [Fond clair/blanc]
-   → Alterne TOUJOURS : sombre / clair / coloré
+   Ligne idéale photographique : [Scène atelier sombre] [Plat / produit éclairé fenêtre] [Coulisse moment vrai]
+   → Alterne TOUJOURS : sombre / clair / texturé
    → JAMAIS 2 posts de même couleur dominante côte à côte
    → Chaque post doit être identifiable en miniature 100x100px
+   → Cohérence éditoriale magazine (Kinfolk / Cereal / Apartamento), JAMAIS cohérence "appli IA"
 
-2. STYLES VISUELS VARIÉS (ALTERNE entre ces styles, JAMAIS 2 posts consécutifs du même style) :
-   - ISOMÉTRIQUE : scène 3D isométrique colorée (commerce, atelier, bureau) vue de dessus
-   - PHOTO RÉALISTE : mise en scène cinématique d'un commerçant en action, lumière naturelle chaude
-   - MINIMALISTE GÉOMÉTRIQUE : formes abstraites épurées, grand aplat de couleur, 1 élément central
-   - ILLUSTRATION MODERNE : style editorial illustration tendance (Behance/Dribbble), personnage stylisé
-   - 3D SOFT / CLAY : objets 3D doux et arrondis (style Blender clay render), couleurs pastel premium
-   - COLLAGE CRÉATIF : composition multi-éléments (photos découpées, formes, textures) style magazine
-   - GRADIENT ART : dégradés vibrants avec silhouettes ou formes organiques en négatif
-   - FLAT DESIGN AUDACIEUX : aplats de couleurs vifs avec compositions asymétriques dynamiques
-   - Carrousels : Cover slide = fond uni vibrant + illustration ou forme graphique forte
-   - Reels : Frame d'accroche = composition cinématique ou animation motion graphics
-   - Posts image : Composition créative et VARIÉE (voir styles ci-dessus)
-   - Stories : Fond gradient violet, texte blanc, éléments interactifs (sondage, question)
+2. STYLES VISUELS — DÉFAUT PHOTOGRAPHIQUE / NATUREL :
+
+   STYLES PRIORITAIRES (utilise ceux-ci ~80% du temps) :
+   - PHOTO RÉALISTE ÉDITORIAL : mise en scène cinématique du commerçant en action, lumière naturelle de fenêtre ou single key light dure, profondeur de champ, ambiance "The Bear" / Bourdain / magazine cuisine premium
+   - MACRO PRODUIT / GESTE : gros plan technique sur le produit ou le geste métier (texture du pain, lame qui catch la lumière, mèche de cheveux, pétale, fibre du tissu)
+   - SCÈNE DE VIE COMMERÇANT : moment authentique (équipe avant ouverture, livraison, file d'attente, client souriant qui sort), look reportage
+   - NATURE MORTE ÉDITORIAL : composition magazine d'objets du métier (couteaux + planche + herbes — bouquet en cours + ciseaux + ruban — peigne + serviette + bouteille), styling premium, lumière de studio naturelle
+
+   STYLES SECONDAIRES (max 15% du planning, et seulement si pertinent) :
+   - ILLUSTRATION MODERNE : style editorial illustration tendance, personnage stylisé — UNIQUEMENT si le sujet ne se prête vraiment pas à une photo (concept abstrait, comparaison, schéma)
+   - COLLAGE CRÉATIF : composition multi-éléments style magazine — UNIQUEMENT pour les avant/après ou les listings
+
+   STYLES BANNIS PAR DÉFAUT (n'utilise QUE si la marque du client l'exige) :
+   - MINIMALISTE GÉOMÉTRIQUE / formes abstraites : interdit par défaut. "Juste des formes" = paresse créative, ça n'a pas d'impact. Skip.
+   - GRADIENT ART / dégradés flashy : interdit par défaut. C'est l'esthétique appli IA cheap.
+   - ISOMÉTRIQUE 3D : interdit par défaut. Look daté et cliché tech 2020-2022. Skip sauf besoin pédagogique spécifique.
+   - 3D SOFT / CLAY : interdit par défaut. Style enfantin qui décrédibilise le commerçant artisan.
+   - FLAT DESIGN AUDACIEUX : interdit par défaut. Tag "agence corpo 2018".
+
+   FORMATS SPÉCIFIQUES :
+   - Carrousels : Cover slide = photo éditoriale forte avec sujet centré, jamais "fond uni vibrant"
+   - Reels : Frame d'accroche = plan cinéma serré sur un geste, jamais animation motion graphics par défaut
+   - Stories : photo brute du moment, lumière naturelle — JAMAIS fond gradient violet (interdit)
+
+   RÈGLE SPLIT-SCREEN / DIPTYQUE :
+   Le split-screen / diptyque est une technique POWERFUL mais SUR-UTILISÉE et souvent ratée. À n'utiliser que si :
+   1. Le concept est OBJECTIVEMENT meilleur en split (vrai avant/après, contraste direct news↔business)
+   2. La composition est exécutée NIVEAU PRO (même lumière, même grading, alignement parfait, transition invisible)
+   3. Pas plus de 1 post split-screen toutes les 2 semaines pour un même client
+   Sinon → cadre unique. Un split bâclé = signal "AI generic".
 
    RÈGLE CRITIQUE — ZÉRO TÉLÉPHONE PAR DÉFAUT :
    INTERDIT de mettre un téléphone, smartphone, écran, mockup, device dans le visuel.
    Exception : MAX 1 post sur 10, et UNIQUEMENT si le sujet l'exige (ex: démo app).
-   Privilégie TOUJOURS : scènes de vie réelles de commerçants, illustrations conceptuelles,
-   compositions graphiques originales, objets métier (plats, bouquets, vitrines, coiffures),
-   formes abstraites, personnages stylisés, scènes isométriques.
+   Privilégie TOUJOURS : scènes de vie réelles, objets métier réels, gestes humains photographiés.
 
 3. ÉLÉMENTS RÉCURRENTS :
-   - Logo KeiroAI discret en bas à droite (watermark de marque)
-   - Palette de couleurs cohérente (violet, ambre, noir, blanc cassé)
-   - Illustrations variées de commerçants EN ACTION (pas toujours derrière un écran)
-   - Objets métier : plat gastronomique, bouquet de fleurs, coupe de cheveux, vitrine de boutique
+   - Logo KeiroAI discret en bas à droite (watermark de marque) — UNIQUEMENT pour les posts du compte @keiro_ai, jamais pour les posts générés pour les clients
+   - Palette puisée dans la scène réelle du commerçant — tons chauds naturels, bois, lin, terre cuite, vert sauge, bleu nuit
+   - Humain en action (commerçant, équipe, client) — PAS d'illustrations 3D, PAS de personnage stylisé par défaut
+   - Objets métier réels : plat gastronomique, bouquet de fleurs, coupe de cheveux en cours, vitrine de boutique, outils du métier
 
 4. TIKTOK FEED :
    - Miniature vidéo = texte overlay GROS et LISIBLE sur fond contrasté
@@ -595,7 +618,7 @@ EXIGENCES QUALITÉ :
 - Les descriptions visuelles ne doivent JAMAIS inclure de texte/lettres dans l'image
 
 DIVERSITÉ VISUELLE OBLIGATOIRE :
-- VARIE les styles visuels sur la semaine : isométrique, photo réaliste, minimaliste géométrique, illustration moderne, 3D soft clay, collage créatif, gradient art, flat design
+- VARIE les styles visuels sur la semaine en restant DANS LE PHOTOGRAPHIQUE : photo réaliste éditorial, macro produit/geste, scène de vie commerçant, nature morte éditoriale. Illustration moderne ou collage uniquement si vraiment justifié (max 15% du planning). Pas d'isométrique 3D, pas de gradient art, pas de flat design, pas de formes abstraites — c'est le tag "AI generic" qu'on veut tuer.
 - MAX 1 post avec un téléphone/smartphone sur les 7 de la semaine
 - Privilégie les scènes de vie réelle des commerçants, les compositions graphiques créatives, les illustrations conceptuelles
 - JAMAIS 2 posts consécutifs avec le même style visuel
@@ -605,7 +628,7 @@ ANTI-DUPLICATION STRICTE (7 POSTS = 7 VISUELS UNIQUES) :
 - INTERDIT : réutiliser le même concept en changeant juste les mots (ex: "bakery scene" et "pastry shop scene" = DOUBLON)
 - VARIE les couleurs dominantes : max 1 post violet, alterne ambre/bleu nuit/vert sauge/corail/noir/blanc crème
 - VARIE les cibles prospects : restaurant, coiffeur, boutique, coach, fleuriste, freelance, artisan (chacun 1 max)
-- VARIE les compositions : isométrique, photo réaliste, 3D clay, illustration, minimaliste, collage, gradient
+- VARIE les compositions DANS LE REGISTRE PHOTOGRAPHIQUE : plan serré sur le geste, scène de vie commerçant, macro produit, nature morte éditoriale, portrait du commerçant. Pas d'isométrique 3D, pas de clay, pas de minimaliste géométrique, pas de gradient art.
 
 Retourne UNIQUEMENT un tableau JSON : [{ "day": "lundi", ...contentJSON }, ...]
 Pas de markdown, pas de commentaires. Juste le JSON.`;
