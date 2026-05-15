@@ -165,7 +165,7 @@ function HomeKeiroInner() {
                       {locale === 'fr' ? 'Contenu' : 'Content'}
                     </span>
                     <span className="text-white/70 leading-snug">
-                      {locale === 'fr' ? 'Léna publie · Axel anime TikTok · Oscar tient le SEO · Stella WhatsApp' : 'Léna publishes · Axel runs TikTok · Oscar handles SEO · Stella WhatsApp'}
+                      {locale === 'fr' ? 'Léna publie sur Instagram, TikTok et LinkedIn' : 'Léna publishes on Instagram, TikTok and LinkedIn'}
                     </span>
                   </div>
                   <div className="flex items-start gap-2 text-[11px]">
@@ -173,14 +173,14 @@ function HomeKeiroInner() {
                       {locale === 'fr' ? 'Pilotage' : 'Operations'}
                     </span>
                     <span className="text-white/70 leading-snug">
-                      {locale === 'fr' ? "Noah pilote · Ami décide la stratégie · Sara RH · Louis compta · Max chatbot" : 'Noah leads · Ami sets strategy · Sara HR · Louis finance · Max chatbot'}
+                      {locale === 'fr' ? "Noah orchestre · Ami pilote la stratégie · Clara t'accompagne au quotidien" : 'Noah orchestrates · Ami leads strategy · Clara guides you day-to-day'}
                     </span>
                   </div>
                 </div>
 
                 {(() => {
                   const SB = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-                  const ids = ['ceo', 'marketing', 'content', 'commercial', 'email', 'dm_instagram', 'seo', 'gmaps'];
+                  const ids = ['ceo', 'marketing', 'content', 'commercial', 'email', 'dm_instagram', 'gmaps', 'onboarding'];
                   return (
                     <div className="flex items-center gap-1 pt-3 border-t border-white/5">
                       <div className="flex -space-x-2">
@@ -532,29 +532,27 @@ function HomeKeiroInner() {
           </div>
 
           {/* Teams grid — by business objective */}
-          <div className="grid md:grid-cols-2 gap-5 mb-10">
-            {/* TEAM 1: Vendre plus */}
+          <div className="grid md:grid-cols-3 gap-5 mb-10">
+            {/* TEAM 1: Acquisition & conversion */}
             <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-sm overflow-hidden hover:border-blue-500/30 transition-all group">
               <div className="bg-gradient-to-r from-blue-600 to-cyan-500 px-5 py-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-white font-bold text-lg">{locale === 'fr' ? 'Vendre plus' : 'Sell more'}</h3>
-                    <p className="text-white/70 text-xs">{locale === 'fr' ? 'Prospection, emails, DMs, chatbot, WhatsApp' : 'Prospecting, emails, DMs, chatbot, WhatsApp'}</p>
+                    <h3 className="text-white font-bold text-lg">{locale === 'fr' ? 'Acquisition & conversion' : 'Acquisition & conversion'}</h3>
+                    <p className="text-white/70 text-xs">{locale === 'fr' ? 'Prospection, emails, DMs sur tes 3 reseaux' : 'Prospecting, emails, DMs across 3 networks'}</p>
                   </div>
                   <div className="text-right">
-                    <div className="text-white font-bold text-2xl">5</div>
+                    <div className="text-white font-bold text-2xl">3</div>
                     <div className="text-white/60 text-[10px]">agents</div>
                   </div>
                 </div>
               </div>
               <div className="p-4">
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
+                <div className="grid grid-cols-1 gap-2 mb-3">
                   {[
-                    { icon: '\uD83E\uDD1D', name: 'Leo', role: locale === 'fr' ? 'Prospection CRM' : 'CRM Prospecting' },
-                    { icon: '\uD83D\uDCE7', name: 'Hugo', role: locale === 'fr' ? 'Emails auto' : 'Auto emails' },
-                    { icon: '\uD83D\uDCAC', name: 'Jade', role: 'DMs Instagram' },
-                    { icon: '\uD83D\uDCF2', name: 'Stella', role: 'WhatsApp' },
-                    { icon: '\uD83E\uDD16', name: 'Max', role: 'Chatbot 24/7' },
+                    { icon: '\u{1F91D}', name: 'Leo', role: locale === 'fr' ? 'Prospection CRM' : 'CRM prospecting' },
+                    { icon: '\u{1F4E7}', name: 'Hugo', role: locale === 'fr' ? 'Emails auto' : 'Auto emails' },
+                    { icon: '\u{1F4AC}', name: 'Jade', role: locale === 'fr' ? 'DM + commentaires IG/TT/LI' : 'DMs + comments IG/TT/LI' },
                   ].map(a => (
                     <div key={a.name} className="flex items-center gap-2 bg-white/5 rounded-lg px-2.5 py-2">
                       <span className="text-base">{a.icon}</span>
@@ -564,33 +562,30 @@ function HomeKeiroInner() {
                 </div>
                 <div className="flex items-center gap-3 text-[10px]">
                   <span className="text-blue-400 font-semibold">{locale === 'fr' ? 'Resultat' : 'Result'}</span>
-                  <span className="text-white/40">{locale === 'fr' ? 'Prospects qualifies \u2192 Emails auto \u2192 Relances \u2192 Conversion client' : 'Qualified leads \u2192 Auto emails \u2192 Follow-ups \u2192 Client conversion'}</span>
+                  <span className="text-white/40">{locale === 'fr' ? 'Pipeline qui ne s\'arrete jamais' : 'Pipeline that never stops'}</span>
                 </div>
               </div>
             </div>
 
-            {/* TEAM 2: Etre visible */}
+            {/* TEAM 2: Presence & visibilite */}
             <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-sm overflow-hidden hover:border-purple-500/30 transition-all group">
               <div className="bg-gradient-to-r from-purple-600 to-violet-500 px-5 py-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-white font-bold text-lg">{locale === 'fr' ? 'Etre visible partout' : 'Be visible everywhere'}</h3>
-                    <p className="text-white/70 text-xs">{locale === 'fr' ? 'Contenu, SEO, TikTok, Google Maps, Pub' : 'Content, SEO, TikTok, Google Maps, Ads'}</p>
+                    <h3 className="text-white font-bold text-lg">{locale === 'fr' ? 'Presence & visibilite' : 'Presence & visibility'}</h3>
+                    <p className="text-white/70 text-xs">{locale === 'fr' ? 'Contenu reseaux + Google + reputation' : 'Content + Google + reputation'}</p>
                   </div>
                   <div className="text-right">
-                    <div className="text-white font-bold text-2xl">5</div>
+                    <div className="text-white font-bold text-2xl">2</div>
                     <div className="text-white/60 text-[10px]">agents</div>
                   </div>
                 </div>
               </div>
               <div className="p-4">
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
+                <div className="grid grid-cols-1 gap-2 mb-3">
                   {[
-                    { icon: '\u2728', name: 'Lena', role: locale === 'fr' ? 'Publication auto' : 'Auto-publish' },
-                    { icon: '\uD83D\uDD0D', name: 'Oscar', role: locale === 'fr' ? 'SEO & articles' : 'SEO & articles' },
-                    { icon: '\uD83C\uDFB5', name: 'Axel', role: 'TikTok' },
-                    { icon: '\uD83D\uDCCD', name: 'Theo', role: 'Google Maps' },
-                    { icon: '\uD83D\uDCE2', name: 'Felix', role: locale === 'fr' ? 'Pub & acquisition' : 'Ads & acquisition' },
+                    { icon: '\u2728', name: 'Lena', role: locale === 'fr' ? 'Publication auto IG/TT/LI' : 'Auto-publish IG/TT/LI' },
+                    { icon: '\u{1F4CD}', name: 'Theo', role: locale === 'fr' ? 'Reputation Google + SEO' : 'Google reputation + SEO' },
                   ].map(a => (
                     <div key={a.name} className="flex items-center gap-2 bg-white/5 rounded-lg px-2.5 py-2">
                       <span className="text-base">{a.icon}</span>
@@ -600,18 +595,18 @@ function HomeKeiroInner() {
                 </div>
                 <div className="flex items-center gap-3 text-[10px]">
                   <span className="text-purple-400 font-semibold">{locale === 'fr' ? 'Resultat' : 'Result'}</span>
-                  <span className="text-white/40">{locale === 'fr' ? 'Publications regulieres + SEO + avis Google + pub = visibilite maximale' : 'Regular posts + SEO + Google reviews + ads = max visibility'}</span>
+                  <span className="text-white/40">{locale === 'fr' ? 'Visibilite maximale sur tous les canaux' : 'Maximum visibility everywhere'}</span>
                 </div>
               </div>
             </div>
 
-            {/* TEAM 3: Gerer l'admin */}
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-sm overflow-hidden hover:border-amber-500/30 transition-all group">
-              <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-5 py-4">
+            {/* TEAM 3: Pilotage & accompagnement */}
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-sm overflow-hidden hover:border-pink-500/30 transition-all group">
+              <div className="bg-gradient-to-r from-pink-500 to-rose-500 px-5 py-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-white font-bold text-lg">{locale === 'fr' ? 'Zero paperasse' : 'Zero paperwork'}</h3>
-                    <p className="text-white/70 text-xs">{locale === 'fr' ? 'Comptabilite, RH, juridique, onboarding' : 'Accounting, HR, legal, onboarding'}</p>
+                    <h3 className="text-white font-bold text-lg">{locale === 'fr' ? 'Pilotage & accompagnement' : 'Pilot & support'}</h3>
+                    <p className="text-white/70 text-xs">{locale === 'fr' ? 'Strategie, orchestration, suivi quotidien' : 'Strategy, orchestration, daily support'}</p>
                   </div>
                   <div className="text-right">
                     <div className="text-white font-bold text-2xl">3</div>
@@ -620,46 +615,11 @@ function HomeKeiroInner() {
                 </div>
               </div>
               <div className="p-4">
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
+                <div className="grid grid-cols-1 gap-2 mb-3">
                   {[
-                    { icon: '\uD83D\uDCB0', name: 'Louis', role: locale === 'fr' ? 'Finance & compta' : 'Finance' },
-                    { icon: '\u2696\uFE0F', name: 'Sara', role: locale === 'fr' ? 'RH & juridique' : 'HR & legal' },
-                    { icon: '\uD83D\uDE80', name: 'Clara', role: locale === 'fr' ? 'Onboarding' : 'Onboarding' },
-                  ].map(a => (
-                    <div key={a.name} className="flex items-center gap-2 bg-white/5 rounded-lg px-2.5 py-2">
-                      <span className="text-base">{a.icon}</span>
-                      <div className="min-w-0"><div className="text-white text-xs font-semibold">{a.name}</div><div className="text-white/30 text-[9px] truncate">{a.role}</div></div>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex items-center gap-3 text-[10px]">
-                  <span className="text-amber-400 font-semibold">{locale === 'fr' ? 'Resultat' : 'Result'}</span>
-                  <span className="text-white/40">{locale === 'fr' ? 'Tresorerie suivie, contrats generes, espace configure' : 'Cash flow tracked, contracts generated, space configured'}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* TEAM 4: Piloter — Noah + Ami en vedette */}
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-sm overflow-hidden hover:border-pink-500/30 transition-all group">
-              <div className="bg-gradient-to-r from-pink-500 to-rose-500 px-5 py-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-white font-bold text-lg">{locale === 'fr' ? 'Pilotage & strategie' : 'Strategy & management'}</h3>
-                    <p className="text-white/70 text-xs">{locale === 'fr' ? 'Direction globale, marketing, retention, amelioration continue' : 'Global direction, marketing, retention, improvement'}</p>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-white font-bold text-2xl">4</div>
-                    <div className="text-white/60 text-[10px]">agents</div>
-                  </div>
-                </div>
-              </div>
-              <div className="p-4">
-                <div className="grid grid-cols-2 gap-2 mb-3">
-                  {[
-                    { icon: '\uD83E\uDDE0', name: 'Noah', role: locale === 'fr' ? 'CEO \u2014 pilote la stratégie globale de l\'entreprise' : 'CEO \u2014 drives global business strategy' },
-                    { icon: '\uD83C\uDFAF', name: 'Ami', role: locale === 'fr' ? 'Directrice marketing \u2014 coordonne tous les agents' : 'Marketing director \u2014 coordinates all agents' },
-                    { icon: '\uD83D\uDD04', name: 'Theo R.', role: locale === 'fr' ? 'Retention \u2014 garde vos clients actifs' : 'Retention \u2014 keeps clients active' },
-                    { icon: '\u2699\uFE0F', name: 'Ops', role: locale === 'fr' ? 'Diagnostic \u2014 sante du systeme 24/7' : 'Diagnostic \u2014 system health 24/7' },
+                    { icon: '\u{1F9E0}', name: 'Noah', role: locale === 'fr' ? 'CEO orchestrateur' : 'CEO orchestrator' },
+                    { icon: '\u{1F3AF}', name: 'Ami', role: locale === 'fr' ? 'Directrice strategie' : 'Strategy director' },
+                    { icon: '\u{1F680}', name: 'Clara', role: locale === 'fr' ? 'Onboarding + suivi' : 'Onboarding + support' },
                   ].map(a => (
                     <div key={a.name} className="flex items-center gap-2 bg-white/5 rounded-lg px-2.5 py-2">
                       <span className="text-base">{a.icon}</span>
@@ -669,7 +629,7 @@ function HomeKeiroInner() {
                 </div>
                 <div className="flex items-center gap-3 text-[10px]">
                   <span className="text-pink-400 font-semibold">{locale === 'fr' ? 'Resultat' : 'Result'}</span>
-                  <span className="text-white/40">{locale === 'fr' ? 'Intelligence collective : les agents apprennent et s\'ameliorent a chaque action' : 'Collective intelligence: agents learn and improve with every action'}</span>
+                  <span className="text-white/40">{locale === 'fr' ? 'Tu sais quoi faire, tes agents savent comment' : 'You know what to do, your agents know how'}</span>
                 </div>
               </div>
             </div>
@@ -680,7 +640,7 @@ function HomeKeiroInner() {
             <div className="flex flex-col md:flex-row items-center gap-6 md:gap-10">
               <div className="flex items-center gap-8 flex-wrap justify-center">
                 <div className="text-center">
-                  <div className="text-white font-bold text-3xl">17</div>
+                  <div className="text-white font-bold text-3xl">8</div>
                   <div className="text-white/40 text-[10px] uppercase tracking-wider">{locale === 'fr' ? 'Agents IA' : 'AI Agents'}</div>
                 </div>
                 <div className="text-center">

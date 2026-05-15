@@ -1137,47 +1137,46 @@ function NetworkStatsRow({ network, netStats, stats, sample }: { network: LenaNe
 // The strings are intentionally generic per network so we never invent
 // account-specific numbers — they describe what KeiroAI will DO with
 // the permission, not pre-existing performance.
-function NetworkStrategyHints({ network, hasActivity }: { network: LenaNetworkKey; hasActivity: boolean }) {
-  const [businessType, setBusinessType] = useState<string | null>(null);
+function NetworkStrategyHints({ network, hasActivity: _hasActivity }: { network: LenaNetworkKey; hasActivity: boolean }) {
+  // Adaptive playbook: fetched live from /api/agents/content/playbook
+  // which computes hints from (1) user's published posts, (2) sector
+  // overrides, (3) network defaults. Replaces the static lookup table
+  // — the founder's rule "Léna's playbook doit etre pertinent et bien
+  // mis à jour pour la stratégie adaptive".
+  const [hints, setHints] = useState<{ label: string; value: string; source?: string }[]>([]);
+  const [basedOn, setBasedOn] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      try {
-        const sb = supabaseBrowser();
-        const { data: { user } } = await sb.auth.getUser();
-        if (!user) return;
-        const { data } = await sb.from('business_dossiers')
-          .select('business_type')
-          .eq('user_id', user.id)
-          .maybeSingle();
-        if (!cancelled) setBusinessType((data?.business_type || '').toLowerCase() || null);
-      } catch {}
-    })();
+    setLoading(true);
+    fetch(`/api/agents/content/playbook?network=${network}`, { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (cancelled || !d?.ok) { setLoading(false); return; }
+        setHints(d.hints || []);
+        setBasedOn(d.based_on || '');
+        setLoading(false);
+      })
+      .catch(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, []);
+  }, [network]);
 
-  const hintsByNetwork: Record<LenaNetworkKey, { label: string; value: string }[]> = {
-    instagram: [
-      { label: 'Best slot', value: businessType === 'restaurant' ? 'Tue–Thu · 11h45 + 18h30' : businessType === 'salon' ? 'Wed–Fri · 17h–19h' : 'Tue + Thu · 19h–21h' },
-      { label: 'Format mix', value: '60% Reels · 30% Carousels · 10% Static' },
-      { label: 'Caption length', value: '90–130 chars + 5–8 hashtags' },
-      { label: 'Sector peers', value: businessType === 'restaurant' ? '~2.1k median followers' : businessType === 'salon' ? '~1.4k median followers' : '~1.6k median followers' },
-    ],
-    tiktok: [
-      { label: 'Best slot', value: businessType === 'restaurant' ? 'Wed–Sun · 18h–22h' : businessType === 'salon' ? 'Thu–Sat · 19h–22h' : 'Wed–Sun · 18h–22h' },
-      { label: 'Hook length', value: '< 2.5 sec · vertical 9:16' },
-      { label: 'Video length', value: '21–35 sec sweet spot' },
-      { label: 'Sector peers', value: businessType === 'restaurant' ? '~14k median views' : businessType === 'salon' ? '~9k median views' : '~11k median views' },
-    ],
-    linkedin: [
-      { label: 'Best slot', value: 'Tue + Wed · 8h–10h' },
-      { label: 'Format mix', value: '70% Text + native image · 30% Carousels' },
-      { label: 'Hook', value: '1 sentence per line, story-first' },
-      { label: 'Sector peers', value: businessType === 'restaurant' ? '~900 median connections' : businessType === 'salon' ? '~720 median connections' : '~1.1k median connections' },
-    ],
-  };
-
-  const hints = hintsByNetwork[network];
+  if (loading) {
+    return (
+      <div className="mt-3 pt-3 border-t border-white/5">
+        <div className="text-[10px] text-white/40 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+          <span>{'\u{1F4A1}'}</span>
+          <span>Léna&apos;s playbook for your sector</span>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="rounded-lg bg-white/[0.03] border border-white/5 p-2 animate-pulse h-12" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mt-3 pt-3 border-t border-white/5">
@@ -1188,15 +1187,21 @@ function NetworkStrategyHints({ network, hasActivity }: { network: LenaNetworkKe
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {hints.map(h => (
           <div key={h.label} className="rounded-lg bg-white/[0.03] border border-white/5 p-2">
-            <div className="text-[9px] text-white/40 uppercase tracking-wider">{h.label}</div>
-            <div className="text-[11px] text-white font-medium mt-0.5">{h.value}</div>
+            <div className="flex items-center gap-1 mb-0.5">
+              <div className="text-[9px] text-white/40 uppercase tracking-wider flex-1">{h.label}</div>
+              {h.source === 'your_data' && (
+                <span className="text-[8px] text-emerald-400 font-bold" title="Computed from your real published posts">YOUR</span>
+              )}
+              {h.source === 'sector' && (
+                <span className="text-[8px] text-cyan-400 font-bold" title="From cross-client sector data">SECTOR</span>
+              )}
+            </div>
+            <div className="text-[11px] text-white font-medium">{h.value}</div>
           </div>
         ))}
       </div>
       <div className="mt-2 text-[10px] text-white/40">
-        {hasActivity
-          ? `Patterns refined from your published posts + ${network === 'instagram' ? 'cross-client Instagram' : network === 'tiktok' ? 'cross-client TikTok' : 'cross-client LinkedIn'} data (10k+ learnings, anonymised).`
-          : `Defaults from KeiroAI's cross-client knowledge pool. They will adapt to YOUR account once Léna publishes the first post.`}
+        {basedOn || `Defaults from KeiroAI's cross-client knowledge pool. They will adapt to YOUR account once Léna publishes the first post.`}
       </div>
     </div>
   );

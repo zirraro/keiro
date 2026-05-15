@@ -279,8 +279,8 @@ export const CLIENT_AGENTS: ClientAgent[] = [
   {
     id: 'onboarding',
     displayName: 'Clara',
-    title: 'Guide de Demarrage',
-    description: 'Configure automatiquement votre espace, guide vos premiers pas, active vos agents',
+    title: 'Onboarding & Suivi Client',
+    description: 'Configure votre espace, guide vos premiers pas, et reste à vos côtés sur le long terme : détecte l\'inactivité, célèbre les milestones, et optimise votre expérience KeiroAI au fil des mois',
     visibility: 'active',
     minPlan: 'gratuit',
     gradientFrom: '#10b981',
@@ -304,14 +304,14 @@ export const CLIENT_AGENTS: ClientAgent[] = [
   {
     id: 'dm_instagram',
     displayName: 'Jade',
-    title: 'DM & Commentaires Instagram',
-    description: 'Envoie automatiquement des DMs strategiques, engage vos followers, convertit par message prive',
+    title: 'DM, Commentaires & Engagement',
+    description: 'Envoie des DMs ciblés, répond aux commentaires, engage votre communauté — Instagram, TikTok et LinkedIn dans un seul espace',
     visibility: 'active',
     minPlan: 'createur',
     gradientFrom: '#e11d48',
     gradientTo: '#be123c',
     icon: '\u{1F4AC}',
-    integrations: ['Instagram DM'],
+    integrations: ['Instagram', 'TikTok', 'LinkedIn'],
   },
 
   // ── CRÉATEUR (49EUR) ─── + Hugo, Léo (prospection + emails) ───
@@ -351,12 +351,17 @@ export const CLIENT_AGENTS: ClientAgent[] = [
     icon: '\u{1F91D}',
     integrations: ['Google Maps', 'CRM KeiroAI', 'LinkedIn'],
   },
+  // Axel (tiktok_comments) and Emma (linkedin) absorbed into Jade —
+  // Jade now handles DMs + comments + engagement across IG, TT and LI
+  // from a single workspace. Kept as admin_only so the underlying
+  // endpoints still work for backend orchestration, but they no
+  // longer appear in the client UI.
   {
     id: 'tiktok_comments',
     displayName: 'Axel',
-    title: 'Expert TikTok Engagement',
-    description: 'Commente automatiquement sur TikTok, engage votre communaute, genere du trafic vers votre profil',
-    visibility: 'coming_soon',
+    title: 'Expert TikTok Engagement (absorbed by Jade)',
+    description: 'Fonctionnalités intégrées dans Jade — TikTok engagement géré depuis l\'espace Jade.',
+    visibility: 'admin_only',
     minPlan: 'business',
     gradientFrom: '#000000',
     gradientTo: '#1a1a2e',
@@ -367,9 +372,9 @@ export const CLIENT_AGENTS: ClientAgent[] = [
   {
     id: 'linkedin',
     displayName: 'Emma',
-    title: 'Experte LinkedIn & Reseau Pro',
-    description: 'Publie du contenu optimise sur LinkedIn, commente et engage votre reseau professionnel, genere des leads B2B',
-    visibility: 'active',
+    title: 'Experte LinkedIn (absorbed by Jade)',
+    description: 'Fonctionnalités intégrées dans Jade — LinkedIn engagement géré depuis l\'espace Jade.',
+    visibility: 'admin_only',
     minPlan: 'business',
     gradientFrom: '#0A66C2',
     gradientTo: '#004182',
@@ -377,25 +382,28 @@ export const CLIENT_AGENTS: ClientAgent[] = [
     integrations: ['LinkedIn'],
   },
 
-  // ── BUSINESS (199EUR) / FONDATEURS (149EUR) ─── + OSCAR, SARA, THEO, MAX, LOUIS ───
+  // ── Théo absorbe Oscar : présence Google complète (avis + fiche + SEO local & online) ──
+  // Oscar (seo) absorbed into Théo — kept as admin_only so the SEO API
+  // endpoints still work for backend orchestration but doesn't appear
+  // in the client UI.
   {
     id: 'seo',
     displayName: 'Oscar',
-    title: 'Expert SEO & Visibilité',
-    description: 'Optimise automatiquement votre SEO, rédige des articles blog, améliore votre visibilité Google',
-    visibility: 'active',
+    title: 'Expert SEO (absorbed by Theo)',
+    description: 'Fonctionnalités SEO intégrées dans Théo — un seul agent pour la présence Google complète',
+    visibility: 'admin_only',
     minPlan: 'pro',
     gradientFrom: '#f59e0b',
     gradientTo: '#d97706',
     icon: '\u{1F50D}',
-    integrations: ['Votre site web / blog', 'Google Search Console'],
+    integrations: ['Site web', 'Google Search Console'],
   },
   {
     id: 'rh',
     displayName: 'Sara',
-    title: 'Expert Juridique & RH',
-    description: 'Génère automatiquement vos contrats, vérifie la conformité RGPD, alerte sur les obligations légales',
-    visibility: 'active',
+    title: 'Expert Juridique & RH (admin only)',
+    description: 'Génère contrats, vérifie RGPD, alerte sur les obligations légales — usage fondateur uniquement',
+    visibility: 'admin_only',
     minPlan: 'pro',
     gradientFrom: '#d946ef',
     gradientTo: '#a21caf',
@@ -404,21 +412,21 @@ export const CLIENT_AGENTS: ClientAgent[] = [
   {
     id: 'gmaps',
     displayName: 'Theo',
-    title: 'Réputation & Avis Clients',
-    description: 'Répond aux avis Google automatiquement, améliore ta note, fait apparaître ton commerce en premier quand les gens cherchent près de chez toi',
+    title: 'Réputation, Avis & SEO',
+    description: 'Répond aux avis Google, optimise votre fiche Google Business, et travaille votre référencement local et national (mots-clés, blog SEO, visibilité). Le commerçant trouvé en premier sur Google = client gagné',
     visibility: 'active',
     minPlan: 'createur',
     gradientFrom: '#22c55e',
     gradientTo: '#16a34a',
     icon: '\u{1F4CD}',
-    integrations: ['Google Business Profile', 'Google Maps'],
+    integrations: ['Google Business Profile', 'Google Maps', 'Google Search Console', 'Votre site web / blog'],
   },
   {
     id: 'chatbot',
     displayName: 'Max',
-    title: 'Chatbot Site Web',
-    description: 'Accueille automatiquement les visiteurs de votre site, capture les leads, qualifie les prospects 24/7',
-    visibility: 'active',
+    title: 'Chatbot Site Web (admin only)',
+    description: 'Widget chatbot — réservé fondateur, pas exposé aux clients pour le moment',
+    visibility: 'admin_only',
     minPlan: 'pro',
     gradientFrom: '#7c3aed',
     gradientTo: '#5b21b6',
@@ -428,9 +436,9 @@ export const CLIENT_AGENTS: ClientAgent[] = [
   {
     id: 'whatsapp',
     displayName: 'Stella',
-    title: 'Experte WhatsApp Business',
-    description: 'Envoie et repond aux messages WhatsApp, relance les prospects chauds, convertit par conversation privee',
-    visibility: 'coming_soon',
+    title: 'WhatsApp Business (admin only)',
+    description: 'WhatsApp Business — réservé fondateur, pas exposé aux clients pour le moment',
+    visibility: 'admin_only',
     minPlan: 'business',
     gradientFrom: '#25D366',
     gradientTo: '#128C7E',
@@ -440,9 +448,9 @@ export const CLIENT_AGENTS: ClientAgent[] = [
   {
     id: 'comptable',
     displayName: 'Louis',
-    title: 'Expert Finance',
-    description: 'Suit automatiquement votre tresorerie, genere des previsions, alerte sur les anomalies financieres',
-    visibility: 'coming_soon',
+    title: 'Expert Finance (admin only)',
+    description: 'Trésorerie + prévisions — réservé fondateur, pas exposé aux clients pour le moment',
+    visibility: 'admin_only',
     minPlan: 'business',
     gradientFrom: '#0e7490',
     gradientTo: '#155e75',
@@ -453,10 +461,10 @@ export const CLIENT_AGENTS: ClientAgent[] = [
   // ── BACKGROUND AGENTS ─── Optimisent KeiroAI pour TOUS les plans ───
   {
     id: 'retention',
-    displayName: 'Theo',
-    title: 'Agent Retention',
-    description: "Detecte l'inactivite et relance les utilisateurs, optimise l'experience",
-    visibility: 'background',
+    displayName: 'Clara retention engine',
+    title: 'Retention (merged into Clara)',
+    description: "Moteur de relance + suivi piloté par Clara — pas un agent séparé pour le client",
+    visibility: 'admin_only',
     minPlan: 'gratuit',
     gradientFrom: '#6366f1',
     gradientTo: '#4f46e5',

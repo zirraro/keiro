@@ -1091,16 +1091,46 @@ function CommentCard({ comment: c, isDemo, onUpdate }: { comment: any; isDemo: b
 
       {/* Comment */}
       <div className="p-3 flex items-start gap-2">
-        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center text-[10px] text-white font-bold flex-shrink-0">
+        <a
+          href={c.username && !isDemo ? `https://www.instagram.com/${c.username}/` : '#'}
+          target={c.username && !isDemo ? '_blank' : undefined}
+          rel="noopener noreferrer"
+          onClick={(e) => { if (isDemo) e.preventDefault(); }}
+          className={`w-7 h-7 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center text-[10px] text-white font-bold flex-shrink-0 ${c.username && !isDemo ? 'hover:opacity-80' : ''}`}
+          title={c.username && !isDemo ? `Open @${c.username} on Instagram` : ''}
+        >
           {(c.username || '?')[0].toUpperCase()}
-        </div>
+        </a>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[11px] font-bold text-white/80">@{c.username || 'instagram_user'}</span>
+            <a
+              href={c.username && !isDemo ? `https://www.instagram.com/${c.username}/` : '#'}
+              target={c.username && !isDemo ? '_blank' : undefined}
+              rel="noopener noreferrer"
+              onClick={(e) => { if (isDemo) e.preventDefault(); }}
+              className={`text-[11px] font-bold text-white/80 ${c.username && !isDemo ? 'hover:underline' : ''}`}
+            >
+              @{c.username || 'instagram_user'}
+            </a>
             {c.timestamp && <span className="text-[9px] text-white/30">· {formatWhen(c.timestamp)}</span>}
             <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${c.replied ? 'bg-emerald-400/15 text-emerald-400' : 'bg-amber-400/15 text-amber-400'}`}>
               {c.replied ? p.replied : p.pending}
             </span>
+            {/* "Open on Instagram" link — points at the post permalink
+                because Instagram doesn't expose a stable deep-link to
+                a specific comment via web URL. Reviewers can find the
+                comment by scrolling the post's comment list. */}
+            {!isDemo && postPermalink && (
+              <a
+                href={postPermalink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[9px] text-purple-300/70 hover:text-purple-200 ml-auto"
+                title="Open the post + comments on Instagram"
+              >
+                Open on Instagram ↗
+              </a>
+            )}
           </div>
           <p className="text-[11px] text-white/60 mt-1 whitespace-pre-wrap break-words">{c.text}</p>
         </div>
@@ -1245,16 +1275,12 @@ function LenaCommentsSection() {
 
   if (loading) return <div className="text-center py-4"><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-400 mx-auto" /></div>;
 
-  // Sample comments show in two situations:
-  // 1. Instagram is NOT connected (the original rule — onboarding preview)
-  // 2. Instagram IS connected but there are 0 real comments yet (the
-  //    @keiro_ai case — account exists but no one has commented on its
-  //    posts). Without this the reviewer would see an empty state, which
-  //    blocks the Meta App Review Video 3 demo of manage_comments.
-  // In both cases the "Sample data" badge is clearly visible so there's
-  // no ambiguity about real vs demo.
+  // STRICT rule: only REAL Instagram comments are shown when the user
+  // has Instagram connected. Sample comments appear only when there's
+  // no connection at all (onboarding preview). This is the founder's
+  // hard rule — "les commentaires doivent etre les vrai tire d'insta".
   const igConnected = !!(window as any).__igConnected;
-  const showSamples = comments.length === 0;
+  const showSamples = !igConnected && comments.length === 0;
   const sourceList: any[] = comments.length > 0 ? comments : (showSamples ? DEMO_IG_COMMENTS : []);
   const isDemo = showSamples;
 
