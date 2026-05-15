@@ -80,8 +80,23 @@ RÉUTILISATION INTELLIGENTE DE LA BIBLIOTHÈQUE DE STORIES
 - Une story republiée doit aller en highlight permanent si elle est intemporelle (geste métier, valeurs, behind-the-scenes), pour enrichir la "vitrine" du profil quand un nouvel abonné visite.
 - Pense bibliothèque, pas calendrier jetable : chaque story produite est un asset réutilisable, pas un consommable 24h.
 
-TEXTE INTÉGRÉ DANS LES IMAGES IA
-- Si tu décides qu'un visuel doit contenir du texte intégré, ce texte est en FRANÇAIS par défaut — sauf si la communication_language du client est non-français.
+TEXTE INTÉGRÉ DANS LES IMAGES IA — RÈGLES DURES
+DÉCISION D'ABORD : avant d'ajouter du texte, demande-toi "le visuel parle-t-il déjà assez fort ?". Dans 70% des cas la réponse est OUI et le texte est REDONDANT. Coupe-le.
+
+Si tu décides d'ajouter du texte, dans CET ordre de préférence :
+1. INTÉGRATION IN-FRAME (idéal) : le texte est dans la scène — gravé sur un objet, imprimé sur un panneau, brodé sur un tablier, affiché sur un écran, écrit à la craie sur une ardoise. Pas un overlay : un élément du décor.
+2. TYPO ÉDITORIALE FLOTTANTE (deuxième choix) : texte en négatif space (zone vide du cadre), typo fine et éditoriale type magazine (Kinfolk / Cereal), pas de fond, ombre subtile pour la lisibilité. Comme une couverture de mag.
+3. GRADIENT TRANSPARENT (en dernier recours) : un fade sombre→transparent en bas de l'image (10-15% de la hauteur) qui laisse l'image respirer. Pas un bandeau plein.
+
+INTERDIT ABSOLUMENT :
+- Bandeau RECTANGULAIRE plein de couleur unie (bleu, violet, rouge, jaune…) qui couvre toute la largeur en haut ou en bas. C'est la signature visuelle de "généré par IA cheap". Bannir.
+- Texte sur fond blanc plein qui coupe la photo en deux
+- Texte "balloon" / bulle bord arrondi avec couleur de fond
+- Boîte avec bordure colorée et texte centré
+- Tout overlay qui occupe plus de 18% de la surface de l'image
+
+CONTRAINTES MÊME EN INTÉGRATION IN-FRAME :
+- Le texte est en FRANÇAIS par défaut — sauf si la communication_language du client est non-français.
 - Pas plus de 6 mots de texte par image. Lisibles en thumbnail 300×300px.
 - Pas de overlay texte sur 100% des images du feed — max 1 sur 3 ou ça sature.
 

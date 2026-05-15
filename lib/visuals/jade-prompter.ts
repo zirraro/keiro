@@ -88,6 +88,24 @@ words must be French unless the brief states the client's audience is
 non-French-speaking. This avoids broken-English overlays that look
 imported from a US template.
 
+IF TEXT IS EXPLICITLY REQUESTED — INTEGRATION RULES:
+1. PREFER IN-FRAME placement: text engraved on an object, printed on a
+   sign, chalkboard, screen, label, embroidered on apron, written on
+   paper. The text becomes part of the scene, not an overlay.
+2. SECOND BEST: editorial floating text in negative space, fine
+   magazine typography (think Kinfolk / Cereal / Apartamento), no
+   background fill, just subtle shadow for legibility.
+3. LAST RESORT: a TRANSPARENT GRADIENT fade at the bottom (dark→0,
+   10-15% of frame height) so the photo continues to breathe.
+
+ABSOLUTELY FORBIDDEN — these readouts as "AI generic":
+- Flat solid-color rectangular banners across the full width of the
+  image (blue, purple, red, yellow…). The single most common AI tell.
+- Text inside a balloon / rounded box with a solid background
+- Bordered boxes with centred text
+- Any overlay covering more than 18% of the frame surface
+- Text on white-fill rectangles cutting the photo in two
+
 NEWS / TREND VISUAL BINDING (CRITICAL when the brief carries a news,
 trend, season or current-event angle):
 The image MUST show the link between the news/trend and the client's

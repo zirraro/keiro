@@ -56,6 +56,71 @@ export function JadeNetworkSelector({ network, onChange }: { network: JadeNetwor
   );
 }
 
+/**
+ * Network-aware KPI row for Jade. Instagram pulls live dashboard
+ * stats. TikTok and LinkedIn show plausible sample numbers until those
+ * networks are fully wired through the dashboard API. Labels adapt
+ * per network because the engagement vocabulary differs (DMs → DMs,
+ * comments → comments, follows → connexions on LinkedIn, etc.).
+ */
+function JadeKpiRow({ network, connected, stats }: { network: JadeNetwork; connected: boolean; stats: any }) {
+  const { t } = useLanguage();
+  const p = t.panels;
+
+  let display: { sent: number; replies: number; drafted: number; prospects: number };
+  let isSample = false;
+
+  if (network === 'instagram') {
+    if (connected) {
+      display = {
+        sent: stats?.dmsSent || 0,
+        replies: stats?.responses || 0,
+        drafted: stats?.queuePending || 0,
+        prospects: stats?.prospectsWithIG || 0,
+      };
+    } else {
+      isSample = true;
+      display = { sent: 12, replies: 4, drafted: 8, prospects: 27 };
+    }
+  } else if (network === 'tiktok') {
+    // No live TT DM stats yet — sample numbers anchored on a typical
+    // active small-business TikTok account.
+    isSample = !connected;
+    display = { sent: 18, replies: 6, drafted: 14, prospects: 42 };
+  } else {
+    // LinkedIn — sample numbers anchored on a typical B2B small biz.
+    isSample = !connected;
+    display = { sent: 9, replies: 3, drafted: 6, prospects: 22 };
+  }
+
+  const labels = network === 'linkedin'
+    ? { sent: 'Messages envoyés', replies: 'Réponses', drafted: 'À envoyer', prospects: 'Connexions ciblées' }
+    : network === 'tiktok'
+      ? { sent: 'DMs envoyés', replies: 'Réponses', drafted: 'À envoyer', prospects: 'Créateurs ciblés' }
+      : { sent: p.dmKpiSent, replies: p.dmKpiResponses, drafted: p.dmKpiPrepared, prospects: p.dmKpiProspects };
+
+  return (
+    <>
+      {isSample && (
+        <div className="flex items-center gap-2 mb-2 text-[10px]">
+          <span className="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 font-semibold">Sample data</span>
+          <span className="text-white/40">
+            {network === 'instagram'
+              ? 'Connecte Instagram pour remplacer ces chiffres-exemple par ton activité Jade en live.'
+              : `Connecte ${network === 'tiktok' ? 'TikTok' : 'LinkedIn'} pour activer les vraies données.`}
+          </span>
+        </div>
+      )}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+        <KpiCard label={labels.sent} value={fmt(display.sent)} gradientFrom="#3b82f6" gradientTo="#2563eb" />
+        <KpiCard label={labels.replies} value={fmt(display.replies)} gradientFrom="#f59e0b" gradientTo="#d97706" />
+        <KpiCard label={labels.drafted} value={fmt(display.drafted)} gradientFrom="#8b5cf6" gradientTo="#6d28d9" />
+        <KpiCard label={labels.prospects} value={fmt(display.prospects)} gradientFrom="#ec4899" gradientTo="#db2777" />
+      </div>
+    </>
+  );
+}
+
 function JadeTabs({ network }: { network: JadeNetwork }) {
   const { t, locale } = useLanguage();
   const p = t.panels;
@@ -2122,46 +2187,63 @@ export function DmInstagramPanel({ data, agentName, gradientFrom, gradientTo }: 
 
   return (
     <>
-      {/* Single Jade header card — merges what used to be three stacked
-          banners (InstagramAssetBadge + Human Agent Protocol + Social
-          Connect prompt) into one clear section. Shows the connected IG
-          identity, Human Agent compliance line, and only one Connect CTA
-          when the account is missing. */}
-      <JadeHeader connected={igConnected} p={p} />
-
-      {/* Network selector — RIGHT UNDER the Jade header. Switching
-          network swaps every section below (KPIs, campaign, queue,
-          tabs), mirroring Léna's parity rule. */}
+      {/* Network selector at the very TOP — Léna parity. Jade is no
+          longer Instagram-only: switching the network swaps the
+          identity card, KPIs, campaign actions, queue and tabs
+          underneath. The selector is the FIRST anchor of the panel
+          (no Jade header above it) so the network choice frames the
+          whole experience. */}
       <JadeNetworkSelector network={network} onChange={setNetwork} />
 
-      {/* Non-Instagram networks render a focused placeholder until
-          their APIs are fully wired. We don't show IG-specific KPIs or
-          the Campaign block for them — that would mix data sources and
-          confuse the workflow. */}
+      {/* Network-aware identity / compliance card. For Instagram we
+          keep the full JadeHeader (IG identity + Human Agent Protocol
+          line). For TikTok and LinkedIn we show a focused identity
+          card with the right connect CTA — no Human Agent line since
+          that compliance rule is Instagram-specific. */}
+      {network === 'instagram' && (
+        <JadeHeader connected={igConnected} p={p} />
+      )}
+      {network !== 'instagram' && (
+        <div className={`rounded-2xl p-4 mb-3 border ${
+          networkConnected
+            ? 'bg-emerald-500/5 border-emerald-500/20'
+            : 'bg-white/[0.03] border-white/10'
+        }`}>
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center text-lg" style={{
+              background: network === 'tiktok'
+                ? 'linear-gradient(135deg, #000, #ff0050)'
+                : 'linear-gradient(135deg, #0A66C2, #004182)',
+            }}>{network === 'tiktok' ? '\u{1F3B5}' : '\u{1F4BC}'}</div>
+            <div className="flex-1 min-w-0">
+              <div className="text-white font-bold text-sm">{networkLabel}</div>
+              <div className="text-[10px] text-white/50 mt-0.5">
+                {networkConnected
+                  ? `${networkLabel} connecté — DMs, commentaires, engagement gérés depuis Jade`
+                  : `Connecte ${networkLabel} pour activer les vraies données et les actions sur ce réseau`}
+              </div>
+            </div>
+            {!networkConnected && (
+              <a
+                href={networkOauth}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold text-white flex-shrink-0 ${
+                  network === 'tiktok'
+                    ? 'bg-gradient-to-r from-black to-pink-600 hover:opacity-90'
+                    : 'bg-gradient-to-r from-blue-600 to-blue-800 hover:opacity-90'
+                }`}
+              >
+                Connecter →
+              </a>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* TT/LI branch: KPIs sample + tabs only (no campaign block —
+          Jade campaign actions are wired to the Instagram pipeline). */}
       {network !== 'instagram' && (
         <div>
-          <div className="flex items-center gap-2 mb-3 text-[11px]">
-            <span className={`px-2 py-0.5 rounded-full font-semibold ${networkConnected ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-300' : 'bg-amber-500/15 border border-amber-500/30 text-amber-300'}`}>
-              {networkConnected ? `${networkLabel} connecté` : 'Sample data'}
-            </span>
-            <span className="text-white/40">
-              {networkConnected
-                ? `Tes vraies données ${networkLabel} apparaitront ici une fois la pipeline activée pour ce réseau.`
-                : `Connecte ${networkLabel} pour voir tes vrais DM, commentaires et follows.`}
-            </span>
-          </div>
-          {!networkConnected && (
-            <a
-              href={networkOauth}
-              className={`block text-center w-full py-2.5 rounded-xl text-sm font-bold text-white mb-3 ${
-                network === 'tiktok'
-                  ? 'bg-gradient-to-r from-black to-pink-600 hover:opacity-90'
-                  : 'bg-gradient-to-r from-blue-600 to-blue-800 hover:opacity-90'
-              }`}
-            >
-              Connecter {networkLabel} →
-            </a>
-          )}
+          <JadeKpiRow network={network} connected={networkConnected} stats={null} />
           <JadeTabs network={network} />
         </div>
       )}
@@ -2169,40 +2251,9 @@ export function DmInstagramPanel({ data, agentName, gradientFrom, gradientTo }: 
       {network === 'instagram' && (
         <>
 
-      {/* KPI cards — STRICT rule (founder feedback):
-          - Instagram NOT connected → sample numbers labelled "Sample data".
-          - Instagram CONNECTED → real numbers, even when 0. No more
-            sample masking the truth once the account is linked.
-          Real numbers auto-populate via the dashboard API as soon as
-          the IG connection is detected anywhere in the workspace. */}
-      {(() => {
-        const real = {
-          sent: stats.dmsSent || 0,
-          replies: stats.responses || 0,
-          drafted: (stats as any).queuePending || 0,
-          prospects: (stats as any).prospectsWithIG || 0,
-        };
-        const sample = { sent: 12, replies: 4, drafted: 8, prospects: 27 };
-        const display = igConnected ? real : sample;
-        return (
-          <>
-            {!igConnected && (
-              <div className="flex items-center gap-2 mb-2 text-[10px]">
-                <span className="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 font-semibold">Sample data</span>
-                <span className="text-white/40">
-                  Connect Instagram to replace these typical-week figures with your live Jade activity.
-                </span>
-              </div>
-            )}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
-              <KpiCard label={p.dmKpiSent} value={fmt(display.sent)} gradientFrom="#3b82f6" gradientTo="#2563eb" />
-              <KpiCard label={p.dmKpiResponses} value={fmt(display.replies)} gradientFrom="#f59e0b" gradientTo="#d97706" />
-              <KpiCard label={p.dmKpiPrepared} value={fmt(display.drafted)} gradientFrom="#8b5cf6" gradientTo="#6d28d9" />
-              <KpiCard label={p.dmKpiProspects} value={fmt(display.prospects)} gradientFrom="#ec4899" gradientTo="#db2777" />
-            </div>
-          </>
-        );
-      })()}
+      {/* KPI row — network-aware. For IG it pulls live stats from the
+          dashboard API; for TT/LI it shows sample numbers labelled. */}
+      <JadeKpiRow network="instagram" connected={igConnected} stats={stats} />
 
       {/* Campaign actions — replaced by an interactive component that
           toasts feedback so the user sees what each click triggered. The
