@@ -227,11 +227,11 @@ function PricingPageInner() {
 
             <ul className="space-y-4 mb-8">
               {(locale === 'fr' ? [
-                '<strong>Tous les agents</strong> débloqués pendant 7 jours',
-                '<strong>Vidéos</strong> + images + audio narration',
-                'Publication Instagram, LinkedIn, TikTok',
+                '<strong>Tous les agents</strong> d\u00e9bloqu\u00e9s pendant 7 jours',
+                '<strong>Vid\u00e9os</strong> + images + narration audio',
+                'Publication sur Instagram, LinkedIn, TikTok',
                 'Assistant marketing Ami inclus',
-                'Carte bancaire requise — <strong>0\u20AC débité</strong>',
+                'Carte requise \u2014 <strong>\u20AC0 d\u00e9bit\u00e9</strong>',
               ] : [
                 '<strong>All agents</strong> unlocked for 7 days',
                 '<strong>Videos</strong> + images + audio narration',
@@ -524,15 +524,15 @@ function PricingPageInner() {
             </div>
             <div className="bg-white/10 rounded-lg p-3 border border-white/10">
               <p className="text-xs font-bold text-purple-300 mb-1">{locale === 'fr' ? 'Créateur \u2014 49\u20AC/mois après essai' : 'Creator \u2014 \u20AC49/month after trial'}</p>
-              <p className="text-[11px] text-purple-200">+ LÉNA, JADE</p>
+              <p className="text-[11px] text-purple-200">{locale === 'fr' ? 'LÉNA + JADE + AMI + CLARA' : 'LÉNA + JADE + AMI + CLARA'}</p>
             </div>
             <div className="bg-white/10 rounded-lg p-3 border border-white/10">
               <p className="text-xs font-bold text-blue-300 mb-1">{locale === 'fr' ? 'Pro \u2014 99\u20AC/mois après essai' : 'Pro \u2014 \u20AC99/month after trial'}</p>
-              <p className="text-[11px] text-purple-200">+ HUGO, FÉLIX, Branding</p>
+              <p className="text-[11px] text-purple-200">{locale === 'fr' ? '+ HUGO + LÉO + THÉO + Branding IG/TT/LI' : '+ HUGO + LÉO + THÉO + Branding IG/TT/LI'}</p>
             </div>
             <div className="bg-white/10 rounded-lg p-3 border border-white/10">
               <p className="text-xs font-bold text-amber-300 mb-1">{locale === 'fr' ? 'Business \u2014 199\u20AC/mois après essai' : 'Business \u2014 \u20AC199/month after trial'}</p>
-              <p className="text-[11px] text-purple-200">+ OSCAR, SARA, CRM, {locale === 'fr' ? 'Multi-comptes' : 'Multi-account'}</p>
+              <p className="text-[11px] text-purple-200">+ {locale === 'fr' ? 'Multi-comptes, crédits ×4, support prioritaire' : 'Multi-account, 4× credits, priority support'}</p>
             </div>
           </div>
           <p className="text-[10px] text-purple-300 mt-3 relative z-10">
@@ -590,51 +590,41 @@ function PricingPageInner() {
               <tbody>
                 {/* Crédits */}
                 {(locale === 'fr' ? [
-                  { name: 'Crédits', c: '400/mois', p: '800/mois', b: '2 000/mois', e: '6 000/mois', bold: true },
-                  { name: 'Agents', c: '7', p: '10', b: '15+', e: '15+', bold: true },
-                  { name: 'LÉNA Contenu & Publication', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'HUGO Email Marketing', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'JADE DM Instagram', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'LÉO CRM & Prospection', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'THÉO Avis Google', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'AMI Analytics', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'CLARA Onboarding', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'OSCAR SEO & Blog', c: '\u2014', p: '\u2713', b: '\u2713', e: '\u2713', pro: true },
-                  { name: 'MAX Chatbot Site Web', c: '\u2014', p: '\u2713', b: '\u2713', e: '\u2713', pro: true },
-                  { name: 'SARA Juridique & RH', c: '\u2014', p: '\u2713', b: '\u2713', e: '\u2713', pro: true },
-                  { name: 'LOUIS Finance & Trésorerie', c: '\u2014', p: '\u2014', b: '\u2713', e: '\u2713', biz: true },
-                  { name: 'FÉLIX Publicité (Meta/Google)', c: '\u2014', p: '\u2014', b: 'Bientôt', e: 'Bientôt', biz: true },
-                  { name: 'EMMA LinkedIn', c: '\u2014', p: '\u2014', b: 'Bientôt', e: 'Bientôt', biz: true },
-                  { name: 'STELLA WhatsApp', c: '\u2014', p: '\u2014', b: 'Bientôt', e: 'Bientôt', biz: true },
-                  { name: 'Vidéos', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'Images', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'Tendances en temps réel', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'Calendrier éditorial', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'Export documents', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'Multi-comptes', c: '\u2014', p: '\u2014', b: '1+5', e: 'Illimité' },
+                  { name: 'Cr\u00e9dits', c: '600/mois', p: '1 500/mois', b: '3 500/mois', e: 'Illimit\u00e9', bold: true },
+                  { name: 'Agents inclus', c: '4', p: '7', b: '7+', e: '7+', bold: true },
+                  { name: 'L\u00c9NA Contenu IG/TT/LI', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'JADE DM + commentaires IG/TT/LI', c: 'Addon', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'HUGO Email Marketing', c: 'Addon', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'L\u00c9O CRM & Prospection', c: 'Addon', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'TH\u00c9O R\u00e9putation + SEO', c: 'Addon', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'AMI Strat\u00e9gie', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'CLARA Onboarding + Suivi', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'F\u00c9LIX Publicit\u00e9 (Meta/Google)', c: '\u2014', p: '\u2014', b: 'Bient\u00f4t', e: 'Bient\u00f4t', biz: true },
+                  { name: 'TikTok publication auto', c: '3 vid\u00e9os/sem', p: '4-5 vid\u00e9os/sem', b: '5+ vid\u00e9os/sem', e: 'Illimit\u00e9' },
+                  { name: 'Vid\u00e9o max', c: '30s', p: '45s', b: '90s', e: '90s' },
+                  { name: 'Images/mois', c: '60', p: '150', b: '400', e: 'Illimit\u00e9' },
+                  { name: 'Tendances temps r\u00e9el', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'Calendrier \u00e9ditorial adaptatif', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'Multi-comptes', c: '\u2014', p: '\u2014', b: '1+5', e: 'Illimit\u00e9' },
+                  { name: 'Marque blanche', c: '\u2014', p: '\u2014', b: '\u2014', e: '\u2713' },
                 ] : [
-                  { name: 'Credits', c: '400/month', p: '800/month', b: '2,000/month', e: '6,000/month', bold: true },
-                  { name: 'Agents', c: '7', p: '10', b: '15+', e: '15+', bold: true },
-                  { name: 'LENA Content & Publishing', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'HUGO Email Marketing', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'JADE DM Instagram', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'LEO CRM & Prospecting', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'THEO Google Reviews', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'AMI Analytics', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'CLARA Onboarding', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'OSCAR SEO & Blog', c: '\u2014', p: '\u2713', b: '\u2713', e: '\u2713', pro: true },
-                  { name: 'MAX Website Chatbot', c: '\u2014', p: '\u2713', b: '\u2713', e: '\u2713', pro: true },
-                  { name: 'SARA Legal & HR', c: '\u2014', p: '\u2713', b: '\u2713', e: '\u2713', pro: true },
-                  { name: 'LOUIS Finance & Cash', c: '\u2014', p: '\u2014', b: '\u2713', e: '\u2713', biz: true },
-                  { name: 'FELIX Ads (Meta/Google)', c: '\u2014', p: '\u2014', b: 'Soon', e: 'Soon', biz: true },
-                  { name: 'EMMA LinkedIn', c: '\u2014', p: '\u2014', b: 'Soon', e: 'Soon', biz: true },
-                  { name: 'STELLA WhatsApp', c: '\u2014', p: '\u2014', b: 'Soon', e: 'Soon', biz: true },
-                  { name: 'Videos', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'Images', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'Credits', c: '600/month', p: '1,500/month', b: '3,500/month', e: 'Unlimited', bold: true },
+                  { name: 'Included agents', c: '4', p: '7', b: '7+', e: '7+', bold: true },
+                  { name: 'L\u00c9NA Content IG/TT/LI', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'JADE DMs + comments IG/TT/LI', c: 'Addon', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'HUGO Email Marketing', c: 'Addon', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'L\u00c9O CRM & Prospecting', c: 'Addon', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'TH\u00c9O Reputation + SEO', c: 'Addon', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'AMI Strategy', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'CLARA Onboarding + Support', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'F\u00c9LIX Ads', c: '\u2014', p: '\u2014', b: 'Soon', e: 'Soon', biz: true },
+                  { name: 'TikTok auto-publish', c: '3 vids/wk', p: '4-5 vids/wk', b: '5+ vids/wk', e: 'Unlimited' },
+                  { name: 'Max video length', c: '30s', p: '45s', b: '90s', e: '90s' },
+                  { name: 'Images/month', c: '60', p: '150', b: '400', e: 'Unlimited' },
                   { name: 'Real-time trends', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'Editorial calendar', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'Document export', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
+                  { name: 'Adaptive editorial calendar', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
                   { name: 'Multi-account', c: '\u2014', p: '\u2014', b: '1+5', e: 'Unlimited' },
+                  { name: 'White label', c: '\u2014', p: '\u2014', b: '\u2014', e: '\u2713' },
                 ]).map((row, i) => (
                   <tr key={i} className={`border-b ${row.pro ? 'bg-blue-50/30' : row.biz ? 'bg-amber-50/30' : ''}`}>
                     <td className="py-3 px-2 font-medium">{row.name}</td>
