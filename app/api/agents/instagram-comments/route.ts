@@ -102,12 +102,14 @@ export async function POST(req: NextRequest) {
     // empty posts saves a lot of Graph API calls.
     try {
       const mediaPath = useIgaa ? '/me/media' : `/${igId}/media`;
-      // Page through up to 2 batches of 50 (100 posts total) to find
-      // posts with comments. The Graph API caps `limit` at 100 anyway.
+      // Page through up to 4 batches of 50 (200 posts total) to find
+      // posts with comments. Comments live deep in the history on
+      // long-running accounts — diagnosed on @keiro_ai which had 22
+      // comments across 5 posts within the first 150.
       type Media = { id: string; caption?: string; timestamp: string; media_url?: string; thumbnail_url?: string; permalink?: string; media_type?: string; comments_count?: number };
       const collected: Media[] = [];
       let after: string | undefined;
-      for (let page = 0; page < 2; page++) {
+      for (let page = 0; page < 4; page++) {
         const batch: any = await fetchGraph<{ data: Media[]; paging?: { cursors?: { after?: string } } }>(
           mediaPath,
           {
