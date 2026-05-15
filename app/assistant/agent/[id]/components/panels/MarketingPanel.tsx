@@ -8,7 +8,7 @@
  * outside the selector since they aggregate across all networks.
  */
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
   fmt, fmtCurrency, fmtDate,
   KpiCard, SectionTitle, EmptyState, DonutChart, ProgressBar, ActivityFeed,
@@ -103,7 +103,7 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
         )}
 
         {/* Audit log link \u2014 Meta App Review compliance evidence */}
-        <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-3 mt-3">
+        <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-3 mt-3 mb-4">
           <div className="flex items-center justify-between gap-3">
             <div className="flex-1 min-w-0">
               <div className="text-[11px] font-semibold text-blue-300">Audit Graph API</div>
@@ -122,19 +122,32 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
           </div>
         </div>
 
-        {/* AMI's strategic recommendation \u2014 always shown if available
-            since it's AMI's core value-add (Sonnet's analysis based on
-            the data). No fallback / placeholder when missing. */}
+        {/* SECTION : AMI t\u2019interpr\u00e8te + Actions orchestr\u00e9es
+            AMI is autonomous and pushes directives to all agents. The
+            recommendation block becomes actionable: clicking "Appliquer
+            aux agents" calls /api/agents/orchestrate-directive which
+            saves the directive into org_agent_configs so each agent
+            picks it up on the next run. Founder rule: "AMI donne des
+            ordres aux agents en ajustant les actions de chacun". */}
         {gs.recommendation && (
-          <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-4 mt-3">
-            <div className="flex items-start gap-2">
-              <span className="text-lg">{'\u{1F4A1}'}</span>
-              <div>
-                <p className="text-xs font-bold text-cyan-400 mb-1">{p.marketingSectionRec}</p>
-                <p className="text-xs text-white/70 leading-relaxed">{gs.recommendation}</p>
+          <>
+            <SectionTitle>AMI t&apos;interpr\u00e8te</SectionTitle>
+            <div className="rounded-xl border border-cyan-500/30 bg-gradient-to-br from-cyan-500/10 to-purple-500/5 p-4 mb-3">
+              <div className="flex items-start gap-2 mb-3">
+                <span className="text-lg">{'\u{1F4A1}'}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-bold text-cyan-300 mb-1 uppercase tracking-wider">Analyse strat\u00e9gique</p>
+                  <p className="text-xs text-white/85 leading-relaxed">{gs.recommendation}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 pt-2 border-t border-white/10">
+                <AmiOrchestrateButton recommendation={gs.recommendation} />
+                <span className="text-[10px] text-white/40">
+                  Pousse la directive vers tous les agents concern\u00e9s. Chaque agent l&apos;applique sur sa prochaine ex\u00e9cution.
+                </span>
               </div>
             </div>
-          </div>
+          </>
         )}
 
         {/* Cross-network commercial pipeline — only when there ARE
@@ -330,5 +343,55 @@ function NetworkInsightSection({
         </div>
       )}
     </div>
+  );
+}
+
+// AMI orchestration button — pushes the current strategic
+// recommendation to all relevant agents as a durable directive.
+// Calls /api/agents/orchestrate-directive which uses Sonnet to
+// detect which agents the directive applies to and saves it into
+// org_agent_configs.<agent>_directives so each agent picks it up
+// on next run.
+function AmiOrchestrateButton({ recommendation }: { recommendation: string }) {
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const apply = useCallback(async () => {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const r = await fetch('/api/agents/orchestrate-directive', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ source: 'ami', directive: recommendation }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.ok) { setError(j.error || 'Échec'); return; }
+      setDone(true);
+      setTimeout(() => setDone(false), 4000);
+    } catch (e: any) {
+      setError(e?.message || 'Erreur réseau');
+    } finally {
+      setBusy(false);
+    }
+  }, [recommendation, busy]);
+
+  return (
+    <button
+      onClick={apply}
+      disabled={busy || done}
+      className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition flex-shrink-0 ${
+        done
+          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+          : error
+            ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+            : 'bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/30'
+      }`}
+    >
+      {busy ? '…' : done ? '✓ Appliqué aux agents' : error ? `⚠ ${error}` : '⚡ Appliquer aux agents'}
+    </button>
   );
 }
