@@ -138,9 +138,42 @@ export const DEMO_WHATSAPP_STATS = {
 };
 
 // ─── Instagram Comments ───────────────────────────────────────────
+// Sample comments — each one is attached to a real Léna-generated post
+// (from the validated gallery) so the reviewer sees the full workflow:
+// real-looking post thumbnail + caption + the comment underneath.
+const SAMPLE_POST_RESTO = {
+  caption: 'Vague de froid cette semaine ? C\'est le moment parfait pour notre velouté.',
+  thumbnail_url: 'https://duxjdlzdfjrhyojjwnig.supabase.co/storage/v1/object/public/business-assets/validation/lena-news/1778671324920-cold_snap_restaurant.jpeg',
+  permalink: null,
+  media_type: 'IMAGE',
+  posted_at: new Date(Date.now() - 2 * 86400000).toISOString(),
+};
+const SAMPLE_POST_FLORIST = {
+  caption: 'Saint-Valentin dans 2 semaines. Les roses sur Amazon arrivent en plastique.',
+  thumbnail_url: 'https://duxjdlzdfjrhyojjwnig.supabase.co/storage/v1/object/public/business-assets/validation/lena-news/1778671324920-valentines_florist.jpeg',
+  permalink: null,
+  media_type: 'IMAGE',
+  posted_at: new Date(Date.now() - 3 * 86400000).toISOString(),
+};
+const SAMPLE_POST_BARBER = {
+  caption: 'Rentrée scolaire dans 7 jours. Coupe fraîche obligatoire.',
+  thumbnail_url: 'https://duxjdlzdfjrhyojjwnig.supabase.co/storage/v1/object/public/business-assets/validation/lena-news/1778671324920-back_to_school_barber.jpeg',
+  permalink: null,
+  media_type: 'IMAGE',
+  posted_at: new Date(Date.now() - 4 * 86400000).toISOString(),
+};
+const SAMPLE_POST_AMPLIFIED = {
+  caption: 'STOP. 47% des restaurateurs ignorent ce changement d\'algo d\'Instagram.',
+  thumbnail_url: 'https://duxjdlzdfjrhyojjwnig.supabase.co/storage/v1/object/public/business-assets/validation/lena-news/1778685259445-catchy_authority_resto.jpeg',
+  permalink: null,
+  media_type: 'IMAGE',
+  posted_at: new Date(Date.now() - 1 * 86400000).toISOString(),
+};
+
 export const DEMO_IG_COMMENTS = [
-  { comment_id: 'demo_1', text: 'Trop beau ! Vous etes ou ?', username: 'sarah_lifestyle', timestamp: new Date(Date.now() - 3600000).toISOString(), replied: false },
-  { comment_id: 'demo_2', text: 'Ca donne trop envie ! Je viens ce weekend', username: 'foodie_paris', timestamp: new Date(Date.now() - 7200000).toISOString(), replied: true },
-  { comment_id: 'demo_3', text: 'Incroyable le decor !! Follow back ?', username: 'deco_lover', timestamp: new Date(Date.now() - 86400000).toISOString(), replied: false },
-  { comment_id: 'demo_4', text: 'Je recommande a 100% !!!', username: 'marco_travel', timestamp: new Date(Date.now() - 2 * 86400000).toISOString(), replied: true },
+  { comment_id: 'demo_1', media_id: 'sample_resto', text: 'Trop beau le velouté ! Vous êtes où exactement à Paris ?', username: 'sarah_lifestyle', timestamp: new Date(Date.now() - 3600000).toISOString(), replied: false, post: SAMPLE_POST_RESTO },
+  { comment_id: 'demo_2', media_id: 'sample_resto', text: 'Ça donne trop envie ! Je viens ce weekend, vous prenez les réservations en DM ?', username: 'foodie_paris', timestamp: new Date(Date.now() - 7200000).toISOString(), replied: true, post: SAMPLE_POST_RESTO },
+  { comment_id: 'demo_3', media_id: 'sample_florist', text: 'Vous livrez à Lyon Confluence ? J\'aimerais une compo pour ma copine 🌹', username: 'thomas_lyon', timestamp: new Date(Date.now() - 5 * 3600000).toISOString(), replied: false, post: SAMPLE_POST_FLORIST },
+  { comment_id: 'demo_4', media_id: 'sample_amp', text: 'Vrai ! Mes photos plates ne marchent plus depuis 2 mois 😩 tu peux DM les détails ?', username: 'chef_marais', timestamp: new Date(Date.now() - 86400000).toISOString(), replied: false, post: SAMPLE_POST_AMPLIFIED },
+  { comment_id: 'demo_5', media_id: 'sample_barber', text: 'Mon fils veut le même fade pour la rentrée, vous prenez des RDV samedi ?', username: 'celine_marseille', timestamp: new Date(Date.now() - 6 * 3600000).toISOString(), replied: true, post: SAMPLE_POST_BARBER },
 ];

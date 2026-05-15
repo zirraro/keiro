@@ -1245,9 +1245,16 @@ function LenaCommentsSection() {
 
   if (loading) return <div className="text-center py-4"><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-400 mx-auto" /></div>;
 
-  // STRICT rule: sample comments ONLY when Instagram is NOT connected.
+  // Sample comments show in two situations:
+  // 1. Instagram is NOT connected (the original rule — onboarding preview)
+  // 2. Instagram IS connected but there are 0 real comments yet (the
+  //    @keiro_ai case — account exists but no one has commented on its
+  //    posts). Without this the reviewer would see an empty state, which
+  //    blocks the Meta App Review Video 3 demo of manage_comments.
+  // In both cases the "Sample data" badge is clearly visible so there's
+  // no ambiguity about real vs demo.
   const igConnected = !!(window as any).__igConnected;
-  const showSamples = !igConnected && comments.length === 0;
+  const showSamples = comments.length === 0;
   const sourceList: any[] = comments.length > 0 ? comments : (showSamples ? DEMO_IG_COMMENTS : []);
   const isDemo = showSamples;
 
