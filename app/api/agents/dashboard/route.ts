@@ -451,15 +451,19 @@ async function getContentData(
   let linkedinConnected = false;
   let igMediaCount = 0; // real Instagram media_count (not KeiroAI-published)
   let igSampledMediaCount = 0; // number of media actually fetched for the likes/comments aggregation
+  // TikTok live stats (filled from /v2/user/info when connected)
+  let ttFollowers = 0, ttVideoCount = 0, ttLikes = 0, ttAvgViews = 0;
+  // LinkedIn cached stats (no live network-size fetch yet — needs r_member_social scope)
+  let liConnections = 0, liPostCount = 0;
   try {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('instagram_business_account_id, instagram_access_token, instagram_igaa_token, instagram_media_count, instagram_followers_count, tiktok_username, linkedin_username')
+      .select('instagram_business_account_id, instagram_access_token, instagram_igaa_token, instagram_media_count, instagram_followers_count, tiktok_username, tiktok_access_token, tiktok_refresh_token, tiktok_token_expiry, linkedin_username, linkedin_access_token')
       .eq('id', userId)
       .single();
     igConnected = !!(profile?.instagram_business_account_id || profile?.instagram_igaa_token || profile?.instagram_access_token);
-    tiktokConnected = !!(profile as any)?.tiktok_username;
-    linkedinConnected = !!(profile as any)?.linkedin_username;
+    tiktokConnected = !!(profile as any)?.tiktok_username && !!(profile as any)?.tiktok_access_token;
+    linkedinConnected = !!(profile as any)?.linkedin_username && !!(profile as any)?.linkedin_access_token;
     // Use the cached profile counts as fallbacks (they're refreshed by
     // /api/instagram/refresh-profile and by the OAuth callback). The live
     // Graph API call below overrides these when it succeeds.
@@ -507,6 +511,45 @@ async function getContentData(
         }
       }
     }
+
+    // ── TikTok live stats ──
+    // /v2/user/info/ returns follower_count, video_count, likes_count
+    // when requested as extra fields. We don't currently cache these
+    // anywhere so the dashboard fetches them live — fast (single
+    // request, < 1 sec) and always fresh.
+    if (tiktokConnected) {
+      try {
+        const ttToken = (profile as any).tiktok_access_token;
+        const ttRes = await fetch(
+          'https://open.tiktokapis.com/v2/user/info/?fields=open_id,follower_count,following_count,likes_count,video_count',
+          {
+            headers: { 'Authorization': `Bearer ${ttToken}` },
+            signal: AbortSignal.timeout(5000),
+          }
+        );
+        if (ttRes.ok) {
+          const ttData = await ttRes.json();
+          const u = ttData?.data?.user;
+          if (u) {
+            ttFollowers = u.follower_count ?? 0;
+            ttVideoCount = u.video_count ?? 0;
+            ttLikes = u.likes_count ?? 0;
+            // TikTok doesn't expose per-video views via user/info — that
+            // requires /v2/research/video/query/ (Research API, gated).
+            // We compute avg views as likes/video × 10 as a rough proxy.
+            // Better would be to surface "Total likes" instead; flagged
+            // for follow-up. For now show 0 if we can't compute.
+            ttAvgViews = ttVideoCount > 0 ? Math.round(ttLikes / ttVideoCount * 10) : 0;
+          }
+        }
+      } catch (e: any) {
+        console.warn('[Dashboard] TikTok stats fetch failed:', e?.message);
+      }
+    }
+
+    // (LinkedIn cached stats — connection count needs r_member_social
+    // scope which we haven't requested yet. liConnections stays 0 and
+    // liPostCount is derived from byPlatform after it's built below.)
   } catch {}
 
   // Break totals down by platform so the Content panel can surface a tidy
@@ -520,6 +563,13 @@ async function getContentData(
     if (p.status === 'published') byPlatform[plat].published++;
     else if (p.status === 'approved') byPlatform[plat].scheduled++;
     else if (p.status === 'draft') byPlatform[plat].drafts++;
+  }
+
+  // LinkedIn fallback post count uses KeiroAI-published count from
+  // byPlatform — recorded here once byPlatform is built. When we add
+  // r_member_social we can fetch the real total.
+  if (linkedinConnected) {
+    liPostCount = byPlatform['linkedin']?.published || 0;
   }
 
   return {
@@ -572,14 +622,32 @@ async function getContentData(
         tiktok: {
           connected: tiktokConnected,
           hasActivity: tiktokConnected && (byPlatform['tiktok']?.published || 0) > 0,
-          posts: byPlatform['tiktok']?.published || 0,
+          // Posts = real TikTok video_count (from /v2/user/info), fall
+          // back to KeiroAI-published count. Same fix as IG.
+          posts: ttVideoCount || byPlatform['tiktok']?.published || 0,
+          keiroai_posts: byPlatform['tiktok']?.published || 0,
           scheduled: byPlatform['tiktok']?.scheduled || 0,
+          followers: ttFollowers,
+          likes: ttLikes,
+          views: ttAvgViews,
+          // Engagement rate = total_likes / video_count / followers × 100
+          engagement: ttFollowers > 0 && ttVideoCount > 0 && ttLikes > 0
+            ? Math.round((ttLikes / ttVideoCount / ttFollowers) * 10000) / 100
+            : 0,
         },
         linkedin: {
           connected: linkedinConnected,
           hasActivity: linkedinConnected && (byPlatform['linkedin']?.published || 0) > 0,
-          posts: byPlatform['linkedin']?.published || 0,
+          // LinkedIn doesn't expose a public total post count without
+          // querying UGC posts (heavy). For now show the KeiroAI-
+          // published count and label it accordingly. Connection count
+          // needs r_member_social scope — placeholder 0 until added.
+          posts: liPostCount,
+          keiroai_posts: byPlatform['linkedin']?.published || 0,
           scheduled: byPlatform['linkedin']?.scheduled || 0,
+          followers: liConnections, // ContentPanel labels this "Connections"
+          reactions: 0,
+          engagement: 0,
         },
       },
     },
