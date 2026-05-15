@@ -462,7 +462,7 @@ function PricingPageInner() {
               <span>🏗️</span> {locale === 'fr' ? 'Agence \u2014 Sur devis' : 'Agency \u2014 Custom quote'}
             </h3>
             <p className="text-slate-300 text-sm mb-4">
-              {locale === 'fr' ? 'Réseau, agence, marque multi-points de vente \u2014 marque blanche, espace partagé entre comptes, crédits illimités, formation équipe et SLA dédié. Inclut les cas d'usage avancés autrefois couverts par le plan Elite.' : 'Network, agency, multi-location brand \u2014 white label, shared workspace across accounts, unlimited credits, team training and dedicated SLA. Covers the advanced use cases previously bundled in the Elite plan.'}
+              {locale === 'fr' ? 'Réseau, agence, marque multi-points de vente \u2014 marque blanche, espace partagé entre comptes, crédits illimités, formation équipe et SLA dédié. Inclut les cas d’usage avancés autrefois couverts par le plan Elite.' : 'Network, agency, multi-location brand \u2014 white label, shared workspace across accounts, unlimited credits, team training and dedicated SLA. Covers the advanced use cases previously bundled in the Elite plan.'}
             </p>
             <a href="https://calendly.com/contact-keiroai/demo-keiroai-15-minutes" target="_blank" rel="noopener noreferrer" className="inline-block py-3 px-8 rounded-xl bg-white text-slate-800 font-bold hover:bg-slate-100 transition-all shadow-lg">
               {locale === 'fr' ? 'Nous contacter' : 'Get in touch'}
