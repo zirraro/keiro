@@ -284,8 +284,14 @@ export default function AgentDashboard({ agentId, agentName, gradientFrom, gradi
           per-agent stats already show evolution which makes this banner
           redundant. */}
 
-      {/* Launch campaign button — all agents */}
-      {!isAdmin && agentId !== 'onboarding' && agentId !== 'ceo' && agentId !== 'qa' && agentId !== 'content' && agentId !== 'marketing' && (
+      {/* Launch campaign button — only for agents WITHOUT their own
+          campaign UI. Excluded: onboarding (Clara), ceo (Noah, bg),
+          qa, content (Léna has her own publish flow), marketing (AMI
+          orchestrates via chat), dm_instagram (Jade has 5 specific
+          mini-campaign buttons below the stats). Founder rule 16 mai
+          2026: "enleve lancer une campagne de jade, on lance déjà
+          des mini campagnes ciblées plus bas en dessous des stats". */}
+      {!isAdmin && agentId !== 'onboarding' && agentId !== 'ceo' && agentId !== 'qa' && agentId !== 'content' && agentId !== 'marketing' && agentId !== 'dm_instagram' && (
         <div data-tour="launch-campaign" className="mx-5 mt-3 flex items-center gap-2">
           <button
             onClick={() => { try { (window as any).__openCampaignWizard?.(); } catch {} }}
