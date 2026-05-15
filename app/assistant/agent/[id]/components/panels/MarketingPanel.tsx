@@ -84,50 +84,68 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
           <KpiCard label={p.marketingLabelRecommendation} value={gs.recommendation ? '1' : '0'} gradientFrom={gradientFrom} gradientTo={gradientTo} />
         </div>
 
-        {/* Instagram engagement — three states:
-            (1) not connected → CTA to connect.
-            (2) connected but no KeiroAI-published content yet → empty state
-                so we never surface organic follower figures as if they were
-                produced by KeiroAI.
-            (3) connected + at least one published post → real Graph API
-                metrics.
-            The `connected` and `hasActivity` flags come from the dashboard
-            API and are the single source of truth across Léna / Ami / CEO. */}
-        <SectionTitle>{p.marketingSectionInstagram}</SectionTitle>
-        {!(gs as any).instagram?.connected ? (
-          <div className="rounded-xl border border-white/10 bg-white/[0.02] p-5 text-center">
-            <div className="text-2xl mb-2">{'\u{1F4F8}'}</div>
-            <div className="text-sm font-semibold text-white mb-1">Connect Instagram to see engagement</div>
-            <p className="text-[11px] text-white/50 max-w-md mx-auto mb-3">
-              Ami&apos;s Instagram metrics come straight from Meta&apos;s Graph
-              API once you connect a Business account and publish at least one
-              post.
-            </p>
+        {/* Multi-network insights — Instagram, TikTok, LinkedIn parallel.
+            Each section follows the same 3-state pattern (not connected /
+            connected no-activity / connected with metrics). This is the
+            "Insights" experience demonstrated for Meta App Review's
+            instagram_business_manage_insights permission. */}
+        <SectionTitle>Performance par r\u00e9seau</SectionTitle>
+        <div className="space-y-3">
+          <NetworkInsightSection
+            network="instagram"
+            label="Instagram"
+            stats={(gs as any).instagram}
+            connectUrl="/api/auth/instagram-oauth"
+            icon="\u{1F4F8}"
+            labelLikes={p.marketingLabelLikes}
+            labelEngagement={p.marketingLabelEngagement}
+            labelFollowers={p.marketingLabelFollowers}
+            labelPosts={p.marketingLabelPosts}
+            labelReach={p.marketingLabelReach}
+          />
+          <NetworkInsightSection
+            network="tiktok"
+            label="TikTok"
+            stats={(gs as any).tiktok}
+            connectUrl="/api/auth/tiktok-oauth"
+            icon="\u{1F3B5}"
+            labelLikes="Likes totaux"
+            labelEngagement={p.marketingLabelEngagement}
+            labelFollowers="Abonn\u00e9s"
+            labelPosts="Vid\u00e9os"
+          />
+          <NetworkInsightSection
+            network="linkedin"
+            label="LinkedIn"
+            stats={(gs as any).linkedin}
+            connectUrl="/api/auth/linkedin-oauth"
+            icon="\u{1F4BC}"
+            labelLikes="R\u00e9actions"
+            labelEngagement={p.marketingLabelEngagement}
+            labelFollowers="Connexions"
+            labelPosts="Posts publi\u00e9s"
+          />
+        </div>
+
+        {/* Audit log link \u2014 Meta App Review compliance evidence */}
+        <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-3 mt-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="text-[11px] font-semibold text-blue-300">Audit Graph API</div>
+              <div className="text-[10px] text-white/50 mt-0.5">
+                Toutes les lectures Insights sont trac\u00e9es avec le tag <code className="text-[9px] text-blue-200">instagram_business_manage_insights</code> dans /meta-audit
+              </div>
+            </div>
             <a
-              href="/api/auth/instagram-oauth"
-              className="inline-flex items-center px-4 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold hover:opacity-90 transition"
+              href="/meta-audit?lang=en"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 text-[10px] font-semibold transition flex-shrink-0"
             >
-              {'⚡'} Connect Instagram Business
+              Voir l&apos;audit \u2197
             </a>
           </div>
-        ) : !(gs as any).instagram?.hasActivity ? (
-          <div className="rounded-xl border border-white/10 bg-white/[0.02] p-5 text-center">
-            <div className="text-sm font-semibold text-white mb-1">No published content yet</div>
-            <p className="text-[11px] text-white/50 max-w-md mx-auto">
-              Ami will display real Instagram engagement (posts, likes, reach,
-              engagement rate) once Léna publishes the first post. We never
-              show demo or organic-account numbers here.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            <KpiCard label={p.marketingLabelFollowers} value={fmt((gs as any).instagram?.followersCount || 0)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-            <KpiCard label={p.marketingLabelPosts} value={fmt((gs as any).instagram?.postsCount || 0)} gradientFrom="#8b5cf6" gradientTo="#6d28d9" />
-            <KpiCard label={p.marketingLabelLikes} value={fmt((gs as any).instagram?.likes || 0)} gradientFrom="#ec4899" gradientTo="#f43f5e" />
-            <KpiCard label={p.marketingLabelReach} value={fmt((gs as any).instagram?.reach || 0)} gradientFrom="#06b6d4" gradientTo="#0891b2" />
-            <KpiCard label={p.marketingLabelEngagement} value={`${((gs as any).instagram?.engagement || 0).toFixed?.(1) || '0'}%`} gradientFrom="#10b981" gradientTo="#059669" />
-          </div>
-        )}
+        </div>
 
         {/* Finance bloc */}
         <SectionTitle>{p.marketingSectionFinance}</SectionTitle>
@@ -240,5 +258,93 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
         </p>
       </div>
     </>
+  );
+}
+
+// Network insight section — same 3-state pattern across IG, TT, LI:
+// (1) not connected: focused Connect CTA
+// (2) connected, no KeiroAI activity: empty state explaining
+//     metrics will come once Léna publishes the first post
+// (3) connected + activity: real stats from Graph API
+//
+// Used in the AMI/Marketing dashboard as the "Insights" demo
+// surface for Meta App Review (instagram_business_manage_insights).
+function NetworkInsightSection({
+  network, label, stats, connectUrl, icon,
+  labelLikes, labelEngagement, labelFollowers, labelPosts, labelReach,
+}: {
+  network: 'instagram' | 'tiktok' | 'linkedin';
+  label: string;
+  stats: any;
+  connectUrl: string;
+  icon: string;
+  labelLikes: string;
+  labelEngagement: string;
+  labelFollowers: string;
+  labelPosts: string;
+  labelReach?: string;
+}) {
+  if (!stats?.connected) {
+    return (
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-xl">{icon}</span>
+            <div className="min-w-0">
+              <div className="text-sm font-bold text-white">{label}</div>
+              <div className="text-[10px] text-white/50">Connecte {label} pour voir tes vraies metrics live via API</div>
+            </div>
+          </div>
+          <a
+            href={connectUrl}
+            className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 text-white text-[10px] font-bold flex-shrink-0 transition"
+          >
+            Connecter →
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  if (!stats?.hasActivity) {
+    return (
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-xl">{icon}</span>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-bold text-white">{label}</div>
+            <div className="text-[10px] text-amber-300">Connecté · pas encore d&apos;activité KeiroAI</div>
+          </div>
+        </div>
+        <p className="text-[10px] text-white/50 mt-1">
+          Les metrics {label} (followers, likes, engagement, reach) s&apos;afficheront ici dès que Léna publie le premier post via KeiroAI. On ne mélange jamais les chiffres organiques avec ceux produits par les agents.
+        </p>
+      </div>
+    );
+  }
+
+  // Real metrics view
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-xl">{icon}</span>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-bold text-white">{label}</div>
+          <div className="text-[10px] text-emerald-400">Live data via API</div>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <KpiCard label={labelFollowers} value={fmt(stats.followersCount || 0)} gradientFrom="#3b82f6" gradientTo="#2563eb" />
+        <KpiCard label={labelPosts} value={fmt(stats.postsCount || 0)} gradientFrom="#8b5cf6" gradientTo="#6d28d9" />
+        <KpiCard label={labelLikes} value={fmt(stats.likes || 0)} gradientFrom="#ec4899" gradientTo="#f43f5e" />
+        <KpiCard label={labelEngagement} value={`${(stats.engagement || 0).toFixed?.(1) || '0'}%`} gradientFrom="#10b981" gradientTo="#059669" />
+      </div>
+      {labelReach && stats.reach > 0 && (
+        <div className="mt-2 text-[10px] text-white/50 flex items-center gap-1.5">
+          <span>{'\u{1F4E1}'}</span>
+          <span>{labelReach} : <strong className="text-white">{fmt(stats.reach)}</strong> (24h)</span>
+        </div>
+      )}
+    </div>
   );
 }

@@ -193,10 +193,88 @@ async function getMarketingData(
     }
   } catch {}
 
+  // TikTok stats — live from /v2/user/info when connected. Same approach
+  // as IG: only meaningful when KeiroAI has published at least one TT post.
+  let tiktokStats: any = {
+    connected: false,
+    hasActivity: false,
+    postsCount: 0,
+    followersCount: 0,
+    likes: 0,
+    engagement: 0,
+  };
+  try {
+    const { data: tkProfile } = await supabase
+      .from('profiles')
+      .select('tiktok_username, tiktok_access_token')
+      .eq('id', userId)
+      .single();
+    tiktokStats.connected = !!(tkProfile?.tiktok_access_token);
+    if (tiktokStats.connected) {
+      const { count: tkPublished } = await supabase
+        .from('content_calendar')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('platform', 'tiktok')
+        .eq('status', 'published');
+      tiktokStats.hasActivity = (tkPublished || 0) > 0;
+      const tkToken = (tkProfile as any)?.tiktok_access_token;
+      if (tkToken && tiktokStats.hasActivity) {
+        const r = await fetch(
+          'https://open.tiktokapis.com/v2/user/info/?fields=follower_count,likes_count,video_count',
+          { headers: { Authorization: `Bearer ${tkToken}` }, signal: AbortSignal.timeout(5000) }
+        );
+        if (r.ok) {
+          const data = await r.json();
+          const u = data?.data?.user;
+          if (u) {
+            tiktokStats.postsCount = u.video_count || 0;
+            tiktokStats.followersCount = u.follower_count || 0;
+            tiktokStats.likes = u.likes_count || 0;
+            tiktokStats.engagement = tiktokStats.followersCount > 0 && tiktokStats.postsCount > 0
+              ? Math.round((tiktokStats.likes / tiktokStats.postsCount / tiktokStats.followersCount) * 10000) / 100
+              : 0;
+          }
+        }
+      }
+    }
+  } catch {}
+
+  // LinkedIn stats — only KeiroAI-published count for now (the r_member_social
+  // scope needed for connection count isn't requested yet).
+  let linkedinStats: any = {
+    connected: false,
+    hasActivity: false,
+    postsCount: 0,
+    followersCount: 0, // labelled "Connexions" in UI
+    likes: 0,          // labelled "Réactions"
+    engagement: 0,
+  };
+  try {
+    const { data: liProfile } = await supabase
+      .from('profiles')
+      .select('linkedin_access_token, linkedin_username')
+      .eq('id', userId)
+      .single();
+    linkedinStats.connected = !!(liProfile?.linkedin_access_token);
+    if (linkedinStats.connected) {
+      const { count: liPublished } = await supabase
+        .from('content_calendar')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('platform', 'linkedin')
+        .eq('status', 'published');
+      linkedinStats.hasActivity = (liPublished || 0) > 0;
+      linkedinStats.postsCount = liPublished || 0;
+    }
+  } catch {}
+
   const globalStats = {
     commercial: commercialDomain,
     visibility: { totalActions: visibilityCount ?? 0, traffic: igStats.followersCount },
     instagram: igStats,
+    tiktok: tiktokStats,
+    linkedin: linkedinStats,
     finance: { totalActions: financeCount ?? 0 },
     teamActivity: teamActivity ?? [],
     recommendation,
