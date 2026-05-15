@@ -685,25 +685,30 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
     // testing) = 50/day. Léo stops at the target even with API headroom
     // so the founder can compare today vs yesterday meaningfully.
     let dailyProspectTarget = 30; // Pro tier baseline
-    try {
-      const { data: ownerProfile } = await supabase
-        .from('profiles')
-        .select('plan')
-        .eq('id', userId)
-        .maybeSingle();
-      const plan = (ownerProfile?.plan || '').toLowerCase();
-      if (plan === 'admin') dailyProspectTarget = 50;
-    } catch {}
-
-    const todayStartLeo = new Date();
-    todayStartLeo.setUTCHours(0, 0, 0, 0);
-    const { count: addedToday } = await supabase
-      .from('crm_prospects')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .gte('created_at', todayStartLeo.toISOString());
-    const remainingProspectQuota = Math.max(0, dailyProspectTarget - (addedToday || 0));
-    console.log(`[CommercialAgent] Daily prospect target: ${addedToday || 0}/${dailyProspectTarget} added today, ${remainingProspectQuota} remaining`);
+    let addedTodayCount = 0;
+    if (clientUserId) {
+      try {
+        const { data: ownerProfile } = await supabase
+          .from('profiles')
+          .select('plan')
+          .eq('id', clientUserId)
+          .maybeSingle();
+        const plan = (ownerProfile?.plan || '').toLowerCase();
+        if (plan === 'admin') dailyProspectTarget = 50;
+      } catch {}
+      const todayStartLeo = new Date();
+      todayStartLeo.setUTCHours(0, 0, 0, 0);
+      const { count } = await supabase
+        .from('crm_prospects')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', clientUserId)
+        .gte('created_at', todayStartLeo.toISOString());
+      addedTodayCount = count || 0;
+    }
+    const remainingProspectQuota = clientUserId
+      ? Math.max(0, dailyProspectTarget - addedTodayCount)
+      : 50; // global cron run without specific client — keep legacy 50 cap
+    console.log(`[CommercialAgent] Daily prospect target: ${addedTodayCount}/${dailyProspectTarget} added today, ${remainingProspectQuota} remaining`);
 
     let newProspectsCreated = 0;
     const MAX_NEW_PROSPECTS = remainingProspectQuota;
