@@ -1051,13 +1051,51 @@ export async function GET(request: NextRequest) {
   let skippedMaxDaily = 0;
   let prospectCount = 0;
 
-  // ── DAILY EMAIL LIMITER ──
-  // Brevo daily cap. Was 300 (free tier) — bumped to 500 for paid plan.
-  // For Plan Business clients we also raise the per-slot batch cap so
-  // mrzirraro etc. can use more of the global pool when other clients
-  // are quiet. If we ever hit Brevo's actual ceiling we'll see it as
-  // SMTP errors and the caller can fall back to Resend automatically.
-  const DAILY_EMAIL_LIMIT = 500;
+  // ── DAILY EMAIL TARGETS — FIXED BASELINE FOR QA ──
+  // Founder rule 16 mai 2026: "definir une base et ca doit tout les
+  // jours etre la meme pour des question de control qualite". We now
+  // ship a STABLE daily target per plan tier so the founder can see
+  // a predictable output every day:
+  //   • free:        2 emails/jour
+  //   • createur:    15 emails/jour
+  //   • pro:         40 emails/jour
+  //   • business:    80 emails/jour
+  //   • agence:      150 emails/jour (multi-account contractuel)
+  // The agent stops at the target even if more prospects are available
+  // — so "today's count" matches "yesterday's count" matches a typical
+  // day's count. If supply is short, we log the shortfall explicitly.
+  const PLAN_DAILY_TARGETS: Record<string, number> = {
+    free: 2,
+    createur: 15,
+    pro: 40,
+    fondateurs: 80,
+    business: 80,
+    elite: 120,
+    agence: 150,
+    admin: 500,
+  };
+  // Determine the plan by reading the first prospect's owner profile.
+  // Falls back to a sensible default if not loadable.
+  let dailyTarget = 40; // default = pro tier
+  try {
+    const { data: firstProspect } = await supabase
+      .from('crm_prospects')
+      .select('user_id')
+      .limit(1)
+      .maybeSingle();
+    if (firstProspect?.user_id) {
+      const { data: ownerProfile } = await supabase
+        .from('profiles')
+        .select('plan')
+        .eq('id', firstProspect.user_id)
+        .maybeSingle();
+      const plan = (ownerProfile?.plan || '').toLowerCase();
+      if (PLAN_DAILY_TARGETS[plan]) dailyTarget = PLAN_DAILY_TARGETS[plan];
+    }
+  } catch {}
+  // Hard cap stays at 500 to respect Brevo paid-tier ceiling — the
+  // target is the soft daily baseline.
+  const DAILY_EMAIL_LIMIT = Math.min(dailyTarget, 500);
   // Calculate midnight Paris time (CET/CEST)
   const parisOffset = now.getMonth() >= 2 && now.getMonth() <= 9 ? 2 : 1; // Simple DST: March-October = +2, else +1
   const todayStart = new Date(now);
