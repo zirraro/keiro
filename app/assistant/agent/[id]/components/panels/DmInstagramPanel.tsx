@@ -1980,7 +1980,7 @@ interface ActionConfig {
   confirmTitle: string;
   confirmIntro: string;
   fields: ActionField[];
-  run: (params: Record<string, any>) => Promise<{ ok: boolean; text: string }>;
+  run: (params: Record<string, any>) => Promise<{ kind: 'ok' | 'err'; text: string }>;
 }
 
 function ActionConfirmModal({ config, onClose }: { config: ActionConfig; onClose: (result?: { kind: 'ok' | 'err'; text: string }) => void }) {
