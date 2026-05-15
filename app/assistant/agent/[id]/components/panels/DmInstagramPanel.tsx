@@ -1994,11 +1994,15 @@ function JadeCampaignActions({ p }: { p: any }) {
         return { ok: true, text: `${j.followed ?? 0} comptes suivis · ${j.skipped ?? 0} ignorés · ${j.failed ?? 0} échecs.` };
       },
     },
+    // "Likes campaign" was misnamed — the endpoint it called actually
+    // sends queued DMs (not likes). Renamed to match its real behaviour.
+    // Programmatic likes on third-party posts aren't allowed by Meta's
+    // Graph API, so we don't offer that as a separate action.
     {
-      key: 'likes',
-      label: p.dmCampaignLikes,
-      desc: p.dmCampaignLikesDesc,
-      icon: '❤️',
+      key: 'send_queued',
+      label: 'Send queued DMs',
+      desc: 'Envoie les DM préparés en file',
+      icon: '\u{1F4E4}',
       classes: 'bg-purple-500/10 border-purple-500/20 hover:bg-purple-500/20 text-purple-400',
       run: async () => {
         const r = await fetch('/api/agents/dm-instagram/send-queue', { method: 'POST', credentials: 'include' });
@@ -2255,11 +2259,11 @@ export function DmInstagramPanel({ data, agentName, gradientFrom, gradientTo }: 
           dashboard API; for TT/LI it shows sample numbers labelled. */}
       <JadeKpiRow network="instagram" connected={igConnected} stats={stats} />
 
-      {/* Campaign actions — replaced by an interactive component that
-          toasts feedback so the user sees what each click triggered. The
-          previous implementation fired the fetch silently which felt like
-          "clic sans effet". */}
-      <SectionTitle>{p.dmSectionCampaign}</SectionTitle>
+      {/* Action buttons — direct quick-actions for Jade (Prepare DMs,
+          Follow, Send queued, Comments, Auto-reply). No "Launch
+          campaign" title — the buttons are self-explanatory and the
+          founder asked to remove the header (cleaner UX, parity with
+          Léna's flat-grid action style). */}
       <JadeCampaignActions p={p} />
 
       {/* DM funnel (prospects → conversion) moved to /assistant/crm where
