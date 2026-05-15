@@ -604,7 +604,7 @@ function PricingPageInner() {
                   { name: 'Images/mois', c: '60', p: '150', b: '400', e: 'Illimit\u00e9' },
                   { name: 'Tendances temps r\u00e9el', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
                   { name: 'Calendrier \u00e9ditorial adaptatif', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'Multi-comptes', c: '\u2014', p: '\u2014', b: '1+5', e: 'Illimit\u00e9' },
+                  { name: 'Multi-comptes', c: '\u2014', p: '\u2014', b: '1+5', e: 'Illimit\u00e9', biz: true },
                   { name: 'Marque blanche', c: '\u2014', p: '\u2014', b: '\u2014', e: '\u2713' },
                 ] : [
                   { name: 'Credits', c: '600/month', p: '1,500/month', b: '3,500/month', e: 'Unlimited', bold: true },
@@ -621,7 +621,7 @@ function PricingPageInner() {
                   { name: 'Images/month', c: '60', p: '150', b: '400', e: 'Unlimited' },
                   { name: 'Real-time trends', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
                   { name: 'Adaptive editorial calendar', c: '\u2713', p: '\u2713', b: '\u2713', e: '\u2713' },
-                  { name: 'Multi-account', c: '\u2014', p: '\u2014', b: '1+5', e: 'Unlimited' },
+                  { name: 'Multi-account', c: '\u2014', p: '\u2014', b: '1+5', e: 'Unlimited', biz: true },
                   { name: 'White label', c: '\u2014', p: '\u2014', b: '\u2014', e: '\u2713' },
                 ]).map((row, i) => (
                   <tr key={i} className={`border-b ${row.pro ? 'bg-blue-50/30' : row.biz ? 'bg-amber-50/30' : ''}`}>
