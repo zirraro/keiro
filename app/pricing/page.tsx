@@ -462,7 +462,7 @@ function PricingPageInner() {
               <span>🏗️</span> {locale === 'fr' ? 'Agence \u2014 Sur devis' : 'Agency \u2014 Custom quote'}
             </h3>
             <p className="text-slate-300 text-sm mb-4">
-              {locale === 'fr' ? 'Réseau & distributeur \u2014 Crédits illimités, multi-comptes illimités, marque blanche' : 'Network & reseller \u2014 Unlimited credits, unlimited multi-account, white label'}
+              {locale === 'fr' ? 'Réseau, agence, marque multi-points de vente \u2014 marque blanche, espace partagé entre comptes, crédits illimités, formation équipe et SLA dédié. Inclut les cas d'usage avancés autrefois couverts par le plan Elite.' : 'Network, agency, multi-location brand \u2014 white label, shared workspace across accounts, unlimited credits, team training and dedicated SLA. Covers the advanced use cases previously bundled in the Elite plan.'}
             </p>
             <a href="https://calendly.com/contact-keiroai/demo-keiroai-15-minutes" target="_blank" rel="noopener noreferrer" className="inline-block py-3 px-8 rounded-xl bg-white text-slate-800 font-bold hover:bg-slate-100 transition-all shadow-lg">
               {locale === 'fr' ? 'Nous contacter' : 'Get in touch'}
@@ -471,49 +471,10 @@ function PricingPageInner() {
         </div>
 
 
-        {/* Elite - Plan complet */}
-
-        <div className="max-w-lg mx-auto mb-16">
-          <div className="bg-gradient-to-br from-amber-600 to-yellow-700 rounded-2xl p-5 sm:p-6 text-white relative hover:shadow-2xl transition-all transform hover:scale-100 sm:hover:scale-105 flex flex-col">
-            <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-              <span className="bg-gradient-to-r from-yellow-400 to-amber-400 text-amber-900 px-4 py-1 rounded-full text-xs font-bold shadow-lg">
-                {t.pricing.planEliteBadge}
-              </span>
-            </div>
-            <div className="mb-4 pt-2">
-              <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
-                <span>🏆</span> {t.pricing.planEliteTitle}
-              </h3>
-              <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-3xl sm:text-4xl font-bold">999€</span>
-                <span className="text-amber-100">{t.common.perMonth}</span>
-              </div>
-              <p className="text-amber-100 text-sm font-medium" dangerouslySetInnerHTML={{ __html: t.pricing.planEliteSubtitle }} />
-            </div>
-
-            <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3 mb-4 border border-white/30">
-              <p className="text-xs font-semibold">{t.pricing.planEliteBullets[1]}</p>
-            </div>
-
-            <ul className="space-y-3 mb-6 text-sm flex-1">
-              {t.pricing.planEliteBullets.map((bullet, i) => (
-                <li key={i} className="flex gap-2">
-                  <span className={i >= 2 ? 'text-yellow-200' : 'text-yellow-300'}>{i >= 2 ? '★' : '✓'}</span>
-                  <span dangerouslySetInnerHTML={{ __html: bullet }} />
-                </li>
-              ))}
-            </ul>
-
-            <div className="flex flex-col sm:flex-row gap-3 mt-auto">
-              <a href="https://calendly.com/contact-keiroai/demo-keiroai-15-minutes" target="_blank" rel="noopener noreferrer" className="flex-1 py-3 text-center rounded-xl bg-white text-amber-700 font-bold hover:bg-amber-50 transition-all shadow-lg">
-                {locale === 'fr' ? 'Contactez-nous' : 'Get in touch'}
-              </a>
-              <button onClick={() => startCheckout('elite')} className="flex-1 py-3 text-center rounded-xl border-2 border-white/50 text-white font-bold hover:bg-white/10 transition-all">
-                {t.pricing.planEliteCta}
-              </button>
-            </div>
-          </div>
-        </div>
+        {/* Elite plan removed — high-end use cases (multi-account, white label,
+            shared spaces) now route through the Agence sur devis card above.
+            Removed per founder direction: "on retire le plan elite, on met
+            sur devis pour partage de l'espace etc." */}
 
         {/* Concrètement, c'est quoi la différence ? */}
 
@@ -623,7 +584,7 @@ function PricingPageInner() {
                   <th className="text-center py-3 px-2 text-purple-600">{locale === 'fr' ? 'Créateur' : 'Creator'} 49{'\u20AC'}</th>
                   <th className="text-center py-3 px-2 text-blue-600">Pro 99{'\u20AC'}</th>
                   <th className="text-center py-3 px-2 bg-amber-50 font-bold text-amber-600">Business 199{'\u20AC'}</th>
-                  <th className="text-center py-3 px-2 bg-yellow-50 font-bold">Elite 999{'\u20AC'}</th>
+                  <th className="text-center py-3 px-2 bg-yellow-50 font-bold">{locale === 'fr' ? 'Agence \u2014 Sur devis' : 'Agency \u2014 Quote'}</th>
                 </tr>
               </thead>
               <tbody>
@@ -689,7 +650,7 @@ function PricingPageInner() {
                   <td className="text-center py-3 px-2 font-bold text-purple-600">{locale === 'fr' ? '49\u20AC/mois' : '\u20AC49/mo'}</td>
                   <td className="text-center py-3 px-2 font-bold text-blue-600">{locale === 'fr' ? '99\u20AC/mois' : '\u20AC99/mo'}</td>
                   <td className="text-center py-3 px-2 bg-amber-50 font-bold text-amber-600">{locale === 'fr' ? '199\u20AC/mois' : '\u20AC199/mo'}</td>
-                  <td className="text-center py-3 px-2 bg-yellow-50 font-bold text-amber-700">{locale === 'fr' ? '999\u20AC/mois' : '\u20AC999/mo'}</td>
+                  <td className="text-center py-3 px-2 bg-yellow-50 font-bold text-amber-700">{locale === 'fr' ? 'Sur devis' : 'Custom'}</td>
                 </tr>
               </tbody>
             </table>

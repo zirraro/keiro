@@ -63,42 +63,65 @@ export const PLAN_QUOTAS: Record<string, {
     chatbot_sessions_per_day: 0,
     agent_chat_free_per_month: 5,
   },
+  // ── Founder rule (15 mai 2026): chaque plan doit permettre de
+  // publier 3-4 vidéos TikTok par semaine (2× 15s + 1× 30s minimum)
+  // qu'on réutilise en Reel Instagram (donc 1 génération = 2 publi).
+  // Plus images génération pour les jours sans video. Marges 80%
+  // visées sur l'agrégat — légèrement moins acceptable pour les
+  // plans bas si ça permet d'aligner la promesse client.
+  //
+  // Calcul Créateur (49€) :
+  //   3 vids/sem × 4 = 12 vids/mois (2× 15s + 1× 30s par sem)
+  //   = (8 × 35) + (4 × 50) = 280 + 200 = 480 cr de vidéos
+  //   + ~30 images supp (i2i sur photos client) × 3 = 90 cr
+  //   + agent_chat + suggestions = 30 cr
+  //   ≈ 600 cr budget mensuel
   createur: {
-    images_per_month: 30,
-    videos_per_month: 5,
-    video_max_seconds: 15,
-    tts_minutes_per_month: 10,
-    dms_per_day: 30,
-    chatbot_sessions_per_day: 0,   // Max not included on Créateur
-    agent_chat_free_per_month: 10,
+    images_per_month: 60,
+    videos_per_month: 12,           // 3 vids/sem × 4 sem
+    video_max_seconds: 30,          // 30s max (relaxed from 15s)
+    tts_minutes_per_month: 15,
+    dms_per_day: 50,
+    chatbot_sessions_per_day: 0,    // Max not included on Créateur
+    agent_chat_free_per_month: 15,
   },
+  // Pro (99€) : 4 vids/sem × 4 = 16 vids/mois en mix 15s/30s/45s
+  //   = (8 × 35) + (6 × 50) + (2 × 65) = 280 + 300 + 130 = 710 cr
+  //   + 60 images supp × 3 = 180 cr
+  //   + actions agents = 60 cr
+  //   ≈ 950-1000 cr budget. Plan size = 1500 pour confort.
   pro: {
-    images_per_month: 80,
-    videos_per_month: 8,
-    video_max_seconds: 30,
-    tts_minutes_per_month: 30,
-    dms_per_day: 70,
-    chatbot_sessions_per_day: 15,
-    agent_chat_free_per_month: 10,
+    images_per_month: 150,
+    videos_per_month: 18,           // 4-5 vids/sem
+    video_max_seconds: 45,
+    tts_minutes_per_month: 45,
+    dms_per_day: 100,
+    chatbot_sessions_per_day: 20,
+    agent_chat_free_per_month: 20,
   },
   fondateurs: {
-    images_per_month: 200,
-    videos_per_month: 20,
+    images_per_month: 300,
+    videos_per_month: 28,
     video_max_seconds: 60,
-    tts_minutes_per_month: 60,
-    dms_per_day: 150,
-    chatbot_sessions_per_day: 40,
-    agent_chat_free_per_month: 10,
+    tts_minutes_per_month: 90,
+    dms_per_day: 200,
+    chatbot_sessions_per_day: 60,
+    agent_chat_free_per_month: 25,
   },
+  // Business (199€) — anciennement Elite. Multi-account 1+5,
+  // tous les agents inclus, vidéos longues.
   business: {
-    images_per_month: 200,
-    videos_per_month: 20,
-    video_max_seconds: 60,
-    tts_minutes_per_month: 60,
-    dms_per_day: 150,
-    chatbot_sessions_per_day: 40,
-    agent_chat_free_per_month: 10,
+    images_per_month: 400,
+    videos_per_month: 35,
+    video_max_seconds: 90,
+    tts_minutes_per_month: 180,
+    dms_per_day: 300,
+    chatbot_sessions_per_day: 100,
+    agent_chat_free_per_month: 30,
   },
+  // Elite plan retired May 15 2026 — kept here for legacy users who
+  // were grandfathered in. New signups go through Business or Sur
+  // devis (agence). Quotas mirror Business + agence headroom.
   elite: {
     images_per_month: 999999,
     videos_per_month: 200,
@@ -106,7 +129,7 @@ export const PLAN_QUOTAS: Record<string, {
     tts_minutes_per_month: 300,
     dms_per_day: 500,
     chatbot_sessions_per_day: 999999,
-    agent_chat_free_per_month: 20,
+    agent_chat_free_per_month: 40,
   },
   agence: {
     images_per_month: 999999,
@@ -134,16 +157,19 @@ export function getPlanQuotas(plan: string | null | undefined) {
   return PLAN_QUOTAS[key] || PLAN_QUOTAS.free;
 }
 
-// Crédits par plan — Nouvelle grille tarifaire mars 2026
+// Crédits par plan — Grille mai 2026 (rev pour cadence vidéo TikTok)
+// Logique : chaque plan doit financer 3-4 vidéos TikTok par semaine
+// (réutilisées en Reels Instagram, donc 1 generation = 2 publications)
+// + des images supplémentaires + les actions des agents inclus.
+// Marge cible ~80% sur agrégat. Voir PLAN_QUOTAS pour le détail.
 export const PLAN_CREDITS: Record<string, number> = {
   free: 20,
-  // New plans
-  createur: 400,
-  pro: 800,
-  fondateurs: 2000,   // = Business complet, offre jusqu'au 25 mai 2026
-  business: 2000,
-  elite: 6000,
-  agence: 999999,
+  createur: 600,       // ~3 vids/sem + 60 images = ~600 cr
+  pro: 1500,           // ~4-5 vids/sem + 150 images + actions = ~1500 cr
+  fondateurs: 2500,    // Tier intermédiaire (early adopters)
+  business: 3500,      // ~5+ vids/sem + 400 images + multi-account
+  elite: 6000,         // Plan retiré pour les nouveaux signups — kept for legacy
+  agence: 999999,      // Sur devis — illimité
   admin: 999999,
   // Deprecated plans (kept for existing user data)
   sprint: 120,
@@ -178,48 +204,51 @@ export const ADDON_TIER_1 = 8;
 export const ADDON_TIER_2 = 12;
 export const ADDON_TIER_3 = 15;
 
+// Agent addon prices — May 2026 consolidation.
+// Oscar (seo) absorbed by Théo, Sara/Max/Louis admin_only, Emma/Axel
+// absorbed by Jade. The remaining sellable addon roster is now:
+// Léna, Jade, Hugo, Léo, Théo. Ami & Clara stay free across all plans.
 export const AGENT_ADDON_PRICES: Record<string, number> = {
   // Tier 3 (15€) — génération IA lourde
-  content: ADDON_TIER_3,       // Lena — images/vidéos Seedream
-  comptable: ADDON_TIER_3,     // Louis — devis/factures Sonnet
+  content: ADDON_TIER_3,       // Léna — images/vidéos Seedream sur 3 réseaux
 
   // Tier 2 (12€) — agents avec volume d'appels moyen
-  seo: ADDON_TIER_2,           // Oscar — articles SEO
-  dm_instagram: ADDON_TIER_2,  // Jade — DM auto + webhook
-  email: ADDON_TIER_2,         // Hugo — séquences email
-  chatbot: ADDON_TIER_2,       // Max — chatbot 24/7
+  dm_instagram: ADDON_TIER_2,  // Jade — DM + comments + engagement (IG/TT/LI)
+  email: ADDON_TIER_2,         // Hugo — séquences email + classification
+  gmaps: ADDON_TIER_2,         // Théo — réputation + SEO (absorbe Oscar)
 
   // Tier 1 (8€) — agents légers
   commercial: ADDON_TIER_1,    // Léo — prospection CRM
-  gmaps: ADDON_TIER_1,         // Théo — avis Google
-  rh: ADDON_TIER_1,            // Sara — juridique/RH
 
-  // Gratuits (inclus dans tout plan)
+  // Gratuits (inclus dans tout plan, y compris gratuit)
   marketing: 0,                // Ami
   onboarding: 0,               // Clara
 };
 
-// Quels agents sont disponibles en addon pour chaque plan
-// = tous les agents qui ne sont PAS dans le plan du client
+/**
+ * Per-plan included agent set. The founder rule (May 2026) is that
+ * any client can buy missing agents 1-by-1 starting from Créateur up
+ * to the next tier — so Créateur clients can grab Léna or Théo as an
+ * addon without upgrading to Pro.
+ *
+ * Créateur — 2 free + 1 paid agent of choice already inside (Jade by
+ *   default for DM revenue). Other paid agents available as addons.
+ * Pro — all 5 paid agents + 2 free. Multi-network publishing unlocked.
+ * Business — same agents + multi-account, higher quotas, dedicated
+ *   support. Anciennement Elite.
+ */
 export function getAvailableAddons(plan: string): Array<{ agentId: string; name: string; price: number; tier: number }> {
-  // Agent access per plan — higher plans unlock more agents
-  // Créateur: visibility + prospection essentials (boutiques, restos, hotels)
-  // Pro: + SEO, chatbot, legal (growth stage)
-  // Business: + finance, LinkedIn, ads, WhatsApp (full automation)
-  const CREATEUR_AGENTS = new Set(['marketing', 'onboarding', 'content', 'dm_instagram', 'email', 'commercial', 'gmaps']);
-  // Pro: + SEO. Chatbot reste OFF sur Pro (réservé Business car il s'intègre sur le SITE client, lourd à supporter).
-  const PRO_AGENTS = new Set([...CREATEUR_AGENTS, 'seo']);
-  // Business = tier le plus haut, TOUS les agents inclus.
-  // Fondateurs = même périmètre fonctionnel que Business (juste un prix
-  // verrouillé pour les early-adopters), donc même set d'agents.
-  const BUSINESS_AGENTS = new Set([
-    ...PRO_AGENTS,
-    'chatbot', 'comptable', 'rh', 'ads',
-    'whatsapp', 'linkedin', 'tiktok_comments',
-  ]);
+  const FREE_AGENTS = new Set(['marketing', 'onboarding']);
+  // Créateur : DM included, others optional addons
+  const CREATEUR_AGENTS = new Set([...FREE_AGENTS, 'content']);
+  // Pro : all paid agents
+  const PRO_AGENTS = new Set([...CREATEUR_AGENTS, 'dm_instagram', 'email', 'commercial', 'gmaps']);
+  // Business = Pro + multi-account + multi-platform support
+  const BUSINESS_AGENTS = new Set([...PRO_AGENTS]);
+
   const planAgents: Record<string, Set<string>> = {
-    free: new Set(['marketing', 'onboarding']),
-    gratuit: new Set(['marketing', 'onboarding']),
+    free: FREE_AGENTS,
+    gratuit: FREE_AGENTS,
     createur: CREATEUR_AGENTS,
     pro: PRO_AGENTS,
     fondateurs: BUSINESS_AGENTS,
@@ -228,9 +257,11 @@ export function getAvailableAddons(plan: string): Array<{ agentId: string; name:
   };
 
   const AGENT_NAMES: Record<string, string> = {
-    content: 'Lena (Contenu)', dm_instagram: 'Jade (DM)', email: 'Hugo (Email)',
-    commercial: 'Léo (Prospection)', gmaps: 'Théo (Avis Google)', seo: 'Oscar (SEO)',
-    chatbot: 'Max (Chatbot)', rh: 'Sara (RH)', comptable: 'Louis (Finance)',
+    content: 'Léna (Contenu IG/TT/LI)',
+    dm_instagram: 'Jade (DM, comments, engagement)',
+    email: 'Hugo (Email)',
+    commercial: 'Léo (Prospection)',
+    gmaps: 'Théo (Réputation + SEO)',
   };
 
   const included = planAgents[plan] || planAgents.free;
