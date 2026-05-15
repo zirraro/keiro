@@ -96,13 +96,34 @@ export async function POST(req: NextRequest) {
 
   if (action === 'fetch_comments') {
     // Fetch recent media + their comments.
-    // Return post context (thumbnail, caption, permalink, media_type) so
-    // the UI can show the reviewer which post each comment is attached to.
+    // Strategy: scan up to 100 most recent posts but only fetch
+    // /<id>/comments for those with comments_count > 0. Comments often
+    // live on older posts (not the 10 most recent), and skipping
+    // empty posts saves a lot of Graph API calls.
     try {
       const mediaPath = useIgaa ? '/me/media' : `/${igId}/media`;
-      const media = await fetchGraph<{ data: Array<{ id: string; caption?: string; timestamp: string; media_url?: string; thumbnail_url?: string; permalink?: string; media_type?: string }> }>(
-        mediaPath, { fields: 'id,caption,timestamp,media_url,thumbnail_url,permalink,media_type', limit: 10 }
-      );
+      // Page through up to 2 batches of 50 (100 posts total) to find
+      // posts with comments. The Graph API caps `limit` at 100 anyway.
+      type Media = { id: string; caption?: string; timestamp: string; media_url?: string; thumbnail_url?: string; permalink?: string; media_type?: string; comments_count?: number };
+      const collected: Media[] = [];
+      let after: string | undefined;
+      for (let page = 0; page < 2; page++) {
+        const batch: any = await fetchGraph<{ data: Media[]; paging?: { cursors?: { after?: string } } }>(
+          mediaPath,
+          {
+            fields: 'id,caption,timestamp,media_url,thumbnail_url,permalink,media_type,comments_count',
+            limit: 50,
+            ...(after ? { after } : {}),
+          }
+        );
+        collected.push(...((batch?.data as Media[]) || []));
+        after = batch?.paging?.cursors?.after;
+        if (!after || (batch?.data || []).length < 50) break;
+      }
+
+      // Keep only posts that actually have comments — skip the empty
+      // ones entirely to avoid useless API calls.
+      const postsWithComments = collected.filter(p => (p.comments_count || 0) > 0);
 
       const allComments: Array<{
         media_id: string;
@@ -114,7 +135,7 @@ export async function POST(req: NextRequest) {
         post: { caption: string; thumbnail_url: string | null; permalink: string | null; media_type: string | null; posted_at: string };
       }> = [];
 
-      for (const post of media.data || []) {
+      for (const post of postsWithComments) {
         try {
           const comments = await fetchGraph<{ data: Array<{ id: string; text: string; username: string; timestamp: string }> }>(
             `/${post.id}/comments`, { fields: 'id,text,username,timestamp' }
@@ -153,7 +174,15 @@ export async function POST(req: NextRequest) {
         } catch {}
       }
 
-      return NextResponse.json({ ok: true, comments: allComments, total: allComments.length });
+      // Sort newest comment first so the UI shows the most recent on top.
+      allComments.sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
+
+      return NextResponse.json({
+        ok: true,
+        comments: allComments,
+        total: allComments.length,
+        meta: { posts_scanned: collected.length, posts_with_comments: postsWithComments.length },
+      });
     } catch (e: any) {
       return NextResponse.json({ error: e.message }, { status: 500 });
     }
