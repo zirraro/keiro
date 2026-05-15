@@ -285,7 +285,7 @@ export default function AgentDashboard({ agentId, agentName, gradientFrom, gradi
           redundant. */}
 
       {/* Launch campaign button — all agents */}
-      {!isAdmin && agentId !== 'onboarding' && agentId !== 'ceo' && agentId !== 'qa' && agentId !== 'content' && (
+      {!isAdmin && agentId !== 'onboarding' && agentId !== 'ceo' && agentId !== 'qa' && agentId !== 'content' && agentId !== 'marketing' && (
         <div data-tour="launch-campaign" className="mx-5 mt-3 flex items-center gap-2">
           <button
             onClick={() => { try { (window as any).__openCampaignWizard?.(); } catch {} }}
