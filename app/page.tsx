@@ -173,14 +173,14 @@ function HomeKeiroInner() {
                       {locale === 'fr' ? 'Pilotage' : 'Operations'}
                     </span>
                     <span className="text-white/70 leading-snug">
-                      {locale === 'fr' ? "Noah orchestre · Ami pilote la stratégie · Clara t'accompagne au quotidien" : 'Noah orchestrates · Ami leads strategy · Clara guides you day-to-day'}
+                      {locale === 'fr' ? "Ami pilote la stratégie · Clara t'accompagne au quotidien" : 'Ami leads strategy · Clara guides you day-to-day'}
                     </span>
                   </div>
                 </div>
 
                 {(() => {
                   const SB = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-                  const ids = ['ceo', 'marketing', 'content', 'commercial', 'email', 'dm_instagram', 'gmaps', 'onboarding'];
+                  const ids = ['marketing', 'content', 'commercial', 'email', 'dm_instagram', 'gmaps', 'onboarding'];
                   return (
                     <div className="flex items-center gap-1 pt-3 border-t border-white/5">
                       <div className="flex -space-x-2">
@@ -609,7 +609,7 @@ function HomeKeiroInner() {
                     <p className="text-white/70 text-xs">{locale === 'fr' ? 'Strategie, orchestration, suivi quotidien' : 'Strategy, orchestration, daily support'}</p>
                   </div>
                   <div className="text-right">
-                    <div className="text-white font-bold text-2xl">3</div>
+                    <div className="text-white font-bold text-2xl">2</div>
                     <div className="text-white/60 text-[10px]">agents</div>
                   </div>
                 </div>
@@ -617,9 +617,8 @@ function HomeKeiroInner() {
               <div className="p-4">
                 <div className="grid grid-cols-1 gap-2 mb-3">
                   {[
-                    { icon: '\u{1F9E0}', name: 'Noah', role: locale === 'fr' ? 'CEO orchestrateur' : 'CEO orchestrator' },
-                    { icon: '\u{1F3AF}', name: 'Ami', role: locale === 'fr' ? 'Directrice strategie' : 'Strategy director' },
-                    { icon: '\u{1F680}', name: 'Clara', role: locale === 'fr' ? 'Onboarding + suivi' : 'Onboarding + support' },
+                    { icon: '\u{1F3AF}', name: 'Ami', role: locale === 'fr' ? 'Directrice strategie — analyse et recommande' : 'Strategy director — analyzes & recommends' },
+                    { icon: '\u{1F680}', name: 'Clara', role: locale === 'fr' ? 'Onboarding + suivi long terme' : 'Onboarding + long-term support' },
                   ].map(a => (
                     <div key={a.name} className="flex items-center gap-2 bg-white/5 rounded-lg px-2.5 py-2">
                       <span className="text-base">{a.icon}</span>
@@ -640,7 +639,7 @@ function HomeKeiroInner() {
             <div className="flex flex-col md:flex-row items-center gap-6 md:gap-10">
               <div className="flex items-center gap-8 flex-wrap justify-center">
                 <div className="text-center">
-                  <div className="text-white font-bold text-3xl">8</div>
+                  <div className="text-white font-bold text-3xl">7</div>
                   <div className="text-white/40 text-[10px] uppercase tracking-wider">{locale === 'fr' ? 'Agents IA' : 'AI Agents'}</div>
                 </div>
                 <div className="text-center">

@@ -1156,36 +1156,13 @@ export default function AssistantPage() {
           </div>
         )}
 
-        {/* ═══ NOAH + AMI — Conseillers dedies ═══ */}
+        {/* AMI — Directrice Marketing (Noah retired from client UI on
+            15 mai 2026 — purely backend orchestration agent now, paired
+            with AMI for strategy data updates). Single-column layout
+            since only AMI is surfaced. */
         {!isVisitor && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-            {/* NOAH — Conseiller strategique */}
-            <div className="rounded-2xl border border-indigo-500/20 overflow-hidden cursor-pointer hover:border-indigo-500/40 transition-all"
-              onClick={() => { const ceo = CLIENT_AGENTS.find(a => a.id === 'ceo'); if (ceo) handleSelectAgent(ceo); }}>
-              <div className="bg-gradient-to-r from-indigo-600/20 to-blue-600/15 px-4 py-3 flex items-center gap-3">
-                <div className="w-11 h-11 rounded-full overflow-hidden flex-shrink-0" style={{ background: 'linear-gradient(135deg, #6366f1, #3b82f6)', padding: '2px' }}>
-                  <div className="w-full h-full rounded-full overflow-hidden bg-gray-900 flex items-center justify-center">
-                    {avatars['ceo'] ? <img src={avatars['ceo']} alt="Noah" className="w-full h-full object-cover scale-[1.15]" style={{ objectPosition: 'center 15%' }} /> : <span className="text-lg">{'\uD83E\uDDE0'}</span>}
-                  </div>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-white font-bold text-sm">Noah — Votre Strategiste</div>
-                  <div className="text-indigo-300/60 text-[10px]">Conseille sur les priorites du jour et la strategie globale</div>
-                </div>
-                <button onClick={(e) => { e.stopPropagation(); const ceo = CLIENT_AGENTS.find(a => a.id === 'ceo'); if (ceo) handleOpenChat(ceo); }} className="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 rounded-lg text-indigo-300 text-[10px] font-medium transition-all flex-shrink-0">
-                  💬 Chat
-                </button>
-              </div>
-              <div className="px-4 py-3 bg-white/[0.02]">
-                {summary?.activityFeed?.find((a: any) => a.agent === 'ceo') ? (
-                  <p className="text-white/50 text-xs leading-relaxed">{'\uD83C\uDFAF'} {(summary.activityFeed.find((a: any) => a.agent === 'ceo') as any)?.action || 'Analyse en cours...'}</p>
-                ) : (
-                  <p className="text-white/30 text-xs italic">Noah prepare votre brief strategique du jour...</p>
-                )}
-              </div>
-            </div>
-
-            {/* AMI — Directrice Marketing */}
+          <div className="grid grid-cols-1 gap-4 mb-6">
+            }
             <div className="rounded-2xl border border-purple-500/20 overflow-hidden cursor-pointer hover:border-purple-500/40 transition-all"
               onClick={() => { const ami = CLIENT_AGENTS.find(a => a.id === 'marketing'); if (ami) handleSelectAgent(ami); }}>
               <div className="bg-gradient-to-r from-purple-600/20 to-pink-600/15 px-4 py-3 flex items-center gap-3">

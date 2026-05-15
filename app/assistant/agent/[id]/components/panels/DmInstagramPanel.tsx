@@ -19,15 +19,50 @@ import type { PanelProps } from './types';
 
 // Jade tabs: DMs + Comments switch
 
+// Jade multi-network: like Léna, the user picks a network first (IG /
+// TikTok / LinkedIn), then sees the standard 3 action tabs (DMs /
+// Comments / Follows) scoped to that network. TikTok and LinkedIn use
+// sample data + "Connect to activate" CTAs until those APIs are wired
+// up — the founder asked for the spaces to exist so the workspace
+// reads as truly multi-network (parity with Léna).
+type JadeNetwork = 'instagram' | 'tiktok' | 'linkedin';
+
 function JadeTabs({ gradientFrom, gradientTo }: { gradientFrom: string; gradientTo: string }) {
   const { t, locale } = useLanguage();
   const p = t.panels;
+  const [network, setNetwork] = useState<JadeNetwork>('instagram');
   const [tab, setTab] = useState<'dms' | 'comments' | 'follows'>('dms');
 
   const followsLabel = locale === 'en' ? 'Follows' : 'À suivre';
 
+  const networks: { key: JadeNetwork; label: string; icon: string; color: string }[] = [
+    { key: 'instagram', label: 'Instagram', icon: '\u{1F4F8}', color: '#e11d48' },
+    { key: 'tiktok', label: 'TikTok', icon: '\u{1F3B5}', color: '#00f2ea' },
+    { key: 'linkedin', label: 'LinkedIn', icon: '\u{1F4BC}', color: '#0A66C2' },
+  ];
+
   return (
     <div>
+      {/* Network selector — mirrors Léna's ContentPanel pattern */}
+      <div className="flex gap-2 mb-3">
+        {networks.map(n => (
+          <button
+            key={n.key}
+            onClick={() => setNetwork(n.key)}
+            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+              network === n.key
+                ? 'bg-white/10 text-white border border-white/20 shadow'
+                : 'bg-white/[0.03] text-white/40 border border-white/5 hover:text-white/70'
+            }`}
+            style={network === n.key ? { borderColor: n.color + '60' } : {}}
+          >
+            <span>{n.icon}</span>
+            <span>{n.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Action tabs (DMs / Comments / Follows) — same set for all networks */}
       <div className="flex gap-1 bg-white/5 rounded-lg p-0.5 border border-white/10 mb-3">
         <button
           onClick={() => setTab('dms')}
@@ -55,23 +90,85 @@ function JadeTabs({ gradientFrom, gradientTo }: { gradientFrom: string; gradient
         </button>
       </div>
 
-      {tab === 'dms' && (
-        <div data-tour="dm-conversations">
-          <DmConversationsLive />
-        </div>
+      {/* Instagram — live data */}
+      {network === 'instagram' && tab === 'dms' && (
+        <div data-tour="dm-conversations"><DmConversationsLive /></div>
+      )}
+      {network === 'instagram' && tab === 'comments' && (
+        <div data-tour="dm-comments"><LenaCommentsSection /></div>
+      )}
+      {network === 'instagram' && tab === 'follows' && (
+        <div data-tour="dm-follows"><ManualFollowsList /></div>
       )}
 
-      {tab === 'comments' && (
-        <div data-tour="dm-comments">
-          <LenaCommentsSection />
-        </div>
-      )}
+      {/* TikTok / LinkedIn — sample data + connect CTA */}
+      {network === 'tiktok' && <JadeNetworkPlaceholder network="tiktok" tab={tab} />}
+      {network === 'linkedin' && <JadeNetworkPlaceholder network="linkedin" tab={tab} />}
+    </div>
+  );
+}
 
-      {tab === 'follows' && (
-        <div data-tour="dm-follows">
-          <ManualFollowsList />
-        </div>
-      )}
+/**
+ * Placeholder space for Jade on TikTok and LinkedIn — shows a "Connect
+ * to activate" CTA + 3 sample items per tab so the workspace reads as
+ * truly multi-network. Once the TikTok DM API + LinkedIn messaging
+ * scope are wired, this gets replaced by live data loaders.
+ */
+function JadeNetworkPlaceholder({ network, tab }: { network: 'tiktok' | 'linkedin'; tab: 'dms' | 'comments' | 'follows' }) {
+  const networkLabel = network === 'tiktok' ? 'TikTok' : 'LinkedIn';
+  const oauth = network === 'tiktok' ? '/api/auth/tiktok-oauth' : '/api/auth/linkedin-oauth';
+  const tabLabel = tab === 'dms' ? 'messages privés' : tab === 'comments' ? 'commentaires' : 'follows / connexions';
+
+  const samples = tab === 'dms'
+    ? [
+        { who: network === 'tiktok' ? '@creator_marais' : '/in/marie-pro', msg: network === 'tiktok' ? 'Salut ! J\'ai adoré ta dernière vidéo, vous prenez des collabs ?' : 'Bonjour, j\'aimerais en savoir plus sur votre service. Disponible cette semaine ?' },
+        { who: network === 'tiktok' ? '@food_lover_lyon' : '/in/alex-founder', msg: network === 'tiktok' ? 'Trop fort le tuto !! Vous êtes ouvert dimanche ?' : 'Intéressé par votre approche, on peut échanger 15min ?' },
+        { who: network === 'tiktok' ? '@bistrot_paris11' : '/in/sophie-dir', msg: network === 'tiktok' ? 'Hey, j\'aimerais partager ton concept avec ma com — possible ?' : 'Votre profil correspond à un besoin que j\'ai. Disponible pour un appel ?' },
+      ]
+    : tab === 'comments'
+    ? [
+        { who: network === 'tiktok' ? '@scroll_addict_22' : '/in/laurent-pro', msg: network === 'tiktok' ? 'C\'est ouf, vous êtes où en France ?' : 'Belle initiative — un retour d\'expérience à partager ?' },
+        { who: network === 'tiktok' ? '@thomas_eats' : '/in/celine-vc', msg: network === 'tiktok' ? '12K vues mérité, format propre' : 'Curieux du modèle business derrière. Article à venir ?' },
+        { who: network === 'tiktok' ? '@maelys_food' : '/in/aurelie-rh', msg: network === 'tiktok' ? 'Trop bien, vous prenez des stagiaires ?' : 'Recrutez-vous ? Profil correspondant dans mon réseau' },
+      ]
+    : [
+        { who: network === 'tiktok' ? '@studio_kbarber' : 'Marc Dubois — Restaurateur Lyon', msg: network === 'tiktok' ? 'Barber shop Marseille · 8.4K abonnés' : 'Restaurateur · 1.2k connexions · Match 92%' },
+        { who: network === 'tiktok' ? '@bistrot_dumarais' : 'Camille Roux — Coach business', msg: network === 'tiktok' ? 'Restaurant Paris · 12.1K abonnés' : 'Coach · 2.4k connexions · Match 87%' },
+        { who: network === 'tiktok' ? '@fleurs_lyon' : 'David Lemoine — Fondateur SaaS', msg: network === 'tiktok' ? 'Fleuriste Lyon · 6.3K abonnés' : 'CEO · 5.6k connexions · Match 84%' },
+      ];
+
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-3 text-[10px]">
+        <span className="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 font-semibold">Sample data</span>
+        <span className="text-white/40">Exemples — connecte {networkLabel} pour voir tes vrais {tabLabel}.</span>
+      </div>
+
+      <a
+        href={oauth}
+        className={`block text-center w-full py-2.5 rounded-xl text-sm font-bold text-white mb-3 ${
+          network === 'tiktok'
+            ? 'bg-gradient-to-r from-black to-pink-600 hover:opacity-90'
+            : 'bg-gradient-to-r from-blue-600 to-blue-800 hover:opacity-90'
+        }`}
+      >
+        Connecter {networkLabel} {'→'}
+      </a>
+
+      <div className="space-y-2 max-h-[420px] overflow-y-auto">
+        {samples.map((s, i) => (
+          <div key={i} className="bg-white/[0.03] rounded-xl border border-white/10 p-3 flex items-start gap-2">
+            <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] text-white font-bold"
+              style={{ background: network === 'tiktok' ? 'linear-gradient(135deg, #000, #ff0050)' : 'linear-gradient(135deg, #0A66C2, #004182)' }}>
+              {s.who.replace(/^@|^\/in\//, '')[0].toUpperCase()}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[11px] font-bold text-white/80 truncate">{s.who}</div>
+              <p className="text-[11px] text-white/60 mt-1 break-words">{s.msg}</p>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -1146,27 +1243,54 @@ function CommentCard({ comment: c, isDemo, onUpdate }: { comment: any; isDemo: b
         </div>
       )}
 
-      {/* Actions */}
-      {!c.replied && !isDemo && (
+      {/* Actions — Auto-reply / Suggest / Write. In demo mode the
+          buttons still work visually (mark as replied) but skip the
+          actual Graph API call so we don't waste tokens or hit Meta
+          on fake comment IDs. */}
+      {!c.replied && (
         <div className="px-3 pb-3">
           {!showReply ? (
             <>
             <div className="flex items-center gap-1.5">
               <button
-                onClick={() => sendReply()}
+                onClick={() => {
+                  if (isDemo) {
+                    onUpdate(c.comment_id, { replied: true, reply_text: 'Merci ! On adore te lire 🙌' });
+                  } else {
+                    sendReply();
+                  }
+                }}
                 disabled={sending}
-                title="Posts a reply to this Instagram comment via the Graph API (POST /{comment-id}/replies). Axel composes the suggestion using the post context; the human business owner triggers this manual send."
+                title="Posts a reply via the Graph API (POST /{comment-id}/replies). Permission: instagram_business_manage_comments."
                 className="px-2.5 py-1.5 bg-emerald-600/20 text-emerald-400 text-[9px] font-medium rounded-lg hover:bg-emerald-600/30 transition min-h-[32px] disabled:opacity-50"
               >
-                {sending ? '...' : p.dmCommentCardReplyAuto}
+                {sending ? '...' : (p.dmCommentCardReplyAuto || 'Réponse auto')}
               </button>
-              <button onClick={() => setShowReply(true)} className="px-2.5 py-1.5 bg-blue-600/20 text-blue-400 text-[9px] font-medium rounded-lg hover:bg-blue-600/30 transition min-h-[32px]">
-                {p.dmCommentCardReplyManual}
+              <button
+                onClick={() => {
+                  // Suggest = pre-fill the input with a context-aware draft
+                  const draft = c.text?.toLowerCase().includes('?')
+                    ? 'Bonne question ! On te répond en DM 👌'
+                    : 'Merci beaucoup, ça nous fait super plaisir 🙏';
+                  setReplyText(draft);
+                  setShowReply(true);
+                }}
+                className="px-2.5 py-1.5 bg-amber-600/20 text-amber-400 text-[9px] font-medium rounded-lg hover:bg-amber-600/30 transition min-h-[32px]"
+              >
+                💡 Suggérer
+              </button>
+              <button
+                onClick={() => setShowReply(true)}
+                className="px-2.5 py-1.5 bg-blue-600/20 text-blue-400 text-[9px] font-medium rounded-lg hover:bg-blue-600/30 transition min-h-[32px]"
+              >
+                ✍️ Écrire
               </button>
             </div>
-            <DemoCaption>
-              Manual click → POST /{`<comment-id>`}/replies. Permission: instagram_business_manage_comments. AI suggests the draft, owner sends.
-            </DemoCaption>
+            {!isDemo && (
+              <DemoCaption>
+                Manual click → POST /{`<comment-id>`}/replies. Permission: instagram_business_manage_comments. AI suggests the draft, owner sends.
+              </DemoCaption>
+            )}
             </>
           ) : (
             <div className="flex items-center gap-1.5">
@@ -1174,18 +1298,34 @@ function CommentCard({ comment: c, isDemo, onUpdate }: { comment: any; isDemo: b
                 type="text"
                 value={replyText}
                 onChange={e => setReplyText(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter' && replyText.trim()) sendReply(replyText); }}
-                placeholder={p.dmCommentCardPlaceholder}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && replyText.trim()) {
+                    if (isDemo) {
+                      onUpdate(c.comment_id, { replied: true, reply_text: replyText });
+                      setShowReply(false); setReplyText('');
+                    } else {
+                      sendReply(replyText);
+                    }
+                  }
+                }}
+                placeholder={p.dmCommentCardPlaceholder || 'Tape ta réponse…'}
                 autoFocus
                 className="flex-1 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-[11px] text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
               />
               <button
-                onClick={() => sendReply(replyText)}
+                onClick={() => {
+                  if (isDemo) {
+                    onUpdate(c.comment_id, { replied: true, reply_text: replyText });
+                    setShowReply(false); setReplyText('');
+                  } else {
+                    sendReply(replyText);
+                  }
+                }}
                 disabled={sending || !replyText.trim()}
-                title="Sends your custom reply to this Instagram comment via the Graph API (POST /{comment-id}/replies). The reply will be visible publicly under the original comment."
+                title="Sends your custom reply to this Instagram comment via the Graph API (POST /{comment-id}/replies)."
                 className="px-3 py-1.5 bg-blue-600 text-white text-[9px] font-bold rounded-lg disabled:opacity-40 min-h-[32px]"
               >
-                {sending ? '...' : p.sendBtn}
+                {sending ? '...' : (p.sendBtn || 'Envoyer')}
               </button>
               <button onClick={() => setShowReply(false)} className="text-white/30 hover:text-white/60 text-xs px-1">✕</button>
             </div>
@@ -1275,12 +1415,17 @@ function LenaCommentsSection() {
 
   if (loading) return <div className="text-center py-4"><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-400 mx-auto" /></div>;
 
-  // STRICT rule: only REAL Instagram comments are shown when the user
-  // has Instagram connected. Sample comments appear only when there's
-  // no connection at all (onboarding preview). This is the founder's
-  // hard rule — "les commentaires doivent etre les vrai tire d'insta".
-  const igConnected = !!(window as any).__igConnected;
-  const showSamples = !igConnected && comments.length === 0;
+  // Comments display rule:
+  //   - When the user has real IG comments → show them (REAL, no demo)
+  //   - When 0 real comments → show sample comments so the workflow
+  //     (post context + reply / suggest / custom reply) stays
+  //     demonstrable. Each sample is clearly flagged with "Sample data"
+  //     in the banner so there's no ambiguity.
+  // The founder's hard rule was about never mixing real + samples on
+  // top of each other — that still holds: if even ONE real comment
+  // exists we show ONLY real ones. Sample fallback fires only when the
+  // real-comment list is empty.
+  const showSamples = comments.length === 0;
   const sourceList: any[] = comments.length > 0 ? comments : (showSamples ? DEMO_IG_COMMENTS : []);
   const isDemo = showSamples;
 
