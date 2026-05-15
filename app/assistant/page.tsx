@@ -1159,10 +1159,9 @@ export default function AssistantPage() {
         {/* AMI — Directrice Marketing (Noah retired from client UI on
             15 mai 2026 — purely backend orchestration agent now, paired
             with AMI for strategy data updates). Single-column layout
-            since only AMI is surfaced. */
+            since only AMI is surfaced. */}
         {!isVisitor && (
           <div className="grid grid-cols-1 gap-4 mb-6">
-            }
             <div className="rounded-2xl border border-purple-500/20 overflow-hidden cursor-pointer hover:border-purple-500/40 transition-all"
               onClick={() => { const ami = CLIENT_AGENTS.find(a => a.id === 'marketing'); if (ami) handleSelectAgent(ami); }}>
               <div className="bg-gradient-to-r from-purple-600/20 to-pink-600/15 px-4 py-3 flex items-center gap-3">
