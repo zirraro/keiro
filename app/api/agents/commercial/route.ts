@@ -679,14 +679,40 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
     }
 
     // === PHASE 3: External prospection — find NEW businesses via Google Search ===
+    // ── DAILY PROSPECT TARGET — FIXED BASELINE FOR QA ──
+    // Founder rule 16 mai 2026: "definir une base et ca doit tout les
+    // jours etre la meme". Pro plan = 30 new prospects/day. Admin (founder
+    // testing) = 50/day. Léo stops at the target even with API headroom
+    // so the founder can compare today vs yesterday meaningfully.
+    let dailyProspectTarget = 30; // Pro tier baseline
+    try {
+      const { data: ownerProfile } = await supabase
+        .from('profiles')
+        .select('plan')
+        .eq('id', userId)
+        .maybeSingle();
+      const plan = (ownerProfile?.plan || '').toLowerCase();
+      if (plan === 'admin') dailyProspectTarget = 50;
+    } catch {}
+
+    const todayStartLeo = new Date();
+    todayStartLeo.setUTCHours(0, 0, 0, 0);
+    const { count: addedToday } = await supabase
+      .from('crm_prospects')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .gte('created_at', todayStartLeo.toISOString());
+    const remainingProspectQuota = Math.max(0, dailyProspectTarget - (addedToday || 0));
+    console.log(`[CommercialAgent] Daily prospect target: ${addedToday || 0}/${dailyProspectTarget} added today, ${remainingProspectQuota} remaining`);
+
     let newProspectsCreated = 0;
-    const MAX_NEW_PROSPECTS = 50;
+    const MAX_NEW_PROSPECTS = remainingProspectQuota;
     let allNewProspects: any[] = [];
     let dedupSkipped = 0;
     let skippedNoEmail = 0;
     let searchLogs: string[] = [];
 
-    if (runPhase3Discovery && (Date.now() - runStartTime < MAX_RUN_MS)) {
+    if (runPhase3Discovery && (Date.now() - runStartTime < MAX_RUN_MS) && remainingProspectQuota > 0) {
       console.log('[CommercialAgent] Phase 3: Aggressive search for new qualified prospects...');
 
       const businessTypes = [
