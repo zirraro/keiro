@@ -93,6 +93,24 @@ function JadeKpiRow({ network, connected, stats }: { network: JadeNetwork; conne
     display = { sent: 9, replies: 3, drafted: 6, prospects: 22 };
   }
 
+  // If all 4 KPIs are 0 AND the user is connected (so it's real zero,
+  // not sample), hide the noisy "0 / 0 / 0 / 0" row and show a clean
+  // empty state inviting the user to launch their first action.
+  const allZero = display.sent === 0 && display.replies === 0 && display.drafted === 0 && display.prospects === 0;
+  if (allZero && !isSample && connected) {
+    return (
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3 mb-3 flex items-center gap-2.5">
+        <span className="text-base">{'\u{1F4CA}'}</span>
+        <div className="flex-1 min-w-0">
+          <div className="text-[11px] font-semibold text-white/80">Tes stats Jade apparaitront ici</div>
+          <div className="text-[10px] text-white/50">
+            Lance ta première campagne (Prepare DMs · Follow · Send queued) et les chiffres se remplissent en live.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const labels = network === 'linkedin'
     ? { sent: 'Messages envoyés', replies: 'Réponses', drafted: 'À envoyer', prospects: 'Connexions ciblées' }
     : network === 'tiktok'
@@ -1943,42 +1961,163 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
   );
 }
 
-// JadeCampaignActions — five "fire and acknowledge" buttons. Each click
-// hits the relevant /api/agents/dm-instagram/* endpoint and surfaces an
-// inline toast so the user actually sees that the click went through.
-// Previously the buttons silently POST'd which felt like "clic sans effet".
+// JadeCampaignActions — 5 quick-action buttons that open a
+// confirmation+customization modal before firing. Each action accepts
+// parameters tailored to its workflow (quantity, tone, filter, etc.),
+// so the user always reviews and tweaks what Jade is about to do
+// rather than firing blind.
+type ActionField =
+  | { key: string; label: string; type: 'number'; default: number; min: number; max: number; help?: string }
+  | { key: string; label: string; type: 'select'; default: string; options: { value: string; label: string }[]; help?: string }
+  | { key: string; label: string; type: 'toggle'; default: boolean; help?: string };
+
+interface ActionConfig {
+  key: string;
+  label: string;
+  desc: string;
+  icon: string;
+  classes: string;
+  confirmTitle: string;
+  confirmIntro: string;
+  fields: ActionField[];
+  run: (params: Record<string, any>) => Promise<{ ok: boolean; text: string }>;
+}
+
+function ActionConfirmModal({ config, onClose }: { config: ActionConfig; onClose: (result?: { kind: 'ok' | 'err'; text: string }) => void }) {
+  const [params, setParams] = useState<Record<string, any>>(() => {
+    const init: Record<string, any> = {};
+    for (const f of config.fields) init[f.key] = f.default;
+    return init;
+  });
+  const [busy, setBusy] = useState(false);
+
+  const confirm = async () => {
+    setBusy(true);
+    try {
+      const result = await config.run(params);
+      onClose(result);
+    } catch (e: any) {
+      onClose({ kind: 'err', text: e?.message || 'Erreur réseau' });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={() => !busy && onClose()}>
+      <div className="bg-[#0f1d38] border border-white/10 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="p-5 border-b border-white/10">
+          <div className="flex items-center gap-3 mb-2">
+            <span className="text-2xl">{config.icon}</span>
+            <h2 className="text-white font-bold text-base">{config.confirmTitle}</h2>
+          </div>
+          <p className="text-[11px] text-white/60 leading-relaxed">{config.confirmIntro}</p>
+        </div>
+
+        <div className="p-5 space-y-4">
+          {config.fields.map(field => (
+            <div key={field.key}>
+              <label className="text-[11px] font-semibold text-white/80 block mb-1.5">{field.label}</label>
+              {field.type === 'number' && (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="range"
+                    min={field.min}
+                    max={field.max}
+                    value={params[field.key]}
+                    onChange={e => setParams({ ...params, [field.key]: parseInt(e.target.value) })}
+                    className="flex-1 accent-purple-500"
+                  />
+                  <span className="text-white font-bold text-sm min-w-[40px] text-right">{params[field.key]}</span>
+                </div>
+              )}
+              {field.type === 'select' && (
+                <select
+                  value={params[field.key]}
+                  onChange={e => setParams({ ...params, [field.key]: e.target.value })}
+                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-xs focus:outline-none focus:ring-1 focus:ring-purple-500/50"
+                >
+                  {field.options.map(opt => (
+                    <option key={opt.value} value={opt.value} className="bg-[#0f1d38]">{opt.label}</option>
+                  ))}
+                </select>
+              )}
+              {field.type === 'toggle' && (
+                <button
+                  onClick={() => setParams({ ...params, [field.key]: !params[field.key] })}
+                  className={`relative w-11 h-6 rounded-full transition ${params[field.key] ? 'bg-emerald-500' : 'bg-white/15'}`}
+                >
+                  <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${params[field.key] ? 'right-0.5' : 'left-0.5'}`} />
+                </button>
+              )}
+              {field.help && (
+                <p className="text-[10px] text-white/40 mt-1">{field.help}</p>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <div className="p-5 border-t border-white/10 flex items-center gap-2">
+          <button
+            onClick={() => onClose()}
+            disabled={busy}
+            className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/80 text-xs font-semibold transition disabled:opacity-50"
+          >
+            Annuler
+          </button>
+          <button
+            onClick={confirm}
+            disabled={busy}
+            className={`flex-1 py-2.5 rounded-xl text-white text-xs font-bold transition disabled:opacity-50 ${config.classes.includes('emerald') ? 'bg-emerald-600 hover:bg-emerald-500' : config.classes.includes('pink') ? 'bg-pink-600 hover:bg-pink-500' : config.classes.includes('cyan') ? 'bg-cyan-600 hover:bg-cyan-500' : config.classes.includes('blue') ? 'bg-blue-600 hover:bg-blue-500' : 'bg-purple-600 hover:bg-purple-500'}`}
+          >
+            {busy ? '…' : 'Confirmer et lancer'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function JadeCampaignActions({ p }: { p: any }) {
-  const [busy, setBusy] = useState<string | null>(null);
+  const [activeAction, setActiveAction] = useState<ActionConfig | null>(null);
   const [toast, setToast] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
 
-  const fire = useCallback(async (kind: string, fn: () => Promise<{ ok: boolean; text: string }>) => {
-    if (busy) return;
-    setBusy(kind);
-    setToast(null);
-    try {
-      const r = await fn();
-      setToast({ kind: r.ok ? 'ok' : 'err', text: r.text });
-    } catch (e: any) {
-      setToast({ kind: 'err', text: e?.message || 'Erreur réseau' });
-    } finally {
-      setBusy(null);
+  const handleClose = useCallback((result?: { kind: 'ok' | 'err'; text: string }) => {
+    setActiveAction(null);
+    if (result) {
+      setToast(result);
       setTimeout(() => setToast(null), 4500);
     }
-  }, [busy]);
+  }, []);
 
-  const actions = [
+  const actions: ActionConfig[] = [
     {
       key: 'prepare',
       label: p.dmCampaignPrepare,
       desc: p.dmCampaignPrepareDesc,
       icon: '\u{1F4AC}',
       classes: 'bg-pink-500/10 border-pink-500/20 hover:bg-pink-500/20 text-pink-400',
-      run: async () => {
-        const r = await fetch('/api/agents/dm-instagram?slot=morning', { method: 'POST', credentials: 'include' });
+      confirmTitle: 'Préparer une vague de DMs',
+      confirmIntro: 'Jade va sélectionner des prospects qualifiés et préparer un draft de DM personnalisé pour chacun. Tu pourras les relire avant l\'envoi.',
+      fields: [
+        { key: 'count', label: 'Nombre de DMs à préparer', type: 'number', default: 20, min: 5, max: 50, help: 'Max 50 pour éviter le rate-limit Meta.' },
+        { key: 'slot', label: 'Bucket de prospects', type: 'select', default: 'morning', options: [
+          { value: 'morning', label: 'Prospects du matin (hot leads)' },
+          { value: 'afternoon', label: 'Prospects de l\'après-midi (qualified)' },
+          { value: 'evening', label: 'Prospects du soir (warm)' },
+        ]},
+        { key: 'tone', label: 'Ton du message', type: 'select', default: 'founder', options: [
+          { value: 'founder', label: 'Founder voice — Victor décontracté' },
+          { value: 'pro', label: 'Pro — courtois et structuré' },
+          { value: 'playful', label: 'Playful — fun, emoji friendly' },
+        ]},
+      ],
+      run: async (params) => {
+        const r = await fetch(`/api/agents/dm-instagram?slot=${params.slot}&count=${params.count}&tone=${params.tone}`, { method: 'POST', credentials: 'include' });
         const j = await r.json().catch(() => ({}));
-        if (!r.ok) return { ok: false, text: j.error || 'Préparation échouée' };
-        const prepared = j?.prepared ?? j?.queued ?? null;
-        return { ok: true, text: prepared !== null ? `${prepared} DM préparés et prêts à envoyer.` : 'Préparation lancée — vérifie la file dans quelques secondes.' };
+        if (!r.ok) return { kind: 'err' as const, text: j.error || 'Préparation échouée' };
+        const prepared = j?.prepared ?? j?.queued ?? params.count;
+        return { kind: 'ok' as const, text: `${prepared} DMs préparés en file. Va les relire dans l'onglet DMs.` };
       },
     },
     {
@@ -1987,29 +2126,44 @@ function JadeCampaignActions({ p }: { p: any }) {
       desc: p.dmCampaignFollowDesc,
       icon: '\u{1F465}',
       classes: 'bg-cyan-500/10 border-cyan-500/20 hover:bg-cyan-500/20 text-cyan-400',
-      run: async () => {
-        const r = await fetch('/api/agents/dm-instagram/follow-prospects', { method: 'POST', credentials: 'include' });
+      confirmTitle: 'Follow campaign — réchauffer les prospects',
+      confirmIntro: 'Jade va suivre les comptes Instagram des prospects sélectionnés pour les "réchauffer" avant un éventuel DM. Limite quotidienne stricte pour éviter le flag Meta.',
+      fields: [
+        { key: 'count', label: 'Nombre de follows aujourd\'hui', type: 'number', default: 10, min: 3, max: 20, help: 'Meta flag les comptes qui suivent plus de 20-25 personnes par jour de manière régulière. Reste safe.' },
+        { key: 'filter', label: 'Filtrer les prospects', type: 'select', default: 'hot', options: [
+          { value: 'hot', label: 'Hot prospects uniquement (score ≥ 70)' },
+          { value: 'warm', label: 'Warm prospects (score 40-70)' },
+          { value: 'all', label: 'Tous les prospects qualifiés' },
+        ]},
+      ],
+      run: async (params) => {
+        const r = await fetch(`/api/agents/dm-instagram/follow-prospects?count=${params.count}&filter=${params.filter}`, { method: 'POST', credentials: 'include' });
         const j = await r.json().catch(() => ({}));
-        if (!r.ok) return { ok: false, text: j.error || 'Échec du follow' };
-        return { ok: true, text: `${j.followed ?? 0} comptes suivis · ${j.skipped ?? 0} ignorés · ${j.failed ?? 0} échecs.` };
+        if (!r.ok) return { kind: 'err' as const, text: j.error || 'Échec du follow' };
+        return { kind: 'ok' as const, text: `${j.followed ?? 0} comptes suivis · ${j.skipped ?? 0} déjà suivis · ${j.failed ?? 0} échecs.` };
       },
     },
-    // "Likes campaign" was misnamed — the endpoint it called actually
-    // sends queued DMs (not likes). Renamed to match its real behaviour.
-    // Programmatic likes on third-party posts aren't allowed by Meta's
-    // Graph API, so we don't offer that as a separate action.
     {
       key: 'send_queued',
       label: 'Send queued DMs',
-      desc: 'Envoie les DM préparés en file',
+      desc: 'Envoie les DMs préparés en file',
       icon: '\u{1F4E4}',
       classes: 'bg-purple-500/10 border-purple-500/20 hover:bg-purple-500/20 text-purple-400',
-      run: async () => {
-        const r = await fetch('/api/agents/dm-instagram/send-queue', { method: 'POST', credentials: 'include' });
+      confirmTitle: 'Envoyer les DMs en file',
+      confirmIntro: 'Jade va envoyer les DMs préparés vers les prospects via Graph API (instagram_business_manage_messages). Chaque envoi est tracé dans /meta-audit.',
+      fields: [
+        { key: 'count', label: 'Combien envoyer dans cette vague', type: 'number', default: 10, min: 1, max: 30, help: 'Conseil : 10-15 par vague avec pause de 1h entre vagues pour rester naturel.' },
+        { key: 'pace', label: 'Délai entre DMs', type: 'select', default: 'human', options: [
+          { value: 'human', label: 'Humain — 30 à 90 sec entre DMs' },
+          { value: 'fast', label: 'Rapide — 5 à 15 sec (moins safe)' },
+        ]},
+      ],
+      run: async (params) => {
+        const r = await fetch(`/api/agents/dm-instagram/send-queue?count=${params.count}&pace=${params.pace}`, { method: 'POST', credentials: 'include' });
         const j = await r.json().catch(() => ({}));
-        if (!r.ok) return { ok: false, text: j.error || 'Envoi de la file échoué' };
+        if (!r.ok) return { kind: 'err' as const, text: j.error || 'Envoi de la file échoué' };
         const sent = j?.sent ?? j?.delivered ?? null;
-        return { ok: true, text: sent !== null ? `${sent} DM envoyés depuis la file.` : 'File traitée — refresh dans 30 sec pour voir les envois.' };
+        return { kind: 'ok' as const, text: sent !== null ? `${sent} DMs envoyés depuis la file.` : 'File en cours de traitement — revérifie dans 1 min.' };
       },
     },
     {
@@ -2018,10 +2172,20 @@ function JadeCampaignActions({ p }: { p: any }) {
       desc: p.dmCampaignCommentsDesc,
       icon: '\u{1F4DD}',
       classes: 'bg-blue-500/10 border-blue-500/20 hover:bg-blue-500/20 text-blue-400',
-      run: async () => {
-        const r = await fetch('/api/agents/content?slot=community', { method: 'GET', credentials: 'include' });
-        if (!r.ok) return { ok: false, text: 'Génération commentaires échouée' };
-        return { ok: true, text: 'Commentaires communautaires en cours de génération.' };
+      confirmTitle: 'Générer des commentaires communauté',
+      confirmIntro: 'Jade va générer des commentaires authentiques pour engager des prospects sur leurs posts récents. Chaque draft est review avant publication.',
+      fields: [
+        { key: 'count', label: 'Nombre de commentaires à générer', type: 'number', default: 8, min: 3, max: 25 },
+        { key: 'tone', label: 'Ton des commentaires', type: 'select', default: 'warm', options: [
+          { value: 'warm', label: 'Chaleureux — proche, encourageant' },
+          { value: 'pro', label: 'Pro — observateur, expert' },
+          { value: 'playful', label: 'Fun — léger, complice' },
+        ]},
+      ],
+      run: async (params) => {
+        const r = await fetch(`/api/agents/content?slot=community&count=${params.count}&tone=${params.tone}`, { method: 'GET', credentials: 'include' });
+        if (!r.ok) return { kind: 'err' as const, text: 'Génération commentaires échouée' };
+        return { kind: 'ok' as const, text: `${params.count} commentaires en cours de génération — disponibles dans l'onglet Comments dans ~30 sec.` };
       },
     },
     {
@@ -2030,11 +2194,21 @@ function JadeCampaignActions({ p }: { p: any }) {
       desc: p.dmCampaignAutoReplyDesc,
       icon: '\u{1F504}',
       classes: 'bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/20 text-emerald-400',
-      run: async () => {
-        const r = await fetch('/api/agents/dm-instagram/auto-reply', { method: 'POST', credentials: 'include' });
+      confirmTitle: 'Auto-réponse aux DMs entrants',
+      confirmIntro: 'Jade va générer une réponse drafted pour chaque DM entrant non répondu. Tu valides chaque réponse avant qu\'elle parte (Human-in-the-loop strict).',
+      fields: [
+        { key: 'style', label: 'Style de réponse', type: 'select', default: 'warm', options: [
+          { value: 'warm', label: 'Chaleureux — Victor décontracté' },
+          { value: 'concise', label: 'Concis — direct au but' },
+          { value: 'detailed', label: 'Détaillé — questions de qualification' },
+        ]},
+        { key: 'autosend', label: 'Auto-send les réponses simples (merci, salutations)', type: 'toggle', default: false, help: 'Si activé, les réponses ultra-simples partent sans review. Les questions et négos passent toujours par toi.' },
+      ],
+      run: async (params) => {
+        const r = await fetch(`/api/agents/dm-instagram/auto-reply?style=${params.style}&autosend=${params.autosend}`, { method: 'POST', credentials: 'include' });
         const j = await r.json().catch(() => ({}));
-        if (!r.ok) return { ok: false, text: j.error || 'Réponses auto échouées' };
-        return { ok: true, text: `${j.replied ?? 0} réponses préparées en attente de validation.` };
+        if (!r.ok) return { kind: 'err' as const, text: j.error || 'Réponses auto échouées' };
+        return { kind: 'ok' as const, text: `${j.replied ?? 0} réponses préparées${params.autosend ? ' (dont auto-envoyées simples)' : ' — toutes en attente de validation'}.` };
       },
     },
   ];
@@ -2045,11 +2219,11 @@ function JadeCampaignActions({ p }: { p: any }) {
         {actions.map(a => (
           <button
             key={a.key}
-            onClick={() => fire(a.key, a.run)}
-            disabled={busy !== null}
+            onClick={() => setActiveAction(a)}
+            disabled={activeAction !== null}
             className={`flex flex-col items-center gap-1 p-3 border rounded-xl transition text-center disabled:opacity-50 ${a.classes}`}
           >
-            <span className="text-lg">{busy === a.key ? '...' : a.icon}</span>
+            <span className="text-lg">{a.icon}</span>
             <span className="text-[10px] font-bold">{a.label}</span>
             <span className="text-[8px] text-white/30 leading-tight">{a.desc}</span>
           </button>
@@ -2060,6 +2234,7 @@ function JadeCampaignActions({ p }: { p: any }) {
           {toast.kind === 'ok' ? '✓ ' : '⚠ '}{toast.text}
         </div>
       )}
+      {activeAction && <ActionConfirmModal config={activeAction} onClose={handleClose} />}
     </div>
   );
 }

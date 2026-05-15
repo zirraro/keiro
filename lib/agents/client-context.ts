@@ -327,12 +327,15 @@ export const CLIENT_AGENTS: ClientAgent[] = [
     icon: '\u{1F4E7}',
     integrations: ['Votre boite email (Brevo)', 'CRM KeiroAI'],
   },
+  // Felix (ads) — admin_only (founder use only). Founder rule 15 mai
+  // 2026: "felix pour les ads on le garde pour moi mais le retire de
+  // lapage a vendre donc on ne commercialise pas felix".
   {
     id: 'ads',
     displayName: 'Felix',
-    title: 'Expert Publicite',
-    description: 'Cree et optimise automatiquement vos campagnes Meta Ads et Google Ads, maximise votre ROAS',
-    visibility: 'coming_soon',
+    title: 'Expert Publicité (admin only)',
+    description: 'Meta Ads + Google Ads — réservé fondateur, pas exposé aux clients',
+    visibility: 'admin_only',
     minPlan: 'business',
     gradientFrom: '#ef4444',
     gradientTo: '#dc2626',

@@ -2,9 +2,13 @@
 
 /**
  * Ami — Marketing strategy master dashboard panel.
- * Extracted from AgentDashboard.tsx.
+ * Network selector at the top (parity with Léna and Jade): the user
+ * picks IG / TT / LI and the insights below adapt to that network.
+ * Cross-network KPIs (commercial pipeline, finance, team feed) live
+ * outside the selector since they aggregate across all networks.
  */
 
+import { useState } from 'react';
 import {
   fmt, fmtCurrency, fmtDate,
   KpiCard, SectionTitle, EmptyState, DonutChart, ProgressBar, ActivityFeed,
@@ -14,118 +18,89 @@ import { InstagramAssetBadge } from './InstagramAssetBadge';
 import { useLanguage } from '@/lib/i18n/context';
 import type { PanelProps } from './types';
 
+type AmiNetwork = 'instagram' | 'tiktok' | 'linkedin';
+
+const AMI_NETWORKS: { key: AmiNetwork; label: string; icon: string; color: string }[] = [
+  { key: 'instagram', label: 'Instagram', icon: '\u{1F4F8}', color: '#ec4899' },
+  { key: 'tiktok', label: 'TikTok', icon: '\u{1F3B5}', color: '#00f2ea' },
+  { key: 'linkedin', label: 'LinkedIn', icon: '\u{1F4BC}', color: '#0A66C2' },
+];
+
 export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: PanelProps) {
   const { t } = useLanguage();
   const p = t.panels;
   const gs = data.globalStats;
   const recs = data.recommendations ?? [];
+  const [network, setNetwork] = useState<AmiNetwork>('instagram');
 
   // If globalStats is available, show the master dashboard
   if (gs) {
     return (
       <>
-        {/* Asset badge / connect prompts removed from Marketing — they live in
-            the dedicated Jade (DM) and Léna (Content) panels. Showing the same
-            "Connect Instagram" / asset card on every agent created visual
-            redundancy. The marketing panel focuses on cross-network KPIs. */}
-
-        {/* Hot prospects alert */}
-        {/* HotProspectsAlert removed — too much space, only useful for visitor mode */}
-
-        {/* Commercial bloc */}
-        <SectionTitle>{p.marketingSectionProspection}</SectionTitle>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <KpiCard label={p.marketingLabelTotalProspects} value={fmt(gs.commercial?.totalProspects || 0)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-          <KpiCard label={p.marketingLabelThisWeek} value={`+${fmt(gs.commercial?.prospectsThisWeek || 0)}`} gradientFrom="#06b6d4" gradientTo="#0891b2" />
-          <KpiCard label={p.marketingLabelClients} value={fmt(gs.commercial?.conversions || 0)} gradientFrom="#10b981" gradientTo="#22c55e" />
-          <KpiCard label={p.marketingLabelConversion} value={`${gs.commercial?.conversionRate || 0}%`} gradientFrom="#f59e0b" gradientTo="#d97706" />
+        {/* Network selector — TOP of page (parity with L\u00e9na/Jade).
+            AMI is an insights / strategy surface, so the network choice
+            frames everything below. The cross-network sections (pipeline,
+            recommendations, team feed) live further down and only show
+            when there's something meaningful to display. */}
+        <div className="flex gap-2 mb-4">
+          {AMI_NETWORKS.map(n => (
+            <button
+              key={n.key}
+              onClick={() => setNetwork(n.key)}
+              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+                network === n.key
+                  ? 'bg-white/10 text-white border border-white/20 shadow'
+                  : 'bg-white/[0.03] text-white/40 border border-white/5 hover:text-white/70'
+              }`}
+              style={network === n.key ? { borderColor: n.color + '60' } : {}}
+            >
+              <span>{n.icon}</span>
+              <span>{n.label}</span>
+            </button>
+          ))}
         </div>
 
-        {/* Funnel */}
-        <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 mt-4">
-          <div className="flex items-center justify-between gap-1 text-center">
-            {[
-              { label: p.marketingFunnelIdentified, value: gs.commercial?.totalProspects || 0, icon: '\u{1F465}', color: '#94a3b8' },
-              { label: p.marketingFunnelContacted, value: gs.commercial?.prospectsThisWeek || 0, icon: '\u{1F4E8}', color: '#60a5fa' },
-              { label: p.marketingFunnelQualified, value: Math.round((gs.commercial?.prospectsThisWeek || 0) * 0.6), icon: '\u{1F3AF}', color: '#fbbf24' },
-              { label: p.marketingFunnelClients, value: gs.commercial?.conversions || 0, icon: '\u{1F525}', color: '#22c55e' },
-            ].map((step, i) => (
-              <div key={step.label} className="flex items-center flex-1">
-                <div className="flex-1 text-center">
-                  <div className="text-lg mb-1">{step.icon}</div>
-                  <div className="text-sm font-bold text-white" style={{ color: step.color }}>{step.value}</div>
-                  <div className="text-[9px] text-white/40 mt-0.5">{step.label}</div>
-                </div>
-                {i < 3 && <div className="text-white/20 text-xs mx-1">{'\u2192'}</div>}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Quick actions */}
-        <div className="flex flex-wrap gap-2 mt-3">
-          <a href="/assistant/crm" className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xs font-semibold rounded-xl hover:opacity-90 transition-all">
-            {'\u{1F4CA}'} {p.viewCrm}
-          </a>
-          <a href="/generate" className="px-4 py-2 bg-white/10 text-white/70 text-xs font-medium rounded-xl hover:bg-white/15">
-            {'\u2728'} {p.createContent}
-          </a>
-        </div>
-
-        {/* Visibilité bloc — only the metrics that are decoupled from
-            Instagram activity belong here. Followers were previously double-
-            counted as both "Followers" (this section) and "Posts" (next
-            section), and the value silently fell back to gs.visibility.traffic
-            which was itself the same IG followers count — leaking organic
-            audience figures even when no KeiroAI content had been published. */}
-        <SectionTitle>{p.marketingSectionVisibility}</SectionTitle>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          <KpiCard label={p.marketingLabelActions} value={fmt(gs.visibility?.totalActions || 0)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-          <KpiCard label={p.marketingLabelRecommendation} value={gs.recommendation ? '1' : '0'} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        </div>
-
-        {/* Multi-network insights — Instagram, TikTok, LinkedIn parallel.
-            Each section follows the same 3-state pattern (not connected /
-            connected no-activity / connected with metrics). This is the
-            "Insights" experience demonstrated for Meta App Review's
-            instagram_business_manage_insights permission. */}
-        <SectionTitle>Performance par r\u00e9seau</SectionTitle>
-        <div className="space-y-3">
+        {/* Selected network insight section */}
+        {network === 'instagram' && (
           <NetworkInsightSection
             network="instagram"
             label="Instagram"
             stats={(gs as any).instagram}
             connectUrl="/api/auth/instagram-oauth"
-            icon="\u{1F4F8}"
+            icon={'\u{1F4F8}'}
             labelLikes={p.marketingLabelLikes}
             labelEngagement={p.marketingLabelEngagement}
             labelFollowers={p.marketingLabelFollowers}
             labelPosts={p.marketingLabelPosts}
             labelReach={p.marketingLabelReach}
           />
+        )}
+        {network === 'tiktok' && (
           <NetworkInsightSection
             network="tiktok"
             label="TikTok"
             stats={(gs as any).tiktok}
             connectUrl="/api/auth/tiktok-oauth"
-            icon="\u{1F3B5}"
+            icon={'\u{1F3B5}'}
             labelLikes="Likes totaux"
             labelEngagement={p.marketingLabelEngagement}
             labelFollowers="Abonn\u00e9s"
             labelPosts="Vid\u00e9os"
           />
+        )}
+        {network === 'linkedin' && (
           <NetworkInsightSection
             network="linkedin"
             label="LinkedIn"
             stats={(gs as any).linkedin}
             connectUrl="/api/auth/linkedin-oauth"
-            icon="\u{1F4BC}"
+            icon={'\u{1F4BC}'}
             labelLikes="R\u00e9actions"
             labelEngagement={p.marketingLabelEngagement}
             labelFollowers="Connexions"
             labelPosts="Posts publi\u00e9s"
           />
-        </div>
+        )}
 
         {/* Audit log link \u2014 Meta App Review compliance evidence */}
         <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-3 mt-3">
@@ -147,56 +122,9 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
           </div>
         </div>
 
-        {/* Finance bloc */}
-        <SectionTitle>{p.marketingSectionFinance}</SectionTitle>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <KpiCard label={p.marketingLabelAdBudget} value={fmtCurrency(gs.finance.adBudget)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-          <KpiCard label={p.marketingLabelRoas} value={`${(gs.finance.roas || 0).toLocaleString(typeof window !== 'undefined' && localStorage.getItem('keiro_language') === 'en' ? 'en-US' : 'fr-FR', { maximumFractionDigits: 1 })}x`} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-          <KpiCard label={p.marketingLabelForecast} value={fmtCurrency(gs.finance.forecast)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
-        </div>
-
-        {/* Recommendation AMI */}
-        {gs.recommendation && (
-          <>
-            <SectionTitle>{p.marketingSectionRec}</SectionTitle>
-            <div
-              className="rounded-xl border p-4"
-              style={{
-                borderColor: `${gradientFrom}44`,
-                background: `linear-gradient(135deg, ${gradientFrom}11, ${gradientTo}11)`,
-              }}
-            >
-              <p className="text-sm text-white/90 font-medium">{gs.recommendation}</p>
-            </div>
-          </>
-        )}
-
-        {/* Visual charts */}
-        <SectionTitle>{p.marketingSectionOverview}</SectionTitle>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="rounded-xl border border-white/10 p-4 bg-white/[0.02]">
-            <h4 className="text-white/50 text-[10px] uppercase tracking-wider mb-3 text-center">{p.marketingOverviewBreakdown}</h4>
-            <DonutChart
-              segments={[
-                { value: gs.commercial.leadsWeek, color: '#3b82f6', label: p.marketingOverviewLeads },
-                { value: gs.commercial.conversions, color: '#22c55e', label: p.marketingOverviewConversions },
-                { value: gs.visibility.traffic, color: '#a855f7', label: p.marketingOverviewTraffic },
-                { value: gs.visibility.followers, color: '#f59e0b', label: p.marketingOverviewFollowers },
-              ]}
-              label={`${gs.commercial.leadsWeek + gs.commercial.conversions + gs.visibility.traffic + gs.visibility.followers}`}
-            />
-          </div>
-          <div className="rounded-xl border border-white/10 p-4 bg-white/[0.02] space-y-3">
-            <h4 className="text-white/50 text-[10px] uppercase tracking-wider mb-1">{p.marketingOverviewObjectives}</h4>
-            <ProgressBar value={gs.commercial.conversions} max={Math.max(gs.commercial.leadsWeek, 1)} color="#22c55e" label={p.marketingLabelConversion} />
-            <ProgressBar value={Math.round(gs.visibility.googleRating * 20)} max={100} color="#f59e0b" label={`Google (${gs.visibility.googleRating}/5)`} />
-            <ProgressBar value={Math.min(Math.round(gs.finance.roas * 33), 100)} max={100} color="#a855f7" label={`ROAS (${gs.finance.roas}x)`} />
-          </div>
-        </div>
-
-        {/* Feed equipe temps reel */}
-        <SectionTitle>{p.marketingSectionTeamFeed}</SectionTitle>
-        {/* Ami's recommendation */}
+        {/* AMI's strategic recommendation \u2014 always shown if available
+            since it's AMI's core value-add (Sonnet's analysis based on
+            the data). No fallback / placeholder when missing. */}
         {gs.recommendation && (
           <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-4 mt-3">
             <div className="flex items-start gap-2">
@@ -209,16 +137,72 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
           </div>
         )}
 
-        <ActivityFeed
-          items={((gs as any).teamActivity ?? gs.recentTeamActivity ?? []).map((a: any) => ({
-            label: a.action,
-            detail: a.agent,
-            date: a.date || a.created_at,
-          }))}
-          agentName={agentName}
-          gradientFrom={gradientFrom}
-          gradientTo={gradientTo}
-        />
+        {/* Cross-network commercial pipeline — only when there ARE
+            prospects. Showing 0/0/0/0 funnels is noise that the founder
+            explicitly flagged: "il faut revoir et verifier que les data
+            apparaissent bien et soient pas doublon". */}
+        {(gs.commercial?.totalProspects || 0) > 0 && (
+          <>
+            <SectionTitle>{p.marketingSectionProspection}</SectionTitle>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+              <KpiCard label={p.marketingLabelTotalProspects} value={fmt(gs.commercial.totalProspects)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+              <KpiCard label={p.marketingLabelThisWeek} value={`+${fmt(gs.commercial.prospectsThisWeek || 0)}`} gradientFrom="#06b6d4" gradientTo="#0891b2" />
+              <KpiCard label={p.marketingLabelClients} value={fmt(gs.commercial.conversions || 0)} gradientFrom="#10b981" gradientTo="#22c55e" />
+              <KpiCard label={p.marketingLabelConversion} value={`${gs.commercial.conversionRate || 0}%`} gradientFrom="#f59e0b" gradientTo="#d97706" />
+            </div>
+            <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 mb-4">
+              <div className="flex items-center justify-between gap-1 text-center">
+                {[
+                  { label: p.marketingFunnelIdentified, value: gs.commercial.totalProspects, icon: '\u{1F465}', color: '#94a3b8' },
+                  { label: p.marketingFunnelContacted, value: gs.commercial.prospectsThisWeek || 0, icon: '\u{1F4E8}', color: '#60a5fa' },
+                  { label: p.marketingFunnelQualified, value: Math.round((gs.commercial.prospectsThisWeek || 0) * 0.6), icon: '\u{1F3AF}', color: '#fbbf24' },
+                  { label: p.marketingFunnelClients, value: gs.commercial.conversions || 0, icon: '\u{1F525}', color: '#22c55e' },
+                ].map((step, i) => (
+                  <div key={step.label} className="flex items-center flex-1">
+                    <div className="flex-1 text-center">
+                      <div className="text-lg mb-1">{step.icon}</div>
+                      <div className="text-sm font-bold" style={{ color: step.color }}>{step.value}</div>
+                      <div className="text-[9px] text-white/40 mt-0.5">{step.label}</div>
+                    </div>
+                    {i < 3 && <div className="text-white/20 text-xs mx-1">{'\u2192'}</div>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Finance \u2014 only when there's an ad budget tracked. Removed
+            the always-zero finance bloc when nothing is running. */}
+        {gs.finance && (gs.finance.adBudget > 0 || gs.finance.roas > 0) && (
+          <>
+            <SectionTitle>{p.marketingSectionFinance}</SectionTitle>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+              <KpiCard label={p.marketingLabelAdBudget} value={fmtCurrency(gs.finance.adBudget)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+              <KpiCard label={p.marketingLabelRoas} value={`${(gs.finance.roas || 0).toFixed(1)}x`} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+              <KpiCard label={p.marketingLabelForecast} value={fmtCurrency(gs.finance.forecast)} gradientFrom={gradientFrom} gradientTo={gradientTo} />
+            </div>
+          </>
+        )}
+
+        {/* Team activity feed \u2014 keeps AMI useful as a "what just
+            happened across all agents" pulse. Only renders if there's
+            recent activity. */}
+        {(((gs as any).teamActivity?.length || 0) > 0 || (gs.recentTeamActivity?.length || 0) > 0) && (
+          <>
+            <SectionTitle>{p.marketingSectionTeamFeed}</SectionTitle>
+            <ActivityFeed
+              items={((gs as any).teamActivity ?? gs.recentTeamActivity ?? []).map((a: any) => ({
+                label: a.action,
+                detail: a.agent,
+                date: a.date || a.created_at,
+              }))}
+              agentName={agentName}
+              gradientFrom={gradientFrom}
+              gradientTo={gradientTo}
+            />
+          </>
+        )}
       </>
     );
   }
