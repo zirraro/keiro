@@ -587,6 +587,35 @@ N'utilise les actions QUE quand le client DEMANDE explicitement.`;
           businessType: dossier?.business_type || undefined,
         });
         console.log(`[ClientChat] Directive captured for ${agent_id}: "${directive.text.slice(0, 60)}..." (scope=${directive.scope})`);
+
+        // AMI ORCHESTRATION: when the chat is with AMI (marketing
+        // agent), the directive must also propagate to the
+        // operational agents it applies to. Without this, telling AMI
+        // "stop publishing on Sundays" would only save the rule on
+        // marketing_directives — which Léna doesn't read. Sonnet
+        // routes the directive to the right operational agents.
+        if (agent_id === 'marketing') {
+          try {
+            const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://keiroai.com';
+            const cronSecret = process.env.CRON_SECRET;
+            if (cronSecret) {
+              // Use the orchestration endpoint with cron auth so it
+              // runs on the user's behalf without needing the cookie
+              // session here.
+              fetch(`${APP_URL}/api/agents/orchestrate-directive`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${cronSecret}`,
+                  'Content-Type': 'application/json',
+                  'x-user-id': user.id,
+                },
+                body: JSON.stringify({ source: 'ami_chat', directive: directive.text, user_id: user.id }),
+              }).catch(() => {});
+            }
+          } catch (e: any) {
+            console.warn('[ClientChat] AMI orchestration routing failed:', e?.message);
+          }
+        }
       }
     } catch (e: any) {
       console.warn('[ClientChat] directive extraction non-fatal:', e?.message);

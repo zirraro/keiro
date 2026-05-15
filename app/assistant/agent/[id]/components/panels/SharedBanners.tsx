@@ -483,7 +483,12 @@ export function AgentNotifications({ agentId }: { agentId: string }) {
       .then(r => r.json())
       .then(d => {
         const agentNotifs = (d.notifications || [])
-          .filter((n: any) => n.agent === agentId && !n.read)
+          // Only surface notifications that ACTUALLY require human action.
+          // Routine "agent ran successfully" notifs are silenced — they
+          // clutter the workspace and pop up too often without value.
+          // Founder rule: "pop up sort uniquement si action humaine
+          // du client est attendue, sinon non".
+          .filter((n: any) => n.agent === agentId && !n.read && n.type === 'action')
           .slice(0, 3);
         setNotifs(agentNotifs);
       })

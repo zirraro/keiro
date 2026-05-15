@@ -122,30 +122,28 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
           </div>
         </div>
 
-        {/* SECTION : AMI t\u2019interpr\u00e8te + Actions orchestr\u00e9es
-            AMI is autonomous and pushes directives to all agents. The
-            recommendation block becomes actionable: clicking "Appliquer
-            aux agents" calls /api/agents/orchestrate-directive which
-            saves the directive into org_agent_configs so each agent
-            picks it up on the next run. Founder rule: "AMI donne des
-            ordres aux agents en ajustant les actions de chacun". */}
+        {/* SECTION : AMI t'interpr\u00e8te (lecture seule)
+            AMI is a pure insights/strategy surface \u2014 no action buttons.
+            Orchestration happens via chat: founder talks to AMI in her
+            chat OR to any specific agent in its chat. The extractDirective
+            pipeline (lib/agents/extract-directive.ts) saves durable rules
+            to org_agent_configs.<agent>_directives whichever entry-point
+            is used. Founder rule (15 mai 2026): "AMI orchestre, pas de
+            bouton, on demande via le chat". */}
         {gs.recommendation && (
           <>
             <SectionTitle>AMI t&apos;interpr\u00e8te</SectionTitle>
             <div className="rounded-xl border border-cyan-500/30 bg-gradient-to-br from-cyan-500/10 to-purple-500/5 p-4 mb-3">
-              <div className="flex items-start gap-2 mb-3">
+              <div className="flex items-start gap-2">
                 <span className="text-lg">{'\u{1F4A1}'}</span>
                 <div className="flex-1 min-w-0">
                   <p className="text-[10px] font-bold text-cyan-300 mb-1 uppercase tracking-wider">Analyse strat\u00e9gique</p>
                   <p className="text-xs text-white/85 leading-relaxed">{gs.recommendation}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 pt-2 border-t border-white/10">
-                <AmiOrchestrateButton recommendation={gs.recommendation} />
-                <span className="text-[10px] text-white/40">
-                  Pousse la directive vers tous les agents concern\u00e9s. Chaque agent l&apos;applique sur sa prochaine ex\u00e9cution.
-                </span>
-              </div>
+              <p className="mt-3 pt-3 border-t border-white/10 text-[10px] text-white/40 leading-relaxed">
+                \ud83d\udcac Pour appliquer cette analyse, ouvre le chat d&apos;AMI ou celui de l&apos;agent concern\u00e9 (L\u00e9na, Jade, Hugo, L\u00e9o, Th\u00e9o) et dis-lui ce que tu veux ajuster. La r\u00e8gle est persist\u00e9e et appliqu\u00e9e \u00e0 chaque ex\u00e9cution suivante.
+              </p>
             </div>
           </>
         )}

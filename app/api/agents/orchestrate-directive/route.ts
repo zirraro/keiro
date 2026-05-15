@@ -47,12 +47,26 @@ async function callSonnet(system: string, message: string, maxTokens = 500): Pro
 }
 
 export async function POST(req: NextRequest) {
-  const { user, error: authError } = await getAuthUser();
-  if (authError || !user) {
-    return NextResponse.json({ ok: false, error: 'Auth required' }, { status: 401 });
+  const body = await req.json().catch(() => ({}));
+
+  // Two auth paths: normal user session OR CRON_SECRET + x-user-id
+  // header. The latter is how AMI's chat handler triggers
+  // orchestration server-side without needing the cookie.
+  let userId: string | null = null;
+  const cronSecret = process.env.CRON_SECRET;
+  const authHeader = req.headers.get('authorization');
+  const xUserId = req.headers.get('x-user-id') || body.user_id;
+  if (cronSecret && authHeader === `Bearer ${cronSecret}` && xUserId) {
+    userId = String(xUserId);
+  } else {
+    const { user, error: authError } = await getAuthUser();
+    if (authError || !user) {
+      return NextResponse.json({ ok: false, error: 'Auth required' }, { status: 401 });
+    }
+    userId = user.id;
   }
 
-  const body = await req.json().catch(() => ({}));
+  const user = { id: userId };
   const directive = (body.directive || '').toString().trim();
   if (!directive || directive.length < 20) {
     return NextResponse.json({ ok: false, error: 'directive too short' }, { status: 400 });
