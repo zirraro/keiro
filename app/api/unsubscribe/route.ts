@@ -43,7 +43,11 @@ async function runUnsubscribe(token: string, reason?: string) {
       .from('crm_prospects')
       .update({
         status: 'perdu',
-        temperature: 'cold',
+        // 'dead' aligns with the Brevo webhook handler — both unsubscribe
+        // paths (direct link + Brevo report) now set the same state. The
+        // previous 'cold' was inconsistent and could leak the prospect
+        // back into "warm" warm-up flows on re-import.
+        temperature: 'dead',
         email_sequence_status: 'unsubscribed',
         dm_status: 'stopped',
         updated_at: new Date().toISOString(),
@@ -51,6 +55,22 @@ async function runUnsubscribe(token: string, reason?: string) {
       .eq('id', prospectId);
 
     if (updErr) return { ok: false, status: 500, error: updErr.message };
+
+    // Also add to the email_blacklist so the Hugo send route blocks
+    // any future delivery attempt — required by GDPR / CAN-SPAM.
+    if (prospect.user_id) {
+      try {
+        await supabase.from('email_blacklist').upsert(
+          {
+            client_id: prospect.user_id,
+            email: prospect.email,
+            reason: 'unsubscribe_link',
+            created_at: new Date().toISOString(),
+          },
+          { onConflict: 'client_id,email' },
+        );
+      } catch {}
+    }
 
     // Log the activity for audit (best-effort).
     try {
@@ -61,7 +81,7 @@ async function runUnsubscribe(token: string, reason?: string) {
         type: 'unsubscribe',
         description: reason
           ? `Désinscription via lien email — motif: ${String(reason).slice(0, 300)}`
-          : 'Désinscription via lien email',
+          : 'Désinscription via lien email — temperature=dead, blacklist appliqué',
         date_activite: now,
         created_at: now,
       });
