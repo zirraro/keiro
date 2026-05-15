@@ -1198,7 +1198,7 @@ function DmCard({ dm, statusColors }: { dm: { target: string; status: string; me
 
 // Inline comments section for Lena
 
-function CommentCard({ comment: c, isDemo, onUpdate }: { comment: any; isDemo: boolean; onUpdate: (id: string, data: any) => void }) {
+function CommentCard({ comment: c, isDemo, onUpdate, hidePostHeader }: { comment: any; isDemo: boolean; onUpdate: (id: string, data: any) => void; hidePostHeader?: boolean }) {
   const { t } = useLanguage();
   const p = t.panels;
   const [replyText, setReplyText] = useState('');
@@ -1244,10 +1244,10 @@ function CommentCard({ comment: c, isDemo, onUpdate }: { comment: any; isDemo: b
   const mediaBadge = mediaType === 'VIDEO' || mediaType === 'REELS' ? '🎬' : mediaType === 'CAROUSEL_ALBUM' ? '🖼️' : '📷';
 
   return (
-    <div className={`bg-white/5 rounded-xl border border-white/10 overflow-hidden ${postPermalink && !isDemo ? 'hover:border-purple-500/40 transition' : ''}`}>
-      {/* Post context — what this comment is attached to. Clickable on
-          the whole row to open the post on Instagram. */}
-      {(postThumb || postCaption) && (
+    <div className={`${hidePostHeader ? '' : 'bg-white/5 rounded-xl border border-white/10'} overflow-hidden ${postPermalink && !isDemo && !hidePostHeader ? 'hover:border-purple-500/40 transition' : ''}`}>
+      {/* Post context — only when not in group view (group view shows
+          the post header once at the top). */}
+      {!hidePostHeader && (postThumb || postCaption) && (
         <a
           href={postPermalink || '#'}
           target={postPermalink ? '_blank' : undefined}
@@ -1625,13 +1625,101 @@ function LenaCommentsSection() {
         </div>
       )}
 
-      {/* Comment list with per-card selection checkbox for pending comments */}
-      <div className="space-y-2 max-h-[420px] overflow-y-auto">
-        {visible.slice(0, 30).map((c: any, i: number) => {
+      {/* Comments grouped by post — each post header (thumbnail +
+          caption + permalink) appears ONCE at the top of a section,
+          with all its comments listed below. Founder ask: "dans jade
+          commentaire je veux voir le post et les commentaires
+          associes sous la meme rubrique". */}
+      <div className="space-y-3 max-h-[520px] overflow-y-auto">
+        {(() => {
+          const grouped = new Map<string, { post: any; comments: any[] }>();
+          for (const c of visible.slice(0, 50)) {
+            const k = c.media_id || c.comment_id || 'unknown';
+            if (!grouped.has(k)) grouped.set(k, { post: c.post || {}, comments: [] });
+            grouped.get(k)!.comments.push(c);
+          }
+          return [...grouped.entries()].map(([mediaId, group]) => (
+            <PostGroup
+              key={mediaId}
+              post={group.post}
+              comments={group.comments}
+              isDemo={isDemo}
+              filter={filter}
+              selected={selected}
+              setSelected={setSelected}
+              onUpdate={(id, data) => setComments(prev => prev.map(cc => cc.comment_id === id ? { ...cc, ...data } : cc))}
+            />
+          ));
+        })()}
+      </div>
+    </div>
+  );
+}
+
+// PostGroup renders one Instagram post header + all its comments
+// underneath as a single rubric. The post header is clickable and
+// opens the post on Instagram. Each commenter's username is also
+// clickable (opens their IG profile) so the user can verify the
+// comment is real and find it back later.
+function PostGroup({
+  post, comments, isDemo, filter, selected, setSelected, onUpdate,
+}: {
+  post: any;
+  comments: any[];
+  isDemo: boolean;
+  filter: 'pending' | 'all' | 'replied';
+  selected: Set<string>;
+  setSelected: React.Dispatch<React.SetStateAction<Set<string>>>;
+  onUpdate: (id: string, data: any) => void;
+}) {
+  const postThumb: string | null = post?.thumbnail_url || null;
+  const postCaption: string = post?.caption || '';
+  const postPermalink: string | null = post?.permalink || null;
+  const mediaType: string = (post?.media_type || '').toUpperCase();
+  const mediaBadge = mediaType === 'VIDEO' || mediaType === 'REELS' ? '🎬' : mediaType === 'CAROUSEL_ALBUM' ? '🖼️' : '📷';
+
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden">
+      {/* Post header — clickable to open the post on Instagram */}
+      {(postThumb || postCaption) && (
+        <a
+          href={postPermalink || '#'}
+          target={postPermalink ? '_blank' : undefined}
+          rel="noopener noreferrer"
+          onClick={(e) => { if (!postPermalink || isDemo) e.preventDefault(); }}
+          className={`flex items-center gap-3 px-3 py-2.5 border-b border-white/10 bg-white/[0.04] ${postPermalink && !isDemo ? 'hover:bg-white/[0.07] transition cursor-pointer' : ''}`}
+          title={postPermalink && !isDemo ? 'Ouvrir le post sur Instagram' : ''}
+        >
+          {postThumb && (
+            <img src={postThumb} alt="" className="w-14 h-14 rounded-md object-cover flex-shrink-0" loading="lazy" />
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <span className="text-[10px] text-white/40">{mediaBadge}</span>
+              <span className="text-[10px] font-bold text-white/80 truncate">
+                {postCaption ? postCaption.substring(0, 80) : 'Post Instagram'}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] text-purple-300/70 font-semibold">{comments.length} commentaire{comments.length > 1 ? 's' : ''}</span>
+              {post?.posted_at && (
+                <span className="text-[9px] text-white/30">· publié {new Date(post.posted_at).toLocaleDateString()}</span>
+              )}
+            </div>
+          </div>
+          {postPermalink && !isDemo && (
+            <span className="text-[11px] text-purple-300 font-semibold flex-shrink-0">Ouvrir ↗</span>
+          )}
+        </a>
+      )}
+
+      {/* Comments list under this post */}
+      <div className="divide-y divide-white/5">
+        {comments.map((c: any) => {
           const isPending = !c.replied;
           const checked = selected.has(c.comment_id);
           return (
-            <div key={c.comment_id || i} className={`relative ${isPending && filter === 'pending' ? 'pl-7' : ''}`}>
+            <div key={c.comment_id} className={`relative ${isPending && filter === 'pending' ? 'pl-7' : ''} bg-white/[0.01]`}>
               {isPending && filter === 'pending' && (
                 <button
                   onClick={() => setSelected(prev => {
@@ -1640,16 +1728,14 @@ function LenaCommentsSection() {
                     return n;
                   })}
                   aria-label={checked ? 'Désélectionner' : 'Sélectionner'}
-                  className={`absolute left-0 top-3 w-5 h-5 rounded border-2 ${checked ? 'bg-purple-500 border-purple-500' : 'bg-transparent border-white/30'} flex items-center justify-center`}
+                  className={`absolute left-1.5 top-3 w-5 h-5 rounded border-2 ${checked ? 'bg-purple-500 border-purple-500' : 'bg-transparent border-white/30'} flex items-center justify-center`}
                 >
                   {checked && <span className="text-white text-[10px] font-bold">✓</span>}
                 </button>
               )}
-              <CommentCard
-                comment={c}
-                isDemo={isDemo}
-                onUpdate={(id, data) => setComments(prev => prev.map(cc => cc.comment_id === id ? { ...cc, ...data } : cc))}
-              />
+              {/* Inline comment card — without post header (the post is
+                  already at the top of the group). */}
+              <CommentCard comment={c} isDemo={isDemo} hidePostHeader onUpdate={onUpdate} />
             </div>
           );
         })}
