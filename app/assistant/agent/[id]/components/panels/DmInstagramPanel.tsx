@@ -19,49 +19,52 @@ import type { PanelProps } from './types';
 
 // Jade tabs: DMs + Comments switch
 
-// Jade multi-network: like Léna, the user picks a network first (IG /
-// TikTok / LinkedIn), then sees the standard 3 action tabs (DMs /
-// Comments / Follows) scoped to that network. TikTok and LinkedIn use
-// sample data + "Connect to activate" CTAs until those APIs are wired
-// up — the founder asked for the spaces to exist so the workspace
-// reads as truly multi-network (parity with Léna).
-type JadeNetwork = 'instagram' | 'tiktok' | 'linkedin';
+// Jade multi-network: like Léna, the user picks a network FIRST at the
+// top of the panel (under the Jade header). Selecting a network swaps
+// the entire underlying experience (KPIs, campaign actions, queue, tabs)
+// so the workspace reads as truly multi-network. The selector lives at
+// the panel root (DmInstagramPanel) — not inside JadeTabs — exactly
+// like Léna's NetworkSection rule. JadeTabs just receives the selected
+// network as a prop.
+export type JadeNetwork = 'instagram' | 'tiktok' | 'linkedin';
 
-function JadeTabs({ gradientFrom, gradientTo }: { gradientFrom: string; gradientTo: string }) {
+export const JADE_NETWORKS: { key: JadeNetwork; label: string; icon: string; color: string }[] = [
+  { key: 'instagram', label: 'Instagram', icon: '\u{1F4F8}', color: '#e11d48' },
+  { key: 'tiktok', label: 'TikTok', icon: '\u{1F3B5}', color: '#00f2ea' },
+  { key: 'linkedin', label: 'LinkedIn', icon: '\u{1F4BC}', color: '#0A66C2' },
+];
+
+export function JadeNetworkSelector({ network, onChange }: { network: JadeNetwork; onChange: (n: JadeNetwork) => void }) {
+  return (
+    <div className="flex gap-2 mb-3">
+      {JADE_NETWORKS.map(n => (
+        <button
+          key={n.key}
+          onClick={() => onChange(n.key)}
+          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+            network === n.key
+              ? 'bg-white/10 text-white border border-white/20 shadow'
+              : 'bg-white/[0.03] text-white/40 border border-white/5 hover:text-white/70'
+          }`}
+          style={network === n.key ? { borderColor: n.color + '60' } : {}}
+        >
+          <span>{n.icon}</span>
+          <span>{n.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function JadeTabs({ network }: { network: JadeNetwork }) {
   const { t, locale } = useLanguage();
   const p = t.panels;
-  const [network, setNetwork] = useState<JadeNetwork>('instagram');
   const [tab, setTab] = useState<'dms' | 'comments' | 'follows'>('dms');
 
   const followsLabel = locale === 'en' ? 'Follows' : 'À suivre';
 
-  const networks: { key: JadeNetwork; label: string; icon: string; color: string }[] = [
-    { key: 'instagram', label: 'Instagram', icon: '\u{1F4F8}', color: '#e11d48' },
-    { key: 'tiktok', label: 'TikTok', icon: '\u{1F3B5}', color: '#00f2ea' },
-    { key: 'linkedin', label: 'LinkedIn', icon: '\u{1F4BC}', color: '#0A66C2' },
-  ];
-
   return (
     <div>
-      {/* Network selector — mirrors Léna's ContentPanel pattern */}
-      <div className="flex gap-2 mb-3">
-        {networks.map(n => (
-          <button
-            key={n.key}
-            onClick={() => setNetwork(n.key)}
-            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all ${
-              network === n.key
-                ? 'bg-white/10 text-white border border-white/20 shadow'
-                : 'bg-white/[0.03] text-white/40 border border-white/5 hover:text-white/70'
-            }`}
-            style={network === n.key ? { borderColor: n.color + '60' } : {}}
-          >
-            <span>{n.icon}</span>
-            <span>{n.label}</span>
-          </button>
-        ))}
-      </div>
-
       {/* Action tabs (DMs / Comments / Follows) — same set for all networks */}
       <div className="flex gap-1 bg-white/5 rounded-lg p-0.5 border border-white/10 mb-3">
         <button
@@ -1158,15 +1161,17 @@ function CommentCard({ comment: c, isDemo, onUpdate }: { comment: any; isDemo: b
   const mediaBadge = mediaType === 'VIDEO' || mediaType === 'REELS' ? '🎬' : mediaType === 'CAROUSEL_ALBUM' ? '🖼️' : '📷';
 
   return (
-    <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
-      {/* Post context — what this comment is attached to */}
+    <div className={`bg-white/5 rounded-xl border border-white/10 overflow-hidden ${postPermalink && !isDemo ? 'hover:border-purple-500/40 transition' : ''}`}>
+      {/* Post context — what this comment is attached to. Clickable on
+          the whole row to open the post on Instagram. */}
       {(postThumb || postCaption) && (
         <a
           href={postPermalink || '#'}
           target={postPermalink ? '_blank' : undefined}
           rel="noopener noreferrer"
-          className={`flex items-center gap-2 px-3 py-2 border-b border-white/5 bg-white/[0.02] ${postPermalink ? 'hover:bg-white/5 transition' : 'pointer-events-none'}`}
-          title={postPermalink ? 'Open post on Instagram' : ''}
+          onClick={(e) => { if (!postPermalink || isDemo) e.preventDefault(); }}
+          className={`flex items-center gap-2 px-3 py-2 border-b border-white/5 bg-white/[0.02] ${postPermalink && !isDemo ? 'hover:bg-white/5 transition cursor-pointer' : 'pointer-events-none'}`}
+          title={postPermalink && !isDemo ? 'Open post on Instagram' : ''}
         >
           {postThumb && (
             <img src={postThumb} alt="" className="w-10 h-10 rounded-md object-cover flex-shrink-0" loading="lazy" />
@@ -1415,19 +1420,17 @@ function LenaCommentsSection() {
 
   if (loading) return <div className="text-center py-4"><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-400 mx-auto" /></div>;
 
-  // Comments display rule:
-  //   - When the user has real IG comments → show them (REAL, no demo)
-  //   - When 0 real comments → show sample comments so the workflow
-  //     (post context + reply / suggest / custom reply) stays
-  //     demonstrable. Each sample is clearly flagged with "Sample data"
-  //     in the banner so there's no ambiguity.
-  // The founder's hard rule was about never mixing real + samples on
-  // top of each other — that still holds: if even ONE real comment
-  // exists we show ONLY real ones. Sample fallback fires only when the
-  // real-comment list is empty.
-  const showSamples = comments.length === 0;
-  const sourceList: any[] = comments.length > 0 ? comments : (showSamples ? DEMO_IG_COMMENTS : []);
-  const isDemo = showSamples;
+  // Comments display rule (founder hard rule):
+  //   - When IG is connected → show ONLY real comments fetched from
+  //     the Graph API. If 0 real comments, show an honest empty state
+  //     with a link to the IG account.
+  //   - When IG is NOT connected → show sample comments as onboarding
+  //     preview, with the "Sample data" badge.
+  // No mixing of real + samples. No sample fallback for connected
+  // accounts with 0 comments — the empty state is the truth.
+  const igConnected = !!(window as any).__igConnected;
+  const sourceList: any[] = comments.length > 0 ? comments : (igConnected ? [] : DEMO_IG_COMMENTS);
+  const isDemo = !igConnected && comments.length === 0;
 
   const pending = sourceList.filter(c => !c.replied);
   const replied = sourceList.filter(c => c.replied);
@@ -1519,11 +1522,17 @@ function LenaCommentsSection() {
 
       {/* Empty state when Instagram is connected but no comments at all */}
       {!isDemo && counts.all === 0 && (
-        <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 text-center">
+        <a
+          href="https://www.instagram.com/keiro_ai/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block rounded-xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] p-4 text-center transition"
+        >
           <span className="text-xl">{'\u{1F4AC}'}</span>
-          <p className="text-xs text-white/60 mt-1">No comments yet on @keiro_ai</p>
-          <p className="text-[10px] text-white/40 mt-1">Your real Instagram comments will appear here as soon as visitors comment on a published post. Fetched live via GET /&lt;media-id&gt;/comments.</p>
-        </div>
+          <p className="text-xs text-white/60 mt-1">Aucun commentaire pour le moment</p>
+          <p className="text-[10px] text-white/40 mt-1">Tes vrais commentaires Instagram apparaitront ici dès qu'un visiteur en laisse un. Fetched live via GET /&lt;media-id&gt;/comments.</p>
+          <p className="text-[10px] text-purple-300 mt-2">Voir tes posts sur Instagram ↗</p>
+        </a>
       )}
 
       {/* Empty state within a filter (e.g. all replied) */}
@@ -2100,6 +2109,16 @@ export function DmInstagramPanel({ data, agentName, gradientFrom, gradientTo }: 
   };
 
   const igConnected = !!(data as any).connections?.instagram;
+  const tiktokConnected = !!(data as any).connections?.tiktok;
+  const linkedinConnected = !!(data as any).connections?.linkedin;
+
+  // Network state lifted to panel root — switching network swaps the
+  // entire experience underneath (KPIs, campaign, queue, tabs) exactly
+  // like Léna's ContentPanel.
+  const [network, setNetwork] = useState<JadeNetwork>('instagram');
+  const networkConnected = network === 'instagram' ? igConnected : network === 'tiktok' ? tiktokConnected : linkedinConnected;
+  const networkLabel = network === 'instagram' ? 'Instagram' : network === 'tiktok' ? 'TikTok' : 'LinkedIn';
+  const networkOauth = network === 'instagram' ? '/api/auth/instagram-oauth' : network === 'tiktok' ? '/api/auth/tiktok-oauth' : '/api/auth/linkedin-oauth';
 
   return (
     <>
@@ -2109,6 +2128,46 @@ export function DmInstagramPanel({ data, agentName, gradientFrom, gradientTo }: 
           identity, Human Agent compliance line, and only one Connect CTA
           when the account is missing. */}
       <JadeHeader connected={igConnected} p={p} />
+
+      {/* Network selector — RIGHT UNDER the Jade header. Switching
+          network swaps every section below (KPIs, campaign, queue,
+          tabs), mirroring Léna's parity rule. */}
+      <JadeNetworkSelector network={network} onChange={setNetwork} />
+
+      {/* Non-Instagram networks render a focused placeholder until
+          their APIs are fully wired. We don't show IG-specific KPIs or
+          the Campaign block for them — that would mix data sources and
+          confuse the workflow. */}
+      {network !== 'instagram' && (
+        <div>
+          <div className="flex items-center gap-2 mb-3 text-[11px]">
+            <span className={`px-2 py-0.5 rounded-full font-semibold ${networkConnected ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-300' : 'bg-amber-500/15 border border-amber-500/30 text-amber-300'}`}>
+              {networkConnected ? `${networkLabel} connecté` : 'Sample data'}
+            </span>
+            <span className="text-white/40">
+              {networkConnected
+                ? `Tes vraies données ${networkLabel} apparaitront ici une fois la pipeline activée pour ce réseau.`
+                : `Connecte ${networkLabel} pour voir tes vrais DM, commentaires et follows.`}
+            </span>
+          </div>
+          {!networkConnected && (
+            <a
+              href={networkOauth}
+              className={`block text-center w-full py-2.5 rounded-xl text-sm font-bold text-white mb-3 ${
+                network === 'tiktok'
+                  ? 'bg-gradient-to-r from-black to-pink-600 hover:opacity-90'
+                  : 'bg-gradient-to-r from-blue-600 to-blue-800 hover:opacity-90'
+              }`}
+            >
+              Connecter {networkLabel} →
+            </a>
+          )}
+          <JadeTabs network={network} />
+        </div>
+      )}
+
+      {network === 'instagram' && (
+        <>
 
       {/* KPI cards — STRICT rule (founder feedback):
           - Instagram NOT connected → sample numbers labelled "Sample data".
@@ -2178,8 +2237,10 @@ export function DmInstagramPanel({ data, agentName, gradientFrom, gradientTo }: 
       {/* Pending DMs ready to send — client clicks to send */}
       <PendingDMQueue gradientFrom={gradientFrom} />
 
-      {/* DMs / Comments switch */}
-      <JadeTabs gradientFrom={gradientFrom} gradientTo={gradientTo} />
+      {/* DMs / Comments / Follows switch — Instagram live data */}
+      <JadeTabs network="instagram" />
+        </>
+      )}
     </>
   );
 }
