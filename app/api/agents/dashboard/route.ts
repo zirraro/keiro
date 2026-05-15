@@ -449,23 +449,28 @@ async function getContentData(
   // "no Instagram connected" vs "connected but nothing published yet".
   let tiktokConnected = false;
   let linkedinConnected = false;
+  let igMediaCount = 0; // real Instagram media_count (not KeiroAI-published)
+  let igSampledMediaCount = 0; // number of media actually fetched for the likes/comments aggregation
   try {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('instagram_business_account_id, instagram_access_token, instagram_igaa_token, tiktok_username, linkedin_username')
+      .select('instagram_business_account_id, instagram_access_token, instagram_igaa_token, instagram_media_count, instagram_followers_count, tiktok_username, linkedin_username')
       .eq('id', userId)
       .single();
     igConnected = !!(profile?.instagram_business_account_id || profile?.instagram_igaa_token || profile?.instagram_access_token);
     tiktokConnected = !!(profile as any)?.tiktok_username;
     linkedinConnected = !!(profile as any)?.linkedin_username;
+    // Use the cached profile counts as fallbacks (they're refreshed by
+    // /api/instagram/refresh-profile and by the OAuth callback). The live
+    // Graph API call below overrides these when it succeeds.
+    igMediaCount = (profile as any)?.instagram_media_count ?? 0;
+    followersCount = (profile as any)?.instagram_followers_count ?? 0;
 
     // Once the IG Business account is connected we DO fetch the live
-    // metrics — followers, total likes on recent media, daily reach. These
-    // are the user's own real Instagram numbers, not anything invented by
-    // KeiroAI, and the dashboard would feel broken if we hid them just
-    // because the user hasn't published THROUGH KeiroAI yet. The UI labels
-    // them as "your Instagram account totals" and surfaces a separate
-    // "KeiroAI-published" indicator when published.length > 0.
+    // metrics — followers, total likes on recent media, daily reach.
+    // These are the user's own real Instagram numbers, not anything
+    // invented by KeiroAI, and the dashboard would feel broken if we hid
+    // them just because the user hasn't published THROUGH KeiroAI yet.
     const shouldFetch = igConnected;
     const token = profile?.instagram_igaa_token || profile?.instagram_access_token;
     if (shouldFetch && token) {
@@ -473,17 +478,23 @@ async function getContentData(
       const mediaRes = await fetch(`https://graph.instagram.com/v21.0/me/media?fields=like_count,comments_count&limit=50&access_token=${token}`, { signal: AbortSignal.timeout(5000) });
       if (mediaRes.ok) {
         const mediaData = await mediaRes.json();
-        for (const m of (mediaData.data || [])) {
+        const arr = mediaData.data || [];
+        igSampledMediaCount = arr.length;
+        for (const m of arr) {
           totalLikes += m.like_count || 0;
           totalComments += m.comments_count || 0;
         }
       }
 
-      // Fetch profile (followers)
-      const profileRes = await fetch(`https://graph.instagram.com/v21.0/me?fields=followers_count&access_token=${token}`, { signal: AbortSignal.timeout(5000) });
+      // Fetch profile (followers + media_count — both needed for real
+      // Léna stats. Without media_count the UI would show the KeiroAI-
+      // published count as "Posts" which is misleading for accounts
+      // that pre-existed our app.)
+      const profileRes = await fetch(`https://graph.instagram.com/v21.0/me?fields=followers_count,media_count&access_token=${token}`, { signal: AbortSignal.timeout(5000) });
       if (profileRes.ok) {
         const profileData = await profileRes.json();
-        followersCount = profileData.followers_count || 0;
+        if (typeof profileData.followers_count === 'number') followersCount = profileData.followers_count;
+        if (typeof profileData.media_count === 'number') igMediaCount = profileData.media_count;
       }
 
       // Fetch insights (reach)
@@ -536,14 +547,26 @@ async function getContentData(
         instagram: {
           connected: igConnected,
           hasActivity: published.length > 0 && igConnected,
-          posts: byPlatform['instagram']?.published || 0,
+          // "Posts" = real Instagram media_count when connected (from
+          // /me?fields=media_count). The KeiroAI-published count is
+          // surfaced separately as keiroai_posts so the UI can show
+          // "170 posts · 12 via KeiroAI" if it wants. We never want
+          // the primary "Posts" number to be the KeiroAI count alone
+          // — that's what was breaking metareview ("1 post" instead
+          // of the real 170).
+          posts: igMediaCount || byPlatform['instagram']?.published || 0,
+          keiroai_posts: byPlatform['instagram']?.published || 0,
           scheduled: byPlatform['instagram']?.scheduled || 0,
           followers: followersCount,
           likes: totalLikes,
           comments: totalComments,
           reach: igInsights?.reach || 0,
-          engagement: followersCount > 0 && (totalLikes + totalComments) > 0
-            ? Math.round(((totalLikes + totalComments) / Math.max(byPlatform['instagram']?.published || 1, 1) / followersCount) * 10000) / 100
+          // Engagement rate = (likes + comments) on the sampled recent
+          // media / sampled count / followers, expressed in %. Was
+          // previously divided by KeiroAI-published count which gave
+          // absurd values for accounts pre-existing the app.
+          engagement: followersCount > 0 && (totalLikes + totalComments) > 0 && igSampledMediaCount > 0
+            ? Math.round(((totalLikes + totalComments) / igSampledMediaCount / followersCount) * 10000) / 100
             : 0,
         },
         tiktok: {
