@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { publishImageToInstagram } from '@/lib/meta';
 import { mirrorToShowcaseAccount } from '@/lib/agents/showcase-mirror';
+import { preflightPublish } from '@/lib/meta/publish-guard';
 
 export const runtime = 'edge';
 
@@ -149,6 +150,43 @@ export async function POST(req: NextRequest) {
         { ok: false, error: 'URL de l\'image invalide. L\'image doit être accessible via HTTP/HTTPS.' },
         { status: 400 }
       );
+    }
+
+    // PRE-PUBLISH GUARDS — 3 protections (16-17 mai 2026):
+    //   1. retry lockout (5 min) — block double-fire from cron/server
+    //   2. cross-format dedup (7 days) — same image not republished
+    //      as post + story on same network
+    //   3. stale holiday reference — block "Saint-Valentin" in May
+    {
+      const guard = await preflightPublish(supabase, {
+        userId,
+        imageUrl,
+        caption: finalCaption,
+        network: 'instagram',
+      });
+      if (!guard.ok) {
+        // Log the refusal so /meta-audit shows it as a guard hit
+        try {
+          await supabase.from('agent_logs').insert({
+            agent: 'content',
+            action: 'publish_diagnostic',
+            user_id: userId,
+            status: guard.retryDuplicate ? 'success' : 'error',
+            data: {
+              platform: 'instagram',
+              image_url: imageUrl,
+              caption_preview: finalCaption.substring(0, 120),
+              guard: guard.diagnosticTag,
+              reason: guard.reason,
+              method: 'publish_guard_refusal',
+            },
+          });
+        } catch { /* non-fatal */ }
+        return NextResponse.json(
+          { ok: guard.retryDuplicate || false, error: guard.reason, guard: guard.diagnosticTag },
+          { status: guard.retryDuplicate ? 200 : 409 },
+        );
+      }
     }
 
     // Publier sur Instagram

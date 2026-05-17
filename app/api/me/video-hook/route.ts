@@ -47,6 +47,17 @@ export async function POST(req: NextRequest) {
         ...(body.hookOverride.secondary ? { secondary: String(body.hookOverride.secondary).slice(0, 60) } : {}),
       }
     : undefined;
+  // Optional client-side enhancements (crop / speed / loudness / captions).
+  // Validated here so the ffmpeg layer can trust the values.
+  const rawEnh = body.enhancements || {};
+  const validCrops = ['keep', '9:16', '1:1', '4:5'] as const;
+  const validLoud = ['keep', 'normalize', 'boost'] as const;
+  const enhancements: { captions?: boolean; crop?: typeof validCrops[number]; speed?: number; loudness?: typeof validLoud[number] } = {
+    captions: !!rawEnh.captions,
+    crop: validCrops.includes(rawEnh.crop) ? rawEnh.crop : 'keep',
+    speed: [1, 1.1, 1.25, 1.5].includes(rawEnh.speed) ? rawEnh.speed : 1,
+    loudness: validLoud.includes(rawEnh.loudness) ? rawEnh.loudness : 'keep',
+  };
 
   if (!sourceVideoUrl) return NextResponse.json({ ok: false, error: 'sourceVideoUrl required' }, { status: 400 });
   if (!['instagram', 'tiktok', 'linkedin'].includes(network)) return NextResponse.json({ ok: false, error: 'invalid network' }, { status: 400 });
@@ -100,6 +111,7 @@ export async function POST(req: NextRequest) {
       style,
       network,
       outputBaseId,
+      enhancements,
     });
     if (!outputUrl) {
       return NextResponse.json({ ok: false, error: 'Hook overlay failed' }, { status: 500 });

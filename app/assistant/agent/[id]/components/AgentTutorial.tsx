@@ -255,7 +255,7 @@ export default function AgentTutorial({ agentId }: { agentId: string }) {
   const agentNames: Record<string, string> = {
     content: 'Lena', dm_instagram: 'Jade', email: 'Hugo', gmaps: 'Theo',
     commercial: 'Leo', seo: 'Oscar', marketing: 'AMI', ads: 'Felix',
-    chatbot: 'Max', whatsapp: 'Stella', tiktok_comments: 'Axel',
+    chatbot: 'Clara', whatsapp: 'Stella', tiktok_comments: 'Axel',
     instagram_comments: 'Commentaires IG', rh: 'Sara', comptable: 'Louis', onboarding: 'Clara', linkedin: 'Emma',
   };
 

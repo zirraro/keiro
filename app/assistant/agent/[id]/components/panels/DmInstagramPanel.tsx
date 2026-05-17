@@ -1275,13 +1275,13 @@ function CommentCard({ comment: c, isDemo, onUpdate, hidePostHeader }: { comment
       )}
 
       {/* Comment */}
-      <div className="p-3 flex items-start gap-2">
+      <div className="p-3 flex items-start gap-2.5">
         <a
           href={c.username && !isDemo ? `https://www.instagram.com/${c.username}/` : '#'}
           target={c.username && !isDemo ? '_blank' : undefined}
           rel="noopener noreferrer"
           onClick={(e) => { if (isDemo) e.preventDefault(); }}
-          className={`w-7 h-7 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center text-[10px] text-white font-bold flex-shrink-0 ${c.username && !isDemo ? 'hover:opacity-80' : ''}`}
+          className={`w-9 h-9 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center text-[14px] text-white font-bold flex-shrink-0 shadow-md ring-2 ring-white/10 ${c.username && !isDemo ? 'hover:ring-purple-400/50 transition' : ''}`}
           title={c.username && !isDemo ? `Open @${c.username} on Instagram` : ''}
         >
           {(c.username || '?')[0].toUpperCase()}
@@ -1293,12 +1293,12 @@ function CommentCard({ comment: c, isDemo, onUpdate, hidePostHeader }: { comment
               target={c.username && !isDemo ? '_blank' : undefined}
               rel="noopener noreferrer"
               onClick={(e) => { if (isDemo) e.preventDefault(); }}
-              className={`text-[11px] font-bold text-white/80 ${c.username && !isDemo ? 'hover:underline' : ''}`}
+              className={`text-[14px] font-bold text-white ${c.username && !isDemo ? 'hover:text-purple-300 hover:underline transition' : ''}`}
             >
               @{c.username || 'instagram_user'}
             </a>
-            {c.timestamp && <span className="text-[9px] text-white/30">· {formatWhen(c.timestamp)}</span>}
-            <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${c.replied ? 'bg-emerald-400/15 text-emerald-400' : 'bg-amber-400/15 text-amber-400'}`}>
+            {c.timestamp && <span className="text-[10px] text-white/40">· {formatWhen(c.timestamp)}</span>}
+            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-semibold ${c.replied ? 'bg-emerald-400/15 text-emerald-400' : 'bg-amber-400/15 text-amber-400'}`}>
               {c.replied ? p.replied : p.pending}
             </span>
             {/* "Open on Instagram" link — points at the post permalink
@@ -1317,7 +1317,7 @@ function CommentCard({ comment: c, isDemo, onUpdate, hidePostHeader }: { comment
               </a>
             )}
           </div>
-          <p className="text-[11px] text-white/60 mt-1 whitespace-pre-wrap break-words">{c.text}</p>
+          <p className="text-[12px] text-white/75 mt-1 whitespace-pre-wrap break-words leading-relaxed">{c.text}</p>
         </div>
       </div>
 
@@ -2212,10 +2212,10 @@ function JadeCampaignActions({ p }: { p: any }) {
       desc: p.dmCampaignFollowDesc,
       icon: '\u{1F465}',
       classes: 'bg-cyan-500/10 border-cyan-500/20 hover:bg-cyan-500/20 text-cyan-400',
-      confirmTitle: 'Follow campaign — réchauffer les prospects',
-      confirmIntro: 'Jade va suivre les comptes Instagram des prospects sélectionnés pour les "réchauffer" avant un éventuel DM. Limite quotidienne stricte pour éviter le flag Meta.',
+      confirmTitle: 'Follow warm-up — préparer ta liste',
+      confirmIntro: 'Meta n\'autorise PAS le follow programmatique pour les comptes Business. Jade vérifie chaque handle, score le compte (bio + 3 derniers posts), et te met une liste de candidats à follow manuellement dans l\'onglet "À suivre". Tu tapes Follow sur Instagram → tu coches ✓ ici → Jade sait quand DM.',
       fields: [
-        { key: 'count', label: 'Nombre de follows aujourd\'hui', type: 'number', default: 10, min: 3, max: 20, help: 'Meta flag les comptes qui suivent plus de 20-25 personnes par jour de manière régulière. Reste safe.' },
+        { key: 'count', label: 'Nombre de candidats à préparer', type: 'number', default: 10, min: 3, max: 25, help: 'Combien de prospects Jade analyse pour ta liste de follow manuelle. Meta flag au-delà de 20-25 follows/jour effectifs — reste safe.' },
         { key: 'filter', label: 'Filtrer les prospects', type: 'select', default: 'hot', options: [
           { value: 'hot', label: 'Hot prospects uniquement (score ≥ 70)' },
           { value: 'warm', label: 'Warm prospects (score 40-70)' },
@@ -2226,7 +2226,13 @@ function JadeCampaignActions({ p }: { p: any }) {
         const r = await fetch(`/api/agents/dm-instagram/follow-prospects?count=${params.count}&filter=${params.filter}`, { method: 'POST', credentials: 'include' });
         const j = await r.json().catch(() => ({}));
         if (!r.ok) return { kind: 'err' as const, text: j.error || 'Échec du follow' };
-        return { kind: 'ok' as const, text: `${j.followed ?? 0} comptes suivis · ${j.skipped ?? 0} déjà suivis · ${j.failed ?? 0} échecs.` };
+        const queued = j.queued_for_manual_follow ?? j.followed ?? 0;
+        const skipped = j.skipped ?? 0;
+        const candidates = j.candidates ?? queued + skipped;
+        if (queued === 0 && skipped === 0 && candidates === 0) {
+          return { kind: 'ok' as const, text: j.message || 'Pipeline déjà chaud — aucun candidat à préparer. Lance Léo si tu veux de nouveaux prospects.' };
+        }
+        return { kind: 'ok' as const, text: `✓ ${queued} candidats préparés (sur ${candidates} analysés, ${skipped} ignorés). Ouvre l\'onglet "À suivre" pour les follow manuellement sur Instagram.` };
       },
     },
     {

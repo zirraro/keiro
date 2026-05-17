@@ -2909,7 +2909,7 @@ export const fr: Translations = {
     agentOnboarding: 'Clara (Onboarding)',
     agentSeo: 'Oscar (SEO)',
     agentContent: 'Léna (Contenu)',
-    agentChatbot: 'Max (Chatbot)',
+    agentChatbot: 'Clara (Chatbot site)',
     agentRetention: 'Théo (Rétention)',
     agentCeo: 'Noah (Brief CEO)',
   },
@@ -3195,7 +3195,7 @@ export const fr: Translations = {
     strategyDone: 'Stratégie appliquée',
     strategyOverLimit: 'Dépasse Créateur (400 cr)',
 
-    // ─── Chatbot (Max) ──────────────────────────────────────
+    // ─── Chatbot (Clara) ──────────────────────────────────────
     chatbotKpiVisitors: 'Visiteurs accueillis',
     chatbotKpiLeads: 'Leads captés',
     chatbotKpiConv: 'Taux de conversion',

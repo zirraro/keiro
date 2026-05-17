@@ -24,9 +24,11 @@ const MISSING = [
     prompt: `${BASE_STYLE} Black man, early 20s, dark brown skin, short buzz cut with clean line-up, wearing a black technical streetwear jacket with subtle neon accents, energetic creative expression with wide grin, dark brown eyes, small diamond stud earring. Dark charcoal-to-midnight background with subtle neon teal rim light.`,
   },
   {
+    // Clara now handles chatbot + onboarding + retention as a single persona.
+    // The avatar matches the in-app Clara onboarding agent for visual consistency.
     id: 'chatbot',
-    name: 'Max',
-    prompt: `${BASE_STYLE} Caucasian man, late 20s, light skin, neat medium-length brown hair slightly wavy, wearing a deep purple tech hoodie, friendly approachable expression with warm smile, hazel eyes, slight stubble. Rich violet-to-indigo volumetric background.`,
+    name: 'Clara',
+    prompt: `${BASE_STYLE} Mediterranean woman, mid 20s, olive skin, long wavy chestnut hair, wearing a soft cream cashmere knit top, warm welcoming expression with gentle smile, hazel-green eyes, subtle gold hoop earrings. Soft peach-to-coral volumetric background.`,
   },
   {
     id: 'comptable',

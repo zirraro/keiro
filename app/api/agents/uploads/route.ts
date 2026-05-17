@@ -93,8 +93,12 @@ export async function POST(req: NextRequest) {
     if (!file || !agent_id) {
       return NextResponse.json({ error: 'file + agent_id requis' }, { status: 400 });
     }
-    if (file.size > 15 * 1024 * 1024) {
-      return NextResponse.json({ error: 'Fichier trop lourd (15 MB max)' }, { status: 400 });
+    // Image / PDF cap: 15 MB. Video cap: 100 MB — recorded clips from
+    // phones routinely run 30-80 MB so 15 MB is far too low.
+    const isVideoUpload = (file.type || '').startsWith('video/') || /\.(mp4|mov|webm|m4v|mkv)$/i.test(file.name || '');
+    const maxBytes = isVideoUpload ? 100 * 1024 * 1024 : 15 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      return NextResponse.json({ error: isVideoUpload ? 'Vidéo trop lourde (100 MB max)' : 'Fichier trop lourd (15 MB max)' }, { status: 400 });
     }
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
     const path = `${user.id}/${agent_id}/${Date.now()}_${safeName}`;
@@ -165,6 +169,7 @@ export async function POST(req: NextRequest) {
   // Route to the right analyzer based on file type.
   const isImage = file_type.startsWith('image/') || /\.(jpg|jpeg|png|webp|gif)$/i.test(file_url);
   const isPdf = file_type === 'application/pdf' || /\.pdf$/i.test(file_url);
+  const isVideo = file_type.startsWith('video/') || /\.(mp4|mov|webm|m4v|mkv)$/i.test(file_url);
 
   try {
     let analysis: any = null;
@@ -172,6 +177,12 @@ export async function POST(req: NextRequest) {
       analysis = await analyzeImageForAgent(file_url, agent_id, dossier?.business_type || null);
     } else if (isPdf) {
       analysis = await analyzePdfForAgent(file_url, agent_id, dossier?.business_type || null);
+    } else if (isVideo) {
+      // Video analysis: ffprobe + ffmpeg keyframe + Claude Vision.
+      // The keyframe_url is what Studio's hook editor consumes — without
+      // it, the user uploads a video and "rien ne se passe".
+      const { analyzeVideo } = await import('@/lib/visuals/video-analyzer');
+      analysis = await analyzeVideo({ videoUrl: file_url, uploadId: row.id, agentId: agent_id });
     }
     if (analysis) {
       await supabase

@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid or inactive widget key' }, { status: 403, headers: corsHeaders(origin) });
     }
 
-    // Plan gate — Max chatbot is a Business+ feature (widget on client site).
+    // Plan gate — Clara chatbot is a Business+ feature (widget on client site).
     // Créateur/Pro plans see a 403 so they can't enable it accidentally.
     const ownerId = widgetConfig.organizations?.owner_user_id;
     if (ownerId) {
@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
         || ['business', 'fondateurs', 'elite', 'agence'].includes(plan);
       if (!planAllowsChatbot) {
         return NextResponse.json(
-          { error: 'chatbot_not_in_plan', message: 'Max chatbot requiert le plan Business.' },
+          { error: 'chatbot_not_in_plan', message: 'Clara chatbot requiert le plan Business.' },
           { status: 403, headers: corsHeaders(origin) },
         );
       }
@@ -134,8 +134,12 @@ export async function POST(req: NextRequest) {
       }
     } catch {}
 
-    // Build system prompt
-    const agentType = widgetConfig.agent_type || 'chatbot'; // 'chatbot' (Max) or 'onboarding' (Clara)
+    // Clara is now the single client-facing widget agent — she does QA
+    // (former "Max" job), onboarding/conversion AND retention follow-up.
+    // agent_type is kept on widget_configs only to tune emphasis (chatbot
+    // mode leans on QA + simple capture, onboarding mode leans deeper into
+    // conversion + behavioural personalisation). Same persona either way.
+    const agentType = widgetConfig.agent_type || 'chatbot';
     const greeting = widgetConfig.greeting_message || `Bonjour ! Comment puis-je vous aider ?`;
 
     // Auto-detect visitor language from their latest + recent messages and
@@ -144,53 +148,70 @@ export async function POST(req: NextRequest) {
     const langSample = [message, ...history.slice(-4).filter(m => m.role === 'user').map(m => m.content)].join(' ');
     const langDirective = langFn(langSample);
 
-    const systemPrompt = agentType === 'onboarding'
-      ? `${langDirective}
+    // ---- Returning visitor? ----
+    // The retention angle: if the visitor has come back (returning flag
+    // or prior session in this org), Clara should recognize them, ask
+    // about their last interest, and surface a tailored next step rather
+    // than greeting them like a stranger. Pulled from prior sessions on
+    // the same org so we don't need to require a sticky cookie.
+    let priorSessionsSignal = '';
+    try {
+      if (visitor_profile?.returning || visitor_profile?.total_purchases > 0) {
+        const { data: prior } = await supabase
+          .from('widget_conversations')
+          .select('messages, message_count, last_message_at')
+          .eq('org_id', orgId)
+          .neq('session_id', sessionId)
+          .order('last_message_at', { ascending: false })
+          .limit(1);
+        if (prior && prior.length > 0) {
+          const lastMessages = (prior[0].messages || []).slice(-3).map((m: any) => `${m.role}: ${String(m.content).slice(0, 120)}`).join('\n');
+          priorSessionsSignal = `\n\nVISITEUR DE RETOUR — derniere session (${prior[0].last_message_at}):\n${lastMessages}\nReconnais le subtilement et reprends le fil. Ne fais PAS comme si c'etait sa premiere visite.`;
+        }
+      }
+    } catch { /* non-fatal */ }
 
-Tu es Clara, assistante d'onboarding pour ${orgName} (${businessType}). Tu guides les visiteurs dans leur parcours d'achat, tu personnalises l'experience et tu pousses subtilement vers la conversion.
+    const baseDossier = dossier
+      ? `Nom: ${dossier.company_name || orgName}\nDescription: ${dossier.company_description || ''}\nProduits: ${dossier.main_products || ''}\nCible: ${dossier.target_audience || ''}\nTon: ${dossier.brand_tone || 'chaleureux'}\nSite: ${dossier.website_url || ''}\nHoraires/adresse: ${dossier.address || ''}`
+      : `Commerce: ${orgName}`;
+
+    const emphasis = agentType === 'onboarding'
+      ? `Tu portes plus fort le volet ACCUEIL + PERSONNALISATION : tu identifies vite le besoin, tu recommandes, tu reconnais les visiteurs qui reviennent et tu pousses subtilement vers conversion.`
+      : `Tu portes plus fort le volet INFOS UTILES + QUALIFICATION : tu reponds vite aux questions frequentes (horaires, produits, prix, adresse), tu qualifies le visiteur (besoin, budget, urgence) et tu captures email/telephone.`;
+
+    const systemPrompt = `${langDirective}
+
+Tu es Clara, l'assistante IA cliente de ${orgName} (${businessType}). Tu remplis 3 roles a la fois — chatbot d'accueil, onboarding/conversion ET retention :
+
+1. CHATBOT — tu reponds aux questions frequentes (horaires, prix, produits, adresse, disponibilites). Si tu ne sais pas, tu proposes de contacter l'equipe.
+2. ONBOARDING / CONVERSION — tu personnalises selon le comportement de navigation (pages vues, temps sur le site, panier), tu recommandes le bon produit/service, tu fais de l'upsell/cross-sell subtil, tu pousses vers achat ou reservation.
+3. RETENTION — si le visiteur est de retour, tu le reconnais et reprends la conversation au point ou elle s'etait arretee. Tu proposes de la nouveaute / des updates pertinents.
+
+EMPHASE POUR CETTE INSTALLATION:
+${emphasis}
 
 DOSSIER BUSINESS:
-${dossier ? `Nom: ${dossier.company_name || orgName}\nDescription: ${dossier.company_description || ''}\nProduits: ${dossier.main_products || ''}\nCible: ${dossier.target_audience || ''}\nTon: ${dossier.brand_tone || 'chaleureux'}` : `Commerce: ${orgName}`}
+${baseDossier}
 ${visitorContext}
+${priorSessionsSignal}
 
-OBJECTIFS:
-- Accueillir chaleureusement le visiteur
-- Comprendre ses besoins en posant des questions naturelles
-- Recommander les produits/services adaptes a son profil
-- Upsell et cross-sell subtils bases sur son comportement de navigation
-- Capturer son email/tel pour le CRM si possible
-- Pousser vers l'achat ou la reservation
-- Analyser son comportement (pages vues, temps, panier) pour personnaliser
+OBJECTIFS PRIORITAIRES:
+- Accueillir chaleureusement, sans pression
+- Comprendre le besoin avant de pousser un produit
+- Recommander en se basant sur les pages vues / le profil
+- Capturer email ou telephone pour le CRM des qu'opportun (jamais en force)
+- Reconnaitre les visiteurs qui reviennent, proposer la suite logique
+- Pousser vers la bonne action finale (achat, RDV, contact)
 
-REGLES:
-- Tutoie si ton decontracte, vouvoie si ton pro (selon le brand_tone)
-- Messages courts (2-3 phrases max)
-- 1 question ou 1 recommandation par message
-- JAMAIS de pression agressive — toujours subtil et naturel
-- Si le visiteur a vu une page produit, mentionne ce produit
-- Si le visiteur revient, reconnais-le et propose du nouveau
-- Match the visitor's language (see LANGUAGE block at the top)
-${crossClientContext}`
-
-      : `${langDirective}
-
-Tu es Max, chatbot IA de ${orgName} (${businessType}). Tu accueilles les visiteurs, reponds a leurs questions et les guides vers l'achat ou le contact.
-
-DOSSIER BUSINESS:
-${dossier ? `Nom: ${dossier.company_name || orgName}\nDescription: ${dossier.company_description || ''}\nProduits: ${dossier.main_products || ''}\nHoraires: ${dossier.address || ''}\nSite: ${dossier.website_url || ''}` : `Commerce: ${orgName}`}
-${visitorContext}
-
-OBJECTIFS:
-- Repondre aux questions frequentes (horaires, produits, prix, adresse)
-- Qualifier le visiteur (besoin, budget, urgence)
-- Capturer email/telephone pour le CRM
-- Proposer un RDV ou une visite
-- Rediriger vers les bons produits/pages
-
-REGLES:
-- Messages courts et utiles (2-3 phrases)
-- Si tu ne sais pas, propose de contacter l'equipe
-- Match the visitor's language (see LANGUAGE block at the top)`;
+REGLES STRICTES:
+- Tutoie si brand_tone decontracte, vouvoie si pro. Ne mixe jamais les deux dans une meme session.
+- Messages courts: 2-3 phrases max, 1 idee a la fois.
+- Pose UNE question OU fais UNE recommandation par message, pas les deux.
+- JAMAIS de pression agressive ("vite", "derniere chance" non sollicite).
+- Si le visiteur cite un produit, parle de CE produit.
+- Si tu ne sais pas, dis-le et propose un contact humain.
+- Match la langue du visiteur (voir bloc LANGUAGE en haut).
+${crossClientContext}`;
 
     // Call Claude
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });

@@ -232,14 +232,24 @@ STRATÉGIE DE CONTENU ÉLITE — PLAYBOOK V2
 
 PILIER P0 — ACTUALITÉS & TENDANCES (15% du contenu, 2-3x/semaine MINIMUM)
   Objectif : Surfer sur l'actualité et les tendances du moment en les reliant fortement à KeiroAI et au business du commerçant. C'est le cœur différenciateur de KeiroAI : l'IA qui connecte l'actu à TON business.
-  STRATÉGIE : Chaque semaine, sélectionne 2-3 actualités ou tendances (tech, IA, réseaux sociaux, commerce, économie, saisonnalité) et crée du contenu qui les relie DIRECTEMENT à KeiroAI.
+  STRATÉGIE : Chaque semaine, sélectionne 2-3 actualités ou tendances ET DIVERSIFIE les sources. Surtout pas que de la tech/IA — c'est ce qui rend les feeds robotiques. Pioche dans CES 9 univers :
 
-  Types d'actualités à exploiter :
-  - Tendances IA/tech : "Instagram vient de sortir X → voilà comment KeiroAI l'exploite déjà pour toi"
-  - Saisonnalité business : "Saint-Valentin dans 2 semaines → voilà le plan marketing que l'IA prépare pour ton restaurant"
-  - Tendances virales : Format trending TikTok/Reels → adaptés avec un angle KeiroAI pour commerçants
-  - Actualité économique : "Les prix augmentent → les commerçants malins investissent dans la com IA plutôt que dans la pub classique"
-  - Évolutions réseaux sociaux : "L'algo Instagram a changé → KeiroAI s'est déjà adapté, pas toi"
+  Types d'actualités à exploiter (VARIE entre toutes ces sources sur la semaine) :
+  1. CULTURE & SOCIÉTÉ : sortie ciné/série (Festival Cannes, Marvel, série Netflix qui buzz), polémique mode, expo musée, livre qui cartonne, débat société (génération Z, télétravail, écologie)
+  2. ÉVÉNEMENTS POLITIQUES : élections, mesures gouvernementales qui touchent les commerçants (TVA, charges, soldes, taxes, RGPD), accord européen, prise de position d'un ministre — angle "ce que ça change pour ton commerce" jamais partisan
+  3. CONTENU VIRAL : meme du moment, format TikTok qui explose (challenge, trend audio, transition spécifique), tweet viral, format reel populaire — adapte avec ton angle business
+  4. CULTURE POP & STAR : déclaration polémique d'une célébrité, scandale, mariage royal, palmares (Ballon d'Or, Cannes), buzz Bollywood/K-pop si tendance globale
+  5. ÉVÉNEMENT SPORTIF : finale Coupe du Monde / Roland-Garros / Tour de France, transfert mercato énorme, défaite/victoire iconique, JO — angle communautaire et émotionnel
+  6. SAISONNALITÉ BUSINESS : fêtes ATTACHÉES À LA DATE D'AUJOURD'HUI uniquement (cf section TEMPORALITÉ). Jamais Saint-Valentin en mai, jamais Noël en mars.
+  7. ACTUALITÉ ÉCONOMIQUE LOCALE : inflation, ouverture/fermeture marché, baisse pouvoir d'achat, nouveau dispositif d'aide aux TPE
+  8. ÉVOLUTIONS PLATEFORMES SOCIALES : changement d'algo IG/TikTok/LinkedIn, nouvelle feature (live shopping, Notes, broadcast channels), shadowban scandale
+  9. TENDANCES IA/TECH : sortie de modèle (Sonnet 4, Sora 3, etc.), polémique IA (deepfake, droit d'auteur), outil viral chez les pros — angle "voilà comment KeiroAI exploite déjà ça"
+
+  RÈGLE DE DIVERSITÉ STRICTE : sur 4 posts P0 d'une semaine, MAX 1 sur la même catégorie. Si tu as fait un post "algo Instagram a changé" lundi, le suivant DOIT venir d'une autre famille (sport, culture, politique, viral, etc.). Le feed devient riche, varié, surprenant — pas un canal "tech IA".
+
+  RÈGLE D'ÉLÉMENT VIRAL : au moins 1 P0 par semaine doit s'appuyer sur un VRAI élément viral du moment (meme, trend audio, format reel, tweet) — c'est ce qui crée le partage et fait sortir le post de la bulle commerçant. Si tu n'identifies pas un vrai élément viral cette semaine, dis-le explicitement et propose un format reel alternatif.
+
+  POLITIQUE : tu peux exploiter l'actualité politique (mesures, débats) UNIQUEMENT sous l'angle "impact business commerçant" — JAMAIS prendre parti, jamais critiquer un parti ou un politicien nommé. Le commerçant ne doit pas perdre de clients à cause d'un post engagé. Si tu ne peux pas être neutre sur le sujet → skip.
 
   TikTok : 30-45s, format réactif rapide
     Hook : "Tu as vu ce que [plateforme/marque/événement] vient de faire ? Voilà ce que ça change pour ton business."

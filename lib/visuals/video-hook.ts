@@ -125,10 +125,20 @@ function escapeFfText(s: string): string {
   return s.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/:/g, '\\:').replace(/,/g, '\\,');
 }
 
+export type HookEnhancements = {
+  captions?: boolean;
+  crop?: 'keep' | '9:16' | '1:1' | '4:5';
+  speed?: number;          // 1 | 1.1 | 1.25 | 1.5
+  loudness?: 'keep' | 'normalize' | 'boost';
+};
+
 /**
  * Burn the hook intro on the front of the source video. Builds a card
  * (1.5s, full screen) using ffmpeg + drawtext, then concatenates with
  * the source. Returns the public URL of the result, or null on failure.
+ *
+ * `enhancements` lets the caller force a single-pass re-encode that also
+ * crops to a target ratio, changes speed, normalizes loudness, etc.
  */
 export async function applyVideoHook(input: {
   sourceVideoUrl: string;
@@ -136,6 +146,7 @@ export async function applyVideoHook(input: {
   style: HookStyle;
   network: Network;
   outputBaseId: string;
+  enhancements?: HookEnhancements;
 }): Promise<string | null> {
   const tmp = tmpdir();
   const localSource = join(tmp, `hk-src-${input.outputBaseId}.mp4`);
@@ -186,12 +197,54 @@ export async function applyVideoHook(input: {
       { timeout: 30000 },
     );
 
-    // Concat: hook card + source.
-    await writeFile(localList, `file '${localHook}'\nfile '${localSource}'\n`);
-    await execAsync(
-      `ffmpeg -y -f concat -safe 0 -i "${localList}" -c copy "${localOut}"`,
-      { timeout: 60000 },
-    );
+    // Concat: hook card + source. When no enhancements are requested we
+    // stream-copy (fast, lossless). When enhancements are present we
+    // re-encode through a filter graph in a single pass.
+    const enh = input.enhancements || {};
+    const wantsReencode = (enh.crop && enh.crop !== 'keep')
+      || (enh.speed && enh.speed !== 1)
+      || (enh.loudness && enh.loudness !== 'keep');
+
+    if (!wantsReencode) {
+      await writeFile(localList, `file '${localHook}'\nfile '${localSource}'\n`);
+      await execAsync(
+        `ffmpeg -y -f concat -safe 0 -i "${localList}" -c copy "${localOut}"`,
+        { timeout: 60000 },
+      );
+    } else {
+      // Crop expression — ffmpeg crop=w:h:x:y, centered.
+      const cropExpr = (() => {
+        if (!enh.crop || enh.crop === 'keep') return '';
+        const [aw, ah] = enh.crop.split(':').map(Number);
+        // min(w*ah/aw, h) gives the inscribed-rect height for target ratio.
+        return `crop='min(iw*${ah}/${aw}\\,ih)*${aw}/${ah}':'min(iw*${ah}/${aw}\\,ih)':((iw-min(iw*${ah}/${aw}\\,ih)*${aw}/${ah})/2):((ih-min(iw*${ah}/${aw}\\,ih))/2)`;
+      })();
+      const speed = enh.speed && enh.speed !== 1 ? enh.speed : 1;
+      // setpts for video, atempo (capped 0.5..2.0 per filter chain) for audio.
+      const vSpeedExpr = speed !== 1 ? `setpts=PTS/${speed}` : '';
+      const aSpeedExpr = speed !== 1 ? `atempo=${Math.min(2, Math.max(0.5, speed))}` : '';
+      const aLoudnessExpr = enh.loudness === 'normalize'
+        ? 'loudnorm=I=-16:LRA=11:TP=-1.5'
+        : enh.loudness === 'boost'
+          ? 'volume=1.41' // ~+3 dB
+          : '';
+
+      const vChain = [cropExpr, vSpeedExpr].filter(Boolean).join(',');
+      const aChain = [aSpeedExpr, aLoudnessExpr].filter(Boolean).join(',');
+
+      // concat → split into v/a → apply chains → encode.
+      const filterParts: string[] = [
+        '[0:v][0:a][1:v][1:a]concat=n=2:v=1:a=1[cv][ca]',
+      ];
+      if (vChain) filterParts.push(`[cv]${vChain}[vout]`); else filterParts.push('[cv]null[vout]');
+      if (aChain) filterParts.push(`[ca]${aChain}[aout]`); else filterParts.push('[ca]anull[aout]');
+      const filterComplex = filterParts.join(';');
+
+      await execAsync(
+        `ffmpeg -y -i "${localHook}" -i "${localSource}" -filter_complex "${filterComplex}" -map "[vout]" -map "[aout]" -c:v libx264 -preset veryfast -pix_fmt yuv420p -c:a aac -b:a 128k "${localOut}"`,
+        { timeout: 120000 },
+      );
+    }
 
     // Upload to Supabase storage.
     const supabase = createClient(

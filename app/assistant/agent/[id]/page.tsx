@@ -2474,8 +2474,8 @@ export default function AgentWorkspacePage() {
                   code: 'Le suivi financier est actif automatiquement via ton abonnement KeiroAI.',
                 },
                 chatbot: {
-                  title: 'Integrer Max (Chatbot) sur ton site',
-                  description: 'Max accueille tes visiteurs 24/7, repond a leurs questions et capture leurs coordonnees. Colle ce code avant </body> :',
+                  title: 'Integrer Clara (Chatbot) sur ton site',
+                  description: 'Clara accueille tes visiteurs 24/7, repond a leurs questions, fait onboarding et retention. Colle ce code avant </body> :',
                   code: `<script src="https://keiroai.com/embed/widget.js" data-key="VOTRE_CLE" data-agent="chatbot" data-color="${gf}"></script>`,
                 },
                 onboarding: {

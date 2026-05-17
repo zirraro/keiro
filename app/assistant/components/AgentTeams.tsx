@@ -44,7 +44,7 @@ const TEAM_PACKS: AgentTeamPack[] = [
     gradientFrom: '#0c1a3a',
     gradientTo: '#1e3a5f',
     minPlan: 'business',
-    description: 'Tout Pro + Oscar + Sara + Theo + Max + Louis + CRM',
+    description: 'Tout Pro + Oscar + Sara + Theo + Clara (chatbot) + Louis + CRM',
   },
 ];
 

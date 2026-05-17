@@ -95,6 +95,13 @@ function StudioContent() {
   const [hookBusy, setHookBusy] = useState(false);
   const [hookOutput, setHookOutput] = useState<{ url: string; primary: string; secondary?: string } | null>(null);
   const [hookError, setHookError] = useState<string | null>(null);
+  const [hookUploading, setHookUploading] = useState(false);
+  const [hookEnhancements, setHookEnhancements] = useState<{
+    captions: boolean;
+    crop: 'keep' | '9:16' | '1:1' | '4:5';
+    speed: 1 | 1.1 | 1.25 | 1.5;
+    loudness: 'keep' | 'normalize' | 'boost';
+  }>({ captions: false, crop: 'keep', speed: 1, loudness: 'keep' });
 
   // === Parse overlays from search params or DB JSON ===
   function parseOverlaysFromParam(raw: string | null): TextOverlayItem[] {
@@ -1476,16 +1483,27 @@ function StudioContent() {
                         </div>
 
                         {/* Upload */}
-                        <label className="block">
+                        <label className={`block ${hookUploading ? 'pointer-events-none opacity-70' : ''}`}>
                           <input
                             type="file"
                             accept="video/*"
+                            disabled={hookUploading}
                             className="hidden"
                             onChange={async (e) => {
                               const file = e.target.files?.[0];
                               if (!file) return;
+                              if (file.size > 100 * 1024 * 1024) {
+                                setHookError(`Vidéo trop lourde (${(file.size / 1024 / 1024).toFixed(1)} MB). Limite : 100 MB. Compresse-la avant.`);
+                                e.target.value = '';
+                                return;
+                              }
                               setHookError(null);
                               setHookOutput(null);
+                              setHookUploading(true);
+                              // Optimistic local preview so the user sees the
+                              // video *before* analysis finishes (which can
+                              // take 20-60 s on a 50 MB clip).
+                              try { setHookSourceUrl(URL.createObjectURL(file)); } catch {}
                               const fd = new FormData();
                               fd.append('file', file);
                               fd.append('agent_id', 'content');
@@ -1494,26 +1512,45 @@ function StudioContent() {
                                 const j = await r.json();
                                 if (!r.ok) {
                                   setHookError(j?.error || 'Upload failed');
+                                  setHookSourceUrl(null);
                                   return;
                                 }
-                                // The upload pipeline analyses video + extracts a keyframe
-                                // (lib/visuals/video-analyzer). The keyframe URL lives
-                                // in ai_analysis.keyframe_url. Refetch the row.
-                                const list = await fetch('/api/agents/uploads?agent_id=content&cross_agent=true', { credentials: 'include' }).then(r => r.json());
-                                const newest = (list.uploads || []).find((u: any) => u.file_url === j.upload?.file_url) || (list.uploads || [])[0];
-                                if (newest) {
-                                  setHookSourceUrl(newest.file_url);
-                                  setHookKeyframeUrl(newest.ai_analysis?.keyframe_url || null);
+                                // analyseVideo extracts a keyframe and stores it in
+                                // ai_analysis.keyframe_url. Read back the final row
+                                // so the hosted URL (not the blob:) is set + keyframe
+                                // is available for Sonnet hook drafting.
+                                const finalUrl: string | undefined = j.upload?.file_url;
+                                const finalKeyframe: string | undefined = j.upload?.ai_analysis?.keyframe_url;
+                                if (finalUrl) setHookSourceUrl(finalUrl);
+                                if (finalKeyframe) setHookKeyframeUrl(finalKeyframe);
+                                else {
+                                  // Re-poll once for the keyframe (analysis runs inline,
+                                  // but cached responses may lag).
+                                  await new Promise(r => setTimeout(r, 1500));
+                                  const list = await fetch('/api/agents/uploads?agent_id=content&cross_agent=true', { credentials: 'include' }).then(r => r.json()).catch(() => ({}));
+                                  const newest = (list.uploads || []).find((u: any) => u.file_url === finalUrl) || (list.uploads || [])[0];
+                                  if (newest?.ai_analysis?.keyframe_url) setHookKeyframeUrl(newest.ai_analysis.keyframe_url);
                                 }
                               } catch (err: any) {
                                 setHookError(err?.message || 'Upload error');
+                              } finally {
+                                setHookUploading(false);
+                                e.target.value = '';
                               }
                             }}
                           />
-                          <span className="block w-full text-center cursor-pointer px-4 py-3 min-h-[44px] rounded-xl border-2 border-dashed border-neutral-300 text-neutral-600 text-sm hover:border-violet-400 hover:text-violet-600 transition">
-                            {hookSourceUrl ? '↻ Changer de vidéo' : '⬆ Charger une vidéo'}
+                          <span className={`block w-full text-center cursor-pointer px-4 py-3 min-h-[44px] rounded-xl border-2 border-dashed text-sm transition ${hookUploading ? 'border-violet-400 text-violet-600 bg-violet-50' : 'border-neutral-300 text-neutral-600 hover:border-violet-400 hover:text-violet-600'}`}>
+                            {hookUploading
+                              ? '⏳ Upload + analyse en cours… (peut prendre 30-60s)'
+                              : hookSourceUrl ? '↻ Changer de vidéo' : '⬆ Charger une vidéo (max 100 MB)'}
                           </span>
                         </label>
+
+                        {hookSourceUrl && !hookUploading && !hookKeyframeUrl && (
+                          <p className="text-[11px] text-amber-600 -mt-2">
+                            Analyse de la vidéo en cours — le bouton « Générer » sera actif quand le keyframe sera prêt.
+                          </p>
+                        )}
 
                         {hookSourceUrl && (
                           <>
@@ -1558,6 +1595,81 @@ function StudioContent() {
                               </div>
                             </div>
 
+                            {/* Auto-improvements — burn captions, crop to network ratio,
+                                speed up dead air, normalize loudness. Server applies
+                                these via ffmpeg in the same pass that burns the hook,
+                                so one click → one publish-ready output. */}
+                            <div className="rounded-lg border border-neutral-200 bg-neutral-50/60 p-3 space-y-3">
+                              <div className="text-[11px] uppercase font-bold text-neutral-600 tracking-wide">Améliorations auto</div>
+
+                              <label className="flex items-center justify-between gap-3 cursor-pointer">
+                                <div>
+                                  <div className="text-xs font-semibold text-neutral-800">Sous-titres burned-in</div>
+                                  <div className="text-[10px] text-neutral-500">Whisper transcrit, burn sur la vidéo (style {hookNetwork === 'tiktok' ? 'TikTok' : hookNetwork === 'instagram' ? 'Reels' : 'LinkedIn'})</div>
+                                </div>
+                                <input
+                                  type="checkbox"
+                                  checked={hookEnhancements.captions}
+                                  onChange={(e) => setHookEnhancements(prev => ({ ...prev, captions: e.target.checked }))}
+                                  className="w-5 h-5 accent-violet-600"
+                                />
+                              </label>
+
+                              <div>
+                                <div className="text-xs font-semibold text-neutral-800 mb-1.5">Format / crop</div>
+                                <div className="grid grid-cols-4 gap-1.5">
+                                  {([
+                                    { v: 'keep', label: 'Garder' },
+                                    { v: '9:16', label: '9:16' },
+                                    { v: '1:1', label: '1:1' },
+                                    { v: '4:5', label: '4:5' },
+                                  ] as const).map(c => (
+                                    <button
+                                      key={c.v}
+                                      onClick={() => setHookEnhancements(prev => ({ ...prev, crop: c.v }))}
+                                      className={`px-2 py-1.5 rounded text-[10px] font-bold transition ${hookEnhancements.crop === c.v ? 'bg-violet-600 text-white' : 'bg-white border border-neutral-200 text-neutral-600'}`}
+                                    >
+                                      {c.label}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+
+                              <div>
+                                <div className="text-xs font-semibold text-neutral-800 mb-1.5">Vitesse</div>
+                                <div className="grid grid-cols-4 gap-1.5">
+                                  {([1, 1.1, 1.25, 1.5] as const).map(s => (
+                                    <button
+                                      key={s}
+                                      onClick={() => setHookEnhancements(prev => ({ ...prev, speed: s }))}
+                                      className={`px-2 py-1.5 rounded text-[10px] font-bold transition ${hookEnhancements.speed === s ? 'bg-violet-600 text-white' : 'bg-white border border-neutral-200 text-neutral-600'}`}
+                                    >
+                                      {s === 1 ? '1×' : `${s}×`}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+
+                              <div>
+                                <div className="text-xs font-semibold text-neutral-800 mb-1.5">Audio</div>
+                                <div className="grid grid-cols-3 gap-1.5">
+                                  {([
+                                    { v: 'keep', label: 'Garder' },
+                                    { v: 'normalize', label: 'Normaliser' },
+                                    { v: 'boost', label: 'Boost +3 dB' },
+                                  ] as const).map(l => (
+                                    <button
+                                      key={l.v}
+                                      onClick={() => setHookEnhancements(prev => ({ ...prev, loudness: l.v }))}
+                                      className={`px-2 py-1.5 rounded text-[10px] font-bold transition ${hookEnhancements.loudness === l.v ? 'bg-violet-600 text-white' : 'bg-white border border-neutral-200 text-neutral-600'}`}
+                                    >
+                                      {l.label}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+
                             {/* Generate button */}
                             <button
                               onClick={async () => {
@@ -1574,6 +1686,7 @@ function StudioContent() {
                                       keyframeUrl: hookKeyframeUrl,
                                       network: hookNetwork,
                                       style: hookStyle,
+                                      enhancements: hookEnhancements,
                                     }),
                                   });
                                   const j = await r.json();
@@ -1588,10 +1701,11 @@ function StudioContent() {
                                   setHookBusy(false);
                                 }
                               }}
-                              disabled={hookBusy}
+                              disabled={hookBusy || hookUploading || !hookKeyframeUrl}
                               className="w-full py-3 min-h-[48px] rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-bold text-sm disabled:opacity-50 transition"
+                              title={!hookKeyframeUrl ? 'Attendez la fin de l\'analyse vidéo (keyframe en cours d\'extraction)' : ''}
                             >
-                              {hookBusy ? 'Génération en cours…' : '✨ Générer la vidéo avec hook'}
+                              {hookBusy ? 'Génération en cours…' : hookUploading ? 'Upload en cours…' : !hookKeyframeUrl ? '⏳ Analyse vidéo en cours…' : '✨ Générer la vidéo avec hook'}
                             </button>
 
                             {hookError && (

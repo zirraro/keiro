@@ -16,7 +16,7 @@ type AgentGroup = {
 const AGENT_NAMES: Record<string, string> = {
   email: 'Hugo (Email)', commercial: 'Leo (Prospection)', dm_instagram: 'Jade (DM IG)',
   seo: 'Oscar (SEO)', content: 'Lena (Contenu)', onboarding: 'Clara (Onboarding)',
-  retention: 'Theo R. (Retention)', marketing: 'Ami (Marketing)', chatbot: 'Max (Chatbot)',
+  retention: 'Theo R. (Retention)', marketing: 'Ami (Marketing)', chatbot: 'Clara (Chatbot site)',
   whatsapp: 'Stella (WhatsApp)', gmaps: 'Theo (Avis)', comptable: 'Louis (Finance)',
   ads: 'Felix (Pub)', rh: 'Sara (RH)', ceo: 'Noah (CEO)',
 };

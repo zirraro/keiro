@@ -425,15 +425,17 @@ export const CLIENT_AGENTS: ClientAgent[] = [
     integrations: ['Google Business Profile', 'Google Maps', 'Google Search Console', 'Votre site web / blog'],
   },
   {
+    // Clara handles chatbot site-web AND in-app onboarding AND retention.
+    // Same persona, same Sonnet prompt with mode-specific emphasis.
     id: 'chatbot',
-    displayName: 'Max',
-    title: 'Chatbot Site Web (admin only)',
-    description: 'Widget chatbot — réservé fondateur, pas exposé aux clients pour le moment',
+    displayName: 'Clara',
+    title: 'Chatbot Site Web — Clara (onboarding + retention)',
+    description: 'Widget chatbot intelligent — accueille les visiteurs, fait onboarding et retention. Branding unifié avec Clara onboarding.',
     visibility: 'admin_only',
-    minPlan: 'pro',
-    gradientFrom: '#7c3aed',
-    gradientTo: '#5b21b6',
-    icon: '\u{1F916}',
+    minPlan: 'business',
+    gradientFrom: '#ec4899',
+    gradientTo: '#f97316',
+    icon: '\u{1F49B}',
     integrations: ['Votre site internet (widget)', 'CRM KeiroAI'],
   },
   {

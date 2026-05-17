@@ -7,7 +7,7 @@
  *   data-color="#8b5cf6"     — accent color
  *   data-position="right"   — left or right
  *   data-greeting="Bonjour!" — custom greeting
- *   data-agent="chatbot"    — chatbot (Max) or onboarding (Clara)
+ *   data-agent="chatbot"    — chatbot or onboarding (both branded as Clara)
  *   data-lang="fr"          — language
  */
 (function() {
@@ -108,10 +108,11 @@
   // Panel
   var panel = document.createElement('div');
   panel.id = 'keiro-widget-panel';
-  var agentName = AGENT === 'onboarding' ? 'Clara' : 'Max';
+  // Clara is the single client-facing widget persona (was Max + Clara).
+  var agentName = 'Clara';
   panel.innerHTML = [
     '<div id="keiro-widget-header">',
-    '  <div style="width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:20px">' + (AGENT === 'onboarding' ? '\u{1F680}' : '\u{1F916}') + '</div>',
+    '  <div style="width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:20px">\u{1F680}</div>',
     '  <div><div class="name">' + agentName + '</div><div class="status">\u{1F7E2} En ligne</div></div>',
     '  <button class="close" id="keiro-close">\u00D7</button>',
     '</div>',

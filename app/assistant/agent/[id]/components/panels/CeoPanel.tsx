@@ -100,7 +100,7 @@ export function CeoPanel({ data, agentName, gradientFrom, gradientTo }: PanelPro
 
   const AGENT_NAMES: Record<string, string> = {
     content: 'Lena', email: 'Hugo', dm_instagram: 'Jade', commercial: 'Leo',
-    seo: 'Oscar', gmaps: 'Theo', chatbot: 'Max', rh: 'Sara', comptable: 'Louis',
+    seo: 'Oscar', gmaps: 'Theo', chatbot: 'Clara', rh: 'Sara', comptable: 'Louis',
   };
 
   return (

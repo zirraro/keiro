@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Max — Chatbot site web dashboard panel.
+ * Clara — Chatbot site web dashboard panel (also handles onboarding + retention).
  * Extracted from AgentDashboard.tsx.
  */
 

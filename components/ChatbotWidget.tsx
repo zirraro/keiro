@@ -72,7 +72,7 @@ export default function ChatbotWidget() {
       .then(data => {
         const chatbotAgent = data.avatars?.find((a: any) => a.id === 'chatbot');
         if (chatbotAgent) {
-          setAvatarInfo({ name: chatbotAgent.display_name || 'Max', avatarUrl: chatbotAgent.avatar_3d_url || chatbotAgent.avatar_url });
+          setAvatarInfo({ name: chatbotAgent.display_name || 'Clara', avatarUrl: chatbotAgent.avatar_3d_url || chatbotAgent.avatar_url });
         }
       })
       .catch(() => {}); // Silent fail — defaults to "Keiro"

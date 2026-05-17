@@ -47,7 +47,7 @@ const AGENTS: Array<{ id: string; label: string; tier: AgentHealth['tier'] }> = 
   { id: 'marketing', label: 'Ami — Marketing', tier: 'créateur' },
   { id: 'onboarding', label: 'Clara — Onboarding', tier: 'créateur' },
   { id: 'seo', label: 'Oscar — SEO', tier: 'pro' },
-  { id: 'chatbot', label: 'Max — Chatbot site client', tier: 'business' },
+  { id: 'chatbot', label: 'Clara — Chatbot site client', tier: 'business' },
 ];
 
 async function loadAgentHealth(): Promise<AgentHealth[]> {

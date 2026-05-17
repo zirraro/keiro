@@ -287,9 +287,9 @@ export const en: Translations = {
     planBusinessTitle: 'Business',
     planBusinessSubtitle: '2,000 credits — SMB & multi-activity',
     planBusinessBullets: [
-      '<strong>All agents active</strong>: everything in Pro + Max (website chatbot)',
+      '<strong>All agents active</strong>: everything in Pro + Clara (website chatbot)',
       'Everything in Pro +',
-      '✅ Max: 24/7 website chatbot',
+      '✅ Clara: 24/7 website chatbot',
       '~30 posts/week',
       '<strong>~750 qualified prospects/month</strong> via Google Maps',
       'Full CRM + Multi-accounts (1+5)',
@@ -450,7 +450,7 @@ export const en: Translations = {
     planCreateurNote: '7 days free, then €49/month. €0 charged. Cancel in 1 click.',
     planCreateurNotIncluded: [
 
-      'Max website chatbot 24/7 (from Business)',
+      'Clara website chatbot 24/7 (from Business)',
 
       'Sara HR & Legal (coming soon)',
     ],
@@ -470,7 +470,7 @@ export const en: Translations = {
     planProNote: '7 days free, then €99/month. €0 charged. Cancel in 1 click.',
     planProUpgrade: 'Finance + Chatbot? Upgrade to Business →',
     planProNotIncluded: [
-      'Max website chatbot (from Business)',
+      'Clara website chatbot (from Business)',
 
       'Sara HR & Legal (coming soon)',
     ],
@@ -480,8 +480,8 @@ export const en: Translations = {
     planFondateursBullets: [
       '3,500 credits/month',
       '= Full Business access',
-      '<strong>All agents active</strong>: everything in Pro + Max (website chatbot)',
-      '✅ Max: 24/7 website chatbot',
+      '<strong>All agents active</strong>: everything in Pro + Clara (website chatbot)',
+      '✅ Clara: 24/7 website chatbot',
       '<strong>~750 qualified prospects/month</strong> (Google Maps)',
       'Built-in CRM + Multi-accounts 1+5',
       'Priority support + onboarding call',
@@ -493,9 +493,9 @@ export const en: Translations = {
     planBusinessTitle: 'Business',
     planBusinessSubtitle: 'SMB & multi-activity',
     planBusinessBullets: [
-      '<strong>All agents active</strong>: everything in Pro + Max (website chatbot)',
+      '<strong>All agents active</strong>: everything in Pro + Clara (website chatbot)',
       'Everything in Pro +',
-      '✅ Max: 24/7 website chatbot integrated',
+      '✅ Clara: 24/7 website chatbot integrated (onboarding + retention)',
       '<strong>~750 qualified prospects/month</strong> (Google Maps)',
       '~30 posts/week',
       'Built-in CRM + Multi-accounts (1+5)',
@@ -2867,7 +2867,7 @@ export const en: Translations = {
     agentOnboarding: 'Clara (Onboarding)',
     agentSeo: 'Oscar (SEO)',
     agentContent: 'Léna (Content)',
-    agentChatbot: 'Max (Chatbot)',
+    agentChatbot: 'Clara (Website chatbot)',
     agentRetention: 'Théo (Retention)',
     agentCeo: 'Noah (CEO brief)',
   },
@@ -3154,7 +3154,7 @@ export const en: Translations = {
     strategyDone: 'Strategy applied',
     strategyOverLimit: 'Exceeds Creator plan (400 credits)',
 
-    // ─── Chatbot (Max) ──────────────────────────────────────
+    // ─── Chatbot (Clara) ──────────────────────────────────────
     chatbotKpiVisitors: 'Visitors greeted',
     chatbotKpiLeads: 'Leads captured',
     chatbotKpiConv: 'Conversion rate',

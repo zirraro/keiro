@@ -28,7 +28,7 @@ export default function GlobalNotifBubble() {
     onboarding: n.agentOnboarding || 'Clara (Onboarding)',
     seo: n.agentSeo || 'Oscar (SEO)',
     content: n.agentContent || 'Léna (Contenu)',
-    chatbot: n.agentChatbot || 'Max (Chatbot)',
+    chatbot: n.agentChatbot || 'Clara (Chatbot site)',
     retention: n.agentRetention || 'Théo (Rétention)',
     ceo: n.agentCeo || 'Noah (Brief CEO)',
   };

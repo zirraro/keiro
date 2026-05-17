@@ -32,7 +32,7 @@ const AGENT_NAMES: Record<string, string> = {
   marketing: 'Ami',
   ceo: 'Noah',
   onboarding: 'Clara',
-  chatbot: 'Max',
+  chatbot: 'Clara',
   retention: 'Théo',
   comptable: 'Louis',
   instagram_comments: 'Jade',
