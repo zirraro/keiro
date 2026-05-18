@@ -56,6 +56,10 @@ const GLOBAL_SCHEDULE = [
   // Weekly — pick each client's best-engagement weekday for Noah's
   // brief based on Brevo open signals over the last 8 weeks.
   { cron: '0 3 * * 1',    path: '/api/cron/compute-best-brief-day', label: 'Best Brief Day Analysis (Monday)' },
+  // Nightly — refresh prospect_pool entries >25 days old before they
+  // hit Google's 30-day cache ToS limit. Caps at 30 entries/run + bails
+  // if daily Places budget already spent. Cheapest possible refresh.
+  { cron: '15 3 * * *',   path: '/api/cron/prospect-pool-refresh', label: 'Prospect Pool Refresh (>25 days)' },
 ];
 
 // Agent endpoint mapping (for per-client direct calls)
