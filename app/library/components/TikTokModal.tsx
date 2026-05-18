@@ -2298,6 +2298,30 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                   </div>
                 </div>
 
+                {/* ═══ POINT 1 — Creator Info display (TikTok UX Guideline) ═══
+                    Show the creator handle + max video duration pulled from
+                    /v2/post/publish/creator_info/query/ so the reviewer can
+                    visually confirm the API result is honoured before any
+                    privacy / interaction choice is made. */}
+                <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wide">{en ? 'Step 1/5 — Creator info' : 'Étape 1/5 — Compte créateur'}</div>
+                <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2.5 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-black to-neutral-700 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                    {(creatorInfo?.username || creatorInfo?.display_name || tiktokUsername || '?').toString().slice(0, 1).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-bold text-neutral-900 truncate">
+                      {en ? 'Posting as' : 'Publication en tant que'}{' '}
+                      <span className="text-black">@{creatorInfo?.username || tiktokUsername || '—'}</span>
+                    </div>
+                    <div className="text-[10px] text-neutral-600 mt-0.5">
+                      {en ? 'Max video duration' : 'Durée max vidéo'} :{' '}
+                      <strong>{creatorInfo?.max_video_post_duration_sec ?? '—'}s</strong>
+                      <span className="ml-2 text-neutral-400">·</span>
+                      <span className="ml-2">{en ? 'fetched from' : 'depuis'} <code className="text-[9px] bg-white border border-neutral-200 px-1 rounded">/v2/post/publish/creator_info/query/</code></span>
+                    </div>
+                  </div>
+                </div>
+
                 {/* ═══ POINT 2 — Privacy Status Selection (TikTok UX Guideline) ═══ */}
                 <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wide">{en ? 'Step 2/5 — Privacy' : 'Étape 2/5 — Confidentialité'}</div>
                 <div>
