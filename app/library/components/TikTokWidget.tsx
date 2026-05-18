@@ -25,6 +25,10 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
   const [posts, setPosts] = useState<any[]>([]);
   const [syncing, setSyncing] = useState(false);
   const [failedThumbnails, setFailedThumbnails] = useState<Set<string>>(new Set());
+  // Lightweight inline feedback after a manual sync — replaces the old
+  // intrusive popup. Auto-dismisses after 3 s. Only ever set on manual
+  // refresh button clicks (silent=false), never on auto-sync paths.
+  const [syncFeedback, setSyncFeedback] = useState<{ kind: 'ok' | 'empty' | 'err'; text: string } | null>(null);
 
   useEffect(() => {
     loadTikTokStatus();
@@ -74,8 +78,23 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
       const data = await response.json();
 
       if (data.ok) {
-        console.log('[TikTokWidget] Synced', data.synced, 'videos');
+        const n = data.synced || 0;
+        const del = data.deleted || 0;
+        console.log('[TikTokWidget] Synced', n, 'videos, deleted', del, 'stale');
         await loadTikTokStatus();
+        if (!silent) {
+          // Inline feedback on manual refresh so the user knows the click
+          // did something — replaces the old intrusive alert popup.
+          if (n === 0 && del === 0) {
+            setSyncFeedback({ kind: 'empty', text: 'Déjà à jour — aucune nouvelle vidéo sur TikTok.' });
+          } else {
+            const parts: string[] = [];
+            if (n > 0) parts.push(`${n} vidéo${n > 1 ? 's' : ''} synchronisée${n > 1 ? 's' : ''}`);
+            if (del > 0) parts.push(`${del} supprimée${del > 1 ? 's' : ''}`);
+            setSyncFeedback({ kind: 'ok', text: `✓ ${parts.join(' · ')}` });
+          }
+          setTimeout(() => setSyncFeedback(null), 3000);
+        }
         return;
       }
 
@@ -89,10 +108,18 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
         return;
       }
 
-      // Other errors — log only; the gallery just stays as it was.
+      // Other errors — log; show a tiny inline error on manual sync.
       console.warn('[TikTokWidget] sync failed:', data.error);
+      if (!silent) {
+        setSyncFeedback({ kind: 'err', text: 'Échec de la synchronisation — réessaye dans un instant.' });
+        setTimeout(() => setSyncFeedback(null), 3500);
+      }
     } catch (error: any) {
       console.error('[TikTokWidget] Error syncing:', error);
+      if (!silent) {
+        setSyncFeedback({ kind: 'err', text: 'Erreur réseau — réessaye.' });
+        setTimeout(() => setSyncFeedback(null), 3500);
+      }
     } finally {
       setSyncing(false);
     }
@@ -314,6 +341,21 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
           </div>
         </div>
       </div>
+
+      {/* Inline sync feedback — replaces the old intrusive alert popup.
+          Only ever shown after a manual sync click; auto-dismisses after
+          ~3 s. Color matches the outcome (ok / empty / error). */}
+      {syncFeedback && !isCollapsed && (
+        <div className={`mx-3 mt-2 mb-0 rounded-lg px-3 py-2 text-xs font-medium border ${
+          syncFeedback.kind === 'ok'
+            ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+            : syncFeedback.kind === 'empty'
+              ? 'bg-neutral-50 border-neutral-200 text-neutral-600'
+              : 'bg-rose-50 border-rose-200 text-rose-700'
+        }`}>
+          {syncFeedback.text}
+        </div>
+      )}
 
       {!isCollapsed && (
         <>
