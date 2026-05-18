@@ -193,31 +193,58 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Delete posts that no longer exist on TikTok so the local gallery
+    // mirrors reality. Same model as the IG sync: any tiktok_posts row
+    // for this user whose id isn't in the freshly-fetched list = the
+    // user deleted that video on TikTok → remove it locally.
+    const liveIds = videos.map(v => v.id);
+    let deletedCount = 0;
+    try {
+      const { data: localPosts } = await supabase
+        .from('tiktok_posts')
+        .select('id')
+        .eq('user_id', user.id);
+      const staleIds = (localPosts || [])
+        .map(p => p.id)
+        .filter(id => !liveIds.includes(id));
+      if (staleIds.length > 0) {
+        const { error: delErr } = await supabase
+          .from('tiktok_posts')
+          .delete()
+          .eq('user_id', user.id)
+          .in('id', staleIds);
+        if (!delErr) deletedCount = staleIds.length;
+      }
+    } catch (e: any) {
+      console.warn('[TikTokSync] cleanup of deleted videos failed:', e?.message);
+    }
+
     console.log('[TikTokSync] Sync summary:', {
       total: videos.length,
       success: successCount,
-      errors: errorCount
+      errors: errorCount,
+      deleted: deletedCount,
     });
 
     if (errorCount > 0) {
       console.error('[TikTokSync] Errors occurred during sync:', errors);
     }
 
-    console.log('[TikTokSync] Synced', successCount, 'out of', videos.length, 'videos to database');
-
     if (errorCount > 0) {
       return NextResponse.json({
         ok: false,
         error: `❌ Erreur lors de la synchronisation\n\n${successCount} vidéo(s) synchronisée(s)\n${errorCount} erreur(s)\n\nDétails: ${errors.map(e => e.error).join(', ')}`,
         synced: successCount,
+        deleted: deletedCount,
         errors: errorCount,
-        errorDetails: errors
+        errorDetails: errors,
       }, { status: 500 });
     }
 
     return NextResponse.json({
       ok: true,
-      synced: successCount
+      synced: successCount,
+      deleted: deletedCount,
     });
 
   } catch (error: any) {

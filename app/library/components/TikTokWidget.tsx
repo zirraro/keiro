@@ -59,57 +59,40 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
     }
   }, [refreshTrigger]);
 
-  const handleSyncMedia = async () => {
+  // Silent by default — same UX as Instagram. The gallery just refreshes
+  // in place. We only surface a popup when the user explicitly clicks the
+  // manual refresh button AND something requires their attention (e.g. a
+  // permission error needing a reconnect).
+  const handleSyncMedia = async (opts?: { silent?: boolean }) => {
+    const silent = opts?.silent !== false; // default silent
     setSyncing(true);
     try {
       const response = await fetch('/api/tiktok/sync-media', {
         method: 'POST',
-        credentials: 'include'
+        credentials: 'include',
       });
-
       const data = await response.json();
 
       if (data.ok) {
         console.log('[TikTokWidget] Synced', data.synced, 'videos');
-        // Reload status after sync
         await loadTikTokStatus();
-
-        if (data.synced === 0) {
-          alert(
-            `ℹ️ Synchronisation terminée\n\n` +
-            `${data.message || 'Aucune vidéo trouvée sur votre compte TikTok.'}\n\n` +
-            `Si vous venez de publier, attendez quelques minutes et réessayez.`
-          );
-        } else {
-          alert(`✅ ${data.synced} vidéo(s) synchronisée(s) depuis TikTok`);
-        }
-      } else {
-        // Check if needs reconnection
-        if (data.needsReconnect) {
-          const reconnect = confirm(
-            `⚠️ Permissions insuffisantes\n\n` +
-            `${data.error}\n\n` +
-            `Voulez-vous reconnecter votre compte TikTok ?`
-          );
-
-          if (reconnect) {
-            window.location.href = '/api/auth/tiktok-oauth';
-            return;
-          }
-        }
-
-        throw new Error(data.error || 'Failed to sync');
+        return;
       }
+
+      // Permission error — only surface this in non-silent mode (user
+      // clicked the refresh button and we genuinely need their action).
+      if (data.needsReconnect && !silent) {
+        const reconnect = confirm(
+          `⚠️ Permissions insuffisantes\n\n${data.error}\n\nReconnecter ton compte TikTok ?`,
+        );
+        if (reconnect) window.location.href = '/api/auth/tiktok-oauth';
+        return;
+      }
+
+      // Other errors — log only; the gallery just stays as it was.
+      console.warn('[TikTokWidget] sync failed:', data.error);
     } catch (error: any) {
       console.error('[TikTokWidget] Error syncing:', error);
-      alert(
-        `❌ Erreur de synchronisation\n\n` +
-        `${error.message}\n\n` +
-        `Solutions:\n` +
-        `• Reconnectez votre compte TikTok\n` +
-        `• Vérifiez vos autorisations\n` +
-        `• Contactez le support si cela persiste`
-      );
     } finally {
       setSyncing(false);
     }
@@ -303,7 +286,7 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
             {/* Bouton refresh/sync - Seulement visible quand déplié */}
             {!isCollapsed && (
               <button
-                onClick={() => handleSyncMedia()}
+                onClick={() => handleSyncMedia({ silent: false })}
                 disabled={syncing}
                 className="bg-white border border-neutral-300 text-neutral-700 font-semibold rounded-lg hover:bg-neutral-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed p-2"
                 title="Synchroniser les vidéos TikTok"
@@ -409,7 +392,7 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
           <p className="text-sm text-neutral-500 mb-3">Aucune vidéo synchronisée</p>
           <p className="text-xs text-neutral-400 mb-4">Synchronise tes vidéos TikTok existantes ou publie ta première vidéo !</p>
           <button
-            onClick={handleSyncMedia}
+            onClick={() => handleSyncMedia({ silent: false })}
             disabled={syncing}
             className="px-4 py-2 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white text-sm font-medium rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 mx-auto"
           >
