@@ -23,8 +23,13 @@ export default function ForceFreshTikTokButton() {
         credentials: 'include',
       });
       const j = await r.json().catch(() => ({}));
+      if (r.status === 401) {
+        setError('You must be logged in to KeiroAI first. Open /login in this same browser, sign in with the TikTok-connected account, then come back to this page.');
+        setBusy(false);
+        return;
+      }
       if (!r.ok) {
-        setError(j.error || `HTTP ${r.status} — open this page while logged in to your KeiroAI workspace`);
+        setError(j.error || `HTTP ${r.status} — please try again or open /login first.`);
         setBusy(false);
         return;
       }
