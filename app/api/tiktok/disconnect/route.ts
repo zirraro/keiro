@@ -66,10 +66,8 @@ export async function POST() {
       .from('profiles')
       .update({
         tiktok_user_id: null,
-        tiktok_open_id: null,
         tiktok_username: null,
         tiktok_display_name: null,
-        tiktok_avatar_url: null,
         tiktok_access_token: null,
         tiktok_refresh_token: null,
         tiktok_token_expiry: null,
