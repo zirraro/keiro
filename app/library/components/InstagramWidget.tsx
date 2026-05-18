@@ -356,6 +356,22 @@ export default function InstagramWidget({
               media: post.media_url
             });
 
+            const handleDelete = async (e: React.MouseEvent) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const ok = window.confirm(
+                'Supprimer cette publication ?\n\n' +
+                'Instagram n\'autorise pas la suppression depuis une app tierce — on va ouvrir Instagram dans un nouvel onglet où tu pourras supprimer le post toi-même.\n\n' +
+                'La galerie KeiroAI se mettra à jour automatiquement après.'
+              );
+              if (!ok) return;
+              if (post.permalink) window.open(post.permalink, '_blank', 'noopener,noreferrer');
+              // Optimistic local remove. If the user didn't actually delete
+              // on Instagram, the next sync will re-add the tile — exactly
+              // the right behaviour because the gallery mirrors reality.
+              setPosts((prev: any[]) => prev.filter(p => p.id !== post.id));
+            };
+
             return (
               <a
                 key={post.id}
@@ -365,6 +381,21 @@ export default function InstagramWidget({
                 className="relative aspect-square rounded-lg overflow-hidden group cursor-pointer bg-neutral-100"
                 title={isFromCache ? 'Image depuis votre stockage' : 'Image Instagram (peut expirer)'}
               >
+                {/* Delete button — top-right overlay, visible on hover. Opens
+                    Instagram in a new tab (only place where a third-party can
+                    initiate a real delete) and optimistically removes the tile
+                    from the local UI. */}
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  title="Supprimer (ouvre Instagram pour confirmer)"
+                  aria-label="Supprimer cette publication"
+                  className="absolute top-1.5 left-1.5 z-20 w-7 h-7 rounded-full bg-white/85 hover:bg-rose-500 hover:text-white text-rose-600 shadow-md backdrop-blur opacity-0 group-hover:opacity-100 transition flex items-center justify-center"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2" />
+                  </svg>
+                </button>
                 {/* Image Instagram */}
                 <img
                   src={imageUrl}

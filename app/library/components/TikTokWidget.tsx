@@ -334,6 +334,19 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
                   hasError
                 });
 
+                const handleDelete = async (e: React.MouseEvent) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  const ok = window.confirm(
+                    'Supprimer cette vidéo ?\n\n' +
+                    'TikTok n\'autorise pas la suppression depuis une app tierce — on va ouvrir TikTok dans un nouvel onglet où tu pourras supprimer la vidéo toi-même.\n\n' +
+                    'La galerie KeiroAI se mettra à jour automatiquement après.'
+                  );
+                  if (!ok) return;
+                  if (post.share_url) window.open(post.share_url, '_blank', 'noopener,noreferrer');
+                  setPosts((prev: any[]) => prev.filter(p => p.id !== post.id));
+                };
+
                 return (
                 <a
                   key={post.id}
@@ -342,6 +355,21 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
                   rel="noopener noreferrer"
                   className="relative aspect-square rounded-lg overflow-hidden group cursor-pointer bg-gradient-to-br from-cyan-50 to-[#0c1a3a]/5"
                 >
+                  {/* Delete button — top-left overlay, visible on hover. Opens
+                      TikTok in a new tab (only place where a third-party can
+                      initiate a real delete) and optimistically removes the
+                      tile from the local UI. */}
+                  <button
+                    type="button"
+                    onClick={handleDelete}
+                    title="Supprimer (ouvre TikTok pour confirmer)"
+                    aria-label="Supprimer cette vidéo"
+                    className="absolute top-1.5 left-1.5 z-20 w-7 h-7 rounded-full bg-white/85 hover:bg-rose-500 hover:text-white text-rose-600 shadow-md backdrop-blur opacity-0 group-hover:opacity-100 transition flex items-center justify-center"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2" />
+                    </svg>
+                  </button>
                   {/* Thumbnail - Prioritize cached_thumbnail_url */}
                   {!hasError && thumbnailUrl ? (
                     <img
