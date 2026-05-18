@@ -4,6 +4,8 @@ import { getVideoJob, updateVideoJob } from '@/lib/video-jobs-db';
 import { publishTikTokVideoViaFileUpload, refreshTikTokToken } from '@/lib/tiktok';
 import { publishReelToInstagram } from '@/lib/meta';
 import { diagnosePublishFailure, sendPublishAlert } from '@/lib/agents/publish-diagnostics';
+import { canPublishNow } from '@/lib/meta/publish-rate-limit';
+import { getSchedulingState, recordPublishError } from '@/lib/meta/scheduling-state';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -37,10 +39,12 @@ export async function GET(request: NextRequest) {
   const results: Array<{ postId: string; jobId: string; status: string; action?: string; error?: string }> = [];
 
   try {
-    // Find all content_calendar entries with pending video jobs
+    // Find all content_calendar entries with pending video jobs.
+    // user_id is included so we can enforce per-account scheduling
+    // pause + rate limits below.
     const { data: pendingPosts, error: fetchErr } = await supabase
       .from('content_calendar')
-      .select('id, platform, format, caption, hashtags, visual_url, video_url, video_job_id, status')
+      .select('id, user_id, platform, format, caption, hashtags, visual_url, video_url, video_job_id, status')
       .not('video_job_id', 'is', null)
       .in('status', ['draft', 'approved', 'video_generating'])
       .limit(10);
@@ -92,6 +96,37 @@ export async function GET(request: NextRequest) {
             updated_at: new Date().toISOString(),
           };
 
+          // SCHEDULING GUARDS — refuse to publish if the user is auto-paused
+          // (after a prior 4xx) or if they've hit the per-network daily cap /
+          // min-spacing. These checks protect the app permission from being
+          // revoked by repeated bad publishes from the cron path.
+          const ownerId = (post as any).user_id as string | undefined;
+          if (ownerId) {
+            const pauseState = await getSchedulingState(supabase, ownerId);
+            if (pauseState.paused) {
+              console.warn(`[video-poll] Scheduling paused for user ${ownerId} — skipping publish of post ${post.id}: ${pauseState.reason}`);
+              await supabase.from('content_calendar').update({
+                status: 'approved',
+                publish_diagnostic: pauseState.reason || 'scheduling_paused',
+                updated_at: new Date().toISOString(),
+              }).eq('id', post.id);
+              results.push({ postId: post.id, jobId, status: 'paused', error: pauseState.reason });
+              continue;
+            }
+            const rate = await canPublishNow(supabase, ownerId, post.platform as 'instagram' | 'tiktok' | 'linkedin');
+            if (!rate.ok) {
+              console.log(`[video-poll] Rate limit on user ${ownerId} — defer ${post.id} to ${rate.nextAllowedAt}`);
+              await supabase.from('content_calendar').update({
+                status: 'approved',
+                publish_diagnostic: rate.reason || 'rate_limited',
+                next_retry_at: rate.nextAllowedAt || null,
+                updated_at: new Date().toISOString(),
+              }).eq('id', post.id);
+              results.push({ postId: post.id, jobId, status: 'deferred', error: rate.reason });
+              continue;
+            }
+          }
+
           // Publish to platform
           let publishResult: string | undefined;
           let publishError: string | undefined;
@@ -106,6 +141,19 @@ export async function GET(request: NextRequest) {
               console.warn(`[video-poll] TikTok publish failed for post ${post.id}: ${ttResult.error}`);
               const diag = diagnosePublishFailure('TikTok', ttResult.error || '');
               await sendPublishAlert(diag, `Video post ${post.id} (job ${jobId})`, supabase);
+              // Trip auto-pause on 4xx so subsequent scheduler ticks skip
+              // this user until they reconnect / admin resumes.
+              if (ownerId) {
+                const httpMatch = String(ttResult.error || '').match(/(\d{3})/);
+                const status = httpMatch ? parseInt(httpMatch[1], 10) : 400;
+                await recordPublishError(supabase, {
+                  userId: ownerId,
+                  network: 'tiktok',
+                  httpStatus: status,
+                  error: ttResult.error || 'tiktok publish failed',
+                  endpoint: 'cron:video-poll',
+                });
+              }
             }
           } else if (post.platform === 'instagram') {
             const igResult = await publishToInstagramReel(post, finalVideoUrl, supabase);
@@ -117,6 +165,17 @@ export async function GET(request: NextRequest) {
               console.warn(`[video-poll] Instagram publish failed for post ${post.id}: ${igResult.error}`);
               const diag = diagnosePublishFailure('Instagram', igResult.error || '');
               await sendPublishAlert(diag, `Video post ${post.id} (job ${jobId})`, supabase);
+              if (ownerId) {
+                const httpMatch = String(igResult.error || '').match(/(\d{3})/);
+                const status = httpMatch ? parseInt(httpMatch[1], 10) : 400;
+                await recordPublishError(supabase, {
+                  userId: ownerId,
+                  network: 'instagram',
+                  httpStatus: status,
+                  error: igResult.error || 'ig publish failed',
+                  endpoint: 'cron:video-poll',
+                });
+              }
             }
           }
 

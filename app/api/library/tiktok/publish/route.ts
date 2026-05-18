@@ -10,6 +10,9 @@ import {
   refreshTikTokToken
 } from '@/lib/tiktok';
 import { mirrorToShowcaseAccount } from '@/lib/agents/showcase-mirror';
+import { canPublishNow } from '@/lib/meta/publish-rate-limit';
+import { getSchedulingState, recordPublishError } from '@/lib/meta/scheduling-state';
+import { preflightPublish } from '@/lib/meta/publish-guard';
 
 export const runtime = 'edge';
 
@@ -107,6 +110,45 @@ export async function POST(req: NextRequest) {
         { ok: false, error: 'Compte TikTok non connecté' },
         { status: 400 }
       );
+    }
+
+    // SCHEDULING AUTO-PAUSE — refuse publish if a prior 4xx tripped
+    // the per-user pause flag (protects TikTok app permission).
+    {
+      const state = await getSchedulingState(supabase, userId);
+      if (state.paused) {
+        return NextResponse.json(
+          { ok: false, error: `Scheduling en pause pour ce compte — ${state.reason || 'reconnecte TikTok'}.`, guard: 'scheduling_paused' },
+          { status: 423 },
+        );
+      }
+    }
+
+    // RATE LIMIT — max 4 publishes / 24h / network, min 90 min spacing.
+    {
+      const rate = await canPublishNow(supabase, userId, 'tiktok');
+      if (!rate.ok) {
+        return NextResponse.json(
+          { ok: false, error: rate.reason, guard: rate.diagnosticTag, nextAllowedAt: rate.nextAllowedAt },
+          { status: 429 },
+        );
+      }
+    }
+
+    // PRE-PUBLISH GUARDS — same 3 protections as Instagram path.
+    {
+      const guard = await preflightPublish(supabase, {
+        userId,
+        imageUrl: videoUrl,
+        caption: caption || '',
+        network: 'tiktok',
+      });
+      if (!guard.ok) {
+        return NextResponse.json(
+          { ok: guard.retryDuplicate || false, error: guard.reason, guard: guard.diagnosticTag },
+          { status: guard.retryDuplicate ? 200 : 409 },
+        );
+      }
     }
 
     // Log TikTok user info for debugging Target Users issues
@@ -227,6 +269,19 @@ export async function POST(req: NextRequest) {
           },
         });
       } catch { /* non-fatal */ }
+
+      // Trip auto-pause on 4xx (revoked token, expired permissions,
+      // spam-risk flag etc.). Protects our TikTok app permission from
+      // being revoked by repeated bad requests on the same account.
+      const httpMatch = rawErr.match(/(\d{3})/);
+      const httpStatus = httpMatch ? parseInt(httpMatch[1], 10) : 400;
+      await recordPublishError(supabase, {
+        userId,
+        network: 'tiktok',
+        httpStatus,
+        error: rawErr,
+        endpoint: '/v2/post/publish/video/init/',
+      });
 
       throw new Error(userMessage);
     }

@@ -4,6 +4,8 @@ import { cookies } from 'next/headers';
 import { publishImageToInstagram } from '@/lib/meta';
 import { mirrorToShowcaseAccount } from '@/lib/agents/showcase-mirror';
 import { preflightPublish } from '@/lib/meta/publish-guard';
+import { canPublishNow } from '@/lib/meta/publish-rate-limit';
+import { getSchedulingState, recordPublishError } from '@/lib/meta/scheduling-state';
 import { bumpInstagramInsights } from '@/lib/meta/insights-shared';
 
 export const runtime = 'edge';
@@ -153,6 +155,42 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // SCHEDULING AUTO-PAUSE — if a recent 4xx tripped the per-user
+    // auto-pause flag, refuse the publish until the owner reconnects
+    // (or admin manually resumes). Protects KeiroAI from racking up
+    // more 4xx errors on a token Meta already rejected once.
+    {
+      const state = await getSchedulingState(supabase, userId);
+      if (state.paused) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: `Scheduling en pause pour ce compte — ${state.reason || 'reconnecte Instagram'}.`,
+            guard: 'scheduling_paused',
+          },
+          { status: 423 },
+        );
+      }
+    }
+
+    // RATE LIMIT — max 4 publishes / 24h / network, min 90 min spacing.
+    // Stays well under Meta's tolerance ceilings to keep the app
+    // permission safe.
+    {
+      const rate = await canPublishNow(supabase, userId, 'instagram');
+      if (!rate.ok) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: rate.reason,
+            guard: rate.diagnosticTag,
+            nextAllowedAt: rate.nextAllowedAt,
+          },
+          { status: 429 },
+        );
+      }
+    }
+
     // PRE-PUBLISH GUARDS — 3 protections (16-17 mai 2026):
     //   1. retry lockout (5 min) — block double-fire from cron/server
     //   2. cross-format dedup (7 days) — same image not republished
@@ -190,13 +228,31 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Publier sur Instagram
-    const result = await publishImageToInstagram(
-      profile.instagram_business_account_id,
-      profile.instagram_access_token,
-      imageUrl,
-      finalCaption
-    );
+    // Publier sur Instagram. On wrap dans un try/catch dédié pour
+    // intercepter les 4xx du Graph API et tripper l'auto-pause — sans
+    // ça, un token révoqué côté Meta nous ferait spam la Graph API et
+    // augmenterait le risque de revocation de la permission.
+    let result: { id: string; permalink?: string };
+    try {
+      result = await publishImageToInstagram(
+        profile.instagram_business_account_id,
+        profile.instagram_access_token,
+        imageUrl,
+        finalCaption
+      );
+    } catch (publishError: any) {
+      const msg = String(publishError?.message || publishError || '');
+      const httpMatch = msg.match(/(\d{3})/);
+      const httpStatus = httpMatch ? parseInt(httpMatch[1], 10) : 0;
+      await recordPublishError(supabase, {
+        userId,
+        network: 'instagram',
+        httpStatus,
+        error: msg,
+        endpoint: '/media + /media_publish',
+      });
+      throw publishError; // let the outer catch format the response
+    }
 
     console.log('[PublishInstagram] ✅ Published successfully:', result.id);
 
