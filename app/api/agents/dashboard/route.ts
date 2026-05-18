@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { resolveOrgId } from '@/lib/tenant';
+import { loadInstagramInsights } from '@/lib/meta/insights-shared';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -140,58 +141,21 @@ async function getMarketingData(
       'Votre visibilité est faible. Publiez plus de contenu et activez les agents SEO et TikTok.';
   }
 
-  // Instagram stats — load from real IG API only when the user has actually
-  // published something through KeiroAI. Showing followers/reach for a freshly
-  // connected Instagram account that has zero KeiroAI activity creates the
-  // (correct) impression that the dashboard is making numbers up.
-  let igStats: any = {
-    connected: false,
-    hasActivity: false,
-    postsCount: 0,
-    followersCount: 0,
-    reach: 0,
-    likes: 0,
-    engagement: 0,
+  // Instagram stats — pulled from the shared `loadInstagramInsights` helper
+  // so AMI (here) and Léna (getContentData) always show identical numbers
+  // for the same connected account. Same window (50 posts), same metrics
+  // (likes + comments), no arbitrary gate on "must have published via KeiroAI".
+  const igLoaded = await loadInstagramInsights(supabase, userId);
+  const igStats = {
+    connected: igLoaded.connected,
+    hasActivity: igLoaded.hasActivity,
+    postsCount: igLoaded.postsCount,
+    followersCount: igLoaded.followersCount,
+    reach: igLoaded.reach,
+    likes: igLoaded.likes,
+    comments: igLoaded.comments,
+    engagement: igLoaded.engagement,
   };
-  try {
-    const { data: igProfile } = await supabase
-      .from('profiles')
-      .select('instagram_access_token, instagram_igaa_token, instagram_business_account_id')
-      .eq('id', userId)
-      .single();
-    const igToken = igProfile?.instagram_igaa_token || igProfile?.instagram_access_token;
-    igStats.connected = !!(igProfile?.instagram_business_account_id || igProfile?.instagram_igaa_token || igProfile?.instagram_access_token);
-
-    // Count user's KeiroAI-published posts before deciding whether the IG
-    // metrics are meaningful.
-    const { count: keiroPublished } = await supabase
-      .from('content_calendar')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .eq('status', 'published');
-    const hasActivity = (keiroPublished || 0) > 0;
-    igStats.hasActivity = igStats.connected && hasActivity;
-
-    if (igToken && igStats.hasActivity) {
-      const profileRes = await fetch(`https://graph.instagram.com/v21.0/me?fields=followers_count,media_count&access_token=${igToken}`, { signal: AbortSignal.timeout(5000) });
-      if (profileRes.ok) {
-        const profileData = await profileRes.json();
-        igStats.postsCount = profileData.media_count || 0;
-        igStats.followersCount = profileData.followers_count || 0;
-      }
-      const insightsRes = await fetch(`https://graph.instagram.com/v21.0/me/insights?metric=reach&metric_type=total_value&period=day&access_token=${igToken}`, { signal: AbortSignal.timeout(5000) });
-      if (insightsRes.ok) {
-        const insightsData = await insightsRes.json();
-        igStats.reach = insightsData.data?.[0]?.total_value?.value || 0;
-      }
-      const mediaRes = await fetch(`https://graph.instagram.com/v21.0/me/media?fields=like_count&limit=20&access_token=${igToken}`, { signal: AbortSignal.timeout(5000) });
-      if (mediaRes.ok) {
-        const mediaData = await mediaRes.json();
-        igStats.likes = (mediaData.data || []).reduce((sum: number, m: any) => sum + (m.like_count || 0), 0);
-        igStats.engagement = igStats.followersCount > 0 ? Math.round((igStats.likes / Math.max(igStats.postsCount, 1) / igStats.followersCount) * 10000) / 100 : 0;
-      }
-    }
-  } catch {}
 
   // TikTok stats — live from /v2/user/info when connected. Same approach
   // as IG: only meaningful when KeiroAI has published at least one TT post.
@@ -533,62 +497,25 @@ async function getContentData(
   let ttFollowers = 0, ttVideoCount = 0, ttLikes = 0, ttAvgViews = 0;
   // LinkedIn cached stats (no live network-size fetch yet — needs r_member_social scope)
   let liConnections = 0, liPostCount = 0;
+  // Pull IG insights through the shared helper (same source as AMI /
+  // getMarketingData) — guarantees both panels show identical numbers.
+  const igLoaded = await loadInstagramInsights(supabase, userId);
+  igConnected = igLoaded.connected;
+  igMediaCount = igLoaded.postsCount;
+  followersCount = igLoaded.followersCount;
+  totalLikes = igLoaded.likes;
+  totalComments = igLoaded.comments;
+  igSampledMediaCount = igLoaded.sampledMediaCount;
+  igInsights = { reach: igLoaded.reach };
+
   try {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('instagram_business_account_id, instagram_access_token, instagram_igaa_token, instagram_media_count, instagram_followers_count, tiktok_username, tiktok_access_token, tiktok_refresh_token, tiktok_token_expiry, linkedin_username, linkedin_access_token')
+      .select('tiktok_username, tiktok_access_token, tiktok_refresh_token, tiktok_token_expiry, linkedin_username, linkedin_access_token')
       .eq('id', userId)
       .single();
-    igConnected = !!(profile?.instagram_business_account_id || profile?.instagram_igaa_token || profile?.instagram_access_token);
     tiktokConnected = !!(profile as any)?.tiktok_username && !!(profile as any)?.tiktok_access_token;
     linkedinConnected = !!(profile as any)?.linkedin_username && !!(profile as any)?.linkedin_access_token;
-    // Use the cached profile counts as fallbacks (they're refreshed by
-    // /api/instagram/refresh-profile and by the OAuth callback). The live
-    // Graph API call below overrides these when it succeeds.
-    igMediaCount = (profile as any)?.instagram_media_count ?? 0;
-    followersCount = (profile as any)?.instagram_followers_count ?? 0;
-
-    // Once the IG Business account is connected we DO fetch the live
-    // metrics — followers, total likes on recent media, daily reach.
-    // These are the user's own real Instagram numbers, not anything
-    // invented by KeiroAI, and the dashboard would feel broken if we hid
-    // them just because the user hasn't published THROUGH KeiroAI yet.
-    const shouldFetch = igConnected;
-    const token = profile?.instagram_igaa_token || profile?.instagram_access_token;
-    if (shouldFetch && token) {
-      // Fetch likes + comments from recent media (real data)
-      const mediaRes = await fetch(`https://graph.instagram.com/v21.0/me/media?fields=like_count,comments_count&limit=50&access_token=${token}`, { signal: AbortSignal.timeout(5000) });
-      if (mediaRes.ok) {
-        const mediaData = await mediaRes.json();
-        const arr = mediaData.data || [];
-        igSampledMediaCount = arr.length;
-        for (const m of arr) {
-          totalLikes += m.like_count || 0;
-          totalComments += m.comments_count || 0;
-        }
-      }
-
-      // Fetch profile (followers + media_count — both needed for real
-      // Léna stats. Without media_count the UI would show the KeiroAI-
-      // published count as "Posts" which is misleading for accounts
-      // that pre-existed our app.)
-      const profileRes = await fetch(`https://graph.instagram.com/v21.0/me?fields=followers_count,media_count&access_token=${token}`, { signal: AbortSignal.timeout(5000) });
-      if (profileRes.ok) {
-        const profileData = await profileRes.json();
-        if (typeof profileData.followers_count === 'number') followersCount = profileData.followers_count;
-        if (typeof profileData.media_count === 'number') igMediaCount = profileData.media_count;
-      }
-
-      // Fetch insights (reach)
-      const insightsRes = await fetch(`https://graph.instagram.com/v21.0/me/insights?metric=reach&metric_type=total_value&period=day&access_token=${token}`, { signal: AbortSignal.timeout(5000) });
-      if (insightsRes.ok) {
-        const insightsData = await insightsRes.json();
-        igInsights = {};
-        for (const d of (insightsData.data || [])) {
-          igInsights[d.name] = d.total_value?.value || 0;
-        }
-      }
-    }
 
     // ── TikTok live stats ──
     // /v2/user/info/ returns follower_count, video_count, likes_count
