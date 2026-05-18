@@ -59,6 +59,29 @@ export async function POST(req: NextRequest) {
     // Instagram sends messaging events under entry[].messaging[]
     const entries = body.entry || [];
 
+    // Non-DM events (comments / mentions / story_insights / ig_account_review)
+    // arrive under entry.changes[]. We don't need the full payload here —
+    // any of these means "stats moved for this IG Business account", so we
+    // refresh the cached followers/media counts so Léna + AMI stay live.
+    for (const entry of entries) {
+      const changes = entry.changes || [];
+      if (changes.length === 0) continue;
+      const igBusinessId: string | undefined = entry.id;
+      if (!igBusinessId) continue;
+      try {
+        const { data: ownerProfile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('instagram_business_account_id', igBusinessId)
+          .maybeSingle();
+        if (ownerProfile?.id) {
+          const { bumpInstagramInsights } = await import('@/lib/meta/insights-shared');
+          // fire-and-forget — webhook must ack fast
+          bumpInstagramInsights(supabase, ownerProfile.id).catch(() => {});
+        }
+      } catch { /* non-fatal */ }
+    }
+
     for (const entry of entries) {
       const messaging = entry.messaging || [];
 

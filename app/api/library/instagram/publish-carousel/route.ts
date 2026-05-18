@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { publishCarouselToInstagram } from '@/lib/meta';
+import { bumpInstagramInsights } from '@/lib/meta/insights-shared';
 
 export const runtime = 'edge';
 
@@ -156,6 +157,10 @@ export async function POST(req: NextRequest) {
       console.error('[PublishInstagramCarousel] Error saving to DB:', insertError);
       // Ne pas échouer la requête, le post est déjà publié
     }
+
+    // Refresh cached media_count + followers so Léna/AMI panels see the
+    // bump on next load. Fire-and-forget.
+    bumpInstagramInsights(supabase, user.id).catch(() => {});
 
     return NextResponse.json({
       ok: true,

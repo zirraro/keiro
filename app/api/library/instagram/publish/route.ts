@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { publishImageToInstagram } from '@/lib/meta';
 import { mirrorToShowcaseAccount } from '@/lib/agents/showcase-mirror';
 import { preflightPublish } from '@/lib/meta/publish-guard';
+import { bumpInstagramInsights } from '@/lib/meta/insights-shared';
 
 export const runtime = 'edge';
 
@@ -240,6 +241,11 @@ export async function POST(req: NextRequest) {
         },
       });
     } catch { /* audit failure is non-fatal */ }
+
+    // Refresh the cached IG stats (media_count, followers) immediately
+    // so Léna + AMI dashboards reflect the new publish on the next load.
+    // Fire-and-forget — the response shouldn't wait on the Graph fetch.
+    bumpInstagramInsights(supabase, userId).catch(() => {});
 
     // Showcase mirror — if the showcase account just published, also
     // create a content_calendar row for the metareview account so the

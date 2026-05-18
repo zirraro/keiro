@@ -120,9 +120,42 @@ export async function loadInstagramInsights(
     out.engagement = out.followersCount > 0 && out.sampledMediaCount > 0 && (out.likes + out.comments) > 0
       ? Math.round(((out.likes + out.comments) / out.sampledMediaCount / out.followersCount) * 10000) / 100
       : 0;
+
+    // Write the live numbers back to the profile cache so subsequent
+    // dashboard loads (and any consumer reading from profiles directly)
+    // stay in sync — without this the cached value can lag for hours
+    // after a new publish or follower change. Cheap update, only fires
+    // when the live fetch actually produced a non-zero number.
+    if (out.postsCount > 0 || out.followersCount > 0) {
+      try {
+        await supabase
+          .from('profiles')
+          .update({
+            instagram_media_count: out.postsCount,
+            instagram_followers_count: out.followersCount,
+            instagram_last_sync_at: new Date().toISOString(),
+          })
+          .eq('id', userId);
+      } catch { /* non-fatal */ }
+    }
   } catch (e: any) {
     console.warn('[insights-shared] IG load failed:', e?.message);
   }
 
   return out;
+}
+
+/**
+ * Fire-and-forget refresh hook called from publish / webhook handlers.
+ * Bumps the cached media_count + followers_count immediately so the
+ * Léna and AMI panels reflect the change on the next dashboard load
+ * (no manual page refresh, no waiting for the next scheduled sync).
+ */
+export async function bumpInstagramInsights(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<void> {
+  try {
+    await loadInstagramInsights(supabase, userId);
+  } catch { /* non-fatal — caller doesn't depend on the refresh */ }
 }

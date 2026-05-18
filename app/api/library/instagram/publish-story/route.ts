@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { publishStoryToInstagram } from '@/lib/meta';
+import { bumpInstagramInsights } from '@/lib/meta/insights-shared';
 
 export const runtime = 'edge';
 
@@ -124,6 +125,10 @@ export async function POST(req: NextRequest) {
     );
 
     console.log('[PublishInstagramStory] ✅ Story published successfully:', result.id);
+
+    // Refresh cached IG counts so Léna/AMI dashboards stay in sync with
+    // the just-bumped media_count. Fire-and-forget.
+    bumpInstagramInsights(supabase, user.id).catch(() => {});
 
     return NextResponse.json({
       ok: true,
