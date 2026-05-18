@@ -186,13 +186,14 @@ export default function CreationCard({
           </div>
         )}
 
+        {/* Single-line icon-only action row — identical to MyVideosTab + ImageCard. */}
         <div className="pt-3 border-t border-neutral-200">
-          {/* Row 1: Action buttons */}
-          <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="flex items-center gap-1">
             {!item.published_to_instagram && !item.published_to_tiktok && (
               <button
                 onClick={() => onPublish(item)}
-                className="flex items-center justify-center gap-1 px-2 py-1.5 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white text-[11px] font-semibold rounded-lg hover:from-[#1e3a5f] hover:to-[#2a4a6f] transition-all shadow-sm"
+                className="flex items-center gap-1 px-2.5 py-1.5 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white text-[10px] font-semibold rounded-lg hover:from-[#1e3a5f] hover:to-[#2a4a6f] transition-all shadow-sm"
+                title={t.library.ccPost}
               >
                 <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -203,60 +204,60 @@ export default function CreationCard({
             {onEditImage && item.type === 'image' && (
               <button
                 onClick={() => onEditImage(item)}
-                className="flex items-center justify-center gap-1 px-2 py-1.5 bg-[#0c1a3a]/10 text-[#0c1a3a] text-[11px] font-semibold rounded-lg hover:bg-[#0c1a3a]/15 transition-all shadow-sm"
+                className="p-1.5 rounded-lg text-[#0c1a3a] hover:bg-[#0c1a3a]/10 transition-all"
                 title={t.library.ccEditImage}
+                aria-label="Éditer"
               >
-                <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
-                {t.library.ccEdit}
               </button>
             )}
             {onMoveToFolder && (
               <button
                 onClick={() => onMoveToFolder(item)}
-                className="flex items-center justify-center gap-1 px-2 py-1.5 bg-purple-100 text-purple-700 text-[11px] font-semibold rounded-lg hover:bg-purple-200 transition-all shadow-sm"
+                className="p-1.5 rounded-lg text-purple-600 hover:bg-purple-50 transition-all"
                 title={t.library.ccOrganizeInFolder}
+                aria-label="Ranger"
               >
-                <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                 </svg>
-                {t.library.ccOrganize}
               </button>
             )}
             <div className="flex-1 min-w-0" />
-            {/* Icon buttons: favorite, download, delete */}
-            <div className="flex items-center gap-0.5 flex-shrink-0">
-              <button
-                onClick={() => onToggleFavorite(item.id, !item.is_favorite)}
-                className={`p-1.5 rounded-lg transition-all ${
-                  item.is_favorite ? 'text-pink-600 hover:bg-pink-50' : 'text-neutral-400 hover:bg-neutral-100'
-                }`}
-                title={item.is_favorite ? t.library.ccRemoveFromFav : t.library.ccAddToFav}
-              >
-                <svg className="w-4 h-4" fill={item.is_favorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                </svg>
-              </button>
-              <button
-                onClick={() => onDownload(item)}
-                className="p-1.5 rounded-lg text-[#0c1a3a] hover:bg-[#0c1a3a]/5 transition-all"
-                title={t.library.ccDownload}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-              </button>
-              <button
-                onClick={() => { if (confirm(t.library.ccConfirmDelete)) onDelete(item.id); }}
-                className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 transition-all"
-                title={t.library.ccDeleteTitle}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </button>
-            </div>
+            <button
+              onClick={() => onToggleFavorite(item.id, !item.is_favorite)}
+              className={`p-1.5 rounded-lg transition-all ${
+                item.is_favorite ? 'text-pink-600 hover:bg-pink-50' : 'text-neutral-400 hover:bg-neutral-100'
+              }`}
+              title={item.is_favorite ? t.library.ccRemoveFromFav : t.library.ccAddToFav}
+              aria-label="Favori"
+            >
+              <svg className="w-4 h-4" fill={item.is_favorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+            </button>
+            <button
+              onClick={() => onDownload(item)}
+              className="p-1.5 rounded-lg text-neutral-500 hover:bg-neutral-100 transition-all"
+              title={t.library.ccDownload}
+              aria-label="Télécharger"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+            </button>
+            <button
+              onClick={() => { if (confirm(t.library.ccConfirmDelete)) onDelete(item.id); }}
+              className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 transition-all"
+              title={t.library.ccDeleteTitle}
+              aria-label="Supprimer"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
           </div>
         </div>
       </div>
