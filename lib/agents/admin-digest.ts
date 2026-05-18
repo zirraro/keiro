@@ -78,7 +78,25 @@ export async function buildAdminDigest(
 
   const list = logs || [];
 
-  const failuresRaw = list.filter(l => l.status === 'error' || l.action === 'execution_failure');
+  // True failures only: exclude rows that are explicitly marked as
+  // "expected skip" (e.g. a client without IG connected — that's a
+  // configuration state, not a system error). Without this filter the
+  // admin brief grew noisier every day with stale diagnostic noise.
+  const isExpectedSkip = (l: any): boolean => {
+    const d = l?.data;
+    if (!d) return false;
+    if (d.skipped === true) return true;
+    const reason = String(d.reason || d.detail || '').toLowerCase();
+    if (reason.includes('no_ig_configured')) return true;
+    if (reason.includes('not connected') && reason.includes('expected')) return true;
+    return false;
+  };
+  const isRealFailure = (l: any): boolean => {
+    if (isExpectedSkip(l)) return false;
+    return l.status === 'error' || l.action === 'execution_failure';
+  };
+
+  const failuresRaw = list.filter(isRealFailure);
   const runs = list.length;
   const errors = failuresRaw.length;
 
@@ -87,7 +105,7 @@ export async function buildAdminDigest(
     const a = l.agent || 'unknown';
     if (!perAgent[a]) perAgent[a] = { agent: a, runs: 0, errors: 0, last_action: '', last_ts: '' };
     perAgent[a].runs++;
-    if (l.status === 'error' || l.action === 'execution_failure') perAgent[a].errors++;
+    if (isRealFailure(l)) perAgent[a].errors++;
     if (!perAgent[a].last_ts) {
       perAgent[a].last_action = l.action;
       perAgent[a].last_ts = l.created_at;

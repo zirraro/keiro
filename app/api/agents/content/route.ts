@@ -2250,15 +2250,20 @@ export async function POST(request: NextRequest) {
         const publishToken = publishProfile?.instagram_igaa_token || publishProfile?.facebook_page_access_token;
         let igTokenValid = false;
         if (!publishProfile?.instagram_business_account_id || !publishToken) {
-          console.error(`[Content] execute_publication: Instagram tokens missing for ${userId || 'admin'}`);
+          // Client never connected Instagram — this is normal state, not
+          // an error. Log as 'success' with a skipped flag so it doesn't
+          // pollute Noah's daily admin brief.
+          console.log(`[Content] execute_publication: Instagram not configured for ${userId || 'admin'} — skipping IG publishes`);
           await supabase.from('agent_logs').insert({
             agent: 'diagnostic',
             action: 'instagram_health_check',
-            status: 'error',
+            status: 'success',
+            user_id: userId || null,
             data: {
               check: 'pre_publish_token',
-              severity: 'critical',
-              detail: 'Instagram tokens missing from admin profile. Skipping Instagram publications.',
+              skipped: true,
+              reason: 'no_ig_configured',
+              detail: 'Instagram not connected for this account. IG publishes skipped (expected behaviour, not an error).',
               triggered_by: 'execute_publication',
             },
             created_at: new Date().toISOString(),
@@ -2287,6 +2292,7 @@ export async function POST(request: NextRequest) {
               agent: 'diagnostic',
               action: 'instagram_health_check',
               status: 'error',
+              user_id: userId || null,
               data: {
                 check: 'pre_publish_token',
                 severity: 'critical',

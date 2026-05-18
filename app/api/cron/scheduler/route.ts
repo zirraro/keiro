@@ -432,13 +432,11 @@ export async function GET(request: NextRequest) {
       for (const uid of getClientsWithAgent('content')) {
         callEndpoint(`Community [${uid.substring(0, 8)}]`, `/api/agents/content?slot=community&user_id=${uid}`).catch(() => {});
       }
-      // Axel — TikTok comments auto-reply (mirror of Jade for IG).
-      // When the user hasn't yet re-authed for comment.list.manage,
-      // Axel queues the draft replies in agent_logs so the dashboard
-      // can surface them; otherwise it posts directly.
-      for (const uid of getClientsWithAgent('content')) {
-        callEndpoint(`Axel TT comments [${uid.substring(0, 8)}]`, `/api/agents/tiktok-comments?user_id=${uid}`).catch(() => {});
-      }
+      // Axel TikTok comments — DISABLED until TikTok grants the
+      // comment.list / comment.manage scopes (not in current OAuth
+      // grant). Calling the endpoint with GET also returns 405 which
+      // pollutes agent_logs daily. Re-enable after TikTok App Review
+      // approves the scopes AND the route accepts the cron's call.
       // GMaps
       for (const uid of getClientsWithAgent('gmaps')) {
         callEndpoint(`GMaps [${uid.substring(0, 8)}]`, `/api/agents/gmaps?user_id=${uid}`).catch(() => {});
@@ -712,11 +710,8 @@ export async function GET(request: NextRequest) {
         await callEndpoint('Community Follow IG PM', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'instagram', count: 15 });
         await delay(15000);
         await callEndpoint('Community Follow TT PM', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'tiktok', count: 10 });
-        // Axel TT comments auto-reply per client (afternoon pass).
-        for (const uid of clientUserIds) {
-          callEndpoint(`Axel TT comments PM [${uid.substring(0, 8)}]`, `/api/agents/tiktok-comments?user_id=${uid}`).catch(() => {});
-          await delay(2000);
-        }
+        // Axel TT comments DISABLED — pending TikTok comment scopes
+        // (currently 405s daily, polluting agent_logs).
       });
       results.push({ task: 'Community PM', ok: true, data: { status: 'dispatched_background' } });
       break;
@@ -730,11 +725,7 @@ export async function GET(request: NextRequest) {
         await callEndpoint('Lena Community: Follow IG', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'instagram', count: 15 });
         await delay(15000);
         await callEndpoint('Lena Community: Follow TT', '/api/agents/marketing', 'POST', { action: 'find_follow_targets', platform: 'tiktok', count: 10 });
-        // Axel TT comments auto-reply per client (morning pass).
-        for (const uid of clientUserIds) {
-          callEndpoint(`Axel TT comments AM [${uid.substring(0, 8)}]`, `/api/agents/tiktok-comments?user_id=${uid}`).catch(() => {});
-          await delay(2000);
-        }
+        // Axel TT comments DISABLED (same reason as PM pass).
       });
       results.push({ task: 'Lena Community (comments + follows)', ok: true, data: { status: 'dispatched_background' } });
       break;
