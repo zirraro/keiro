@@ -18,6 +18,7 @@ import {
 import VideoMontageBox from './VideoMontageBox';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { useLanguage } from '@/lib/i18n/context';
+import { sampleFor } from '@/lib/meta/sample-insights';
 import type { PanelProps } from './types';
 
 // ─── Inline Editorial Calendar for Content Agent ─────────────
@@ -317,6 +318,13 @@ function PerNetworkStats({ stats }: { stats: any }) {
   const tk = byNet.tiktok || {};
   const li = byNet.linkedin || {};
 
+  // Sample fallbacks for disconnected networks — keeps the panel from
+  // looking empty on first visit. The "Sample" badge makes it obvious
+  // the numbers are placeholders and a Connect CTA is rendered alongside.
+  const igSample = sampleFor('instagram');
+  const tkSample = sampleFor('tiktok');
+  const liSample = sampleFor('linkedin');
+
   const NETWORKS = [
     {
       key: 'instagram' as const,
@@ -327,13 +335,20 @@ function PerNetworkStats({ stats }: { stats: any }) {
       border: 'border-pink-500/30',
       accent: 'text-pink-300',
       data: ig,
-      metrics: [
+      metrics: ig.connected ? [
         { label: 'Posts published', value: fmt(ig.posts || 0) },
         { label: 'Followers', value: fmt(ig.followers || 0) },
         { label: 'Likes', value: fmt(ig.likes || 0) },
         { label: 'Comments', value: fmt(ig.comments || 0) },
         { label: 'Reach (24h)', value: fmt(ig.reach || 0) },
         { label: 'Engagement', value: `${(ig.engagement || 0)}%` },
+      ] : [
+        { label: 'Posts published', value: fmt(igSample.postsCount) },
+        { label: 'Followers', value: fmt(igSample.followersCount) },
+        { label: 'Likes', value: fmt(igSample.likes) },
+        { label: 'Comments', value: fmt(igSample.comments) },
+        { label: 'Reach (24h)', value: fmt(igSample.reach) },
+        { label: 'Engagement', value: `${igSample.engagement}%` },
       ],
     },
     {
@@ -345,9 +360,14 @@ function PerNetworkStats({ stats }: { stats: any }) {
       border: 'border-cyan-500/30',
       accent: 'text-cyan-300',
       data: tk,
-      metrics: [
+      metrics: tk.connected ? [
         { label: 'Videos published', value: fmt(tk.posts || 0) },
         { label: 'Scheduled', value: fmt(tk.scheduled || 0) },
+      ] : [
+        { label: 'Videos published', value: fmt(tkSample.postsCount) },
+        { label: 'Followers', value: fmt(tkSample.followersCount) },
+        { label: 'Likes', value: fmt(tkSample.likes) },
+        { label: 'Engagement', value: `${tkSample.engagement}%` },
       ],
     },
     {
@@ -359,104 +379,86 @@ function PerNetworkStats({ stats }: { stats: any }) {
       border: 'border-blue-500/30',
       accent: 'text-blue-300',
       data: li,
-      metrics: [
+      metrics: li.connected ? [
         { label: 'Posts published', value: fmt(li.posts || 0) },
         { label: 'Scheduled', value: fmt(li.scheduled || 0) },
+      ] : [
+        { label: 'Posts published', value: fmt(liSample.postsCount) },
+        { label: 'Connections', value: fmt(liSample.followersCount) },
+        { label: 'Reactions', value: fmt(liSample.likes) },
+        { label: 'Engagement', value: `${liSample.engagement}%` },
       ],
     },
   ];
 
-  // Only render tabs for networks the user has actually connected.
-  const connected = NETWORKS.filter(n => n.data?.connected);
+  // Show ALL networks now (connected or not) so the user always sees data
+  // — real when connected, sample (with badge + Connect CTA) when not.
   const [active, setActive] = useState<'instagram' | 'tiktok' | 'linkedin'>(
-    (connected[0]?.key as any) || 'instagram',
+    (NETWORKS.find(n => n.data?.connected)?.key as any) || 'instagram',
   );
 
-  // No network connected — single CTA, no fake metrics.
-  if (connected.length === 0) {
-    return (
-      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-6 text-center">
-        <div className="text-3xl mb-3">{'\u{1F4F1}'}</div>
-        <div className="text-sm font-semibold text-white mb-1">Connect a social network to see your performance</div>
-        <p className="text-xs text-white/50 max-w-md mx-auto mb-4">
-          Léna shows real Instagram, TikTok or LinkedIn metrics fetched from
-          the official APIs — no demo numbers. Pick a network below to start
-          publishing and tracking real results.
-        </p>
-        <div className="flex flex-wrap justify-center gap-2">
-          {NETWORKS.map(net => (
-            <a
-              key={net.key}
-              href={net.connectUrl}
-              className={`px-3 py-1.5 rounded-lg border ${net.border} bg-white/5 text-xs font-semibold ${net.accent} hover:bg-white/10 transition`}
-            >
-              {net.icon} Connect {net.label}
-            </a>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  const cur = NETWORKS.find(n => n.key === active) || connected[0];
-  const showMetrics = cur.data?.hasActivity;
+  const cur = NETWORKS.find(n => n.key === active) || NETWORKS[0];
+  const curConnected = !!cur.data?.connected;
+  const usingSample = !curConnected;
 
   return (
     <div>
-      {/* Network sub-tabs — only connected networks appear here. Disconnected
-          ones are hidden so the client never sees noise about a network they
-          do not use. */}
+      {/* Tabs for every network — connected ones get a green dot, the
+          others a faded "Sample" label so the user can still inspect
+          what the panel would show. */}
       <div className="flex gap-1 bg-white/5 rounded-lg p-0.5 border border-white/10 mb-3 overflow-x-auto">
-        {connected.map(n => (
-          <button
-            key={n.key}
-            onClick={() => setActive(n.key as any)}
-            className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all ${
-              active === n.key ? 'bg-white/10 text-white shadow' : 'text-white/50 hover:text-white/70'
-            }`}
-          >
-            <span>{n.icon}</span> {n.label}
-            <span className="ml-1 w-1.5 h-1.5 rounded-full bg-emerald-400" />
-          </button>
-        ))}
-        {/* Show disconnected networks as small "+ Add" chips */}
-        {NETWORKS.filter(n => !n.data?.connected).map(n => (
-          <a
-            key={n.key}
-            href={n.connectUrl}
-            className="flex-shrink-0 flex items-center gap-1 px-2.5 py-2 rounded-md text-[11px] font-medium text-white/30 hover:text-white/60 transition"
-          >
-            <span>+</span> {n.label}
-          </a>
-        ))}
+        {NETWORKS.map(n => {
+          const c = !!n.data?.connected;
+          return (
+            <button
+              key={n.key}
+              onClick={() => setActive(n.key as any)}
+              className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all ${
+                active === n.key ? 'bg-white/10 text-white shadow' : 'text-white/50 hover:text-white/70'
+              }`}
+            >
+              <span>{n.icon}</span> {n.label}
+              <span className={`ml-1 w-1.5 h-1.5 rounded-full ${c ? 'bg-emerald-400' : 'bg-amber-400/60'}`} />
+            </button>
+          );
+        })}
       </div>
 
-      <div className={`rounded-xl border ${cur.border} bg-gradient-to-br ${cur.gradient} p-4`}>
+      <div className={`rounded-xl border ${usingSample ? 'border-amber-400/30 bg-amber-500/[0.04]' : `${cur.border} bg-gradient-to-br ${cur.gradient}`} p-4`}>
         <div className="flex items-center gap-2 mb-3">
           <span className="text-lg">{cur.icon}</span>
-          <span className={`text-sm font-bold ${cur.accent}`}>{cur.label}</span>
+          <span className={`text-sm font-bold ${usingSample ? 'text-amber-200' : cur.accent}`}>{cur.label}</span>
+          {usingSample ? (
+            <span className="px-1.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 text-[9px] font-bold uppercase tracking-wider">
+              Sample
+            </span>
+          ) : (
+            <span className="px-1.5 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 text-[9px] font-bold uppercase tracking-wider">
+              {cur.data?.hasActivity ? 'Live · KeiroAI active' : 'Live · organic'}
+            </span>
+          )}
+          {usingSample && (
+            <a
+              href={cur.connectUrl}
+              className="ml-auto px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 text-white text-[10px] font-bold transition"
+            >
+              Connecter →
+            </a>
+          )}
         </div>
 
-        {showMetrics ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {cur.metrics.map(m => (
-              <div key={m.label} className="rounded-lg bg-black/20 p-2">
-                <div className="text-[10px] text-white/50">{m.label}</div>
-                <div className="text-sm font-bold text-white mt-0.5">{m.value}</div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-lg bg-black/20 p-4 text-center">
-            <div className="text-xs text-white/70 font-semibold mb-1">
-              No published content yet on {cur.label}
+        <div className={`grid grid-cols-2 sm:grid-cols-3 gap-2 ${usingSample ? 'opacity-70' : ''}`}>
+          {cur.metrics.map(m => (
+            <div key={m.label} className="rounded-lg bg-black/20 p-2">
+              <div className="text-[10px] text-white/50">{m.label}</div>
+              <div className="text-sm font-bold text-white mt-0.5">{m.value}</div>
             </div>
-            <p className="text-[11px] text-white/40 max-w-sm mx-auto">
-              Léna will only show real numbers once you publish your first
-              post. We do not display demo or fake metrics — your stats are
-              fetched live from the {cur.label} API only when there is
-              activity to report.
-            </p>
+          ))}
+        </div>
+
+        {usingSample && (
+          <div className="mt-3 rounded-lg bg-amber-500/10 border border-amber-400/20 px-3 py-2 text-[11px] text-amber-200/90">
+            Données d&apos;exemple. Connecte {cur.label} pour voir tes vrais chiffres mis à jour en live (à chaque connexion, publication, like, commentaire).
           </div>
         )}
       </div>

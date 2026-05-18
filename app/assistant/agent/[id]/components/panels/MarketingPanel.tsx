@@ -17,6 +17,7 @@ import { SocialConnectBanners } from './SharedBanners';
 import { InstagramAssetBadge } from './InstagramAssetBadge';
 import { useLanguage } from '@/lib/i18n/context';
 import type { PanelProps } from './types';
+import { sampleFor } from '@/lib/meta/sample-insights';
 
 type AmiNetwork = 'instagram' | 'tiktok' | 'linkedin';
 
@@ -279,65 +280,62 @@ function NetworkInsightSection({
   labelPosts: string;
   labelReach?: string;
 }) {
-  if (!stats?.connected) {
-    return (
-      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-xl">{icon}</span>
-            <div className="min-w-0">
-              <div className="text-sm font-bold text-white">{label}</div>
-              <div className="text-[10px] text-white/50">Connecte {label} pour voir tes vraies metrics live via API</div>
-            </div>
+  // When the network isn't connected we still render the metric grid —
+  // populated with realistic SAMPLE numbers — so the user sees what the
+  // panel will look like once they connect. A prominent "Sample" badge
+  // makes it unambiguous which numbers are placeholders.
+  const isConnected = !!stats?.connected;
+  const usingSample = !isConnected;
+  const displayStats = isConnected ? stats : sampleFor(network);
+
+  return (
+    <div className={`rounded-xl border ${usingSample ? 'border-amber-400/30 bg-amber-500/[0.04]' : 'border-white/10 bg-white/[0.02]'} p-4`}>
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-xl">{icon}</span>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-bold text-white flex items-center gap-2">
+            {label}
+            {usingSample && (
+              <span className="px-1.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 text-[9px] font-bold uppercase tracking-wider">
+                Sample
+              </span>
+            )}
+            {isConnected && !stats?.hasActivity && (
+              <span className="px-1.5 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 text-[9px] font-bold uppercase tracking-wider">
+                Live · organic
+              </span>
+            )}
+            {isConnected && stats?.hasActivity && (
+              <span className="px-1.5 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 text-[9px] font-bold uppercase tracking-wider">
+                Live · KeiroAI active
+              </span>
+            )}
           </div>
+          <div className={`text-[10px] mt-0.5 ${usingSample ? 'text-amber-300/80' : 'text-emerald-400'}`}>
+            {usingSample
+              ? `Données d'exemple — connecte ${label} pour voir tes vrais chiffres`
+              : 'Live data via API'}
+          </div>
+        </div>
+        {usingSample && (
           <a
             href={connectUrl}
             className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 text-white text-[10px] font-bold flex-shrink-0 transition"
           >
             Connecter →
           </a>
-        </div>
+        )}
       </div>
-    );
-  }
-
-  if (!stats?.hasActivity) {
-    return (
-      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-xl">{icon}</span>
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-bold text-white">{label}</div>
-            <div className="text-[10px] text-amber-300">Connecté · pas encore d&apos;activité KeiroAI</div>
-          </div>
-        </div>
-        <p className="text-[10px] text-white/50 mt-1">
-          Les metrics {label} (followers, likes, engagement, reach) s&apos;afficheront ici dès que Léna publie le premier post via KeiroAI. On ne mélange jamais les chiffres organiques avec ceux produits par les agents.
-        </p>
+      <div className={`grid grid-cols-2 sm:grid-cols-4 gap-2 ${usingSample ? 'opacity-70' : ''}`}>
+        <KpiCard label={labelFollowers} value={fmt(displayStats.followersCount || 0)} gradientFrom="#3b82f6" gradientTo="#2563eb" />
+        <KpiCard label={labelPosts} value={fmt(displayStats.postsCount || 0)} gradientFrom="#8b5cf6" gradientTo="#6d28d9" />
+        <KpiCard label={labelLikes} value={fmt(displayStats.likes || 0)} gradientFrom="#ec4899" gradientTo="#f43f5e" />
+        <KpiCard label={labelEngagement} value={`${(displayStats.engagement || 0).toFixed?.(1) || '0'}%`} gradientFrom="#10b981" gradientTo="#059669" />
       </div>
-    );
-  }
-
-  // Real metrics view
-  return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-      <div className="flex items-center gap-2 mb-3">
-        <span className="text-xl">{icon}</span>
-        <div className="flex-1 min-w-0">
-          <div className="text-sm font-bold text-white">{label}</div>
-          <div className="text-[10px] text-emerald-400">Live data via API</div>
-        </div>
-      </div>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        <KpiCard label={labelFollowers} value={fmt(stats.followersCount || 0)} gradientFrom="#3b82f6" gradientTo="#2563eb" />
-        <KpiCard label={labelPosts} value={fmt(stats.postsCount || 0)} gradientFrom="#8b5cf6" gradientTo="#6d28d9" />
-        <KpiCard label={labelLikes} value={fmt(stats.likes || 0)} gradientFrom="#ec4899" gradientTo="#f43f5e" />
-        <KpiCard label={labelEngagement} value={`${(stats.engagement || 0).toFixed?.(1) || '0'}%`} gradientFrom="#10b981" gradientTo="#059669" />
-      </div>
-      {labelReach && stats.reach > 0 && (
-        <div className="mt-2 text-[10px] text-white/50 flex items-center gap-1.5">
+      {labelReach && (displayStats.reach || 0) > 0 && (
+        <div className={`mt-2 text-[10px] flex items-center gap-1.5 ${usingSample ? 'text-amber-300/70' : 'text-white/50'}`}>
           <span>{'\u{1F4E1}'}</span>
-          <span>{labelReach} : <strong className="text-white">{fmt(stats.reach)}</strong> (24h)</span>
+          <span>{labelReach} : <strong className={usingSample ? 'text-amber-200' : 'text-white'}>{fmt(displayStats.reach)}</strong> (24h)</span>
         </div>
       )}
     </div>
