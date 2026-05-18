@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { saveLearning, saveAgentFeedback } from '@/lib/agents/learning';
 import { loadContextWithAvatar } from '@/lib/agents/shared-context';
+import { lookupInPool, addToPool, incrementDailySpend, isUnderDailyBudget } from '@/lib/places/prospect-pool';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -456,15 +457,70 @@ async function runGMapsScan(orgId: string | null = null, userId: string | null =
 
           if (existing) { totalSkipped++; comboSkipped++; continue; }
 
-          // Budget check BEFORE the paid call — each details fetch bills ~€0.04.
+          // Per-run cap (per-plan).
           if (detailsCallsUsed >= MAX_DETAILS_PER_RUN) {
-            console.log(`[GMaps] Budget cap hit mid-zone — skipping remaining places`);
+            console.log(`[GMaps] Per-run budget cap hit — skipping remaining places`);
             break;
           }
 
-          // Get details (PAID — Places API)
-          detailsCallsUsed++;
-          const details = await getPlaceDetails(place.place_id);
+          // POOL CHECK — try the cross-client cache first. If hit (and
+          // still within the 25-day fresh window), we skip the Places API
+          // call entirely. Massive cost saving when multiple clients
+          // target the same zones/categories.
+          let details: any = null;
+          let pooled: Awaited<ReturnType<typeof lookupInPool>> = null;
+          try {
+            pooled = await lookupInPool(supabase, place.place_id);
+          } catch { /* fail-open */ }
+
+          if (pooled) {
+            // Re-hydrate `details` shape from the pool so the rest of
+            // the loop reads identically whether we hit the cache or
+            // the live API.
+            details = {
+              name: pooled.name,
+              formatted_address: pooled.address,
+              formatted_phone_number: pooled.phone,
+              website: pooled.website,
+              rating: pooled.google_rating,
+              user_ratings_total: pooled.google_reviews,
+              business_status: pooled.business_status,
+              types: pooled.types,
+              url: pooled.google_maps_url,
+            };
+          } else {
+            // Daily budget cap — if we've already spent more than
+            // DAILY_PLACES_BUDGET_EUR today across all runs, stop here.
+            // Léo resumes tomorrow.
+            const budget = await isUnderDailyBudget(supabase);
+            if (!budget.ok) {
+              console.warn(`[GMaps] Daily Places budget reached: €${budget.spent.toFixed(2)} / €${budget.budget.toFixed(2)} — stopping`);
+              break;
+            }
+
+            detailsCallsUsed++;
+            details = await getPlaceDetails(place.place_id);
+            await incrementDailySpend(supabase, { details_calls: 1 });
+            if (!details || details.business_status === 'CLOSED_PERMANENTLY') continue;
+
+            // Add to the pool for future cross-client reuse.
+            await addToPool(supabase, {
+              place_id: place.place_id,
+              name: details.name,
+              business_type: null,
+              address: details.formatted_address || null,
+              phone: details.formatted_phone_number || null,
+              website: details.website || null,
+              instagram: null,
+              zone: zone.name,
+              google_maps_url: details.url || null,
+              google_rating: details.rating || null,
+              google_reviews: details.user_ratings_total || null,
+              business_status: details.business_status || null,
+              types: details.types || null,
+              raw_data: { search_query: searchQuery },
+            });
+          }
           if (!details || details.business_status === 'CLOSED_PERMANENTLY') continue;
 
           // Instagram extraction via website scrape is expensive (5s per
