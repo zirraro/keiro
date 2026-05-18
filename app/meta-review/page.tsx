@@ -14,6 +14,7 @@
 
 import type { Metadata } from 'next';
 import ForceFreshButton from './ForceFreshButton';
+import ForceFreshTikTokButton from './ForceFreshTikTokButton';
 import HealthCheckButton from './HealthCheckButton';
 import AgentChecksButton from './AgentChecksButton';
 
@@ -421,6 +422,18 @@ export default function MetaReviewPage() {
             </p>
 
             <ForceFreshButton />
+
+            <div className="mt-4 pt-4 border-t border-amber-300/50">
+              <div className="text-sm font-semibold text-amber-900 mb-2">
+                TikTok — same problem, same fix
+              </div>
+              <p className="text-xs text-amber-900/90 leading-relaxed mb-3">
+                TikTok also skips the consent screen on returning accounts.
+                Click the button below to revoke the app at TikTok and reopen
+                the full OAuth grant dialog with every requested scope visible.
+              </p>
+              <ForceFreshTikTokButton />
+            </div>
 
             <details className="mt-4 text-xs text-amber-900/80">
               <summary className="cursor-pointer font-semibold">Fallback methods</summary>
