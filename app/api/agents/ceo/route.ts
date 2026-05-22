@@ -762,8 +762,41 @@ async function generateBrief(orgId: string | null = null): Promise<NextResponse>
     console.log('[CEOAgent] Raw response length:', rawText.length, 'chars');
     console.log('[CEOAgent] Raw response preview:', rawText.substring(0, 200));
 
-    // --- Store raw natural language brief (no JSON parsing) ---
-    const brief = rawText;
+    // --- Append the deterministic "Garanties de service" block ---
+    // Gemini's brief is good but its formatting varies day to day,
+    // which is exactly what makes clients feel the service is
+    // inconsistent. The guarantees table is rendered identically
+    // every day and shows whether each agent met its contractual
+    // minimum for the client's plan.
+    let brief = rawText;
+    try {
+      const { buildServiceGuaranteeSection, extractActualsFromMetrics } = await import('@/lib/agents/service-guarantees');
+      // Look up the org owner's plan; fall back to admin floor when no
+      // org is targeted (system-wide brief).
+      let planForGuarantees: any = 'admin';
+      let ownerUserId: string | null = null;
+      if (orgId) {
+        const { data: org } = await supabase
+          .from('organizations')
+          .select('owner_user_id')
+          .eq('id', orgId)
+          .maybeSingle();
+        ownerUserId = org?.owner_user_id || null;
+        if (ownerUserId) {
+          const { data: ownerPlan } = await supabase
+            .from('profiles')
+            .select('subscription_plan, is_admin')
+            .eq('id', ownerUserId)
+            .maybeSingle();
+          if (ownerPlan?.is_admin) planForGuarantees = 'admin';
+          else if (ownerPlan?.subscription_plan) planForGuarantees = ownerPlan.subscription_plan.toLowerCase();
+        }
+      }
+      const actuals = await extractActualsFromMetrics(supabase, metrics24h, ownerUserId);
+      brief = rawText + buildServiceGuaranteeSection(planForGuarantees, actuals);
+    } catch (e: any) {
+      console.warn('[CEOAgent] guarantees block failed (non-fatal):', e?.message);
+    }
 
     await supabase.from('agent_logs').insert({
       agent: 'ceo',
