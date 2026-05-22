@@ -44,7 +44,9 @@ export default function MyVideosTab({
   const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'title' | 'duration'>('date');
-  const [filterBy, setFilterBy] = useState<'all' | 'favorites' | 'tiktok'>('all');
+  const [filterBy, setFilterBy] = useState<'all' | 'favorites' | 'tiktok' | 'studio_edit'>('all');
+
+  const studioEditCount = videos.filter(v => v.source_type === 'studio_edit').length;
 
   const filteredVideos = videos
     .filter(video => {
@@ -53,7 +55,8 @@ export default function MyVideosTab({
       const matchesFilter =
         filterBy === 'all' ||
         (filterBy === 'favorites' && video.is_favorite) ||
-        (filterBy === 'tiktok' && video.published_to_tiktok);
+        (filterBy === 'tiktok' && video.published_to_tiktok) ||
+        (filterBy === 'studio_edit' && video.source_type === 'studio_edit');
       return matchesSearch && matchesFilter;
     })
     .sort((a, b) => {
@@ -139,6 +142,9 @@ export default function MyVideosTab({
               <option value="all">{t.library.mvtAllVideos} ({videos.length})</option>
               <option value="favorites">{t.library.mvtFavorites} ({videos.filter(v => v.is_favorite).length})</option>
               <option value="tiktok">{t.library.mvtPublishedTikTok} ({videos.filter(v => v.published_to_tiktok).length})</option>
+              {studioEditCount > 0 && (
+                <option value="studio_edit">✂️ Studio édité ({studioEditCount})</option>
+              )}
             </select>
 
             <select
@@ -309,6 +315,11 @@ function VideoCard({
           {video.source_type === 'tiktok_sync' && (
             <span className="bg-green-100 text-green-700 px-2 py-1 rounded">
               TikTok
+            </span>
+          )}
+          {video.source_type === 'studio_edit' && (
+            <span className="bg-violet-100 text-violet-700 px-2 py-1 rounded font-medium">
+              ✂️ Studio édité
             </span>
           )}
         </div>

@@ -61,6 +61,37 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Recut failed' }, { status: 500 });
   }
 
+  // Persist the recut into my_videos so the founder finds it in the
+  // Gallery without losing the work on next page reload. Source type
+  // 'studio_edit' is the discriminator MyVideosTab uses for the filter
+  // chip + the violet badge.
+  if (userId) {
+    try {
+      const { createClient } = await import('@supabase/supabase-js');
+      const sb = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        { auth: { autoRefreshToken: false, persistSession: false } },
+      );
+      const labels: Record<string, string> = {
+        hook_escalation_payoff: 'Hook → Escalation → Payoff',
+        best_of_3: 'Best of 3',
+        preserve_order: 'Ordre chronologique',
+      };
+      await sb.from('my_videos').insert({
+        user_id: userId,
+        title: `Recut ${labels[strategy] || strategy} — ${new Date().toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}`,
+        video_url: result.outputUrl,
+        duration: Math.round(result.durationSec),
+        source_type: 'studio_edit',
+        format: 'mp4',
+      });
+    } catch (e: any) {
+      // Non-fatal — the recut URL is still returned to the client.
+      console.warn('[video-recut] gallery save failed:', e?.message);
+    }
+  }
+
   return NextResponse.json({
     ok: true,
     output_url: result.outputUrl,

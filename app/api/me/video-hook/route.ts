@@ -61,7 +61,12 @@ export async function POST(req: NextRequest) {
 
   if (!sourceVideoUrl) return NextResponse.json({ ok: false, error: 'sourceVideoUrl required' }, { status: 400 });
   if (!['instagram', 'tiktok', 'linkedin'].includes(network)) return NextResponse.json({ ok: false, error: 'invalid network' }, { status: 400 });
-  if (!['three_word_punch', 'pov_opener', 'stat_carton', 'clean_cut_intro'].includes(style)) return NextResponse.json({ ok: false, error: 'invalid style' }, { status: 400 });
+  const validStyles = [
+    'three_word_punch', 'pov_opener', 'stat_carton', 'clean_cut_intro',
+    'question_hook', 'before_after', 'red_arrow_callout', 'storytime_opener',
+    'controversy_take', 'quick_cut_montage',
+  ];
+  if (!validStyles.includes(style)) return NextResponse.json({ ok: false, error: 'invalid style' }, { status: 400 });
 
   // Pull business context for the Sonnet hook drafter.
   const sb = createClient(
@@ -115,6 +120,21 @@ export async function POST(req: NextRequest) {
     });
     if (!outputUrl) {
       return NextResponse.json({ ok: false, error: 'Hook overlay failed' }, { status: 500 });
+    }
+
+    // Persist into my_videos so the founder finds it in the Gallery.
+    if (userId) {
+      try {
+        await sb.from('my_videos').insert({
+          user_id: userId,
+          title: `Hook ${style.replace(/_/g, ' ')} — ${hook?.primary?.slice(0, 40) || 'untitled'}`,
+          video_url: outputUrl,
+          source_type: 'studio_edit',
+          format: 'mp4',
+        });
+      } catch (e: any) {
+        console.warn('[video-hook] gallery save failed:', e?.message);
+      }
     }
 
     return NextResponse.json({ ok: true, output_url: outputUrl, hook });
