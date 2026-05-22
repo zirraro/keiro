@@ -93,12 +93,15 @@ export async function POST(req: NextRequest) {
     if (!file || !agent_id) {
       return NextResponse.json({ error: 'file + agent_id requis' }, { status: 400 });
     }
-    // Image / PDF cap: 15 MB. Video cap: 100 MB — recorded clips from
-    // phones routinely run 30-80 MB so 15 MB is far too low.
+    // Image / PDF cap: 15 MB. Video cap: 250 MB — bumped 2026-05-22
+    // because raw 1080p clips from modern phones average 100 MB/min,
+    // so the previous 100 MB limit cut off any clip longer than 1 min.
+    // 250 MB covers ~2-3 min of raw H.264 1080p which is the sweet
+    // spot for client-uploaded source material before scene-cutting.
     const isVideoUpload = (file.type || '').startsWith('video/') || /\.(mp4|mov|webm|m4v|mkv)$/i.test(file.name || '');
-    const maxBytes = isVideoUpload ? 100 * 1024 * 1024 : 15 * 1024 * 1024;
+    const maxBytes = isVideoUpload ? 250 * 1024 * 1024 : 15 * 1024 * 1024;
     if (file.size > maxBytes) {
-      return NextResponse.json({ error: isVideoUpload ? 'Vidéo trop lourde (100 MB max)' : 'Fichier trop lourd (15 MB max)' }, { status: 400 });
+      return NextResponse.json({ error: isVideoUpload ? 'Vidéo trop lourde (250 MB max)' : 'Fichier trop lourd (15 MB max)' }, { status: 400 });
     }
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
     const path = `${user.id}/${agent_id}/${Date.now()}_${safeName}`;

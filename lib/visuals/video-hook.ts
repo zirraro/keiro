@@ -26,15 +26,27 @@ export type HookStyle =
   | 'three_word_punch'      // "3 mots qui frappent"
   | 'pov_opener'            // "POV: tu..." style hook
   | 'stat_carton'           // big number on full screen
-  | 'clean_cut_intro';      // minimalist 1-line cold open
+  | 'clean_cut_intro'       // minimalist 1-line cold open
+  | 'question_hook'         // "Et si je te disais que…" — opens with a curiosity-gap question
+  | 'before_after'          // "Avant / Après" diptych — proof of transformation
+  | 'red_arrow_callout'     // bright arrow + 1 word pointing at the subject — TikTok-native
+  | 'storytime_opener'      // "Je vais te raconter…" — narrative storytelling intro
+  | 'controversy_take'      // "Personne ne te dit que…" — bold contrarian take
+  | 'quick_cut_montage';    // 0.5s × 3 flash cuts before the main video — TikTok algo loves it
 
 export type Network = 'instagram' | 'tiktok' | 'linkedin';
 
 const HOOK_STYLES: Record<HookStyle, { label: string; durationS: number; bgColor: string; fg: string; fontSize: number }> = {
-  three_word_punch: { label: '3-mots punch',  durationS: 1.4, bgColor: '#0c1a3a', fg: '#ffffff', fontSize: 96 },
-  pov_opener:       { label: 'POV opener',    durationS: 1.6, bgColor: '#000000', fg: '#fcd34d', fontSize: 80 },
-  stat_carton:      { label: 'Stat carton',   durationS: 1.5, bgColor: '#7c3aed', fg: '#ffffff', fontSize: 120 },
-  clean_cut_intro:  { label: 'Clean cut',     durationS: 1.2, bgColor: 'transparent', fg: '#ffffff', fontSize: 72 },
+  three_word_punch:  { label: '3-mots punch',  durationS: 1.4, bgColor: '#0c1a3a', fg: '#ffffff', fontSize: 96 },
+  pov_opener:        { label: 'POV opener',    durationS: 1.6, bgColor: '#000000', fg: '#fcd34d', fontSize: 80 },
+  stat_carton:       { label: 'Stat carton',   durationS: 1.5, bgColor: '#7c3aed', fg: '#ffffff', fontSize: 120 },
+  clean_cut_intro:   { label: 'Clean cut',     durationS: 1.2, bgColor: 'transparent', fg: '#ffffff', fontSize: 72 },
+  question_hook:     { label: 'Question piège',durationS: 1.7, bgColor: '#1e293b', fg: '#facc15', fontSize: 78 },
+  before_after:      { label: 'Avant / Après', durationS: 1.5, bgColor: '#000000', fg: '#ffffff', fontSize: 84 },
+  red_arrow_callout: { label: 'Flèche rouge',  durationS: 1.3, bgColor: 'transparent', fg: '#ef4444', fontSize: 92 },
+  storytime_opener:  { label: 'Storytime',     durationS: 1.8, bgColor: '#0f172a', fg: '#f1f5f9', fontSize: 70 },
+  controversy_take:  { label: 'Hot take',      durationS: 1.5, bgColor: '#7f1d1d', fg: '#fef3c7', fontSize: 88 },
+  quick_cut_montage: { label: 'Quick-cut',     durationS: 1.5, bgColor: '#000000', fg: '#ffffff', fontSize: 96 },
 };
 
 export type HookText = {
@@ -61,13 +73,19 @@ export async function draftHookText(input: {
       ? 'LinkedIn — pro, sharp, no slang, expert framing'
       : 'Instagram Reels — lifestyle, warm, conversational';
 
-  const styleNote = input.style === 'three_word_punch'
-    ? 'Exactly 3 words for primary line. No more.'
-    : input.style === 'pov_opener'
-      ? 'Primary line MUST start with "POV:" or "POV :"'
-      : input.style === 'stat_carton'
-        ? 'Primary line is a SHOCKING NUMBER + 1-2 words ("80% rate.", "+340%.").'
-        : 'Primary line is a single short sentence (5-7 words max), zero extra punctuation.';
+  const styleNotes: Record<HookStyle, string> = {
+    three_word_punch:  'Exactly 3 words for primary line. No more.',
+    pov_opener:        'Primary line MUST start with "POV:" or "POV :"',
+    stat_carton:       'Primary line is a SHOCKING NUMBER + 1-2 words ("80% rate.", "+340%.").',
+    clean_cut_intro:   'Primary line is a single short sentence (5-7 words max), zero extra punctuation.',
+    question_hook:     'Primary line MUST be a question that opens a curiosity gap. Max 6 words. End with "?". Examples: "Et si je te disais que…?" "Pourquoi personne n\'en parle ?"',
+    before_after:      'Primary line = "Avant" (1-2 words). Secondary line = "Après" (1-3 words). Format: stark contrast.',
+    red_arrow_callout: 'Primary line is ONE punchy word + an action verb (TikTok-native arrow points at the subject). Max 3 words.',
+    storytime_opener:  'Primary line starts with "Je vais te raconter…" or "Histoire vraie:" — narrative storytelling. Max 8 words.',
+    controversy_take:  'Primary line is a contrarian statement. Starts with "Personne ne te dit que…" or "Vérité brutale:". Max 7 words.',
+    quick_cut_montage: 'Primary line is 3 ultra-short words separated by " · " (each shown for 0.5s in the burn). E.g. "TESTE · AIME · REVIENT".',
+  };
+  const styleNote = styleNotes[input.style] || styleNotes.clean_cut_intro;
 
   const system = `You write opening hooks for short-form videos. Voice: ${networkVoice}. Style: ${styleNote}.
 

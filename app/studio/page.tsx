@@ -91,7 +91,11 @@ function StudioContent() {
   const [hookSourceUrl, setHookSourceUrl] = useState<string | null>(null);
   const [hookKeyframeUrl, setHookKeyframeUrl] = useState<string | null>(null);
   const [hookNetwork, setHookNetwork] = useState<'instagram' | 'tiktok' | 'linkedin'>('instagram');
-  const [hookStyle, setHookStyle] = useState<'three_word_punch' | 'pov_opener' | 'stat_carton' | 'clean_cut_intro'>('three_word_punch');
+  type HookStyleV2 = 'three_word_punch' | 'pov_opener' | 'stat_carton' | 'clean_cut_intro' | 'question_hook' | 'before_after' | 'red_arrow_callout' | 'storytime_opener' | 'controversy_take' | 'quick_cut_montage';
+  const [hookStyle, setHookStyle] = useState<HookStyleV2>('three_word_punch');
+  // Auto-detected scene candidates from the uploaded video.
+  const [hookScenes, setHookScenes] = useState<Array<{ timestamp_sec: number; thumbnail_url?: string; recommended_for: string; score: number }>>([]);
+  const [scenesBusy, setScenesBusy] = useState(false);
   const [hookBusy, setHookBusy] = useState(false);
   const [hookOutput, setHookOutput] = useState<{ url: string; primary: string; secondary?: string } | null>(null);
   const [hookError, setHookError] = useState<string | null>(null);
@@ -1492,8 +1496,8 @@ function StudioContent() {
                             onChange={async (e) => {
                               const file = e.target.files?.[0];
                               if (!file) return;
-                              if (file.size > 100 * 1024 * 1024) {
-                                setHookError(`Vidéo trop lourde (${(file.size / 1024 / 1024).toFixed(1)} MB). Limite : 100 MB. Compresse-la avant.`);
+                              if (file.size > 250 * 1024 * 1024) {
+                                setHookError(`Vidéo trop lourde (${(file.size / 1024 / 1024).toFixed(1)} MB). Limite : 250 MB. Compresse-la avant.`);
                                 e.target.value = '';
                                 return;
                               }
@@ -1542,7 +1546,7 @@ function StudioContent() {
                           <span className={`block w-full text-center cursor-pointer px-4 py-3 min-h-[44px] rounded-xl border-2 border-dashed text-sm transition ${hookUploading ? 'border-violet-400 text-violet-600 bg-violet-50' : 'border-neutral-300 text-neutral-600 hover:border-violet-400 hover:text-violet-600'}`}>
                             {hookUploading
                               ? '⏳ Upload + analyse en cours… (peut prendre 30-60s)'
-                              : hookSourceUrl ? '↻ Changer de vidéo' : '⬆ Charger une vidéo (max 100 MB)'}
+                              : hookSourceUrl ? '↻ Changer de vidéo' : '⬆ Charger une vidéo (max 250 MB)'}
                           </span>
                         </label>
 
@@ -1573,15 +1577,79 @@ function StudioContent() {
                               </div>
                             </div>
 
+                            {/* Auto-detect best moments — ffmpeg scene detection */}
+                            <div>
+                              <label className="block text-xs font-bold text-neutral-700 mb-1.5 uppercase flex items-center justify-between">
+                                <span>Moments forts détectés</span>
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    if (!hookSourceUrl || scenesBusy) return;
+                                    setScenesBusy(true);
+                                    try {
+                                      const r = await fetch('/api/me/video-scenes', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        credentials: 'include',
+                                        body: JSON.stringify({ videoUrl: hookSourceUrl, maxScenes: 6 }),
+                                      });
+                                      const j = await r.json();
+                                      if (j.ok) {
+                                        setHookScenes(j.scenes || []);
+                                        // Promote the highest-scored scene as the new keyframe.
+                                        const hookScene = (j.scenes || []).find((s: any) => s.recommended_for === 'hook') || (j.scenes || [])[0];
+                                        if (hookScene?.thumbnail_url) setHookKeyframeUrl(hookScene.thumbnail_url);
+                                      }
+                                    } finally { setScenesBusy(false); }
+                                  }}
+                                  disabled={!hookSourceUrl || scenesBusy}
+                                  className="text-[10px] font-bold text-violet-700 hover:text-violet-900 disabled:opacity-40"
+                                >
+                                  {scenesBusy ? 'Analyse…' : '🔍 Auto-détection'}
+                                </button>
+                              </label>
+                              {hookScenes.length > 0 ? (
+                                <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 mb-3">
+                                  {hookScenes.map((s, idx) => (
+                                    <button
+                                      key={idx}
+                                      type="button"
+                                      onClick={() => { if (s.thumbnail_url) setHookKeyframeUrl(s.thumbnail_url); }}
+                                      className={`relative aspect-square rounded-md overflow-hidden border-2 transition ${hookKeyframeUrl === s.thumbnail_url ? 'border-violet-500 shadow' : 'border-neutral-200 hover:border-neutral-400'}`}
+                                      title={`t=${s.timestamp_sec.toFixed(1)}s · score ${s.score.toFixed(2)}`}
+                                    >
+                                      {s.thumbnail_url && <img src={s.thumbnail_url} alt="" className="w-full h-full object-cover" loading="lazy" />}
+                                      <div className="absolute bottom-0 left-0 right-0 text-[8px] bg-black/70 text-white py-0.5">
+                                        {s.timestamp_sec.toFixed(1)}s
+                                      </div>
+                                      {s.recommended_for === 'hook' && (
+                                        <div className="absolute top-0 right-0 bg-violet-600 text-white text-[8px] px-1 py-0.5 rounded-bl-md font-bold">HOOK</div>
+                                      )}
+                                    </button>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-[10px] text-neutral-500 mb-3">
+                                  Clique sur « Auto-détection » pour que Keiro scanne ta vidéo et identifie les meilleurs moments à transformer en hook ou en carrousel.
+                                </p>
+                              )}
+                            </div>
+
                             {/* Hook style */}
                             <div>
                               <label className="block text-xs font-bold text-neutral-700 mb-1.5 uppercase">Style du hook</label>
                               <div className="grid grid-cols-2 gap-1.5">
                                 {([
-                                  { v: 'three_word_punch', label: '3-mots punch', desc: 'Ultra court, impact max' },
-                                  { v: 'pov_opener', label: 'POV opener', desc: 'POV: tu... format viral' },
-                                  { v: 'stat_carton', label: 'Stat carton', desc: 'Chiffre choc plein écran' },
-                                  { v: 'clean_cut_intro', label: 'Clean cut', desc: 'Une phrase sobre' },
+                                  { v: 'three_word_punch',  label: '3-mots punch',   desc: 'Ultra court, impact max' },
+                                  { v: 'pov_opener',        label: 'POV opener',     desc: 'POV: tu... format viral' },
+                                  { v: 'stat_carton',       label: 'Stat carton',    desc: 'Chiffre choc plein écran' },
+                                  { v: 'clean_cut_intro',   label: 'Clean cut',      desc: 'Une phrase sobre' },
+                                  { v: 'question_hook',     label: 'Question piège', desc: 'Curiosity gap, fait scroller' },
+                                  { v: 'before_after',      label: 'Avant / Après',  desc: 'Diptyque transformation' },
+                                  { v: 'red_arrow_callout', label: 'Flèche rouge',   desc: 'TikTok native, attention max' },
+                                  { v: 'storytime_opener',  label: 'Storytime',      desc: '"Je vais te raconter…" narratif' },
+                                  { v: 'controversy_take',  label: 'Hot take',       desc: 'Contrarian, fait débattre' },
+                                  { v: 'quick_cut_montage', label: 'Quick-cut',      desc: '3 flashs 0.5s, algo TikTok ❤' },
                                 ] as const).map(s => (
                                   <button
                                     key={s.v}
