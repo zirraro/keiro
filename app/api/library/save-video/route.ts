@@ -44,7 +44,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!['seedream_i2v', 'generate', 'upload'].includes(sourceType)) {
+    // 'studio_edit' = output of Studio recut / hook overlay / i2v generation.
+    if (!['seedream_i2v', 'generate', 'upload', 'studio_edit'].includes(sourceType)) {
       return NextResponse.json(
         { ok: false, error: 'Type de source invalide' },
         { status: 400 }

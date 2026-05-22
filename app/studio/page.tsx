@@ -419,6 +419,24 @@ function StudioContent() {
         setTextPreviewUrl(null);
 
         editLimit.incrementCount();
+
+        // AUTO-SAVE to Gallery (My Images) — fire-and-forget so the
+        // founder doesn't lose the edit on reload. The 'studio_edit'
+        // tag in saved_images mirrors the same convention used for
+        // video recuts/hooks in my_videos.
+        if (user) {
+          fetch('/api/library/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              imageUrl: data.imageUrl,
+              title: `Studio édité — ${editPrompt.slice(0, 60) || 'AI edit'}`,
+              tags: ['studio_edit', 'i2i'],
+              originalImageUrl: baseForEdit,
+            }),
+          }).catch(err => console.warn('[Studio] auto-save image failed:', err?.message));
+        }
       } else {
         throw new Error(t.studio.alertNoImageReturned);
       }
@@ -695,6 +713,24 @@ function StudioContent() {
           setGeneratedVideoUrl(statusData.videoUrl);
           setGeneratingVideo(false);
           setVideoProgress('');
+
+          // AUTO-SAVE the i2v output to My Videos so the founder finds
+          // it in /library on next reload. source_type='studio_edit'
+          // so the same filter chip + violet badge surface it.
+          if (user) {
+            fetch('/api/library/save-video', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({
+                videoUrl: statusData.videoUrl,
+                title: `Studio i2v — ${videoPrompt.slice(0, 60) || 'animation'}`,
+                sourceType: 'studio_edit',
+                duration: videoDuration,
+                aiModel: 'seedream_i2v',
+              }),
+            }).catch(err => console.warn('[Studio] auto-save i2v failed:', err?.message));
+          }
           return;
         }
 

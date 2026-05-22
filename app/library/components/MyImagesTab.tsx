@@ -20,6 +20,7 @@ type SavedImage = {
   published_to_instagram?: boolean;
   published_to_tiktok?: boolean;
   ai_model?: string;
+  tags?: string[] | null;
 };
 
 type MyImagesTabProps = {
@@ -56,7 +57,8 @@ export default function MyImagesTab({
   const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'title'>('date');
-  const [filterBy, setFilterBy] = useState<'all' | 'favorites' | 'instagram' | 'tiktok'>('all');
+  const [filterBy, setFilterBy] = useState<'all' | 'favorites' | 'instagram' | 'tiktok' | 'studio_edit'>('all');
+  const studioEditCount = images.filter(i => Array.isArray(i.tags) && i.tags.includes('studio_edit')).length;
 
   // Filter and sort images
   const filteredImages = images
@@ -69,7 +71,8 @@ export default function MyImagesTab({
         filterBy === 'all' ||
         (filterBy === 'favorites' && image.is_favorite) ||
         (filterBy === 'instagram' && image.published_to_instagram) ||
-        (filterBy === 'tiktok' && image.published_to_tiktok);
+        (filterBy === 'tiktok' && image.published_to_tiktok) ||
+        (filterBy === 'studio_edit' && Array.isArray(image.tags) && image.tags.includes('studio_edit'));
 
       return matchesSearch && matchesFilter;
     })
@@ -145,6 +148,9 @@ export default function MyImagesTab({
               <option value="favorites">{t.library.mitFavorites} ({images.filter(i => i.is_favorite).length})</option>
               <option value="instagram">Instagram ({images.filter(i => i.published_to_instagram).length})</option>
               <option value="tiktok">TikTok ({images.filter(i => i.published_to_tiktok).length})</option>
+              {studioEditCount > 0 && (
+                <option value="studio_edit">✂️ Studio édité ({studioEditCount})</option>
+              )}
             </select>
 
             <select

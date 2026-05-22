@@ -142,6 +142,11 @@ export default function ImageCard({
               ✓ TikTok
             </span>
           )}
+          {Array.isArray((image as any).tags) && (image as any).tags.includes('studio_edit') && (
+            <span className="bg-violet-500 text-white text-xs px-2 py-1 rounded-full font-medium">
+              ✂️ Studio
+            </span>
+          )}
         </div>
         {image.ai_model && (
           <div
