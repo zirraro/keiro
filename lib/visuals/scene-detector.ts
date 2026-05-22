@@ -47,15 +47,38 @@ interface SceneDetectorOptions {
 }
 
 /**
+ * Probe a local video for total duration via ffprobe.
+ */
+async function probeDuration(filePath: string): Promise<number> {
+  try {
+    const { stdout } = await execAsync(
+      `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${filePath}"`,
+      { timeout: 15000 },
+    );
+    const d = parseFloat(stdout.trim());
+    return isFinite(d) && d > 0 ? d : 0;
+  } catch {
+    return 0;
+  }
+}
+
+/**
  * Run ffmpeg with the scene filter on a remote video URL. Returns the
  * detected timestamps + scores, ranked by score descending. The video
  * is downloaded to /tmp, scanned, then cleaned up.
+ *
+ * Always tops up the result with time-spaced samples even when the
+ * video has no hard cuts (phone footage of a single continuous shot
+ * is the common case for client uploads — without this top-up the
+ * picker would always show only 1 thumbnail).
  */
 export async function detectScenes(
   videoUrl: string,
   options: SceneDetectorOptions = {},
 ): Promise<DetectedScene[]> {
-  const threshold = options.threshold ?? 0.25;
+  // Lowered default 0.25 → 0.18 so subtle gestures / lighting shifts
+  // count as scenes, which is what we want for hook candidates.
+  const threshold = options.threshold ?? 0.18;
   const maxScenes = options.maxScenes ?? 6;
   const outputBaseId = options.outputBaseId || `sc-${Date.now()}`;
   const localVideo = join(tmpdir(), `${outputBaseId}.mp4`);
@@ -65,9 +88,10 @@ export async function detectScenes(
     if (!res.ok) return [];
     await writeFile(localVideo, Buffer.from(await res.arrayBuffer()));
 
+    const duration = await probeDuration(localVideo);
+
     // ffmpeg outputs the scene-change events to stderr in the form:
-    //   pts_time:1.234 ... scene:0.42
-    // We collect all of them then rank.
+    //   pts_time:1.234 ... scene_score:0.42
     const { stderr } = await execAsync(
       `ffmpeg -i "${localVideo}" -filter:v "select='gt(scene,${threshold})',showinfo" -f null - 2>&1`,
       { timeout: 90000, maxBuffer: 8 * 1024 * 1024 },
@@ -87,16 +111,43 @@ export async function detectScenes(
       }
     }
 
-    // Always include t=0 as a candidate (the opening frame is the
-    // default hook target). Score it slightly higher than the
-    // threshold so it competes with detected scenes.
-    if (!detected.find(d => d.timestamp_sec < 0.5)) {
-      detected.unshift({ timestamp_sec: 0.5, score: threshold + 0.01, recommended_for: 'hook' });
+    // TIME-SPACED TOP-UP — guarantees at least maxScenes candidates
+    // regardless of whether ffmpeg found real cuts. Without this, a
+    // single-shot phone clip returns 1 candidate and the picker grid
+    // looks broken. We sample at 10%, 25%, 40%, 55%, 70%, 85% of
+    // duration (skipping the very start/end which are usually black
+    // frames or auto-fades on phone exports).
+    if (duration > 1) {
+      const ratios = [0.10, 0.25, 0.40, 0.55, 0.70, 0.85];
+      for (const r of ratios) {
+        const ts = duration * r;
+        // Skip if a detected scene is within 0.5 s — avoids duplicates.
+        const tooClose = detected.find(d => Math.abs(d.timestamp_sec - ts) < 0.5);
+        if (!tooClose) {
+          detected.push({
+            timestamp_sec: ts,
+            // Sample-based candidates get a lower baseline score so
+            // a real detected cut always wins when both exist.
+            score: 0.05 + (r === 0.10 ? 0.08 : 0),
+            recommended_for: 'carousel',
+          });
+        }
+      }
+    } else {
+      // Very short clip (< 1 s) — just sample the opening frame.
+      if (detected.length === 0) {
+        detected.push({ timestamp_sec: 0.1, score: 0.05, recommended_for: 'hook' });
+      }
     }
 
     // Rank by score desc and cap to maxScenes.
     detected.sort((a, b) => b.score - a.score);
     const top = detected.slice(0, maxScenes);
+
+    // Re-order so the carousel-recommended scenes read in chrono order
+    // visually in the picker. We tag hook = the highest-scored (any
+    // position), but still display them sorted by score so the founder
+    // sees the strongest moments first.
 
     // Tag the highest-scored as hook + opening; rest as carousel.
     if (top.length > 0) top[0].recommended_for = 'hook';

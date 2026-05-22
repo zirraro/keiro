@@ -1535,6 +1535,32 @@ function StudioContent() {
                                   const newest = (list.uploads || []).find((u: any) => u.file_url === finalUrl) || (list.uploads || [])[0];
                                   if (newest?.ai_analysis?.keyframe_url) setHookKeyframeUrl(newest.ai_analysis.keyframe_url);
                                 }
+
+                                // AUTO scene detection — fire immediately after the
+                                // upload succeeds so the founder doesn't have to click.
+                                // We run it fire-and-forget in the background and
+                                // populate the picker as soon as it returns. The
+                                // hook tile is auto-promoted as the keyframe so the
+                                // user can hit Generate right away if they like it.
+                                if (finalUrl) {
+                                  setScenesBusy(true);
+                                  fetch('/api/me/video-scenes', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    credentials: 'include',
+                                    body: JSON.stringify({ videoUrl: finalUrl, maxScenes: 6 }),
+                                  })
+                                    .then(r => r.json())
+                                    .then(scn => {
+                                      if (scn?.ok && Array.isArray(scn.scenes) && scn.scenes.length > 0) {
+                                        setHookScenes(scn.scenes);
+                                        const hookScene = scn.scenes.find((s: any) => s.recommended_for === 'hook') || scn.scenes[0];
+                                        if (hookScene?.thumbnail_url) setHookKeyframeUrl(hookScene.thumbnail_url);
+                                      }
+                                    })
+                                    .catch(() => { /* non-fatal */ })
+                                    .finally(() => setScenesBusy(false));
+                                }
                               } catch (err: any) {
                                 setHookError(err?.message || 'Upload error');
                               } finally {
