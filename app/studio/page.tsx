@@ -122,6 +122,12 @@ function StudioContent() {
   // Source video preview modal (replaces the always-visible <video>
   // that doubled the page height after upload).
   const [showOriginalPreview, setShowOriginalPreview] = useState(false);
+  // Gallery picker modal — alternative to drag-drop for the source
+  // video. Pre-populated with the founder's My Videos so they can
+  // reuse a previously uploaded clip instead of re-uploading.
+  const [showGalleryPicker, setShowGalleryPicker] = useState(false);
+  const [galleryVideos, setGalleryVideos] = useState<Array<{ id: string; title?: string; video_url: string; thumbnail_url?: string; created_at?: string; source_type?: string }>>([]);
+  const [galleryLoading, setGalleryLoading] = useState(false);
   const [hookEnhancements, setHookEnhancements] = useState<{
     captions: boolean;
     crop: 'keep' | '9:16' | '1:1' | '4:5';
@@ -1612,66 +1618,81 @@ function StudioContent() {
                                 if (finalUrl) {
                                   (async () => {
                                     try {
-                                      // Stage 3: scene detection.
+                                      console.log('[Studio Pipeline] ▶ Stage 3: scene detection', finalUrl);
                                       setHookStage('detecting');
                                       setScenesBusy(true);
-                                      const scn = await fetch('/api/me/video-scenes', {
+                                      const scnRes = await fetch('/api/me/video-scenes', {
                                         method: 'POST',
                                         headers: { 'Content-Type': 'application/json' },
                                         credentials: 'include',
                                         body: JSON.stringify({ videoUrl: finalUrl, maxScenes: 6 }),
-                                      }).then(r => r.json()).catch(() => null);
+                                      }).catch(e => { console.error('[Studio Pipeline] scenes fetch error:', e); return null; });
+                                      const scn = scnRes ? await scnRes.json().catch(() => null) : null;
+                                      console.log('[Studio Pipeline] ✓ scene detection result:', scn);
                                       setScenesBusy(false);
                                       const scenes = (scn?.ok && Array.isArray(scn.scenes)) ? scn.scenes : [];
+                                      let hookKeyframe: string | undefined;
                                       if (scenes.length > 0) {
                                         setHookScenes(scenes);
                                         const hookScene = scenes.find((s: any) => s.recommended_for === 'hook') || scenes[0];
-                                        if (hookScene?.thumbnail_url) setHookKeyframeUrl(hookScene.thumbnail_url);
+                                        hookKeyframe = hookScene?.thumbnail_url;
+                                        if (hookKeyframe) setHookKeyframeUrl(hookKeyframe);
+                                      }
 
-                                        // Stage 4+5 in parallel.
-                                        setHookStage('drafting');
-                                        const draftPromise = hookScene?.thumbnail_url
-                                          ? fetch('/api/me/video-hook/draft', {
-                                              method: 'POST',
-                                              headers: { 'Content-Type': 'application/json' },
-                                              credentials: 'include',
-                                              body: JSON.stringify({
-                                                keyframeUrl: hookScene.thumbnail_url,
-                                                network: hookNetwork,
-                                                style: hookStyle,
-                                              }),
-                                            }).then(r => r.json()).catch(() => null)
-                                          : Promise.resolve(null);
+                                      console.log('[Studio Pipeline] ▶ Stage 4+5: hook draft + recut (parallel)');
+                                      setHookStage('drafting');
+                                      const draftPromise = hookKeyframe
+                                        ? fetch('/api/me/video-hook/draft', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            credentials: 'include',
+                                            body: JSON.stringify({
+                                              keyframeUrl: hookKeyframe,
+                                              network: hookNetwork,
+                                              style: hookStyle,
+                                            }),
+                                          }).then(r => r.json()).catch(e => { console.error('[Studio Pipeline] draft error:', e); return null; })
+                                        : Promise.resolve(null);
 
-                                        const recutPromise = fetch('/api/me/video-recut', {
-                                          method: 'POST',
-                                          headers: { 'Content-Type': 'application/json' },
-                                          credentials: 'include',
-                                          body: JSON.stringify({
-                                            videoUrl: finalUrl,
-                                            strategy: 'hook_escalation_payoff',
-                                            targetDurationSec: 15,
-                                            segmentDurationSec: 2.5,
-                                          }),
-                                        }).then(r => r.json()).catch(() => null);
+                                      const recutPromise = fetch('/api/me/video-recut', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        credentials: 'include',
+                                        body: JSON.stringify({
+                                          videoUrl: finalUrl,
+                                          strategy: 'hook_escalation_payoff',
+                                          targetDurationSec: 15,
+                                          segmentDurationSec: 2.5,
+                                        }),
+                                      }).then(r => r.json()).catch(e => { console.error('[Studio Pipeline] recut error:', e); return null; });
 
-                                        const [draftRes, recutRes] = await Promise.all([draftPromise, recutPromise]);
-                                        if (draftRes?.ok && draftRes.hook?.primary) {
-                                          setHookDraftText({
-                                            primary: draftRes.hook.primary,
-                                            secondary: draftRes.hook.secondary,
-                                          });
-                                        }
-                                        if (recutRes?.ok && recutRes.output_url) {
-                                          setRecutOutput({
-                                            url: recutRes.output_url,
-                                            durationSec: recutRes.duration_sec,
-                                            segments: recutRes.segments_used || [],
-                                          });
-                                        }
+                                      const [draftRes, recutRes] = await Promise.all([draftPromise, recutPromise]);
+                                      console.log('[Studio Pipeline] ✓ hook draft result:', draftRes);
+                                      console.log('[Studio Pipeline] ✓ recut result:', recutRes);
+
+                                      if (draftRes?.ok && draftRes.hook?.primary) {
+                                        setHookDraftText({
+                                          primary: draftRes.hook.primary,
+                                          secondary: draftRes.hook.secondary,
+                                        });
+                                      }
+                                      if (recutRes?.ok && recutRes.output_url) {
+                                        setRecutOutput({
+                                          url: recutRes.output_url,
+                                          durationSec: recutRes.duration_sec,
+                                          segments: recutRes.segments_used || [],
+                                        });
+                                      } else if (recutRes && recutRes.ok === false) {
+                                        // Surface the error so we can see what's wrong.
+                                        setRecutError(recutRes.error || 'Recut serveur a refusé la requête');
+                                      } else if (!recutRes) {
+                                        setRecutError('Pas de réponse du serveur recut — possible timeout (vidéo trop longue ?)');
                                       }
                                       setHookStage('ready');
-                                    } catch {
+                                      console.log('[Studio Pipeline] ✅ All done — stage=ready');
+                                    } catch (err: any) {
+                                      console.error('[Studio Pipeline] ❌ Uncaught error:', err);
+                                      setRecutError(err?.message || 'Pipeline error');
                                       setHookStage('ready');
                                     }
                                   })();
@@ -1692,6 +1713,39 @@ function StudioContent() {
                               : hookSourceUrl ? '↻ Changer de vidéo' : '⬆ Charger une vidéo (max 250 MB)'}
                           </span>
                         </label>
+
+                        {/* OR pick from existing gallery. Same destination as
+                            drag-drop (sets hookSourceUrl) but skips the upload
+                            step entirely when the founder wants to re-edit a
+                            previously uploaded clip. */}
+                        {!hookSourceUrl && !hookUploading && (
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 h-px bg-neutral-200" />
+                            <span className="text-[10px] uppercase tracking-wider text-neutral-400 font-bold">ou</span>
+                            <div className="flex-1 h-px bg-neutral-200" />
+                          </div>
+                        )}
+                        {!hookSourceUrl && !hookUploading && (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              setShowGalleryPicker(true);
+                              if (galleryVideos.length === 0) {
+                                setGalleryLoading(true);
+                                try {
+                                  const r = await fetch('/api/library/videos', { credentials: 'include' });
+                                  const j = await r.json();
+                                  setGalleryVideos(Array.isArray(j.videos) ? j.videos : []);
+                                } catch {} finally {
+                                  setGalleryLoading(false);
+                                }
+                              }
+                            }}
+                            className="block w-full text-center px-4 py-3 min-h-[44px] rounded-xl border-2 border-neutral-200 text-sm font-medium text-neutral-700 hover:border-violet-400 hover:text-violet-600 transition"
+                          >
+                            📚 Choisir une vidéo dans ma galerie
+                          </button>
+                        )}
 
                         {/* PROGRESS STEPPER — always visible while Léna runs the
                             auto pipeline so the client never wonders if anything
@@ -1911,6 +1965,18 @@ function StudioContent() {
                                     </button>
                                   )}
                                 </div>
+
+                                {/* If recut failed, surface the error so the
+                                    founder can see what to fix. */}
+                                {!recutOutput && recutError && (
+                                  <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5 text-xs text-amber-800">
+                                    <strong>⚠️ Le recut auto n&apos;a pas pu être généré.</strong>
+                                    <div className="mt-1 text-[11px]">{recutError}</div>
+                                    <div className="mt-2 text-[10px] text-amber-700">
+                                      Ta vidéo originale reste accessible. Tu peux retenter en cliquant « Modifier les détails » → « Lancer le recut intelligent ».
+                                    </div>
+                                  </div>
+                                )}
 
                                 {/* FINAL VERSION — replaces the source preview
                                     that was showing during processing. */}
@@ -2274,6 +2340,120 @@ function StudioContent() {
         isOpen={showSubscriptionModal}
         onClose={() => setShowSubscriptionModal(false)}
       />
+
+      {/* Gallery picker modal — alternative source for the recut
+          pipeline. Founder picks from My Videos instead of uploading. */}
+      {showGalleryPicker && (
+        <div
+          className="fixed inset-0 z-[110] bg-black/70 flex items-center justify-center p-4"
+          onClick={() => setShowGalleryPicker(false)}
+        >
+          <div
+            className="bg-white rounded-xl max-w-3xl w-full max-h-[80vh] overflow-hidden flex flex-col shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-4 border-b border-neutral-200">
+              <div>
+                <div className="font-bold text-neutral-900">Choisir une vidéo dans ma galerie</div>
+                <div className="text-xs text-neutral-500">Pioche dans tes vidéos déjà uploadées ou générées par Léna</div>
+              </div>
+              <button
+                onClick={() => setShowGalleryPicker(false)}
+                className="p-1.5 rounded hover:bg-neutral-100"
+                aria-label="Fermer"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4">
+              {galleryLoading ? (
+                <div className="text-center py-10 text-sm text-neutral-500">Chargement de tes vidéos…</div>
+              ) : galleryVideos.length === 0 ? (
+                <div className="text-center py-10">
+                  <div className="text-4xl mb-2">📹</div>
+                  <div className="text-sm font-semibold text-neutral-700">Aucune vidéo dans ta galerie</div>
+                  <div className="text-xs text-neutral-500 mt-1">Upload une vidéo via le bouton ci-dessus, ou génère-en une depuis Création.</div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                  {galleryVideos.map(v => (
+                    <button
+                      key={v.id}
+                      type="button"
+                      onClick={() => {
+                        setHookSourceUrl(v.video_url);
+                        setShowGalleryPicker(false);
+                        // Fire the auto-pipeline manually since the
+                        // upload step is skipped.
+                        setHookStage('analyzing');
+                        (async () => {
+                          try {
+                            console.log('[Studio Pipeline] ▶ (from gallery) scene detection');
+                            setHookStage('detecting');
+                            setScenesBusy(true);
+                            const scn = await fetch('/api/me/video-scenes', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              credentials: 'include',
+                              body: JSON.stringify({ videoUrl: v.video_url, maxScenes: 6 }),
+                            }).then(r => r.json()).catch(() => null);
+                            setScenesBusy(false);
+                            const scenes = (scn?.ok && Array.isArray(scn.scenes)) ? scn.scenes : [];
+                            let hookKeyframe: string | undefined;
+                            if (scenes.length > 0) {
+                              setHookScenes(scenes);
+                              const hs = scenes.find((s: any) => s.recommended_for === 'hook') || scenes[0];
+                              hookKeyframe = hs?.thumbnail_url;
+                              if (hookKeyframe) setHookKeyframeUrl(hookKeyframe);
+                            }
+                            setHookStage('drafting');
+                            const [draftRes, recutRes] = await Promise.all([
+                              hookKeyframe ? fetch('/api/me/video-hook/draft', {
+                                method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+                                body: JSON.stringify({ keyframeUrl: hookKeyframe, network: hookNetwork, style: hookStyle }),
+                              }).then(r => r.json()).catch(() => null) : Promise.resolve(null),
+                              fetch('/api/me/video-recut', {
+                                method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+                                body: JSON.stringify({ videoUrl: v.video_url, strategy: 'hook_escalation_payoff', targetDurationSec: 15, segmentDurationSec: 2.5 }),
+                              }).then(r => r.json()).catch(() => null),
+                            ]);
+                            if (draftRes?.ok && draftRes.hook?.primary) {
+                              setHookDraftText({ primary: draftRes.hook.primary, secondary: draftRes.hook.secondary });
+                            }
+                            if (recutRes?.ok && recutRes.output_url) {
+                              setRecutOutput({ url: recutRes.output_url, durationSec: recutRes.duration_sec, segments: recutRes.segments_used || [] });
+                            } else if (recutRes && recutRes.ok === false) {
+                              setRecutError(recutRes.error || 'Recut failed');
+                            }
+                            setHookStage('ready');
+                          } catch (err: any) {
+                            setRecutError(err?.message || 'Pipeline error');
+                            setHookStage('ready');
+                          }
+                        })();
+                      }}
+                      className="relative aspect-video rounded-lg overflow-hidden border-2 border-neutral-200 hover:border-violet-400 transition group bg-black"
+                    >
+                      {v.thumbnail_url ? (
+                        <img src={v.thumbnail_url} alt={v.title || ''} className="w-full h-full object-cover" loading="lazy" />
+                      ) : (
+                        <video src={v.video_url} muted className="w-full h-full object-cover" />
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-2">
+                        <div className="text-[10px] text-white font-bold truncate">{v.title || 'Vidéo'}</div>
+                        {v.source_type === 'studio_edit' && (
+                          <div className="text-[8px] text-violet-300 font-bold mt-0.5">✂️ STUDIO ÉDITÉ</div>
+                        )}
+                      </div>
+                      <div className="absolute inset-0 bg-violet-500/0 group-hover:bg-violet-500/10 transition" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Original video preview modal — opens when the founder clicks
           the small original thumbnail in the Aperçu Léna card. */}
