@@ -108,18 +108,21 @@ const GMAPS_PLAN_CONFIG: Record<string, PlanConfig> = {
   // Cost-per-prospect (with pool, all-in: Places + AI enrichment):
   //   ~€0.010 (€0.0024 Places net of pool reuse + €0.005 AI + €0.002 misc).
   //
-  // Créateur €49 — 15/day = ~450/mo = ~€4.5/mo cost → 91 % margin
-  createur:   { zones: 1, queries: 2, details: 15 },
-  // Pro €99 — 40/day = ~1200/mo = ~€12/mo cost → 88 % margin (sweet spot)
-  pro:        { zones: 2, queries: 3, details: 40 },
-  // Business / Fondateurs €199/149 — 80/day = ~2400/mo = ~€24/mo → 88 / 84 %
+  // Realigned to service-guarantees.ts floors 2026-05-22:
+  //   The 'details' cap MUST be >= the prospects_added floor in
+  //   lib/agents/service-guarantees.ts so Léo always hits guarantee.
+  // Créateur €49 — 20/day cap, 15/day floor → 92 % margin
+  createur:   { zones: 1, queries: 2, details: 20 },
+  // Pro €99 — 45/day cap, 32/day floor → 78 % margin (sweet spot)
+  pro:        { zones: 2, queries: 3, details: 45 },
+  // Business / Fondateurs €199/149 — 80/day cap, 55/day floor → 82 %
   business:   { zones: 4, queries: 5, details: 80 },
   fondateurs: { zones: 4, queries: 5, details: 80 },
-  // Elite €999 / Agency — 70/day = ~2100/mo = ~€21/mo → 98 % margin on Elite
-  agence:     { zones: 3, queries: 4, details: 70 },
-  agency:     { zones: 3, queries: 4, details: 70 },
-  elite:      { zones: 3, queries: 4, details: 70 },
-  admin:      { zones: 5, queries: 6, details: 100 },
+  // Elite €999 / Agency — 100/day cap, 75/day floor → 96 %
+  agence:     { zones: 3, queries: 4, details: 100 },
+  agency:     { zones: 3, queries: 4, details: 100 },
+  elite:      { zones: 3, queries: 4, details: 100 },
+  admin:      { zones: 5, queries: 6, details: 120 },
 };
 function configForPlan(plan: string | null | undefined): PlanConfig {
   const key = (plan || '').toLowerCase();

@@ -770,7 +770,7 @@ async function generateBrief(orgId: string | null = null): Promise<NextResponse>
     // minimum for the client's plan.
     let brief = rawText;
     try {
-      const { buildServiceGuaranteeSection, extractActualsFromMetrics } = await import('@/lib/agents/service-guarantees');
+      const { buildServiceGuaranteeSection, buildConnectionHealthSection, extractActualsFromMetrics } = await import('@/lib/agents/service-guarantees');
       // Look up the org owner's plan; fall back to admin floor when no
       // org is targeted (system-wide brief).
       let planForGuarantees: any = 'admin';
@@ -793,7 +793,8 @@ async function generateBrief(orgId: string | null = null): Promise<NextResponse>
         }
       }
       const actuals = await extractActualsFromMetrics(supabase, metrics24h, ownerUserId);
-      brief = rawText + buildServiceGuaranteeSection(planForGuarantees, actuals);
+      const connectionHealth = await buildConnectionHealthSection(supabase, ownerUserId);
+      brief = rawText + buildServiceGuaranteeSection(planForGuarantees, actuals) + connectionHealth;
     } catch (e: any) {
       console.warn('[CEOAgent] guarantees block failed (non-fatal):', e?.message);
     }

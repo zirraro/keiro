@@ -28,15 +28,25 @@ interface AgentFloor {
  * green check is the default outcome — the goal is to reassure the
  * client that their floor is met, not to manufacture failure.
  */
+// Per-plan daily floors. Bumped 2026-05-22: founder asked for higher
+// guaranteed minimums on Pro + Business while keeping ~80 % margins
+// (slightly below was approved). Numbers verified against:
+//   - Sonnet text + image gen ~€0.05/post
+//   - Sonnet email draft     ~€0.005/email
+//   - Places + AI enrichment ~€0.01/prospect (with pool reuse)
+//   - Sonnet DM draft        ~€0.005/dm
+//
+//   Pro €99   → 4 posts / 45 emails / 32 prospects / 12 DMs = ~€22/mo → 78 % margin
+//   Business €199 → 5 / 70 / 55 / 18 = ~€36/mo → 82 % margin
 const FLOORS: Record<Plan, Partial<Record<string, number>>> = {
   free:       {},
-  createur:   { posts_published: 1, emails_sent: 20, prospects_added: 10, dms_prepared: 5 },
-  pro:        { posts_published: 3, emails_sent: 40, prospects_added: 30, dms_prepared: 10 },
-  business:   { posts_published: 4, emails_sent: 60, prospects_added: 50, dms_prepared: 15 },
-  fondateurs: { posts_published: 4, emails_sent: 60, prospects_added: 50, dms_prepared: 15 },
-  elite:      { posts_published: 5, emails_sent: 80, prospects_added: 70, dms_prepared: 20 },
-  agence:     { posts_published: 5, emails_sent: 80, prospects_added: 70, dms_prepared: 20 },
-  admin:      { posts_published: 5, emails_sent: 100, prospects_added: 100, dms_prepared: 25 },
+  createur:   { posts_published: 2, emails_sent: 25, prospects_added: 15, dms_prepared: 6 },
+  pro:        { posts_published: 4, emails_sent: 45, prospects_added: 32, dms_prepared: 12 },
+  business:   { posts_published: 5, emails_sent: 70, prospects_added: 55, dms_prepared: 18 },
+  fondateurs: { posts_published: 5, emails_sent: 70, prospects_added: 55, dms_prepared: 18 },
+  elite:      { posts_published: 6, emails_sent: 90, prospects_added: 75, dms_prepared: 22 },
+  agence:     { posts_published: 6, emails_sent: 90, prospects_added: 75, dms_prepared: 22 },
+  admin:      { posts_published: 6, emails_sent: 100, prospects_added: 100, dms_prepared: 25 },
 };
 
 const AGENTS: AgentFloor[] = [
@@ -89,6 +99,55 @@ export function buildServiceGuaranteeSection(
   }
   lines.push('');
   return lines.join('\n');
+}
+
+/**
+ * Render a "connexions réseaux" health block that flags any social
+ * account that is missing or whose token failed validation recently.
+ * Inserted just below the guarantees table so the client sees BOTH
+ * what was delivered today AND what's blocking tomorrow.
+ *
+ * Returns an empty string when every network is connected (no need
+ * to add noise to the brief).
+ */
+export async function buildConnectionHealthSection(
+  supabase: any,
+  userId: string | null,
+): Promise<string> {
+  if (!userId) return '';
+  try {
+    const { data: p } = await supabase
+      .from('profiles')
+      .select('instagram_business_account_id, instagram_igaa_token, facebook_page_access_token, instagram_username, tiktok_user_id, tiktok_access_token, tiktok_username, linkedin_access_token, linkedin_username, scheduling_paused_at, scheduling_paused_reason')
+      .eq('id', userId)
+      .maybeSingle();
+    if (!p) return '';
+
+    const issues: string[] = [];
+    if (!p.instagram_business_account_id || (!p.instagram_igaa_token && !p.facebook_page_access_token)) {
+      issues.push('🔴 **Instagram non connecté** — Léna et Jade ne peuvent pas publier ni lire les DMs. [Connecter Instagram](https://keiroai.com/login?redirect=/assistant)');
+    }
+    if (!p.tiktok_user_id || !p.tiktok_access_token) {
+      issues.push('🟠 **TikTok non connecté** — Léna ne peut pas publier de vidéos. [Connecter TikTok](https://keiroai.com/login?redirect=/assistant)');
+    }
+    if (!p.linkedin_access_token) {
+      issues.push('🟡 **LinkedIn non connecté** — facultatif mais utile pour les profils Pro/B2B. [Connecter LinkedIn](https://keiroai.com/login?redirect=/assistant)');
+    }
+    if (p.scheduling_paused_at) {
+      issues.push(`⛔ **Scheduling en pause** — ${p.scheduling_paused_reason || 'une erreur a stoppé les publications automatiques'}. Reconnecte le réseau concerné pour reprendre.`);
+    }
+
+    if (issues.length === 0) return '';
+
+    const lines = ['', '## CONNEXIONS RÉSEAUX — ACTION REQUISE', ''];
+    for (const i of issues) lines.push('- ' + i);
+    lines.push('');
+    lines.push('*Les agents tournent quand même sur les canaux disponibles, mais ces blocages limitent les résultats. Une reconnexion en 30 secondes débloque tout.*');
+    lines.push('');
+    return lines.join('\n');
+  } catch {
+    return '';
+  }
 }
 
 /**
