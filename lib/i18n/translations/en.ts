@@ -4,7 +4,7 @@ export const en: Translations = {
   nav: {
     home: 'Home',
     generate: 'Create',
-    studio: 'Editing Studio',
+    studio: 'Editing',
     gallery: 'Gallery & Posts',
     assistant: 'Agents',
     pricing: 'Pricing',

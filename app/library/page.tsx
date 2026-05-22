@@ -452,9 +452,14 @@ function LibraryContent() {
       }
 
       try {
+        // Column names corrected 2026-05-22: the profile uses
+        // instagram_business_account_id (not instagram_user_id),
+        // tiktok_user_id, and linkedin_access_token (not linkedin_user_id).
+        // The previous query returned 400 from PostgREST and silently
+        // marked every account as disconnected.
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('instagram_user_id, tiktok_user_id, linkedin_user_id, linkedin_username')
+          .select('instagram_business_account_id, instagram_username, tiktok_user_id, tiktok_username, linkedin_access_token, linkedin_username')
           .eq('id', user.id)
           .single();
 
@@ -462,17 +467,15 @@ function LibraryContent() {
           console.error('[Library] Error fetching profile for connections:', profileError);
         }
 
-        setIsInstagramConnected(!!profile?.instagram_user_id);
+        setIsInstagramConnected(!!profile?.instagram_business_account_id);
         setIsTikTokConnected(!!profile?.tiktok_user_id);
-
-        // LinkedIn: si linkedin_user_id existe, le compte est connecté
-        setIsLinkedInConnected(!!profile?.linkedin_user_id);
+        setIsLinkedInConnected(!!profile?.linkedin_access_token);
         setLinkedInUsername(profile?.linkedin_username || '');
 
         console.log('[Library] Connection check:', {
-          instagram: !!profile?.instagram_user_id,
+          instagram: !!profile?.instagram_business_account_id,
           tiktok: !!profile?.tiktok_user_id,
-          linkedin: !!profile?.linkedin_user_id,
+          linkedin: !!profile?.linkedin_access_token,
           linkedinUsername: profile?.linkedin_username
         });
       } catch (error) {

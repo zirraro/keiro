@@ -793,13 +793,13 @@ export default function GeneratePage() {
         const sb = supabaseBrowser();
         const { data } = await sb
           .from('business_dossiers')
-          .select('business_type, summary, signature_offer')
+          .select('business_type, ai_summary, company_description')
           .eq('user_id', authUserId)
           .maybeSingle();
         if (data) {
           if (!businessType && data.business_type) setBusinessType(data.business_type);
-          if (!businessDescription && (data.summary || data.signature_offer)) {
-            setBusinessDescription(data.summary || data.signature_offer || '');
+          if (!businessDescription && (data.ai_summary || data.company_description)) {
+            setBusinessDescription(data.ai_summary || data.company_description || '');
           }
         }
       } catch (e: any) {

@@ -4,7 +4,7 @@ export const fr: Translations = {
   nav: {
     home: 'Accueil',
     generate: 'Création',
-    studio: 'Studio Édition',
+    studio: 'Édition',
     gallery: 'Galerie & Posts',
     assistant: 'Agents',
     pricing: 'Tarifs',

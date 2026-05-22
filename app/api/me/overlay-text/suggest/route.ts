@@ -51,13 +51,13 @@ export async function POST(req: NextRequest) {
   if (post.user_id) {
     const { data: dossier } = await sb
       .from('business_dossiers')
-      .select('business_type, summary, signature_offer')
+      .select('business_type, ai_summary, company_description')
       .eq('user_id', post.user_id)
       .maybeSingle();
     if (dossier) {
       businessType = dossier.business_type || undefined;
-      businessSummary = dossier.summary || undefined;
-      signatureOffer = dossier.signature_offer || undefined;
+      businessSummary = dossier.ai_summary || dossier.company_description || undefined;
+      signatureOffer = dossier.company_description || undefined;
     }
   }
 
