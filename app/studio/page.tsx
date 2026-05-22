@@ -1877,7 +1877,7 @@ function StudioContent() {
                                 The client sees a ready-to-publish recut + drafted
                                 hook text and just clicks Generate. Proves Léna
                                 can run end-to-end with zero clicks. */}
-                            {hookStage === 'ready' && (hookDraftText || recutOutput) && (
+                            {hookStage === 'ready' && (
                               <div className="rounded-xl border-2 border-emerald-300 bg-gradient-to-br from-emerald-50 via-white to-violet-50 p-4 space-y-3 shadow-md">
                                 <div className="flex items-center gap-2">
                                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-violet-500 flex items-center justify-center text-white flex-shrink-0">
@@ -1885,9 +1885,15 @@ function StudioContent() {
                                   </div>
                                   <div className="flex-1">
                                     <div className="text-sm font-bold text-emerald-900">
-                                      Ta vidéo finale est prête pour {hookNetwork === 'instagram' ? 'Instagram' : hookNetwork === 'tiktok' ? 'TikTok' : 'LinkedIn'} 🎬
+                                      {recutOutput
+                                        ? `Ta vidéo finale est prête pour ${hookNetwork === 'instagram' ? 'Instagram' : hookNetwork === 'tiktok' ? 'TikTok' : 'LinkedIn'} 🎬`
+                                        : 'Vidéo enregistrée dans Gallery'}
                                     </div>
-                                    <div className="text-[10px] text-emerald-700/90">Léna a recoupé ta vidéo, choisi le meilleur hook, et l'a optimisée pour le réseau cible</div>
+                                    <div className="text-[10px] text-emerald-700/90">
+                                      {recutOutput
+                                        ? 'Léna a recoupé ta vidéo, choisi le meilleur hook, et l\'a optimisée pour le réseau cible'
+                                        : 'L\'analyse est terminée. Pour générer la version recoupée + hook intégré, clique sur "Modifier les détails".'}
+                                    </div>
                                   </div>
                                   {/* Small original thumbnail */}
                                   {hookSourceUrl && (
