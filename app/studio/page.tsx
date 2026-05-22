@@ -96,6 +96,15 @@ function StudioContent() {
   // Auto-detected scene candidates from the uploaded video.
   const [hookScenes, setHookScenes] = useState<Array<{ timestamp_sec: number; thumbnail_url?: string; recommended_for: string; score: number }>>([]);
   const [scenesBusy, setScenesBusy] = useState(false);
+  // Detailed progress stage so the client never wonders 'is anything happening?'.
+  type HookStage = 'idle' | 'uploading' | 'analyzing' | 'detecting' | 'drafting' | 'ready';
+  const [hookStage, setHookStage] = useState<HookStage>('idle');
+  const [hookUploadPct, setHookUploadPct] = useState<number>(0);
+  // Pre-drafted hook text — auto-filled after scene detection so the
+  // client can hit Generate immediately with everything pre-recommended.
+  const [hookDraftText, setHookDraftText] = useState<{ primary: string; secondary?: string } | null>(null);
+  // Modal for enlarged scene preview.
+  const [scenePreview, setScenePreview] = useState<{ timestamp_sec: number; thumbnail_url?: string; score: number } | null>(null);
   const [hookBusy, setHookBusy] = useState(false);
   const [hookOutput, setHookOutput] = useState<{ url: string; primary: string; secondary?: string } | null>(null);
   // Intelligent re-cut state — separate from hook overlay so the user
@@ -1509,7 +1518,12 @@ function StudioContent() {
                               }
                               setHookError(null);
                               setHookOutput(null);
+                              setRecutOutput(null);
+                              setHookScenes([]);
+                              setHookDraftText(null);
+                              setHookUploadPct(0);
                               setHookUploading(true);
+                              setHookStage('uploading');
                               // Optimistic local preview so the user sees the
                               // video *before* analysis finishes (which can
                               // take 20-60 s on a 50 MB clip).
@@ -1518,11 +1532,14 @@ function StudioContent() {
                               fd.append('file', file);
                               fd.append('agent_id', 'content');
                               try {
+                                setHookStage('analyzing');
+                                setHookUploadPct(100);
                                 const r = await fetch('/api/agents/uploads', { method: 'POST', body: fd, credentials: 'include' });
                                 const j = await r.json();
                                 if (!r.ok) {
                                   setHookError(j?.error || 'Upload failed');
                                   setHookSourceUrl(null);
+                                  setHookStage('idle');
                                   return;
                                 }
                                 // analyseVideo extracts a keyframe and stores it in
@@ -1542,30 +1559,81 @@ function StudioContent() {
                                   if (newest?.ai_analysis?.keyframe_url) setHookKeyframeUrl(newest.ai_analysis.keyframe_url);
                                 }
 
-                                // AUTO scene detection — fire immediately after the
-                                // upload succeeds so the founder doesn't have to click.
-                                // We run it fire-and-forget in the background and
-                                // populate the picker as soon as it returns. The
-                                // hook tile is auto-promoted as the keyframe so the
-                                // user can hit Generate right away if they like it.
+                                // AUTO PIPELINE — Léna replicates the full workflow
+                                // without the user clicking anything:
+                                //   3. scene detection → 6 thumbnails
+                                //   4. hook text draft (Sonnet vision on top scene)
+                                //   5. recut intelligent (hook → escalation → payoff)
+                                // The result is a fully ready-to-publish video the
+                                // user can either generate-as-is or tweak.
                                 if (finalUrl) {
-                                  setScenesBusy(true);
-                                  fetch('/api/me/video-scenes', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    credentials: 'include',
-                                    body: JSON.stringify({ videoUrl: finalUrl, maxScenes: 6 }),
-                                  })
-                                    .then(r => r.json())
-                                    .then(scn => {
-                                      if (scn?.ok && Array.isArray(scn.scenes) && scn.scenes.length > 0) {
-                                        setHookScenes(scn.scenes);
-                                        const hookScene = scn.scenes.find((s: any) => s.recommended_for === 'hook') || scn.scenes[0];
+                                  (async () => {
+                                    try {
+                                      // Stage 3: scene detection.
+                                      setHookStage('detecting');
+                                      setScenesBusy(true);
+                                      const scn = await fetch('/api/me/video-scenes', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        credentials: 'include',
+                                        body: JSON.stringify({ videoUrl: finalUrl, maxScenes: 6 }),
+                                      }).then(r => r.json()).catch(() => null);
+                                      setScenesBusy(false);
+                                      const scenes = (scn?.ok && Array.isArray(scn.scenes)) ? scn.scenes : [];
+                                      if (scenes.length > 0) {
+                                        setHookScenes(scenes);
+                                        const hookScene = scenes.find((s: any) => s.recommended_for === 'hook') || scenes[0];
                                         if (hookScene?.thumbnail_url) setHookKeyframeUrl(hookScene.thumbnail_url);
+
+                                        // Stage 4+5 in parallel.
+                                        setHookStage('drafting');
+                                        const draftPromise = hookScene?.thumbnail_url
+                                          ? fetch('/api/me/video-hook/draft', {
+                                              method: 'POST',
+                                              headers: { 'Content-Type': 'application/json' },
+                                              credentials: 'include',
+                                              body: JSON.stringify({
+                                                keyframeUrl: hookScene.thumbnail_url,
+                                                network: hookNetwork,
+                                                style: hookStyle,
+                                              }),
+                                            }).then(r => r.json()).catch(() => null)
+                                          : Promise.resolve(null);
+
+                                        const recutPromise = fetch('/api/me/video-recut', {
+                                          method: 'POST',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          credentials: 'include',
+                                          body: JSON.stringify({
+                                            videoUrl: finalUrl,
+                                            strategy: 'hook_escalation_payoff',
+                                            targetDurationSec: 15,
+                                            segmentDurationSec: 2.5,
+                                          }),
+                                        }).then(r => r.json()).catch(() => null);
+
+                                        const [draftRes, recutRes] = await Promise.all([draftPromise, recutPromise]);
+                                        if (draftRes?.ok && draftRes.hook?.primary) {
+                                          setHookDraftText({
+                                            primary: draftRes.hook.primary,
+                                            secondary: draftRes.hook.secondary,
+                                          });
+                                        }
+                                        if (recutRes?.ok && recutRes.output_url) {
+                                          setRecutOutput({
+                                            url: recutRes.output_url,
+                                            durationSec: recutRes.duration_sec,
+                                            segments: recutRes.segments_used || [],
+                                          });
+                                        }
                                       }
-                                    })
-                                    .catch(() => { /* non-fatal */ })
-                                    .finally(() => setScenesBusy(false));
+                                      setHookStage('ready');
+                                    } catch {
+                                      setHookStage('ready');
+                                    }
+                                  })();
+                                } else {
+                                  setHookStage('idle');
                                 }
                               } catch (err: any) {
                                 setHookError(err?.message || 'Upload error');
@@ -1582,10 +1650,57 @@ function StudioContent() {
                           </span>
                         </label>
 
-                        {hookSourceUrl && !hookUploading && !hookKeyframeUrl && (
-                          <p className="text-[11px] text-amber-600 -mt-2">
-                            Analyse de la vidéo en cours — le bouton « Générer » sera actif quand le keyframe sera prêt.
-                          </p>
+                        {/* PROGRESS STEPPER — always visible while Léna runs the
+                            auto pipeline so the client never wonders if anything
+                            is happening. Lights up step-by-step. */}
+                        {hookStage !== 'idle' && (
+                          <div className="rounded-xl border border-violet-200 bg-gradient-to-br from-violet-50 to-fuchsia-50 p-4 space-y-3">
+                            <div className="flex items-center gap-2 mb-1">
+                              {hookStage === 'ready' ? (
+                                <svg className="w-5 h-5 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                              ) : (
+                                <div className="w-5 h-5 border-2 border-violet-500 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                              )}
+                              <span className="text-sm font-bold text-violet-900">
+                                {hookStage === 'uploading' && `Upload en cours… ${hookUploadPct}%`}
+                                {hookStage === 'analyzing' && 'Analyse de la vidéo… (extraction keyframe)'}
+                                {hookStage === 'detecting' && 'Détection des moments forts…'}
+                                {hookStage === 'drafting' && 'Rédaction du hook par Léna…'}
+                                {hookStage === 'ready' && 'Aperçu Léna prêt 🎬'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1 text-[10px]">
+                              {([
+                                { key: 'uploading',  label: '1. Upload' },
+                                { key: 'analyzing',  label: '2. Analyse' },
+                                { key: 'detecting',  label: '3. Scènes' },
+                                { key: 'drafting',   label: '4. Hook + Recut' },
+                                { key: 'ready',      label: '5. Prêt' },
+                              ] as const).map((s, idx, arr) => {
+                                const order = ['uploading','analyzing','detecting','drafting','ready'] as const;
+                                const currentIdx = order.indexOf(hookStage as any);
+                                const stepIdx = order.indexOf(s.key as any);
+                                const done = stepIdx < currentIdx;
+                                const active = stepIdx === currentIdx;
+                                return (
+                                  <div key={s.key} className={`flex-1 px-2 py-1.5 rounded text-center font-bold transition ${done ? 'bg-emerald-100 text-emerald-700' : active ? 'bg-violet-600 text-white shadow' : 'bg-white text-neutral-400 border border-neutral-200'}`}>
+                                    {done && '✓ '}
+                                    {s.label}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            {(hookStage === 'uploading' && hookUploadPct < 100) && (
+                              <div className="h-1.5 rounded-full bg-violet-100 overflow-hidden">
+                                <div className="h-full bg-violet-600 transition-all" style={{ width: `${hookUploadPct}%` }} />
+                              </div>
+                            )}
+                            {hookStage !== 'ready' && (
+                              <p className="text-[11px] text-violet-700/80">
+                                Léna prépare ta vidéo automatiquement — découpe les meilleurs moments, rédige le hook, et te propose une version optimisée. Aucune action requise.
+                              </p>
+                            )}
+                          </div>
                         )}
 
                         {hookSourceUrl && (
@@ -1646,7 +1761,12 @@ function StudioContent() {
                                     <button
                                       key={idx}
                                       type="button"
-                                      onClick={() => { if (s.thumbnail_url) setHookKeyframeUrl(s.thumbnail_url); }}
+                                      onClick={() => {
+                                        if (s.thumbnail_url) setHookKeyframeUrl(s.thumbnail_url);
+                                        // Also open the enlarged preview so the
+                                        // founder can really judge the frame.
+                                        setScenePreview({ timestamp_sec: s.timestamp_sec, thumbnail_url: s.thumbnail_url, score: s.score });
+                                      }}
                                       className={`relative aspect-square rounded-md overflow-hidden border-2 transition ${hookKeyframeUrl === s.thumbnail_url ? 'border-violet-500 shadow' : 'border-neutral-200 hover:border-neutral-400'}`}
                                       title={`t=${s.timestamp_sec.toFixed(1)}s · score ${s.score.toFixed(2)}`}
                                     >
@@ -1662,10 +1782,49 @@ function StudioContent() {
                                 </div>
                               ) : (
                                 <p className="text-[10px] text-neutral-500 mb-3">
-                                  Clique sur « Auto-détection » pour que Keiro scanne ta vidéo et identifie les meilleurs moments à transformer en hook ou en carrousel.
+                                  Léna analyse ta vidéo et te proposera les meilleurs moments dans quelques secondes.
                                 </p>
                               )}
                             </div>
+
+                            {/* ✨ APERÇU LÉNA — recommendation card.
+                                Built automatically from the auto-pipeline output.
+                                The client sees a ready-to-publish recut + drafted
+                                hook text and just clicks Generate. Proves Léna
+                                can run end-to-end with zero clicks. */}
+                            {hookStage === 'ready' && (hookDraftText || recutOutput) && (
+                              <div className="rounded-xl border-2 border-violet-300 bg-gradient-to-br from-violet-50 via-white to-fuchsia-50 p-4 space-y-3 shadow-sm">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-white text-sm font-bold">L</div>
+                                  <div className="flex-1">
+                                    <div className="text-sm font-bold text-violet-900">Aperçu Léna — prêt à publier</div>
+                                    <div className="text-[10px] text-violet-700/80">Auto-généré · tu peux publier tel quel ou ajuster les détails ci-dessous</div>
+                                  </div>
+                                </div>
+
+                                {hookDraftText && (
+                                  <div className="rounded-lg bg-white border border-violet-200 px-3 py-2.5">
+                                    <div className="text-[9px] uppercase tracking-wider font-bold text-violet-600 mb-1">Hook recommandé</div>
+                                    <div className="text-base font-bold text-neutral-900 leading-tight">{hookDraftText.primary}</div>
+                                    {hookDraftText.secondary && <div className="text-xs text-neutral-600 mt-0.5">{hookDraftText.secondary}</div>}
+                                  </div>
+                                )}
+
+                                {recutOutput && (
+                                  <div className="rounded-lg bg-black overflow-hidden">
+                                    <video src={recutOutput.url} controls autoPlay loop muted className="w-full max-h-72" />
+                                    <div className="px-3 py-2 text-[10px] text-white/80 bg-black/70 flex items-center justify-between">
+                                      <span>✂️ Recut auto · {recutOutput.durationSec.toFixed(1)}s · {recutOutput.segments.length} segments</span>
+                                      <a href={recutOutput.url} download className="text-violet-300 hover:text-violet-100 font-bold">⬇ Télécharger</a>
+                                    </div>
+                                  </div>
+                                )}
+
+                                <div className="text-[10px] text-neutral-500 italic">
+                                  Tu peux modifier le style, le réseau ou choisir une autre scène dans les options ci-dessous, puis cliquer « Générer la vidéo finale ».
+                                </div>
+                              </div>
+                            )}
 
                             {/* Hook style */}
                             <div>
@@ -1978,6 +2137,45 @@ function StudioContent() {
         isOpen={showSubscriptionModal}
         onClose={() => setShowSubscriptionModal(false)}
       />
+
+      {/* Scene preview modal — enlarged keyframe when the founder
+          clicks a tile in the auto-detection grid. */}
+      {scenePreview && (
+        <div
+          className="fixed inset-0 z-[110] bg-black/85 flex items-center justify-center p-4"
+          onClick={() => setScenePreview(null)}
+        >
+          <button
+            type="button"
+            onClick={() => setScenePreview(null)}
+            className="absolute top-4 right-4 text-white hover:text-violet-300 transition"
+            aria-label="Fermer"
+          >
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+          <div className="max-w-3xl w-full" onClick={(e) => e.stopPropagation()}>
+            {scenePreview.thumbnail_url && (
+              <img src={scenePreview.thumbnail_url} alt="" className="w-full rounded-xl shadow-2xl max-h-[80vh] object-contain bg-black" />
+            )}
+            <div className="mt-3 flex items-center justify-between text-white text-xs">
+              <div>
+                <div className="font-bold">Moment à t={scenePreview.timestamp_sec.toFixed(2)}s · Score {scenePreview.score.toFixed(2)}</div>
+                <div className="text-white/60">Cette image sera utilisée comme keyframe pour le hook</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (scenePreview.thumbnail_url) setHookKeyframeUrl(scenePreview.thumbnail_url);
+                  setScenePreview(null);
+                }}
+                className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 font-bold text-white"
+              >
+                ✓ Utiliser cette scène
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <FeedbackPopup show={feedback.showPopup} onAccept={feedback.handleAccept} onDismiss={feedback.handleDismiss} />
       <FeedbackModal isOpen={feedback.showModal} onClose={feedback.handleModalClose} />
