@@ -128,6 +128,10 @@ function StudioContent() {
   const [showGalleryPicker, setShowGalleryPicker] = useState(false);
   const [galleryVideos, setGalleryVideos] = useState<Array<{ id: string; title?: string; video_url: string; thumbnail_url?: string; created_at?: string; source_type?: string }>>([]);
   const [galleryLoading, setGalleryLoading] = useState(false);
+  // Image-side variant for the Image tab: pick a previously saved image.
+  const [showImageGalleryPicker, setShowImageGalleryPicker] = useState(false);
+  const [galleryImages, setGalleryImages] = useState<Array<{ id: string; title?: string; image_url: string; thumbnail_url?: string; created_at?: string; tags?: string[] | null }>>([]);
+  const [imageGalleryLoading, setImageGalleryLoading] = useState(false);
   const [hookEnhancements, setHookEnhancements] = useState<{
     captions: boolean;
     crop: 'keep' | '9:16' | '1:1' | '4:5';
@@ -895,6 +899,39 @@ function StudioContent() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                   </svg>
                   {t.studio.loadImage}
+                </button>
+
+                {/* OR pick from existing gallery — same destination as
+                    drag-drop / paste URL but draws from the founder's
+                    saved_images table. Lets them re-edit a previous
+                    creation in one click. */}
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-neutral-200" /></div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-4 bg-white text-neutral-500 font-medium">ou</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setShowImageGalleryPicker(true);
+                    if (galleryImages.length === 0) {
+                      setImageGalleryLoading(true);
+                      try {
+                        const r = await fetch('/api/library/images', { credentials: 'include' });
+                        const j = await r.json();
+                        setGalleryImages(Array.isArray(j.images) ? j.images : []);
+                      } catch {} finally {
+                        setImageGalleryLoading(false);
+                      }
+                    }
+                  }}
+                  className="w-full py-3 border-2 border-neutral-200 text-neutral-700 rounded-xl hover:border-[#0c1a3a] hover:text-[#0c1a3a] transition-all font-semibold flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
+                  📚 Choisir dans ma galerie
                 </button>
               </div>
             ) : (
@@ -2340,6 +2377,70 @@ function StudioContent() {
         isOpen={showSubscriptionModal}
         onClose={() => setShowSubscriptionModal(false)}
       />
+
+      {/* IMAGE Gallery picker modal — same pattern as the video
+          picker but reads from saved_images for the Image tab. */}
+      {showImageGalleryPicker && (
+        <div
+          className="fixed inset-0 z-[110] bg-black/70 flex items-center justify-center p-4"
+          onClick={() => setShowImageGalleryPicker(false)}
+        >
+          <div
+            className="bg-white rounded-xl max-w-3xl w-full max-h-[80vh] overflow-hidden flex flex-col shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-4 border-b border-neutral-200">
+              <div>
+                <div className="font-bold text-neutral-900">Choisir une image dans ma galerie</div>
+                <div className="text-xs text-neutral-500">Reprends une création précédente pour la retravailler</div>
+              </div>
+              <button
+                onClick={() => setShowImageGalleryPicker(false)}
+                className="p-1.5 rounded hover:bg-neutral-100"
+                aria-label="Fermer"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4">
+              {imageGalleryLoading ? (
+                <div className="text-center py-10 text-sm text-neutral-500">Chargement de tes images…</div>
+              ) : galleryImages.length === 0 ? (
+                <div className="text-center py-10">
+                  <div className="text-4xl mb-2">📸</div>
+                  <div className="text-sm font-semibold text-neutral-700">Aucune image dans ta galerie</div>
+                  <div className="text-xs text-neutral-500 mt-1">Génère une image depuis Création, ou édite-en une ici pour qu&apos;elle apparaisse.</div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5">
+                  {galleryImages.map(img => (
+                    <button
+                      key={img.id}
+                      type="button"
+                      onClick={() => {
+                        setImageUrl(img.image_url);
+                        setLoadedImage(img.image_url);
+                        setOriginalImage(img.image_url);
+                        setCleanBaseImage(img.image_url);
+                        setShowImageGalleryPicker(false);
+                      }}
+                      className="relative aspect-square rounded-lg overflow-hidden border-2 border-neutral-200 hover:border-[#0c1a3a] transition group bg-neutral-100"
+                    >
+                      <img src={img.thumbnail_url || img.image_url} alt={img.title || ''} className="w-full h-full object-cover" loading="lazy" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-2 opacity-0 group-hover:opacity-100 transition">
+                        <div className="text-[10px] text-white font-bold truncate">{img.title || 'Image'}</div>
+                      </div>
+                      {Array.isArray(img.tags) && img.tags.includes('studio_edit') && (
+                        <div className="absolute top-1 right-1 bg-violet-600 text-white text-[8px] font-bold px-1.5 py-0.5 rounded">✂️ Studio</div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Gallery picker modal — alternative source for the recut
           pipeline. Founder picks from My Videos instead of uploading. */}
