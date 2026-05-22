@@ -98,6 +98,12 @@ function StudioContent() {
   const [scenesBusy, setScenesBusy] = useState(false);
   const [hookBusy, setHookBusy] = useState(false);
   const [hookOutput, setHookOutput] = useState<{ url: string; primary: string; secondary?: string } | null>(null);
+  // Intelligent re-cut state — separate from hook overlay so the user
+  // can either RE-EDIT (cut + reorder) or just overlay a hook.
+  const [recutBusy, setRecutBusy] = useState(false);
+  const [recutStrategy, setRecutStrategy] = useState<'best_of_3' | 'hook_escalation_payoff' | 'preserve_order'>('hook_escalation_payoff');
+  const [recutOutput, setRecutOutput] = useState<{ url: string; durationSec: number; segments: Array<{ start: number; duration: number; score: number }> } | null>(null);
+  const [recutError, setRecutError] = useState<string | null>(null);
   const [hookError, setHookError] = useState<string | null>(null);
   const [hookUploading, setHookUploading] = useState(false);
   const [hookEnhancements, setHookEnhancements] = useState<{
@@ -1801,6 +1807,80 @@ function StudioContent() {
                             >
                               {hookBusy ? 'Génération en cours…' : hookUploading ? 'Upload en cours…' : !hookKeyframeUrl ? '⏳ Analyse vidéo en cours…' : '✨ Générer la vidéo avec hook'}
                             </button>
+
+                            {/* ✂️ INTELLIGENT RE-CUT — découpe + réorganise les
+                                meilleurs moments en un reel court et percutant.
+                                Différent du hook overlay (qui ajoute juste un
+                                carton de texte) : ici on RE-MONTE la vidéo. */}
+                            <div className="rounded-lg border border-neutral-200 bg-neutral-50/60 p-3 space-y-3 mt-3">
+                              <div className="text-[11px] uppercase font-bold text-neutral-600 tracking-wide">✂️ Recut intelligent</div>
+                              <div className="grid grid-cols-3 gap-1.5">
+                                {([
+                                  { v: 'hook_escalation_payoff', label: 'Hook → Escalation → Payoff' },
+                                  { v: 'best_of_3', label: 'Best of 3' },
+                                  { v: 'preserve_order', label: 'Ordre original' },
+                                ] as const).map(s => (
+                                  <button
+                                    key={s.v}
+                                    onClick={() => setRecutStrategy(s.v)}
+                                    className={`px-2 py-1.5 rounded text-[10px] font-bold transition ${recutStrategy === s.v ? 'bg-violet-600 text-white' : 'bg-white border border-neutral-200 text-neutral-700'}`}
+                                  >
+                                    {s.label}
+                                  </button>
+                                ))}
+                              </div>
+                              <button
+                                onClick={async () => {
+                                  if (!hookSourceUrl || recutBusy) return;
+                                  setRecutBusy(true);
+                                  setRecutError(null);
+                                  setRecutOutput(null);
+                                  try {
+                                    const r = await fetch('/api/me/video-recut', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      credentials: 'include',
+                                      body: JSON.stringify({
+                                        videoUrl: hookSourceUrl,
+                                        strategy: recutStrategy,
+                                        targetDurationSec: 15,
+                                        segmentDurationSec: 2.5,
+                                      }),
+                                    });
+                                    const j = await r.json();
+                                    if (!r.ok || !j.ok) {
+                                      setRecutError(j.error || 'Recut failed');
+                                      return;
+                                    }
+                                    setRecutOutput({
+                                      url: j.output_url,
+                                      durationSec: j.duration_sec,
+                                      segments: j.segments_used || [],
+                                    });
+                                  } catch (e: any) {
+                                    setRecutError(e?.message || 'Recut failed');
+                                  } finally {
+                                    setRecutBusy(false);
+                                  }
+                                }}
+                                disabled={recutBusy || hookBusy || hookUploading || !hookSourceUrl}
+                                className="w-full py-2.5 min-h-[40px] rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold text-xs disabled:opacity-50 transition"
+                              >
+                                {recutBusy ? 'Re-montage en cours…' : '🎬 Lancer le recut intelligent'}
+                              </button>
+                              {recutError && (
+                                <div className="px-2 py-1.5 rounded bg-rose-50 border border-rose-200 text-[11px] text-rose-700">{recutError}</div>
+                              )}
+                              {recutOutput && (
+                                <div className="space-y-2">
+                                  <div className="text-[10px] text-neutral-600">
+                                    ✓ Vidéo de <strong>{recutOutput.durationSec.toFixed(1)}s</strong> assemblée à partir de <strong>{recutOutput.segments.length}</strong> segments
+                                  </div>
+                                  <video src={recutOutput.url} controls autoPlay loop className="w-full rounded-lg max-h-80 bg-black" />
+                                  <a href={recutOutput.url} download className="block text-center px-3 py-2 rounded-lg bg-neutral-900 text-white text-xs font-bold hover:bg-neutral-800">⬇ Télécharger le recut</a>
+                                </div>
+                              )}
+                            </div>
 
                             {hookError && (
                               <div className="px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700">{hookError}</div>
