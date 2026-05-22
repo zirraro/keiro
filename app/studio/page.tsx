@@ -1738,6 +1738,21 @@ function StudioContent() {
                                 <div className="h-full bg-violet-600 transition-all" style={{ width: `${hookUploadPct}%` }} />
                               </div>
                             )}
+
+                            {/* ORIGINAL VIDEO PREVIEW (during processing) — shows
+                                the founder what they uploaded WHILE Léna works.
+                                Once stage='ready' we hide this and the Aperçu
+                                Léna card below shows the FINAL version. */}
+                            {hookStage !== 'ready' && hookSourceUrl && (
+                              <div className="rounded-lg overflow-hidden bg-black border border-violet-200">
+                                <video src={hookSourceUrl} controls autoPlay muted loop className="w-full max-h-64" />
+                                <div className="px-3 py-1.5 bg-black/80 text-white/70 text-[10px] flex items-center gap-1.5">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                                  Vidéo originale — Léna prépare la version optimisée…
+                                </div>
+                              </div>
+                            )}
+
                             {hookStage !== 'ready' && (
                               <p className="text-[11px] text-violet-700/80">
                                 Léna prépare ta vidéo automatiquement — découpe les meilleurs moments, rédige le hook, et te propose une version optimisée. Aucune action requise.
@@ -1863,57 +1878,84 @@ function StudioContent() {
                                 hook text and just clicks Generate. Proves Léna
                                 can run end-to-end with zero clicks. */}
                             {hookStage === 'ready' && (hookDraftText || recutOutput) && (
-                              <div className="rounded-xl border-2 border-violet-300 bg-gradient-to-br from-violet-50 via-white to-fuchsia-50 p-4 space-y-3 shadow-sm">
+                              <div className="rounded-xl border-2 border-emerald-300 bg-gradient-to-br from-emerald-50 via-white to-violet-50 p-4 space-y-3 shadow-md">
                                 <div className="flex items-center gap-2">
-                                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-white text-sm font-bold">L</div>
-                                  <div className="flex-1">
-                                    <div className="text-sm font-bold text-violet-900">Aperçu Léna — prêt à publier</div>
-                                    <div className="text-[10px] text-violet-700/80">Auto-généré · Léna a choisi le meilleur hook et a recoupé la vidéo</div>
+                                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-violet-500 flex items-center justify-center text-white flex-shrink-0">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                                   </div>
-                                  {/* Small original-video thumbnail, click to
-                                      re-watch the source. Keeps the page short
-                                      while letting the founder verify the base. */}
+                                  <div className="flex-1">
+                                    <div className="text-sm font-bold text-emerald-900">
+                                      Ta vidéo finale est prête pour {hookNetwork === 'instagram' ? 'Instagram' : hookNetwork === 'tiktok' ? 'TikTok' : 'LinkedIn'} 🎬
+                                    </div>
+                                    <div className="text-[10px] text-emerald-700/90">Léna a recoupé ta vidéo, choisi le meilleur hook, et l'a optimisée pour le réseau cible</div>
+                                  </div>
+                                  {/* Small original thumbnail */}
                                   {hookSourceUrl && (
                                     <button
                                       type="button"
                                       onClick={() => setShowOriginalPreview(true)}
-                                      className="relative w-14 h-14 rounded-lg overflow-hidden border-2 border-white shadow flex-shrink-0 hover:ring-2 hover:ring-violet-400 transition group"
+                                      className="relative w-12 h-12 rounded-lg overflow-hidden border-2 border-white shadow flex-shrink-0 hover:ring-2 hover:ring-emerald-400 transition group"
                                       title="Voir la vidéo originale"
                                     >
                                       <video src={hookSourceUrl} muted className="w-full h-full object-cover" />
                                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-                                        <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
                                       </div>
                                       <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-[7px] text-center py-0.5 font-bold">Original</div>
                                     </button>
                                   )}
                                 </div>
 
+                                {/* FINAL VERSION — replaces the source preview
+                                    that was showing during processing. */}
+                                {recutOutput && (
+                                  <div className="rounded-lg bg-black overflow-hidden shadow">
+                                    <video src={recutOutput.url} controls autoPlay loop className="w-full max-h-80" />
+                                    <div className="px-3 py-2 text-[10px] text-white/80 bg-black/70 flex items-center justify-between">
+                                      <span>✂️ Version finale · {recutOutput.durationSec.toFixed(1)}s · {recutOutput.segments.length} segments</span>
+                                    </div>
+                                  </div>
+                                )}
+
                                 {hookDraftText && (
                                   <div className="rounded-lg bg-white border border-violet-200 px-3 py-2.5">
-                                    <div className="text-[9px] uppercase tracking-wider font-bold text-violet-600 mb-1">Hook recommandé</div>
+                                    <div className="text-[9px] uppercase tracking-wider font-bold text-violet-600 mb-1">Hook intégré par Léna</div>
                                     <div className="text-base font-bold text-neutral-900 leading-tight">{hookDraftText.primary}</div>
                                     {hookDraftText.secondary && <div className="text-xs text-neutral-600 mt-0.5">{hookDraftText.secondary}</div>}
                                   </div>
                                 )}
 
-                                {recutOutput && (
-                                  <div className="rounded-lg bg-black overflow-hidden">
-                                    <video src={recutOutput.url} controls autoPlay loop muted className="w-full max-h-72" />
-                                    <div className="px-3 py-2 text-[10px] text-white/80 bg-black/70 flex items-center justify-between">
-                                      <span>✂️ Recut auto · {recutOutput.durationSec.toFixed(1)}s · {recutOutput.segments.length} segments</span>
-                                      <a href={recutOutput.url} download className="text-violet-300 hover:text-violet-100 font-bold">⬇ Télécharger</a>
-                                    </div>
-                                  </div>
-                                )}
+                                {/* CTAs — same pattern as the regular gen flow:
+                                    download + view in gallery. */}
+                                <div className="grid grid-cols-2 gap-2">
+                                  {recutOutput?.url && (
+                                    <a
+                                      href={recutOutput.url}
+                                      download
+                                      className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-bold transition"
+                                    >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                                      Télécharger
+                                    </a>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => router.push('/library')}
+                                    className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg bg-gradient-to-r from-emerald-600 to-violet-600 hover:opacity-90 text-white text-xs font-bold transition"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                                    Voir dans Gallery
+                                  </button>
+                                </div>
+                                <p className="text-[10px] text-emerald-700/80 text-center">
+                                  ✓ Cette vidéo est déjà enregistrée dans <strong>My Videos</strong> avec le badge violet « Studio édité »
+                                </p>
 
-                                {/* Modifier les détails toggle — everything below
-                                    only renders if the founder explicitly wants
-                                    to tweak. Keeps the default view clean. */}
+                                {/* Discreet modify toggle */}
                                 <button
                                   type="button"
                                   onClick={() => setShowAdvancedOptions(v => !v)}
-                                  className="w-full text-center py-2 text-xs font-bold text-violet-700 hover:text-violet-900 underline-offset-2 hover:underline transition"
+                                  className="w-full text-center py-2 text-xs font-medium text-neutral-500 hover:text-violet-700 transition"
                                 >
                                   {showAdvancedOptions ? '— Masquer les détails' : '⚙️ Modifier les détails (réseau, hook, scènes, audio)'}
                                 </button>
