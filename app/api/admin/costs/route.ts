@@ -104,6 +104,67 @@ export async function GET() {
     + (agentActions['dm_instagram_webhook'] || 0) * 0.005
     + (agentActions['whatsapp'] || 0) * 0.001;
 
+  // ─── Per-client breakdown — revenue + cost + margin (current month) ───
+  // Aggregates LLM cost from agent_logs by user_id, plus a small per-
+  // user share of the image/video gen costs (which can't easily be
+  // attributed without owner tracking on every gen). Honest estimate.
+  const COST_PER_AGENT_CALL_EUR: Record<string, number> = {
+    content: 0.015, dm_instagram: 0.005, email: 0.005, ceo: 0.02,
+    seo: 0.05, gmaps: 0.003, marketing: 0.015, instagram_comments: 0.003,
+    tiktok_comments: 0.003, chatbot: 0.003, retention: 0.003,
+    commercial: 0.005, onboarding: 0.005, ads: 0.005,
+  };
+  const REVENUE_PER_PLAN_EUR: Record<string, number> = {
+    free: 0, createur: 49, pro: 99, business: 199,
+    fondateurs: 149, elite: 999, agence: 999, admin: 0,
+  };
+
+  const { data: clientLogs } = await sb
+    .from('agent_logs')
+    .select('agent, user_id')
+    .eq('status', 'success')
+    .not('user_id', 'is', null)
+    .gte('created_at', monthStart)
+    .limit(50000);
+  const llmCostByUser: Record<string, number> = {};
+  for (const log of (clientLogs || []) as any[]) {
+    const coef = COST_PER_AGENT_CALL_EUR[log.agent] ?? 0.003;
+    if (log.user_id) {
+      llmCostByUser[log.user_id] = (llmCostByUser[log.user_id] || 0) + coef;
+    }
+  }
+
+  const { data: clients } = await sb
+    .from('profiles')
+    .select('id, email, subscription_plan, instagram_username, created_at')
+    .order('created_at', { ascending: false })
+    .limit(200);
+  const payingCount = Math.max(1, (clients || []).filter(c => REVENUE_PER_PLAN_EUR[(c.subscription_plan || 'free').toLowerCase()] > 0).length);
+  const sharedAssetCostPerUser = (imageCost + videoCost) / payingCount;
+
+  const per_client = (clients || []).map(c => {
+    const plan = (c.subscription_plan || 'free').toLowerCase();
+    const revenue = REVENUE_PER_PLAN_EUR[plan] ?? 0;
+    const llmCost = Number(llmCostByUser[c.id] || 0);
+    const sharedCost = revenue > 0 ? sharedAssetCostPerUser : 0;
+    const totalCost = llmCost + sharedCost;
+    const margin = revenue > 0 ? Math.round(((revenue - totalCost) / revenue) * 100) : null;
+    return {
+      id: c.id, email: c.email, plan, instagram_username: c.instagram_username,
+      revenue_eur: revenue, llm_cost_eur: Number(llmCost.toFixed(4)),
+      shared_cost_eur: Number(sharedCost.toFixed(4)),
+      total_cost_eur: Number(totalCost.toFixed(4)),
+      margin_pct: margin,
+    };
+  }).filter(c => c.revenue_eur > 0)
+    .sort((a, b) => b.revenue_eur - a.revenue_eur);
+
+  const total_revenue_eur = per_client.reduce((acc, c) => acc + c.revenue_eur, 0);
+  const total_cost_all = imageCost + videoCost + placesCostEstimate + claudeCost + geminiCost;
+  const total_margin_pct = total_revenue_eur > 0
+    ? Math.round(((total_revenue_eur - total_cost_all) / total_revenue_eur) * 100)
+    : 0;
+
   return NextResponse.json({
     ok: true,
     period: monthStart.split('T')[0],
@@ -114,8 +175,15 @@ export async function GET() {
       google_places_search: { count: placesSearchEstimate, eur: placesSearchEstimate * 0.035 },
       claude_anthropic: { eur: claudeCost, breakdown: agentActions },
       gemini: { eur: geminiCost },
-      total_eur: imageCost + videoCost + placesCostEstimate + claudeCost + geminiCost,
+      total_eur: total_cost_all,
     },
+    margin_snapshot: {
+      revenue_eur: total_revenue_eur,
+      cost_eur: total_cost_all,
+      margin_pct: total_margin_pct,
+      paying_clients: per_client.length,
+    },
+    per_client,
     uploads: uploads || [],
   });
 }

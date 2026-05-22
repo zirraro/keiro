@@ -120,12 +120,12 @@ function HomeKeiroInner() {
                     promise more than what the plan delivers. */}
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3">
-                    <div className="text-2xl font-black text-emerald-300">60 → 800+</div>
+                    <div className="text-2xl font-black text-emerald-300">60 → 300+</div>
                     <div className="text-[11px] font-semibold text-white/90 mt-0.5">
                       {locale === 'fr' ? 'prospects qualifiés /mois' : 'qualified prospects/month'}
                     </div>
                     <div className="text-[10px] text-white/40 mt-0.5">
-                      {locale === 'fr' ? 'Léo · Créateur 60 → Pro 300 → Business 800' : 'Leo · Creator 60 → Pro 300 → Business 800'}
+                      {locale === 'fr' ? 'Léo · Créateur 60 → Pro 180 → Business 300' : 'Leo · Creator 60 → Pro 180 → Business 300'}
                     </div>
                   </div>
                   <div className="rounded-xl border border-purple-500/20 bg-purple-500/5 p-3">
