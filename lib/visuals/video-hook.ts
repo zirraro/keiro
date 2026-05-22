@@ -178,18 +178,34 @@ export async function applyVideoHook(input: {
     await writeFile(localSource, Buffer.from(await res.arrayBuffer()));
 
     // Probe source for w/h/fps so the hook card matches dimensions.
+    // We ask for BOTH r_frame_rate and avg_frame_rate because some
+    // phone exports report r_frame_rate as a timebase (e.g. 90000/1)
+    // instead of the real frame rate. avg_frame_rate is reliable.
     const { stdout } = await execAsync(
-      `ffprobe -v error -select_streams v:0 -show_entries stream=width,height,r_frame_rate -of csv=p=0:s=x "${localSource}"`,
+      `ffprobe -v error -select_streams v:0 -show_entries stream=width,height,r_frame_rate,avg_frame_rate -of csv=p=0:s=x "${localSource}"`,
       { timeout: 15000 },
     );
-    const [wStr, hStr, fpsStr] = stdout.trim().split('x');
+    const [wStr, hStr, rFpsStr, avgFpsStr] = stdout.trim().split('x');
     const width = parseInt(wStr) || 1080;
     const height = parseInt(hStr) || 1920;
-    // r_frame_rate is "30/1" → take the int
-    const fps = (() => {
-      const m = (fpsStr || '30/1').match(/(\d+)\/(\d+)/);
-      return m ? Math.round(parseInt(m[1]) / Math.max(1, parseInt(m[2]))) : 30;
-    })();
+    // Parse "num/den" → fps integer. Clamp to a sane phone-video range
+    // so a bogus 90000/1 timebase doesn't make ffmpeg generate a
+    // 90000-fps card (the actual reported bug).
+    const parseFps = (s: string | undefined): number => {
+      if (!s) return 0;
+      const m = s.match(/(\d+)\/(\d+)/);
+      if (!m) return 0;
+      const num = parseInt(m[1]);
+      const den = Math.max(1, parseInt(m[2]));
+      const v = Math.round(num / den);
+      return isFinite(v) ? v : 0;
+    };
+    let fps = parseFps(avgFpsStr) || parseFps(rFpsStr) || 30;
+    if (fps < 1 || fps > 120) {
+      // Almost certainly a timebase/codec quirk — fall back to a safe
+      // default that matches most phone exports.
+      fps = 30;
+    }
 
     const cfg = HOOK_STYLES[input.style];
     const dur = cfg.durationS;
