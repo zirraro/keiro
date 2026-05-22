@@ -112,23 +112,29 @@ function HomeKeiroInner() {
                   </div>
                 </div>
 
+                {/* Ranges show progression Créateur → Business. The
+                    high number anchors aspiration ('I could get 800
+                    prospects'); the low number reassures entry tier
+                    ('even on Créateur I get 60'). Each card has a
+                    'Pro · Business' sub-line so the founder doesn't
+                    promise more than what the plan delivers. */}
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3">
-                    <div className="text-2xl font-black text-emerald-300">~60</div>
+                    <div className="text-2xl font-black text-emerald-300">60 → 800+</div>
                     <div className="text-[11px] font-semibold text-white/90 mt-0.5">
-                      {locale === 'fr' ? 'prospects qualifiés' : 'qualified prospects'}
+                      {locale === 'fr' ? 'prospects qualifiés /mois' : 'qualified prospects/month'}
                     </div>
                     <div className="text-[10px] text-white/40 mt-0.5">
-                      {locale === 'fr' ? 'Léo via Maps, Insta, LinkedIn' : 'Leo via Maps, IG, LinkedIn'}
+                      {locale === 'fr' ? 'Léo · Créateur 60 → Pro 300 → Business 800' : 'Leo · Creator 60 → Pro 300 → Business 800'}
                     </div>
                   </div>
                   <div className="rounded-xl border border-purple-500/20 bg-purple-500/5 p-3">
-                    <div className="text-2xl font-black text-purple-300">90+</div>
+                    <div className="text-2xl font-black text-purple-300">60 → 150+</div>
                     <div className="text-[11px] font-semibold text-white/90 mt-0.5">
-                      {locale === 'fr' ? 'posts & reels publiés' : 'posts & reels published'}
+                      {locale === 'fr' ? 'posts & reels publiés /mois' : 'posts & reels published/month'}
                     </div>
                     <div className="text-[10px] text-white/40 mt-0.5">
-                      {locale === 'fr' ? 'Léna : visuel + caption + auto-publish' : 'Léna: visual + caption + auto-publish'}
+                      {locale === 'fr' ? 'Léna · Créateur 60 → Pro 120 → Business 150' : 'Léna · Creator 60 → Pro 120 → Business 150'}
                     </div>
                   </div>
                   <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-3">
@@ -137,16 +143,16 @@ function HomeKeiroInner() {
                       {locale === 'fr' ? 'temps de réponse DM' : 'DM response time'}
                     </div>
                     <div className="text-[10px] text-white/40 mt-0.5">
-                      {locale === 'fr' ? "Jade — brouillon prêt en un clic" : 'Jade — draft ready in one click'}
+                      {locale === 'fr' ? 'Jade · sur tous les plans' : 'Jade · on every plan'}
                     </div>
                   </div>
                   <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3">
                     <div className="text-2xl font-black text-amber-300">~40h</div>
                     <div className="text-[11px] font-semibold text-white/90 mt-0.5">
-                      {locale === 'fr' ? 'récupérées /mois' : 'reclaimed /month'}
+                      {locale === 'fr' ? 'récupérées /mois' : 'reclaimed/month'}
                     </div>
                     <div className="text-[10px] text-white/40 mt-0.5">
-                      {locale === 'fr' ? "Tu fais ton métier, l'équipe tourne" : 'You run your business, the team runs'}
+                      {locale === 'fr' ? 'Tu fais ton métier, on fait le marketing' : 'You run your business, we run the marketing'}
                     </div>
                   </div>
                 </div>
