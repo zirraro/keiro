@@ -1102,8 +1102,8 @@ export default function AgentWorkspacePage() {
 
   // Tabs — support ?tab=history from notification links
   const searchParams = useSearchParams();
-  const initialTab = (['dashboard', 'planning', 'history', 'campaigns', 'settings', 'profile'].includes(searchParams.get('tab') || '') ? searchParams.get('tab') : 'dashboard') as any;
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'planning' | 'history' | 'campaigns' | 'settings' | 'profile' | 'documents' | 'editor'>(initialTab);
+  const initialTab = (['dashboard', 'planning', 'history', 'settings', 'profile'].includes(searchParams.get('tab') || '') ? searchParams.get('tab') : 'dashboard') as any;
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'planning' | 'history' | 'settings' | 'profile' | 'documents' | 'editor'>(initialTab);
   const [showCampaignWizard, setShowCampaignWizard] = useState(false);
 
   // Open chat with notification message if redirected from notification
@@ -2123,60 +2123,10 @@ export default function AgentWorkspacePage() {
           </div>
         )}
 
-        {/* ═══ TAB: CAMPAIGNS ═══ */}
-        {activeTab === 'campaigns' && (
-          <div className="max-w-5xl space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-white font-bold text-sm">{'\u{1F3AF}'} Campagnes de {dn}</h3>
-                <p className="text-white/40 text-xs mt-0.5">Lance des actions, suis leur progression</p>
-              </div>
-              <button
-                onClick={() => { setChatOpen(true); setInput(`Lance une nouvelle campagne pour `); }}
-                className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs font-semibold rounded-xl"
-              >
-                + Nouvelle campagne
-              </button>
-            </div>
-
-            {/* Active campaigns from agent_logs */}
-            <div className="space-y-3">
-              {tasks.length > 0 ? tasks.filter(t => t.type !== 'heartbeat').slice(0, 20).map((task, i) => (
-                <div key={task.id || i} className="rounded-xl bg-white/[0.03] border border-white/10 p-4">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-3 h-3 rounded-full flex-shrink-0 ${task.status === 'success' ? 'bg-emerald-400' : task.status === 'error' ? 'bg-red-400' : 'bg-amber-400 animate-pulse'}`} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-white text-xs font-medium">{task.description || task.type || 'Action'}</p>
-                      {task.result && <p className="text-white/40 text-[10px] mt-0.5 truncate">{task.result}</p>}
-                    </div>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full flex-shrink-0 ${
-                      task.status === 'success' ? 'bg-emerald-500/15 text-emerald-400' : task.status === 'error' ? 'bg-red-500/15 text-red-400' : 'bg-amber-500/15 text-amber-400'
-                    }`}>
-                      {task.status === 'success' ? 'Termine' : task.status === 'error' ? 'Echec' : 'En cours'}
-                    </span>
-                    <span className="text-white/20 text-[9px]">{task.created_at ? new Date(task.created_at).toLocaleString(_uiLoc(), { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}</span>
-                  </div>
-                </div>
-              )) : (
-                <div className="text-center py-12">
-                  <p className="text-4xl mb-3">{'\u{1F3AF}'}</p>
-                  <p className="text-white/50 text-sm">Aucune campagne en cours</p>
-                  <p className="text-white/30 text-xs mt-1">Demande a {dn} de lancer une action via le chat</p>
-                </div>
-              )}
-            </div>
-
-            {/* Quick actions */}
-            <div className="rounded-xl bg-gradient-to-r from-purple-600/10 to-blue-600/10 border border-purple-500/20 p-4">
-              <p className="text-purple-300 text-xs font-semibold mb-2">Actions rapides</p>
-              <div className="flex flex-wrap gap-2">
-                {getAgentSuggestions(agentId).map(s => (
-                  <button key={s} onClick={() => { setInput(s); setChatOpen(true); }} className="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-white/60 text-[10px] transition-all">{s}</button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Campaigns tab fully removed 2026-05-22 — duplicated the
+            Launch buttons on the agent inline panels. The tab button
+            was hidden earlier; this removes the now-unreachable block
+            + cleans the activeTab union below. */}
 
         {/* ═══ TAB: SETTINGS ═══ */}
         {activeTab === 'settings' && (

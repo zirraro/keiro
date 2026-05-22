@@ -72,9 +72,9 @@ export const fr: Translations = {
     supportErrorPrefix: 'Erreur :',
   },
   home: {
-    heroBadge: 'Ton équipe de 16 agents qui bossent 24/7 pour ton business',
+    heroBadge: 'Ton équipe d\'agents IA qui bossent 24/7 pour ton business',
     heroTitle: 'Ton équipe marketing — qui publie, démarche, répond.',
-    heroSubtitle: 'Keiro remplace ton community manager, ton commercial, ton service client. 16 agents qui produisent, publient et convertissent — pour 49 €/mois.',
+    heroSubtitle: 'Keiro remplace ton community manager, ton commercial, ton service client. Une équipe d\'agents IA spécialisés qui produit, publie et convertit — pour 49 €/mois.',
     heroCheck1: '7 jours gratuits · sans carte · résilie en 1 clic',
     heroCheck2: 'Posts, reels, emails, DMs — générés & publiés auto',
     heroCheck3: 'Utilise tes photos, ton ton, ta voix de marque',

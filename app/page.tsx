@@ -268,19 +268,22 @@ function HomeKeiroInner() {
           {/* 4-col grid (compact on mobile, larger on desktop) */}
           <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5 sm:gap-2 mb-3 sm:mb-4">
             {[
-              { emoji: '🎨', label: 'Léna', role: locale === 'fr' ? 'Posts auto' : 'Auto posts', accent: 'from-purple-500 to-pink-500' },
-              { emoji: '📧', label: 'Hugo', role: locale === 'fr' ? 'Emails' : 'Emails', accent: 'from-cyan-500 to-blue-500' },
-              { emoji: '💬', label: 'Jade', role: locale === 'fr' ? 'DMs IG' : 'IG DMs', accent: 'from-pink-500 to-rose-500' },
-              { emoji: '🎯', label: 'Léo', role: locale === 'fr' ? 'Prospects' : 'Prospects', accent: 'from-emerald-500 to-teal-500' },
-              { emoji: '⭐', label: 'Théo', role: locale === 'fr' ? 'Avis Google' : 'Reviews', accent: 'from-amber-500 to-orange-500' },
-              { emoji: '👋', label: 'Clara', role: locale === 'fr' ? 'Onboarding' : 'Onboarding', accent: 'from-violet-500 to-purple-600' },
-              { emoji: '📊', label: 'Ami', role: locale === 'fr' ? 'Analyse' : 'Analytics', accent: 'from-indigo-500 to-blue-600' },
+              { emoji: '🎨', label: 'Léna', role: locale === 'fr' ? 'Posts auto' : 'Auto posts', accent: 'from-purple-500 to-pink-500', avatar: '/avatars-3d/content.png' },
+              { emoji: '📧', label: 'Hugo', role: locale === 'fr' ? 'Emails' : 'Emails', accent: 'from-cyan-500 to-blue-500', avatar: '/avatars-3d/email.png' },
+              { emoji: '💬', label: 'Jade', role: locale === 'fr' ? 'DMs IG' : 'IG DMs', accent: 'from-pink-500 to-rose-500', avatar: '/avatars-3d/dm_instagram.png' },
+              { emoji: '🎯', label: 'Léo', role: locale === 'fr' ? 'Prospects' : 'Prospects', accent: 'from-emerald-500 to-teal-500', avatar: '/avatars-3d/commercial.png' },
+              { emoji: '⭐', label: 'Théo', role: locale === 'fr' ? 'Avis Google' : 'Reviews', accent: 'from-amber-500 to-orange-500', avatar: '/avatars-3d/gmaps.png' },
+              { emoji: '👋', label: 'Clara', role: locale === 'fr' ? 'Onboarding' : 'Onboarding', accent: 'from-violet-500 to-purple-600', avatar: '/avatars-3d/onboarding.png' },
+              { emoji: '📊', label: 'Ami', role: locale === 'fr' ? 'Analyse' : 'Analytics', accent: 'from-indigo-500 to-blue-600', avatar: '/avatars-3d/marketing.png' },
             ].map(a => (
               <div key={a.label} className="rounded-xl bg-white border border-neutral-200 p-2 sm:p-3 text-center shadow-sm hover:shadow-md transition">
-                <div className={`w-9 h-9 sm:w-11 sm:h-11 rounded-full mx-auto mb-1 bg-gradient-to-br ${a.accent} flex items-center justify-center text-base sm:text-lg`}>
-                  {a.emoji}
+                {/* Avatar with the activity emoji as a tiny corner badge —
+                    humanises the agent into a 'real employee' card. */}
+                <div className={`relative w-11 h-11 sm:w-14 sm:h-14 rounded-full mx-auto mb-1 bg-gradient-to-br ${a.accent} p-0.5`}>
+                  <img src={a.avatar} alt={a.label} className="w-full h-full rounded-full object-cover" loading="lazy" />
+                  <span className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-white shadow flex items-center justify-center text-[11px] border border-neutral-100">{a.emoji}</span>
                 </div>
-                <div className="text-[10px] sm:text-xs font-bold text-neutral-900 leading-tight">{a.label}</div>
+                <div className="text-[10px] sm:text-xs font-bold text-neutral-900 leading-tight mt-1">{a.label}</div>
                 <div className="text-[9px] sm:text-[10px] text-neutral-500 leading-tight">{a.role}</div>
               </div>
             ))}
@@ -519,7 +522,7 @@ function HomeKeiroInner() {
           <div className="text-center mb-6 sm:mb-12">
             <div className="inline-flex items-center gap-2 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-300 text-[10px] sm:text-xs font-semibold mb-3 sm:mb-4">
               <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-purple-400 animate-pulse" />
-              {locale === 'fr' ? '16 agents ultra-élite' : '16 ultra-elite agents'}
+              {locale === 'fr' ? 'Une équipe d’agents IA ultra-spécialisés' : 'A team of ultra-specialised AI agents'}
             </div>
             <h2 className="text-xl sm:text-3xl md:text-4xl font-bold text-white mb-2 sm:mb-3">
               {locale === 'fr' ? 'Une equipe complete qui travaille pour vous' : 'A complete team working for you'}
@@ -550,13 +553,18 @@ function HomeKeiroInner() {
               <div className="p-4">
                 <div className="grid grid-cols-1 gap-2 mb-3">
                   {[
-                    { icon: '\u{1F91D}', name: 'Leo', role: locale === 'fr' ? 'Prospection CRM' : 'CRM prospecting' },
-                    { icon: '\u{1F4E7}', name: 'Hugo', role: locale === 'fr' ? 'Emails auto' : 'Auto emails' },
-                    { icon: '\u{1F4AC}', name: 'Jade', role: locale === 'fr' ? 'DM + commentaires IG/TT/LI' : 'DMs + comments IG/TT/LI' },
+                    { icon: '\u{1F91D}', name: 'Leo', role: locale === 'fr' ? 'Prospection CRM' : 'CRM prospecting', avatar: '/avatars-3d/commercial.png' },
+                    { icon: '\u{1F4E7}', name: 'Hugo', role: locale === 'fr' ? 'Emails auto' : 'Auto emails', avatar: '/avatars-3d/email.png' },
+                    { icon: '\u{1F4AC}', name: 'Jade', role: locale === 'fr' ? 'DM + commentaires IG/TT/LI' : 'DMs + comments IG/TT/LI', avatar: '/avatars-3d/dm_instagram.png' },
                   ].map(a => (
-                    <div key={a.name} className="flex items-center gap-2 bg-white/5 rounded-lg px-2.5 py-2">
-                      <span className="text-base">{a.icon}</span>
-                      <div className="min-w-0"><div className="text-white text-xs font-semibold">{a.name}</div><div className="text-white/30 text-[9px] truncate">{a.role}</div></div>
+                    <div key={a.name} className="flex items-center gap-2.5 bg-white/5 rounded-lg px-2.5 py-2">
+                      {/* Avatar circle + activity emoji badge — humanises the
+                          agent as a 'team member' rather than an abstract bot. */}
+                      <div className="relative flex-shrink-0">
+                        <img src={a.avatar} alt={a.name} className="w-9 h-9 rounded-full object-cover ring-2 ring-white/20" loading="lazy" />
+                        <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-white/95 flex items-center justify-center text-[10px] shadow">{a.icon}</span>
+                      </div>
+                      <div className="min-w-0"><div className="text-white text-xs font-semibold">{a.name}</div><div className="text-white/40 text-[9px] truncate">{a.role}</div></div>
                     </div>
                   ))}
                 </div>
@@ -584,12 +592,15 @@ function HomeKeiroInner() {
               <div className="p-4">
                 <div className="grid grid-cols-1 gap-2 mb-3">
                   {[
-                    { icon: '\u2728', name: 'Lena', role: locale === 'fr' ? 'Publication auto IG/TT/LI' : 'Auto-publish IG/TT/LI' },
-                    { icon: '\u{1F4CD}', name: 'Theo', role: locale === 'fr' ? 'Reputation Google + SEO' : 'Google reputation + SEO' },
+                    { icon: '\u2728', name: 'Lena', role: locale === 'fr' ? 'Publication auto IG/TT/LI' : 'Auto-publish IG/TT/LI', avatar: '/avatars-3d/content.png' },
+                    { icon: '\u{1F4CD}', name: 'Theo', role: locale === 'fr' ? 'Reputation Google + SEO' : 'Google reputation + SEO', avatar: '/avatars-3d/gmaps.png' },
                   ].map(a => (
-                    <div key={a.name} className="flex items-center gap-2 bg-white/5 rounded-lg px-2.5 py-2">
-                      <span className="text-base">{a.icon}</span>
-                      <div className="min-w-0"><div className="text-white text-xs font-semibold">{a.name}</div><div className="text-white/30 text-[9px] truncate">{a.role}</div></div>
+                    <div key={a.name} className="flex items-center gap-2.5 bg-white/5 rounded-lg px-2.5 py-2">
+                      <div className="relative flex-shrink-0">
+                        <img src={a.avatar} alt={a.name} className="w-9 h-9 rounded-full object-cover ring-2 ring-white/20" loading="lazy" />
+                        <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-white/95 flex items-center justify-center text-[10px] shadow">{a.icon}</span>
+                      </div>
+                      <div className="min-w-0"><div className="text-white text-xs font-semibold">{a.name}</div><div className="text-white/40 text-[9px] truncate">{a.role}</div></div>
                     </div>
                   ))}
                 </div>
@@ -1498,7 +1509,7 @@ function HomeKeiroInner() {
                     ['Avis Google', '\u274C Non', '\u274C Rarement', '\u2705 Réponse auto Théo'],
                     ['SEO site web', '\u274C Non', '\u274C Non', '\u2705 Audit + reco'],
                     ['Temps requis', '5-10h/sem', '2h/sem briefing', '0h (100% auto)'],
-                    ['16 agents', '\u274C', '\u274C', '\u2705'],
+                    ['Équipe IA complète', '\u274C', '\u274C', '\u2705'],
                   ] : [
                     ['Price', '\u20AC0-20/month', '\u20AC1,500-3,000/month', '\u20AC49/month'],
                     ['Visuals/week', '2-3 (manual)', '5-10', '21+ (auto)'],
@@ -1509,7 +1520,7 @@ function HomeKeiroInner() {
                     ['Google reviews', '\u274C No', '\u274C Rarely', '\u2705 Auto reply by Theo'],
                     ['Website SEO', '\u274C No', '\u274C No', '\u2705 Audit + recs'],
                     ['Time required', '5-10h/week', '2h/week briefing', '0h (100% auto)'],
-                    ['16 agents', '\u274C', '\u274C', '\u2705'],
+                    ['Équipe IA complète', '\u274C', '\u274C', '\u2705'],
                   ]).map(([feature, chatgpt, cm, keiro], i) => (
                     <tr key={i} className={`${i % 2 === 0 ? 'bg-neutral-50 dark:bg-white/5' : ''} border-b border-neutral-100 dark:border-white/5`}>
                       <td className="py-2.5 px-3 sm:px-4 font-medium text-neutral-700 dark:text-white/80 text-xs sm:text-sm">{feature}</td>
@@ -1529,7 +1540,7 @@ function HomeKeiroInner() {
               {locale === 'fr' ? 'ChatGPT c\u2019est un couteau suisse. KeiroAI c\u2019est ' : 'ChatGPT is a Swiss army knife. KeiroAI is '}<span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-orange-300">{locale === 'fr' ? 'ton équipe marketing complète' : 'your complete marketing team'}</span>.
             </p>
             <p className="text-sm sm:text-base text-white/70 mb-4 sm:mb-6 max-w-2xl mx-auto">
-              {locale === 'fr' ? '16 agents spécialisés qui travaillent 24/7 : création, publication, DMs, emails, SEO, avis Google, CRM, analytics. Tout est automatisé.' : '16 specialised agents working 24/7: creation, publishing, DMs, emails, SEO, Google reviews, CRM, analytics. All automated.'}
+              {locale === 'fr' ? 'Une équipe d’agents IA spécialisés qui travaillent 24/7 : création, publication, DMs, emails, SEO, avis Google, CRM, analytics. Tout est automatisé.' : 'A team of specialised AI agents working 24/7: creation, publishing, DMs, emails, SEO, Google reviews, CRM, analytics. All automated.'}
             </p>
             <Link href="/checkout/upsell?plan=createur" className="inline-block px-6 sm:px-10 py-3 sm:py-4 bg-white text-[#0c1a3a] font-extrabold text-sm sm:text-base rounded-xl hover:shadow-2xl hover:scale-105 transition-all">
               {locale === 'fr' ? 'Essai gratuit 7 jours \u2014 0\u20AC ' : 'Free trial 7 days \u2014 \u20AC0 '}{'\u2192'}
