@@ -519,7 +519,7 @@ function HomeKeiroInner() {
           <div className="text-center mb-6 sm:mb-12">
             <div className="inline-flex items-center gap-2 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-300 text-[10px] sm:text-xs font-semibold mb-3 sm:mb-4">
               <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-purple-400 animate-pulse" />
-              {locale === 'fr' ? '17 agents ultra-élite' : '17 ultra-elite agents'}
+              {locale === 'fr' ? '16 agents ultra-élite' : '16 ultra-elite agents'}
             </div>
             <h2 className="text-xl sm:text-3xl md:text-4xl font-bold text-white mb-2 sm:mb-3">
               {locale === 'fr' ? 'Une equipe complete qui travaille pour vous' : 'A complete team working for you'}
@@ -1498,7 +1498,7 @@ function HomeKeiroInner() {
                     ['Avis Google', '\u274C Non', '\u274C Rarement', '\u2705 Réponse auto Théo'],
                     ['SEO site web', '\u274C Non', '\u274C Non', '\u2705 Audit + reco'],
                     ['Temps requis', '5-10h/sem', '2h/sem briefing', '0h (100% auto)'],
-                    ['17 agents', '\u274C', '\u274C', '\u2705'],
+                    ['16 agents', '\u274C', '\u274C', '\u2705'],
                   ] : [
                     ['Price', '\u20AC0-20/month', '\u20AC1,500-3,000/month', '\u20AC49/month'],
                     ['Visuals/week', '2-3 (manual)', '5-10', '21+ (auto)'],
@@ -1509,7 +1509,7 @@ function HomeKeiroInner() {
                     ['Google reviews', '\u274C No', '\u274C Rarely', '\u2705 Auto reply by Theo'],
                     ['Website SEO', '\u274C No', '\u274C No', '\u2705 Audit + recs'],
                     ['Time required', '5-10h/week', '2h/week briefing', '0h (100% auto)'],
-                    ['17 agents', '\u274C', '\u274C', '\u2705'],
+                    ['16 agents', '\u274C', '\u274C', '\u2705'],
                   ]).map(([feature, chatgpt, cm, keiro], i) => (
                     <tr key={i} className={`${i % 2 === 0 ? 'bg-neutral-50 dark:bg-white/5' : ''} border-b border-neutral-100 dark:border-white/5`}>
                       <td className="py-2.5 px-3 sm:px-4 font-medium text-neutral-700 dark:text-white/80 text-xs sm:text-sm">{feature}</td>
@@ -1529,7 +1529,7 @@ function HomeKeiroInner() {
               {locale === 'fr' ? 'ChatGPT c\u2019est un couteau suisse. KeiroAI c\u2019est ' : 'ChatGPT is a Swiss army knife. KeiroAI is '}<span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-orange-300">{locale === 'fr' ? 'ton équipe marketing complète' : 'your complete marketing team'}</span>.
             </p>
             <p className="text-sm sm:text-base text-white/70 mb-4 sm:mb-6 max-w-2xl mx-auto">
-              {locale === 'fr' ? '17 agents spécialisés qui travaillent 24/7 : création, publication, DMs, emails, SEO, avis Google, CRM, analytics. Tout est automatisé.' : '17 specialised agents working 24/7: creation, publishing, DMs, emails, SEO, Google reviews, CRM, analytics. All automated.'}
+              {locale === 'fr' ? '16 agents spécialisés qui travaillent 24/7 : création, publication, DMs, emails, SEO, avis Google, CRM, analytics. Tout est automatisé.' : '16 specialised agents working 24/7: creation, publishing, DMs, emails, SEO, Google reviews, CRM, analytics. All automated.'}
             </p>
             <Link href="/checkout/upsell?plan=createur" className="inline-block px-6 sm:px-10 py-3 sm:py-4 bg-white text-[#0c1a3a] font-extrabold text-sm sm:text-base rounded-xl hover:shadow-2xl hover:scale-105 transition-all">
               {locale === 'fr' ? 'Essai gratuit 7 jours \u2014 0\u20AC ' : 'Free trial 7 days \u2014 \u20AC0 '}{'\u2192'}
@@ -1835,32 +1835,9 @@ function HomeKeiroInner() {
             />
           </div>
 
-          {/* Ligne 2 : Elite */}
-          <div className="max-w-3xl mx-auto mb-8">
-            <div className="rounded-2xl border-2 border-purple-500 bg-gradient-to-br from-purple-50 to-pink-50 p-6 shadow-xl flex flex-col">
-              <div className="flex items-center gap-3 mb-3">
-                <h3 className="text-xl font-bold flex items-center gap-2"><KeiroIcon name="star" className="w-5 h-5 text-purple-600" /> {t.home.planEliteTitle}</h3>
-                <span className="px-3 py-0.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-bold rounded-full">PREMIUM</span>
-              </div>
-              <div className="text-2xl sm:text-3xl font-black mb-1">{billingPeriod === 'annual' ? `9 990€ ${t.common.perYear}` : `999€ ${t.common.perMonth}`}</div>
-              {billingPeriod === 'annual' && <p className="text-sm text-green-600 font-semibold">{t.home.priceNoteElite}</p>}
-              <p className="text-sm text-neutral-600 mb-4">{t.home.planEliteSubtitle}</p>
-              <ul className="grid grid-cols-2 gap-2 mb-6 flex-1">
-                {t.home.planEliteBullets.map((b, i) => (
-                  <li key={i} className="text-sm flex gap-2">
-                    <span className="text-purple-600 font-bold">✓</span>
-                    <span>{b}</span>
-                  </li>
-                ))}
-              </ul>
-              <button
-                onClick={() => startCheckout(billingPeriod === 'annual' ? 'elite_annual' : 'elite')}
-                className="w-full py-3 rounded-xl font-semibold text-center transition-all bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:shadow-xl"
-              >
-                {billingPeriod === 'annual' ? t.home.ctaEliteAnnual : t.home.ctaChooseElite}
-              </button>
-            </div>
-          </div>
+          {/* Elite tier hidden on the home page — kept in code for direct
+              /pricing access and existing Elite subscribers. Founder
+              asked to remove it from the marketing page on 2026-05-22. */}
 
           <p className="text-center text-xs text-neutral-500 mb-6">
             {t.home.pricingFoundersNote}
