@@ -115,6 +115,13 @@ function StudioContent() {
   const [recutError, setRecutError] = useState<string | null>(null);
   const [hookError, setHookError] = useState<string | null>(null);
   const [hookUploading, setHookUploading] = useState(false);
+  // Collapsed/expanded state for the advanced settings panel. Hidden
+  // by default so the founder sees only the auto-prepared result and
+  // the big 'Generate final' CTA — proves Léna runs end-to-end.
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  // Source video preview modal (replaces the always-visible <video>
+  // that doubled the page height after upload).
+  const [showOriginalPreview, setShowOriginalPreview] = useState(false);
   const [hookEnhancements, setHookEnhancements] = useState<{
     captions: boolean;
     crop: 'keep' | '9:16' | '1:1' | '4:5';
@@ -1741,25 +1748,39 @@ function StudioContent() {
 
                         {hookSourceUrl && (
                           <>
-                            {/* Source preview */}
-                            <video src={hookSourceUrl} controls className="w-full rounded-lg max-h-64 bg-black" />
+                            {/* Source preview is hidden by default after upload
+                                so the page doesn't double-scroll. The founder can
+                                always re-watch it via the small thumbnail in the
+                                Aperçu Léna card below, which opens a modal. */}
 
-                            {/* Network selector */}
-                            <div>
-                              <label className="block text-xs font-bold text-neutral-700 mb-1.5 uppercase">Réseau cible</label>
-                              <div className="grid grid-cols-3 gap-1.5">
-                                {(['instagram', 'tiktok', 'linkedin'] as const).map(n => (
-                                  <button
-                                    key={n}
-                                    onClick={() => setHookNetwork(n)}
-                                    className={`px-3 py-2.5 min-h-[44px] rounded-lg text-xs font-bold transition ${hookNetwork === n ? (n === 'instagram' ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white' : n === 'tiktok' ? 'bg-black text-white' : 'bg-blue-600 text-white') : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}
-                                  >
-                                    {n === 'instagram' ? 'Instagram' : n === 'tiktok' ? 'TikTok' : 'LinkedIn'}
-                                  </button>
-                                ))}
+                            {/* The advanced "Modifier les détails" block below
+                                wraps the network selector + scene picker + hook
+                                style + enhancements. Hidden by default while
+                                Léna prepares everything; the founder reveals it
+                                only if they want to override. */}
+                            {showAdvancedOptions && (
+                              <div>
+                                <label className="block text-xs font-bold text-neutral-700 mb-1.5 uppercase">Réseau cible</label>
+                                <div className="grid grid-cols-3 gap-1.5">
+                                  {(['instagram', 'tiktok', 'linkedin'] as const).map(n => (
+                                    <button
+                                      key={n}
+                                      onClick={() => setHookNetwork(n)}
+                                      className={`px-3 py-2.5 min-h-[44px] rounded-lg text-xs font-bold transition ${hookNetwork === n ? (n === 'instagram' ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white' : n === 'tiktok' ? 'bg-black text-white' : 'bg-blue-600 text-white') : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}
+                                    >
+                                      {n === 'instagram' ? 'Instagram' : n === 'tiktok' ? 'TikTok' : 'LinkedIn'}
+                                    </button>
+                                  ))}
+                                </div>
                               </div>
-                            </div>
+                            )}
 
+                            {/* Everything below this point is "advanced" — the
+                                manual scene picker, hook style chooser, audio
+                                enhancements, recut strategy. Hidden by default
+                                so the founder lands on the Aperçu Léna card and
+                                a big Generate button. Toggle below reveals. */}
+                            {showAdvancedOptions && (<>
                             {/* Auto-detect best moments — ffmpeg scene detection */}
                             <div>
                               <label className="block text-xs font-bold text-neutral-700 mb-1.5 uppercase flex items-center justify-between">
@@ -1794,26 +1815,39 @@ function StudioContent() {
                               {hookScenes.length > 0 ? (
                                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 mb-3">
                                   {hookScenes.map((s, idx) => (
-                                    <button
+                                    <div
                                       key={idx}
-                                      type="button"
-                                      onClick={() => {
-                                        if (s.thumbnail_url) setHookKeyframeUrl(s.thumbnail_url);
-                                        // Also open the enlarged preview so the
-                                        // founder can really judge the frame.
-                                        setScenePreview({ timestamp_sec: s.timestamp_sec, thumbnail_url: s.thumbnail_url, score: s.score });
-                                      }}
-                                      className={`relative aspect-square rounded-md overflow-hidden border-2 transition ${hookKeyframeUrl === s.thumbnail_url ? 'border-violet-500 shadow' : 'border-neutral-200 hover:border-neutral-400'}`}
+                                      className={`relative aspect-square rounded-md overflow-hidden border-2 transition group ${hookKeyframeUrl === s.thumbnail_url ? 'border-violet-500 shadow' : 'border-neutral-200 hover:border-neutral-400'}`}
                                       title={`t=${s.timestamp_sec.toFixed(1)}s · score ${s.score.toFixed(2)}`}
                                     >
-                                      {s.thumbnail_url && <img src={s.thumbnail_url} alt="" className="w-full h-full object-cover" loading="lazy" />}
-                                      <div className="absolute bottom-0 left-0 right-0 text-[8px] bg-black/70 text-white py-0.5">
+                                      <button
+                                        type="button"
+                                        onClick={() => { if (s.thumbnail_url) setHookKeyframeUrl(s.thumbnail_url); }}
+                                        className="absolute inset-0 cursor-pointer"
+                                        aria-label="Sélectionner cette scène"
+                                      >
+                                        {s.thumbnail_url && <img src={s.thumbnail_url} alt="" className="w-full h-full object-cover" loading="lazy" />}
+                                      </button>
+                                      {/* Zoom button only opens the modal when
+                                          explicitly clicked. The tile itself
+                                          just selects the scene as keyframe. */}
+                                      {s.thumbnail_url && (
+                                        <button
+                                          type="button"
+                                          onClick={(e) => { e.stopPropagation(); setScenePreview({ timestamp_sec: s.timestamp_sec, thumbnail_url: s.thumbnail_url, score: s.score }); }}
+                                          className="absolute top-1 left-1 z-10 w-6 h-6 rounded-full bg-white/80 hover:bg-white text-neutral-700 shadow opacity-0 group-hover:opacity-100 transition flex items-center justify-center"
+                                          title="Agrandir l'aperçu"
+                                        >
+                                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                        </button>
+                                      )}
+                                      <div className="absolute bottom-0 left-0 right-0 text-[8px] bg-black/70 text-white py-0.5 text-center pointer-events-none">
                                         {s.timestamp_sec.toFixed(1)}s
                                       </div>
                                       {s.recommended_for === 'hook' && (
-                                        <div className="absolute top-0 right-0 bg-violet-600 text-white text-[8px] px-1 py-0.5 rounded-bl-md font-bold">HOOK</div>
+                                        <div className="absolute top-0 right-0 bg-violet-600 text-white text-[8px] px-1 py-0.5 rounded-bl-md font-bold pointer-events-none">HOOK</div>
                                       )}
-                                    </button>
+                                    </div>
                                   ))}
                                 </div>
                               ) : (
@@ -1834,8 +1868,25 @@ function StudioContent() {
                                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-white text-sm font-bold">L</div>
                                   <div className="flex-1">
                                     <div className="text-sm font-bold text-violet-900">Aperçu Léna — prêt à publier</div>
-                                    <div className="text-[10px] text-violet-700/80">Auto-généré · tu peux publier tel quel ou ajuster les détails ci-dessous</div>
+                                    <div className="text-[10px] text-violet-700/80">Auto-généré · Léna a choisi le meilleur hook et a recoupé la vidéo</div>
                                   </div>
+                                  {/* Small original-video thumbnail, click to
+                                      re-watch the source. Keeps the page short
+                                      while letting the founder verify the base. */}
+                                  {hookSourceUrl && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setShowOriginalPreview(true)}
+                                      className="relative w-14 h-14 rounded-lg overflow-hidden border-2 border-white shadow flex-shrink-0 hover:ring-2 hover:ring-violet-400 transition group"
+                                      title="Voir la vidéo originale"
+                                    >
+                                      <video src={hookSourceUrl} muted className="w-full h-full object-cover" />
+                                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                                        <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                                      </div>
+                                      <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-[7px] text-center py-0.5 font-bold">Original</div>
+                                    </button>
+                                  )}
                                 </div>
 
                                 {hookDraftText && (
@@ -1856,9 +1907,16 @@ function StudioContent() {
                                   </div>
                                 )}
 
-                                <div className="text-[10px] text-neutral-500 italic">
-                                  Tu peux modifier le style, le réseau ou choisir une autre scène dans les options ci-dessous, puis cliquer « Générer la vidéo finale ».
-                                </div>
+                                {/* Modifier les détails toggle — everything below
+                                    only renders if the founder explicitly wants
+                                    to tweak. Keeps the default view clean. */}
+                                <button
+                                  type="button"
+                                  onClick={() => setShowAdvancedOptions(v => !v)}
+                                  className="w-full text-center py-2 text-xs font-bold text-violet-700 hover:text-violet-900 underline-offset-2 hover:underline transition"
+                                >
+                                  {showAdvancedOptions ? '— Masquer les détails' : '⚙️ Modifier les détails (réseau, hook, scènes, audio)'}
+                                </button>
                               </div>
                             )}
 
@@ -2066,16 +2124,11 @@ function StudioContent() {
                               {recutError && (
                                 <div className="px-2 py-1.5 rounded bg-rose-50 border border-rose-200 text-[11px] text-rose-700">{recutError}</div>
                               )}
-                              {recutOutput && (
-                                <div className="space-y-2">
-                                  <div className="text-[10px] text-neutral-600">
-                                    ✓ Vidéo de <strong>{recutOutput.durationSec.toFixed(1)}s</strong> assemblée à partir de <strong>{recutOutput.segments.length}</strong> segments
-                                  </div>
-                                  <video src={recutOutput.url} controls autoPlay loop className="w-full rounded-lg max-h-80 bg-black" />
-                                  <a href={recutOutput.url} download className="block text-center px-3 py-2 rounded-lg bg-neutral-900 text-white text-xs font-bold hover:bg-neutral-800">⬇ Télécharger le recut</a>
-                                </div>
-                              )}
+                              {/* Recut output here is hidden because the Aperçu Léna
+                                  card above already shows the recut preview.
+                                  No need to duplicate. */}
                             </div>
+                            </>)}
 
                             {hookError && (
                               <div className="px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700">{hookError}</div>
@@ -2173,6 +2226,28 @@ function StudioContent() {
         isOpen={showSubscriptionModal}
         onClose={() => setShowSubscriptionModal(false)}
       />
+
+      {/* Original video preview modal — opens when the founder clicks
+          the small original thumbnail in the Aperçu Léna card. */}
+      {showOriginalPreview && hookSourceUrl && (
+        <div
+          className="fixed inset-0 z-[110] bg-black/85 flex items-center justify-center p-4"
+          onClick={() => setShowOriginalPreview(false)}
+        >
+          <button
+            type="button"
+            onClick={() => setShowOriginalPreview(false)}
+            className="absolute top-4 right-4 text-white hover:text-violet-300 transition"
+            aria-label="Fermer"
+          >
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+          <div className="max-w-3xl w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="text-white text-xs mb-2 font-bold">Vidéo originale (avant traitement)</div>
+            <video src={hookSourceUrl} controls className="w-full rounded-xl shadow-2xl max-h-[80vh] bg-black" />
+          </div>
+        </div>
+      )}
 
       {/* Scene preview modal — enlarged keyframe when the founder
           clicks a tile in the auto-detection grid. */}
