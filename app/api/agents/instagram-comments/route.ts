@@ -495,6 +495,41 @@ Réponds UNIQUEMENT avec le texte de la réponse.`,
               created_at: now,
               ...(dossierUserId ? { user_id: dossierUserId } : {}),
             });
+
+            // CRM touch — if this commenter exists in our prospect base
+            // (by IG handle), record the touch so the fiche reflects the
+            // social interaction. Founder ask 2026-05-17: "veille à ce que
+            // les agents alimentent la fiche client à chaque touchpoint".
+            try {
+              const handle = (c.username || '').toLowerCase().replace(/^@/, '');
+              if (handle && dossierUserId) {
+                const { data: prospect } = await supabase
+                  .from('crm_prospects')
+                  .select('id, status, temperature')
+                  .eq('user_id', dossierUserId)
+                  .ilike('instagram', handle)
+                  .limit(1)
+                  .maybeSingle();
+                if (prospect) {
+                  // Bump temperature one notch on engagement (cold → warm → hot)
+                  const tempBump: Record<string, string> = { cold: 'warm', warm: 'hot' };
+                  const nextTemp = tempBump[prospect.temperature || 'cold'] || prospect.temperature;
+                  await supabase.from('crm_prospects').update({
+                    last_contacted_at: now,
+                    last_contact_channel: 'instagram_comment',
+                    ...(nextTemp ? { temperature: nextTemp } : {}),
+                    updated_at: now,
+                  }).eq('id', prospect.id);
+                  await supabase.from('crm_activities').insert({
+                    prospect_id: prospect.id,
+                    type: 'comment_replied',
+                    description: `Jade a répondu au commentaire de @${handle}`,
+                    data: { channel: 'instagram', comment_id: c.id, reply: reply.substring(0, 200) },
+                    created_at: now,
+                  });
+                }
+              }
+            } catch { /* CRM enrichment is best-effort */ }
           } catch {}
 
           // Rate limit
