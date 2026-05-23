@@ -137,10 +137,19 @@ export async function POST(req: NextRequest) {
         post: { caption: string; thumbnail_url: string | null; permalink: string | null; media_type: string | null; posted_at: string };
       }> = [];
 
+      // Same self-username probe used by auto_reply_all — needed here
+      // so the UI list doesn't surface Jade's own replies as 'pending
+      // comments to reply to'.
+      let selfUsernameFetch: string | null = null;
+      try {
+        const me = await fetchGraph<{ username: string }>(`/${igId}`, { fields: 'username' });
+        selfUsernameFetch = (me?.username || '').toLowerCase() || null;
+      } catch { /* non-fatal */ }
+
       for (const post of postsWithComments) {
         try {
-          const comments = await fetchGraph<{ data: Array<{ id: string; text: string; username: string; timestamp: string }> }>(
-            `/${post.id}/comments`, { fields: 'id,text,username,timestamp' }
+          const comments = await fetchGraph<{ data: Array<{ id: string; text: string; username: string; timestamp: string; replied_to?: any }> }>(
+            `/${post.id}/comments`, { fields: 'id,text,username,timestamp,replied_to' }
           );
 
           const postCtx = {
@@ -153,13 +162,19 @@ export async function POST(req: NextRequest) {
           };
 
           for (const c of comments.data || []) {
-            // Check if already replied
+            // Hide our own replies from the listing.
+            if (selfUsernameFetch && (c.username || '').toLowerCase() === selfUsernameFetch) continue;
+            // Hide replies-to-replies: keep only top-level commenter
+            // threads so the UI doesn't loop on its own.
+            if (c.replied_to) continue;
+
+            // Check if already replied (kept loose: any action with
+            // this comment_id counts).
             const { data: existing } = await supabase
               .from('agent_logs')
               .select('id')
               .eq('agent', 'instagram_comments')
-              .eq('action', 'reply_sent')
-              .contains('data', { comment_id: c.id })
+              .or(`data->>comment_id.eq.${c.id}`)
               .limit(1)
               .maybeSingle();
 
@@ -246,6 +261,25 @@ QUALITY BAR (non-negotiable):
     if (!resolvedUserId && targetUserId) resolvedUserId = targetUserId;
 
     try {
+      // DEDUP GUARD — even for manual single-click replies, refuse if
+      // we already replied to this comment. Prevents the founder from
+      // accidentally double-replying when toggling between tabs or
+      // when the optimistic UI doesn't reflect a prior send.
+      const { data: alreadySent } = await supabase
+        .from('agent_logs')
+        .select('id')
+        .eq('agent', 'instagram_comments')
+        .or(`data->>comment_id.eq.${comment_id}`)
+        .limit(1)
+        .maybeSingle();
+      if (alreadySent) {
+        return NextResponse.json({
+          ok: false,
+          error: 'Une réponse a déjà été envoyée à ce commentaire — pas de double-envoi.',
+          alreadyReplied: true,
+        }, { status: 409 });
+      }
+
       await graphPOST(`/${comment_id}/replies`, token, { message });
 
       await supabase.from('agent_logs').insert({
@@ -308,23 +342,74 @@ QUALITY BAR (non-negotiable):
     let replied = 0;
     const anthropic = new Anthropic({ apiKey });
 
+    // Resolve our own IG username so we can hard-skip self-authored
+    // comments (and replies to comments). Without this, every reply
+    // Jade posts becomes a 'new' comment on next sweep and she replies
+    // to her own reply — recursive loop the founder caught on
+    // 2026-05-23 with 8 cascading replies on a single thread.
+    let selfUsername: string | null = null;
+    try {
+      const me = await graphGET<{ username: string }>(`/${igId}`, token, { fields: 'username' });
+      selfUsername = (me?.username || '').toLowerCase() || null;
+    } catch { /* non-fatal */ }
+
     for (const post of media.data || []) {
       try {
-        const comments = await graphGET<{ data: Array<{ id: string; text: string; username: string }> }>(
-          `/${post.id}/comments`, token, { fields: 'id,text,username' }
+        // Pull 'replied_to' so we can identify replies to other
+        // comments (vs top-level). 'from' would be cleaner but
+        // requires extra perms — username already serves the dedup.
+        const comments = await graphGET<{ data: Array<{ id: string; text: string; username: string; replied_to?: any }> }>(
+          `/${post.id}/comments`, token, { fields: 'id,text,username,replied_to' }
         );
 
         for (const c of comments.data || []) {
-          // Skip if already replied
+          // GUARD 1 — never reply to ourselves. Our own replies appear
+          // in this list and would re-trigger the agent infinitely.
+          if (selfUsername && (c.username || '').toLowerCase() === selfUsername) continue;
+
+          // GUARD 2 — never reply to a comment that is itself a REPLY
+          // to another comment. Jade only addresses top-level
+          // commenters. Without this, an extended thread keeps
+          // generating new reply IDs forever.
+          if (c.replied_to) continue;
+
+          // GUARD 3 — dedup against any prior reply we sent. Uses both
+          // .contains for back-compat AND a direct ->> match on the
+          // top-level comment_id key so we don't depend on JSONB
+          // containment semantics. Also checks ANY action (reply_sent,
+          // auto_reply, reply_comment) for this comment_id.
           const { data: existing } = await supabase
             .from('agent_logs')
             .select('id')
             .eq('agent', 'instagram_comments')
-            .contains('data', { comment_id: c.id })
+            .or(`data->>comment_id.eq.${c.id}`)
             .limit(1)
             .maybeSingle();
 
           if (existing) continue;
+
+          // GUARD 4 — also check via the Graph API: if our connected
+          // account already has a reply on this comment, treat it as
+          // replied. Belt-and-braces in case agent_logs was wiped or
+          // the row was inserted by a different code path.
+          try {
+            const subReplies = await graphGET<{ data: Array<{ username?: string }> }>(
+              `/${c.id}/replies`, token, { fields: 'username', limit: '25' }
+            );
+            const alreadyReplied = (subReplies?.data || []).some(r => (r?.username || '').toLowerCase() === (selfUsername || ''));
+            if (alreadyReplied) {
+              // Backfill an agent_logs row so future dedup is fast.
+              await supabase.from('agent_logs').insert({
+                agent: 'instagram_comments',
+                action: 'reply_sent',
+                status: 'success',
+                data: { comment_id: c.id, username: c.username, reply: '(prior reply detected via Graph API)', backfilled: true },
+                created_at: now,
+                ...(dossierUserId ? { user_id: dossierUserId } : {}),
+              });
+              continue;
+            }
+          } catch { /* fail-open, the agent_logs dedup remains the primary defence */ }
 
           // Skip spam
           if (c.text.length < 3 || /follow|dm me|check|click/i.test(c.text)) continue;
@@ -356,9 +441,16 @@ QUALITY BAR (non-negotiable):
             }
           } catch { /* best-effort */ }
 
-          // Generate reply — mirror the commenter's language
+          // Generate reply — mirror the commenter's language. The
+          // prompt now embeds the founder-validated 'crée du lien'
+          // strategy (2026-05-23): one reply in 5-10 may propose a
+          // shared future activity between clients with the same
+          // passion. Builds community, not pitch.
           const { languagePromptDirective } = await import('@/lib/agents/language-detect');
           const langHint = languagePromptDirective(c.text);
+          // Random ~12% chance to suggest a shared activity hook.
+          // Avoids over-using the pattern (would feel scripted).
+          const shouldSuggestShared = Math.random() < 0.12;
           const response = await anthropic.messages.create({
             model: 'claude-haiku-4-5-20251001',
             max_tokens: 150,
@@ -376,6 +468,11 @@ QUALITY BAR :
 - Si le commentaire est juste "top" ou un emoji → réponse chaleureuse 1 ligne, jamais de pitch.
 - Si c'est une vraie question → réponds directement, ne renvoie pas en DM.
 - Si tu connais le prénom du commentateur, utilise-le naturellement. Si tu connais sa niche, glisse une mini-référence (sans en faire trop).
+
+STRATÉGIE "LIEN COMMUNAUTAIRE" (validée par le founder le 2026-05-23) :
+${shouldSuggestShared
+  ? `- ACTIVE: pour CE commentaire, propose subtilement une activité partagée future entre clients qui partagent cette passion (ex: "Faut qu'on organise un match entre clients un jour 🏀"). Ne le force pas si le commentaire n'a pas de passion identifiable.`
+  : `- Sans en faire trop : réagis avec chaleur et spécificité, mais SANS proposer d'activité partagée cette fois (à utiliser sparingly, pas à chaque commentaire).`}
 ${brandContext}
 ${commenterPersonalisation}
 Commentaire de @${c.username}: "${c.text}"
