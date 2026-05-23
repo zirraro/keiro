@@ -2009,7 +2009,7 @@ export default function AgentWorkspacePage() {
                   {dashboardLoading ? (
                     <div className="flex items-center justify-center py-16"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400 mx-auto" /></div>
                   ) : agentId === 'commercial' ? (
-                    <div data-tour="agent-dashboard"><CrmDashboard data={dashboardData || { prospects: [], activities: [], pipeline: {}, stats: { total: 0, hot: 0, warm: 0, cold: 0, converted: 0, conversionRate: 0 } }} /></div>
+                    <div data-tour="agent-dashboard"><CrmDashboard data={dashboardData?.data || { prospects: [], activities: [], pipeline: {}, stats: { total: 0, hot: 0, warm: 0, cold: 0, converted: 0, conversionRate: 0 } }} /></div>
                   ) : agentId === 'onboarding' ? (
                     <div data-tour="agent-dashboard"><OnboardingDossier /></div>
                   ) : agentId === 'qa' ? (

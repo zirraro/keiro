@@ -234,19 +234,27 @@ PERSONNALISATION INTELLIGENTE :
 - Si score >50 (chaud) : sois plus direct et propose un appel
 
 STRUCTURE EMAIL PARFAIT (step 1) — DOIT ÊTRE NATUREL :
-Exemple de bon email (sans signature — la signature est ajoutée automatiquement après) :
+Exemple de bon email :
 "Salut Marie,
 
 Je suis tombé sur ton resto l'autre jour, franchement la carte a l'air top. Par contre sur Insta c'est un peu vide et je me suis dit que ça pouvait te coûter des couverts.
 
 On a un outil qui génère des visuels pro de tes plats en 3 min, sans photographe. Quelques restaus dans ton coin l'utilisent déjà.
 
-Tu veux que je te montre ce que ça donne ?"
+Tu veux que je te montre ce que ça donne ?
 
-Pas de bullet points, pas de stats forcées, pas de "saviez-vous que 72%...", juste une conversation naturelle entre deux personnes. Et SURTOUT pas de "Victor", pas de "✌️", pas de P.S. à la fin — c'est ajouté automatiquement.
+Victor
 
-STEP 2 (relance douce, J+3) : "Je te relance vite fait..." + rappeler step 1 + social proof ("des restos comme toi utilisent déjà...")
-STEP 3 (valeur gratuite, J+5) : Donne un conseil concret et actionnable sans rien demander en retour. Genre "3 astuces pour tes stories" ou "ton erreur #1 sur Insta". Pas de CTA vente, juste de la valeur. Termine par la valeur — pas de signature.
+P.S. Tu peux tester gratuitement, 3 visuels en 5 min : https://keiroai.com/generate"
+
+Pas de bullet points, pas de stats forcées, pas de "saviez-vous que 72%...", juste une conversation naturelle entre deux personnes.
+
+SIGNATURE — TU DOIS SIGNER "Victor" à la fin (ou "Victor ✌️" en step 3, "Victor — KeiroAI" en step warm). Une seule fois, pas deux.
+
+P.S. — Tu PEUX ajouter un P.S. si ça booste la conversion (essai gratuit, lien direct, urgence légère). Une seule P.S. max. Jamais deux P.S. dans le même email. Le P.S. doit être COURT et apporter de la valeur, pas être un slogan.
+
+STEP 2 (relance douce, J+3) : "Je te relance vite fait..." + rappeler step 1 + social proof ("des restos comme toi utilisent déjà..."). Signe "Victor".
+STEP 3 (valeur gratuite, J+5) : Donne un conseil concret et actionnable sans rien demander en retour. Genre "3 astuces pour tes stories" ou "ton erreur #1 sur Insta". Pas de CTA vente, juste de la valeur. Signe "Victor ✌️".
 STEP 4 (FOMO concurrents, J+8) : "Tes concurrents postent déjà..." + montrer que le marché bouge + urgence naturelle + CTA direct
 STEP 5 (dernière chance, J+12) : Ultra direct et désarmant. "Pas de souci si c'est pas le moment" + dernière proposition + "je te laisse tranquille après"
 WARM (step 10) : "Suite à notre échange..." + très personnalisé + proposer essai gratuit 7 jours (carte requise, 0€ débité)
@@ -276,9 +284,9 @@ INTERDICTIONS ABSOLUES :
 - JAMAIS mentionner le prix dans le step 1 (sauf essai gratuit)
 - JAMAIS de "?" en tout début de ligne (la question doit commencer par des mots)
 - JAMAIS de nom de commerce qui sonne faux ou inventé — si le nom est bizarre, dis juste "ton commerce" ou "ton resto"
-- NE PAS signer l'email toi-même (ni "Victor", ni "Victor ✌️", ni "Victor de KeiroAI") — une signature canonique est ajoutée automatiquement après ton texte
-- NE PAS écrire de P.S. — un P.S. canonique est ajouté automatiquement
-- Termine simplement par ta dernière phrase de corps (ex: "Tu veux que je te montre ?"). Pas de salutation finale, pas de "Cordialement", pas de nom
+- Signature obligatoire : Victor (UNE seule ligne, en fin d'email, sans "Cordialement" ni "Bien à toi" devant)
+- P.S. autorisé MAIS UN SEUL — jamais deux P.S. dans le même mail. Optionnel sur step 1/2/3, recommandé sur step 4/5 pour pousser à la conversion.
+- INTERDIT : signer "Oussama", "l'équipe KeiroAI", "L'équipe", "Cordialement Victor", deux Victor d'affilée, deux P.S. d'affilée
 
 ${learnings}
 
@@ -718,44 +726,79 @@ async function sendEmail(
       template[key] = t;
     }
 
-    // ── Victor signature — single source of truth ──
-    // The AI sometimes signs the email, sometimes adds a P.S., sometimes
-    // both. To guarantee ONE signature + ONE P.S. + ONE clickable link,
-    // we aggressively strip everything the AI wrote from the first
-    // "Victor" line onwards, then append our canonical block. This
-    // fixes the double-P.S. bug spotted 2026-05-17 on Hugo's outreach.
+    // ── Victor signature + P.S. — DEDUP, don't strip ──
+    // The AI is now allowed (and required) to sign as Victor and to
+    // include an optional P.S. The role of this block is to:
+    //   1. Remove duplicates if the AI somehow wrote 2 Victor lines or 2 P.S.
+    //   2. Ensure a clickable keiroai.com/generate link exists somewhere
+    //      (text body) — if not, append a single discrete P.S. with it.
+    // We DO NOT strip what the AI wrote anymore — it's a real human
+    // signature now, with conversion P.S. when relevant.
     const signatureUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keiroai.com';
     const cleanUrl = signatureUrl.replace(/^https?:\/\//, '');
 
-    // TEXT body — strip from first "Victor" line (and everything after,
-    // including any P.S. or KeiroAI line the AI added). The closing
-    // Victor line is always the LAST meaningful content in our emails.
-    template.textBody = template.textBody
-      .replace(/\n\s*Victor[^\n]*[\s\S]*$/i, '')
-      .replace(/\n\s*P\.?\s*S\.?[\s\S]*$/i, '')
-      .trimEnd();
-
-    const textSig = `\n\nVictor — KeiroAI\n${signatureUrl}/generate\n\nP.S. 3 créations gratuites pour tester, sans carte bancaire → ${signatureUrl}/generate`;
-    template.textBody = template.textBody + textSig;
-
-    // HTML body — same logic. Strip the signature/P.S. block (everything
-    // from the first "Victor" line onward, robust to <br>, <p>, <div>).
-    if (template.htmlBody) {
-      template.htmlBody = template.htmlBody
-        .replace(/(<br\s*\/?>|<\/p>|<\/div>)\s*Victor\b[\s\S]*$/i, '')
-        .replace(/<p[^>]*>\s*Victor\b[\s\S]*$/i, '')
-        .replace(/(<br\s*\/?>|<\/p>|<\/div>)\s*P\.?\s*S\.?[\s\S]*$/i, '')
-        .replace(/<\/body>\s*<\/html>\s*$/i, '');
-
-      // Natural-looking signature: no robotic table, just a flowing
-      // line with a single clickable link. Both the homepage and the
-      // P.S. point to /generate so the prospect lands on the action.
-      const htmlSig = `<br><br>Victor — KeiroAI<br><a href="${signatureUrl}/generate" style="color:#7c3aed;text-decoration:underline">${cleanUrl}/generate</a><br><br><span style="color:#555;">P.S. 3 créations gratuites pour tester, sans carte bancaire → <a href="${signatureUrl}/generate" style="color:#7c3aed;text-decoration:underline">essayer maintenant</a></span>`;
-
-      if (/<\/body>/i.test(template.htmlBody)) {
-        template.htmlBody = template.htmlBody.replace(/<\/body>/i, `${htmlSig}</body>`);
+    // TEXT body dedup — collapse multiple Victor lines into one
+    template.textBody = template.textBody.replace(
+      /(\n\s*Victor[^\n]*\n)([\s\S]*?)(\n\s*Victor[^\n]*\n)/gi,
+      '$1$2',
+    );
+    // TEXT body dedup — collapse multiple P.S. lines into the first one
+    {
+      const psMatches = [...template.textBody.matchAll(/(\n\s*P\.?\s*S\.?[^\n]*)/gi)];
+      if (psMatches.length > 1) {
+        const first = psMatches[0][0];
+        // Strip all P.S. lines then re-append only the first
+        template.textBody = template.textBody.replace(/\n\s*P\.?\s*S\.?[^\n]*/gi, '').trimEnd() + first;
+      }
+    }
+    // If no link to keiroai.com anywhere, append a single discrete P.S.
+    // after the Victor line. Never adds a second P.S. — only when none.
+    if (!/keiroai\.(com|fr|io)/i.test(template.textBody)) {
+      if (/\bP\.?\s*S\.?\b/i.test(template.textBody)) {
+        // Author wrote a P.S. but no link — append link to it inline.
+        template.textBody = template.textBody.replace(
+          /(\bP\.?\s*S\.?\b[^\n]*)/i,
+          `$1 — ${signatureUrl}/generate`,
+        );
       } else {
-        template.htmlBody = template.htmlBody + htmlSig;
+        template.textBody = template.textBody.trimEnd() + `\n\nP.S. Tu peux tester gratuitement : ${signatureUrl}/generate`;
+      }
+    }
+    // TEXT body: also strip any "Victor de KeiroAI" duplicates that came
+    // from older prompt examples to avoid two Victors back-to-back.
+    template.textBody = template.textBody.replace(
+      /(\n\s*Victor[^\n]*\n+)\s*Victor[^\n]*\n?/gi,
+      '$1',
+    );
+
+    // HTML body — same dedup logic.
+    if (template.htmlBody) {
+      // Remove a duplicated "Victor" line if the AI emitted two
+      template.htmlBody = template.htmlBody.replace(
+        /(Victor[^<\n]{0,40}(?:<br\s*\/?>|<\/p>|<\/div>)\s*)(.*?)(Victor[^<\n]{0,40}(?:<br\s*\/?>|<\/p>|<\/div>))/i,
+        '$1$2',
+      );
+      // Collapse multiple P.S. lines
+      const psHtmlMatches = [...template.htmlBody.matchAll(/(P\.?\s*S\.?\.?\s*[^<]{0,200}(?=<|$))/gi)];
+      if (psHtmlMatches.length > 1) {
+        const first = psHtmlMatches[0][0];
+        template.htmlBody = template.htmlBody.replace(/P\.?\s*S\.?\.?\s*[^<]{0,200}(?=<|$)/gi, '');
+        template.htmlBody = template.htmlBody + `<br><br><span style="color:#555;">${first}</span>`;
+      }
+      // Wrap bare keiroai URLs into clickable links so the prospect can
+      // click (Gmail auto-links, but Outlook/Apple don't always).
+      template.htmlBody = template.htmlBody.replace(
+        /(?<!href=["'])(https?:\/\/(?:www\.)?keiroai\.(?:com|fr|io)[^\s<"']*)/g,
+        '<a href="$1" style="color:#7c3aed;text-decoration:underline">$1</a>',
+      );
+      // If no link present at all, append a discrete signature P.S.
+      if (!/href=["'][^"']*keiroai\.(com|fr|io)/i.test(template.htmlBody)) {
+        const htmlSig = `<br><br><span style="color:#555;">P.S. Tu peux tester gratuitement : <a href="${signatureUrl}/generate" style="color:#7c3aed;text-decoration:underline">${cleanUrl}/generate</a></span>`;
+        if (/<\/body>/i.test(template.htmlBody)) {
+          template.htmlBody = template.htmlBody.replace(/<\/body>/i, `${htmlSig}</body>`);
+        } else {
+          template.htmlBody = template.htmlBody + htmlSig;
+        }
       }
     }
 

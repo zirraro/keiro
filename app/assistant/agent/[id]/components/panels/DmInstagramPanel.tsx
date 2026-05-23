@@ -564,20 +564,6 @@ function ManualFollowsList() {
           {items.length} {en ? 'shown' : 'affichés'}{funnel && funnel.queued > items.length ? ` / ${funnel.queued} ${en ? 'total' : 'total'}` : ''}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <button
-            disabled={refreshing}
-            onClick={async () => {
-              setRefreshing(true);
-              try {
-                await fetch('/api/agents/dm-instagram/follow-prospects', { method: 'POST', credentials: 'include' });
-                await load(false);
-              } finally { setRefreshing(false); }
-            }}
-            className="px-3 py-1 text-[11px] bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 rounded-md transition disabled:opacity-50"
-            title={en ? 'Run Jade now to find more accounts' : "Lancer Jade maintenant pour trouver plus de comptes"}
-          >
-            {refreshing ? '…' : (en ? '↻ Find more' : '↻ Trouver plus')}
-          </button>
           {pushState === 'on' && (
             <button
               disabled={pushBusy}
@@ -656,7 +642,7 @@ function ManualFollowsList() {
               <button
                 disabled={busyId === item.id}
                 onClick={() => handleAction(item.id, 'skip')}
-                className="px-2.5 py-1 text-[11px] text-white/40 hover:text-white/70 border border-white/10 rounded-md transition disabled:opacity-50"
+                className="px-2.5 py-1 text-[11px] text-white/40 hover:text-white/70 border border-white/10 rounded-md transition disabled:opacity-50 mt-1"
               >
                 {en ? 'Skip' : 'Passer'}
               </button>
@@ -664,6 +650,34 @@ function ManualFollowsList() {
           </div>
         );
       })}
+
+      {/* Footer — "Trouver plus" lives at the BOTTOM of the list per
+          founder ask 2026-05-24: button should only be reachable once
+          the client has descended through the accumulated queue. Visible
+          permanently here but naturally requires a scroll to discover. */}
+      <div className="pt-3 mt-1 border-t border-white/5 flex items-center justify-between gap-2 flex-wrap">
+        <div className="text-[10px] text-white/40">
+          {funnel && funnel.queued > items.length
+            ? (en ? `+${funnel.queued - items.length} more in queue` : `+${funnel.queued - items.length} encore en attente`)
+            : (en ? `End of list (${items.length} accounts)` : `Fin de liste (${items.length} comptes)`)}
+        </div>
+        <button
+          disabled={refreshing}
+          onClick={async () => {
+            setRefreshing(true);
+            try {
+              await fetch('/api/agents/dm-instagram/follow-prospects', { method: 'POST', credentials: 'include' });
+              await load(false);
+            } finally { setRefreshing(false); }
+          }}
+          className="px-3 py-1.5 text-[11px] bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 rounded-md transition disabled:opacity-50 min-h-[36px]"
+          title={en ? 'Run Jade now to enrich the queue' : "Lancer Jade pour enrichir la file maintenant"}
+        >
+          {refreshing
+            ? (en ? '↻ Searching…' : '↻ Recherche…')
+            : (en ? '↻ Find more accounts' : '↻ Trouver plus de comptes')}
+        </button>
+      </div>
     </div>
   );
 }

@@ -1,7 +1,158 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/lib/i18n/context';
+
+// Léo direction controls — sector + city focus persisted to
+// profiles.gmaps_focus. Lives inside CrmDashboard because /assistant/agent/commercial
+// renders this component (not CommercialPanel). Founder spotted 2026-05-24:
+// "leo mes demandes se voient pas" — the controls were sitting in the
+// wrong file.
+function LeoDirection() {
+  const [sector, setSector] = useState('');
+  const [city, setCity] = useState('');
+  const [launching, setLaunching] = useState(false);
+  const [persisting, setPersisting] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; message?: string } | null>(null);
+  const [persisted, setPersisted] = useState<{ sector?: string; city?: string } | null>(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('keiro_leo_focus');
+      if (raw) {
+        const f = JSON.parse(raw);
+        if (f && (f.sector || f.city)) {
+          setPersisted(f); setSector(f.sector || ''); setCity(f.city || '');
+        }
+      }
+    } catch {}
+    fetch('/api/agents/commercial/focus', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        const f = d?.focus;
+        if (f && (f.sector || f.city)) {
+          setPersisted(f); setSector(f.sector || ''); setCity(f.city || '');
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const SECTORS = ['restaurant', 'boutique', 'coach', 'coiffeur', 'fleuriste', 'caviste', 'salon de beaute', 'traiteur', 'photographe'];
+
+  const launch = useCallback(async () => {
+    setLaunching(true); setResult(null);
+    const q = [sector, city].filter(Boolean).join(' ');
+    try {
+      const res = await fetch('/api/agents/gmaps', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ query: q || undefined }),
+      });
+      const data = await res.json();
+      setResult({
+        ok: data.ok !== false,
+        message: data.message || data.error || `${data.imported || 0} prospects ajoutés depuis Google Maps`,
+      });
+    } catch (e: any) {
+      setResult({ ok: false, message: e.message });
+    } finally { setLaunching(false); }
+  }, [sector, city]);
+
+  const saveFocus = useCallback(async () => {
+    setPersisting(true);
+    const focus = { sector, city };
+    try {
+      try { localStorage.setItem('keiro_leo_focus', JSON.stringify(focus)); } catch {}
+      await fetch('/api/agents/commercial/focus', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(focus),
+      });
+      setPersisted(focus);
+    } catch {}
+    finally { setPersisting(false); }
+  }, [sector, city]);
+
+  return (
+    <div className="rounded-xl border border-blue-500/20 bg-blue-900/10 p-4 space-y-3">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <h3 className="text-sm font-bold text-blue-300">{'🎯'} Diriger Léo</h3>
+        {persisted && (persisted.sector || persisted.city) && (
+          <span className="text-[10px] text-blue-300/60">
+            Focus : <strong>{persisted.sector || 'tous secteurs'}</strong>
+            {persisted.city && <> · {persisted.city}</>}
+          </span>
+        )}
+      </div>
+      <p className="text-[11px] text-white/50">Concentre Léo sur un secteur et/ou une ville. Léo prospectera ces cibles à chaque passage (toutes les 6h).</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div>
+          <label className="text-[10px] text-white/40 uppercase font-bold mb-1 block">Secteur</label>
+          <input
+            list="leo-sector-options"
+            type="text"
+            value={sector}
+            onChange={e => setSector(e.target.value)}
+            placeholder="ex: coach, restaurant..."
+            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+          />
+          <datalist id="leo-sector-options">
+            {SECTORS.map(s => <option key={s} value={s} />)}
+          </datalist>
+        </div>
+        <div>
+          <label className="text-[10px] text-white/40 uppercase font-bold mb-1 block">Ville</label>
+          <input
+            type="text"
+            value={city}
+            onChange={e => setCity(e.target.value)}
+            placeholder="ex: Amiens, Paris..."
+            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+          />
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={launch}
+          disabled={launching}
+          className="flex-1 min-w-[160px] px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs font-bold rounded-xl hover:shadow-lg transition-all disabled:opacity-50 min-h-[44px]"
+        >
+          {launching ? 'Recherche…' : `🔍 Lancer une recherche maintenant`}
+        </button>
+        <button
+          onClick={saveFocus}
+          disabled={persisting || (!sector && !city)}
+          className="px-4 py-2 bg-white/10 text-white/80 text-xs font-bold rounded-xl hover:bg-white/15 transition-all disabled:opacity-40 min-h-[44px]"
+        >
+          {persisting ? '…' : '💾 Sauvegarder le focus'}
+        </button>
+      </div>
+      {result && (
+        <div className={`text-[10px] px-3 py-2 rounded-lg ${result.ok ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+          {result.message}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Profile completeness — counts filled fields on a prospect to surface
+// well-documented fiches vs the half-empty ones.
+function completeness(p: any): { pct: number; missing: string[] } {
+  const fields: Array<[string, string]> = [
+    ['company', 'nom'], ['email', 'email'], ['type', 'secteur'], ['quartier', 'ville'],
+    ['instagram', 'instagram'], ['linkedin_url', 'linkedin'], ['tiktok_handle', 'tiktok'],
+    ['phone', 'tel'], ['note_google', 'note Google'], ['site_web', 'site web'],
+  ];
+  const present = fields.filter(([k]) => {
+    const v = p?.[k];
+    return v !== null && v !== undefined && v !== '' && v !== 'A_VERIFIER';
+  });
+  const missing = fields.filter(([k]) => !present.find(([pk]) => pk === k)).map(([, label]) => label);
+  return { pct: Math.round((present.length / fields.length) * 100), missing };
+}
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -688,13 +839,29 @@ export default function CrmDashboard({ data, onAddProspect }: CrmDashboardProps)
       .slice(0, 5);
   }, [prospects]);
 
+  // Average completeness across the loaded sample — surfaces how
+  // exhaustive the fiches are (founder ask: "veille a la coherence des
+  // fiches et la bien remplissage"). 70%+ = enough info for Hugo / Jade
+  // to personalise their messages.
+  const completenessStats = useMemo(() => {
+    if (prospects.length === 0) return { avg: 0, exhaustive: 0 };
+    const sampleSize = Math.min(50, prospects.length);
+    const sample = prospects.slice(0, sampleSize);
+    const avg = Math.round(sample.reduce((s, p: any) => s + completeness(p).pct, 0) / sampleSize);
+    const exhaustive = sample.filter((p: any) => completeness(p).pct >= 70).length;
+    return { avg, exhaustive, sampleSize };
+  }, [prospects]);
+
   return (
     <div data-tour="agent-dashboard" className="overflow-y-auto flex-1 p-4 sm:p-6 space-y-5">
+      {/* Direction Léo — sector + city focus + on-demand prospection */}
+      <LeoDirection />
+
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-white">Tableau de bord CRM</h2>
-          <p className="text-xs text-white/40 mt-0.5">{prospects.length} prospect{prospects.length !== 1 ? 's' : ''} au total</p>
+          <p className="text-xs text-white/40 mt-0.5">{(stats as any).total ?? prospects.length} prospect{((stats as any).total ?? prospects.length) !== 1 ? 's' : ''} au total</p>
         </div>
         {onAddProspect && (
           <button
@@ -719,13 +886,13 @@ export default function CrmDashboard({ data, onAddProspect }: CrmDashboardProps)
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
           }
-          value={stats.total}
+          value={(stats as any).total ?? 0}
           label="Total Prospects"
           color="bg-purple-500/20"
         />
         <KpiCard
           icon={<span className="text-lg">{'\uD83D\uDD25'}</span>}
-          value={stats.hot}
+          value={(stats as any).hot ?? 0}
           label="Hot Leads"
           color="bg-red-500/20"
         />
@@ -735,7 +902,7 @@ export default function CrmDashboard({ data, onAddProspect }: CrmDashboardProps)
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           }
-          value={`${stats.conversionRate}%`}
+          value={`${(stats as any).conversionRate ?? 0}%`}
           label="Taux Conversion"
           color="bg-green-500/20"
         />
@@ -750,6 +917,94 @@ export default function CrmDashboard({ data, onAddProspect }: CrmDashboardProps)
           color="bg-blue-500/20"
         />
       </div>
+
+      {/* Complétude des fiches — exhaustivité du remplissage des CRM cards.
+          Founder ask 2026-05-24: "veille a la coherence des fiches et la
+          bien remplissage" — Hugo/Jade/Léna lisent ces fiches avant de
+          parler aux prospects, donc plus elles sont complètes, mieux
+          c'est. */}
+      {prospects.length > 0 && (
+        <div className="rounded-xl border border-emerald-500/20 bg-emerald-900/5 p-4">
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <h3 className="text-sm font-bold text-emerald-300">📋 Complétude des fiches</h3>
+            <span className="text-[10px] text-white/40">sur les {completenessStats.sampleSize} fiches les plus récentes</span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <div className="rounded-lg bg-white/5 p-3 text-center">
+              <div className="text-2xl font-bold text-emerald-300">{completenessStats.avg}%</div>
+              <div className="text-[10px] text-white/50">Complétude moyenne</div>
+            </div>
+            <div className="rounded-lg bg-white/5 p-3 text-center">
+              <div className="text-2xl font-bold text-blue-300">{completenessStats.exhaustive}/{completenessStats.sampleSize}</div>
+              <div className="text-[10px] text-white/50">Fiches exhaustives (70%+)</div>
+            </div>
+            <div className="rounded-lg bg-white/5 p-3 text-center col-span-2 sm:col-span-1">
+              <div className="text-2xl font-bold text-purple-300">
+                {prospects.filter((p: any) => {
+                  const t = new Date(p.created_at).getTime();
+                  return t > Date.now() - 24 * 60 * 60 * 1000;
+                }).length}
+              </div>
+              <div className="text-[10px] text-white/50">Ajouts 24h</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Derniers ajouts Léo — proof of work, last 6 fiches with detail */}
+      {prospects.length > 0 && (
+        <div>
+          <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+            <span>📥</span> Derniers ajouts de Léo
+          </h3>
+          <div className="space-y-2">
+            {prospects.slice(0, 6).map((pr: any) => {
+              const comp = completeness(pr);
+              const tempColor = pr.temperature === 'hot' ? '#ef4444' : pr.temperature === 'warm' ? '#f59e0b' : pr.temperature === 'cold' ? '#3b82f6' : '#6b7280';
+              return (
+                <div key={pr.id} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span
+                      className="text-[9px] font-bold px-2 py-0.5 rounded-full"
+                      style={{ backgroundColor: `${tempColor}22`, color: tempColor }}
+                    >
+                      {pr.temperature || 'unscored'}
+                    </span>
+                    <span className="text-sm font-bold text-white truncate flex-1">{pr.company || '(sans nom)'}</span>
+                    <span className="text-[10px] text-white/30 shrink-0">
+                      {new Date(pr.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 text-[10px] text-white/50">
+                    {pr.type && <span className="px-1.5 py-0.5 rounded bg-white/5">{pr.type}</span>}
+                    {pr.email && <span title={pr.email}>📧</span>}
+                    {pr.instagram && pr.instagram !== 'A_VERIFIER' && <span title={pr.instagram}>📷</span>}
+                    {pr.linkedin_url && <span>💼</span>}
+                    {pr.tiktok_handle && <span>🎵</span>}
+                    <span className="ml-auto flex items-center gap-1.5">
+                      <div className="w-16 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${comp.pct}%`,
+                            backgroundColor: comp.pct >= 70 ? '#10b981' : comp.pct >= 40 ? '#f59e0b' : '#ef4444',
+                          }}
+                        />
+                      </div>
+                      <span className="text-[9px] text-white/40">{comp.pct}%</span>
+                    </span>
+                  </div>
+                  {comp.missing.length > 0 && comp.pct < 70 && (
+                    <div className="text-[9px] text-white/30 mt-1">
+                      Manque : {comp.missing.slice(0, 3).join(', ')}{comp.missing.length > 3 ? `, +${comp.missing.length - 3}` : ''}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Hot prospects — priority actions */}
       {hotProspects.length > 0 && (
