@@ -282,9 +282,11 @@ function ManualFollowsList() {
     note_google?: number;
     google_rating?: number;
   }>>([]);
+  const [funnel, setFunnel] = useState<{ queued: number; followed: number; eligible: number; dm_sent: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [batchBusy, setBatchBusy] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Push-notification state. We reflect the current permission + our
   // own subscription in state so the button shows the right label
@@ -397,6 +399,7 @@ function ManualFollowsList() {
       const data = await res.json();
       const list = data.follows || [];
       setItems(list);
+      if (data.funnel) setFunnel(data.funnel);
 
       // First-connection seeding: empty queue + IG connected + never
       // seeded yet → trigger Léo prospection then re-fetch.
@@ -536,11 +539,45 @@ function ManualFollowsList() {
           ? <>Tap the handle to open Instagram{isMobile ? ' in the app' : ''}, tap Follow, then press ✓ here so Jade knows. She'll DM these accounts after a short warm-up period.</>
           : <>Touche le handle pour ouvrir Instagram{isMobile ? ' dans l\'appli' : ''}, appuie sur Suivre, puis valide avec ✓ ici. Jade les DM après un petit temps de chauffe.</>}
       </div>
+      {funnel && (
+        <div className="grid grid-cols-4 gap-2 mb-2">
+          <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-2 text-center">
+            <div className="text-base font-bold text-amber-300">{funnel.queued}</div>
+            <div className="text-[9px] text-amber-300/60">{en ? 'In queue' : 'En attente'}</div>
+          </div>
+          <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-2 text-center">
+            <div className="text-base font-bold text-blue-300">{funnel.eligible}</div>
+            <div className="text-[9px] text-blue-300/60">{en ? 'Eligible' : 'Éligibles'}</div>
+          </div>
+          <div className="rounded-lg bg-purple-500/10 border border-purple-500/20 p-2 text-center">
+            <div className="text-base font-bold text-purple-300">{funnel.followed}</div>
+            <div className="text-[9px] text-purple-300/60">{en ? 'Followed' : 'Suivis'}</div>
+          </div>
+          <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-2 text-center">
+            <div className="text-base font-bold text-emerald-300">{funnel.dm_sent}</div>
+            <div className="text-[9px] text-emerald-300/60">{en ? 'DMs sent' : 'DMs envoyés'}</div>
+          </div>
+        </div>
+      )}
       <div className="flex items-center justify-between gap-2 pb-1 flex-wrap">
         <div className="text-[11px] text-white/60">
-          {items.length} {en ? 'pending' : 'en attente'}
+          {items.length} {en ? 'shown' : 'affichés'}{funnel && funnel.queued > items.length ? ` / ${funnel.queued} ${en ? 'total' : 'total'}` : ''}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          <button
+            disabled={refreshing}
+            onClick={async () => {
+              setRefreshing(true);
+              try {
+                await fetch('/api/agents/dm-instagram/follow-prospects', { method: 'POST', credentials: 'include' });
+                await load(false);
+              } finally { setRefreshing(false); }
+            }}
+            className="px-3 py-1 text-[11px] bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 rounded-md transition disabled:opacity-50"
+            title={en ? 'Run Jade now to find more accounts' : "Lancer Jade maintenant pour trouver plus de comptes"}
+          >
+            {refreshing ? '…' : (en ? '↻ Find more' : '↻ Trouver plus')}
+          </button>
           {pushState === 'on' && (
             <button
               disabled={pushBusy}

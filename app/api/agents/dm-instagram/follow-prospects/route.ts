@@ -26,7 +26,13 @@ export const maxDuration = 120;
  *   { user_id?: string }  — only pick prospects owned by this user_id
  */
 
-const MAX_FOLLOWS_PER_RUN = 25;
+// Bumped 2026-05-17 — founder spotted only 21 pending follows despite a
+// 1600-prospect CRM. The cron runs once daily, so 25/run capped the
+// queue growth at ~25/day minus whatever the client marks done. With
+// 100/run, a 1600-prospect base fills the queue in ~16 days even if
+// the client never clears it. Verification is the slow step (1.5s/call)
+// so we cap at 100 to keep the run under 5 min.
+const MAX_FOLLOWS_PER_RUN = 100;
 
 function getSupabaseAdmin() {
   return createClient(

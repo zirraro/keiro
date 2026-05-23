@@ -30,15 +30,41 @@ export async function GET(req: NextRequest) {
   }
 
   const supabase = getSupabaseAdmin();
+  // Bumped 2026-05-17 — was 50, founder couldn't see the actual queue size
+  // (1600+ prospect base capped at 50 felt empty). Now 500 with a `total`
+  // counter so the UI can render an accurate funnel.
   const { data: rows } = await supabase
     .from('crm_prospects')
     .select('id, company, instagram, score, angle_approche, notes, city:quartier, note_google, google_rating, dm_queued_at')
     .eq('user_id', user.id)
     .eq('dm_status', 'queued_for_manual_follow')
     .order('score', { ascending: false, nullsFirst: false })
-    .limit(50);
+    .limit(500);
 
-  return NextResponse.json({ ok: true, follows: rows || [] });
+  // Funnel counters so the panel can show "X to follow / Y followed /
+  // Z eligible (with IG handle, score ≥ 20, not yet touched)".
+  const [
+    { count: queuedTotal },
+    { count: followedTotal },
+    { count: eligibleTotal },
+    { count: dmSent },
+  ] = await Promise.all([
+    supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('dm_status', 'queued_for_manual_follow'),
+    supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('user_id', user.id).not('dm_followed_at', 'is', null),
+    supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('user_id', user.id).not('instagram', 'is', null).is('dm_followed_at', null).gte('score', 20),
+    supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('user_id', user.id).not('dm_sent_at', 'is', null),
+  ]);
+
+  return NextResponse.json({
+    ok: true,
+    follows: rows || [],
+    funnel: {
+      queued: queuedTotal || 0,
+      followed: followedTotal || 0,
+      eligible: eligibleTotal || 0,
+      dm_sent: dmSent || 0,
+    },
+  });
 }
 
 export async function POST(req: NextRequest) {
