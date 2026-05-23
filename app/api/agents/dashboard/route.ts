@@ -233,12 +233,40 @@ async function getMarketingData(
     }
   } catch {}
 
+  // Jade summary — DMs sent, comments replied, follows queued, follows
+  // confirmed. Pulled from the SAME tables Jade's own panel reads
+  // (dm_queue + agent_logs + crm_prospects) so Ami and Jade always
+  // agree on numbers. Founder ask 2026-05-24: "Ami data doit être
+  // coherente avec celles de Lena et Jade".
+  const last7d = new Date(Date.now() - 7 * 86400000).toISOString();
+  const jadeStats = await (async () => {
+    try {
+      const [{ count: dmsSent7d }, { count: commentsReplied7d }, { count: followsQueued }, { count: followsConfirmed }, { count: followBackDms }] = await Promise.all([
+        supabase.from('dm_queue').select('id', { count: 'exact', head: true }).eq('status', 'sent').gte('created_at', last7d),
+        supabase.from('agent_logs').select('id', { count: 'exact', head: true }).eq('agent', 'instagram_comments').eq('action', 'reply_sent').eq('user_id', userId).gte('created_at', last7d),
+        supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('dm_status', 'queued_for_manual_follow'),
+        supabase.from('crm_prospects').select('id', { count: 'exact', head: true }).eq('user_id', userId).not('dm_followed_at', 'is', null),
+        supabase.from('crm_activities').select('id', { count: 'exact', head: true }).eq('type', 'dm_after_follow_queued').gte('created_at', last7d),
+      ]);
+      return {
+        dms_sent_7d: dmsSent7d || 0,
+        comments_replied_7d: commentsReplied7d || 0,
+        follows_pending: followsQueued || 0,
+        follows_confirmed: followsConfirmed || 0,
+        after_follow_dms_7d: followBackDms || 0,
+      };
+    } catch {
+      return { dms_sent_7d: 0, comments_replied_7d: 0, follows_pending: 0, follows_confirmed: 0, after_follow_dms_7d: 0 };
+    }
+  })();
+
   const globalStats = {
     commercial: commercialDomain,
     visibility: { totalActions: visibilityCount ?? 0, traffic: igStats.followersCount },
     instagram: igStats,
     tiktok: tiktokStats,
     linkedin: linkedinStats,
+    jade: jadeStats,
     finance: { totalActions: financeCount ?? 0 },
     teamActivity: teamActivity ?? [],
     recommendation,

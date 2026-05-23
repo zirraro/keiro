@@ -184,6 +184,41 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
           </>
         )}
 
+        {/* Jade activity \u2014 surface engagement done by Jade so Ami
+            shows the FULL picture. Same data sources as Jade's own
+            panel (dm_queue + agent_logs + crm_prospects) so the
+            numbers always match across both pages. Founder ask
+            2026-05-24: Ami doit \u00eatre coherente avec Jade. */}
+        {(gs as any).jade && (
+          ((gs as any).jade.dms_sent_7d > 0 || (gs as any).jade.comments_replied_7d > 0 || (gs as any).jade.follows_pending > 0) && (
+            <>
+              <SectionTitle>Jade \u2014 7 derniers jours</SectionTitle>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4">
+                <div className="rounded-lg bg-white/[0.04] border border-white/10 p-3 text-center">
+                  <div className="text-lg font-bold text-purple-300">{fmt((gs as any).jade.dms_sent_7d)}</div>
+                  <div className="text-[9px] text-white/50">DMs envoy\u00e9s</div>
+                </div>
+                <div className="rounded-lg bg-white/[0.04] border border-white/10 p-3 text-center">
+                  <div className="text-lg font-bold text-pink-300">{fmt((gs as any).jade.comments_replied_7d)}</div>
+                  <div className="text-[9px] text-white/50">Commentaires r\u00e9pondus</div>
+                </div>
+                <div className="rounded-lg bg-white/[0.04] border border-white/10 p-3 text-center">
+                  <div className="text-lg font-bold text-amber-300">{fmt((gs as any).jade.follows_pending)}</div>
+                  <div className="text-[9px] text-white/50">Follows \u00e0 valider</div>
+                </div>
+                <div className="rounded-lg bg-white/[0.04] border border-white/10 p-3 text-center">
+                  <div className="text-lg font-bold text-emerald-300">{fmt((gs as any).jade.follows_confirmed)}</div>
+                  <div className="text-[9px] text-white/50">Follows confirm\u00e9s</div>
+                </div>
+                <div className="rounded-lg bg-white/[0.04] border border-white/10 p-3 text-center col-span-2 sm:col-span-1">
+                  <div className="text-lg font-bold text-cyan-300">{fmt((gs as any).jade.after_follow_dms_7d)}</div>
+                  <div className="text-[9px] text-white/50">DMs post-follow</div>
+                </div>
+              </div>
+            </>
+          )
+        )}
+
         {/* Finance \u2014 only when there's an ad budget tracked. Removed
             the always-zero finance bloc when nothing is running. */}
         {gs.finance && (gs.finance.adBudget > 0 || gs.finance.roas > 0) && (

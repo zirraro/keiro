@@ -144,7 +144,7 @@ function completeness(p: any): { pct: number; missing: string[] } {
   const fields: Array<[string, string]> = [
     ['company', 'nom'], ['email', 'email'], ['type', 'secteur'], ['quartier', 'ville'],
     ['instagram', 'instagram'], ['linkedin_url', 'linkedin'], ['tiktok_handle', 'tiktok'],
-    ['phone', 'tel'], ['note_google', 'note Google'], ['site_web', 'site web'],
+    ['phone', 'tel'], ['note_google', 'note Google'], ['website', 'site web'],
   ];
   const present = fields.filter(([k]) => {
     const v = p?.[k];

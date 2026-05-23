@@ -79,12 +79,14 @@ interface EnrichmentResult {
 interface SocialSearchResult {
   instagram: string | null;
   tiktok: string | null;
+  linkedin_url: string | null;
   website: string | null;
   google_rating: number | null;
   google_reviews: number | null;
   phone: string | null;
   address: string | null;
   description: string | null;
+  first_name: string | null;
   confidence: number;
 }
 
@@ -110,16 +112,19 @@ async function searchSocialProfiles(prospect: {
 RECHERCHE EXACTEMENT CES INFORMATIONS :
 1. Compte Instagram (handle exact avec @, pas un lien)
 2. Compte TikTok (handle exact avec @)
-3. Site web officiel (URL complète)
-4. Note Google Maps et nombre d'avis
-5. Numéro de téléphone
-6. Adresse physique
-7. Description courte de l'activité
+3. Compte LinkedIn (URL complète du profil ou de la page entreprise)
+4. Site web officiel (URL complète)
+5. Note Google Maps et nombre d'avis
+6. Numéro de téléphone
+7. Adresse physique
+8. Description courte de l'activité (1 phrase, vrai descriptif business — pas générique)
+9. Premier prénom du gérant/fondateur si trouvable sur le site ou réseaux sociaux
 
 RÈGLES :
 - Ne retourne QUE des informations TROUVÉES et VÉRIFIÉES via la recherche
-- Si tu ne trouves pas un champ, mets null
+- Si tu ne trouves pas un champ, mets null (NE DEVINE JAMAIS)
 - Pour Instagram/TikTok, donne UNIQUEMENT le handle (ex: @restaurant_paris) sans le lien
+- Pour LinkedIn, donne l'URL complète (ex: https://linkedin.com/company/xxx ou /in/xxx)
 - La note Google doit être un nombre entre 1.0 et 5.0
 - Ne confonds pas avec des homonymes — vérifie que c'est bien le commerce dans la bonne ville
 
@@ -127,12 +132,14 @@ Réponds UNIQUEMENT en JSON valide :
 {
   "instagram": "@handle" | null,
   "tiktok": "@handle" | null,
+  "linkedin_url": "https://linkedin.com/..." | null,
   "website": "https://..." | null,
   "google_rating": 4.5 | null,
   "google_reviews": 123 | null,
   "phone": "+33..." | null,
   "address": "12 rue..." | null,
   "description": "..." | null,
+  "first_name": "Marie" | null,
   "confidence": 0-100
 }`,
       message: `Recherche les informations en ligne de ce commerce :
@@ -623,8 +630,14 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
           if (!prospect.tiktok_handle && searchResult.tiktok) {
             socialUpdates.tiktok_handle = searchResult.tiktok;
           }
+          if (searchResult.linkedin_url && !(prospect as any).linkedin_url) {
+            socialUpdates.linkedin_url = searchResult.linkedin_url;
+          }
           if (!prospect.website && searchResult.website) {
             socialUpdates.website = searchResult.website;
+          }
+          if (searchResult.first_name && !(prospect as any).first_name) {
+            socialUpdates.first_name = searchResult.first_name;
           }
           if (!prospect.google_rating && searchResult.google_rating) {
             socialUpdates.google_rating = searchResult.google_rating;

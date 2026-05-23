@@ -360,9 +360,16 @@ export async function GET(request: NextRequest) {
           await delay(2000);
           await callEndpoint(`DM Send Queue [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram/send-queue?user_id=${uid}`, 'POST');
           await delay(2000);
-          // Daily follow campaign: Jade queues ~25 qualified prospects for
+          // Daily follow campaign: Jade queues ~100 qualified prospects for
           // manual warm-up follows. Rate-limited in the route.
           await callEndpoint(`DM Follow [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram/follow-prospects?user_id=${uid}`, 'POST', { user_id: uid });
+          await delay(2000);
+          // After-follow auto-DM: prospects who were marked followed
+          // 24-96h ago get a personalised DM with a Seedream visual
+          // showing what KeiroAI would create for THEIR business. The
+          // reciprocity window (24h-96h after follow) is the sweet spot
+          // — too early feels stalkerish, too late they forgot us.
+          await callEndpoint(`DM After-Follow [${uid.substring(0, 8)}]`, `/api/agents/dm-instagram/after-follow`, 'POST', { user_id: uid });
         }
         // Morning push: one notification per client with pending follows
         // so they see the number on their phone before opening the app.

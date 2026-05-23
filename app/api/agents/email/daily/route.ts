@@ -708,6 +708,132 @@ async function sendEmail(
       template.textBody = template.textBody.replace(/Oussama/g, 'Victor');
       template.htmlBody = template.htmlBody.replace(/Oussama/g, 'Victor');
     }
+
+    // ── Personalized visual (Hugo + Léna) ─────────────────────────
+    // When the prospect is verified AND the fiche is rich enough,
+    // generate a contextual visual via Seedream and inject it into
+    // the HTML body. Founder ask 2026-05-24 with reinforcement: ZERO
+    // tolerance for low-quality. We only fire when we're confident
+    // the visual will actually be on-brand for this prospect.
+    //
+    // QUALITY GATES (all must pass — no exceptions):
+    //   1. prospect.verified === true (Léo or commercial cleared it)
+    //   2. completeness ≥ 70% (was 60% — bumped for quality bar)
+    //   3. type is a known business category (not 'pme' / 'services')
+    //   4. company name looks real (not generic / placeholder)
+    //   5. step is 1 or 4 (high-conversion moments)
+    //   6. brief construction succeeded (returns null otherwise)
+    //
+    // Skip silently if any gate fails so the email still ships.
+    try {
+      // Field completeness over the 10 canonical fiche fields.
+      const fields = [
+        prospect.company, prospect.email, prospect.type, prospect.quartier,
+        prospect.instagram, prospect.linkedin_url, prospect.tiktok_handle,
+        prospect.phone, prospect.note_google, prospect.website,
+      ];
+      const fieldsFilled = fields.filter((v: any) =>
+        v !== null && v !== undefined && v !== '' && v !== 'A_VERIFIER'
+      ).length;
+      const completePct = Math.round((fieldsFilled / 10) * 100);
+
+      // Gate 3 — type must be a concrete category for which we can build
+      // a credible visual brief. Generic types like 'pme' or 'services'
+      // are skipped because we'd produce a generic stock visual.
+      const VISUAL_READY_TYPES = new Set([
+        'restaurant', 'boutique', 'coach', 'coiffeur', 'barbier',
+        'fleuriste', 'caviste', 'salon_beaute', 'salon_de_beaute',
+        'traiteur', 'photographe', 'hotel', 'bar', 'brasserie',
+        'patisserie', 'boulangerie', 'fromagerie',
+      ]);
+      const typeKey = (prospect.type || '').toString().toLowerCase().replace(/[\s-]/g, '_');
+      const typeIsReady = VISUAL_READY_TYPES.has(typeKey);
+
+      // Gate 4 — company name sanity check: not empty, not a single word
+      // generic placeholder, has at least 3 characters.
+      const company = (prospect.company || '').toString().trim();
+      const companyLooksReal = company.length >= 3
+        && !/^(prospect|test|inconnu|n\/a|tbd|sans nom)$/i.test(company)
+        && !/^[a-z]+$/i.test(company); // single lowercase word feels like placeholder
+
+      const visualEligible =
+        prospect.verified === true &&
+        (step === 1 || step === 4) &&
+        completePct >= 70 &&
+        typeIsReady &&
+        companyLooksReal &&
+        !template.htmlBody.includes('<img');
+
+      if (visualEligible) {
+        // Business-type-specific visual cues. Each category has its own
+        // composition, lighting, and props that read as "for THIS niche"
+        // instead of stock. Founder bar: "super bien comprendre le business
+        // du client pour lui presenter en exemple super quali".
+        const TYPE_CUES: Record<string, string> = {
+          restaurant: 'Hero plate shot, warm tungsten lighting, dark wood table, herb garnish, shallow depth of field. Editorial food photography style.',
+          brasserie: 'Hero plate shot, warm tungsten lighting, dark wood table, herb garnish, shallow depth of field. Editorial food photography style.',
+          bar: 'Cocktail close-up, condensation on glass, moody backlight with bokeh, deep blacks. Editorial drink photography.',
+          hotel: 'Suite interior, golden hour light through large windows, layered textiles, cinematic warm tones. Architectural digest style.',
+          boutique: 'Curated product flat-lay on neutral background, soft daylight, premium materials in focus, careful negative space.',
+          coach: 'Action shot of a coach mid-session, soft afternoon light, athletic but warm aesthetic, motivational not aggressive.',
+          coiffeur: 'Salon interior detail, mirror reflection, soft daylight, premium scissors or product close-up, editorial beauty.',
+          barbier: 'Vintage barbershop interior, leather chair detail, warm tungsten light, craftsman aesthetic.',
+          fleuriste: 'Seasonal bouquet on linen table, soft morning light, watercolor palette, slightly out-of-focus background.',
+          caviste: 'Bottle on dark wood with subtle backlight, condensation droplets, focused label visible but readable as abstract.',
+          salon_beaute: 'Spa detail shot, white linen, eucalyptus branch, candle, soft morning light. Calm editorial.',
+          salon_de_beaute: 'Spa detail shot, white linen, eucalyptus branch, candle, soft morning light. Calm editorial.',
+          traiteur: 'Plated catering tableau, candlelight, layered textures, elegant restaurant lighting on a buffet detail.',
+          photographe: 'Behind-the-camera lifestyle shot, camera body close-up, soft window light, photographer\'s hands in frame.',
+          patisserie: 'Pastry display close-up, soft pink and gold tones, condensation on glass case, mouth-watering hero shot.',
+          boulangerie: 'Bread loaves on dark slate, golden crust catching light, flour dust in beam, artisan bakery interior.',
+          fromagerie: 'Cheese board flat-lay on slate, dramatic side-lighting, varied textures, knife and walnuts as props.',
+        };
+
+        const typeCue = TYPE_CUES[typeKey] || `Editorial moodboard appropriate for a ${prospect.type}.`;
+        const quartierBit = prospect.quartier ? ` Set in ${prospect.quartier} (subtle local cue, not literal).` : '';
+        const ratingBit = (prospect.note_google ?? 0) >= 4.3 ? ' Premium aesthetic (high Google rating).' : '';
+
+        // Single-paragraph brief — keeps Seedream focused on the cue
+        // rather than diluting across stock filler.
+        const visualBrief = `${typeCue}${quartierBit}${ratingBit} Magazine-quality, scroll-stopping Instagram post the brand owner would actually share. Format: 4:5 portrait.`;
+
+        const { generateJadeImage } = await import('@/lib/visuals/jade-prompter');
+        // 15s hard timeout — if Seedream is slow, ship the email without
+        // the visual rather than delay the daily send slot.
+        const visualUrl = await Promise.race<string | null>([
+          generateJadeImage(visualBrief, 'post', prospect.user_id || undefined),
+          new Promise<null>(resolve => setTimeout(() => resolve(null), 15000)),
+        ]);
+
+        if (visualUrl) {
+          const altText = `Aperçu visuel généré pour ${company}`;
+          const visualBlock = `<div style="margin:14px 0;text-align:center;"><img src="${visualUrl}" alt="${altText}" style="max-width:100%;border-radius:10px;border:1px solid #e5e7eb;" /><div style="font-size:11px;color:#9ca3af;margin-top:4px;font-style:italic;">Aperçu généré spécifiquement pour ${company} — sans photographe, en 3 minutes</div></div>`;
+          if (/<p[^>]*>/i.test(template.htmlBody)) {
+            template.htmlBody = template.htmlBody.replace(/(<\/p>)/i, `$1${visualBlock}`);
+          } else {
+            template.htmlBody = visualBlock + template.htmlBody;
+          }
+          // Audit log so we can review the quality bar later
+          try {
+            const auditSb = getSupabaseAdmin();
+            await auditSb.from('agent_logs').insert({
+              agent: 'email',
+              action: 'visual_attached',
+              status: 'success',
+              user_id: prospect.user_id || null,
+              data: {
+                prospect_id: prospect.id,
+                step,
+                completeness_pct: completePct,
+                type: typeKey,
+                visual_url: visualUrl,
+              },
+              created_at: new Date().toISOString(),
+            });
+          } catch { /* audit non-fatal */ }
+        }
+      }
+    } catch { /* visual generation is best-effort */ }
     // Clean up formatting issues
     for (const key of ['textBody', 'htmlBody'] as const) {
       let t = template[key];

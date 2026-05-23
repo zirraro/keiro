@@ -169,7 +169,7 @@ function completeness(p: any): { pct: number; missing: string[] } {
     ['tiktok_handle', 'tiktok'],
     ['phone', 'tel'],
     ['note_google', 'note Google'],
-    ['site_web', 'site web'],
+    ['website', 'site web'],
   ];
   const present = fields.filter(([k]) => {
     const v = p?.[k];
