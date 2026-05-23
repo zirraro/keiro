@@ -257,22 +257,30 @@ async function getCommercialData(
   userId: string,
   orgId: string | null,
 ) {
-  // Prospects scoped to org or user — select only needed fields for perf
-  const prospectQuery = supabase
-    .from('crm_prospects')
-    .select('id, company, type, status, temperature, score, email, instagram, tiktok_handle, linkedin_url, dm_status, email_sequence_status, created_at')
-    .order('created_at', { ascending: false })
-    .limit(2000);
+  // Scope expression reused across the count queries below.
+  const scope = (q: any) => orgId
+    ? q.eq('org_id', orgId)
+    : q.or(`user_id.eq.${userId},created_by.eq.${userId}`);
 
-  if (orgId) {
-    prospectQuery.eq('org_id', orgId);
-  } else {
-    // Include both user-owned and cron-created prospects (user_id or created_by)
-    prospectQuery.or(`user_id.eq.${userId},created_by.eq.${userId}`);
-  }
-
+  // Row-level fetch — paged at 2000 for in-process pipeline/temperature
+  // breakdowns. The TOTAL count below is exact (not capped) so a CRM
+  // with 5000+ prospects shows the real number on the dashboard.
+  const prospectQuery = scope(
+    supabase
+      .from('crm_prospects')
+      .select('id, company, type, status, temperature, score, email, instagram, tiktok_handle, linkedin_url, dm_status, email_sequence_status, created_at')
+      .order('created_at', { ascending: false })
+      .limit(2000),
+  );
   const { data: prospects } = await prospectQuery;
   const prospectList = prospects ?? [];
+
+  // Exact total — uses head:true so we never load 5000 rows just to
+  // count them. Founder spotted 2026-05-17 that the dashboard total
+  // was capped at the limit() value, hiding real CRM growth past 2000.
+  const { count: exactTotal } = await scope(
+    supabase.from('crm_prospects').select('id', { count: 'exact', head: true }),
+  );
 
   // Activities for those prospects
   const prospectIds = prospectList.map((p) => p.id);
@@ -287,7 +295,8 @@ async function getCommercialData(
     activities = acts ?? [];
   }
 
-  // Pipeline: count per status
+  // Pipeline: count per status (within the loaded 2000 rows). For
+  // CRMs larger than that, the proportions are still representative.
   const pipeline: Record<string, number> = {};
   for (const p of prospectList) {
     const status = (p.status as string) || 'unknown';
@@ -305,11 +314,15 @@ async function getCommercialData(
     }
   }
 
-  const total = prospectList.length;
+  const total = exactTotal || prospectList.length;
   const converted = prospectList.filter(
     (p) => p.status === 'converted' || p.status === 'won' || p.status === 'client',
   ).length;
-  const conversionRate = total > 0 ? Math.round((converted / total) * 100) : 0;
+  // Conversion rate uses the sampled denominator (prospectList.length)
+  // when CRM > 2000 so we don't divide a sample-numerator by a
+  // full-population denominator and report 0% on a healthy pipeline.
+  const denom = Math.min(total, prospectList.length || 1);
+  const conversionRate = denom > 0 ? Math.round((converted / denom) * 100) : 0;
 
   // Channel readiness stats — how many prospects are ready for each agent
   const withEmail = prospectList.filter(p => p.email && !['bounced', 'email_invalid', 'stopped'].includes(p.email_sequence_status || '')).length;
@@ -330,6 +343,7 @@ async function getCommercialData(
     pipeline,
     stats: {
       total,
+      sampled: prospectList.length,
       hot: scoreDistribution.hot,
       warm: scoreDistribution.warm,
       cold: scoreDistribution.cold,
