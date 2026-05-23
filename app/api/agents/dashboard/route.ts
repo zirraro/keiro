@@ -273,7 +273,7 @@ async function getCommercialData(
       .limit(2000),
   );
   const { data: prospects } = await prospectQuery;
-  const prospectList = prospects ?? [];
+  const prospectList: Array<Record<string, any>> = prospects ?? [];
 
   // Exact total — uses head:true so we never load 5000 rows just to
   // count them. Founder spotted 2026-05-17 that the dashboard total
@@ -283,7 +283,7 @@ async function getCommercialData(
   );
 
   // Activities for those prospects
-  const prospectIds = prospectList.map((p) => p.id);
+  const prospectIds = prospectList.map((p: any) => p.id);
   let activities: Array<Record<string, unknown>> = [];
   if (prospectIds.length > 0) {
     const { data: acts } = await supabase
@@ -316,7 +316,7 @@ async function getCommercialData(
 
   const total = exactTotal || prospectList.length;
   const converted = prospectList.filter(
-    (p) => p.status === 'converted' || p.status === 'won' || p.status === 'client',
+    (p: any) => p.status === 'converted' || p.status === 'won' || p.status === 'client',
   ).length;
   // Conversion rate uses the sampled denominator (prospectList.length)
   // when CRM > 2000 so we don't divide a sample-numerator by a
@@ -325,17 +325,17 @@ async function getCommercialData(
   const conversionRate = denom > 0 ? Math.round((converted / denom) * 100) : 0;
 
   // Channel readiness stats — how many prospects are ready for each agent
-  const withEmail = prospectList.filter(p => p.email && !['bounced', 'email_invalid', 'stopped'].includes(p.email_sequence_status || '')).length;
-  const withInstagram = prospectList.filter(p => p.instagram && p.instagram !== 'A_VERIFIER').length;
-  const withTiktok = prospectList.filter(p => p.tiktok_handle).length;
-  const withLinkedin = prospectList.filter(p => p.linkedin_url).length;
-  const emailNotStarted = prospectList.filter(p => p.email && (!p.email_sequence_status || p.email_sequence_status === 'not_started')).length;
-  const dmNotStarted = prospectList.filter(p => p.instagram && (!p.dm_status || p.dm_status === 'none')).length;
+  const withEmail = prospectList.filter((p: any) => p.email && !['bounced', 'email_invalid', 'stopped'].includes(p.email_sequence_status || '')).length;
+  const withInstagram = prospectList.filter((p: any) => p.instagram && p.instagram !== 'A_VERIFIER').length;
+  const withTiktok = prospectList.filter((p: any) => p.tiktok_handle).length;
+  const withLinkedin = prospectList.filter((p: any) => p.linkedin_url).length;
+  const emailNotStarted = prospectList.filter((p: any) => p.email && (!p.email_sequence_status || p.email_sequence_status === 'not_started')).length;
+  const dmNotStarted = prospectList.filter((p: any) => p.instagram && (!p.dm_status || p.dm_status === 'none')).length;
 
   // Today's additions
   const now = Date.now();
   const oneDay = 24 * 60 * 60 * 1000;
-  const todayCount = prospectList.filter(p => new Date(p.created_at).getTime() > now - oneDay).length;
+  const todayCount = prospectList.filter((p: any) => new Date(p.created_at).getTime() > now - oneDay).length;
 
   return {
     prospects: prospectList.slice(0, 200), // Limit for frontend perf
