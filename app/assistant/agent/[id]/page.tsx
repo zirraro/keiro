@@ -259,6 +259,177 @@ const DAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 
 // ─── Main Component ─────────────────────────────────────────
 
+// ─── Hugo Email Planning (Planning tab for agentId === 'email') ──
+// Replaces the social-media EditorialCalendar with an email-centric
+// view: scheduled sends/replies, send windows, daily volume, recent
+// activity. Built 2026-05-17 after founder feedback that the planning
+// tab on Hugo's page was showing social posts which made no sense
+// for an email-only agent.
+function EmailPlanningView() {
+  const { locale } = useLanguage();
+  const en = locale === 'en';
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/agents/email/planning', { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => { if (d?.ok) setData(d); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return <div className="text-center py-16 text-white/40 text-sm">{en ? 'Loading…' : 'Chargement…'}</div>;
+  }
+
+  if (!data) {
+    return (
+      <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-8 text-center">
+        <div className="text-3xl mb-2">📅</div>
+        <p className="text-white/60 text-sm">{en ? 'No data yet' : 'Pas encore de données'}</p>
+      </div>
+    );
+  }
+
+  const days = Object.keys(data.by_day).sort();
+  const maxTotal = Math.max(1, ...days.map(d => data.by_day[d].total));
+  const todayKey = data.today;
+  const today = data.by_day[todayKey] || { total: 0, step1: 0, followup: 0 };
+
+  const dayLabel = (key: string) => {
+    const d = new Date(key + 'T00:00:00');
+    if (key === todayKey) return en ? 'Today' : "Aujourd'hui";
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    if (key === `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`) {
+      return en ? 'Tomorrow' : 'Demain';
+    }
+    return d.toLocaleDateString(en ? 'en-US' : 'fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div>
+        <h2 className="text-white font-bold text-lg mb-1">{en ? 'Email planning' : 'Planning email'}</h2>
+        <p className="text-white/40 text-xs">{en ? 'Sends + replies scheduled by Hugo over the next 7 days' : 'Envois + réponses programmés par Hugo sur les 7 prochains jours'}</p>
+      </div>
+
+      {/* Today snapshot */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div className="rounded-xl border border-cyan-500/20 bg-cyan-900/10 p-3">
+          <div className="text-[10px] text-cyan-300/80 uppercase font-bold mb-1">{en ? "Today's sends" : "Envois aujourd'hui"}</div>
+          <div className="text-2xl font-bold text-white">{today.total}</div>
+          <div className="text-[10px] text-white/40 mt-0.5">
+            {today.step1} {en ? 'new' : 'nouveaux'} · {today.followup} {en ? 'follow-ups' : 'relances'}
+          </div>
+        </div>
+        <div className="rounded-xl border border-purple-500/20 bg-purple-900/10 p-3">
+          <div className="text-[10px] text-purple-300/80 uppercase font-bold mb-1">{en ? 'Last 24h sent' : '24h écoulées'}</div>
+          <div className="text-2xl font-bold text-white">{data.recent.sent_24h}</div>
+          <div className="text-[10px] text-white/40 mt-0.5">{en ? 'emails dispatched' : 'emails envoyés'}</div>
+        </div>
+        <div className="rounded-xl border border-emerald-500/20 bg-emerald-900/10 p-3">
+          <div className="text-[10px] text-emerald-300/80 uppercase font-bold mb-1">{en ? 'Inbound 48h' : 'Réponses 48h'}</div>
+          <div className="text-2xl font-bold text-white">{data.recent.inbound_48h}</div>
+          <div className="text-[10px] text-white/40 mt-0.5">{en ? 'replies received' : 'réponses reçues'}</div>
+        </div>
+        <div className="rounded-xl border border-amber-500/20 bg-amber-900/10 p-3">
+          <div className="text-[10px] text-amber-300/80 uppercase font-bold mb-1">{en ? 'To reply' : 'À répondre'}</div>
+          <div className="text-2xl font-bold text-white">{data.recent.pending_replies}</div>
+          <div className="text-[10px] text-white/40 mt-0.5">{en ? 'pending Hugo reply' : "en attente de Hugo"}</div>
+        </div>
+      </div>
+
+      {/* 7-day chart */}
+      <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+        <h3 className="text-white font-bold text-sm mb-3">{en ? 'Sends over the next 7 days' : 'Envois sur 7 jours'}</h3>
+        <div className="space-y-2">
+          {days.map(key => {
+            const d = data.by_day[key];
+            const w = (d.total / maxTotal) * 100;
+            const isToday = key === todayKey;
+            return (
+              <div key={key} className="flex items-center gap-2">
+                <div className={`text-[11px] w-20 sm:w-24 ${isToday ? 'text-cyan-300 font-bold' : 'text-white/60'}`}>{dayLabel(key)}</div>
+                <div className="flex-1 h-6 bg-white/5 rounded-md overflow-hidden flex items-center relative">
+                  <div
+                    className="h-full rounded-md"
+                    style={{
+                      width: `${w}%`,
+                      background: isToday
+                        ? 'linear-gradient(90deg, #06b6d4, #3b82f6)'
+                        : 'linear-gradient(90deg, #a855f7aa, #6366f1aa)',
+                    }}
+                  />
+                  <div className="absolute left-2 text-[10px] font-bold text-white drop-shadow">
+                    {d.total > 0 ? d.total : ''}
+                  </div>
+                  {d.total > 0 && (
+                    <div className="absolute right-2 text-[10px] text-white/60">
+                      {d.step1 > 0 && <span className="mr-1.5">{d.step1} {en ? 'new' : 'nouv.'}</span>}
+                      {d.followup > 0 && <span>{d.followup} {en ? 'follow-up' : 'relance'}</span>}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div className="flex gap-3 mt-3 text-[10px] text-white/40">
+          <span><span className="inline-block w-2 h-2 rounded-sm bg-purple-400/60 mr-1" />{en ? 'Future days' : 'Jours suivants'}</span>
+          <span><span className="inline-block w-2 h-2 rounded-sm bg-cyan-400 mr-1" />{en ? 'Today' : "Aujourd'hui"}</span>
+        </div>
+      </div>
+
+      {/* Settings & queue */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+          <h3 className="text-white font-bold text-sm mb-3">{en ? 'Send schedule' : "Créneaux d'envoi"}</h3>
+          <div className="space-y-2 text-xs">
+            <div className="flex justify-between"><span className="text-white/50">{en ? 'Morning slot' : 'Créneau matin'}</span><span className="text-white font-medium">{data.settings.send_hour_1}</span></div>
+            <div className="flex justify-between"><span className="text-white/50">{en ? 'Afternoon slot' : 'Créneau après-midi'}</span><span className="text-white font-medium">{data.settings.send_hour_2}</span></div>
+            <div className="flex justify-between"><span className="text-white/50">{en ? 'Daily cap' : 'Plafond quotidien'}</span><span className="text-white font-medium">{data.settings.max_per_day} {en ? 'emails' : 'emails'}</span></div>
+            <div className="flex justify-between"><span className="text-white/50">{en ? 'Follow-up delay' : 'Délai relance'}</span><span className="text-white font-medium">{data.settings.relance_delay} {en ? 'days' : 'jours'}</span></div>
+            <div className="flex justify-between"><span className="text-white/50">{en ? 'Max follow-ups' : 'Relances max'}</span><span className="text-white font-medium">{data.settings.max_steps}</span></div>
+          </div>
+          <a href={`?tab=settings`} className="mt-3 inline-block text-[10px] text-cyan-400 hover:underline">{en ? 'Edit schedule →' : 'Modifier les créneaux →'}</a>
+        </div>
+        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+          <h3 className="text-white font-bold text-sm mb-3">{en ? 'Prospect queue' : 'File de prospects'}</h3>
+          <div className="space-y-2 text-xs">
+            <div className="flex justify-between"><span className="text-emerald-300/80">{en ? 'Eligible (Hugo will email)' : 'Éligibles (Hugo va emailer)'}</span><span className="text-white font-bold">{data.queue.eligible}</span></div>
+            <div className="flex justify-between"><span className="text-white/40">{en ? 'Completed sequence' : 'Séquence terminée'}</span><span className="text-white/60">{data.queue.blocked_completed}</span></div>
+            <div className="flex justify-between"><span className="text-white/40">{en ? 'Bounced / invalid' : 'Rebond / invalide'}</span><span className="text-white/60">{data.queue.blocked_bounced}</span></div>
+            <div className="flex justify-between"><span className="text-white/40">{en ? 'Dead / client / lost' : 'Mort / client / perdu'}</span><span className="text-white/60">{data.queue.blocked_dead}</span></div>
+            <div className="pt-2 border-t border-white/5 flex justify-between"><span className="text-white/60">{en ? 'Total CRM' : 'CRM total'}</span><span className="text-white font-medium">{data.queue.total}</span></div>
+          </div>
+        </div>
+      </div>
+
+      {/* Recent activity */}
+      {data.recent_logs.length > 0 && (
+        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+          <h3 className="text-white font-bold text-sm mb-3">{en ? 'Recent activity' : 'Activité récente'}</h3>
+          <div className="space-y-1.5">
+            {data.recent_logs.map((l: any, i: number) => (
+              <div key={i} className="flex items-center gap-2 text-[11px]">
+                <span className={`shrink-0 w-2 h-2 rounded-full ${l.status === 'success' ? 'bg-emerald-400' : l.status === 'error' ? 'bg-red-400' : 'bg-amber-400'}`} />
+                <span className="text-white/60 shrink-0 w-32 truncate">{l.action}</span>
+                <span className="text-white/40 truncate flex-1">{l.preview || '—'}</span>
+                <span className="text-white/20 text-[10px] shrink-0">
+                  {new Date(l.created_at).toLocaleTimeString(en ? 'en-US' : 'fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Editorial Calendar Full (Planning tab) ──────────────────
 type ViewMode = 'day' | 'week' | 'month';
 
@@ -1948,7 +2119,10 @@ export default function AgentWorkspacePage() {
         )}
 
         {/* ═══ TAB: PLANNING ═══ */}
-        {activeTab === 'planning' && (
+        {activeTab === 'planning' && agentId === 'email' && (
+          <EmailPlanningView />
+        )}
+        {activeTab === 'planning' && agentId !== 'email' && (
           <EditorialCalendarFull agentId={agentId} />
         )}
         {false && (

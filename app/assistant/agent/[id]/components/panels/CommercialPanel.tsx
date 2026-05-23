@@ -5,13 +5,179 @@
  * Extracted from AgentDashboard.tsx.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   fmt, fmtDate,
   KpiCard, SectionTitle,
 } from './Primitives';
 import { useLanguage } from '@/lib/i18n/context';
 import type { PanelProps } from './types';
+
+// Direction controls — let the founder steer Léo toward a sector + city.
+// Hits gmaps with a custom query and persists the focus to agent_settings
+// so the next cron pass keeps targeting the same niche. Replaces the
+// generic "lance une recherche" button which had no memory.
+function LeoDirectionPanel() {
+  const [sector, setSector] = useState('');
+  const [city, setCity] = useState('');
+  const [launching, setLaunching] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; message?: string } | null>(null);
+  const [persisting, setPersisting] = useState(false);
+  const [persistedFocus, setPersistedFocus] = useState<{ sector?: string; city?: string } | null>(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('keiro_leo_focus');
+      if (raw) {
+        const f = JSON.parse(raw);
+        if (f && (f.sector || f.city)) {
+          setPersistedFocus(f);
+          setSector(f.sector || '');
+          setCity(f.city || '');
+        }
+      }
+    } catch {}
+    fetch('/api/agents/commercial/focus', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        const f = d?.focus;
+        if (f && (f.sector || f.city)) {
+          setPersistedFocus(f);
+          setSector(f.sector || '');
+          setCity(f.city || '');
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const SECTORS = ['restaurant', 'boutique', 'coach', 'coiffeur', 'fleuriste', 'caviste', 'salon de beaute', 'traiteur', 'photographe'];
+
+  const launch = useCallback(async () => {
+    setLaunching(true);
+    setResult(null);
+    const q = [sector, city].filter(Boolean).join(' ');
+    try {
+      const res = await fetch('/api/agents/gmaps', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ query: q || undefined }),
+      });
+      const data = await res.json();
+      setResult({
+        ok: data.ok !== false,
+        message: data.message || data.error || `${data.imported || 0} prospects ajoutes depuis Google Maps`,
+      });
+    } catch (e: any) {
+      setResult({ ok: false, message: e.message });
+    } finally { setLaunching(false); }
+  }, [sector, city]);
+
+  const saveFocus = useCallback(async () => {
+    setPersisting(true);
+    const focus = { sector, city };
+    try {
+      try { localStorage.setItem('keiro_leo_focus', JSON.stringify(focus)); } catch {}
+      await fetch('/api/agents/commercial/focus', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(focus),
+      });
+      setPersistedFocus(focus);
+    } catch {}
+    finally { setPersisting(false); }
+  }, [sector, city]);
+
+  return (
+    <div className="rounded-xl border border-blue-500/20 bg-blue-900/10 p-4 space-y-3">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <h4 className="text-sm font-bold text-blue-300">{'🎯'} Diriger Léo</h4>
+        {persistedFocus && (persistedFocus.sector || persistedFocus.city) && (
+          <span className="text-[10px] text-blue-300/60">
+            Focus actuel : <strong>{persistedFocus.sector || 'tous secteurs'}</strong>
+            {persistedFocus.city && <> · {persistedFocus.city}</>}
+          </span>
+        )}
+      </div>
+      <p className="text-[11px] text-white/50">Concentre la prospection sur un secteur et/ou une ville. Léo prospectera ces cibles en priorité à chaque passage (toutes les 6h).</p>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div>
+          <label className="text-[10px] text-white/40 uppercase font-bold mb-1 block">Secteur</label>
+          <input
+            list="leo-sector-options"
+            type="text"
+            value={sector}
+            onChange={e => setSector(e.target.value)}
+            placeholder="ex: coach, restaurant..."
+            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+          />
+          <datalist id="leo-sector-options">
+            {SECTORS.map(s => <option key={s} value={s} />)}
+          </datalist>
+        </div>
+        <div>
+          <label className="text-[10px] text-white/40 uppercase font-bold mb-1 block">Ville</label>
+          <input
+            type="text"
+            value={city}
+            onChange={e => setCity(e.target.value)}
+            placeholder="ex: Amiens, Paris..."
+            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+          />
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={launch}
+          disabled={launching}
+          className="flex-1 min-w-[160px] px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs font-bold rounded-xl hover:shadow-lg transition-all disabled:opacity-50 min-h-[44px]"
+        >
+          {launching ? 'Recherche...' : `${'🔍'} Lancer une recherche maintenant`}
+        </button>
+        <button
+          onClick={saveFocus}
+          disabled={persisting || (!sector && !city)}
+          className="px-4 py-2 bg-white/10 text-white/80 text-xs font-bold rounded-xl hover:bg-white/15 transition-all disabled:opacity-40 min-h-[44px]"
+        >
+          {persisting ? '...' : `${'💾'} Sauvegarder le focus`}
+        </button>
+      </div>
+
+      {result && (
+        <div className={`text-[10px] px-3 py-2 rounded-lg ${result.ok ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+          {result.message}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Profile completeness — exhaustiveness scoring. Counts how many fields
+// are filled on a prospect to surface "fiches client bien exhaustives"
+// vs the half-empty ones.
+function completeness(p: any): { pct: number; missing: string[] } {
+  const fields = [
+    ['company', 'nom'],
+    ['email', 'email'],
+    ['type', 'secteur'],
+    ['quartier', 'ville/quartier'],
+    ['instagram', 'instagram'],
+    ['linkedin_url', 'linkedin'],
+    ['tiktok_handle', 'tiktok'],
+    ['phone', 'tel'],
+    ['note_google', 'note Google'],
+    ['site_web', 'site web'],
+  ];
+  const present = fields.filter(([k]) => {
+    const v = p?.[k];
+    return v !== null && v !== undefined && v !== '' && v !== 'A_VERIFIER';
+  });
+  const missing = fields.filter(([k]) => !present.find(([pk]) => pk === k)).map(([, label]) => label);
+  return { pct: Math.round((present.length / fields.length) * 100), missing };
+}
 
 // Internal helper — standalone launch button for Leo's proactive scraping.
 function LaunchProspectionButton() {
@@ -167,7 +333,99 @@ export function CommercialPanel({ data, agentName, gradientFrom, gradientTo }: P
         })}
       </div>
 
-      {/* Launch prospection button */}
+      {/* Direction controls — what to prospect & how to focus */}
+      <SectionTitle>Direction de Léo</SectionTitle>
+      <LeoDirectionPanel />
+
+      {/* Latest additions — proves Léo is working, shows quality */}
+      <SectionTitle>{'📋'} Derniers ajouts de Léo</SectionTitle>
+      {prospects.length === 0 ? (
+        <div className="rounded-xl border border-amber-500/20 bg-amber-900/5 p-4 text-center">
+          <div className="text-2xl mb-1">{'⏳'}</div>
+          <p className="text-xs text-amber-300 font-bold">Aucun prospect pour le moment</p>
+          <p className="text-[10px] text-white/40 mt-1">Léo prospecte automatiquement toutes les 6h. Lance une recherche ciblée ci-dessus pour démarrer immédiatement.</p>
+        </div>
+      ) : (
+        <>
+          {(() => {
+            const avgCompleteness = Math.round(
+              prospects.slice(0, 50).reduce((s: number, p: any) => s + completeness(p).pct, 0) / Math.min(50, prospects.length)
+            );
+            const exhaustive = prospects.slice(0, 50).filter((p: any) => completeness(p).pct >= 70).length;
+            return (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
+                <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-2 text-center">
+                  <div className="text-lg font-bold text-emerald-400">{avgCompleteness}%</div>
+                  <div className="text-[9px] text-emerald-400/60">Complétude moyenne</div>
+                </div>
+                <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-2 text-center">
+                  <div className="text-lg font-bold text-blue-400">{exhaustive}/{Math.min(50, prospects.length)}</div>
+                  <div className="text-[9px] text-blue-400/60">Fiches exhaustives (70%+)</div>
+                </div>
+                <div className="rounded-lg bg-purple-500/10 border border-purple-500/20 p-2 text-center col-span-2 sm:col-span-1">
+                  <div className="text-lg font-bold text-purple-400">{today}</div>
+                  <div className="text-[9px] text-purple-400/60">Ajoutés aujourd'hui</div>
+                </div>
+              </div>
+            );
+          })()}
+          <div className="space-y-2">
+            {prospects.slice(0, 8).map((pr: any) => {
+              const comp = completeness(pr);
+              const tempColor = pr.temperature === 'hot' ? '#ef4444' : pr.temperature === 'warm' ? '#f59e0b' : pr.temperature === 'cold' ? '#3b82f6' : '#6b7280';
+              return (
+                <a
+                  key={pr.id}
+                  href={`/assistant/crm?prospect=${pr.id}`}
+                  className="block rounded-xl border border-white/10 bg-white/[0.03] p-3 hover:bg-white/[0.06] transition-all"
+                >
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span
+                      className="text-[9px] font-bold px-2 py-0.5 rounded-full"
+                      style={{ backgroundColor: `${tempColor}22`, color: tempColor }}
+                    >
+                      {pr.temperature || 'unscored'}
+                    </span>
+                    <span className="text-sm font-bold text-white truncate flex-1">{pr.company || '(sans nom)'}</span>
+                    <span className="text-[10px] text-white/30 shrink-0">{fmtDate(pr.created_at)}</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 text-[10px] text-white/50">
+                    {pr.type && <span className="px-1.5 py-0.5 rounded bg-white/5">{pr.type}</span>}
+                    {pr.email && <span>{'📧'}</span>}
+                    {pr.instagram && pr.instagram !== 'A_VERIFIER' && <span>{'📷'}</span>}
+                    {pr.linkedin_url && <span>{'💼'}</span>}
+                    {pr.tiktok_handle && <span>{'🎵'}</span>}
+                    <span className="ml-auto flex items-center gap-1.5">
+                      <div className="w-16 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${comp.pct}%`,
+                            backgroundColor: comp.pct >= 70 ? '#10b981' : comp.pct >= 40 ? '#f59e0b' : '#ef4444',
+                          }}
+                        />
+                      </div>
+                      <span className="text-[9px] text-white/40">{comp.pct}%</span>
+                    </span>
+                  </div>
+                  {comp.missing.length > 0 && comp.pct < 70 && (
+                    <div className="text-[9px] text-white/30 mt-1">
+                      Manque : {comp.missing.slice(0, 3).join(', ')}{comp.missing.length > 3 ? `, +${comp.missing.length - 3}` : ''}
+                    </div>
+                  )}
+                </a>
+              );
+            })}
+          </div>
+          {prospects.length > 8 && (
+            <a href="/assistant/crm" className="block text-center mt-3 py-2 text-xs text-blue-400 hover:underline">
+              Voir les {prospects.length - 8} autres prospects dans le CRM →
+            </a>
+          )}
+        </>
+      )}
+
+      {/* Quick action: launch one-shot prospection without focus */}
       <SectionTitle>{p.commercialSectionQuickActions}</SectionTitle>
       <LaunchProspectionButton />
 

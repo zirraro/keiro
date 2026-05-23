@@ -3,6 +3,20 @@ import { createClient } from '@supabase/supabase-js';
 import { saveLearning } from '@/lib/agents/learning';
 import { saveKnowledge } from '@/lib/agents/knowledge-rag';
 
+// Plan floors mirror lib/agents/service-guarantees.ts. Duplicated inline
+// because Noah's evening brief renders HTML (the shared helper outputs
+// markdown). Keep the two in sync; if they drift, the brief lies.
+const PLAN_FLOORS: Record<string, { posts: number; emails: number; prospects: number; dms: number }> = {
+  free:       { posts: 0, emails: 0,  prospects: 0,  dms: 0  },
+  createur:   { posts: 2, emails: 25, prospects: 15, dms: 6  },
+  pro:        { posts: 4, emails: 45, prospects: 32, dms: 12 },
+  business:   { posts: 5, emails: 70, prospects: 55, dms: 18 },
+  fondateurs: { posts: 5, emails: 70, prospects: 55, dms: 18 },
+  elite:      { posts: 6, emails: 90, prospects: 75, dms: 22 },
+  agence:     { posts: 6, emails: 90, prospects: 75, dms: 22 },
+  admin:      { posts: 6, emails: 100, prospects: 100, dms: 25 },
+};
+
 export const runtime = 'nodejs';
 export const maxDuration = 300;
 
@@ -782,6 +796,49 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
 <ul style="margin:0 0 12px;padding-left:18px;font-size:13px;"><li>Tes agents continuent leur travail en arrière-plan.</li></ul>`;
       }
 
+      // Plan promise tracker — coherent deterministic block so the
+      // client sees today's work mapped against what their plan
+      // guarantees. Per founder feedback 2026-05-17: must be honest,
+      // optimistic on % when delivered, no exaggeration.
+      const planKey = (client.subscription_plan || 'createur').toLowerCase();
+      const floors = PLAN_FLOORS[planKey] || PLAN_FLOORS.createur;
+      const planPromise = [
+        { emoji: '🎨', label: 'Posts', actual: doneCounts.posts_published, floor: floors.posts, color: '#16a34a' },
+        { emoji: '✉️', label: 'Emails', actual: doneCounts.emails_sent, floor: floors.emails, color: '#2563eb' },
+        { emoji: '🎯', label: 'Prospects', actual: doneCounts.prospects_added, floor: floors.prospects, color: '#7c3aed' },
+        { emoji: '💬', label: 'DMs', actual: doneCounts.dms_sent, floor: floors.dms, color: '#a855f7' },
+      ];
+      const metFloors = planPromise.filter(p => p.floor > 0 && p.actual >= p.floor).length;
+      const totalFloors = planPromise.filter(p => p.floor > 0).length;
+      const overallPct = totalFloors > 0
+        ? Math.min(100, Math.round((planPromise.filter(p => p.floor > 0).reduce((s, p) => s + Math.min(1, p.actual / p.floor), 0) / totalFloors) * 100))
+        : 0;
+      const planLabel = planKey.charAt(0).toUpperCase() + planKey.slice(1);
+      const planPromiseHtml = totalFloors > 0 ? `
+<h4 style="margin:16px 0 8px;color:#374151;font-size:13px;">🎯 Ton plan ${planLabel} — engagement du jour</h4>
+<div style="background:#fafafa;border-radius:10px;padding:12px;margin:0 0 12px;border:1px solid #e5e7eb;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 10px;">
+    <div style="font-size:12px;color:#374151;"><strong>${metFloors}/${totalFloors}</strong> engagements tenus aujourd'hui</div>
+    <div style="font-size:18px;font-weight:bold;color:${overallPct >= 80 ? '#16a34a' : overallPct >= 50 ? '#d97706' : '#dc2626'};">${overallPct}%</div>
+  </div>
+  ${planPromise.filter(p => p.floor > 0).map(p => {
+    const pct = Math.min(100, Math.round((p.actual / p.floor) * 100));
+    const met = p.actual >= p.floor;
+    const barColor = met ? '#16a34a' : pct >= 60 ? '#f59e0b' : '#94a3b8';
+    return `
+    <div style="margin:6px 0;">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:#374151;margin:0 0 3px;">
+        <span>${p.emoji} ${p.label}</span>
+        <span><strong>${p.actual}</strong> / ${p.floor} ${met ? '<span style=\"color:#16a34a;\">✓</span>' : ''}</span>
+      </div>
+      <div style="background:#e5e7eb;border-radius:4px;height:6px;overflow:hidden;">
+        <div style="background:${barColor};height:100%;width:${pct}%;border-radius:4px;"></div>
+      </div>
+    </div>`;
+  }).join('')}
+  <div style="font-size:10px;color:#9ca3af;margin-top:8px;font-style:italic;">${metFloors === totalFloors ? 'Tous tes agents ont délivré leur minimum quotidien.' : 'Les agents en dessous sont relancés automatiquement pour demain.'}</div>
+</div>` : '';
+
       // Stats strip — 6 tiles (3x2): full funnel production → outreach → pipeline.
       const openRate = doneCounts.emails_sent > 0
         ? Math.round((doneCounts.emails_opened / doneCounts.emails_sent) * 100)
@@ -875,8 +932,9 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
         : '';
 
       // Assembly order: achievements on top (dopamine), then AI narrative,
-      // then per-agent detail, then stats tiles, then error footnote
-      briefHtml = `${achievementsHtml}${briefHtml}${perAgentHtml}${statsStripHtml}${footerNote}`;
+      // then plan-promise tracker (deterministic + visual), then per-agent
+      // detail, then stats tiles, then error footnote.
+      briefHtml = `${achievementsHtml}${briefHtml}${planPromiseHtml}${perAgentHtml}${statsStripHtml}${footerNote}`;
 
       // Save as in-app notification
       if (prefs?.inapp_enabled !== false) {

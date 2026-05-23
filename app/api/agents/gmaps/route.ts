@@ -342,10 +342,11 @@ async function runGMapsScan(orgId: string | null = null, userId: string | null =
   // paid and free tier can't carry it). Admin bypasses for testing.
   let planCfg: PlanConfig = GMAPS_PLAN_CONFIG.pro;
   let plan = 'pro';
+  let userFocus: { sector?: string; city?: string } | null = null;
   if (userId) {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('subscription_plan, is_admin')
+      .select('subscription_plan, is_admin, gmaps_focus')
       .eq('id', userId)
       .maybeSingle();
     plan = profile?.is_admin ? 'admin' : (profile?.subscription_plan || 'free');
@@ -354,7 +355,15 @@ async function runGMapsScan(orgId: string | null = null, userId: string | null =
       console.log(`[GMaps] Plan ${plan} has no gmaps quota — skipping scan for user ${userId.substring(0, 8)}`);
       return NextResponse.json({ ok: true, skipped: true, reason: 'plan_disabled', plan });
     }
-    console.log(`[GMaps] Plan ${plan} → ${planCfg.zones} zone(s) × ${planCfg.queries} query(s) × ${planCfg.details} details max`);
+    userFocus = profile?.gmaps_focus || null;
+    console.log(`[GMaps] Plan ${plan} → ${planCfg.zones} zone(s) × ${planCfg.queries} query(s) × ${planCfg.details} details max${userFocus ? ` | focus: ${userFocus.sector || '-'} ${userFocus.city || '-'}` : ''}`);
+  }
+
+  // If the founder set a persistent focus (sector and/or city), use it
+  // as the custom query whenever no explicit query is passed. The cron
+  // pipeline benefits without needing to pass anything from outside.
+  if (!customQuery && userFocus && (userFocus.sector || userFocus.city)) {
+    customQuery = [userFocus.sector, userFocus.city].filter(Boolean).join(' ').trim() || null;
   }
   const MAX_DETAILS_PER_RUN = planCfg.details;
 
