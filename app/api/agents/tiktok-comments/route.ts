@@ -111,27 +111,86 @@ export async function POST(req: NextRequest) {
           if (c.text.length < 3 || /follow|dm me|check|click|http/i.test(c.text)) continue;
 
           // Idempotency: have we already replied to this comment?
+          // Same atomic pattern as Jade IG comments — uses .filter on
+          // data->>comment_id which is the column the UNIQUE INDEX
+          // tracks, so the lock and the read are consistent.
           const { data: existing } = await supabase
             .from('agent_logs')
             .select('id')
             .eq('agent', 'tiktok_comments')
-            .contains('data', { comment_id: c.id })
+            .filter('data->>comment_id', 'eq', c.id)
             .limit(1)
             .maybeSingle();
           if (existing) continue;
 
+          // ATOMIC LOCK — insert reservation row FIRST. UNIQUE INDEX
+          // (agent, data->>'comment_id') rejects races.
+          const lockTime = new Date().toISOString();
+          const { error: ttLockErr } = await supabase.from('agent_logs').insert({
+            agent: 'tiktok_comments',
+            action: 'reply_sent',
+            status: 'pending',
+            user_id: u.id,
+            data: { comment_id: c.id, video_id: v.id, username: c.author?.username, reserving: true },
+            created_at: lockTime,
+          });
+          if (ttLockErr) {
+            if (!String(ttLockErr.message).includes('duplicate')) {
+              console.warn(`[Axel] reservation failed for ${c.id}: ${ttLockErr.message}`);
+            }
+            continue;
+          }
+
+          // Language detection + lock — mirror the commenter's language.
+          const { detectLanguage } = await import('@/lib/agents/language-detect');
+          const ttLang = detectLanguage(c.text);
+          const TT_LANG_LABEL: Record<string, string> = {
+            fr: 'French', en: 'English', es: 'Spanish', de: 'German', unknown: 'French',
+          };
+          const ttTargetLang = TT_LANG_LABEL[ttLang] || 'French';
+          const ttLangLock = ttLang !== 'fr' && ttLang !== 'unknown'
+            ? `\n\n⚠️ HARD LANGUAGE LOCK — The commenter wrote in ${ttTargetLang}. YOUR ENTIRE REPLY MUST BE IN ${ttTargetLang.toUpperCase()}. Not a single French word.`
+            : '';
+
+          // Emoji rotation — same logic as Jade IG comments.
+          const ttRecentEmojis = new Set<string>();
+          try {
+            const { data: recentReplies } = await supabase
+              .from('agent_logs')
+              .select('data')
+              .eq('agent', 'tiktok_comments')
+              .eq('action', 'reply_sent')
+              .eq('status', 'success')
+              .order('created_at', { ascending: false })
+              .limit(8);
+            const EMOJI_RE = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu;
+            for (const r of recentReplies || []) {
+              const txt = String(r.data?.reply || '');
+              const found = txt.match(EMOJI_RE) || [];
+              for (const e of found) ttRecentEmojis.add(e);
+            }
+          } catch {}
+          const ttAllowEmoji = Math.random() < 0.35;
+          const ttForbidden = Array.from(ttRecentEmojis).join(' ');
+
           // Generate reply — same warm tone as Jade, plus commenter
           // context (bio / verified / followers).
           const commenterBlock = ttCommenterToPromptContext(c.author);
-          const promptText = `Tu gères les commentaires TikTok d'un commerce. Réponds à ce commentaire de manière naturelle, chaleureuse et engageante. Max 2 phrases. TikTok cap : 150 caractères.
+          const promptText = `${ttLangLock}
+
+Tu gères les commentaires TikTok d'un commerce. Réponds à ce commentaire de manière naturelle, chaleureuse et engageante. Max 2 phrases. TikTok cap : 150 caractères.
+
+EMOJI : ${ttAllowEmoji
+  ? `Un emoji max, seulement s'il apporte vraiment quelque chose. La plupart des réponses naturelles n'en ont pas.${ttForbidden ? ` INTERDIT cette fois : ${ttForbidden}` : ''}`
+  : `ZÉRO emoji cette fois. Réponse 100% texte, plus naturel.`}
 
 Si tu connais le prénom ou la niche du commentateur, glisse une référence courte qui montre que tu l'as remarqué — sans en faire trop.
 ${brandContext ? `\n${brandContext}\n` : ''}
 ${commenterBlock}
 
 Commentaire : "${c.text}"
-
-Réponds UNIQUEMENT avec le texte de la réponse, en français, sans guillemets.`;
+${ttLangLock}
+Réponds UNIQUEMENT avec le texte de la réponse${ttLang !== 'fr' && ttLang !== 'unknown' ? `, en ${ttTargetLang}` : ', en français'}, sans guillemets.`;
 
           let reply = '';
           try {
@@ -141,22 +200,45 @@ Réponds UNIQUEMENT avec le texte de la réponse, en français, sans guillemets.
               messages: [{ role: 'user', content: promptText }],
             });
             reply = resp.content[0].type === 'text' ? resp.content[0].text.trim() : '';
-            // Trim trailing punctuation issues + ensure sentence ends.
+            if (!ttAllowEmoji) {
+              reply = reply.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '').replace(/\s{2,}/g, ' ').trim();
+            }
             if (reply.length > 150) reply = reply.slice(0, 147).replace(/[\s,;:]+$/, '') + '…';
             else if (reply && !/[.!?…]$/.test(reply)) reply = reply.replace(/[\s,;:]+$/, '') + '.';
+            // Post-check language: regenerate if mismatch
+            if (ttLang !== 'fr' && ttLang !== 'unknown') {
+              const replyLang = detectLanguage(reply);
+              if (replyLang === 'fr' || (replyLang !== ttLang && replyLang !== 'unknown')) {
+                try {
+                  const retry = await anthropic.messages.create({
+                    model: 'claude-haiku-4-5-20251001',
+                    max_tokens: 200,
+                    system: `Reply to this TikTok comment in ${ttTargetLang} only. 1-2 short sentences, max 150 chars, no AI mention, no DM-me, no hashtags.`,
+                    messages: [{ role: 'user', content: `Comment: "${c.text}"\n\nReply in ${ttTargetLang}.` }],
+                  });
+                  const retryText = retry.content[0].type === 'text' ? retry.content[0].text.trim() : '';
+                  if (retryText) reply = retryText.slice(0, 150);
+                } catch {}
+              }
+            }
           } catch {}
-          if (!reply) continue;
+          if (!reply) {
+            // Release the reservation
+            await supabase.from('agent_logs').delete()
+              .eq('agent', 'tiktok_comments')
+              .eq('status', 'pending')
+              .filter('data->>comment_id', 'eq', c.id);
+            continue;
+          }
 
           // Post the reply. If the scope isn't granted (403), queue
           // for manual reply via the dashboard instead.
           const post = await replyTtComment(v.id, c.id, reply, u.tiktok_access_token);
           if (post.ok) {
             userReplied++;
-            await supabase.from('agent_logs').insert({
-              agent: 'tiktok_comments',
-              action: 'reply_sent',
+            // Promote the reservation
+            await supabase.from('agent_logs').update({
               status: 'success',
-              user_id: u.id,
               data: {
                 comment_id: c.id,
                 video_id: v.id,
@@ -166,9 +248,16 @@ Réponds UNIQUEMENT avec le texte de la réponse, en français, sans guillemets.
                 auto: true,
                 tt_reply_id: post.comment_id,
               },
-              created_at: new Date().toISOString(),
-            });
+            })
+            .eq('agent', 'tiktok_comments')
+            .eq('status', 'pending')
+            .filter('data->>comment_id', 'eq', c.id);
           } else if (post.reason === 'scope_missing') {
+            // Release reservation (we'll queue a separate 'reply_queued' row)
+            await supabase.from('agent_logs').delete()
+              .eq('agent', 'tiktok_comments')
+              .eq('status', 'pending')
+              .filter('data->>comment_id', 'eq', c.id);
             // Queue for manual reply
             userQueued++;
             await supabase.from('agent_logs').insert({
@@ -188,6 +277,12 @@ Réponds UNIQUEMENT avec le texte de la réponse, en français, sans guillemets.
             });
             firstError = firstError || 'scope_missing';
           } else {
+            // Generic failure: release the reservation so a retry
+            // pass can pick this comment up again.
+            await supabase.from('agent_logs').delete()
+              .eq('agent', 'tiktok_comments')
+              .eq('status', 'pending')
+              .filter('data->>comment_id', 'eq', c.id);
             console.warn(`[Axel] reply failed for comment ${c.id}: ${post.reason}`);
           }
         }
