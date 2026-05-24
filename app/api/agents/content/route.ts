@@ -1516,12 +1516,42 @@ export async function GET(request: NextRequest) {
     }
     const unpublished = todayPosts.filter((p: any) => p.status === 'draft' || p.status === 'approved');
     const maxPublishPerSlot = slot === 'tiktok' ? 2 : 1; // TikTok slot can do 2 (video + photo)
+
+    // Spacing guard — minimum gap between two publications on the SAME
+    // platform for the SAME user. Founder spotted 2026-05-24 that two
+    // Instagram posts went out at 07:03:15 and 07:03:19 (4 seconds
+    // apart) because two publication paths (this slot loop +
+    // execute_publication backlog) fired in the same cron tick. Pro
+    // plan baseline is 1 Instagram post per day — and even when bumped,
+    // never two within hours. We cap at 1 publication / 4h / platform.
+    const MIN_GAP_HOURS_BETWEEN_PUBLISH = 4;
+    async function recentlyPublishedSamePlatform(platform: string, uid: string | null): Promise<boolean> {
+      if (!uid) return false;
+      const since = new Date(Date.now() - MIN_GAP_HOURS_BETWEEN_PUBLISH * 3600 * 1000).toISOString();
+      const { count } = await supabase
+        .from('content_calendar')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', uid)
+        .eq('platform', platform)
+        .eq('status', 'published')
+        .gte('published_at', since);
+      return (count || 0) > 0;
+    }
+
     if (unpublished.length > 0 && isCron) {
       console.log(`[Content] ${unpublished.length} unpublished posts for today — mode=${publishMode}, max ${maxPublishPerSlot} for slot: ${slot || 'default'}`);
       let published = 0;
       let notified = 0;
       for (const post of unpublished.slice(0, maxPublishPerSlot)) {
         try {
+          // Spacing guard — skip if another post on the same platform
+          // was published within the last 4h. Prevents the double-shot
+          // scenario the founder reported (two IG posts 4 seconds apart).
+          const postPlatform = (post as any).platform || 'instagram';
+          if (await recentlyPublishedSamePlatform(postPlatform, userId)) {
+            console.warn(`[Content] Spacing guard: skipping post ${post.id} on ${postPlatform} — already published within 4h.`);
+            continue;
+          }
           // If notify mode and post is draft (not yet approved), send notification instead of publishing
           if (publishMode === 'notify' && post.status === 'draft') {
             const { data: fullPostForNotify } = await supabase.from('content_calendar').select('*').eq('id', post.id).single();
@@ -2359,8 +2389,29 @@ export async function POST(request: NextRequest) {
         let publishedCount = 0;
         const publishedPosts: Array<{ platform: string; format: string; hook: string; instagram_permalink?: string; publication_error?: string }> = [];
 
+        // Spacing guard — same rule as the morning slot loop: min 4h
+        // between publications on the same platform. Without this, the
+        // execute_publication backlog path can fire alongside the
+        // morning slot and produce two posts in the same minute.
+        const EXEC_MIN_GAP_HOURS = 4;
+        const recentSince = new Date(Date.now() - EXEC_MIN_GAP_HOURS * 3600 * 1000).toISOString();
+
         // Publish posts that already have visuals (skip disabled platforms)
         for (const post of (approvedWithVisuals || []).filter((p: any) => !skipPlatforms.has(p.platform || 'instagram'))) {
+          // Per-platform spacing check
+          if (userId) {
+            const { count: recentCount } = await supabase
+              .from('content_calendar')
+              .select('id', { count: 'exact', head: true })
+              .eq('user_id', userId)
+              .eq('platform', post.platform || 'instagram')
+              .eq('status', 'published')
+              .gte('published_at', recentSince);
+            if ((recentCount || 0) > 0) {
+              console.warn(`[Content] execute_pub spacing guard: skipping ${post.id} on ${post.platform} — already published within ${EXEC_MIN_GAP_HOURS}h.`);
+              continue;
+            }
+          }
           const updateData: Record<string, any> = {
             status: 'published',
             published_at: new Date().toISOString(),

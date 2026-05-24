@@ -962,7 +962,11 @@ export default function CrmDashboard({ data, onAddProspect }: CrmDashboardProps)
               const comp = completeness(pr);
               const tempColor = pr.temperature === 'hot' ? '#ef4444' : pr.temperature === 'warm' ? '#f59e0b' : pr.temperature === 'cold' ? '#3b82f6' : '#6b7280';
               return (
-                <div key={pr.id} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                <a
+                  key={pr.id}
+                  href={`/assistant/crm?prospect=${pr.id}`}
+                  className="block rounded-xl border border-white/10 bg-white/[0.03] p-3 hover:bg-white/[0.06] hover:border-white/20 transition-all"
+                >
                   <div className="flex items-center gap-2 mb-1.5">
                     <span
                       className="text-[9px] font-bold px-2 py-0.5 rounded-full"
@@ -974,6 +978,9 @@ export default function CrmDashboard({ data, onAddProspect }: CrmDashboardProps)
                     <span className="text-[10px] text-white/30 shrink-0">
                       {new Date(pr.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
                     </span>
+                    <svg className="w-3.5 h-3.5 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 text-[10px] text-white/50">
                     {pr.type && <span className="px-1.5 py-0.5 rounded bg-white/5">{pr.type}</span>}
@@ -981,6 +988,8 @@ export default function CrmDashboard({ data, onAddProspect }: CrmDashboardProps)
                     {pr.instagram && pr.instagram !== 'A_VERIFIER' && <span title={pr.instagram}>📷</span>}
                     {pr.linkedin_url && <span>💼</span>}
                     {pr.tiktok_handle && <span>🎵</span>}
+                    {pr.phone && <span title={pr.phone}>📞</span>}
+                    {pr.website && <span title={pr.website}>🌐</span>}
                     <span className="ml-auto flex items-center gap-1.5">
                       <div className="w-16 h-1.5 bg-white/10 rounded-full overflow-hidden">
                         <div
@@ -995,11 +1004,11 @@ export default function CrmDashboard({ data, onAddProspect }: CrmDashboardProps)
                     </span>
                   </div>
                   {comp.missing.length > 0 && comp.pct < 70 && (
-                    <div className="text-[9px] text-white/30 mt-1">
-                      Manque : {comp.missing.slice(0, 3).join(', ')}{comp.missing.length > 3 ? `, +${comp.missing.length - 3}` : ''}
+                    <div className="text-[9px] text-amber-300/70 mt-1">
+                      ⚠️ Manque : {comp.missing.slice(0, 4).join(', ')}{comp.missing.length > 4 ? `, +${comp.missing.length - 4}` : ''}
                     </div>
                   )}
-                </div>
+                </a>
               );
             })}
           </div>

@@ -578,21 +578,33 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
     }
 
     // === PHASE 2: Social media enrichment via Google Search ===
-    // Find prospects with company name but missing social data
+    // Find prospects with company name but missing social data. Pulled
+    // wider so we catch fiches that are 50-65% complete (we want every
+    // fiche at ≥70% before Hugo/Jade send personalised content).
     const { data: rawSocialProspects } = runPhase2Social
       ? await supabase
           .from('crm_prospects')
-          .select('id, company, type, quartier, email, instagram, tiktok_handle, website, google_rating, google_reviews, score, temperature, status')
+          .select('id, company, type, quartier, email, instagram, tiktok_handle, linkedin_url, website, google_rating, google_reviews, phone, address, first_name, score, temperature, status')
           .not('company', 'is', null)
           .order('score', { ascending: false, nullsFirst: false })
-          .limit(200)
+          .limit(300)
       : { data: [] as any[] };
 
-    // Filter in JS: not dead/perdu/client + missing at least one social field
-    const socialProspects = (rawSocialProspects || []).filter(p => {
+    // Filter in JS: not dead/perdu/client + any one of the EIGHT fiche
+    // fields the founder cares about is missing. Tighter than before
+    // (was 4 fields). This is the path that pushes Léo's fiches
+    // towards the 70%+ completeness target. Founder ask 2026-05-24:
+    // "fiches client renseignées au maximum donc minimum 70%".
+    const socialProspects = (rawSocialProspects || []).filter((p: any) => {
       if (p.temperature === 'dead' || p.status === 'perdu' || p.status === 'client' || p.status === 'sprint') return false;
-      // Must be missing at least one social field
-      return !p.instagram || !p.tiktok_handle || !p.website || !p.google_rating;
+      return !p.instagram
+        || !p.tiktok_handle
+        || !p.linkedin_url
+        || !p.website
+        || !p.google_rating
+        || !p.phone
+        || !p.address
+        || !p.first_name;
     }).slice(0, MAX_SEARCH_ENRICHMENT);
 
     if (socialProspects && socialProspects.length > 0) {

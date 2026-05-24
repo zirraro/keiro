@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useLanguage } from '@/lib/i18n/context';
 
 type Prospect = {
@@ -222,18 +223,28 @@ export default function ClientCRM() {
   const [importResult, setImportResult] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const searchParams = useSearchParams();
+  const initialProspectId = searchParams?.get('prospect') || null;
+
   useEffect(() => {
     (async () => {
       try {
         const res = await fetch('/api/crm?limit=5000', { credentials: 'include' });
         const data = await res.json();
         if (data.ok) {
-          setProspects(data.prospects || []);
+          const list: Prospect[] = data.prospects || [];
+          setProspects(list);
           setActivities(data.activities || []);
+          // Auto-open the prospect requested via ?prospect=<id> — used by
+          // the "Derniers ajouts de Léo" cards on the agent dashboard.
+          if (initialProspectId) {
+            const match = list.find(p => p.id === initialProspectId);
+            if (match) setSelectedProspect(match);
+          }
         }
       } catch {} finally { setLoading(false); }
     })();
-  }, []);
+  }, [initialProspectId]);
 
   const handleUpdate = useCallback((id: string, data: Partial<Prospect>) => {
     setProspects(prev => prev.map(p => p.id === id ? { ...p, ...data } : p));
