@@ -676,16 +676,14 @@ async function handleClientBrief(supabase: any, timeOfDay: 'morning' | 'evening'
       // Week-over-week hot prospects
       const thisW = thisWeekHotRes.count || 0;
       const prevW = prevWeekHotRes.count || 0;
-      if (thisW >= 10 && prevW === 0) {
-        achievements.push(`📈 <strong>${thisW} prospects chauds</strong> cette semaine — nouveau pipeline qui démarre fort.`);
-      } else if (thisW > prevW && prevW >= 5) {
-        // Only flag % growth when the baseline is meaningful (>=5),
-        // otherwise "2 → 45" becomes "+2150%" which looks like a bug.
-        const pct = Math.round(((thisW - prevW) / prevW) * 100);
-        achievements.push(`📈 <strong>+${pct}% de prospects chauds</strong> cette semaine (${prevW} → ${thisW}) — KeiroAI te remplit le pipeline.`);
-      } else if (thisW > prevW && prevW > 0 && thisW - prevW >= 10) {
-        // Small baseline but meaningful absolute growth → use raw numbers
-        achievements.push(`📈 <strong>+${thisW - prevW} prospects chauds</strong> cette semaine (${prevW} → ${thisW}) — pipeline qui s'accélère.`);
+      // Founder feedback 2026-05-24: pourcentages "du vent" sont
+      // démotivants — célébrer SEULEMENT sur des seuils absolus
+      // significatifs. Plus de '+300%' bidon quand le baseline est faible.
+      if (thisW >= 25 && prevW === 0) {
+        achievements.push(`📈 <strong>${thisW} prospects chauds</strong> cette semaine — pipeline qui démarre fort.`);
+      } else if (thisW - prevW >= 25 && prevW >= 15) {
+        // Both baseline AND absolute growth must be meaningful
+        achievements.push(`📈 <strong>+${thisW - prevW} prospects chauds</strong> cette semaine (${prevW} → ${thisW}) — pipeline qui s'accélère vraiment.`);
       }
 
       // Engagement weekly milestones
@@ -843,34 +841,25 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
       const openRate = doneCounts.emails_sent > 0
         ? Math.round((doneCounts.emails_opened / doneCounts.emails_sent) * 100)
         : 0;
+      // Stats grid — 6 compact tiles, table layout for Gmail/Outlook
+      // compat (they collapse CSS grid). Founder ask 2026-05-24: "des
+      // petite carré et pas ligne pas ligen c'ets long a descendre".
+      const tile = (val: any, label: string, bg: string, color: string) =>
+        `<td width="33%" align="center" valign="top" style="padding:4px;"><table cellspacing="0" cellpadding="0" border="0" width="100%"><tr><td align="center" style="background:${bg};border-radius:8px;padding:8px 4px;"><div style="font-size:18px;font-weight:bold;color:${color};line-height:1;">${val}</div><div style="font-size:10px;color:#6b7280;margin-top:3px;">${label}</div></td></tr></table></td>`;
       const statsStripHtml = `
-<h4 style="margin:16px 0 8px;color:#374151;font-size:13px;">📊 Tes chiffres du jour</h4>
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 12px;">
-  <div style="background:#f0fdf4;border-radius:8px;padding:10px;text-align:center;">
-    <div style="font-size:18px;font-weight:bold;color:#16a34a;">${doneCounts.posts_published}</div>
-    <div style="font-size:10px;color:#6b7280;">📸 Posts publiés</div>
-  </div>
-  <div style="background:#eff6ff;border-radius:8px;padding:10px;text-align:center;">
-    <div style="font-size:18px;font-weight:bold;color:#2563eb;">${doneCounts.emails_sent}</div>
-    <div style="font-size:10px;color:#6b7280;">✉️ Emails envoyés</div>
-  </div>
-  <div style="background:#ecfeff;border-radius:8px;padding:10px;text-align:center;">
-    <div style="font-size:18px;font-weight:bold;color:#0891b2;">${doneCounts.emails_opened}${openRate > 0 ? ` <span style=\"font-size:11px;color:#6b7280;\">(${openRate}%)</span>` : ''}</div>
-    <div style="font-size:10px;color:#6b7280;">👀 Emails ouverts</div>
-  </div>
-  <div style="background:#fdf4ff;border-radius:8px;padding:10px;text-align:center;">
-    <div style="font-size:18px;font-weight:bold;color:#a855f7;">${doneCounts.dms_sent}</div>
-    <div style="font-size:10px;color:#6b7280;">💬 DMs envoyés</div>
-  </div>
-  <div style="background:#f5f3ff;border-radius:8px;padding:10px;text-align:center;">
-    <div style="font-size:18px;font-weight:bold;color:#7c3aed;">${doneCounts.prospects_added}</div>
-    <div style="font-size:10px;color:#6b7280;">📥 Prospects ajoutés</div>
-  </div>
-  <div style="background:${hotCount > 0 ? '#fef3c7' : '#f9fafb'};border-radius:8px;padding:10px;text-align:center;">
-    <div style="font-size:18px;font-weight:bold;color:${hotCount > 0 ? '#d97706' : '#6b7280'};">${hotCount || 0}</div>
-    <div style="font-size:10px;color:#6b7280;">🔥 Prospects chauds</div>
-  </div>
-</div>`;
+<h4 style="margin:14px 0 6px;color:#374151;font-size:12px;">📊 Tes chiffres du jour</h4>
+<table cellspacing="0" cellpadding="0" border="0" width="100%" style="margin:0 0 10px;">
+  <tr>
+    ${tile(doneCounts.posts_published, '📸 Posts', '#f0fdf4', '#16a34a')}
+    ${tile(doneCounts.emails_sent, '✉️ Emails', '#eff6ff', '#2563eb')}
+    ${tile(`${doneCounts.emails_opened}${openRate > 0 ? ` <span style="font-size:11px;color:#6b7280;">(${openRate}%)</span>` : ''}`, '👀 Ouverts', '#ecfeff', '#0891b2')}
+  </tr>
+  <tr>
+    ${tile(doneCounts.dms_sent, '💬 DMs', '#fdf4ff', '#a855f7')}
+    ${tile(doneCounts.prospects_added, '📥 Prospects', '#f5f3ff', '#7c3aed')}
+    ${tile(hotCount || 0, '🔥 Chauds', hotCount > 0 ? '#fef3c7' : '#f9fafb', hotCount > 0 ? '#d97706' : '#6b7280')}
+  </tr>
+</table>`;
 
       // Per-agent breakdown — only agents that did something show up
       const agentLines: string[] = [];
@@ -931,10 +920,14 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
         ? `<p style="font-size:11px;color:#9ca3af;margin:12px 0 0;text-align:center;">${errorCount} incident(s) technique(s) détecté(s) — notre équipe les regarde.</p>`
         : '';
 
-      // Assembly order: achievements on top (dopamine), then AI narrative,
-      // then plan-promise tracker (deterministic + visual), then per-agent
-      // detail, then stats tiles, then error footnote.
-      briefHtml = `${achievementsHtml}${briefHtml}${planPromiseHtml}${perAgentHtml}${statsStripHtml}${footerNote}`;
+      // Assembly order: achievements on top (only when truly notable),
+      // then AI narrative, then plan-promise tracker (the per-agent
+      // visual the founder prefers — replaces the old text list),
+      // then compact stats grid, then optional error footnote.
+      // Dropped "Chaque agent en action" — was duplicating the plan
+      // promise tracker per founder feedback 2026-05-24.
+      void perAgentHtml; // intentionally unused — kept for build compat
+      briefHtml = `${achievementsHtml}${briefHtml}${planPromiseHtml}${statsStripHtml}${footerNote}`;
 
       // Save as in-app notification
       if (prefs?.inapp_enabled !== false) {

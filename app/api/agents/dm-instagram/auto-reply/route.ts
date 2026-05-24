@@ -147,7 +147,11 @@ export async function POST(req: NextRequest) {
         const lastMsgText = lastMsg.message || '';
         if (!lastMsgText.trim()) { skipped++; continue; }
 
-        // Check if we already replied to this message (dedup)
+        // Check if we already replied to this message (dedup).
+        // Defence in depth: 1) match exact reply_to_msg_id, 2) match
+        // by conversation/prospect within the last 10 min so a webhook
+        // reply that fired moments ago isn't doubled by the polling
+        // cron when IG's /messages endpoint hasn't propagated yet.
         const { data: alreadyReplied } = await supabase
           .from('agent_logs')
           .select('id')
@@ -157,6 +161,27 @@ export async function POST(req: NextRequest) {
           .limit(1)
           .maybeSingle();
         if (alreadyReplied) { skipped++; continue; }
+
+        // Time-window dedup: same conversation, last 10 minutes
+        const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+        const otherParticipantEarly = conv.participants?.data?.find((p: any) => !myIds.has(p.id));
+        const senderIdEarly = otherParticipantEarly?.id || lastMsg.from?.id;
+        if (senderIdEarly) {
+          const { data: recentReply } = await supabase
+            .from('agent_logs')
+            .select('id')
+            .eq('agent', 'dm_instagram')
+            .eq('action', 'dm_auto_reply')
+            .contains('data', { sender_id: senderIdEarly })
+            .gte('created_at', tenMinAgo)
+            .limit(1)
+            .maybeSingle();
+          if (recentReply) {
+            console.log(`[DM-AutoReply] Skip ${senderIdEarly} — replied within last 10min (webhook race guard)`);
+            skipped++;
+            continue;
+          }
+        }
 
         // Get sender info
         const otherParticipant = conv.participants?.data?.find((p: any) => !myIds.has(p.id));

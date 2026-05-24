@@ -368,11 +368,34 @@ QUALITY BAR (non-negotiable):
     // Jade posts becomes a 'new' comment on next sweep and she replies
     // to her own reply — recursive loop the founder caught on
     // 2026-05-23 with 8 cascading replies on a single thread.
+    //
+    // Fallback ladder: 1) Graph API live, 2) profiles.instagram_username
+    // we saved on connect, 3) HARD ABORT — without a self username we
+    // cannot dedup reliably, and the founder reported that a missing
+    // selfUsername was causing double-replies despite all four guards.
     let selfUsername: string | null = null;
     try {
       const me = await graphGET<{ username: string }>(`/${igId}`, token, { fields: 'username' });
       selfUsername = (me?.username || '').toLowerCase() || null;
-    } catch { /* non-fatal */ }
+    } catch { /* fall through */ }
+    if (!selfUsername) {
+      try {
+        const { data: row } = await supabase
+          .from('profiles')
+          .select('instagram_username')
+          .eq('instagram_business_account_id', igId)
+          .maybeSingle();
+        selfUsername = (row?.instagram_username || '').toLowerCase() || null;
+      } catch { /* fall through */ }
+    }
+    if (!selfUsername) {
+      console.warn('[IG-Comments] No self username — aborting auto_reply_all to prevent loop replies');
+      return NextResponse.json({
+        ok: false,
+        replied: 0,
+        error: 'Self username unavailable — refusing to auto-reply to prevent duplicate / loop replies.',
+      });
+    }
 
     for (const post of media.data || []) {
       try {
@@ -383,10 +406,45 @@ QUALITY BAR (non-negotiable):
           `/${post.id}/comments`, token, { fields: 'id,text,username,replied_to' }
         );
 
-        for (const c of comments.data || []) {
+        const allComments = comments.data || [];
+
+        // Pre-compute the set of comment_ids that Jade has already
+        // replied to, by walking the SAME list (our replies appear as
+        // separate comments with replied_to.id pointing at the parent
+        // AND username === selfUsername). This is more reliable than
+        // a per-comment /replies fetch which sometimes misses freshly
+        // posted replies due to Graph API eventual consistency.
+        const repliedByUsParentIds = new Set<string>();
+        for (const reply of allComments) {
+          const parentId = reply?.replied_to?.id;
+          const username = (reply?.username || '').toLowerCase();
+          if (parentId && username === selfUsername) {
+            repliedByUsParentIds.add(parentId);
+          }
+        }
+
+        // Backfill agent_logs with rows for every comment we've
+        // already replied to but that pre-date the constraint fix.
+        // Fire-and-forget — duplicate inserts get caught by the
+        // UNIQUE INDEX. This primes the dedup table so the GUARD 3
+        // read-check works on the next pass too.
+        for (const parentId of repliedByUsParentIds) {
+          try {
+            await supabase.from('agent_logs').insert({
+              agent: 'instagram_comments',
+              action: 'reply_sent',
+              status: 'success',
+              data: { comment_id: parentId, reply: '(prior reply detected via comment-list walk)', backfilled: true },
+              created_at: now,
+              ...(dossierUserId ? { user_id: dossierUserId } : {}),
+            });
+          } catch { /* duplicate is fine */ }
+        }
+
+        for (const c of allComments) {
           // GUARD 1 — never reply to ourselves. Our own replies appear
           // in this list and would re-trigger the agent infinitely.
-          if (selfUsername && (c.username || '').toLowerCase() === selfUsername) continue;
+          if ((c.username || '').toLowerCase() === selfUsername) continue;
 
           // GUARD 2 — never reply to a comment that is itself a REPLY
           // to another comment. Jade only addresses top-level
@@ -394,10 +452,17 @@ QUALITY BAR (non-negotiable):
           // generating new reply IDs forever.
           if (c.replied_to) continue;
 
-          // GUARD 3 — dedup against any prior reply we sent. The query
-          // checks JSONB ->> equality which is the same column the
-          // UNIQUE index relies on, so this stays consistent with
-          // GUARD 5 (atomic INSERT) below.
+          // GUARD 3a — in-memory comment-list dedup. If a sibling
+          // comment in the same post has replied_to.id === c.id AND
+          // username === self, we already replied. This is the
+          // strongest guard because the data comes from the SAME
+          // fetch as the parent comment (no eventual-consistency
+          // window with a separate /replies endpoint).
+          if (repliedByUsParentIds.has(c.id)) continue;
+
+          // GUARD 3b — agent_logs read-side dedup. Backed by the
+          // UNIQUE INDEX so even if a race slips past 3a, GUARD 5
+          // will reject the duplicate insert atomically.
           const { data: existing } = await supabase
             .from('agent_logs')
             .select('id')
@@ -407,29 +472,6 @@ QUALITY BAR (non-negotiable):
             .maybeSingle();
 
           if (existing) continue;
-
-          // GUARD 4 — also check via the Graph API: if our connected
-          // account already has a reply on this comment, treat it as
-          // replied. Belt-and-braces in case agent_logs was wiped or
-          // the row was inserted by a different code path.
-          try {
-            const subReplies = await graphGET<{ data: Array<{ username?: string }> }>(
-              `/${c.id}/replies`, token, { fields: 'username', limit: '25' }
-            );
-            const alreadyReplied = (subReplies?.data || []).some(r => (r?.username || '').toLowerCase() === (selfUsername || ''));
-            if (alreadyReplied) {
-              // Backfill an agent_logs row so future dedup is fast.
-              await supabase.from('agent_logs').insert({
-                agent: 'instagram_comments',
-                action: 'reply_sent',
-                status: 'success',
-                data: { comment_id: c.id, username: c.username, reply: '(prior reply detected via Graph API)', backfilled: true },
-                created_at: now,
-                ...(dossierUserId ? { user_id: dossierUserId } : {}),
-              });
-              continue;
-            }
-          } catch { /* fail-open, the agent_logs dedup remains the primary defence */ }
 
           // GUARD 5 — ATOMIC LOCK. We reserve the comment_id by
           // inserting the agent_logs row BEFORE calling the Graph

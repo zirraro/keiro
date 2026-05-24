@@ -653,18 +653,28 @@ ${history ? `\nCONVERSATION:\n${history}` : ''}${businessContext}${ragContext}`;
 
               console.log(`[InstagramWebhook] Auto-reply sent to ${senderId}`);
 
-              // Log outbound reply (track image delivery for dedup + analytics)
+              // Log outbound reply. Includes reply_to_msg_id so the
+              // polling auto-reply route's dedup check
+              // (.contains('data', { reply_to_msg_id }) at /api/agents/dm-instagram/auto-reply)
+              // finds this entry and doesn't re-reply to the same
+              // inbound DM. Founder reported 2026-05-24 that a DM had
+              // been replied to twice — root cause was this missing
+              // field on the webhook side.
               const imgDelivered = imageToSend ? 'sent' : null;
               await supabase.from('agent_logs').insert({
                 agent: 'dm_instagram',
                 action: 'dm_auto_reply',
+                status: 'success',
                 data: {
                   prospect_id: prospect.id,
                   sender_id: senderId,
                   message: aiReply,
+                  reply_sent: aiReply.substring(0, 200),
+                  reply_to_msg_id: messageId || null,
                   direction: 'outbound',
                   image_sent: imageToSend || null,
                   image_delivery: imgDelivered,
+                  method: 'webhook',
                 },
                 created_at: now,
               });
