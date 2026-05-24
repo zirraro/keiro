@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { useLanguage } from '@/lib/i18n/context';
 
 type Prospect = {
@@ -223,10 +222,15 @@ export default function ClientCRM() {
   const [importResult, setImportResult] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const searchParams = useSearchParams();
-  const initialProspectId = searchParams?.get('prospect') || null;
-
   useEffect(() => {
+    // Read prospect id from URL on the client only. We don't use
+    // useSearchParams() to avoid the Next.js Suspense requirement at
+    // build prerender; window.location is safe because this is a 'use
+    // client' component that only renders after mount.
+    const initialProspectId = typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.search).get('prospect')
+      : null;
+
     (async () => {
       try {
         const res = await fetch('/api/crm?limit=5000', { credentials: 'include' });
@@ -244,7 +248,7 @@ export default function ClientCRM() {
         }
       } catch {} finally { setLoading(false); }
     })();
-  }, [initialProspectId]);
+  }, []);
 
   const handleUpdate = useCallback((id: string, data: Partial<Prospect>) => {
     setProspects(prev => prev.map(p => p.id === id ? { ...p, ...data } : p));
