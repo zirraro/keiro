@@ -174,7 +174,7 @@ export async function POST(req: NextRequest) {
               .from('agent_logs')
               .select('id')
               .eq('agent', 'instagram_comments')
-              .or(`data->>comment_id.eq.${c.id}`)
+              .filter('data->>comment_id', 'eq', c.id)
               .limit(1)
               .maybeSingle();
 
@@ -262,14 +262,14 @@ QUALITY BAR (non-negotiable):
 
     try {
       // DEDUP GUARD — even for manual single-click replies, refuse if
-      // we already replied to this comment. Prevents the founder from
-      // accidentally double-replying when toggling between tabs or
-      // when the optimistic UI doesn't reflect a prior send.
+      // we already replied to this comment. Uses the same .filter()
+      // syntax as the auto_reply_all guard (was .or() which doesn't
+      // reliably match a single condition on PostgREST).
       const { data: alreadySent } = await supabase
         .from('agent_logs')
         .select('id')
         .eq('agent', 'instagram_comments')
-        .or(`data->>comment_id.eq.${comment_id}`)
+        .filter('data->>comment_id', 'eq', comment_id)
         .limit(1)
         .maybeSingle();
       if (alreadySent) {
@@ -280,29 +280,50 @@ QUALITY BAR (non-negotiable):
         }, { status: 409 });
       }
 
-      await graphPOST(`/${comment_id}/replies`, token, { message });
-
-      await supabase.from('agent_logs').insert({
+      // ATOMIC RESERVATION — same pattern as auto_reply_all. INSERT a
+      // pending row keyed by comment_id; UNIQUE INDEX rejects races.
+      const { error: lockErr } = await supabase.from('agent_logs').insert({
         agent: 'instagram_comments',
         action: 'reply_comment',
-        status: 'success',
+        status: 'pending',
         ...(resolvedUserId ? { user_id: resolvedUserId } : {}),
-        data: { comment_id, message_preview: message.substring(0, 200), method: useIgaa ? 'igaa' : 'fb_page' },
+        data: { comment_id, reserving: true },
         created_at: now,
       });
+      if (lockErr) {
+        if (String(lockErr.message).includes('duplicate')) {
+          return NextResponse.json({
+            ok: false,
+            error: 'Une réponse a déjà été envoyée à ce commentaire — pas de double-envoi.',
+            alreadyReplied: true,
+          }, { status: 409 });
+        }
+        // Non-unique error → bubble up
+        return NextResponse.json({ error: lockErr.message }, { status: 500 });
+      }
+
+      await graphPOST(`/${comment_id}/replies`, token, { message });
+
+      // Promote the reservation to success
+      await supabase.from('agent_logs').update({
+        status: 'success',
+        data: { comment_id, message_preview: message.substring(0, 200), method: useIgaa ? 'igaa' : 'fb_page' },
+      })
+      .eq('agent', 'instagram_comments')
+      .eq('action', 'reply_comment')
+      .eq('status', 'pending')
+      .filter('data->>comment_id', 'eq', comment_id);
 
       return NextResponse.json({ ok: true, reply: message });
     } catch (e: any) {
+      // Release the reservation so a retry can succeed later.
       try {
-        await supabase.from('agent_logs').insert({
-          agent: 'instagram_comments',
-          action: 'reply_comment',
-          status: 'error',
-          ...(resolvedUserId ? { user_id: resolvedUserId } : {}),
-          data: { comment_id, error: String(e?.message || e).slice(0, 300) },
-          created_at: now,
-        });
-      } catch { /* audit failure is non-fatal */ }
+        await supabase.from('agent_logs').delete()
+          .eq('agent', 'instagram_comments')
+          .eq('action', 'reply_comment')
+          .eq('status', 'pending')
+          .filter('data->>comment_id', 'eq', comment_id);
+      } catch { /* best-effort */ }
       return NextResponse.json({ error: e.message }, { status: 500 });
     }
   }
@@ -373,16 +394,15 @@ QUALITY BAR (non-negotiable):
           // generating new reply IDs forever.
           if (c.replied_to) continue;
 
-          // GUARD 3 — dedup against any prior reply we sent. Uses both
-          // .contains for back-compat AND a direct ->> match on the
-          // top-level comment_id key so we don't depend on JSONB
-          // containment semantics. Also checks ANY action (reply_sent,
-          // auto_reply, reply_comment) for this comment_id.
+          // GUARD 3 — dedup against any prior reply we sent. The query
+          // checks JSONB ->> equality which is the same column the
+          // UNIQUE index relies on, so this stays consistent with
+          // GUARD 5 (atomic INSERT) below.
           const { data: existing } = await supabase
             .from('agent_logs')
             .select('id')
             .eq('agent', 'instagram_comments')
-            .or(`data->>comment_id.eq.${c.id}`)
+            .filter('data->>comment_id', 'eq', c.id)
             .limit(1)
             .maybeSingle();
 
@@ -410,6 +430,32 @@ QUALITY BAR (non-negotiable):
               continue;
             }
           } catch { /* fail-open, the agent_logs dedup remains the primary defence */ }
+
+          // GUARD 5 — ATOMIC LOCK. We reserve the comment_id by
+          // inserting the agent_logs row BEFORE calling the Graph
+          // API. A UNIQUE INDEX on (agent, data->>'comment_id')
+          // ensures only one process can win this race. If another
+          // run beat us, the insert throws unique_violation and we
+          // skip cleanly. Founder reported 2026-05-24 that GUARD 3
+          // was silently empty for weeks because the agent_logs
+          // CHECK constraint rejected 'instagram_comments' — this
+          // path now also relies on the constraint being fixed.
+          const { error: lockErr } = await supabase.from('agent_logs').insert({
+            agent: 'instagram_comments',
+            action: 'reply_sent',
+            status: 'pending',
+            data: { comment_id: c.id, username: c.username, comment: c.text.substring(0, 100), reserving: true },
+            created_at: now,
+            ...(dossierUserId ? { user_id: dossierUserId } : {}),
+          });
+          if (lockErr) {
+            // Unique violation = another run already replied; any
+            // other error = log and skip to keep going.
+            if (!String(lockErr.message).includes('duplicate')) {
+              console.warn('[IG-Comments] reservation insert failed:', lockErr.message);
+            }
+            continue;
+          }
 
           // Skip spam
           if (c.text.length < 3 || /follow|dm me|check|click/i.test(c.text)) continue;
@@ -451,6 +497,33 @@ QUALITY BAR (non-negotiable):
           // Random ~12% chance to suggest a shared activity hook.
           // Avoids over-using the pattern (would feel scripted).
           const shouldSuggestShared = Math.random() < 0.12;
+
+          // Emoji rotation guard — pull the last 8 emojis we used in
+          // replies and forbid them this round. Founder 2026-05-24:
+          // "j'ai dis pas tout le temps le meme emoji meme parfois pas
+          // d'emoji on veut rester naturel au possible". Default mode
+          // is NO emoji — only allow if it adds clear value.
+          const recentEmojis = new Set<string>();
+          try {
+            const { data: recentReplies } = await supabase
+              .from('agent_logs')
+              .select('data')
+              .eq('agent', 'instagram_comments')
+              .eq('action', 'reply_sent')
+              .eq('status', 'success')
+              .order('created_at', { ascending: false })
+              .limit(8);
+            const EMOJI_RE = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu;
+            for (const r of recentReplies || []) {
+              const txt = String(r.data?.reply || '');
+              const found = txt.match(EMOJI_RE) || [];
+              for (const e of found) recentEmojis.add(e);
+            }
+          } catch { /* best-effort */ }
+          // Encourage no emoji ~65% of the time
+          const allowEmoji = Math.random() < 0.35;
+          const forbiddenEmojiList = Array.from(recentEmojis).join(' ');
+
           const response = await anthropic.messages.create({
             model: 'claude-haiku-4-5-20251001',
             max_tokens: 150,
@@ -458,21 +531,26 @@ QUALITY BAR (non-negotiable):
               role: 'user',
               content: `${langHint}
 
-Tu gères les commentaires Instagram d'un commerce. Réponds à ce commentaire comme le propriétaire — pas comme un community manager corporate.
+Tu gères les commentaires Instagram d'un commerce. Réponds comme le propriétaire — pas comme un community manager.
 
 QUALITY BAR :
-- Max 2 phrases courtes. Conversationnel, jamais une réponse type "Merci pour votre commentaire ❤️".
+- Max 2 phrases courtes. Conversationnel, JAMAIS du "Merci pour votre commentaire".
 - INTERDIT : "n'hésitez pas", "cordialement", "nous vous remercions", "DM-moi pour plus d'infos" (Meta tag ça comme spam).
-- INTERDIT : mots "IA", "intelligence artificielle", "automatisé".
-- 1 emoji max, ZÉRO hashtag, ZÉRO lien.
+- INTERDIT : "IA", "intelligence artificielle", "automatisé".
+- ZÉRO hashtag, ZÉRO lien.
 - Si le commentaire est juste "top" ou un emoji → réponse chaleureuse 1 ligne, jamais de pitch.
 - Si c'est une vraie question → réponds directement, ne renvoie pas en DM.
-- Si tu connais le prénom du commentateur, utilise-le naturellement. Si tu connais sa niche, glisse une mini-référence (sans en faire trop).
+- Si tu connais le prénom du commentateur, utilise-le naturellement.
+
+RÈGLE EMOJI (importante, le founder a explicitement insisté 2026-05-24) :
+${allowEmoji
+  ? `- UN SEUL emoji max, SEULEMENT s'il apporte vraiment quelque chose. La plupart des réponses naturelles n'en ont pas. PRÉFÈRE ne PAS en mettre.\n${forbiddenEmojiList ? `- INTERDIT cette fois (déjà sur-utilisés ces derniers temps) : ${forbiddenEmojiList}` : ''}`
+  : `- ZÉRO emoji cette fois. Réponse 100% texte. C'est plus naturel et ça évite la répétition.`}
 
 STRATÉGIE "LIEN COMMUNAUTAIRE" (validée par le founder le 2026-05-23) :
 ${shouldSuggestShared
-  ? `- ACTIVE: pour CE commentaire, propose subtilement une activité partagée future entre clients qui partagent cette passion (ex: "Faut qu'on organise un match entre clients un jour 🏀"). Ne le force pas si le commentaire n'a pas de passion identifiable.`
-  : `- Sans en faire trop : réagis avec chaleur et spécificité, mais SANS proposer d'activité partagée cette fois (à utiliser sparingly, pas à chaque commentaire).`}
+  ? `- ACTIVE: pour CE commentaire, propose subtilement une activité partagée future entre clients qui partagent cette passion. Ne le force pas si le commentaire n'a pas de passion identifiable.`
+  : `- Réagis avec chaleur et spécificité, sans proposer d'activité partagée cette fois.`}
 ${brandContext}
 ${commenterPersonalisation}
 Commentaire de @${c.username}: "${c.text}"
@@ -480,21 +558,36 @@ Réponds UNIQUEMENT avec le texte de la réponse.`,
             }],
           });
 
-          const reply = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
-          if (!reply) continue;
+          let reply = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
+          if (!reply) {
+            // Release the reservation so a later run can retry this comment
+            await supabase.from('agent_logs').delete()
+              .eq('agent', 'instagram_comments')
+              .eq('status', 'pending')
+              .filter('data->>comment_id', 'eq', c.id);
+            continue;
+          }
+          // Belt-and-braces: strip emojis client-side if the model
+          // ignored our "no emoji" instruction this round.
+          if (!allowEmoji) {
+            reply = reply.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '').replace(/\s{2,}/g, ' ').trim();
+          }
 
           try {
             await graphPOST(`/${c.id}/replies`, token, { message: reply });
             replied++;
 
-            await supabase.from('agent_logs').insert({
-              agent: 'instagram_comments',
-              action: 'reply_sent',
+            // Finalise the reservation row created at GUARD 5 by
+            // promoting it from 'pending' to 'success' and storing
+            // the actual reply text. The UNIQUE INDEX still protects
+            // future runs from inserting a duplicate.
+            await supabase.from('agent_logs').update({
               status: 'success',
               data: { comment_id: c.id, username: c.username, comment: c.text.substring(0, 100), reply: reply.substring(0, 200), auto: true },
-              created_at: now,
-              ...(dossierUserId ? { user_id: dossierUserId } : {}),
-            });
+            })
+            .eq('agent', 'instagram_comments')
+            .eq('status', 'pending')
+            .filter('data->>comment_id', 'eq', c.id);
 
             // CRM touch — if this commenter exists in our prospect base
             // (by IG handle), record the touch so the fiche reflects the
@@ -530,7 +623,17 @@ Réponds UNIQUEMENT avec le texte de la réponse.`,
                 }
               }
             } catch { /* CRM enrichment is best-effort */ }
-          } catch {}
+          } catch (graphErr: any) {
+            // Graph POST failed (rate limit, token expired, comment
+            // deleted, etc). Release the reservation so a later run
+            // can retry. Without this we'd permanently block the
+            // comment from ever getting a reply.
+            console.warn('[IG-Comments] Graph reply failed, releasing reservation:', graphErr?.message);
+            await supabase.from('agent_logs').delete()
+              .eq('agent', 'instagram_comments')
+              .eq('status', 'pending')
+              .filter('data->>comment_id', 'eq', c.id);
+          }
 
           // Rate limit
           await new Promise(r => setTimeout(r, 2000));
