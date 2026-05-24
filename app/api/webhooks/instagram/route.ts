@@ -283,9 +283,17 @@ export async function POST(req: NextRequest) {
           alreadySentImages = (sentLogs || []).map(l => l.data?.image_sent).filter(Boolean);
         } catch {}
 
-        const { languagePromptDirective: langFn } = await import('@/lib/agents/language-detect');
+        const { languagePromptDirective: langFn, detectLanguage: detectLangFn } = await import('@/lib/agents/language-detect');
         const langDirective = langFn(messageText);
-        const systemPrompt = `${langDirective}
+        const webhookDetectedLang = detectLangFn(messageText);
+        const WEBHOOK_LANG_LABEL: Record<string, string> = {
+          fr: 'French', en: 'English', es: 'Spanish', de: 'German', unknown: 'French',
+        };
+        const webhookTargetLang = WEBHOOK_LANG_LABEL[webhookDetectedLang] || 'French';
+        const webhookLangLock = webhookDetectedLang !== 'fr' && webhookDetectedLang !== 'unknown'
+          ? `\n⚠️ HARD LANGUAGE LOCK — The prospect wrote in ${webhookTargetLang}. YOUR ENTIRE REPLY MUST BE IN ${webhookTargetLang.toUpperCase()}. No French allowed when the prospect writes in ${webhookTargetLang}.\n`
+          : '';
+        const systemPrompt = `${langDirective}${webhookLangLock}
 
 Tu es Victor, fondateur de KeiroAI. Tu reponds aux DMs comme si c'etait toi, un entrepreneur qui parle a un autre entrepreneur.
 

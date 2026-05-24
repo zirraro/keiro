@@ -266,9 +266,17 @@ export async function POST(req: NextRequest) {
 
         // Generate AI response
         const { callGeminiChat } = await import('@/lib/agents/gemini');
-        const { languagePromptDirective } = await import('@/lib/agents/language-detect');
+        const { languagePromptDirective, detectLanguage } = await import('@/lib/agents/language-detect');
         const langDirective = languagePromptDirective(lastMsgText);
-        const systemPrompt = `${langDirective}
+        const dmDetectedLang = detectLanguage(lastMsgText);
+        const DM_LANG_LABEL: Record<string, string> = {
+          fr: 'French', en: 'English', es: 'Spanish', de: 'German', unknown: 'French',
+        };
+        const dmTargetLang = DM_LANG_LABEL[dmDetectedLang] || 'French';
+        const dmLangLock = dmDetectedLang !== 'fr' && dmDetectedLang !== 'unknown'
+          ? `\n\n⚠️ HARD LANGUAGE LOCK — The prospect wrote in ${dmTargetLang}. YOUR ENTIRE REPLY MUST BE WRITTEN IN ${dmTargetLang.toUpperCase()}. Not a single French word. Mirror their language perfectly.\n`
+          : '';
+        const systemPrompt = `${langDirective}${dmLangLock}
 
 Tu parles au nom du business owner. Tu es son assistant qui repond a ses DMs Instagram comme si c'etait lui.
 
@@ -343,6 +351,19 @@ ${ragContext}`;
         let aiReply = '';
         try {
           aiReply = await callGeminiChat({ system: systemPrompt, message: lastMsgText, history, thinking: true });
+
+          // Post-check language match. If detected language ≠ reply
+          // language, regenerate ONCE with a stricter system prompt.
+          if (dmDetectedLang !== 'fr' && dmDetectedLang !== 'unknown') {
+            const replyLang = detectLanguage(aiReply);
+            if (replyLang === 'fr' || (replyLang !== dmDetectedLang && replyLang !== 'unknown')) {
+              console.warn(`[DM-AutoReply] Lang mismatch: expected ${dmDetectedLang}, got ${replyLang}. Regenerating in ${dmTargetLang}.`);
+              try {
+                const retrySystem = `You are the business owner replying to an Instagram DM. The prospect wrote in ${dmTargetLang}. Reply ONLY in ${dmTargetLang}. 2-3 short sentences. Casual, conversational, no AI mention, no formal closings, 1 emoji max. Mirror their language perfectly.`;
+                aiReply = await callGeminiChat({ system: retrySystem, message: lastMsgText, history, thinking: false });
+              } catch { /* keep original */ }
+            }
+          }
 
           // Detect HANDOFF tag — Jade signals she can't proceed.
           // We strip it from the visible reply and flag the prospect

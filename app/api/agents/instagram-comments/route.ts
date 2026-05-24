@@ -215,34 +215,51 @@ export async function POST(req: NextRequest) {
     if (!comment_id) return NextResponse.json({ error: 'comment_id requis' }, { status: 400 });
 
     if (!message) {
-      // Generate a contextual reply if the client didn't pass one. Pulled
-      // out into a tiny inline helper rather than a full route because we
-      // want minimal latency for the bulk "IA répond aux N" path.
+      // Generate a contextual reply if the client didn't pass one. We
+      // need the actual comment text to detect language + write a
+      // relevant reply — fetch it from Graph API first.
       const apiKey = process.env.ANTHROPIC_API_KEY;
+      let commentText = '';
+      try {
+        const cmt = await graphGET<{ text: string; username: string }>(`/${comment_id}`, token, { fields: 'text,username' });
+        commentText = cmt?.text || '';
+      } catch { /* fall back to language-blind reply */ }
+
       if (apiKey) {
         try {
+          const { detectLanguage } = await import('@/lib/agents/language-detect');
+          const lang = detectLanguage(commentText);
+          const LANG_LABEL: Record<string, string> = { fr: 'French', en: 'English', es: 'Spanish', de: 'German', unknown: 'French' };
+          const targetLang = LANG_LABEL[lang] || 'French';
+
           const ant = new Anthropic({ apiKey });
           const r = await ant.messages.create({
             model: 'claude-haiku-4-5-20251001',
             max_tokens: 200,
             system: `You write Instagram comment replies as the brand owner.
 
-QUALITY BAR (non-negotiable):
+LANGUAGE LOCK (non-negotiable): The comment is in ${targetLang}. Write your ENTIRE reply in ${targetLang}. Not a single word in another language.
+
+QUALITY BAR:
 - 1-2 sentences max. Conversational, like a real human reply, not a corporate template.
-- Mirror the language of the original comment (French by default, switch if the commenter wrote in another language).
-- Warm but specific. If the comment praises a product/dish/service, acknowledge that exact thing in your reply.
-- BAN: "merci pour votre commentaire", "n'hésitez pas à", "cordialement", "nous vous remercions", any AI-sounding formal closure.
-- BAN: emoji spam (max 1), hashtags, links, "DM-moi pour plus d'infos" (Meta flags this as spam pattern).
-- NEVER say "IA", "intelligence artificielle", "automatisé", "généré par".
-- If the comment is just an emoji or single word ("top", "🔥"), reply with a matching warm 1-line thanks — never paste a sales pitch.
+- Warm but specific. If the comment praises a product/dish/service, acknowledge that exact thing.
+- BAN: "merci pour votre commentaire", "n'hésitez pas à", "cordialement", any AI-sounding formal closure.
+- BAN: emoji spam (max 1), hashtags, links, "DM-moi pour plus d'infos" (Meta flags this as spam).
+- NEVER say "IA", "intelligence artificielle", "automatisé".
+- If the comment is just an emoji or single word, reply with a matching warm 1-line thanks — never paste a pitch.
 - If the comment is a real question, answer it directly, not "DM-moi" deflection.`,
-            messages: [{ role: 'user', content: `Reply briefly and naturally to this Instagram comment id ${comment_id}.` }],
+            messages: [{
+              role: 'user',
+              content: commentText
+                ? `Reply briefly and naturally in ${targetLang} to this Instagram comment: "${commentText}"`
+                : `Reply briefly and naturally in ${targetLang} to this Instagram comment id ${comment_id}.`,
+            }],
           });
           message = r.content
             .filter((b): b is any => b.type === 'text')
             .map((b: any) => b.text)
             .join('')
-            .slice(0, 600) || 'Merci !';
+            .slice(0, 600) || (lang === 'en' ? 'Thanks!' : lang === 'es' ? '¡Gracias!' : lang === 'de' ? 'Danke!' : 'Merci !');
         } catch {
           message = 'Merci !';
         }
@@ -534,8 +551,23 @@ QUALITY BAR (non-negotiable):
           // strategy (2026-05-23): one reply in 5-10 may propose a
           // shared future activity between clients with the same
           // passion. Builds community, not pitch.
-          const { languagePromptDirective } = await import('@/lib/agents/language-detect');
+          const { languagePromptDirective, detectLanguage } = await import('@/lib/agents/language-detect');
           const langHint = languagePromptDirective(c.text);
+          const detectedLang = detectLanguage(c.text);
+          // Build a hard language-enforcement directive used twice in
+          // the prompt — once at the top and once just before the
+          // response instruction. The mid-prompt French context was
+          // overwhelming the model's language signal and replies came
+          // back in French on English comments. Founder spotted this
+          // 2026-05-24: "si les commentaires sont dans une autre
+          // langue de bien repondre dans cette langue".
+          const LANG_LABEL: Record<string, string> = {
+            fr: 'French', en: 'English', es: 'Spanish', de: 'German', unknown: 'French',
+          };
+          const targetLang = LANG_LABEL[detectedLang] || 'French';
+          const langLock = detectedLang !== 'fr' && detectedLang !== 'unknown'
+            ? `\n\n⚠️ HARD LANGUAGE LOCK — The commenter wrote in ${targetLang}. YOUR ENTIRE REPLY MUST BE WRITTEN IN ${targetLang.toUpperCase()}. Not a single French word. Even the greeting, even "thanks", even one-word replies. ${targetLang.toUpperCase()} ONLY.\n`
+            : '';
           // Random ~12% chance to suggest a shared activity hook.
           // Avoids over-using the pattern (would feel scripted).
           const shouldSuggestShared = Math.random() < 0.12;
@@ -571,7 +603,7 @@ QUALITY BAR (non-negotiable):
             max_tokens: 150,
             messages: [{
               role: 'user',
-              content: `${langHint}
+              content: `${langHint}${langLock}
 
 Tu gères les commentaires Instagram d'un commerce. Réponds comme le propriétaire — pas comme un community manager.
 
@@ -596,7 +628,8 @@ ${shouldSuggestShared
 ${brandContext}
 ${commenterPersonalisation}
 Commentaire de @${c.username}: "${c.text}"
-Réponds UNIQUEMENT avec le texte de la réponse.`,
+${langLock}
+Réponds UNIQUEMENT avec le texte de la réponse${detectedLang !== 'fr' && detectedLang !== 'unknown' ? `, en ${targetLang}` : ''}.`,
             }],
           });
 
@@ -613,6 +646,32 @@ Réponds UNIQUEMENT avec le texte de la réponse.`,
           // ignored our "no emoji" instruction this round.
           if (!allowEmoji) {
             reply = reply.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '').replace(/\s{2,}/g, ' ').trim();
+          }
+          // Language post-check: if the comment was English/Spanish/German
+          // but the model still wrote French, regenerate ONCE with a
+          // harder lock. Belt-and-braces against the model defaulting to
+          // its strongest training prior.
+          if (detectedLang !== 'fr' && detectedLang !== 'unknown') {
+            const replyLang = detectLanguage(reply);
+            if (replyLang === 'fr' || replyLang !== detectedLang) {
+              console.warn(`[IG-Comments] Lang mismatch: expected ${detectedLang}, got ${replyLang}. Forcing regeneration.`);
+              try {
+                const retry = await anthropic.messages.create({
+                  model: 'claude-haiku-4-5-20251001',
+                  max_tokens: 150,
+                  system: `You write Instagram comment replies. Reply ONLY in ${targetLang}. The comment is in ${targetLang}, so YOUR REPLY must be in ${targetLang}. No French allowed. No mixed language. Casual, conversational tone — like a business owner, not a community manager. Max 2 short sentences. No hashtags, no links, no "DM me", no AI mention.`,
+                  messages: [{
+                    role: 'user',
+                    content: `Comment from @${c.username}: "${c.text}"\n\nReply now, in ${targetLang} only. Plain text, nothing else.`
+                  }],
+                });
+                const retryText = retry.content[0].type === 'text' ? retry.content[0].text.trim() : '';
+                if (retryText) reply = retryText;
+                if (!allowEmoji) {
+                  reply = reply.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '').replace(/\s{2,}/g, ' ').trim();
+                }
+              } catch { /* keep original reply as fallback */ }
+            }
           }
 
           try {
