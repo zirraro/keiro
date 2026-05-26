@@ -634,6 +634,127 @@ async function handleClientBrief(supabase: any, timeOfDay: 'morning' | 'evening'
         prospects: lifetimeProspectsRes.count || 0,
         dms: lifetimeDmsRes.count || 0,
       };
+
+      // ── CATCH-UP GATE — only on evening brief ───────────────────
+      // Founder ask 2026-05-26: "on doit absolument etre a 100% au
+      // moment de l'envoi. Si on ne l'est pas, on lance les actions
+      // necessaires pour completer puis on envoie."
+      //
+      // For each plan-floor metric we are below, fire the responsible
+      // agent now and wait briefly for it to land. Then refresh the
+      // counts so the plan-promise tracker shows the real catch-up
+      // numbers. Only runs for the evening brief (the morning one
+      // is intentionally informational + forecast-only).
+      if (isEvening) {
+        const evCronSecret = process.env.CRON_SECRET || '';
+        const evBaseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keiroai.com';
+        const evPlan = (client.subscription_plan || 'createur').toLowerCase();
+        const evFloors: Record<string, { posts: number; emails: number; prospects: number; dms: number }> = {
+          free:       { posts: 0, emails: 0,  prospects: 0,  dms: 0  },
+          createur:   { posts: 2, emails: 25, prospects: 15, dms: 6  },
+          pro:        { posts: 4, emails: 45, prospects: 32, dms: 12 },
+          business:   { posts: 5, emails: 70, prospects: 55, dms: 18 },
+          fondateurs: { posts: 5, emails: 70, prospects: 55, dms: 18 },
+          elite:      { posts: 6, emails: 90, prospects: 75, dms: 22 },
+          agence:     { posts: 6, emails: 90, prospects: 75, dms: 22 },
+          admin:      { posts: 6, emails: 100, prospects: 100, dms: 25 },
+        };
+        const evFloor = evFloors[evPlan] || evFloors.createur;
+
+        // Decide which agents to fire
+        const tasks: Array<{ name: string; url: string; method: string; body?: any }> = [];
+        if (doneCounts.posts_published < evFloor.posts) {
+          // Force a generate+publish pass via the content agent.
+          tasks.push({
+            name: 'content',
+            url: `${evBaseUrl}/api/agents/content?user_id=${client.id}&slot=catch_up&publish_mode=auto`,
+            method: 'GET',
+          });
+        }
+        if (doneCounts.emails_sent < evFloor.emails) {
+          tasks.push({
+            name: 'email',
+            url: `${evBaseUrl}/api/agents/email/daily?user_id=${client.id}&force=1`,
+            method: 'POST',
+            body: { user_id: client.id, force: true },
+          });
+        }
+        if (doneCounts.prospects_added < evFloor.prospects) {
+          tasks.push({
+            name: 'gmaps',
+            url: `${evBaseUrl}/api/agents/gmaps?user_id=${client.id}`,
+            method: 'POST',
+            body: { user_id: client.id },
+          });
+        }
+        if (doneCounts.dms_sent < evFloor.dms) {
+          tasks.push({
+            name: 'dm-instagram',
+            url: `${evBaseUrl}/api/agents/dm-instagram?user_id=${client.id}`,
+            method: 'POST',
+            body: { action: 'prepare_dms', user_id: client.id },
+          });
+        }
+
+        if (tasks.length > 0) {
+          console.log(`[Noah] Catch-up for ${client.id}: ${tasks.map(t => t.name).join(', ')}`);
+          await Promise.all(tasks.map(async t => {
+            try {
+              await fetch(t.url, {
+                method: t.method,
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${evCronSecret}`,
+                },
+                body: t.body ? JSON.stringify(t.body) : undefined,
+                // Hard ceiling so a stuck agent doesn't block the brief
+                signal: AbortSignal.timeout(60_000),
+              });
+            } catch (e: any) {
+              console.warn(`[Noah] Catch-up ${t.name} failed: ${e?.message?.slice(0, 100)}`);
+            }
+          }));
+
+          // Re-tally the 4 plan-floor metrics so the tracker reflects
+          // the catch-up. Other counts (posts_drafted, opens, etc.)
+          // stay as initially measured.
+          const [p2, e2, pr2, d2] = await Promise.all([
+            supabase.from('content_calendar').select('id', { count: 'exact', head: true })
+              .eq('user_id', client.id).eq('status', 'published').gte('published_at', sinceIso),
+            supabase.from('crm_prospects').select('id', { count: 'exact', head: true })
+              .eq('user_id', client.id).gte('last_email_sent_at', sinceIso),
+            supabase.from('crm_prospects').select('id', { count: 'exact', head: true })
+              .eq('user_id', client.id).gte('created_at', sinceIso),
+            supabase.from('crm_prospects').select('id', { count: 'exact', head: true })
+              .eq('user_id', client.id).gte('dm_sent_at', sinceIso),
+          ]);
+          doneCounts.posts_published = p2.count || doneCounts.posts_published;
+          doneCounts.emails_sent     = e2.count || doneCounts.emails_sent;
+          doneCounts.prospects_added = pr2.count || doneCounts.prospects_added;
+          doneCounts.dms_sent        = d2.count || doneCounts.dms_sent;
+
+          // Audit row so the founder can see catch-up history
+          await supabase.from('agent_logs').insert({
+            agent: 'ceo',
+            action: 'evening_catchup',
+            status: 'success',
+            user_id: client.id,
+            data: {
+              plan: evPlan,
+              fired: tasks.map(t => t.name),
+              floors: evFloor,
+              after: {
+                posts: doneCounts.posts_published,
+                emails: doneCounts.emails_sent,
+                prospects: doneCounts.prospects_added,
+                dms: doneCounts.dms_sent,
+              },
+            },
+            created_at: new Date().toISOString(),
+          }).catch(() => {});
+        }
+      }
+
       const errorCount  = (logs || []).filter((l: any) => l.status === 'error' || l.action === 'execution_failure').length;
       const totalDone   = Object.values(doneCounts).reduce((a, b) => a + b, 0);
 
