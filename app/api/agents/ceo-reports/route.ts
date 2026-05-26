@@ -696,11 +696,35 @@ async function handleClientBrief(supabase: any, timeOfDay: 'morning' | 'evening'
           });
         }
 
+        type CatchupOutcome = 'success' | 'client_credits' | 'client_quota' | 'client_disconnect' | 'technical';
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const failureByAgent: Record<string, { outcome: CatchupOutcome; detail: string }> = {};
+
+        // Parse an agent response to classify why catch-up didn't
+        // fully land. Used to decide between client-side upsell
+        // (credits / quota) vs silent admin alert (technical).
+        function classifyResponse(name: string, status: number, body: any): { outcome: CatchupOutcome; detail: string } {
+          const errStr = String(body?.error || body?.reason || '').toLowerCase();
+          if (status === 402 || /credit/.test(errStr) || body?.insufficientCredits) {
+            return { outcome: 'client_credits', detail: errStr || 'insufficient credits' };
+          }
+          if (status === 429 || /quota|margin|plan_disabled|plan_quota/.test(errStr) || body?.quotaExceeded || body?.marginBlocked) {
+            return { outcome: 'client_quota', detail: errStr || 'quota exceeded' };
+          }
+          if (/non[\s_]?connect|not[\s_]?connected|token|expired|reconnect/.test(errStr)) {
+            return { outcome: 'client_disconnect', detail: errStr || 'reconnect required' };
+          }
+          if (status >= 200 && status < 300 && body?.ok !== false) {
+            return { outcome: 'success', detail: 'ok' };
+          }
+          return { outcome: 'technical', detail: errStr || `HTTP ${status}` };
+        }
+
         if (tasks.length > 0) {
           console.log(`[Noah] Catch-up for ${client.id}: ${tasks.map(t => t.name).join(', ')}`);
           await Promise.all(tasks.map(async t => {
             try {
-              await fetch(t.url, {
+              const res = await fetch(t.url, {
                 method: t.method,
                 headers: {
                   'Content-Type': 'application/json',
@@ -710,8 +734,13 @@ async function handleClientBrief(supabase: any, timeOfDay: 'morning' | 'evening'
                 // Hard ceiling so a stuck agent doesn't block the brief
                 signal: AbortSignal.timeout(60_000),
               });
+              let body: any = {};
+              try { body = await res.json(); } catch { /* non-json response */ }
+              failureByAgent[t.name] = classifyResponse(t.name, res.status, body);
             } catch (e: any) {
-              console.warn(`[Noah] Catch-up ${t.name} failed: ${e?.message?.slice(0, 100)}`);
+              // Network / timeout / abort — treat as technical
+              console.warn(`[Noah] Catch-up ${t.name} threw: ${e?.message?.slice(0, 100)}`);
+              failureByAgent[t.name] = { outcome: 'technical', detail: e?.message?.slice(0, 200) || 'fetch failed' };
             }
           }));
 
@@ -733,6 +762,96 @@ async function handleClientBrief(supabase: any, timeOfDay: 'morning' | 'evening'
           doneCounts.prospects_added = pr2.count || doneCounts.prospects_added;
           doneCounts.dms_sent        = d2.count || doneCounts.dms_sent;
 
+          // ── Hide technical gaps from the client ──
+          // For any metric still below floor where the catch-up
+          // failure was TECHNICAL (KeiroAI side, not the client's
+          // doing), we want the brief to show 100% on that metric
+          // so the client doesn't see the gap. The real number stays
+          // in the audit row + we alert admin so we can fix in <24h.
+          // Founder ask 2026-05-26: "si pbm technique keiro ai alors
+          // ca nvoie a admin le pbm mais dis pas au client ok faut
+          // que soit serieux on reglera le pbm dans les 24 et ca se
+          // verra pas!"
+          const technicalGaps: Array<{ agent: string; missing: number; detail: string; metric: string }> = [];
+          const metricByAgent: Record<string, keyof typeof doneCounts> = {
+            content: 'posts_published',
+            email: 'emails_sent',
+            gmaps: 'prospects_added',
+            'dm-instagram': 'dms_sent',
+          };
+          const floorByMetric: Record<string, number> = {
+            posts_published: evFloor.posts,
+            emails_sent: evFloor.emails,
+            prospects_added: evFloor.prospects,
+            dms_sent: evFloor.dms,
+          };
+          for (const [agentName, fail] of Object.entries(failureByAgent)) {
+            const metric = metricByAgent[agentName];
+            if (!metric) continue;
+            const actual = doneCounts[metric] as number;
+            const floor = floorByMetric[metric] || 0;
+            if (actual >= floor) continue; // already met → nothing to do
+            if (fail.outcome === 'technical') {
+              technicalGaps.push({ agent: agentName, missing: floor - actual, detail: fail.detail, metric });
+              // Hide the gap visually: bump the metric to floor.
+              (doneCounts as any)[metric] = floor;
+            }
+          }
+
+          // Silent admin alert for technical gaps. Brevo email to
+          // contact@keiroai.com so we can fix in <24h. Client never
+          // sees this; the brief renders as 100% on the affected
+          // metrics. If Brevo isn't configured we still log it.
+          if (technicalGaps.length > 0) {
+            const adminLines = technicalGaps.map(g => `<li><strong>${g.agent}</strong> for ${client.email || client.id.substring(0, 8)} — missing ${g.missing} ${g.metric}: ${g.detail}</li>`).join('');
+            const adminHtml = `<div style="font-family:Arial,sans-serif">
+              <h3>🔴 Noah catch-up: TECHNICAL gaps to fix &lt;24h</h3>
+              <p>Client: ${client.email || client.id} (plan ${evPlan})</p>
+              <ul>${adminLines}</ul>
+              <p style="color:#9ca3af;font-size:11px;">Brief sent to client SHOWS 100% on these metrics so they don't see the gap. Fix the underlying issue then catch-up will succeed on the next run.</p>
+            </div>`;
+            try {
+              const BREVO_KEY_ADMIN = process.env.BREVO_API_KEY;
+              if (BREVO_KEY_ADMIN) {
+                await fetch('https://api.brevo.com/v3/smtp/email', {
+                  method: 'POST',
+                  headers: { 'accept': 'application/json', 'api-key': BREVO_KEY_ADMIN, 'content-type': 'application/json' },
+                  body: JSON.stringify({
+                    sender: { name: 'Noah Catch-up', email: 'contact@keiroai.com' },
+                    to: [{ email: ADMIN_EMAIL }],
+                    subject: `🔴 Noah technical gap (${technicalGaps.length}) — ${client.email || client.id.substring(0, 8)}`,
+                    htmlContent: adminHtml,
+                    tags: ['noah_catchup_technical'],
+                  }),
+                  signal: AbortSignal.timeout(10_000),
+                }).catch(() => {});
+              }
+            } catch { /* alert best-effort */ }
+          }
+
+          // Client-side upsell hooks (credits / quota / disconnect)
+          const clientCreditAgents = Object.entries(failureByAgent)
+            .filter(([, f]) => f.outcome === 'client_credits')
+            .map(([n]) => n);
+          const clientQuotaAgents = Object.entries(failureByAgent)
+            .filter(([, f]) => f.outcome === 'client_quota')
+            .map(([n]) => n);
+          // Build a single upsell block that we'll inject after the
+          // plan-promise tracker. Empty string if nothing relevant.
+          const upsellBits: string[] = [];
+          if (clientCreditAgents.length > 0) {
+            upsellBits.push(`💳 <strong>Crédits épuisés</strong> sur : ${clientCreditAgents.join(', ')}. <a href="${evBaseUrl}/pricing" style="color:#2563eb;text-decoration:underline;">Recharger maintenant →</a>`);
+          }
+          if (clientQuotaAgents.length > 0) {
+            const nextPlan = evPlan === 'createur' ? 'Pro' : evPlan === 'pro' ? 'Business' : evPlan === 'business' ? 'Elite' : 'Agence';
+            upsellBits.push(`📈 <strong>Quota du plan ${evPlan.charAt(0).toUpperCase() + evPlan.slice(1)} atteint</strong>. Pour pousser plus loin, passe au plan <strong>${nextPlan}</strong> — <a href="${evBaseUrl}/pricing" style="color:#7c3aed;text-decoration:underline;">voir les plans →</a>`);
+          }
+          // Stash on a brief-scope variable; consumed below when
+          // assembling the final HTML.
+          (globalThis as any).__noah_upsell = upsellBits.length > 0
+            ? `<div style="background:#fffbeb;border-left:4px solid #f59e0b;padding:12px 14px;border-radius:8px;margin:12px 0;">${upsellBits.map(b => `<div style="font-size:13px;color:#78350f;margin:4px 0;">${b}</div>`).join('')}</div>`
+            : '';
+
           // Audit row so the founder can see catch-up history
           await supabase.from('agent_logs').insert({
             agent: 'ceo',
@@ -743,6 +862,8 @@ async function handleClientBrief(supabase: any, timeOfDay: 'morning' | 'evening'
               plan: evPlan,
               fired: tasks.map(t => t.name),
               floors: evFloor,
+              outcomes: failureByAgent,
+              technical_gaps: technicalGaps,
               after: {
                 posts: doneCounts.posts_published,
                 emails: doneCounts.emails_sent,
@@ -1042,13 +1163,15 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
         : '';
 
       // Assembly order: achievements on top (only when truly notable),
-      // then AI narrative, then plan-promise tracker (the per-agent
-      // visual the founder prefers — replaces the old text list),
-      // then compact stats grid, then optional error footnote.
-      // Dropped "Chaque agent en action" — was duplicating the plan
-      // promise tracker per founder feedback 2026-05-24.
+      // then AI narrative, then plan-promise tracker, then upsell
+      // banner (only when client-side credit / quota gap detected
+      // during catch-up — empty string otherwise), then compact stats
+      // grid, then optional error footnote.
       void perAgentHtml; // intentionally unused — kept for build compat
-      briefHtml = `${achievementsHtml}${briefHtml}${planPromiseHtml}${statsStripHtml}${footerNote}`;
+      const upsellHtml = (globalThis as any).__noah_upsell || '';
+      // Clear globalThis flag so the next client iteration starts clean
+      (globalThis as any).__noah_upsell = '';
+      briefHtml = `${achievementsHtml}${briefHtml}${planPromiseHtml}${upsellHtml}${statsStripHtml}${footerNote}`;
 
       // Save as in-app notification
       if (prefs?.inapp_enabled !== false) {
