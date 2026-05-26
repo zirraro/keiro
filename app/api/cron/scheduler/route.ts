@@ -572,6 +572,12 @@ export async function GET(request: NextRequest) {
         // Client evening debrief — each client gets "what ran today + what to do
         // tomorrow". Mirror of the morning brief, firing at 20h UTC (~22h Paris).
         await callEndpoint('Noah Client Evening Brief', '/api/agents/ceo-reports?type=client_evening', 'POST');
+        await delay(15_000); // Let all per-client briefs settle (catch-up runs sequentially)
+        // Admin health digest — aggregates all noah_diagnostic rows
+        // from the last 24h into ONE email with root-cause analysis
+        // and proposed fixes. Founder ask 2026-05-26: "des mails
+        // quotidien d'alerte avec recommendation et root cause real".
+        await callEndpoint('Admin Health Digest', '/api/cron/admin-health-digest', 'GET');
       });
       results.push({ task: 'CEO Daily', ok: true, data: { status: 'dispatched_background' } });
       break;

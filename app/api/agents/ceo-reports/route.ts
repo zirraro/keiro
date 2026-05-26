@@ -798,18 +798,213 @@ async function handleClientBrief(supabase: any, timeOfDay: 'morning' | 'evening'
             }
           }
 
-          // Silent admin alert for technical gaps. Brevo email to
-          // contact@keiroai.com so we can fix in <24h. Client never
-          // sees this; the brief renders as 100% on the affected
-          // metrics. If Brevo isn't configured we still log it.
+          // Silent admin diagnostic for technical gaps — full root
+          // cause analysis, scale impact, proposed fixes. Founder ask
+          // 2026-05-26: "faut faire une recherche du probleme et
+          // proposer des solutions" so we can ship a real fix and
+          // serve 50+ clients reliably.
           if (technicalGaps.length > 0) {
-            const adminLines = technicalGaps.map(g => `<li><strong>${g.agent}</strong> for ${client.email || client.id.substring(0, 8)} — missing ${g.missing} ${g.metric}: ${g.detail}</li>`).join('');
-            const adminHtml = `<div style="font-family:Arial,sans-serif">
-              <h3>🔴 Noah catch-up: TECHNICAL gaps to fix &lt;24h</h3>
-              <p>Client: ${client.email || client.id} (plan ${evPlan})</p>
-              <ul>${adminLines}</ul>
-              <p style="color:#9ca3af;font-size:11px;">Brief sent to client SHOWS 100% on these metrics so they don't see the gap. Fix the underlying issue then catch-up will succeed on the next run.</p>
+            // Known root-cause patterns. Heuristic matchers on the
+            // error string + suggested fixes. Add to this list as we
+            // discover new failure modes.
+            const ROOT_CAUSE_PATTERNS: Array<{
+              match: RegExp;
+              cause: string;
+              severity: 'P0' | 'P1' | 'P2';
+              fixes: string[];
+            }> = [
+              {
+                match: /api[_\s]?key|env.*var|environment/i,
+                cause: 'Env var manquante en production',
+                severity: 'P0',
+                fixes: [
+                  'Vérifier la variable dans .env.production sur le VPS',
+                  'Ajouter un health-check au boot qui fail-fast si la var manque',
+                  'Documenter la liste exhaustive des env vars requises',
+                ],
+              },
+              {
+                match: /timeout|ETIMEDOUT|aborted/i,
+                cause: 'Timeout côté upstream',
+                severity: 'P1',
+                fixes: [
+                  'Augmenter le timeout côté agent',
+                  'Paralléliser les appels au lieu de séquentiel',
+                  'Implémenter un retry exponential-backoff',
+                ],
+              },
+              {
+                match: /rate[\s_]?limit|too many requests|429/i,
+                cause: 'Rate limit côté API tierce',
+                severity: 'P1',
+                fixes: [
+                  'Réduire la fréquence d\'appel (delay entre items)',
+                  'Bucket par client pour répartir la charge',
+                  'Cache de réponses si idempotent',
+                ],
+              },
+              {
+                match: /token.*expired|invalid.*token|oauth|unauthorized|401/i,
+                cause: 'Token expiré / OAuth invalide',
+                severity: 'P1',
+                fixes: [
+                  'Implémenter le refresh automatique du token',
+                  'Détecter 401 et purger le token + notifier le client de reconnecter',
+                  'Monitorer l\'expiration des tokens en cron (alerter 7j avant)',
+                ],
+              },
+              {
+                match: /database|supabase|postgres|relation.*does not exist|column.*does not exist/i,
+                cause: 'Erreur base de données',
+                severity: 'P0',
+                fixes: [
+                  'Vérifier les migrations appliquées (drift schéma DB ↔ code)',
+                  'Auditer les contraintes CHECK et UNIQUE qui rejettent silencieusement',
+                  'Tester en staging avant la prod',
+                ],
+              },
+              {
+                match: /network|fetch failed|ENOTFOUND|ECONNREFUSED|socket hang/i,
+                cause: 'Erreur réseau / upstream down',
+                severity: 'P1',
+                fixes: [
+                  'Vérifier si le service tiers est UP (statuspage)',
+                  'Ajouter circuit breaker pour ne pas hammer un service down',
+                  'Fallback vers provider secondaire si dispo',
+                ],
+              },
+              {
+                match: /budget|spend|cost.*limit/i,
+                cause: 'Budget journalier KeiroAI atteint',
+                severity: 'P1',
+                fixes: [
+                  'Augmenter le cap journalier sur le service concerné',
+                  'Optimiser le coût par opération',
+                  'Améliorer le pool partagé pour réduire les appels payants',
+                ],
+              },
+              {
+                match: /not[\s_]?found|404|introuvable/i,
+                cause: 'Ressource introuvable côté API tierce',
+                severity: 'P2',
+                fixes: [
+                  'Vérifier que l\'ID/handle existe avant l\'appel',
+                  'Gérer 404 comme un skip non-bloquant, pas un échec',
+                ],
+              },
+            ];
+
+            function diagnose(detail: string) {
+              for (const p of ROOT_CAUSE_PATTERNS) {
+                if (p.match.test(detail)) return p;
+              }
+              return {
+                cause: 'Cause inconnue — investigation manuelle requise',
+                severity: 'P2' as const,
+                fixes: [
+                  'Consulter pm2 logs keiro-app pour la stack trace complète',
+                  'Reproduire en local avec le même payload',
+                  'Ajouter un log détaillé dans le code de l\'agent concerné',
+                ],
+              };
+            }
+
+            // Per-agent diagnostic with similar-errors lookup (last 24h)
+            const since24h = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+            const diagnostics = await Promise.all(technicalGaps.map(async (g) => {
+              const dx = diagnose(g.detail);
+              // Find similar errors in agent_logs to detect systemic patterns
+              const agentLogName = g.agent === 'content' ? 'content'
+                : g.agent === 'email' ? 'email'
+                : g.agent === 'gmaps' ? 'gmaps'
+                : g.agent === 'dm-instagram' ? 'dm_instagram'
+                : g.agent;
+              const { data: similar } = await supabase
+                .from('agent_logs')
+                .select('user_id, data, created_at')
+                .eq('agent', agentLogName)
+                .eq('status', 'error')
+                .gte('created_at', since24h)
+                .limit(50);
+              const affectedClients = new Set<string>();
+              let signatureMatches = 0;
+              const errorSignature = g.detail.slice(0, 40).toLowerCase();
+              for (const log of similar || []) {
+                if (log.user_id) affectedClients.add(log.user_id);
+                const logErr = String(log.data?.error || log.data?.detail || '').toLowerCase();
+                if (logErr.includes(errorSignature.split(/[\s:]/, 1)[0])) signatureMatches++;
+              }
+              // Scale impact estimate
+              const { count: totalClients } = await supabase
+                .from('profiles').select('id', { count: 'exact', head: true })
+                .not('subscription_plan', 'is', null)
+                .neq('subscription_plan', 'free');
+              const totalActive = totalClients || 1;
+              const impactPct = Math.round((affectedClients.size / totalActive) * 100);
+              const scope = affectedClients.size === 1
+                ? 'isolé (1 client)'
+                : impactPct >= 50
+                  ? `systémique (${affectedClients.size}/${totalActive} clients, ${impactPct}%)`
+                  : `partiel (${affectedClients.size}/${totalActive} clients, ${impactPct}%)`;
+              return { gap: g, dx, signatureMatches, affectedClients: affectedClients.size, totalActive, scope, impactPct };
+            }));
+
+            // Highest severity wins for the email subject
+            const sevRank = { P0: 0, P1: 1, P2: 2 } as const;
+            const topSev = diagnostics.reduce((a, d) => sevRank[d.dx.severity] < sevRank[a] ? d.dx.severity : a, 'P2' as 'P0' | 'P1' | 'P2');
+
+            const diagBlocks = diagnostics.map(d => `
+<div style="border:1px solid #fecaca;border-left:4px solid #dc2626;background:#fef2f2;padding:14px;border-radius:8px;margin:12px 0;">
+  <div style="font-size:11px;color:#991b1b;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;">
+    ${d.dx.severity} · ${d.gap.agent} · ${d.scope}
+  </div>
+  <div style="font-size:14px;color:#7f1d1d;font-weight:bold;margin:6px 0;">
+    ${d.dx.cause}
+  </div>
+  <div style="font-size:12px;color:#444;margin:8px 0;">
+    <strong>Manque pour ce client :</strong> ${d.gap.missing} ${d.gap.metric}<br>
+    <strong>Erreur brute :</strong> <code style="background:#fff;padding:2px 6px;border-radius:4px;font-size:11px;">${d.gap.detail.slice(0, 200)}</code><br>
+    <strong>Échantillon agent_logs 24h :</strong> ${d.signatureMatches} erreurs avec signature similaire sur ${d.affectedClients} client(s) distincts
+  </div>
+  <div style="font-size:12px;color:#374151;margin-top:8px;">
+    <strong style="color:#059669;">Solutions proposées :</strong>
+    <ul style="margin:6px 0 0;padding-left:18px;">
+      ${d.dx.fixes.map(f => `<li>${f}</li>`).join('')}
+    </ul>
+  </div>
+</div>`).join('');
+
+            const scaleNote = diagnostics.some(d => d.impactPct >= 50)
+              ? `<div style="background:#fff7ed;border-left:4px solid #ea580c;padding:12px 14px;border-radius:8px;margin:12px 0;">
+                  <strong style="color:#9a3412;">⚠️ Impact systémique détecté.</strong>
+                  <div style="font-size:12px;color:#7c2d12;margin-top:4px;">Au moins une erreur affecte 50%+ de la base. Si on passe à 50 clients, c'est tout le monde. À fix EN PRIORITÉ.</div>
+                </div>`
+              : `<div style="background:#f9fafb;border-left:4px solid #6b7280;padding:10px 12px;border-radius:8px;margin:12px 0;font-size:11px;color:#4b5563;">
+                  Erreur isolée pour le moment. À surveiller — si elle se répète sur d'autres clients, basculera en systémique.
+                </div>`;
+
+            const adminHtml = `<div style="font-family:Arial,sans-serif;max-width:680px;margin:0 auto;">
+              <div style="background:#0c1a3a;color:#fff;padding:16px 20px;border-radius:12px 12px 0 0;">
+                <h2 style="margin:0;font-size:16px;">🔴 Noah catch-up — diagnostic technique</h2>
+                <div style="font-size:11px;color:#a0aec0;margin-top:4px;">Brief client envoyé en masquant le gap. Fix requis sous 24h.</div>
+              </div>
+              <div style="background:#fff;border:1px solid #e5e7eb;border-top:0;padding:18px 20px;">
+                <div style="font-size:13px;color:#374151;margin-bottom:8px;">
+                  <strong>Client concerné :</strong> ${client.email || client.id} · plan <strong>${evPlan}</strong>
+                </div>
+                ${scaleNote}
+                <h3 style="font-size:13px;color:#dc2626;margin:18px 0 4px;">Diagnostic par agent (${diagnostics.length})</h3>
+                ${diagBlocks}
+                <div style="background:#f0fdf4;border-left:4px solid #16a34a;padding:12px 14px;border-radius:8px;margin:14px 0 0;">
+                  <strong style="color:#166534;font-size:12px;">📋 Action attendue de Victor</strong>
+                  <div style="font-size:11px;color:#14532d;margin-top:4px;">Reviewer cet email puis demander à Claude d'implémenter le fix proposé qui correspond. Une fois fix déployé, la catch-up suivante validera silencieusement (plus d'alerte = problème résolu).</div>
+                </div>
+              </div>
+              <div style="background:#f9fafb;padding:10px;text-align:center;color:#9ca3af;font-size:10px;border-radius:0 0 12px 12px;">
+                Source : agent_logs (24h) + ROOT_CAUSE_PATTERNS / app/api/agents/ceo-reports/route.ts
+              </div>
             </div>`;
+
             try {
               const BREVO_KEY_ADMIN = process.env.BREVO_API_KEY;
               if (BREVO_KEY_ADMIN) {
@@ -817,16 +1012,42 @@ async function handleClientBrief(supabase: any, timeOfDay: 'morning' | 'evening'
                   method: 'POST',
                   headers: { 'accept': 'application/json', 'api-key': BREVO_KEY_ADMIN, 'content-type': 'application/json' },
                   body: JSON.stringify({
-                    sender: { name: 'Noah Catch-up', email: 'contact@keiroai.com' },
+                    sender: { name: 'Noah Catch-up Diagnostic', email: 'contact@keiroai.com' },
                     to: [{ email: ADMIN_EMAIL }],
-                    subject: `🔴 Noah technical gap (${technicalGaps.length}) — ${client.email || client.id.substring(0, 8)}`,
+                    subject: `${topSev} Noah technical — ${diagnostics.map(d => d.dx.cause.slice(0, 35)).join(' · ')} — ${client.email || client.id.substring(0, 8)}`,
                     htmlContent: adminHtml,
-                    tags: ['noah_catchup_technical'],
+                    tags: ['noah_catchup_technical', topSev.toLowerCase()],
                   }),
                   signal: AbortSignal.timeout(10_000),
                 }).catch(() => {});
               }
             } catch { /* alert best-effort */ }
+
+            // Also log the diagnostic so we can build a weekly
+            // "service health" rollup later.
+            await supabase.from('agent_logs').insert({
+              agent: 'ceo',
+              action: 'noah_diagnostic',
+              status: 'error',
+              user_id: client.id,
+              data: {
+                severity: topSev,
+                client_email: client.email,
+                plan: evPlan,
+                gaps: diagnostics.map(d => ({
+                  agent: d.gap.agent,
+                  missing: d.gap.missing,
+                  metric: d.gap.metric,
+                  cause: d.dx.cause,
+                  severity: d.dx.severity,
+                  affected_clients: d.affectedClients,
+                  impact_pct: d.impactPct,
+                  fixes: d.dx.fixes,
+                  raw_error: d.gap.detail,
+                })),
+              },
+              created_at: new Date().toISOString(),
+            }).catch(() => {});
           }
 
           // Client-side upsell hooks (credits / quota / disconnect)
