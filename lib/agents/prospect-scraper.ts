@@ -28,6 +28,17 @@ export interface BusinessNotes {
 }
 
 /**
+ * Extracted contact info from a website. Used to fill essentials
+ * (phone / email / address) without burning a Google Places call.
+ */
+export interface ExtractedContact {
+  phone?: string;
+  email?: string;
+  address?: string;
+  instagram?: string; // handle without @, harvested from <a href="instagram.com/...">
+}
+
+/**
  * Fetch + extract structured data from a website HTML. Very tolerant:
  * if the site is slow, behind Cloudflare, or returns HTML we can't
  * parse, we return null. 6s hard timeout.
@@ -93,6 +104,51 @@ export async function scrapeWebsite(url: string): Promise<Partial<BusinessNotes>
     ];
     for (const [re, label] of AMBIANCE_KEYWORDS) if (re.test(txtSample)) ambiance.push(label);
 
+    // ── Contact info extraction (phone / email / address / IG handle) ──
+    // Free, fills essentials without burning a Google Places call.
+    // Founder ask 2026-05-28: scraper should populate fiche essentials
+    // from website HTML before any paid lookup.
+    const contact: ExtractedContact = {};
+
+    // Phone: FR (10 digits) or +33 international, accept various seps
+    const phoneMatches = clean.match(/(?:(?:\+33|0033|0)\s?[1-9](?:[\s.\-]?\d{2}){4})/g);
+    if (phoneMatches && phoneMatches.length > 0) {
+      // Prefer phones in tel: links over plain text matches
+      const telMatch = clean.match(/href=["']tel:([+\d\s.\-]{8,20})["']/i);
+      const raw = telMatch?.[1] || phoneMatches[0];
+      const normalized = raw.replace(/[\s.\-]/g, '').replace(/^0033/, '+33').replace(/^0(?=\d)/, '+33');
+      contact.phone = normalized;
+    }
+
+    // Email: extract first non-noreply / non-example address
+    const emailMatches = clean.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || [];
+    const goodEmail = emailMatches.find(e => !/noreply|no-reply|example\.|sentry|wixpress|wixstudio|godaddy/i.test(e));
+    if (goodEmail) contact.email = goodEmail.toLowerCase();
+
+    // Address: look for postal-code patterns (5 digits) or common
+    // schema.org/json-ld snippets
+    const addrPatterns = [
+      /"streetAddress"\s*:\s*"([^"]{5,120})"[\s\S]{0,200}"postalCode"\s*:\s*"(\d{5})"[\s\S]{0,200}"addressLocality"\s*:\s*"([^"]{2,60})"/i,
+      /(\d{1,4}[,\s][^,\n<]{4,80}[,\s]\d{5}[,\s][A-ZÉÈÊÀÔÎ][\wÀ-ÿ\-' ]{2,60})/u,
+    ];
+    for (const re of addrPatterns) {
+      const m = clean.match(re);
+      if (m) {
+        if (re.source.includes('streetAddress')) {
+          contact.address = `${m[1]}, ${m[2]} ${m[3]}`.replace(/\s+/g, ' ').trim();
+        } else {
+          contact.address = m[1].replace(/\s+/g, ' ').trim();
+        }
+        break;
+      }
+    }
+
+    // Instagram handle in <a href="instagram.com/...">
+    const igLinkMatch = clean.match(/(?:href|src)=["']https?:\/\/(?:www\.)?instagram\.com\/([A-Za-z0-9_.]{2,30})/i);
+    if (igLinkMatch && igLinkMatch[1] && !/sharer|p\b|reel|tv/.test(igLinkMatch[1])) {
+      contact.instagram = igLinkMatch[1].replace(/\/$/, '');
+    }
+
     return {
       source: 'website',
       website_title: title || undefined,
@@ -101,7 +157,10 @@ export async function scrapeWebsite(url: string): Promise<Partial<BusinessNotes>
       ambiance,
       signature: [], // signature dishes/services need NLP to extract reliably → leave to Hugo prompt
       audience: '',
-    };
+      // contact info attached separately so the orchestrator can merge
+      // it into the prospect row's essential fields
+      ...(Object.keys(contact).length > 0 ? { __contact: contact } : {}),
+    } as any;
   } catch {
     return null;
   }
@@ -181,11 +240,15 @@ export async function scrapeInstagram(
  * Orchestrator — scrape every available channel for a prospect, merge
  * findings, return the BusinessNotes object ready for persistence.
  * Returns null if nothing was harvestable.
+ *
+ * Also returns extracted essential contact fields (phone / email /
+ * address / instagram) so the caller can fill them in crm_prospects
+ * directly — pushing the type-aware completeness % naturally.
  */
 export async function harvestBusinessNotes(
   supabase: any,
   prospect: { website?: string | null; instagram?: string | null },
-): Promise<BusinessNotes | null> {
+): Promise<(BusinessNotes & { extractedContact?: ExtractedContact }) | null> {
   const tasks: Promise<Partial<BusinessNotes> | null>[] = [];
   if (prospect.website) tasks.push(scrapeWebsite(prospect.website));
   if (prospect.instagram && prospect.instagram !== 'A_VERIFIER') {
@@ -198,7 +261,7 @@ export async function harvestBusinessNotes(
   if (valid.length === 0) return null;
 
   // Merge
-  const merged: BusinessNotes = {
+  const merged: BusinessNotes & { extractedContact?: ExtractedContact } = {
     source: valid.length > 1 ? 'mixed' : (valid[0].source || 'website'),
     signals: [],
     signature: [],
@@ -206,6 +269,7 @@ export async function harvestBusinessNotes(
     audience: '',
     fetched_at: new Date().toISOString(),
   };
+  let collectedContact: ExtractedContact | undefined;
   for (const r of valid) {
     if (r.signals) merged.signals.push(...r.signals);
     if (r.signature) merged.signature.push(...r.signature);
@@ -216,7 +280,16 @@ export async function harvestBusinessNotes(
     if (r.insta_bio) merged.insta_bio = r.insta_bio;
     if (r.website_title) merged.website_title = r.website_title;
     if (r.website_description) merged.website_description = r.website_description;
+    const rContact = (r as any).__contact as ExtractedContact | undefined;
+    if (rContact) {
+      collectedContact = collectedContact || {};
+      if (rContact.phone && !collectedContact.phone) collectedContact.phone = rContact.phone;
+      if (rContact.email && !collectedContact.email) collectedContact.email = rContact.email;
+      if (rContact.address && !collectedContact.address) collectedContact.address = rContact.address;
+      if (rContact.instagram && !collectedContact.instagram) collectedContact.instagram = rContact.instagram;
+    }
   }
+  if (collectedContact) merged.extractedContact = collectedContact;
   // De-dup ambiance
   merged.ambiance = Array.from(new Set(merged.ambiance));
   // Cap signals to avoid bloated JSON

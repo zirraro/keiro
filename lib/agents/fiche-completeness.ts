@@ -1,22 +1,23 @@
 /**
- * Type-aware fiche completeness scoring.
+ * Type-aware fiche completeness scoring — 3-tier model.
  *
- * Founder ask 2026-05-27: "le pourcentage de completude des fiches
- * CRM de Léo est de 20% en moyenne — typiquement un resto n'aura pas
- * de LinkedIn donc info non essentielle, faut monter mécaniquement la
- * completion si l'info reste optionnelle. À toi de déterminer".
+ * Founder ask 2026-05-27: "verifier ce qui est essentiel ce qu on doit
+ * scrapper comme defini poour personaliser les visuels et ajouter des
+ * noter personalises sur la fiche au besoin et donc ajuster le %".
  *
- * Each business type has a different set of ESSENTIAL fields (the ones
- * Léo MUST fill so Hugo / Jade / Léna can do their job) and OPTIONAL
- * BONUS fields that add value when present but don't penalize the
- * fiche when absent.
+ * Three tiers per business type:
+ *   - ESSENTIAL: what we ABSOLUTELY need to email / DM / publish (weight 70 %)
+ *   - IMPORTANT: nice boosts (instagram, website, address) — weight 25 %
+ *   - OPTIONAL:  cherry on top (LinkedIn for B2C, TikTok for non-creators) — 5 %
  *
- * Scoring:
- *   pct = (filled essentials / essentials) * 90 + (filled bonus / bonus) * 10
+ * Final pct = essentialPct*0.70 + importantPct*0.25 + optionalPct*0.05.
  *
- * → A fully-essential fiche with no bonus = 90% (above the 70% gate).
- * → A fully-essential fiche with all bonuses = 100%.
- * → Missing essentials hurt; missing bonus doesn't.
+ * A fiche with all essentials filled and no extras = 70 %.
+ * Add the important ones and you reach ~95 %.
+ * Add all the optionals and you reach 100 %.
+ *
+ * This is much more achievable than the old "everything is essential"
+ * model that bottomed out around 30 % on real-world fiches.
  */
 
 const FIELD_LABEL: Record<string, string> = {
@@ -34,41 +35,142 @@ const FIELD_LABEL: Record<string, string> = {
   first_name: 'prénom du gérant',
 };
 
-// Essentials per business type. The default profile covers physical
-// local businesses (resto, boutique, etc.). B2B-flavored profiles
-// (coach, services, agence) shift essentials toward digital/contact.
-const ESSENTIALS_BY_TYPE: Record<string, { essentials: string[]; bonus: string[] }> = {
-  // Physical hospitality / retail — Insta + Google + adresse sont rois
-  restaurant:    { essentials: ['company', 'type', 'quartier', 'address', 'phone', 'note_google', 'instagram'], bonus: ['email', 'website', 'tiktok_handle', 'first_name'] },
-  bistrot:       { essentials: ['company', 'type', 'quartier', 'address', 'phone', 'note_google', 'instagram'], bonus: ['email', 'website', 'tiktok_handle', 'first_name'] },
-  brasserie:     { essentials: ['company', 'type', 'quartier', 'address', 'phone', 'note_google', 'instagram'], bonus: ['email', 'website', 'tiktok_handle', 'first_name'] },
-  bar:           { essentials: ['company', 'type', 'quartier', 'address', 'phone', 'note_google', 'instagram'], bonus: ['email', 'website', 'tiktok_handle', 'first_name'] },
-  hotel:         { essentials: ['company', 'type', 'quartier', 'address', 'phone', 'note_google', 'instagram', 'website'], bonus: ['email', 'tiktok_handle', 'first_name'] },
-  traiteur:      { essentials: ['company', 'type', 'quartier', 'phone', 'instagram'], bonus: ['email', 'website', 'address', 'note_google', 'tiktok_handle', 'first_name'] },
-  boulangerie:   { essentials: ['company', 'type', 'quartier', 'address', 'phone', 'note_google', 'instagram'], bonus: ['email', 'website', 'first_name'] },
-  patisserie:    { essentials: ['company', 'type', 'quartier', 'address', 'phone', 'note_google', 'instagram'], bonus: ['email', 'website', 'tiktok_handle', 'first_name'] },
-  fromagerie:    { essentials: ['company', 'type', 'quartier', 'address', 'phone', 'note_google'], bonus: ['email', 'website', 'instagram', 'first_name'] },
-  caviste:       { essentials: ['company', 'type', 'quartier', 'address', 'phone', 'note_google', 'instagram'], bonus: ['email', 'website', 'first_name'] },
-  fleuriste:     { essentials: ['company', 'type', 'quartier', 'address', 'phone', 'note_google', 'instagram'], bonus: ['email', 'website', 'tiktok_handle', 'first_name'] },
-  // Beauty / wellness — Insta + tel = canal principal de rdv
-  coiffeur:      { essentials: ['company', 'type', 'quartier', 'address', 'phone', 'note_google', 'instagram'], bonus: ['email', 'website', 'tiktok_handle', 'first_name'] },
-  barbier:       { essentials: ['company', 'type', 'quartier', 'address', 'phone', 'note_google', 'instagram'], bonus: ['email', 'website', 'tiktok_handle', 'first_name'] },
-  salon_beaute:  { essentials: ['company', 'type', 'quartier', 'address', 'phone', 'note_google', 'instagram'], bonus: ['email', 'website', 'tiktok_handle', 'first_name'] },
-  salon_de_beaute:{essentials: ['company', 'type', 'quartier', 'address', 'phone', 'note_google', 'instagram'], bonus: ['email', 'website', 'tiktok_handle', 'first_name'] },
-  // Services / B2C body — Insta + email + tel
-  coach:         { essentials: ['company', 'type', 'email', 'phone', 'instagram', 'first_name'], bonus: ['website', 'quartier', 'tiktok_handle', 'linkedin_url'] },
-  photographe:   { essentials: ['company', 'type', 'email', 'instagram', 'website'], bonus: ['phone', 'quartier', 'tiktok_handle', 'first_name'] },
-  // B2B — LinkedIn devient essentiel, IG/TT moins
-  freelance:     { essentials: ['company', 'type', 'email', 'linkedin_url', 'website'], bonus: ['phone', 'instagram', 'first_name', 'quartier'] },
-  consultant:    { essentials: ['company', 'type', 'email', 'linkedin_url', 'website'], bonus: ['phone', 'instagram', 'first_name', 'quartier'] },
-  agence:        { essentials: ['company', 'type', 'email', 'linkedin_url', 'website', 'instagram'], bonus: ['phone', 'first_name', 'quartier', 'tiktok_handle'] },
-  // Generic fallback — keep a useful baseline
-  services:      { essentials: ['company', 'type', 'email', 'phone'], bonus: ['instagram', 'linkedin_url', 'website', 'first_name', 'quartier'] },
-  pme:           { essentials: ['company', 'type', 'email', 'phone'], bonus: ['instagram', 'linkedin_url', 'website', 'first_name', 'quartier'] },
-  boutique:      { essentials: ['company', 'type', 'quartier', 'phone', 'instagram'], bonus: ['email', 'website', 'address', 'note_google', 'tiktok_handle', 'first_name'] },
+type Tiers = { essential: string[]; important: string[]; optional: string[] };
+
+// Per-type tier mapping. Tunable based on what's typically scrapable
+// per niche. Defaults reflect French local-business reality (resto/
+// boutique have Google rating, phone, address; B2B has LinkedIn).
+const TIERS_BY_TYPE: Record<string, Tiers> = {
+  // ── Physical hospitality / retail ──
+  // Essential: identité, joignabilité, géolocalisation. Insta &
+  // website sont SOUHAITABLES (présents souvent, mais pas bloquants
+  // si pas trouvés). LinkedIn / TikTok = optionnels.
+  restaurant: {
+    essential: ['company', 'type', 'quartier', 'phone', 'note_google'],
+    important: ['address', 'website', 'instagram'],
+    optional:  ['email', 'tiktok_handle', 'first_name', 'linkedin_url'],
+  },
+  bistrot: {
+    essential: ['company', 'type', 'quartier', 'phone', 'note_google'],
+    important: ['address', 'website', 'instagram'],
+    optional:  ['email', 'tiktok_handle', 'first_name', 'linkedin_url'],
+  },
+  brasserie: {
+    essential: ['company', 'type', 'quartier', 'phone', 'note_google'],
+    important: ['address', 'website', 'instagram'],
+    optional:  ['email', 'tiktok_handle', 'first_name', 'linkedin_url'],
+  },
+  bar: {
+    essential: ['company', 'type', 'quartier', 'phone'],
+    important: ['address', 'website', 'instagram', 'note_google'],
+    optional:  ['email', 'tiktok_handle', 'first_name', 'linkedin_url'],
+  },
+  hotel: {
+    essential: ['company', 'type', 'quartier', 'phone', 'website'],
+    important: ['address', 'instagram', 'note_google', 'email'],
+    optional:  ['tiktok_handle', 'first_name', 'linkedin_url'],
+  },
+  traiteur: {
+    essential: ['company', 'type', 'quartier', 'phone'],
+    important: ['email', 'website', 'instagram', 'address'],
+    optional:  ['note_google', 'tiktok_handle', 'first_name', 'linkedin_url'],
+  },
+  boulangerie: {
+    essential: ['company', 'type', 'quartier', 'phone'],
+    important: ['address', 'note_google', 'instagram'],
+    optional:  ['email', 'website', 'first_name', 'tiktok_handle', 'linkedin_url'],
+  },
+  patisserie: {
+    essential: ['company', 'type', 'quartier', 'phone'],
+    important: ['address', 'note_google', 'instagram', 'website'],
+    optional:  ['email', 'first_name', 'tiktok_handle', 'linkedin_url'],
+  },
+  fromagerie: {
+    essential: ['company', 'type', 'quartier', 'phone'],
+    important: ['address', 'note_google', 'website'],
+    optional:  ['email', 'instagram', 'first_name', 'tiktok_handle', 'linkedin_url'],
+  },
+  caviste: {
+    essential: ['company', 'type', 'quartier', 'phone'],
+    important: ['address', 'note_google', 'website', 'instagram'],
+    optional:  ['email', 'first_name', 'tiktok_handle', 'linkedin_url'],
+  },
+  fleuriste: {
+    essential: ['company', 'type', 'quartier', 'phone'],
+    important: ['address', 'note_google', 'instagram', 'website'],
+    optional:  ['email', 'first_name', 'tiktok_handle', 'linkedin_url'],
+  },
+  // ── Beauty / wellness ──
+  coiffeur: {
+    essential: ['company', 'type', 'quartier', 'phone'],
+    important: ['address', 'note_google', 'website'],
+    optional:  ['instagram', 'email', 'tiktok_handle', 'first_name', 'linkedin_url'],
+  },
+  barbier: {
+    essential: ['company', 'type', 'quartier', 'phone'],
+    important: ['address', 'note_google', 'instagram'],
+    optional:  ['website', 'email', 'tiktok_handle', 'first_name', 'linkedin_url'],
+  },
+  salon_beaute: {
+    essential: ['company', 'type', 'quartier', 'phone'],
+    important: ['address', 'note_google', 'website', 'instagram'],
+    optional:  ['email', 'first_name', 'tiktok_handle', 'linkedin_url'],
+  },
+  salon_de_beaute: {
+    essential: ['company', 'type', 'quartier', 'phone'],
+    important: ['address', 'note_google', 'website', 'instagram'],
+    optional:  ['email', 'first_name', 'tiktok_handle', 'linkedin_url'],
+  },
+  // ── B2C services / coach / créateur ──
+  coach: {
+    essential: ['company', 'type', 'phone'],
+    important: ['email', 'website', 'instagram'],
+    optional:  ['quartier', 'address', 'first_name', 'note_google', 'tiktok_handle', 'linkedin_url'],
+  },
+  photographe: {
+    essential: ['company', 'type', 'website'],
+    important: ['email', 'instagram', 'phone'],
+    optional:  ['quartier', 'first_name', 'tiktok_handle', 'linkedin_url', 'address'],
+  },
+  // ── B2B / professional services ──
+  freelance: {
+    essential: ['company', 'type', 'email', 'website'],
+    important: ['phone', 'linkedin_url'],
+    optional:  ['instagram', 'first_name', 'quartier', 'address', 'tiktok_handle', 'note_google'],
+  },
+  consultant: {
+    essential: ['company', 'type', 'email', 'website'],
+    important: ['phone', 'linkedin_url'],
+    optional:  ['instagram', 'first_name', 'quartier', 'address', 'tiktok_handle', 'note_google'],
+  },
+  agence: {
+    essential: ['company', 'type', 'email', 'website'],
+    important: ['phone', 'linkedin_url', 'instagram'],
+    optional:  ['first_name', 'quartier', 'address', 'tiktok_handle', 'note_google'],
+  },
+  // ── Generic / fallback ──
+  services: {
+    essential: ['company', 'type', 'phone'],
+    important: ['email', 'website', 'address'],
+    optional:  ['instagram', 'linkedin_url', 'quartier', 'first_name', 'tiktok_handle', 'note_google'],
+  },
+  pme: {
+    essential: ['company', 'type', 'email'],
+    important: ['phone', 'website', 'address'],
+    optional:  ['instagram', 'linkedin_url', 'quartier', 'first_name', 'tiktok_handle', 'note_google'],
+  },
+  boutique: {
+    essential: ['company', 'type', 'quartier', 'phone'],
+    important: ['address', 'note_google', 'website', 'instagram'],
+    optional:  ['email', 'first_name', 'tiktok_handle', 'linkedin_url'],
+  },
 };
 
-const FALLBACK = { essentials: ['company', 'type', 'phone', 'email'], bonus: ['instagram', 'linkedin_url', 'tiktok_handle', 'website', 'first_name', 'quartier', 'note_google', 'address'] };
+const FALLBACK: Tiers = {
+  essential: ['company', 'type', 'phone'],
+  important: ['email', 'website', 'address'],
+  optional:  ['instagram', 'linkedin_url', 'tiktok_handle', 'first_name', 'quartier', 'note_google'],
+};
 
 function isFilled(v: any): boolean {
   return v !== null && v !== undefined && v !== '' && v !== 'A_VERIFIER';
@@ -79,53 +181,63 @@ function normalizeType(type: any): string {
 }
 
 export interface Completeness {
-  pct: number;            // 0..100
-  essentialPct: number;   // % of essentials filled
-  missingEssentials: string[]; // labels of missing essential fields
-  missingOptional: string[];   // labels of missing optional fields
-  type: string;           // normalized type used for the calc
+  pct: number;
+  essentialPct: number;
+  importantPct: number;
+  optionalPct: number;
+  missingEssentials: string[];
+  missingImportant: string[];
+  missingOptional: string[];
+  type: string;
 }
 
 /**
- * Compute completeness for a prospect, type-aware.
- * pct = essentialPct * 0.9 + bonusPct * 0.1
+ * Compute completeness for a prospect using the 3-tier model.
  */
 export function completeness(prospect: Record<string, any>): Completeness {
   const type = normalizeType(prospect.type);
-  const cfg = ESSENTIALS_BY_TYPE[type] || FALLBACK;
+  const cfg = TIERS_BY_TYPE[type] || FALLBACK;
 
-  const essentialsFilled = cfg.essentials.filter(k => isFilled(prospect[k])).length;
-  const bonusFilled = cfg.bonus.filter(k => isFilled(prospect[k])).length;
+  const filledIn = (keys: string[]) => keys.filter(k => isFilled(prospect[k])).length;
+  const missingIn = (keys: string[]) =>
+    keys.filter(k => !isFilled(prospect[k])).map(k => FIELD_LABEL[k] || k);
 
-  const essentialPct = cfg.essentials.length > 0
-    ? Math.round((essentialsFilled / cfg.essentials.length) * 100)
-    : 100;
-  const bonusPct = cfg.bonus.length > 0
-    ? Math.round((bonusFilled / cfg.bonus.length) * 100)
-    : 0;
-  const pct = Math.round(essentialPct * 0.9 + bonusPct * 0.1);
+  const essTotal = cfg.essential.length || 1;
+  const impTotal = cfg.important.length || 1;
+  const optTotal = cfg.optional.length || 1;
+
+  const essentialPct = Math.round((filledIn(cfg.essential) / essTotal) * 100);
+  const importantPct = Math.round((filledIn(cfg.important) / impTotal) * 100);
+  const optionalPct  = Math.round((filledIn(cfg.optional)  / optTotal)  * 100);
+
+  const pct = Math.round(essentialPct * 0.70 + importantPct * 0.25 + optionalPct * 0.05);
 
   return {
     pct,
     essentialPct,
-    missingEssentials: cfg.essentials.filter(k => !isFilled(prospect[k])).map(k => FIELD_LABEL[k] || k),
-    missingOptional: cfg.bonus.filter(k => !isFilled(prospect[k])).map(k => FIELD_LABEL[k] || k),
+    importantPct,
+    optionalPct,
+    missingEssentials: missingIn(cfg.essential),
+    missingImportant:  missingIn(cfg.important),
+    missingOptional:   missingIn(cfg.optional),
     type,
   };
 }
 
-/**
- * Threshold above which Hugo can ship a personalised visual.
- * 70% is the founder-defined gate.
- */
 export const PERSONALIZED_VISUAL_THRESHOLD = 70;
 
 /**
- * Which essential fields are still missing for a given prospect.
- * Used by Léo enrichment to know what to chase next.
+ * Which fields Léo should actively chase to push the fiche above 70 %.
+ * Returns essentials first (highest weight), then important ones.
+ * Optional fields are NOT returned — Léo doesn't waste a Gemini call
+ * on a LinkedIn URL for a restaurant.
  */
 export function missingEssentialKeys(prospect: Record<string, any>): string[] {
   const type = normalizeType(prospect.type);
-  const cfg = ESSENTIALS_BY_TYPE[type] || FALLBACK;
-  return cfg.essentials.filter(k => !isFilled(prospect[k]));
+  const cfg = TIERS_BY_TYPE[type] || FALLBACK;
+  const missing = [
+    ...cfg.essential.filter(k => !isFilled(prospect[k])),
+    ...cfg.important.filter(k => !isFilled(prospect[k])),
+  ];
+  return missing;
 }

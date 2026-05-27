@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
   // Find candidates: have website or instagram, no fresh notes, not dead.
   let q = supabase
     .from('crm_prospects')
-    .select('id, user_id, company, type, website, instagram, notes, business_notes, last_enriched_at, status, temperature')
+    .select('id, user_id, company, type, website, instagram, phone, email, address, notes, business_notes, last_enriched_at, status, temperature')
     .or('website.not.is.null,instagram.not.is.null')
     .not('status', 'in', '("client","perdu","sprint","lost")')
     .not('temperature', 'eq', 'dead')
@@ -89,12 +89,27 @@ export async function POST(req: NextRequest) {
 
       const newNotesText = (p.notes ? p.notes + '\n\n' : '') + `[Scraping ${now.slice(0, 10)}]\n${summaryLines.join('\n')}`;
 
-      await supabase.from('crm_prospects').update({
+      // Also copy extracted contact info into the prospect's essential
+      // fields — only when the field is currently empty so we don't
+      // overwrite manually-entered data. Founder ask 2026-05-28:
+      // scraper should populate essentials cheaply.
+      const updates: Record<string, any> = {
         business_notes: notes,
         notes: newNotesText.slice(0, 4000),
         last_enriched_at: now,
         updated_at: now,
-      }).eq('id', p.id);
+      };
+      const extracted = (notes as any).extractedContact;
+      if (extracted) {
+        if (extracted.phone && !p.phone) updates.phone = extracted.phone;
+        if (extracted.email && !(p as any).email) updates.email = extracted.email;
+        if (extracted.address && !(p as any).address) updates.address = extracted.address;
+        if (extracted.instagram && (!p.instagram || p.instagram === 'A_VERIFIER')) {
+          updates.instagram = extracted.instagram;
+        }
+      }
+
+      await supabase.from('crm_prospects').update(updates).eq('id', p.id);
 
       // Also surface the missing-essentials list so the next Gemini
       // pass (if any) targets only what's truly needed.
