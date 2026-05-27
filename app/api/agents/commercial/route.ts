@@ -592,16 +592,24 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
 
     // Type-aware filter: only chase the ESSENTIAL fields for each
     // business type. A restaurant doesn't need LinkedIn enriched,
-    // a coach doesn't need TikTok enriched, etc. Founder ask
-    // 2026-05-27: "monter mécaniquement la completion si l'info
-    // reste optionnelle". So Léo focuses Gemini Search budget on
-    // what actually matters per type.
-    const { missingEssentialKeys } = await import('@/lib/agents/fiche-completeness');
+    // a coach doesn't need TikTok enriched, etc.
+    //
+    // Founder ask 2026-05-27: "ne pas utiliser trop gemini research si
+    // ca se trouve on a deja les info verifies, on doit scrapper site
+    // + insta avant". So we ALSO skip Gemini when the prospect already
+    // has website OR instagram filled — the scrape-enrich endpoint
+    // will harvest from those public surfaces for ~0€. Gemini Research
+    // only fires when we have NO public surface at all to scrape from.
+    const { missingEssentialKeys: missingEssentials } = await import('@/lib/agents/fiche-completeness');
     const socialProspects = (rawSocialProspects || []).filter((p: any) => {
       if (p.temperature === 'dead' || p.status === 'perdu' || p.status === 'client' || p.status === 'sprint') return false;
-      const missing = missingEssentialKeys(p);
-      // Re-enrich whenever any essential is missing for this type.
-      return missing.length > 0;
+      const missing = missingEssentials(p);
+      if (missing.length === 0) return false; // already complete
+      // If prospect already has a website or IG handle we can scrape,
+      // defer to the cheaper scrape pipeline instead of Gemini.
+      const hasScrapeSurface = !!(p.website) || !!(p.instagram && p.instagram !== 'A_VERIFIER');
+      if (hasScrapeSurface) return false;
+      return true;
     }).slice(0, MAX_SEARCH_ENRICHMENT);
 
     if (socialProspects && socialProspects.length > 0) {

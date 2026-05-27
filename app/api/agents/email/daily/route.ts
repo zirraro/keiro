@@ -789,9 +789,31 @@ async function sendEmail(
         const quartierBit = prospect.quartier ? ` Set in ${prospect.quartier} (subtle local cue, not literal).` : '';
         const ratingBit = (prospect.note_google ?? 0) >= 4.3 ? ' Premium aesthetic (high Google rating).' : '';
 
+        // Super-personalised cues from the scraped business_notes
+        // (website / Instagram bio / ambiance keywords). Founder ask
+        // 2026-05-27: use the notes to enrich the visual brief so the
+        // example feels truly built FOR this prospect, not generic.
+        let notesCue = '';
+        try {
+          const { notesToPromptBlock } = await import('@/lib/agents/prospect-scraper');
+          const promptBlock = notesToPromptBlock((prospect as any).business_notes);
+          if (promptBlock) {
+            // Translate the most useful lines into visual cues
+            const bn: any = (prospect as any).business_notes || {};
+            const ambianceWords = (bn.ambiance || []).join(', ');
+            const audienceLine = bn.audience || '';
+            const bioOrPitch = (bn.insta_bio || bn.website_description || '').slice(0, 160);
+            const cues: string[] = [];
+            if (ambianceWords) cues.push(`Match the brand's own aesthetic: ${ambianceWords}.`);
+            if (audienceLine) cues.push(`Aimed at ${audienceLine}.`);
+            if (bioOrPitch) cues.push(`Brand voice context: "${bioOrPitch}".`);
+            if (cues.length) notesCue = ' ' + cues.join(' ');
+          }
+        } catch { /* notes optional */ }
+
         // Single-paragraph brief — keeps Seedream focused on the cue
         // rather than diluting across stock filler.
-        const visualBrief = `${typeCue}${quartierBit}${ratingBit} Magazine-quality, scroll-stopping Instagram post the brand owner would actually share. Format: 4:5 portrait.`;
+        const visualBrief = `${typeCue}${quartierBit}${ratingBit}${notesCue} Magazine-quality, scroll-stopping Instagram post the brand owner would actually share. Format: 4:5 portrait.`;
 
         const { generateJadeImage } = await import('@/lib/visuals/jade-prompter');
         // 15s hard timeout — if Seedream is slow, ship the email without

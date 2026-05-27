@@ -357,6 +357,15 @@ export async function GET(request: NextRequest) {
       // 1. Commercial — HIGHEST PRIORITY: finds new prospects for all other agents
       fireBackground(async () => {
         await callForEachClient('Commercial Verify CRM', '/api/agents/commercial', 'POST', { action: 'verify_crm' }, 'commercial');
+        await delay(5_000);
+        // Cheap scrape-enrich pass: harvest website + IG for fiches
+        // that have those filled but still need essentials / business
+        // notes. Runs BEFORE the Gemini-backed enrichment so we don't
+        // burn search credits on info we can scrape for free.
+        for (const uid of getClientsWithAgent('commercial')) {
+          await callEndpoint(`Léo Scrape Enrich [${uid.substring(0, 8)}]`, `/api/agents/commercial/scrape-enrich?user_id=${uid}`, 'POST', { user_id: uid });
+          await delay(2_000);
+        }
       });
 
       // 2. DM — auto-reply + preparation + send queue + daily follow warm-up
