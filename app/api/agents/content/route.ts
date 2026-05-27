@@ -533,6 +533,69 @@ async function publishToInstagram(
   // Declared here so the catch block at the bottom can reference it for
   // the token-expiry auto-disconnect flow.
   let effectivePostOwnerId: string | null = userId || (post as any).user_id || null;
+  // ─── ATOMIC CLAIM ─────────────────────────────────────────────
+  // Two cron paths (slot loop + execute_publication backlog) can both
+  // pick the same approved row and race. Without an atomic claim, both
+  // call the IG Graph API and IG publishes the same image twice.
+  // Founder reported the duplicate on 2026-05-27.
+  //
+  // Pattern: UPDATE … SET status='publishing' WHERE id=X AND status IN
+  // ('approved','draft','publish_failed','retry_pending') RETURNING id.
+  // If 0 rows returned, another process already took it — we abort.
+  // On failure path below, we restore to 'approved' so a retry pass
+  // can re-claim.
+  if (post.id) {
+    try {
+      const { data: claimed, error: claimErr } = await supabase
+        .from('content_calendar')
+        .update({ status: 'publishing', updated_at: new Date().toISOString() })
+        .eq('id', post.id)
+        .in('status', ['approved', 'draft', 'publish_failed', 'retry_pending'])
+        .select('id, instagram_permalink')
+        .maybeSingle();
+      if (claimErr || !claimed) {
+        // Race: another process already claimed this row. Check
+        // whether it landed → if so, return success with the
+        // existing permalink so the caller's success branch is
+        // idempotent (doesn't downgrade status to 'approved' /
+        // 'publish_failed' afterwards). Founder reported
+        // 2026-05-27: duplicate IG posts because the race wasn't
+        // gated.
+        const { data: current } = await supabase
+          .from('content_calendar')
+          .select('status, instagram_permalink')
+          .eq('id', post.id)
+          .maybeSingle();
+        if (current?.status === 'published') {
+          console.log(`[Content] publishToInstagram: ${post.id} already published by another process — no-op`);
+          return { success: true, permalink: current?.instagram_permalink || undefined };
+        }
+        if (current?.status === 'publishing') {
+          console.warn(`[Content] publishToInstagram: ${post.id} in 'publishing' state by another process — no-op (avoids dup)`);
+          return { success: true };
+        }
+        console.warn(`[Content] publishToInstagram: ${post.id} claim returned no row (status: ${current?.status}) — skipping`);
+        return { success: false, error: 'already_claimed_by_another_process' };
+      }
+    } catch (claimErr: any) {
+      console.warn(`[Content] publishToInstagram claim threw: ${claimErr?.message}`);
+      // If claim fails for non-race reasons (DB blip), continue cautiously
+    }
+  }
+  // Helper: release the 'publishing' claim if we exit without
+  // promoting it to 'published'. Caller's status update happens
+  // after we return, but if we crash or hit a non-claim error,
+  // this restores the row so the next pass can re-claim it.
+  const releaseClaimOnFailure = async () => {
+    if (!post.id) return;
+    try {
+      await supabase
+        .from('content_calendar')
+        .update({ status: 'approved', updated_at: new Date().toISOString() })
+        .eq('id', post.id)
+        .eq('status', 'publishing'); // only revert if still in our claim state
+    } catch { /* best-effort */ }
+  };
   try {
     // ── DAILY CAP — never publish more than N posts/day for this user ──
     // Today mrzirraro hit 16 IG posts in 12h (mix of cron + tests +
@@ -596,6 +659,15 @@ async function publishToInstagram(
     const dupCheck = await checkDuplicatePublication(supabase, post.visual_url, post.video_url, 'instagram');
     if (dupCheck.isDuplicate) {
       console.warn(`[Content] Skipping duplicate Instagram publication. Already published as ${dupCheck.existingPostId}`);
+      // Release claim AND mark as 'skipped' so we don't re-try
+      if (post.id) {
+        try {
+          await supabase.from('content_calendar')
+            .update({ status: 'skipped', publish_diagnostic: `dup_of_${dupCheck.existingPostId}`, updated_at: new Date().toISOString() })
+            .eq('id', post.id)
+            .eq('status', 'publishing');
+        } catch { /* best-effort */ }
+      }
       return {
         success: false,
         error: `Duplicate: cette image a déjà été publiée (post ${dupCheck.existingPostId}${dupCheck.existingPermalink ? `, ${dupCheck.existingPermalink}` : ''})`,
@@ -647,6 +719,7 @@ async function publishToInstagram(
 
     if (!publishProfile) {
       console.warn('[Content] No client IG profile found for publishing — skipping');
+      await releaseClaimOnFailure();
       return { success: false, error: 'Client Instagram non connecte. Aucune publication.' };
     }
 
@@ -657,10 +730,12 @@ async function publishToInstagram(
 
     if (!igUserId || !pageAccessToken) {
       console.error('[Content] Admin has no Instagram tokens configured');
+      await releaseClaimOnFailure();
       return { success: false, error: 'Instagram tokens not configured for admin user' };
     }
 
     if (!post.visual_url && !post.video_url) {
+      await releaseClaimOnFailure();
       return { success: false, error: 'No visual_url or video_url available for publishing' };
     }
 
@@ -688,6 +763,7 @@ async function publishToInstagram(
         console.log('[Content] Reel requested but no video — falling back to image post');
         result = await publishImageToInstagram(igUserId, pageAccessToken, post.visual_url, fullCaption);
       } else {
+        await releaseClaimOnFailure();
         return { success: false, error: 'No video_url for Reel publishing' };
       }
     } else if (format === 'story') {
@@ -797,6 +873,10 @@ async function publishToInstagram(
       }
     }
 
+    // Any unhandled exception → release our claim so a future pass
+    // can retry. Without this, a single IG outage would leave the row
+    // stuck in 'publishing' forever.
+    await releaseClaimOnFailure();
     return { success: false, error: msg };
   }
 }
@@ -1313,9 +1393,43 @@ Output UNIQUEMENT le prompt vidéo, rien d'autre.`,
 // Publish to TikTok (ALWAYS as video — photo API not supported)
 // ──────────────────────────────────────
 async function publishToTikTok(
-  post: { format?: string; caption?: string; hashtags?: string[]; visual_url?: string; video_url?: string },
+  post: { id?: string; format?: string; caption?: string; hashtags?: string[]; visual_url?: string; video_url?: string },
   supabase: any
 ): Promise<{ success: boolean; publish_id?: string; error?: string; unaudited?: boolean }> {
+  // ─── ATOMIC CLAIM ─── same pattern as publishToInstagram so two
+  // concurrent crons can't publish the same TikTok row twice.
+  if (post.id) {
+    try {
+      const { data: claimed } = await supabase
+        .from('content_calendar')
+        .update({ status: 'publishing', updated_at: new Date().toISOString() })
+        .eq('id', post.id)
+        .in('status', ['approved', 'draft', 'publish_failed', 'retry_pending'])
+        .select('id')
+        .maybeSingle();
+      if (!claimed) {
+        const { data: current } = await supabase
+          .from('content_calendar')
+          .select('status, tiktok_publish_id')
+          .eq('id', post.id)
+          .maybeSingle();
+        if (current?.status === 'published') {
+          return { success: true, publish_id: current?.tiktok_publish_id || undefined };
+        }
+        if (current?.status === 'publishing') return { success: true };
+        return { success: false, error: 'already_claimed_by_another_process' };
+      }
+    } catch { /* DB blip — continue */ }
+  }
+  const releaseTtClaim = async () => {
+    if (!post.id) return;
+    try {
+      await supabase.from('content_calendar')
+        .update({ status: 'approved', updated_at: new Date().toISOString() })
+        .eq('id', post.id)
+        .eq('status', 'publishing');
+    } catch { /* best-effort */ }
+  };
   try {
     // Get admin's TikTok tokens
     const { data: adminProfile, error: profileError } = await supabase
@@ -1326,6 +1440,7 @@ async function publishToTikTok(
 
     if (profileError || !adminProfile) {
       console.error('[Content] No admin profile for TikTok publishing');
+      await releaseTtClaim();
       return { success: false, error: 'No admin profile found' };
     }
 
@@ -1336,6 +1451,7 @@ async function publishToTikTok(
       // Not configured → silently skip (not a real error). The cron keeps
       // running normally, the admin can connect TikTok later. Prevents the
       // "error_escalated_publish_tiktok" noise in every cron log cycle.
+      await releaseTtClaim();
       return { success: false, error: 'tiktok_not_connected', unaudited: true };
     }
 
@@ -1345,7 +1461,10 @@ async function publishToTikTok(
       console.log('[Content] TikTok token expired, refreshing...');
       try {
         const clientKey = process.env.TIKTOK_CLIENT_KEY || process.env.NEXT_PUBLIC_TIKTOK_CLIENT_KEY;
-        if (!clientKey) return { success: false, error: 'TIKTOK_CLIENT_KEY not configured' };
+        if (!clientKey) {
+          await releaseTtClaim();
+          return { success: false, error: 'TIKTOK_CLIENT_KEY not configured' };
+        }
         const refreshed = await refreshTikTokToken(refreshToken, clientKey);
         accessToken = refreshed.access_token;
         // Update tokens in DB
@@ -1357,6 +1476,7 @@ async function publishToTikTok(
         console.log('[Content] TikTok token refreshed successfully');
       } catch (refreshError: any) {
         console.error('[Content] TikTok token refresh failed:', refreshError.message);
+        await releaseTtClaim();
         return { success: false, error: `Token refresh failed: ${refreshError.message}` };
       }
     }
@@ -1410,9 +1530,11 @@ async function publishToTikTok(
           const result = await initTikTokPhotoUpload(accessToken, [visualUrl!], fullCaption.substring(0, 2200));
           return { success: true, publish_id: result.publish_id };
         } catch (e: any) {
+          await releaseTtClaim();
           return { success: false, error: `Both video and photo failed: ${e.message}` };
         }
       }
+      await releaseTtClaim();
       return { success: false, error: 'No video or image available for TikTok publishing' };
     }
 
@@ -1438,6 +1560,7 @@ async function publishToTikTok(
       };
     }
 
+    await releaseTtClaim();
     return { success: false, error: msg };
   }
 }
