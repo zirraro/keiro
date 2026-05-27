@@ -732,32 +732,8 @@ async function handleClientBrief(
         }
 
         if (tasks.length > 0) {
-          console.log(`[Noah] Catch-up for ${client.id}: ${tasks.map(t => t.name).join(', ')}`);
-          await Promise.all(tasks.map(async t => {
-            try {
-              const res = await fetch(t.url, {
-                method: t.method,
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${evCronSecret}`,
-                },
-                body: t.body ? JSON.stringify(t.body) : undefined,
-                // Hard ceiling so a stuck agent doesn't block the brief
-                signal: AbortSignal.timeout(60_000),
-              });
-              let body: any = {};
-              try { body = await res.json(); } catch { /* non-json response */ }
-              failureByAgent[t.name] = classifyResponse(t.name, res.status, body);
-            } catch (e: any) {
-              // Network / timeout / abort — treat as technical
-              console.warn(`[Noah] Catch-up ${t.name} threw: ${e?.message?.slice(0, 100)}`);
-              failureByAgent[t.name] = { outcome: 'technical', detail: e?.message?.slice(0, 200) || 'fetch failed' };
-            }
-          }));
-
-          // Re-tally the 4 plan-floor metrics so the tracker reflects
-          // the catch-up. Other counts (posts_drafted, opens, etc.)
-          // stay as initially measured.
+        // Helper: re-tally the 4 plan-floor metrics after a catch-up pass
+        async function refreshCounts() {
           const [p2, e2, pr2, d2] = await Promise.all([
             supabase.from('content_calendar').select('id', { count: 'exact', head: true })
               .eq('user_id', client.id).eq('status', 'published').gte('published_at', sinceIso),
@@ -768,10 +744,97 @@ async function handleClientBrief(
             supabase.from('crm_prospects').select('id', { count: 'exact', head: true })
               .eq('user_id', client.id).gte('dm_sent_at', sinceIso),
           ]);
-          doneCounts.posts_published = p2.count || doneCounts.posts_published;
-          doneCounts.emails_sent     = e2.count || doneCounts.emails_sent;
-          doneCounts.prospects_added = pr2.count || doneCounts.prospects_added;
-          doneCounts.dms_sent        = d2.count || doneCounts.dms_sent;
+          doneCounts.posts_published = p2.count || 0;
+          doneCounts.emails_sent     = e2.count || 0;
+          doneCounts.prospects_added = pr2.count || 0;
+          doneCounts.dms_sent        = d2.count || 0;
+        }
+
+        // Helper: which tasks are STILL needed given current doneCounts
+        function pendingTasks() {
+          const t: typeof tasks = [];
+          if (doneCounts.posts_published < evFloor.posts) {
+            t.push({ name: 'content', url: `${evBaseUrl}/api/agents/content?user_id=${client.id}&slot=catch_up&publish_mode=auto`, method: 'GET' });
+          }
+          if (doneCounts.emails_sent < evFloor.emails) {
+            t.push({ name: 'email', url: `${evBaseUrl}/api/agents/email/daily?user_id=${client.id}&force=1`, method: 'POST', body: { user_id: client.id, force: true } });
+          }
+          if (doneCounts.prospects_added < evFloor.prospects) {
+            t.push({ name: 'gmaps', url: `${evBaseUrl}/api/agents/gmaps?user_id=${client.id}`, method: 'POST', body: { user_id: client.id } });
+          }
+          if (doneCounts.dms_sent < evFloor.dms) {
+            t.push({ name: 'dm-instagram', url: `${evBaseUrl}/api/agents/dm-instagram?user_id=${client.id}`, method: 'POST', body: { action: 'prepare_dms', user_id: client.id } });
+          }
+          return t;
+        }
+
+        // Helper: run one catch-up pass (in parallel) and refresh counts
+        async function runCatchupPass(passTasks: typeof tasks) {
+          await Promise.all(passTasks.map(async t => {
+            try {
+              const res = await fetch(t.url, {
+                method: t.method,
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${evCronSecret}`,
+                },
+                body: t.body ? JSON.stringify(t.body) : undefined,
+                signal: AbortSignal.timeout(60_000),
+              });
+              let body: any = {};
+              try { body = await res.json(); } catch { /* non-json */ }
+              failureByAgent[t.name] = classifyResponse(t.name, res.status, body);
+            } catch (e: any) {
+              console.warn(`[Noah] Catch-up ${t.name} threw: ${e?.message?.slice(0, 100)}`);
+              failureByAgent[t.name] = { outcome: 'technical', detail: e?.message?.slice(0, 200) || 'fetch failed' };
+            }
+          }));
+          await refreshCounts();
+        }
+
+        // ── 3-pass catch-up with diagnostic ─────────────────────
+        // Founder ask 2026-05-27: at each task verify execution, retry
+        // 2 more times if not enough, diagnose each failure, client
+        // sees max 100%. Quality control.
+        const attemptOutcomes: Array<{ attempt: number; remaining: number; tasks: string[]; outcomes: Record<string, string> }> = [];
+        const MAX_PASSES = 3;
+        for (let attempt = 1; attempt <= MAX_PASSES; attempt++) {
+          const t = attempt === 1 ? tasks : pendingTasks();
+          if (t.length === 0) break;
+
+          // Skip retry if the previous attempt's only outcomes are
+          // client-side limits or disconnects — retrying won't help.
+          if (attempt > 1) {
+            const allWorthRetrying = t.every(task => {
+              const f = failureByAgent[task.name];
+              if (!f) return true;
+              // Retry only on technical failures or unknown — credit/quota/disconnect won't change in 30s
+              return f.outcome === 'technical' || f.outcome === 'success';
+            });
+            if (!allWorthRetrying) {
+              console.log(`[Noah] Skipping retry ${attempt} — remaining failures are client-side (credit/quota/disconnect)`);
+              break;
+            }
+            // 30s backoff between retries to give agents time to process queue
+            await new Promise(r => setTimeout(r, 30_000));
+          }
+
+          console.log(`[Noah] Catch-up pass ${attempt}/${MAX_PASSES} for ${client.id}: ${t.map(x => x.name).join(', ')}`);
+          await runCatchupPass(t);
+          attemptOutcomes.push({
+            attempt,
+            remaining: t.length,
+            tasks: t.map(x => x.name),
+            outcomes: Object.fromEntries(t.map(x => [x.name, failureByAgent[x.name]?.outcome || 'unknown'])),
+          });
+
+          // Check if we're at floor on all metrics now
+          const stillBelow = pendingTasks().length > 0;
+          if (!stillBelow) {
+            console.log(`[Noah] 100% reached after pass ${attempt}`);
+            break;
+          }
+        }
 
           // ── Hide technical gaps from the client ──
           // For any metric still below floor where the catch-up
@@ -1001,29 +1064,32 @@ async function handleClientBrief(
             void diagBlocks; void scaleNote; void topSev;
 
             // Log the diagnostic — consumed by /api/cron/admin-health-digest
-            await supabase.from('agent_logs').insert({
-              agent: 'ceo',
-              action: 'noah_diagnostic',
-              status: 'error',
-              user_id: client.id,
-              data: {
-                severity: topSev,
-                client_email: client.email,
-                plan: evPlan,
-                gaps: diagnostics.map(d => ({
-                  agent: d.gap.agent,
-                  missing: d.gap.missing,
-                  metric: d.gap.metric,
-                  cause: d.dx.cause,
-                  severity: d.dx.severity,
-                  affected_clients: d.affectedClients,
-                  impact_pct: d.impactPct,
-                  fixes: d.dx.fixes,
-                  raw_error: d.gap.detail,
-                })),
-              },
-              created_at: new Date().toISOString(),
-            }).catch(() => {});
+            try {
+              await supabase.from('agent_logs').insert({
+                agent: 'ceo',
+                action: 'noah_diagnostic',
+                status: 'error',
+                user_id: client.id,
+                data: {
+                  severity: topSev,
+                  client_email: client.email,
+                  plan: evPlan,
+                  attempts: attemptOutcomes,
+                  gaps: diagnostics.map(d => ({
+                    agent: d.gap.agent,
+                    missing: d.gap.missing,
+                    metric: d.gap.metric,
+                    cause: d.dx.cause,
+                    severity: d.dx.severity,
+                    affected_clients: d.affectedClients,
+                    impact_pct: d.impactPct,
+                    fixes: d.dx.fixes,
+                    raw_error: d.gap.detail,
+                  })),
+                },
+                created_at: new Date().toISOString(),
+              });
+            } catch { /* audit non-fatal */ }
           }
 
           // Client-side upsell hooks (credits / quota / disconnect)
@@ -1050,26 +1116,29 @@ async function handleClientBrief(
             : '';
 
           // Audit row so the founder can see catch-up history
-          await supabase.from('agent_logs').insert({
-            agent: 'ceo',
-            action: 'evening_catchup',
-            status: 'success',
-            user_id: client.id,
-            data: {
-              plan: evPlan,
-              fired: tasks.map(t => t.name),
-              floors: evFloor,
-              outcomes: failureByAgent,
-              technical_gaps: technicalGaps,
-              after: {
-                posts: doneCounts.posts_published,
-                emails: doneCounts.emails_sent,
-                prospects: doneCounts.prospects_added,
-                dms: doneCounts.dms_sent,
+          try {
+            await supabase.from('agent_logs').insert({
+              agent: 'ceo',
+              action: 'evening_catchup',
+              status: 'success',
+              user_id: client.id,
+              data: {
+                plan: evPlan,
+                fired: tasks.map(t => t.name),
+                floors: evFloor,
+                attempts: attemptOutcomes,
+                outcomes: failureByAgent,
+                technical_gaps: technicalGaps,
+                after: {
+                  posts: doneCounts.posts_published,
+                  emails: doneCounts.emails_sent,
+                  prospects: doneCounts.prospects_added,
+                  dms: doneCounts.dms_sent,
+                },
               },
-            },
-            created_at: new Date().toISOString(),
-          }).catch(() => {});
+              created_at: new Date().toISOString(),
+            });
+          } catch { /* audit non-fatal */ }
         }
       }
 
@@ -1370,8 +1439,8 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
       (globalThis as any).__noah_upsell = '';
       briefHtml = `${achievementsHtml}${briefHtml}${planPromiseHtml}${upsellHtml}${statsStripHtml}${footerNote}`;
 
-      // Save as in-app notification
-      if (prefs?.inapp_enabled !== false) {
+      // Save as in-app notification — skipped when phase=catchup_only
+      if (!skipEmail && prefs?.inapp_enabled !== false) {
         await supabase.from('client_notifications').insert({
           user_id: client.id,
           agent: 'ceo',
@@ -1382,8 +1451,8 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
         });
       }
 
-      // Send email
-      if (BREVO_CLIENT_KEY && prefs?.email_enabled !== false && client.email) {
+      // Send email — skipped when phase=catchup_only (founder split flow 2026-05-27)
+      if (!skipEmail && BREVO_CLIENT_KEY && prefs?.email_enabled !== false && client.email) {
         await fetch('https://api.brevo.com/v3/smtp/email', {
           method: 'POST',
           headers: { 'accept': 'application/json', 'api-key': BREVO_CLIENT_KEY, 'content-type': 'application/json' },
