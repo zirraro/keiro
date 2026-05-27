@@ -138,20 +138,17 @@ function LeoDirection() {
   );
 }
 
-// Profile completeness — counts filled fields on a prospect to surface
-// well-documented fiches vs the half-empty ones.
+import { completeness as fiCompleteness } from '@/lib/agents/fiche-completeness';
+
+// Profile completeness — type-aware (a restaurant doesn't need a
+// LinkedIn, a coach does). Re-exports the shared helper used by Hugo
+// + Léo so the threshold gate is consistent across the app.
 function completeness(p: any): { pct: number; missing: string[] } {
-  const fields: Array<[string, string]> = [
-    ['company', 'nom'], ['email', 'email'], ['type', 'secteur'], ['quartier', 'ville'],
-    ['instagram', 'instagram'], ['linkedin_url', 'linkedin'], ['tiktok_handle', 'tiktok'],
-    ['phone', 'tel'], ['note_google', 'note Google'], ['website', 'site web'],
-  ];
-  const present = fields.filter(([k]) => {
-    const v = p?.[k];
-    return v !== null && v !== undefined && v !== '' && v !== 'A_VERIFIER';
-  });
-  const missing = fields.filter(([k]) => !present.find(([pk]) => pk === k)).map(([, label]) => label);
-  return { pct: Math.round((present.length / fields.length) * 100), missing };
+  const c = fiCompleteness(p);
+  // Surface only ESSENTIAL missing fields in the UI — optional bonus
+  // ones don't matter for the gate. Founder ask 2026-05-27: avoid
+  // showing "missing LinkedIn" on a restaurant fiche.
+  return { pct: c.pct, missing: c.missingEssentials };
 }
 
 /* ------------------------------------------------------------------ */

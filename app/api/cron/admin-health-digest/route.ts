@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
     cause: string;
     severity: string;
     incidents: number;
-    clients: Set<string>;
+    clients: Map<string, string>; // user_id → email (for explicit display)
     agents: Set<string>;
     fixes: Set<string>;
     last_seen: string;
@@ -60,6 +60,7 @@ export async function GET(req: NextRequest) {
   let p0 = 0, p1 = 0, p2 = 0;
   for (const row of diagnostics) {
     const gaps = (row.data?.gaps || []) as Array<any>;
+    const clientEmail = row.data?.client_email || row.user_id || 'unknown';
     for (const g of gaps) {
       const key = g.cause || 'unknown';
       if (!byCause[key]) {
@@ -67,7 +68,7 @@ export async function GET(req: NextRequest) {
           cause: key,
           severity: g.severity || 'P2',
           incidents: 0,
-          clients: new Set(),
+          clients: new Map(),
           agents: new Set(),
           fixes: new Set(),
           last_seen: row.created_at,
@@ -76,7 +77,7 @@ export async function GET(req: NextRequest) {
       }
       const b = byCause[key];
       b.incidents++;
-      if (row.user_id) b.clients.add(row.user_id);
+      if (row.user_id) b.clients.set(row.user_id, clientEmail);
       if (g.agent) b.agents.add(g.agent);
       for (const f of (g.fixes || [])) b.fixes.add(f);
       if (g.severity === 'P0') p0++;
@@ -114,6 +115,8 @@ export async function GET(req: NextRequest) {
       : impactPct >= 50
         ? `systémique (${c.clients.size}/${totalBase}, ${impactPct}%)`
         : `partiel (${c.clients.size}/${totalBase}, ${impactPct}%)`;
+    const clientList = Array.from(c.clients.values()).slice(0, 25).join(', ');
+    const extraClients = c.clients.size > 25 ? ` (+${c.clients.size - 25} autres)` : '';
     return `
 <div style="background:${sev.bg};border-left:4px solid ${sev.border};border-radius:8px;padding:14px;margin:10px 0;">
   <div style="font-size:11px;color:${sev.border};font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;">
@@ -125,9 +128,13 @@ export async function GET(req: NextRequest) {
   <div style="font-size:12px;color:#4b5563;">
     <strong>${c.incidents}</strong> incident${c.incidents > 1 ? 's' : ''} sur ${c.clients.size} client${c.clients.size > 1 ? 's' : ''} dans les 24h.
   </div>
+  <div style="background:#fff;border:1px solid #e5e7eb;border-radius:6px;padding:8px 10px;margin:8px 0;">
+    <div style="font-size:10px;font-weight:bold;color:#374151;text-transform:uppercase;letter-spacing:0.3px;">Clients concernés</div>
+    <div style="font-size:11px;color:#1f2937;margin-top:4px;line-height:1.5;">${clientList}${extraClients}</div>
+  </div>
   ${c.sample_error ? `<div style="font-size:11px;color:#6b7280;font-family:monospace;background:#f3f4f6;padding:6px 8px;border-radius:4px;margin:8px 0;">${c.sample_error.slice(0, 220)}</div>` : ''}
   <div style="margin-top:8px;">
-    <div style="font-size:11px;font-weight:bold;color:#059669;">Solutions à mettre en place :</div>
+    <div style="font-size:11px;font-weight:bold;color:#059669;">Action recommandée :</div>
     <ul style="margin:4px 0 0;padding-left:18px;font-size:12px;color:#374151;">
       ${Array.from(c.fixes).map(f => `<li>${f}</li>`).join('')}
     </ul>

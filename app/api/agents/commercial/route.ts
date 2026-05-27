@@ -590,21 +590,18 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
           .limit(300)
       : { data: [] as any[] };
 
-    // Filter in JS: not dead/perdu/client + any one of the EIGHT fiche
-    // fields the founder cares about is missing. Tighter than before
-    // (was 4 fields). This is the path that pushes Léo's fiches
-    // towards the 70%+ completeness target. Founder ask 2026-05-24:
-    // "fiches client renseignées au maximum donc minimum 70%".
+    // Type-aware filter: only chase the ESSENTIAL fields for each
+    // business type. A restaurant doesn't need LinkedIn enriched,
+    // a coach doesn't need TikTok enriched, etc. Founder ask
+    // 2026-05-27: "monter mécaniquement la completion si l'info
+    // reste optionnelle". So Léo focuses Gemini Search budget on
+    // what actually matters per type.
+    const { missingEssentialKeys } = await import('@/lib/agents/fiche-completeness');
     const socialProspects = (rawSocialProspects || []).filter((p: any) => {
       if (p.temperature === 'dead' || p.status === 'perdu' || p.status === 'client' || p.status === 'sprint') return false;
-      return !p.instagram
-        || !p.tiktok_handle
-        || !p.linkedin_url
-        || !p.website
-        || !p.google_rating
-        || !p.phone
-        || !p.address
-        || !p.first_name;
+      const missing = missingEssentialKeys(p);
+      // Re-enrich whenever any essential is missing for this type.
+      return missing.length > 0;
     }).slice(0, MAX_SEARCH_ENRICHMENT);
 
     if (socialProspects && socialProspects.length > 0) {

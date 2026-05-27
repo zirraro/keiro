@@ -346,6 +346,14 @@ export async function GET(request: NextRequest) {
       // PRIORITY ORDER: Commercial first (feeds the pipeline), then DM, Content, Email, SEO
       // Each major task is a separate fireBackground to avoid timeout cascading
 
+      // 0. Admin morning digest — fires BEFORE client briefs so Victor
+      // can spot infra/credit/token issues to fix before the day starts.
+      // Founder ask 2026-05-27: "1 le matin in s'assure que l'infra de
+      // tout les agents et client est pret pour la journée".
+      fireBackground(async () => {
+        await callEndpoint('Admin Morning Digest', '/api/cron/admin-morning-digest', 'GET');
+      });
+
       // 1. Commercial — HIGHEST PRIORITY: finds new prospects for all other agents
       fireBackground(async () => {
         await callForEachClient('Commercial Verify CRM', '/api/agents/commercial', 'POST', { action: 'verify_crm' }, 'commercial');
@@ -569,15 +577,22 @@ export async function GET(request: NextRequest) {
         // touch points.
         await callEndpoint('Clara Check Stuck', '/api/agents/onboarding/check-stuck', 'POST');
         await delay(3000);
-        // Client evening debrief — each client gets "what ran today + what to do
-        // tomorrow". Mirror of the morning brief, firing at 20h UTC (~22h Paris).
-        await callEndpoint('Noah Client Evening Brief', '/api/agents/ceo-reports?type=client_evening', 'POST');
-        await delay(15_000); // Let all per-client briefs settle (catch-up runs sequentially)
-        // Admin health digest — aggregates all noah_diagnostic rows
-        // from the last 24h into ONE email with root-cause analysis
-        // and proposed fixes. Founder ask 2026-05-26: "des mails
-        // quotidien d'alerte avec recommendation et root cause real".
+        // PHASE 1 — Catch-up only (no emails sent yet). Every client
+        // runs the catch-up logic and logs diagnostics. Founder ask
+        // 2026-05-27: "le soir AVANT l'envoi individualisé des mails
+        // aux clients on verifie leur taux d'execution et on arrange
+        // / alerte". So admin sees the digest before the briefs hit
+        // client inboxes.
+        await callEndpoint('Noah Catchup Pass', '/api/agents/ceo-reports?type=client_evening&phase=catchup_only', 'POST');
+        await delay(15_000);
+        // PHASE 2 — Admin health digest aggregates all noah_diagnostic
+        // rows from the catch-up phase. ONE consolidated email with
+        // per-client breakdown + recommendation.
         await callEndpoint('Admin Health Digest', '/api/cron/admin-health-digest', 'GET');
+        await delay(5_000);
+        // PHASE 3 — Individual client briefs (email-only, no re-run
+        // of catch-up since it just happened).
+        await callEndpoint('Noah Client Evening Brief', '/api/agents/ceo-reports?type=client_evening&phase=send_only', 'POST');
       });
       results.push({ task: 'CEO Daily', ok: true, data: { status: 'dispatched_background' } });
       break;

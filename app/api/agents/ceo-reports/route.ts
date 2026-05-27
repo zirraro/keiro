@@ -50,12 +50,17 @@ export async function POST(req: NextRequest) {
 
   const supabase = getSupabase();
   const reportType = new URL(req.url).searchParams.get('type') || 'status';
+  // phase: full (default — catch-up + email), catchup_only (run
+  // catch-up + log diagnostic, no email — used at 21h Paris so
+  // the admin digest at 21h30 has full data), send_only (skip
+  // catch-up, just email — used at 22h Paris).
+  const briefPhase = (new URL(req.url).searchParams.get('phase') || 'full') as 'full' | 'catchup_only' | 'send_only';
 
   // ─── Client brief: separate flow ─────────────────────
   // ?type=client_brief   — morning brief (7h Paris): today's plan
   // ?type=client_evening — evening debrief (20h Paris): what ran today
   if (reportType === 'client_brief' || reportType === 'client_evening') {
-    return handleClientBrief(supabase, reportType === 'client_evening' ? 'evening' : 'morning');
+    return handleClientBrief(supabase, reportType === 'client_evening' ? 'evening' : 'morning', briefPhase);
   }
   const now = new Date();
   const twelveHoursAgo = new Date(now.getTime() - 12 * 60 * 60 * 1000).toISOString();
@@ -317,8 +322,14 @@ Format HTML pour email. Sois direct et actionable.`,
  * Generate and send CEO brief to individual clients
  * Called by: scheduler slot or manually via ?type=client_brief
  */
-async function handleClientBrief(supabase: any, timeOfDay: 'morning' | 'evening' = 'morning') {
+async function handleClientBrief(
+  supabase: any,
+  timeOfDay: 'morning' | 'evening' = 'morning',
+  phase: 'full' | 'catchup_only' | 'send_only' = 'full',
+) {
   const isEvening = timeOfDay === 'evening';
+  const skipCatchup = phase === 'send_only';
+  const skipEmail = phase === 'catchup_only';
   const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
   const BREVO_CLIENT_KEY = process.env.BREVO_API_KEY;
 
@@ -645,7 +656,7 @@ async function handleClientBrief(supabase: any, timeOfDay: 'morning' | 'evening'
       // counts so the plan-promise tracker shows the real catch-up
       // numbers. Only runs for the evening brief (the morning one
       // is intentionally informational + forecast-only).
-      if (isEvening) {
+      if (isEvening && !skipCatchup) {
         const evCronSecret = process.env.CRON_SECRET || '';
         const evBaseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keiroai.com';
         const evPlan = (client.subscription_plan || 'createur').toLowerCase();
@@ -983,48 +994,13 @@ async function handleClientBrief(supabase: any, timeOfDay: 'morning' | 'evening'
                   Erreur isolée pour le moment. À surveiller — si elle se répète sur d'autres clients, basculera en systémique.
                 </div>`;
 
-            const adminHtml = `<div style="font-family:Arial,sans-serif;max-width:680px;margin:0 auto;">
-              <div style="background:#0c1a3a;color:#fff;padding:16px 20px;border-radius:12px 12px 0 0;">
-                <h2 style="margin:0;font-size:16px;">🔴 Noah catch-up — diagnostic technique</h2>
-                <div style="font-size:11px;color:#a0aec0;margin-top:4px;">Brief client envoyé en masquant le gap. Fix requis sous 24h.</div>
-              </div>
-              <div style="background:#fff;border:1px solid #e5e7eb;border-top:0;padding:18px 20px;">
-                <div style="font-size:13px;color:#374151;margin-bottom:8px;">
-                  <strong>Client concerné :</strong> ${client.email || client.id} · plan <strong>${evPlan}</strong>
-                </div>
-                ${scaleNote}
-                <h3 style="font-size:13px;color:#dc2626;margin:18px 0 4px;">Diagnostic par agent (${diagnostics.length})</h3>
-                ${diagBlocks}
-                <div style="background:#f0fdf4;border-left:4px solid #16a34a;padding:12px 14px;border-radius:8px;margin:14px 0 0;">
-                  <strong style="color:#166534;font-size:12px;">📋 Action attendue de Victor</strong>
-                  <div style="font-size:11px;color:#14532d;margin-top:4px;">Reviewer cet email puis demander à Claude d'implémenter le fix proposé qui correspond. Une fois fix déployé, la catch-up suivante validera silencieusement (plus d'alerte = problème résolu).</div>
-                </div>
-              </div>
-              <div style="background:#f9fafb;padding:10px;text-align:center;color:#9ca3af;font-size:10px;border-radius:0 0 12px 12px;">
-                Source : agent_logs (24h) + ROOT_CAUSE_PATTERNS / app/api/agents/ceo-reports/route.ts
-              </div>
-            </div>`;
+            // NO per-incident admin email anymore. Founder ask 2026-05-27:
+            // only TWO admin reports per day (morning + evening digest).
+            // We just log to agent_logs(noah_diagnostic) and the digests
+            // aggregate everything client-by-client with recommendations.
+            void diagBlocks; void scaleNote; void topSev;
 
-            try {
-              const BREVO_KEY_ADMIN = process.env.BREVO_API_KEY;
-              if (BREVO_KEY_ADMIN) {
-                await fetch('https://api.brevo.com/v3/smtp/email', {
-                  method: 'POST',
-                  headers: { 'accept': 'application/json', 'api-key': BREVO_KEY_ADMIN, 'content-type': 'application/json' },
-                  body: JSON.stringify({
-                    sender: { name: 'Noah Catch-up Diagnostic', email: 'contact@keiroai.com' },
-                    to: [{ email: ADMIN_EMAIL }],
-                    subject: `${topSev} Noah technical — ${diagnostics.map(d => d.dx.cause.slice(0, 35)).join(' · ')} — ${client.email || client.id.substring(0, 8)}`,
-                    htmlContent: adminHtml,
-                    tags: ['noah_catchup_technical', topSev.toLowerCase()],
-                  }),
-                  signal: AbortSignal.timeout(10_000),
-                }).catch(() => {});
-              }
-            } catch { /* alert best-effort */ }
-
-            // Also log the diagnostic so we can build a weekly
-            // "service health" rollup later.
+            // Log the diagnostic — consumed by /api/cron/admin-health-digest
             await supabase.from('agent_logs').insert({
               agent: 'ceo',
               action: 'noah_diagnostic',

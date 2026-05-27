@@ -155,28 +155,14 @@ function LeoDirectionPanel() {
   );
 }
 
-// Profile completeness — exhaustiveness scoring. Counts how many fields
-// are filled on a prospect to surface "fiches client bien exhaustives"
-// vs the half-empty ones.
+import { completeness as fiCompleteness } from '@/lib/agents/fiche-completeness';
+
+// Profile completeness — type-aware. Defers to the shared helper so
+// the UI, Hugo's visual gate, and Léo's enrichment trigger agree on
+// what "70% complete" means per business type.
 function completeness(p: any): { pct: number; missing: string[] } {
-  const fields = [
-    ['company', 'nom'],
-    ['email', 'email'],
-    ['type', 'secteur'],
-    ['quartier', 'ville/quartier'],
-    ['instagram', 'instagram'],
-    ['linkedin_url', 'linkedin'],
-    ['tiktok_handle', 'tiktok'],
-    ['phone', 'tel'],
-    ['note_google', 'note Google'],
-    ['website', 'site web'],
-  ];
-  const present = fields.filter(([k]) => {
-    const v = p?.[k];
-    return v !== null && v !== undefined && v !== '' && v !== 'A_VERIFIER';
-  });
-  const missing = fields.filter(([k]) => !present.find(([pk]) => pk === k)).map(([, label]) => label);
-  return { pct: Math.round((present.length / fields.length) * 100), missing };
+  const c = fiCompleteness(p);
+  return { pct: c.pct, missing: c.missingEssentials };
 }
 
 // Internal helper — standalone launch button for Leo's proactive scraping.

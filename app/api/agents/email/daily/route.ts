@@ -726,16 +726,12 @@ async function sendEmail(
     //
     // Skip silently if any gate fails so the email still ships.
     try {
-      // Field completeness over the 10 canonical fiche fields.
-      const fields = [
-        prospect.company, prospect.email, prospect.type, prospect.quartier,
-        prospect.instagram, prospect.linkedin_url, prospect.tiktok_handle,
-        prospect.phone, prospect.note_google, prospect.website,
-      ];
-      const fieldsFilled = fields.filter((v: any) =>
-        v !== null && v !== undefined && v !== '' && v !== 'A_VERIFIER'
-      ).length;
-      const completePct = Math.round((fieldsFilled / 10) * 100);
+      // Field completeness — type-aware via shared helper (so a resto
+      // isn't penalised for missing LinkedIn). Founder ask 2026-05-27.
+      const { completeness: fiCompleteness, PERSONALIZED_VISUAL_THRESHOLD } = await import('@/lib/agents/fiche-completeness');
+      void PERSONALIZED_VISUAL_THRESHOLD;
+      const compResult = fiCompleteness(prospect);
+      const completePct = compResult.pct;
 
       // Gate 3 — type must be a concrete category for which we can build
       // a credible visual brief. Generic types like 'pme' or 'services'
