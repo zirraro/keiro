@@ -100,13 +100,15 @@ export async function POST(req: NextRequest) {
       // pass (if any) targets only what's truly needed.
       const stillMissing = missingEssentialKeys(p);
       if (stillMissing.length > 0) {
-        await supabase.from('crm_activities').insert({
-          prospect_id: p.id,
-          type: 'note',
-          description: `Léo: ${notes.source} scrapé · ${stillMissing.length} essentiel${stillMissing.length > 1 ? 's' : ''} encore manquant${stillMissing.length > 1 ? 's' : ''}`,
-          data: { source: 'scrape_enrich', missing: stillMissing, notes_source: notes.source },
-          created_at: now,
-        }).catch(() => {});
+        try {
+          await supabase.from('crm_activities').insert({
+            prospect_id: p.id,
+            type: 'note',
+            description: `Léo: ${notes.source} scrapé · ${stillMissing.length} essentiel${stillMissing.length > 1 ? 's' : ''} encore manquant${stillMissing.length > 1 ? 's' : ''}`,
+            data: { source: 'scrape_enrich', missing: stillMissing, notes_source: notes.source },
+            created_at: now,
+          });
+        } catch { /* non-fatal */ }
       }
 
       enriched++;
@@ -115,14 +117,16 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  await supabase.from('agent_logs').insert({
-    agent: 'commercial',
-    action: 'scrape_enrich',
-    status: 'success',
-    user_id: userId || undefined,
-    data: { candidates: needsEnrich.length, enriched, skipped },
-    created_at: now,
-  }).catch(() => {});
+  try {
+    await supabase.from('agent_logs').insert({
+      agent: 'commercial',
+      action: 'scrape_enrich',
+      status: 'success',
+      user_id: userId || undefined,
+      data: { candidates: needsEnrich.length, enriched, skipped },
+      created_at: now,
+    });
+  } catch { /* audit non-fatal */ }
 
   return NextResponse.json({ ok: true, candidates: needsEnrich.length, enriched, skipped });
 }
