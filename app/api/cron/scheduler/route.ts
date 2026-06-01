@@ -544,6 +544,95 @@ export async function GET(request: NextRequest) {
       }
       break;
 
+    case 'pre_recap_catchup': {
+      // 16:30 UTC (18:30 Paris) — Pre-recap quota check, H-2 before the
+      // evening brief lands at 20:30 Paris. For each client we count
+      // today's output vs PLAN_FLOORS and fire whichever agent is short.
+      // Founder ask 2026-06-01: "il faut qu on lance les cron jobs
+      // necessaires pour atteindre le quota". 2h buffer so retries can
+      // land before the recap is computed at 18:30 UTC.
+      const supa = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+      const sinceIso = new Date(Date.now() - 24 * 3600000).toISOString();
+      const PLAN_FLOORS_LOCAL: Record<string, { posts: number; emails: number; prospects: number; dms: number }> = {
+        free:       { posts: 0, emails: 0,  prospects: 0,  dms: 0  },
+        createur:   { posts: 2, emails: 25, prospects: 15, dms: 6  },
+        pro:        { posts: 4, emails: 45, prospects: 32, dms: 12 },
+        business:   { posts: 5, emails: 70, prospects: 55, dms: 18 },
+        fondateurs: { posts: 5, emails: 70, prospects: 55, dms: 18 },
+        elite:      { posts: 6, emails: 90, prospects: 75, dms: 22 },
+        agence:     { posts: 6, emails: 90, prospects: 75, dms: 22 },
+        admin:      { posts: 6, emails: 100, prospects: 100, dms: 25 },
+      };
+      const { data: targets } = await supa
+        .from('profiles')
+        .select('id, email, subscription_plan')
+        .or('is_admin.is.null,is_admin.eq.false')
+        .not('subscription_plan', 'is', null)
+        .not('subscription_plan', 'eq', 'free');
+      const clients = targets || [];
+      console.log(`[Scheduler/pre_recap] checking quotas for ${clients.length} client(s)`);
+
+      fireBackground(async () => {
+        for (const c of clients) {
+          const plan = (c.subscription_plan || 'createur').toLowerCase();
+          const floor = PLAN_FLOORS_LOCAL[plan] || PLAN_FLOORS_LOCAL.createur;
+          // Snapshot current counts
+          const [postsRes, emailsRes, prospectsRes, dmsRes] = await Promise.all([
+            supa.from('content_calendar').select('id', { count: 'exact', head: true })
+              .eq('user_id', c.id).eq('status', 'published').gte('published_at', sinceIso),
+            supa.from('crm_prospects').select('id', { count: 'exact', head: true })
+              .eq('user_id', c.id).gte('last_email_sent_at', sinceIso),
+            supa.from('crm_prospects').select('id', { count: 'exact', head: true })
+              .eq('user_id', c.id).gte('created_at', sinceIso),
+            supa.from('crm_prospects').select('id', { count: 'exact', head: true })
+              .eq('user_id', c.id).gte('dm_sent_at', sinceIso),
+          ]);
+          const counts = {
+            posts: postsRes.count || 0,
+            emails: emailsRes.count || 0,
+            prospects: prospectsRes.count || 0,
+            dms: dmsRes.count || 0,
+          };
+          const shortfall: string[] = [];
+          if (counts.posts < floor.posts) shortfall.push('content');
+          if (counts.emails < floor.emails) shortfall.push('email');
+          if (counts.prospects < floor.prospects) shortfall.push('gmaps');
+          if (counts.dms < floor.dms) shortfall.push('dm');
+          console.log(`[Scheduler/pre_recap] ${c.email} plan=${plan} posts=${counts.posts}/${floor.posts} emails=${counts.emails}/${floor.emails} prospects=${counts.prospects}/${floor.prospects} dms=${counts.dms}/${floor.dms} short=${shortfall.join(',') || 'none'}`);
+          if (shortfall.length === 0) continue;
+          if (shortfall.includes('content')) {
+            await callEndpoint(`Content catchup [${c.id.substring(0, 8)}]`, `/api/agents/content?slot=catch_up&publish_mode=auto&user_id=${c.id}`);
+            await delay(3000);
+          }
+          if (shortfall.includes('email')) {
+            await callEndpoint(`Email catchup [${c.id.substring(0, 8)}]`, `/api/agents/email/daily?user_id=${c.id}&force=1`, 'POST', { user_id: c.id, force: true });
+            await delay(3000);
+          }
+          if (shortfall.includes('gmaps')) {
+            await callEndpoint(`GMaps catchup [${c.id.substring(0, 8)}]`, `/api/agents/gmaps?user_id=${c.id}`, 'POST', { user_id: c.id });
+            await delay(3000);
+          }
+          if (shortfall.includes('dm')) {
+            await callEndpoint(`DM catchup [${c.id.substring(0, 8)}]`, `/api/agents/dm-instagram?user_id=${c.id}`, 'POST', { action: 'prepare_dms', user_id: c.id });
+            await delay(3000);
+          }
+          // Persist a marker so the digest can see we triggered catch-up
+          try {
+            await supa.from('agent_logs').insert({
+              agent: 'ceo',
+              action: 'pre_recap_catchup',
+              status: 'ok',
+              user_id: c.id,
+              data: { plan, counts, floor, shortfall, ts: new Date().toISOString() },
+              created_at: new Date().toISOString(),
+            });
+          } catch { /* non-fatal */ }
+        }
+      });
+      results.push({ task: 'Pre-Recap Catch-up', ok: true, data: { status: 'dispatched_background', clients: clients.length } });
+      break;
+    }
+
     case 'ceo_daily':
       // 18:30 UTC (20:30 Paris) — Evening pipeline: Marketing → CEO → AMIT → Ops
       // → Engagement sync → Followers snapshot → Client evening debrief.
@@ -594,14 +683,24 @@ export async function GET(request: NextRequest) {
         // client inboxes.
         await callEndpoint('Noah Catchup Pass', '/api/agents/ceo-reports?type=client_evening&phase=catchup_only', 'POST');
         await delay(15_000);
-        // PHASE 2 — Admin health digest aggregates all noah_diagnostic
-        // rows from the catch-up phase. ONE consolidated email with
-        // per-client breakdown + recommendation.
-        await callEndpoint('Admin Health Digest', '/api/cron/admin-health-digest', 'GET');
+        // PHASE 2 — Admin health snapshot persists noah_diagnostic rollup
+        // into agent_logs (no email sent — the unified digest below will
+        // ingest this snapshot + the ops health_check_report).
+        await callEndpoint('Admin Health Snapshot', '/api/cron/admin-health-digest', 'GET');
         await delay(5_000);
         // PHASE 3 — Individual client briefs (email-only, no re-run
         // of catch-up since it just happened).
         await callEndpoint('Noah Client Evening Brief', '/api/agents/ceo-reports?type=client_evening&phase=send_only', 'POST');
+        await delay(10_000);
+        // PHASE 4 — UNIFIED admin digest. Single email merging :
+        //   - Service Health (from admin_health_snapshot row above)
+        //   - Agents DOWN (from ops health_check_report row above)
+        //   - Root-cause failure analysis (Claude over agent_logs 24h)
+        // Replaces the 3 separate emails the founder used to receive.
+        try {
+          await sendAdminDailyDigest(aiSupabase, 24);
+          console.log('[Scheduler/ceo_daily] Unified admin digest sent');
+        } catch (e: any) { console.error('[Scheduler/ceo_daily] Admin digest error:', e.message?.substring(0, 200)); }
       });
       results.push({ task: 'CEO Daily', ok: true, data: { status: 'dispatched_background' } });
       break;
@@ -808,16 +907,11 @@ export async function GET(request: NextRequest) {
           }
         } catch (e: any) { console.error('[Scheduler/ceo] Auto-fix error:', e.message?.substring(0, 200)); }
 
-        // Phase 1.6: Unified admin digest — ONE email that merges what
-        // used to be the 'CEO Improvement Report' + 'CEO Group — Reco
-        // code' emails. Runs a Claude pass over the real failure logs
-        // to group by root cause and produce code-level recommendations
-        // (with affected file paths) so the user can jump straight to
-        // the fix.
-        try {
-          await sendAdminDailyDigest(aiSupabase, 24);
-          console.log('[Scheduler/ceo] Admin daily digest sent');
-        } catch (e: any) { console.error('[Scheduler/ceo] Admin digest error:', e.message?.substring(0, 200)); }
+        // 2026-06-01 — Admin digest moved to ceo_daily (18:30 UTC), AFTER
+        // admin-health-digest + ops health_check have persisted their
+        // snapshots. This way the founder gets ONE unified evening email
+        // instead of three separate ones (Service Health + Ops + Noah).
+        // The morning ceo slot keeps the auto-fix + event pipeline only.
       });
       // Phase 2: Orders only (no morning client brief — user asked for a
       // single Noah email per day, fired in the evening slot so it reports
@@ -875,8 +969,10 @@ export async function GET(request: NextRequest) {
           await callEndpoint(`Publish [${uid.substring(0, 8)}]`, `/api/agents/content?user_id=${uid}`, 'POST', { action: 'execute_publication' });
           await delay(5000);
         }
-        // SEO runs once globally (shared analysis)
-        await callEndpoint('SEO', '/api/agents/seo');
+        // SEO runs Mon/Wed/Fri only (shared analysis, no need to run daily)
+        if (isSeoDay) {
+          await callEndpoint('SEO', '/api/agents/seo');
+        }
       });
       results.push({ task: 'Morning Prep', ok: true, data: { status: 'dispatched_background', clients: clientUserIds.length } });
       break;

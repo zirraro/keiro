@@ -480,9 +480,10 @@ async function handleClientBrief(
       const [
         postsPublishedRes, postsDraftedRes,
         emailsSentRes, emailsOpenedRes, emailsClickedRes,
+        emailsAutoRepliedRes, dmsIncomingRes, dmsRepliedRes,
         dmsSentRes, dmsFollowedRes, followsToDoRes,
         prospectsVerifiedRes, prospectsAddedRes, gmapsImportsRes,
-        commentsRepliedRes, reviewsRepliedRes,
+        commentsRepliedRes, commentsIncomingRes, reviewsRepliedRes,
         // lifetime totals (for milestone achievements)
         lifetimeEmailsRes, lifetimePostsRes, lifetimeProspectsRes, lifetimeDmsRes,
         // streak data
@@ -512,6 +513,25 @@ async function handleClientBrief(
           .select('id', { count: 'exact', head: true })
           .eq('user_id', client.id)
           .gte('last_email_clicked_at', sinceIso),
+        // Emails auto-replies sent by Hugo to inbound prospect replies
+        supabase.from('agent_logs')
+          .select('id', { count: 'exact', head: true })
+          .eq('agent', 'email')
+          .eq('user_id', client.id)
+          .in('action', ['auto_reply_sent', 'inbound_auto_reply', 'reply_sent'])
+          .gte('created_at', sinceIso),
+        // Incoming DMs received in window (status set to pending_reply by Jade's poll)
+        supabase.from('crm_prospects')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', client.id)
+          .gte('dm_last_inbound_at', sinceIso),
+        // DM auto-replies actually sent (Jade auto-reply route logs)
+        supabase.from('agent_logs')
+          .select('id', { count: 'exact', head: true })
+          .eq('agent', 'dm_instagram')
+          .eq('user_id', client.id)
+          .in('action', ['auto_reply_sent', 'reply_sent', 'dm_auto_reply'])
+          .gte('created_at', sinceIso),
         supabase.from('crm_prospects')
           .select('id', { count: 'exact', head: true })
           .eq('user_id', client.id)
@@ -543,6 +563,13 @@ async function handleClientBrief(
           .select('id', { count: 'exact', head: true })
           .eq('agent', 'instagram_comments')
           .eq('action', 'reply_sent')
+          .eq('user_id', client.id)
+          .gte('created_at', sinceIso),
+        // instagram_comments.received logs — incoming comments to compute reply %
+        supabase.from('agent_logs')
+          .select('id', { count: 'exact', head: true })
+          .eq('agent', 'instagram_comments')
+          .in('action', ['comment_received', 'webhook_comment', 'detected'])
           .eq('user_id', client.id)
           .gte('created_at', sinceIso),
         // gmaps.review_reply_sent logs — Theo's reputation work
@@ -627,16 +654,27 @@ async function handleClientBrief(
       const doneCounts = {
         posts_published: postsPublishedRes.count || 0,
         posts_drafted: postsDraftedRes.count || 0,
-        emails_sent: emailsSentRes.count || 0,
+        // Founder ask 2026-06-01: split email metric so the client sees
+        // the cold-prospection batch (Hugo) AND the auto-reply work
+        // (Hugo replying to incoming prospect replies) as two lines.
+        emails_sent: emailsSentRes.count || 0,                 // cold prospection batch
+        emails_cold_sent: emailsSentRes.count || 0,            // alias for clarity
+        emails_auto_replies_sent: emailsAutoRepliedRes.count || 0,
         emails_opened: emailsOpenedRes.count || 0,
         emails_clicked: emailsClickedRes.count || 0,
-        dms_sent: dmsSentRes.count || 0,
+        // DM split: prospection cold (queued — manual click required) vs
+        // auto-replies to incoming DMs (% of incoming replied is the real
+        // service-quality metric — 100% if no incoming DM that day).
+        dms_sent: dmsSentRes.count || 0,                       // cold prepared
+        dms_incoming_24h: dmsIncomingRes.count || 0,
+        dms_replied_24h: dmsRepliedRes.count || 0,
         dms_followed: dmsFollowedRes.count || 0,
         follows_to_do: followsToDoRes.count || 0,
         prospects_verified: prospectsVerifiedRes.count || 0,
         prospects_added: prospectsAddedRes.count || 0,
         gmaps_imports: gmapsImportsRes.count || 0,
         comments_replied: commentsRepliedRes.count || 0,
+        comments_incoming_24h: commentsIncomingRes.count || 0,
         reviews_replied: reviewsRepliedRes.count || 0,
       };
       const lifetimeCounts = {
@@ -966,19 +1004,127 @@ async function handleClientBrief(
                   'Gérer 404 comme un skip non-bloquant, pas un échec',
                 ],
               },
+              // ── New patterns (2026-06-01) — collapse "Cause inconnue" rate ──
+              {
+                match: /timeout|aborted|AbortError|signal.*abort|deadline.*exceed|ETIMEDOUT/i,
+                cause: 'Timeout réseau / wall-time dépassé',
+                severity: 'P1',
+                fixes: [
+                  'Augmenter le timeout fetch (signal: AbortSignal.timeout(120_000))',
+                  'Vérifier le wall-time Vercel/PM2 (maxDuration sur la route)',
+                  'Découper le batch en sous-batches plus petits',
+                ],
+              },
+              {
+                match: /JSON.*parse|JSON\.parse|unexpected token|invalid JSON/i,
+                cause: 'JSON malformé renvoyé par le LLM',
+                severity: 'P1',
+                fixes: [
+                  'Forcer "Output ONLY a JSON object, no markdown fences" dans le system prompt',
+                  'Échapper les newlines dans les strings côté parser (split chars, in-string detection)',
+                  'Retry une fois avec un strict-JSON prompt si premier parse échoue',
+                ],
+              },
+              {
+                match: /anthropic|claude|gemini|openai|model.*not.*found|overloaded_error|invalid_api_key/i,
+                cause: 'Provider LLM indisponible / clé API invalide',
+                severity: 'P1',
+                fixes: [
+                  'Vérifier la clé API (ANTHROPIC_API_KEY / GEMINI_API_KEY / OPENAI_API_KEY)',
+                  'Implémenter fallback Sonnet → Haiku sur 529 overloaded_error',
+                  'Vérifier les quotas account auprès du provider',
+                ],
+              },
+              {
+                match: /quota|plan_disabled|plan_quota|marginBlocked|insufficientCredits|credit/i,
+                cause: 'Quota client ou crédits insuffisants',
+                severity: 'P2',
+                fixes: [
+                  'Notifier le client pour upsell (modal in-app + email Brevo)',
+                  'Vérifier lib/credits/* pour l\'état du wallet client',
+                  'Ne pas réessayer en boucle — afficher CTA upsell',
+                ],
+              },
+              {
+                match: /5\d\d|HTTP 5\d\d|internal server error|bad gateway|service unavailable/i,
+                cause: 'Service tiers en panne (5xx)',
+                severity: 'P1',
+                fixes: [
+                  'Vérifier la statuspage du provider (Vercel, Supabase, Anthropic, Meta)',
+                  'Ajouter circuit breaker + retry exponential backoff',
+                  'Logger le X-Request-Id du provider pour le support ticket',
+                ],
+              },
+              {
+                match: /brevo|resend|sendinblue|smtp/i,
+                cause: 'Provider email (Brevo/Resend) en erreur',
+                severity: 'P1',
+                fixes: [
+                  'Vérifier BREVO_API_KEY et le quota mensuel Brevo',
+                  'Tester l\'envoi depuis le dashboard Brevo',
+                  'Fallback Brevo → Resend si Brevo down (vérifier RESEND_API_KEY)',
+                ],
+              },
+              {
+                match: /env|environment|process\.env|undefined.*config|missing.*key/i,
+                cause: 'Variable d\'environnement manquante / config incomplète',
+                severity: 'P0',
+                fixes: [
+                  'Auditer .env.local et l\'env du VPS OVH (ecosystem.config.js)',
+                  'Vérifier que pm2 reload a chargé les nouvelles env vars',
+                  'Ajouter assert process.env.X au boot pour fail-fast',
+                ],
+              },
+              {
+                match: /meta|graph\.facebook|instagram.*api|igaa/i,
+                cause: 'Erreur API Meta / Instagram',
+                severity: 'P1',
+                fixes: [
+                  'Vérifier le token IGAA dans profiles.instagram_igaa_token',
+                  'Tester avec /api/cron/process-ig-reauth pour forcer le refresh',
+                  'Voir lib/meta/* pour les retry policies sur 4xx Meta',
+                ],
+              },
             ];
 
-            function diagnose(detail: string) {
+            function diagnose(detail: string, agent?: string) {
               for (const p of ROOT_CAUSE_PATTERNS) {
                 if (p.match.test(detail)) return p;
               }
+              // Fallback: instead of "Cause inconnue", give an agent-specific
+              // suggestion so the founder has at least one starting point.
+              const agentSpecific: Record<string, string[]> = {
+                content: [
+                  'grep agent_logs WHERE agent=\'content\' AND status=\'error\' ORDER BY created_at DESC LIMIT 5',
+                  'Vérifier que le visual generation (Seedream) n\'est pas en panne',
+                  'Tester /api/agents/content?slot=catch_up manuellement avec CRON_SECRET',
+                ],
+                email: [
+                  'Vérifier l\'état Brevo (quota mensuel, IP réputation)',
+                  'Tester /api/agents/email/daily avec force=1 sur un client de test',
+                  'Vérifier lib/agents/hugo-engine.ts pour les erreurs récentes',
+                ],
+                gmaps: [
+                  'Vérifier le budget Google Places journalier (lib/places/budget.ts)',
+                  'Tester avec un seul user_id pour isoler le bug',
+                  'Voir admin/places-spend pour les anomalies de coût',
+                ],
+                dm_instagram: [
+                  'Vérifier le token IGAA du client (Jade utilise IGAA pour les DMs)',
+                  'Voir lib/meta/scheduling-state.ts pour les rate limits Meta',
+                  'Tester /api/agents/dm-instagram/auto-reply manuellement',
+                ],
+              };
+              const agentFixes = agent ? (agentSpecific[agent] || []) : [];
               return {
-                cause: 'Cause inconnue — investigation manuelle requise',
+                cause: agent
+                  ? `Erreur non classifiée sur l'agent ${agent}`
+                  : 'Cause non classifiée — extrait du log à analyser',
                 severity: 'P2' as const,
-                fixes: [
-                  'Consulter pm2 logs keiro-app pour la stack trace complète',
-                  'Reproduire en local avec le même payload',
-                  'Ajouter un log détaillé dans le code de l\'agent concerné',
+                fixes: agentFixes.length > 0 ? agentFixes : [
+                  'Consulter pm2 logs keiro-app --lines 200 pour la stack trace',
+                  'Ouvrir /admin/service-health pour les patterns récents',
+                  `grep agent_logs WHERE status='error' ORDER BY created_at DESC LIMIT 5 pour l'extrait complet`,
                 ],
               };
             }
@@ -986,13 +1132,13 @@ async function handleClientBrief(
             // Per-agent diagnostic with similar-errors lookup (last 24h)
             const since24h = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
             const diagnostics = await Promise.all(technicalGaps.map(async (g) => {
-              const dx = diagnose(g.detail);
-              // Find similar errors in agent_logs to detect systemic patterns
+              // Normalise agent name once so diagnose() can pick the right fallback fixes
               const agentLogName = g.agent === 'content' ? 'content'
                 : g.agent === 'email' ? 'email'
                 : g.agent === 'gmaps' ? 'gmaps'
                 : g.agent === 'dm-instagram' ? 'dm_instagram'
                 : g.agent;
+              const dx = diagnose(g.detail, agentLogName);
               const { data: similar } = await supabase
                 .from('agent_logs')
                 .select('user_id, data, created_at')
@@ -1308,11 +1454,25 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
       // optimistic on % when delivered, no exaggeration.
       const planKey = (client.subscription_plan || 'createur').toLowerCase();
       const floors = PLAN_FLOORS[planKey] || PLAN_FLOORS.createur;
+      // Founder ask 2026-06-01: DM line = "% des DMs entrants répondus",
+      // pas un quota cold. Si 0 DM entrant aujourd'hui → 100% par
+      // construction (rien à répondre = service tenu). Le cold DM
+      // prep (queued for manual follow) reste en stat informative
+      // séparée, jamais utilisé pour le pourcentage de promesse.
+      const dmIncoming = doneCounts.dms_incoming_24h;
+      const dmReplies = doneCounts.dms_replied_24h;
+      const dmReplyPct = dmIncoming === 0 ? 100 : Math.min(100, Math.round((dmReplies / dmIncoming) * 100));
+      const dmReplyLabel = dmIncoming === 0
+        ? 'Réponses DM (pas de DM aujourd\'hui)'
+        : `Réponses DM (${dmReplies}/${dmIncoming})`;
+
       const planPromise = [
-        { emoji: '🎨', label: 'Posts', actual: doneCounts.posts_published, floor: floors.posts, color: '#16a34a' },
-        { emoji: '✉️', label: 'Emails', actual: doneCounts.emails_sent, floor: floors.emails, color: '#2563eb' },
-        { emoji: '🎯', label: 'Prospects', actual: doneCounts.prospects_added, floor: floors.prospects, color: '#7c3aed' },
-        { emoji: '💬', label: 'DMs', actual: doneCounts.dms_sent, floor: floors.dms, color: '#a855f7' },
+        { emoji: '🎨', label: 'Posts', actual: doneCounts.posts_published, floor: floors.posts, color: '#16a34a', display: `${doneCounts.posts_published}` },
+        { emoji: '✉️', label: 'Emails prospection', actual: doneCounts.emails_cold_sent, floor: floors.emails, color: '#2563eb', display: `${doneCounts.emails_cold_sent}` },
+        { emoji: '🎯', label: 'Prospects', actual: doneCounts.prospects_added, floor: floors.prospects, color: '#7c3aed', display: `${doneCounts.prospects_added}` },
+        // DM promise = % replies to incoming. floor=100 (we want 100% reply rate);
+        // actual = dmReplyPct (so the bar renders correctly). 0 incoming → 100% automatically.
+        { emoji: '💬', label: dmReplyLabel, actual: dmReplyPct, floor: 100, color: '#a855f7', display: `${dmReplyPct}%`, isPct: true },
       ];
       const metFloors = planPromise.filter(p => p.floor > 0 && p.actual >= p.floor).length;
       const totalFloors = planPromise.filter(p => p.floor > 0).length;
@@ -1331,17 +1491,19 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
     const pct = Math.min(100, Math.round((p.actual / p.floor) * 100));
     const met = p.actual >= p.floor;
     const barColor = met ? '#16a34a' : pct >= 60 ? '#f59e0b' : '#94a3b8';
+    const displayLeft = (p as any).isPct ? `${(p as any).display}` : `<strong>${p.actual}</strong> / ${p.floor}`;
     return `
     <div style="margin:6px 0;">
       <div style="display:flex;justify-content:space-between;font-size:11px;color:#374151;margin:0 0 3px;">
         <span>${p.emoji} ${p.label}</span>
-        <span><strong>${p.actual}</strong> / ${p.floor} ${met ? '<span style=\"color:#16a34a;\">✓</span>' : ''}</span>
+        <span>${displayLeft} ${met ? '<span style=\"color:#16a34a;\">✓</span>' : ''}</span>
       </div>
       <div style="background:#e5e7eb;border-radius:4px;height:6px;overflow:hidden;">
         <div style="background:${barColor};height:100%;width:${pct}%;border-radius:4px;"></div>
       </div>
     </div>`;
   }).join('')}
+  ${doneCounts.emails_auto_replies_sent > 0 ? `<div style="margin:8px 0 0;padding:8px;background:#eff6ff;border-radius:6px;font-size:11px;color:#1e40af;"><strong>📨 Réponses auto envoyées par Hugo :</strong> ${doneCounts.emails_auto_replies_sent} email${doneCounts.emails_auto_replies_sent > 1 ? 's' : ''} en réponse à des prospects entrants</div>` : ''}
   <div style="font-size:10px;color:#9ca3af;margin-top:8px;font-style:italic;">${metFloors === totalFloors ? 'Tous tes agents ont délivré leur minimum quotidien.' : 'Les agents en dessous sont relancés automatiquement pour demain.'}</div>
 </div>` : '';
 

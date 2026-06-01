@@ -179,34 +179,44 @@ export async function GET(req: NextRequest) {
     </div>
   </div>`;
 
-  const BREVO_KEY = process.env.BREVO_API_KEY;
-  let sent = false;
-  if (BREVO_KEY) {
-    try {
-      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
-        method: 'POST',
-        headers: { 'accept': 'application/json', 'api-key': BREVO_KEY, 'content-type': 'application/json' },
-        body: JSON.stringify({
-          sender: { name: 'Service Health Digest', email: 'contact@keiroai.com' },
-          to: [{ email: ADMIN_EMAIL }],
-          subject: p0 > 0
-            ? `🚨 P0 KeiroAI Service Health — ${p0} bloquant${p0 > 1 ? 's' : ''} (${causes[0]?.cause.slice(0, 50)})`
-            : p1 > 0
-              ? `⚠️ P1 KeiroAI Service Health — ${p1} important${p1 > 1 ? 's' : ''} sur 24h`
-              : `📊 KeiroAI Service Health — ${p2} mineur${p2 > 1 ? 's' : ''} (RAS)`,
-          htmlContent: adminHtml,
-          tags: ['admin_health_digest', p0 > 0 ? 'p0' : p1 > 0 ? 'p1' : 'p2'],
-        }),
-      });
-      sent = res.ok;
-    } catch (e: any) {
-      console.error('[AdminHealthDigest] Brevo send failed:', e.message);
-    }
+  // 2026-06-01 — Email send disabled. The unified admin evening digest
+  // (lib/agents/admin-digest.ts) reads the same noah_diagnostic rows and
+  // renders the Service Health section inside the single daily email.
+  // This endpoint stays callable for the /admin/service-health console
+  // and returns the rendered HTML + summary so other callers can embed it.
+  void ADMIN_EMAIL; void adminHtml;
+
+  // Persist a summary row so the unified digest knows the snapshot was
+  // computed (helpful for ordering in the evening pipeline).
+  try {
+    await supabase.from('agent_logs').insert({
+      agent: 'ceo',
+      action: 'admin_health_snapshot',
+      status: p0 > 0 ? 'error' : 'ok',
+      data: {
+        p0, p1, p2,
+        total_incidents: p0 + p1 + p2,
+        unique_causes: causes.length,
+        clients_affected: new Set(diagnostics.map(d => d.user_id)).size,
+        top_causes: causes.slice(0, 5).map(c => ({
+          cause: c.cause,
+          severity: c.severity,
+          incidents: c.incidents,
+          clients: Array.from(c.clients.values()).slice(0, 5),
+          agents: Array.from(c.agents),
+          fixes: Array.from(c.fixes),
+          sample_error: c.sample_error,
+        })),
+      },
+      created_at: new Date().toISOString(),
+    });
+  } catch (e: any) {
+    console.error('[AdminHealthDigest] snapshot persist failed:', e.message);
   }
 
   return NextResponse.json({
     ok: true,
-    sent,
+    sent: false, // Always false — unified digest handles delivery
     summary: { p0, p1, p2, total_incidents: p0 + p1 + p2, unique_causes: causes.length, clients_affected: new Set(diagnostics.map(d => d.user_id)).size },
   });
 }

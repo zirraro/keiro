@@ -22,9 +22,17 @@ const FOUNDER_EMAILS = ['contact@keiroai.com'];
 // Agents qui DOIVENT s'executer via des crons scheduler quotidiens.
 // Absence de run reussi en 48h = probleme reel.
 const SCHEDULED_AGENTS = [
-  'ceo', 'commercial', 'email', 'marketing', 'content', 'seo',
+  'ceo', 'commercial', 'email', 'marketing', 'content',
   'dm_instagram', 'onboarding', 'retention',
 ];
+
+// Agents avec cadence inférieure au quotidien — l'alerte 48h donnerait
+// des faux positifs. Map: agentId → heures max sans run (seuil custom).
+//   seo : Mon/Wed/Fri (3x/sem) → 96h max
+//   weekly-trends : Mon (1x/sem) → 8 jours = 192h max
+const SPARSE_SCHEDULED_AGENTS: Record<string, number> = {
+  seo: 96,
+};
 
 // Agents qui ne tournent QUE lorsque certains clients les ont actives
 // (Google Business connecte pour gmaps, WhatsApp branche, etc.) ou qui
@@ -34,7 +42,7 @@ const CONDITIONAL_AGENTS = [
   'gmaps', 'amit', 'dm_tiktok', 'chatbot', 'whatsapp', 'tiktok_comments',
 ];
 
-const KNOWN_AGENTS = [...SCHEDULED_AGENTS, ...CONDITIONAL_AGENTS];
+const KNOWN_AGENTS = [...SCHEDULED_AGENTS, ...Object.keys(SPARSE_SCHEDULED_AGENTS), ...CONDITIONAL_AGENTS];
 
 // ── Auth helper ──
 
@@ -109,16 +117,21 @@ async function runHealthCheck(orgId: string | null = null): Promise<HealthReport
 
   const fortyEightHoursAgo = new Date(now.getTime() - 48 * 3600000).toISOString();
   const twentyFourHoursAgo = new Date(now.getTime() - 24 * 3600000).toISOString();
+  // Widest lookback = largest SPARSE threshold (e.g. SEO = 96h)
+  const maxSparseHours = Math.max(48, ...Object.values(SPARSE_SCHEDULED_AGENTS));
+  const sparseLookbackIso = new Date(now.getTime() - maxSparseHours * 3600000).toISOString();
 
-  // Fetch all agent logs from the last 48h in a single query
+  // Fetch all agent logs from the last lookback window in a single query
   const { data: allLogs, error: logsError } = await supabase
     .from('agent_logs')
     .select('agent, action, status, created_at, data')
-    .gte('created_at', fortyEightHoursAgo)
+    .gte('created_at', sparseLookbackIso)
     .in('agent', KNOWN_AGENTS)
     .neq('action', 'learning')
     .neq('action', 'agent_feedback')
     .order('created_at', { ascending: false });
+  // sparseLookbackIso retained for diagnostics
+  void fortyEightHoursAgo;
 
   if (logsError) {
     console.error('[OpsAgent] Error fetching agent_logs:', logsError.message);
@@ -126,14 +139,20 @@ async function runHealthCheck(orgId: string | null = null): Promise<HealthReport
 
   const logs = allLogs || [];
 
-  // Analyze each agent. Different rules for SCHEDULED vs CONDITIONAL.
+  // Analyze each agent. Different rules for SCHEDULED vs CONDITIONAL vs SPARSE.
   const agentHealthMap: AgentHealth[] = KNOWN_AGENTS.map((agentName) => {
     const isConditional = CONDITIONAL_AGENTS.includes(agentName);
+    const sparseThresholdH = SPARSE_SCHEDULED_AGENTS[agentName] || 0;
+    const isSparse = sparseThresholdH > 0;
     const agentLogs = logs.filter((l: any) => l.agent === agentName);
     const successStatuses = ['ok', 'success', 'active', 'confirmed'];
 
-    // Last successful run (within 48h)
-    const lastSuccess = agentLogs.find((l: any) => successStatuses.includes(l.status));
+    // Last successful run (within the agent's lookback window)
+    const lookbackHours = isSparse ? sparseThresholdH : 48;
+    const lookbackIso = new Date(now.getTime() - lookbackHours * 3600000).toISOString();
+    const lastSuccess = agentLogs
+      .filter((l: any) => l.created_at >= lookbackIso)
+      .find((l: any) => successStatuses.includes(l.status));
     const lastSuccessDate = lastSuccess?.created_at || null;
 
     // 24h metrics — ignore learning/feedback-style actions that don't represent
@@ -148,7 +167,20 @@ async function runHealthCheck(orgId: string | null = null): Promise<HealthReport
     let status: 'healthy' | 'degraded' | 'down';
     let reason: string | undefined;
 
-    if (isConditional) {
+    if (isSparse) {
+      // Sparse agents (e.g. SEO, weekly trends) — alert only if no success
+      // in the agent's specific window. Don't alert on 0 runs in 24h
+      // because that's expected most days.
+      if (!lastSuccessDate) {
+        status = 'down';
+        reason = `Aucun run réussi dans les ${lookbackHours}h (cadence prévue : ${agentName === 'seo' ? 'Mon/Wed/Fri' : 'hebdomadaire'})`;
+      } else if (successRate >= 0 && successRate < 30 && totalRuns24h > 0) {
+        status = 'down';
+        reason = `Taux d'erreur critique sur cadence sparse: ${100 - successRate}% (${errorCount24h}/${totalRuns24h})`;
+      } else {
+        status = 'healthy';
+      }
+    } else if (isConditional) {
       // Conditional agents: 0 runs = normal (client hasn't activated the feature,
       // or no events have triggered this agent in 48h). Only alert if the agent
       // HAS been running and is failing badly.
@@ -452,31 +484,12 @@ async function sendCriticalAlert(
       created_at: new Date().toISOString(),
     });
     console.log(`[OpsAgent] Report saved to supervision (${downAgents.length} down, ${degradedAgents.length} degraded)`);
-    if (downAgents.length >= 1) {
-      if (RESEND_API_KEY) {
-        await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            from: 'KeiroAI Ops Agent <contact@keiroai.com>',
-            to: FOUNDER_EMAILS,
-            subject: `[${statusEmoji}] ${downAgents.length} agent(s) down — Ops Report`,
-            html: emailHtml,
-          }),
-        });
-      } else if (BREVO_API_KEY) {
-        await fetch('https://api.brevo.com/v3/smtp/email', {
-          method: 'POST',
-          headers: { 'accept': 'application/json', 'api-key': BREVO_API_KEY, 'content-type': 'application/json' },
-          body: JSON.stringify({
-            sender: { name: 'KeiroAI Ops Agent', email: 'contact@keiroai.com' },
-            to: FOUNDER_EMAILS.map(email => ({ email })),
-            subject: `[${statusEmoji}] ${downAgents.length} agent(s) down — Ops Report`,
-            htmlContent: emailHtml,
-          }),
-        });
-      }
-    }
+    // 2026-06-01 — Email send disabled here. The unified admin evening
+    // digest (lib/agents/admin-digest.ts) now ingests this `health_check_report`
+    // row and renders the Agents DOWN section inside the single daily email.
+    // Avoid `unused-var` complaints from RESEND_API_KEY / BREVO_API_KEY / emailHtml
+    // which we keep available for the fallback path.
+    void RESEND_API_KEY; void BREVO_API_KEY; void emailHtml;
     return true;
   } catch (e: any) {
     console.error('[OpsAgent] Ops report error:', e.message);

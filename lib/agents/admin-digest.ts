@@ -1,21 +1,18 @@
 /**
  * Unified admin daily digest.
  *
- * Replaces the two separate reports the admin used to receive
- * (`CEO Group — Reco code` + `CEO Improvement Report`) with a single
- * actionable email. Problem with the old flow:
- *   - two emails per slot, same inbox
- *   - one said "tout est passé" and the other listed generic
- *     pattern-based recommendations ("[TIMEOUT] agent X timeout 3×")
- *     without explaining WHAT went wrong or WHERE to fix it
+ * 2026-06-01 — Single email replacing the trio the founder used to get:
+ *   - "Service Health — Digest 24h" (admin-health-digest)
+ *   - "Ops Agent — Problemes detectes" (ops route)
+ *   - "Noah — Digest technique" (this file)
  *
- * This digest asks Claude Sonnet to read every recent failure log, group
- * them by root cause, explain each class plainly, and produce concrete
- * code-level recommendations pointing to specific files / functions /
- * agents.
+ * Both senders now persist data (admin_health_snapshot, health_check_report)
+ * and let this function build ONE email with three sections:
+ *   1. Service Health (Noah catch-up diagnostics, P0/P1/P2)
+ *   2. Agents DOWN / DEGRADED (Ops scheduled-agent uptime check)
+ *   3. Root-cause failure analysis (Claude over agent_logs failures)
  *
- * Called from the scheduler's `ceo` slot instead of the two previous
- * calls. Sent via Brevo to the admin (contact@keiroai.com).
+ * Sent via Brevo to contact@keiroai.com.
  */
 
 import { SupabaseClient } from '@supabase/supabase-js';
@@ -39,18 +36,38 @@ interface AgentRun {
 }
 
 interface ClaudeDigest {
-  headline: string;             // 1-line verdict, goes into subject
-  health_summary: string;       // 2-3 sentences, overview
+  headline: string;
+  health_summary: string;
   top_issues: Array<{
-    title: string;              // "Meta API: stale IGAA token"
-    agents: string[];           // ["dm_instagram", "instagram_comments"]
-    impact: string;             // "N client(s), X errors in 24h"
-    explanation: string;        // plain-English cause
-    fix: string;                // concrete code-level recommendation
-    affected_files?: string[];  // likely paths
+    title: string;
+    agents: string[];
+    impact: string;
+    explanation: string;
+    fix: string;
+    affected_files?: string[];
   }>;
-  quick_wins: string[];          // non-urgent polish recos
+  quick_wins: string[];
   nothing_to_fix?: boolean;
+}
+
+interface HealthCause {
+  cause: string;
+  severity: 'P0' | 'P1' | 'P2';
+  incidents: number;
+  clients: string[];
+  agents: string[];
+  fixes: string[];
+  sample_error: string;
+}
+
+interface AgentDownSnapshot {
+  agent: string;
+  status: 'down' | 'degraded';
+  reason: string;
+  last_success: string | null;
+  success_rate: number;
+  total_runs_24h: number;
+  suggested_fix: string;
 }
 
 export async function buildAdminDigest(
@@ -66,6 +83,8 @@ export async function buildAdminDigest(
     agent_runs: AgentRun[];
   };
   digest: ClaudeDigest | null;
+  healthCauses: HealthCause[];
+  agentsDown: AgentDownSnapshot[];
 }> {
   const since = new Date(Date.now() - periodHours * 3600 * 1000).toISOString();
 
@@ -80,8 +99,7 @@ export async function buildAdminDigest(
 
   // True failures only: exclude rows that are explicitly marked as
   // "expected skip" (e.g. a client without IG connected — that's a
-  // configuration state, not a system error). Without this filter the
-  // admin brief grew noisier every day with stale diagnostic noise.
+  // configuration state, not a system error).
   const isExpectedSkip = (l: any): boolean => {
     const d = l?.data;
     if (!d) return false;
@@ -131,8 +149,77 @@ export async function buildAdminDigest(
     agent_runs: agentRuns,
   };
 
-  // No failures → short digest with no AI call needed.
-  if (failures.length === 0) {
+  // ── Section 1: Service Health (latest admin_health_snapshot) ────────
+  const { data: latestSnapshot } = await supabase
+    .from('agent_logs')
+    .select('data, created_at')
+    .eq('agent', 'ceo')
+    .eq('action', 'admin_health_snapshot')
+    .gte('created_at', since)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const healthCauses: HealthCause[] = ((latestSnapshot?.data?.top_causes || []) as any[]).map(c => ({
+    cause: String(c.cause || 'Cause inconnue'),
+    severity: (c.severity === 'P0' || c.severity === 'P1') ? c.severity : 'P2',
+    incidents: Number(c.incidents || 0),
+    clients: Array.isArray(c.clients) ? c.clients.slice(0, 10) : [],
+    agents: Array.isArray(c.agents) ? c.agents.slice(0, 5) : [],
+    fixes: Array.isArray(c.fixes) ? c.fixes.slice(0, 5) : [],
+    sample_error: String(c.sample_error || '').slice(0, 220),
+  }));
+
+  // ── Section 2: Agents DOWN (latest ops health_check_report) ─────────
+  const { data: latestOps } = await supabase
+    .from('agent_logs')
+    .select('data, created_at')
+    .eq('agent', 'ops')
+    .eq('action', 'health_check_report')
+    .gte('created_at', since)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const opsDown = (latestOps?.data?.downAgents || []) as any[];
+  const opsDegraded = (latestOps?.data?.degradedAgents || []) as any[];
+
+  const buildFix = (a: any): string => {
+    if (!a.last_success) {
+      return `Vérifier que '${a.agent}' est bien dans worker/scheduler.mjs GLOBAL_SCHEDULE ou AGENT_ENDPOINTS, puis \`pm2 restart keiro-worker\`. Tester /api/agents/${a.agent.replace(/_/g, '-')} manuellement avec CRON_SECRET.`;
+    }
+    if (a.total_runs_24h === 0) {
+      return `'${a.agent}' n'a tourné AUCUNE fois en 24h alors qu'il l'a fait en 48h. Soit la cadence est espacée (Mon/Wed/Fri pour SEO par exemple), soit le cron est cassé. Voir \`pm2 logs keiro-worker --lines 200\`.`;
+    }
+    if (a.success_rate >= 0 && a.success_rate < 30) {
+      return `Taux d'erreur ${100 - a.success_rate}% sur '${a.agent}'. Filter \`agent_logs\` WHERE agent='${a.agent}' AND status='error' ORDER BY created_at DESC LIMIT 10 pour le pattern dominant.`;
+    }
+    return `Analyser les ${a.error_count_24h || 0} erreur(s) récentes de '${a.agent}' dans agent_logs pour identifier la root cause.`;
+  };
+
+  const agentsDown: AgentDownSnapshot[] = [
+    ...opsDown.map((a: any) => ({
+      agent: String(a.agent),
+      status: 'down' as const,
+      reason: String(a.reason || 'down'),
+      last_success: a.last_success || null,
+      success_rate: typeof a.success_rate === 'number' ? a.success_rate : -1,
+      total_runs_24h: Number(a.total_runs_24h || 0),
+      suggested_fix: buildFix(a),
+    })),
+    ...opsDegraded.map((a: any) => ({
+      agent: String(a.agent),
+      status: 'degraded' as const,
+      reason: String(a.reason || 'degraded'),
+      last_success: a.last_success || null,
+      success_rate: typeof a.success_rate === 'number' ? a.success_rate : -1,
+      total_runs_24h: Number(a.total_runs_24h || 0),
+      suggested_fix: buildFix(a),
+    })),
+  ];
+
+  // ── Section 3: Claude root-cause analysis (only if there are failures) ─
+  if (failures.length === 0 && healthCauses.length === 0 && agentsDown.length === 0) {
     return {
       stats,
       digest: {
@@ -142,12 +229,13 @@ export async function buildAdminDigest(
         quick_wins: [],
         nothing_to_fix: true,
       },
+      healthCauses,
+      agentsDown,
     };
   }
 
-  // Feed the failures + agent summary to Claude for rich diagnosis.
   const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
-  if (!ANTHROPIC_KEY) return { stats, digest: null };
+  if (!ANTHROPIC_KEY) return { stats, digest: null, healthCauses, agentsDown };
 
   const prompt = `Période : dernières ${periodHours}h.
 Exécutions totales : ${runs} · Erreurs : ${errors} · Taux de succès : ${stats.success_rate}%.
@@ -169,36 +257,38 @@ ${failures.slice(0, 25).map((f, i) => `${i + 1}. [${f.agent} / ${f.action}] ${f.
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 3000,
-        system: `Tu es le CEO technique de KeiroAI, tu rédiges le brief quotidien pour le fondateur qui va exécuter les fixes lui-même. Il n'a pas besoin de reco génériques — il a besoin de SAVOIR ce qui a cassé et OÙ corriger dans le code.
+        system: `Tu es le CEO technique de KeiroAI, tu rédiges le brief quotidien pour le fondateur qui va exécuter les fixes lui-même.
 
-INFRA DÉPLOIEMENT (IMPORTANT — NE PAS SE TROMPER) :
-- Plus AUCUN cron Vercel — vercel.json.crons = []. Ne JAMAIS suggérer "vérifier vercel.json" comme fix.
+INFRA DÉPLOIEMENT :
+- AUCUN cron Vercel — vercel.json.crons = []. NE JAMAIS suggérer "vérifier vercel.json".
 - Tous les crons tournent sur un VPS OVH (Gravelines) via PM2 :
-    - keiro-app   : Next.js, port 3000
-    - keiro-worker: /opt/keiro/worker/scheduler.mjs (le vrai cron)
-- Le worker fire sur deux canaux :
-    - GLOBAL_SCHEDULE[] : slots à heure fixe (ceo 05:00, morning_batch 07:00,
-      midday_batch 10:00, afternoon_batch 13:30, evening_batch 17:00,
-      ceo_daily 18:30, email_inbound_poll */2h, ig_comments_reply :15,
-      weekly_enrichment Sun 02:00, weekly-trends Mon 07:00)
-    - Per-client schedules depuis /api/cron/client-schedules (DB-driven)
-- Quand un agent est "DOWN" ou "Aucun run" : le fix à suggérer est
-  d'abord "vérifier que l'agentId est bien dans GLOBAL_SCHEDULE ou
-  dans AGENT_ENDPOINTS du worker, puis pm2 restart keiro-worker".
+    - keiro-app    : Next.js, port 3000
+    - keiro-worker : /opt/keiro/worker/scheduler.mjs (le vrai cron)
+- Slots fixes (UTC) : ceo 05:00, morning_batch 07:00, midday_batch 10:00,
+  afternoon_batch 13:30, evening_batch 17:00, ceo_daily 18:30,
+  ig_comments_reply :15, weekly-trends Mon 07:00.
+- Pour un agent "DOWN" ou "Aucun run" : le fix à suggérer est
+  d'abord "vérifier l'agentId dans GLOBAL_SCHEDULE / AGENT_ENDPOINTS
+  du worker, puis pm2 restart keiro-worker".
 
-Le projet est une app Next.js avec des agents sous /app/api/agents/<agent_id>/route.ts :
-  - ceo, commercial, email, content, dm_instagram, instagram_comments, gmaps,
-    google-reviews, seo, onboarding, retention, marketing, ads, comptable,
-    rh, whatsapp, ops
+Le projet est une app Next.js avec des agents sous /app/api/agents/<agent_id>/route.ts
+(ceo, commercial, email, content, dm_instagram, instagram_comments, gmaps,
+google-reviews, seo, onboarding, retention, marketing, ads, comptable,
+rh, whatsapp, ops). Libs partagées sous /lib/agents/.
 
-Les libs partagées sont sous /lib/agents/ (ceo-group, hugo-engine, hugo-reply,
-theo-review-reply, visual-analyzer, knowledge-rag, client-context,
-shared-context, feature-flags, enrichment, etc.)
+AGENTS DÉSACTIVÉS (lib/agents/feature-flags.ts DISABLED_AGENTS) :
+ads, rh, comptable, whatsapp, tiktok_comments, tiktok_dm, linkedin.
+0 run sur ces agents = NORMAL — mentionner "désactivé".
 
-AGENTS DÉSACTIVÉS TEMPORAIREMENT (lib/agents/feature-flags.ts DISABLED_AGENTS) :
-ads, rh, comptable, whatsapp, tiktok_comments, tiktok_dm, linkedin. Si le
-digest montre un de ces agents sans run, c'est NORMAL — ne pas lister
-comme issue critique, mentionner simplement "désactivé, sera réactivé".
+CADENCE SPÉCIALE :
+- seo : Mon/Wed/Fri seulement (3x/semaine). 48h sans run = peut être normal.
+- weekly-trends : Mon 07:00 seulement.
+- monthly-recap : 1er du mois.
+
+P2 "Cause inconnue" : si tu vois cette catégorie, lis le sample_error
+inclus et essaie d'identifier le pattern (TIMEOUT, 401, JSON_PARSE,
+SUPABASE_RLS, OPENAI_RATE_LIMIT, etc.). Donne un fix précis, pas
+"investiguer manuellement".
 
 Tu dois produire un JSON STRICT de cette forme :
 
@@ -210,7 +300,7 @@ Tu dois produire un JSON STRICT de cette forme :
       "title": "titre court (max 8 mots) — root cause",
       "agents": ["agent_id", ...],
       "impact": "combien de clients/runs/erreurs touchés",
-      "explanation": "1 paragraphe clair sur POURQUOI ça casse — en français simple",
+      "explanation": "1 paragraphe clair sur POURQUOI ça casse — français simple",
       "fix": "recommandation CODE précise et actionnable (fichier(s), fonction(s), changement à faire)",
       "affected_files": ["app/api/agents/.../route.ts", "lib/agents/....ts"]
     }
@@ -219,19 +309,19 @@ Tu dois produire un JSON STRICT de cette forme :
 }
 
 RÈGLES :
-- Groupe les erreurs identiques en UN SEUL issue (même root cause).
+- Groupe les erreurs identiques en UN SEUL issue.
 - top_issues trié par impact décroissant, max 5.
-- Chaque 'fix' DOIT citer un fichier ou une fonction précise — jamais "investiguer" ou "monitorer".
-- Si tu identifies une meilleure approche (ex: refacto, lib à changer, pattern à utiliser), propose-la dans fix — n'hésite pas, tu es expert.
-- Si les logs sont trop vagues pour un root cause, dis "Logs insuffisants — ajoute console.log(...) dans X" comme fix.
-- Pas de blabla corporate. Ton direct, technique, français.
+- Chaque 'fix' DOIT citer un fichier/fonction précis — jamais "investiguer".
+- Si tu identifies un refacto/lib meilleur, propose-le dans fix.
+- Si logs vagues, dis "Logs insuffisants — ajoute console.log(...) dans X" comme fix.
+- Pas de blabla corporate. Direct, technique, français.
 
 Output : JSON seul, zéro markdown, zéro intro.`,
         messages: [{ role: 'user', content: prompt }],
       }),
     });
 
-    if (!res.ok) return { stats, digest: null };
+    if (!res.ok) return { stats, digest: null, healthCauses, agentsDown };
     const data = await res.json();
     let txt = (data.content?.[0]?.text || '').trim();
     txt = txt.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
@@ -251,10 +341,10 @@ Output : JSON seul, zéro markdown, zéro intro.`,
       quick_wins: Array.isArray(parsed.quick_wins) ? parsed.quick_wins.slice(0, 5).map((s: any) => String(s).substring(0, 300)) : [],
     };
 
-    return { stats, digest };
+    return { stats, digest, healthCauses, agentsDown };
   } catch (e: any) {
     console.error('[AdminDigest] Claude call failed:', String(e?.message || e).substring(0, 200));
-    return { stats, digest: null };
+    return { stats, digest: null, healthCauses, agentsDown };
   }
 }
 
@@ -265,72 +355,134 @@ export async function sendAdminDailyDigest(
   const BREVO_KEY = process.env.BREVO_API_KEY;
   if (!BREVO_KEY) return;
 
-  const { stats, digest } = await buildAdminDigest(supabase, periodHours);
+  const { stats, digest, healthCauses, agentsDown } = await buildAdminDigest(supabase, periodHours);
 
   const now = new Date();
   const issues = digest?.top_issues || [];
-  const healthIcon = stats.total_errors === 0 ? '\u2705' : stats.success_rate >= 90 ? '\u2705' : stats.success_rate >= 70 ? '\u26A0\uFE0F' : '\u{1F6A8}';
+  const healthIcon = (agentsDown.length === 0 && stats.total_errors === 0 && healthCauses.filter(c => c.severity === 'P0').length === 0)
+    ? '✅'
+    : stats.success_rate >= 90 && agentsDown.filter(a => a.status === 'down').length === 0
+      ? '✅'
+      : stats.success_rate >= 70
+        ? '⚠️'
+        : '\u{1F6A8}';
 
+  // ─── Section: Service Health (P0/P1/P2) ──────────────────────────
+  const SEV_COLOR: Record<string, { bg: string; border: string; label: string }> = {
+    P0: { bg: '#fef2f2', border: '#dc2626', label: 'P0 — bloquant' },
+    P1: { bg: '#fff7ed', border: '#ea580c', label: 'P1 — important' },
+    P2: { bg: '#f9fafb', border: '#6b7280', label: 'P2 — mineur' },
+  };
+
+  const healthBlocks = healthCauses.length > 0
+    ? healthCauses.map(c => {
+        const sev = SEV_COLOR[c.severity] || SEV_COLOR.P2;
+        const clientList = c.clients.slice(0, 5).join(', ') + (c.clients.length > 5 ? ` (+${c.clients.length - 5})` : '');
+        return `<div style="background:${sev.bg};border-left:4px solid ${sev.border};border-radius:8px;padding:12px;margin:8px 0;">
+          <div style="font-size:11px;color:${sev.border};font-weight:bold;text-transform:uppercase;">${sev.label} · ${c.agents.join(', ')}</div>
+          <div style="font-size:13px;color:#111;font-weight:bold;margin:4px 0;">${esc(c.cause)}</div>
+          <div style="font-size:11px;color:#4b5563;"><strong>${c.incidents}</strong> incident(s) · clients : ${esc(clientList || 'n/a')}</div>
+          ${c.sample_error ? `<div style="font-size:10px;color:#6b7280;font-family:monospace;background:#fff;padding:6px;border-radius:4px;margin:6px 0;border:1px solid #e5e7eb;">${esc(c.sample_error)}</div>` : ''}
+          ${c.fixes.length > 0 ? `<ul style="margin:6px 0 0;padding-left:18px;font-size:11px;color:#374151;">${c.fixes.map(f => `<li>${esc(f)}</li>`).join('')}</ul>` : ''}
+        </div>`;
+      }).join('')
+    : '';
+
+  // ─── Section: Agents DOWN / DEGRADED ─────────────────────────────
+  const agentsDownBlocks = agentsDown.length > 0
+    ? agentsDown.map(a => {
+        const color = a.status === 'down' ? '#dc2626' : '#d97706';
+        const bg = a.status === 'down' ? '#fef2f2' : '#fff7ed';
+        return `<div style="background:${bg};border-left:4px solid ${color};border-radius:8px;padding:12px;margin:8px 0;">
+          <div style="font-size:11px;color:${color};font-weight:bold;text-transform:uppercase;">${a.status === 'down' ? 'AGENT DOWN' : 'AGENT DEGRADED'} · ${esc(a.agent)}</div>
+          <div style="font-size:13px;color:#111;margin:4px 0;">${esc(a.reason)}</div>
+          <div style="font-size:11px;color:#4b5563;">Dernier succès : ${a.last_success ? new Date(a.last_success).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }) : 'jamais en 48h'} · ${a.total_runs_24h} runs 24h${a.success_rate >= 0 ? ` · ${a.success_rate}% succès` : ''}</div>
+          <div style="background:#fff;border-radius:6px;padding:8px;margin-top:6px;border:1px solid #e5e7eb;">
+            <div style="font-size:10px;font-weight:bold;color:#059669;text-transform:uppercase;letter-spacing:0.3px;">Fix</div>
+            <div style="font-size:11px;color:#374151;margin-top:3px;">${esc(a.suggested_fix)}</div>
+          </div>
+        </div>`;
+      }).join('')
+    : '';
+
+  // ─── Section: Root-cause (Claude analysis) ────────────────────────
   const issuesHtml = issues.length > 0
     ? issues.map((iss, i) => `
-      <div style="background:#fff;border:1px solid #e5e7eb;border-left:4px solid #ef4444;border-radius:8px;padding:16px;margin-bottom:12px;">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+      <div style="background:#fff;border:1px solid #e5e7eb;border-left:4px solid #ef4444;border-radius:8px;padding:14px;margin-bottom:10px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
           <span style="background:#fef2f2;color:#ef4444;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:bold;">${i + 1}</span>
-          <strong style="font-size:14px;color:#111;">${esc(iss.title)}</strong>
+          <strong style="font-size:13px;color:#111;">${esc(iss.title)}</strong>
         </div>
-        <div style="font-size:11px;color:#6b7280;margin-bottom:10px;">
+        <div style="font-size:11px;color:#6b7280;margin-bottom:8px;">
           Impact : ${esc(iss.impact)} · Agents : ${iss.agents.map(a => `<code style="background:#f3f4f6;padding:1px 4px;border-radius:3px;">${esc(a)}</code>`).join(' ')}
         </div>
-        <p style="font-size:12px;color:#374151;line-height:1.55;margin:0 0 10px;"><strong>Cause :</strong> ${esc(iss.explanation)}</p>
-        <div style="background:#f9fafb;border-radius:6px;padding:10px;">
-          <div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;font-weight:bold;margin-bottom:4px;">Fix</div>
-          <p style="font-size:12px;color:#111;line-height:1.55;margin:0;white-space:pre-wrap;">${esc(iss.fix)}</p>
-          ${iss.affected_files && iss.affected_files.length > 0 ? `<div style="margin-top:8px;font-size:10px;color:#6b7280;">Fichiers : ${iss.affected_files.map(f => `<code style="background:#fff;padding:1px 4px;border-radius:3px;border:1px solid #e5e7eb;">${esc(f)}</code>`).join(' ')}</div>` : ''}
+        <p style="font-size:12px;color:#374151;line-height:1.5;margin:0 0 8px;"><strong>Cause :</strong> ${esc(iss.explanation)}</p>
+        <div style="background:#f9fafb;border-radius:6px;padding:8px;">
+          <div style="font-size:10px;color:#6b7280;text-transform:uppercase;font-weight:bold;margin-bottom:3px;">Fix</div>
+          <p style="font-size:12px;color:#111;line-height:1.5;margin:0;white-space:pre-wrap;">${esc(iss.fix)}</p>
+          ${iss.affected_files && iss.affected_files.length > 0 ? `<div style="margin-top:6px;font-size:10px;color:#6b7280;">Fichiers : ${iss.affected_files.map(f => `<code style="background:#fff;padding:1px 4px;border-radius:3px;border:1px solid #e5e7eb;">${esc(f)}</code>`).join(' ')}</div>` : ''}
         </div>
       </div>
     `).join('')
-    : '<p style="color:#22c55e;font-weight:bold;">Aucune alerte — tout est passé sans erreur.</p>';
+    : '<p style="color:#22c55e;font-weight:bold;font-size:12px;">Aucune root cause d\'échec à analyser.</p>';
 
   const quickWinsHtml = (digest?.quick_wins || []).length > 0
-    ? `<h3 style="color:#111;font-size:14px;margin:20px 0 8px;">Quick wins</h3><ul style="font-size:12px;color:#374151;">${(digest?.quick_wins || []).map(q => `<li>${esc(q)}</li>`).join('')}</ul>`
+    ? `<h3 style="color:#111;font-size:13px;margin:20px 0 6px;">Quick wins</h3><ul style="font-size:11px;color:#374151;margin:0;padding-left:18px;">${(digest?.quick_wins || []).map(q => `<li>${esc(q)}</li>`).join('')}</ul>`
     : '';
 
   const agentRunsHtml = stats.agent_runs.slice(0, 10).map(a =>
     `<tr><td style="padding:4px 8px;font-size:11px;">${esc(a.agent)}</td><td style="padding:4px 8px;font-size:11px;text-align:right;">${a.runs}</td><td style="padding:4px 8px;font-size:11px;text-align:right;color:${a.errors > 0 ? '#ef4444' : '#22c55e'};">${a.errors}</td><td style="padding:4px 8px;font-size:10px;color:#6b7280;">${esc(a.last_action).substring(0, 30)}</td></tr>`
   ).join('');
 
-  const subject = `${healthIcon} ${digest?.headline || 'Digest admin KeiroAI'} (${stats.success_rate}% · ${stats.total_errors} erreurs)`;
+  const downCount = agentsDown.filter(a => a.status === 'down').length;
+  const p0Count = healthCauses.filter(c => c.severity === 'P0').length;
+  const p1Count = healthCauses.filter(c => c.severity === 'P1').length;
+  const summaryBadge = p0Count > 0
+    ? `🚨 ${p0Count} P0 + ${downCount} DOWN`
+    : downCount > 0
+      ? `⚠️ ${downCount} agent(s) DOWN`
+      : p1Count > 0
+        ? `⚠️ ${p1Count} P1`
+        : stats.total_errors > 0
+          ? `${stats.total_errors} erreurs`
+          : 'RAS';
+
+  const subject = `${healthIcon} KeiroAI Admin — ${digest?.headline || summaryBadge} (${stats.success_rate}% · ${stats.total_errors} err)`;
 
   await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
     headers: { accept: 'application/json', 'api-key': BREVO_KEY, 'content-type': 'application/json' },
     body: JSON.stringify({
-      sender: { name: 'Noah — Digest technique', email: 'contact@keiroai.com' },
+      sender: { name: 'KeiroAI Admin Digest', email: 'contact@keiroai.com' },
       to: [{ email: 'contact@keiroai.com' }],
       subject,
       htmlContent: `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:720px;margin:0 auto;background:#f9fafb;">
         <div style="background:linear-gradient(135deg,#0c1a3a,#1e3a5f);color:white;padding:24px;border-radius:12px 12px 0 0;">
-          <h2 style="margin:0;font-size:18px;">${healthIcon} Digest technique — ${esc(digest?.headline || 'KeiroAI')}</h2>
+          <h2 style="margin:0;font-size:18px;">${healthIcon} Digest admin unifié — ${esc(digest?.headline || summaryBadge)}</h2>
           <p style="margin:4px 0 0;color:#a0aec0;font-size:12px;">${now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })} — ${periodHours}h précédentes</p>
         </div>
 
         <div style="background:#fff;padding:20px;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;">
-          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;">
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px;">
             <div style="background:#f0fdf4;padding:10px;border-radius:8px;text-align:center;">
-              <div style="font-size:20px;font-weight:bold;color:#22c55e;">${stats.success_rate}%</div>
-              <div style="font-size:10px;color:#888;">Succès</div>
+              <div style="font-size:18px;font-weight:bold;color:#22c55e;">${stats.success_rate}%</div>
+              <div style="font-size:9px;color:#888;">Succès</div>
             </div>
             <div style="background:${stats.total_errors > 0 ? '#fef2f2' : '#f0fdf4'};padding:10px;border-radius:8px;text-align:center;">
-              <div style="font-size:20px;font-weight:bold;color:${stats.total_errors > 0 ? '#ef4444' : '#22c55e'};">${stats.total_errors}</div>
-              <div style="font-size:10px;color:#888;">Erreurs</div>
+              <div style="font-size:18px;font-weight:bold;color:${stats.total_errors > 0 ? '#ef4444' : '#22c55e'};">${stats.total_errors}</div>
+              <div style="font-size:9px;color:#888;">Erreurs</div>
             </div>
             <div style="background:#eff6ff;padding:10px;border-radius:8px;text-align:center;">
-              <div style="font-size:20px;font-weight:bold;color:#3b82f6;">${stats.total_runs}</div>
-              <div style="font-size:10px;color:#888;">Exécutions</div>
+              <div style="font-size:18px;font-weight:bold;color:#3b82f6;">${stats.total_runs}</div>
+              <div style="font-size:9px;color:#888;">Exécutions</div>
             </div>
-            <div style="background:#f5f3ff;padding:10px;border-radius:8px;text-align:center;">
-              <div style="font-size:20px;font-weight:bold;color:#7c3aed;">${stats.agents_active}</div>
-              <div style="font-size:10px;color:#888;">Agents actifs</div>
+            <div style="background:${downCount > 0 ? '#fef2f2' : '#f0fdf4'};padding:10px;border-radius:8px;text-align:center;">
+              <div style="font-size:18px;font-weight:bold;color:${downCount > 0 ? '#dc2626' : '#22c55e'};">${downCount}</div>
+              <div style="font-size:9px;color:#888;">DOWN</div>
+            </div>
+            <div style="background:${p0Count > 0 ? '#fef2f2' : '#f0fdf4'};padding:10px;border-radius:8px;text-align:center;">
+              <div style="font-size:18px;font-weight:bold;color:${p0Count > 0 ? '#dc2626' : '#22c55e'};">${p0Count}/${p1Count}</div>
+              <div style="font-size:9px;color:#888;">P0/P1</div>
             </div>
           </div>
 
@@ -338,7 +490,17 @@ export async function sendAdminDailyDigest(
             ${esc(digest?.health_summary || '')}
           </p>
 
-          <h3 style="color:#111;font-size:14px;margin:20px 0 12px;">${issues.length > 0 ? `À corriger (${issues.length})` : 'Aucune alerte'}</h3>
+          ${agentsDownBlocks ? `
+            <h3 style="color:#111;font-size:14px;margin:20px 0 8px;">🔴 Agents DOWN / DEGRADED (${agentsDown.length})</h3>
+            ${agentsDownBlocks}
+          ` : ''}
+
+          ${healthBlocks ? `
+            <h3 style="color:#111;font-size:14px;margin:20px 0 8px;">📊 Service Health — causes racines clients (${healthCauses.length})</h3>
+            ${healthBlocks}
+          ` : ''}
+
+          <h3 style="color:#111;font-size:14px;margin:20px 0 8px;">🔧 Root-cause analyse code (${issues.length})</h3>
           ${issuesHtml}
 
           ${quickWinsHtml}
@@ -348,18 +510,25 @@ export async function sendAdminDailyDigest(
             <thead><tr style="background:#f3f4f6;"><th style="padding:6px 8px;text-align:left;">Agent</th><th style="padding:6px 8px;text-align:right;">Runs</th><th style="padding:6px 8px;text-align:right;">Erreurs</th><th style="padding:6px 8px;text-align:left;">Dernière action</th></tr></thead>
             <tbody>${agentRunsHtml}</tbody>
           </table>
+
+          <div style="background:#f0fdf4;border-left:4px solid #16a34a;padding:12px;border-radius:8px;margin-top:18px;">
+            <strong style="color:#166534;font-size:12px;">📋 Workflow</strong>
+            <ol style="font-size:11px;color:#14532d;margin:6px 0 0;padding-left:18px;">
+              <li>Reviewer la liste, choisir les fix prioritaires</li>
+              <li>Demander à Claude d'implémenter les solutions</li>
+              <li>Console détaillée : <a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keiroai.com'}/admin/service-health" style="color:#059669;">/admin/service-health</a></li>
+            </ol>
+          </div>
         </div>
         <div style="background:#f9fafb;padding:12px;text-align:center;color:#9ca3af;font-size:10px;border-radius:0 0 12px 12px;border:1px solid #e5e7eb;border-top:none;">
-          Noah — Digest technique · ${now.toISOString().slice(0, 10)}
+          KeiroAI Admin · Digest unifié quotidien · ${now.toISOString().slice(0, 10)}
         </div>
       </div>`,
     }),
   }).catch(() => {});
 
-  // Persist the digest summary in the RAG so future sessions can recall
-  // the state of the system without scanning agent_logs.
   if (digest) {
-    const ragSummary = `ADMIN DIGEST ${now.toISOString().slice(0, 10)}: ${digest.headline}. Success ${stats.success_rate}%, ${stats.total_errors}/${stats.total_runs} errors. Top issues: ${digest.top_issues.map(i => i.title).join(' | ')}`;
+    const ragSummary = `ADMIN DIGEST ${now.toISOString().slice(0, 10)}: ${digest.headline}. Success ${stats.success_rate}%, ${stats.total_errors}/${stats.total_runs} errors. Agents DOWN: ${downCount}. P0: ${p0Count}, P1: ${p1Count}. Top issues: ${digest.top_issues.map(i => i.title).join(' | ')}`;
     await saveKnowledge(supabase, {
       content: ragSummary,
       summary: `Digest ${now.toISOString().slice(0, 10)} ${stats.success_rate}%`,
@@ -381,6 +550,9 @@ export async function sendAdminDailyDigest(
       total_errors: stats.total_errors,
       issues_count: digest?.top_issues.length || 0,
       quick_wins_count: digest?.quick_wins.length || 0,
+      agents_down: downCount,
+      p0_count: p0Count,
+      p1_count: p1Count,
     },
     created_at: now.toISOString(),
   }).throwOnError?.();

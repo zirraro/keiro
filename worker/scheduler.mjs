@@ -36,6 +36,11 @@ const GLOBAL_SCHEDULE = [
   { cron: '0 14 * * *',   slot: 'prospect_external', label: 'Prospect External' },
   { cron: '0 17 * * *',   slot: 'evening_batch',     label: 'Evening Batch' },
   { cron: '0 18 * * *',   slot: 'publish_scheduled', label: 'Publish Scheduled (evening)' },
+  // Founder ask 2026-06-01: 2h before the evening recap, check every
+  // client's quota vs floor. Fire missing crons so we hit 100% by 20:30
+  // Paris when the recap email goes out. Without this gate the catch-up
+  // pass at 18:30 UTC has 0 buffer if an agent times out.
+  { cron: '30 16 * * *',  slot: 'pre_recap_catchup', label: 'Pre-Recap Quota Catch-up (H-2 Paris)' },
   { cron: '30 18 * * *',  slot: 'ceo_daily',         label: 'CEO Daily + Ops Health + Client Evening Brief' },
   { cron: '0 */6 * * *',  slot: 'video_poll',        label: 'Video Poll' },
   // Inbound email poll every 2h (8 fires/day) so prospect replies get

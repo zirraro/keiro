@@ -4510,33 +4510,92 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
     return NextResponse.json({ ok: false, error: 'Claude returned empty response' }, { status: 502 });
   }
 
-  let post: any;
-  try {
-    const cleanText2 = rawText.replace(/```[\w]*\s*/g, '').trim();
-    const jsonMatch = cleanText2.match(/\{[\s\S]*\}/);
+  // Robust JSON parser — Claude occasionally returns JSON with unescaped
+  // newlines inside string values (mostly when the caption contains a
+  // line break). The plain JSON.parse rejects this. We try in order:
+  //   1. As-is parse on raw match
+  //   2. Strip markdown fences + try
+  //   3. Salvage truncated JSON (close object)
+  //   4. Aggressive cleanup: escape literal newlines inside string vals
+  function tryParseClaudePostJson(text: string): any | null {
+    const cleanText = text.replace(/```[\w]*\s*/g, '').trim();
+    const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
-      post = JSON.parse(jsonMatch[0]);
-    } else {
-      // Try to salvage truncated JSON
-      const partialMatch = cleanText2.match(/\{[\s\S]*/);
-      if (partialMatch) {
-        // Remove trailing incomplete fields and close the object
-        let salvaged = partialMatch[0]
-          .replace(/,\s*"[^"]*"?\s*:?\s*"?[^"]*$/, '') // remove last incomplete key:value
-          .replace(/,\s*$/, ''); // remove trailing comma
-        if (!salvaged.endsWith('}')) salvaged += '}';
-        post = JSON.parse(salvaged);
-        console.log('[Content] Salvaged truncated JSON for daily post');
-      } else {
-        throw new Error('No JSON found in response');
-      }
+      try { return JSON.parse(jsonMatch[0]); } catch { /* try salvage */ }
+      // Aggressive cleanup: escape unescaped newlines/tabs inside string
+      // values. We can't simply replace ALL \n because they're valid
+      // between tokens — only inside double-quoted strings.
+      try {
+        let inStr = false;
+        let esc = false;
+        const chars = jsonMatch[0].split('');
+        for (let i = 0; i < chars.length; i++) {
+          const ch = chars[i];
+          if (esc) { esc = false; continue; }
+          if (ch === '\\') { esc = true; continue; }
+          if (ch === '"') { inStr = !inStr; continue; }
+          if (inStr) {
+            if (ch === '\n') chars[i] = '\\n';
+            else if (ch === '\r') chars[i] = '\\r';
+            else if (ch === '\t') chars[i] = '\\t';
+          }
+        }
+        return JSON.parse(chars.join(''));
+      } catch { /* try salvage */ }
     }
-  } catch (parseError) {
-    console.error('[Content] Parse error:', parseError, 'Raw:', rawText.substring(0, 300));
+    // Salvage truncated JSON
+    const partialMatch = cleanText.match(/\{[\s\S]*/);
+    if (partialMatch) {
+      try {
+        let salvaged = partialMatch[0]
+          .replace(/,\s*"[^"]*"?\s*:?\s*"?[^"]*$/, '')
+          .replace(/,\s*$/, '');
+        if (!salvaged.endsWith('}')) salvaged += '}';
+        return JSON.parse(salvaged);
+      } catch { /* give up */ }
+    }
+    return null;
+  }
+
+  let post: any = tryParseClaudePostJson(rawText);
+  if (!post) {
+    // Retry once with Claude using a strict-JSON system prompt.
+    // Two repeated parse failures usually mean Claude truncated AND
+    // mangled the output — a fresh call with shorter context fixes it.
+    console.warn('[Content] First parse failed, retrying Claude with strict JSON mode');
+    try {
+      const retryRes = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': process.env.ANTHROPIC_API_KEY || '',
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1500,
+          system: 'Output ONLY a single valid JSON object. No markdown fences, no commentary, no newlines outside string values. Escape every literal newline inside strings as \\n.',
+          messages: [
+            { role: 'user', content: `Reformulate this Claude response as a STRICT JSON object (escape all internal newlines as \\n inside string values). If a field is missing, set it to null. The JSON keys to keep are: caption, hashtags, format, best_time, visual_description.\n\nOriginal output:\n${rawText.slice(0, 6000)}` },
+          ],
+        }),
+      });
+      if (retryRes.ok) {
+        const retryData = await retryRes.json();
+        const retryText = retryData.content?.[0]?.text || '';
+        post = tryParseClaudePostJson(retryText);
+        if (post) console.log('[Content] Strict-JSON retry succeeded');
+      }
+    } catch (e: any) {
+      console.error('[Content] Strict-JSON retry failed:', e?.message?.slice(0, 200));
+    }
+  }
+  if (!post) {
+    console.error('[Content] Parse error final, Raw:', rawText.substring(0, 300));
     await supabase.from('agent_logs').insert({
       agent: 'content', action: 'daily_post_failed',
-      data: { raw: rawText.substring(0, 800), error: String(parseError) },
-      status: 'error', error_message: String(parseError), created_at: nowISO,
+      data: { raw: rawText.substring(0, 800), error: 'JSON parse failed even after retry' },
+      status: 'error', error_message: 'Failed to parse post after retry', created_at: nowISO,
       ...(orgId ? { org_id: orgId } : {}),
     });
     return NextResponse.json({ ok: false, error: 'Failed to parse post' }, { status: 500 });
