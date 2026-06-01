@@ -172,8 +172,17 @@ export async function GET(req: NextRequest) {
     }
     const g = failureGroups[key];
     g.count++;
-    if (log.user_id) {
-      g.clients.set(log.user_id, userIdToEmail.get(log.user_id) || log.user_id.substring(0, 8));
+    // 2026-06-02 fix: cron-level logs have log.user_id=null but the
+    // payload usually carries user_id. Fall back to data.user_id /
+    // data.client_id / data.target_user_id so "Clients concernés (0)"
+    // stops appearing on every cron failure.
+    const userIdFromLog = log.user_id
+      || (log.data as any)?.user_id
+      || (log.data as any)?.client_id
+      || (log.data as any)?.target_user_id
+      || null;
+    if (userIdFromLog) {
+      g.clients.set(userIdFromLog, userIdToEmail.get(userIdFromLog) || userIdFromLog.substring(0, 8));
     }
     if (log.created_at > g.last_seen) g.last_seen = log.created_at;
     if (log.created_at < g.first_seen) g.first_seen = log.created_at;
