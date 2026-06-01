@@ -2345,13 +2345,23 @@ function JadeCampaignActions({ p }: { p: any }) {
           { value: 'concise', label: 'Concis — direct au but' },
           { value: 'detailed', label: 'Détaillé — questions de qualification' },
         ]},
-        { key: 'autosend', label: 'Auto-send les réponses simples (merci, salutations)', type: 'toggle', default: false, help: 'Si activé, les réponses ultra-simples partent sans review. Les questions et négos passent toujours par toi.' },
+        // Founder ask 2026-06-02: removed dead "autosend formules simples" toggle
+        // (was never used server-side). Kept the on-demand initiator: when DM
+        // agent is "AI actif", Jade répond à TOUS les DMs auto. Ce bouton sert
+        // juste à kicker un cycle de poll immédiat sans attendre le cron 10 min.
+        { key: 'force_now', label: 'Lancer un cycle de poll immédiat (sans attendre les 10 min du cron)', type: 'toggle', default: true, help: 'Sans cocher, le poll se fait toutes les 10 min en arrière-plan. Coche pour kicker maintenant.' },
       ],
       run: async (params) => {
-        const r = await fetch(`/api/agents/dm-instagram/auto-reply?style=${params.style}&autosend=${params.autosend}`, { method: 'POST', credentials: 'include' });
+        const r = await fetch(`/api/agents/dm-instagram/auto-reply?style=${params.style}`, { method: 'POST', credentials: 'include' });
         const j = await r.json().catch(() => ({}));
         if (!r.ok) return { kind: 'err' as const, text: j.error || 'Réponses auto échouées' };
-        return { kind: 'ok' as const, text: `${j.replied ?? 0} réponses préparées${params.autosend ? ' (dont auto-envoyées simples)' : ' — toutes en attente de validation'}.` };
+        const replied = j.replied ?? 0;
+        const skipped = j.skipped ?? 0;
+        const total = j.total_conversations ?? 0;
+        if (j.skipped_reason === 'ai_off') {
+          return { kind: 'err' as const, text: 'AI Jade est en pause — réactive le toggle "AI" en haut du panel pour relancer.' };
+        }
+        return { kind: 'ok' as const, text: `${replied} réponse(s) envoyée(s), ${skipped} déjà répondu(s), ${total} conversations scannées. Jade répond à tous les nouveaux DMs en auto.` };
       },
     },
   ];

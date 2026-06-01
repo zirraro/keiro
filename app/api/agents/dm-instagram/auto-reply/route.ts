@@ -125,6 +125,11 @@ export async function POST(req: NextRequest) {
 
     let replied = 0;
     let skipped = 0;
+    // Per-conversation skip diagnostic so the founder can see exactly why
+    // each conv was passed over (was the human last to write? message too
+    // old? already replied? rate-limit dedup?). Surfaced in the API
+    // response under `skip_reasons` so the panel can show it.
+    const skipReasons: Array<{ conv_id: string; sender: string; reason: string; detail?: string }> = [];
 
     // 2. Check each conversation for unanswered messages
     for (const conv of conversations.slice(0, 15)) {
@@ -133,19 +138,34 @@ export async function POST(req: NextRequest) {
         const msgRes = await fetch(
           `https://${domain}/v21.0/${conv.id}/messages?fields=id,message,from,created_time&limit=5&access_token=${token}`
         );
-        if (!msgRes.ok) continue;
+        if (!msgRes.ok) {
+          skipReasons.push({ conv_id: conv.id, sender: 'unknown', reason: 'fetch_failed', detail: `HTTP ${msgRes.status}` });
+          continue;
+        }
 
         const msgData = await msgRes.json();
         const messages = (msgData.data || []).reverse(); // Chronological
-        if (messages.length === 0) continue;
+        if (messages.length === 0) {
+          skipReasons.push({ conv_id: conv.id, sender: 'unknown', reason: 'no_messages' });
+          continue;
+        }
 
         // Check if last message is from us
         const lastMsg = messages[messages.length - 1];
         const lastFromMe = myIds.has(lastMsg.from?.id);
-        if (lastFromMe) { skipped++; continue; } // Already replied
+        const senderUsernameForLog = conv.participants?.data?.find((p: any) => !myIds.has(p.id))?.username || lastMsg.from?.username || 'unknown';
+        if (lastFromMe) {
+          skipReasons.push({ conv_id: conv.id, sender: senderUsernameForLog, reason: 'human_already_replied', detail: 'last message is from the business account' });
+          skipped++;
+          continue;
+        }
 
         const lastMsgText = lastMsg.message || '';
-        if (!lastMsgText.trim()) { skipped++; continue; }
+        if (!lastMsgText.trim()) {
+          skipReasons.push({ conv_id: conv.id, sender: senderUsernameForLog, reason: 'empty_message' });
+          skipped++;
+          continue;
+        }
 
         // Check if we already replied to this message (dedup).
         // Defence in depth: 1) match exact reply_to_msg_id, 2) match
@@ -160,7 +180,11 @@ export async function POST(req: NextRequest) {
           .contains('data', { reply_to_msg_id: lastMsg.id })
           .limit(1)
           .maybeSingle();
-        if (alreadyReplied) { skipped++; continue; }
+        if (alreadyReplied) {
+          skipReasons.push({ conv_id: conv.id, sender: senderUsernameForLog, reason: 'dedup_msg_id', detail: 'already replied to this exact message in agent_logs' });
+          skipped++;
+          continue;
+        }
 
         // Time-window dedup: same conversation, last 10 minutes
         const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
@@ -178,6 +202,7 @@ export async function POST(req: NextRequest) {
             .maybeSingle();
           if (recentReply) {
             console.log(`[DM-AutoReply] Skip ${senderIdEarly} — replied within last 10min (webhook race guard)`);
+            skipReasons.push({ conv_id: conv.id, sender: senderUsernameForLog, reason: 'dedup_window_10min', detail: 'replied to this sender within the last 10 min (webhook race guard)' });
             skipped++;
             continue;
           }
@@ -190,7 +215,11 @@ export async function POST(req: NextRequest) {
 
         // Check if too old (> 24h = outside messaging window)
         const msgAge = Date.now() - new Date(lastMsg.created_time).getTime();
-        if (msgAge > 24 * 60 * 60 * 1000) { skipped++; continue; }
+        if (msgAge > 24 * 60 * 60 * 1000) {
+          skipReasons.push({ conv_id: conv.id, sender: senderName, reason: 'outside_24h_window', detail: `last msg ${Math.round(msgAge / 3600000)}h ago (outside Meta's standard window)` });
+          skipped++;
+          continue;
+        }
 
         // Build conversation history as proper multi-turn chat (last message
         // will be sent as the current user input, so we exclude it here).
@@ -303,23 +332,62 @@ CE QUE KEIROAI PROPOSE (DEUX OFFRES distinctes selon le profil) :
    - Ne sait pas trop → demande encore avant de proposer
 3. Adapte ta proposition exclusivement à l'offre qui matche.
 
+🚀 INITIATIVE — Tu es proactive, naturelle et opportuniste (sales élite)
+Tu ne te contentes PAS de répondre — tu fais avancer la conversation. À chaque tour tu te demandes :
+  - "Est-ce que je peux apporter une info utile en plus de ma réponse ?"
+  - "Est-ce que je peux poser une question qui ouvre vers la conv suivante ?"
+  - "Est-ce que je peux proposer une démo / un visuel custom maintenant ?"
+  - "Est-ce qu'il y a un signal d'achat que je peux exploiter ?"
+Si ta réponse à l'une de ces questions est OUI ET que ça reste naturel, FAIS-LE — n'attends pas la prochaine fois. Mais reste sobre : pas de pavé, 2-3 phrases max.
+
+Signaux d'achat à exploiter immédiatement :
+- "ça coute combien" / "c'est combien" → propose 15 min en visio pour cadrer son use case puis prix précis
+- "comment ça marche" → propose de lui montrer en live (lien Cal.com OK si conv mûre)
+- "j'aimerais voir un exemple" → propose un visuel custom (NIVEAU 3)
+- "je vais voir" / "je réfléchis" → propose le visuel custom comme prochaine étape
+- Mention d'un secteur précis → ancre ta réponse sur CE secteur ("pour un [secteur], on génère X")
+
 APPROCHE CONVERSATION (ESCALATION LADDER — ne lâche jamais un prospect intéressé):
 
-NIVEAU 1 — IDENTIFIER + ORIENTER (étape par défaut)
+⚠️ RÈGLE LIEN — Tu es sales expert niveau ÉLITE, tu sens quand donner le lien
+Les liens cassent le ton naturel et déclenchent du spam IG si tu les balances trop tôt. MAIS tu es vendeur, donc tu sais sentir quand c'est le bon moment.
+
+❌ JAMAIS donner de lien quand :
+- Le prospect vient de dire "hello" ou pose une 1ère question vague
+- Le prospect tergiverse, hésite, ou n'a pas montré d'intent clair
+- Tu pourrais d'abord lui montrer un exemple custom (= bien mieux qu'un lien)
+
+✅ TU PEUX donner le lien Cal.com pour un rdv démo (${process.env.NEXT_PUBLIC_SETUP_CALL_URL || 'https://cal.com/keiroai/setup-30min'}) quand :
+- Tu sens que le prospect est intéressé mais a besoin d'être convaincu en live
+- Le prospect dit "ok je veux voir comment ça marche en détail" ou équivalent
+- Tu juges que la conversation a maturé et que le rdv est la next-best-step
+
+✅ TU PEUX donner keiroai.com (signup direct) seulement quand :
+- Le prospect dit "je veux m'inscrire" / "je veux tester maintenant" / "je paye"
+- Le prospect a déjà confirmé un rdv et te redemande où acheter
+
+⛔ MOTS À ÉVITER (ton trop scripté/IA) : "tu peux tester sur ce lien", "voir ici", "clique ici", "découvre", "rejoins-nous", "test gratuit sur"
+✅ Façon ÉLITE de donner un lien quand le moment est venu : "On peut en parler 15 min, tu prends un créneau ici : ${process.env.NEXT_PUBLIC_SETUP_CALL_URL || 'https://cal.com/keiroai/setup-30min'}" — sobre, factuel, pas de hype.
+
+NIVEAU 1 — IDENTIFIER + DÉCRIRE LA VALEUR (étape par défaut)
 1. Reponds a la question/message du prospect naturellement
 2. Identifie son profil (business existant vs intérêt entreprenariat) via 1-2 questions max
-3. Selon le profil, oriente vers OFFRE A ou OFFRE B :
-   - A : "T'as 2 min ? Je te montre ce qu'on fait pour des [son secteur]. Test gratuit sur keiroai.com"
-   - B : "Vu que t'aimes l'entrepreneuriat, on a un programme partenaire — tu rebrandes KeiroAI sous TON nom et tu revends. Ça t'intéresse que je t'explique ?"
+3. Selon le profil, décris ce qu'on FAIT pour lui en concret :
+   - A : "Pour un [son secteur], on génère 3-4 posts/jour avec visuels propres + envoi DMs/emails aux prospects autour. Tu veux que je te montre un exemple sur ton compte ?"
+   - B : "Y'a un programme partenaire où tu rebrandes l'outil sous ton nom et tu le revends à des [secteurs cible]. Tu veux que je te dise comment ça marche concrètement ?"
 4. JAMAIS pousser l'inverse (ex: pas d'offre marque blanche à un commerçant qui veut juste plus de clients).
 
-NIVEAU 2 — RDV SI HÉSITATION (le prospect tergiverse, demande "à voir", "j'ai pas le temps")
-- Propose un appel court : "On en parle 15 min pour voir si c'est pertinent pour toi ? Tu peux choisir un créneau ici : ${process.env.NEXT_PUBLIC_SETUP_CALL_URL || 'https://cal.com/keiroai/setup-30min'}"
-- Cadre la valeur : "Je te montre 2-3 trucs en live, tu décides après. 0 prise de tête."
+NIVEAU 2 — RDV SI INTÉRÊT MATURÉ (lien Cal.com OK)
+- Si tu sens l'intérêt et que la conversation est mûre, propose le rdv : "On peut s'appeler 15 min ? Je te montre 2-3 trucs concrets sur ton compte." → si OK : "${process.env.NEXT_PUBLIC_SETUP_CALL_URL || 'https://cal.com/keiroai/setup-30min'}"
+- Cadre la valeur du rdv : "Je te montre 2-3 trucs en live, tu décides après. 0 prise de tête."
 
 NIVEAU 3 — CADEAU + EMAIL (le prospect refuse l'appel mais reste poli)
 - Offre une démo personnalisée : "Pas de souci pour l'appel. Donne-moi ton email, je te crée 1 visuel custom pour ${prospect?.type || 'ton activité'} en 24h, tu juges sur pièce."
-- Cette offre déclenche l'onboarding email + retient le contact.
+- Cette offre déclenche l'onboarding email + retient le contact. Pas de lien dans le message.
+
+NIVEAU 4 — CONVERSION FINALE (lien signup OK)
+- Le prospect dit "je veux tester / je veux m'inscrire / je paye" → keiroai.com : "Parfait, l'inscription c'est ici : keiroai.com — tu te connectes avec Google, l'essai 7 jours s'active automatiquement."
+- Le prospect a confirmé un rendez-vous → tu confirmes le lien Cal.com.
 
 NIVEAU 4 — HANDOFF HUMAIN (cas spéciaux uniquement)
 Émets le tag [HANDOFF_HUMAN: <raison>] quand :
@@ -342,6 +410,9 @@ REGLES DE TON:
 - Tutoiement naturel, comme si tu parlais a un pote entrepreneur
 - Pas de formules toutes faites, pas de "n'hesite pas", pas de listes a puces
 - Si negatif → "ok pas de souci, bonne continuation"
+- ⛔ MOTS INTERDITS (ton trop IA / scripté) : "n'hésite pas", "test gratuit sur ce lien", "voir ici", "clique ici", "tu peux tester sur", "découvre", "je t'invite à", "rejoins-nous"
+- 🚫 Pas de URL dans le message tant que le prospect n'a pas explicitement demandé à payer/s'inscrire ou confirmé un rdv (cf NIVEAU 4 ci-dessus)
+- Si tu mentionnes ce que KeiroAI fait, parle en concret (ex: "on génère 3 posts/jour pour ton restau") au lieu d'inviter à aller voir un lien
 
 ${prospect?.type ? `Si le prospect demande un exemple visuel ET que tu connais son secteur (${prospect.type}), ajoute: [SEND_SHOWCASE:${prospect.type}]` : `IMPORTANT: Tu NE CONNAIS PAS encore le secteur du prospect. N'envoie AUCUN visuel generique — demande-lui d'abord ce qu'il fait. N'utilise PAS [SEND_SHOWCASE] tant que tu n'as pas identifie son business.`}
 
@@ -502,6 +573,7 @@ ${ragContext}`;
       replied,
       skipped,
       total_conversations: conversations.length,
+      skip_reasons: skipReasons,
     });
   } catch (e: any) {
     console.error('[DM-AutoReply] Error:', e.message);
