@@ -1910,6 +1910,24 @@ export async function GET(request: NextRequest) {
       return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, '__linkedin_2__', undefined, orgId, userId, clientSettings);
     }
 
+    // ─── Catch-up slot (2026-06-01) ──────────────────────────────────
+    // Used by /api/cron/scheduler?slot=pre_recap_catchup and the Noah
+    // evening catch-up gate. Generates ONE extra post regardless of
+    // count guards above. Caller calls multiple times if more are
+    // needed. Chooses the next missing slot type so we keep variety
+    // (morning → midday → evening → linkedin if applicable).
+    if (slot === 'catch_up') {
+      const igPosts = (updatedPosts || todayPosts).filter((p: any) => p.platform === 'instagram' || !p.platform);
+      const igCount = igPosts.length;
+      // Pick the next missing IG slot
+      const nextPillar = igCount === 0 ? '__morning__'
+        : igCount === 1 ? '__midday__'
+        : igCount === 2 ? '__evening__'
+        : '__morning__'; // already at 3+ IG, force another morning-style post
+      console.log(`[Content] Catch-up slot — igCount=${igCount} → generating ${nextPillar} post`);
+      return generateDailyPost(supabase, todayStr, dayOfWeek, undefined, nextPillar, undefined, orgId, userId, clientSettings);
+    }
+
     // Return today's content — flag as warning if 0 posts
     return NextResponse.json({
       ok: true,

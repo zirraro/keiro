@@ -601,11 +601,18 @@ export async function GET(request: NextRequest) {
           console.log(`[Scheduler/pre_recap] ${c.email} plan=${plan} posts=${counts.posts}/${floor.posts} emails=${counts.emails}/${floor.emails} prospects=${counts.prospects}/${floor.prospects} dms=${counts.dms}/${floor.dms} short=${shortfall.join(',') || 'none'}`);
           if (shortfall.length === 0) continue;
           if (shortfall.includes('content')) {
-            await callEndpoint(`Content catchup [${c.id.substring(0, 8)}]`, `/api/agents/content?slot=catch_up&publish_mode=auto&user_id=${c.id}`);
-            await delay(3000);
+            // Loop call: each catch_up generates 1 post. Need (floor - actual) posts.
+            const missing = Math.max(0, floor.posts - counts.posts);
+            for (let i = 0; i < missing; i++) {
+              await callEndpoint(`Content catchup #${i + 1} [${c.id.substring(0, 8)}]`, `/api/agents/content?slot=catch_up&publish_mode=auto&user_id=${c.id}`);
+              await delay(2500);
+            }
           }
           if (shortfall.includes('email')) {
-            await callEndpoint(`Email catchup [${c.id.substring(0, 8)}]`, `/api/agents/email/daily?user_id=${c.id}&force=1`, 'POST', { user_id: c.id, force: true });
+            // GET — the email/daily handler is GET-only for the cold batch.
+            // The slot=recap path bypasses the morning quota guard so the
+            // catch-up batch can land regardless of what was sent earlier.
+            await callEndpoint(`Email catchup [${c.id.substring(0, 8)}]`, `/api/agents/email/daily?slot=recap&user_id=${c.id}&force=1`);
             await delay(3000);
           }
           if (shortfall.includes('gmaps')) {

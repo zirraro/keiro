@@ -721,11 +721,13 @@ async function handleClientBrief(
           });
         }
         if (doneCounts.emails_sent < evFloor.emails) {
+          // GET — email/daily handler is GET-only for the cold batch.
+          // POST returns 400 'Action inconnue: undefined' on this payload
+          // (only accepts action='reset_dead_prospects'). 2026-06-01 fix.
           tasks.push({
             name: 'email',
-            url: `${evBaseUrl}/api/agents/email/daily?user_id=${client.id}&force=1`,
-            method: 'POST',
-            body: { user_id: client.id, force: true },
+            url: `${evBaseUrl}/api/agents/email/daily?slot=recap&user_id=${client.id}&force=1`,
+            method: 'GET',
           });
         }
         if (doneCounts.prospects_added < evFloor.prospects) {
@@ -795,7 +797,9 @@ async function handleClientBrief(
             t.push({ name: 'content', url: `${evBaseUrl}/api/agents/content?user_id=${client.id}&slot=catch_up&publish_mode=auto`, method: 'GET' });
           }
           if (doneCounts.emails_sent < evFloor.emails) {
-            t.push({ name: 'email', url: `${evBaseUrl}/api/agents/email/daily?user_id=${client.id}&force=1`, method: 'POST', body: { user_id: client.id, force: true } });
+            // GET — same fix as initial tasks list. Email/daily POST handler
+            // only accepts action='reset_dead_prospects'; cold batch is GET.
+            t.push({ name: 'email', url: `${evBaseUrl}/api/agents/email/daily?slot=recap&user_id=${client.id}&force=1`, method: 'GET' });
           }
           if (doneCounts.prospects_added < evFloor.prospects) {
             t.push({ name: 'gmaps', url: `${evBaseUrl}/api/agents/gmaps?user_id=${client.id}`, method: 'POST', body: { user_id: client.id } });
@@ -1083,6 +1087,44 @@ async function handleClientBrief(
                   'Vérifier le token IGAA dans profiles.instagram_igaa_token',
                   'Tester avec /api/cron/process-ig-reauth pour forcer le refresh',
                   'Voir lib/meta/* pour les retry policies sur 4xx Meta',
+                ],
+              },
+              {
+                match: /action inconnue|unknown action|action.*undefined|no.*action.*specified/i,
+                cause: 'Payload incomplet : champ "action" manquant ou inconnu',
+                severity: 'P1',
+                fixes: [
+                  'Le caller envoie un POST sans body.action — vérifier app/api/cron/scheduler/route.ts pour les calls cron',
+                  'L\'agent attend une action spécifique. Voir le switch(body.action) dans la route concernée',
+                  'Si c\'est un cron, utiliser GET au lieu de POST si la route GET fait déjà le batch (cas de email/daily)',
+                ],
+              },
+              {
+                match: /night.*guard|22h.*7h|isNightParis/i,
+                cause: 'Night guard actif (pas d\'envoi email 22h-7h Paris)',
+                severity: 'P2',
+                fixes: [
+                  'Comportement attendu — pas un bug. Le scheduler bloque les emails la nuit pour éviter de réveiller les prospects',
+                  'Si l\'action est légitime de nuit, retirer le guard pour ce slot précis',
+                ],
+              },
+              {
+                match: /no candidate|aucun.*prospect|0 candidates|no_prospects/i,
+                cause: 'Pas de prospects éligibles pour cette action',
+                severity: 'P2',
+                fixes: [
+                  'Vérifier le pipeline en amont (Léo enrichit-il assez de prospects ?)',
+                  'Relancer le scrape commercial pour ce client',
+                  'Voir crm_prospects WHERE user_id=X AND temperature=\'cold\' AND status=\'identifie\'',
+                ],
+              },
+              {
+                match: /no.*ig.*configured|instagram.*not.*connected|igaa.*missing/i,
+                cause: 'Client sans Instagram connecté',
+                severity: 'P2',
+                fixes: [
+                  'Skip attendu — pas un échec. Mettre `skipped: true, reason: "no_ig_configured"` dans le log pour silencer l\'alerte',
+                  'Si client devrait avoir IG : email reconnexion via /api/cron/process-ig-reauth',
                 ],
               },
             ];
