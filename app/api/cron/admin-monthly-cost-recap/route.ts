@@ -55,12 +55,19 @@ export async function GET(req: NextRequest) {
   }
   const totalBillsReal = Object.values(billsByService).reduce((a, b) => a + b, 0);
 
-  // Categorize bills as fixed (constant whatever client count) vs variable
-  const FIXED_BILL_SERVICES = new Set(['anthropic', 'ovh', 'ovh_cloud', 'claude_code']);
+  // 2026-06-03 v3 — Founder feedback: keep Claude Code IN the cost — it's
+  // a recurring dev expense like a dev's salary, must be part of margin
+  // analysis. So Anthropic Code (108€) = FIXED bill, included in COGS.
+  // OVH = FIXED.
+  // Bytedance + Places + Anthropic API + GCP = VARIABLE per client.
+  const R_AND_D_SERVICES = new Set<string>(); // empty — nothing excluded
+  const FIXED_INFRA_SERVICES = new Set(['anthropic', 'claude_code', 'ovh', 'ovh_cloud']);
+  const rdBills = 0;
   const fixedBills = Object.entries(billsByService)
-    .filter(([svc]) => FIXED_BILL_SERVICES.has(svc))
+    .filter(([svc]) => FIXED_INFRA_SERVICES.has(svc))
     .reduce((s, [, v]) => s + v, 0);
   const variableBills = totalBillsReal - fixedBills;
+  const cogsTotal = fixedBills + variableBills;
 
   // ─── 2. Per-agent: runs + useful actions + estimated cost ──────────
   const { data: logs } = await supabase
@@ -87,18 +94,21 @@ export async function GET(req: NextRequest) {
     retention: /^(execution_success)$/,
   };
 
-  // Cost per useful action (€) — based on real Anthropic pricing + Gemini
-  // fallback ratios. These are conservative averages from prod observation.
+  // Cost per useful action (€) — 2026-06-03 v3 calibrated on REAL bills.
+  // Founder facture mai 2026 pour 1 client Pro:
+  //   Bytedance 20.17€ pour 51 posts content = 0.40€/post (visual + LLM)
+  //   Places 41.51€ pour 31 enrichments commercial = 1.34€/action
+  //   Anthropic API 20€ ventilé entre tous les agents
   const COST_PER_USEFUL_ACTION_EUR: Record<string, number> = {
-    content: 0.025,        // Sonnet for caption + Haiku for visuals brief
-    email: 0.008,          // Sonnet for cold draft + classify
-    dm_instagram: 0.012,   // Gemini chat with thinking + RAG
-    ceo: 0.045,            // Sonnet long-context daily brief
-    marketing: 0.030,      // Sonnet analysis + chart context
-    commercial: 0.018,     // Gemini Search grounding + enrich
-    seo: 0.060,            // Sonnet keyword strategy
-    gmaps: 0.005,          // Mostly Places API (separate billed)
-    onboarding: 0.008,
+    content: 0.40,         // Real: 20€ Bytedance / 51 posts. Includes visual gen.
+    email: 0.008,          // Hugo LLM only — pas de génération image
+    dm_instagram: 0.05,    // Gemini + occasional Seedream visual when prospect asks for sample
+    ceo: 0.05,             // Sonnet long-context daily brief
+    marketing: 0.03,       // Sonnet analysis
+    commercial: 1.34,      // Places 41€ / 31 actions = 1.34€/enrich (Google Places dominé)
+    seo: 0.06,             // Sonnet keyword strategy (Mon/Wed/Fri only)
+    gmaps: 0.21,           // Places ratio aussi
+    onboarding: 0.01,
     instagram_comments: 0.005,
     chatbot: 0.004,
     retention: 0.005,
@@ -325,12 +335,22 @@ export async function GET(req: NextRequest) {
       const n = testUserId ? (st.by_user[testUserId] || 0) : 0;
       if (n > 0) llmByAgentForClient[agentName] = n * st.cost_per_action_eur;
     }
+    // 2026-06-03 — Variable bills are NOT all attributed to the test client
+    // when the plan excludes those agents. Estimate per-plan variable share:
+    //   - Créateur (Lena + Jade + Clara) → Bytedance Seedream only (~50% of variable bills)
+    //   - Pro (+ Hugo, Léo, Théo, Ami) → all variable bills (Bytedance + Places + Anthropic API)
+    const VARIABLE_SHARE_BY_PLAN: Record<string, number> = {
+      createur: 0.25, // Bytedance for visuals only, no Places, no Anthropic API
+      pro: 1.0,       // Full variable cost
+    };
     for (const plan of ['createur', 'pro']) {
       const allowed = PLAN_INCLUDED_AGENTS[plan];
       const llmForPlan = Object.entries(llmByAgentForClient)
         .filter(([a]) => allowed.has(a))
         .reduce((s, [, v]) => s + v, 0);
-      const total = llmForPlan + fixedBills + variableBills;
+      const variableForPlan = variableBills * (VARIABLE_SHARE_BY_PLAN[plan] ?? 1);
+      // True COGS = OVH fixe + variable (proratisé pour Créateur) + LLM client
+      const total = llmForPlan + fixedBills + variableForPlan;
       const revenue = REVENUE_PER_PLAN_EUR[plan];
       const margin = Math.round(((revenue - total) / revenue) * 100);
       scenarios.push({
@@ -338,12 +358,12 @@ export async function GET(req: NextRequest) {
         plan_revenue: revenue,
         test_client_cost: Number(llmForPlan.toFixed(2)),
         fixed_full: fixedBills,
-        variable_full: variableBills,
+        variable_full: Number(variableForPlan.toFixed(2)),
         total_cost: Number(total.toFixed(2)),
         margin_pct: margin,
         note: plan === 'createur'
-          ? 'Sans agent email/commercial/gmaps/marketing — usage allégé'
-          : 'Avec tous les agents core (sauf ceo/seo/amit réservés Business)',
+          ? `Lena+Jade+Clara only — ~25% des coûts variables (Bytedance visuals, pas de Places/Anthropic API). R&D Claude Code ${rdBills.toFixed(0)}€ EXCLUE (hors COGS).`
+          : `Tous agents core. Variable 100%. R&D Claude Code ${rdBills.toFixed(0)}€ EXCLUE (hors COGS).`,
       });
     }
   }
@@ -353,30 +373,34 @@ export async function GET(req: NextRequest) {
   // Assumption: each client adds llm_cost similar to current test client.
   type BreakevenRow = { plan: string; breakeven_clients: number; margin_at_breakeven: number; margin_at_10x: number };
   const breakeven: BreakevenRow[] = [];
-  if (testClient) {
-    for (const plan of ['createur', 'pro']) {
-      const allowed = PLAN_INCLUDED_AGENTS[plan];
-      const testUserId = (clients || []).find((c: any) => c.email === testClient.email)?.id;
-      const llmPerClient = Object.entries(agents)
-        .filter(([a]) => allowed.has(a))
-        .reduce((s, [a, st]) => s + (testUserId ? (st.by_user[testUserId] || 0) * st.cost_per_action_eur : 0), 0);
-      const revenue = REVENUE_PER_PLAN_EUR[plan];
-      const marginPerClient = revenue - llmPerClient - (variableBills / 1); // each client adds some variable
-      // breakeven: n * marginPerClient = fixedBills
-      const beClients = marginPerClient > 0 ? Math.ceil(fixedBills / marginPerClient) : Infinity;
-      const totalCostAtBE = beClients * llmPerClient + fixedBills + (beClients * variableBills / Math.max(1, beClients));
-      const revenueAtBE = beClients * revenue;
-      const marginAtBE = revenueAtBE > 0 ? Math.round(((revenueAtBE - totalCostAtBE) / revenueAtBE) * 100) : 0;
-      const totalCostAt10x = beClients * 10 * llmPerClient + fixedBills + variableBills;
-      const revenueAt10x = beClients * 10 * revenue;
-      const marginAt10x = revenueAt10x > 0 ? Math.round(((revenueAt10x - totalCostAt10x) / revenueAt10x) * 100) : 0;
-      breakeven.push({
-        plan,
-        breakeven_clients: Number.isFinite(beClients) ? beClients : 0,
-        margin_at_breakeven: marginAtBE,
-        margin_at_10x: marginAt10x,
-      });
-    }
+  // 2026-06-03 v3 — per-client variable cost calibré sur la VRAIE facture mai
+  // (1 client Pro mrzirraro a généré 97.17€ de coûts variables).
+  // Créateur n'utilise QUE Lena+Jade+Clara → ~12-15€/client (Bytedance pour
+  // 25-30 posts/mois + reply visuals Jade), pas de Places ni Anthropic API.
+  // Pro = tout (Bytedance + Places + Anthropic API) ≈ 90€/client avant
+  // optimisation scale (cap Places + cache visuals).
+  const VAR_COST_PER_CLIENT_EUR: Record<string, number> = {
+    createur: 15,
+    pro: 90,
+  };
+  for (const plan of ['createur', 'pro']) {
+    const revenue = REVENUE_PER_PLAN_EUR[plan];
+    const varPerClient = VAR_COST_PER_CLIENT_EUR[plan] ?? 5;
+    const marginPerClient = revenue - varPerClient;
+    // breakeven on COGS (not R&D): n * marginPerClient = fixedBills (OVH)
+    const beClients = marginPerClient > 0 ? Math.ceil(fixedBills / marginPerClient) : Infinity;
+    const totalCostAtBE = beClients * varPerClient + fixedBills;
+    const revenueAtBE = beClients * revenue;
+    const marginAtBE = revenueAtBE > 0 ? Math.round(((revenueAtBE - totalCostAtBE) / revenueAtBE) * 100) : 0;
+    const totalCostAt10 = 10 * varPerClient + fixedBills;
+    const revenueAt10 = 10 * revenue;
+    const marginAt10 = revenueAt10 > 0 ? Math.round(((revenueAt10 - totalCostAt10) / revenueAt10) * 100) : 0;
+    breakeven.push({
+      plan,
+      breakeven_clients: Number.isFinite(beClients) ? beClients : 0,
+      margin_at_breakeven: marginAtBE,
+      margin_at_10x: marginAt10, // now actually = 10 clients, not 10x breakeven
+    });
   }
 
   // ─── 7. Top unmanaged costs ────────────────────────────────────────
@@ -420,7 +444,14 @@ export async function GET(req: NextRequest) {
   // ─── 8. Build email HTML ────────────────────────────────────────────
   const billsHtml = Object.entries(billsByService)
     .sort((a, b) => b[1] - a[1])
-    .map(([svc, eur]) => `<tr><td style="padding:6px 8px;font-size:12px;text-transform:capitalize;">${svc.replace(/_/g, ' ')}${FIXED_BILL_SERVICES.has(svc) ? ' <span style="background:#dbeafe;color:#1e40af;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:bold;">FIXE</span>' : ''}</td><td style="padding:6px 8px;font-size:12px;text-align:right;font-weight:bold;color:#dc2626;">${eur.toFixed(2)} €</td></tr>`)
+    .map(([svc, eur]) => {
+      const label = R_AND_D_SERVICES.has(svc)
+        ? ' <span style="background:#fef3c7;color:#92400e;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:bold;">R&amp;D</span>'
+        : FIXED_INFRA_SERVICES.has(svc)
+          ? ' <span style="background:#dbeafe;color:#1e40af;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:bold;">FIXE</span>'
+          : ' <span style="background:#fce7f3;color:#9d174d;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:bold;">VARIABLE</span>';
+      return `<tr><td style="padding:6px 8px;font-size:12px;text-transform:capitalize;">${svc.replace(/_/g, ' ')}${label}</td><td style="padding:6px 8px;font-size:12px;text-align:right;font-weight:bold;color:#dc2626;">${eur.toFixed(2)} €</td></tr>`;
+    })
     .join('');
 
   const agentsTableHtml = Object.entries(agents)
