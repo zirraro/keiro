@@ -175,9 +175,24 @@ export async function GET(req: NextRequest) {
     agence: new Set(['content', 'dm_instagram', 'email', 'commercial', 'gmaps', 'marketing', 'chatbot', 'instagram_comments', 'ceo', 'seo', 'amit', 'retention', 'onboarding']),
   };
 
-  const { data: clients } = await supabase
+  // 2026-06-03 — Founder feedback: only REAL paying clients count.
+  // Exclude is_admin accounts + obvious test addresses (+metareview, +test,
+  // contact@keiroai.com our own admin). Stripe will eventually give us a
+  // cleaner signal (stripe_customer_id non null) — until then, this filter
+  // matches the "1 vrai client = mrzirraro@gmail.com Pro 99€" reality.
+  const { data: clientsRaw } = await supabase
     .from('profiles')
     .select('id, email, subscription_plan, is_admin');
+  const isRealPayingClient = (c: any) => {
+    if (!c) return false;
+    if (c.is_admin === true) return false;
+    const email = String(c.email || '').toLowerCase();
+    if (!email) return false;
+    if (email === 'contact@keiroai.com') return false;
+    if (email.includes('+test') || email.includes('+metareview') || email.includes('+staging')) return false;
+    return true;
+  };
+  const clients = (clientsRaw || []).filter(isRealPayingClient);
 
   // Compute per-client LLM cost from agent_logs.by_user
   const llmCostByUser: Record<string, number> = {};

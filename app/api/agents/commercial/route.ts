@@ -1278,15 +1278,15 @@ Retourne 8-12 prospects qualifiés AVEC EMAIL en JSON. Sois TRÈS concis dans de
       created_at: nowISO,
     });
 
-    // Report to CEO
-    await supabase.from('agent_logs').insert({
+    // Report to CEO — 2026-06-03 dedup to 1/day/agent
+    const { logReportToCeoOnce: logReportCommercial } = await import('@/lib/agents/report-to-ceo');
+    await logReportCommercial(supabase, {
       agent: 'commercial',
-      action: 'report_to_ceo',
+      org_id: orgId || undefined,
       data: {
         phase: 'completed',
         message: `Commercial: ${enrichedCount} enrichis, ${socialEnrichedCount} sociaux trouvés, ${newProspectsCreated} nouveaux prospects, ${advancedToContactCount} → contacté, ${flaggedDeadCount} disqualifiés | CRM: ${totalProspects} total, ${withInstagram} IG, ${withTiktok} TikTok`,
       },
-      created_at: nowISO,
     });
 
     // ── Save learnings from enrichment ──

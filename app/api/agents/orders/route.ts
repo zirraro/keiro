@@ -46,10 +46,12 @@ async function reportToCeo(
     failed: `❌ Agent ${label} a échoué: ${orderType}${details ? ` — ${details}` : ''}`,
   };
 
-  await supabase.from('agent_logs').insert({
+  // 2026-06-03: dedup to 1/day/agent — was creating ~240 rows/month per agent
+  const { logReportToCeoOnce } = await import('@/lib/agents/report-to-ceo');
+  await logReportToCeoOnce(supabase, {
     agent: agentName,
-    action: 'report_to_ceo',
-    target_id: orderId,
+    org_id: orgId || undefined,
+    status: phase === 'failed' ? 'error' : 'success',
     data: {
       phase,
       order_id: orderId,
@@ -57,9 +59,6 @@ async function reportToCeo(
       message: messages[phase],
       details: details || null,
     },
-    status: phase === 'failed' ? 'error' : 'success',
-    created_at: new Date().toISOString(),
-    ...(orgId ? { org_id: orgId } : {}),
   });
 }
 

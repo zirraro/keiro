@@ -993,15 +993,14 @@ Date : ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric
           created_at: nowISO,
         });
 
-        // Report to CEO
-        await supabase.from('agent_logs').insert({
+        // Report to CEO — 2026-06-03 dedup
+        const { logReportToCeoOnce: logReportMkt } = await import('@/lib/agents/report-to-ceo');
+        await logReportMkt(supabase, {
           agent: 'marketing',
-          action: 'report_to_ceo',
           data: {
             phase: 'completed',
             message: `Marketing Advisor: ${advice?.agent_directives ? Object.keys(advice.agent_directives).length : 0} directives émises, ${advice?.learnings?.length || 0} apprentissages. Brief: ${advice?.admin_brief?.substring(0, 200) || 'N/A'}`,
           },
-          created_at: nowISO,
         });
 
         // Auto-learn from recent marketing performance

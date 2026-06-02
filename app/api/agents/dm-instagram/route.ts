@@ -608,16 +608,15 @@ async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram', 
     timestamp: now,
   };
 
-  // Report to CEO agent
-  await supabase.from('agent_logs').insert({
+  // Report to CEO agent — 2026-06-03 dedup
+  const { logReportToCeoOnce: logReportDm } = await import('@/lib/agents/report-to-ceo');
+  await logReportDm(supabase, {
     agent: agentName,
-    action: 'report_to_ceo',
     data: {
       phase: 'completed',
       platform,
       message: `DM ${platform}: ${sent} préparés, ${failed} échoués, ${followupCount} relances`,
     },
-    created_at: now,
   });
 
   await supabase.from('agent_logs').insert({

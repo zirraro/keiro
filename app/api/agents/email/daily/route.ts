@@ -1978,15 +1978,14 @@ export async function GET(request: NextRequest) {
     // Auto-learn from performance
     await autoLearn(results, supabase, orgId, clientUserId);
 
-    // Report to CEO
-    await supabase.from('agent_logs').insert({
+    // Report to CEO — 2026-06-03 dedup
+    const { logReportToCeoOnce: logReportEmail } = await import('@/lib/agents/report-to-ceo');
+    await logReportEmail(supabase, {
       agent: 'email',
-      action: 'report_to_ceo',
       data: {
         phase: 'completed',
         message: `Email: ${successCount} envoyés (${aiCount} IA), ${failCount} échoués | ${isManualTrigger ? 'manuel' : 'cron'}`,
       },
-      created_at: nowISO,
     });
 
     // ── Feedback to CEO ──

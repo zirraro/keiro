@@ -2802,16 +2802,12 @@ export async function POST(request: NextRequest) {
           ...(orgId ? { org_id: orgId } : {}),
         });
 
-        // Also report to CEO
-        await supabase.from('agent_logs').insert({
+        // Also report to CEO — 2026-06-03 dedup to 1/day/agent
+        const { logReportToCeoOnce: logReportContent } = await import('@/lib/agents/report-to-ceo');
+        await logReportContent(supabase, {
           agent: 'content',
-          action: 'report_to_ceo',
-          data: {
-            phase: 'completed',
-            message: `Contenu: ${publishedCount} publications exécutées`,
-          },
-          created_at: nowISO,
-          ...(orgId ? { org_id: orgId } : {}),
+          org_id: orgId || undefined,
+          data: { phase: 'completed', message: `Contenu: ${publishedCount} publications exécutées` },
         });
 
         // Notify client of batch publication
@@ -3391,8 +3387,10 @@ async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftO
     pillarBreakdown[pi] = (pillarBreakdown[pi] || 0) + 1;
   }
 
-  await supabase.from('agent_logs').insert({
-    agent: 'content', action: 'report_to_ceo',
+  const { logReportToCeoOnce: logReportWeekly } = await import('@/lib/agents/report-to-ceo');
+  await logReportWeekly(supabase, {
+    agent: 'content',
+    org_id: orgId || undefined,
     data: {
       phase: 'weekly_plan',
       message: `Contenu: ${inserted} posts planifies cette semaine`,
@@ -3403,8 +3401,6 @@ async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftO
         week_start: mondayDate.toISOString().split('T')[0],
       },
     },
-    created_at: nowISO,
-    ...(orgId ? { org_id: orgId } : {}),
   });
 
   console.log(`[Content] Weekly plan: ${inserted}/${weekPlan.length} posts planned`);
