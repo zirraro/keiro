@@ -115,6 +115,32 @@ export async function POST(req: NextRequest) {
           if (existing) continue;
         }
 
+        // ─── 2026-06-03 — Respect AI toggle (Meta Human Agent protocol) ───
+        // The polling cron already gated on auto_mode=false; the webhook
+        // was bypassing it which meant the toggle didn't fully stop Jade.
+        // Now consistent: if the business owner has flipped AI OFF, the
+        // webhook still LOGS the inbound (so the inbox sees it) but does
+        // NOT generate or send a reply. Human takes over.
+        let aiAutoMode = true;
+        try {
+          const { data: ownerForToggle } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('instagram_business_account_id', recipientId)
+            .maybeSingle();
+          if (ownerForToggle?.id) {
+            const { data: cfgRows } = await supabase
+              .from('org_agent_configs')
+              .select('config, created_at')
+              .eq('user_id', ownerForToggle.id)
+              .eq('agent_id', 'dm_instagram')
+              .order('created_at', { ascending: false })
+              .limit(1);
+            const explicit = cfgRows?.[0]?.config?.auto_mode;
+            if (explicit === false) aiAutoMode = false;
+          }
+        } catch { /* on doubt, default to ON */ }
+
         // ─── Find prospect by Instagram ID or create ────
         let prospect: any = null;
 
@@ -558,7 +584,23 @@ ${history ? `\nCONVERSATION:\n${history}` : ''}${businessContext}${ragContext}`;
         // ─── Small delay to appear more human (not instant bot reply) ──
         await new Promise(r => setTimeout(r, 2000 + Math.random() * 3000)); // 2-5s delay
 
-        // ─── Send auto-reply if we have one ─────────────
+        // ─── Send auto-reply if we have one AND AI toggle is ON ─────────
+        // The AI toggle is the Meta Human Agent protocol switch: when the
+        // business owner flips it OFF, the webhook stops sending replies
+        // (the human takes over via the panel). Inbound is still logged
+        // so the inbox shows the conversation.
+        if (!aiAutoMode) {
+          console.log(`[InstagramWebhook] AI toggle OFF for ${recipientId} — inbound logged but no auto-reply sent`);
+          await supabase.from('agent_logs').insert({
+            agent: 'dm_instagram',
+            action: 'webhook_skipped_ai_off',
+            status: 'ok',
+            data: { sender_id: senderId, recipient_id: recipientId, reason: 'auto_mode_off' },
+            created_at: now,
+          });
+          continue;
+        }
+
         if (aiReply) {
           // Find the user who owns this Instagram account to get their token
           let profile = null;
