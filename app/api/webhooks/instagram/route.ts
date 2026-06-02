@@ -391,6 +391,22 @@ ${history ? `\nCONVERSATION:\n${history}` : ''}${businessContext}${ragContext}`;
           created_at: now,
         });
 
+        // 2026-06-03 — Update inbound timestamp so the polling cron and
+        // Noah's brief know a fresh prospect message arrived. Without this,
+        // dms_incoming_24h stays at 0 and the reply % can't be computed.
+        // Also if the prospect was flagged 'needs_human', flip the row
+        // back to 'engaged' so the polling cron picks it up again.
+        try {
+          await supabase.from('crm_prospects')
+            .update({
+              dm_last_inbound_at: now,
+              updated_at: now,
+              // Only clear needs_human — leave dead/lost alone.
+              dm_status: prospect.dm_status === 'needs_human' ? 'engaged' : prospect.dm_status,
+            })
+            .eq('id', prospect.id);
+        } catch { /* non-fatal */ }
+
         await supabase.from('crm_activities').insert({
           prospect_id: prospect.id,
           type: 'dm_instagram',

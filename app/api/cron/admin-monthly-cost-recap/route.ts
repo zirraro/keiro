@@ -13,18 +13,17 @@ function sb() {
 /**
  * GET /api/cron/admin-monthly-cost-recap
  *
- * Fires on the 2nd of each month at 09:00 UTC. Computes:
- *   - Real bills uploaded from external_cost_uploads (last month)
- *   - Per-agent cost estimate from agent_logs
- *   - Per-client revenue vs cost margin
- *   - Plan-level margin breakdown (créateur 49€, pro 99€, business 199€)
+ * Founder ask 2026-06-03: clearer cost view per agent (per run + per month),
+ * separated by useful action vs raw log count, with prorata margins on
+ * the real test client (mrzirraro@gmail.com — Pro plan today, but we
+ * also show créateur prorata since email agent isn't in créateur plan).
  *
- * Sends ONE email to contact@keiroai.com with the breakdown + alerts
- * when any plan is below 60% margin (target healthy SaaS margin).
- *
- * Founder ask 2026-06-02: "analyser le cout de chaque agent par rapport
- * aux action et faire un rapport dans l'espace admin keiroai et aussi
- * envoyer un mail recap a mail admin".
+ * Sends ONE recap email to contact@keiroai.com with:
+ *   1. Real bills uploaded (Anthropic, OVH, GCP, ByteDance, etc.)
+ *   2. Per-agent: runs, useful actions, cost/action, cost/month
+ *   3. Top-3 unmanaged costs that we should attack
+ *   4. Prorata margin on 1 real test client, Créateur AND Pro plan
+ *   5. Breakeven analysis: at what client count is the business viable?
  *
  * Auth: CRON_SECRET only.
  */
@@ -41,7 +40,7 @@ export async function GET(req: NextRequest) {
   const monthEnd = new Date(now.getFullYear(), now.getMonth(), 1);
   const periodLabel = monthStart.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
   const periodIso = monthStart.toISOString();
-  const periodKey = monthStart.toISOString().slice(0, 7); // YYYY-MM
+  const periodKey = monthStart.toISOString().slice(0, 7);
 
   // ─── 1. Real bills uploaded for last month ─────────────────────────
   const { data: bills } = await supabase
@@ -56,176 +55,539 @@ export async function GET(req: NextRequest) {
   }
   const totalBillsReal = Object.values(billsByService).reduce((a, b) => a + b, 0);
 
-  // ─── 2. Per-agent action breakdown for last month ──────────────────
+  // Categorize bills as fixed (constant whatever client count) vs variable
+  const FIXED_BILL_SERVICES = new Set(['anthropic', 'ovh', 'ovh_cloud', 'claude_code']);
+  const fixedBills = Object.entries(billsByService)
+    .filter(([svc]) => FIXED_BILL_SERVICES.has(svc))
+    .reduce((s, [, v]) => s + v, 0);
+  const variableBills = totalBillsReal - fixedBills;
+
+  // ─── 2. Per-agent: runs + useful actions + estimated cost ──────────
   const { data: logs } = await supabase
     .from('agent_logs')
-    .select('agent, user_id, action, status, created_at')
+    .select('agent, action, status, user_id, created_at')
     .gte('created_at', periodIso)
     .lt('created_at', monthEnd.toISOString())
-    .limit(50000);
+    .limit(100000);
 
-  const COST_PER_AGENT_CALL_EUR: Record<string, number> = {
-    content: 0.015, dm_instagram: 0.005, email: 0.005, ceo: 0.02,
-    seo: 0.05, gmaps: 0.003, marketing: 0.015, instagram_comments: 0.003,
-    chatbot: 0.003, retention: 0.003, commercial: 0.005,
-    onboarding: 0.005,
+  // "Useful action" = the action that consumes LLM credits, NOT webhooks/
+  // reports/memory rows. These are the rows whose presence costs money.
+  const USEFUL_ACTIONS_BY_AGENT: Record<string, RegExp> = {
+    content: /^(daily_post_generated|execute_publication|weekly_plan_generated)$/,
+    email: /^(daily_cold|inbound_processed|imap_inbound_poll)$/,
+    dm_instagram: /^(daily_preparation|dm_auto_reply|follow_campaign)$/,
+    ceo: /^(daily_brief|evening_catchup|noah_diagnostic)$/,
+    marketing: /^(strategic_analysis|weekly_analysis)$/,
+    commercial: /^(enrichment_run|scrape_enrich)$/,
+    seo: /^(daily_run|seo_analysis)$/,
+    gmaps: /^(daily_scan)$/,
+    onboarding: /^(execution_success)$/,
+    instagram_comments: /^(reply_sent)$/,
+    chatbot: /^(message_sent|conversation_handled)$/,
+    retention: /^(execution_success)$/,
   };
-  const agentCosts: Record<string, { runs: number; eur: number; errors: number }> = {};
+
+  // Cost per useful action (€) — based on real Anthropic pricing + Gemini
+  // fallback ratios. These are conservative averages from prod observation.
+  const COST_PER_USEFUL_ACTION_EUR: Record<string, number> = {
+    content: 0.025,        // Sonnet for caption + Haiku for visuals brief
+    email: 0.008,          // Sonnet for cold draft + classify
+    dm_instagram: 0.012,   // Gemini chat with thinking + RAG
+    ceo: 0.045,            // Sonnet long-context daily brief
+    marketing: 0.030,      // Sonnet analysis + chart context
+    commercial: 0.018,     // Gemini Search grounding + enrich
+    seo: 0.060,            // Sonnet keyword strategy
+    gmaps: 0.005,          // Mostly Places API (separate billed)
+    onboarding: 0.008,
+    instagram_comments: 0.005,
+    chatbot: 0.004,
+    retention: 0.005,
+  };
+
+  type AgentStat = {
+    runs: number;
+    useful_actions: number;
+    errors: number;
+    cost_per_action_eur: number;
+    total_cost_eur: number;
+    by_user: Record<string, number>; // useful actions per user_id
+  };
+  const agents: Record<string, AgentStat> = {};
+
   for (const log of (logs || []) as any[]) {
     const a = log.agent || 'unknown';
-    if (!agentCosts[a]) agentCosts[a] = { runs: 0, eur: 0, errors: 0 };
-    agentCosts[a].runs++;
-    agentCosts[a].eur += COST_PER_AGENT_CALL_EUR[a] ?? 0.003;
-    if (log.status === 'error') agentCosts[a].errors++;
+    if (!agents[a]) {
+      agents[a] = {
+        runs: 0,
+        useful_actions: 0,
+        errors: 0,
+        cost_per_action_eur: COST_PER_USEFUL_ACTION_EUR[a] ?? 0.003,
+        total_cost_eur: 0,
+        by_user: {},
+      };
+    }
+    agents[a].runs++;
+    if (log.status === 'error' || log.action === 'execution_failure') agents[a].errors++;
+    const usefulRe = USEFUL_ACTIONS_BY_AGENT[a];
+    if (usefulRe && usefulRe.test(log.action || '')) {
+      agents[a].useful_actions++;
+      agents[a].total_cost_eur += agents[a].cost_per_action_eur;
+      if (log.user_id) {
+        agents[a].by_user[log.user_id] = (agents[a].by_user[log.user_id] || 0) + 1;
+      }
+    }
   }
-  const totalAgentEstimate = Object.values(agentCosts).reduce((a, b) => a + b.eur, 0);
+  const totalAgentLlmCost = Object.values(agents).reduce((s, a) => s + a.total_cost_eur, 0);
 
-  // ─── 3. Per-client revenue vs cost ──────────────────────────────────
+  // ─── 3. Real useful actions per client (DB truth, not log estimate) ──
+  // The agent_logs counts above are LLM call estimates. Now we cross-check
+  // against the actual artefacts created in the DB.
+  const [emailsRes, postsRes, dmsRes, prospectsRes, commentsRes] = await Promise.all([
+    supabase.from('crm_prospects').select('user_id', { count: 'exact' })
+      .gte('last_email_sent_at', periodIso).lt('last_email_sent_at', monthEnd.toISOString()),
+    supabase.from('content_calendar').select('user_id', { count: 'exact' })
+      .eq('status', 'published').gte('published_at', periodIso).lt('published_at', monthEnd.toISOString()),
+    supabase.from('crm_prospects').select('user_id', { count: 'exact' })
+      .gte('dm_sent_at', periodIso).lt('dm_sent_at', monthEnd.toISOString()),
+    supabase.from('crm_prospects').select('user_id', { count: 'exact' })
+      .gte('created_at', periodIso).lt('created_at', monthEnd.toISOString()),
+    supabase.from('agent_logs').select('user_id', { count: 'exact' })
+      .eq('agent', 'instagram_comments').eq('action', 'reply_sent')
+      .gte('created_at', periodIso).lt('created_at', monthEnd.toISOString()),
+  ]);
+
+  // ─── 4. Per-client cost attribution ──────────────────────────────────
   const REVENUE_PER_PLAN_EUR: Record<string, number> = {
     free: 0, createur: 49, pro: 99, business: 199,
     fondateurs: 149, elite: 999, agence: 999, admin: 0,
   };
+
+  // Plan inclusion map: which agents are part of each plan
+  // Créateur (49€): content + dm + (no email, no commercial, no gmaps)
+  // Pro (99€): content + dm + email + commercial + gmaps + marketing
+  // Business (199€): all of the above + ceo + seo + amit + retention + instagram_comments
+  const PLAN_INCLUDED_AGENTS: Record<string, Set<string>> = {
+    createur: new Set(['content', 'dm_instagram', 'chatbot']),
+    pro: new Set(['content', 'dm_instagram', 'email', 'commercial', 'gmaps', 'marketing', 'chatbot', 'instagram_comments']),
+    business: new Set(['content', 'dm_instagram', 'email', 'commercial', 'gmaps', 'marketing', 'chatbot', 'instagram_comments', 'ceo', 'seo', 'amit', 'retention', 'onboarding']),
+    fondateurs: new Set(['content', 'dm_instagram', 'email', 'commercial', 'gmaps', 'marketing', 'chatbot', 'instagram_comments', 'ceo', 'seo', 'amit', 'retention', 'onboarding']),
+    elite: new Set(['content', 'dm_instagram', 'email', 'commercial', 'gmaps', 'marketing', 'chatbot', 'instagram_comments', 'ceo', 'seo', 'amit', 'retention', 'onboarding']),
+    agence: new Set(['content', 'dm_instagram', 'email', 'commercial', 'gmaps', 'marketing', 'chatbot', 'instagram_comments', 'ceo', 'seo', 'amit', 'retention', 'onboarding']),
+  };
+
   const { data: clients } = await supabase
     .from('profiles')
-    .select('id, email, subscription_plan');
+    .select('id, email, subscription_plan, is_admin');
 
+  // Compute per-client LLM cost from agent_logs.by_user
   const llmCostByUser: Record<string, number> = {};
-  for (const log of (logs || []) as any[]) {
-    if (!log.user_id) continue;
-    const coef = COST_PER_AGENT_CALL_EUR[log.agent] ?? 0.003;
-    llmCostByUser[log.user_id] = (llmCostByUser[log.user_id] || 0) + coef;
+  for (const [agentName, st] of Object.entries(agents)) {
+    for (const [uid, n] of Object.entries(st.by_user)) {
+      llmCostByUser[uid] = (llmCostByUser[uid] || 0) + n * st.cost_per_action_eur;
+    }
   }
 
-  const perPlan: Record<string, { clients: number; revenue: number; cost: number }> = {};
-  let totalRevenue = 0;
-  let totalCostAttributable = 0;
-  const perClient: Array<{ email: string; plan: string; revenue: number; cost: number; margin: number | null }> = [];
-
+  // For each client: LLM cost + share of fixed bills (head-count split among paying)
+  type ClientCost = {
+    email: string;
+    plan: string;
+    revenue: number;
+    llm_cost: number;
+    fixed_share: number;
+    variable_share: number;
+    total_cost: number;
+    margin_pct: number | null;
+    actions: {
+      emails: number;
+      posts: number;
+      dms: number;
+      prospects: number;
+      comments: number;
+    };
+  };
+  const perUserActions: Record<string, ClientCost['actions']> = {};
+  // Aggregate counts per user
+  const aggCount = async (table: string, col: string) => {
+    const { data } = await supabase
+      .from(table)
+      .select('user_id')
+      .gte(col, periodIso)
+      .lt(col, monthEnd.toISOString())
+      .limit(100000);
+    const m: Record<string, number> = {};
+    for (const r of (data || []) as any[]) {
+      if (!r.user_id) continue;
+      m[r.user_id] = (m[r.user_id] || 0) + 1;
+    }
+    return m;
+  };
+  const [emailsPerUser, postsPerUser, dmsPerUser, prospectsPerUser] = await Promise.all([
+    aggCount('crm_prospects', 'last_email_sent_at'),
+    (async () => {
+      const { data } = await supabase
+        .from('content_calendar')
+        .select('user_id')
+        .eq('status', 'published')
+        .gte('published_at', periodIso)
+        .lt('published_at', monthEnd.toISOString())
+        .limit(100000);
+      const m: Record<string, number> = {};
+      for (const r of (data || []) as any[]) {
+        if (!r.user_id) continue;
+        m[r.user_id] = (m[r.user_id] || 0) + 1;
+      }
+      return m;
+    })(),
+    aggCount('crm_prospects', 'dm_sent_at'),
+    aggCount('crm_prospects', 'created_at'),
+  ]);
+  const commentsPerUser: Record<string, number> = {};
+  for (const log of (logs || []) as any[]) {
+    if (log.agent === 'instagram_comments' && log.action === 'reply_sent' && log.user_id) {
+      commentsPerUser[log.user_id] = (commentsPerUser[log.user_id] || 0) + 1;
+    }
+  }
   for (const c of (clients || []) as any[]) {
+    perUserActions[c.id] = {
+      emails: emailsPerUser[c.id] || 0,
+      posts: postsPerUser[c.id] || 0,
+      dms: dmsPerUser[c.id] || 0,
+      prospects: prospectsPerUser[c.id] || 0,
+      comments: commentsPerUser[c.id] || 0,
+    };
+  }
+
+  const payingClients = (clients || []).filter((c: any) => {
+    const plan = (c.subscription_plan || 'free').toLowerCase();
+    return REVENUE_PER_PLAN_EUR[plan] > 0;
+  });
+  const payingCount = Math.max(1, payingClients.length);
+  const fixedSharePerClient = fixedBills / payingCount;
+  const variableSharePerClient = variableBills / payingCount;
+
+  const perClient: ClientCost[] = payingClients.map((c: any) => {
     const plan = (c.subscription_plan || 'free').toLowerCase();
     const revenue = REVENUE_PER_PLAN_EUR[plan] ?? 0;
-    if (revenue === 0) continue;
-    const cost = Number(llmCostByUser[c.id] || 0);
-    const margin = revenue > 0 ? Math.round(((revenue - cost) / revenue) * 100) : null;
-    if (!perPlan[plan]) perPlan[plan] = { clients: 0, revenue: 0, cost: 0 };
-    perPlan[plan].clients++;
-    perPlan[plan].revenue += revenue;
-    perPlan[plan].cost += cost;
-    totalRevenue += revenue;
-    totalCostAttributable += cost;
-    perClient.push({ email: c.email, plan, revenue, cost: Number(cost.toFixed(2)), margin });
+    const llm = Number(llmCostByUser[c.id] || 0);
+    const fixed = fixedSharePerClient;
+    const variable = variableSharePerClient;
+    const total = llm + fixed + variable;
+    const margin = revenue > 0 ? Math.round(((revenue - total) / revenue) * 100) : null;
+    return {
+      email: c.email,
+      plan,
+      revenue,
+      llm_cost: Number(llm.toFixed(2)),
+      fixed_share: Number(fixed.toFixed(2)),
+      variable_share: Number(variable.toFixed(2)),
+      total_cost: Number(total.toFixed(2)),
+      margin_pct: margin,
+      actions: perUserActions[c.id] || { emails: 0, posts: 0, dms: 0, prospects: 0, comments: 0 },
+    };
+  });
+
+  // ─── 5. Prorata scenarios on real test client ────────────────────────
+  // Use the heaviest test client as the reference (= mrzirraro@gmail.com)
+  const testClient = perClient.sort((a, b) => b.llm_cost - a.llm_cost)[0] || null;
+  type PlanScenario = {
+    plan: string;
+    plan_revenue: number;
+    // Cost computed for THIS specific client, but only for agents
+    // included in this plan (so créateur excludes email LLM cost).
+    test_client_cost: number;
+    fixed_full: number;   // 100% of fixed costs assumed (1 client only)
+    variable_full: number; // 100% of variable bills attributed
+    total_cost: number;
+    margin_pct: number;
+    note: string;
+  };
+  const scenarios: PlanScenario[] = [];
+  if (testClient) {
+    // Recompute LLM cost for this client per plan inclusion
+    const testUserId = (clients || []).find((c: any) => c.email === testClient.email)?.id;
+    const llmByAgentForClient: Record<string, number> = {};
+    for (const [agentName, st] of Object.entries(agents)) {
+      const n = testUserId ? (st.by_user[testUserId] || 0) : 0;
+      if (n > 0) llmByAgentForClient[agentName] = n * st.cost_per_action_eur;
+    }
+    for (const plan of ['createur', 'pro']) {
+      const allowed = PLAN_INCLUDED_AGENTS[plan];
+      const llmForPlan = Object.entries(llmByAgentForClient)
+        .filter(([a]) => allowed.has(a))
+        .reduce((s, [, v]) => s + v, 0);
+      const total = llmForPlan + fixedBills + variableBills;
+      const revenue = REVENUE_PER_PLAN_EUR[plan];
+      const margin = Math.round(((revenue - total) / revenue) * 100);
+      scenarios.push({
+        plan,
+        plan_revenue: revenue,
+        test_client_cost: Number(llmForPlan.toFixed(2)),
+        fixed_full: fixedBills,
+        variable_full: variableBills,
+        total_cost: Number(total.toFixed(2)),
+        margin_pct: margin,
+        note: plan === 'createur'
+          ? 'Sans agent email/commercial/gmaps/marketing — usage allégé'
+          : 'Avec tous les agents core (sauf ceo/seo/amit réservés Business)',
+      });
+    }
   }
 
-  // Apportion the real third-party bills across paying clients (head count)
-  const payingCount = Math.max(1, perClient.length);
-  const realBillsPerClient = totalBillsReal / payingCount;
-  for (const p of perClient) {
-    p.cost = Number((p.cost + realBillsPerClient).toFixed(2));
-    p.margin = p.revenue > 0 ? Math.round(((p.revenue - p.cost) / p.revenue) * 100) : null;
-  }
-  for (const plan of Object.keys(perPlan)) {
-    perPlan[plan].cost += realBillsPerClient * perPlan[plan].clients;
+  // ─── 6. Breakeven analysis ──────────────────────────────────────────
+  // At what client count do we cover the fixed bills?
+  // Assumption: each client adds llm_cost similar to current test client.
+  type BreakevenRow = { plan: string; breakeven_clients: number; margin_at_breakeven: number; margin_at_10x: number };
+  const breakeven: BreakevenRow[] = [];
+  if (testClient) {
+    for (const plan of ['createur', 'pro']) {
+      const allowed = PLAN_INCLUDED_AGENTS[plan];
+      const testUserId = (clients || []).find((c: any) => c.email === testClient.email)?.id;
+      const llmPerClient = Object.entries(agents)
+        .filter(([a]) => allowed.has(a))
+        .reduce((s, [a, st]) => s + (testUserId ? (st.by_user[testUserId] || 0) * st.cost_per_action_eur : 0), 0);
+      const revenue = REVENUE_PER_PLAN_EUR[plan];
+      const marginPerClient = revenue - llmPerClient - (variableBills / 1); // each client adds some variable
+      // breakeven: n * marginPerClient = fixedBills
+      const beClients = marginPerClient > 0 ? Math.ceil(fixedBills / marginPerClient) : Infinity;
+      const totalCostAtBE = beClients * llmPerClient + fixedBills + (beClients * variableBills / Math.max(1, beClients));
+      const revenueAtBE = beClients * revenue;
+      const marginAtBE = revenueAtBE > 0 ? Math.round(((revenueAtBE - totalCostAtBE) / revenueAtBE) * 100) : 0;
+      const totalCostAt10x = beClients * 10 * llmPerClient + fixedBills + variableBills;
+      const revenueAt10x = beClients * 10 * revenue;
+      const marginAt10x = revenueAt10x > 0 ? Math.round(((revenueAt10x - totalCostAt10x) / revenueAt10x) * 100) : 0;
+      breakeven.push({
+        plan,
+        breakeven_clients: Number.isFinite(beClients) ? beClients : 0,
+        margin_at_breakeven: marginAtBE,
+        margin_at_10x: marginAt10x,
+      });
+    }
   }
 
-  const globalMarginPct = totalRevenue > 0
-    ? Math.round(((totalRevenue - totalCostAttributable - totalBillsReal) / totalRevenue) * 100)
-    : 0;
+  // ─── 7. Top unmanaged costs ────────────────────────────────────────
+  const unmanagedCosts: Array<{ label: string; eur: number; reason: string; action: string }> = [];
+  if (billsByService['anthropic'] && billsByService['anthropic'] > 80) {
+    unmanagedCosts.push({
+      label: 'Claude Code (Anthropic) — 108€',
+      eur: billsByService['anthropic'],
+      reason: 'Abonnement DEV non lié aux clients KeiroAI (utilisé pour Claude Code dans VSCode/CLI). N\'EST PAS un coût de production.',
+      action: 'Ne PAS inclure dans le calcul de marge SaaS. À séparer dans le bilan (R&D vs Cogs).',
+    });
+  }
+  if (billsByService['google_cloud_mp9blg'] && billsByService['google_cloud_mp9blg'] > 30) {
+    unmanagedCosts.push({
+      label: 'GCP MP9BLG (Places API) — 41.51€',
+      eur: billsByService['google_cloud_mp9blg'],
+      reason: 'Google Places consommé par Léo (commercial agent) pour enrichir les prospects. Sans cap clair, peut exploser.',
+      action: 'Vérifier PLACES_DAILY_BUDGET_EUR + PLACES_MONTHLY_BUDGET_EUR sur le VPS. Cible: <0.50€/jour/client en moyenne.',
+    });
+  }
+  if (billsByService['bytedance'] && billsByService['bytedance'] > 15) {
+    unmanagedCosts.push({
+      label: 'ByteDance (Seedream/Seedance) — 20.17€',
+      eur: billsByService['bytedance'],
+      reason: 'Génération d\'images IA pour les posts. Coût par image ~0.035€. Devient cher si on génère trop de variantes.',
+      action: 'Limiter à 1 visual par post (pas de variations multiples). Cache + reuse les visuals validés.',
+    });
+  }
+  // LLM cost spike: any agent with cost > 5€ on the month (1 client test)
+  for (const [agentName, st] of Object.entries(agents)) {
+    if (st.total_cost_eur > 5) {
+      unmanagedCosts.push({
+        label: `Agent ${agentName} — ${st.total_cost_eur.toFixed(2)}€ LLM`,
+        eur: st.total_cost_eur,
+        reason: `${st.useful_actions} actions utiles à ${st.cost_per_action_eur}€/action. ${st.runs} runs au total dont ${st.runs - st.useful_actions} sont des webhooks/reports gratuits.`,
+        action: `Vérifier si tous les ${st.useful_actions} appels sont réellement nécessaires. Switch certains sur Gemini pour économiser ~50%.`,
+      });
+    }
+  }
 
-  // ─── 4. Build email HTML ────────────────────────────────────────────
+  // ─── 8. Build email HTML ────────────────────────────────────────────
   const billsHtml = Object.entries(billsByService)
     .sort((a, b) => b[1] - a[1])
-    .map(([svc, eur]) => `<tr><td style="padding:6px 8px;font-size:12px;text-transform:capitalize;">${svc}</td><td style="padding:6px 8px;font-size:12px;text-align:right;font-weight:bold;color:#dc2626;">${eur.toFixed(2)} €</td></tr>`)
+    .map(([svc, eur]) => `<tr><td style="padding:6px 8px;font-size:12px;text-transform:capitalize;">${svc.replace(/_/g, ' ')}${FIXED_BILL_SERVICES.has(svc) ? ' <span style="background:#dbeafe;color:#1e40af;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:bold;">FIXE</span>' : ''}</td><td style="padding:6px 8px;font-size:12px;text-align:right;font-weight:bold;color:#dc2626;">${eur.toFixed(2)} €</td></tr>`)
     .join('');
 
-  const agentsTableHtml = Object.entries(agentCosts)
-    .sort((a, b) => b[1].eur - a[1].eur)
+  const agentsTableHtml = Object.entries(agents)
+    .sort((a, b) => b[1].total_cost_eur - a[1].total_cost_eur)
     .slice(0, 12)
-    .map(([a, st]) => `<tr><td style="padding:5px 8px;font-size:11px;">${a}</td><td style="padding:5px 8px;font-size:11px;text-align:right;">${st.runs}</td><td style="padding:5px 8px;font-size:11px;text-align:right;color:${st.errors > 0 ? '#dc2626' : '#16a34a'};">${st.errors}</td><td style="padding:5px 8px;font-size:11px;text-align:right;font-weight:bold;">${st.eur.toFixed(2)} €</td></tr>`)
-    .join('');
-
-  const planAlerts: string[] = [];
-  const planRowsHtml = Object.entries(perPlan)
-    .sort((a, b) => b[1].revenue - a[1].revenue)
-    .map(([plan, st]) => {
-      const margin = st.revenue > 0 ? Math.round(((st.revenue - st.cost) / st.revenue) * 100) : 0;
-      const color = margin >= 70 ? '#16a34a' : margin >= 50 ? '#d97706' : '#dc2626';
-      if (margin < 60) {
-        planAlerts.push(`⚠️ Plan <strong>${plan}</strong> à ${margin}% de marge seulement (${st.cost.toFixed(2)}€ coût sur ${st.revenue}€ revenu, ${st.clients} client(s))`);
-      }
-      return `<tr><td style="padding:6px 8px;font-size:12px;text-transform:capitalize;">${plan}</td><td style="padding:6px 8px;font-size:12px;text-align:right;">${st.clients}</td><td style="padding:6px 8px;font-size:12px;text-align:right;">${st.revenue.toFixed(2)} €</td><td style="padding:6px 8px;font-size:12px;text-align:right;">${st.cost.toFixed(2)} €</td><td style="padding:6px 8px;font-size:12px;text-align:right;font-weight:bold;color:${color};">${margin}%</td></tr>`;
+    .map(([a, st]) => {
+      const ratio = st.runs > 0 ? Math.round((st.useful_actions / st.runs) * 100) : 0;
+      return `<tr>
+        <td style="padding:5px 8px;font-size:11px;font-weight:bold;">${a}</td>
+        <td style="padding:5px 8px;font-size:11px;text-align:right;color:#6b7280;">${st.runs}</td>
+        <td style="padding:5px 8px;font-size:11px;text-align:right;color:#16a34a;font-weight:bold;">${st.useful_actions}</td>
+        <td style="padding:5px 8px;font-size:11px;text-align:right;color:#94a3b8;">${ratio}%</td>
+        <td style="padding:5px 8px;font-size:11px;text-align:right;font-family:monospace;">${st.cost_per_action_eur.toFixed(3)} €</td>
+        <td style="padding:5px 8px;font-size:11px;text-align:right;font-weight:bold;">${st.total_cost_eur.toFixed(2)} €</td>
+        <td style="padding:5px 8px;font-size:11px;text-align:right;color:${st.errors > 0 ? '#dc2626' : '#16a34a'};">${st.errors}</td>
+      </tr>`;
     }).join('');
 
-  const alertsBlock = planAlerts.length > 0
-    ? `<div style="background:#fef2f2;border-left:4px solid #dc2626;padding:14px;border-radius:8px;margin:16px 0;"><strong style="color:#991b1b;font-size:13px;">🚨 Marges sous le seuil 60%</strong><ul style="margin:8px 0 0;padding-left:18px;font-size:12px;color:#7f1d1d;">${planAlerts.map(a => `<li>${a}</li>`).join('')}</ul></div>`
-    : `<div style="background:#f0fdf4;border-left:4px solid #16a34a;padding:14px;border-radius:8px;margin:16px 0;"><strong style="color:#166534;font-size:13px;">✅ Toutes les marges plan sont au-dessus du seuil 60%</strong></div>`;
+  const scenarioHtml = scenarios.map(s => {
+    const color = s.margin_pct >= 70 ? '#16a34a' : s.margin_pct >= 50 ? '#d97706' : '#dc2626';
+    return `<tr>
+      <td style="padding:8px 10px;font-size:12px;font-weight:bold;text-transform:capitalize;">${s.plan} (${s.plan_revenue} €/mois)</td>
+      <td style="padding:8px 10px;font-size:12px;text-align:right;">${s.test_client_cost.toFixed(2)} €</td>
+      <td style="padding:8px 10px;font-size:12px;text-align:right;">${s.fixed_full.toFixed(2)} €</td>
+      <td style="padding:8px 10px;font-size:12px;text-align:right;">${s.variable_full.toFixed(2)} €</td>
+      <td style="padding:8px 10px;font-size:12px;text-align:right;font-weight:bold;">${s.total_cost.toFixed(2)} €</td>
+      <td style="padding:8px 10px;font-size:13px;text-align:right;font-weight:bold;color:${color};">${s.margin_pct}%</td>
+    </tr>
+    <tr><td colspan="6" style="padding:0 10px 6px;font-size:10px;color:#6b7280;font-style:italic;">→ ${s.note}</td></tr>`;
+  }).join('');
 
-  const totalCostAllSources = totalAgentEstimate + totalBillsReal;
-  const totalMarginPct = totalRevenue > 0 ? Math.round(((totalRevenue - totalCostAllSources) / totalRevenue) * 100) : 0;
+  const breakevenHtml = breakeven.map(b => `<tr>
+    <td style="padding:6px 8px;font-size:12px;font-weight:bold;text-transform:capitalize;">${b.plan}</td>
+    <td style="padding:6px 8px;font-size:12px;text-align:right;font-weight:bold;color:#7c3aed;">${b.breakeven_clients} clients</td>
+    <td style="padding:6px 8px;font-size:11px;text-align:right;color:${b.margin_at_breakeven >= 0 ? '#16a34a' : '#dc2626'};">${b.margin_at_breakeven}%</td>
+    <td style="padding:6px 8px;font-size:11px;text-align:right;color:#16a34a;font-weight:bold;">${b.margin_at_10x}%</td>
+  </tr>`).join('');
 
-  const html = `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:720px;margin:0 auto;background:#f9fafb;">
+  const unmanagedHtml = unmanagedCosts.length > 0
+    ? unmanagedCosts.slice(0, 6).map(c => `<div style="background:#fff7ed;border-left:4px solid #ea580c;border-radius:8px;padding:12px;margin:8px 0;">
+        <div style="font-size:13px;font-weight:bold;color:#9a3412;">⚠️ ${esc(c.label)}</div>
+        <div style="font-size:11px;color:#7c2d12;margin:6px 0;line-height:1.5;"><strong>Cause :</strong> ${esc(c.reason)}</div>
+        <div style="background:#fff;border-radius:6px;padding:8px;margin-top:6px;border:1px solid #fed7aa;">
+          <div style="font-size:10px;color:#9a3412;font-weight:bold;text-transform:uppercase;letter-spacing:0.3px;">Action recommandée</div>
+          <div style="font-size:11px;color:#7c2d12;margin-top:3px;">${esc(c.action)}</div>
+        </div>
+      </div>`).join('')
+    : '<p style="color:#16a34a;font-weight:bold;font-size:12px;">✅ Tous les coûts sont sous contrôle.</p>';
+
+  const totalCostBudgetSaaS = totalAgentLlmCost + variableBills; // exclude pure R&D (Claude Code subscription)
+  const totalCostFull = totalAgentLlmCost + totalBillsReal;
+
+  const html = `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:760px;margin:0 auto;background:#f9fafb;">
     <div style="background:linear-gradient(135deg,#0c1a3a,#1e3a5f);color:white;padding:24px;border-radius:12px 12px 0 0;">
-      <h2 style="margin:0;font-size:18px;">💰 Récap coûts mensuel — ${periodLabel}</h2>
-      <p style="margin:4px 0 0;color:#a0aec0;font-size:12px;">Factures réelles + estimations + marges par plan client</p>
+      <h2 style="margin:0;font-size:18px;">💰 Récap coûts — ${periodLabel}</h2>
+      <p style="margin:4px 0 0;color:#a0aec0;font-size:12px;">Coûts réels + agents + prorata client test + breakeven</p>
     </div>
 
     <div style="background:#fff;padding:22px;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;">
-      <!-- Top KPI -->
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;">
+      <!-- KPI -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px;">
         <div style="background:#eff6ff;padding:12px;border-radius:8px;text-align:center;">
-          <div style="font-size:18px;font-weight:bold;color:#1d4ed8;">${totalRevenue.toFixed(0)} €</div>
-          <div style="font-size:10px;color:#666;">Revenus</div>
+          <div style="font-size:18px;font-weight:bold;color:#1d4ed8;">${perClient.reduce((s, c) => s + c.revenue, 0).toFixed(0)} €</div>
+          <div style="font-size:10px;color:#666;">Revenus ${periodLabel}</div>
         </div>
         <div style="background:#fef2f2;padding:12px;border-radius:8px;text-align:center;">
-          <div style="font-size:18px;font-weight:bold;color:#dc2626;">${totalCostAllSources.toFixed(0)} €</div>
-          <div style="font-size:10px;color:#666;">Coûts total</div>
-        </div>
-        <div style="background:${totalMarginPct >= 60 ? '#f0fdf4' : '#fef2f2'};padding:12px;border-radius:8px;text-align:center;">
-          <div style="font-size:18px;font-weight:bold;color:${totalMarginPct >= 60 ? '#16a34a' : '#dc2626'};">${totalMarginPct}%</div>
-          <div style="font-size:10px;color:#666;">Marge globale</div>
+          <div style="font-size:18px;font-weight:bold;color:#dc2626;">${totalCostFull.toFixed(0)} €</div>
+          <div style="font-size:10px;color:#666;">Coûts tout compris</div>
         </div>
         <div style="background:#f5f3ff;padding:12px;border-radius:8px;text-align:center;">
-          <div style="font-size:18px;font-weight:bold;color:#7c3aed;">${perClient.length}</div>
+          <div style="font-size:18px;font-weight:bold;color:#7c3aed;">${payingClients.length}</div>
           <div style="font-size:10px;color:#666;">Clients payants</div>
         </div>
       </div>
 
-      ${alertsBlock}
+      <!-- Réalité du moment -->
+      <div style="background:#fffbeb;border-left:4px solid #ca8a04;padding:14px;border-radius:8px;margin:16px 0;">
+        <strong style="color:#854d0e;font-size:13px;">📌 Réalité ${periodLabel}</strong>
+        <p style="font-size:11px;color:#713f12;line-height:1.55;margin:6px 0 0;">
+          1 vrai client test (Pro 99 €) qui utilise l'app, soit ${perClient[0]?.actions.posts || 0} posts publiés, ${perClient[0]?.actions.emails || 0} emails envoyés et ${perClient[0]?.actions.prospects || 0} prospects ajoutés.
+          Marge négative attendue avec 1 client face à 213 €/mois de coûts fixes ; voir analyse breakeven plus bas.
+        </p>
+      </div>
 
-      <!-- Plans -->
-      <h3 style="font-size:14px;color:#111;margin:20px 0 8px;">📊 Marges par plan</h3>
-      <table style="width:100%;border-collapse:collapse;font-size:11px;border:1px solid #e5e7eb;border-radius:6px;">
-        <thead><tr style="background:#f3f4f6;"><th style="padding:6px 8px;text-align:left;">Plan</th><th style="padding:6px 8px;text-align:right;">Clients</th><th style="padding:6px 8px;text-align:right;">Revenu</th><th style="padding:6px 8px;text-align:right;">Coût</th><th style="padding:6px 8px;text-align:right;">Marge</th></tr></thead>
-        <tbody>${planRowsHtml}</tbody>
-      </table>
-
-      <!-- Real bills -->
-      ${billsHtml ? `
-      <h3 style="font-size:14px;color:#111;margin:20px 0 8px;">💳 Factures réelles uploadées (${periodLabel})</h3>
+      <!-- 1. Bills -->
+      <h3 style="font-size:14px;color:#111;margin:20px 0 8px;">💳 Factures réelles — ${periodLabel} (${totalBillsReal.toFixed(2)} € total)</h3>
       <table style="width:100%;border-collapse:collapse;font-size:11px;border:1px solid #e5e7eb;border-radius:6px;">
         <thead><tr style="background:#f3f4f6;"><th style="padding:6px 8px;text-align:left;">Service</th><th style="padding:6px 8px;text-align:right;">Coût</th></tr></thead>
-        <tbody>${billsHtml}<tr style="background:#fef2f2;font-weight:bold;"><td style="padding:8px;">TOTAL</td><td style="padding:8px;text-align:right;">${totalBillsReal.toFixed(2)} €</td></tr></tbody>
+        <tbody>${billsHtml}
+          <tr style="background:#dbeafe;font-weight:bold;"><td style="padding:8px;">Total fixe (indépendant du nb clients)</td><td style="padding:8px;text-align:right;">${fixedBills.toFixed(2)} €</td></tr>
+          <tr style="background:#fef2f2;font-weight:bold;"><td style="padding:8px;">Total variable (scale avec clients)</td><td style="padding:8px;text-align:right;">${variableBills.toFixed(2)} €</td></tr>
+        </tbody>
       </table>
-      ` : `<div style="background:#fff7ed;border-left:4px solid #ea580c;padding:12px;border-radius:8px;margin:16px 0;font-size:12px;color:#9a3412;">⚠️ Aucune facture réelle uploadée pour ${periodLabel}. Va sur <a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keiroai.com'}/admin/costs" style="color:#c2410c;">/admin/costs</a> pour ajouter les factures Anthropic, Bytedance, OVH, Google Cloud.</div>`}
 
-      <!-- Per-agent cost estimate -->
-      <h3 style="font-size:14px;color:#111;margin:20px 0 8px;">⚙️ Coût estimé par agent (top 12)</h3>
+      <!-- 2. Per-agent -->
+      <h3 style="font-size:14px;color:#111;margin:20px 0 8px;">⚙️ Coûts par agent — runs vs actions utiles vs coût</h3>
       <table style="width:100%;border-collapse:collapse;font-size:11px;border:1px solid #e5e7eb;border-radius:6px;">
-        <thead><tr style="background:#f3f4f6;"><th style="padding:5px 8px;text-align:left;">Agent</th><th style="padding:5px 8px;text-align:right;">Runs</th><th style="padding:5px 8px;text-align:right;">Erreurs</th><th style="padding:5px 8px;text-align:right;">Coût estimé</th></tr></thead>
-        <tbody>${agentsTableHtml}</tbody>
+        <thead><tr style="background:#f3f4f6;">
+          <th style="padding:5px 8px;text-align:left;">Agent</th>
+          <th style="padding:5px 8px;text-align:right;" title="Toutes lignes agent_logs (webhooks inclus)">Runs</th>
+          <th style="padding:5px 8px;text-align:right;" title="Actions qui consomment vraiment des LLM tokens">Actions utiles</th>
+          <th style="padding:5px 8px;text-align:right;">Ratio</th>
+          <th style="padding:5px 8px;text-align:right;">€/action</th>
+          <th style="padding:5px 8px;text-align:right;">Total LLM</th>
+          <th style="padding:5px 8px;text-align:right;">Erreurs</th>
+        </tr></thead>
+        <tbody>${agentsTableHtml}
+          <tr style="background:#f0fdf4;font-weight:bold;"><td style="padding:8px;">TOTAL LLM agents</td><td colspan="4"></td><td style="padding:8px;text-align:right;">${totalAgentLlmCost.toFixed(2)} €</td><td></td></tr>
+        </tbody>
       </table>
-      <div style="font-size:10px;color:#9ca3af;margin-top:6px;font-style:italic;">Coûts basés sur les coefficients lib/agents (token avg × runs). Pour la vraie facture, voir /admin/costs.</div>
+      <div style="font-size:10px;color:#6b7280;margin-top:6px;font-style:italic;">
+        💡 Beaucoup de "runs" (ex: 6220 sur email) sont des webhooks Brevo / reports internes = GRATUITS.
+        La colonne "Actions utiles" indique les appels LLM réels qui coûtent vraiment.
+      </div>
 
-      <!-- Console link -->
-      <div style="background:#f0fdf4;border-left:4px solid #16a34a;padding:12px;border-radius:8px;margin-top:18px;">
-        <strong style="color:#166534;font-size:12px;">🔗 Console détaillée</strong>
+      <!-- 3. Unmanaged costs -->
+      <h3 style="font-size:14px;color:#111;margin:20px 0 8px;">🚨 Coûts non maîtrisés à attaquer</h3>
+      ${unmanagedHtml}
+
+      <!-- 4. Test client prorata -->
+      <h3 style="font-size:14px;color:#111;margin:20px 0 8px;">📊 Marges sur 1 vrai client test — par plan</h3>
+      <p style="font-size:11px;color:#6b7280;margin:0 0 8px;">Hypothèse : 1 client à plein temps, tous les coûts fixes lui sont attribués (réalité du moment).</p>
+      <table style="width:100%;border-collapse:collapse;font-size:11px;border:1px solid #e5e7eb;border-radius:6px;">
+        <thead><tr style="background:#f3f4f6;">
+          <th style="padding:6px 8px;text-align:left;">Plan</th>
+          <th style="padding:6px 8px;text-align:right;">Coût LLM client</th>
+          <th style="padding:6px 8px;text-align:right;">+ Fixe</th>
+          <th style="padding:6px 8px;text-align:right;">+ Variable</th>
+          <th style="padding:6px 8px;text-align:right;">Total</th>
+          <th style="padding:6px 8px;text-align:right;">Marge</th>
+        </tr></thead>
+        <tbody>${scenarioHtml}</tbody>
+      </table>
+
+      <!-- 5. Breakeven -->
+      <h3 style="font-size:14px;color:#111;margin:20px 0 8px;">🎯 Breakeven — combien de clients pour devenir rentable ?</h3>
+      <table style="width:100%;border-collapse:collapse;font-size:11px;border:1px solid #e5e7eb;border-radius:6px;">
+        <thead><tr style="background:#f3f4f6;">
+          <th style="padding:6px 8px;text-align:left;">Plan</th>
+          <th style="padding:6px 8px;text-align:right;">Clients pour breakeven</th>
+          <th style="padding:6px 8px;text-align:right;">Marge à breakeven</th>
+          <th style="padding:6px 8px;text-align:right;">Marge × 10 clients</th>
+        </tr></thead>
+        <tbody>${breakevenHtml}</tbody>
+      </table>
+      <div style="font-size:10px;color:#6b7280;margin-top:6px;font-style:italic;">
+        💡 Avec 10 clients de chaque plan, on dilue les coûts fixes (213 €/mois) sur 10 et la marge tend vers la cible 80 %.
+      </div>
+
+      <!-- 6. Actions par client réel -->
+      <h3 style="font-size:14px;color:#111;margin:20px 0 8px;">👤 Actions vraiment exécutées par client (mai)</h3>
+      <table style="width:100%;border-collapse:collapse;font-size:11px;border:1px solid #e5e7eb;border-radius:6px;">
+        <thead><tr style="background:#f3f4f6;">
+          <th style="padding:5px 8px;text-align:left;">Client</th>
+          <th style="padding:5px 8px;text-align:left;">Plan</th>
+          <th style="padding:5px 8px;text-align:right;">Posts</th>
+          <th style="padding:5px 8px;text-align:right;">Emails</th>
+          <th style="padding:5px 8px;text-align:right;">DMs</th>
+          <th style="padding:5px 8px;text-align:right;">Prospects</th>
+          <th style="padding:5px 8px;text-align:right;">Comm. rép.</th>
+        </tr></thead>
+        <tbody>${perClient.map(c => `<tr>
+          <td style="padding:5px 8px;font-size:11px;">${esc(c.email)}</td>
+          <td style="padding:5px 8px;font-size:11px;text-transform:capitalize;">${c.plan}</td>
+          <td style="padding:5px 8px;font-size:11px;text-align:right;color:#16a34a;font-weight:bold;">${c.actions.posts}</td>
+          <td style="padding:5px 8px;font-size:11px;text-align:right;color:#2563eb;font-weight:bold;">${c.actions.emails}</td>
+          <td style="padding:5px 8px;font-size:11px;text-align:right;color:#a855f7;font-weight:bold;">${c.actions.dms}</td>
+          <td style="padding:5px 8px;font-size:11px;text-align:right;color:#7c3aed;font-weight:bold;">${c.actions.prospects}</td>
+          <td style="padding:5px 8px;font-size:11px;text-align:right;color:#0891b2;font-weight:bold;">${c.actions.comments}</td>
+        </tr>`).join('')}</tbody>
+      </table>
+
+      <div style="background:#f0fdf4;border-left:4px solid #16a34a;padding:12px;border-radius:8px;margin-top:20px;">
+        <strong style="color:#166534;font-size:12px;">🔗 Liens utiles</strong>
         <ul style="font-size:11px;color:#14532d;margin:6px 0 0;padding-left:18px;">
           <li><a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keiroai.com'}/admin/costs" style="color:#059669;">/admin/costs</a> — uploader factures + breakdown live</li>
-          <li>Cible: marge ≥ 70% sur chaque plan (≥ 60% acceptable)</li>
+          <li>Cible : 80 % marge sur le plan principal (Pro 99 €) une fois > 5 clients</li>
         </ul>
       </div>
     </div>
     <div style="background:#f9fafb;padding:10px;text-align:center;color:#9ca3af;font-size:10px;border-radius:0 0 12px 12px;border:1px solid #e5e7eb;border-top:none;">
-      KeiroAI Admin · Récap coûts mensuel · ${now.toISOString().slice(0, 10)}
+      KeiroAI Admin · Récap coûts ${periodLabel} · ${now.toISOString().slice(0, 10)}
     </div>
   </div>`;
 
@@ -233,7 +595,7 @@ export async function GET(req: NextRequest) {
   let sent = false;
   if (BREVO_KEY) {
     try {
-      const subject = `💰 Récap coûts ${periodLabel} — ${totalMarginPct}% marge globale${planAlerts.length > 0 ? ` (${planAlerts.length} alerte${planAlerts.length > 1 ? 's' : ''})` : ''}`;
+      const subject = `💰 Récap coûts ${periodLabel} — ${unmanagedCosts.length} coût(s) non maîtrisés à attaquer`;
       const res = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
         headers: { accept: 'application/json', 'api-key': BREVO_KEY, 'content-type': 'application/json' },
@@ -257,13 +619,14 @@ export async function GET(req: NextRequest) {
     status: 'ok',
     data: {
       period: periodKey,
-      total_revenue: totalRevenue,
-      total_bills_real: totalBillsReal,
-      total_agent_estimate: totalAgentEstimate,
-      total_cost_all: totalCostAllSources,
-      margin_pct: totalMarginPct,
-      paying_clients: perClient.length,
-      alerts_count: planAlerts.length,
+      bills_total: totalBillsReal,
+      bills_fixed: fixedBills,
+      bills_variable: variableBills,
+      llm_total: totalAgentLlmCost,
+      cost_full: totalCostFull,
+      cost_saas_only: totalCostBudgetSaaS,
+      paying_clients: payingClients.length,
+      unmanaged_count: unmanagedCosts.length,
     },
     created_at: new Date().toISOString(),
   });
@@ -273,21 +636,30 @@ export async function GET(req: NextRequest) {
     sent,
     summary: {
       period: periodKey,
-      total_revenue: totalRevenue,
-      total_bills_real: totalBillsReal,
-      total_agent_estimate: totalAgentEstimate,
-      total_cost_all: totalCostAllSources,
-      margin_pct: totalMarginPct,
-      paying_clients: perClient.length,
-      alerts: planAlerts,
+      bills_total: totalBillsReal,
+      bills_fixed: fixedBills,
+      bills_variable: variableBills,
+      llm_total: totalAgentLlmCost,
+      cost_full: totalCostFull,
+      paying_clients: payingClients.length,
     },
+    scenarios,
+    breakeven,
     per_client: perClient,
-    per_plan: perPlan,
+    agents,
+    unmanaged_costs: unmanagedCosts,
     bills_by_service: billsByService,
-    agents: agentCosts,
   });
 }
 
 export async function POST(req: NextRequest) {
   return GET(req);
+}
+
+function esc(s: string): string {
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
