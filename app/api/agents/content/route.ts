@@ -18,15 +18,30 @@ import { saveLearning, saveAgentFeedback } from '@/lib/agents/learning';
 import { sendPublishNotification } from '@/lib/agents/publish-notification';
 
 // ──────────────────────────────────────
-// Claude Haiku for text generation (captions, hashtags, descriptions)
-// Seedream for image generation (visual_url)
-// 2026-06-02: auto-fallback to Gemini Pro 1.5 when Claude is down /
-// out of credits / rate-limited. Founder ask: "quand il dis openai si
-// claude pas dispo peut google/gemini c'est mieux". Gemini = 2-3x moins
-// cher que Claude + qualité similaire pour captions/hashtags FR.
+// 2026-06-03 — Gemini-first for captions/hashtags (cost optim).
+// Gemini Pro 1.5 = 2-3x moins cher que Claude Haiku, qualité équivalente
+// pour les captions FR. Claude reste fallback si Gemini indispo.
+// Économie estimée: passer de 0.025€/post → ~0.005€/post sur la partie LLM.
+// (Le gros coût Bytedance reste séparé — voir lib/visuals.)
+//
+// Toggle: si l'env CONTENT_FORCE_CLAUDE=1 est mis, on bascule en Claude
+// (utile pour A/B test qualité).
 // ──────────────────────────────────────
 async function callClaude({ system, message, maxTokens = 2000 }: { system: string; message: string; maxTokens?: number }): Promise<string> {
+  const forceClaude = process.env.CONTENT_FORCE_CLAUDE === '1';
   const apiKey = process.env.ANTHROPIC_API_KEY;
+
+  // Default: Gemini first (cheaper)
+  if (!forceClaude) {
+    try {
+      const { callGemini } = await import('@/lib/agents/gemini');
+      return await callGemini({ system, message, maxTokens });
+    } catch (e: any) {
+      console.warn('[Content/callClaude] Gemini failed, falling back to Claude:', String(e?.message || e).slice(0, 150));
+      // fall through to Claude
+    }
+  }
+
   if (apiKey) {
     try {
       const client = new Anthropic({ apiKey });
@@ -41,15 +56,10 @@ async function callClaude({ system, message, maxTokens = 2000 }: { system: strin
         .map(b => b.text)
         .join('');
     } catch (e: any) {
-      const msg = String(e?.message || e || '').toLowerCase();
-      const isCreditOrRateLimit = msg.includes('credit') || msg.includes('balance')
-        || msg.includes('overloaded') || msg.includes('rate_limit')
-        || msg.includes('429') || msg.includes('401') || msg.includes('403');
-      if (!isCreditOrRateLimit) throw e;
-      console.warn('[Content/callClaude] Claude unavailable, falling back to Gemini:', msg.slice(0, 200));
+      console.warn('[Content/callClaude] Claude unavailable too:', String(e?.message || e).slice(0, 150));
     }
   }
-  // Gemini fallback (also kicks in when ANTHROPIC_API_KEY is missing)
+  // Last resort: Gemini even if forceClaude (Claude failed)
   const { callGemini } = await import('@/lib/agents/gemini');
   return callGemini({ system, message, maxTokens });
 }

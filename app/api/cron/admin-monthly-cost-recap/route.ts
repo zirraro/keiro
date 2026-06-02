@@ -116,6 +116,7 @@ export async function GET(req: NextRequest) {
 
   type AgentStat = {
     runs: number;
+    runs_excluding_freebies: number; // 2026-06-03: real runs (LLM or business) — webhooks/heartbeats excluded
     useful_actions: number;
     errors: number;
     cost_per_action_eur: number;
@@ -124,11 +125,17 @@ export async function GET(req: NextRequest) {
   };
   const agents: Record<string, AgentStat> = {};
 
+  // 2026-06-03 — Founder ask: "80% de runs utiles pas 20%". The denominator
+  // was polluted by webhook events + heartbeats. Exclude these from the
+  // "real runs" count so the ratio reflects actual work vs overhead.
+  const FREE_ACTIONS_PATTERN = /^(webhook_|memory|event|report_to_ceo|execution_success|hot_prospect_click|webhook_dm_received|imap_inbound_poll)$/i;
+
   for (const log of (logs || []) as any[]) {
     const a = log.agent || 'unknown';
     if (!agents[a]) {
       agents[a] = {
         runs: 0,
+        runs_excluding_freebies: 0,
         useful_actions: 0,
         errors: 0,
         cost_per_action_eur: COST_PER_USEFUL_ACTION_EUR[a] ?? 0.003,
@@ -137,6 +144,9 @@ export async function GET(req: NextRequest) {
       };
     }
     agents[a].runs++;
+    if (!FREE_ACTIONS_PATTERN.test(log.action || '')) {
+      agents[a].runs_excluding_freebies++;
+    }
     if (log.status === 'error' || log.action === 'execution_failure') agents[a].errors++;
     const usefulRe = USEFUL_ACTIONS_BY_AGENT[a];
     if (usefulRe && usefulRe.test(log.action || '')) {
@@ -458,12 +468,17 @@ export async function GET(req: NextRequest) {
     .sort((a, b) => b[1].total_cost_eur - a[1].total_cost_eur)
     .slice(0, 12)
     .map(([a, st]) => {
-      const ratio = st.runs > 0 ? Math.round((st.useful_actions / st.runs) * 100) : 0;
+      // 2026-06-03 — Real ratio: useful actions / runs EXCLUDING freebies
+      // (webhooks Brevo, heartbeats, memory logs). Cible founder: 80%+.
+      const denominator = st.runs_excluding_freebies > 0 ? st.runs_excluding_freebies : st.runs;
+      const ratio = denominator > 0 ? Math.round((st.useful_actions / denominator) * 100) : 0;
+      const ratioColor = ratio >= 80 ? '#16a34a' : ratio >= 50 ? '#d97706' : '#dc2626';
       return `<tr>
         <td style="padding:5px 8px;font-size:11px;font-weight:bold;">${a}</td>
-        <td style="padding:5px 8px;font-size:11px;text-align:right;color:#6b7280;">${st.runs}</td>
+        <td style="padding:5px 8px;font-size:11px;text-align:right;color:#9ca3af;" title="Total runs incl. webhooks/heartbeats">${st.runs}</td>
+        <td style="padding:5px 8px;font-size:11px;text-align:right;color:#475569;font-weight:bold;" title="Runs réels hors webhooks/heartbeats">${st.runs_excluding_freebies}</td>
         <td style="padding:5px 8px;font-size:11px;text-align:right;color:#16a34a;font-weight:bold;">${st.useful_actions}</td>
-        <td style="padding:5px 8px;font-size:11px;text-align:right;color:#94a3b8;">${ratio}%</td>
+        <td style="padding:5px 8px;font-size:11px;text-align:right;color:${ratioColor};font-weight:bold;">${ratio}%</td>
         <td style="padding:5px 8px;font-size:11px;text-align:right;font-family:monospace;">${st.cost_per_action_eur.toFixed(3)} €</td>
         <td style="padding:5px 8px;font-size:11px;text-align:right;font-weight:bold;">${st.total_cost_eur.toFixed(2)} €</td>
         <td style="padding:5px 8px;font-size:11px;text-align:right;color:${st.errors > 0 ? '#dc2626' : '#16a34a'};">${st.errors}</td>
@@ -547,24 +562,25 @@ export async function GET(req: NextRequest) {
       </table>
 
       <!-- 2. Per-agent -->
-      <h3 style="font-size:14px;color:#111;margin:20px 0 8px;">⚙️ Coûts par agent — runs vs actions utiles vs coût</h3>
+      <h3 style="font-size:14px;color:#111;margin:20px 0 8px;">⚙️ Coûts par agent — runs vs actions utiles (cible ≥80%)</h3>
       <table style="width:100%;border-collapse:collapse;font-size:11px;border:1px solid #e5e7eb;border-radius:6px;">
         <thead><tr style="background:#f3f4f6;">
           <th style="padding:5px 8px;text-align:left;">Agent</th>
-          <th style="padding:5px 8px;text-align:right;" title="Toutes lignes agent_logs (webhooks inclus)">Runs</th>
-          <th style="padding:5px 8px;text-align:right;" title="Actions qui consomment vraiment des LLM tokens">Actions utiles</th>
+          <th style="padding:5px 8px;text-align:right;color:#9ca3af;" title="Total brut incl. webhooks/heartbeats gratuits">Runs bruts</th>
+          <th style="padding:5px 8px;text-align:right;" title="Runs hors webhooks/heartbeats — dénominateur du ratio">Runs réels</th>
+          <th style="padding:5px 8px;text-align:right;" title="Appels LLM qui consomment du token">Utiles</th>
           <th style="padding:5px 8px;text-align:right;">Ratio</th>
           <th style="padding:5px 8px;text-align:right;">€/action</th>
           <th style="padding:5px 8px;text-align:right;">Total LLM</th>
-          <th style="padding:5px 8px;text-align:right;">Erreurs</th>
+          <th style="padding:5px 8px;text-align:right;">Err</th>
         </tr></thead>
         <tbody>${agentsTableHtml}
-          <tr style="background:#f0fdf4;font-weight:bold;"><td style="padding:8px;">TOTAL LLM agents</td><td colspan="4"></td><td style="padding:8px;text-align:right;">${totalAgentLlmCost.toFixed(2)} €</td><td></td></tr>
+          <tr style="background:#f0fdf4;font-weight:bold;"><td style="padding:8px;">TOTAL LLM agents</td><td colspan="5"></td><td style="padding:8px;text-align:right;">${totalAgentLlmCost.toFixed(2)} €</td><td></td></tr>
         </tbody>
       </table>
       <div style="font-size:10px;color:#6b7280;margin-top:6px;font-style:italic;">
-        💡 Beaucoup de "runs" (ex: 6220 sur email) sont des webhooks Brevo / reports internes = GRATUITS.
-        La colonne "Actions utiles" indique les appels LLM réels qui coûtent vraiment.
+        💡 Ratio = Utiles / Runs réels (hors webhooks Brevo + heartbeats gratuits).
+        Cible ≥80% : si en-dessous, des appels LLM sont gaspillés. Vert ≥80%, orange 50-79%, rouge &lt;50%.
       </div>
 
       <!-- 3. Unmanaged costs -->

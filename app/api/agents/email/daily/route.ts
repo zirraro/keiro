@@ -566,30 +566,10 @@ async function autoLearn(results: SendResult[], supabase: any, orgId: string | n
 
     const learning = `Semaine du ${new Date().toLocaleDateString('fr-FR')}: ${totalSent} envoyés, ${opens.length} ouverts (OR=${openRate}%), ${clicks.length} clics (CTR=${clickRate}% sur ouverts), ${replies.length} réponses (${replyRate}%). Meilleure catégorie: ${bestCategory[0]}. Meilleur step: ${bestStep?.[0] || '?'}. Détail: ${categoryBreakdown}. Steps: ${stepBreakdown}`;
 
-    // Legacy memory log (kept for backward compat)
-    await supabase.from('agent_logs').insert({
-      agent: 'email',
-      action: 'memory',
-      data: {
-        learning,
-        source: 'auto_performance',
-        metrics: {
-          total_sent: totalSent,
-          opens: opens.length,
-          clicks: clicks.length,
-          replies: replies.length,
-          open_rate: openRate,
-          click_rate: clickRate,
-          reply_rate: replyRate,
-          best_category: bestCategory[0],
-          best_step: bestStep?.[0],
-          by_category: byCategory,
-          by_step: byStep,
-        },
-        learned_at: new Date().toISOString(),
-      },
-      created_at: new Date().toISOString(),
-    });
+    // 2026-06-03 — Removed legacy memory log (was 201 rows/month polluting
+    // the "useful actions" ratio without serving any consumer). The learning
+    // is now persisted in the structured knowledge_rag below.
+    void learning;
 
     // ── STRUCTURED LEARNINGS (new system) ──
     // 1. Best category insight

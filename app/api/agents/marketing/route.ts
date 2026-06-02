@@ -221,12 +221,8 @@ Date : ${now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', mont
       while ((match = pattern.exec(analysis)) !== null) {
         const learning = match[1].trim();
         if (learning.length > 10) {
-          await supabase.from('agent_logs').insert({
-            agent: 'marketing',
-            action: 'memory',
-            data: { learning, source: 'auto_analysis', learned_at: nowISO },
-            created_at: nowISO,
-          });
+          // 2026-06-03 — Skipped: was polluting useful_actions ratio (165 rows/month)
+          // Learnings are persisted in saveLearning() / knowledge_rag instead.
           learningsExtracted++;
           console.log(`[MarketingAgent] Learned: ${learning.substring(0, 80)}`);
         }
@@ -946,18 +942,9 @@ Date : ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric
 
         if (advice) {
           // Save learnings
-          if (advice.learnings) {
-            for (const learning of advice.learnings) {
-              if (learning && learning.length > 10) {
-                await supabase.from('agent_logs').insert({
-                  agent: 'marketing',
-                  action: 'memory',
-                  data: { learning, source: 'advise_agents', learned_at: nowISO },
-                  created_at: nowISO,
-                });
-              }
-            }
-          }
+          // 2026-06-03 — Skipped (use saveLearning/knowledge_rag instead).
+          // Old code wrote N agent_logs rows polluting useful_actions ratio.
+          void advice.learnings;
 
           // Issue directives to each agent
           if (advice.agent_directives) {
@@ -1384,14 +1371,8 @@ ${pastInsights || 'Premier run — pas encore d\'apprentissages publications.'}`
         if (pubAnalysis?.learnings) {
           for (const learning of pubAnalysis.learnings) {
             if (learning && learning.length > 10) {
-              await supabase.from('agent_logs').insert({
-                agent: 'marketing',
-                action: 'memory',
-                data: { learning, source: 'publication_analysis', learned_at: nowISO },
-                created_at: nowISO,
-                ...(orgId ? { org_id: orgId } : {}),
-              });
-              // Also save to RAG knowledge pool for cross-agent sharing
+              // 2026-06-03 — Skipped duplicate log (already in saveLearning below).
+              // Save to RAG knowledge pool for cross-agent sharing
               try {
                 await saveLearning(supabase, {
                   agent: 'marketing',
