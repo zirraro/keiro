@@ -719,17 +719,35 @@ function DmConversationsLive() {
   const [selectedConv, setSelectedConv] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
   const [sending, setSending] = useState(false);
-  const [aiActive, setAiActive] = useState(true);
+  // 2026-06-03 — init from localStorage to avoid flicker (was useState(true)
+  // → fetch async → toggle visibly flipped from green to red on every page
+  // load). Founder reported: "le toggle ai active saute il active desactive
+  // tout seul".
+  const [aiActive, setAiActive] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    const cached = localStorage.getItem('keiro_auto_dm_instagram');
+    if (cached === null) return true;
+    return cached !== 'false';
+  });
+  const [aiLoaded, setAiLoaded] = useState(false);
   const [userTyping, setUserTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Load AI toggle state from server
+  // Load AI toggle state from server (authoritative). Only override the
+  // localStorage cache if the server value differs — and only once on mount
+  // so async refetches can't flip the UI behind the user's back.
   useEffect(() => {
     fetch('/api/agents/settings?agent_id=dm_instagram', { credentials: 'include' })
       .then(r => r.json())
-      .then(d => { if (d.auto_mode !== undefined) setAiActive(d.auto_mode); })
-      .catch(() => {});
+      .then(d => {
+        if (d.auto_mode !== undefined) {
+          setAiActive(d.auto_mode);
+          try { localStorage.setItem('keiro_auto_dm_instagram', String(d.auto_mode)); } catch {}
+        }
+        setAiLoaded(true);
+      })
+      .catch(() => setAiLoaded(true));
   }, []);
 
   // Fire the polling auto-reply once. Used when the AI toggle turns ON so
@@ -2194,6 +2212,14 @@ function ActionConfirmModal({ config, onClose }: { config: ActionConfig; onClose
           ))}
         </div>
 
+        {busy && (
+          <div className="px-5 pb-3">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-500/10 border border-purple-500/25 text-purple-200 text-[11px]">
+              <div className="w-3 h-3 rounded-full border-2 border-purple-300/30 border-t-purple-300 animate-spin" />
+              <span>Action en cours… Jade traite les conversations, ça prend généralement 5-30s</span>
+            </div>
+          </div>
+        )}
         <div className="p-5 border-t border-white/10 flex items-center gap-2">
           <button
             onClick={() => onClose()}
@@ -2205,9 +2231,16 @@ function ActionConfirmModal({ config, onClose }: { config: ActionConfig; onClose
           <button
             onClick={confirm}
             disabled={busy}
-            className={`flex-1 py-2.5 rounded-xl text-white text-xs font-bold transition disabled:opacity-50 ${config.classes.includes('emerald') ? 'bg-emerald-600 hover:bg-emerald-500' : config.classes.includes('pink') ? 'bg-pink-600 hover:bg-pink-500' : config.classes.includes('cyan') ? 'bg-cyan-600 hover:bg-cyan-500' : config.classes.includes('blue') ? 'bg-blue-600 hover:bg-blue-500' : 'bg-purple-600 hover:bg-purple-500'}`}
+            className={`flex-1 py-2.5 rounded-xl text-white text-xs font-bold transition disabled:opacity-50 flex items-center justify-center gap-2 ${config.classes.includes('emerald') ? 'bg-emerald-600 hover:bg-emerald-500' : config.classes.includes('pink') ? 'bg-pink-600 hover:bg-pink-500' : config.classes.includes('cyan') ? 'bg-cyan-600 hover:bg-cyan-500' : config.classes.includes('blue') ? 'bg-blue-600 hover:bg-blue-500' : 'bg-purple-600 hover:bg-purple-500'}`}
           >
-            {busy ? '…' : 'Confirmer et lancer'}
+            {busy ? (
+              <>
+                <div className="w-3 h-3 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                <span>Lancement en cours…</span>
+              </>
+            ) : (
+              <span>Confirmer et lancer</span>
+            )}
           </button>
         </div>
       </div>

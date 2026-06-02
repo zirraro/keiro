@@ -667,7 +667,44 @@ ${history ? `\nCONVERSATION:\n${history}` : ''}${businessContext}${ragContext}`;
                 } catch (e: any) { console.warn('[InstagramWebhook] IG send error:', e.message?.substring(0, 100)); }
               }
 
-              if (!sendSuccess) console.error('[InstagramWebhook] ALL send methods failed for', senderId);
+              if (!sendSuccess) {
+                console.error('[InstagramWebhook] ALL send methods failed for', senderId);
+                // 2026-06-03 — Log the failure so the admin digest + UI banner
+                // surfaces "Token IG révoqué — reconnecte" instead of silent
+                // failure. Founder: "j'ai toujours pas de réponses en auto"
+                // even though Jade *generated* the reply (just couldn't ship it).
+                await supabase.from('agent_logs').insert({
+                  agent: 'dm_instagram',
+                  action: 'webhook_send_failed',
+                  status: 'error',
+                  data: {
+                    sender_id: senderId,
+                    recipient_id: recipientId,
+                    reason: 'token_invalid_or_revoked',
+                    reply_drafted: aiReply.substring(0, 200),
+                    error: 'All Graph API send methods failed — token likely revoked',
+                  },
+                  created_at: now,
+                });
+                // Also notify the owner in-app so they fix it within minutes.
+                try {
+                  const { data: ownerForNotif } = await supabase
+                    .from('profiles')
+                    .select('id')
+                    .eq('instagram_business_account_id', recipientId)
+                    .maybeSingle();
+                  if (ownerForNotif?.id) {
+                    await supabase.from('client_notifications').insert({
+                      user_id: ownerForNotif.id,
+                      agent: 'dm_instagram',
+                      type: 'token_revoked',
+                      title: 'Token Instagram révoqué — reconnecte ton compte',
+                      message: `Jade a préparé une réponse pour un DM mais n'a pas pu l'envoyer (token expiré ou révoqué côté Meta). Reconnecte ton Instagram dans le panel pour relancer l'auto-reply.`,
+                      data: { sender_id: senderId, reply_drafted: aiReply.substring(0, 200) },
+                    });
+                  }
+                } catch { /* non-fatal */ }
+              }
 
               // Send image via Instagram API (this is what worked before)
               if (imageToSend && sendSuccess) {
