@@ -52,6 +52,8 @@ export default function AdminCostsPage() {
   const [totalOverride, setTotalOverride] = useState('');
   const [notes, setNotes] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [quickMode, setQuickMode] = useState(true); // 2026-06-02: default to amount-only
+  const [quickAmount, setQuickAmount] = useState('');
 
   const load = () => {
     setLoading(true);
@@ -71,10 +73,16 @@ export default function AdminCostsPage() {
       const body: any = {
         service: uploadService,
         billing_period: uploadPeriod,
-        csv_text: csvText,
         notes: notes || null,
       };
-      if (totalOverride) body.total_override = parseFloat(totalOverride);
+      if (quickMode) {
+        const amt = parseFloat(quickAmount);
+        if (isNaN(amt) || amt < 0) throw new Error('Montant invalide');
+        body.amount_eur = amt;
+      } else {
+        body.csv_text = csvText;
+        if (totalOverride) body.total_override = parseFloat(totalOverride);
+      }
       const res = await fetch('/api/admin/costs', {
         method: 'POST',
         credentials: 'include',
@@ -83,7 +91,7 @@ export default function AdminCostsPage() {
       });
       const j = await res.json();
       if (!j.ok) throw new Error(j.error || 'Upload failed');
-      setCsvText(''); setTotalOverride(''); setNotes('');
+      setCsvText(''); setTotalOverride(''); setNotes(''); setQuickAmount('');
       load();
     } catch (e: any) {
       setErr(e.message);
@@ -196,20 +204,63 @@ export default function AdminCostsPage() {
 
       {/* UPLOAD FORM */}
       <section className="mb-10 bg-[#0a1224] rounded-2xl p-6 border border-white/10">
-        <h2 className="text-lg font-semibold mb-4">Uploader une facture tierce (CSV)</h2>
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <h2 className="text-lg font-semibold">Enregistrer une facture tierce</h2>
+          <div className="flex gap-1 rounded-lg bg-white/5 p-1">
+            <button
+              type="button"
+              onClick={() => setQuickMode(true)}
+              className={`px-3 py-1 text-xs rounded ${quickMode ? 'bg-purple-600 text-white' : 'text-white/60 hover:text-white'}`}
+            >
+              Quick (juste le montant)
+            </button>
+            <button
+              type="button"
+              onClick={() => setQuickMode(false)}
+              className={`px-3 py-1 text-xs rounded ${!quickMode ? 'bg-purple-600 text-white' : 'text-white/60 hover:text-white'}`}
+            >
+              CSV complet
+            </button>
+          </div>
+        </div>
         <form onSubmit={submit} className="space-y-3">
           <div className="grid md:grid-cols-3 gap-3">
             <select value={uploadService} onChange={e => setUploadService(e.target.value)} className="bg-[#060b18] border border-white/10 rounded px-3 py-2">
               {SERVICES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
             </select>
             <input type="text" value={uploadPeriod} onChange={e => setUploadPeriod(e.target.value)} placeholder="YYYY-MM" className="bg-[#060b18] border border-white/10 rounded px-3 py-2" />
-            <input type="text" value={totalOverride} onChange={e => setTotalOverride(e.target.value)} placeholder="Total €  (optionnel, override si parsing rate)" className="bg-[#060b18] border border-white/10 rounded px-3 py-2" />
+            {quickMode ? (
+              <input
+                type="number"
+                step="0.01"
+                value={quickAmount}
+                onChange={e => setQuickAmount(e.target.value)}
+                placeholder="Montant en € (ex: 108.00)"
+                className="bg-[#060b18] border border-white/10 rounded px-3 py-2"
+                required
+              />
+            ) : (
+              <input
+                type="text"
+                value={totalOverride}
+                onChange={e => setTotalOverride(e.target.value)}
+                placeholder="Total € (optionnel, override)"
+                className="bg-[#060b18] border border-white/10 rounded px-3 py-2"
+              />
+            )}
           </div>
-          <textarea value={csvText} onChange={e => setCsvText(e.target.value)} placeholder="Colle ici le contenu CSV complet de la facture" rows={6} className="w-full bg-[#060b18] border border-white/10 rounded px-3 py-2 font-mono text-xs" required />
+          {!quickMode && (
+            <textarea value={csvText} onChange={e => setCsvText(e.target.value)} placeholder="Colle ici le contenu CSV complet de la facture" rows={6} className="w-full bg-[#060b18] border border-white/10 rounded px-3 py-2 font-mono text-xs" required={!quickMode} />
+          )}
           <input type="text" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Notes (optionnel)" className="w-full bg-[#060b18] border border-white/10 rounded px-3 py-2" />
           <button type="submit" disabled={uploading} className="bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-2 rounded font-semibold disabled:opacity-50">
             {uploading ? 'Upload...' : 'Enregistrer la facture'}
           </button>
+          {quickMode && (
+            <p className="text-[10px] text-slate-500 italic mt-2">
+              Mode rapide : entre juste le montant total de la facture. Le mois courant sera automatiquement calculé pour les marges.
+            </p>
+          )}
         </form>
       </section>
 

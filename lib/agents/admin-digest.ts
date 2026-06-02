@@ -17,6 +17,7 @@
 
 import { SupabaseClient } from '@supabase/supabase-js';
 import { saveKnowledge } from './knowledge-rag';
+import { callLlmWithFallback } from './llm-fallback';
 
 interface FailureSnapshot {
   agent: string;
@@ -237,6 +238,35 @@ export async function buildAdminDigest(
   const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
   if (!ANTHROPIC_KEY) return { stats, digest: null, healthCauses, agentsDown };
 
+  // 2026-06-02 — admin RAG: load past digest summaries + admin learnings
+  // so each report builds on what worked / didn't work last time.
+  // Founder ask: "tu peux lui apprendre aussi quand tu optimise pour qu'il
+  // soit encore meilleur en recommandation les prochaines fois".
+  let pastContext = '';
+  try {
+    const { getActiveLearnings, formatLearningsForPrompt } = await import('./learning');
+    const adminLearnings = await getActiveLearnings(supabase, 'ceo', undefined, undefined);
+    // Also pull the last 5 admin_digest_sent rows so we know what we
+    // already flagged + what fixes were applied.
+    const { data: pastDigests } = await supabase
+      .from('agent_logs')
+      .select('data, created_at')
+      .eq('agent', 'ceo')
+      .eq('action', 'admin_digest_sent')
+      .order('created_at', { ascending: false })
+      .limit(5);
+    const learningsBlock = (adminLearnings || []).length > 0
+      ? '\n\n=== APPRENTISSAGES PRÉCÉDENTS (admin RAG) ===\n' + formatLearningsForPrompt(adminLearnings || [], [])
+      : '';
+    const digestsBlock = (pastDigests || []).length > 0
+      ? '\n\n=== DIGESTS RÉCENTS ===\n' + (pastDigests || []).slice(0, 5).map((d: any, i) => {
+          const dd = d.data || {};
+          return `${i + 1}. ${d.created_at.slice(0, 10)} — ${dd.success_rate || 0}% succès, ${dd.total_errors || 0} erreurs, ${dd.issues_count || 0} issues, ${dd.agents_down || 0} DOWN`;
+        }).join('\n')
+      : '';
+    pastContext = learningsBlock + digestsBlock;
+  } catch { /* RAG load best-effort */ }
+
   const prompt = `Période : dernières ${periodHours}h.
 Exécutions totales : ${runs} · Erreurs : ${errors} · Taux de succès : ${stats.success_rate}%.
 
@@ -244,20 +274,10 @@ Exécutions totales : ${runs} · Erreurs : ${errors} · Taux de succès : ${stat
 ${agentRuns.slice(0, 15).map(a => `- ${a.agent}: ${a.runs} runs, ${a.errors} errors, dernier: ${a.last_action}`).join('\n')}
 
 === Échecs (${failures.length} visibles) ===
-${failures.slice(0, 25).map((f, i) => `${i + 1}. [${f.agent} / ${f.action}] ${f.error}\n   data: ${f.data_preview.substring(0, 200)}`).join('\n')}`;
+${failures.slice(0, 25).map((f, i) => `${i + 1}. [${f.agent} / ${f.action}] ${f.error}\n   data: ${f.data_preview.substring(0, 200)}`).join('\n')}${pastContext}`;
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': ANTHROPIC_KEY,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 3000,
-        system: `Tu es le CEO technique de KeiroAI, tu rédiges le brief quotidien pour le fondateur qui va exécuter les fixes lui-même.
+    const systemPrompt = `Tu es le CEO technique de KeiroAI, tu rédiges le brief quotidien pour le fondateur qui va exécuter les fixes lui-même.
 
 INFRA DÉPLOIEMENT :
 - AUCUN cron Vercel — vercel.json.crons = []. NE JAMAIS suggérer "vérifier vercel.json".
@@ -290,6 +310,26 @@ inclus et essaie d'identifier le pattern (TIMEOUT, 401, JSON_PARSE,
 SUPABASE_RLS, OPENAI_RATE_LIMIT, etc.). Donne un fix précis, pas
 "investiguer manuellement".
 
+CHANNELS DE NOTIFICATION DISPONIBLES (2026-06-02) :
+- ❌ PAS de Slack — le founder n'en a pas. Ne JAMAIS suggérer "ajouter
+  alerte Slack" / "webhook Slack" / "notification Slack" comme reco.
+- ✅ Email admin (contact@keiroai.com via Brevo) — utilisé pour ce digest
+  + admin-morning-digest. Suggérer "ajouter alerte email" si besoin.
+- ✅ In-app notification (client_notifications table) — utilisée pour le
+  client final dans /assistant. Suggérer "envoyer notification in-app"
+  pour les alertes côté client.
+- ✅ PM2 + console (admin/service-health) — visibilité interne, pas de
+  push.
+
+FALLBACK LLM (ordre de préférence) :
+- Claude (Anthropic) = qualité top, plus cher
+- Gemini Pro 1.5 (Google) = 2-3x MOINS cher que Claude, qualité très bonne,
+  meilleur choix de fallback. Le projet utilise déjà callGemini dans
+  lib/agents/gemini.ts pour les agents Hugo, Jade, DM. Suggérer "fallback
+  Gemini" pas "fallback OpenAI" (OpenAI = qualité similaire mais prix
+  proche de Claude, pas un vrai gain).
+- OpenAI seulement en dernier recours (qualité OK, prix proche Claude).
+
 Tu dois produire un JSON STRICT de cette forme :
 
 {
@@ -316,14 +356,23 @@ RÈGLES :
 - Si logs vagues, dis "Logs insuffisants — ajoute console.log(...) dans X" comme fix.
 - Pas de blabla corporate. Direct, technique, français.
 
-Output : JSON seul, zéro markdown, zéro intro.`,
-        messages: [{ role: 'user', content: prompt }],
-      }),
+Output : JSON seul, zéro markdown, zéro intro.`;
+
+    // 2026-06-02: use Claude → Gemini fallback so the digest still ships
+    // when Anthropic credits are exhausted or the API is overloaded.
+    const llmResult = await callLlmWithFallback({
+      system: systemPrompt,
+      message: prompt,
+      maxTokens: 3000,
+      claudeModel: 'claude-sonnet-4-20250514',
+      callTag: 'admin-digest',
     });
 
-    if (!res.ok) return { stats, digest: null, healthCauses, agentsDown };
-    const data = await res.json();
-    let txt = (data.content?.[0]?.text || '').trim();
+    if (llmResult.fallbackReason) {
+      console.warn(`[AdminDigest] Used Gemini fallback: ${llmResult.fallbackReason}`);
+    }
+
+    let txt = llmResult.text;
     txt = txt.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
     const parsed = JSON.parse(txt);
 
@@ -538,6 +587,38 @@ export async function sendAdminDailyDigest(
       confidence: 0.7,
       org_id: undefined,
     }).catch(() => {});
+
+    // 2026-06-02 — Save each top_issue as its own learning so future digests
+    // recognize recurring issues and propose escalating fixes instead of
+    // re-suggesting the same one. Confidence boosted when issue repeats.
+    for (const iss of digest.top_issues) {
+      try {
+        // Look for the SAME issue title in past 14d learnings.
+        const since14d = new Date(Date.now() - 14 * 86400 * 1000).toISOString();
+        const { data: priorMatch } = await supabase
+          .from('knowledge')
+          .select('id, confidence, content')
+          .eq('agent', 'ceo')
+          .eq('source', 'admin_issue_recurring')
+          .ilike('summary', `%${iss.title.slice(0, 40)}%`)
+          .gte('created_at', since14d)
+          .limit(1)
+          .maybeSingle();
+        const recurrence = priorMatch ? Math.min(0.95, (priorMatch.confidence || 0.5) + 0.1) : 0.5;
+        const escalation = priorMatch
+          ? `RÉCURRENT (vu ${priorMatch.content?.slice(0, 60) || 'récemment'}). Si ce fix n'a pas marché 2x, ESCALADER : changer de provider, désactiver l'agent en attendant, ou contacter le support.`
+          : 'PREMIÈRE OCCURRENCE.';
+        await saveKnowledge(supabase, {
+          content: `ISSUE: ${iss.title}\nAGENTS: ${iss.agents.join(',')}\nFIX SUGGÉRÉ: ${iss.fix.slice(0, 300)}\nSTATUT: ${escalation}`,
+          summary: `Recurring: ${iss.title.slice(0, 80)}`,
+          agent: 'ceo',
+          category: 'learning',
+          source: 'admin_issue_recurring',
+          confidence: recurrence,
+          org_id: undefined,
+        }).catch(() => {});
+      } catch { /* non-fatal */ }
+    }
   }
 
   await supabase.from('agent_logs').insert({

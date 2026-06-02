@@ -54,6 +54,10 @@ const GLOBAL_SCHEDULE = [
   { cron: '15 * * * *',   slot: 'ig_comments_reply', label: 'IG Comments Auto-Reply (all active clients)' },
   { cron: '0 7 * * 1',    path: '/api/agents/weekly-trends', label: 'Weekly Trends (Monday)' },
   { cron: '0 7 1 * *',    path: '/api/agents/monthly-recap', label: 'Monthly Recap (1st)' },
+  // 2026-06-02 — Admin monthly cost recap fires the 2nd of each month
+  // so we have all the previous month's data settled. One email to
+  // contact@keiroai.com with bills + margins per plan.
+  { cron: '0 9 2 * *',    path: '/api/cron/admin-monthly-cost-recap', label: 'Admin Monthly Cost Recap (2nd)' },
   // Weekly enrichment refresh — keeps each agent's knowledge current with
   // market changes. Light depth so it doesn't balloon credits; the deep
   // campaign is manual / on-demand.

@@ -20,23 +20,38 @@ import { sendPublishNotification } from '@/lib/agents/publish-notification';
 // ──────────────────────────────────────
 // Claude Haiku for text generation (captions, hashtags, descriptions)
 // Seedream for image generation (visual_url)
+// 2026-06-02: auto-fallback to Gemini Pro 1.5 when Claude is down /
+// out of credits / rate-limited. Founder ask: "quand il dis openai si
+// claude pas dispo peut google/gemini c'est mieux". Gemini = 2-3x moins
+// cher que Claude + qualité similaire pour captions/hashtags FR.
 // ──────────────────────────────────────
 async function callClaude({ system, message, maxTokens = 2000 }: { system: string; message: string; maxTokens?: number }): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error('ANTHROPIC_API_KEY non configurée');
-
-  const client = new Anthropic({ apiKey });
-  const response = await client.messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: maxTokens,
-    system,
-    messages: [{ role: 'user', content: message }],
-  });
-
-  return response.content
-    .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-    .map(b => b.text)
-    .join('');
+  if (apiKey) {
+    try {
+      const client = new Anthropic({ apiKey });
+      const response = await client.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: maxTokens,
+        system,
+        messages: [{ role: 'user', content: message }],
+      });
+      return response.content
+        .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+        .map(b => b.text)
+        .join('');
+    } catch (e: any) {
+      const msg = String(e?.message || e || '').toLowerCase();
+      const isCreditOrRateLimit = msg.includes('credit') || msg.includes('balance')
+        || msg.includes('overloaded') || msg.includes('rate_limit')
+        || msg.includes('429') || msg.includes('401') || msg.includes('403');
+      if (!isCreditOrRateLimit) throw e;
+      console.warn('[Content/callClaude] Claude unavailable, falling back to Gemini:', msg.slice(0, 200));
+    }
+  }
+  // Gemini fallback (also kicks in when ANTHROPIC_API_KEY is missing)
+  const { callGemini } = await import('@/lib/agents/gemini');
+  return callGemini({ system, message, maxTokens });
 }
 
 export const runtime = 'nodejs';

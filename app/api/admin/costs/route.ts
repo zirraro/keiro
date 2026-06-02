@@ -208,8 +208,33 @@ export async function POST(request: NextRequest) {
   const csvText = (body.csv_text || '').trim();
   const notes = body.notes || null;
 
+  // 2026-06-02 — quick upload path: just service + period + amount_eur.
+  // Allows the founder to paste the bill total without copy-pasting a CSV.
+  // Founder ask: "j'ai 108 eur anthropic, 20 eur bytedance, ..." → just type those.
+  if (!csvText && body.amount_eur !== undefined && !isNaN(parseFloat(body.amount_eur))) {
+    if (!service || !period) {
+      return NextResponse.json({ ok: false, error: 'service, billing_period required' }, { status: 400 });
+    }
+    const total = parseFloat(body.amount_eur);
+    const sb = admin();
+    const { data: inserted, error } = await sb
+      .from('external_cost_uploads')
+      .insert({
+        service,
+        billing_period: period,
+        total_cost_eur: total,
+        raw_rows: { quick_upload: true, amount_eur: total },
+        uploaded_by: userId,
+        notes,
+      })
+      .select('id, total_cost_eur, service, billing_period')
+      .single();
+    if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: true, upload: inserted, quick_upload: true });
+  }
+
   if (!service || !period || !csvText) {
-    return NextResponse.json({ ok: false, error: 'service, billing_period, csv_text required' }, { status: 400 });
+    return NextResponse.json({ ok: false, error: 'service, billing_period, csv_text OR amount_eur required' }, { status: 400 });
   }
 
   // Parse CSV: support the common shapes we've seen (Google Cloud billing,
