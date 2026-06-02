@@ -602,56 +602,79 @@ ${history ? `\nCONVERSATION:\n${history}` : ''}${businessContext}${ragContext}`;
         }
 
         if (aiReply) {
-          // Find the user who owns this Instagram account to get their token
+          // 2026-06-03 FIX CRITIQUE — webhook sélectionnait `facebook_page_access_token`
+          // ou `instagram_access_token` (legacy) en priorité, JAMAIS `instagram_igaa_token`.
+          // Or depuis 2024 Meta n'accepte plus que IGAA pour les DMs (graph.instagram.com).
+          // Le webhook recevait les events mais échouait systématiquement à envoyer
+          // → action `webhook_send_failed`. Mon test manuel via curl IGAA confirme
+          // que le token IGAA fonctionne parfaitement.
           let profile = null;
-          // Try matching by recipientId first
           const { data: directMatch } = await supabase
             .from('profiles')
-            .select('id, instagram_business_account_id, facebook_page_access_token, instagram_access_token')
+            .select('id, instagram_business_account_id, instagram_igaa_token, facebook_page_access_token, instagram_access_token')
             .eq('instagram_business_account_id', recipientId)
             .limit(1)
             .maybeSingle();
           profile = directMatch;
 
-          // Fallback: try admin profile (most common setup)
-          if (!profile?.facebook_page_access_token) {
+          // Fallback: admin profile if recipientId not matched
+          if (!profile?.instagram_igaa_token && !profile?.facebook_page_access_token) {
             const { data: adminMatch } = await supabase
               .from('profiles')
-              .select('id, instagram_business_account_id, facebook_page_access_token, instagram_access_token')
+              .select('id, instagram_business_account_id, instagram_igaa_token, facebook_page_access_token, instagram_access_token')
               .eq('is_admin', true)
-              .not('facebook_page_access_token', 'is', null)
+              .not('instagram_igaa_token', 'is', null)
               .limit(1)
               .maybeSingle();
-            if (adminMatch?.facebook_page_access_token) {
+            if (adminMatch?.instagram_igaa_token) {
               profile = adminMatch;
-              console.log(`[InstagramWebhook] Using admin profile fallback for reply (recipientId ${recipientId} not found)`);
+              console.log(`[InstagramWebhook] Using admin profile fallback (recipientId ${recipientId} not found)`);
             }
           }
 
-          const sendToken = profile?.facebook_page_access_token || profile?.instagram_access_token;
           const sendFromId = profile?.instagram_business_account_id || recipientId;
 
-          if (sendToken) {
+          if (profile?.instagram_igaa_token || profile?.facebook_page_access_token || profile?.instagram_access_token) {
             try {
-              // Instagram Messaging API — try both endpoints
               let sendSuccess = false;
-              // Try Facebook Graph API first (works with page tokens)
-              try {
-                const fbRes = await fetch(`https://graph.facebook.com/v21.0/${sendFromId}/messages`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                  body: new URLSearchParams({
-                    recipient: JSON.stringify({ id: senderId }),
-                    message: JSON.stringify({ text: aiReply }),
-                    access_token: sendToken,
-                  }),
-                });
-                if (fbRes.ok) { sendSuccess = true; console.log('[InstagramWebhook] Reply sent via Facebook Graph API'); }
-                else { console.warn('[InstagramWebhook] FB send failed:', (await fbRes.text()).substring(0, 150)); }
-              } catch (e: any) { console.warn('[InstagramWebhook] FB send error:', e.message?.substring(0, 100)); }
 
-              // Fallback: Instagram Graph API (works with IGAA tokens)
-              if (!sendSuccess && profile?.instagram_access_token) {
+              // 1. IGAA token (graph.instagram.com) — MÉTHODE PRINCIPALE depuis 2024
+              // C'est le SEUL token que Meta accepte de manière fiable pour les DMs.
+              if (!sendSuccess && profile?.instagram_igaa_token) {
+                try {
+                  const igaaRes = await fetch('https://graph.instagram.com/v21.0/me/messages', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({
+                      recipient: JSON.stringify({ id: senderId }),
+                      message: JSON.stringify({ text: aiReply }),
+                      access_token: profile.instagram_igaa_token,
+                    }),
+                  });
+                  if (igaaRes.ok) { sendSuccess = true; console.log('[InstagramWebhook] Reply sent via IGAA token (primary)'); }
+                  else { console.warn('[InstagramWebhook] IGAA send failed:', (await igaaRes.text()).substring(0, 200)); }
+                } catch (e: any) { console.warn('[InstagramWebhook] IGAA send error:', e.message?.substring(0, 100)); }
+              }
+
+              // 2. Facebook page token (graph.facebook.com) — fallback legacy
+              if (!sendSuccess && profile?.facebook_page_access_token) {
+                try {
+                  const fbRes = await fetch(`https://graph.facebook.com/v21.0/${sendFromId}/messages`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({
+                      recipient: JSON.stringify({ id: senderId }),
+                      message: JSON.stringify({ text: aiReply }),
+                      access_token: profile.facebook_page_access_token,
+                    }),
+                  });
+                  if (fbRes.ok) { sendSuccess = true; console.log('[InstagramWebhook] Reply sent via Facebook page token (fallback)'); }
+                  else { console.warn('[InstagramWebhook] FB send failed:', (await fbRes.text()).substring(0, 150)); }
+                } catch (e: any) { console.warn('[InstagramWebhook] FB send error:', e.message?.substring(0, 100)); }
+              }
+
+              // 3. Legacy instagram_access_token — last resort
+              if (!sendSuccess && profile?.instagram_access_token && profile.instagram_access_token !== profile?.instagram_igaa_token) {
                 try {
                   const igRes = await fetch(`https://graph.instagram.com/v21.0/me/messages`, {
                     method: 'POST',
@@ -662,9 +685,9 @@ ${history ? `\nCONVERSATION:\n${history}` : ''}${businessContext}${ragContext}`;
                       access_token: profile.instagram_access_token,
                     }),
                   });
-                  if (igRes.ok) { sendSuccess = true; console.log('[InstagramWebhook] Reply sent via Instagram Graph API'); }
-                  else { console.warn('[InstagramWebhook] IG send failed:', (await igRes.text()).substring(0, 150)); }
-                } catch (e: any) { console.warn('[InstagramWebhook] IG send error:', e.message?.substring(0, 100)); }
+                  if (igRes.ok) { sendSuccess = true; console.log('[InstagramWebhook] Reply sent via legacy IG token'); }
+                  else { console.warn('[InstagramWebhook] Legacy IG send failed:', (await igRes.text()).substring(0, 150)); }
+                } catch (e: any) { console.warn('[InstagramWebhook] Legacy IG send error:', e.message?.substring(0, 100)); }
               }
 
               if (!sendSuccess) {
@@ -735,8 +758,9 @@ ${history ? `\nCONVERSATION:\n${history}` : ''}${businessContext}${ragContext}`;
 
                 // Fallback: send URL as separate text if attachment failed
                 if (!imgSent) {
-                  const urlToken = profile?.instagram_access_token || sendToken;
-                  const urlEndpoint = profile?.instagram_access_token
+                  // 2026-06-03: use IGAA first (post-2024 standard), fallback FB
+                  const urlToken = profile?.instagram_igaa_token || profile?.instagram_access_token || profile?.facebook_page_access_token;
+                  const urlEndpoint = profile?.instagram_igaa_token || profile?.instagram_access_token
                     ? `https://graph.instagram.com/v21.0/me/messages`
                     : `https://graph.facebook.com/v21.0/${sendFromId}/messages`;
                   try {
