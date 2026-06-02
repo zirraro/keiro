@@ -82,6 +82,18 @@ export function EmailPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
   const emailProspects = (stats as any).totalProspects || stats.sent || 0;
   const emailReplied = (stats as any).replied || 0;
 
+  // 2026-06-02 — split metrics from getEmailData (cold / follow-up / Hugo replies)
+  const splitMetrics = (stats as any).splitMetrics as {
+    firstSends24h?: number;
+    followUps24h?: number;
+    totalSends24h?: number;
+    hugoAutoReplied24h?: number;
+    hugoBlacklisted24h?: number;
+    inboundsTotal24h?: number;
+    replyRate24h?: number;
+    unrepliedInbounds?: Array<{ from: string; classification: string; decision: string; received_at: string }>;
+  } | undefined;
+
   return (
     <>
       {/* Auto mode toggle */}
@@ -154,6 +166,68 @@ export function EmailPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
           </div>
         )}
       </div>
+
+      {/* 2026-06-02 \u2014 Split metrics 24h : envois 1er/relance + Hugo replies */}
+      {splitMetrics && (
+        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-3 sm:p-4 mt-3">
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <h3 className="text-xs sm:text-sm font-bold text-white">D\u00e9tail 24h</h3>
+            <div className="text-[10px] text-white/40">
+              {splitMetrics.inboundsTotal24h ? `Hugo r\u00e9pond \u00e0 ${splitMetrics.replyRate24h}% des emails re\u00e7us` : 'Aucun email re\u00e7u aujourd\'hui'}
+            </div>
+          </div>
+          {/* Row 1 : Envois Hugo */}
+          <div className="grid grid-cols-3 gap-2 mb-3">
+            <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-2.5 text-center">
+              <div className="text-lg sm:text-xl font-bold text-blue-300">{splitMetrics.firstSends24h ?? 0}</div>
+              <div className="text-[10px] text-blue-300/70 mt-0.5">1er envois</div>
+            </div>
+            <div className="rounded-lg bg-cyan-500/10 border border-cyan-500/20 p-2.5 text-center">
+              <div className="text-lg sm:text-xl font-bold text-cyan-300">{splitMetrics.followUps24h ?? 0}</div>
+              <div className="text-[10px] text-cyan-300/70 mt-0.5">Relances</div>
+            </div>
+            <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-2.5 text-center">
+              <div className="text-lg sm:text-xl font-bold text-emerald-300">{splitMetrics.hugoAutoReplied24h ?? 0}</div>
+              <div className="text-[10px] text-emerald-300/70 mt-0.5">Hugo a r\u00e9pondu</div>
+            </div>
+          </div>
+          {/* Row 2 : R\u00e9ceptions + reply rate */}
+          {(splitMetrics.inboundsTotal24h ?? 0) > 0 && (
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-white/60">
+                  \ud83d\udce5 {splitMetrics.inboundsTotal24h} email{(splitMetrics.inboundsTotal24h ?? 0) > 1 ? 's' : ''} re\u00e7u{(splitMetrics.inboundsTotal24h ?? 0) > 1 ? 's' : ''} (24h)
+                </span>
+                <span className={`font-bold ${(splitMetrics.replyRate24h ?? 0) >= 95 ? 'text-emerald-300' : (splitMetrics.replyRate24h ?? 0) >= 70 ? 'text-yellow-300' : 'text-red-300'}`}>
+                  {splitMetrics.replyRate24h}% r\u00e9pondu
+                </span>
+              </div>
+              <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+                <div
+                  className={`h-full transition-all ${(splitMetrics.replyRate24h ?? 0) >= 95 ? 'bg-emerald-400' : (splitMetrics.replyRate24h ?? 0) >= 70 ? 'bg-yellow-400' : 'bg-red-400'}`}
+                  style={{ width: `${Math.min(100, splitMetrics.replyRate24h ?? 0)}%` }}
+                />
+              </div>
+            </div>
+          )}
+          {/* Liste des non-r\u00e9pondus pour debug */}
+          {splitMetrics.unrepliedInbounds && splitMetrics.unrepliedInbounds.length > 0 && (
+            <details className="mt-3 rounded-lg bg-white/[0.02] border border-yellow-500/20 p-2.5">
+              <summary className="text-[11px] text-yellow-300 cursor-pointer font-medium">
+                \u26a0\ufe0f {splitMetrics.unrepliedInbounds.length} email{splitMetrics.unrepliedInbounds.length > 1 ? 's' : ''} non r\u00e9pondu{splitMetrics.unrepliedInbounds.length > 1 ? 's' : ''} \u2014 clique pour voir pourquoi
+              </summary>
+              <div className="mt-2 space-y-1.5 max-h-40 overflow-y-auto">
+                {splitMetrics.unrepliedInbounds.map((u, i) => (
+                  <div key={i} className="text-[10px] text-white/60 px-2 py-1 rounded bg-white/[0.02] border border-white/5">
+                    <span className="text-white/80 font-medium">{u.from}</span> \u2014 <span className="text-yellow-300/80">{u.decision}</span> ({u.classification})
+                    <span className="text-white/30 ml-1">\u00b7 {new Date(u.received_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
+                  </div>
+                ))}
+              </div>
+            </details>
+          )}
+        </div>
+      )}
 
       {/* Quick actions */}
       <div className="flex flex-wrap gap-2 mt-3">

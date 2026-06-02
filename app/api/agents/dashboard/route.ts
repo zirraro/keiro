@@ -395,7 +395,7 @@ async function getEmailData(
   // Prospects for email stats
   const query = supabase
     .from('crm_prospects')
-    .select('email_sequence_status, email_sequence_step, email_open_count, email_click_count');
+    .select('email_sequence_status, email_sequence_step, email_open_count, email_click_count, last_email_sent_at');
 
   if (orgId) {
     query.eq('org_id', orgId);
@@ -405,6 +405,72 @@ async function getEmailData(
 
   const { data: prospects } = await query;
   const prospectList = prospects ?? [];
+
+  // Founder ask 2026-06-02: split the email-sent metric into:
+  //   - First-sends  (prospects whose first email landed in the window)
+  //   - Follow-ups   (prospects whose later step landed in the window)
+  //   - Hugo replies (auto-reply count from agent_logs)
+  //   - Inbound replies (prospects who replied; unreplied flag set if Hugo couldn't respond)
+  const since24h = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+  const since7d = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+
+  let firstSends24h = 0;
+  let followUps24h = 0;
+  let firstSends7d = 0;
+  let followUps7d = 0;
+  for (const p of prospectList) {
+    const ts = (p as any).last_email_sent_at;
+    if (!ts) continue;
+    const step = ((p as any).email_sequence_step as number) || 0;
+    const inWindow24h = ts >= since24h;
+    const inWindow7d = ts >= since7d;
+    if (inWindow24h) {
+      if (step <= 1) firstSends24h++; else followUps24h++;
+    }
+    if (inWindow7d) {
+      if (step <= 1) firstSends7d++; else followUps7d++;
+    }
+  }
+
+  // Hugo's reply pipeline — read from agent_logs
+  const [hugoRepliesRes, inboundsRes] = await Promise.all([
+    supabase
+      .from('agent_logs')
+      .select('id, data', { count: 'exact' })
+      .eq('agent', 'email')
+      .eq('action', 'inbound_processed')
+      .eq('status', 'ok')
+      .eq('user_id', userId)
+      .gte('created_at', since24h),
+    supabase
+      .from('agent_logs')
+      .select('id, data, created_at', { count: 'exact' })
+      .eq('agent', 'email')
+      .eq('action', 'inbound_processed')
+      .eq('user_id', userId)
+      .gte('created_at', since24h)
+      .order('created_at', { ascending: false })
+      .limit(50),
+  ]);
+
+  const hugoAutoReplied24h = (hugoRepliesRes.data || []).filter((l: any) => l.data?.decision === 'auto_replied').length;
+  const hugoBlacklisted24h = (hugoRepliesRes.data || []).filter((l: any) => l.data?.decision === 'blacklisted' || l.data?.decision === 'stopped').length;
+  const inboundsTotal24h = inboundsRes.count || 0;
+  const unrepliedInbounds = (inboundsRes.data || [])
+    .filter((l: any) => {
+      const decision = l.data?.decision;
+      return decision !== 'auto_replied' && decision !== 'blacklisted' && decision !== 'stopped' && decision !== 'ignore';
+    })
+    .map((l: any) => ({
+      from: l.data?.from || 'unknown',
+      classification: l.data?.classification || 'unknown',
+      decision: l.data?.decision || 'unknown',
+      received_at: l.created_at,
+    }));
+
+  const replyRate24h = inboundsTotal24h > 0
+    ? Math.round((hugoAutoReplied24h / Math.max(1, inboundsTotal24h - hugoBlacklisted24h)) * 100)
+    : 100; // 100% if nothing to reply to
 
   // Count by email_sequence_status
   const statusCounts: Record<string, number> = {};
@@ -495,6 +561,19 @@ async function getEmailData(
     clickRate: totalWithEmail > 0 ? Math.round((totalClicks / Math.max(totalWithEmail, 1)) * 100) : 0,
     sequenceProgress,
     recentEmails,
+    // 2026-06-02: split metrics for the panel funnel
+    splitMetrics: {
+      firstSends24h,
+      followUps24h,
+      totalSends24h: firstSends24h + followUps24h,
+      firstSends7d,
+      followUps7d,
+      hugoAutoReplied24h,
+      hugoBlacklisted24h,
+      inboundsTotal24h,
+      replyRate24h, // % of inbound prospect replies that Hugo answered (excludes blacklist/ignore)
+      unrepliedInbounds, // list (max 50) with reason — for the panel debug section
+    },
   };
 }
 

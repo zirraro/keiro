@@ -236,11 +236,15 @@ export async function POST(req: NextRequest) {
   }
 
   // needs_reply or meeting_request — generate + send a reply.
+  // 2026-06-02: pass supabase + ownerId so Hugo loads RAG learnings
+  // and adapts based on past exchanges.
   const drafted = await generateReply({
     prospect,
     dossier,
     inbound: normalized,
     classification,
+    supabase,
+    ownerUserId: ownerId,
   });
 
   if (!drafted) {

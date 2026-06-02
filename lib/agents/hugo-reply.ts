@@ -206,12 +206,31 @@ export async function generateReply(params: {
   dossier: any | null;
   inbound: InboundEmail;
   classification: InboundClassification;
+  supabase?: SupabaseClient;
+  ownerUserId?: string | null;
 }): Promise<{ subject: string; body: string } | null> {
   const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
   if (!ANTHROPIC_KEY) return null;
 
   const context = buildReplyPromptContext(params);
   const { inbound, classification } = params;
+
+  // 2026-06-02 — Hugo apprend des échanges via le RAG des learnings.
+  // Founder ask : "il s'adapte au prospect en face pour toutes reponses
+  // et apprends des echanges qu il a".
+  let learningsBlock = '';
+  if (params.supabase) {
+    try {
+      const { getActiveLearnings, getAllHistoricalLearnings, formatLearningsForPrompt } = await import('./learning');
+      const [own, global] = await Promise.all([
+        getActiveLearnings(params.supabase, 'email', undefined, undefined),
+        getAllHistoricalLearnings(params.supabase, { minConfidence: 40, limit: 10 }),
+      ]);
+      if ((own || []).length > 0 || (global || []).length > 0) {
+        learningsBlock = '\n\n=== APPRENTISSAGES DES ÉCHANGES PRÉCÉDENTS (utilise-les si pertinent) ===\n' + formatLearningsForPrompt(own || [], global || []);
+      }
+    } catch { /* RAG load is best-effort */ }
+  }
 
   const replyGuide = classification === 'needs_reply'
     ? `Le prospect a répondu humainement. Réponds à sa question/remarque précisément, cite les infos du prospect (Léo les a mises en bas) pour prouver que tu connais son business, et termine par un CTA léger (question ouverte OU proposition d'envoi de plus d'infos OU de rendez-vous). 4 à 8 lignes. Pas de formule toute faite.`
@@ -239,7 +258,7 @@ RÈGLES DURES :
 - Si tu ne peux pas répondre précisément à une question technique parce que le dossier client ne couvre pas le sujet, NE PAS INVENTER — dis simplement que tu reviens vite avec la réponse précise.
 - Sortie en JSON strict : {"subject":"Re: ...","body":"..."}.
 
-${context}`,
+${context}${learningsBlock}`,
         messages: [{ role: 'user', content: `Rédige la réponse maintenant. Objet = "Re: " + objet du prospect (ou un objet court si absent). Corps : prêt à envoyer, tutoiement si dossier dit "friendly", vouvoiement si "formal".` }],
       }),
     });
