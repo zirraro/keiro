@@ -382,9 +382,11 @@ async function pollAutoReplies() {
   }
 }
 
-// 10 min (was 5) — lower cadence to avoid tripping Meta's app-level
-// "Application request limit" when combined with the UI's per-conv polling.
-setInterval(pollAutoReplies, 10 * 60 * 1000);
+// 3 min — founder ask 2026-06-02: "l'envoi des dm doit quand meme reprendre
+// direct et en auto si ai active". 10 min was too slow when a prospect
+// replied right after a human takeover — Jade had a multi-min lag.
+// 3 min × 10 clients = 200 conv calls/h, well under Meta's app rate limits.
+setInterval(pollAutoReplies, 3 * 60 * 1000);
 // First run after 90s so the app/worker has time to finish booting.
 setTimeout(pollAutoReplies, 90_000);
 

@@ -63,7 +63,11 @@ export async function POST(req: NextRequest) {
     try {
       await supabase.from('agent_logs').insert({
         agent: 'dm_instagram',
-        action: 'dm_auto_reply',
+        // 2026-06-02 fix: was 'dm_auto_reply' which confused the cron's
+        // 10-min dedup (Jade would skip a conversation right after a manual
+        // human reply because she thought she had just auto-replied). Manual
+        // sends now log under their own action so the dedup is precise.
+        action: 'dm_human_send',
         user_id: user.id,
         status: params.ok ? 'success' : 'error',
         data: {
@@ -75,6 +79,27 @@ export async function POST(req: NextRequest) {
         },
       });
     } catch {}
+
+    // 2026-06-02 fix: after a successful human send, reset the prospect's
+    // dm_status from 'needs_human' → 'replied' so Jade can resume on the
+    // NEXT message from the prospect. Founder ask: "ai agent dm doit
+    // reprendre la discussion si activé". Without this reset, the prospect
+    // record carries the handoff flag forever and Jade stays muted.
+    // The Meta-filmed flow is untouched (the human send still goes out
+    // with HUMAN_AGENT tag when outside 24h); only the DB bookkeeping
+    // changes.
+    if (params.ok) {
+      try {
+        await supabase.from('crm_prospects')
+          .update({
+            dm_status: 'replied',
+            dm_last_outbound_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('instagram', String(recipient_id))
+          .eq('dm_status', 'needs_human');
+      } catch { /* non-fatal */ }
+    }
   };
 
   const errors: string[] = [];

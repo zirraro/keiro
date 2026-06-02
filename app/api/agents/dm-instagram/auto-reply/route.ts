@@ -186,8 +186,14 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
-        // Time-window dedup: same conversation, last 10 minutes
-        const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+        // Time-window dedup: anti-race between webhook + polling cron. 2026-06-02
+        // reduced from 10 min → 2 min: 10 min was blocking Jade from resuming
+        // legitimate follow-ups after a human reply or a quick prospect bounce.
+        // The window only needs to be long enough for IG's /messages endpoint
+        // to propagate after a webhook fire (~30s typically). Filter on
+        // action='dm_auto_reply' only — manual human sends now log under
+        // 'dm_human_send' so they never trigger this dedup.
+        const twoMinAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
         const otherParticipantEarly = conv.participants?.data?.find((p: any) => !myIds.has(p.id));
         const senderIdEarly = otherParticipantEarly?.id || lastMsg.from?.id;
         if (senderIdEarly) {
@@ -197,12 +203,12 @@ export async function POST(req: NextRequest) {
             .eq('agent', 'dm_instagram')
             .eq('action', 'dm_auto_reply')
             .contains('data', { sender_id: senderIdEarly })
-            .gte('created_at', tenMinAgo)
+            .gte('created_at', twoMinAgo)
             .limit(1)
             .maybeSingle();
           if (recentReply) {
-            console.log(`[DM-AutoReply] Skip ${senderIdEarly} — replied within last 10min (webhook race guard)`);
-            skipReasons.push({ conv_id: conv.id, sender: senderUsernameForLog, reason: 'dedup_window_10min', detail: 'replied to this sender within the last 10 min (webhook race guard)' });
+            console.log(`[DM-AutoReply] Skip ${senderIdEarly} — replied within last 2min (webhook race guard)`);
+            skipReasons.push({ conv_id: conv.id, sender: senderUsernameForLog, reason: 'dedup_window_2min', detail: 'auto-reply fired for this sender within the last 2 min (anti-race webhook+polling)' });
             skipped++;
             continue;
           }
