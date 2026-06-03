@@ -960,7 +960,7 @@ function HomeKeiroInner() {
             </div>
 
             {/* Exemple 3: Coach */}
-            <div className="rounded-xl border border-neutral-200 dark:border-white/10 overflow-hidden bg-white dark:bg-white/5 sm:col-span-2 lg:col-span-1">
+            <div className="rounded-xl border border-neutral-200 dark:border-white/10 overflow-hidden bg-white dark:bg-white/5">
               <div className="relative aspect-square bg-gradient-to-br from-cyan-100 to-blue-50 dark:from-cyan-900/30 dark:to-blue-900/30 flex items-center justify-center">
                 <div className="text-center px-4">
                   <div className="text-4xl mb-2">{'\u{1F4AA}'}</div>
@@ -977,6 +977,72 @@ function HomeKeiroInner() {
                   <span className="text-[10px] text-neutral-400">{'\u2764\uFE0F'} 2.1K</span>
                   <span className="text-[10px] text-neutral-400">{'\u{1F4AC}'} 156</span>
                   <span className="text-[10px] text-neutral-400">{'\u{1F4E9}'} 234 saves</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Exemple 4: Fleuriste */}
+            <div className="rounded-xl border border-neutral-200 dark:border-white/10 overflow-hidden bg-white dark:bg-white/5">
+              <div className="relative aspect-square bg-gradient-to-br from-rose-100 to-pink-50 dark:from-rose-900/30 dark:to-pink-900/30 flex items-center justify-center">
+                <div className="text-center px-4">
+                  <div className="text-4xl mb-2">{'\u{1F490}'}</div>
+                  <div className="bg-black/70 backdrop-blur-sm text-white px-4 py-2 rounded-lg text-sm font-bold">{locale === 'fr' ? 'Le bouquet qui rend tout le monde fou cette semaine' : 'The bouquet everyone is obsessing over this week'}</div>
+                </div>
+                <div className="absolute top-2 right-2 bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">KeiroAI</div>
+              </div>
+              <div className="p-3">
+                <p className="text-[11px] text-neutral-700 dark:text-white/70 leading-relaxed">
+                  <span className="font-bold">{'\u{1F33C}'} {locale === 'fr' ? 'Tendance saisonnière :' : 'Seasonal trend:'}</span> {locale === 'fr' ? 'Les pivoines sont de retour et ce fleuriste a vendu sa production en 48h via Insta...' : 'Peonies are back and this florist sold out in 48h via Insta...'}{'\n'}
+                  <span className="text-[10px] text-blue-500">{locale === 'fr' ? '#FleuristeParis #Pivoine #BouquetSaison #FlowerLover' : '#FloristParis #Peonies #SeasonalFlowers #FlowerLover'}</span>
+                </p>
+                <div className="flex items-center gap-3 mt-2 pt-2 border-t border-neutral-100 dark:border-white/5">
+                  <span className="text-[10px] text-neutral-400">{'❤️'} 1.8K</span>
+                  <span className="text-[10px] text-neutral-400">{'\u{1F4AC}'} 124</span>
+                  <span className="text-[10px] text-neutral-400">{'\u{1F4E9}'} 412 saves</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Exemple 5: Boulangerie */}
+            <div className="rounded-xl border border-neutral-200 dark:border-white/10 overflow-hidden bg-white dark:bg-white/5">
+              <div className="relative aspect-square bg-gradient-to-br from-amber-100 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/30 flex items-center justify-center">
+                <div className="text-center px-4">
+                  <div className="text-4xl mb-2">{'\u{1F950}'}</div>
+                  <div className="bg-black/70 backdrop-blur-sm text-white px-4 py-2 rounded-lg text-sm font-bold">{locale === 'fr' ? 'On lance la viennoiserie tendance de l’automne' : 'Launching autumn’s most-anticipated pastry today'}</div>
+                </div>
+                <div className="absolute top-2 right-2 bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">KeiroAI</div>
+              </div>
+              <div className="p-3">
+                <p className="text-[11px] text-neutral-700 dark:text-white/70 leading-relaxed">
+                  <span className="font-bold">{'\u{1F35E}'} {locale === 'fr' ? 'Lancement coordonné :' : 'Coordinated launch:'}</span> {locale === 'fr' ? 'Reel + 3 stories planifiés à 9h, 12h, 18h. Stock écoulé avant la fermeture.' : 'Reel + 3 stories scheduled at 9am, 12pm, 6pm. Sold out before closing.'}{'\n'}
+                  <span className="text-[10px] text-blue-500">{locale === 'fr' ? '#BoulangerieParis #ViennoiserieMaison #Patisserie #FoodLover' : '#BakeryParis #ArtisanBread #Pastry #FoodLover'}</span>
+                </p>
+                <div className="flex items-center gap-3 mt-2 pt-2 border-t border-neutral-100 dark:border-white/5">
+                  <span className="text-[10px] text-neutral-400">{'❤️'} 3.4K</span>
+                  <span className="text-[10px] text-neutral-400">{'\u{1F4AC}'} 198</span>
+                  <span className="text-[10px] text-neutral-400">{'\u{1F4E9}'} 287 saves</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Exemple 6: Studio yoga */}
+            <div className="rounded-xl border border-neutral-200 dark:border-white/10 overflow-hidden bg-white dark:bg-white/5">
+              <div className="relative aspect-square bg-gradient-to-br from-emerald-100 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 flex items-center justify-center">
+                <div className="text-center px-4">
+                  <div className="text-4xl mb-2">{'\u{1F9D8}'}</div>
+                  <div className="bg-black/70 backdrop-blur-sm text-white px-4 py-2 rounded-lg text-sm font-bold">{locale === 'fr' ? 'Le défi 30 jours qui remplit vos cours' : 'The 30-day challenge that fills every class'}</div>
+                </div>
+                <div className="absolute top-2 right-2 bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">KeiroAI</div>
+              </div>
+              <div className="p-3">
+                <p className="text-[11px] text-neutral-700 dark:text-white/70 leading-relaxed">
+                  <span className="font-bold">{'\u{1F4C5}'} {locale === 'fr' ? 'Série planifiée 30j :' : '30-day planned series:'}</span> {locale === 'fr' ? '30 reels courts, 1 par jour, 100% pilotés par Léna. +218% de nouveaux inscrits.' : '30 short reels, one per day, 100% driven by Léna. +218% new signups.'}{'\n'}
+                  <span className="text-[10px] text-blue-500">{locale === 'fr' ? '#YogaStudio #Challenge30Jours #YogaParis #Wellness' : '#YogaStudio #30DayChallenge #YogaLondon #Wellness'}</span>
+                </p>
+                <div className="flex items-center gap-3 mt-2 pt-2 border-t border-neutral-100 dark:border-white/5">
+                  <span className="text-[10px] text-neutral-400">{'❤️'} 4.7K</span>
+                  <span className="text-[10px] text-neutral-400">{'\u{1F4AC}'} 312</span>
+                  <span className="text-[10px] text-neutral-400">{'\u{1F4E9}'} 528 saves</span>
                 </div>
               </div>
             </div>

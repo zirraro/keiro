@@ -785,8 +785,47 @@ async function publishToInstagram(
     }
 
     // Build caption with hashtags — visually clean formatting
-    const hashtagsArr = Array.isArray(post.hashtags) ? post.hashtags : [];
-    const rawCaption = (post.caption || '').trim();
+    let hashtagsArr = Array.isArray(post.hashtags) ? post.hashtags : [];
+    let rawCaption = (post.caption || '').trim();
+
+    // 2026-06-03 — Pre-publish guardrails. Catches Meta/TikTok policy
+    // violations (hate, medical/finance claims, shadow-banned tags,
+    // foreign watermarks) BEFORE the API call. Blocked posts go back to
+    // 'draft' so the founder can review; warnings ship the sanitized
+    // version.
+    try {
+      const { checkPublishGuardrails, logGuardrails } = await import('@/lib/moderation/content-guardrails');
+      const gr = await checkPublishGuardrails({
+        platform: 'instagram',
+        caption: rawCaption,
+        hashtags: hashtagsArr,
+        videoUrl: post.video_url,
+        visualSource: (post as any).visual_source || 'ai_generated',
+      });
+      if (effectivePostOwnerId && post.id) {
+        await logGuardrails(supabase, effectivePostOwnerId, post.id, gr, 'instagram');
+      }
+      if (!gr.ok) {
+        console.warn(`[Content] Guardrails BLOCKED IG publish for ${post.id}: ${gr.blocked.join(' | ')}`);
+        if (post.id) {
+          await supabase
+            .from('content_calendar')
+            .update({
+              status: 'draft',
+              admin_notes: `Guardrails: ${gr.blocked.join(' | ')}`,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', post.id);
+        }
+        return { success: false, error: `Guardrails: ${gr.blocked[0]}` };
+      }
+      // Apply sanitized caption + hashtags
+      rawCaption = gr.sanitized.caption;
+      hashtagsArr = gr.sanitized.hashtags;
+    } catch (e: any) {
+      console.warn('[Content] Guardrails check failed (non-blocking):', e?.message);
+    }
+
     // Ensure caption ends with proper spacing before hashtags
     const captionNeedsSeparator = rawCaption.length > 0 && !rawCaption.endsWith('\n');
     const hashtagLine = hashtagsArr.length > 0 ? hashtagsArr.map(h => h.startsWith('#') ? h : `#${h}`).join(' ') : '';
@@ -1526,8 +1565,47 @@ async function publishToTikTok(
       }
     }
 
-    const hashtagsArr = Array.isArray(post.hashtags) ? post.hashtags : [];
-    const rawCaptionTT = (post.caption || '').trim();
+    let hashtagsArr = Array.isArray(post.hashtags) ? post.hashtags : [];
+    let rawCaptionTT = (post.caption || '').trim();
+
+    // 2026-06-03 — Pre-publish guardrails for TikTok. Catches downrank
+    // terms (covid cure / 5g danger / etc.), > 6 hashtags, foreign IG
+    // watermark URLs. Blocked posts return to 'draft' for review.
+    try {
+      const { checkPublishGuardrails, logGuardrails } = await import('@/lib/moderation/content-guardrails');
+      const gr = await checkPublishGuardrails({
+        platform: 'tiktok',
+        caption: rawCaptionTT,
+        hashtags: hashtagsArr,
+        videoUrl: post.video_url,
+        visualSource: (post as any).visual_source || 'ai_generated',
+      });
+      // We don't have userId in this scope — pull from post if set
+      const ownerId = (post as any).user_id || null;
+      if (ownerId && post.id) {
+        await logGuardrails(supabase, ownerId, post.id, gr, 'tiktok');
+      }
+      if (!gr.ok) {
+        console.warn(`[Content] Guardrails BLOCKED TikTok publish for ${post.id}: ${gr.blocked.join(' | ')}`);
+        if (post.id) {
+          await supabase
+            .from('content_calendar')
+            .update({
+              status: 'draft',
+              admin_notes: `Guardrails: ${gr.blocked.join(' | ')}`,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', post.id);
+        }
+        await releaseTtClaim();
+        return { success: false, error: `Guardrails: ${gr.blocked[0]}` };
+      }
+      rawCaptionTT = gr.sanitized.caption;
+      hashtagsArr = gr.sanitized.hashtags;
+    } catch (e: any) {
+      console.warn('[Content] Guardrails check failed (non-blocking):', e?.message);
+    }
+
     const hashtagLineTT = hashtagsArr.length > 0 ? hashtagsArr.map((h: string) => h.startsWith('#') ? h : `#${h}`).join(' ') : '';
     const fullCaption = rawCaptionTT + (hashtagLineTT ? '\n\n' + hashtagLineTT : '');
 

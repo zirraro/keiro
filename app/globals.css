@@ -471,9 +471,15 @@ main, .fix-pointer {
 }
 
 @keyframes float-blob {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(30px, -20px) scale(1.05); }
-  66% { transform: translate(-20px, 15px) scale(0.95); }
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(20px, -15px, 0); }
+}
+
+/* Honour user preference — disable blob drift for motion-sensitive users */
+@media (prefers-reduced-motion: reduce) {
+  @keyframes float-blob {
+    0%, 100% { transform: translate3d(0, 0, 0); }
+  }
 }
 
 @keyframes shimmer {
