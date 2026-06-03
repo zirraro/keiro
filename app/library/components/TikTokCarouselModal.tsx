@@ -346,8 +346,22 @@ export default function TikTokCarouselModal({ images, onClose }: TikTokCarouselM
       const data = await response.json();
 
       if (data.ok) {
-        const successMessage = `${t.library.tkcSuccessTitle}\n\n${data.post.imageCount} ${t.library.tkcSuccessImages}\n${t.library.tkcSuccessEngagement}\n\n${t.library.tkcSuccessCongrats}`;
-        alert(successMessage);
+        // 2026-06-04 — TikTok app non-audited fallback. Quand l'API
+        // tombe sur MEDIA_UPLOAD au lieu de DIRECT_POST (cas
+        // unaudited_client), le carrousel n'est PAS publié en live —
+        // il atterrit dans la boîte de réception de l'app TikTok et
+        // doit être finalisé manuellement. Sans cet écran, le
+        // founder/client ne sait pas que le post est en attente.
+        if (data.is_draft) {
+          alert(
+            (data.message || 'Carrousel envoyé en boîte de réception TikTok') +
+            '\n\n📲 Ouvre l\'app TikTok → notification "Brouillon prêt" ou Profil → menu → Brouillons → tape "Publier".\n\n' +
+            'Cette étape disparaîtra une fois ton app TikTok approuvée (Content Posting API audit).'
+          );
+        } else {
+          const successMessage = `${t.library.tkcSuccessTitle}\n\n${data.post.imageCount} ${t.library.tkcSuccessImages}\n${t.library.tkcSuccessEngagement}\n\n${t.library.tkcSuccessCongrats}`;
+          alert(successMessage);
+        }
         onClose();
       } else {
         throw new Error(data.error || t.library.publishError);
