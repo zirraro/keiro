@@ -18,50 +18,25 @@ import { saveLearning, saveAgentFeedback } from '@/lib/agents/learning';
 import { sendPublishNotification } from '@/lib/agents/publish-notification';
 
 // ──────────────────────────────────────
-// 2026-06-03 — Gemini-first for captions/hashtags (cost optim).
-// Gemini Pro 1.5 = 2-3x moins cher que Claude Haiku, qualité équivalente
-// pour les captions FR. Claude reste fallback si Gemini indispo.
-// Économie estimée: passer de 0.025€/post → ~0.005€/post sur la partie LLM.
-// (Le gros coût Bytedance reste séparé — voir lib/visuals.)
-//
-// Toggle: si l'env CONTENT_FORCE_CLAUDE=1 est mis, on bascule en Claude
-// (utile pour A/B test qualité).
+// 2026-06-03 v2 — Smart LLM router for Lena.
+// - Simple captions/hashtags → Gemini (parité qualité, 3x cheaper)
+// - Complex briefs (mix 2 univers, news integration, client photos remix
+//   → Sonnet directs Bytedance better)
+// The router lib (lib/agents/llm-router.ts) handles fallback to Sonnet
+// if Gemini fails. Founder ask: keep quality where it matters.
 // ──────────────────────────────────────
 async function callClaude({ system, message, maxTokens = 2000 }: { system: string; message: string; maxTokens?: number }): Promise<string> {
-  const forceClaude = process.env.CONTENT_FORCE_CLAUDE === '1';
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-
-  // Default: Gemini first (cheaper)
-  if (!forceClaude) {
-    try {
-      const { callGemini } = await import('@/lib/agents/gemini');
-      return await callGemini({ system, message, maxTokens });
-    } catch (e: any) {
-      console.warn('[Content/callClaude] Gemini failed, falling back to Claude:', String(e?.message || e).slice(0, 150));
-      // fall through to Claude
-    }
-  }
-
-  if (apiKey) {
-    try {
-      const client = new Anthropic({ apiKey });
-      const response = await client.messages.create({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: maxTokens,
-        system,
-        messages: [{ role: 'user', content: message }],
-      });
-      return response.content
-        .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-        .map(b => b.text)
-        .join('');
-    } catch (e: any) {
-      console.warn('[Content/callClaude] Claude unavailable too:', String(e?.message || e).slice(0, 150));
-    }
-  }
-  // Last resort: Gemini even if forceClaude (Claude failed)
-  const { callGemini } = await import('@/lib/agents/gemini');
-  return callGemini({ system, message, maxTokens });
+  const { smartLlmCall, detectLenaComplexity } = await import('@/lib/agents/llm-router');
+  const complexity = detectLenaComplexity(message);
+  const r = await smartLlmCall({
+    agent: 'lena',
+    complexity,
+    system,
+    message,
+    maxTokens,
+    callTag: 'content',
+  });
+  return r.text;
 }
 
 export const runtime = 'nodejs';

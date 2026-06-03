@@ -183,16 +183,16 @@ export async function GET(req: NextRequest) {
   };
 
   // Plan inclusion map: which agents are part of each plan
-  // Créateur (49€): content + dm + (no email, no commercial, no gmaps)
-  // Pro (99€): content + dm + email + commercial + gmaps + marketing
-  // Business (199€): all of the above + ceo + seo + amit + retention + instagram_comments
+  // 2026-06-03 — Créateur 49€ : Lena + Jade + Clara + Ami (no email/commercial/Léo)
+  // Pro 99€ : Créateur + Hugo (emails) + Léo (commercial/Places)
+  // Business 199€ : Pro + ceo/seo/amit/retention/IG comments
   const PLAN_INCLUDED_AGENTS: Record<string, Set<string>> = {
-    createur: new Set(['content', 'dm_instagram', 'chatbot']),
-    pro: new Set(['content', 'dm_instagram', 'email', 'commercial', 'gmaps', 'marketing', 'chatbot', 'instagram_comments']),
-    business: new Set(['content', 'dm_instagram', 'email', 'commercial', 'gmaps', 'marketing', 'chatbot', 'instagram_comments', 'ceo', 'seo', 'amit', 'retention', 'onboarding']),
-    fondateurs: new Set(['content', 'dm_instagram', 'email', 'commercial', 'gmaps', 'marketing', 'chatbot', 'instagram_comments', 'ceo', 'seo', 'amit', 'retention', 'onboarding']),
-    elite: new Set(['content', 'dm_instagram', 'email', 'commercial', 'gmaps', 'marketing', 'chatbot', 'instagram_comments', 'ceo', 'seo', 'amit', 'retention', 'onboarding']),
-    agence: new Set(['content', 'dm_instagram', 'email', 'commercial', 'gmaps', 'marketing', 'chatbot', 'instagram_comments', 'ceo', 'seo', 'amit', 'retention', 'onboarding']),
+    createur: new Set(['content', 'dm_instagram', 'chatbot', 'marketing']),
+    pro: new Set(['content', 'dm_instagram', 'chatbot', 'marketing', 'email', 'commercial', 'gmaps', 'instagram_comments']),
+    business: new Set(['content', 'dm_instagram', 'chatbot', 'marketing', 'email', 'commercial', 'gmaps', 'instagram_comments', 'ceo', 'seo', 'amit', 'retention', 'onboarding']),
+    fondateurs: new Set(['content', 'dm_instagram', 'chatbot', 'marketing', 'email', 'commercial', 'gmaps', 'instagram_comments', 'ceo', 'seo', 'amit', 'retention', 'onboarding']),
+    elite: new Set(['content', 'dm_instagram', 'chatbot', 'marketing', 'email', 'commercial', 'gmaps', 'instagram_comments', 'ceo', 'seo', 'amit', 'retention', 'onboarding']),
+    agence: new Set(['content', 'dm_instagram', 'chatbot', 'marketing', 'email', 'commercial', 'gmaps', 'instagram_comments', 'ceo', 'seo', 'amit', 'retention', 'onboarding']),
   };
 
   // 2026-06-03 — Founder feedback: only REAL paying clients count.
@@ -383,15 +383,27 @@ export async function GET(req: NextRequest) {
   // Assumption: each client adds llm_cost similar to current test client.
   type BreakevenRow = { plan: string; breakeven_clients: number; margin_at_breakeven: number; margin_at_10x: number };
   const breakeven: BreakevenRow[] = [];
-  // 2026-06-03 v3 — per-client variable cost calibré sur la VRAIE facture mai
-  // (1 client Pro mrzirraro a généré 97.17€ de coûts variables).
-  // Créateur n'utilise QUE Lena+Jade+Clara → ~12-15€/client (Bytedance pour
-  // 25-30 posts/mois + reply visuals Jade), pas de Places ni Anthropic API.
-  // Pro = tout (Bytedance + Places + Anthropic API) ≈ 90€/client avant
-  // optimisation scale (cap Places + cache visuals).
+  // 2026-06-03 v4 — per-client variable cost calibré sur les VRAIS quotas
+  // + LLM routing intelligent (Gemini où qualité suffit, Sonnet où ça compte)
+  // + mutualisation cross-platform (1 visuel IG+TikTok+LinkedIn).
+  //
+  // Créateur 49€ (Lena+Jade+Clara+Ami) :
+  //   - 20 visuels/mois (5/sem) × 0.15€ (Bytedance + Gemini brief) = 3€
+  //   - 40 DM Jade × 0.012€ Sonnet = 0.48€
+  //   - 50 Clara conv × 0.003€ Gemini = 0.15€
+  //   - 4 Ami analyses × 0.030€ Sonnet = 0.12€
+  //   - Vidéos mix : ~5 reels × 0.25€ Seedance = 1.25€
+  //   = ~5€/client
+  //
+  // Pro 99€ (Créateur + Hugo + Léo, quotas plus hauts) :
+  //   - 40 visuels (10/sem) × 0.15€ = 6€ + 10 vidéos × 0.25 = 2.50€
+  //   - 1350 emails Hugo × 0.005€ Sonnet = 6.75€
+  //   - 400 prospects Léo × 0.025€ (Places pool + Gemini) = 10€
+  //   - 360 DM × 0.012€ + 150 Clara × 0.003€ + 10 Ami × 0.030€ = 5.10€
+  //   = ~30€/client
   const VAR_COST_PER_CLIENT_EUR: Record<string, number> = {
-    createur: 15,
-    pro: 90,
+    createur: 5,
+    pro: 30,
   };
   for (const plan of ['createur', 'pro']) {
     const revenue = REVENUE_PER_PLAN_EUR[plan];

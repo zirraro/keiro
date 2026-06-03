@@ -39,14 +39,19 @@ interface AgentFloor {
 //   Pro €99   → 4 posts / 45 emails / 32 prospects / 12 DMs = ~€22/mo → 78 % margin
 //   Business €199 → 5 / 70 / 55 / 18 = ~€36/mo → 82 % margin
 const FLOORS: Record<Plan, Partial<Record<string, number>>> = {
+  // 2026-06-03 — Founder ask: Créateur n'inclut PAS Hugo (emails) ni Léo
+  // (prospects). Plan simplifié: Lena (posts) + Jade (DMs) + Clara (chatbot)
+  // + Ami (marketing). Quotas posts à ~5/semaine = 0.7/jour (publication
+  // mutualisée Insta+TikTok+LinkedIn = 1 visuel pour 2-3 publications).
+  // Pro: Léo réduit à 13/jour = ~400 prospects/mois pour viser marge 75-80%.
   free:       {},
-  createur:   { posts_published: 2, emails_sent: 25, prospects_added: 15, dms_prepared: 6 },
-  pro:        { posts_published: 4, emails_sent: 45, prospects_added: 32, dms_prepared: 12 },
-  business:   { posts_published: 5, emails_sent: 70, prospects_added: 55, dms_prepared: 18 },
-  fondateurs: { posts_published: 5, emails_sent: 70, prospects_added: 55, dms_prepared: 18 },
-  elite:      { posts_published: 6, emails_sent: 90, prospects_added: 75, dms_prepared: 22 },
-  agence:     { posts_published: 6, emails_sent: 90, prospects_added: 75, dms_prepared: 22 },
-  admin:      { posts_published: 6, emails_sent: 100, prospects_added: 100, dms_prepared: 25 },
+  createur:   { posts_published: 1, dms_prepared: 2 }, // 1/j post, 2/j DM (auto-reply)
+  pro:        { posts_published: 2, emails_sent: 45, prospects_added: 13, dms_prepared: 12 }, // 13 prospects/j = 400/mois
+  business:   { posts_published: 3, emails_sent: 70, prospects_added: 25, dms_prepared: 18 }, // 25/j = 750/mois
+  fondateurs: { posts_published: 3, emails_sent: 70, prospects_added: 25, dms_prepared: 18 },
+  elite:      { posts_published: 4, emails_sent: 90, prospects_added: 40, dms_prepared: 22 },
+  agence:     { posts_published: 4, emails_sent: 90, prospects_added: 40, dms_prepared: 22 },
+  admin:      { posts_published: 5, emails_sent: 100, prospects_added: 100, dms_prepared: 25 },
 };
 
 const AGENTS: AgentFloor[] = [
