@@ -180,8 +180,29 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
-        // ─── Fetch prospect's Instagram profile info ──────────────
+        // ─── 2026-06-03 — Skip visual generation pour le compte test ───
+        // mrzirraro@gmail.com est notre compte de test. Quand un prospect
+        // discute avec son IG @keiro_ai, on ne génère PAS de visuel pour
+        // éviter de cramer du Bytedance sur des tests internes.
+        let isTestAccount = false;
+        try {
+          const { data: ownerForTest } = await supabase
+            .from('profiles')
+            .select('email')
+            .eq('instagram_business_account_id', recipientId)
+            .maybeSingle();
+          if (ownerForTest?.email === 'mrzirraro@gmail.com') {
+            isTestAccount = true;
+            console.log('[InstagramWebhook] Test account detected — visual generation will be skipped');
+          }
+        } catch { /* non-fatal */ }
+
+        // ─── Fetch prospect's Instagram profile info + ENRICH CRM ──────
+        // Founder ask 2026-06-03: Jade doit analyser le profil IG, mettre à
+        // jour la fiche CRM existante OU créer une nouvelle, puis générer
+        // un visuel ultra-perso APRÈS avoir cerné business + objectifs.
         let prospectProfileInfo = '';
+        let enrichedProspect = false;
         try {
           // Get admin token for Business Discovery
           const { data: adminForDiscovery } = await supabase
@@ -216,13 +237,42 @@ export async function POST(req: NextRequest) {
                       prospectProfileInfo += `\n  • ${m.caption?.substring(0, 80) || 'Sans légende'} (${m.like_count || 0} likes, ${m.media_type})`;
                     }
                   }
-                  // Update prospect in CRM with real info
+                  // 2026-06-03 — Enrichissement CRM agressif: enregistre TOUT ce qui
+                  // peut servir à Jade pour personnaliser le visuel et la convo.
                   const updates: Record<string, any> = { updated_at: now };
                   if (bd.name && (!prospect.company || prospect.company === 'Instagram')) updates.company = bd.name;
                   if (bd.followers_count) updates.abonnes = bd.followers_count;
                   if (bd.username) updates.instagram = `@${bd.username}`;
+                  // Bio → notes (concaténation, pas écrasement)
+                  if (bd.biography && (!prospect.notes || prospect.notes.length < 50)) {
+                    const bizContextNote = `Bio IG: ${bd.biography.substring(0, 200)}`;
+                    const recentCaps = (bd.media?.data || []).slice(0, 3).map((m: any) => m.caption?.substring(0, 80)).filter(Boolean).join(' | ');
+                    updates.notes = recentCaps
+                      ? `${bizContextNote}\n\nDerniers posts: ${recentCaps}`
+                      : bizContextNote;
+                  }
+                  if (bd.profile_picture_url) updates.avatar_url = bd.profile_picture_url;
                   await supabase.from('crm_prospects').update(updates).eq('id', prospect.id);
-                  console.log(`[InstagramWebhook] Enriched prospect with Business Discovery: @${bd.username}, ${bd.followers_count} followers`);
+                  // Refresh local prospect object so the prompt sees fresh data
+                  Object.assign(prospect, updates);
+                  enrichedProspect = true;
+                  console.log(`[InstagramWebhook] Enriched prospect with Business Discovery: @${bd.username}, ${bd.followers_count} followers, ${bd.media_count} posts`);
+
+                  // Activity log → traceable in CRM history
+                  try {
+                    await supabase.from('crm_activities').insert({
+                      prospect_id: prospect.id,
+                      type: 'enrichment',
+                      description: `Profil IG analysé automatiquement par Jade (Business Discovery)`,
+                      data: {
+                        username: bd.username,
+                        followers: bd.followers_count,
+                        bio: bd.biography?.substring(0, 200),
+                        media_count: bd.media_count,
+                      },
+                      created_at: now,
+                    });
+                  } catch { /* non-fatal */ }
                 }
               }
             }
@@ -400,18 +450,29 @@ Selon le signal d'achat :
 (c) PROSPECT TIÈDE / EXPLORATEUR :
     → Continue à creuser, propose un autre angle, ne brusque pas.
 
-IMAGES — REGLE DES 3 MAX :
-- IMAGES DÉJÀ ENVOYÉES : ${alreadySentImages.length}/3
-${alreadySentImages.length >= 3
-  ? '- STOP : Tu as déjà envoyé 3 exemples. Plus d\'images. Close direct : "Tu as 3 exemples, le mieux est de tester pour de vrai. C\'est gratuit 7 jours sur keiroai.com/pricing — ou on cale 15 min en visio si tu veux que je détaille."'
-  : `- Pour générer du sur-mesure : [GENERATE_IMAGE:description ultra-spécifique en anglais]
+${isTestAccount ? `
+🧪 COMPTE TEST — NE GÉNÈRE AUCUNE IMAGE
+Ce DM provient du compte de test interne (mrzirraro). Tu ne dois JAMAIS utiliser [GENERATE_IMAGE:...] ni [SEND_SHOWCASE:...] dans cette conversation. Discute uniquement par texte pour tester le flow conversation, sans cramer du budget Bytedance.
+` : `
+IMAGES — UN SEUL EXEMPLE MAX (politique 2026-06-03) :
+- IMAGES DÉJÀ ENVOYÉES : ${alreadySentImages.length}/1
+${alreadySentImages.length >= 1
+  ? `- STOP : 1 seul exemple par prospect. Plus d'image. Tu close direct vers (a) essai gratuit 7j ou (b) RDV Calendly 15 min :
+  - Si prospect chaud : "Tu veux tester ? L'essai gratuit 7j est sur keiroai.com/pricing, 0€ débité pendant 7 jours."
+  - Si prospect hésite : "On cale 15 min en visio, je te montre live + tu décides. Tu prends un créneau ici : ${process.env.NEXT_PUBLIC_SETUP_CALL_URL || 'https://cal.com/keiroai/setup-30min'}"
+  - JAMAIS regénérer une image après le 1er exemple.`
+  : `- Pour générer LE SEUL visuel : [GENERATE_IMAGE:description ultra-spécifique en anglais combinant son business + l'objectif qu'il a évoqué]
 - Le système envoie l'image AUTOMATIQUEMENT après ton texte.
-- JAMAIS renvoyer la même image. Toujours TYPE DIFFÉRENT.
-- N'envoie un visuel que si le prospect l'a explicitement validé OU si tu as déjà cerné son business + objectif.`}
+- N'envoie le visuel QUE quand :
+  (a) tu as cerné son business ET son objectif spécifique (ce qu'il veut mettre en avant)
+  (b) le prospect a confirmé qu'il veut voir un exemple
+- Le visuel doit être ULTRA personnalisé. Pas générique. Cite son secteur précis + son angle (produit phare, ambiance, promo, avant/après...)
+- APRÈS ce visuel unique : focus 100% conversion (essai 7j ou RDV).`}
+`}
 
 PSYCHOLOGIE DE CLOSING :
 - Tu es un closer bienveillant. Tu sens le moment où le prospect est prêt.
-- Après chaque visuel : "Ça te parle ?" → évalue l'intérêt
+- Après LE visuel unique : "Ça te parle ?" → évalue l'intérêt → propose essai 7j ou RDV
 - Si oui → propose essai gratuit OU rdv selon son niveau d'engagement
 - Ne brusque jamais. Si le prospect hésite, repose une question ouverte sur son business.
 
@@ -540,8 +601,12 @@ ${history ? `\nCONVERSATION :\n${history}` : ''}${businessContext}${ragContext}`
         }
 
         // Check if Jade wants to generate a personalized image
+        // 2026-06-03 — Skip si :
+        //   - compte test (mrzirraro) → économie Bytedance
+        //   - prospect a déjà 1 visuel envoyé → politique "1 max"
         const generateMatch = aiReply.match(/\[GENERATE_IMAGE:([^\]]+)\]/);
-        if (generateMatch && !imageToSend) {
+        const shouldSkipGen = isTestAccount || (alreadySentImages.length >= 1);
+        if (generateMatch && !imageToSend && !shouldSkipGen) {
           const imgPrompt = generateMatch[1].trim();
           aiReply = aiReply.replace(/\[GENERATE_IMAGE:[^\]]+\]/, '').trim();
           try {
@@ -579,8 +644,8 @@ ${history ? `\nCONVERSATION :\n${history}` : ''}${businessContext}${ragContext}`
         }
 
         // If no image found from showcase but AI wanted to send one, generate via Seedream
-        // This handles ANY business type — not limited to DB categories
-        if (!imageToSend && (showcaseMatch || generateMatch)) {
+        // 2026-06-03 — Skip pour compte test + 1-max policy
+        if (!imageToSend && (showcaseMatch || generateMatch) && !isTestAccount && alreadySentImages.length < 1) {
           try {
             const seedreamUrl = process.env.SEEDREAM_API_URL || 'https://ark.ap-southeast.bytepluses.com/api/v3/images/generations';
             const seedreamKey = (process.env.SEEDREAM_API_KEY || process.env.ARK_API_KEY || '341cd095-2c11-49da-82e7-dc2db23c565c').replace(/\\n/g, '').trim();
@@ -765,10 +830,14 @@ ${history ? `\nCONVERSATION :\n${history}` : ''}${businessContext}${ragContext}`
               }
 
               // Send image via Instagram API.
-              // 2026-06-03 FIX: même bug que le texte — utilisait le mauvais token.
-              // Maintenant on essaie IGAA en premier (graph.instagram.com), seul
-              // token accepté par Meta pour les DMs depuis 2024.
-              if (imageToSend && sendSuccess) {
+              // 2026-06-03 v2 — Verify delivery via Meta API response.
+              // Now captures the message_id returned by Meta for traceability.
+              // If Meta returns success, message_id confirms attachment landed.
+              // If failure → image_delivery='failed' + retry with text fallback.
+              let imgMessageId: string | null = null;
+              let imgError: string | null = null;
+
+              if (imageToSend && sendSuccess && !isTestAccount) {
                 await new Promise(r => setTimeout(r, 1500));
                 let imgSent = false;
 
@@ -784,11 +853,14 @@ ${history ? `\nCONVERSATION :\n${history}` : ''}${businessContext}${ragContext}`
                         access_token: profile.instagram_igaa_token,
                       }),
                     });
-                    if (igaaImgRes.ok) {
+                    const igaaJson = await igaaImgRes.json().catch(() => ({}));
+                    if (igaaImgRes.ok && igaaJson.message_id) {
                       imgSent = true;
-                      console.log('[InstagramWebhook] Image sent via IGAA token (primary)');
+                      imgMessageId = igaaJson.message_id;
+                      console.log(`[InstagramWebhook] Image sent via IGAA token — message_id=${imgMessageId}`);
                     } else {
-                      console.warn('[InstagramWebhook] IGAA image failed:', (await igaaImgRes.text()).substring(0, 200));
+                      imgError = `IGAA: ${JSON.stringify(igaaJson).substring(0, 200)}`;
+                      console.warn('[InstagramWebhook] IGAA image failed:', imgError);
                     }
                   } catch (e: any) { console.warn('[InstagramWebhook] IGAA image error:', e.message?.substring(0, 100)); }
                 }
@@ -805,18 +877,20 @@ ${history ? `\nCONVERSATION :\n${history}` : ''}${businessContext}${ragContext}`
                         access_token: profile.instagram_access_token,
                       }),
                     });
-                    if (igImgRes.ok) {
+                    const igJson = await igImgRes.json().catch(() => ({}));
+                    if (igImgRes.ok && igJson.message_id) {
                       imgSent = true;
-                      console.log('[InstagramWebhook] Image sent via legacy IG token');
+                      imgMessageId = igJson.message_id;
+                      console.log(`[InstagramWebhook] Image sent via legacy IG token — message_id=${imgMessageId}`);
                     } else {
-                      console.warn('[InstagramWebhook] Legacy IG image failed:', (await igImgRes.text()).substring(0, 200));
+                      imgError = `Legacy IG: ${JSON.stringify(igJson).substring(0, 200)}`;
+                      console.warn('[InstagramWebhook] Legacy IG image failed:', imgError);
                     }
                   } catch (e: any) { console.warn('[InstagramWebhook] Legacy IG image error:', e.message?.substring(0, 100)); }
                 }
 
                 // Fallback: send URL as separate text if attachment failed
                 if (!imgSent) {
-                  // 2026-06-03: use IGAA first (post-2024 standard), fallback FB
                   const urlToken = profile?.instagram_igaa_token || profile?.instagram_access_token || profile?.facebook_page_access_token;
                   const urlEndpoint = profile?.instagram_igaa_token || profile?.instagram_access_token
                     ? `https://graph.instagram.com/v21.0/me/messages`
@@ -834,6 +908,23 @@ ${history ? `\nCONVERSATION :\n${history}` : ''}${businessContext}${ragContext}`
                     console.log('[InstagramWebhook] Image URL sent as text fallback');
                   } catch {}
                 }
+
+                // 2026-06-03 — Log delivery verification result
+                if (!imgSent) {
+                  await supabase.from('agent_logs').insert({
+                    agent: 'dm_instagram',
+                    action: 'webhook_image_send_failed',
+                    status: 'error',
+                    data: {
+                      sender_id: senderId,
+                      recipient_id: recipientId,
+                      image_url: imageToSend,
+                      error: imgError || 'unknown',
+                      fallback: 'sent as URL text',
+                    },
+                    created_at: now,
+                  });
+                }
               }
 
               console.log(`[InstagramWebhook] Auto-reply sent to ${senderId}`);
@@ -845,7 +936,8 @@ ${history ? `\nCONVERSATION :\n${history}` : ''}${businessContext}${ragContext}`
               // inbound DM. Founder reported 2026-05-24 that a DM had
               // been replied to twice — root cause was this missing
               // field on the webhook side.
-              const imgDelivered = imageToSend ? 'sent' : null;
+              // 2026-06-03 — Vrai statut delivery basé sur retour Meta
+              const imgDelivered = !imageToSend ? null : imgMessageId ? 'sent_confirmed' : 'sent_failed';
               await supabase.from('agent_logs').insert({
                 agent: 'dm_instagram',
                 action: 'dm_auto_reply',
@@ -859,6 +951,10 @@ ${history ? `\nCONVERSATION :\n${history}` : ''}${businessContext}${ragContext}`
                   direction: 'outbound',
                   image_sent: imageToSend || null,
                   image_delivery: imgDelivered,
+                  image_message_id: imgMessageId, // Meta API confirmation ID
+                  image_error: imgError,
+                  enriched_from_ig_profile: enrichedProspect,
+                  test_account_skip_visual: isTestAccount,
                   method: 'webhook',
                 },
                 created_at: now,
