@@ -46,7 +46,7 @@ const FLOORS: Record<Plan, Partial<Record<string, number>>> = {
   // Pro: Léo réduit à 13/jour = ~400 prospects/mois pour viser marge 75-80%.
   free:       {},
   createur:   { posts_published: 1, dms_prepared: 2 }, // 1/j post, 2/j DM (auto-reply)
-  pro:        { posts_published: 2, emails_sent: 45, prospects_added: 13, dms_prepared: 12 }, // 13 prospects/j = 400/mois
+  pro:        { posts_published: 2, emails_sent: 45, prospects_added: 10, dms_prepared: 12 }, // 10 prospects/j = ~300/mois
   business:   { posts_published: 3, emails_sent: 70, prospects_added: 25, dms_prepared: 18 }, // 25/j = 750/mois
   fondateurs: { posts_published: 3, emails_sent: 70, prospects_added: 25, dms_prepared: 18 },
   elite:      { posts_published: 4, emails_sent: 90, prospects_added: 40, dms_prepared: 22 },

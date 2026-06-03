@@ -671,90 +671,49 @@ ${history ? `\nCONVERSATION :\n${history}` : ''}${businessContext}${ragContext}`
           const imgPrompt = generateMatch[1].trim();
           aiReply = aiReply.replace(/\[GENERATE_IMAGE:[^\]]+\]/, '').trim();
 
-          // 2026-06-03 — STEP 1: try cache reuse first.
-          // Match by prospect sector (or business_type) for any visual NOT
-          // sent to the current prospect yet. Founder ask: "on garde les
-          // generation faite qui serviron tres certainement à d'autres
-          // prospects/clients avec le temps".
+          // 2026-06-03 v3 — Cache cross-client RETIRÉ.
+          // Founder décision : trop risqué de réutiliser entre clients
+          // (zones géographiques proches, clients qui se connaissent,
+          // photos liées à business spécifique). Le cache est gardé en DB
+          // pour audit/learning mais PLUS DE LOOKUP pour réutilisation.
           const prospectSector = (prospect.type || '').toLowerCase().trim();
-          if (prospectSector && !isUnlimitedSender) {
-            try {
-              const { data: cacheCandidates } = await supabase
-                .from('dm_visual_cache')
-                .select('id, image_url, prompt, usage_count, positive_signals, original_sender_id')
-                .eq('sector', prospectSector)
-                .neq('original_sender_id', senderId) // ne pas redonner le visuel généré pour ce prospect
-                .order('positive_signals', { ascending: false })
-                .order('usage_count', { ascending: false })
-                .limit(5);
-              const candidate = (cacheCandidates || []).find((c: any) =>
-                // Pas déjà envoyé dans cette conversation
-                !alreadySentImages.includes(c.image_url)
-              );
-              if (candidate) {
-                imageToSend = candidate.image_url;
-                cacheReuseId = candidate.id;
-                console.log(`[InstagramWebhook] ♻️  Cache hit for sector=${prospectSector} (visual reused, usage_count=${candidate.usage_count})`);
-                // Increment usage
-                await supabase.from('dm_visual_cache')
-                  .update({ usage_count: (candidate.usage_count || 0) + 1, last_used_at: now })
-                  .eq('id', candidate.id);
-              }
-            } catch (cacheErr: any) {
-              console.warn('[InstagramWebhook] Cache lookup failed:', cacheErr?.message?.substring(0, 100));
-            }
-          }
+          // (no cache lookup — always generate fresh)
 
-          // STEP 2: si pas de match cache → vraie génération Seedream
+          // STEP 2: génération via le router (Flux Schnell default, Seedream pour complex)
           if (!imageToSend) {
             try {
-              const seedreamUrl = process.env.SEEDREAM_API_URL || 'https://ark.ap-southeast.bytepluses.com/api/v3/images/generations';
-              const seedreamKey = process.env.SEEDREAM_API_KEY || process.env.ARK_API_KEY || '341cd095-2c11-49da-82e7-dc2db23c565c';
-              const cleanKey = seedreamKey.replace(/\\n/g, '').trim();
-              console.log(`[InstagramWebhook] Generating personalized image: ${imgPrompt.substring(0, 80)}`);
-              const genRes = await fetch(seedreamUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${cleanKey}` },
-                body: JSON.stringify({
-                  model: 'seedream-4-5-251128',
-                  prompt: imgPrompt + '. Ultra high quality, professional marketing visual, cinematic lighting, modern premium aesthetic, social media ready, no text, no words, no letters, no watermarks',
-                  negative_prompt: 'text, words, letters, numbers, writing, typography, signs, labels, watermarks, logos, low quality, blurry',
-                  response_format: 'url',
-                  watermark: false,
-                  size: '1024x1024',
-                  seed: -1,
-                }),
-                signal: AbortSignal.timeout(30000),
+              const { generateImage, detectImageComplexity } = await import('@/lib/visuals/image-provider');
+              const complexity = detectImageComplexity(imgPrompt);
+              const genResult = await generateImage({
+                prompt: imgPrompt,
+                complexity,
+                size: '1024x1024',
+                callTag: `webhook_dm_${senderId.substring(0, 8)}`,
               });
-              if (genRes.ok) {
-                const genData = await genRes.json();
-                const generatedUrl = genData.data?.[0]?.url || genData.images?.[0]?.url || genData.url;
-                if (generatedUrl) {
-                  imageToSend = generatedUrl;
-                  console.log(`[InstagramWebhook] Image generated: ${generatedUrl.substring(0, 80)}`);
+              if (genResult?.url) {
+                imageToSend = genResult.url;
+                console.log(`[InstagramWebhook] Image generated via ${genResult.provider} (${genResult.cost_eur_estimate}€): ${genResult.url.substring(0, 80)}`);
 
-                  // STEP 3: save to cache for future prospects of same sector
-                  try {
-                    const promptHash = imgPrompt.toLowerCase().replace(/[^a-z0-9]+/g, '').substring(0, 80);
-                    await supabase.from('dm_visual_cache').insert({
-                      image_url: generatedUrl,
-                      prompt: imgPrompt.substring(0, 500),
-                      prompt_hash: promptHash,
-                      sector: prospectSector || null,
-                      business_type: prospect.type || null,
-                      sub_angle: imgPrompt.split(',')[0]?.substring(0, 80) || null,
-                      original_sender_id: senderId,
-                      source_agent: 'jade_webhook',
-                      usage_count: 1,
-                      last_used_at: now,
-                    });
-                    console.log(`[InstagramWebhook] 💾 Visual saved to cache for future prospects (sector=${prospectSector})`);
-                  } catch (cacheSaveErr: any) {
-                    console.warn('[InstagramWebhook] Cache save failed:', cacheSaveErr?.message?.substring(0, 100));
-                  }
+                // Cache (audit-only, plus utilisé pour réutilisation cross-client)
+                // mais on garde la trace pour analyse / réutilisation MANUELLE
+                // (un visuel qui a converti pourrait être pertinent pour ce client lui-même)
+                try {
+                  const promptHash = imgPrompt.toLowerCase().replace(/[^a-z0-9]+/g, '').substring(0, 80);
+                  await supabase.from('dm_visual_cache').insert({
+                    image_url: genResult.url,
+                    prompt: imgPrompt.substring(0, 500),
+                    prompt_hash: promptHash,
+                    sector: prospectSector || null,
+                    business_type: prospect.type || null,
+                    sub_angle: imgPrompt.split(',')[0]?.substring(0, 80) || null,
+                    original_sender_id: senderId,
+                    source_agent: `jade_webhook_${genResult.provider}`,
+                    usage_count: 1,
+                    last_used_at: now,
+                  });
+                } catch (cacheSaveErr: any) {
+                  console.warn('[InstagramWebhook] Cache save failed:', cacheSaveErr?.message?.substring(0, 100));
                 }
-              } else {
-                console.warn('[InstagramWebhook] Seedream API error:', genRes.status, (await genRes.text()).substring(0, 100));
               }
             } catch (genErr: any) {
               console.warn('[InstagramWebhook] Image generation failed:', genErr.message?.substring(0, 100));
