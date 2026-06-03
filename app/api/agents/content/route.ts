@@ -812,7 +812,7 @@ async function publishToInstagram(
             .from('content_calendar')
             .update({
               status: 'draft',
-              admin_notes: `Guardrails: ${gr.blocked.join(' | ')}`,
+              publish_diagnostic: `guardrails: ${gr.blocked.join(' | ')}`,
               updated_at: new Date().toISOString(),
             })
             .eq('id', post.id);
@@ -1592,7 +1592,7 @@ async function publishToTikTok(
             .from('content_calendar')
             .update({
               status: 'draft',
-              admin_notes: `Guardrails: ${gr.blocked.join(' | ')}`,
+              publish_diagnostic: `guardrails: ${gr.blocked.join(' | ')}`,
               updated_at: new Date().toISOString(),
             })
             .eq('id', post.id);
@@ -1642,7 +1642,7 @@ async function publishToTikTok(
                 .from('content_calendar')
                 .update({
                   status: 'awaiting_manual_publish',
-                  admin_notes: 'TikTok DIRECT_POST refusé (app non-audited) — finalise dans l\'app TikTok.',
+                  publish_diagnostic: 'tiktok_direct_post refusé (app non-audited) — finalise dans l\'app TikTok.',
                   updated_at: new Date().toISOString(),
                 })
                 .eq('id', post.id);
@@ -2189,17 +2189,21 @@ export async function POST(request: NextRequest) {
         if (pubPost.status === 'published') {
           return NextResponse.json({ ok: true, already_published: true, message: 'Post deja publie' });
         }
-        // Atomically claim this post (prevents double-publish from concurrent crons)
-        const { data: claimed } = await supabase.from('content_calendar')
-          .update({ status: 'publishing' })
-          .eq('id', pubPost.id)
-          .in('status', ['approved', 'draft'])
-          .select('id')
-          .single();
-        if (!claimed) {
-          return NextResponse.json({ ok: true, already_publishing: true, message: 'Post en cours de publication' });
+        // 2026-06-03 — Removed outer atomic claim. publishToInstagram /
+        // publishToTikTok each do their own claim and detect 'publishing'
+        // as 'already_claimed'. If we pre-claim here, the inner call
+        // sees 'publishing' set by US, bails as a dup-race, and the
+        // post is left half-flagged with no actual API call. Founder
+        // reported 'Post est marqué publié mais permalink null' after
+        // a manual publish.
+        if (!['approved', 'draft', 'publish_failed', 'retry_pending'].includes(pubPost.status)) {
+          return NextResponse.json({
+            ok: true,
+            already_publishing: pubPost.status === 'publishing',
+            current_status: pubPost.status,
+            message: `Post déjà en état ${pubPost.status} — pas re-publié.`,
+          });
         }
-        pubUpdate.status = 'published';
         pubUpdate.published_at = new Date().toISOString();
 
         let pubPermalink: string | undefined;
@@ -2229,10 +2233,13 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // If all platforms failed, mark as publish_failed
+        // If all platforms failed, mark as publish_failed; otherwise success.
         if (errors.length > 0 && !pubPermalink && !pubPublishId) {
           pubUpdate.status = 'publish_failed';
+          pubUpdate.publish_diagnostic = errors.join(' | ').substring(0, 500);
           delete pubUpdate.published_at;
+        } else {
+          pubUpdate.status = 'published';
         }
 
         const { error } = await supabase.from('content_calendar').update(pubUpdate).eq('id', body.postId);
