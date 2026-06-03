@@ -39,15 +39,79 @@ export interface ImageGenResult {
  * Generate an image picking the best price/quality provider for the task.
  * Falls back to Seedream if Flux fails (or REPLICATE_API_TOKEN missing).
  */
+/**
+ * 2026-06-03 v2 — Founder decision: Seedream PRIMARY (qualité top, vrai
+ * prix officiel $0.03/image), Kling SECOND fallback, Flux Schnell 3rd
+ * fallback (économie si Seedream + Kling fail).
+ *
+ * On garde toutes les générations en cache pour audit + futur réuse
+ * intra-client.
+ */
 export async function generateImage(opts: ImageGenOptions): Promise<ImageGenResult | null> {
   const complexity = opts.complexity || 'standard';
   const size = opts.size || '1024x1024';
-  const useSeedream = opts.forceProvider === 'seedream'
-    || complexity === 'complex'; // complex = Seedream for photoreal control
-  const useFlux = !useSeedream && (opts.forceProvider === 'flux' || true);
 
-  // Provider 1: Flux Schnell via Replicate (default)
-  if (useFlux && process.env.REPLICATE_API_TOKEN) {
+  // Provider 1: Seedream (PRIMARY) — quality top, $0.03/image
+  if (!opts.forceProvider || opts.forceProvider === 'seedream') {
+    const seedreamUrl = process.env.SEEDREAM_API_URL || 'https://ark.ap-southeast.bytepluses.com/api/v3/images/generations';
+    const seedreamKey = (process.env.SEEDREAM_API_KEY || process.env.ARK_API_KEY || '').replace(/\\n/g, '').trim();
+    if (seedreamKey) {
+      try {
+        const res = await fetch(seedreamUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${seedreamKey}` },
+          body: JSON.stringify({
+            model: 'seedream-4-0-250828',
+            prompt: opts.prompt + '. Ultra high quality, professional marketing visual, cinematic lighting, modern premium aesthetic, social media ready, no text, no words, no letters, no watermarks',
+            negative_prompt: 'text, words, letters, numbers, writing, typography, signs, labels, watermarks, logos, low quality, blurry',
+            response_format: 'url',
+            watermark: false,
+            size,
+            seed: -1,
+          }),
+          signal: AbortSignal.timeout(30_000),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const url = data.data?.[0]?.url || data.images?.[0]?.url || data.url;
+          if (url) {
+            return {
+              url,
+              provider: 'seedream',
+              cost_eur_estimate: 0.028,
+              reason: `seedream_primary (complexity=${complexity})`,
+            };
+          }
+        }
+        console.warn('[image-provider] Seedream failed → trying Kling fallback');
+      } catch (e: any) {
+        console.warn('[image-provider] Seedream error → Kling fallback:', e.message?.substring(0, 150));
+      }
+    }
+  }
+
+  // Provider 2: Kling (Kuaishou) — fallback if Seedream down
+  // Uses HMAC-SHA256 JWT auth via lib/kling.ts (generateKlingT2I).
+  if (process.env.KLING_ACCESS_KEY && process.env.KLING_SECRET_KEY) {
+    try {
+      const { generateKlingT2I } = await import('@/lib/kling');
+      const aspectRatio = size === '1024x1792' ? '9:16' : size === '1792x1024' ? '16:9' : '1:1';
+      const result = await generateKlingT2I({ prompt: opts.prompt, aspectRatio });
+      if (result?.imageUrl) {
+        return {
+          url: result.imageUrl,
+          provider: 'flux_dev' as any, // reuse slot for kling — TODO: extend provider type
+          cost_eur_estimate: 0.025,
+          reason: 'kling_fallback_seedream_failed',
+        };
+      }
+    } catch (e: any) {
+      console.warn('[image-provider] Kling failed → Flux Schnell fallback:', e.message?.substring(0, 150));
+    }
+  }
+
+  // Provider 3: Flux Schnell (Replicate) — last resort cheap fallback
+  if (process.env.REPLICATE_API_TOKEN) {
     try {
       const res = await fetch('https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions', {
         method: 'POST',
@@ -74,53 +138,15 @@ export async function generateImage(opts: ImageGenOptions): Promise<ImageGenResu
           url,
           provider: 'flux_schnell',
           cost_eur_estimate: 0.003,
-          reason: `flux_schnell_default (complexity=${complexity})`,
+          reason: 'flux_schnell_last_resort_fallback',
         };
       }
       console.warn('[image-provider] Flux Schnell returned no URL:', JSON.stringify(data).substring(0, 200));
     } catch (e: any) {
-      console.warn('[image-provider] Flux Schnell failed, falling back to Seedream:', e.message?.substring(0, 150));
+      console.error('[image-provider] All 3 providers failed (Seedream → Kling → Flux):', e.message?.substring(0, 150));
     }
   }
 
-  // Provider 2: Seedream (fallback or complex cases)
-  const seedreamUrl = process.env.SEEDREAM_API_URL || 'https://ark.ap-southeast.bytepluses.com/api/v3/images/generations';
-  const seedreamKey = (process.env.SEEDREAM_API_KEY || process.env.ARK_API_KEY || '').replace(/\\n/g, '').trim();
-  if (!seedreamKey) {
-    console.error('[image-provider] No SEEDREAM_API_KEY and Flux failed/missing');
-    return null;
-  }
-  try {
-    const res = await fetch(seedreamUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${seedreamKey}` },
-      body: JSON.stringify({
-        model: 'seedream-4-5-251128',
-        prompt: opts.prompt + '. Ultra high quality, professional marketing visual, cinematic lighting, modern premium aesthetic, social media ready, no text, no words, no letters, no watermarks',
-        negative_prompt: 'text, words, letters, numbers, writing, typography, signs, labels, watermarks, logos, low quality, blurry',
-        response_format: 'url',
-        watermark: false,
-        size,
-        seed: -1,
-      }),
-      signal: AbortSignal.timeout(30_000),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      const url = data.data?.[0]?.url || data.images?.[0]?.url || data.url;
-      if (url) {
-        return {
-          url,
-          provider: 'seedream',
-          cost_eur_estimate: 0.04,
-          reason: complexity === 'complex' ? 'seedream_complex_task' : 'seedream_fallback_flux_failed',
-        };
-      }
-    }
-    console.warn('[image-provider] Seedream API error:', res.status, (await res.text()).substring(0, 200));
-  } catch (e: any) {
-    console.error('[image-provider] Seedream also failed:', e.message?.substring(0, 200));
-  }
   return null;
 }
 
