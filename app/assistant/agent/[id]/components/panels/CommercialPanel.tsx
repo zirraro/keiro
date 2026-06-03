@@ -267,21 +267,21 @@ export function CommercialPanel({ data, agentName, gradientFrom, gradientTo }: P
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
         <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-2 text-center">
           <div className="text-lg font-bold text-blue-400">{stats.withEmail || 0}</div>
-          <div className="text-[9px] text-blue-400/60">{p.commercialWithEmail}</div>
+          <div className="text-[10px] text-blue-400/60">{p.commercialWithEmail}</div>
           <div className="text-[10px] text-blue-300/60">{stats.emailNotStarted || 0} à contacter</div>
         </div>
         <div className="rounded-lg bg-pink-500/10 border border-pink-500/20 p-2 text-center">
           <div className="text-lg font-bold text-pink-400">{stats.withInstagram || 0}</div>
-          <div className="text-[9px] text-pink-400/60">{p.commercialWithInstagram}</div>
+          <div className="text-[10px] text-pink-400/60">{p.commercialWithInstagram}</div>
           <div className="text-[10px] text-pink-300/60">{stats.dmNotStarted || 0} à DM</div>
         </div>
         <div className="rounded-lg bg-purple-500/10 border border-purple-500/20 p-2 text-center">
           <div className="text-lg font-bold text-purple-400">{stats.withTiktok || 0}</div>
-          <div className="text-[9px] text-purple-400/60">{p.commercialWithTiktok}</div>
+          <div className="text-[10px] text-purple-400/60">{p.commercialWithTiktok}</div>
         </div>
         <div className="rounded-lg bg-cyan-500/10 border border-cyan-500/20 p-2 text-center">
           <div className="text-lg font-bold text-cyan-400">{stats.withLinkedin || 0}</div>
-          <div className="text-[9px] text-cyan-400/60">{p.commercialWithLinkedin}</div>
+          <div className="text-[10px] text-cyan-400/60">{p.commercialWithLinkedin}</div>
         </div>
       </div>
 
@@ -289,15 +289,15 @@ export function CommercialPanel({ data, agentName, gradientFrom, gradientTo }: P
       <div className="grid grid-cols-3 gap-2 mb-3">
         <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-2 text-center">
           <div className="text-lg font-bold text-blue-400">{stats.total}</div>
-          <div className="text-[9px] text-blue-400/60">{p.commercialLabelIdentified}</div>
+          <div className="text-[10px] text-blue-400/60">{p.commercialLabelIdentified}</div>
         </div>
         <div className="rounded-lg bg-purple-500/10 border border-purple-500/20 p-2 text-center">
           <div className="text-lg font-bold text-purple-400">{contactes}</div>
-          <div className="text-[9px] text-purple-400/60">{p.commercialLabelContacted}</div>
+          <div className="text-[10px] text-purple-400/60">{p.commercialLabelContacted}</div>
         </div>
         <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-2 text-center">
           <div className="text-lg font-bold text-emerald-400">{qualifies}</div>
-          <div className="text-[9px] text-emerald-400/60">{p.commercialLabelQualified}</div>
+          <div className="text-[10px] text-emerald-400/60">{p.commercialLabelQualified}</div>
         </div>
       </div>
 
@@ -342,15 +342,15 @@ export function CommercialPanel({ data, agentName, gradientFrom, gradientTo }: P
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
                 <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-2 text-center">
                   <div className="text-lg font-bold text-emerald-400">{avgCompleteness}%</div>
-                  <div className="text-[9px] text-emerald-400/60">Complétude moyenne</div>
+                  <div className="text-[10px] text-emerald-400/60">Complétude moyenne</div>
                 </div>
                 <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-2 text-center">
                   <div className="text-lg font-bold text-blue-400">{exhaustive}/{Math.min(50, prospects.length)}</div>
-                  <div className="text-[9px] text-blue-400/60">Fiches exhaustives (70%+)</div>
+                  <div className="text-[10px] text-blue-400/60">Fiches exhaustives (70%+)</div>
                 </div>
                 <div className="rounded-lg bg-purple-500/10 border border-purple-500/20 p-2 text-center col-span-2 sm:col-span-1">
                   <div className="text-lg font-bold text-purple-400">{today}</div>
-                  <div className="text-[9px] text-purple-400/60">Ajoutés aujourd'hui</div>
+                  <div className="text-[10px] text-purple-400/60">Ajoutés aujourd'hui</div>
                 </div>
               </div>
             );
@@ -367,7 +367,7 @@ export function CommercialPanel({ data, agentName, gradientFrom, gradientTo }: P
                 >
                   <div className="flex items-center gap-2 mb-1.5">
                     <span
-                      className="text-[9px] font-bold px-2 py-0.5 rounded-full"
+                      className="text-[10px] font-bold px-2 py-0.5 rounded-full"
                       style={{ backgroundColor: `${tempColor}22`, color: tempColor }}
                     >
                       {pr.temperature || 'unscored'}
@@ -391,11 +391,11 @@ export function CommercialPanel({ data, agentName, gradientFrom, gradientTo }: P
                           }}
                         />
                       </div>
-                      <span className="text-[9px] text-white/40">{comp.pct}%</span>
+                      <span className="text-[10px] text-white/40">{comp.pct}%</span>
                     </span>
                   </div>
                   {comp.missing.length > 0 && comp.pct < 70 && (
-                    <div className="text-[9px] text-white/30 mt-1">
+                    <div className="text-[10px] text-white/30 mt-1">
                       Manque : {comp.missing.slice(0, 3).join(', ')}{comp.missing.length > 3 ? `, +${comp.missing.length - 3}` : ''}
                     </div>
                   )}
@@ -424,7 +424,7 @@ export function CommercialPanel({ data, agentName, gradientFrom, gradientTo }: P
               <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.03]">
                 <div className="w-1.5 h-1.5 rounded-full bg-purple-400" />
                 <span className="text-[10px] text-white/60 flex-1 truncate">{a.description || a.type}</span>
-                <span className="text-[9px] text-white/25">{fmtDate(a.created_at)}</span>
+                <span className="text-[10px] text-white/50">{fmtDate(a.created_at)}</span>
               </div>
             ))}
           </div>

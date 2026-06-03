@@ -108,7 +108,7 @@ function HomeKeiroInner() {
                   </div>
                   <div className="flex items-center gap-1.5 px-2 py-0.5 bg-green-500/20 rounded-full flex-shrink-0">
                     <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                    <span className="text-green-400 text-[9px] font-bold">24/7</span>
+                    <span className="text-green-400 text-[10px] font-bold">24/7</span>
                   </div>
                 </div>
 
@@ -290,7 +290,7 @@ function HomeKeiroInner() {
                   <span className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-white shadow flex items-center justify-center text-[11px] border border-neutral-100">{a.emoji}</span>
                 </div>
                 <div className="text-[10px] sm:text-xs font-bold text-neutral-900 leading-tight mt-1">{a.label}</div>
-                <div className="text-[9px] sm:text-[10px] text-neutral-500 leading-tight">{a.role}</div>
+                <div className="text-[10px] sm:text-[10px] text-neutral-500 leading-tight">{a.role}</div>
               </div>
             ))}
           </div>
@@ -570,7 +570,7 @@ function HomeKeiroInner() {
                         <img src={a.avatar} alt={a.name} className="w-9 h-9 rounded-full object-cover ring-2 ring-white/20" loading="lazy" />
                         <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-white/95 flex items-center justify-center text-[10px] shadow">{a.icon}</span>
                       </div>
-                      <div className="min-w-0"><div className="text-white text-xs font-semibold">{a.name}</div><div className="text-white/40 text-[9px] truncate">{a.role}</div></div>
+                      <div className="min-w-0"><div className="text-white text-xs font-semibold">{a.name}</div><div className="text-white/40 text-[10px] truncate">{a.role}</div></div>
                     </div>
                   ))}
                 </div>
@@ -606,7 +606,7 @@ function HomeKeiroInner() {
                         <img src={a.avatar} alt={a.name} className="w-9 h-9 rounded-full object-cover ring-2 ring-white/20" loading="lazy" />
                         <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-white/95 flex items-center justify-center text-[10px] shadow">{a.icon}</span>
                       </div>
-                      <div className="min-w-0"><div className="text-white text-xs font-semibold">{a.name}</div><div className="text-white/40 text-[9px] truncate">{a.role}</div></div>
+                      <div className="min-w-0"><div className="text-white text-xs font-semibold">{a.name}</div><div className="text-white/40 text-[10px] truncate">{a.role}</div></div>
                     </div>
                   ))}
                 </div>
@@ -639,7 +639,7 @@ function HomeKeiroInner() {
                   ].map(a => (
                     <div key={a.name} className="flex items-center gap-2 bg-white/5 rounded-lg px-2.5 py-2">
                       <span className="text-base">{a.icon}</span>
-                      <div className="min-w-0"><div className="text-white text-xs font-semibold">{a.name}</div><div className="text-white/30 text-[9px] truncate">{a.role}</div></div>
+                      <div className="min-w-0"><div className="text-white text-xs font-semibold">{a.name}</div><div className="text-white/30 text-[10px] truncate">{a.role}</div></div>
                     </div>
                   ))}
                 </div>
@@ -874,7 +874,7 @@ function HomeKeiroInner() {
                       <span className="text-xs font-medium text-neutral-700 dark:text-white/60">{ex.account}</span>
                     </div>
                     <p className="text-xs text-neutral-500 dark:text-white/40">{ex.before.caption}</p>
-                    <div className="flex gap-3 mt-2 pt-2 border-t border-neutral-100 dark:border-white/5 text-[10px] text-neutral-400 dark:text-white/20">
+                    <div className="flex gap-3 mt-2 pt-2 border-t border-neutral-100 dark:border-white/5 text-[10px] text-neutral-400 dark:text-white/45">
                       <span>{'\u2764\uFE0F'} {ex.before.likes}</span>
                       <span>{'\u{1F4AC}'} {ex.before.comments}</span>
                     </div>
@@ -893,7 +893,7 @@ function HomeKeiroInner() {
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#0c1a3a] to-purple-600 ring-1 ring-purple-500/30" />
                       <span className="text-xs font-semibold text-neutral-800 dark:text-white">{ex.account}</span>
-                      <span className="text-[9px] bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded-full font-medium">KeiroAI</span>
+                      <span className="text-[10px] bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded-full font-medium">KeiroAI</span>
                     </div>
                     <p className="text-xs text-neutral-700 dark:text-white/70 leading-relaxed">{ex.after.caption}</p>
                     <p className="text-[10px] text-blue-500 mt-1">{ex.after.hashtags}</p>
@@ -922,7 +922,7 @@ function HomeKeiroInner() {
                   <div className="text-4xl mb-2">{'\u{1F35D}'}</div>
                   <div className="bg-black/70 backdrop-blur-sm text-white px-4 py-2 rounded-lg text-sm font-bold">{locale === 'fr' ? 'Les 5 plats que tout Paris s\u2019arrache cet hiver' : 'The 5 dishes all of London is chasing this winter'}</div>
                 </div>
-                <div className="absolute top-2 right-2 bg-emerald-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full">KeiroAI</div>
+                <div className="absolute top-2 right-2 bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">KeiroAI</div>
               </div>
               <div className="p-3">
                 <p className="text-[11px] text-neutral-700 dark:text-white/70 leading-relaxed">
@@ -944,7 +944,7 @@ function HomeKeiroInner() {
                   <div className="text-4xl mb-2">{'\u2702\uFE0F'}</div>
                   <div className="bg-black/70 backdrop-blur-sm text-white px-4 py-2 rounded-lg text-sm font-bold">{locale === 'fr' ? 'Cette coupe fait fureur sur TikTok \u2014 voici pourquoi' : 'This haircut is exploding on TikTok \u2014 here\u2019s why'}</div>
                 </div>
-                <div className="absolute top-2 right-2 bg-emerald-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full">KeiroAI</div>
+                <div className="absolute top-2 right-2 bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">KeiroAI</div>
               </div>
               <div className="p-3">
                 <p className="text-[11px] text-neutral-700 dark:text-white/70 leading-relaxed">
@@ -966,7 +966,7 @@ function HomeKeiroInner() {
                   <div className="text-4xl mb-2">{'\u{1F4AA}'}</div>
                   <div className="bg-black/70 backdrop-blur-sm text-white px-4 py-2 rounded-lg text-sm font-bold">{locale === 'fr' ? 'L\u2019erreur n\u00B01 qui vous empêche de progresser' : 'The #1 mistake stopping your progress'}</div>
                 </div>
-                <div className="absolute top-2 right-2 bg-emerald-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full">KeiroAI</div>
+                <div className="absolute top-2 right-2 bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">KeiroAI</div>
               </div>
               <div className="p-3">
                 <p className="text-[11px] text-neutral-700 dark:text-white/70 leading-relaxed">
@@ -1633,7 +1633,7 @@ function HomeKeiroInner() {
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
               {/* Léna — the headline value */}
               <div className="rounded-2xl border-2 border-purple-300 bg-gradient-to-br from-purple-50 to-pink-50 p-4 shadow-md hover:shadow-lg transition relative overflow-hidden">
-                <span className="absolute top-2 right-2 text-[8px] font-bold px-1.5 py-0.5 bg-purple-600 text-white rounded uppercase tracking-wide">{locale === 'fr' ? '⭐ Star' : '⭐ Top'}</span>
+                <span className="absolute top-2 right-2 text-[10px] font-bold px-1.5 py-0.5 bg-purple-600 text-white rounded uppercase tracking-wide">{locale === 'fr' ? '⭐ Star' : '⭐ Top'}</span>
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-lg">🎨</div>
                   <div>

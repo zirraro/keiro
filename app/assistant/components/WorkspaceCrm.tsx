@@ -178,7 +178,7 @@ function PipelineFunnel({ prospects, onStageClick, activeStage }: {
               style={{ ['--tw-ring-color' as any]: stage.color }}>
               <div className="w-full rounded-t-lg transition-all" style={{ height: `${pct}%`, minHeight: 8, background: stage.color, opacity: isActive ? 1 : 0.7 }} />
               <div className="text-[10px] font-bold mt-1" style={{ color: stage.color }}>{count}</div>
-              <div className="text-[9px] text-neutral-400 truncate max-w-full">{stage.label}</div>
+              <div className="text-[10px] text-neutral-400 truncate max-w-full">{stage.label}</div>
             </button>
           );
         })}
@@ -413,8 +413,8 @@ function ProspectDetail({ prospect, activities, onClose, onUpdate }: {
               })}
             </div>
             <div className="flex items-center justify-between mt-1">
-              <span className="text-[9px] text-neutral-400">{stage?.emoji} {stage?.label}</span>
-              <span className="text-[9px] text-neutral-400">
+              <span className="text-[10px] text-neutral-400">{stage?.emoji} {stage?.label}</span>
+              <span className="text-[10px] text-neutral-400">
                 {prospect.source && `Source: ${SOURCE_LABELS[prospect.source] || prospect.source}`}
                 {prospect.created_at && ` · ${formatDate(prospect.created_at)}`}
               </span>
@@ -1043,7 +1043,7 @@ export default function WorkspaceCrm({ isAdmin }: { isAdmin: boolean }) {
                               <div className="flex items-center gap-2">
                                 <span className="text-xs text-neutral-700 dark:text-neutral-300 truncate">{act.description || '-'}</span>
                                 {act.resultat && (
-                                  <span className={`text-[9px] px-1.5 py-0.5 rounded shrink-0 ${
+                                  <span className={`text-[10px] px-1.5 py-0.5 rounded shrink-0 ${
                                     act.resultat === 'interesse' || act.resultat === 'rdv_pris' ? 'bg-green-100 text-green-700' :
                                     act.resultat === 'pas_interesse' ? 'bg-red-100 text-red-600' : 'bg-neutral-100 text-neutral-500'
                                   }`}>{act.resultat.replace(/_/g, ' ')}</span>

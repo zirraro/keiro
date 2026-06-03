@@ -58,7 +58,7 @@ function SortableTeamAgentRow({ agent, avatars, agentStats: _agentStats, onClick
       className="rounded-xl bg-white/[0.04] hover:bg-white/[0.08] transition-all overflow-hidden">
       <div className="flex items-center gap-3 px-3 py-2.5">
         {/* Drag handle */}
-        <div className="cursor-grab active:cursor-grabbing text-white/20 hover:text-white/50 transition" {...listeners} title={dragLabel}>⠿</div>
+        <div className="cursor-grab active:cursor-grabbing text-white/45 hover:text-white/50 transition" {...listeners} title={dragLabel}>⠿</div>
         <button onClick={onClick} className="flex items-center gap-3 flex-1 min-w-0 text-left">
           <div className="w-10 h-10 rounded-full flex-shrink-0" style={{ background: `linear-gradient(135deg, ${agent.gradientFrom}, ${agent.gradientTo})`, padding: '2px' }}>
             <div className="w-full h-full rounded-full overflow-hidden bg-gray-900 flex items-center justify-center">
@@ -137,7 +137,7 @@ function SortableAgentCard({ agent, avatars, summary: _summary, onClick, isActiv
             </div>
             <div className="min-w-0 flex-1">
               <div className="text-white font-bold text-xs truncate">{agent.displayName}</div>
-              <div className="text-white/30 text-[9px] truncate">{agentTitle}</div>
+              <div className="text-white/30 text-[10px] truncate">{agentTitle}</div>
             </div>
             {/* Activation toggle */}
             <button
@@ -316,9 +316,9 @@ function PlanningCalendar() {
                       const isWeekend = d.getDay() === 0 || d.getDay() === 6;
                       return (
                         <th key={i} className={`px-1 py-2 text-center ${isToday ? 'bg-purple-500/10' : isWeekend ? 'bg-white/[0.01]' : ''}`}>
-                          <div className={`text-[9px] ${isToday ? 'text-purple-400 font-bold' : 'text-white/30'}`}>{dayNames[(d.getDay() + 6) % 7]}</div>
+                          <div className={`text-[10px] ${isToday ? 'text-purple-400 font-bold' : 'text-white/30'}`}>{dayNames[(d.getDay() + 6) % 7]}</div>
                           <div className={`text-[11px] font-bold ${isToday ? 'text-purple-400' : 'text-white/60'}`}>{d.getDate()}</div>
-                          {(i === 0 || d.getDate() === 1) && <div className="text-[8px] text-white/20">{months[d.getMonth()]}</div>}
+                          {(i === 0 || d.getDate() === 1) && <div className="text-[10px] text-white/45">{months[d.getMonth()]}</div>}
                         </th>
                       );
                     })}
@@ -330,7 +330,7 @@ function PlanningCalendar() {
                       <td className="px-2 py-2">
                         <div className="flex items-center gap-1">
                           <span className="text-[10px]">{PLATFORM_ICONS[platform]}</span>
-                          <span className="text-[9px] text-white/40 uppercase tracking-wider">{platform.substring(0, 2).toUpperCase()}</span>
+                          <span className="text-[10px] text-white/40 uppercase tracking-wider">{platform.substring(0, 2).toUpperCase()}</span>
                         </div>
                       </td>
                       {days.map((d, i) => {
@@ -348,18 +348,18 @@ function PlanningCalendar() {
                                         <div className={`absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full ${STATUS_DOT[post.status] || 'bg-gray-500'}`} />
                                       </div>
                                     ) : (
-                                      <div className={`w-full aspect-square rounded-md border border-white/10 flex items-center justify-center text-[8px] text-white/30 ${STATUS_DOT[post.status]?.replace('bg-', 'bg-') + '/10' || 'bg-white/5'}`}>
+                                      <div className={`w-full aspect-square rounded-md border border-white/10 flex items-center justify-center text-[10px] text-white/30 ${STATUS_DOT[post.status]?.replace('bg-', 'bg-') + '/10' || 'bg-white/5'}`}>
                                         {post.format === 'reel' ? '\uD83C\uDFAC' : post.format === 'story' ? '\uD83D\uDCF1' : '\uD83D\uDCDD'}
                                       </div>
                                     )}
                                     {/* Tooltip on hover */}
                                     <div className="hidden group-hover:block absolute z-50 bottom-full left-0 mb-1 w-40 bg-gray-900 border border-white/20 rounded-lg p-2 shadow-xl">
-                                      <div className="text-[9px] text-white/80 font-medium line-clamp-2">{post.hook || post.caption?.substring(0, 60) || 'Sans titre'}</div>
-                                      <div className="text-[8px] text-white/30 mt-1">{post.format} | {post.status}{post.scheduled_time ? ` | ${post.scheduled_time}` : ''}</div>
+                                      <div className="text-[10px] text-white/80 font-medium line-clamp-2">{post.hook || post.caption?.substring(0, 60) || 'Sans titre'}</div>
+                                      <div className="text-[10px] text-white/30 mt-1">{post.format} | {post.status}{post.scheduled_time ? ` | ${post.scheduled_time}` : ''}</div>
                                     </div>
                                   </div>
                                 ))}
-                                {dayPosts.length > 3 && <div className="text-[8px] text-white/20 text-center">+{dayPosts.length - 3}</div>}
+                                {dayPosts.length > 3 && <div className="text-[10px] text-white/45 text-center">+{dayPosts.length - 3}</div>}
                               </div>
                             ) : null}
                           </td>
@@ -373,7 +373,7 @@ function PlanningCalendar() {
           </div>
 
           {/* Legend */}
-          <div className="flex items-center gap-4 text-[9px] text-white/30">
+          <div className="flex items-center gap-4 text-[10px] text-white/30">
             <span><span className="inline-block w-2 h-2 rounded-full bg-amber-500 mr-1" />Brouillon</span>
             <span><span className="inline-block w-2 h-2 rounded-full bg-blue-500 mr-1" />En attente</span>
             <span><span className="inline-block w-2 h-2 rounded-full bg-emerald-500 mr-1" />Publie</span>
@@ -1062,21 +1062,21 @@ export default function AssistantPage() {
           {summary?.globalStats && !COMING_SOON_MODE && !isVisitor ? (
             <div className="flex items-center gap-3 mt-1 flex-wrap">
               <span className="text-white/50 text-sm">{activeAgents} agents actifs</span>
-              <span className="text-white/20">|</span>
+              <span className="text-white/45">|</span>
               <span className="text-cyan-400 text-sm font-medium">+{summary.globalStats.prospectsToday || 0} prospects</span>
-              <span className="text-white/20">|</span>
+              <span className="text-white/45">|</span>
               <span className="text-blue-400 text-sm font-medium">{summary.globalStats.emailsSent || 0} emails</span>
-              <span className="text-white/20">|</span>
+              <span className="text-white/45">|</span>
               <span className="text-purple-400 text-sm font-medium">{summary.globalStats.contentPublished || 0} posts</span>
               {summary.globalStats.emailOpenRate > 0 && (
                 <>
-                  <span className="text-white/20">|</span>
+                  <span className="text-white/45">|</span>
                   <span className="text-emerald-400 text-sm font-medium">{summary.globalStats.emailOpenRate}% ouverture</span>
                 </>
               )}
               {summaryUpdatedAt && (
                 <>
-                  <span className="text-white/20">|</span>
+                  <span className="text-white/45">|</span>
                   <span className="text-white/30 text-[11px] flex items-center gap-1" title={summaryUpdatedAt.toLocaleString('fr-FR')}>
                     {summaryLoading ? (
                       <span className="inline-block w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
@@ -1442,7 +1442,7 @@ export default function AssistantPage() {
                       <div key={i} className="px-4 py-2.5 flex items-center gap-3">
                         <div className={`w-2 h-2 rounded-full flex-shrink-0 ${log.status === 'success' || log.status === 'ok' ? 'bg-emerald-400' : log.status === 'error' ? 'bg-red-400' : 'bg-amber-400'}`} />
                         <span className="text-white/70 text-xs flex-1 truncate">{log.action || log.message || 'Action'}</span>
-                        <span className="text-white/20 text-[9px] flex-shrink-0">{log.created_at ? new Date(log.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''}</span>
+                        <span className="text-white/45 text-[10px] flex-shrink-0">{log.created_at ? new Date(log.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''}</span>
                       </div>
                     ))}
                   </div>
@@ -1599,7 +1599,7 @@ export default function AssistantPage() {
                         </div>
                         <span className="text-white text-[11px] font-medium">{agentInfo?.displayName || a.agent}</span>
                         <span className="text-white/30 text-[10px] flex-1 truncate">{a.action}</span>
-                        <span className="text-white/20 text-[9px] flex-shrink-0">
+                        <span className="text-white/45 text-[10px] flex-shrink-0">
                           {new Date(a.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
                         </span>
                       </div>

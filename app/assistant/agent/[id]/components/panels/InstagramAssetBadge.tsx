@@ -132,7 +132,7 @@ export function InstagramAssetBadge() {
               @{info?.igUsername || '—'}
             </span>
             <span className="flex-shrink-0 w-4 h-4 rounded-full bg-emerald-500/30 flex items-center justify-center">
-              <span className="text-emerald-400 text-[9px]">{'\u2713'}</span>
+              <span className="text-emerald-400 text-[10px]">{'\u2713'}</span>
             </span>
           </div>
           <div className="text-[10px] text-white/40 mt-0.5 truncate">

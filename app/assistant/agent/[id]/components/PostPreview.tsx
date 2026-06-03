@@ -43,7 +43,7 @@ export default function PostPreview({ post, onApprove, onPublish, onSkip, compac
     <div className={`rounded-lg overflow-hidden border ${isDraft ? 'border-amber-500/30' : isPublished ? 'border-emerald-500/20' : 'border-white/10'} bg-white dark:bg-white/5 ${compact ? 'text-[10px]' : 'max-w-sm'}`}>
       {/* Platform badge */}
       <div className={`flex items-center gap-1.5 ${compact ? 'px-2 py-1' : 'px-3 py-2'} border-b border-neutral-100 dark:border-white/5`}>
-        <div className={`${compact ? 'w-5 h-5 text-[8px]' : 'w-7 h-7 text-[10px]'} rounded-full flex items-center justify-center text-white font-bold ${
+        <div className={`${compact ? 'w-5 h-5 text-[10px]' : 'w-7 h-7 text-[10px]'} rounded-full flex items-center justify-center text-white font-bold ${
           isIG ? 'bg-gradient-to-br from-purple-600 to-pink-500' :
           isTT ? 'bg-black' :
           'bg-[#0A66C2]'
@@ -51,14 +51,14 @@ export default function PostPreview({ post, onApprove, onPublish, onSkip, compac
           {isIG ? 'IG' : isTT ? 'TT' : 'LI'}
         </div>
         <div className="flex-1 min-w-0">
-          <span className={`${compact ? 'text-[9px]' : 'text-xs'} font-semibold text-neutral-800 dark:text-white`}>Mon business</span>
-          {isStory && <span className="ml-1.5 text-[9px] bg-gradient-to-r from-amber-500 to-pink-500 text-white px-1.5 py-0.5 rounded-full">Story</span>}
-          {isReel && <span className="ml-1.5 text-[9px] bg-gradient-to-r from-purple-500 to-pink-500 text-white px-1.5 py-0.5 rounded-full">Reel</span>}
-          {isCarousel && <span className="ml-1.5 text-[9px] bg-blue-500 text-white px-1.5 py-0.5 rounded-full">Carrousel</span>}
+          <span className={`${compact ? 'text-[10px]' : 'text-xs'} font-semibold text-neutral-800 dark:text-white`}>Mon business</span>
+          {isStory && <span className="ml-1.5 text-[10px] bg-gradient-to-r from-amber-500 to-pink-500 text-white px-1.5 py-0.5 rounded-full">Story</span>}
+          {isReel && <span className="ml-1.5 text-[10px] bg-gradient-to-r from-purple-500 to-pink-500 text-white px-1.5 py-0.5 rounded-full">Reel</span>}
+          {isCarousel && <span className="ml-1.5 text-[10px] bg-blue-500 text-white px-1.5 py-0.5 rounded-full">Carrousel</span>}
         </div>
-        {isDraft && <span className="text-[9px] font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full">Brouillon</span>}
-        {isPublished && <span className="text-[9px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-full">Publie</span>}
-        {post.status === 'approved' && <span className="text-[9px] font-bold text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-full">Programme</span>}
+        {isDraft && <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full">Brouillon</span>}
+        {isPublished && <span className="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-full">Publie</span>}
+        {post.status === 'approved' && <span className="text-[10px] font-bold text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-full">Programme</span>}
       </div>
 
       {/* Visual */}
@@ -95,7 +95,7 @@ export default function PostPreview({ post, onApprove, onPublish, onSkip, compac
 
         {/* Schedule badge */}
         {post.scheduled_date && !isPublished && (
-          <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm text-white text-[9px] px-2 py-1 rounded-lg">
+          <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm text-white text-[10px] px-2 py-1 rounded-lg">
             {'\u{1F4C5}'} {post.scheduled_date} {post.scheduled_time || ''}
           </div>
         )}
@@ -112,7 +112,7 @@ export default function PostPreview({ post, onApprove, onPublish, onSkip, compac
           </div>
         )}
 
-        <p className={`${compact ? 'text-[9px] line-clamp-2' : 'text-xs line-clamp-3'} text-neutral-700 dark:text-white/70 leading-relaxed`}>
+        <p className={`${compact ? 'text-[10px] line-clamp-2' : 'text-xs line-clamp-3'} text-neutral-700 dark:text-white/70 leading-relaxed`}>
           {post.caption || post.hook || 'Legende en cours de generation...'}
         </p>
         {hashtags && <p className="text-[10px] text-blue-500 mt-1">{hashtags}</p>}

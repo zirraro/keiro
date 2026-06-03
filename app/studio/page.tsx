@@ -1947,11 +1947,11 @@ function StudioContent() {
                                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                                         </button>
                                       )}
-                                      <div className="absolute bottom-0 left-0 right-0 text-[8px] bg-black/70 text-white py-0.5 text-center pointer-events-none">
+                                      <div className="absolute bottom-0 left-0 right-0 text-[10px] bg-black/70 text-white py-0.5 text-center pointer-events-none">
                                         {s.timestamp_sec.toFixed(1)}s
                                       </div>
                                       {s.recommended_for === 'hook' && (
-                                        <div className="absolute top-0 right-0 bg-violet-600 text-white text-[8px] px-1 py-0.5 rounded-bl-md font-bold pointer-events-none">HOOK</div>
+                                        <div className="absolute top-0 right-0 bg-violet-600 text-white text-[10px] px-1 py-0.5 rounded-bl-md font-bold pointer-events-none">HOOK</div>
                                       )}
                                     </div>
                                   ))}
@@ -2028,7 +2028,7 @@ function StudioContent() {
 
                                 {hookDraftText && (
                                   <div className="rounded-lg bg-white border border-violet-200 px-3 py-2.5">
-                                    <div className="text-[9px] uppercase tracking-wider font-bold text-violet-600 mb-1">Hook intégré par Léna</div>
+                                    <div className="text-[10px] uppercase tracking-wider font-bold text-violet-600 mb-1">Hook intégré par Léna</div>
                                     <div className="text-base font-bold text-neutral-900 leading-tight">{hookDraftText.primary}</div>
                                     {hookDraftText.secondary && <div className="text-xs text-neutral-600 mt-0.5">{hookDraftText.secondary}</div>}
                                   </div>
@@ -2431,7 +2431,7 @@ function StudioContent() {
                         <div className="text-[10px] text-white font-bold truncate">{img.title || 'Image'}</div>
                       </div>
                       {Array.isArray(img.tags) && img.tags.includes('studio_edit') && (
-                        <div className="absolute top-1 right-1 bg-violet-600 text-white text-[8px] font-bold px-1.5 py-0.5 rounded">✂️ Studio</div>
+                        <div className="absolute top-1 right-1 bg-violet-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">✂️ Studio</div>
                       )}
                     </button>
                   ))}
@@ -2543,7 +2543,7 @@ function StudioContent() {
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-2">
                         <div className="text-[10px] text-white font-bold truncate">{v.title || 'Vidéo'}</div>
                         {v.source_type === 'studio_edit' && (
-                          <div className="text-[8px] text-violet-300 font-bold mt-0.5">✂️ STUDIO ÉDITÉ</div>
+                          <div className="text-[10px] text-violet-300 font-bold mt-0.5">✂️ STUDIO ÉDITÉ</div>
                         )}
                       </div>
                       <div className="absolute inset-0 bg-violet-500/0 group-hover:bg-violet-500/10 transition" />

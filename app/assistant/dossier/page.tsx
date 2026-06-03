@@ -567,8 +567,8 @@ Reponds en JSON strict:
               <div className={`h-1.5 rounded-full transition-all ${
                 i < currentStep ? 'bg-green-500' : i === currentStep ? 'bg-purple-500' : 'bg-white/10'
               }`} />
-              <div className={`text-center mt-1 hidden sm:block ${i === currentStep ? 'text-white/70' : 'text-white/20'}`}>
-                <span className="text-[9px]">{step.icon}</span>
+              <div className={`text-center mt-1 hidden sm:block ${i === currentStep ? 'text-white/70' : 'text-white/45'}`}>
+                <span className="text-[10px]">{step.icon}</span>
               </div>
             </button>
           ))}
@@ -934,7 +934,7 @@ Reponds en JSON strict:
               <div key={item.doc} className="flex items-center gap-2 text-[11px]">
                 <span>{item.icon}</span>
                 <span className="text-white/70 flex-1">{item.doc}</span>
-                <span className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${
+                <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
                   item.priority === 'Essentiel' ? 'bg-red-500/20 text-red-400'
                   : item.priority === 'Recommande' ? 'bg-purple-500/20 text-purple-300'
                   : item.priority === 'Utile' ? 'bg-blue-500/20 text-blue-300'

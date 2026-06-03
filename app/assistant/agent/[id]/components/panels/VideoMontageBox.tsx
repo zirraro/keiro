@@ -125,7 +125,7 @@ export default function VideoMontageBox() {
                         ) : (
                           <div className="absolute inset-0 bg-gradient-to-br from-cyan-900/50 to-blue-900/50" />
                         )}
-                        <span className="absolute bottom-1 right-1 text-[8px] px-1 bg-black/60 text-white rounded">▶</span>
+                        <span className="absolute bottom-1 right-1 text-[10px] px-1 bg-black/60 text-white rounded">▶</span>
                       </>
                     )}
                     {isSelected && (

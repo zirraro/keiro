@@ -210,7 +210,7 @@ export default function InstagramDraftsTab({ drafts, onEdit, onDelete, onPublish
               <InstagramIcon className="w-3.5 h-3.5 text-white" />
             </div>
             <span className="text-xs font-semibold text-neutral-800 flex-1">Mon business</span>
-            {draft.media_type === 'video' && <span className="text-[9px] bg-gradient-to-r from-purple-500 to-pink-500 text-white px-1.5 py-0.5 rounded-full">Reel</span>}
+            {draft.media_type === 'video' && <span className="text-[10px] bg-gradient-to-r from-purple-500 to-pink-500 text-white px-1.5 py-0.5 rounded-full">Reel</span>}
           </div>
           {/* Image/Video */}
           <div className="aspect-square bg-neutral-100 relative">

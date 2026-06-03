@@ -194,10 +194,10 @@ export default function AgentUploadsPanel({
                     {analysis.summary || analysis.ambiance || u.file_name || (en ? 'Awaiting analysis…' : 'Analyse en attente…')}
                   </p>
                   <div className="flex items-center justify-between mt-1.5">
-                    <a href={u.file_url} target="_blank" rel="noopener noreferrer" className="text-[9px] text-white/30 hover:text-white/60">
+                    <a href={u.file_url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-white/30 hover:text-white/60">
                       {en ? 'Open' : 'Ouvrir'}
                     </a>
-                    <button onClick={() => remove(u.id)} className="text-[9px] text-white/30 hover:text-red-400/70">
+                    <button onClick={() => remove(u.id)} className="text-[10px] text-white/30 hover:text-red-400/70">
                       {en ? 'Remove' : 'Supprimer'}
                     </button>
                   </div>

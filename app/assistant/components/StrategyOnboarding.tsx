@@ -288,8 +288,8 @@ export default function StrategyOnboarding() {
                       <span className={`text-xs font-bold ${isSelected ? 'text-cyan-400' : 'text-white'}`}>
                         {(p as any)[f.nameKey]}
                       </span>
-                      <span className="text-[9px] text-white/40 leading-tight">{(p as any)[f.descKey]}</span>
-                      <span className="text-[9px] text-white/20">
+                      <span className="text-[10px] text-white/40 leading-tight">{(p as any)[f.descKey]}</span>
+                      <span className="text-[10px] text-white/45">
                         {fmtTemplate(p.stratCreditsPerMonth, { n: f.creditsPerMonth })}
                       </span>
                     </button>

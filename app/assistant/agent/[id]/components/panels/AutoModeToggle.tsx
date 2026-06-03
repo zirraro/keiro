@@ -167,7 +167,7 @@ export function NetworkControls({ agentId, connections }: { agentId: string; con
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs sm:text-sm font-bold text-white truncate">{n.label}</span>
-                  {isConnected && <span className="text-[9px] text-emerald-400 font-bold">{'\u2713'}</span>}
+                  {isConnected && <span className="text-[10px] text-emerald-400 font-bold">{'\u2713'}</span>}
                 </div>
                 <div className="text-[10px] text-white/45 truncate">
                   {!isConnected
@@ -195,7 +195,7 @@ export function NetworkControls({ agentId, connections }: { agentId: string; con
                   </button>
                   <button
                     onClick={() => handleDisconnect(n.key)}
-                    className="text-[9px] text-white/35 hover:text-red-400 px-1 transition flex-shrink-0"
+                    className="text-[10px] text-white/35 hover:text-red-400 px-1 transition flex-shrink-0"
                     title={`Déconnecter ${n.label}`}
                   >
                     ✕
@@ -283,7 +283,7 @@ export function NetworkAutoModeToggles({ agentId }: { agentId: string }) {
           </div>
         ))}
       </div>
-      <p className="text-[9px] text-white/25 mt-2">Active/desactive la publication automatique par reseau</p>
+      <p className="text-[10px] text-white/50 mt-2">Active/desactive la publication automatique par reseau</p>
     </div>
   );
 }

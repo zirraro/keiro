@@ -1844,13 +1844,13 @@ function AdminAgentsContent() {
                       </div>
                       <div className="flex flex-col items-end gap-1 flex-shrink-0">
                         {p.last_email_opened_at && !p.last_email_clicked_at && (
-                          <span className="text-[9px] px-1.5 py-0.5 bg-green-50 text-green-700 rounded-full font-medium">📞 A ouvert le mail</span>
+                          <span className="text-[10px] px-1.5 py-0.5 bg-green-50 text-green-700 rounded-full font-medium">📞 A ouvert le mail</span>
                         )}
                         {p.email_sequence_step && (
-                          <span className="text-[9px] text-neutral-400">Step {p.email_sequence_step}</span>
+                          <span className="text-[10px] text-neutral-400">Step {p.email_sequence_step}</span>
                         )}
                         {p.status && (
-                          <span className="text-[9px] text-neutral-400">{p.status}</span>
+                          <span className="text-[10px] text-neutral-400">{p.status}</span>
                         )}
                       </div>
                     </div>
@@ -2077,7 +2077,7 @@ function AdminAgentsContent() {
                         .replace(/^## (.*)/gm, '<h3 class="text-sm font-bold text-[#0c1a3a] mt-4 mb-1 pb-1 border-b border-neutral-100">$1</h3>')
                         .replace(/^# (.*)/gm, '<h2 class="text-sm font-bold text-[#0c1a3a] mt-3 mb-1">$1</h2>')
                         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                        .replace(/^- \[DIRECTIVE (\w+)\] (.*)/gm, '<div class="flex items-start gap-1.5 my-0.5 ml-1"><span class="px-1 py-0 bg-purple-100 text-purple-700 text-[9px] font-bold rounded flex-shrink-0">$1</span><span>$2</span></div>')
+                        .replace(/^- \[DIRECTIVE (\w+)\] (.*)/gm, '<div class="flex items-start gap-1.5 my-0.5 ml-1"><span class="px-1 py-0 bg-purple-100 text-purple-700 text-[10px] font-bold rounded flex-shrink-0">$1</span><span>$2</span></div>')
                         .replace(/^- (.*)/gm, '<li class="ml-3 my-0.5 list-disc">$1</li>')
                         .replace(/\n\n/g, '<br/>')
                         .replace(/\n(?!<)/g, '<br/>');

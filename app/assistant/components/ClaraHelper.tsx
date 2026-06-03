@@ -210,7 +210,7 @@ export default function ClaraHelper() {
   return (
     <div className={`${positionClass} animate-in ${isFirstTime ? 'zoom-in-95' : 'slide-in-from-bottom-3'} duration-300`}>
       <div className="bg-gray-900/95 backdrop-blur-xl border border-emerald-500/20 rounded-2xl shadow-2xl shadow-emerald-500/10 p-3 sm:p-5 w-[calc(100vw-32px)] sm:w-96 max-w-sm">
-        <button onClick={dismissAndCooldown} className="absolute top-2 right-2 text-white/20 hover:text-white/50 transition">
+        <button onClick={dismissAndCooldown} className="absolute top-2 right-2 text-white/45 hover:text-white/50 transition">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
 
@@ -235,7 +235,7 @@ export default function ClaraHelper() {
                       <span className="text-lg">{(a as any).icon || '\u{1F916}'}</span>
                       <div className="flex-1 min-w-0">
                         <div className="text-[11px] font-bold text-white">{a.name}</div>
-                        <div className="text-[9px] text-white/40">{a.role}</div>
+                        <div className="text-[10px] text-white/40">{a.role}</div>
                       </div>
                       <span className="text-emerald-400 text-[10px] font-bold">{'\u26A1'}</span>
                     </button>
@@ -268,7 +268,7 @@ export default function ClaraHelper() {
                       <div className="text-sm font-bold text-white">{currentAgent.name}</div>
                       <div className="text-[10px] text-emerald-400">{currentAgent.role}</div>
                     </div>
-                    <span className="ml-auto text-[9px] text-white/30">{currentWizardIndex + 1}/{inactiveAgents.length}</span>
+                    <span className="ml-auto text-[10px] text-white/30">{currentWizardIndex + 1}/{inactiveAgents.length}</span>
                   </div>
                   <p className="text-[11px] text-white/60 leading-relaxed mb-2">{(currentAgent as any).desc || ''}</p>
                   {(currentAgent as any).benefit && (
@@ -286,14 +286,14 @@ export default function ClaraHelper() {
                       {'\u{1F517}'} {currentAgent.connectLabel}
                     </a>
                     <button onClick={() => activateAgent(currentAgent)} className="w-full py-1.5 text-white/40 text-[10px] hover:text-white/60 transition">Deja connecte ? Activer directement</button>
-                    <button onClick={skipAgent} className="w-full py-1.5 text-white/25 text-[10px] hover:text-white/40 transition">Passer cet agent</button>
+                    <button onClick={skipAgent} className="w-full py-1.5 text-white/50 text-[10px] hover:text-white/40 transition">Passer cet agent</button>
                   </div>
                 ) : (
                   <div className="space-y-2">
                     <button onClick={() => activateAgent(currentAgent)} className="w-full py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-500 transition min-h-[40px]">
                       {'\u26A1'} Activer {currentAgent.name}
                     </button>
-                    <button onClick={skipAgent} className="w-full py-1.5 text-white/25 text-[10px] hover:text-white/40 transition">Passer cet agent</button>
+                    <button onClick={skipAgent} className="w-full py-1.5 text-white/50 text-[10px] hover:text-white/40 transition">Passer cet agent</button>
                   </div>
                 )}
               </>

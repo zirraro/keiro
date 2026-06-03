@@ -322,13 +322,13 @@ export default function SpreadsheetEditor({ agentId, agentName }: { agentId: str
             className="flex-1 min-w-0 bg-transparent text-white text-sm font-medium focus:outline-none px-2 py-1 rounded hover:bg-white/5 focus:bg-white/5"
           />
           {originalFormat !== 'csv' && (
-            <span className="text-[9px] text-white/30 uppercase">{originalFormat}</span>
+            <span className="text-[10px] text-white/30 uppercase">{originalFormat}</span>
           )}
           {hasFormulasRef.current && (
-            <span className="text-[9px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded" title="Formules preservees">fx</span>
+            <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded" title="Formules preservees">fx</span>
           )}
           {hasMacrosRef.current && (
-            <span className="text-[9px] text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded" title="Macros VBA preservees">VBA</span>
+            <span className="text-[10px] text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded" title="Macros VBA preservees">VBA</span>
           )}
           <button onClick={addRow} className="px-2 py-1 text-xs text-white/60 hover:text-white hover:bg-white/10 rounded transition" title="Ajouter une ligne">+ ligne</button>
           <button onClick={addColumn} className="px-2 py-1 text-xs text-white/60 hover:text-white hover:bg-white/10 rounded transition" title="Ajouter une colonne">+ col</button>

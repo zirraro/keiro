@@ -171,7 +171,7 @@ export default function AgentCard({ agent, avatarUrl, isSelected, onClick, comin
           {agent.integrations && agent.integrations.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
               {agent.integrations.map(integ => (
-                <span key={integ} className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[9px] text-white/40">
+                <span key={integ} className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[10px] text-white/40">
                   {integ}
                 </span>
               ))}

@@ -284,7 +284,7 @@ export default function AgentDocuments({ agentId, gradientFrom }: { agentId: str
         >
           <div className="text-3xl mb-3">{'\u{1F4C1}'}</div>
           <p className="text-sm text-white/40">Glisse tes fichiers ici ou clique pour importer</p>
-          <p className="text-xs text-white/20 mt-1">PDF, Word, Excel, images, CSV...</p>
+          <p className="text-xs text-white/45 mt-1">PDF, Word, Excel, images, CSV...</p>
         </div>
       ) : (
         <div className="space-y-1.5">
@@ -338,7 +338,7 @@ export default function AgentDocuments({ agentId, gradientFrom }: { agentId: str
                   <select
                     onChange={e => moveToFolder(doc.id, e.target.value)}
                     value={doc.folder || ''}
-                    className="bg-white/10 border border-white/10 rounded text-[9px] text-white/50 px-1 py-0.5 cursor-pointer max-w-[80px]"
+                    className="bg-white/10 border border-white/10 rounded text-[10px] text-white/50 px-1 py-0.5 cursor-pointer max-w-[80px]"
                     title="Deplacer vers dossier"
                   >
                     <option value="">Racine</option>

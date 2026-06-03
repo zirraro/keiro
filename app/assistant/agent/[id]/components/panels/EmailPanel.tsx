@@ -51,7 +51,7 @@ function EmailCard({ email }: { email: { prospect: string; type: string; status:
         </span>
         <span className="text-sm text-white/80 truncate flex-1">{email.prospect}</span>
         <span className="text-[10px] text-white/30 shrink-0">{email.type?.replace('step_', 'Etape ')}</span>
-        {email.provider && <span className="text-[9px] text-white/20 shrink-0">via {email.provider}</span>}
+        {email.provider && <span className="text-[10px] text-white/45 shrink-0">via {email.provider}</span>}
         <button onClick={() => setShowReply(!showReply)} className="text-[10px] px-2 py-1 bg-white/10 rounded-lg text-white/60 hover:bg-white/15 shrink-0">
           {showReply ? 'Fermer' : 'Repondre'}
         </button>
@@ -131,9 +131,9 @@ export function EmailPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
               <div className="flex-1 text-center min-w-0">
                 <div className="text-base sm:text-lg mb-0.5">{step.icon}</div>
                 <div className="text-xs sm:text-sm font-bold" style={{ color: step.color }}>{fmt(step.value)}</div>
-                <div className="text-[9px] text-white/40 mt-0.5 truncate">{step.label}</div>
+                <div className="text-[10px] text-white/40 mt-0.5 truncate">{step.label}</div>
               </div>
-              {i < 4 && <div className="text-white/20 text-[10px] mx-0.5 flex-shrink-0">{'\u2192'}</div>}
+              {i < 4 && <div className="text-white/45 text-[10px] mx-0.5 flex-shrink-0">{'\u2192'}</div>}
             </div>
           ))}
         </div>
@@ -144,7 +144,7 @@ export function EmailPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
               {seqEntries.map(([name, count], i) => (
                 <div
                   key={name}
-                  className="h-full flex items-center justify-center text-[9px] font-medium text-white"
+                  className="h-full flex items-center justify-center text-[10px] font-medium text-white"
                   style={{
                     width: `${(count / seqTotal) * 100}%`,
                     background: `linear-gradient(135deg, ${gradientFrom}, ${gradientTo})`,
@@ -271,7 +271,7 @@ export function EmailPanel({ data, agentName, gradientFrom, gradientTo }: PanelP
             <a href="https://cal.com" target="_blank" rel="noopener" className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-[10px] font-bold rounded-xl hover:shadow-lg transition min-h-[44px] flex items-center gap-1">
               {'\uD83D\uDCC5'} Book an onboarding call
             </a>
-            <span className="text-[9px] text-white/20">15 min, we configure it together</span>
+            <span className="text-[10px] text-white/45">15 min, we configure it together</span>
           </div>
         </div>
       </details>
@@ -525,7 +525,7 @@ function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: str
             {tab.label}
           </button>
         ))}
-        <span className="text-[10px] text-white/20 ml-auto">{'\u{1F4E7}'} Campagne: voir ci-dessous</span>
+        <span className="text-[10px] text-white/45 ml-auto">{'\u{1F4E7}'} Campagne: voir ci-dessous</span>
       </div>
 
     {/* Campaign creation */}
@@ -548,20 +548,20 @@ function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: str
                 {p.hasIncoming && <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse flex-shrink-0" />}
                 <span className="text-xs font-medium text-white truncate">{p.name}</span>
               </div>
-              {p.email && <div className="text-[9px] text-white/20 truncate mt-0.5">{p.email}</div>}
+              {p.email && <div className="text-[10px] text-white/45 truncate mt-0.5">{p.email}</div>}
               {p.latest.subject && <div className="text-[10px] text-white/50 truncate mt-0.5 font-medium">{p.latest.subject}</div>}
               <div className="text-[10px] text-white/30 truncate mt-0.5">
                 {p.latest.direction === 'incoming' ? '\u2709\uFE0F ' : ''}{p.latest.message?.substring(0, 80) || p.latest.type}
               </div>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
-                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
                   p.latest.status === 'repondu' ? 'bg-emerald-400/15 text-emerald-400' :
                   p.latest.status === 'ouvert' ? 'bg-amber-400/15 text-amber-400' :
                   p.latest.status === 'clique' ? 'bg-purple-400/15 text-purple-400' :
                   'bg-blue-400/15 text-blue-400'
                 }`}>{p.latest.status}</span>
                 {p.latest.direction === 'outgoing' && (
-                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
                     p.latest.auto || p.latest.type?.includes('auto') || p.latest.type?.includes('step_')
                       ? 'bg-emerald-500/15 text-emerald-300'
                       : 'bg-amber-500/15 text-amber-300'
@@ -569,7 +569,7 @@ function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: str
                     {p.latest.auto || p.latest.type?.includes('auto') || p.latest.type?.includes('step_') ? '\u{1F916} IA' : '\u270D\uFE0F Toi'}
                   </span>
                 )}
-                <span className="text-[9px] text-white/15 ml-auto">{new Date(p.latest.date).toLocaleDateString(dateLocale, { day: '2-digit', month: '2-digit' })}</span>
+                <span className="text-[10px] text-white/40 ml-auto">{new Date(p.latest.date).toLocaleDateString(dateLocale, { day: '2-digit', month: '2-digit' })}</span>
               </div>
             </button>
           ))}
@@ -585,10 +585,10 @@ function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: str
               </div>
               <div className="min-w-0 flex-1">
                 <span className="text-xs font-bold text-white">{threadProspect?.company || threadProspect?.first_name || 'Prospect'}</span>
-                {threadProspect?.email && <div className="text-[9px] text-white/30 truncate">{threadProspect.email}</div>}
+                {threadProspect?.email && <div className="text-[10px] text-white/30 truncate">{threadProspect.email}</div>}
               </div>
               {threadProspect?.temperature && (
-                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                   threadProspect.temperature === 'hot' ? 'bg-red-400/15 text-red-400' :
                   threadProspect.temperature === 'warm' ? 'bg-amber-400/15 text-amber-400' :
                   'bg-blue-400/15 text-blue-400'
@@ -601,7 +601,7 @@ function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: str
               {loadingThread ? (
                 <div className="flex items-center justify-center py-8"><div className="animate-spin rounded-full h-5 w-5 border-b-2 border-cyan-400" /></div>
               ) : thread.length === 0 ? (
-                <div className="text-center py-8 text-white/20 text-xs">Aucun echange pour ce prospect</div>
+                <div className="text-center py-8 text-white/45 text-xs">Aucun echange pour ce prospect</div>
               ) : (
                 thread.map((msg, i) => {
                   // Badge logic: outgoing messages get AI (Hugo) vs
@@ -624,16 +624,16 @@ function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: str
                             : 'bg-gradient-to-r from-amber-700 to-amber-600 text-white rounded-br-md')
                           : 'bg-white/10 text-white/80 rounded-bl-md'
                       }`}>
-                        <div className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold mb-1 ${badgeLabel.cls}`}>
+                        <div className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold mb-1 ${badgeLabel.cls}`}>
                           {badgeLabel.text}
                         </div>
                         {msg.subject && <div className="font-semibold text-[11px] mb-1 opacity-90">{msg.subject}</div>}
                         <div className="whitespace-pre-wrap">{msg.message || '[pas de contenu]'}</div>
-                        <div className={`text-[10px] mt-1 flex items-center gap-1.5 ${isOutgoing ? 'text-white/60' : 'text-white/20'}`}>
+                        <div className={`text-[10px] mt-1 flex items-center gap-1.5 ${isOutgoing ? 'text-white/60' : 'text-white/45'}`}>
                           {msg.date ? new Date(msg.date).toLocaleString(dateLocale, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}
                           {msg.step && <span>· Etape {msg.step}</span>}
                           {msg.action_taken && (msg.action_taken === 'blacklisted' || msg.action_taken === 'stopped') && (
-                            <span className="px-1.5 py-0.5 rounded bg-red-500/20 text-red-300 text-[9px]">
+                            <span className="px-1.5 py-0.5 rounded bg-red-500/20 text-red-300 text-[10px]">
                               {msg.action_taken === 'blacklisted' ? '\u{1F6AB} Désabonné' : '\u23F8 Stoppé'}
                             </span>
                           )}
@@ -670,8 +670,8 @@ function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: str
             )}
           </div>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-white/20 text-xs gap-2 py-8">
-            <svg className="w-8 h-8 text-white/10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+          <div className="flex-1 flex flex-col items-center justify-center text-white/45 text-xs gap-2 py-8">
+            <svg className="w-8 h-8 text-white/35" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
             Selectionne un email
           </div>
         )}
@@ -771,7 +771,7 @@ function FullInbox() {
             onClick={() => { setSelected(it); setReplyText(''); }}
             className={`w-full text-left ${compact ? 'px-2.5 py-2' : 'px-3 py-2.5'} hover:bg-white/5 transition flex items-center gap-2 ${selected?.id === it.id ? 'bg-cyan-500/10' : ''}`}
           >
-            <span className={`shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold ${it.direction === 'inbox' ? 'bg-cyan-500/20 text-cyan-300' : (it.auto ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300')}`}>
+            <span className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold ${it.direction === 'inbox' ? 'bg-cyan-500/20 text-cyan-300' : (it.auto ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300')}`}>
               {it.direction === 'inbox' ? '✉' : (it.auto ? '🤖' : '✍')}
             </span>
             <div className="min-w-0 flex-1">
@@ -779,12 +779,12 @@ function FullInbox() {
                 <span className="text-xs font-semibold text-white truncate">
                   {it.direction === 'inbox' ? (it.from_name || it.from_email) : it.to_email}
                 </span>
-                {it.blacklisted && <span className="text-[8px] px-1 rounded bg-red-500/20 text-red-300 shrink-0">BL</span>}
-                {it.classification === 'unsubscribe' && <span className="text-[8px] px-1 rounded bg-red-500/20 text-red-300 shrink-0">{en ? 'unsub' : 'désabo'}</span>}
+                {it.blacklisted && <span className="text-[10px] px-1 rounded bg-red-500/20 text-red-300 shrink-0">BL</span>}
+                {it.classification === 'unsubscribe' && <span className="text-[10px] px-1 rounded bg-red-500/20 text-red-300 shrink-0">{en ? 'unsub' : 'désabo'}</span>}
               </div>
               <div className="text-[10px] text-white/60 truncate">{it.subject || '(sans objet)'}</div>
             </div>
-            <span className="shrink-0 text-[9px] text-white/30">{new Date(it.date).toLocaleDateString(dateLocale, { day: '2-digit', month: '2-digit' })}</span>
+            <span className="shrink-0 text-[10px] text-white/30">{new Date(it.date).toLocaleDateString(dateLocale, { day: '2-digit', month: '2-digit' })}</span>
           </button>
         ))
       )}
@@ -822,13 +822,13 @@ function FullInbox() {
           ONLY what the funnel doesn't carry: who-sent and unsub. */}
       <div className="flex items-center gap-3 text-[10px] text-white/50 flex-wrap">
         <span>{en ? 'Received' : 'Reçus'} <strong className="text-cyan-300">{inboxCount}</strong></span>
-        <span className="text-white/20">·</span>
+        <span className="text-white/45">·</span>
         <span>{en ? 'AI sent' : 'Hugo IA'} <strong className="text-emerald-300">{aiSentCount}</strong></span>
-        <span className="text-white/20">·</span>
+        <span className="text-white/45">·</span>
         <span>{en ? 'You sent' : 'Toi'} <strong className="text-amber-300">{humanSentCount}</strong></span>
         {unsubCount > 0 && (
           <>
-            <span className="text-white/20">·</span>
+            <span className="text-white/45">·</span>
             <span>{en ? 'Unsub' : 'Désabo'} <strong className="text-red-300">{unsubCount}</strong></span>
           </>
         )}
@@ -846,7 +846,7 @@ function FullInbox() {
             onClick={() => setFilter(t.key as any)}
             className={`px-3 py-2 min-h-[40px] text-xs font-medium rounded-lg transition ${filter === t.key ? 'bg-cyan-600 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
           >
-            {t.label} <span className="text-[9px] opacity-60 ml-0.5">{t.count}</span>
+            {t.label} <span className="text-[10px] opacity-60 ml-0.5">{t.count}</span>
           </button>
         ))}
         <button onClick={load} className="ml-auto px-2 py-2 min-h-[40px] text-base text-white/40 hover:text-white/70" title={en ? 'Refresh' : 'Rafraîchir'} aria-label="Refresh">↻</button>
@@ -919,7 +919,7 @@ function FullInbox() {
                   className="w-full bg-black/30 border border-white/10 rounded-lg p-2 text-xs text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-cyan-500/50"
                 />
                 <div className="flex items-center justify-between">
-                  <span className="text-[9px] text-white/30">{en ? 'Sent from your connected SMTP' : 'Envoyé depuis ton SMTP connecté'}</span>
+                  <span className="text-[10px] text-white/30">{en ? 'Sent from your connected SMTP' : 'Envoyé depuis ton SMTP connecté'}</span>
                   <button
                     onClick={sendReply}
                     disabled={sending || !replyText.trim()}

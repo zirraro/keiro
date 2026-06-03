@@ -211,7 +211,7 @@ export default function AgentSetupGuide({ agentId, agentName, gradientFrom, grad
       <div className="mb-4">
         <div className="flex items-center gap-2 mb-2">
           <span className="text-xs font-bold text-white/80">Etape {currentStep + 1}/{setup.steps.length}</span>
-          {step?.optional && <span className="text-[9px] text-white/30 bg-white/10 px-2 py-0.5 rounded-full">Optionnel</span>}
+          {step?.optional && <span className="text-[10px] text-white/30 bg-white/10 px-2 py-0.5 rounded-full">Optionnel</span>}
         </div>
         <h4 className="text-sm font-bold text-white mb-1">{step?.title}</h4>
         <p className="text-xs text-white/50">{step?.description}</p>

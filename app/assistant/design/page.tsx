@@ -218,7 +218,7 @@ export default function DesignImportPage() {
                     title={t.name}
                   />
                   <div className="absolute top-1.5 right-1.5 flex gap-1">
-                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-semibold ${t.source === 'auto_generated' ? 'bg-purple-500/80 text-white' : 'bg-blue-500/80 text-white'}`}>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${t.source === 'auto_generated' ? 'bg-purple-500/80 text-white' : 'bg-blue-500/80 text-white'}`}>
                       {t.source === 'auto_generated' ? 'Auto' : 'Import'}
                     </span>
                   </div>

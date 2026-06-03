@@ -64,7 +64,7 @@ export default function TikTokSharePage() {
             <div className="text-center text-white/30">
               <div className="text-4xl mb-2">🎬</div>
               <p className="text-xs">Apercu de la video</p>
-              <p className="text-[10px] text-white/20 mt-1">Le contenu sera affiche ici avant publication</p>
+              <p className="text-[10px] text-white/45 mt-1">Le contenu sera affiche ici avant publication</p>
             </div>
           </div>
 
@@ -261,7 +261,7 @@ export default function TikTokSharePage() {
         </div>
 
         {/* Footer disclosure */}
-        <div className="text-center text-[10px] text-white/20 pb-8">
+        <div className="text-center text-[10px] text-white/45 pb-8">
           <p>Propulse par l&apos;API TikTok Content Posting</p>
           <p className="mt-1">
             <a href="https://www.tiktok.com/legal/terms-of-service" target="_blank" rel="noopener" className="hover:text-white/40">Conditions TikTok</a>

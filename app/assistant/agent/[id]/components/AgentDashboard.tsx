@@ -299,7 +299,7 @@ export default function AgentDashboard({ agentId, agentName, gradientFrom, gradi
           >
             <span>{'\u26A1'}</span> Lancer une campagne
           </button>
-          <span className="text-[9px] text-white/25">Configure et active en 30 secondes</span>
+          <span className="text-[10px] text-white/50">Configure et active en 30 secondes</span>
         </div>
       )}
 
@@ -314,17 +314,17 @@ export default function AgentDashboard({ agentId, agentName, gradientFrom, gradi
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
             <div className="bg-indigo-900/20 rounded-lg p-2 text-center">
               <div className="text-lg font-bold text-white">{(data as any).supervision.totalActions24h}</div>
-              <div className="text-[9px] text-indigo-300/60">Actions</div>
+              <div className="text-[10px] text-indigo-300/60">Actions</div>
             </div>
             <div className="bg-indigo-900/20 rounded-lg p-2 text-center">
               <div className={`text-lg font-bold ${(data as any).supervision.totalErrors24h > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
                 {(data as any).supervision.totalErrors24h}
               </div>
-              <div className="text-[9px] text-indigo-300/60">Erreurs</div>
+              <div className="text-[10px] text-indigo-300/60">Erreurs</div>
             </div>
             <div className="bg-indigo-900/20 rounded-lg p-2 text-center">
               <div className="text-lg font-bold text-white">{(data as any).supervision.clients?.length || 0}</div>
-              <div className="text-[9px] text-indigo-300/60">Clients</div>
+              <div className="text-[10px] text-indigo-300/60">Clients</div>
             </div>
           </div>
           {(data as any).supervision.clients?.length > 0 && (

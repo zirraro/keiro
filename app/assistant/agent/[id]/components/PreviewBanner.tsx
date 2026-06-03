@@ -25,7 +25,7 @@ export default function PreviewBanner({ agentName, connectLabel, connectUrl, cla
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 mb-1">
             <span className="text-xs font-bold text-emerald-400">Clara</span>
-            <span className="text-[9px] text-white/30">Guide de demarrage</span>
+            <span className="text-[10px] text-white/30">Guide de demarrage</span>
           </div>
           <p className="text-xs sm:text-sm text-white/70 leading-relaxed mb-3">{claraMessage}</p>
 

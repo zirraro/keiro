@@ -158,7 +158,7 @@ export default function SpotlightTour({ steps, active, onFinish }: SpotlightTour
         onClick={e => e.stopPropagation()}
       >
         {/* Close */}
-        <button onClick={skip} className="absolute top-2 right-2 text-white/20 hover:text-white/50 transition">
+        <button onClick={skip} className="absolute top-2 right-2 text-white/45 hover:text-white/50 transition">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
 
@@ -175,7 +175,7 @@ export default function SpotlightTour({ steps, active, onFinish }: SpotlightTour
           <button
             onClick={prev}
             disabled={isFirst}
-            className={`flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium transition min-h-[36px] ${isFirst ? 'text-white/15 cursor-not-allowed' : 'text-white/60 bg-white/10 hover:bg-white/15'}`}
+            className={`flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium transition min-h-[36px] ${isFirst ? 'text-white/40 cursor-not-allowed' : 'text-white/60 bg-white/10 hover:bg-white/15'}`}
           >
             {'\u2190'} Precedent
           </button>

@@ -966,7 +966,7 @@ export default function CrmDashboard({ data, onAddProspect }: CrmDashboardProps)
                 >
                   <div className="flex items-center gap-2 mb-1.5">
                     <span
-                      className="text-[9px] font-bold px-2 py-0.5 rounded-full"
+                      className="text-[10px] font-bold px-2 py-0.5 rounded-full"
                       style={{ backgroundColor: `${tempColor}22`, color: tempColor }}
                     >
                       {pr.temperature || 'unscored'}
@@ -997,11 +997,11 @@ export default function CrmDashboard({ data, onAddProspect }: CrmDashboardProps)
                           }}
                         />
                       </div>
-                      <span className="text-[9px] text-white/40">{comp.pct}%</span>
+                      <span className="text-[10px] text-white/40">{comp.pct}%</span>
                     </span>
                   </div>
                   {comp.missing.length > 0 && comp.pct < 70 && (
-                    <div className="text-[9px] text-amber-300/70 mt-1">
+                    <div className="text-[10px] text-amber-300/70 mt-1">
                       ⚠️ Manque : {comp.missing.slice(0, 4).join(', ')}{comp.missing.length > 4 ? `, +${comp.missing.length - 4}` : ''}
                     </div>
                   )}
@@ -1028,13 +1028,13 @@ export default function CrmDashboard({ data, onAddProspect }: CrmDashboardProps)
                 <div className="flex items-center gap-1.5 flex-shrink-0">
                   <span className="text-[10px] font-bold text-red-400 bg-red-400/10 px-2 py-0.5 rounded-full">{p.score}/100</span>
                   {p.email && (
-                    <button onClick={() => { window.location.href = '/assistant/agent/email'; }} className="text-[9px] px-2 py-1 bg-cyan-600/20 text-cyan-400 rounded-lg hover:bg-cyan-600/30">{'\u{1F4E7}'} Email</button>
+                    <button onClick={() => { window.location.href = '/assistant/agent/email'; }} className="text-[10px] px-2 py-1 bg-cyan-600/20 text-cyan-400 rounded-lg hover:bg-cyan-600/30">{'\u{1F4E7}'} Email</button>
                   )}
                   {p.instagram && (
-                    <button onClick={() => { window.location.href = '/assistant/agent/dm_instagram'; }} className="text-[9px] px-2 py-1 bg-purple-600/20 text-purple-400 rounded-lg hover:bg-purple-600/30">{'\u{1F4AC}'} DM</button>
+                    <button onClick={() => { window.location.href = '/assistant/agent/dm_instagram'; }} className="text-[10px] px-2 py-1 bg-purple-600/20 text-purple-400 rounded-lg hover:bg-purple-600/30">{'\u{1F4AC}'} DM</button>
                   )}
                   {p.phone && (
-                    <a href={`tel:${p.phone}`} className="text-[9px] px-2 py-1 bg-emerald-600/20 text-emerald-400 rounded-lg hover:bg-emerald-600/30">{'\u{1F4DE}'} Appeler</a>
+                    <a href={`tel:${p.phone}`} className="text-[10px] px-2 py-1 bg-emerald-600/20 text-emerald-400 rounded-lg hover:bg-emerald-600/30">{'\u{1F4DE}'} Appeler</a>
                   )}
                 </div>
               </div>

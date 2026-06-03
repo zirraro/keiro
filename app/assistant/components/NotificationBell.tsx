@@ -177,9 +177,9 @@ export default function NotificationBell() {
                           <span className="text-[10px] text-neutral-400">{notif.agent}</span>
                           <span className="text-[10px] text-neutral-300">·</span>
                           <span className="text-[10px] text-neutral-400">{timeAgo(notif.created_at)}</span>
-                          {notif.type === 'action' && <span className="text-[9px] bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-full">Action requise</span>}
-                          {notif.type === 'alert' && <span className="text-[9px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full">Alerte</span>}
-                          {notif.type === 'brief' && <span className="text-[9px] bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded-full">Brief CEO</span>}
+                          {notif.type === 'action' && <span className="text-[10px] bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-full">Action requise</span>}
+                          {notif.type === 'alert' && <span className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full">Alerte</span>}
+                          {notif.type === 'brief' && <span className="text-[10px] bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded-full">Brief CEO</span>}
                         </div>
                       </div>
                     </div>
@@ -202,7 +202,7 @@ export function AgentNotifBadge({ agentId, notifications }: { agentId: string; n
   const count = notifications.filter(n => n.agent === agentId && !n.read).length;
   if (count === 0) return null;
   return (
-    <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] flex items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold px-0.5 z-10">
+    <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold px-0.5 z-10">
       {count}
     </span>
   );

@@ -241,7 +241,7 @@ export default function AdminRetoursClientsPage() {
                   >
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-xs font-medium text-neutral-800 truncate">{req.user_name || req.user_email}</span>
-                      <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${req.status === 'new' ? 'bg-red-100 text-red-700' : req.status === 'in_progress' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${req.status === 'new' ? 'bg-red-100 text-red-700' : req.status === 'in_progress' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>
                         {req.status === 'new' ? 'Nouveau' : req.status === 'in_progress' ? 'En cours' : 'Resolu'}
                       </span>
                     </div>

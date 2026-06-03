@@ -1490,14 +1490,14 @@ function SuiviPublicationsPage() {
                               {post.visual_url && !brokenImages.has(post.id) ? (
                                 <div className="aspect-square bg-neutral-100 relative">
                                   <img src={post.visual_url} alt="" className="w-full h-full object-cover" onError={() => setBrokenImages(prev => new Set(prev).add(post.id))} />
-                                  <span className={`absolute top-1 left-1 text-[8px] px-1 py-0.5 rounded font-bold ${
+                                  <span className={`absolute top-1 left-1 text-[10px] px-1 py-0.5 rounded font-bold ${
                                     post.platform === 'instagram' ? 'bg-pink-500 text-white' :
                                     post.platform === 'tiktok' ? 'bg-black text-white' :
                                     'bg-[#0c1a3a] text-white'
                                   }`}>
                                     {post.platform === 'instagram' ? 'IG' : post.platform === 'tiktok' ? 'TT' : 'LI'}
                                   </span>
-                                  <span className={`absolute top-1 right-1 text-[8px] px-1 py-0.5 rounded font-bold ${
+                                  <span className={`absolute top-1 right-1 text-[10px] px-1 py-0.5 rounded font-bold ${
                                     post.status === 'published' && (post.instagram_permalink || post.tiktok_publish_id || post.linkedin_permalink) ? 'bg-green-500 text-white' :
                                     post.status === 'scheduled' ? 'bg-[#0c1a3a] text-white' :
                                     'bg-amber-500 text-white'
@@ -1508,14 +1508,14 @@ function SuiviPublicationsPage() {
                               ) : (
                                 <div className="aspect-square bg-neutral-50 flex flex-col items-center justify-center relative">
                                   <span className="text-2xl opacity-30">{post.platform === 'instagram' ? '📷' : post.platform === 'tiktok' ? '🎵' : '💼'}</span>
-                                  <span className={`absolute top-1 left-1 text-[8px] px-1 py-0.5 rounded font-bold ${
+                                  <span className={`absolute top-1 left-1 text-[10px] px-1 py-0.5 rounded font-bold ${
                                     post.platform === 'instagram' ? 'bg-pink-500 text-white' :
                                     post.platform === 'tiktok' ? 'bg-black text-white' :
                                     'bg-[#0c1a3a] text-white'
                                   }`}>
                                     {post.platform === 'instagram' ? 'IG' : post.platform === 'tiktok' ? 'TT' : 'LI'}
                                   </span>
-                                  <span className={`absolute top-1 right-1 text-[8px] px-1 py-0.5 rounded font-bold ${
+                                  <span className={`absolute top-1 right-1 text-[10px] px-1 py-0.5 rounded font-bold ${
                                     post.status === 'published' ? 'bg-green-500 text-white' :
                                     'bg-amber-500 text-white'
                                   }`}>
@@ -1523,7 +1523,7 @@ function SuiviPublicationsPage() {
                                   </span>
                                 </div>
                               )}
-                              <p className="text-[9px] text-neutral-600 p-1 line-clamp-2 leading-tight">{post.caption || post.hook || 'Sans caption'}</p>
+                              <p className="text-[10px] text-neutral-600 p-1 line-clamp-2 leading-tight">{post.caption || post.hook || 'Sans caption'}</p>
                             </button>
                           ))}
                           {dayPosts.length === 0 && (
@@ -1769,7 +1769,7 @@ function SuiviPublicationsPage() {
                                     : 'bg-green-600 text-white'
                                 }`}>
                                   <p>{m.message}</p>
-                                  <p className={`text-[9px] mt-1 ${m.role === 'assistant' ? 'text-neutral-300' : 'text-green-200'}`}>
+                                  <p className={`text-[10px] mt-1 ${m.role === 'assistant' ? 'text-neutral-300' : 'text-green-200'}`}>
                                     {new Date(m.created_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                                   </p>
                                 </div>

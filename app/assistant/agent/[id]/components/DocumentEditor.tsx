@@ -224,7 +224,7 @@ export default function DocumentEditor({ agentId, agentName }: { agentId: string
             className="flex-1 min-w-0 bg-transparent text-white text-sm font-medium focus:outline-none px-2 py-1 rounded hover:bg-white/5 focus:bg-white/5"
           />
           {originalFormat && (
-            <span className="text-[9px] text-white/30 uppercase">{originalFormat}</span>
+            <span className="text-[10px] text-white/30 uppercase">{originalFormat}</span>
           )}
           <input ref={fileInputRef} type="file" accept=".md,.txt,.pdf,.docx" onChange={handleUpload} className="hidden" />
           <button onClick={() => fileInputRef.current?.click()} disabled={importing} className="px-2 py-1 text-xs text-white/60 hover:text-white hover:bg-white/10 rounded transition disabled:opacity-50">

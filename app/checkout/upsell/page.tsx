@@ -63,7 +63,7 @@ function UpsellContent() {
               className="border-2 border-blue-500 rounded-xl p-4 text-left relative bg-blue-50/30 hover:bg-blue-50/60 hover:shadow-lg transition-all active:scale-[0.98] ring-1 ring-blue-200"
             >
               <div className="absolute -top-2.5 left-1/2 -translate-x-1/2">
-                <span className="bg-blue-600 text-white text-[9px] font-bold px-3 py-0.5 rounded-full">RECOMMANDE</span>
+                <span className="bg-blue-600 text-white text-[10px] font-bold px-3 py-0.5 rounded-full">RECOMMANDE</span>
               </div>
               <p className="text-xs text-blue-600 uppercase font-bold mb-1">Pro <span className="text-orange-500">-40%</span></p>
               <div className="mb-2">

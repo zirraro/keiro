@@ -157,7 +157,7 @@ export default function ServiceHealthPage() {
                           {c.severity}
                         </span>
                         {c.agents.map(a => (
-                          <span key={a} className="text-[9px] px-1.5 py-0.5 rounded bg-white/10 text-white/60">{a}</span>
+                          <span key={a} className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-white/60">{a}</span>
                         ))}
                         <span className="text-[10px] text-white/40">
                           {new Date(c.last_seen).toLocaleString('fr-FR')}
@@ -212,7 +212,7 @@ export default function ServiceHealthPage() {
                     <td className="p-2.5 text-white/60">{r.plan}</td>
                     <td className="p-2.5">
                       <span
-                        className="text-[9px] font-bold px-1.5 py-0.5 rounded"
+                        className="text-[10px] font-bold px-1.5 py-0.5 rounded"
                         style={{ backgroundColor: (SEV_COLOR[r.severity] || SEV_COLOR.P2).border + '30', color: (SEV_COLOR[r.severity] || SEV_COLOR.P2).border }}
                       >
                         {r.severity}

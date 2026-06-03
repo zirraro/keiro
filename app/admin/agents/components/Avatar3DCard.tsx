@@ -145,7 +145,7 @@ export default function Avatar3DCard({
       {statusDot && (
         <div className="absolute top-2 right-2 z-20 flex items-center gap-1" role="status" aria-label={statusLabel || 'Status'}>
           <div className={`w-2 h-2 rounded-full ${statusDot}`} />
-          {statusLabel && <span className="text-[9px] text-white/60">{statusLabel}</span>}
+          {statusLabel && <span className="text-[10px] text-white/60">{statusLabel}</span>}
         </div>
       )}
 

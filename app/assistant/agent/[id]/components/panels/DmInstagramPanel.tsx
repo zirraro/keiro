@@ -543,19 +543,19 @@ function ManualFollowsList() {
         <div className="grid grid-cols-4 gap-2 mb-2">
           <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-2 text-center">
             <div className="text-base font-bold text-amber-300">{funnel.queued}</div>
-            <div className="text-[9px] text-amber-300/60">{en ? 'In queue' : 'En attente'}</div>
+            <div className="text-[10px] text-amber-300/60">{en ? 'In queue' : 'En attente'}</div>
           </div>
           <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-2 text-center">
             <div className="text-base font-bold text-blue-300">{funnel.eligible}</div>
-            <div className="text-[9px] text-blue-300/60">{en ? 'Eligible' : 'Éligibles'}</div>
+            <div className="text-[10px] text-blue-300/60">{en ? 'Eligible' : 'Éligibles'}</div>
           </div>
           <div className="rounded-lg bg-purple-500/10 border border-purple-500/20 p-2 text-center">
             <div className="text-base font-bold text-purple-300">{funnel.followed}</div>
-            <div className="text-[9px] text-purple-300/60">{en ? 'Followed' : 'Suivis'}</div>
+            <div className="text-[10px] text-purple-300/60">{en ? 'Followed' : 'Suivis'}</div>
           </div>
           <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-2 text-center">
             <div className="text-base font-bold text-emerald-300">{funnel.dm_sent}</div>
-            <div className="text-[9px] text-emerald-300/60">{en ? 'DMs sent' : 'DMs envoyés'}</div>
+            <div className="text-[10px] text-emerald-300/60">{en ? 'DMs sent' : 'DMs envoyés'}</div>
           </div>
         </div>
       )}
@@ -966,7 +966,7 @@ function DmConversationsLive() {
       <div className="text-center py-4 mb-3 bg-white/[0.02] rounded-xl border border-white/5">
         <span className="text-xl">{'\u{1F4AC}'}</span>
         <p className="text-xs text-white/40 mt-1">{p.dmEmptyConversationsTitle}</p>
-        <p className="text-[10px] text-white/25 mt-0.5">{p.dmEmptyConversationsSubtitle}</p>
+        <p className="text-[10px] text-white/50 mt-0.5">{p.dmEmptyConversationsSubtitle}</p>
       </div>
     )}
     <div className={`rounded-xl border-2 ${isDemo ? 'border-amber-500/20 opacity-90' : 'border-purple-500/20'} bg-gradient-to-b from-purple-900/10 to-transparent overflow-hidden shadow-lg shadow-purple-500/5 max-h-[60vh] md:h-[420px] min-h-[320px] mb-4 lg:mb-0`}>
@@ -1002,7 +1002,7 @@ function DmConversationsLive() {
                       conversations that will need the HUMAN_AGENT tag. */}
                   {outsideWindow && lastInbound && (
                     <span
-                      className="ml-auto px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex-shrink-0"
+                      className="ml-auto px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex-shrink-0"
                       title="Outside the 24h messaging window — send will use messaging_type=MESSAGE_TAG, tag=HUMAN_AGENT"
                     >
                       &gt;24h
@@ -1013,7 +1013,7 @@ function DmConversationsLive() {
                   {lastMsg?.fromMe ? p.dmConvsToMe : ''}{lastMsg?.message?.substring(0, 50) || '...'}
                 </div>
                 {conv.updated_time && (
-                  <div className="text-[9px] text-white/15 mt-0.5 pl-4">
+                  <div className="text-[10px] text-white/40 mt-0.5 pl-4">
                     {new Date(conv.updated_time).toLocaleDateString(dateLocale, { day: '2-digit', month: '2-digit' })}
                   </div>
                 )}
@@ -1033,16 +1033,16 @@ function DmConversationsLive() {
               </div>
               <div>
                 <span className="text-xs font-bold text-white">@{selected.participant.username}</span>
-                <div className="text-[9px] text-white/20">{p.dmConvsMessagesCount.replace('{n}', String(selected.messages.length))}</div>
+                <div className="text-[10px] text-white/45">{p.dmConvsMessagesCount.replace('{n}', String(selected.messages.length))}</div>
               </div>
               <div className="ml-auto flex items-center gap-2">
                 <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/20">
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  <span className="text-[9px] text-emerald-400 font-medium">{p.dmConvsBadgeAi}</span>
+                  <span className="text-[10px] text-emerald-400 font-medium">{p.dmConvsBadgeAi}</span>
                 </div>
                 <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/15 border border-blue-500/20">
                   <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
-                  <span className="text-[9px] text-blue-400 font-medium">{p.dmConvsBadgeYou}</span>
+                  <span className="text-[10px] text-blue-400 font-medium">{p.dmConvsBadgeYou}</span>
                 </div>
               </div>
             </div>
@@ -1105,7 +1105,7 @@ function DmConversationsLive() {
                     )}
                     {msg.message || (msg.attachments?.length ? null : <span className="italic text-white/30">[media]</span>)}
                     <div className={`flex items-center gap-1 mt-0.5 ${msg.fromMe ? 'justify-end' : ''}`}>
-                      <span className={`text-[10px] ${msg.fromMe ? 'text-purple-200/60' : 'text-white/20'}`}>
+                      <span className={`text-[10px] ${msg.fromMe ? 'text-purple-200/60' : 'text-white/45'}`}>
                         {msg.created_time ? new Date(msg.created_time).toLocaleString(dateLocale, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}
                       </span>
                       {msg.fromMe && msg.status === 'sending' && <span className="text-[10px] text-yellow-300/60">{p.dmConvsStatusSending}</span>}
@@ -1114,7 +1114,7 @@ function DmConversationsLive() {
                       {msg.fromMe && msg.status === 'error' && <span className="text-[10px] text-red-300/60">{p.dmConvsStatusError}</span>}
                       {msg.fromMe && (() => {
                         const isManual = msg.from === 'moi' || msg.status === 'sending' || msg.status === 'sent';
-                        return <span className={`text-[9px] px-1 py-0.5 rounded ${isManual ? 'bg-blue-500/20 text-blue-300' : 'bg-emerald-500/20 text-emerald-300'}`}>{isManual ? p.dmConvsOrigVous : p.dmConvsOrigAi}</span>;
+                        return <span className={`text-[10px] px-1 py-0.5 rounded ${isManual ? 'bg-blue-500/20 text-blue-300' : 'bg-emerald-500/20 text-emerald-300'}`}>{isManual ? p.dmConvsOrigVous : p.dmConvsOrigAi}</span>;
                       })()}
                     </div>
                   </div>
@@ -1203,8 +1203,8 @@ function DmConversationsLive() {
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-white/20 text-xs gap-2 py-8">
-            <svg className="w-8 h-8 text-white/10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+          <div className="flex-1 flex flex-col items-center justify-center text-white/45 text-xs gap-2 py-8">
+            <svg className="w-8 h-8 text-white/35" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
             {p.dmConvsPickHint}
           </div>
         )}
@@ -1330,13 +1330,13 @@ function CommentCard({ comment: c, isDemo, onUpdate, hidePostHeader }: { comment
           )}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="text-[9px] text-white/30">{mediaBadge}</span>
+              <span className="text-[10px] text-white/30">{mediaBadge}</span>
               <span className="text-[10px] font-semibold text-white/60 truncate">
                 {postCaption ? postCaption.substring(0, 60) : 'Instagram post'}
               </span>
             </div>
             {postCtx.posted_at && (
-              <div className="text-[9px] text-white/25">Posted {formatWhen(postCtx.posted_at)}</div>
+              <div className="text-[10px] text-white/50">Posted {formatWhen(postCtx.posted_at)}</div>
             )}
           </div>
           {postPermalink && <span className="text-[10px] text-purple-400/60">{'\u2197'}</span>}
@@ -1367,7 +1367,7 @@ function CommentCard({ comment: c, isDemo, onUpdate, hidePostHeader }: { comment
               @{c.username || 'instagram_user'}
             </a>
             {c.timestamp && <span className="text-[10px] text-white/40">· {formatWhen(c.timestamp)}</span>}
-            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-semibold ${c.replied ? 'bg-emerald-400/15 text-emerald-400' : 'bg-amber-400/15 text-amber-400'}`}>
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${c.replied ? 'bg-emerald-400/15 text-emerald-400' : 'bg-amber-400/15 text-amber-400'}`}>
               {c.replied ? p.replied : p.pending}
             </span>
             {/* "Open on Instagram" link — points at the post permalink
@@ -1379,7 +1379,7 @@ function CommentCard({ comment: c, isDemo, onUpdate, hidePostHeader }: { comment
                 href={postPermalink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[9px] text-purple-300/70 hover:text-purple-200 ml-auto"
+                className="text-[10px] text-purple-300/70 hover:text-purple-200 ml-auto"
                 title="Open the post + comments on Instagram"
               >
                 Open on Instagram ↗
@@ -1394,7 +1394,7 @@ function CommentCard({ comment: c, isDemo, onUpdate, hidePostHeader }: { comment
       {c.replied && c.reply_text && (
         <div className="px-3 pb-2 ml-9">
           <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2">
-            <span className="text-[9px] text-emerald-400 font-medium">{p.dmCommentCardReplyShown}</span>
+            <span className="text-[10px] text-emerald-400 font-medium">{p.dmCommentCardReplyShown}</span>
             <p className="text-[10px] text-white/60 mt-0.5">{c.reply_text}</p>
           </div>
         </div>
@@ -1419,7 +1419,7 @@ function CommentCard({ comment: c, isDemo, onUpdate, hidePostHeader }: { comment
                 }}
                 disabled={sending}
                 title="Posts a reply via the Graph API (POST /{comment-id}/replies). Permission: instagram_business_manage_comments."
-                className="px-2.5 py-1.5 bg-emerald-600/20 text-emerald-400 text-[9px] font-medium rounded-lg hover:bg-emerald-600/30 transition min-h-[32px] disabled:opacity-50"
+                className="px-2.5 py-1.5 bg-emerald-600/20 text-emerald-400 text-[10px] font-medium rounded-lg hover:bg-emerald-600/30 transition min-h-[32px] disabled:opacity-50"
               >
                 {sending ? '...' : (p.dmCommentCardReplyAuto || 'Réponse auto')}
               </button>
@@ -1432,13 +1432,13 @@ function CommentCard({ comment: c, isDemo, onUpdate, hidePostHeader }: { comment
                   setReplyText(draft);
                   setShowReply(true);
                 }}
-                className="px-2.5 py-1.5 bg-amber-600/20 text-amber-400 text-[9px] font-medium rounded-lg hover:bg-amber-600/30 transition min-h-[32px]"
+                className="px-2.5 py-1.5 bg-amber-600/20 text-amber-400 text-[10px] font-medium rounded-lg hover:bg-amber-600/30 transition min-h-[32px]"
               >
                 💡 Suggérer
               </button>
               <button
                 onClick={() => setShowReply(true)}
-                className="px-2.5 py-1.5 bg-blue-600/20 text-blue-400 text-[9px] font-medium rounded-lg hover:bg-blue-600/30 transition min-h-[32px]"
+                className="px-2.5 py-1.5 bg-blue-600/20 text-blue-400 text-[10px] font-medium rounded-lg hover:bg-blue-600/30 transition min-h-[32px]"
               >
                 ✍️ Écrire
               </button>
@@ -1480,7 +1480,7 @@ function CommentCard({ comment: c, isDemo, onUpdate, hidePostHeader }: { comment
                 }}
                 disabled={sending || !replyText.trim()}
                 title="Sends your custom reply to this Instagram comment via the Graph API (POST /{comment-id}/replies)."
-                className="px-3 py-1.5 bg-blue-600 text-white text-[9px] font-bold rounded-lg disabled:opacity-40 min-h-[32px]"
+                className="px-3 py-1.5 bg-blue-600 text-white text-[10px] font-bold rounded-lg disabled:opacity-40 min-h-[32px]"
               >
                 {sending ? '...' : (p.sendBtn || 'Envoyer')}
               </button>
@@ -1770,9 +1770,9 @@ function PostGroup({
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-[9px] text-purple-300/70 font-semibold">{comments.length} commentaire{comments.length > 1 ? 's' : ''}</span>
+              <span className="text-[10px] text-purple-300/70 font-semibold">{comments.length} commentaire{comments.length > 1 ? 's' : ''}</span>
               {post?.posted_at && (
-                <span className="text-[9px] text-white/30">· publié {new Date(post.posted_at).toLocaleDateString()}</span>
+                <span className="text-[10px] text-white/30">· publié {new Date(post.posted_at).toLocaleDateString()}</span>
               )}
             </div>
           </div>
@@ -2007,7 +2007,7 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
             <div className="flex items-center gap-2 mb-2">
               <span className="text-xs font-semibold text-white">@{cleanHandle}</span>
               {isVerified && (
-                <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-semibold">
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-semibold">
                   {'\u2705'} {p.verified}
                 </span>
               )}
@@ -2411,7 +2411,7 @@ function JadeCampaignActions({ p }: { p: any }) {
           >
             <span className="text-lg">{a.icon}</span>
             <span className="text-[10px] font-bold">{a.label}</span>
-            <span className="text-[8px] text-white/30 leading-tight">{a.desc}</span>
+            <span className="text-[10px] text-white/30 leading-tight">{a.desc}</span>
           </button>
         ))}
       </div>

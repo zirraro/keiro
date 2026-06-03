@@ -71,7 +71,7 @@ export default function ShowcaseAdmin() {
             <div key={img.id} className="bg-white rounded-xl border overflow-hidden group">
               <div className="aspect-square relative">
                 <img src={img.image_url} alt={img.title || ''} className="w-full h-full object-cover" loading="lazy" />
-                <div className="absolute top-2 right-2 px-1.5 py-0.5 bg-black/60 text-white text-[9px] rounded">
+                <div className="absolute top-2 right-2 px-1.5 py-0.5 bg-black/60 text-white text-[10px] rounded">
                   {img.usage_count}x
                 </div>
               </div>

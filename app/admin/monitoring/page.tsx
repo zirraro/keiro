@@ -81,7 +81,7 @@ export default function MonitoringPage() {
                     <tr key={c.id} className="border-b border-white/5 hover:bg-white/[0.03]">
                       <td className="px-3 py-2">
                         <div className="font-medium text-white">{c.name}</div>
-                        <div className="text-[9px] text-white/30">{c.email}</div>
+                        <div className="text-[10px] text-white/30">{c.email}</div>
                       </td>
                       <td className="px-3 py-2">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${c.plan === 'business' || c.plan === 'elite' ? 'bg-purple-500/20 text-purple-300' : c.plan === 'pro' || c.plan === 'fondateurs' ? 'bg-blue-500/20 text-blue-300' : c.plan === 'createur' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-white/10 text-white/50'}`}>

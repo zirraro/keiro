@@ -81,7 +81,7 @@ function StrategyPresets({ gradientFrom, gradientTo }: { gradientFrom: string; g
               className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border transition text-center ${active ? 'border-cyan-500/50 bg-cyan-500/15' : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.06]'}`}>
               <span className="text-lg">{f.icon}</span>
               <span className={`text-[10px] font-bold ${active ? 'text-cyan-400' : 'text-white/70'}`}>{f.name}</span>
-              <span className="text-[8px] text-white/30">~{f.credits} cr</span>
+              <span className="text-[10px] text-white/30">~{f.credits} cr</span>
             </button>
           );
         })}
@@ -89,7 +89,7 @@ function StrategyPresets({ gradientFrom, gradientTo }: { gradientFrom: string; g
       {selected.size > 0 && (
         <div className={`flex items-center justify-between px-3 py-2 rounded-lg mb-3 text-xs ${totalCredits <= 400 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}`}>
           <span>~{totalCredits} cr/mois</span>
-          {totalCredits > 400 && <span className="text-[9px]">Depasse Createur (400 cr)</span>}
+          {totalCredits > 400 && <span className="text-[10px]">Depasse Createur (400 cr)</span>}
         </div>
       )}
       <button onClick={apply} disabled={selected.size === 0 || applying}

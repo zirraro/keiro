@@ -207,7 +207,7 @@ export default async function StatusPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-medium">{a.label}</span>
-                    <span className={`text-[9px] px-1.5 py-0.5 rounded-full border uppercase ${tierBadge(a.tier)}`}>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full border uppercase ${tierBadge(a.tier)}`}>
                       {a.tier}
                     </span>
                   </div>

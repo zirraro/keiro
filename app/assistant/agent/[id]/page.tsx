@@ -418,7 +418,7 @@ function EmailPlanningView() {
                 <span className={`shrink-0 w-2 h-2 rounded-full ${l.status === 'success' ? 'bg-emerald-400' : l.status === 'error' ? 'bg-red-400' : 'bg-amber-400'}`} />
                 <span className="text-white/60 shrink-0 w-32 truncate">{l.action}</span>
                 <span className="text-white/40 truncate flex-1">{l.preview || '—'}</span>
-                <span className="text-white/20 text-[10px] shrink-0">
+                <span className="text-white/45 text-[10px] shrink-0">
                   {new Date(l.created_at).toLocaleTimeString(en ? 'en-US' : 'fr-FR', { hour: '2-digit', minute: '2-digit' })}
                 </span>
               </div>
@@ -688,7 +688,7 @@ function EditorialCalendarFull({ agentId: _agentId }: { agentId: string }) {
       {/* Filters: status (multi-select) + platform (multi-select) */}
       <div className="flex flex-wrap items-center gap-2 bg-white/[0.02] border border-white/10 rounded-xl p-2">
         <div className="flex items-center flex-wrap gap-1.5">
-          <span className="text-[9px] font-bold text-white/60 uppercase tracking-wide mr-1">{tCal.status}</span>
+          <span className="text-[10px] font-bold text-white/60 uppercase tracking-wide mr-1">{tCal.status}</span>
           {/* Failed + skipped chips intentionally NOT shown — the
               client doesn't need to be confronted with 'échec' or
               'ignoré' badges. Failed posts are silently retried by
@@ -708,14 +708,14 @@ function EditorialCalendarFull({ agentId: _agentId }: { agentId: string }) {
               >
                 <span className={`w-1.5 h-1.5 rounded-full ${active ? 'bg-white/80' : 'bg-white/40'}`} />
                 {f.label}
-                <span className={`text-[9px] px-1 py-0.5 rounded-full ${active ? 'bg-white/20' : 'bg-white/15'}`}>{f.count}</span>
+                <span className={`text-[10px] px-1 py-0.5 rounded-full ${active ? 'bg-white/20' : 'bg-white/15'}`}>{f.count}</span>
               </button>
             );
           })}
         </div>
         <div className="w-px h-5 bg-white/10 mx-1" />
         <div className="flex items-center flex-wrap gap-1.5">
-          <span className="text-[9px] font-bold text-white/60 uppercase tracking-wide mr-1">{tCal.network}</span>
+          <span className="text-[10px] font-bold text-white/60 uppercase tracking-wide mr-1">{tCal.network}</span>
           {Array.from(activePlatforms).map(p => {
             const meta = PLATFORM_META[p];
             const active = platformFilter.has(p);
@@ -740,7 +740,7 @@ function EditorialCalendarFull({ agentId: _agentId }: { agentId: string }) {
             );
           })}
           {!activePlatforms.has('tiktok') && !activePlatforms.has('linkedin') && (
-            <span className="text-[9px] text-white/40 italic ml-1">{tCal.disabledHint}</span>
+            <span className="text-[10px] text-white/40 italic ml-1">{tCal.disabledHint}</span>
           )}
           <button
             onClick={() => setBatchOpen(true)}
@@ -888,7 +888,7 @@ function MonthGrid({ cursor, byDay, onSelect, en, tCal }: { cursor: Date; byDay:
                     {dayPosts.slice(0, 4).map(p => (
                       <span key={p.id} className={`w-2 h-2 rounded-full ${STATUS_DOT[p.status] || 'bg-white/20'}`} />
                     ))}
-                    {dayPosts.length > 4 && <span className="text-[8px] text-white/50">+{dayPosts.length - 4}</span>}
+                    {dayPosts.length > 4 && <span className="text-[10px] text-white/50">+{dayPosts.length - 4}</span>}
                   </button>
                   {/* Desktop full pills (≥sm) */}
                   <div className="hidden sm:block space-y-0.5">
@@ -903,12 +903,12 @@ function MonthGrid({ cursor, byDay, onSelect, en, tCal }: { cursor: Date; byDay:
                         ) : (
                           <div className="w-6 h-6 bg-gradient-to-br from-purple-900/30 to-pink-900/30 rounded shrink-0" />
                         )}
-                        <div className="text-[8px] text-white/80 truncate text-left flex-1">{(p.hook || p.caption || '').substring(0, 22)}</div>
+                        <div className="text-[10px] text-white/80 truncate text-left flex-1">{(p.hook || p.caption || '').substring(0, 22)}</div>
                         <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_DOT[p.status] || 'bg-white/20'}`} />
                       </button>
                     ))}
                     {dayPosts.length > 3 && (
-                      <div className="text-[8px] text-white/50 text-center">+{dayPosts.length - 3}</div>
+                      <div className="text-[10px] text-white/50 text-center">+{dayPosts.length - 3}</div>
                     )}
                   </div>
                 </>
@@ -917,7 +917,7 @@ function MonthGrid({ cursor, byDay, onSelect, en, tCal }: { cursor: Date; byDay:
           );
         })}
       </div>
-      <div className="text-[9px] text-white/50 text-right px-3 py-1.5 border-t border-white/10">
+      <div className="text-[10px] text-white/50 text-right px-3 py-1.5 border-t border-white/10">
         {byDay.size > 0
           ? tCal.thisMonth(Array.from(byDay.values()).reduce((a, b) => a + b.length, 0), lastOfMonth.getDate())
           : (en ? 'No posts' : 'Aucun post')}
@@ -954,7 +954,7 @@ function WeekStrip({ cursor, byDay, onSelect, en }: { cursor: Date; byDay: Map<s
                 <span className="text-lg font-black leading-none">{d.getDate()}</span>
               </div>
               {dayPosts.length > 0 && (
-                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${isToday ? 'bg-purple-500/30 text-purple-200' : 'bg-white/10 text-white/60'}`}>
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${isToday ? 'bg-purple-500/30 text-purple-200' : 'bg-white/10 text-white/60'}`}>
                   {dayPosts.length}
                 </span>
               )}
@@ -973,7 +973,7 @@ function WeekStrip({ cursor, byDay, onSelect, en }: { cursor: Date; byDay: Map<s
                         <img src={p.visual_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
                         <span className={`absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full ring-2 ring-black/40 ${STATUS_DOT[p.status] || 'bg-white/30'}`} />
                         {meta?.tag && (
-                          <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-md bg-black/65 text-white text-[9px] font-bold tracking-wide">
+                          <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-md bg-black/65 text-white text-[10px] font-bold tracking-wide">
                             {meta.tag}
                           </span>
                         )}
@@ -992,7 +992,7 @@ function WeekStrip({ cursor, byDay, onSelect, en }: { cursor: Date; byDay: Map<s
                 );
               })}
               {dayPosts.length === 0 && (
-                <div className="flex items-center justify-center text-[10px] text-white/15 py-6 italic">{en ? '· empty' : '· vide'}</div>
+                <div className="flex items-center justify-center text-[10px] text-white/40 py-6 italic">{en ? '· empty' : '· vide'}</div>
               )}
             </div>
           </div>
@@ -1028,8 +1028,8 @@ function DayList({ cursor, byDay, onSelect, en, tCal }: { cursor: Date; byDay: M
                 {p.visual_url ? (
                   <div className="aspect-video relative">
                     <img src={p.visual_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                    <span className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-[9px] font-bold text-white ${STATUS_DOT[p.status] || 'bg-white/20'}`}>{STATUS_LABELS[p.status]}</span>
-                    <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[9px] font-bold bg-black/60 text-white">{meta?.emoji} {meta?.label}</span>
+                    <span className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-bold text-white ${STATUS_DOT[p.status] || 'bg-white/20'}`}>{STATUS_LABELS[p.status]}</span>
+                    <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-black/60 text-white">{meta?.emoji} {meta?.label}</span>
                   </div>
                 ) : (
                   <div className="aspect-video bg-gradient-to-br from-purple-900/30 to-pink-900/30 flex items-center justify-center p-3">
@@ -1156,7 +1156,7 @@ function PostModal({ selected: initial, onClose, en, tCal }: { selected: any; on
             <div className="flex items-center justify-between mb-2">
               <span className="text-[10px] font-bold uppercase tracking-wide text-white/60">{en ? 'Text overlay' : 'Texte sur l\'image'}</span>
               <div className="flex items-center gap-2">
-                {selected.overlay_text?.text && <span className="text-[9px] text-white/40 italic">{en ? 'Active' : 'Actif'}</span>}
+                {selected.overlay_text?.text && <span className="text-[10px] text-white/40 italic">{en ? 'Active' : 'Actif'}</span>}
                 <button
                   onClick={suggestOverlay}
                   disabled={overlaySuggestBusy}
@@ -1836,7 +1836,7 @@ export default function AgentWorkspacePage() {
           <div className="absolute inset-0 backdrop-blur-[2px] bg-black/10" />
           <div className="relative pointer-events-auto bg-gray-900/95 backdrop-blur-xl border border-purple-500/20 rounded-t-2xl sm:rounded-2xl shadow-2xl p-5 sm:p-6 w-full sm:max-w-md mx-4 mb-0 sm:mb-0 text-center">
             {/* Close button */}
-            <button onClick={() => window.location.href = '/assistant'} className="absolute top-3 right-3 text-white/20 hover:text-white/50 transition p-2 min-h-[44px] min-w-[44px] flex items-center justify-center">
+            <button onClick={() => window.location.href = '/assistant'} className="absolute top-3 right-3 text-white/45 hover:text-white/50 transition p-2 min-h-[44px] min-w-[44px] flex items-center justify-center">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
             <div className="text-3xl mb-3">{'\u{1F512}'}</div>
@@ -2151,14 +2151,14 @@ export default function AgentWorkspacePage() {
                       {dayTasks.length > 0 ? (
                         <div className="space-y-1">
                           {dayTasks.slice(0, 3).map((t, j) => (
-                            <div key={j} className={`text-[9px] px-1.5 py-1 rounded-md truncate ${t.status === 'success' ? 'bg-green-500/15 text-green-300' : t.status === 'pending' ? 'bg-amber-500/15 text-amber-300' : 'bg-white/10 text-white/50'}`}>
+                            <div key={j} className={`text-[10px] px-1.5 py-1 rounded-md truncate ${t.status === 'success' ? 'bg-green-500/15 text-green-300' : t.status === 'pending' ? 'bg-amber-500/15 text-amber-300' : 'bg-white/10 text-white/50'}`}>
                               {t.description?.substring(0, 30) || t.type || 'Tache'}
                             </div>
                           ))}
                           {dayTasks.length > 3 && <div className="text-[10px] text-white/30 text-center">+{dayTasks.length - 3} autres</div>}
                         </div>
                       ) : (
-                        <div className="text-[9px] text-white/15 text-center mt-2">{isPast ? 'Aucune' : '\u2014'}</div>
+                        <div className="text-[10px] text-white/40 text-center mt-2">{isPast ? 'Aucune' : '\u2014'}</div>
                       )}
                     </div>
                   );
@@ -2239,13 +2239,13 @@ export default function AgentWorkspacePage() {
                             <div className="flex-1 min-w-0">
                               <div className="text-white text-xs font-medium truncate">{item.title}</div>
                               {item.subtitle && <div className="text-white/40 text-[10px] mt-0.5">{item.subtitle}</div>}
-                              <div className="text-white/20 text-[10px] mt-0.5">
+                              <div className="text-white/45 text-[10px] mt-0.5">
                                 {item.date ? formatDateTime(item.date) : ''}{item.time ? ` a ${item.time}` : ''}
                               </div>
                             </div>
                             <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                              <span className={`text-[9px] px-2 py-0.5 rounded-full ${badgeStyle}`}>{badge}</span>
-                              {item.link && <a href={item.link} target="_blank" rel="noopener" className="text-[9px] text-purple-400 hover:text-purple-300">Voir {'\u2197'}</a>}
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full ${badgeStyle}`}>{badge}</span>
+                              {item.link && <a href={item.link} target="_blank" rel="noopener" className="text-[10px] text-purple-400 hover:text-purple-300">Voir {'\u2197'}</a>}
                             </div>
                           </div>
                         );
@@ -2271,7 +2271,7 @@ export default function AgentWorkspacePage() {
                             <div className="text-white/80 text-[11px]">{task.description || task.type || 'Action'}</div>
                             {task.result && <div className="text-white/30 text-[10px] mt-0.5 truncate">{task.result}</div>}
                           </div>
-                          <span className="text-[9px] text-white/20 flex-shrink-0">{formatDateTime(task.created_at)}</span>
+                          <span className="text-[10px] text-white/45 flex-shrink-0">{formatDateTime(task.created_at)}</span>
                         </div>
                       ))}
                     </div>
@@ -2282,7 +2282,7 @@ export default function AgentWorkspacePage() {
                   <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-8 text-center">
                     <div className="text-3xl mb-3">{icon}</div>
                     <p className="text-white/40 text-sm mb-1">Aucune activite pour le moment</p>
-                    <p className="text-white/20 text-xs">Lancez une campagne pour voir l'historique ici</p>
+                    <p className="text-white/45 text-xs">Lancez une campagne pour voir l'historique ici</p>
                   </div>
                 )}
               </>
@@ -2779,7 +2779,7 @@ export default function AgentWorkspacePage() {
                     <div className={`rounded-xl px-3 py-2.5 text-[13px] leading-relaxed ${msg.role === 'user' ? 'bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-br-sm' : 'bg-white/[0.07] text-white/90 rounded-bl-sm border border-white/5'}`}>
                       {msg.role === 'assistant' ? renderContent(msg.content) : msg.content.split('\n').map((l, j) => <p key={j} className={j > 0 ? 'mt-1' : ''}>{l}</p>)}
                     </div>
-                    <p className={`text-[9px] mt-0.5 ${msg.role === 'user' ? 'text-right' : ''} text-white/20`}>{new Date(msg.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
+                    <p className={`text-[10px] mt-0.5 ${msg.role === 'user' ? 'text-right' : ''} text-white/45`}>{new Date(msg.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
                   </div>
                 </div>
               ))}

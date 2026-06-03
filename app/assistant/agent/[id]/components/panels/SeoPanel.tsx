@@ -42,9 +42,9 @@ export function SeoPanel({ data, agentName, gradientFrom, gradientTo }: PanelPro
               <div className="flex-1 text-center">
                 <div className="text-lg mb-1">{step.icon}</div>
                 <div className="text-sm font-bold text-white" style={{ color: step.color }}>{step.value}</div>
-                <div className="text-[9px] text-white/40 mt-0.5">{step.label}</div>
+                <div className="text-[10px] text-white/40 mt-0.5">{step.label}</div>
               </div>
-              {i < 3 && <div className="text-white/20 text-xs mx-1">{'\u2192'}</div>}
+              {i < 3 && <div className="text-white/45 text-xs mx-1">{'\u2192'}</div>}
             </div>
           ))}
         </div>

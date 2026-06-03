@@ -67,7 +67,7 @@ export function KpiCard({
     <div className="rounded-xl border border-white/10 p-3 sm:p-4 flex flex-col gap-1 sm:gap-1.5 relative overflow-hidden min-h-[76px]">
       {/* Subtle gradient background */}
       <div className="absolute inset-0 opacity-[0.07]" style={{ background: `linear-gradient(135deg, ${gradientFrom}, ${gradientTo})` }} />
-      <span className="relative text-[9px] sm:text-[10px] text-white/60 uppercase tracking-wider font-semibold leading-tight">{label}</span>
+      <span className="relative text-[10px] sm:text-[10px] text-white/60 uppercase tracking-wider font-semibold leading-tight">{label}</span>
       <span
         className="relative text-xl sm:text-2xl font-bold bg-clip-text text-transparent leading-none"
         style={{ backgroundImage: `linear-gradient(135deg, ${gradientFrom}, ${gradientTo})` }}
@@ -92,10 +92,10 @@ export function EmptyState({ agentName }: { agentName: string }) {
   return (
     <div className="rounded-2xl border border-white/10 p-8 text-center bg-white/[0.02]">
       <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-3">
-        <svg className="w-6 h-6 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+        <svg className="w-6 h-6 text-white/45" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
       </div>
       <p className="text-white/40 text-sm">Aucune donnee pour le moment.</p>
-      <p className="text-white/25 text-xs mt-1">Discutez avec {agentName} pour commencer !</p>
+      <p className="text-white/50 text-xs mt-1">Discutez avec {agentName} pour commencer !</p>
     </div>
   );
 }
@@ -132,7 +132,7 @@ export function DonutChart({ segments, size = 100, label }: {
   label?: string;
 }) {
   const total = segments.reduce((s, seg) => s + seg.value, 0);
-  if (total === 0) return <div className="text-white/20 text-xs text-center py-4">Pas de donnees</div>;
+  if (total === 0) return <div className="text-white/45 text-xs text-center py-4">Pas de donnees</div>;
 
   let offset = 0;
   const r = 36;
@@ -168,7 +168,7 @@ export function DonutChart({ segments, size = 100, label }: {
         {segments.filter(s => s.value > 0).map((seg, i) => (
           <div key={i} className="flex items-center gap-1">
             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: seg.color }} />
-            <span className="text-[9px] text-white/50">{seg.label} ({seg.value})</span>
+            <span className="text-[10px] text-white/50">{seg.label} ({seg.value})</span>
           </div>
         ))}
       </div>

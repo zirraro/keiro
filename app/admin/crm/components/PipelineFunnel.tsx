@@ -77,7 +77,7 @@ export default function PipelineFunnel({
               <span className="text-white font-bold">{stage.count}</span>
             </button>
             {conversion && index < stages.length - 1 && (
-              <span className={`text-[9px] ${conversion.rate > 10 ? 'text-green-400/60' : conversion.rate > 0 ? 'text-yellow-400/60' : 'text-white/20'}`}>
+              <span className={`text-[10px] ${conversion.rate > 10 ? 'text-green-400/60' : conversion.rate > 0 ? 'text-yellow-400/60' : 'text-white/45'}`}>
                 →
               </span>
             )}

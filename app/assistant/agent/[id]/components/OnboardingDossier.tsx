@@ -204,7 +204,7 @@ export default function OnboardingDossier() {
               }`}
             >
               <div className="text-sm">{s.icon}</div>
-              <div className={`text-[9px] font-medium mt-0.5 ${isCurrent ? 'text-white' : isComplete ? 'text-green-400' : 'text-white/40'}`}>
+              <div className={`text-[10px] font-medium mt-0.5 ${isCurrent ? 'text-white' : isComplete ? 'text-green-400' : 'text-white/40'}`}>
                 {s.title}
               </div>
             </button>

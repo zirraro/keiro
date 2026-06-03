@@ -2196,7 +2196,7 @@ function DetailPanel({ prospect, onClose, onEdit, onDelete, activities, loadingA
             return (
               <div key={s.id} className="flex items-center flex-1 min-w-0">
                 <div
-                  className={`w-5 h-5 rounded-full flex items-center justify-center text-[8px] flex-shrink-0 transition-all cursor-pointer hover:ring-2 hover:ring-purple-300 ${isCurrent ? s.color + ' text-white ring-2 ring-offset-1 ring-offset-white ring-neutral-300' : isActive ? s.color + ' text-white' : 'bg-gray-100 text-neutral-400'}`}
+                  className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] flex-shrink-0 transition-all cursor-pointer hover:ring-2 hover:ring-purple-300 ${isCurrent ? s.color + ' text-white ring-2 ring-offset-1 ring-offset-white ring-neutral-300' : isActive ? s.color + ' text-white' : 'bg-gray-100 text-neutral-400'}`}
                   title={s.label}
                   onClick={async () => {
                     const supabase = supabaseBrowser();

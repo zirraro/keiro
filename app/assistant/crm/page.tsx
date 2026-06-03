@@ -169,7 +169,7 @@ function ProspectPanel({ prospect, activities, onClose, onUpdate }: {
                 {[...new Set(prospectActivities.map(a => a.type))].map(type => {
                   const CHANNEL_ICONS: Record<string, string> = { email: '\uD83D\uDCE7', email_opened: '\uD83D\uDCEC', email_clicked: '\uD83D\uDD17', email_replied: '\uD83D\uDCAC', dm_instagram: '\uD83D\uDCF8', prospect_discovered: '\uD83D\uDD0D', commercial_enrichment: '\uD83E\uDD16', note: '\uD83D\uDCDD' };
                   return (
-                    <span key={type} className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-[9px] text-white/50">
+                    <span key={type} className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-[10px] text-white/50">
                       {CHANNEL_ICONS[type] || '\u2022'} {type.replace(/_/g, ' ')}
                     </span>
                   );
@@ -188,7 +188,7 @@ function ProspectPanel({ prospect, activities, onClose, onUpdate }: {
                     <div className="w-1.5 h-1.5 rounded-full bg-purple-400 mt-1.5 flex-shrink-0" />
                     <div className="min-w-0 flex-1">
                       <div className="text-[11px] text-white/70">{a.description || a.type}</div>
-                      <div className="text-[9px] text-white/25 mt-0.5">{new Date(a.created_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
+                      <div className="text-[10px] text-white/50 mt-0.5">{new Date(a.created_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</div>
                     </div>
                   </div>
                 ))}
@@ -197,7 +197,7 @@ function ProspectPanel({ prospect, activities, onClose, onUpdate }: {
           )}
 
           {/* Meta info */}
-          <div className="text-[9px] text-white/15 pt-2 border-t border-white/5">
+          <div className="text-[10px] text-white/40 pt-2 border-t border-white/5">
             Cree le {new Date(prospect.created_at).toLocaleDateString('fr-FR')} | Source: {prospect.source?.replace(/_/g, ' ') || '?'}
           </div>
         </div>
@@ -316,7 +316,7 @@ export default function ClientCRM() {
           <div className="flex items-center gap-3">
             <a href="/assistant" className="text-white/30 hover:text-white/60 transition">{'\u2190'}</a>
             <div>
-              <h1 className="text-base font-bold flex items-center gap-2">Mon CRM <span className="text-[9px] bg-gradient-to-r from-purple-600 to-blue-600 px-2 py-0.5 rounded-full font-medium">PRO</span></h1>
+              <h1 className="text-base font-bold flex items-center gap-2">Mon CRM <span className="text-[10px] bg-gradient-to-r from-purple-600 to-blue-600 px-2 py-0.5 rounded-full font-medium">PRO</span></h1>
               <p className="text-white/30 text-[10px]">{stats.total} prospects | {stats.hot} chauds | {stats.clients} clients | +{stats.thisWeek} cette semaine</p>
             </div>
           </div>
@@ -434,7 +434,7 @@ export default function ClientCRM() {
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] text-amber-400">{'\u2B50'} {p.score}</span>
-                        <span className="text-white/20">{'\u203A'}</span>
+                        <span className="text-white/45">{'\u203A'}</span>
                       </div>
                     </button>
                   ))}
@@ -476,7 +476,7 @@ export default function ClientCRM() {
                           </div>
                         </button>
                       ))}
-                      {stProspects.length > 10 && <p className="text-[10px] text-white/20 text-center">+{stProspects.length - 10} autres</p>}
+                      {stProspects.length > 10 && <p className="text-[10px] text-white/45 text-center">+{stProspects.length - 10} autres</p>}
                     </div>
                   )}
                 </div>
@@ -520,13 +520,13 @@ export default function ClientCRM() {
                         {p.type || ''}{p.quartier ? ` - ${p.quartier}` : ''}{p.email ? ` | ${p.email}` : ''}
                       </div>
                     </div>
-                    <span className={`px-2 py-0.5 rounded text-[9px] ${statusCfg?.color || 'bg-white/10'} text-white font-medium flex-shrink-0`}>{statusCfg?.label || p.status}</span>
-                    <span className="text-white/15 flex-shrink-0">{'\u203A'}</span>
+                    <span className={`px-2 py-0.5 rounded text-[10px] ${statusCfg?.color || 'bg-white/10'} text-white font-medium flex-shrink-0`}>{statusCfg?.label || p.status}</span>
+                    <span className="text-white/40 flex-shrink-0">{'\u203A'}</span>
                   </button>
                 );
               })}
             </div>
-            {filtered.length > 500 && <p className="text-center text-white/20 text-xs py-2">+ {filtered.length - 500} autres — utilisez la recherche pour affiner</p>}
+            {filtered.length > 500 && <p className="text-center text-white/45 text-xs py-2">+ {filtered.length - 500} autres — utilisez la recherche pour affiner</p>}
           </div>
         )}
       </div>

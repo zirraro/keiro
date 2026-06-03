@@ -58,7 +58,7 @@ function ReportFrequencyPicker() {
         <span className="text-[10px] text-white/50 uppercase tracking-wider font-bold">
           {locale === 'fr' ? 'Fréquence du rapport Noah' : 'Noah report frequency'}
         </span>
-        {saved && <span className="text-[9px] text-emerald-400">✓</span>}
+        {saved && <span className="text-[10px] text-emerald-400">✓</span>}
       </div>
       <div className="flex flex-wrap gap-1.5">
         {FREQUENCY_OPTIONS.map(opt => (
@@ -122,7 +122,7 @@ export function CeoPanel({ data, agentName, gradientFrom, gradientTo }: PanelPro
             <div key={id} className="flex items-center gap-2 bg-white/[0.03] border border-white/10 rounded-xl p-2.5">
               <div className={`w-2 h-2 rounded-full ${status === 'erreur' ? 'bg-red-400' : status === 'actif' ? 'bg-green-400' : 'bg-white/20'}`} />
               <span className="text-xs text-white/70 font-medium">{name}</span>
-              <span className={`text-[9px] ml-auto ${status === 'erreur' ? 'text-red-400' : status === 'actif' ? 'text-green-400' : 'text-white/20'}`}>
+              <span className={`text-[10px] ml-auto ${status === 'erreur' ? 'text-red-400' : status === 'actif' ? 'text-green-400' : 'text-white/45'}`}>
                 {status === 'erreur' ? p.ceoStatusError : status === 'actif' ? p.ceoStatusActive : p.ceoStatusWaiting}
               </span>
             </div>
@@ -134,19 +134,19 @@ export function CeoPanel({ data, agentName, gradientFrom, gradientTo }: PanelPro
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <div className="rounded-xl bg-white/[0.03] border border-white/10 p-3 text-center">
           <div className="text-lg font-bold text-pink-400">{fmt(dmsSent)}</div>
-          <div className="text-[9px] text-white/40">{p.ceoStatDmsSent}</div>
+          <div className="text-[10px] text-white/40">{p.ceoStatDmsSent}</div>
         </div>
         <div className="rounded-xl bg-white/[0.03] border border-white/10 p-3 text-center">
           <div className="text-lg font-bold text-purple-400">{fmt(publications)}</div>
-          <div className="text-[9px] text-white/40">{p.ceoStatPublications}</div>
+          <div className="text-[10px] text-white/40">{p.ceoStatPublications}</div>
         </div>
         <div className="rounded-xl bg-white/[0.03] border border-white/10 p-3 text-center">
           <div className="text-lg font-bold text-cyan-400">{fmt(emailsSent)}</div>
-          <div className="text-[9px] text-white/40">{p.ceoStatEmails}</div>
+          <div className="text-[10px] text-white/40">{p.ceoStatEmails}</div>
         </div>
         <div className="rounded-xl bg-white/[0.03] border border-white/10 p-3 text-center">
           <div className="text-lg font-bold text-amber-400">{fmt(hot)}</div>
-          <div className="text-[9px] text-white/40">{p.ceoStatHotProspects}</div>
+          <div className="text-[10px] text-white/40">{p.ceoStatHotProspects}</div>
         </div>
       </div>
 

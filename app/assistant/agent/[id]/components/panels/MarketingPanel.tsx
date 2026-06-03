@@ -109,7 +109,7 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
             <div className="flex-1 min-w-0">
               <div className="text-[11px] font-semibold text-blue-300">Audit Graph API</div>
               <div className="text-[10px] text-white/50 mt-0.5">
-                Toutes les lectures Insights sont trac\u00e9es avec le tag <code className="text-[9px] text-blue-200">instagram_business_manage_insights</code> dans /meta-audit
+                Toutes les lectures Insights sont trac\u00e9es avec le tag <code className="text-[10px] text-blue-200">instagram_business_manage_insights</code> dans /meta-audit
               </div>
             </div>
             <a
@@ -174,9 +174,9 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
                     <div className="flex-1 text-center">
                       <div className="text-lg mb-1">{step.icon}</div>
                       <div className="text-sm font-bold" style={{ color: step.color }}>{step.value}</div>
-                      <div className="text-[9px] text-white/40 mt-0.5">{step.label}</div>
+                      <div className="text-[10px] text-white/40 mt-0.5">{step.label}</div>
                     </div>
-                    {i < 3 && <div className="text-white/20 text-xs mx-1">{'\u2192'}</div>}
+                    {i < 3 && <div className="text-white/45 text-xs mx-1">{'\u2192'}</div>}
                   </div>
                 ))}
               </div>
@@ -196,23 +196,23 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4">
                 <div className="rounded-lg bg-white/[0.04] border border-white/10 p-3 text-center">
                   <div className="text-lg font-bold text-purple-300">{fmt((gs as any).jade.dms_sent_7d)}</div>
-                  <div className="text-[9px] text-white/50">DMs envoy\u00e9s</div>
+                  <div className="text-[10px] text-white/50">DMs envoy\u00e9s</div>
                 </div>
                 <div className="rounded-lg bg-white/[0.04] border border-white/10 p-3 text-center">
                   <div className="text-lg font-bold text-pink-300">{fmt((gs as any).jade.comments_replied_7d)}</div>
-                  <div className="text-[9px] text-white/50">Commentaires r\u00e9pondus</div>
+                  <div className="text-[10px] text-white/50">Commentaires r\u00e9pondus</div>
                 </div>
                 <div className="rounded-lg bg-white/[0.04] border border-white/10 p-3 text-center">
                   <div className="text-lg font-bold text-amber-300">{fmt((gs as any).jade.follows_pending)}</div>
-                  <div className="text-[9px] text-white/50">Follows \u00e0 valider</div>
+                  <div className="text-[10px] text-white/50">Follows \u00e0 valider</div>
                 </div>
                 <div className="rounded-lg bg-white/[0.04] border border-white/10 p-3 text-center">
                   <div className="text-lg font-bold text-emerald-300">{fmt((gs as any).jade.follows_confirmed)}</div>
-                  <div className="text-[9px] text-white/50">Follows confirm\u00e9s</div>
+                  <div className="text-[10px] text-white/50">Follows confirm\u00e9s</div>
                 </div>
                 <div className="rounded-lg bg-white/[0.04] border border-white/10 p-3 text-center col-span-2 sm:col-span-1">
                   <div className="text-lg font-bold text-cyan-300">{fmt((gs as any).jade.after_follow_dms_7d)}</div>
-                  <div className="text-[9px] text-white/50">DMs post-follow</div>
+                  <div className="text-[10px] text-white/50">DMs post-follow</div>
                 </div>
               </div>
             </>
@@ -331,17 +331,17 @@ function NetworkInsightSection({
           <div className="text-sm font-bold text-white flex items-center gap-2">
             {label}
             {usingSample && (
-              <span className="px-1.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 text-[9px] font-bold uppercase tracking-wider">
+              <span className="px-1.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 text-[10px] font-bold uppercase tracking-wider">
                 Sample
               </span>
             )}
             {isConnected && !stats?.hasActivity && (
-              <span className="px-1.5 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 text-[9px] font-bold uppercase tracking-wider">
+              <span className="px-1.5 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 text-[10px] font-bold uppercase tracking-wider">
                 Live · organic
               </span>
             )}
             {isConnected && stats?.hasActivity && (
-              <span className="px-1.5 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 text-[9px] font-bold uppercase tracking-wider">
+              <span className="px-1.5 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 text-[10px] font-bold uppercase tracking-wider">
                 Live · KeiroAI active
               </span>
             )}

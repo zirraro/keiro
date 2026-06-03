@@ -52,7 +52,7 @@ function ContentCalendarInline({ posts, onSelectPost }: { posts: any[]; onSelect
                     <div className={`absolute top-0 right-0 w-1.5 h-1.5 rounded-full ${STATUS_DOT[p.status] || 'bg-gray-500'}`} />
                   </button>
                 ))}
-                {dayPosts.length > 3 && <div className="text-[9px] text-white/40 text-center">+{dayPosts.length - 3}</div>}
+                {dayPosts.length > 3 && <div className="text-[10px] text-white/40 text-center">+{dayPosts.length - 3}</div>}
               </div>
             </div>
           );
@@ -204,7 +204,7 @@ function ContentWorkflow({ isConnected }: { isConnected?: boolean }) {
 
   return (
     <div>
-      {isDemo && <p className="text-[9px] text-amber-400/50 mb-2">{'\u{1F4F8}'} {p.contentDemoHint}</p>}
+      {isDemo && <p className="text-[10px] text-amber-400/50 mb-2">{'\u{1F4F8}'} {p.contentDemoHint}</p>}
 
       {/* Generation in progress indicator */}
       {generating && (
@@ -227,7 +227,7 @@ function ContentWorkflow({ isConnected }: { isConnected?: boolean }) {
           { key: 'linkedin', label: `LI (${platformCounts.linkedin || 0})`, icon: '\u{1F4BC}' },
         ].map(tab => (
           <button key={tab.key} onClick={() => setPlatformFilter(tab.key)}
-            className={`px-2 py-1 text-[9px] font-medium rounded-md whitespace-nowrap transition-all ${platformFilter === tab.key ? 'bg-white/15 text-white' : 'bg-white/5 text-white/30 hover:bg-white/10'}`}
+            className={`px-2 py-1 text-[10px] font-medium rounded-md whitespace-nowrap transition-all ${platformFilter === tab.key ? 'bg-white/15 text-white' : 'bg-white/5 text-white/30 hover:bg-white/10'}`}
           >{tab.icon} {tab.label}</button>
         ))}
       </div>
@@ -243,7 +243,7 @@ function ContentWorkflow({ isConnected }: { isConnected?: boolean }) {
           ...((pCounts.publish_failed || 0) > 0 ? [{ key: 'publish_failed', label: `${p.contentTabFailed} (${pCounts.publish_failed})` }] : []),
         ].map(tab => (
           <button key={tab.key} onClick={() => setFilter(tab.key)}
-            className={`px-2 py-1 text-[9px] font-medium rounded-md whitespace-nowrap transition-all ${filter === tab.key ? 'bg-purple-600 text-white' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}
+            className={`px-2 py-1 text-[10px] font-medium rounded-md whitespace-nowrap transition-all ${filter === tab.key ? 'bg-purple-600 text-white' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}
           >{tab.label}</button>
         ))}
       </div>
@@ -429,11 +429,11 @@ function PerNetworkStats({ stats }: { stats: any }) {
           <span className="text-lg">{cur.icon}</span>
           <span className={`text-sm font-bold ${usingSample ? 'text-amber-200' : cur.accent}`}>{cur.label}</span>
           {usingSample ? (
-            <span className="px-1.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 text-[9px] font-bold uppercase tracking-wider">
+            <span className="px-1.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 text-[10px] font-bold uppercase tracking-wider">
               Sample
             </span>
           ) : (
-            <span className="px-1.5 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 text-[9px] font-bold uppercase tracking-wider">
+            <span className="px-1.5 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 text-[10px] font-bold uppercase tracking-wider">
               {cur.data?.hasActivity ? 'Live · KeiroAI active' : 'Live · organic'}
             </span>
           )}
@@ -588,7 +588,7 @@ function NetworkPreviewTab({
             {post.media_url ? (
               <img src={post.media_url} alt="" loading="lazy" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-2xl text-white/20">{net.icon}</div>
+              <div className="w-full h-full flex items-center justify-center text-2xl text-white/45">{net.icon}</div>
             )}
             {post.media_type === 'VIDEO' && (
               <div className="absolute top-1 right-1 text-white text-xs drop-shadow-lg">{'\u25B6\uFE0F'}</div>
@@ -600,7 +600,7 @@ function NetworkPreviewTab({
         ))}
       </div>
 
-      <p className="text-[9px] text-white/30 mt-3 text-center">
+      <p className="text-[10px] text-white/30 mt-3 text-center">
         Tap une vignette pour voir caption, stats et lien natif. La suppression côté Instagram/TikTok se fait dans l'app native (Meta n'autorise pas la suppression par API).
       </p>
 
@@ -641,7 +641,7 @@ function NetworkPreviewTab({
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                     {entries.slice(0, 8).map(([k, v]) => (
                       <div key={k} className="px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-center">
-                        <div className="text-[9px] text-white/40 uppercase tracking-wide">{k}</div>
+                        <div className="text-[10px] text-white/40 uppercase tracking-wide">{k}</div>
                         <div className="text-xs font-bold text-white">{fmt(Number(v) || 0)}</div>
                       </div>
                     ))}
@@ -759,7 +759,7 @@ export function ContentPanel({ data, agentName, gradientFrom, gradientTo }: Pane
               {isConnected ? (
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
               ) : (
-                <span className="text-[9px] text-white/30 uppercase">+</span>
+                <span className="text-[10px] text-white/30 uppercase">+</span>
               )}
             </button>
           );
@@ -1118,7 +1118,7 @@ function NetworkStatsRow({ network, netStats, stats, sample }: { network: LenaNe
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
       {cells.map(c => (
         <div key={c.label} className="text-center">
-          <div className="text-[9px] uppercase tracking-wider text-white/40">{c.label}</div>
+          <div className="text-[10px] uppercase tracking-wider text-white/40">{c.label}</div>
           <div className="text-base font-bold text-white">{c.value}</div>
         </div>
       ))}
@@ -1190,12 +1190,12 @@ function NetworkStrategyHints({ network, hasActivity: _hasActivity }: { network:
         {hints.map(h => (
           <div key={h.label} className="rounded-lg bg-white/[0.03] border border-white/5 p-2">
             <div className="flex items-center gap-1 mb-0.5">
-              <div className="text-[9px] text-white/40 uppercase tracking-wider flex-1">{h.label}</div>
+              <div className="text-[10px] text-white/40 uppercase tracking-wider flex-1">{h.label}</div>
               {h.source === 'your_data' && (
-                <span className="text-[8px] text-emerald-400 font-bold" title="Computed from your real published posts">YOUR</span>
+                <span className="text-[10px] text-emerald-400 font-bold" title="Computed from your real published posts">YOUR</span>
               )}
               {h.source === 'sector' && (
-                <span className="text-[8px] text-cyan-400 font-bold" title="From cross-client sector data">SECTOR</span>
+                <span className="text-[10px] text-cyan-400 font-bold" title="From cross-client sector data">SECTOR</span>
               )}
             </div>
             <div className="text-[11px] text-white font-medium">{h.value}</div>
@@ -1337,7 +1337,7 @@ function InspirationBox({ network }: { network: InspirationNetwork }) {
                 </button>
               </div>
               {error && <p className="text-[10px] text-amber-400">{error}</p>}
-              <p className="text-[9px] text-white/40">
+              <p className="text-[10px] text-white/40">
                 {cfg.supported
                   ? `Léna will analyse 6 recent posts and adopt the palette + tone (without copying).`
                   : `${cfg.label} live analyser arrives soon — saving your reference now means Léna can use it the day the feature ships.`}
