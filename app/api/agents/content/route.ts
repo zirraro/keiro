@@ -339,8 +339,28 @@ Keep the SUBJECT and SPACE recognisable — never invent new elements or change 
   }
 }
 
-async function generateVisual(visualDescription: string, format: string): Promise<string | null> {
+async function generateVisual(visualDescription: string, format: string, userIdForReuse?: string, platformForReuse?: string): Promise<string | null> {
   try {
+    // 2026-06-03 — Levier 3: visual reuse INTRA-client.
+    // 30% probability d'utiliser un top performer du client (économie
+    // Bytedance + renforce les visuels qui marchent). Pas de cross-client.
+    if (userIdForReuse) {
+      try {
+        const { pickReuseOrGenerate } = await import('@/lib/visuals/visual-reuse');
+        const decision = await pickReuseOrGenerate(getSupabaseAdmin(), userIdForReuse, {
+          platform: platformForReuse,
+          format,
+        });
+        if (decision.mode === 'reuse' && decision.reuse) {
+          console.log(`[Content] ♻️  Reusing top-performing visual (score=${decision.reuse.performance_score}, ${decision.reuse.engagement.likes} likes) — Bytedance call SKIPPED`);
+          // Note: caller should call markVisualReused() after creating the new post
+          return decision.reuse.visual_url;
+        }
+      } catch (reuseErr: any) {
+        console.warn('[Content] visual-reuse check failed (non-fatal):', reuseErr?.message?.slice(0, 100));
+      }
+    }
+
     // Optimize the visual description into an elite Seedream prompt
     const optimizedText = await callClaude({
       system: SEEDREAM_STYLE_GUIDE,
