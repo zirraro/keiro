@@ -104,36 +104,44 @@ export async function POST(req: NextRequest) {
     );
 
     console.log('[TikTokCarousel] Carousel published:', {
-      publish_id: uploadResult.publish_id
+      publish_id: uploadResult.publish_id,
+      is_draft: uploadResult.is_draft,
     });
 
-    // Save to tiktok_posts table
+    // 2026-06-03 — Only mark posted_at when the post is actually LIVE.
+    // If it landed in the user's TikTok inbox as a draft (MEDIA_UPLOAD
+    // fallback), posted_at stays null so the analytics widget knows it
+    // isn't published yet. Founder reported "ca arrive jamais sur tiktok"
+    // because we were claiming success on draft submissions.
     const { error: insertError } = await supabase
       .from('tiktok_posts')
       .insert({
         id: uploadResult.publish_id,
         user_id: user.id,
         video_description: finalCaption,
-        posted_at: new Date().toISOString(),
-        cached_thumbnail_url: imageUrls[0], // First image as thumbnail
-        synced_at: new Date().toISOString()
+        posted_at: uploadResult.is_draft ? null : new Date().toISOString(),
+        cached_thumbnail_url: imageUrls[0],
+        synced_at: new Date().toISOString(),
       });
 
     if (insertError) {
       console.error('[TikTokCarousel] Warning: Failed to save to database:', insertError);
-      // Don't fail the request, post was still published
     }
 
-    console.log('[TikTokCarousel] Carousel published successfully');
+    console.log('[TikTokCarousel] Carousel submitted', uploadResult.is_draft ? '(DRAFT — manual finalize required)' : '(LIVE)');
 
     return NextResponse.json({
       ok: true,
+      is_draft: uploadResult.is_draft,
+      message: uploadResult.is_draft
+        ? 'Carrousel envoyé en boîte de réception TikTok — ouvre l\'app TikTok pour finaliser la publication.'
+        : 'Carrousel publié en ligne sur TikTok.',
       post: {
         id: uploadResult.publish_id,
         caption: finalCaption,
         imageCount: imageUrls.length,
-        posted_at: new Date().toISOString()
-      }
+        posted_at: uploadResult.is_draft ? null : new Date().toISOString(),
+      },
     });
 
   } catch (error: any) {

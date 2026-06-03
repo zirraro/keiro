@@ -449,7 +449,7 @@ export async function initTikTokPhotoUpload(
   photoUrls: string[],
   title: string,
   description?: string
-): Promise<{ publish_id: string }> {
+): Promise<{ publish_id: string; is_draft: boolean }> {
   if (photoUrls.length > 35) {
     throw new Error('TikTok photo posts support max 35 images');
   }
@@ -571,7 +571,7 @@ export async function initTikTokPhotoUpload(
         const retryPublishId = retryData.data?.publish_id || retryData.publish_id;
         if (retryPublishId) {
           console.log('[TikTok] Photo published (SELF_ONLY):', retryPublishId);
-          return { publish_id: retryPublishId };
+          return { publish_id: retryPublishId, is_draft: false };
         }
       }
 
@@ -593,7 +593,7 @@ export async function initTikTokPhotoUpload(
       const draftPublishId = draftData.data?.publish_id || draftData.publish_id;
       if (draftPublishId) {
         console.log('[TikTok] Photo uploaded as draft (MEDIA_UPLOAD):', draftPublishId);
-        return { publish_id: draftPublishId };
+        return { publish_id: draftPublishId, is_draft: true };
       }
     }
 
@@ -611,8 +611,15 @@ export async function initTikTokPhotoUpload(
     throw new Error('No publish_id returned from TikTok');
   }
 
-  console.log('[TikTok] Photo published successfully:', publishId);
-  return { publish_id: publishId };
+  // 2026-06-03 — Detect draft format. TikTok returns publish_id starting
+  // with 'p_pub_url~' when the post went to the user's INBOX (MEDIA_UPLOAD)
+  // and must be finalised manually in the TikTok app. The 'v_pub_url~' /
+  // numeric formats indicate DIRECT_POST = live. Pass this back so the
+  // caller can show the right UI message ("✅ Publié" vs "📲 À finaliser
+  // dans l'app TikTok").
+  const isDraft = typeof publishId === 'string' && publishId.startsWith('p_pub_url~');
+  console.log('[TikTok] Photo published successfully:', publishId, isDraft ? '(DRAFT — needs manual finalize)' : '(LIVE)');
+  return { publish_id: publishId, is_draft: isDraft };
 }
 
 /**

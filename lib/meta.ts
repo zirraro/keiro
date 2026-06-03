@@ -193,6 +193,39 @@ export async function publishCarouselToInstagram(
       console.log(`[publishCarouselToInstagram] Child ${i + 1} created:`, childContainer.id);
     }
 
+    // 2026-06-03 — Poll each child container until FINISHED before
+    // assembling the carousel. Without this, Meta returns
+    // "Media ID is not available, error_subcode 2207027" because the
+    // images haven't finished processing on their CDN. Founder
+    // reported the bug after multiple silent IG carousel failures.
+    const waitForFinished = async (containerId: string, label: string) => {
+      const maxAttempts = 30; // up to ~90s
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        try {
+          const status = await graphGET<{ status_code?: string; status?: string }>(
+            `/${containerId}`,
+            pageAccessToken,
+            { fields: 'status_code,status' },
+            { igUserId }
+          );
+          if (status.status_code === 'FINISHED') return;
+          if (status.status_code === 'ERROR') {
+            throw new Error(`Container ${label} ${containerId} failed: ${status.status || 'unknown'}`);
+          }
+        } catch (e: any) {
+          if (e?.message?.includes('failed')) throw e;
+        }
+        await new Promise(r => setTimeout(r, 3000));
+      }
+      throw new Error(`Container ${label} ${containerId} did not finish in 90s`);
+    };
+
+    console.log('[publishCarouselToInstagram] Polling child containers until FINISHED...');
+    for (let i = 0; i < childIds.length; i++) {
+      await waitForFinished(childIds[i], `child-${i + 1}`);
+    }
+    console.log('[publishCarouselToInstagram] All children FINISHED');
+
     console.log('[publishCarouselToInstagram] Step 2: Creating parent carousel container...');
 
     // 2) Créer le container parent de type CAROUSEL
@@ -203,6 +236,10 @@ export async function publishCarouselToInstagram(
     }, { igUserId });
 
     console.log('[publishCarouselToInstagram] Carousel container created:', carouselContainer.id);
+
+    // Wait for parent carousel container to FINISH before publishing.
+    await waitForFinished(carouselContainer.id, 'parent-carousel');
+    console.log('[publishCarouselToInstagram] Parent FINISHED — publishing');
 
     console.log('[publishCarouselToInstagram] Step 3: Publishing carousel...');
 

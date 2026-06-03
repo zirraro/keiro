@@ -1630,7 +1630,28 @@ async function publishToTikTok(
           [visualUrl],
           fullCaption.substring(0, 2200),
         );
-        console.log(`[Content] TikTok PHOTO published: ${result.publish_id}`);
+        // 2026-06-03 — Draft submissions (TikTok inbox, MEDIA_UPLOAD
+        // fallback) MUST NOT be reported as 'published'. Mark the
+        // calendar row as needing-manual-finalize so the founder/client
+        // sees it never went live.
+        if (result.is_draft) {
+          console.warn(`[Content] TikTok PHOTO submitted as DRAFT (needs manual finalize): ${result.publish_id}`);
+          if (post.id) {
+            try {
+              await supabase
+                .from('content_calendar')
+                .update({
+                  status: 'awaiting_manual_publish',
+                  admin_notes: 'TikTok DIRECT_POST refusé (app non-audited) — finalise dans l\'app TikTok.',
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('id', post.id);
+            } catch { /* best-effort */ }
+          }
+          await releaseTtClaim();
+          return { success: false, error: 'tiktok_draft_needs_manual_finalize', publish_id: result.publish_id };
+        }
+        console.log(`[Content] TikTok PHOTO published LIVE: ${result.publish_id}`);
         return { success: true, publish_id: result.publish_id };
       } catch (photoErr: any) {
         console.warn('[Content] TikTok photo publish failed, falling back to video:', photoErr.message);
@@ -1651,6 +1672,10 @@ async function publishToTikTok(
         console.log('[Content] TikTok: video generation failed, attempting photo as last resort');
         try {
           const result = await initTikTokPhotoUpload(accessToken, [visualUrl!], fullCaption.substring(0, 2200));
+          if (result.is_draft) {
+            await releaseTtClaim();
+            return { success: false, error: 'tiktok_draft_needs_manual_finalize', publish_id: result.publish_id };
+          }
           return { success: true, publish_id: result.publish_id };
         } catch (e: any) {
           await releaseTtClaim();
