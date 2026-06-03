@@ -568,15 +568,56 @@ export async function initTikTokPhotoUpload(
     throw new Error('No publish_id returned from TikTok');
   }
 
-  // 2026-06-03 — Detect draft format. TikTok returns publish_id starting
-  // with 'p_pub_url~' when the post went to the user's INBOX (MEDIA_UPLOAD)
-  // and must be finalised manually in the TikTok app. The 'v_pub_url~' /
-  // numeric formats indicate DIRECT_POST = live. Pass this back so the
-  // caller can show the right UI message ("✅ Publié" vs "📲 À finaliser
-  // dans l'app TikTok").
-  const isDraft = typeof publishId === 'string' && publishId.startsWith('p_pub_url~');
-  console.log('[TikTok] Photo published successfully:', publishId, isDraft ? '(DRAFT — needs manual finalize)' : '(LIVE)');
-  return { publish_id: publishId, is_draft: isDraft };
+  // 2026-06-04 — POLL /publish/status/fetch/ to confirm the post actually
+  // landed. TikTok's init endpoint returns success even when its
+  // internal pipeline later rejects with file_format_check_failed /
+  // picture_size_check_failed / etc. Without this poll we'd claim
+  // "published" while the post never appears. Founder reported this
+  // exact silent-fail on multiple carousel attempts.
+  console.log('[TikTok] Polling publish status for', publishId);
+  const maxAttempts = 10; // ~30s total
+  let finalStatus: string | null = null;
+  let failReason: string | null = null;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    await new Promise(r => setTimeout(r, 3000));
+    try {
+      const statusRes = await fetch(`${TIKTOK_API_BASE}/v2/post/publish/status/fetch/`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ publish_id: publishId }),
+      });
+      const statusData = await statusRes.json();
+      const st = statusData?.data?.status || null;
+      const fr = statusData?.data?.fail_reason || null;
+      console.log(`[TikTok] Status poll #${attempt + 1}: status=${st} fail_reason=${fr || '-'}`);
+      if (st === 'PUBLISH_COMPLETE' || st === 'PUBLISH_SUCCESS') {
+        finalStatus = st;
+        break;
+      }
+      if (st === 'FAILED') {
+        finalStatus = st;
+        failReason = fr;
+        break;
+      }
+      // Other states: PROCESSING_DOWNLOAD, PROCESSING_UPLOAD, etc. — keep polling
+    } catch (e: any) {
+      console.warn(`[TikTok] Status poll #${attempt + 1} threw:`, e?.message);
+    }
+  }
+
+  if (finalStatus === 'FAILED') {
+    const humanReason = failReason === 'file_format_check_failed'
+      ? `TikTok a rejeté le format de l'image (besoin JPEG/PNG, max 4000×4000 px). Détail : ${failReason}`
+      : failReason === 'picture_size_check_failed'
+      ? `TikTok a rejeté la taille de l'image (min 360×360, max 4000×4000, aspect 1:1 à 9:16). Détail : ${failReason}`
+      : `TikTok publish FAILED : ${failReason || 'unknown'}`;
+    throw new Error(humanReason);
+  }
+  if (!finalStatus) {
+    console.warn('[TikTok] Status still pending after 30s — TikTok will continue processing async. Returning publish_id, monitor manually.');
+  }
+  console.log('[TikTok] Photo confirmed LIVE:', publishId, '| status:', finalStatus || 'TIMEOUT_PENDING');
+  return { publish_id: publishId, is_draft: false };
 }
 
 /**

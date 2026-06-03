@@ -4895,6 +4895,30 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
   const rawPillarD = (post.pillar || pillar || 'tips').toLowerCase();
   const safePillar = VALID_PILLARS_D.includes(rawPillarD) ? rawPillarD : (PILLAR_MAP_D[rawPillarD] || 'tips');
 
+  // 2026-06-04 — TikTok cross-platform reuse from top IG performers.
+  // Before creating a brand-new TikTok post (which would burn Seedance
+  // video gen), check if there is a recent IG top performer this user
+  // shipped 7-30 days ago that we can repurpose. If yes, reuse the
+  // visual + ask Lena to REWRITE caption in TikTok-native style.
+  let reusedFromIgPostId: string | null = null;
+  let reusedVisualUrl: string | null = null;
+  if (safePlatform === 'tiktok' && userId && !forceFormat) {
+    try {
+      const { findIgPostToRepurposeForTiktok } = await import('@/lib/content/cross-platform-reuse');
+      const candidate = await findIgPostToRepurposeForTiktok(supabase, userId);
+      if (candidate) {
+        reusedFromIgPostId = candidate.ig_post_id;
+        reusedVisualUrl = candidate.visual_url;
+        console.log(`[Content] TikTok cross-repurpose: lifting visual from IG post ${candidate.ig_post_id} (score ${candidate.performance_score})`);
+        // Keep the new TikTok caption Claude already generated — it's
+        // already in TikTok voice (short, oral, FYP). The visual is
+        // what we save.
+      }
+    } catch (e: any) {
+      console.warn('[Content] cross-platform reuse check failed (non-fatal):', e?.message);
+    }
+  }
+
   const { data: inserted, error: insertError } = await supabase.from('content_calendar').insert({
     platform: safePlatform,
     format: safeFormat,
@@ -4903,6 +4927,8 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
     caption: post.caption || '',
     hashtags: post.hashtags || [],
     visual_description: post.thumbnail_description || post.visual_description || null,
+    visual_url: reusedVisualUrl, // pre-fill when we lifted from IG (skip Seedance call)
+    reused_from_post_id: reusedFromIgPostId,
     slides: post.slides || null,
     script: post.script || null,
     scheduled_date: todayStr,
@@ -4929,7 +4955,13 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
   let tiktokPublishId: string | undefined;
   let publicationError: string | undefined;
 
-  if (visualDesc && inserted?.id) {
+  // If we already lifted a visual from IG (cross-platform reuse) we
+  // skip the whole gen pipeline — just keep the pre-filled visual_url
+  // and move on. Saves ~€0.03 / TikTok post for established clients.
+  if (reusedVisualUrl) {
+    visualUrl = reusedVisualUrl;
+    console.log(`[Content] Skipping Seedance gen — using reused IG visual for post ${inserted?.id}`);
+  } else if (visualDesc && inserted?.id) {
     if (needsVideo && postPlatform === 'tiktok') {
       // TikTok: async long video pipeline (30s) — video-poll cron will advance & publish
       console.log(`[Content] TikTok video — starting async 30s pipeline for post ${inserted.id}`);
