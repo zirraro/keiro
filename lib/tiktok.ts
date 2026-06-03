@@ -466,17 +466,12 @@ export async function initTikTokPhotoUpload(
   });
   console.log('[TikTok] Proxied photo URLs:', proxiedUrls.map(u => u.substring(0, 100)));
 
-  // Try PUBLIC_TO_EVERYONE first, auto-fallback to SELF_ONLY if rejected
-  let privacyLevel = 'PUBLIC_TO_EVERYONE';
-  try {
-    const creatorInfo = await getCreatorInfo(accessToken);
-    console.log('[TikTok] Creator privacy options:', creatorInfo.privacy_level_options);
-    if (!creatorInfo.privacy_level_options?.includes('PUBLIC_TO_EVERYONE')) {
-      privacyLevel = creatorInfo.privacy_level_options?.[0] || 'SELF_ONLY';
-    }
-  } catch (e: any) {
-    console.warn('[TikTok] Could not get creator info:', e.message);
-  }
+  // 2026-06-04 — App audited (Content Posting API approved). Publish
+  // PUBLIC_TO_EVERYONE directly without pre-checking creator info: the
+  // creator-info call sometimes returns truncated privacy_level_options
+  // and we'd downgrade to SELF_ONLY for nothing. Trust the audit
+  // status and let TikTok return an explicit error if anything is off.
+  const privacyLevel = 'PUBLIC_TO_EVERYONE';
 
   console.log('[TikTok] Publishing photo(s) via PULL_FROM_URL');
   console.log('[TikTok] Photo URLs:', photoUrls.map(u => u.substring(0, 80)));
@@ -554,48 +549,10 @@ export async function initTikTokPhotoUpload(
   if (isRealError || (data.error_code && data.error_code !== 0)) {
     const errorMsg = data.error?.message || data.message || 'Failed to publish TikTok photo';
 
-    // Auto-fallback chain for unaudited_client
-    if (String(errorCode) === 'unaudited_client_can_only_post_to_private_accounts') {
-      // Try SELF_ONLY first
-      if (requestBody.post_info.privacy_level !== 'SELF_ONLY') {
-        console.warn('[TikTok] PUBLIC rejected for photo — retrying with SELF_ONLY...');
-        requestBody.post_info.privacy_level = 'SELF_ONLY';
-        const retryRes = await fetch(`${TIKTOK_API_BASE}/v2/post/publish/content/init/`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestBody),
-        });
-        const retryText = await retryRes.text();
-        let retryData: any;
-        try { retryData = JSON.parse(retryText); } catch { retryData = { error: { message: retryText } }; }
-        const retryPublishId = retryData.data?.publish_id || retryData.publish_id;
-        if (retryPublishId) {
-          console.log('[TikTok] Photo published (SELF_ONLY):', retryPublishId);
-          return { publish_id: retryPublishId, is_draft: false };
-        }
-      }
-
-      // Try MEDIA_UPLOAD mode (draft) as last resort
-      console.warn('[TikTok] DIRECT_POST rejected for photo — retrying with MEDIA_UPLOAD (draft)...');
-      const draftBody = {
-        ...requestBody,
-        post_info: { ...requestBody.post_info, privacy_level: 'SELF_ONLY' },
-        post_mode: 'MEDIA_UPLOAD',
-      };
-      const draftRes = await fetch(`${TIKTOK_API_BASE}/v2/post/publish/content/init/`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(draftBody),
-      });
-      const draftText = await draftRes.text();
-      let draftData: any;
-      try { draftData = JSON.parse(draftText); } catch { draftData = { error: { message: draftText } }; }
-      const draftPublishId = draftData.data?.publish_id || draftData.publish_id;
-      if (draftPublishId) {
-        console.log('[TikTok] Photo uploaded as draft (MEDIA_UPLOAD):', draftPublishId);
-        return { publish_id: draftPublishId, is_draft: true };
-      }
-    }
+    // 2026-06-04 — App audited. No more silent fallback to MEDIA_UPLOAD
+    // (the draft-inbox path). If TikTok rejects, surface the real error
+    // so we can debug instead of pretending success. Founder ask:
+    // "ca doit publier direct" — no draft inbox flow.
 
     console.error('[TikTok] Photo upload error:', errorMsg, '| Full:', JSON.stringify(data));
     throw new Error(errorMsg);
