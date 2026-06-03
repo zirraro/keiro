@@ -62,10 +62,17 @@ export default function GlobalNotifBubble() {
     .sort((a, b) => b[1] - a[1]);
 
   return (
-    <div className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end gap-2">
+    // 2026-06-03 Mobile UX fix:
+    // - Mobile (<640px) : badge discret top-right, n'overlap pas la BottomNav
+    //   ni les boutons d'action. Pas de label texte (juste icon + nombre).
+    //   Position safe-area pour ne pas être sous la barre status iOS.
+    // - Desktop (≥640px) : bubble bottom-right comme avant.
+    <div className="fixed z-[9999] flex flex-col items-end gap-2
+                    sm:bottom-6 sm:right-6
+                    top-[max(0.75rem,env(safe-area-inset-top))] right-3 sm:top-auto">
       {/* Expanded panel */}
       {expanded && (
-        <div className="bg-gray-900/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl w-72 sm:w-80 max-h-[80vh] overflow-hidden animate-in slide-in-from-bottom-2 duration-200">
+        <div className="bg-gray-900/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl w-[calc(100vw-1.5rem)] max-w-xs sm:w-80 max-h-[70vh] overflow-hidden animate-in fade-in slide-in-from-top-2 sm:slide-in-from-bottom-2 duration-200">
           <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
             <span className="text-white font-semibold text-sm">{n.pendingActionsTitle || 'Actions en attente'}</span>
             <button onClick={() => setExpanded(false)} className="text-white/40 hover:text-white/70 transition">
@@ -124,24 +131,27 @@ export default function GlobalNotifBubble() {
         </div>
       )}
 
-      {/* Floating bubble */}
+      {/* Floating bubble.
+          Mobile : compact icon-only avec count badge.
+          Desktop : pleine pill avec label "actions en attente".
+      */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="relative group flex items-center gap-2 bg-gradient-to-r from-purple-600 to-orange-500 hover:from-purple-500 hover:to-orange-400 text-white rounded-full shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 transition-all duration-200 hover:scale-105 active:scale-95"
-        style={{ padding: expanded ? '10px 16px' : '12px 18px' }}
+        className="relative group flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-purple-600 to-orange-500 hover:from-purple-500 hover:to-orange-400 text-white rounded-full shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 transition-all duration-200 hover:scale-105 active:scale-95 px-2.5 py-2 sm:px-4 sm:py-3"
       >
-        <Bell size={18} className="animate-bounce" style={{ animationDuration: '2s' }} />
-        <span className="font-bold text-sm">{data.totalPending}</span>
+        <Bell size={16} className="sm:w-[18px] sm:h-[18px] animate-bounce" style={{ animationDuration: '2s' }} />
+        <span className="font-bold text-xs sm:text-sm">{data.totalPending}</span>
         <span className="text-white/80 text-xs hidden sm:inline">
           {data.totalPending > 1 ? (n.pendingActionMany || 'actions en attente') : (n.pendingActionOne || 'action en attente')}
         </span>
 
-        {/* Dismiss button */}
+        {/* Dismiss button — visible only on hover desktop, always small touch on mobile */}
         <button
           onClick={(e) => { e.stopPropagation(); setDismissed(true); setExpanded(false); }}
-          className="ml-1 text-white/40 hover:text-white/80 transition"
+          className="ml-0.5 sm:ml-1 text-white/50 hover:text-white/90 transition p-1 -m-1"
+          aria-label="Masquer"
         >
-          <X size={14} />
+          <X size={12} className="sm:w-3.5 sm:h-3.5" />
         </button>
       </button>
     </div>

@@ -142,7 +142,7 @@ export default function AgentChatPanel({
             the left can be missed when the thumb hovers the right side. */}
         <button
           onClick={onBack}
-          className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition flex-shrink-0"
+          className="w-11 h-11 min-w-[44px] min-h-[44px] sm:w-9 sm:h-9 sm:min-w-0 sm:min-h-0 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition flex-shrink-0"
           aria-label="Close chat"
           title="Close chat"
         >
@@ -364,13 +364,13 @@ export default function AgentChatPanel({
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={`${locale === 'en' ? 'Message to' : 'Message à'} ${agent.displayName}...`}
-            className="flex-1 px-3.5 py-2.5 border border-white/20 rounded-xl text-sm text-white placeholder-white/40 bg-white/5 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+            className="flex-1 px-3.5 py-3 sm:py-2.5 border border-white/20 rounded-xl text-base sm:text-sm text-white placeholder-white/40 bg-white/5 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
             disabled={isLoading || comingSoonMode}
           />
           <button
             onClick={handleSend}
             disabled={isLoading || !input.trim() || comingSoonMode}
-            className="w-10 h-10 rounded-xl bg-gradient-to-r from-purple-600 to-purple-700 text-white flex items-center justify-center hover:from-purple-500 hover:to-purple-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex-shrink-0"
+            className="w-11 h-11 sm:w-10 sm:h-10 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 rounded-xl bg-gradient-to-r from-purple-600 to-purple-700 text-white flex items-center justify-center hover:from-purple-500 hover:to-purple-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex-shrink-0"
             aria-label="Envoyer"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
