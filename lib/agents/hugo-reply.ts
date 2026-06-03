@@ -288,40 +288,36 @@ export async function sendReplyViaBrevo(params: {
   senderEmail?: string;
   senderName?: string;
 }): Promise<boolean> {
-  const BREVO_KEY = process.env.BREVO_API_KEY;
-  if (!BREVO_KEY) return false;
-
+  // 2026-06-03 — Multi-provider fallback (Brevo API → Resend → Brevo SMTP)
+  // so Hugo's prospect replies never silently drop when a key is revoked.
+  // Critical: founder asked specifically to ensure Hugo responds to inbound
+  // emails and updates CRM. Reply must land.
   const senderEmail = params.senderEmail || 'contact@keiroai.com';
   const senderName = params.senderName || 'KeiroAI';
-
-  const headers: Record<string, string> = {};
-  if (params.inReplyTo) {
-    headers['In-Reply-To'] = params.inReplyTo;
-    headers['References'] = params.inReplyTo;
-  }
 
   const bodyHtml = params.body
     .split(/\n\n+/)
     .map(p => `<p style="margin:0 0 10px;">${p.replace(/\n/g, '<br>')}</p>`)
     .join('');
 
-  try {
-    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: { 'accept': 'application/json', 'api-key': BREVO_KEY, 'content-type': 'application/json' },
-      body: JSON.stringify({
-        sender: { name: senderName, email: senderEmail },
-        to: [{ email: params.toEmail, name: params.toName }],
-        subject: params.subject,
-        htmlContent: `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.55;">${bodyHtml}</div>`,
-        textContent: params.body,
-        ...(Object.keys(headers).length > 0 ? { headers } : {}),
-      }),
-    });
-    return res.ok;
-  } catch {
-    return false;
+  const { sendEmailWithFallback } = await import('@/lib/email/send-with-fallback');
+  const result = await sendEmailWithFallback({
+    to: params.toEmail,
+    toName: params.toName,
+    subject: params.subject,
+    html: `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.55;">${bodyHtml}</div>`,
+    textContent: params.body,
+    fromName: senderName,
+    fromEmail: senderEmail,
+    inReplyTo: params.inReplyTo,
+    tags: ['hugo_reply'],
+  });
+  if (!result.ok) {
+    console.error(`[hugo-reply] All providers failed for ${params.toEmail}:`, result.error);
+  } else {
+    console.log(`[hugo-reply] Sent to ${params.toEmail} via ${result.provider}`);
   }
+  return result.ok;
 }
 
 /**

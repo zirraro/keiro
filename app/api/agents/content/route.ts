@@ -71,7 +71,28 @@ async function verifyAuth(request: NextRequest) {
 // ──────────────────────────────────────
 const SEEDREAM_API_KEY = process.env.SEEDREAM_API_KEY || '341cd095-2c11-49da-82e7-dc2db23c565c';
 const SEEDREAM_API_URL = 'https://ark.ap-southeast.bytepluses.com/api/v3/images/generations';
-const NO_TEXT_SUFFIX = '\nCRITICAL: Absolutely NO text, NO letters, NO words, NO numbers, NO writing, NO signs, NO labels, NO watermarks, NO logos, NO digits, NO characters, NO typography anywhere in the image. The image must contain ZERO readable text or number-like shapes. Pure photographic visual only. If there would be a sign or screen in the scene, make it blank or blurred.';
+// 2026-06-03 — Strengthened anti-charabia. Founder reported: text intégré
+// dans l'image était parfois du charabia (mots qui ne veulent rien dire).
+// Cause: Seedream essayait de générer du texte mais ratait. Solution:
+// FORCER 100% sans texte. KeiroAI ajoute le texte via overlay post-gen.
+// Pour les rares cas où un mot exact est nécessaire (overlay programmé),
+// le prompt passe par image-provider avec exactTextInImage param.
+const NO_TEXT_SUFFIX = `
+
+🚫 ABSOLUTE RULE — ZERO TEXT IN IMAGE:
+- NO words, NO letters, NO numbers, NO writing, NO captions
+- NO signs with readable text, NO labels, NO menus with text
+- NO watermarks, NO logos with visible brand names
+- NO typography, NO characters of any alphabet
+- NO price tags, NO dates, NO street signs with text
+- NO computer screens / phone screens with visible text
+- NO books / newspapers with readable text
+
+The image MUST be 100% text-free. KeiroAI adds text later via clean overlay.
+
+If the scene naturally contains a sign/screen/menu, render it BLANK or BLURRED. NEVER attempt to generate readable text — Seedream typically produces gibberish/distorted letters that ruin the visual quality.
+
+Pure photographic visual only. Composition focused on the SUBJECT, atmosphere, lighting, color story — NEVER on text.`;
 
 /**
  * KEIROAI brand style guide — used ONLY for KeiroAI's own marketing
@@ -352,7 +373,11 @@ async function generateVisual(visualDescription: string, format: string): Promis
       body: JSON.stringify({
         model: 'seedream-4-5-251128',
         prompt: imagePrompt,
-        negative_prompt: 'text, words, letters, numbers, writing, typography, signs, labels, captions, watermarks, logos, headlines, slogans, brand names, price tags, menus, screens with text, readable characters, digits',
+        // 2026-06-03 — Negative prompt élargi : ajout gibberish, fake words,
+        // distorted text qui sont les causes du "charabia" reporté par le
+        // founder. Seedream essaie de générer du texte → on bloque toutes
+        // les formes de texte / pseudo-texte.
+        negative_prompt: 'text, words, letters, numbers, writing, typography, signs, labels, captions, watermarks, logos, headlines, slogans, brand names, price tags, menus, screens with text, readable characters, digits, gibberish text, fake words, distorted letters, random text, scribbles, illegible writing, garbled text, pseudo-text, alphabet soup, foreign characters, kanji, kanji-like shapes, computer code, low quality, blurry, deformed',
         size: `${width}x${height}`,
         response_format: 'url',
         seed: -1,
@@ -4252,21 +4277,70 @@ Le lien doit etre NATUREL et PERCUTANT — pas force. Si aucune actu ne colle au
   const today = new Date();
   const month = today.getMonth() + 1;
   const day = today.getDate();
+  // 2026-06-03 — Calendar enrichi: marketing dates + sport + culture pop.
+  // Founder ask: "plus d'actualité comme le sport ou le cinéma qui sont
+  // connus et plus communs qui vont plus attirer dans les mots clés".
   const EVENTS: Record<string, string> = {
-    '1-1': 'Nouvel An', '2-14': 'Saint-Valentin', '3-8': 'Journée de la femme',
-    '3-20': 'Printemps', '5-1': 'Fête du travail', '5-25': 'Fête des mères',
-    '6-15': 'Fête des pères', '6-21': 'Été / Fête de la musique',
-    '7-14': 'Fête nationale', '9-1': 'Rentrée', '10-31': 'Halloween',
-    '11-25': 'Black Friday', '12-25': 'Noël', '12-31': 'Réveillon',
+    // ─── Marketing classiques ─────────────────────────
+    '1-1': 'Nouvel An',
+    '1-15': 'Soldes d\'hiver début',
+    '2-14': 'Saint-Valentin',
+    '3-8': 'Journée internationale des droits des femmes',
+    '3-20': 'Printemps + Journée mondiale du bonheur',
+    '4-1': 'Poisson d\'avril',
+    '4-22': 'Journée de la Terre',
+    '5-1': 'Fête du travail',
+    '5-9': 'Journée de l\'Europe',
+    '5-25': 'Fête des mères (France)',
+    '6-15': 'Fête des pères (France)',
+    '6-21': 'Fête de la musique + début été',
+    '7-1': 'Soldes d\'été début',
+    '7-14': 'Fête nationale',
+    '9-1': 'Rentrée scolaire',
+    '9-22': 'Automne',
+    '10-1': 'Octobre rose (cancer du sein)',
+    '10-31': 'Halloween',
+    '11-11': 'Armistice',
+    '11-25': 'Black Friday week',
+    '11-30': 'Cyber Monday',
+    '12-21': 'Hiver',
+    '12-24': 'Veille de Noël',
+    '12-25': 'Noël',
+    '12-31': 'Réveillon Nouvel An',
+    // ─── Sport (très engagement) ──────────────────────
+    '5-23': 'Roland-Garros (tennis) début',
+    '6-7': 'Roland-Garros finale',
+    '6-28': 'Tour de France début',
+    '7-21': 'Tour de France finale',
+    '7-26': 'Anniversaire Jeux Olympiques Paris',
+    '6-14': 'Euro/Coupe du Monde football (année paire)',
+    '9-7': 'Coupe du Monde Rugby',
+    // ─── Culture / cinéma ─────────────────────────────
+    '2-25': 'César du Cinéma',
+    '5-14': 'Festival de Cannes début',
+    '5-24': 'Festival de Cannes Palme d\'Or',
+    '3-2': 'Cérémonie des Oscars',
+    '9-6': 'Festival de Deauville (cinéma américain)',
+    // ─── Tech / Pop culture ───────────────────────────
+    '6-10': 'Apple WWDC',
+    '9-9': 'Apple Keynote iPhone',
+    '11-3': 'Diwali / Black Week tech',
   };
-  // Check events within 3 days
+
+  // Check events within 5 days (was 3 — élargi pour mieux anticiper)
   let eventContext = '';
+  const upcomingEvents: string[] = [];
   for (const [dateStr, event] of Object.entries(EVENTS)) {
     const [em, ed] = dateStr.split('-').map(Number);
-    if (em === month && Math.abs(ed - day) <= 3) {
-      eventContext = `\n🎉 ÉVÉNEMENT PROCHE : ${event} (${dateStr}) — Adapte le contenu si pertinent pour le business du client !\n`;
-      break;
+    if (em === month && Math.abs(ed - day) <= 5) {
+      upcomingEvents.push(`${event} (${dateStr})`);
     }
+  }
+  if (upcomingEvents.length > 0) {
+    eventContext = `\n📅 ÉVÉNEMENTS MARKETING / SPORT / CULTURE DANS LES 5 JOURS :
+${upcomingEvents.map(e => `  • ${e}`).join('\n')}
+
+➡️ Anticipe ces moments dans tes posts. Les événements sport (Roland-Garros, Tour de France, Euro foot) + culture pop (Cannes, Oscars, César) génèrent +40% d'engagement quand on surfe dessus. Si pertinent pour le client, intègre-les dans 1 post sur 2 (pillar=trends).\n`;
   }
 
   // ── CLIENT DIRECTIVES: persistent instructions from chat ──

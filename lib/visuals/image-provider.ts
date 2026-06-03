@@ -26,6 +26,10 @@ export interface ImageGenOptions {
   size?: '1024x1024' | '1024x1792' | '1792x1024';
   forceProvider?: 'flux' | 'seedream';
   callTag?: string;
+  // 2026-06-03 — Founder ask: anti-charabia text. Si on veut UN mot précis
+  // dans l'image (rare, pour overlay programmé), on le passe ici. Sinon
+  // l'image est FORCÉE sans aucun texte (overlay côté KeiroAI).
+  exactTextInImage?: string | null;
 }
 
 export interface ImageGenResult {
@@ -62,8 +66,12 @@ export async function generateImage(opts: ImageGenOptions): Promise<ImageGenResu
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${seedreamKey}` },
           body: JSON.stringify({
             model: 'seedream-4-0-250828',
-            prompt: opts.prompt + '. Ultra high quality, professional marketing visual, cinematic lighting, modern premium aesthetic, social media ready, no text, no words, no letters, no watermarks',
-            negative_prompt: 'text, words, letters, numbers, writing, typography, signs, labels, watermarks, logos, low quality, blurry',
+            prompt: (opts.exactTextInImage
+  ? `${opts.prompt}. The ONLY text visible in the image is the exact phrase "${opts.exactTextInImage}" rendered cleanly in a single readable font, centered or composed naturally. NO other words, gibberish, or random letters anywhere. Ultra high quality, professional marketing visual, cinematic lighting, modern premium aesthetic, social media ready, no watermarks.`
+  : opts.prompt + '. CRITICAL: ZERO text in this image. No words, no letters, no numbers, no captions, no signage with text, no labels, no logos with readable text, no watermarks. The image must be 100% text-free — text will be added later via overlay. Ultra high quality, professional marketing visual, cinematic lighting, modern premium aesthetic, social media ready.'),
+            negative_prompt: opts.exactTextInImage
+              ? 'gibberish text, random letters, fake words, distorted text, multiple text overlays, watermarks, logos, low quality, blurry, deformed faces, extra limbs'
+              : 'text, words, letters, numbers, writing, typography, captions, signs, labels, headlines, slogans, characters, alphabets, watermarks, logos, low quality, blurry, deformed faces, extra limbs',
             response_format: 'url',
             watermark: false,
             size,
