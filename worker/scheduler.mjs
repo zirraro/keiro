@@ -53,6 +53,10 @@ const GLOBAL_SCHEDULE = [
   // would trip Meta; hourly is comfortable on all plans).
   { cron: '15 * * * *',   slot: 'ig_comments_reply', label: 'IG Comments Auto-Reply (all active clients)' },
   { cron: '0 7 * * 1',    path: '/api/agents/weekly-trends', label: 'Weekly Trends (Monday)' },
+  // 2026-06-03 — Daily refresh of winning content patterns by sector
+  // (TikTok / Insta / LinkedIn / Google trends) for Lena to anchor her
+  // post generation on what surperforme. Fires once daily 06:00 UTC.
+  { cron: '0 6 * * *',    path: '/api/cron/refresh-trend-winners', label: 'Trend Winners Extraction' },
   { cron: '0 7 1 * *',    path: '/api/agents/monthly-recap', label: 'Monthly Recap (1st)' },
   // 2026-06-02 — Admin monthly cost recap fires the 2nd of each month
   // so we have all the previous month's data settled. One email to

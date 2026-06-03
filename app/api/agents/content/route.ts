@@ -4490,8 +4490,26 @@ ${upcomingEvents.map(e => `  • ${e}`).join('\n')}
     console.warn('[Content] News angle step failed (non-fatal):', e?.message?.substring(0, 100));
   }
 
+  // 2026-06-03 — Trend Winners by sector (TikTok / Insta / LinkedIn).
+  // Anchor Lena's generation on hooks/patterns that surperforment NOW
+  // for the client's sector. Refreshed daily by /api/cron/refresh-trend-winners.
+  let trendWinnersBlock = '';
+  try {
+    const sectorForWinners = (clientSettings as any)?.business_type
+      || detectedBusinessType
+      || 'restaurant';
+    const { getWinnersForSector, formatWinnersForPrompt } = await import('@/lib/trends/winners-extractor');
+    const winners = await getWinnersForSector(supabase, sectorForWinners, platform, 4);
+    if (winners.length > 0) {
+      trendWinnersBlock = formatWinnersForPrompt(winners);
+      console.log(`[Content] Loaded ${winners.length} trend winners for sector=${sectorForWinners}, platform=${platform}`);
+    }
+  } catch (e: any) {
+    console.warn('[Content] Trend winners load failed (non-fatal):', e?.message?.substring(0, 100));
+  }
+
   const enhancedPrompt = `Génère 1 post ÉLITE pour aujourd'hui (${todayStr}).
-${trendsContext}${eventContext}${directivesBlock}
+${trendsContext}${eventContext}${directivesBlock}${trendWinnersBlock}
 ${sharedIntelligence ? `━━━ INTELLIGENCE PARTAGÉE (données de TOUS les agents) ━━━\n${sharedIntelligence}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` : ''}${visualReferences ? `\n${visualReferences}\n` : ''}${naturalismBlock}${inspirationBlock}${channelVoice}${newsAngleBlock}${globalLearningBlock}${dissatisfactionBlock}
 Plateforme : ${platform}
 Format suggéré : ${format}
