@@ -401,8 +401,9 @@ export async function sendAdminDailyDigest(
   supabase: SupabaseClient,
   periodHours: number = 24,
 ): Promise<void> {
-  const BREVO_KEY = process.env.BREVO_API_KEY;
-  if (!BREVO_KEY) return;
+  // 2026-06-03 — Use multi-provider fallback (Brevo API → Resend → Brevo SMTP)
+  // so admin digest never silently drops when one key is revoked.
+  const { sendEmailWithFallback } = await import('@/lib/email/send-with-fallback');
 
   const { stats, digest, healthCauses, agentsDown } = await buildAdminDigest(supabase, periodHours);
 
@@ -498,14 +499,7 @@ export async function sendAdminDailyDigest(
 
   const subject = `${healthIcon} KeiroAI Admin — ${digest?.headline || summaryBadge} (${stats.success_rate}% · ${stats.total_errors} err)`;
 
-  await fetch('https://api.brevo.com/v3/smtp/email', {
-    method: 'POST',
-    headers: { accept: 'application/json', 'api-key': BREVO_KEY, 'content-type': 'application/json' },
-    body: JSON.stringify({
-      sender: { name: 'KeiroAI Admin Digest', email: 'contact@keiroai.com' },
-      to: [{ email: 'contact@keiroai.com' }],
-      subject,
-      htmlContent: `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:720px;margin:0 auto;background:#f9fafb;">
+  const htmlContent = `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:720px;margin:0 auto;background:#f9fafb;">
         <div style="background:linear-gradient(135deg,#0c1a3a,#1e3a5f);color:white;padding:24px;border-radius:12px 12px 0 0;">
           <h2 style="margin:0;font-size:18px;">${healthIcon} Digest admin unifié — ${esc(digest?.headline || summaryBadge)}</h2>
           <p style="margin:4px 0 0;color:#a0aec0;font-size:12px;">${now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })} — ${periodHours}h précédentes</p>
@@ -572,9 +566,21 @@ export async function sendAdminDailyDigest(
         <div style="background:#f9fafb;padding:12px;text-align:center;color:#9ca3af;font-size:10px;border-radius:0 0 12px 12px;border:1px solid #e5e7eb;border-top:none;">
           KeiroAI Admin · Digest unifié quotidien · ${now.toISOString().slice(0, 10)}
         </div>
-      </div>`,
-    }),
-  }).catch(() => {});
+      </div>`;
+
+  const sendResult = await sendEmailWithFallback({
+    to: 'contact@keiroai.com',
+    subject,
+    html: htmlContent,
+    fromName: 'KeiroAI Admin Digest',
+    fromEmail: 'contact@keiroai.com',
+    tags: ['admin_digest'],
+  });
+  if (!sendResult.ok) {
+    console.error('[AdminDigest] All email providers failed:', sendResult.error);
+  } else {
+    console.log(`[AdminDigest] Sent via ${sendResult.provider}`);
+  }
 
   if (digest) {
     const ragSummary = `ADMIN DIGEST ${now.toISOString().slice(0, 10)}: ${digest.headline}. Success ${stats.success_rate}%, ${stats.total_errors}/${stats.total_runs} errors. Agents DOWN: ${downCount}. P0: ${p0Count}, P1: ${p1Count}. Top issues: ${digest.top_issues.map(i => i.title).join(' | ')}`;

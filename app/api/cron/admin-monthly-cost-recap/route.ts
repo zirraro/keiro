@@ -665,27 +665,20 @@ export async function GET(req: NextRequest) {
     </div>
   </div>`;
 
-  const BREVO_KEY = process.env.BREVO_API_KEY;
-  let sent = false;
-  if (BREVO_KEY) {
-    try {
-      const subject = `💰 Récap coûts ${periodLabel} — ${unmanagedCosts.length} coût(s) non maîtrisés à attaquer`;
-      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
-        method: 'POST',
-        headers: { accept: 'application/json', 'api-key': BREVO_KEY, 'content-type': 'application/json' },
-        body: JSON.stringify({
-          sender: { name: 'KeiroAI Cost Recap', email: 'contact@keiroai.com' },
-          to: [{ email: ADMIN_EMAIL }],
-          subject,
-          htmlContent: html,
-          tags: ['admin_monthly_cost_recap'],
-        }),
-      });
-      sent = res.ok;
-    } catch (e: any) {
-      console.error('[AdminMonthlyCostRecap] Brevo failed:', e.message);
-    }
-  }
+  // 2026-06-03 — Multi-provider fallback (Brevo API → Resend → Brevo SMTP)
+  const subject = `💰 Récap coûts ${periodLabel} — ${unmanagedCosts.length} coût(s) non maîtrisés à attaquer`;
+  const { sendEmailWithFallback } = await import('@/lib/email/send-with-fallback');
+  const sendResult = await sendEmailWithFallback({
+    to: ADMIN_EMAIL,
+    subject,
+    html,
+    fromName: 'KeiroAI Cost Recap',
+    fromEmail: 'contact@keiroai.com',
+    tags: ['admin_monthly_cost_recap'],
+  });
+  const sent = sendResult.ok;
+  if (!sent) console.error('[AdminMonthlyCostRecap] All providers failed:', sendResult.error);
+  else console.log(`[AdminMonthlyCostRecap] Sent via ${sendResult.provider}`);
 
   await supabase.from('agent_logs').insert({
     agent: 'ceo',
