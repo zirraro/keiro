@@ -4,6 +4,7 @@ import { getAuthUser } from '@/lib/auth-server';
 import { saveLearning, saveAgentFeedback } from '@/lib/agents/learning';
 import { loadContextWithAvatar } from '@/lib/agents/shared-context';
 import { lookupInPool, addToPool, incrementDailySpend, isUnderDailyBudget } from '@/lib/places/prospect-pool';
+import { sourceFromInternalDb } from '@/lib/prospects/internal-source';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -365,7 +366,30 @@ async function runGMapsScan(orgId: string | null = null, userId: string | null =
   if (!customQuery && userFocus && (userFocus.sector || userFocus.city)) {
     customQuery = [userFocus.sector, userFocus.city].filter(Boolean).join(' ').trim() || null;
   }
-  const MAX_DETAILS_PER_RUN = planCfg.details;
+  let MAX_DETAILS_PER_RUN = planCfg.details;
+
+  // 2026-06-03 — Internal sourcing first (free). Before burning Places
+  // budget, lift candidates from prospect_pool + peer crm_prospects
+  // (sector/city match, non-competitor). Reduces Places spend by ~60 %
+  // on saturated plans (Pro +).
+  let internalImported = 0;
+  let internalSavingsEur = 0;
+  if (userId && MAX_DETAILS_PER_RUN > 0) {
+    try {
+      const internal = await sourceFromInternalDb(supabase, userId, {
+        focus: userFocus,
+        // Try to cover up to 70 % of the daily quota from internal sources;
+        // the rest comes from fresh Places scans so the feed stays current.
+        targetCount: Math.floor(MAX_DETAILS_PER_RUN * 0.7),
+      });
+      internalImported = internal.total;
+      internalSavingsEur = internal.estimatedSavingsEur;
+      MAX_DETAILS_PER_RUN = Math.max(0, MAX_DETAILS_PER_RUN - internalImported);
+      console.log(`[GMaps] Internal source: +${internalImported} prospects (pool=${internal.importedFromPool}, peers=${internal.importedFromPeers}, savings ≈ €${internal.estimatedSavingsEur.toFixed(3)}) — Places budget reduced to ${MAX_DETAILS_PER_RUN}`);
+    } catch (e: any) {
+      console.warn('[GMaps] Internal source failed (non-fatal):', e?.message);
+    }
+  }
 
   // Load shared context
   const { prompt: sharedPrompt } = await loadContextWithAvatar(supabase, 'gmaps', orgId || undefined);
@@ -652,7 +676,10 @@ async function runGMapsScan(orgId: string | null = null, userId: string | null =
   const report = {
     zones: scannedZones,
     queries: queries,
-    imported: totalImported,
+    imported: totalImported + internalImported,
+    imported_via_places: totalImported,
+    imported_via_internal: internalImported,
+    internal_savings_eur: Number(internalSavingsEur.toFixed(3)),
     skipped: totalSkipped,
     errors: totalErrors,
     error_samples: errorSamples,
