@@ -33,11 +33,29 @@ async function verifyAuth(request: NextRequest) {
   return { authorized: false, userId: null as string | null };
 }
 
-// Search queries by business type
+// Search queries by business type. Widened 2026-06-03 — more sectors
+// = more lanes to dedup-rotate across so Léo doesn't keep hammering
+// the same 13 categories. The per-user rotation (zone × query) still
+// caps daily calls at planCfg.details, so a longer list lowers the
+// chance of collisions between clients more than it raises spend.
 const SEARCH_QUERIES = [
-  'restaurant', 'bistrot', 'boutique mode', 'coiffeur', 'barbier',
-  'coach sportif', 'salle de sport', 'fleuriste', 'caviste',
-  'salon de beauté', 'épicerie fine', 'traiteur', 'fromagerie',
+  // Food / drink
+  'restaurant', 'bistrot', 'pizzeria', 'sushi', 'brunch', 'café',
+  'traiteur', 'fromagerie', 'caviste', 'épicerie fine', 'boulangerie',
+  // Beauty / wellness
+  'coiffeur', 'barbier', 'salon de beauté', 'institut esthétique',
+  'manucure', 'spa', 'massage',
+  // Sport / health
+  'coach sportif', 'salle de sport', 'pilates', 'yoga studio',
+  'kinésithérapeute', 'ostéopathe', 'naturopathe',
+  // Retail / mode
+  'boutique mode', 'concept store', 'bijouterie', 'opticien',
+  'librairie indépendante', 'fleuriste',
+  // Services pros
+  'photographe mariage', 'agence immobilière', 'avocat',
+  'comptable', 'graphiste indépendant', 'agence web',
+  // Loisirs
+  'école de musique', 'studio danse', 'atelier céramique',
 ];
 
 // Zones to scrape (rotate daily)
