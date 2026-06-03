@@ -180,22 +180,16 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
-        // ─── 2026-06-03 — Skip visual generation pour le compte test ───
-        // mrzirraro@gmail.com est notre compte de test. Quand un prospect
-        // discute avec son IG @keiro_ai, on ne génère PAS de visuel pour
-        // éviter de cramer du Bytedance sur des tests internes.
-        let isTestAccount = false;
-        try {
-          const { data: ownerForTest } = await supabase
-            .from('profiles')
-            .select('email')
-            .eq('instagram_business_account_id', recipientId)
-            .maybeSingle();
-          if (ownerForTest?.email === 'mrzirraro@gmail.com') {
-            isTestAccount = true;
-            console.log('[InstagramWebhook] Test account detected — visual generation will be skipped');
-          }
-        } catch { /* non-fatal */ }
+        // 2026-06-03 v2 — Founder correction:
+        //   mrzirraro@gmail.com = compte admin (génération ILLIMITÉE, on teste)
+        //   samzirrar (le prospect test côté IG) = peut demander ILLIMITÉ
+        //   Tout autre prospect = max 3 visuels avec évaluation conversion à chaque étape
+        const ADMIN_OR_TEST_SENDERS = new Set(['samzirrar', '4338968213006871']);
+        const isUnlimitedSender = ADMIN_OR_TEST_SENDERS.has((event.sender?.username || '').toLowerCase())
+          || ADMIN_OR_TEST_SENDERS.has(senderId);
+        // (Note: 'isTestAccount' var name kept for backward compat with the rest
+        // of the prompt — but now means "unlimited generation allowed".)
+        const isTestAccount = false; // never skip; we route by isUnlimitedSender instead
 
         // ─── Fetch prospect's Instagram profile info + ENRICH CRM ──────
         // Founder ask 2026-06-03: Jade doit analyser le profil IG, mettre à
@@ -450,24 +444,48 @@ Selon le signal d'achat :
 (c) PROSPECT TIÈDE / EXPLORATEUR :
     → Continue à creuser, propose un autre angle, ne brusque pas.
 
-${isTestAccount ? `
-🧪 COMPTE TEST — NE GÉNÈRE AUCUNE IMAGE
-Ce DM provient du compte de test interne (mrzirraro). Tu ne dois JAMAIS utiliser [GENERATE_IMAGE:...] ni [SEND_SHOWCASE:...] dans cette conversation. Discute uniquement par texte pour tester le flow conversation, sans cramer du budget Bytedance.
+${isUnlimitedSender ? `
+🧪 COMPTE TEST ILLIMITÉ — ${alreadySentImages.length} visuels déjà envoyés
+Ce prospect est en mode test (samzirrar / admin). Tu peux générer AUTANT de visuels que demandé avec [GENERATE_IMAGE:...]. Pas de limite. Continue à discuter, génère à la demande, propose des angles différents. C'est le compte qui sert à valider notre flow.
 ` : `
-IMAGES — UN SEUL EXEMPLE MAX (politique 2026-06-03) :
-- IMAGES DÉJÀ ENVOYÉES : ${alreadySentImages.length}/1
-${alreadySentImages.length >= 1
-  ? `- STOP : 1 seul exemple par prospect. Plus d'image. Tu close direct vers (a) essai gratuit 7j ou (b) RDV Calendly 15 min :
-  - Si prospect chaud : "Tu veux tester ? L'essai gratuit 7j est sur keiroai.com/pricing, 0€ débité pendant 7 jours."
-  - Si prospect hésite : "On cale 15 min en visio, je te montre live + tu décides. Tu prends un créneau ici : ${process.env.NEXT_PUBLIC_SETUP_CALL_URL || 'https://cal.com/keiroai/setup-30min'}"
-  - JAMAIS regénérer une image après le 1er exemple.`
-  : `- Pour générer LE SEUL visuel : [GENERATE_IMAGE:description ultra-spécifique en anglais combinant son business + l'objectif qu'il a évoqué]
-- Le système envoie l'image AUTOMATIQUEMENT après ton texte.
-- N'envoie le visuel QUE quand :
-  (a) tu as cerné son business ET son objectif spécifique (ce qu'il veut mettre en avant)
-  (b) le prospect a confirmé qu'il veut voir un exemple
-- Le visuel doit être ULTRA personnalisé. Pas générique. Cite son secteur précis + son angle (produit phare, ambiance, promo, avant/après...)
-- APRÈS ce visuel unique : focus 100% conversion (essai 7j ou RDV).`}
+IMAGES — POLITIQUE 3 VISUELS MAX AVEC ÉVALUATION (2026-06-03 v2) :
+- IMAGES DÉJÀ ENVOYÉES : ${alreadySentImages.length}/3
+
+${alreadySentImages.length === 0
+  ? `📍 PREMIER VISUEL — règles strictes :
+- NE génère PAS avant d'avoir : (a) cerné son business ET (b) son objectif spécifique
+- Le prospect doit avoir confirmé qu'il veut voir un exemple OU tu lui as proposé et il a accepté
+- [GENERATE_IMAGE:description ultra-spécifique combinant son business + son angle]
+- Citation obligatoire dans le brief : secteur précis + angle exact (produit phare / ambiance / promo / avant-après / mix univers)`
+  : alreadySentImages.length === 1
+    ? `📍 2ème VISUEL POSSIBLE — uniquement si tu sens encore une chance de conversion :
+- Évalue d'abord : le prospect est-il encore engagé ? Pose-t-il des questions ? Y a-t-il un angle DIFFÉRENT qui pourrait l'aider à se projeter ?
+- Si OUI → propose un angle complémentaire et ATTEND qu'il valide (ex: "Si tu veux je te montre aussi sur [autre angle complementaire], dis-moi.")
+- Si OUI et il dit oui → génère [GENERATE_IMAGE:angle DIFFÉRENT du premier]
+- Si NON (silence, désintérêt, "merci je vais voir") → STOP visuels, propose direct RDV ou essai gratuit, lien Cal.com.
+- NE PROPOSE PAS de 2e visuel si tu n'es pas sûr qu'il y a opportunité — passe à la conversion direct.`
+    : alreadySentImages.length === 2
+      ? `📍 3ème ET DERNIER VISUEL — uniquement si signal d'achat fort :
+- Le prospect a-t-il dit explicitement quelque chose comme "ah ouais, et est-ce que ça peut faire ___ ?" ou "intéressant, c'est combien ?" ?
+- Si OUI signal d'achat fort → génère [GENERATE_IMAGE:dernier angle qui répond direct à sa demande]
+- Si NON → STOP, close direct avec lien essai 7j (keiroai.com/pricing) ou RDV Cal.com.
+- C'est ton dernier shot visuel. Après ça, focus 100% conversion.`
+      : `🛑 STOP VISUELS — 3 exemples envoyés.
+Plus d'images. Close direct :
+- Si prospect chaud : "Tu as vu 3 angles, le mieux est de tester pour de vrai. C'est gratuit 7 jours sur keiroai.com/pricing — 0€ débité, tu annules en 1 clic."
+- Si prospect hésite : "On cale 15 min en visio, je te montre le workspace live + tu décides. ${process.env.NEXT_PUBLIC_SETUP_CALL_URL || 'https://cal.com/keiroai/setup-30min'}"
+- Si prospect refuse poliment 2 fois → handoff humain : marque la conversation [HANDOFF_HUMAN:no_traction_after_3_visuals]`}
+
+🔄 CACHE DES VISUELS — réutilisation intelligente :
+Le système check d'abord s'il y a un visuel pertinent déjà généré pour ce secteur dans le cache (économie Bytedance). Si match trouvé → renvoyé direct, pas de nouvelle génération. Si pas de match → nouvelle génération, ajoutée au cache pour les prospects futurs du même secteur. Tu n'as rien à faire de spécial — le routing est automatique.
+
+🚪 HANDOFF HUMAIN — quand passer la main :
+Détecte les signaux que la conversation est bloquée et qu'il faut passer à un humain :
+- Prospect agressif ou hostile
+- Question légale/RGPD/contrat custom au-delà de ta connaissance
+- Demande d'intégration technique précise
+- 2+ refus polis successifs malgré tes propositions
+Émets alors [HANDOFF_HUMAN:<raison>] à la fin de ton message. Le système marque le prospect needs_human et l'owner reprend.
 `}
 
 PSYCHOLOGIE DE CLOSING :
@@ -537,6 +555,47 @@ ${history ? `\nCONVERSATION :\n${history}` : ''}${businessContext}${ragContext}`
           created_at: now,
         });
 
+        // ─── 2026-06-03 — Detect handoff tag avant traitement image ───
+        // Jade peut émettre [HANDOFF_HUMAN:raison] quand la conversation
+        // ne peut pas être conclue par l'agent. Pas d'envoi de reply auto,
+        // le prospect est marqué needs_human et l'owner reprend la main.
+        const handoffMatch = aiReply.match(/\[HANDOFF_HUMAN(?:\s*:\s*([^\]]*))?\]/i);
+        if (handoffMatch) {
+          const reason = (handoffMatch[1] || 'agent_request').trim().slice(0, 200);
+          try {
+            await supabase.from('crm_prospects').update({
+              dm_status: 'needs_human',
+              dm_message: `[HANDOFF] ${reason}`,
+              updated_at: now,
+            }).eq('id', prospect.id);
+            await supabase.from('crm_activities').insert({
+              prospect_id: prospect.id,
+              type: 'dm_handoff',
+              description: `Jade demande l'intervention humaine: ${reason}`,
+              data: { channel: 'instagram', reason, source: 'webhook', last_message: messageText.slice(0, 500) },
+              created_at: now,
+            });
+            // Notif in-app à l'owner
+            const { data: ownerForHandoff } = await supabase
+              .from('profiles')
+              .select('id')
+              .eq('instagram_business_account_id', recipientId)
+              .maybeSingle();
+            if (ownerForHandoff?.id) {
+              await supabase.from('client_notifications').insert({
+                user_id: ownerForHandoff.id,
+                agent: 'dm_instagram',
+                type: 'dm_handoff',
+                title: `Jade te passe la main sur un DM (${reason.substring(0, 60)})`,
+                message: `Le prospect ${prospect.company || senderId} attend ta réponse. Va sur Jade pour reprendre la conversation.`,
+                data: { prospect_id: prospect.id, sender_id: senderId, reason },
+              });
+            }
+          } catch (handoffErr: any) { console.warn('[InstagramWebhook] Handoff persist failed:', handoffErr?.message); }
+          console.log(`[InstagramWebhook] HANDOFF_HUMAN for ${senderId}: ${reason} — skip auto-send`);
+          continue; // pas d'envoi automatique, c'est à l'humain de reprendre
+        }
+
         // ─── Detect image actions in AI reply ──────────
         let imageToSend: string | null = null;
 
@@ -600,52 +659,112 @@ ${history ? `\nCONVERSATION :\n${history}` : ''}${businessContext}${ragContext}`
           console.log(`[InstagramWebhook] Showcase: requested="${bType}" mapped="${mappedType}" found=${!!imageToSend} (already sent: ${alreadySentImages.length})`);
         }
 
-        // Check if Jade wants to generate a personalized image
-        // 2026-06-03 — Skip si :
-        //   - compte test (mrzirraro) → économie Bytedance
-        //   - prospect a déjà 1 visuel envoyé → politique "1 max"
+        // Check if Jade wants to generate a personalized image.
+        // 2026-06-03 v2 — Politique :
+        //   - samzirrar/admin → illimité (compte test)
+        //   - tout autre prospect → max 3 visuels avec évaluation conversion
+        //   - AVANT de générer : check cache visuels existants (économie Bytedance)
         const generateMatch = aiReply.match(/\[GENERATE_IMAGE:([^\]]+)\]/);
-        const shouldSkipGen = isTestAccount || (alreadySentImages.length >= 1);
+        const shouldSkipGen = !isUnlimitedSender && alreadySentImages.length >= 3;
+        let cacheReuseId: string | null = null;
         if (generateMatch && !imageToSend && !shouldSkipGen) {
           const imgPrompt = generateMatch[1].trim();
           aiReply = aiReply.replace(/\[GENERATE_IMAGE:[^\]]+\]/, '').trim();
-          try {
-            const seedreamUrl = process.env.SEEDREAM_API_URL || 'https://ark.ap-southeast.bytepluses.com/api/v3/images/generations';
-            const seedreamKey = process.env.SEEDREAM_API_KEY || process.env.ARK_API_KEY || '341cd095-2c11-49da-82e7-dc2db23c565c';
-            const cleanKey = seedreamKey.replace(/\\n/g, '').trim();
-            console.log(`[InstagramWebhook] Generating personalized image: ${imgPrompt.substring(0, 80)}`);
-            const genRes = await fetch(seedreamUrl, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${cleanKey}` },
-              body: JSON.stringify({
-                model: 'seedream-4-5-251128',
-                prompt: imgPrompt + '. Ultra high quality, professional marketing visual, cinematic lighting, modern premium aesthetic, social media ready, no text, no words, no letters, no watermarks',
-                negative_prompt: 'text, words, letters, numbers, writing, typography, signs, labels, watermarks, logos, low quality, blurry',
-                response_format: 'url',
-                watermark: false,
-                size: '1024x1024',
-                seed: -1,
-              }),
-              signal: AbortSignal.timeout(30000),
-            });
-            if (genRes.ok) {
-              const genData = await genRes.json();
-              const generatedUrl = genData.data?.[0]?.url || genData.images?.[0]?.url || genData.url;
-              if (generatedUrl) {
-                imageToSend = generatedUrl;
-                console.log(`[InstagramWebhook] Image generated: ${generatedUrl.substring(0, 80)}`);
+
+          // 2026-06-03 — STEP 1: try cache reuse first.
+          // Match by prospect sector (or business_type) for any visual NOT
+          // sent to the current prospect yet. Founder ask: "on garde les
+          // generation faite qui serviron tres certainement à d'autres
+          // prospects/clients avec le temps".
+          const prospectSector = (prospect.type || '').toLowerCase().trim();
+          if (prospectSector && !isUnlimitedSender) {
+            try {
+              const { data: cacheCandidates } = await supabase
+                .from('dm_visual_cache')
+                .select('id, image_url, prompt, usage_count, positive_signals, original_sender_id')
+                .eq('sector', prospectSector)
+                .neq('original_sender_id', senderId) // ne pas redonner le visuel généré pour ce prospect
+                .order('positive_signals', { ascending: false })
+                .order('usage_count', { ascending: false })
+                .limit(5);
+              const candidate = (cacheCandidates || []).find((c: any) =>
+                // Pas déjà envoyé dans cette conversation
+                !alreadySentImages.includes(c.image_url)
+              );
+              if (candidate) {
+                imageToSend = candidate.image_url;
+                cacheReuseId = candidate.id;
+                console.log(`[InstagramWebhook] ♻️  Cache hit for sector=${prospectSector} (visual reused, usage_count=${candidate.usage_count})`);
+                // Increment usage
+                await supabase.from('dm_visual_cache')
+                  .update({ usage_count: (candidate.usage_count || 0) + 1, last_used_at: now })
+                  .eq('id', candidate.id);
               }
-            } else {
-              console.warn('[InstagramWebhook] Seedream API error:', genRes.status, (await genRes.text()).substring(0, 100));
+            } catch (cacheErr: any) {
+              console.warn('[InstagramWebhook] Cache lookup failed:', cacheErr?.message?.substring(0, 100));
             }
-          } catch (genErr: any) {
-            console.warn('[InstagramWebhook] Image generation failed:', genErr.message?.substring(0, 100));
+          }
+
+          // STEP 2: si pas de match cache → vraie génération Seedream
+          if (!imageToSend) {
+            try {
+              const seedreamUrl = process.env.SEEDREAM_API_URL || 'https://ark.ap-southeast.bytepluses.com/api/v3/images/generations';
+              const seedreamKey = process.env.SEEDREAM_API_KEY || process.env.ARK_API_KEY || '341cd095-2c11-49da-82e7-dc2db23c565c';
+              const cleanKey = seedreamKey.replace(/\\n/g, '').trim();
+              console.log(`[InstagramWebhook] Generating personalized image: ${imgPrompt.substring(0, 80)}`);
+              const genRes = await fetch(seedreamUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${cleanKey}` },
+                body: JSON.stringify({
+                  model: 'seedream-4-5-251128',
+                  prompt: imgPrompt + '. Ultra high quality, professional marketing visual, cinematic lighting, modern premium aesthetic, social media ready, no text, no words, no letters, no watermarks',
+                  negative_prompt: 'text, words, letters, numbers, writing, typography, signs, labels, watermarks, logos, low quality, blurry',
+                  response_format: 'url',
+                  watermark: false,
+                  size: '1024x1024',
+                  seed: -1,
+                }),
+                signal: AbortSignal.timeout(30000),
+              });
+              if (genRes.ok) {
+                const genData = await genRes.json();
+                const generatedUrl = genData.data?.[0]?.url || genData.images?.[0]?.url || genData.url;
+                if (generatedUrl) {
+                  imageToSend = generatedUrl;
+                  console.log(`[InstagramWebhook] Image generated: ${generatedUrl.substring(0, 80)}`);
+
+                  // STEP 3: save to cache for future prospects of same sector
+                  try {
+                    const promptHash = imgPrompt.toLowerCase().replace(/[^a-z0-9]+/g, '').substring(0, 80);
+                    await supabase.from('dm_visual_cache').insert({
+                      image_url: generatedUrl,
+                      prompt: imgPrompt.substring(0, 500),
+                      prompt_hash: promptHash,
+                      sector: prospectSector || null,
+                      business_type: prospect.type || null,
+                      sub_angle: imgPrompt.split(',')[0]?.substring(0, 80) || null,
+                      original_sender_id: senderId,
+                      source_agent: 'jade_webhook',
+                      usage_count: 1,
+                      last_used_at: now,
+                    });
+                    console.log(`[InstagramWebhook] 💾 Visual saved to cache for future prospects (sector=${prospectSector})`);
+                  } catch (cacheSaveErr: any) {
+                    console.warn('[InstagramWebhook] Cache save failed:', cacheSaveErr?.message?.substring(0, 100));
+                  }
+                }
+              } else {
+                console.warn('[InstagramWebhook] Seedream API error:', genRes.status, (await genRes.text()).substring(0, 100));
+              }
+            } catch (genErr: any) {
+              console.warn('[InstagramWebhook] Image generation failed:', genErr.message?.substring(0, 100));
+            }
           }
         }
 
         // If no image found from showcase but AI wanted to send one, generate via Seedream
         // 2026-06-03 — Skip pour compte test + 1-max policy
-        if (!imageToSend && (showcaseMatch || generateMatch) && !isTestAccount && alreadySentImages.length < 1) {
+        if (!imageToSend && (showcaseMatch || generateMatch) && (isUnlimitedSender || alreadySentImages.length < 3)) {
           try {
             const seedreamUrl = process.env.SEEDREAM_API_URL || 'https://ark.ap-southeast.bytepluses.com/api/v3/images/generations';
             const seedreamKey = (process.env.SEEDREAM_API_KEY || process.env.ARK_API_KEY || '341cd095-2c11-49da-82e7-dc2db23c565c').replace(/\\n/g, '').trim();
@@ -837,7 +956,7 @@ ${history ? `\nCONVERSATION :\n${history}` : ''}${businessContext}${ragContext}`
               let imgMessageId: string | null = null;
               let imgError: string | null = null;
 
-              if (imageToSend && sendSuccess && !isTestAccount) {
+              if (imageToSend && sendSuccess) {
                 await new Promise(r => setTimeout(r, 1500));
                 let imgSent = false;
 
