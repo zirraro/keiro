@@ -92,20 +92,20 @@ export async function GET(req: NextRequest) {
 </body></html>`;
       const textBody = `Salut ${firstName},\n\nTon token Instagram a expiré — Léna ne peut plus publier pour toi.\n\nReconnecte ton IG en 30s : ${reconnectUrl}\n\n— KeiroAI`;
 
-      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
-        method: 'POST',
-        headers: { 'api-key': brevoKey, 'content-type': 'application/json', accept: 'application/json' },
-        body: JSON.stringify({
-          sender: { email: 'contact@keiroai.com', name: 'KeiroAI' },
-          to: [{ email: profile.email, name: firstName }],
-          subject,
-          htmlContent: html,
-          textContent: textBody,
-          tags: ['ig_reauth'],
-        }),
+      // 2026-06-03 — Multi-provider fallback (Brevo API → Resend → Brevo SMTP)
+      const { sendEmailWithFallback } = await import('@/lib/email/send-with-fallback');
+      const result = await sendEmailWithFallback({
+        to: profile.email,
+        toName: firstName,
+        subject,
+        html,
+        textContent: textBody,
+        fromName: 'KeiroAI',
+        fromEmail: 'contact@keiroai.com',
+        tags: ['ig_reauth'],
       });
 
-      if (res.ok) {
+      if (result.ok) {
         sent++;
         await sb.from('agent_logs').insert({
           agent: 'content',
@@ -115,8 +115,7 @@ export async function GET(req: NextRequest) {
           created_at: new Date().toISOString(),
         });
       } else {
-        const err = await res.text().catch(() => '');
-        console.warn(`[ig-reauth] Brevo ${res.status}: ${err.substring(0, 200)}`);
+        console.warn(`[ig-reauth] All providers failed: ${result.error || 'unknown'}`);
       }
     } catch (err: any) {
       console.error('[ig-reauth] send failed:', err?.message);

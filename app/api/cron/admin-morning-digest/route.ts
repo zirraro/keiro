@@ -480,31 +480,24 @@ export async function GET(req: NextRequest) {
     </div>
   </div>`;
 
-  const BREVO_KEY = process.env.BREVO_API_KEY;
-  let sent = false;
-  if (BREVO_KEY) {
-    try {
-      const subject = totalP0 > 0
-        ? `🚨 P0 KeiroAI matin — ${totalP0} bloquant${totalP0 > 1 ? 's' : ''} avant briefs clients`
-        : totalIssues > 0
-          ? `⚠️ KeiroAI matin — ${totalIssues} point${totalIssues > 1 ? 's' : ''} à surveiller`
-          : `☀️ KeiroAI matin — RAS`;
-      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
-        method: 'POST',
-        headers: { 'accept': 'application/json', 'api-key': BREVO_KEY, 'content-type': 'application/json' },
-        body: JSON.stringify({
-          sender: { name: 'Admin Health Morning', email: 'contact@keiroai.com' },
-          to: [{ email: ADMIN_EMAIL }],
-          subject,
-          htmlContent: adminHtml,
-          tags: ['admin_morning_digest', totalP0 > 0 ? 'p0' : 'p1'],
-        }),
-      });
-      sent = res.ok;
-    } catch (e: any) {
-      console.error('[AdminMorningDigest] Brevo send failed:', e.message);
-    }
-  }
+  // 2026-06-03 — Multi-provider fallback (Brevo API → Resend → Brevo SMTP)
+  const subject = totalP0 > 0
+    ? `🚨 P0 KeiroAI matin — ${totalP0} bloquant${totalP0 > 1 ? 's' : ''} avant briefs clients`
+    : totalIssues > 0
+      ? `⚠️ KeiroAI matin — ${totalIssues} point${totalIssues > 1 ? 's' : ''} à surveiller`
+      : `☀️ KeiroAI matin — RAS`;
+  const { sendEmailWithFallback } = await import('@/lib/email/send-with-fallback');
+  const result = await sendEmailWithFallback({
+    to: ADMIN_EMAIL,
+    subject,
+    html: adminHtml,
+    fromName: 'Admin Health Morning',
+    fromEmail: 'contact@keiroai.com',
+    tags: ['admin_morning_digest', totalP0 > 0 ? 'p0' : 'p1'],
+  });
+  const sent = result.ok;
+  if (!sent) console.error('[AdminMorningDigest] All providers failed:', result.error);
+  else console.log(`[AdminMorningDigest] Sent via ${result.provider}`);
 
   return NextResponse.json({
     ok: true,
