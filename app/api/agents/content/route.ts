@@ -2291,6 +2291,7 @@ export async function POST(request: NextRequest) {
         });
       }
 
+      case 'regenerate_single':
       case 'republish_single': {
         // Re-publish a SINGLE post by ID — regenerate image if expired, then publish to Instagram
         if (!body.postId) return NextResponse.json({ ok: false, error: 'postId required' }, { status: 400 });
@@ -2590,14 +2591,47 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ ok: true, republished, total: fakePubs.length, results: republishResults });
       }
 
-      case 'skip': {
+      case 'skip':
+      case 'skip_single': {
+        // 2026-06-04 — skip_single alias: PostPreviewModal already calls
+        // this action when the client clicks 'Supprimer'. Founder ask:
+        // "le client peut revoquer a tout moment et supprimer avant la
+        // date de publication". Set status='skipped' (soft delete) so
+        // we keep audit trail.
         if (!body.postId) return NextResponse.json({ ok: false, error: 'postId required' }, { status: 400 });
         const { error } = await supabase
           .from('content_calendar')
-          .update({ status: 'skipped', updated_at: new Date().toISOString() })
-          .eq('id', body.postId);
+          .update({
+            status: 'skipped',
+            updated_at: new Date().toISOString(),
+            publish_diagnostic: 'client_skipped',
+          })
+          .eq('id', body.postId)
+          .not('status', 'eq', 'published'); // can't skip an already-published post
         if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
         return NextResponse.json({ ok: true });
+      }
+
+      case 'edit_single': {
+        // 2026-06-04 — Edit a planned post BEFORE its publication date.
+        // Founder ask: "lui laisse l'occasion de supprimer o uchanger
+        // avant la date et heure de publication le post specifique".
+        if (!body.postId) return NextResponse.json({ ok: false, error: 'postId required' }, { status: 400 });
+        const editable = ['caption', 'hook', 'hashtags', 'scheduled_date', 'scheduled_time', 'visual_description'];
+        const updates: Record<string, any> = { updated_at: new Date().toISOString() };
+        for (const field of editable) {
+          if (body[field] !== undefined) updates[field] = body[field];
+        }
+        if (Object.keys(updates).length === 1) {
+          return NextResponse.json({ ok: false, error: 'no editable field provided' }, { status: 400 });
+        }
+        const { error } = await supabase
+          .from('content_calendar')
+          .update(updates)
+          .eq('id', body.postId)
+          .in('status', ['draft', 'approved', 'retry_pending']); // can only edit pre-publish
+        if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+        return NextResponse.json({ ok: true, updated_fields: Object.keys(updates).filter(k => k !== 'updated_at') });
       }
 
       case 'execute_publication': {
