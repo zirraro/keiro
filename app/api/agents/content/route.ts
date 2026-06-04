@@ -1515,21 +1515,35 @@ async function publishToTikTok(
     } catch { /* best-effort */ }
   };
   try {
-    // Get admin's TikTok tokens
-    const { data: adminProfile, error: profileError } = await supabase
-      .from('profiles')
-      .select('tiktok_access_token, tiktok_refresh_token, tiktok_token_expiry, tiktok_user_id')
-      .eq('is_admin', true)
-      .single();
+    // 2026-06-04 — Multi-tenant : use the POST OWNER's TikTok tokens,
+    // not the admin's. Founder caught this : the founder's account is
+    // NOT admin (is_admin=false). He connected TikTok on his client
+    // profile, but publishToTikTok was querying .eq('is_admin', true)
+    // → wrong row OR null → "tiktok_not_connected" → no publish.
+    //
+    // Falls back to admin profile only if the post has no user_id
+    // (legacy admin-tooling path).
+    const ownerId: string | null = (post as any).user_id || null;
+    const profileQuery = ownerId
+      ? supabase.from('profiles')
+          .select('tiktok_access_token, tiktok_refresh_token, tiktok_token_expiry, tiktok_user_id')
+          .eq('id', ownerId)
+          .maybeSingle()
+      : supabase.from('profiles')
+          .select('tiktok_access_token, tiktok_refresh_token, tiktok_token_expiry, tiktok_user_id')
+          .eq('is_admin', true)
+          .limit(1)
+          .maybeSingle();
+    const { data: ownerProfile, error: profileError } = await profileQuery;
 
-    if (profileError || !adminProfile) {
-      console.error('[Content] No admin profile for TikTok publishing');
+    if (profileError || !ownerProfile) {
+      console.error(`[Content] No TikTok profile for owner ${ownerId || 'admin'}`);
       await releaseTtClaim();
-      return { success: false, error: 'No admin profile found' };
+      return { success: false, error: 'No TikTok profile found' };
     }
 
-    let accessToken = adminProfile.tiktok_access_token;
-    const refreshToken = adminProfile.tiktok_refresh_token;
+    let accessToken = ownerProfile.tiktok_access_token;
+    const refreshToken = ownerProfile.tiktok_refresh_token;
 
     if (!accessToken || !refreshToken) {
       // Not configured → silently skip (not a real error). The cron keeps
@@ -1540,7 +1554,7 @@ async function publishToTikTok(
     }
 
     // Refresh token if expired
-    const tokenExpiry = adminProfile.tiktok_token_expiry ? new Date(adminProfile.tiktok_token_expiry) : null;
+    const tokenExpiry = ownerProfile.tiktok_token_expiry ? new Date(ownerProfile.tiktok_token_expiry) : null;
     if (!tokenExpiry || tokenExpiry <= new Date()) {
       console.log('[Content] TikTok token expired, refreshing...');
       try {
@@ -1551,13 +1565,24 @@ async function publishToTikTok(
         }
         const refreshed = await refreshTikTokToken(refreshToken, clientKey);
         accessToken = refreshed.access_token;
-        // Update tokens in DB
-        await supabase.from('profiles').update({
-          tiktok_access_token: refreshed.access_token,
-          tiktok_refresh_token: refreshed.refresh_token,
-          tiktok_token_expiry: new Date(Date.now() + (refreshed.expires_in || 86400) * 1000).toISOString(),
-        }).eq('is_admin', true);
-        console.log('[Content] TikTok token refreshed successfully');
+        // Update tokens in DB — on the SAME profile we read from
+        // (post owner if set, else admin). Previously this UPDATE was
+        // always targeting is_admin=true even when the read used the
+        // founder/client profile, so multi-tenant refreshes silently
+        // overwrote the admin row.
+        const updateQuery = ownerId
+          ? supabase.from('profiles').update({
+              tiktok_access_token: refreshed.access_token,
+              tiktok_refresh_token: refreshed.refresh_token,
+              tiktok_token_expiry: new Date(Date.now() + (refreshed.expires_in || 86400) * 1000).toISOString(),
+            }).eq('id', ownerId)
+          : supabase.from('profiles').update({
+              tiktok_access_token: refreshed.access_token,
+              tiktok_refresh_token: refreshed.refresh_token,
+              tiktok_token_expiry: new Date(Date.now() + (refreshed.expires_in || 86400) * 1000).toISOString(),
+            }).eq('is_admin', true);
+        await updateQuery;
+        console.log(`[Content] TikTok token refreshed successfully for ${ownerId || 'admin'}`);
       } catch (refreshError: any) {
         console.error('[Content] TikTok token refresh failed:', refreshError.message);
         // 2026-06-04 — Log the failure so token-lifecycle cron can
