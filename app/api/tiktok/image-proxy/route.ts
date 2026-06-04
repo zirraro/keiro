@@ -50,21 +50,21 @@ export async function GET(request: NextRequest) {
     const srcW = meta.width || 0;
     const srcH = meta.height || 0;
 
-    // 2026-06-04 — Force fixed 1440×1440 square on EVERY image.
-    // TikTok requires all photos in a carousel to share the same
-    // aspect ratio. The previous logic kept the source ratio when
-    // valid, which meant 6 different source images = 6 different
-    // ratios = TikTok picture_size_check_failed on the whole carousel.
-    // Square (1:1) is the safest choice: well inside the 360-4000 px
-    // window, accepted as both standalone and carousel, no orientation
-    // ambiguity.
-    const targetW = 1440;
-    const targetH = 1440;
+    // 2026-06-04 — Force 1080×1920 portrait (9:16) on every image.
+    // The previous 1440×1440 square also got rejected by TikTok with
+    // picture_size_check_failed (despite docs saying 1:1 is allowed).
+    // TikTok's native feed is 9:16, that's the only format we've
+    // observed succeed reliably for photo carousels in the wild.
+    // 1080×1920 is the recommended Reels/TikTok size, safely inside
+    // the 360-4000 px window, and matches what the TikTok preview
+    // expects.
+    const targetW = 1080;
+    const targetH = 1920;
 
     const jpegBuffer = await sharp(sourceBuffer)
       .rotate() // auto-orient using EXIF
       .resize(targetW, targetH, { fit: 'cover', position: 'centre' })
-      .flatten({ background: { r: 255, g: 255, b: 255 } }) // strip alpha → white
+      .flatten({ background: { r: 0, g: 0, b: 0 } }) // strip alpha → black (matches TikTok dark UI)
       .jpeg({ quality: 86, progressive: false, mozjpeg: true, chromaSubsampling: '4:2:0' })
       .toBuffer();
 
