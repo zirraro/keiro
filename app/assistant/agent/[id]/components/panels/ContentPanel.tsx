@@ -736,8 +736,67 @@ export function ContentPanel({ data, agentName, gradientFrom, gradientTo }: Pane
   const firstConnected = (LENA_NETWORKS.find(n => connections[n.key])?.key ?? 'instagram') as LenaNetworkKey;
   const [active, setActive] = useState<LenaNetworkKey>(firstConnected);
 
+  // 2026-06-04 — Founder ask: "planning fait en avance chaque semaine ce
+  // qui lui laisse l'occasion de supprimer ou changer avant la date et
+  // heure de publication". Bouton "Plan ma semaine" qui déclenche
+  // /api/agents/content action=generate_weekly. La cron Sunday 18:00
+  // UTC le fait déjà auto, mais le bouton manuel laisse au client le
+  // contrôle (regen quand il veut).
+  const [planningWeekly, setPlanningWeekly] = useState(false);
+  const [weeklyToast, setWeeklyToast] = useState<{ kind: 'ok' | 'err'; msg: string } | null>(null);
+  const planWeek = async () => {
+    if (planningWeekly) return;
+    if (!window.confirm('Léna va planifier 7 jours de contenu (IG + TikTok + LinkedIn selon ce qui est connecté). Tu pourras modifier ou supprimer chaque post avant sa date de publication. OK ?')) return;
+    setPlanningWeekly(true);
+    try {
+      const res = await fetch('/api/agents/content', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'generate_weekly' }),
+      });
+      const d = await res.json();
+      if (d.ok) {
+        setWeeklyToast({ kind: 'ok', msg: `✓ ${d.inserted || 0} posts planifiés sur 7 jours. Tu peux les voir / éditer dans Planning.` });
+      } else {
+        setWeeklyToast({ kind: 'err', msg: `Erreur : ${d.error || 'inconnu'}` });
+      }
+    } catch (e: any) {
+      setWeeklyToast({ kind: 'err', msg: e?.message || 'Plan failed' });
+    } finally {
+      setPlanningWeekly(false);
+      setTimeout(() => setWeeklyToast(null), 6000);
+    }
+  };
+
   return (
     <>
+      {/* Weekly planning CTA + auto-publish hint. Always visible to the
+          client so they understand: posts are generated a week ahead,
+          they can edit/delete each one BEFORE its scheduled time, and
+          if auto-publish is ON they ship without further validation. */}
+      <div className="rounded-xl border border-purple-500/30 bg-gradient-to-r from-purple-900/20 to-pink-900/20 p-3 mb-3 flex items-center gap-3">
+        <div className="text-2xl">{'\u{1F4C5}'}</div>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-bold text-white">Planning hebdo</div>
+          <div className="text-[11px] text-white/50">7 jours générés à l&apos;avance — modifie / supprime chaque post avant sa date</div>
+        </div>
+        <button
+          onClick={planWeek}
+          disabled={planningWeekly}
+          className={`px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
+            planningWeekly ? 'bg-white/10 text-white/40 cursor-wait' : 'bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:scale-105 active:scale-95'
+          }`}
+        >
+          {planningWeekly ? '⏳ Génération…' : '✨ Plan ma semaine'}
+        </button>
+      </div>
+      {weeklyToast && (
+        <div className={`mb-3 px-3 py-2 rounded-lg text-xs ${weeklyToast.kind === 'ok' ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300' : 'bg-rose-500/10 border border-rose-500/30 text-rose-300'}`}>
+          {weeklyToast.msg}
+        </div>
+      )}
+
       {/* Network selector — always visible, single source of truth for the
           rest of the panel. Connected networks have a green dot; not-yet
           connected networks remain clickable (they take you to their own
