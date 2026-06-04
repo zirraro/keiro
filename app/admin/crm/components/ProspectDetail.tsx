@@ -156,7 +156,51 @@ export default function ProspectDetail({
                     : null
                 }
               />
-              <InfoField label="TikTok" value={prospect.tiktok_handle} />
+              <InfoField
+                label="TikTok"
+                value={
+                  prospect.tiktok_handle ? (
+                    <span className="flex items-center gap-2">
+                      <span>@{String(prospect.tiktok_handle).replace(/^@/, '')}</span>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const h = String(prospect.tiktok_handle).replace(/^@/, '');
+                          try {
+                            const r = await fetch('/api/agents/tiktok-analyze', {
+                              method: 'POST',
+                              credentials: 'include',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ handle: h, intent: 'prospect' }),
+                            });
+                            const d = await r.json();
+                            if (d.ok) {
+                              const lines = [
+                                `Verdict : ${d.verdict}`,
+                                `Follow score : ${d.follow_score}`,
+                                d.notes?.audience ? `Audience : ${d.notes.audience}` : '',
+                                d.notes?.follower_count ? `Abonnés : ${d.notes.follower_count.toLocaleString('fr-FR')}` : '',
+                                d.notes?.insta_bio ? `Bio : ${d.notes.insta_bio.substring(0, 200)}` : '',
+                                d.notes?.ambiance?.length ? `Ambiance : ${d.notes.ambiance.join(', ')}` : '',
+                                d.notes?.signature?.length ? `Domaine : ${d.notes.signature.join(', ')}` : '',
+                              ].filter(Boolean).join('\n');
+                              alert(`Analyse TikTok @${h}\n\n${lines}`);
+                            } else {
+                              alert(`Échec analyse TikTok : ${d.error || 'inconnu'}`);
+                            }
+                          } catch (e: any) {
+                            alert(`Erreur : ${e.message}`);
+                          }
+                        }}
+                        title="Analyser ce compte TikTok"
+                        className="text-[10px] px-2 py-0.5 bg-pink-100 text-pink-700 hover:bg-pink-200 rounded-full font-medium"
+                      >
+                        🔎 Analyser
+                      </button>
+                    </span>
+                  ) : null
+                }
+              />
               <InfoField label="Type" value={prospect.business_type || prospect.type} />
               <InfoField label="Quartier" value={prospect.quartier} />
               <InfoField label="Source" value={prospect.source} />

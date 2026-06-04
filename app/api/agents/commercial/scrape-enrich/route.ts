@@ -44,8 +44,8 @@ export async function POST(req: NextRequest) {
   // Find candidates: have website or instagram, no fresh notes, not dead.
   let q = supabase
     .from('crm_prospects')
-    .select('id, user_id, company, type, website, instagram, phone, email, address, notes, business_notes, last_enriched_at, status, temperature')
-    .or('website.not.is.null,instagram.not.is.null')
+    .select('id, user_id, company, type, website, instagram, tiktok_handle, phone, email, address, notes, business_notes, last_enriched_at, status, temperature')
+    .or('website.not.is.null,instagram.not.is.null,tiktok_handle.not.is.null')
     .not('status', 'in', '("client","perdu","sprint","lost")')
     .not('temperature', 'eq', 'dead')
     .order('score', { ascending: false, nullsFirst: false })
@@ -74,6 +74,7 @@ export async function POST(req: NextRequest) {
       const notes = await harvestBusinessNotes(supabase, {
         website: p.website,
         instagram: p.instagram,
+        tiktok_handle: p.tiktok_handle, // 2026-06-04 — TikTok parity
       });
       if (!notes) { skipped++; continue; }
 

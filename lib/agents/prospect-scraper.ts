@@ -252,6 +252,57 @@ export async function scrapeTiktok(handle: string): Promise<Partial<BusinessNote
     if (recentCaptions.length) signals.push(`Derniers TikToks: ${recentCaptions.slice(0, 3).map(c => `"${c.slice(0, 80)}"`).join(' | ')}`);
     if (ogTitle && !signals.length) signals.push(`Profil TikTok: ${ogTitle}`);
 
+    // 2026-06-04 — Founder ask: "scrapping doit sortir des information
+    // sur le type d'ambiance style domaine ect si possible". On dérive
+    // ambiance + domaine depuis bio + captions par keyword matching
+    // (zéro coût, prédictible). Si on a >5 captions on pourrait monter
+    // au LLM, mais ici keyword fait largement le job pour le brief.
+    const allText = `${bio} ${recentCaptions.join(' ')} ${ogTitle}`.toLowerCase();
+    const ambiance: string[] = [];
+    const AMBIANCE_TT: Array<[RegExp, string]> = [
+      [/(cosy|chaleureux|cocoon|warm)/, 'cosy/chaleureux'],
+      [/(industriel|industrial|loft|warehouse|brut|béton)/, 'industriel/loft'],
+      [/(minimalist|épuré|épure|moderne|clean|sleek)/, 'minimaliste/moderne'],
+      [/(traditionnel|authentique|familial|terroir|grand-mère|recette de)/, 'traditionnel/familial'],
+      [/(luxe|premium|haut de gamme|raffin|gastro|étoilé|michelin)/, 'haut de gamme'],
+      [/(streetwear|urbain|street|hood|graffiti)/, 'urbain/street'],
+      [/(naturel|bio|organic|vegan|healthy|sain|nature)/, 'naturel/healthy'],
+      [/(funky|coloré|pop|fun|playful|kawaii|cute)/, 'pop/playful'],
+      [/(romantique|romantic|pastel|princess|cocooning)/, 'romantique/pastel'],
+      [/(dark|sombre|gothic|black|nuit|underground)/, 'dark/underground'],
+    ];
+    for (const [re, label] of AMBIANCE_TT) {
+      if (re.test(allText)) ambiance.push(label);
+    }
+
+    // Domaine / niche — useful for visual generation grounding
+    const domaine: string[] = [];
+    const DOMAINE_TT: Array<[RegExp, string]> = [
+      [/(restaurant|gastronomie|chef|cuisine|food|recette|bistrot|menu|plat)/, 'food/restauration'],
+      [/(coiffeur|coiff|cheveux|hair|barber|coupe)/, 'beauté/cheveux'],
+      [/(esth[ée]ti|maquillage|makeup|cosm[ée]ti|skin|peau|soin)/, 'beauté/esthétique'],
+      [/(coach|sport|fitness|gym|musculation|crossfit|yoga|pilates)/, 'sport/wellness'],
+      [/(fleurist|fleur|bouquet|floral|pivoine|rose)/, 'fleuriste/floral'],
+      [/(boutique|mode|fashion|vêtement|robe|sneaker|streetwear)/, 'mode/retail'],
+      [/(boulangerie|p[âa]tisserie|croissant|baguette|pain|chocolat)/, 'boulangerie/pâtisserie'],
+      [/(immobilier|real estate|appartement|maison|villa|notaire)/, 'immobilier'],
+      [/(coach|consultant|business|entrepren|freelance|formation)/, 'coaching/business'],
+      [/(musique|musi|piano|guitare|chant|chanson)/, 'musique'],
+      [/(danse|dance|chor[ée]graphi|ballet|hip[- ]?hop)/, 'danse'],
+      [/(art|peinture|peintre|sculpture|art [eé]colo|graffi)/, 'art/créatif'],
+      [/(voyage|travel|exploration|aventure|destination)/, 'voyage/lifestyle'],
+      [/(comédie|humor|humour|funny|drôle|stand[- ]?up)/, 'humour/divertissement'],
+      [/(animal|chien|chat|cheval|pet|véto|vétérinaire)/, 'animaux'],
+      [/(parent|maman|papa|bébé|maternité|enfant|family)/, 'famille/parentalité'],
+      [/(tech|code|programming|développeur|developer|ia|ai)/, 'tech/IA'],
+    ];
+    for (const [re, label] of DOMAINE_TT) {
+      if (re.test(allText)) { domaine.push(label); break; } // un seul domaine principal
+    }
+
+    if (ambiance.length) signals.push(`Ambiance détectée: ${ambiance.join(', ')}`);
+    if (domaine.length) signals.push(`Domaine: ${domaine.join(', ')}`);
+
     // No useful data harvested — return null so we don't pollute notes
     if (signals.length === 0) return null;
 
@@ -267,8 +318,8 @@ export async function scrapeTiktok(handle: string): Promise<Partial<BusinessNote
     return {
       source: 'instagram', // schema only allows 'website'/'instagram'/'mixed' — bucket TT under same field as social
       signals,
-      ambiance: [],
-      signature: [],
+      ambiance,
+      signature: domaine, // domaine recyclé dans signature pour faire passer le data jusqu'au prompt sans alourdir le schema
       audience,
       follower_count: followers || undefined,
       posts_recent: recentCaptions.length || undefined,
