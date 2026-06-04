@@ -167,6 +167,120 @@ export async function scrapeWebsite(url: string): Promise<Partial<BusinessNotes>
 }
 
 /**
+ * 2026-06-04 — TikTok scraping via public profile HTML.
+ *
+ * TikTok API n'expose pas le profil d'un autre user (autre que le tien)
+ * sans l'OAuth de cet user. Solution: récupérer le HTML public de
+ * `https://www.tiktok.com/@{handle}` puis extraire les meta OG +
+ * SIGI_STATE JSON intégré (followers, bio, derniers posts).
+ *
+ * Tolérant : TikTok bloque parfois (rate-limit, captcha JS). Retourne
+ * null en cas d'échec. Cap 7s timeout. User-Agent réaliste.
+ */
+export async function scrapeTiktok(handle: string): Promise<Partial<BusinessNotes> | null> {
+  const cleanHandle = String(handle || '').replace(/^@/, '').trim();
+  if (!cleanHandle) return null;
+
+  try {
+    const res = await fetch(`https://www.tiktok.com/@${cleanHandle}`, {
+      signal: AbortSignal.timeout(7000),
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15',
+        'Accept': 'text/html,application/xhtml+xml',
+        'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',
+      },
+      redirect: 'follow',
+    });
+    if (!res.ok) return null;
+    const html = await res.text();
+    if (!html || html.length < 500) return null;
+
+    // 1. OpenGraph meta — works most of the time
+    const ogTitle = (html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)?.[1] || '').trim();
+    const ogDesc = (html.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i)?.[1] || '').trim();
+
+    // 2. SIGI_STATE JSON block (embedded) — has followers, bio, posts
+    let followers = 0;
+    let mediaCount = 0;
+    let bio = '';
+    const recentCaptions: string[] = [];
+    const sigiMatch = html.match(/<script id="SIGI_STATE"[^>]*>([\s\S]*?)<\/script>/i)
+      || html.match(/<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__"[^>]*>([\s\S]*?)<\/script>/i);
+    if (sigiMatch) {
+      try {
+        const sigi = JSON.parse(sigiMatch[1]);
+        // SIGI_STATE has UserModule.users[username].{followerCount,signature,videoCount}
+        const userModule = sigi?.UserModule?.users || sigi?.__DEFAULT_SCOPE__?.['webapp.user-detail']?.userInfo?.user;
+        const userStats = sigi?.UserModule?.stats || sigi?.__DEFAULT_SCOPE__?.['webapp.user-detail']?.userInfo?.stats;
+        const u = userModule?.[cleanHandle] || userModule;
+        if (u) {
+          bio = (u.signature || u.bio || '').substring(0, 300);
+        }
+        const s = userStats?.[cleanHandle] || userStats;
+        if (s) {
+          followers = s.followerCount || s.follower_count || 0;
+          mediaCount = s.videoCount || s.video_count || 0;
+        }
+        // Recent posts captions
+        const itemModule = sigi?.ItemModule || {};
+        for (const k of Object.keys(itemModule).slice(0, 5)) {
+          const item = itemModule[k];
+          if (item?.desc) recentCaptions.push(String(item.desc).substring(0, 120));
+        }
+      } catch { /* JSON shape varies, fall through with OG-only */ }
+    }
+
+    // Fallback: parse "1.2M Followers" from page text
+    if (!followers) {
+      const followersMatch = html.match(/([\d.]+\s*[KMm]?)\s*Followers/i)
+        || html.match(/Abonnés[^>]*>\s*([\d. \s,]+)/i);
+      if (followersMatch) {
+        const raw = followersMatch[1].replace(/\s/g, '').replace(',', '.');
+        const num = parseFloat(raw);
+        if (!isNaN(num)) {
+          followers = raw.toUpperCase().includes('M') ? Math.round(num * 1_000_000)
+            : raw.toUpperCase().includes('K') ? Math.round(num * 1_000)
+            : Math.round(num);
+        }
+      }
+    }
+    if (!bio && ogDesc) bio = ogDesc.substring(0, 300);
+
+    const signals: string[] = [];
+    if (bio) signals.push(`Bio TikTok: "${bio}"`);
+    if (followers) signals.push(`${followers} abonnés TikTok, ${mediaCount} vidéos`);
+    if (recentCaptions.length) signals.push(`Derniers TikToks: ${recentCaptions.slice(0, 3).map(c => `"${c.slice(0, 80)}"`).join(' | ')}`);
+    if (ogTitle && !signals.length) signals.push(`Profil TikTok: ${ogTitle}`);
+
+    // No useful data harvested — return null so we don't pollute notes
+    if (signals.length === 0) return null;
+
+    let audience = '';
+    if (followers > 0) {
+      if (followers < 1_000) audience = 'audience TikTok naissante';
+      else if (followers < 10_000) audience = 'audience TikTok locale en croissance';
+      else if (followers < 100_000) audience = 'compte TikTok établi régional';
+      else if (followers < 1_000_000) audience = 'créateur TikTok confirmé';
+      else audience = 'compte TikTok à très large audience';
+    }
+
+    return {
+      source: 'instagram', // schema only allows 'website'/'instagram'/'mixed' — bucket TT under same field as social
+      signals,
+      ambiance: [],
+      signature: [],
+      audience,
+      follower_count: followers || undefined,
+      posts_recent: recentCaptions.length || undefined,
+      insta_bio: bio || undefined,
+    };
+  } catch (e: any) {
+    console.warn('[tiktok-scrape] failed for', cleanHandle, ':', e?.message?.substring(0, 120));
+    return null;
+  }
+}
+
+/**
  * Fetch Instagram profile + 3 most recent posts via Business Discovery
  * (already used elsewhere). Returns null if the handle can't be
  * resolved or we have no admin IG token to call it.
@@ -247,12 +361,19 @@ export async function scrapeInstagram(
  */
 export async function harvestBusinessNotes(
   supabase: any,
-  prospect: { website?: string | null; instagram?: string | null },
+  prospect: { website?: string | null; instagram?: string | null; tiktok_handle?: string | null },
 ): Promise<(BusinessNotes & { extractedContact?: ExtractedContact }) | null> {
   const tasks: Promise<Partial<BusinessNotes> | null>[] = [];
   if (prospect.website) tasks.push(scrapeWebsite(prospect.website));
   if (prospect.instagram && prospect.instagram !== 'A_VERIFIER') {
     tasks.push(scrapeInstagram(supabase, prospect.instagram));
+  }
+  // 2026-06-04 — TikTok parity: scrape the prospect's public TikTok
+  // profile when a handle exists, in parallel with website + IG. Same
+  // 'mixed' merge logic — TikTok signals get appended to the shared
+  // notes block.
+  if (prospect.tiktok_handle && prospect.tiktok_handle !== 'A_VERIFIER') {
+    tasks.push(scrapeTiktok(prospect.tiktok_handle));
   }
   if (tasks.length === 0) return null;
 
