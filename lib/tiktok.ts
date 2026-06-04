@@ -448,7 +448,8 @@ export async function initTikTokPhotoUpload(
   accessToken: string,
   photoUrls: string[],
   title: string,
-  description?: string
+  description?: string,
+  options?: { privacyLevel?: string; disableComment?: boolean }
 ): Promise<{ publish_id: string; is_draft: boolean }> {
   if (photoUrls.length > 35) {
     throw new Error('TikTok photo posts support max 35 images');
@@ -466,12 +467,10 @@ export async function initTikTokPhotoUpload(
   });
   console.log('[TikTok] Proxied photo URLs:', proxiedUrls.map(u => u.substring(0, 100)));
 
-  // 2026-06-04 — App audited (Content Posting API approved). Publish
-  // PUBLIC_TO_EVERYONE directly without pre-checking creator info: the
-  // creator-info call sometimes returns truncated privacy_level_options
-  // and we'd downgrade to SELF_ONLY for nothing. Trust the audit
-  // status and let TikTok return an explicit error if anything is off.
-  const privacyLevel = 'PUBLIC_TO_EVERYONE';
+  // 2026-06-04 — App audited (Content Posting API approved). Use the
+  // privacy level the caller passes (chosen by the user in the
+  // Review modal). Default = PUBLIC_TO_EVERYONE.
+  const privacyLevel = options?.privacyLevel || 'PUBLIC_TO_EVERYONE';
 
   console.log('[TikTok] Publishing photo(s) via PULL_FROM_URL');
   console.log('[TikTok] Photo URLs:', photoUrls.map(u => u.substring(0, 80)));
@@ -504,7 +503,7 @@ export async function initTikTokPhotoUpload(
       title: cleanTitle,
       description: cleanDescription,
       privacy_level: privacyLevel,
-      disable_comment: false,
+      disable_comment: options?.disableComment ?? false,
       auto_add_music: true,
       brand_content_toggle: false,
       brand_organic_toggle: false,

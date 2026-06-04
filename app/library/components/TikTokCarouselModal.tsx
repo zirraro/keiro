@@ -49,6 +49,28 @@ export default function TikTokCarouselModal({ images, onClose }: TikTokCarouselM
   const [videoTaskId, setVideoTaskId] = useState<string | null>(null);
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
 
+  // 2026-06-04 — Review mode + creator info + per-post settings.
+  // Parité avec TikTokModal (reels). Avant publication, on affiche un
+  // écran "Step Review" qui pull creator_info (account, privacy options,
+  // limits) et laisse le client choisir privacy + commentaires + duet.
+  type Mode = 'compose' | 'review';
+  const [mode, setMode] = useState<Mode>('compose');
+  const [creatorInfo, setCreatorInfo] = useState<{
+    username?: string;
+    display_name?: string;
+    can_post?: boolean;
+    privacy_level_options?: string[];
+    comment_disabled?: boolean;
+    duet_disabled?: boolean;
+    stitch_disabled?: boolean;
+  } | null>(null);
+  const [loadingCreator, setLoadingCreator] = useState(false);
+  const [privacyLevel, setPrivacyLevel] = useState<string>('PUBLIC_TO_EVERYONE');
+  const [allowComments, setAllowComments] = useState(true);
+  const [allowDuet, setAllowDuet] = useState(true);
+  const [allowStitch, setAllowStitch] = useState(true);
+  const [previewIndex, setPreviewIndex] = useState(0);
+
   // Vérifier si l'utilisateur a connecté son compte TikTok
   useEffect(() => {
     const checkTikTokConnection = async () => {
@@ -303,43 +325,55 @@ export default function TikTokCarouselModal({ images, onClose }: TikTokCarouselM
     }
   };
 
+  // STEP 1 — open review screen (fetch creator info + show preview)
+  const openReview = async () => {
+    if (selectedImages.length === 0) { alert(t.library.tkcAlertSelectImage); return; }
+    if (!caption.trim()) { alert(t.library.tkcAlertWriteDesc); return; }
+    if (!isTikTokConnected) { alert(t.library.tkcAlertConnectFirst); return; }
+
+    setLoadingCreator(true);
+    try {
+      const res = await fetch('/api/tiktok/creator-info', { credentials: 'include' });
+      const data = await res.json();
+      if (data?.ok && data?.info) {
+        setCreatorInfo(data.info);
+        // Pick default privacy: PUBLIC if allowed, else first option
+        const opts: string[] = data.info.privacy_level_options || [];
+        if (opts.includes('PUBLIC_TO_EVERYONE')) setPrivacyLevel('PUBLIC_TO_EVERYONE');
+        else if (opts.length > 0) setPrivacyLevel(opts[0]);
+        // Disable toggles when account-level disabled
+        if (data.info.comment_disabled) setAllowComments(false);
+        if (data.info.duet_disabled) setAllowDuet(false);
+        if (data.info.stitch_disabled) setAllowStitch(false);
+      }
+    } catch (e: any) {
+      console.warn('[TikTokCarouselModal] creator-info fetch failed:', e?.message);
+      // Don't block — fall back to defaults
+    } finally {
+      setLoadingCreator(false);
+      setPreviewIndex(0);
+      setMode('review');
+    }
+  };
+
+  // STEP 2 — actual publish after user confirms in review screen
   const handlePublishCarousel = async () => {
-    if (selectedImages.length === 0) {
-      alert(t.library.tkcAlertSelectImage);
-      return;
-    }
-
-    if (!caption.trim()) {
-      alert(t.library.tkcAlertWriteDesc);
-      return;
-    }
-
-    if (!isTikTokConnected) {
-      alert(t.library.tkcAlertConnectFirst);
-      return;
-    }
-
-    const confirm = window.confirm(
-      `${t.library.tkcConfirmPublish}\n\n` +
-      `${selectedImages.length} ${t.library.tkcConfirmSelected}\n` +
-      `${t.library.tkcConfirmImmediate}\n\n` +
-      `${t.library.tkcConfirmContinue}`
-    );
-
-    if (!confirm) return;
-
     setPublishing(true);
     try {
       const response = await fetch('/api/tiktok/publish-carousel', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
           imageUrls: selectedImages.map(img => img.image_url),
           caption,
-          hashtags
+          hashtags,
+          privacy_level: privacyLevel,
+          disable_comment: !allowComments,
+          // TikTok photo API doesn't have duet/stitch toggles, but we
+          // pass them anyway for forward-compat and audit trail.
+          disable_duet: !allowDuet,
+          disable_stitch: !allowStitch,
         })
       });
 
@@ -380,7 +414,7 @@ export default function TikTokCarouselModal({ images, onClose }: TikTokCarouselM
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="relative bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 sm:p-6 border-b bg-gradient-to-r from-pink-50 to-orange-50">
           <div className="flex items-center gap-2 sm:gap-3">
@@ -717,31 +751,153 @@ export default function TikTokCarouselModal({ images, onClose }: TikTokCarouselM
 
             {isTikTokConnected && (
               <button
-                onClick={handlePublishCarousel}
-                disabled={publishing || !caption.trim() || selectedImages.length === 0}
+                onClick={openReview}
+                disabled={publishing || loadingCreator || !caption.trim() || selectedImages.length === 0}
                 className={`flex-1 px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium text-white transition-all flex items-center justify-center gap-2 text-sm sm:text-base ${
-                  publishing || !caption.trim() || selectedImages.length === 0
+                  publishing || loadingCreator || !caption.trim() || selectedImages.length === 0
                     ? 'bg-neutral-400 cursor-not-allowed'
                     : 'bg-gradient-to-r from-pink-500 to-orange-500 hover:from-pink-600 hover:to-orange-600 shadow-lg hover:shadow-xl'
                 }`}
               >
-                {publishing ? (
+                {loadingCreator ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>{t.library.tkcPublishing}</span>
+                    <span>Préparation…</span>
                   </>
                 ) : (
                   <>
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
                     </svg>
-                    <span>{t.library.tkcPublishCarousel} ({selectedImages.length})</span>
+                    <span>Vérifier &amp; publier ({selectedImages.length})</span>
                   </>
                 )}
               </button>
             )}
           </div>
         </div>
+
+        {/* ════════ REVIEW SCREEN ════════ */}
+        {mode === 'review' && (
+          <div className="absolute inset-0 bg-white z-50 flex flex-col">
+            {/* Review header */}
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b bg-gradient-to-r from-pink-50 to-orange-50">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <button onClick={() => setMode('compose')} disabled={publishing} className="p-2 rounded-full hover:bg-white/50 transition-colors" aria-label="Retour">
+                  <svg className="w-5 h-5 text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/></svg>
+                </button>
+                <div>
+                  <h2 className="text-lg sm:text-2xl font-bold text-neutral-900">Publier sur TikTok</h2>
+                  <p className="text-xs text-neutral-600">{creatorInfo?.username ? `@${creatorInfo.username}` : tiktokUsername ? `@${tiktokUsername}` : 'Compte connecté'}</p>
+                </div>
+              </div>
+              <button onClick={onClose} disabled={publishing} className="p-2 rounded-full hover:bg-white/50 transition-colors" aria-label="Fermer">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 max-w-3xl mx-auto w-full">
+              {/* STEP 1 - PUBLISHING ACCOUNT */}
+              <div>
+                <div className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">STEP 1/3 — PUBLISHING ACCOUNT</div>
+                <div className="rounded-xl border border-neutral-200 bg-white p-3 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-orange-400 flex items-center justify-center text-white font-bold">
+                    {((creatorInfo?.display_name || creatorInfo?.username || tiktokUsername || '?').toString())[0]?.toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-sm text-neutral-900 truncate">{creatorInfo?.display_name || creatorInfo?.username || tiktokUsername || 'TikTok'}</div>
+                    {creatorInfo?.username && <div className="text-xs text-neutral-500 truncate">@{creatorInfo.username}</div>}
+                  </div>
+                  {creatorInfo?.can_post === false ? (
+                    <span className="text-xs px-2 py-1 rounded-full bg-rose-100 text-rose-700 font-medium">⚠ Posting blocked by TikTok</span>
+                  ) : (
+                    <span className="text-xs px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 font-medium">Ready to publish</span>
+                  )}
+                </div>
+              </div>
+
+              {/* STEP 2 — PREVIEW */}
+              <div>
+                <div className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">STEP 2/3 — PREVIEW ({selectedImages.length} images)</div>
+                <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3">
+                  <div className="flex items-center justify-center">
+                    <div className="relative w-56 sm:w-64 aspect-[9/16] rounded-xl overflow-hidden bg-black shadow-lg">
+                      {selectedImages[previewIndex] && (
+                        <img src={selectedImages[previewIndex].image_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                      <div className="absolute bottom-3 left-3 right-3 text-white text-[10px] leading-tight drop-shadow-lg">
+                        <div className="font-bold mb-1">@{creatorInfo?.username || tiktokUsername || 'vous'}</div>
+                        <div className="line-clamp-3">{caption}</div>
+                        {hashtags.length > 0 && <div className="text-blue-200 mt-1">{hashtags.slice(0, 4).map(h => h.startsWith('#') ? h : `#${h}`).join(' ')}</div>}
+                      </div>
+                      {selectedImages.length > 1 && (
+                        <div className="absolute top-2 right-2 px-2 py-0.5 bg-black/60 backdrop-blur rounded-full text-white text-[10px] font-medium">
+                          {previewIndex + 1}/{selectedImages.length}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {selectedImages.length > 1 && (
+                    <div className="flex items-center justify-center gap-1 mt-3">
+                      {selectedImages.map((_, i) => (
+                        <button key={i} onClick={() => setPreviewIndex(i)} className={`w-2 h-2 rounded-full transition-all ${i === previewIndex ? 'bg-pink-500 w-6' : 'bg-neutral-300 hover:bg-neutral-400'}`} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* STEP 3 — SETTINGS */}
+              <div>
+                <div className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">STEP 3/3 — RÉGLAGES</div>
+                <div className="space-y-3 rounded-xl border border-neutral-200 bg-white p-3">
+                  <div>
+                    <label className="block text-xs font-medium text-neutral-700 mb-1.5">Qui peut voir ce post ?</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {(creatorInfo?.privacy_level_options && creatorInfo.privacy_level_options.length > 0 ? creatorInfo.privacy_level_options : ['PUBLIC_TO_EVERYONE', 'MUTUAL_FOLLOW_FRIENDS', 'SELF_ONLY']).map((opt) => {
+                        const label = opt === 'PUBLIC_TO_EVERYONE' ? '🌍 Public' : opt === 'MUTUAL_FOLLOW_FRIENDS' ? '👥 Friends' : opt === 'FOLLOWER_OF_CREATOR' ? '👤 Followers' : '🔒 Privé';
+                        const isActive = privacyLevel === opt;
+                        return (
+                          <button key={opt} onClick={() => setPrivacyLevel(opt)} className={`px-3 py-2 rounded-lg text-sm font-medium border transition-all ${isActive ? 'bg-pink-500 text-white border-pink-500' : 'bg-white text-neutral-700 border-neutral-200 hover:border-pink-300'}`}>{label}</button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <label className={`flex items-center gap-3 p-2 rounded-lg border border-neutral-200 ${creatorInfo?.comment_disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-neutral-50'}`}>
+                    <input type="checkbox" checked={allowComments} onChange={e => setAllowComments(e.target.checked)} disabled={creatorInfo?.comment_disabled} className="w-4 h-4 rounded text-pink-500" />
+                    <span className="text-sm text-neutral-700 flex-1">Autoriser les commentaires</span>
+                    {creatorInfo?.comment_disabled && <span className="text-xs text-neutral-400">désactivé par TikTok</span>}
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* Review footer — actions */}
+            <div className="border-t bg-white p-4 sm:p-6 flex flex-col sm:flex-row gap-3">
+              <button onClick={() => setMode('compose')} disabled={publishing} className="flex-1 px-4 py-3 rounded-lg font-medium text-neutral-700 bg-neutral-100 hover:bg-neutral-200 transition-all text-sm">Retour</button>
+              <button
+                onClick={handlePublishCarousel}
+                disabled={publishing || creatorInfo?.can_post === false}
+                className={`flex-1 px-6 py-3 rounded-lg font-bold text-white transition-all flex items-center justify-center gap-2 ${
+                  publishing || creatorInfo?.can_post === false ? 'bg-neutral-400 cursor-not-allowed' : 'bg-gradient-to-r from-pink-500 to-orange-500 hover:from-pink-600 hover:to-orange-600 shadow-lg hover:shadow-xl'
+                }`}
+              >
+                {publishing ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Publication en cours…</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/></svg>
+                    <span>Publier maintenant</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

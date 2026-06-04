@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { imageUrls, caption, hashtags } = await req.json();
+    const { imageUrls, caption, hashtags, privacy_level, disable_comment } = await req.json();
 
     if (!imageUrls || !Array.isArray(imageUrls) || imageUrls.length === 0) {
       return NextResponse.json(
@@ -95,12 +95,14 @@ export async function POST(req: NextRequest) {
       ? caption + '\n\n' + (hashtags || []).map((tag: string) => (tag.startsWith('#') ? tag : '#' + tag)).join(' ')
       : (hashtags || []).map((tag: string) => (tag.startsWith('#') ? tag : '#' + tag)).join(' ');
 
-    // Initialize TikTok photo post (carousel)
+    // Initialize TikTok photo post (carousel) — forward per-post
+    // settings from the Review modal (privacy + disable_comment).
     const uploadResult = await initTikTokPhotoUpload(
       accessToken,
       imageUrls,
       title,
-      finalCaption
+      finalCaption,
+      { privacyLevel: privacy_level, disableComment: !!disable_comment },
     );
 
     console.log('[TikTokCarousel] Carousel published:', {
