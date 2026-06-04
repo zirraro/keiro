@@ -241,32 +241,35 @@ function buildOverlaySvg(
   style: OverlayStyle = 'white-shadow',
   accentColor: string = '#FF3B6E',
 ): string {
-  // Font choices per tone — kept to web-safe + free families likely
-  // present in the Sharp/librsvg font cache on the VPS.
+  // 2026-06-04 — Founder feedback : "texte n'etait pas beau du tout
+  // pas bien lisible tout tassé". Bumped base font size from 6% to
+  // 7.5% of the shorter side, line-height from 1.15 to 1.3 (less
+  // crowded), padding from 5% to 7% (more breathing room) and font
+  // weight up for non-elegant tones (900 instead of 800).
   const fontFamily = tone === 'elegant'
     ? 'Georgia, "Times New Roman", serif'
     : tone === 'playful'
       ? '"Comic Sans MS", "Marker Felt", sans-serif'
-      : 'Helvetica, Arial, sans-serif';
-  const weight = tone === 'elegant' ? 600 : 800;
+      : '"Helvetica Neue", Helvetica, Arial, sans-serif';
+  const weight = tone === 'elegant' ? 700 : 900;
 
   const isStrip = position === 'left-strip' || position === 'right-strip';
 
   // Auto-size: scale font with the shorter side. Strip layouts are
   // narrower so we shrink the font further; corners go a touch smaller.
-  const baseFontSize = Math.round(Math.min(width, height) * 0.06);
+  const baseFontSize = Math.round(Math.min(width, height) * 0.075);
   let fontSize = text.length > 30 ? Math.round(baseFontSize * 0.85) : baseFontSize;
-  if (isStrip) fontSize = Math.round(fontSize * 0.78);
+  if (isStrip) fontSize = Math.round(fontSize * 0.8);
   if (position === 'top-left' || position === 'bottom-right') fontSize = Math.round(fontSize * 0.92);
 
-  const padding = Math.round(width * 0.05);
-  const lineHeight = Math.round(fontSize * 1.15);
+  const padding = Math.round(width * 0.07);
+  const lineHeight = Math.round(fontSize * 1.3);
 
-  // Naive word-wrap. For strips we wrap MUCH harder (8-12 chars) so
-  // the column reads cleanly. Corners stay at normal width.
-  const stripWidth = Math.round(width * 0.28);
-  const usableWidth = isStrip ? stripWidth : width;
-  const maxCharsPerLine = Math.max(isStrip ? 8 : 14, Math.floor(usableWidth / (fontSize * 0.55)));
+  // Word-wrap calibré — Helvetica avg char width ≈ 0.5 × fontSize.
+  // Légèrement plus permissif pour éviter le wrap brutal qui tasse.
+  const stripWidth = Math.round(width * 0.32);
+  const usableWidth = isStrip ? stripWidth : Math.round(width * 0.86);
+  const maxCharsPerLine = Math.max(isStrip ? 8 : 16, Math.floor(usableWidth / (fontSize * 0.52)));
   const words = text.split(/\s+/);
   const lines: string[] = [];
   let cur = '';
