@@ -68,6 +68,12 @@ const GLOBAL_SCHEDULE = [
   { cron: '0 2 * * 0',    slot: 'weekly_enrichment', label: 'Weekly Agent Knowledge Refresh' },
   // Hourly check for Instagram token expiry → email client to reconnect
   { cron: '30 * * * *',   path: '/api/cron/process-ig-reauth', label: 'IG Reauth Email' },
+  // Daily 08:30 UTC — TikTok + LinkedIn token lifecycle. Only emails
+  // clients whose tokens really expire < 24h AND can't be refreshed
+  // (no refresh_token OR refresh has been failing). Skips refresh-
+  // recoverable tokens so we don't spam users every 24h after a fresh
+  // TikTok connect (TT access_token is 24h by design).
+  { cron: '30 8 * * *',   path: '/api/cron/token-lifecycle', label: 'TT+LI Token Lifecycle (proactive reauth)' },
   // Weekly — pick each client's best-engagement weekday for Noah's
   // brief based on Brevo open signals over the last 8 weeks.
   { cron: '0 3 * * 1',    path: '/api/cron/compute-best-brief-day', label: 'Best Brief Day Analysis (Monday)' },

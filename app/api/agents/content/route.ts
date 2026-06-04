@@ -1560,6 +1560,20 @@ async function publishToTikTok(
         console.log('[Content] TikTok token refreshed successfully');
       } catch (refreshError: any) {
         console.error('[Content] TikTok token refresh failed:', refreshError.message);
+        // 2026-06-04 — Log the failure so token-lifecycle cron can
+        // detect "refresh broken" and email the client to reconnect
+        // instead of silently retrying forever.
+        try {
+          await supabase.from('agent_logs').insert({
+            agent: 'content',
+            action: 'tiktok_token_refresh_failed',
+            status: 'error',
+            error_message: (refreshError.message || '').substring(0, 500),
+            user_id: (post as any).user_id || null,
+            data: { error: refreshError.message, refresh_token_present: !!refreshToken },
+            created_at: new Date().toISOString(),
+          });
+        } catch { /* logging best-effort */ }
         await releaseTtClaim();
         return { success: false, error: `Token refresh failed: ${refreshError.message}` };
       }

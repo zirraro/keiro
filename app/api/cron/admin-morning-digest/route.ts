@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
   // Load all paying clients and check each social network connection.
   const { data: clients } = await supabase
     .from('profiles')
-    .select('id, email, first_name, subscription_plan, instagram_username, instagram_business_account_id, instagram_igaa_token, facebook_page_access_token, tiktok_username, tiktok_access_token, tiktok_token_expiry, linkedin_username, linkedin_access_token, scheduling_paused_at, scheduling_paused_reason')
+    .select('id, email, first_name, subscription_plan, instagram_username, instagram_business_account_id, instagram_igaa_token, facebook_page_access_token, tiktok_username, tiktok_access_token, tiktok_refresh_token, tiktok_token_expiry, linkedin_username, linkedin_access_token, linkedin_token_expiry, scheduling_paused_at, scheduling_paused_reason')
     .not('subscription_plan', 'is', null)
     .neq('subscription_plan', 'free');
 
@@ -79,29 +79,51 @@ export async function GET(req: NextRequest) {
         detail: 'TikTok configuré mais déconnecté',
       });
     }
-    // TikTok token expiring soon (within 7 days)
+    // TikTok token lifecycle — TikTok access_tokens expire after 24h BY
+    // DESIGN, but the refresh_token (365j) auto-renews them. So we only
+    // alert when EITHER :
+    //   (a) refresh_token is missing → genuine reauth needed
+    //   (b) the LAST recorded refresh attempt failed (cf. agent_logs
+    //       'tiktok_token_refresh_failed' < 24h ago)
+    // Without this guard the digest pinged "token expiring" 24h after
+    // every reconnect — false positive flagged by founder 2026-06-04.
     if (c.tiktok_access_token && c.tiktok_token_expiry) {
       const expiryDate = new Date(c.tiktok_token_expiry);
-      const daysUntilExpiry = Math.floor((expiryDate.getTime() - Date.now()) / 86400000);
-      if (daysUntilExpiry <= 7 && daysUntilExpiry > 0) {
+      const hoursUntilExpiry = Math.floor((expiryDate.getTime() - Date.now()) / 3600000);
+      const hasRefreshToken = !!(c as any).tiktok_refresh_token;
+      // Quick check: did refresh fail recently?
+      let refreshIsBroken = false;
+      if (!hasRefreshToken) {
+        refreshIsBroken = true;
+      } else {
+        try {
+          const since24h = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+          const { data: failedRefresh } = await supabase
+            .from('agent_logs')
+            .select('id')
+            .eq('agent', 'content')
+            .eq('action', 'tiktok_token_refresh_failed')
+            .eq('user_id', c.id)
+            .gte('created_at', since24h)
+            .limit(1);
+          refreshIsBroken = !!(failedRefresh && failedRefresh.length > 0);
+        } catch { /* don't block — assume refresh OK on read error */ }
+      }
+      if (refreshIsBroken && hoursUntilExpiry <= 24) {
+        // True problem: refresh broken AND about to expire OR already expired
         tokenIssues.push({
           client_id: c.id,
           client_email: c.email || c.id.substring(0, 8),
           plan: c.subscription_plan,
-          issue_type: 'tt_token_expiring',
+          issue_type: hoursUntilExpiry <= 0 ? 'tt_disconnected' : 'tt_token_expiring',
           network: 'tiktok',
-          detail: `Token TikTok expire dans ${daysUntilExpiry} jour(s)`,
-        });
-      } else if (daysUntilExpiry <= 0) {
-        tokenIssues.push({
-          client_id: c.id,
-          client_email: c.email || c.id.substring(0, 8),
-          plan: c.subscription_plan,
-          issue_type: 'tt_disconnected',
-          network: 'tiktok',
-          detail: 'Token TikTok EXPIRÉ',
+          detail: hoursUntilExpiry <= 0
+            ? 'Token TikTok EXPIRÉ et refresh impossible — reconnexion client requise'
+            : `Token TikTok expire dans ${hoursUntilExpiry}h sans refresh possible — reconnexion client requise`,
         });
       }
+      // If refresh path is healthy, NO alert: the next publish call will
+      // auto-refresh transparently.
     }
     // LinkedIn — has username but no token
     if (c.linkedin_username && !c.linkedin_access_token) {
