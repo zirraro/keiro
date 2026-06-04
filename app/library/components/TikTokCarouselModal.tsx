@@ -777,26 +777,28 @@ export default function TikTokCarouselModal({ images, onClose }: TikTokCarouselM
           </div>
         </div>
 
-        {/* ════════ REVIEW SCREEN — Parité 5 steps Reels modal ════════ */}
+        {/* ════════ REVIEW POPUP — Parité 1:1 avec TikTokModal reels ════════
+            Founder ask: "je veux le meme affichage en mode pop up tiktok
+            tu vois exactement le meme quand on clique sur publier reel".
+            Donc fixed inset-0 overlay (PAS absolute dans la carte), même
+            taille max-w-lg, même z-index, et un preview qui se swipe sur
+            les N images du carrousel.
+         */}
         {mode === 'review' && (
-          <div className="absolute inset-0 bg-white z-50 flex flex-col">
-            {/* Header */}
-            <div className="sticky top-0 bg-white border-b px-6 py-4 flex-shrink-0">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <button onClick={() => setMode('compose')} disabled={publishing} className="w-8 h-8 rounded-full hover:bg-neutral-100 flex items-center justify-center">
-                    <svg className="w-4 h-4 text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/></svg>
-                  </button>
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+              {/* Header */}
+              <div className="sticky top-0 bg-white border-b px-6 py-4 rounded-t-2xl z-10">
+                <div className="flex items-center justify-between">
                   <h3 className="text-lg font-bold text-neutral-900">Publier sur TikTok</h3>
+                  <button onClick={() => setMode('compose')} disabled={publishing} className="w-8 h-8 rounded-full hover:bg-neutral-100 flex items-center justify-center">
+                    <span className="text-neutral-500 text-xl">&times;</span>
+                  </button>
                 </div>
-                <button onClick={onClose} disabled={publishing} className="w-8 h-8 rounded-full hover:bg-neutral-100 flex items-center justify-center">
-                  <span className="text-neutral-500 text-xl">&times;</span>
-                </button>
+                {creatorInfo?.username && (
+                  <p className="text-sm text-neutral-500 mt-1">@{creatorInfo.username}{creatorInfo.display_name ? ` (${creatorInfo.display_name})` : ''}</p>
+                )}
               </div>
-              {creatorInfo?.username && (
-                <p className="text-sm text-neutral-500 mt-1 ml-10">@{creatorInfo.username}{creatorInfo.display_name ? ` (${creatorInfo.display_name})` : ''}</p>
-              )}
-            </div>
 
             {loadingCreator ? (
               <div className="p-8 text-center flex-1 flex flex-col items-center justify-center">
@@ -828,39 +830,60 @@ export default function TikTokCarouselModal({ images, onClose }: TikTokCarouselM
                   )}
                 </div>
 
-                {/* Preview — TikTok phone frame avec swipe carousel */}
+                {/* Preview — TikTok phone frame avec carousel SWIPEABLE
+                    horizontal (snap-scroll natif). On voit défiler chaque
+                    image du carrousel exactement comme dans l'app TikTok. */}
                 <div>
                   <label className="block text-xs font-semibold text-neutral-700 mb-2">Aperçu de la publication</label>
                   <div className="flex justify-center">
                     <div className="relative w-[200px] bg-black rounded-[24px] overflow-hidden border-[3px] border-neutral-800 shadow-xl" style={{ aspectRatio: '9/16' }}>
                       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-4 bg-black rounded-b-xl z-20" />
-                      {selectedImages[previewIndex] && (
-                        <img src={selectedImages[previewIndex].image_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                      )}
-                      <div className="absolute inset-0 flex flex-col justify-end pointer-events-none">
+
+                      {/* Swipeable horizontal scroller — chaque image
+                          prend la largeur entière du téléphone, scroll-
+                          snap centre pour le feel TikTok carousel. */}
+                      <div
+                        className="absolute inset-0 flex overflow-x-auto snap-x snap-mandatory scroll-smooth"
+                        style={{ scrollbarWidth: 'none' as any }}
+                        onScroll={e => {
+                          const el = e.currentTarget as HTMLDivElement;
+                          const idx = Math.round(el.scrollLeft / el.clientWidth);
+                          if (idx !== previewIndex && idx >= 0 && idx < selectedImages.length) {
+                            setPreviewIndex(idx);
+                          }
+                        }}
+                      >
+                        {selectedImages.map((img, i) => (
+                          <div key={img.id || i} className="snap-center flex-shrink-0 w-full h-full relative">
+                            <img src={img.image_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Overlay caption + handle (au-dessus du scroller) */}
+                      <div className="absolute inset-0 flex flex-col justify-end pointer-events-none z-[5]">
                         <div className="p-3 pb-5 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
                           <p className="text-[10px] font-bold text-white mb-1 drop-shadow-sm">@{creatorInfo?.username || tiktokUsername || 'vous'}</p>
                           {caption && <p className="text-[10px] text-white/95 leading-snug mb-1.5 drop-shadow-sm" style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{caption}</p>}
                           {hashtags.length > 0 && <p className="text-[10px] text-white/85 font-medium drop-shadow-sm">{hashtags.slice(0, 4).map(h => h.startsWith('#') ? h : `#${h}`).join(' ')}</p>}
                         </div>
                       </div>
+
                       {selectedImages.length > 1 && (
                         <div className="absolute top-2 right-2 px-2 py-0.5 bg-black/60 backdrop-blur rounded-full text-white text-[10px] font-medium z-10">{previewIndex + 1}/{selectedImages.length}</div>
                       )}
-                      <div className="absolute bottom-0 left-0 right-0 h-4 bg-black flex items-center justify-center gap-6 z-10">
-                        {selectedImages.slice(0, Math.min(5, selectedImages.length)).map((_, i) => (
-                          <div key={i} className={`w-1 h-1 rounded-full ${i === Math.min(previewIndex, 4) ? 'bg-white' : 'bg-white/40'}`} />
-                        ))}
-                      </div>
+
+                      {/* Carrousel pagination dots (style TikTok) */}
+                      {selectedImages.length > 1 && (
+                        <div className="absolute bottom-2 left-0 right-0 flex items-center justify-center gap-1.5 z-10">
+                          {selectedImages.slice(0, Math.min(6, selectedImages.length)).map((_, i) => (
+                            <div key={i} className={`h-1 rounded-full transition-all ${i === Math.min(previewIndex, 5) ? 'bg-white w-4' : 'bg-white/40 w-1'}`} />
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
-                  {selectedImages.length > 1 && (
-                    <div className="flex items-center justify-center gap-1 mt-3 flex-wrap">
-                      {selectedImages.map((_, i) => (
-                        <button key={i} onClick={() => setPreviewIndex(i)} className={`h-2 rounded-full transition-all ${i === previewIndex ? 'bg-pink-500 w-6' : 'bg-neutral-300 hover:bg-neutral-400 w-2'}`} />
-                      ))}
-                    </div>
-                  )}
+                  <p className="text-[10px] text-center text-neutral-400 mt-2">← Swipe pour voir les {selectedImages.length} images →</p>
                 </div>
 
                 {/* ═══ STEP 1/5 — Creator info ═══ */}
@@ -948,28 +971,29 @@ export default function TikTokCarouselModal({ images, onClose }: TikTokCarouselM
               </div>
             )}
 
-            {/* Footer */}
-            <div className="sticky bottom-0 bg-white border-t px-6 py-4 flex flex-col sm:flex-row gap-3 flex-shrink-0">
-              <button onClick={() => setMode('compose')} disabled={publishing} className="flex-1 px-4 py-3 rounded-lg font-medium text-neutral-700 bg-neutral-100 hover:bg-neutral-200 transition-all text-sm">Retour</button>
-              <button
-                onClick={handlePublishCarousel}
-                disabled={publishing || creatorInfo?.can_post === false || !privacyLevel}
-                className={`flex-1 px-6 py-3 rounded-lg font-bold text-white transition-all flex items-center justify-center gap-2 ${
-                  publishing || creatorInfo?.can_post === false || !privacyLevel ? 'bg-neutral-400 cursor-not-allowed' : 'bg-gradient-to-r from-pink-500 to-orange-500 hover:from-pink-600 hover:to-orange-600 shadow-lg hover:shadow-xl'
-                }`}
-              >
-                {publishing ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Publication en cours…</span>
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/></svg>
-                    <span>Publier maintenant</span>
-                  </>
-                )}
-              </button>
+              {/* Footer — inside scrollable card (matches Reels modal) */}
+              <div className="px-6 py-4 border-t flex flex-col sm:flex-row gap-3">
+                <button onClick={() => setMode('compose')} disabled={publishing} className="flex-1 px-4 py-3 rounded-lg font-medium text-neutral-700 bg-neutral-100 hover:bg-neutral-200 transition-all text-sm">Retour</button>
+                <button
+                  onClick={handlePublishCarousel}
+                  disabled={publishing || creatorInfo?.can_post === false || !privacyLevel}
+                  className={`flex-1 px-6 py-3 rounded-lg font-bold text-white transition-all flex items-center justify-center gap-2 ${
+                    publishing || creatorInfo?.can_post === false || !privacyLevel ? 'bg-neutral-400 cursor-not-allowed' : 'bg-gradient-to-r from-pink-500 to-orange-500 hover:from-pink-600 hover:to-orange-600 shadow-lg hover:shadow-xl'
+                  }`}
+                >
+                  {publishing ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Publication en cours…</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/></svg>
+                      <span>Publier maintenant</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         )}

@@ -82,7 +82,11 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
   const [contentDisclosure, setContentDisclosure] = useState(false);
   const [brandOrganic, setBrandOrganic] = useState(false);
   const [brandContent, setBrandContent] = useState(false);
-  const [legalAccepted, setLegalAccepted] = useState(false);
+  // 2026-06-04 — Founder: "les donnees doivent etre pre remplies cochees".
+  // Music Usage Confirmation is pre-accepted because Lena only injects
+  // ElevenLabs-generated instrumentals (no copyrighted music). The
+  // checkbox stays visible for legal transparency but starts checked.
+  const [legalAccepted, setLegalAccepted] = useState(true);
   const [reviewVideoUrl, setReviewVideoUrl] = useState<string | null>(null);
 
   // États pour la prévisualisation vidéo
