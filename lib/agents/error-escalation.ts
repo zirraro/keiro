@@ -50,6 +50,55 @@ export async function escalateAgentError(report: ErrorReport): Promise<void> {
   const supabase = getSupabase();
   const now = new Date().toISOString();
 
+  // 2026-06-04 — Quick-win: spike-detection on IG errors. If we hit
+  // >5 Instagram publish errors in the last 24h, fire ONE admin
+  // notification (deduped to once/24h). Lets us catch Meta API
+  // degradations or token issues before they pile up. Founder ask:
+  // "ajouter alerte email si >5 erreurs Instagram/jour".
+  if (report.platform === 'instagram' || report.action === 'publish_instagram') {
+    try {
+      const since24h = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+      const { count } = await supabase
+        .from('agent_logs')
+        .select('id', { count: 'exact', head: true })
+        .eq('agent', 'content')
+        .like('action', 'error_escalated_publish_instagram%')
+        .gte('created_at', since24h);
+      if (count !== null && count >= 5) {
+        // Has an admin spike alert already fired in the last 24h?
+        const { data: alreadyAlerted } = await supabase
+          .from('agent_logs')
+          .select('id')
+          .eq('agent', 'ops')
+          .eq('action', 'ig_error_spike_admin_alert')
+          .gte('created_at', since24h)
+          .limit(1);
+        if (!alreadyAlerted || alreadyAlerted.length === 0) {
+          try {
+            const { sendEmailWithFallback } = await import('@/lib/email/send-with-fallback');
+            await sendEmailWithFallback({
+              to: ADMIN_EMAIL,
+              toName: 'Admin KeiroAI',
+              subject: `⚠️ ${count} erreurs Instagram en 24h — check Meta API`,
+              html: `<p>Le seuil de <strong>5 erreurs Instagram / 24h</strong> est dépassé (${count} actuellement).</p><p>Dernière erreur : ${report.error.substring(0, 300)}</p><p>Action recommandée : vérifier le statut de l'API Meta sur <a href="https://metastatus.com/">metastatus.com</a> et les tokens IG sur <a href="https://keiroai.com/admin/service-health">/admin/service-health</a>.</p>`,
+              textContent: `${count} erreurs Instagram en 24h. Dernière : ${report.error.substring(0, 200)}. Vérifier metastatus.com + /admin/service-health.`,
+              fromName: 'KeiroAI Ops',
+              fromEmail: 'contact@keiroai.com',
+              tags: ['ig_error_spike'],
+            });
+            await supabase.from('agent_logs').insert({
+              agent: 'ops',
+              action: 'ig_error_spike_admin_alert',
+              status: 'warning',
+              data: { ig_error_count_24h: count, latest_error: report.error.substring(0, 300) },
+              created_at: now,
+            });
+          } catch { /* alert send is best-effort */ }
+        }
+      }
+    } catch { /* spike detection failure shouldn't block escalation */ }
+  }
+
   try {
     // 1. Log dans agent_logs
     await supabase.from('agent_logs').insert({

@@ -243,12 +243,31 @@ export async function publishCarouselToInstagram(
 
     console.log('[publishCarouselToInstagram] Step 3: Publishing carousel...');
 
-    // 3) Publier le carrousel
-    const publish = await graphPOST<{ id: string }>(`/${igUserId}/media_publish`, pageAccessToken, {
-      creation_id: carouselContainer.id,
-    }, { igUserId });
-
-    console.log('[publishCarouselToInstagram] Carousel published:', publish.id);
+    // 3) Publier le carrousel avec retry-on-9007. Le polling FINISHED
+    // au-dessus devrait avoir résolu le problème "Media ID not
+    // available", mais on garde un retry défensif au cas où Meta
+    // renverrait l'erreur quand même (race condition CDN).
+    let publish: { id: string } | null = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        publish = await graphPOST<{ id: string }>(`/${igUserId}/media_publish`, pageAccessToken, {
+          creation_id: carouselContainer.id,
+        }, { igUserId });
+        console.log('[publishCarouselToInstagram] Carousel published:', publish.id);
+        break;
+      } catch (pubErr: any) {
+        const errMsg = pubErr.message || '';
+        const is9007 = errMsg.includes('Media ID is not available') || errMsg.includes('2207027');
+        if (is9007 && attempt < 3) {
+          const waitS = 10 + attempt * 5;
+          console.log(`[publishCarouselToInstagram] 9007 on attempt ${attempt}/3 — waiting ${waitS}s + retry...`);
+          await new Promise(resolve => setTimeout(resolve, waitS * 1000));
+        } else {
+          throw pubErr;
+        }
+      }
+    }
+    if (!publish) throw new Error('Failed to publish carousel after 3 attempts');
 
     // 4) Récupérer le permalink
     try {
