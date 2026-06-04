@@ -2281,13 +2281,25 @@ function JadeCampaignActions({ p }: { p: any }) {
           { value: 'pro', label: 'Pro — courtois et structuré' },
           { value: 'playful', label: 'Playful — fun, emoji friendly' },
         ]},
+        // 2026-06-04 — Founder ask : "quand on clique sur prepare dm
+        // met la fonction avec image". Toggle qui demande à Jade de
+        // générer un visuel personnalisé pour CHAQUE prospect (pas
+        // juste les top 10 du batch auto).
+        { key: 'with_image', label: '📸 Joindre un visuel personnalisé par prospect (recommandé)', type: 'toggle', default: true, help: 'Jade scrape le profil Insta + génère une image documentaire matchant le secteur du prospect. Coût : +€0.03 par visuel.' },
       ],
       run: async (params) => {
-        const r = await fetch(`/api/agents/dm-instagram?slot=${params.slot}&count=${params.count}&tone=${params.tone}`, { method: 'POST', credentials: 'include' });
+        const qs = new URLSearchParams({
+          slot: String(params.slot),
+          count: String(params.count),
+          tone: String(params.tone),
+          ...(params.with_image ? { with_image: '1' } : {}),
+        });
+        const r = await fetch(`/api/agents/dm-instagram?${qs.toString()}`, { method: 'POST', credentials: 'include' });
         const j = await r.json().catch(() => ({}));
         if (!r.ok) return { kind: 'err' as const, text: j.error || 'Préparation échouée' };
         const prepared = j?.prepared ?? j?.queued ?? params.count;
-        return { kind: 'ok' as const, text: `${prepared} DMs préparés en file. Va les relire dans l'onglet DMs.` };
+        const imgPart = params.with_image ? ' (avec visuel personnalisé)' : '';
+        return { kind: 'ok' as const, text: `${prepared} DMs préparés${imgPart}. Va les relire dans l'onglet DMs.` };
       },
     },
     {

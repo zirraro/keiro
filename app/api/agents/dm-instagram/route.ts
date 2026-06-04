@@ -219,8 +219,11 @@ export async function POST(request: NextRequest) {
   const url = new URL(request.url);
   if (url.searchParams.get('platform') === 'tiktok') platform = 'tiktok';
   if (!orgId) orgId = url.searchParams.get('org_id') || null;
+  // 2026-06-04 — with_image=1 boost: visual cap monte de 10 → 30 pour
+  // que CHAQUE DM préparé inclue un visuel personnalisé.
+  const withImage = url.searchParams.get('with_image') === '1';
 
-  return runDMPreparation(platform, orgId);
+  return runDMPreparation(platform, orgId, null, withImage);
 }
 
 /**
@@ -248,7 +251,7 @@ function verifyDMProspectData(prospect: any, platform: 'instagram' | 'tiktok' = 
   return { valid: issues.length === 0, issues };
 }
 
-async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram', orgId: string | null = null, clientUserId: string | null = null): Promise<NextResponse> {
+async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram', orgId: string | null = null, clientUserId: string | null = null, withImageBoost: boolean = false): Promise<NextResponse> {
   const supabase = getSupabaseAdmin();
   const now = new Date().toISOString();
   const isTikTok = platform === 'tiktok';
@@ -395,8 +398,12 @@ async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram', 
     dmResults.push(...batchDms);
   }
 
-  // Generate personalized visuals for top-priority prospects (in parallel, max 10)
-  const topProspects = dmResults.filter(r => r.dm).slice(0, MAX_VISUALS_PER_RUN);
+  // 2026-06-04 — Founder ask : quand client clique "Prepare DM avec
+  // image", générer un visuel personnalisé pour CHAQUE prospect (pas
+  // seulement top 10). Le cap monte à 30 dans ce cas. Sinon on garde
+  // les 10 top prospects comme avant (cron auto).
+  const visualCap = withImageBoost ? 30 : MAX_VISUALS_PER_RUN;
+  const topProspects = dmResults.filter(r => r.dm).slice(0, visualCap);
   const visualUrls = new Map<string, string>();
 
   if (topProspects.length > 0) {
