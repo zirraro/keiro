@@ -45,38 +45,27 @@ export async function GET(request: NextRequest) {
     }
     const sourceBuffer = Buffer.from(await fetchRes.arrayBuffer());
 
-    // Probe source metadata
+    // Probe source metadata (for debug headers only)
     const meta = await sharp(sourceBuffer).metadata();
     const srcW = meta.width || 0;
     const srcH = meta.height || 0;
-    const srcRatio = srcW > 0 ? srcW / srcH : 1;
 
-    // Decide TikTok-safe target. TikTok accepts 1:1 to 9:16 (= ratio
-    // 1.0 down to 0.5625). If source ratio is between 1.0 and 0.5625,
-    // keep it but cap on the long edge. Else crop to 1:1.
-    let targetW: number;
-    let targetH: number;
-    if (srcRatio >= 0.5625 && srcRatio <= 1.0) {
-      // Already in vertical range — scale longest edge to 1440
-      const maxEdge = 1440;
-      if (srcH >= srcW) {
-        targetH = Math.min(maxEdge, srcH);
-        targetW = Math.round(targetH * srcRatio);
-      } else {
-        targetW = Math.min(maxEdge, srcW);
-        targetH = Math.round(targetW / srcRatio);
-      }
-    } else {
-      // Source is landscape or too narrow — force 1:1 crop
-      targetW = 1080;
-      targetH = 1080;
-    }
+    // 2026-06-04 — Force fixed 1440×1440 square on EVERY image.
+    // TikTok requires all photos in a carousel to share the same
+    // aspect ratio. The previous logic kept the source ratio when
+    // valid, which meant 6 different source images = 6 different
+    // ratios = TikTok picture_size_check_failed on the whole carousel.
+    // Square (1:1) is the safest choice: well inside the 360-4000 px
+    // window, accepted as both standalone and carousel, no orientation
+    // ambiguity.
+    const targetW = 1440;
+    const targetH = 1440;
 
     const jpegBuffer = await sharp(sourceBuffer)
       .rotate() // auto-orient using EXIF
       .resize(targetW, targetH, { fit: 'cover', position: 'centre' })
-      .flatten({ background: { r: 255, g: 255, b: 255 } }) // strip alpha
-      .jpeg({ quality: 86, progressive: false, mozjpeg: true })
+      .flatten({ background: { r: 255, g: 255, b: 255 } }) // strip alpha → white
+      .jpeg({ quality: 86, progressive: false, mozjpeg: true, chromaSubsampling: '4:2:0' })
       .toBuffer();
 
     return new NextResponse(new Uint8Array(jpegBuffer), {
