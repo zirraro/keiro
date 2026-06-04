@@ -2180,8 +2180,26 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ ok: true, publish_mode: mode });
       }
 
-      case 'generate_weekly':
-        return generateWeeklyPlan(supabase, body.platform, body.draftOnly, orgId, userId);
+      case 'generate_weekly': {
+        // 2026-06-04 — Founder ask : "on choisi 7 jours 14 et 21 et 30
+        // engros 1 semaine 2 smeaines 3 semaines et le mois entier".
+        // weeks param controls how many weekly batches we generate
+        // back-to-back, each offset by 7 days from the previous one.
+        const weeksRaw = parseInt(String(body.weeks || body.weeksAhead || '1'), 10);
+        const weeks = Math.max(1, Math.min(4, isNaN(weeksRaw) ? 1 : weeksRaw));
+        let totalInserted = 0;
+        const results: any[] = [];
+        for (let w = 0; w < weeks; w++) {
+          const r = await generateWeeklyPlan(supabase, body.platform, body.draftOnly, orgId, userId, w * 7);
+          // r is NextResponse — read its JSON to aggregate counts
+          try {
+            const j = await r.json();
+            if (j.inserted) totalInserted += j.inserted;
+            results.push({ week_offset_days: w * 7, ...j });
+          } catch {}
+        }
+        return NextResponse.json({ ok: true, weeks, inserted: totalInserted, results });
+      }
 
       case 'generate_post': {
         const todayStr = new Date().toISOString().split('T')[0];
@@ -3409,7 +3427,7 @@ Retourne UNIQUEMENT le JSON.`,
 // ──────────────────────────────────────
 // Generate weekly content plan
 // ──────────────────────────────────────
-async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftOnly?: boolean, orgId: string | null = null, userId: string | null = null) {
+async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftOnly?: boolean, orgId: string | null = null, userId: string | null = null, dayOffset: number = 0) {
   const now = new Date();
   const nowISO = now.toISOString();
 
@@ -3423,9 +3441,10 @@ async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftO
 
   const existingPlanned = recentPosts?.map((p: any) => `${p.scheduled_date} ${p.platform} ${p.pillar}: ${p.hook || p.caption?.substring(0, 50)}`).join('\n') || '';
 
-  // Get already planned for this week
+  // 2026-06-04 — Get target week start, shifted by dayOffset so the
+  // multi-week loop generates week N+1, N+2 etc. without colliding.
   const mondayDate = new Date(now);
-  mondayDate.setDate(mondayDate.getDate() - mondayDate.getDay() + 1);
+  mondayDate.setDate(mondayDate.getDate() - mondayDate.getDay() + 1 + dayOffset);
   const sundayDate = new Date(mondayDate);
   sundayDate.setDate(sundayDate.getDate() + 6);
 
@@ -3436,7 +3455,7 @@ async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftO
     .lte('scheduled_date', sundayDate.toISOString().split('T')[0]);
 
   if (thisWeek && thisWeek.length >= 7) {
-    return NextResponse.json({ ok: true, message: 'Weekly plan already exists', postsPlanned: thisWeek.length });
+    return NextResponse.json({ ok: true, message: `Week starting ${mondayDate.toISOString().split('T')[0]} already planned`, postsPlanned: thisWeek.length, inserted: 0 });
   }
 
   const prompt = getWeeklyPlanPrompt({ existingPlanned });

@@ -743,21 +743,24 @@ export function ContentPanel({ data, agentName, gradientFrom, gradientTo }: Pane
   // UTC le fait déjà auto, mais le bouton manuel laisse au client le
   // contrôle (regen quand il veut).
   const [planningWeekly, setPlanningWeekly] = useState(false);
+  const [planningWeeks, setPlanningWeeks] = useState<number | null>(null); // which option is in flight
   const [weeklyToast, setWeeklyToast] = useState<{ kind: 'ok' | 'err'; msg: string } | null>(null);
-  const planWeek = async () => {
+  const planWeek = async (weeks: 1 | 2 | 3 | 4) => {
     if (planningWeekly) return;
-    if (!window.confirm('Léna va planifier 7 jours de contenu (IG + TikTok + LinkedIn selon ce qui est connecté). Tu pourras modifier ou supprimer chaque post avant sa date de publication. OK ?')) return;
+    const daysLabel = weeks === 1 ? '7 jours' : weeks === 2 ? '14 jours' : weeks === 3 ? '21 jours' : '30 jours (1 mois)';
+    if (!window.confirm(`Léna va planifier ${daysLabel} de contenu (IG + TikTok + LinkedIn selon ce qui est connecté).\n\nTu pourras modifier ou supprimer chaque post avant sa date de publication.\n\nDémarrer la génération ?`)) return;
     setPlanningWeekly(true);
+    setPlanningWeeks(weeks);
     try {
       const res = await fetch('/api/agents/content', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'generate_weekly' }),
+        body: JSON.stringify({ action: 'generate_weekly', weeks }),
       });
       const d = await res.json();
       if (d.ok) {
-        setWeeklyToast({ kind: 'ok', msg: `✓ ${d.inserted || 0} posts planifiés sur 7 jours. Tu peux les voir / éditer dans Planning.` });
+        setWeeklyToast({ kind: 'ok', msg: `✓ ${d.inserted || 0} posts planifiés sur ${daysLabel}. Édite ou supprime chaque post avant sa date dans le Planning.` });
       } else {
         setWeeklyToast({ kind: 'err', msg: `Erreur : ${d.error || 'inconnu'}` });
       }
@@ -765,7 +768,8 @@ export function ContentPanel({ data, agentName, gradientFrom, gradientTo }: Pane
       setWeeklyToast({ kind: 'err', msg: e?.message || 'Plan failed' });
     } finally {
       setPlanningWeekly(false);
-      setTimeout(() => setWeeklyToast(null), 6000);
+      setPlanningWeeks(null);
+      setTimeout(() => setWeeklyToast(null), 8000);
     }
   };
 
@@ -775,21 +779,50 @@ export function ContentPanel({ data, agentName, gradientFrom, gradientTo }: Pane
           client so they understand: posts are generated a week ahead,
           they can edit/delete each one BEFORE its scheduled time, and
           if auto-publish is ON they ship without further validation. */}
-      <div className="rounded-xl border border-purple-500/30 bg-gradient-to-r from-purple-900/20 to-pink-900/20 p-3 mb-3 flex items-center gap-3">
-        <div className="text-2xl">{'\u{1F4C5}'}</div>
-        <div className="flex-1 min-w-0">
-          <div className="text-sm font-bold text-white">Planning hebdo</div>
-          <div className="text-[11px] text-white/50">7 jours générés à l&apos;avance — modifie / supprime chaque post avant sa date</div>
+      <div className="rounded-xl border border-purple-500/30 bg-gradient-to-r from-purple-900/20 to-pink-900/20 p-3 mb-3">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="text-2xl">{'\u{1F4C5}'}</div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-bold text-white">Planning à l&apos;avance</div>
+            <div className="text-[11px] text-white/50">Génère 1 à 4 semaines de posts — modifie/supprime chaque post avant sa date</div>
+          </div>
         </div>
-        <button
-          onClick={planWeek}
-          disabled={planningWeekly}
-          className={`px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
-            planningWeekly ? 'bg-white/10 text-white/40 cursor-wait' : 'bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:scale-105 active:scale-95'
-          }`}
-        >
-          {planningWeekly ? '⏳ Génération…' : '✨ Plan ma semaine'}
-        </button>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {([
+            { weeks: 1, label: '7 jours', sub: '1 semaine' },
+            { weeks: 2, label: '14 jours', sub: '2 semaines' },
+            { weeks: 3, label: '21 jours', sub: '3 semaines' },
+            { weeks: 4, label: '30 jours', sub: '1 mois' },
+          ] as const).map(opt => {
+            const isLoading = planningWeeks === opt.weeks;
+            return (
+              <button
+                key={opt.weeks}
+                onClick={() => planWeek(opt.weeks)}
+                disabled={planningWeekly}
+                className={`px-2 py-2.5 rounded-lg text-xs font-bold transition-all border ${
+                  isLoading
+                    ? 'bg-purple-600 text-white border-purple-400 cursor-wait'
+                    : planningWeekly
+                      ? 'bg-white/5 text-white/30 border-white/10 cursor-not-allowed'
+                      : 'bg-white/10 text-white border-purple-500/30 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:border-transparent hover:scale-105 active:scale-95'
+                }`}
+              >
+                {isLoading ? (
+                  <>
+                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto mb-1" />
+                    <div className="text-[9px] text-white/70">en cours…</div>
+                  </>
+                ) : (
+                  <>
+                    <div>✨ {opt.label}</div>
+                    <div className="text-[9px] text-white/40 mt-0.5">{opt.sub}</div>
+                  </>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
       {weeklyToast && (
         <div className={`mb-3 px-3 py-2 rounded-lg text-xs ${weeklyToast.kind === 'ok' ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300' : 'bg-rose-500/10 border border-rose-500/30 text-rose-300'}`}>
