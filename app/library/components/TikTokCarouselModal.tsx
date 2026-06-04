@@ -777,110 +777,185 @@ export default function TikTokCarouselModal({ images, onClose }: TikTokCarouselM
           </div>
         </div>
 
-        {/* ════════ REVIEW SCREEN ════════ */}
+        {/* ════════ REVIEW SCREEN — Parité 5 steps Reels modal ════════ */}
         {mode === 'review' && (
           <div className="absolute inset-0 bg-white z-50 flex flex-col">
-            {/* Review header */}
-            <div className="flex items-center justify-between p-4 sm:p-6 border-b bg-gradient-to-r from-pink-50 to-orange-50">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <button onClick={() => setMode('compose')} disabled={publishing} className="p-2 rounded-full hover:bg-white/50 transition-colors" aria-label="Retour">
-                  <svg className="w-5 h-5 text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/></svg>
-                </button>
-                <div>
-                  <h2 className="text-lg sm:text-2xl font-bold text-neutral-900">Publier sur TikTok</h2>
-                  <p className="text-xs text-neutral-600">{creatorInfo?.username ? `@${creatorInfo.username}` : tiktokUsername ? `@${tiktokUsername}` : 'Compte connecté'}</p>
+            {/* Header */}
+            <div className="sticky top-0 bg-white border-b px-6 py-4 flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setMode('compose')} disabled={publishing} className="w-8 h-8 rounded-full hover:bg-neutral-100 flex items-center justify-center">
+                    <svg className="w-4 h-4 text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/></svg>
+                  </button>
+                  <h3 className="text-lg font-bold text-neutral-900">Publier sur TikTok</h3>
                 </div>
+                <button onClick={onClose} disabled={publishing} className="w-8 h-8 rounded-full hover:bg-neutral-100 flex items-center justify-center">
+                  <span className="text-neutral-500 text-xl">&times;</span>
+                </button>
               </div>
-              <button onClick={onClose} disabled={publishing} className="p-2 rounded-full hover:bg-white/50 transition-colors" aria-label="Fermer">
-                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
-              </button>
+              {creatorInfo?.username && (
+                <p className="text-sm text-neutral-500 mt-1 ml-10">@{creatorInfo.username}{creatorInfo.display_name ? ` (${creatorInfo.display_name})` : ''}</p>
+              )}
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 max-w-3xl mx-auto w-full">
-              {/* STEP 1 - PUBLISHING ACCOUNT */}
-              <div>
-                <div className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">STEP 1/3 — PUBLISHING ACCOUNT</div>
-                <div className="rounded-xl border border-neutral-200 bg-white p-3 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-orange-400 flex items-center justify-center text-white font-bold">
-                    {((creatorInfo?.display_name || creatorInfo?.username || tiktokUsername || '?').toString())[0]?.toUpperCase()}
+            {loadingCreator ? (
+              <div className="p-8 text-center flex-1 flex flex-col items-center justify-center">
+                <div className="w-8 h-8 border-4 border-[#0c1a3a] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                <p className="text-sm text-neutral-500">Chargement des paramètres TikTok…</p>
+              </div>
+            ) : (
+              <div className="flex-1 overflow-y-auto p-6 space-y-5 max-w-2xl mx-auto w-full">
+
+                {/* ═══ STEP 1/5 — Publishing account ═══ */}
+                <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wide">Étape 1/5 — Compte de publication</div>
+                <div className="bg-gradient-to-r from-pink-50 to-cyan-50 rounded-xl p-4 border border-pink-200/50">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-400 to-pink-500 flex items-center justify-center text-white font-bold text-sm">
+                      {(creatorInfo?.display_name || creatorInfo?.username || tiktokUsername || '?')[0]?.toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-neutral-900">{creatorInfo?.display_name || creatorInfo?.username || tiktokUsername || 'Compte TikTok'}</p>
+                      {(creatorInfo?.username || tiktokUsername) && <p className="text-xs text-neutral-500">@{creatorInfo?.username || tiktokUsername}</p>}
+                    </div>
+                    {creatorInfo?.can_post === false ? (
+                      <span className="ml-auto text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full font-medium">Publication indisponible</span>
+                    ) : (
+                      <span className="ml-auto text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">Prêt à publier</span>
+                    )}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-sm text-neutral-900 truncate">{creatorInfo?.display_name || creatorInfo?.username || tiktokUsername || 'TikTok'}</div>
-                    {creatorInfo?.username && <div className="text-xs text-neutral-500 truncate">@{creatorInfo.username}</div>}
-                  </div>
-                  {creatorInfo?.can_post === false ? (
-                    <span className="text-xs px-2 py-1 rounded-full bg-rose-100 text-rose-700 font-medium">⚠ Posting blocked by TikTok</span>
-                  ) : (
-                    <span className="text-xs px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 font-medium">Ready to publish</span>
+                  {creatorInfo?.can_post === false && (
+                    <p className="text-xs text-red-600 mt-2">TikTok indique que la publication n&apos;est pas disponible pour ce compte actuellement.</p>
                   )}
                 </div>
-              </div>
 
-              {/* STEP 2 — PREVIEW */}
-              <div>
-                <div className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">STEP 2/3 — PREVIEW ({selectedImages.length} images)</div>
-                <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3">
-                  <div className="flex items-center justify-center">
-                    <div className="relative w-56 sm:w-64 aspect-[9/16] rounded-xl overflow-hidden bg-black shadow-lg">
+                {/* Preview — TikTok phone frame avec swipe carousel */}
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-700 mb-2">Aperçu de la publication</label>
+                  <div className="flex justify-center">
+                    <div className="relative w-[200px] bg-black rounded-[24px] overflow-hidden border-[3px] border-neutral-800 shadow-xl" style={{ aspectRatio: '9/16' }}>
+                      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-4 bg-black rounded-b-xl z-20" />
                       {selectedImages[previewIndex] && (
                         <img src={selectedImages[previewIndex].image_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
                       )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-                      <div className="absolute bottom-3 left-3 right-3 text-white text-[10px] leading-tight drop-shadow-lg">
-                        <div className="font-bold mb-1">@{creatorInfo?.username || tiktokUsername || 'vous'}</div>
-                        <div className="line-clamp-3">{caption}</div>
-                        {hashtags.length > 0 && <div className="text-blue-200 mt-1">{hashtags.slice(0, 4).map(h => h.startsWith('#') ? h : `#${h}`).join(' ')}</div>}
+                      <div className="absolute inset-0 flex flex-col justify-end pointer-events-none">
+                        <div className="p-3 pb-5 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
+                          <p className="text-[10px] font-bold text-white mb-1 drop-shadow-sm">@{creatorInfo?.username || tiktokUsername || 'vous'}</p>
+                          {caption && <p className="text-[10px] text-white/95 leading-snug mb-1.5 drop-shadow-sm" style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{caption}</p>}
+                          {hashtags.length > 0 && <p className="text-[10px] text-white/85 font-medium drop-shadow-sm">{hashtags.slice(0, 4).map(h => h.startsWith('#') ? h : `#${h}`).join(' ')}</p>}
+                        </div>
                       </div>
                       {selectedImages.length > 1 && (
-                        <div className="absolute top-2 right-2 px-2 py-0.5 bg-black/60 backdrop-blur rounded-full text-white text-[10px] font-medium">
-                          {previewIndex + 1}/{selectedImages.length}
-                        </div>
+                        <div className="absolute top-2 right-2 px-2 py-0.5 bg-black/60 backdrop-blur rounded-full text-white text-[10px] font-medium z-10">{previewIndex + 1}/{selectedImages.length}</div>
                       )}
+                      <div className="absolute bottom-0 left-0 right-0 h-4 bg-black flex items-center justify-center gap-6 z-10">
+                        {selectedImages.slice(0, Math.min(5, selectedImages.length)).map((_, i) => (
+                          <div key={i} className={`w-1 h-1 rounded-full ${i === Math.min(previewIndex, 4) ? 'bg-white' : 'bg-white/40'}`} />
+                        ))}
+                      </div>
                     </div>
                   </div>
                   {selectedImages.length > 1 && (
-                    <div className="flex items-center justify-center gap-1 mt-3">
+                    <div className="flex items-center justify-center gap-1 mt-3 flex-wrap">
                       {selectedImages.map((_, i) => (
-                        <button key={i} onClick={() => setPreviewIndex(i)} className={`w-2 h-2 rounded-full transition-all ${i === previewIndex ? 'bg-pink-500 w-6' : 'bg-neutral-300 hover:bg-neutral-400'}`} />
+                        <button key={i} onClick={() => setPreviewIndex(i)} className={`h-2 rounded-full transition-all ${i === previewIndex ? 'bg-pink-500 w-6' : 'bg-neutral-300 hover:bg-neutral-400 w-2'}`} />
                       ))}
                     </div>
                   )}
                 </div>
-              </div>
 
-              {/* STEP 3 — SETTINGS */}
-              <div>
-                <div className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">STEP 3/3 — RÉGLAGES</div>
-                <div className="space-y-3 rounded-xl border border-neutral-200 bg-white p-3">
-                  <div>
-                    <label className="block text-xs font-medium text-neutral-700 mb-1.5">Qui peut voir ce post ?</label>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                      {(creatorInfo?.privacy_level_options && creatorInfo.privacy_level_options.length > 0 ? creatorInfo.privacy_level_options : ['PUBLIC_TO_EVERYONE', 'MUTUAL_FOLLOW_FRIENDS', 'SELF_ONLY']).map((opt) => {
-                        const label = opt === 'PUBLIC_TO_EVERYONE' ? '🌍 Public' : opt === 'MUTUAL_FOLLOW_FRIENDS' ? '👥 Friends' : opt === 'FOLLOWER_OF_CREATOR' ? '👤 Followers' : '🔒 Privé';
-                        const isActive = privacyLevel === opt;
-                        return (
-                          <button key={opt} onClick={() => setPrivacyLevel(opt)} className={`px-3 py-2 rounded-lg text-sm font-medium border transition-all ${isActive ? 'bg-pink-500 text-white border-pink-500' : 'bg-white text-neutral-700 border-neutral-200 hover:border-pink-300'}`}>{label}</button>
-                        );
-                      })}
+                {/* ═══ STEP 1/5 — Creator info ═══ */}
+                <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wide">Étape 1/5 — Compte créateur</div>
+                <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2.5 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-black to-neutral-700 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                    {(creatorInfo?.username || creatorInfo?.display_name || tiktokUsername || '?').toString().slice(0, 1).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-bold text-neutral-900 truncate">
+                      Publication en tant que <span className="text-black">@{creatorInfo?.username || tiktokUsername || '—'}</span>
+                    </div>
+                    <div className="text-[10px] text-neutral-600 mt-0.5">
+                      Carrousel : <strong>{selectedImages.length}/35 images</strong>
+                      <span className="ml-2 text-neutral-400">·</span>
+                      <span className="ml-2">via <code className="text-[10px] bg-white border border-neutral-200 px-1 rounded">/v2/post/publish/creator_info/query/</code></span>
                     </div>
                   </div>
-                  <label className={`flex items-center gap-3 p-2 rounded-lg border border-neutral-200 ${creatorInfo?.comment_disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-neutral-50'}`}>
-                    <input type="checkbox" checked={allowComments} onChange={e => setAllowComments(e.target.checked)} disabled={creatorInfo?.comment_disabled} className="w-4 h-4 rounded text-pink-500" />
-                    <span className="text-sm text-neutral-700 flex-1">Autoriser les commentaires</span>
-                    {creatorInfo?.comment_disabled && <span className="text-xs text-neutral-400">désactivé par TikTok</span>}
-                  </label>
                 </div>
-              </div>
-            </div>
 
-            {/* Review footer — actions */}
-            <div className="border-t bg-white p-4 sm:p-6 flex flex-col sm:flex-row gap-3">
+                {/* ═══ STEP 2/5 — Privacy ═══ */}
+                <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wide">Étape 2/5 — Confidentialité</div>
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-700 mb-2">Qui peut voir ce post <span className="text-red-500">*</span></label>
+                  <div className="space-y-2">
+                    {(creatorInfo?.privacy_level_options && creatorInfo.privacy_level_options.length > 0 ? creatorInfo.privacy_level_options : ['PUBLIC_TO_EVERYONE', 'MUTUAL_FOLLOW_FRIENDS', 'SELF_ONLY']).map((option) => (
+                      <label
+                        key={option}
+                        className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition ${
+                          privacyLevel === option ? 'border-[#0c1a3a] bg-[#0c1a3a]/5' : 'border-neutral-200 hover:border-neutral-300'
+                        }`}
+                      >
+                        <input type="radio" name="privacyLevel" value={option} checked={privacyLevel === option} onChange={() => setPrivacyLevel(option)} className="w-4 h-4 text-[#0c1a3a]" />
+                        <div>
+                          <p className="text-sm font-medium text-neutral-900">
+                            {option === 'PUBLIC_TO_EVERYONE' ? 'Public' : option === 'MUTUAL_FOLLOW_FRIENDS' ? 'Amis' : option === 'FOLLOWER_OF_CREATOR' ? 'Abonnés' : option === 'SELF_ONLY' ? 'Moi uniquement' : option}
+                          </p>
+                          <p className="text-xs text-neutral-500">
+                            {option === 'PUBLIC_TO_EVERYONE' ? 'Tout le monde peut voir' : option === 'MUTUAL_FOLLOW_FRIENDS' ? 'Seuls vos amis mutuels' : option === 'FOLLOWER_OF_CREATOR' ? 'Vos abonnés uniquement' : option === 'SELF_ONLY' ? 'Visible uniquement par vous' : ''}
+                          </p>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* ═══ STEP 3/5 — Allowed interactions ═══ */}
+                <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wide">Étape 3/5 — Interactions autorisées</div>
+                <div>
+                  <p className="text-xs text-neutral-400 mb-2">Cochez les interactions que vous souhaitez autoriser sur cette publication</p>
+                  <div className="space-y-2">
+                    <label className={`flex items-center gap-3 p-2.5 rounded-lg border border-neutral-200 ${creatorInfo?.comment_disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-neutral-50'}`}>
+                      <input type="checkbox" checked={allowComments} onChange={(e) => setAllowComments(e.target.checked)} disabled={creatorInfo?.comment_disabled} className="w-4 h-4 rounded text-[#0c1a3a]" />
+                      <span className={`text-sm ${creatorInfo?.comment_disabled ? 'text-neutral-400' : 'text-neutral-700'}`}>Allow Comment</span>
+                      {creatorInfo?.comment_disabled && <span className="text-xs text-neutral-400 ml-auto">désactivé par TikTok</span>}
+                    </label>
+                    {/* Carousel TikTok n'expose pas Duet/Stitch mais on garde l'UI parité au cas où */}
+                    <label className={`flex items-center gap-3 p-2.5 rounded-lg border border-neutral-200 ${creatorInfo?.duet_disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-neutral-50'}`}>
+                      <input type="checkbox" checked={allowDuet} onChange={(e) => setAllowDuet(e.target.checked)} disabled={creatorInfo?.duet_disabled} className="w-4 h-4 rounded text-[#0c1a3a]" />
+                      <span className={`text-sm ${creatorInfo?.duet_disabled ? 'text-neutral-400' : 'text-neutral-700'}`}>Allow Duet</span>
+                    </label>
+                    <label className={`flex items-center gap-3 p-2.5 rounded-lg border border-neutral-200 ${creatorInfo?.stitch_disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-neutral-50'}`}>
+                      <input type="checkbox" checked={allowStitch} onChange={(e) => setAllowStitch(e.target.checked)} disabled={creatorInfo?.stitch_disabled} className="w-4 h-4 rounded text-[#0c1a3a]" />
+                      <span className={`text-sm ${creatorInfo?.stitch_disabled ? 'text-neutral-400' : 'text-neutral-700'}`}>Allow Stitch</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* ═══ STEP 4/5 — Branded content (info only for carousel) ═══ */}
+                <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wide">Étape 4/5 — Contenu sponsorisé</div>
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                  Pour les carrousels photos, l&apos;option <strong>contenu de marque</strong> n&apos;est pas exposée par TikTok via API.
+                  Si tu publies du contenu sponsorisé, ajoute le disclaimer directement dans la caption (ex: <code className="bg-white px-1 rounded">#ad</code>).
+                </div>
+
+                {/* ═══ STEP 5/5 — Consent ═══ */}
+                <div className="text-[11px] font-bold text-neutral-500 uppercase tracking-wide">Étape 5/5 — Confirmation</div>
+                <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3 text-xs text-neutral-700">
+                  En publiant, tu confirmes que ton contenu respecte les{' '}
+                  <a href="https://www.tiktok.com/community-guidelines" target="_blank" rel="noopener noreferrer" className="text-[#0c1a3a] underline font-medium">Community Guidelines TikTok</a>
+                  {' '}et la{' '}
+                  <a href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en" target="_blank" rel="noopener noreferrer" className="text-[#0c1a3a] underline font-medium">Music Usage Confirmation</a>.
+                </div>
+
+              </div>
+            )}
+
+            {/* Footer */}
+            <div className="sticky bottom-0 bg-white border-t px-6 py-4 flex flex-col sm:flex-row gap-3 flex-shrink-0">
               <button onClick={() => setMode('compose')} disabled={publishing} className="flex-1 px-4 py-3 rounded-lg font-medium text-neutral-700 bg-neutral-100 hover:bg-neutral-200 transition-all text-sm">Retour</button>
               <button
                 onClick={handlePublishCarousel}
-                disabled={publishing || creatorInfo?.can_post === false}
+                disabled={publishing || creatorInfo?.can_post === false || !privacyLevel}
                 className={`flex-1 px-6 py-3 rounded-lg font-bold text-white transition-all flex items-center justify-center gap-2 ${
-                  publishing || creatorInfo?.can_post === false ? 'bg-neutral-400 cursor-not-allowed' : 'bg-gradient-to-r from-pink-500 to-orange-500 hover:from-pink-600 hover:to-orange-600 shadow-lg hover:shadow-xl'
+                  publishing || creatorInfo?.can_post === false || !privacyLevel ? 'bg-neutral-400 cursor-not-allowed' : 'bg-gradient-to-r from-pink-500 to-orange-500 hover:from-pink-600 hover:to-orange-600 shadow-lg hover:shadow-xl'
                 }`}
               >
                 {publishing ? (
