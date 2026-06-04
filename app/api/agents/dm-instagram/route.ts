@@ -43,55 +43,59 @@ const SEEDREAM_API_KEY = process.env.SEEDREAM_API_KEY || '341cd095-2c11-49da-82e
 const SEEDREAM_API_URL = 'https://ark.ap-southeast.bytepluses.com/api/v3/images/generations';
 
 /**
- * Generate a personalized marketing visual for a prospect's business via Seedream.
+ * 2026-06-04 — Generate a personalized marketing visual for a prospect.
+ *
+ * Founder ask: "on veut pas du standard creable facilement chat gpt
+ * tu vois ? attention donc aux couleur IA ou trop effet IA on veut
+ * de la creativité et de la pertinence donc des humaines objet
+ * reels". So we route through the central image-provider which
+ * applies the editorial-photo preset + anti-IA negative_prompt
+ * (porcelain skin, dead eyes, neon glow, etc.) and we ENRICH the
+ * prompt with concrete observations from the IG scrape (bio,
+ * ambiance, signature items) when present.
  */
-async function generateProspectVisual(prospect: any): Promise<string | null> {
+async function generateProspectVisual(prospect: any, snapshot: IgProfileSnapshot | null = null): Promise<string | null> {
   try {
     const businessName = prospect.company || 'commerce local';
     const businessType = prospect.type || 'commerce';
     const quartier = prospect.quartier || '';
+    const bio = snapshot?.biography || prospect.instagram_bio || prospect.bio || '';
 
-    // Generate a visual prompt tailored to the prospect's business
-    const promptMap: Record<string, string> = {
-      restaurant: `Beautiful professional food photography for a French restaurant, elegant plating, warm ambient lighting, wooden table, appetizing gourmet dish, cozy restaurant interior blur background, premium quality`,
-      boutique: `Stylish fashion boutique storefront display, curated products on shelves, warm inviting lighting, modern retail interior design, high-end shopping experience`,
-      coiffeur: `Modern hair salon interior, professional styling station, warm lighting, sleek minimalist design, beauty and wellness atmosphere, clean aesthetic`,
-      coach: `Dynamic fitness coaching session, energetic personal trainer, modern gym equipment, motivational atmosphere, active lifestyle, professional quality`,
-      fleuriste: `Beautiful flower shop display, colorful fresh flower arrangements, vibrant bouquets, charming storefront, natural light, artisanal floral design`,
-      caviste: `Premium wine shop interior, elegant wine bottle display, wooden shelves, warm sophisticated lighting, French wine selection, artisanal feel`,
-      traiteur: `Catering service showcase, beautifully presented buffet, gourmet appetizers, professional food presentation, elegant event setting`,
-      freelance: `Creative professional workspace, modern laptop setup, inspiring desk arrangement, artistic tools, productive and stylish home office`,
-      boulangerie: `Fresh artisanal French bakery, golden croissants and baguettes, rustic wooden display, warm morning light, traditional craftsmanship`,
+    // Per-sector grounding scenes — written as DOCUMENTARY scenes, not
+    // glossy stock. Real humans interacting with real objects. The
+    // anti-IA layer is applied automatically by image-provider.
+    const sceneMap: Record<string, string> = {
+      restaurant: `A chef plating a dish in a restaurant kitchen, hands visible holding a small spoon, real steam rising, natural daylight from a window, copper pans softly out of focus in the background, dish in foreground sharp — documentary food photography style, single human focused on craft`,
+      boutique: `A real shop assistant in their 30s folding a knit jumper on a wooden counter, soft afternoon light, clothing rack with curated pieces blurred behind, hands and fabric texture visible, candid moment not posed`,
+      coiffeur: `Hairdresser in apron mid-cut, scissors in hand, client visible from behind in chair, salon mirror reflecting natural daylight, hair clippings on floor — real working moment, not staged glamour shot`,
+      coach: `Personal trainer guiding a client through a kettlebell swing in a real gym, sweat visible, rubber flooring, natural gym lighting, focused expressions — fitness editorial not stock`,
+      fleuriste: `Florist's hands tying twine around a bouquet of seasonal flowers on a worktable, leaves and stems scattered around, soft window light, real workshop setting — close documentary shot`,
+      caviste: `Cave owner pulling a bottle from a wooden rack, dust on the labels, dim warm lighting, real cellar ambience, person mid-action — moment captured not staged`,
+      traiteur: `Catering team plating canapés on slate boards in a back kitchen, hands moving, real ingredients (herbs, garnish) visible, fluorescent kitchen light softened`,
+      freelance: `Real freelancer at desk, notebook open with handwritten notes, laptop open, mug of coffee, natural window light, slight desk clutter (pens, post-its) — authentic creative workspace not pristine Pinterest`,
+      boulangerie: `Baker at dawn in apron pulling a tray of fresh baguettes from the oven, flour on apron and hands, warm steam visible, traditional bakery interior — early morning documentary moment`,
     };
 
-    const basePrompt = promptMap[businessType] || `Professional marketing visual for a French local business, modern and inviting, warm lighting, premium quality`;
-    const prompt = `${basePrompt}. ${quartier ? `Located in ${quartier}, France.` : 'French style.'} No text, no watermark, no logos, clean composition, Instagram-ready, 1:1 square format.`;
+    const basePrompt = sceneMap[businessType] || `A real shopkeeper of a French local business engaged in a working moment, natural light from a real window, candid documentary photography style`;
+    const locationLine = quartier ? `Set in ${quartier}, France.` : 'Set in a French neighbourhood.';
+    const bioLine = bio ? `Business identity (from their Insta bio): "${bio.substring(0, 140)}". Reflect the same vibe.` : '';
+    const ambianceLine = snapshot?.recent_posts && snapshot.recent_posts.length > 0
+      ? `Inspiration cues from their actual recent posts: ${snapshot.recent_posts.slice(0, 3).map((p: any) => (p.caption || '').substring(0, 60)).filter(Boolean).join(' | ')}.`
+      : '';
 
-    const response = await fetch(SEEDREAM_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SEEDREAM_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'seedream-4-5-251128',
-        prompt,
-        size: '1024x1024',
-        response_format: 'url',
-        seed: -1,
-      }),
+    const prompt = `${basePrompt}. ${locationLine} ${bioLine} ${ambianceLine}`.trim();
+
+    const { generateImage } = await import('@/lib/visuals/image-provider');
+    const result = await generateImage({
+      prompt,
+      complexity: 'standard',
+      size: '1024x1024',
+      callTag: `dm_prospect_${businessName.substring(0, 30)}`,
     });
 
-    if (!response.ok) {
-      console.warn(`[DMAgent] Seedream error for ${businessName}:`, response.status);
-      return null;
-    }
-
-    const data = await response.json();
-    const url = data?.data?.[0]?.url;
-    if (url) {
-      console.log(`[DMAgent] Visual generated for ${businessName} (${businessType})`);
-      return url;
+    if (result?.url) {
+      console.log(`[DMAgent] Visual generated for ${businessName} (${businessType}) via ${result.provider}`);
+      return result.url;
     }
     return null;
   } catch (error: any) {
@@ -400,8 +404,8 @@ async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram', 
     const VISUAL_BATCH_SIZE = 3;
     for (let vb = 0; vb < topProspects.length; vb += VISUAL_BATCH_SIZE) {
       const vBatch = topProspects.slice(vb, vb + VISUAL_BATCH_SIZE);
-      const vResults = await Promise.all(vBatch.map(async ({ prospect }) => {
-        const url = await generateProspectVisual(prospect);
+      const vResults = await Promise.all(vBatch.map(async ({ prospect, snapshot }) => {
+        const url = await generateProspectVisual(prospect, snapshot);
         return { prospectId: prospect.id, url };
       }));
       for (const vr of vResults) {
