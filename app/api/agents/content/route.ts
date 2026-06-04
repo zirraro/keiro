@@ -4895,24 +4895,33 @@ Champs obligatoires : platform, format, pillar, hook, caption, hashtags, visual_
   const rawPillarD = (post.pillar || pillar || 'tips').toLowerCase();
   const safePillar = VALID_PILLARS_D.includes(rawPillarD) ? rawPillarD : (PILLAR_MAP_D[rawPillarD] || 'tips');
 
-  // 2026-06-04 — TikTok cross-platform reuse from top IG performers.
-  // Before creating a brand-new TikTok post (which would burn Seedance
-  // video gen), check if there is a recent IG top performer this user
-  // shipped 7-30 days ago that we can repurpose. If yes, reuse the
-  // visual + ask Lena to REWRITE caption in TikTok-native style.
+  // 2026-06-04 — Cross-platform reuse BIDIRECTIONNEL (IG ↔ TikTok).
+  // Avant de générer un visuel frais (qui coûte ~€0.03 Bytedance), on
+  // regarde si un post performant existe DÉJÀ sur l'autre plateforme
+  // dans la fenêtre 7-30 jours. Si oui on lift le visuel et Lena
+  // ré-écrit la caption en mode plateforme-native.
   let reusedFromIgPostId: string | null = null;
   let reusedVisualUrl: string | null = null;
-  if (safePlatform === 'tiktok' && userId && !forceFormat) {
+  if (userId && !forceFormat) {
     try {
-      const { findIgPostToRepurposeForTiktok } = await import('@/lib/content/cross-platform-reuse');
-      const candidate = await findIgPostToRepurposeForTiktok(supabase, userId);
-      if (candidate) {
-        reusedFromIgPostId = candidate.ig_post_id;
-        reusedVisualUrl = candidate.visual_url;
-        console.log(`[Content] TikTok cross-repurpose: lifting visual from IG post ${candidate.ig_post_id} (score ${candidate.performance_score})`);
-        // Keep the new TikTok caption Claude already generated — it's
-        // already in TikTok voice (short, oral, FYP). The visual is
-        // what we save.
+      if (safePlatform === 'tiktok') {
+        // IG → TikTok
+        const { findIgPostToRepurposeForTiktok } = await import('@/lib/content/cross-platform-reuse');
+        const candidate = await findIgPostToRepurposeForTiktok(supabase, userId);
+        if (candidate) {
+          reusedFromIgPostId = candidate.ig_post_id;
+          reusedVisualUrl = candidate.visual_url;
+          console.log(`[Content] TikTok cross-repurpose ← IG post ${candidate.ig_post_id} (score ${candidate.performance_score})`);
+        }
+      } else if (safePlatform === 'instagram') {
+        // TikTok → IG (sens inverse, ajouté 2026-06-04)
+        const { findTiktokPostToRepurposeForIg } = await import('@/lib/content/cross-platform-reuse');
+        const candidate = await findTiktokPostToRepurposeForIg(supabase, userId);
+        if (candidate) {
+          reusedFromIgPostId = candidate.ig_post_id; // ici c'est en réalité un TT post id
+          reusedVisualUrl = candidate.visual_url;
+          console.log(`[Content] IG cross-repurpose ← TikTok post ${candidate.ig_post_id} (score ${candidate.performance_score})`);
+        }
       }
     } catch (e: any) {
       console.warn('[Content] cross-platform reuse check failed (non-fatal):', e?.message);
