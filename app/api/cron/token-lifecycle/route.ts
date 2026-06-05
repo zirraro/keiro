@@ -45,8 +45,8 @@ export async function GET(req: NextRequest) {
 
   const { data: clients } = await sb
     .from('profiles')
-    .select('id, email, first_name, tiktok_username, tiktok_access_token, tiktok_refresh_token, tiktok_token_expiry, linkedin_username, linkedin_access_token, linkedin_token_expiry')
-    .or('tiktok_access_token.not.is.null,linkedin_access_token.not.is.null');
+    .select('id, email, first_name, tiktok_username, tiktok_access_token, tiktok_refresh_token, tiktok_token_expiry, linkedin_username, linkedin_access_token, linkedin_token_expiry, instagram_username, instagram_access_token, instagram_token_expiry')
+    .or('tiktok_access_token.not.is.null,linkedin_access_token.not.is.null,instagram_access_token.not.is.null');
 
   if (!clients || clients.length === 0) {
     return NextResponse.json({ ok: true, scanned: 0, emailed: 0 });
@@ -104,6 +104,86 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // ─── Instagram ────────────────────────────────────────────────
+    // IGAA long-lived tokens last 60 days but CAN be refreshed via
+    // /refresh_access_token before expiry. Strategy: when <7 days
+    // remain, attempt refresh silently. Mail the client only if refresh
+    // actually fails (token revoked or already expired).
+    if (c.instagram_access_token && c.instagram_token_expiry) {
+      const expiry = new Date(c.instagram_token_expiry).getTime();
+      const hoursLeft = (expiry - now) / 3600000;
+
+      if (hoursLeft <= 168 && hoursLeft > -48) { // 7 days window
+        // Try silent refresh first (only works on IGAA tokens, which
+        // start with 'IGAA'). Page tokens can't be refreshed — those
+        // require user reconnect.
+        const tok = c.instagram_access_token as string;
+        let refreshOk = false;
+        if (tok && tok.startsWith('IGAA')) {
+          try {
+            const r = await fetch(
+              `https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=${tok}`,
+              { signal: AbortSignal.timeout(8000) },
+            );
+            if (r.ok) {
+              const j = await r.json().catch(() => null);
+              const newTok = j?.access_token;
+              const newExp = typeof j?.expires_in === 'number' ? j.expires_in : 60 * 86400;
+              if (newTok) {
+                await sb
+                  .from('profiles')
+                  .update({
+                    instagram_access_token: newTok,
+                    instagram_igaa_token: newTok,
+                    instagram_token_expiry: new Date(now + newExp * 1000).toISOString(),
+                  })
+                  .eq('id', c.id);
+                refreshOk = true;
+                events.push({ user_id: c.id, network: 'instagram', action: 'token_refreshed', hoursLeft });
+                await sb.from('agent_logs').insert({
+                  agent: 'content',
+                  action: 'instagram_token_refreshed',
+                  status: 'success',
+                  user_id: c.id,
+                  data: { user_id: c.id, hours_left_before: Math.round(hoursLeft), new_expiry_days: Math.round(newExp / 86400) },
+                  created_at: new Date().toISOString(),
+                });
+              }
+            }
+          } catch (e: any) {
+            console.warn('[token-lifecycle] IG refresh threw:', e?.message);
+          }
+        }
+
+        // Refresh failed (or unsupported token type) AND expiry truly imminent → mail client.
+        if (!refreshOk && hoursLeft <= 48) {
+          const { data: alreadyEmailed } = await sb
+            .from('agent_logs')
+            .select('id')
+            .eq('agent', 'content')
+            .eq('action', 'ig_reauth_email_sent')
+            .contains('data', { user_id: c.id })
+            .gte('created_at', sinceISO)
+            .limit(1);
+          if (!alreadyEmailed || alreadyEmailed.length === 0) {
+            const sent = await sendReconnectEmail({ ...c, _ig: true }, 'instagram', hoursLeft);
+            if (sent) {
+              emailed++;
+              events.push({ user_id: c.id, network: 'instagram', action: 'reauth_email_sent', hoursLeft });
+              await sb.from('agent_logs').insert({
+                agent: 'content',
+                action: 'ig_reauth_email_sent',
+                status: 'success',
+                user_id: c.id,
+                data: { user_id: c.id, email: c.email, hours_left: hoursLeft },
+                created_at: new Date().toISOString(),
+              });
+            }
+          }
+        }
+      }
+    }
+
     // ─── LinkedIn ─────────────────────────────────────────────────
     if (c.linkedin_access_token && c.linkedin_token_expiry) {
       const expiry = new Date(c.linkedin_token_expiry).getTime();
@@ -141,30 +221,37 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ ok: true, scanned: clients.length, emailed, events: events.slice(0, 20) });
 }
 
-async function sendReconnectEmail(client: any, network: 'tiktok' | 'linkedin', hoursLeft: number): Promise<boolean> {
+async function sendReconnectEmail(client: any, network: 'tiktok' | 'linkedin' | 'instagram', hoursLeft: number): Promise<boolean> {
   if (!client.email) return false;
   try {
     const { sendEmailWithFallback } = await import('@/lib/email/send-with-fallback');
     const firstName = client.first_name || 'toi';
-    const reconnectPath = network === 'tiktok' ? '/api/auth/tiktok-oauth' : '/api/auth/linkedin-oauth';
+    const reconnectPath = network === 'tiktok'
+      ? '/api/auth/tiktok-oauth'
+      : network === 'instagram'
+        ? '/integrations/meta'
+        : '/api/auth/linkedin-oauth';
     const reconnectUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://keiroai.com'}${reconnectPath}`;
-    const platformLabel = network === 'tiktok' ? 'TikTok' : 'LinkedIn';
-    const platformEmoji = network === 'tiktok' ? '🎵' : '💼';
+    const platformLabel = network === 'tiktok' ? 'TikTok' : network === 'instagram' ? 'Instagram' : 'LinkedIn';
+    const platformEmoji = network === 'tiktok' ? '🎵' : network === 'instagram' ? '📷' : '💼';
     const subject = `Reconnecte ton ${platformLabel} à KeiroAI ${platformEmoji}`;
-    const hoursText = hoursLeft > 0 ? `dans ${Math.max(1, Math.round(hoursLeft))}h` : 'maintenant';
+    // KeiroAI normalement renouvelle ces jetons en silence. Si ce mail
+    // arrive, c'est que le renouvellement automatique a échoué (révocation
+    // côté plateforme, login ailleurs, scope changé) — il faut une action
+    // humaine, ce n'est pas un cycle routine.
     const html = `
 <!DOCTYPE html>
 <html><body style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#0f172a;">
   <h2 style="color:#0c1a3a;margin:0 0 16px;">Salut ${firstName} 👋</h2>
-  <p style="line-height:1.6;">Ton accès ${platformLabel} via KeiroAI expire <strong>${hoursText}</strong>.<br>Résultat : si tu ne reconnectes pas, l'agent content ne pourra plus publier pour toi sur ${platformLabel}.</p>
-  <p style="line-height:1.6;"><strong>Ce qu'il faut faire :</strong> reconnecte ton compte en 30 secondes (clic, autoriser, fini).</p>
+  <p style="line-height:1.6;">${platformLabel} a coupé l'accès de KeiroAI à ton compte et le renouvellement automatique n'a pas pu repartir.<br><br>Tant que tu ne te reconnectes pas, ton agent contenu ne pourra plus publier sur ${platformLabel}.</p>
+  <p style="line-height:1.6;"><strong>30 secondes pour relancer :</strong> un clic, tu autorises à nouveau, et KeiroAI repart automatiquement (y compris les posts qui étaient en attente).</p>
   <div style="text-align:center;margin:28px 0;">
     <a href="${reconnectUrl}" style="display:inline-block;background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;font-weight:700;text-decoration:none;padding:14px 28px;border-radius:12px;">Reconnecter mon ${platformLabel} →</a>
   </div>
-  <p style="font-size:13px;color:#64748b;line-height:1.6;">Les jetons d'accès des réseaux sociaux ont une durée de vie limitée — c'est leur sécurité. Dès que tu reconnectes, tout repart automatiquement (publication, analytics, agent content).</p>
+  <p style="font-size:13px;color:#64748b;line-height:1.6;">Habituellement les jetons d'accès se renouvellent en silence — KeiroAI fait ça tout seul. On ne t'écrit que quand la plateforme a explicitement révoqué la session et qu'une reconnexion humaine est obligatoire.</p>
   <p style="font-size:12px;color:#94a3b8;margin-top:24px;">— L'équipe KeiroAI</p>
 </body></html>`;
-    const text = `Salut ${firstName},\n\nTon accès ${platformLabel} via KeiroAI expire ${hoursText}. Reconnecte en 30s : ${reconnectUrl}\n\n— KeiroAI`;
+    const text = `Salut ${firstName},\n\n${platformLabel} a coupé l'accès de KeiroAI à ton compte (révocation côté plateforme). Le renouvellement auto a échoué — il faut une reconnexion humaine.\n\nReconnecte en 30s : ${reconnectUrl}\n\nDès que c'est fait, KeiroAI repart, y compris les posts en attente.\n\n— KeiroAI`;
     const result = await sendEmailWithFallback({
       to: client.email,
       toName: firstName,

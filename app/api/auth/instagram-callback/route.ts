@@ -145,6 +145,7 @@ export async function POST(req: NextRequest) {
 
     // Étape 3.5: Get IGAA token for DM API access (graph.instagram.com)
     let igaaToken: string | null = null;
+    let igaaExpiresIn: number | null = null;
     // Try Instagram App Secret first (for IGAA tokens), then Meta App Secret
     const igSecret = process.env.INSTAGRAM_APP_SECRET;
     const metaSecret = process.env.META_APP_SECRET;
@@ -158,8 +159,9 @@ export async function POST(req: NextRequest) {
         if (igaaRes.ok) {
           const igaaData = await igaaRes.json();
           igaaToken = igaaData.access_token || null;
+          igaaExpiresIn = typeof igaaData.expires_in === 'number' ? igaaData.expires_in : null;
           if (igaaToken) {
-            console.log('[InstagramCallback] IGAA token obtained via', secret === igSecret ? 'IG secret' : 'Meta secret');
+            console.log('[InstagramCallback] IGAA token obtained via', secret === igSecret ? 'IG secret' : 'Meta secret', 'expires_in:', igaaExpiresIn);
             break;
           }
         } else {
@@ -188,7 +190,14 @@ export async function POST(req: NextRequest) {
       facebook_page_access_token: selectedPage.access_token,
       instagram_connected_at: new Date().toISOString(),
       instagram_last_sync_at: new Date().toISOString(),
-      instagram_token_expiry: null,
+      // 2026-06-05 — Track real expiry so the token-lifecycle cron can
+      // anticipate (IGAA long-lived tokens are 60d; ig_exchange_token
+      // returns expires_in in seconds). Falls back to +60d if Meta didn't
+      // return expires_in (defensive — happens on some shortened
+      // sessions). NULL only when we have no IGAA at all.
+      instagram_token_expiry: igaaToken
+        ? new Date(Date.now() + ((igaaExpiresIn ?? 60 * 86400) * 1000)).toISOString()
+        : null,
     };
     // Only update instagram_access_token if we got a real IGAA token
     // Don't overwrite an existing IGAA token with a FB page token
