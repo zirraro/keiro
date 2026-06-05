@@ -1586,8 +1586,7 @@ async function publishToTikTok(
       } catch (refreshError: any) {
         console.error('[Content] TikTok token refresh failed:', refreshError.message);
         // 2026-06-04 — Log the failure so token-lifecycle cron can
-        // detect "refresh broken" and email the client to reconnect
-        // instead of silently retrying forever.
+        // detect "refresh broken" and email the client to reconnect.
         try {
           await supabase.from('agent_logs').insert({
             agent: 'content',
@@ -1599,6 +1598,39 @@ async function publishToTikTok(
             created_at: new Date().toISOString(),
           });
         } catch { /* logging best-effort */ }
+        // 2026-06-05 — Founder ask: "quand le token est expiré force
+        // directement la deconnexion stp sur keiro comme ca le client
+        // doit juste se reconnecter direct". On NULL les 3 champs
+        // tiktok_* du profil propriétaire pour que l'UI affiche
+        // "non connecté" + bouton reconnect.
+        const ownerForCleanup = (post as any).user_id || ownerId;
+        if (ownerForCleanup) {
+          try {
+            await supabase
+              .from('profiles')
+              .update({
+                tiktok_access_token: null,
+                tiktok_refresh_token: null,
+                tiktok_token_expiry: null,
+              })
+              .eq('id', ownerForCleanup);
+            console.log(`[Content] Force-disconnected TikTok for ${ownerForCleanup} (refresh broken)`);
+          } catch (cleanupErr: any) {
+            console.warn('[Content] force-disconnect cleanup failed:', cleanupErr?.message);
+          }
+        }
+        // 2026-06-05 — Founder ask: au moment de l'erreur, on email
+        // LE CLIENT concerné (pas l'admin) pour qu'il reconnecte. Le
+        // post_id est queue'é dans agent_logs.tiktok_post_pending_reauth
+        // pour qu'on le relance après reconnect OAuth.
+        try {
+          const { notifyClientTikTokReauth } = await import('@/lib/agents/tiktok-reauth-mailer');
+          if (ownerForCleanup && post.id) {
+            await notifyClientTikTokReauth(supabase, ownerForCleanup, post.id, `refresh_failed: ${refreshError.message?.substring(0, 100)}`);
+          }
+        } catch (mailErr: any) {
+          console.warn('[Content] notifyClientTikTokReauth threw:', mailErr?.message);
+        }
         await releaseTtClaim();
         return { success: false, error: `Token refresh failed: ${refreshError.message}` };
       }

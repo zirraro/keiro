@@ -222,13 +222,31 @@ export async function GET(req: NextRequest) {
         .eq('id', userId);
     }
 
+    // 2026-06-05 — Founder ask: "les publication qui ne sont pas passees
+    // a l'heure des connexion on les lancent par contre". Quand l'user
+    // reconnecte, relance les posts TikTok qui avaient été flaggés
+    // 'tiktok_post_pending_reauth' dans les 7 derniers jours.
+    let relaunched = 0;
+    try {
+      const { relaunchPendingPostsAfterReauth } = await import('@/lib/agents/tiktok-reauth-mailer');
+      const r = await relaunchPendingPostsAfterReauth(supabase, userId);
+      relaunched = r.relaunched;
+      if (relaunched > 0) {
+        console.log(`[TikTokCallback] ✅ Relaunched ${relaunched} pending TikTok posts after reauth`);
+      }
+    } catch (e: any) {
+      console.warn('[TikTokCallback] relaunch failed (non-fatal):', e?.message);
+    }
+
     console.log('[TikTokCallback] ⏳ Step 5/5: Redirecting to success page...', {
       username: displayName,
+      relaunched,
       elapsedMs: Date.now() - startTime
     });
 
-    // Redirect to success page
-    const redirectUrl = `${baseUrl}/tiktok-callback?success=true&username=${encodeURIComponent(displayName)}`;
+    // Redirect to success page (suffixe relaunched=N pour informer l'user)
+    const relaunchedQs = relaunched > 0 ? `&relaunched=${relaunched}` : '';
+    const redirectUrl = `${baseUrl}/tiktok-callback?success=true&username=${encodeURIComponent(displayName)}${relaunchedQs}`;
     console.log('[TikTokCallback] ✅ Step 5/5 complete: Success!', {
       redirectUrl,
       totalElapsedMs: Date.now() - startTime

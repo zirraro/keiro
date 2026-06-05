@@ -47,6 +47,25 @@ export async function escalateAgentError(report: ErrorReport): Promise<void> {
   // Skip known non-errors — nothing to learn from, nothing to email about
   if (NON_ERROR_SENTINELS.has(report.error)) return;
 
+  // 2026-06-05 — Founder ask: "pas necessaire pour admin a l'erreur"
+  // pour les erreurs token TikTok (le client reçoit déjà un email
+  // direct via notifyClientTikTokReauth). Le digest fin de journée
+  // mentionne uniquement les clients pas reconnectés. Pas de spam
+  // admin immédiat.
+  if (report.platform === 'tiktok' && /token.*refresh.*failed|token.*expir|refresh_failed/i.test(report.error)) {
+    const supabaseSkip = getSupabase();
+    try {
+      await supabaseSkip.from('agent_logs').insert({
+        agent: report.agent,
+        action: `tt_token_error_silenced`,
+        status: 'info',
+        data: { reason: 'client_already_emailed_via_publishToTikTok', error: report.error.substring(0, 200) },
+        created_at: new Date().toISOString(),
+      });
+    } catch {}
+    return;
+  }
+
   const supabase = getSupabase();
   const now = new Date().toISOString();
 
