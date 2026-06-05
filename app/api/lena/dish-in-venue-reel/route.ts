@@ -25,11 +25,11 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth-server';
-import { compositeDishOnVenue } from '@/lib/visuals/dish-in-venue';
+import { buildDishInVenueRefinedStill, qaRefinedStillWithVision } from '@/lib/visuals/dish-in-venue-i2i';
 import { createClient } from '@supabase/supabase-js';
 
 export const runtime = 'nodejs';
-export const maxDuration = 90;
+export const maxDuration = 300;
 
 type MotionPreset = 'dolly_steam' | 'parallax' | 'chef_hand' | 'window_light';
 
@@ -150,15 +150,20 @@ export async function POST(req: NextRequest) {
   const duration = Math.max(5, Math.min(10, Number(body.duration) || 5));
   const aspect: 'square' | 'story' = body.aspect === 'square' ? 'square' : 'story';
   const motion: MotionPreset = (['dolly_steam', 'parallax', 'chef_hand', 'window_light'].includes(body.motion) ? body.motion : 'dolly_steam') as MotionPreset;
+  // maxStillRetries: how many i2i refinement attempts before giving up.
+  // Default = 1 (cost-safe for client UI flow). When testing manually with
+  // CRON auth, pass up to 3 to maximize chance of a passing still per call.
+  const maxStillRetries = Math.max(1, Math.min(3, Number(body.maxStillRetries) || 1));
+  // autoPublishTiktok: when true and QA passes, publish directly to TikTok.
+  // Only honored under CRON auth — UI users get the URL back and can decide.
+  const autoPublishTiktok = useCronAuth && body.autoPublishTiktok === true;
+  const tiktokCaption = String(body.tiktokCaption || '').trim();
 
   if (!dishUrl || !venueUrl) {
     return NextResponse.json({ ok: false, error: 'dishUrl_and_venueUrl_required' }, { status: 400 });
   }
 
   // ─── Input QA ──────────────────────────────────────────────────
-  // Garde-fou strict : on refuse de lancer l'i2v si les inputs ne sont
-  // pas des vraies images joignables de qualité raisonnable. Sinon on
-  // anime un défaut → résultat AI-look garanti.
   const [dishQa, venueQa] = await Promise.all([qaImageInput(dishUrl), qaImageInput(venueUrl)]);
   if (!dishQa.ok || !venueQa.ok) {
     return NextResponse.json({
@@ -169,32 +174,48 @@ export async function POST(req: NextRequest) {
     }, { status: 400 });
   }
 
-  // ─── Composite still ──────────────────────────────────────────
-  const stillUrl = await compositeDishOnVenue({ venueUrl, dishUrl, postId, aspect });
-  if (!stillUrl) {
-    return NextResponse.json({ ok: false, error: 'composite_failed' }, { status: 500 });
+  // ─── Refined still loop ───────────────────────────────────────
+  // Each iteration: composite + Seedream i2i refinement + Claude vision QA.
+  // We stop on the first passing still (score >= 7) or after maxStillRetries.
+  const stillAttempts: any[] = [];
+  let passingStillUrl: string | null = null;
+  let lastBuild: any = null;
+  let lastQa: any = null;
+  for (let attempt = 1; attempt <= maxStillRetries; attempt++) {
+    const build = await buildDishInVenueRefinedStill({
+      venueUrl,
+      dishUrl,
+      postId: `${postId}-att${attempt}`,
+      aspect,
+    });
+    lastBuild = build;
+    if (!build.url) {
+      stillAttempts.push({ attempt, error: build.error || 'no_url' });
+      continue;
+    }
+    const qa = await qaRefinedStillWithVision(build.url);
+    lastQa = qa;
+    stillAttempts.push({ attempt, stillUrl: build.url, refined: build.refined, qa });
+    if (qa.pass) {
+      passingStillUrl = build.url;
+      break;
+    }
   }
 
-  // ─── Composite QA ─────────────────────────────────────────────
-  // On vérifie que le still a bien atterri en storage et n'est pas
-  // suspectement petit (échec sharp qui aurait écrit un placeholder).
-  const stillQa = await qaImageInput(stillUrl);
-  if (!stillQa.ok || (stillQa.size && stillQa.size < 80 * 1024)) {
+  if (!passingStillUrl) {
     return NextResponse.json({
       ok: false,
-      error: 'composite_qa_failed',
-      stillUrl,
-      stillQa,
-    }, { status: 500 });
+      error: 'still_qa_failed_after_retries',
+      attempts: stillAttempts,
+      lastBuild,
+      lastQa,
+      hint: 'Try a venue photo cropped on a single foreground table, or a dish photo with neutral background.',
+    }, { status: 422 });
   }
 
-  // ─── Build i2v prompt (frozen preset) ─────────────────────────
+  // ─── i2v dispatch ─────────────────────────────────────────────
   const preset = MOTION_PRESETS[motion];
   const prompt = preset.prompt;
-
-  // ─── Call internal i2v endpoint ───────────────────────────────
-  // We delegate to /api/seedream/i2v (Seedance primary, Kling fallback).
-  // It handles credits, quota, margin gates, and provider dispatch.
   const siteBase = process.env.NEXT_PUBLIC_SITE_URL || `${req.nextUrl.protocol}//${req.nextUrl.host}`;
   let i2vRes: any;
   try {
@@ -202,16 +223,15 @@ export async function POST(req: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        // Forward whichever auth got us here: Bearer (cron) or cookie (UI).
         ...(useCronAuth
           ? { authorization: `Bearer ${process.env.CRON_SECRET}` }
           : { cookie: req.headers.get('cookie') || '' }),
       },
       body: JSON.stringify({
-        imageUrl: stillUrl,
+        imageUrl: passingStillUrl,
         prompt,
         duration,
-        userId, // required by i2v when using cron auth, harmless otherwise
+        userId,
       }),
       signal: AbortSignal.timeout(60_000),
     });
@@ -220,7 +240,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         ok: false,
         error: 'i2v_dispatch_failed',
-        stillUrl,
+        stillUrl: passingStillUrl,
+        attempts: stillAttempts,
         downstream: i2vRes,
       }, { status: 502 });
     }
@@ -228,13 +249,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       ok: false,
       error: `i2v_fetch_threw:${e?.message?.substring(0, 80)}`,
-      stillUrl,
+      stillUrl: passingStillUrl,
+      attempts: stillAttempts,
     }, { status: 502 });
   }
 
-  // ─── Log ──────────────────────────────────────────────────────
+  // ─── Log dispatch ─────────────────────────────────────────────
+  const sb = admin();
   try {
-    const sb = admin();
     await sb.from('agent_logs').insert({
       agent: 'content',
       action: 'lena_dish_in_venue_reel',
@@ -245,7 +267,8 @@ export async function POST(req: NextRequest) {
         motion_preset: motion,
         dish_url: dishUrl,
         venue_url: venueUrl,
-        still_url: stillUrl,
+        still_url: passingStillUrl,
+        still_attempts: stillAttempts.length,
         task_id: i2vRes.taskId,
         provider: i2vRes._p || i2vRes.provider,
         duration,
@@ -253,11 +276,78 @@ export async function POST(req: NextRequest) {
       },
       created_at: new Date().toISOString(),
     });
-  } catch { /* logging is best-effort */ }
+  } catch {}
+
+  // ─── Optional: wait for video + publish to TikTok ─────────────
+  let videoUrl: string | null = null;
+  let publishResult: any = null;
+  if (autoPublishTiktok) {
+    // Poll up to 120s for video completion. Seedance typically returns in 30-60s.
+    const pollDeadline = Date.now() + 120_000;
+    while (Date.now() < pollDeadline) {
+      await new Promise((r) => setTimeout(r, 6_000));
+      try {
+        const pr = await fetch(`${siteBase}/api/seedream/i2v`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            authorization: `Bearer ${process.env.CRON_SECRET}`,
+          },
+          body: JSON.stringify({ taskId: i2vRes.taskId, userId }),
+          signal: AbortSignal.timeout(15_000),
+        });
+        const pdata = await pr.json().catch(() => null);
+        if (pdata?.status === 'completed' && pdata?.videoUrl) {
+          videoUrl = pdata.videoUrl;
+          break;
+        }
+        if (pdata?.status === 'failed') break;
+      } catch { /* keep polling */ }
+    }
+
+    if (videoUrl) {
+      // Create content_calendar row + publish to TikTok via existing pipeline.
+      // We use the existing publish_single action so all production guards run.
+      try {
+        const { data: postRow } = await sb.from('content_calendar').insert({
+          user_id: userId,
+          platform: 'tiktok',
+          format: 'reel',
+          status: 'approved',
+          hook: tiktokCaption.split('\n')[0]?.substring(0, 100) || `Notre signature dans notre salle`,
+          caption: tiktokCaption || `Notre signature, servie dans notre salle. Un pas chez nous, une autre dimension.`,
+          visual_url: passingStillUrl,
+          video_url: videoUrl,
+          scheduled_date: new Date().toISOString().slice(0, 10),
+          scheduled_time: new Date().toISOString().slice(11, 19),
+          source: 'lena_dish_in_venue_reel',
+          updated_at: new Date().toISOString(),
+        }).select('id').single();
+        if (postRow?.id) {
+          const pubR = await fetch(`${siteBase}/api/agents/content?user_id=${userId}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              authorization: `Bearer ${process.env.CRON_SECRET}`,
+            },
+            body: JSON.stringify({ action: 'publish_single', postId: postRow.id }),
+            signal: AbortSignal.timeout(180_000),
+          });
+          publishResult = await pubR.json().catch(() => ({ ok: false, error: 'publish_response_unparsable' }));
+          publishResult.contentCalendarId = postRow.id;
+        } else {
+          publishResult = { ok: false, error: 'content_calendar_insert_failed' };
+        }
+      } catch (e: any) {
+        publishResult = { ok: false, error: `publish_threw:${e?.message?.substring(0, 80)}` };
+      }
+    }
+  }
 
   return NextResponse.json({
     ok: true,
-    stillUrl,
+    stillUrl: passingStillUrl,
+    stillAttempts,
     taskId: i2vRes.taskId,
     provider: i2vRes._p || i2vRes.provider,
     motion,
@@ -265,7 +355,8 @@ export async function POST(req: NextRequest) {
     motionRecommendedFor: preset.recommendedFor,
     duration,
     aspect,
+    videoUrl,
+    publishResult,
     poll: `/api/seedream/i2v?taskId=${i2vRes.taskId}`,
-    note: 'Poll /api/seedream/i2v with the taskId until status=completed to get the final videoUrl.',
   });
 }
