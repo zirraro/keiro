@@ -55,6 +55,8 @@ RÈGLES ABSOLUES:
 - Éclairage cinématique : golden hour warmth, soft diffused window light, dramatic rim lighting, neon glow, natural backlight avec lens flare
 - Mouvement constant des SUJETS dans le cadre (pas de plans fixes ennuyeux)
 - Profondeur de champ : utilise le bokeh, la mise au point sélective, les avant-plans flous
+- DIVERSITÉ DES PERSONNES (NON-NÉGOCIABLE) : quand des personnes apparaissent, VARIE explicitement leur origine/ethnicité, âge, genre et corpulence d'une vidéo à l'autre. Décris-les comme un casting réaliste (« mid-30s afro-french woman in linen apron », « 50-year-old maghrebi shopkeeper », « young south-asian barista », etc.) — ne tombe JAMAIS sur la même silhouette « jeune femme blanche souriante » par défaut.
+- AUTHENTICITÉ ANTI-IA : real skin texture with pores and micro-imperfections, authentic candid expressions caught mid-action (not posed smiles), natural f/2.0 shallow depth of field, slight 35mm film grain, real-world editorial photography vibe (Vogue Local / National Geographic / Cereal Magazine / Apartamento). EXPLICITEMENT BANNIR : porcelain plastic skin, dead/glowing eyes, perfect symmetry, deformed hands, neon glow halos, magenta/cyan saturation, stock photo look, midjourney style, CGI/3D render look, anime/cartoon.
 - ${pacingGuide}
 - ${styleContext}
 - Si le prompt mentionne une ACTUALITÉ/NEWS : créer un lien visuel fort entre le business et cette actualité — l'ambiance, le décor, les comportements des personnages doivent refléter le contexte de l'actualité
