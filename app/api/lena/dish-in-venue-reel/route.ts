@@ -309,6 +309,8 @@ export async function POST(req: NextRequest) {
       // Create content_calendar row + publish to TikTok via existing pipeline.
       // We use the existing publish_single action so all production guards run.
       try {
+        // content_calendar columns audited 2026-06-05: no `source` column,
+        // hashtags is jsonb (not text[]).
         const { data: postRow } = await sb.from('content_calendar').insert({
           user_id: userId,
           platform: 'tiktok',
@@ -320,7 +322,7 @@ export async function POST(req: NextRequest) {
           video_url: videoUrl,
           scheduled_date: new Date().toISOString().slice(0, 10),
           scheduled_time: new Date().toISOString().slice(11, 19),
-          source: 'lena_dish_in_venue_reel',
+          hashtags: ['#keiroai', '#restaurant', '#signaturedish', '#foodlover', '#cheflife'],
           updated_at: new Date().toISOString(),
         }).select('id').single();
         if (postRow?.id) {
