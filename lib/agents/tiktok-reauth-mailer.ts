@@ -146,6 +146,15 @@ export async function relaunchPendingPostsAfterReauth(
   if (!userId) return result;
 
   const since7d = new Date(Date.now() - 7 * 86400 * 1000).toISOString();
+
+  // Strategy: gather candidate post_ids from two sources, then re-queue
+  // any tiktok post still in publish_failed/retry_pending/scheduled-but-overdue.
+  //
+  // Source A: explicit tiktok_post_pending_reauth events (new code path).
+  // Source B: any TikTok content_calendar row for this user that's stuck
+  //   in publish_failed/retry_pending — covers failures that happened
+  //   before the pending_reauth logging was added, and scheduled posts
+  //   whose publish_at has passed while the token was expired.
   const { data: pendingEvents } = await supabase
     .from('agent_logs')
     .select('id, data, created_at')
@@ -155,15 +164,44 @@ export async function relaunchPendingPostsAfterReauth(
     .gte('created_at', since7d)
     .order('created_at', { ascending: false });
 
-  if (!pendingEvents || pendingEvents.length === 0) return result;
+  const explicitPostIds = new Set(
+    (pendingEvents || []).map((e: any) => e.data?.post_id).filter(Boolean) as string[],
+  );
 
-  const postIds = Array.from(new Set(
-    pendingEvents.map((e: any) => e.data?.post_id).filter(Boolean),
-  )) as string[];
+  // Source B query: any tiktok post in failure state for this user.
+  const { data: stuckPosts } = await supabase
+    .from('content_calendar')
+    .select('id, status, publish_at')
+    .eq('user_id', userId)
+    .eq('platform', 'tiktok')
+    .in('status', ['publish_failed', 'retry_pending'])
+    .gte('updated_at', since7d);
 
-  if (postIds.length === 0) return result;
+  const stuckIds = new Set((stuckPosts || []).map((p: any) => p.id));
 
-  // Re-queue these posts: status = 'approved' + clear publish_diagnostic
+  // Also include 'approved'/'scheduled' tiktok posts whose publish_at
+  // already passed (worker may not have retried them yet).
+  const nowIso = new Date().toISOString();
+  const { data: overduePosts } = await supabase
+    .from('content_calendar')
+    .select('id, publish_at, status')
+    .eq('user_id', userId)
+    .eq('platform', 'tiktok')
+    .in('status', ['approved', 'scheduled', 'pending'])
+    .lte('publish_at', nowIso)
+    .gte('publish_at', since7d);
+
+  const overdueIds = new Set((overduePosts || []).map((p: any) => p.id));
+
+  const allCandidateIds = Array.from(new Set([
+    ...explicitPostIds,
+    ...stuckIds,
+    ...overdueIds,
+  ]));
+
+  if (allCandidateIds.length === 0) return result;
+
+  // Re-queue: flip to 'approved' + clear publish_diagnostic
   const { data: updated } = await supabase
     .from('content_calendar')
     .update({
@@ -171,16 +209,15 @@ export async function relaunchPendingPostsAfterReauth(
       publish_diagnostic: null,
       updated_at: new Date().toISOString(),
     })
-    .in('id', postIds)
+    .in('id', allCandidateIds)
     .eq('platform', 'tiktok')
-    .in('status', ['publish_failed', 'retry_pending'])
     .select('id');
 
   result.relaunched = updated?.length || 0;
   result.postIds = (updated || []).map((p: any) => p.id);
 
-  // Mark the pending-reauth events as resolved (set status='resolved')
-  if (result.relaunched > 0) {
+  // Mark pending-reauth events as resolved
+  if (pendingEvents && pendingEvents.length > 0) {
     await supabase
       .from('agent_logs')
       .update({ status: 'resolved' })

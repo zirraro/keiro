@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { exchangeTikTokCode, getTikTokUserInfo } from '@/lib/tiktok';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 
 /**
  * GET /api/auth/tiktok-callback
@@ -290,6 +290,40 @@ export async function GET(req: NextRequest) {
       relaunched = r.relaunched;
       if (relaunched > 0) {
         console.log(`[TikTokCallback] ✅ Relaunched ${relaunched} pending TikTok posts after reauth`);
+      }
+
+      // 2026-06-05 — Founder ask: "le client a reconnecté tiktok et aucun
+      // post publié alors qu on a dit immediatement a la connexion le post
+      // prevu qui devait etre publié se publie a la reconnexion et si
+      // plusieurs posts on publie egalement ceux prepares direct".
+      // relaunchPending flips status → 'approved' (which queues for cron).
+      // We want IMMEDIATE publish on reconnect, so fire-and-forget a
+      // publish_single call per post (parallel, non-blocking).
+      if (r.postIds && r.postIds.length > 0) {
+        const siteBase = process.env.NEXT_PUBLIC_SITE_URL || baseUrl;
+        const cronSecret = process.env.CRON_SECRET;
+        // Don't await — let publishes run while we redirect the user
+        Promise.all(r.postIds.map((pid) =>
+          fetch(`${siteBase}/api/agents/content?user_id=${userId}`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${cronSecret}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ action: 'publish_single', postId: pid }),
+          }).then(r => r.json()).catch(() => null)
+        )).then((results) => {
+          const okCount = results.filter((x: any) => x?.ok).length;
+          console.log(`[TikTokCallback] ✅ Immediate publish: ${okCount}/${r.postIds.length} posts`);
+          supabase.from('agent_logs').insert({
+            agent: 'content',
+            action: 'tiktok_immediate_publish_after_reauth',
+            status: okCount === r.postIds.length ? 'success' : 'partial',
+            user_id: userId,
+            data: { requested: r.postIds.length, published: okCount, post_ids: r.postIds },
+            created_at: new Date().toISOString(),
+          }).then(() => {});
+        }).catch(() => {});
       }
     } catch (e: any) {
       console.warn('[TikTokCallback] relaunch failed (non-fatal):', e?.message);
