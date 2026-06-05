@@ -165,6 +165,7 @@ async function getMarketingData(
     postsCount: 0,
     followersCount: 0,
     likes: 0,
+    avgViews: 0,
     engagement: 0,
   };
   try {
@@ -183,7 +184,11 @@ async function getMarketingData(
         .eq('status', 'published');
       tiktokStats.hasActivity = (tkPublished || 0) > 0;
       const tkToken = (tkProfile as any)?.tiktok_access_token;
-      if (tkToken && tiktokStats.hasActivity) {
+      // Hit /v2/user/info as soon as the token exists — even without
+      // KeiroAI-published activity. The founder wants to see real
+      // followers/posts immediately after connection, not "0 until you
+      // publish via Lena".
+      if (tkToken) {
         const r = await fetch(
           'https://open.tiktokapis.com/v2/user/info/?fields=follower_count,likes_count,video_count',
           { headers: { Authorization: `Bearer ${tkToken}` }, signal: AbortSignal.timeout(5000) }
@@ -200,6 +205,24 @@ async function getMarketingData(
               : 0;
           }
         }
+        try {
+          const vl = await fetch(
+            'https://open.tiktokapis.com/v2/video/list/?fields=view_count',
+            {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${tkToken}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ max_count: 20 }),
+              signal: AbortSignal.timeout(6000),
+            },
+          );
+          if (vl.ok) {
+            const vd = await vl.json();
+            const vids: any[] = vd?.data?.videos || [];
+            if (vids.length > 0) {
+              tiktokStats.avgViews = Math.round(vids.reduce((s, v) => s + (v.view_count || 0), 0) / vids.length);
+            }
+          }
+        } catch {}
       }
     }
   } catch {}
@@ -660,12 +683,32 @@ async function getContentData(
             ttFollowers = u.follower_count ?? 0;
             ttVideoCount = u.video_count ?? 0;
             ttLikes = u.likes_count ?? 0;
-            // TikTok doesn't expose per-video views via user/info — that
-            // requires /v2/research/video/query/ (Research API, gated).
-            // We compute avg views as likes/video × 10 as a rough proxy.
-            // Better would be to surface "Total likes" instead; flagged
-            // for follow-up. For now show 0 if we can't compute.
-            ttAvgViews = ttVideoCount > 0 ? Math.round(ttLikes / ttVideoCount * 10) : 0;
+            // TikTok doesn't expose per-video views via /v2/user/info —
+            // and /v2/video/query/ requires a Research API approval we
+            // don't have. Synthesizing "avg views" from likes was
+            // misleading the founder ("data tiktok pas bonnes"). We now
+            // pull real per-video view_count via /v2/video/list/ (granted
+            // when video.list scope is OK), and only otherwise leave the
+            // field at 0 so the UI can hide it rather than show fake data.
+            try {
+              const vlRes = await fetch(
+                'https://open.tiktokapis.com/v2/video/list/?fields=view_count,like_count,comment_count,share_count',
+                {
+                  method: 'POST',
+                  headers: { Authorization: `Bearer ${ttToken}`, 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ max_count: 20 }),
+                  signal: AbortSignal.timeout(6000),
+                },
+              );
+              if (vlRes.ok) {
+                const vlData = await vlRes.json();
+                const videos: any[] = vlData?.data?.videos || [];
+                if (videos.length > 0) {
+                  const totalViews = videos.reduce((s, v) => s + (v.view_count || 0), 0);
+                  ttAvgViews = Math.round(totalViews / videos.length);
+                }
+              }
+            } catch { /* fall back to 0 — better than a fake estimate */ }
           }
         }
       } catch (e: any) {

@@ -1322,12 +1322,14 @@ function InspirationBox({ network }: { network: InspirationNetwork }) {
 
   const cfg = {
     instagram: { label: 'Instagram', icon: '\u{1F4F8}', accent: 'pink', placeholder: '@bistrot_marais', supported: true },
-    tiktok: { label: 'TikTok', icon: '\u{1F3B5}', accent: 'cyan', placeholder: '@username', supported: false },
+    tiktok: { label: 'TikTok', icon: '\u{1F3B5}', accent: 'cyan', placeholder: '@username', supported: true },
     linkedin: { label: 'LinkedIn', icon: '\u{1F4BC}', accent: 'blue', placeholder: '/in/firstname-lastname', supported: false },
   }[network];
 
   const loadBrief = useCallback(async () => {
-    if (network !== 'instagram') return; // Only IG inspiration is wired up server-side today
+    // IG uses dedicated /inspiration endpoint that persists; TikTok uses
+    // /tiktok-analyze (no persistence yet). LinkedIn has no analyzer.
+    if (network !== 'instagram') return;
     try {
       const res = await fetch('/api/agents/content/inspiration', { credentials: 'include' });
       const j = await res.json();
@@ -1347,15 +1349,32 @@ function InspirationBox({ network }: { network: InspirationNetwork }) {
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch('/api/agents/content/inspiration', {
+      const endpoint = network === 'tiktok'
+        ? '/api/agents/tiktok-analyze'
+        : '/api/agents/content/inspiration';
+      const body = network === 'tiktok'
+        ? { handle: clean, intent: 'inspiration' }
+        : { handle: clean, save: true };
+      const res = await fetch(endpoint, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ handle: clean, save: true }),
+        body: JSON.stringify(body),
       });
       const j = await res.json();
       if (!j.ok) setError(j.error || 'Échec analyse');
-      else setBrief(j.brief);
+      else if (network === 'tiktok') {
+        // Shape tiktok-analyze response into the brief format used by the UI
+        setBrief({
+          handle: clean,
+          summary: j.verdict || j.summary || '',
+          ambiance: j.ambiance,
+          domaine: j.domaine,
+          notes: j.notes,
+        });
+      } else {
+        setBrief(j.brief);
+      }
     } catch (e: any) {
       setError(e.message || 'Erreur');
     } finally {
@@ -1403,10 +1422,14 @@ function InspirationBox({ network }: { network: InspirationNetwork }) {
           {brief ? (
             <div className="space-y-2">
               <div className="bg-black/30 border border-white/10 rounded-lg p-3 text-[11px] text-white/80 space-y-1.5">
-                <div><strong className={accentText}>Style:</strong> {brief.visual_style}</div>
-                <div><strong className={accentText}>Tone:</strong> {brief.tone}</div>
+                {brief.visual_style && <div><strong className={accentText}>Style:</strong> {brief.visual_style}</div>}
+                {brief.tone && <div><strong className={accentText}>Tone:</strong> {brief.tone}</div>}
                 {brief.palette_hints?.length > 0 && <div><strong className={accentText}>Palette:</strong> {brief.palette_hints.join(', ')}</div>}
                 {brief.composition_hints?.length > 0 && <div><strong className={accentText}>Composition:</strong> {brief.composition_hints.join(' · ')}</div>}
+                {brief.ambiance && <div><strong className={accentText}>Ambiance:</strong> {Array.isArray(brief.ambiance) ? brief.ambiance.join(', ') : brief.ambiance}</div>}
+                {brief.domaine && <div><strong className={accentText}>Domaine:</strong> {Array.isArray(brief.domaine) ? brief.domaine.join(', ') : brief.domaine}</div>}
+                {brief.summary && <div className="text-white/70">{brief.summary}</div>}
+                {brief.notes && <div className="text-white/60 text-[10px]">{brief.notes}</div>}
               </div>
               <div className="flex items-center gap-2">
                 <button onClick={removeBrief} disabled={busy} className="text-[10px] text-red-400 hover:text-red-300 px-2 py-1 disabled:opacity-50">Remove</button>

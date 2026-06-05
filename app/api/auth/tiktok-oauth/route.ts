@@ -40,15 +40,17 @@ export async function GET(req: NextRequest) {
     //
     // After Content Posting API review passes, re-enable the publish scopes
     // here and have users re-authorize.
+    // 2026-06-05 — user.info.basic gives only open_id+display_name. To
+    // read real follower_count / video_count / likes_count we MUST also
+    // request user.info.profile + user.info.stats. Without them the
+    // /v2/user/info/?fields=follower_count... call returns nulls and
+    // Lena/Ami show 0 everywhere — which is what the founder caught
+    // ("data tiktok pas bonnes").
     const TIKTOK_PUBLISH_APPROVED = process.env.TIKTOK_PUBLISH_APPROVED === '1';
+    const baseScopes = ['user.info.basic', 'user.info.profile', 'user.info.stats'];
     const scopes = TIKTOK_PUBLISH_APPROVED
-      ? [
-          'user.info.basic',
-          'video.list',
-          'video.publish',
-          'video.upload',
-        ].join(',')
-      : 'user.info.basic';
+      ? [...baseScopes, 'video.list', 'video.publish', 'video.upload'].join(',')
+      : baseScopes.join(',');
 
     // TEMPORARY: If Content Posting API not yet approved, use only:
     // const scopes = 'user.info.basic';
