@@ -62,10 +62,26 @@ export async function GET(req: NextRequest) {
     const origin = process.env.NEXT_PUBLIC_SITE_URL
       || (fwdHost ? `${fwdProto}://${fwdHost}` : `${req.nextUrl.protocol}//${req.nextUrl.host}`);
 
-    // Encode user_id + origin in state parameter to maintain context during OAuth redirect
+    // 2026-06-05 — Founder ask: "j'ai connecte tiktok via lena je dois
+    // revenir sur lena dans tiktok apres la connexion". On capture
+    // l'URL referer (ou un ?return_to= explicite) pour rediriger
+    // l'user là où il a cliqué le bouton "Connect TikTok" plutôt que
+    // vers la page tiktok-callback générique.
+    const refererHdr = req.headers.get('referer') || '';
+    const explicitReturn = req.nextUrl.searchParams.get('return_to') || '';
+    let returnTo = explicitReturn || refererHdr;
+    // Whitelist: only accept paths from our own domain to avoid open redirect.
+    if (returnTo && !returnTo.startsWith(origin) && !returnTo.startsWith('/')) {
+      returnTo = '';
+    }
+    // Default fallback: agent Lena TikTok tab
+    if (!returnTo) returnTo = '/assistant/agent/content?network=tiktok';
+
+    // Encode user_id + origin + returnTo in state parameter
     const statePayload = {
       userId: user.id,
       origin,
+      returnTo,
       timestamp: Date.now()
     };
     const stateEncoded = Buffer.from(JSON.stringify(statePayload)).toString('base64');

@@ -222,6 +222,63 @@ export async function GET(req: NextRequest) {
         .eq('id', userId);
     }
 
+    // 2026-06-05 — Founder ask: "une fois connecte a tiktok peu importe
+    // ou sur keiroai tout les autres endroits le detecte comme AMI et
+    // lena et partout on s'est necessaire alors ca voit la connexion
+    // et actionnent leur taches en consequences".
+    // Concrètement: les tokens sont déjà persistés (profile.tiktok_*).
+    // Chaque agent qui lit profile voit donc la connexion. Mais le
+    // toggle tt_enabled dans org_agent_configs.config peut être OFF
+    // depuis une déco précédente — on le flip ON ici pour que Lena/
+    // Ami/Jade actionnent tout de suite leurs tâches TikTok sans
+    // que le client ait à re-cocher dans le panel.
+    try {
+      const { data: existingCfg } = await supabase
+        .from('org_agent_configs')
+        .select('id, config')
+        .eq('user_id', userId)
+        .eq('agent_id', 'content')
+        .maybeSingle();
+      if (existingCfg) {
+        const cfg = existingCfg.config || {};
+        cfg.tt_enabled = true;
+        cfg.auto_mode_tiktok = true;
+        if (!cfg.posts_per_day_tt) cfg.posts_per_day_tt = 1;
+        await supabase
+          .from('org_agent_configs')
+          .update({ config: cfg, updated_at: new Date().toISOString() })
+          .eq('id', existingCfg.id);
+        console.log(`[TikTokCallback] ✅ Auto-activated Lena TikTok for ${userId}`);
+      }
+      // Notify Jade DM agent too (auto-mode on TikTok if dm_instagram config exists)
+      const { data: dmCfg } = await supabase
+        .from('org_agent_configs')
+        .select('id, config')
+        .eq('user_id', userId)
+        .eq('agent_id', 'dm_instagram')
+        .maybeSingle();
+      if (dmCfg) {
+        const dc = dmCfg.config || {};
+        dc.tiktok_connected = true;
+        await supabase
+          .from('org_agent_configs')
+          .update({ config: dc, updated_at: new Date().toISOString() })
+          .eq('id', dmCfg.id);
+      }
+      // Log a global event so any subscribed agent (Ami strategy,
+      // CEO brief, etc.) can react on next run.
+      await supabase.from('agent_logs').insert({
+        agent: 'ops',
+        action: 'tiktok_connected_event',
+        status: 'success',
+        user_id: userId,
+        data: { broadcast: true, agents_notified: ['content', 'dm_instagram', 'ami'] },
+        created_at: new Date().toISOString(),
+      });
+    } catch (cfgErr: any) {
+      console.warn('[TikTokCallback] auto-activation failed (non-fatal):', cfgErr?.message);
+    }
+
     // 2026-06-05 — Founder ask: "les publication qui ne sont pas passees
     // a l'heure des connexion on les lancent par contre". Quand l'user
     // reconnecte, relance les posts TikTok qui avaient été flaggés
@@ -244,9 +301,25 @@ export async function GET(req: NextRequest) {
       elapsedMs: Date.now() - startTime
     });
 
-    // Redirect to success page (suffixe relaunched=N pour informer l'user)
-    const relaunchedQs = relaunched > 0 ? `&relaunched=${relaunched}` : '';
-    const redirectUrl = `${baseUrl}/tiktok-callback?success=true&username=${encodeURIComponent(displayName)}${relaunchedQs}`;
+    // 2026-06-05 — Honor returnTo encoded in state param (founder
+    // started OAuth from Lena's TikTok tab → comes back there).
+    // Falls back to the generic /tiktok-callback success page if no
+    // returnTo (e.g. legacy old-style state payloads).
+    const relaunchedQs = relaunched > 0 ? `&tt_relaunched=${relaunched}` : '';
+    let returnTo: string = '';
+    try {
+      const decoded = JSON.parse(Buffer.from(state, 'base64').toString('utf8'));
+      returnTo = decoded?.returnTo || '';
+    } catch { returnTo = ''; }
+    // Whitelist again on this side too (state could theoretically be tampered)
+    if (returnTo && !returnTo.startsWith('/') && !returnTo.startsWith(baseUrl)) {
+      returnTo = '';
+    }
+    const target = returnTo
+      ? (returnTo.startsWith('http') ? returnTo : `${baseUrl}${returnTo}`)
+      : `${baseUrl}/tiktok-callback`;
+    const sep = target.includes('?') ? '&' : '?';
+    const redirectUrl = `${target}${sep}tt_connected=1&username=${encodeURIComponent(displayName)}${relaunchedQs}`;
     console.log('[TikTokCallback] ✅ Step 5/5 complete: Success!', {
       redirectUrl,
       totalElapsedMs: Date.now() - startTime
