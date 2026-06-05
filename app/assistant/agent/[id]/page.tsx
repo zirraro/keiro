@@ -1296,6 +1296,32 @@ export default function AgentWorkspacePage() {
     return () => { delete (window as any).__openCampaignWizard; };
   }, []);
 
+  // Flash banner when user comes back from TikTok OAuth callback
+  const [flashBanner, setFlashBanner] = useState<{ kind: 'success' | 'info'; text: string } | null>(null);
+  useEffect(() => {
+    const ttConnected = searchParams.get('tt_connected');
+    const ttRelaunched = searchParams.get('tt_relaunched');
+    if (ttConnected === '1') {
+      const n = parseInt(ttRelaunched || '0', 10);
+      setFlashBanner({
+        kind: 'success',
+        text: n > 0
+          ? `✅ TikTok reconnecte. ${n} post${n > 1 ? 's' : ''} en cours de publication automatique.`
+          : '✅ TikTok reconnecte. Lena va relancer la prochaine publication prevue.',
+      });
+      // Drop the query params so a refresh doesn't re-show the banner
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('tt_connected');
+        url.searchParams.delete('tt_relaunched');
+        url.searchParams.delete('username');
+        window.history.replaceState({}, '', url.toString());
+      } catch {}
+      const t = setTimeout(() => setFlashBanner(null), 6000);
+      return () => clearTimeout(t);
+    }
+  }, [searchParams]);
+
   // Chat (slide-over)
   const [chatOpen, setChatOpen] = useState(false);
   // chatMinimised: chat is "alive" but collapsed to a small floating
@@ -1830,6 +1856,17 @@ export default function AgentWorkspacePage() {
   // ─── RENDER ───────────────────────────────────────────
   return (
     <div className="min-h-screen bg-[#0c1a3a] pt-16 relative">
+      {flashBanner && (
+        <div className="fixed top-16 inset-x-0 z-[90] flex justify-center px-4 pointer-events-none">
+          <div className={`pointer-events-auto mt-2 max-w-md rounded-xl border px-4 py-2.5 text-xs font-medium shadow-lg backdrop-blur ${
+            flashBanner.kind === 'success'
+              ? 'bg-emerald-500/15 border-emerald-400/40 text-emerald-100'
+              : 'bg-blue-500/15 border-blue-400/40 text-blue-100'
+          }`}>
+            {flashBanner.text}
+          </div>
+        </div>
+      )}
       {/* Visitor overlay — blur + signup CTA */}
       {isVisitor && (
         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center pointer-events-none" style={{ top: 64 }}>
