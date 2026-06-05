@@ -169,9 +169,13 @@ export async function relaunchPendingPostsAfterReauth(
   );
 
   // Source B query: any tiktok post in failure state for this user.
+  // Note: this table uses scheduled_date + scheduled_time (not publish_at)
+  // — caught 2026-06-05 after the founder's mrzirraro reconnect didn't
+  // republish anything. Earlier code referenced publish_at which doesn't
+  // exist, so supabase-js silently returned [] and nothing got re-queued.
   const { data: stuckPosts } = await supabase
     .from('content_calendar')
-    .select('id, status, publish_at')
+    .select('id, status, scheduled_date, scheduled_time')
     .eq('user_id', userId)
     .eq('platform', 'tiktok')
     .in('status', ['publish_failed', 'retry_pending'])
@@ -179,17 +183,19 @@ export async function relaunchPendingPostsAfterReauth(
 
   const stuckIds = new Set((stuckPosts || []).map((p: any) => p.id));
 
-  // Also include 'approved'/'scheduled' tiktok posts whose publish_at
-  // already passed (worker may not have retried them yet).
-  const nowIso = new Date().toISOString();
+  // Also include 'approved'/'scheduled' tiktok posts whose scheduled
+  // date/time already passed in the last 7 days (worker may not have
+  // retried them yet because the token was dead).
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const since7dDate = new Date(Date.now() - 7 * 86400 * 1000).toISOString().slice(0, 10);
   const { data: overduePosts } = await supabase
     .from('content_calendar')
-    .select('id, publish_at, status')
+    .select('id, scheduled_date, scheduled_time, status')
     .eq('user_id', userId)
     .eq('platform', 'tiktok')
     .in('status', ['approved', 'scheduled', 'pending'])
-    .lte('publish_at', nowIso)
-    .gte('publish_at', since7d);
+    .lte('scheduled_date', todayIso)
+    .gte('scheduled_date', since7dDate);
 
   const overdueIds = new Set((overduePosts || []).map((p: any) => p.id));
 
