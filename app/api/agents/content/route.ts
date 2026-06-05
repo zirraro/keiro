@@ -855,19 +855,51 @@ async function publishToInstagram(
       const storyResult = await publishStoryToInstagram(igUserId, pageAccessToken, post.visual_url!);
       result = { id: storyResult.id };
     } else if (format === 'carrousel') {
-      // Real carousel: generate 2 additional variations, publish 3 images as carousel
+      // Real carousel: use per-slide visual descriptions when the LLM
+      // provided them (post.slides[]). Otherwise fall back to narrative-
+      // aware variations of the base description.
+      //
+      // Bug caught 2026-06-05 by founder: previously generated 3 images
+      // from same base + trivial suffixes ("alternative angle", "close-up"),
+      // so before/after carousels looked like 3 angles of the same scene
+      // — not a real narrative. The LLM was already outputting slides[]
+      // with distinct `visual` per slide; the code just ignored it.
       const carouselUrls: string[] = [post.visual_url!];
       const baseDesc = (post as any).visual_description || (post as any).hook || (post as any).caption || 'premium product';
-      const variationSuffixes = [
-        'from a different creative angle, alternative composition, complementary color palette',
-        'close-up detail shot, macro photography perspective, showing texture and quality',
-      ];
-      for (const suffix of variationSuffixes) {
-        try {
-          const varUrl = await generateVisual(`${baseDesc}. ${suffix}`, 'carrousel');
-          if (varUrl) carouselUrls.push(varUrl);
-        } catch { /* skip variation on error */ }
+      const slides: Array<{ visual?: string; text?: string; style?: string }> = Array.isArray((post as any).slides) ? (post as any).slides : [];
+
+      // Use slides[1..N].visual for slides 2..N+1 (slide 1 = base image already there).
+      // Cap at 9 extra slides (IG max = 10).
+      const slidesToUse = slides.slice(1, 10);
+      if (slidesToUse.length > 0) {
+        console.log(`[Content] Carousel: using ${slidesToUse.length} per-slide visual_description from LLM`);
+        for (const s of slidesToUse) {
+          const slideDesc = s.visual?.trim();
+          if (!slideDesc) continue;
+          try {
+            const varUrl = await generateVisual(slideDesc, 'carrousel');
+            if (varUrl) carouselUrls.push(varUrl);
+          } catch { /* skip slide on error */ }
+        }
       }
+
+      // Fallback when slides[] is missing — produce 2 SEMANTICALLY distinct
+      // variations (not just angles). The variations describe a narrative
+      // arc (before vs after, problem vs solution, wide vs detail) so the
+      // carousel feels like a story even without explicit slide briefs.
+      if (carouselUrls.length === 1) {
+        const narrativeVariations = [
+          `${baseDesc}. NARRATIVE SLIDE 2 — visually opposed to slide 1: if slide 1 is empty/cold/quiet, this slide is alive/warm/full of motion. If slide 1 is a wide establishing shot, this is a close-up of a specific human gesture or tangible result. Different time of day, different framing, different energy. Editorial photography aesthetic, real skin texture, natural light, no AI tells.`,
+          `${baseDesc}. NARRATIVE SLIDE 3 — proof/result moment: a single concrete tangible element that demonstrates the outcome (busy reservation book, smile of a real customer mid-bite, hand counting tip, full dining room from owner's POV). Documentary photography intimacy, shallow depth of field, golden-hour or window-light, NO repeated subject from slides 1 or 2.`,
+        ];
+        for (const variation of narrativeVariations) {
+          try {
+            const varUrl = await generateVisual(variation, 'carrousel');
+            if (varUrl) carouselUrls.push(varUrl);
+          } catch { /* skip variation on error */ }
+        }
+      }
+
       if (carouselUrls.length >= 2) {
         console.log(`[Content] Publishing carousel with ${carouselUrls.length} images`);
         result = await publishCarouselToInstagram(igUserId, pageAccessToken, carouselUrls, fullCaption);

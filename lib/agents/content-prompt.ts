@@ -573,6 +573,26 @@ STRUCTURE CARROUSEL (10 slides) :
 - Slide 9 : Récap/résumé
 - Slide 10 : CTA "Suis @keiroai pour plus de tips" + "Lien en bio → keiroai.com"
 
+CARROUSEL — VISUELS SLIDE-PAR-SLIDE (RÈGLE DURE — NON-NÉGOCIABLE)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Pour CHAQUE slide du carrousel tu DOIS remplir `slides[i].visual` avec une description PROPRE et DISTINCTE. Ne copie-colle JAMAIS le même visuel d'une slide à l'autre, ne te contente JAMAIS de "même scène, autre angle". Le pipeline image génère une image par slide depuis ce champ — si tu mets la même chose, le client voit 5 fois la même image et trouve ça « bot/IA ».
+
+CARROUSEL AVANT/APRÈS (le format dont parle l'écrasante majorité des cas) — règle d'opposition visuelle :
+- Slide 1 — AVANT : énergie basse, lumière froide (gris bleuté, néon mort), salle vide, aucun client, posture du gérant fermée (bras croisés, regard vers le sol, scrolle son tel), table dressée mais personne, plan large qui montre le vide, comptoir poussiéreux. Pas de sourire. Photo « lundi 11h hors saison ».
+- Slide 2 — DÉCLIC / PROCESS : un seul détail concret de la solution — un téléphone dans la main avec une notification KeiroAI, un planning manuscrit déchiré, une tablette posée sur le comptoir qui montre un dashboard KeiroAI (silhouette, pas l'UI lisible), mains qui tapent sur un clavier. Cadrage serré, lumière de fenêtre, transition entre froideur et chaleur (mid-tones).
+- Slide 3 — APRÈS : énergie haute, lumière chaude (golden hour, lampe tungstène, soleil naturel), 3-5 clients dans le cadre vrais (origines diverses, âges variés — pas le même casting que la slide 1), gérant en mouvement, sourire authentique mid-action (pas posé), file à l'entrée visible en arrière-plan flou, table dressée avec assiettes pleines. Photo « samedi 20h plein ».
+- Slide 4 — PREUVE TANGIBLE : un seul objet/écran/document qui prouve le résultat. Carnet de réservations rempli à la main, un avis Google 5★ en gros sur un écran, une notification de virement, un afterwork de l'équipe, l'addition d'un samedi soir. Lumière chaude, macro f/2, NO RE-USE des visages des slides précédentes.
+- Slide 5 (si carrousel 5 slides) — CTA : visuel sobre, fond uni couleur de marque, texte court overlay (« Toi aussi → keiroai.com »).
+
+VARIATIONS SANS AVANT/APRÈS (éducatif / liste / story) :
+- Chaque slide doit avoir un SUJET DIFFÉRENT, un CADRAGE DIFFÉRENT, et idéalement un MOMENT DIFFÉRENT (heure de la journée, saison, intérieur/extérieur). Pas le même décor ni la même personne sur 3 slides consécutives.
+- Si tu ne sais quoi varier : alterne plan large → plan moyen → close-up → détail produit → flat-lay vue plongeante → portrait du gérant. Chaque slide = un cadrage radicalement différent.
+
+QUALITÉ VISUEL CARROUSEL — NIVEAU PHOTOGRAPHE PRO (rappel) :
+- Chaque slide doit lire comme une photo prise par un vrai photographe pro sur place (Vogue Local / National Geographic / Cereal / Apartamento), pas comme 3 angles d'une image générique.
+- Lumière naturelle dominante. Si tu écris « studio lighting », tu te trompes. Préfère « lumière de fenêtre nord à 45° », « golden hour 17h », « single bulb tungstène » — c'est ce que dit un vrai photographe.
+- Si une personne apparaît sur 2 slides, ELLE DOIT être la même IRL (sinon ça casse la cohérence). Si tu ne peux pas garantir la cohérence du visage (i.e. pas une photo du client), fais en sorte que chaque slide montre UNE PERSONNE DIFFÉRENTE et explicite-le dans le visual (« mid-30s afro-french chef, then in slide 3 a different person: 50yo maghrebi customer enjoying the dish »).
+
 STRUCTURE REEL/TIKTOK :
 - 0-3s : Hook visuel + texte overlay accrocheur
 - 3-15s : Contenu dense, valeur immédiate
