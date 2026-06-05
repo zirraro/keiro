@@ -54,8 +54,21 @@ export async function POST(request: Request) {
       }
     }
 
-    // --- V\u00e9rification cr\u00e9dits ---
-    const { user } = await getAuthUser();
+    // --- Authentification ---
+    // Either session cookie (UI) or Bearer CRON_SECRET (backend admin/test).
+    // When using CRON auth, body must include `userId`.
+    const bearer = request.headers.get('authorization') || '';
+    const useCronAuth = bearer === `Bearer ${process.env.CRON_SECRET}`;
+    let user: { id: string } | null = null;
+    if (useCronAuth) {
+      const probe: any = body;
+      if (probe?.userId) {
+        user = { id: probe.userId };
+      }
+    } else {
+      const res = await getAuthUser();
+      user = res.user;
+    }
     if (!user) {
       return Response.json({
         ok: false,
@@ -65,7 +78,7 @@ export async function POST(request: Request) {
       }, { status: 403 });
     }
 
-    const isAdminUser = await isAdmin(user.id);
+    const isAdminUser = useCronAuth ? true : await isAdmin(user.id);
     if (!isAdminUser) {
       const check = await checkCredits(user.id, 'video_i2v', duration);
       if (!check.allowed) {

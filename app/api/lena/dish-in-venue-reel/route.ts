@@ -121,9 +121,24 @@ async function qaImageInput(url: string): Promise<{ ok: boolean; reason?: string
 }
 
 export async function POST(req: NextRequest) {
-  const { user } = await getAuthUser();
-  if (!user) {
-    return NextResponse.json({ ok: false, error: 'auth_required' }, { status: 401 });
+  // Auth: session cookie (user UI) OR Bearer CRON_SECRET (admin/backend test).
+  // When using Bearer CRON_SECRET, the caller must pass `userId` in the body
+  // — used for credit/quota accounting + agent_logs ownership.
+  const bearer = req.headers.get('authorization') || '';
+  const useCronAuth = bearer === `Bearer ${process.env.CRON_SECRET}`;
+  let userId: string | null = null;
+  if (useCronAuth) {
+    const probe = await req.clone().json().catch(() => null);
+    userId = probe?.userId || null;
+  } else {
+    const { user } = await getAuthUser();
+    if (!user) {
+      return NextResponse.json({ ok: false, error: 'auth_required' }, { status: 401 });
+    }
+    userId = user.id;
+  }
+  if (!userId) {
+    return NextResponse.json({ ok: false, error: 'user_id_required_for_cron_auth' }, { status: 400 });
   }
 
   const body = await req.json().catch(() => null);
@@ -187,13 +202,16 @@ export async function POST(req: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        // Forward the user's cookies so the i2v endpoint sees the same auth
-        cookie: req.headers.get('cookie') || '',
+        // Forward whichever auth got us here: Bearer (cron) or cookie (UI).
+        ...(useCronAuth
+          ? { authorization: `Bearer ${process.env.CRON_SECRET}` }
+          : { cookie: req.headers.get('cookie') || '' }),
       },
       body: JSON.stringify({
         imageUrl: stillUrl,
         prompt,
         duration,
+        userId, // required by i2v when using cron auth, harmless otherwise
       }),
       signal: AbortSignal.timeout(60_000),
     });
@@ -221,7 +239,7 @@ export async function POST(req: NextRequest) {
       agent: 'content',
       action: 'lena_dish_in_venue_reel',
       status: 'pending',
-      user_id: user.id,
+      user_id: userId,
       data: {
         post_id: postId,
         motion_preset: motion,
