@@ -575,7 +575,7 @@ STRUCTURE CARROUSEL (10 slides) :
 
 CARROUSEL — VISUELS SLIDE-PAR-SLIDE (RÈGLE DURE — NON-NÉGOCIABLE)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Pour CHAQUE slide du carrousel tu DOIS remplir `slides[i].visual` avec une description PROPRE et DISTINCTE. Ne copie-colle JAMAIS le même visuel d'une slide à l'autre, ne te contente JAMAIS de "même scène, autre angle". Le pipeline image génère une image par slide depuis ce champ — si tu mets la même chose, le client voit 5 fois la même image et trouve ça « bot/IA ».
+Pour CHAQUE slide du carrousel tu DOIS remplir slides[i].visual avec une description PROPRE et DISTINCTE. Ne copie-colle JAMAIS le même visuel d'une slide à l'autre, ne te contente JAMAIS de "même scène, autre angle". Le pipeline image génère une image par slide depuis ce champ — si tu mets la même chose, le client voit 5 fois la même image et trouve ça « bot/IA ».
 
 CARROUSEL AVANT/APRÈS (le format dont parle l'écrasante majorité des cas) — règle d'opposition visuelle :
 - Slide 1 — AVANT : énergie basse, lumière froide (gris bleuté, néon mort), salle vide, aucun client, posture du gérant fermée (bras croisés, regard vers le sol, scrolle son tel), table dressée mais personne, plan large qui montre le vide, comptoir poussiéreux. Pas de sourire. Photo « lundi 11h hors saison ».
