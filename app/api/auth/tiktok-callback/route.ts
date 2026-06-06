@@ -233,38 +233,41 @@ export async function GET(req: NextRequest) {
     // Ami/Jade actionnent tout de suite leurs tâches TikTok sans
     // que le client ait à re-cocher dans le panel.
     try {
-      const { data: existingCfg } = await supabase
+      // 2026-06-06 — Founder caught Jade not detecting TikTok despite the
+      // user being reconnected. Two bugs in the original broadcast block:
+      //   (a) .maybeSingle() returned null when the user had duplicate
+      //       rows in org_agent_configs (mrzirraro had 11 dm_instagram
+      //       rows from earlier provisioning bugs).
+      //   (b) .update({updated_at:...}) referenced a column that doesn't
+      //       exist on org_agent_configs, throwing an error that crashed
+      //       the broadcast block entirely.
+      // Fix: select ALL rows and update each one. No updated_at column.
+      const { data: contentCfgs } = await supabase
         .from('org_agent_configs')
         .select('id, config')
         .eq('user_id', userId)
-        .eq('agent_id', 'content')
-        .maybeSingle();
-      if (existingCfg) {
-        const cfg = existingCfg.config || {};
+        .eq('agent_id', 'content');
+      for (const row of contentCfgs || []) {
+        const cfg = row.config || {};
         cfg.tt_enabled = true;
         cfg.auto_mode_tiktok = true;
         if (!cfg.posts_per_day_tt) cfg.posts_per_day_tt = 1;
-        await supabase
-          .from('org_agent_configs')
-          .update({ config: cfg, updated_at: new Date().toISOString() })
-          .eq('id', existingCfg.id);
-        console.log(`[TikTokCallback] ✅ Auto-activated Lena TikTok for ${userId}`);
+        await supabase.from('org_agent_configs').update({ config: cfg }).eq('id', row.id);
       }
-      // Notify Jade DM agent too (auto-mode on TikTok if dm_instagram config exists)
-      const { data: dmCfg } = await supabase
+      if ((contentCfgs || []).length > 0) console.log(`[TikTokCallback] ✅ Auto-activated Lena TikTok on ${(contentCfgs || []).length} row(s) for ${userId}`);
+
+      // Notify Jade DM agent — flip tiktok_connected on every dm_instagram row.
+      const { data: dmCfgs } = await supabase
         .from('org_agent_configs')
         .select('id, config')
         .eq('user_id', userId)
-        .eq('agent_id', 'dm_instagram')
-        .maybeSingle();
-      if (dmCfg) {
-        const dc = dmCfg.config || {};
+        .eq('agent_id', 'dm_instagram');
+      for (const row of dmCfgs || []) {
+        const dc = row.config || {};
         dc.tiktok_connected = true;
-        await supabase
-          .from('org_agent_configs')
-          .update({ config: dc, updated_at: new Date().toISOString() })
-          .eq('id', dmCfg.id);
+        await supabase.from('org_agent_configs').update({ config: dc }).eq('id', row.id);
       }
+      if ((dmCfgs || []).length > 0) console.log(`[TikTokCallback] ✅ Jade tiktok_connected=true on ${(dmCfgs || []).length} row(s) for ${userId}`);
       // Log a global event so any subscribed agent (Ami strategy,
       // CEO brief, etc.) can react on next run.
       await supabase.from('agent_logs').insert({
