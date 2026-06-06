@@ -2875,27 +2875,108 @@ export async function POST(request: NextRequest) {
           if ((pFormat === 'reel' || pFormat === 'video') && !videoUrl && !post.video_job_id) {
             const desc = post.visual_description || post.hook || post.caption;
             if (desc) {
-              if (post.platform === 'tiktok') {
-                // TikTok: async 30s pipeline — video-poll cron will publish
-                console.log(`[Content] execute_pub: TikTok needs 30s video — starting async pipeline`);
-                const asyncResult = await createAsyncLongVideo(desc, post.caption || desc, 30, '9:16', post.id);
-                if (asyncResult.jobId) {
-                  console.log(`[Content] execute_pub: async job ${asyncResult.jobId} started for TikTok post ${post.id}`);
-                  // Skip publishing — video-poll cron will handle it
-                  publishedPosts.push({ platform: post.platform, format: post.format, hook: post.hook || '', publication_error: 'async_video_generating' });
-                  continue;
+              // 2026-06-06 — Founder ask: "même stratégie d'utilisation des
+              // images donne par le client que pour insta donc pas systématiquement".
+              // When the client has uploaded a dish + venue pair AND the
+              // dice roll lands under 0.35, route TikTok reels through the
+              // dish-in-venue pipeline (i2i refinement + QA + i2v from the
+              // refined still). Otherwise fall through to the standard t2v
+              // generation. Selectivity = avoid overusing the same client
+              // assets + control cost (~€0.18 per dvr reel vs €0.10 for
+              // standard t2v).
+              const ownerId = (post as any).user_id || effectivePostOwnerId;
+              const dvrRng = Math.random();
+              if (post.platform === 'tiktok' && ownerId && dvrRng < 0.35) {
+                try {
+                  const { pickClientDishVenuePair, buildDishInVenueRefinedStill, qaRefinedStillWithVision } = await import('@/lib/visuals/dish-in-venue-i2i');
+                  const pair = await pickClientDishVenuePair(supabase, ownerId);
+                  if (pair) {
+                    console.log(`[Content] execute_pub: TikTok reel — trying dish-in-venue (rng=${dvrRng.toFixed(2)})`);
+                    const build = await buildDishInVenueRefinedStill({
+                      venueUrl: pair.venueUrl,
+                      dishUrl: pair.dishUrl,
+                      postId: post.id,
+                      aspect: 'story',
+                    });
+                    if (build.url) {
+                      const qa = await qaRefinedStillWithVision(build.url);
+                      console.log(`[Content] dvr QA: score=${qa.score} pass=${qa.pass} — ${qa.verdict}`);
+                      if (qa.pass) {
+                        // Dispatch i2v on the refined still (5s — TikTok-feasible)
+                        const i2vReq = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://keiroai.com'}/api/seedream/i2v`, {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            authorization: `Bearer ${process.env.CRON_SECRET}`,
+                          },
+                          body: JSON.stringify({
+                            imageUrl: build.url,
+                            prompt: 'LOCKED ELEMENTS: the plated dish, the venue background, the table, every object — all stay exactly as in frame 1. CAMERA: very subtle parallax, no more than 3% lateral drift. ACTION: warm natural daylight subtly shifts as if a cloud has just passed; shadows lengthen barely. NO human enters, NO objects move. CINEMATOGRAPHY: Leica M11 50mm f/2, Portra 400 film grain, soft side window light, deep micro-contrast on the dish, ambient occlusion under the plate. STYLE: Vogue Local / Cereal Magazine intimate editorial. BANNED: zoom, rotation, lens flare, halo glow, ring-light catchlight, magenta cyan saturation, midjourney style, CGI, 3D render, cartoon, instagram filter, vsco filter, hdr glow. NO text in the video.',
+                            duration: 5,
+                            userId: ownerId,
+                          }),
+                          signal: AbortSignal.timeout(60_000),
+                        });
+                        const i2vData = await i2vReq.json().catch(() => null);
+                        if (i2vData?.ok && i2vData?.taskId) {
+                          // Poll up to 120s for completion
+                          const deadline = Date.now() + 120_000;
+                          while (Date.now() < deadline) {
+                            await new Promise(r => setTimeout(r, 6_000));
+                            try {
+                              const pr = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://keiroai.com'}/api/seedream/i2v`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', authorization: `Bearer ${process.env.CRON_SECRET}` },
+                                body: JSON.stringify({ taskId: i2vData.taskId, userId: ownerId }),
+                                signal: AbortSignal.timeout(15_000),
+                              });
+                              const pdata = await pr.json().catch(() => null);
+                              if (pdata?.status === 'completed' && pdata?.videoUrl) {
+                                videoUrl = pdata.videoUrl;
+                                updateData.video_url = videoUrl;
+                                updateData.visual_url = build.url;
+                                updateData.publish_diagnostic = `dvr_reel:rng=${dvrRng.toFixed(2)},score=${qa.score}`;
+                                console.log(`[Content] ✅ dvr reel ready for ${post.id}`);
+                                break;
+                              }
+                              if (pdata?.status === 'failed') break;
+                            } catch {}
+                          }
+                        }
+                      } else {
+                        console.log(`[Content] dvr QA failed — falling back to standard reel`);
+                      }
+                    }
+                  }
+                } catch (dvrErr: any) {
+                  console.warn('[Content] dvr pipeline threw, fallback to standard:', dvrErr?.message);
                 }
-                // Fallback to sync 10s if async fails
-                console.warn('[Content] execute_pub: async failed, fallback to sync 10s');
-                const vr = await generateVideoWithNarration(desc, post.caption || desc, pFormat, 10);
-                videoUrl = vr.videoUrl;
-                if (videoUrl) updateData.video_url = videoUrl;
-              } else {
-                // Instagram: sync 5s video
-                console.log(`[Content] execute_pub: Instagram reel needs 5s video — generating...`);
-                const vr = await generateVideoWithNarration(desc, post.caption || desc, pFormat, 5);
-                videoUrl = vr.videoUrl;
-                if (videoUrl) updateData.video_url = videoUrl;
+              }
+
+              // Fallback / default path: standard t2v reel
+              if (!videoUrl) {
+                if (post.platform === 'tiktok') {
+                  // TikTok: async 30s pipeline — video-poll cron will publish
+                  console.log(`[Content] execute_pub: TikTok needs 30s video — starting async pipeline`);
+                  const asyncResult = await createAsyncLongVideo(desc, post.caption || desc, 30, '9:16', post.id);
+                  if (asyncResult.jobId) {
+                    console.log(`[Content] execute_pub: async job ${asyncResult.jobId} started for TikTok post ${post.id}`);
+                    // Skip publishing — video-poll cron will handle it
+                    publishedPosts.push({ platform: post.platform, format: post.format, hook: post.hook || '', publication_error: 'async_video_generating' });
+                    continue;
+                  }
+                  // Fallback to sync 10s if async fails
+                  console.warn('[Content] execute_pub: async failed, fallback to sync 10s');
+                  const vr = await generateVideoWithNarration(desc, post.caption || desc, pFormat, 10);
+                  videoUrl = vr.videoUrl;
+                  if (videoUrl) updateData.video_url = videoUrl;
+                } else {
+                  // Instagram: sync 5s video
+                  console.log(`[Content] execute_pub: Instagram reel needs 5s video — generating...`);
+                  const vr = await generateVideoWithNarration(desc, post.caption || desc, pFormat, 5);
+                  videoUrl = vr.videoUrl;
+                  if (videoUrl) updateData.video_url = videoUrl;
+                }
               }
             }
           }

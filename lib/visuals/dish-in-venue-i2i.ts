@@ -18,8 +18,39 @@
  * Cost: composite ~€0 (sharp local) + Seedream i2i ~€0.025 = ~€0.025 per still.
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { compositeDishOnVenue } from './dish-in-venue';
+
+/**
+ * Look up a usable dish+venue pair from the client's uploaded assets.
+ * Returns null if either side is missing — caller falls back to standard
+ * AI generation. Mirrors the IG-side picking logic but keeps it lean.
+ *
+ * Pair = first available dish/product photo + first available space/ambiance
+ * photo from the same user's agent_files. We don't score relevance here —
+ * the gating dice already decided "use client assets this round", so any
+ * fresh pair is good enough.
+ */
+export async function pickClientDishVenuePair(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<{ dishUrl: string; venueUrl: string } | null> {
+  try {
+    const { data: files } = await supabase
+      .from('agent_files')
+      .select('file_url, ai_analysis')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(200);
+    if (!files || files.length === 0) return null;
+    const dish = files.find((f: any) => ['dish', 'product'].includes(f.ai_analysis?.content_type) && f.file_url);
+    const venue = files.find((f: any) => ['space', 'ambiance'].includes(f.ai_analysis?.content_type) && f.file_url);
+    if (!dish?.file_url || !venue?.file_url) return null;
+    return { dishUrl: dish.file_url, venueUrl: venue.file_url };
+  } catch {
+    return null;
+  }
+}
 
 const SEEDREAM_API_URL = process.env.SEEDREAM_API_URL || 'https://ark.ap-southeast.bytepluses.com/api/v3/images/generations';
 const SEEDREAM_API_KEY = (process.env.SEEDREAM_API_KEY || process.env.ARK_API_KEY || '').replace(/\\n/g, '').trim();
