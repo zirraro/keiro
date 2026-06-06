@@ -93,15 +93,17 @@ export async function GET(req: NextRequest) {
       console.warn(`[tiktok-token-refresh] ❌ ${c.email}:`, errMsg);
       // Log the failure so the digest / lifecycle cron can email the
       // client to reconnect (refresh_token may have been revoked).
-      await sb.from('agent_logs').insert({
-        agent: 'content',
-        action: 'tiktok_token_refresh_failed',
-        status: 'error',
-        user_id: c.id,
-        data: { error: errMsg, source: 'proactive_cron' },
-        error_message: errMsg,
-        created_at: new Date().toISOString(),
-      }).then(() => {}).catch(() => {});
+      try {
+        await sb.from('agent_logs').insert({
+          agent: 'content',
+          action: 'tiktok_token_refresh_failed',
+          status: 'error',
+          user_id: c.id,
+          data: { error: errMsg, source: 'proactive_cron' },
+          error_message: errMsg,
+          created_at: new Date().toISOString(),
+        });
+      } catch { /* logging best-effort */ }
     }
   }
 
