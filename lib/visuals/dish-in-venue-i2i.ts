@@ -24,12 +24,12 @@ import { compositeDishOnVenue } from './dish-in-venue';
 /**
  * Look up a usable dish+venue pair from the client's uploaded assets.
  * Returns null if either side is missing — caller falls back to standard
- * AI generation. Mirrors the IG-side picking logic but keeps it lean.
+ * AI generation.
  *
- * Pair = first available dish/product photo + first available space/ambiance
- * photo from the same user's agent_files. We don't score relevance here —
- * the gating dice already decided "use client assets this round", so any
- * fresh pair is good enough.
+ * Picks RANDOMLY among fresh assets (not used in last 15 posts) to vary
+ * the mix. Falls back to any available asset when the pool is exhausted.
+ * Founder ask 2026-06-06: "faut une stratégie variée et varier aussi les
+ * mixes d'images que ce soit pour publier sur insta ou tiktok ou linkedin".
  */
 export async function pickClientDishVenuePair(
   supabase: SupabaseClient,
@@ -43,9 +43,28 @@ export async function pickClientDishVenuePair(
       .order('created_at', { ascending: false })
       .limit(200);
     if (!files || files.length === 0) return null;
-    const dish = files.find((f: any) => ['dish', 'product'].includes(f.ai_analysis?.content_type) && f.file_url);
-    const venue = files.find((f: any) => ['space', 'ambiance'].includes(f.ai_analysis?.content_type) && f.file_url);
-    if (!dish?.file_url || !venue?.file_url) return null;
+
+    const dishes = files.filter((f: any) => ['dish', 'product'].includes(f.ai_analysis?.content_type) && f.file_url);
+    const venues = files.filter((f: any) => ['space', 'ambiance'].includes(f.ai_analysis?.content_type) && f.file_url);
+    if (dishes.length === 0 || venues.length === 0) return null;
+
+    // Recently-used URLs (last 15 posts that referenced a client asset).
+    const { data: recentPosts } = await supabase
+      .from('content_calendar')
+      .select('visual_url')
+      .eq('user_id', userId)
+      .not('visual_url', 'is', null)
+      .order('updated_at', { ascending: false })
+      .limit(15);
+    const recentUrls = new Set((recentPosts || []).map((p: any) => p.visual_url).filter(Boolean));
+
+    const freshDishes = dishes.filter((d: any) => !recentUrls.has(d.file_url));
+    const freshVenues = venues.filter((v: any) => !recentUrls.has(v.file_url));
+    const dishPool = freshDishes.length > 0 ? freshDishes : dishes;
+    const venuePool = freshVenues.length > 0 ? freshVenues : venues;
+
+    const dish = dishPool[Math.floor(Math.random() * dishPool.length)];
+    const venue = venuePool[Math.floor(Math.random() * venuePool.length)];
     return { dishUrl: dish.file_url, venueUrl: venue.file_url };
   } catch {
     return null;
@@ -81,7 +100,7 @@ const REFINEMENT_PROMPT = [
   'PRESERVE the exact dish identity: same plate shape, same color of plate, same garnish, same protein, same sauce, same ingredients arrangement.',
   'NATURAL PLACEMENT: the dish sits ON a real table surface in the foreground of the room, at a perspective consistent with the camera angle of the venue photo (the dish must obey the same vanishing lines as the floor and tables in the venue). The plate rests on the table, not floating in mid-air.',
   'CONSISTENT LIGHTING: the shadow under the dish matches the direction and softness of the existing window light and pendant lamps in the venue. The dish picks up the warm/cool color cast of the surrounding ambient light.',
-  'SCALE: the plate occupies a realistic portion of the table — not larger than the table, not absurdly small. The viewer reads it as a real plated dish on a real bistro table.',
+  'SCALE (STRICT): the plate occupies between 18% and 25% of the total image area — NEVER more than 25%. The dish must look proportional to a real plate (24-28cm diameter) on a real bistro table (~70-80cm diameter). If the plate appears bigger than ~1/3 of the table surface, the scale is WRONG. Founder note 2026-06-06: "lassiette est parfois un poil trop grosse" — keep it strictly under the threshold.',
   'CINEMATOGRAPHY: Leica M11 with 50mm Summilux at f/2.8, shot during service at golden hour or warm tungsten ambient, Kodak Portra 400 grain, soft natural shadow under the plate, ambient occlusion, ultra realistic editorial photography.',
   'STYLE REFERENCE: Vogue Local culinary editorial, Cereal Magazine, Apartamento — NOT commercial food advertising, NOT a stock photo.',
   'ZERO text in the image, ZERO watermark, ZERO logo, ZERO captions.',

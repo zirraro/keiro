@@ -31,7 +31,7 @@ import { createClient } from '@supabase/supabase-js';
 export const runtime = 'nodejs';
 export const maxDuration = 300;
 
-type MotionPreset = 'dolly_steam' | 'parallax' | 'chef_hand' | 'window_light';
+type MotionPreset = 'dolly_steam' | 'parallax' | 'chef_hand' | 'window_light' | 'guest_enjoying' | 'duo_sharing';
 
 // Each preset is a FROZEN, ultra-specific i2v prompt designed to maximize
 // fidelity to the still (i.e. the client's real dish + venue) and minimize
@@ -87,6 +87,36 @@ const MOTION_PRESETS: Record<MotionPreset, { label: string; prompt: string; reco
       'CINEMATOGRAPHY: Hasselblad X2D 80mm prime f/2.8 1/200s ISO 400, single window-light source, Portra 400 grain, deep editorial color science, gentle vignette but NO digital vignette overlay — natural lens fall-off only.',
       'STYLE REFERENCE: Sebastiao Salgado natural light documentary, Steve McCurry portrait warmth applied to a still life, NOT commercial.',
       'BANNED: any zoom, any rotation, any movement of objects, any human appearing, lens flare, halo glow, instagram filter, vsco filter, hdr, midjourney, stable diffusion default, CGI, 3D render, cartoon. NO text, NO words, NO watermark.',
+    ].join(' '),
+  },
+  // ─── PEOPLE INTERACTION PRESETS (founder ask 2026-06-06) ──────
+  // Risk profile: higher. Adding humans = more chances of AI tells (deformed
+  // hands, posed smile, plastic skin). We compensate with strict casting
+  // instructions, very limited motion, and post-i2v QA on the result.
+  guest_enjoying: {
+    label: 'Client savoure le plat',
+    recommendedFor: 'plat signature avec ambiance vivante',
+    prompt: [
+      'LOCKED ELEMENTS: the plated dish at the lower-center of frame 1, the venue background (walls, doors, plants, chairs, ceiling, light fixtures), the table surface, the ambient color grade — everything stays exactly as in the input image.',
+      'CAMERA: locked off, static tripod shot. No movement at all.',
+      'ACTION: a single naturally-lit guest sits at the table behind the plate, blurred slightly out of focus (the plate stays sharp). Pick ONE of these diverse profiles RANDOMLY across reels: a mid-30s woman of maghrebi origin in a linen blouse, OR a 50yo afro-french man in a button-up shirt, OR a 28yo asian-french woman in a knit sweater, OR a 40yo south-european man in a navy polo. The guest lifts a fork (real hand, 5 fingers correctly rendered, visible pores, natural skin texture, slight asymmetry), takes a small bite of the dish, then sets the fork down. Eyes lower toward the plate in concentration, then a small genuine half-smile of satisfaction (NOT a posed commercial grin). The whole gesture takes 4 seconds.',
+      'CINEMATOGRAPHY: Leica M11 50mm Summilux at f/2 1/500s ISO 400, golden-hour ambient lighting from the existing window, Portra 400 grain, very shallow depth of field with the dish in sharp focus and the guest softly blurred, natural ambient occlusion under the plate.',
+      'STYLE REFERENCE: Mary Ellen Mark intimate documentary portrait, Cass Bird candid editorial — NOT commercial food advertising, NOT a glossy ad smile.',
+      'SCALE: the plate continues to occupy 18-25% of frame, the guest fills upper-third of frame from chest to chin (face partly out of frame is OK and preferred).',
+      'BANNED: more than one person, posed front-facing grin, ring-light catchlight in the eyes, plastic doll skin, deformed hands, extra fingers, missing fingers, anyone holding a phone, anyone looking at camera, zoom, rotation, fast moves, midjourney style, CGI, 3D render, cartoon, instagram filter glow, hdr. NO text or watermark.',
+    ].join(' '),
+  },
+  duo_sharing: {
+    label: 'Deux personnes partagent',
+    recommendedFor: 'plat à partager, ambiance conviviale',
+    prompt: [
+      'LOCKED ELEMENTS: the plated dish at the center of the table in frame 1, the venue (walls, decor, lighting), the table surface, ambient color — all stay identical.',
+      'CAMERA: slow gentle pull-back (~6% wider by the end) to reveal the social context. No rotation, no whip pan.',
+      'ACTION: two diverse guests sit across from each other at the table behind the dish. Pick a casting that varies post-to-post: e.g. mid-40s maghrebi-french couple, OR two friends one afro-french one asian-french early-30s, OR a 60yo south-european grandfather + his 30yo daughter. They lean slightly toward the dish, one hand reaches in with a serving fork to pick something up (real hand, 5 fingers rendered correctly, natural skin texture), they exchange a brief glance and small smile of shared pleasure. Eyes do NOT look at camera. Conversation is implied through body language — no exaggerated gestures.',
+      'CINEMATOGRAPHY: Hasselblad X2D 80mm prime f/2.8 1/250s ISO 400, warm ambient pendant + window light, Portra 400 film grain, deep editorial color, both guests softly framed with the dish as the rooted center of focus.',
+      'STYLE REFERENCE: Brendan George Ko convivial culinary editorial, Cereal Magazine — slow living, NOT a TV ad.',
+      'SCALE: the plate occupies ~15-20% in the wider frame, each guest fills ~12-15% (chest up). Plate stays anchored center.',
+      'BANNED: anyone facing camera, posed smile, raised glass clinking, ring-light catchlight, plastic skin, deformed hands, mismatched skin tone between the two guests (each must look photographically real, individually), zoom, fast pan, midjourney, CGI, 3D, cartoon, instagram filter. NO text or watermark.',
     ].join(' '),
   },
 };
@@ -149,7 +179,7 @@ export async function POST(req: NextRequest) {
   const postId = String(body.postId || `lena-dvr-${Date.now()}`).trim();
   const duration = Math.max(5, Math.min(10, Number(body.duration) || 5));
   const aspect: 'square' | 'story' = body.aspect === 'square' ? 'square' : 'story';
-  const motion: MotionPreset = (['dolly_steam', 'parallax', 'chef_hand', 'window_light'].includes(body.motion) ? body.motion : 'dolly_steam') as MotionPreset;
+  const motion: MotionPreset = (['dolly_steam', 'parallax', 'chef_hand', 'window_light', 'guest_enjoying', 'duo_sharing'].includes(body.motion) ? body.motion : 'dolly_steam') as MotionPreset;
   // maxStillRetries: how many i2i refinement attempts before giving up.
   // Default = 1 (cost-safe for client UI flow). When testing manually with
   // CRON auth, pass up to 3 to maximize chance of a passing still per call.

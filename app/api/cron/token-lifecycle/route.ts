@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
 
   const { data: clients } = await sb
     .from('profiles')
-    .select('id, email, first_name, tiktok_username, tiktok_access_token, tiktok_refresh_token, tiktok_token_expiry, linkedin_username, linkedin_access_token, linkedin_token_expiry, instagram_username, instagram_access_token, instagram_token_expiry')
+    .select('id, email, first_name, tiktok_username, tiktok_access_token, tiktok_refresh_token, tiktok_token_expiry, tiktok_connected_at, linkedin_username, linkedin_access_token, linkedin_token_expiry, instagram_username, instagram_access_token, instagram_token_expiry')
     .or('tiktok_access_token.not.is.null,linkedin_access_token.not.is.null,instagram_access_token.not.is.null');
 
   if (!clients || clients.length === 0) {
@@ -65,13 +65,19 @@ export async function GET(req: NextRequest) {
       // Has the refresh path been failing in the last 24h?
       let refreshBroken = !hasRefresh;
       if (hasRefresh) {
+        // 2026-06-06 — ignore fail logs that pre-date the last reconnect
+        // (otherwise we ping the client for an issue they already fixed).
+        const reconnectedAt = (c as any).tiktok_connected_at
+          ? new Date((c as any).tiktok_connected_at).toISOString()
+          : null;
+        const lowerBound = reconnectedAt && reconnectedAt > sinceISO ? reconnectedAt : sinceISO;
         const { data: fails } = await sb
           .from('agent_logs')
           .select('id')
           .eq('agent', 'content')
           .eq('action', 'tiktok_token_refresh_failed')
           .eq('user_id', c.id)
-          .gte('created_at', sinceISO)
+          .gte('created_at', lowerBound)
           .limit(1);
         refreshBroken = !!(fails && fails.length > 0);
       }

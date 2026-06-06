@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
   // Load all paying clients and check each social network connection.
   const { data: clients } = await supabase
     .from('profiles')
-    .select('id, email, first_name, subscription_plan, instagram_username, instagram_business_account_id, instagram_igaa_token, facebook_page_access_token, tiktok_username, tiktok_access_token, tiktok_refresh_token, tiktok_token_expiry, linkedin_username, linkedin_access_token, linkedin_token_expiry, scheduling_paused_at, scheduling_paused_reason')
+    .select('id, email, first_name, subscription_plan, instagram_username, instagram_business_account_id, instagram_igaa_token, facebook_page_access_token, tiktok_username, tiktok_access_token, tiktok_refresh_token, tiktok_token_expiry, tiktok_connected_at, linkedin_username, linkedin_access_token, linkedin_token_expiry, scheduling_paused_at, scheduling_paused_reason')
     .not('subscription_plan', 'is', null)
     .neq('subscription_plan', 'free');
 
@@ -98,13 +98,23 @@ export async function GET(req: NextRequest) {
       } else {
         try {
           const since24h = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+          // 2026-06-06 — Founder caught false-positive: mrzirraro reconnected
+          // at 07:12, but a refresh-fail log from 07:03 was still within the
+          // 24h window when the digest ran at ~06:30 UTC the next day. Cure:
+          // ignore fail logs that PRE-DATE the last connect. The reconnect
+          // restored a working token+refresh pair, so any failure before it
+          // is stale.
+          const reconnectedAt = (c as any).tiktok_connected_at
+            ? new Date((c as any).tiktok_connected_at).toISOString()
+            : null;
+          const lowerBound = reconnectedAt && reconnectedAt > since24h ? reconnectedAt : since24h;
           const { data: failedRefresh } = await supabase
             .from('agent_logs')
             .select('id')
             .eq('agent', 'content')
             .eq('action', 'tiktok_token_refresh_failed')
             .eq('user_id', c.id)
-            .gte('created_at', since24h)
+            .gte('created_at', lowerBound)
             .limit(1);
           refreshIsBroken = !!(failedRefresh && failedRefresh.length > 0);
         } catch { /* don't block — assume refresh OK on read error */ }
