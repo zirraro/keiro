@@ -133,12 +133,15 @@ const NEGATIVE_REFINE = [
 // scene fixed because nothing told the model to MODIFY it. 0.65 +
 // imperative wording = guest reliably appears.
 const ADD_GUEST_PROMPT = [
-  'Add a single seated person behind the plate in this exact restaurant interior.',
-  'The person is sitting at the table where the plate already is, body chest-up, head softly cropped at top of frame, eyes lowered toward the dish with focused concentration (NOT looking at camera). Cast a real human with authentic skin texture, visible pores, slight asymmetry. Vary the casting across reels: a mid-30s woman of maghrebi origin in a linen blouse, OR a 50yo afro-french man in a button-up shirt, OR a 28yo asian-french woman in a knit sweater, OR a 40yo south-european man in a navy polo. ONE person only.',
-  'Preserve everything else exactly: the same plate, same food, same table, same walls, same windows, same chairs, same lighting, same camera angle, same ambient color grade. The plate must remain the visual anchor at 18-25% of frame.',
-  'Shot on a Leica M11 with a 50mm Summilux at f/2, golden-hour ambient light from the existing window, Kodak Portra 400 film grain, very shallow depth of field with the plate sharp and the person softly blurred.',
-  'Editorial documentary photography (Mary Ellen Mark, Cass Bird), NOT a commercial ad, NOT a posed front-facing smile.',
-  'Zero text, zero watermark, zero logo in the image.',
+  'Add a single seated guest behind the plate in this exact restaurant interior. The dish should look DESIRABLE — the guest should look DELIGHTED to eat it.',
+  'The guest sits naturally at the same table where the plate already is, body partly visible (shoulders to chest area), HEAD VISIBLE (do NOT crop the head at the top — keep the face in the upper third of the frame). Eyes look downward toward the dish with a SMALL GENUINE SMILE of anticipation/pleasure, lips slightly parted (NOT looking at camera, NOT a posed commercial grin). Real human skin with visible pores, micro-imperfections, subtle asymmetry, soft natural shadows under chin.',
+  'CASTING (vary across reels): a mid-30s woman of maghrebi origin in a linen blouse, OR a 50yo afro-french man in a button-up shirt, OR a 28yo asian-french woman in a knit sweater, OR a 40yo south-european man in a navy polo. ONE person only.',
+  'OPTIONAL INTERACTION (pick one randomly per reel): (a) one hand lifting a fork already loaded with food halfway between plate and mouth, (b) both hands gently framing the bowl from the sides, (c) leaning slightly forward in interest with hands resting flat on the table beside the plate, (d) a glass of wine raised in the foreground softly out of focus. Hands MUST be drawn correctly: 5 fingers each, natural anatomy, holding utensils realistically.',
+  'PRESERVE STRICTLY: the same plate (identical shape and color), the same food on it, the same table (same shape, same surface, same size — do NOT enlarge or change the table), the same chairs in the same positions (do NOT clip or overlap chairs with the new table), the same walls, windows, doors, plants, lighting fixtures, camera angle, perspective, ambient color grade. The plate stays at 18-25% of frame area — anchored center-bottom on the SAME table as input.',
+  'NO TABLE/CHAIR OVERLAP: chairs and tables must not visually intersect or melt together. Each piece of furniture remains a discrete object with clear separation.',
+  'Shot on a Leica M11 with a 50mm Summilux at f/2, warm golden-hour ambient light from the existing window source, Kodak Portra 400 film grain, very shallow depth of field with the plate tack-sharp and the guest softly blurred.',
+  'Editorial documentary photography reference: Mary Ellen Mark intimate portraits, Cass Bird candid editorial, Brendan George Ko culinary documentary. Mood: cozy, intimate, the kind of moment a real customer would post from their phone — joyful but understated. NOT a glossy commercial ad. NOT MasterChef.',
+  'BANNED: cropped or missing head, ring-light catchlight in eyes, plastic doll skin, deformed hands, extra fingers, missing fingers, two right hands, holding a phone, sad/blank/uncomfortable expression, woman-as-model casting, anyone looking at camera, posed grin, table merged with chair, multiple tables stacked, oversized table, AI portrait artifacts, midjourney style, stable diffusion, CGI, 3D render, anime, cartoon, illustration. Zero text, zero watermark.',
 ].join(' ');
 
 /**
@@ -335,8 +338,8 @@ export async function qaRefinedStillWithVision(
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 600,
+        model: 'claude-sonnet-4-6',
+        max_tokens: 700,
         system: `You are a senior photo editor reviewing a generated still BEFORE it ships to a restaurant client's social feed. The still should look like a real professional photographer captured a signature dish naturally placed on a table inside the client's actual venue.
 
 Score 1-10:

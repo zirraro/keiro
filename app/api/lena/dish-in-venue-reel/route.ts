@@ -31,7 +31,7 @@ import { createClient } from '@supabase/supabase-js';
 export const runtime = 'nodejs';
 export const maxDuration = 300;
 
-type MotionPreset = 'dolly_steam' | 'parallax' | 'chef_hand' | 'window_light' | 'guest_enjoying' | 'duo_sharing';
+type MotionPreset = 'dolly_steam' | 'parallax' | 'chef_hand' | 'window_light' | 'guest_enjoying' | 'duo_sharing' | 'chef_kitchen';
 
 // Each preset is a FROZEN, ultra-specific i2v prompt designed to maximize
 // fidelity to the still (i.e. the client's real dish + venue) and minimize
@@ -112,11 +112,40 @@ const MOTION_PRESETS: Record<MotionPreset, { label: string; prompt: string; reco
     prompt: [
       'LOCKED ELEMENTS: the plated dish at the center of the table in frame 1, the venue (walls, decor, lighting), the table surface, ambient color — all stay identical.',
       'CAMERA: slow gentle pull-back (~6% wider by the end) to reveal the social context. No rotation, no whip pan.',
-      'ACTION: two diverse guests sit across from each other at the table behind the dish. Pick a casting that varies post-to-post: e.g. mid-40s maghrebi-french couple, OR two friends one afro-french one asian-french early-30s, OR a 60yo south-european grandfather + his 30yo daughter. They lean slightly toward the dish, one hand reaches in with a serving fork to pick something up (real hand, 5 fingers rendered correctly, natural skin texture), they exchange a brief glance and small smile of shared pleasure. Eyes do NOT look at camera. Conversation is implied through body language — no exaggerated gestures.',
+      'ACTION: two diverse guests sit across from each other at the table behind the dish, looking DELIGHTED to eat (small genuine smiles, lips slightly parted in anticipation — NOT posed grins). Pick a casting that varies post-to-post: e.g. mid-40s maghrebi-french couple, OR two friends one afro-french one asian-french early-30s, OR a 60yo south-european grandfather + his 30yo daughter. They lean slightly toward the dish, one hand reaches in with a serving fork (real hand, 5 fingers rendered correctly, natural skin texture), they exchange a brief warm glance. Eyes do NOT look at camera. Heads visible, NOT cropped.',
       'CINEMATOGRAPHY: Hasselblad X2D 80mm prime f/2.8 1/250s ISO 400, warm ambient pendant + window light, Portra 400 film grain, deep editorial color, both guests softly framed with the dish as the rooted center of focus.',
       'STYLE REFERENCE: Brendan George Ko convivial culinary editorial, Cereal Magazine — slow living, NOT a TV ad.',
-      'SCALE: the plate occupies ~15-20% in the wider frame, each guest fills ~12-15% (chest up). Plate stays anchored center.',
-      'BANNED: anyone facing camera, posed smile, raised glass clinking, ring-light catchlight, plastic skin, deformed hands, mismatched skin tone between the two guests (each must look photographically real, individually), zoom, fast pan, midjourney, CGI, 3D, cartoon, instagram filter. NO text or watermark.',
+      'SCALE: the plate occupies ~15-20% in the wider frame, each guest fills ~12-15% (chest up). Plate stays anchored center. Tables and chairs MUST NOT visually overlap or merge.',
+      'BANNED: anyone facing camera, posed grin, sad expressions, raised glass clinking, ring-light catchlight, plastic skin, deformed hands, mismatched skin tone between the two guests (each must look photographically real, individually), tables merging with chairs, oversized furniture, zoom, fast pan, midjourney, CGI, 3D, cartoon, instagram filter. NO text or watermark.',
+    ].join(' '),
+  },
+  // 2026-06-06 — Founder ask: "peu etre meme un chef en cuisine avec le
+  // plat car... une cuisine est rarement vu donc elle peut etre inventée
+  // pour interaction/presentation du plat attention a garder le standing".
+  // The chef_kitchen preset PIVOTS the scene: instead of the dish in the
+  // dining room, we move it to a kitchen pass with the chef plating /
+  // garnishing. This is the only preset that intentionally drifts the
+  // venue (because the venue uploaded is the dining room, not the kitchen)
+  // — the i2v is allowed to invent a kitchen consistent with the
+  // restaurant's standing tier (gastronomic vs casual vs fastfood).
+  // The `standing` tier is passed in by the caller (or defaulted to
+  // `casual`) based on business_type analysis.
+  chef_kitchen: {
+    label: 'Chef en cuisine + plat',
+    recommendedFor: 'présentation savoir-faire, démo gestes pro',
+    prompt: [
+      'Scene shift to a professional kitchen pass during service. The dish from the input image is now being garnished/plated by the chef on a stainless-steel pass counter.',
+      'LOCKED: the exact dish (same plate shape, same food, same garnish, same color, same composition — must be identifiable as the SAME signature dish from the input image).',
+      'INVENT a kitchen that matches the restaurant\'s standing. STANDING TIER GUIDANCE (caller passes a tier hint — default = casual_bistro):',
+      '— gastronomic: pristine stainless pass, warm under-pass tungsten light, wood prep boards, copper pans, hanging tongs, herbs in small ceramic bowls, quiet focus, white linen apron, clipped sleeves;',
+      '— casual_bistro: open kitchen with a wood counter pass, brass utensils, chalkboard menu glimpsed in background, denim apron over a white t-shirt;',
+      '— fastfood: stainless industrial counter, bright neutral LED light, plastic squeeze bottles, paper-lined trays, branded apron, fast tempo;',
+      '— café/boulangerie: marble counter, wooden boards, copper espresso machine glow, flour dust on hand backs, denim apron with linen tea-towel tucked at waist.',
+      'CAMERA: locked off, slight high angle ~30° over the pass, plate in lower-third sharp focus, chef\'s torso and hands in mid-ground softly in focus.',
+      'ACTION: chef\'s hand enters from the right with tweezers or a finger-pinch, places a single fresh herb (or sauce dot, or zest curl) precisely on the plate over 2 seconds, then withdraws. Body language is calm, focused, professional. NO sweeping arm gesture, NO theatrical flair, NO face visible (head can be partly out of frame at the top — only torso + arms + hands).',
+      'CINEMATOGRAPHY: Leica M11 50mm f/2 1/400s ISO 800, mixed tungsten + LED kitchen light, Portra 400 grain, shallow DOF on the plate.',
+      'STYLE REFERENCE: Brendan George Ko on-the-pass culinary editorial, Eater magazine kitchen reportage. NOT MasterChef glossy.',
+      'BANNED: branded chef hat unless casual_bistro/gastronomic, posed smile, chef looking at camera, dirty kitchen, flames bursting, smoke effects, neon, deformed hands, extra fingers, midjourney style, CGI, 3D, cartoon, illustration. NO text, NO watermark, NO restaurant logo visible.',
     ].join(' '),
   },
 };
@@ -179,7 +208,7 @@ export async function POST(req: NextRequest) {
   const postId = String(body.postId || `lena-dvr-${Date.now()}`).trim();
   const duration = Math.max(5, Math.min(10, Number(body.duration) || 5));
   const aspect: 'square' | 'story' = body.aspect === 'square' ? 'square' : 'story';
-  const motion: MotionPreset = (['dolly_steam', 'parallax', 'chef_hand', 'window_light', 'guest_enjoying', 'duo_sharing'].includes(body.motion) ? body.motion : 'dolly_steam') as MotionPreset;
+  const motion: MotionPreset = (['dolly_steam', 'parallax', 'chef_hand', 'window_light', 'guest_enjoying', 'duo_sharing', 'chef_kitchen'].includes(body.motion) ? body.motion : 'dolly_steam') as MotionPreset;
   // maxStillRetries: how many i2i refinement attempts before giving up.
   // Default = 1 (cost-safe for client UI flow). When testing manually with
   // CRON auth, pass up to 3 to maximize chance of a passing still per call.

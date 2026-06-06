@@ -42,6 +42,67 @@ async function callClaude({ system, message, maxTokens = 2000 }: { system: strin
 export const runtime = 'nodejs';
 export const maxDuration = 300;
 
+/**
+ * Strip cross-platform mentions from a caption right before publish.
+ * Defensive gate against (a) old posts re-launched from queue that were
+ * generated before the platform-isolation prompt rule shipped, and (b)
+ * LLM slip-ups despite the instruction.
+ *
+ * Strategy: replace platform-name mentions with neutral terms ("ici",
+ * "le feed", "tes followers"). Drop algo references that reveal a
+ * cross-platform discussion ("L'algo Instagram a changé" on TikTok =
+ * obvious self-tell). Leaves the rest of the caption intact.
+ */
+function sanitizePlatformMentions(caption: string, targetPlatform: 'tiktok' | 'instagram' | 'linkedin'): string {
+  if (!caption) return caption;
+  let out = caption;
+
+  // Build the list of forbidden platforms (= all except target).
+  const forbidden: Record<string, RegExp[]> = {
+    instagram: [
+      /\binstagram\b/gi,
+      /\binsta(?!nt)\b/gi,   // "insta" but not "instant"
+      /\balgo\s+insta(?:gram)?\b/gi,
+      /\bfeed\s+insta(?:gram)?\b/gi,
+      /\bIG(?=\s|[.,!?:;]|$)/g,
+      /\breels?\s+insta(?:gram)?\b/gi,
+    ],
+    tiktok: [
+      /\btiktok\b/gi,
+      /\btik[- ]?tok\b/gi,
+      /\btt(?=\s|[.,!?:;]|$)/g,
+      /\balgo\s+tiktok\b/gi,
+    ],
+    linkedin: [
+      /\blinkedin\b/gi,
+      /\blinkdn\b/gi,
+      /\blink[- ]?in\b/gi,
+    ],
+    facebook: [
+      /\bfacebook\b/gi,
+      /\bFB(?=\s|[.,!?:;]|$)/g,
+    ],
+  };
+
+  const platformsToScrub = Object.keys(forbidden).filter(p => p !== targetPlatform);
+  for (const p of platformsToScrub) {
+    for (const re of forbidden[p]) {
+      out = out.replace(re, (match) => {
+        // Pick a neutral replacement based on context
+        if (/^(IG|TT|FB)$/i.test(match)) return 'ici';
+        if (/algo/i.test(match)) return "l'algo";
+        if (/feed/i.test(match)) return 'le feed';
+        if (/reel/i.test(match)) return 'les vidéos';
+        return 'ici';
+      });
+    }
+  }
+
+  // Clean up double-spaces left by removals
+  out = out.replace(/  +/g, ' ').replace(/\n\s*\n\s*\n+/g, '\n\n').trim();
+  return out;
+}
+
 function getSupabaseAdmin() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -825,6 +886,12 @@ async function publishToInstagram(
     } catch (e: any) {
       console.warn('[Content] Guardrails check failed (non-blocking):', e?.message);
     }
+
+    // 2026-06-06 — Defensive platform-isolation sanitizer (same as TT path).
+    // Strips TikTok / LinkedIn / Facebook mentions from IG captions before
+    // publish, even when the LLM generated the post under older rules.
+    rawCaption = sanitizePlatformMentions(rawCaption, 'instagram');
+    hashtagsArr = hashtagsArr.filter(h => !/(tiktok|tt_|linkedin|linkdn|facebook|fb_)/i.test(String(h)));
 
     // Ensure caption ends with proper spacing before hashtags
     const captionNeedsSeparator = rawCaption.length > 0 && !rawCaption.endsWith('\n');
@@ -1710,6 +1777,15 @@ async function publishToTikTok(
       console.warn('[Content] Guardrails check failed (non-blocking):', e?.message);
     }
 
+    // 2026-06-06 — Platform isolation defensive sanitizer.
+    // Founder caught regression: a batch of TikTok posts re-launched after
+    // reconnect contained "Instagram"/"feed Insta" mentions — they were
+    // generated weeks ago before the isolation rule shipped, then went out
+    // verbatim when the catch-up cron flipped them to approved. We scrub
+    // cross-platform mentions HERE at the publish gate so any path that
+    // bypasses fresh LLM generation still ships clean copy.
+    rawCaptionTT = sanitizePlatformMentions(rawCaptionTT, 'tiktok');
+    hashtagsArr = hashtagsArr.filter((h: string) => !/(instagram|insta|linkedin|facebook|fb_)/i.test(String(h)));
     const hashtagLineTT = hashtagsArr.length > 0 ? hashtagsArr.map((h: string) => h.startsWith('#') ? h : `#${h}`).join(' ') : '';
     const fullCaption = rawCaptionTT + (hashtagLineTT ? '\n\n' + hashtagLineTT : '');
 
@@ -2892,7 +2968,19 @@ export async function POST(request: NextRequest) {
                   const { pickClientDishVenuePair, buildDishInVenueRefinedStill, qaRefinedStillWithVision } = await import('@/lib/visuals/dish-in-venue-i2i');
                   const pair = await pickClientDishVenuePair(supabase, ownerId);
                   if (pair) {
-                    console.log(`[Content] execute_pub: TikTok reel — trying dish-in-venue (rng=${dvrRng.toFixed(2)})`);
+                    // 2026-06-06 — Rotate animation across no-human presets
+                    // so the feed doesn't read as the same slow parallax
+                    // every time. People-interaction presets stay opt-in
+                    // (caller has to ask for them; cron stays on the safe
+                    // 3 presets that don't require Seedream to invent humans).
+                    const SAFE_MOTIONS = ['parallax', 'dolly_steam', 'window_light'] as const;
+                    const pickedMotion = SAFE_MOTIONS[Math.floor(Math.random() * SAFE_MOTIONS.length)];
+                    const MOTION_PROMPTS: Record<string, string> = {
+                      parallax: 'LOCKED ELEMENTS: the plated dish, the venue background, the table, every object — all stay exactly as in frame 1. CAMERA: very subtle horizontal parallax, max 4% lateral drift. ACTION: warm natural daylight subtly shifts as if a cloud has just passed; shadows lengthen barely. NO human enters, NO objects move. CINEMATOGRAPHY: Hasselblad X2D 80mm f/2.8, Portra 400 grain, soft side window light, deep micro-contrast on the dish. BANNED: zoom, rotation, lens flare, halo glow, ring-light catchlight, magenta cyan saturation, midjourney style, CGI, 3D render, cartoon. NO text in the video.',
+                      dolly_steam: 'LOCKED ELEMENTS: the plated dish, the venue background, the table, every object — all stay exactly as in frame 1. CAMERA: very slow dolly-in toward the plate, max 8% closer by the end. No zoom, no rotation, no tilt. ACTION: 2-3 thin wisps of gentle white steam rise slowly from the dish and dissipate naturally; faint warm light flicker from an off-frame candle. NO human enters. CINEMATOGRAPHY: Leica M11 50mm Summilux at f/2, mixed tungsten + golden-hour ambient, Portra 400 grain, shallow DOF. STYLE: Vogue Local culinary editorial. BANNED: fast moves, zoom, rotation, halo, neon, plastic, midjourney, CGI, cartoon. NO text.',
+                      window_light: 'LOCKED ELEMENTS: dish, venue, table, every object — all stay exactly where they are in frame 1. No movement of any object, no human entering. CAMERA: imperceptible push-in, max 3% closer by the end. Mostly static. ACTION: the warm window light moves across the scene as if 20 real minutes passed in 5 seconds — golden warmth deepens, shadows lengthen subtly, dust motes catch a beam of light. CINEMATOGRAPHY: Hasselblad X2D 80mm prime f/2.8, Portra 400 grain, single window-light source, natural lens fall-off. STYLE: Sebastiao Salgado natural light documentary applied to a still life. BANNED: zoom, rotation, movement of objects, human appearance, lens flare, halo, hdr, midjourney, CGI, cartoon. NO text.',
+                    };
+                    console.log(`[Content] execute_pub: TikTok reel — trying dish-in-venue (rng=${dvrRng.toFixed(2)}, motion=${pickedMotion})`);
                     const build = await buildDishInVenueRefinedStill({
                       venueUrl: pair.venueUrl,
                       dishUrl: pair.dishUrl,
@@ -2912,7 +3000,7 @@ export async function POST(request: NextRequest) {
                           },
                           body: JSON.stringify({
                             imageUrl: build.url,
-                            prompt: 'LOCKED ELEMENTS: the plated dish, the venue background, the table, every object — all stay exactly as in frame 1. CAMERA: very subtle parallax, no more than 3% lateral drift. ACTION: warm natural daylight subtly shifts as if a cloud has just passed; shadows lengthen barely. NO human enters, NO objects move. CINEMATOGRAPHY: Leica M11 50mm f/2, Portra 400 film grain, soft side window light, deep micro-contrast on the dish, ambient occlusion under the plate. STYLE: Vogue Local / Cereal Magazine intimate editorial. BANNED: zoom, rotation, lens flare, halo glow, ring-light catchlight, magenta cyan saturation, midjourney style, CGI, 3D render, cartoon, instagram filter, vsco filter, hdr glow. NO text in the video.',
+                            prompt: MOTION_PROMPTS[pickedMotion],
                             duration: 5,
                             userId: ownerId,
                           }),
@@ -2936,7 +3024,7 @@ export async function POST(request: NextRequest) {
                                 videoUrl = pdata.videoUrl;
                                 updateData.video_url = videoUrl;
                                 updateData.visual_url = build.url;
-                                updateData.publish_diagnostic = `dvr_reel:rng=${dvrRng.toFixed(2)},score=${qa.score}`;
+                                updateData.publish_diagnostic = `dvr_reel:motion=${pickedMotion},rng=${dvrRng.toFixed(2)},score=${qa.score}`;
                                 console.log(`[Content] ✅ dvr reel ready for ${post.id}`);
                                 break;
                               }
