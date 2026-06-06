@@ -394,6 +394,83 @@ export async function POST(req: NextRequest) {
       } catch { /* keep polling */ }
     }
 
+    // 2026-06-06 — Audio layer.
+    // Founder ask: "si y'a une voix dans les reels si le client est francais
+    // ca doit etre en francais derriere sinon pas de voix... si on peut
+    // trouver des librairies libre de droit peu etre c'est mieux".
+    // Strategy:
+    //   - Lookup client language. If FR/EN supported by ElevenLabs → generate
+    //     a short voiceover (the caption hook). Else → no voice.
+    //   - Fetch a royalty-free Pixabay Music track matched by motion preset.
+    //   - Mux video + voice (foreground) + music (ducked under voice or solo).
+    // The whole audio layer is OPT-IN via body.withAudio === true to keep
+    // existing tests reproducible. Cost: ~€0.013 TTS + €0 music = trivial.
+    let audioMuxed: any = null;
+    if (videoUrl && body.withAudio === true) {
+      try {
+        const { getClientLanguage } = await import('@/lib/agents/client-language');
+        const lang = await admin().from('business_dossiers')
+          .select('communication_language').eq('user_id', userId).maybeSingle();
+        const langCode = ((lang.data as any)?.communication_language || 'fr').toLowerCase().slice(0, 2);
+
+        // 1. Voice — only if language supported
+        let voiceUrl: string | null = null;
+        const VOICE_SUPPORTED = new Set(['fr', 'en', 'es', 'de', 'it', 'pt']);
+        if (VOICE_SUPPORTED.has(langCode) && body.voiceScript) {
+          try {
+            const { generateAudioWithElevenLabs, DEFAULT_VOICE_ID } = await import('@/lib/audio/elevenlabs-tts');
+            const script = String(body.voiceScript).slice(0, 200);
+            voiceUrl = await generateAudioWithElevenLabs(script, DEFAULT_VOICE_ID, langCode);
+          } catch (e: any) {
+            console.warn('[lena-dvr] voiceover failed:', e?.message);
+          }
+        }
+
+        // 2. Music — Pixabay royalty-free, matched by motion preset
+        const moodByMotion: Record<string, any> = {
+          dolly_steam: 'ambient_warm',
+          parallax: 'calm_minimal',
+          window_light: 'soft_ambient_slow',
+          chef_hand: 'energetic_kitchen',
+          guest_enjoying: 'warm_jazz_intimate',
+          duo_sharing: 'warm_jazz_intimate',
+          chef_kitchen: 'energetic_kitchen',
+        };
+        let musicUrl: string | null = null;
+        try {
+          const { pickPixabayMusic } = await import('@/lib/audio/pixabay-music');
+          const pick = await pickPixabayMusic({
+            mood: moodByMotion[motion] || 'ambient_warm',
+            minDurationSec: duration,
+          });
+          if (pick?.url) musicUrl = pick.url;
+        } catch (e: any) {
+          console.warn('[lena-dvr] music pick failed:', e?.message);
+        }
+
+        // 3. Mux — if either voice or music landed
+        if (voiceUrl || musicUrl) {
+          const { muxReelAudio } = await import('@/lib/audio/reel-audio-mux');
+          const mix = await muxReelAudio({
+            videoUrl,
+            voiceUrl,
+            musicUrl,
+            postId,
+            durationSec: duration,
+          });
+          if (mix.url && mix.url !== videoUrl) {
+            videoUrl = mix.url;
+            audioMuxed = { withVoice: mix.withVoice, withMusic: mix.withMusic, lang: langCode };
+            console.log(`[lena-dvr] ✅ audio muxed: voice=${mix.withVoice} music=${mix.withMusic} lang=${langCode}`);
+          } else if (mix.fallback) {
+            audioMuxed = { fallback: mix.fallback };
+          }
+        }
+      } catch (e: any) {
+        console.warn('[lena-dvr] audio pipeline threw:', e?.message);
+      }
+    }
+
     if (videoUrl) {
       // Create content_calendar row + publish to TikTok via existing pipeline.
       // We use the existing publish_single action so all production guards run.
@@ -447,6 +524,7 @@ export async function POST(req: NextRequest) {
     duration,
     aspect,
     videoUrl,
+    audioMuxed,
     publishResult,
     poll: `/api/seedream/i2v?taskId=${i2vRes.taskId}`,
   });
