@@ -830,6 +830,14 @@ export function ContentPanel({ data, agentName, gradientFrom, gradientTo }: Pane
         </div>
       )}
 
+      {/* 2026-06-06 — Founder ask: planning toggle "Valider les publications".
+          When ON (default), client validates each post manually (Meta-compliant
+          framing). When OFF, Léna auto-publishes — our actual product value.
+          The flag lives in org_agent_configs.config.auto_publish; the cron
+          skips publishing when auto_publish === false and the post stays
+          pending_approval in the planning so the client can publish manually. */}
+      <ValidatePublicationsToggle />
+
       {/* Network selector — always visible, single source of truth for the
           rest of the panel. Connected networks have a green dot; not-yet
           connected networks remain clickable (they take you to their own
@@ -957,6 +965,109 @@ function NetworkSection({
           duplicate "Connect / NetworkControls" row that used to sit here
           is replaced by the inline auto-mode toggle in the connection card
           above. */}
+    </div>
+  );
+}
+
+function ValidatePublicationsToggle() {
+  const [autoPublish, setAutoPublish] = useState<boolean | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const sb = supabaseBrowser();
+        const { data: { user } } = await sb.auth.getUser();
+        if (!user) return;
+        const { data } = await sb
+          .from('org_agent_configs')
+          .select('config')
+          .eq('user_id', user.id)
+          .eq('agent_id', 'content')
+          .limit(1)
+          .maybeSingle();
+        if (!cancelled) {
+          // Default to true (auto-publish enabled = our value pitch).
+          // The toggle reads as "Valider les publications": ON means
+          // client validates manually → no auto-publish (auto_publish=false).
+          // OFF means trust Léna → auto-publish.
+          // So in DB: auto_publish === false ⟹ toggle ON (validate).
+          //          auto_publish !== false ⟹ toggle OFF (trust Léna).
+          setAutoPublish(data?.config?.auto_publish !== false);
+        }
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const toggle = async () => {
+    if (autoPublish === null || saving) return;
+    setSaving(true);
+    const next = !autoPublish;
+    setAutoPublish(next);
+    try {
+      const sb = supabaseBrowser();
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) { setSaving(false); return; }
+      const { data: rows } = await sb
+        .from('org_agent_configs')
+        .select('id, config')
+        .eq('user_id', user.id)
+        .eq('agent_id', 'content');
+      if (rows && rows.length > 0) {
+        for (const r of rows) {
+          const cfg = r.config || {};
+          cfg.auto_publish = next;
+          await sb.from('org_agent_configs').update({ config: cfg }).eq('id', r.id);
+        }
+      } else {
+        await sb.from('org_agent_configs').insert({
+          user_id: user.id,
+          agent_id: 'content',
+          config: { auto_publish: next },
+        });
+      }
+    } catch (e) {
+      setAutoPublish(!next); // revert on error
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (autoPublish === null) return null;
+
+  // Toggle label flips the semantics for the user:
+  // "Valider chaque publication" — ON means client validates (no auto-publish).
+  // Under the hood: auto_publish stored as the OPPOSITE.
+  const validateMode = !autoPublish; // true = validate, false = trust Léna
+  return (
+    <div className="rounded-xl border border-cyan-500/30 bg-gradient-to-r from-cyan-900/15 to-blue-900/15 p-3 mb-3">
+      <div className="flex items-center gap-3">
+        <div className="text-2xl">{validateMode ? '✋' : '⚡'}</div>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-bold text-white">Valider chaque publication</div>
+          <div className="text-[11px] text-white/50">
+            {validateMode
+              ? 'Léna prépare les posts dans le planning. TU valides chaque post manuellement avant publication (IG/TikTok/LinkedIn).'
+              : 'Léna publie automatiquement aux horaires planifiés. Pas de validation manuelle.'}
+          </div>
+        </div>
+        <button
+          onClick={toggle}
+          disabled={saving}
+          className={`relative w-12 h-6 rounded-full transition-colors flex-shrink-0 ${
+            validateMode ? 'bg-cyan-500' : 'bg-white/20'
+          } ${saving ? 'opacity-50' : ''}`}
+          aria-label="Toggle valider publications"
+        >
+          <span
+            className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
+              validateMode ? 'translate-x-6' : ''
+            }`}
+          />
+        </button>
+      </div>
     </div>
   );
 }

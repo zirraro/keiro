@@ -2103,6 +2103,23 @@ export async function GET(request: NextRequest) {
             }
           }
 
+          // 2026-06-06 — Founder ask: planning toggle "Valider les publications"
+          // (= auto_publish off). When off, we generate + queue but DO NOT
+          // publish. Post stays as pending_approval so it appears in the
+          // planning UI and the client can publish manually if they want.
+          if ((clientSettings as any)?.auto_publish === false) {
+            const skipFields: Record<string, any> = {
+              updated_at: new Date().toISOString(),
+              status: 'pending_approval',
+            };
+            if (videoUrl) skipFields.video_url = videoUrl;
+            if (visualUrl) skipFields.visual_url = visualUrl;
+            await supabase.from('content_calendar').update(skipFields).eq('id', post.id);
+            console.log(`[Content] ${fullPost.platform} post ${post.id} held for manual validation (auto_publish=false)`);
+            publishedPosts.push({ platform: fullPost.platform, format: fullPost.format, hook: fullPost.hook || '', publication_error: 'auto_publish_disabled_held_for_manual_validation' });
+            continue;
+          }
+
           // Publish to platform
           const postWithMedia = { ...fullPost, visual_url: visualUrl, video_url: videoUrl };
           const updateFields: Record<string, any> = { updated_at: new Date().toISOString() };
