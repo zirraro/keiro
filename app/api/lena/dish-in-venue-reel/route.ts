@@ -370,6 +370,7 @@ export async function POST(req: NextRequest) {
   // ─── Optional: wait for video + publish to TikTok ─────────────
   let videoUrl: string | null = null;
   let publishResult: any = null;
+  let audioMuxed: any = null;
   if (autoPublishTiktok) {
     // Poll up to 120s for video completion. Seedance typically returns in 30-60s.
     const pollDeadline = Date.now() + 120_000;
@@ -395,7 +396,6 @@ export async function POST(req: NextRequest) {
     }
 
     // 2026-06-06 — Audio layer. OPT-IN via body.withAudio === true.
-    let audioMuxed: any = null;
     if (videoUrl && body.withAudio === true) {
       try {
         const { getClientLanguage } = await import('@/lib/agents/client-language');
