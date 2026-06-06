@@ -2884,7 +2884,7 @@ export async function POST(request: NextRequest) {
               // generation. Selectivity = avoid overusing the same client
               // assets + control cost (~€0.18 per dvr reel vs €0.10 for
               // standard t2v).
-              const ownerId = (post as any).user_id || effectivePostOwnerId;
+              const ownerId = (post as any).user_id || null;
               const dvrRng = Math.random();
               if (post.platform === 'tiktok' && ownerId && dvrRng < 0.35) {
                 try {
