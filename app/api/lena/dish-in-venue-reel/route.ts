@@ -99,7 +99,8 @@ const MOTION_PRESETS: Record<MotionPreset, { label: string; prompt: string; reco
     prompt: [
       'LOCKED ELEMENTS: the plated dish at the lower-center of frame 1, the venue background (walls, doors, plants, chairs, ceiling, light fixtures), the table surface, the ambient color grade — everything stays exactly as in the input image.',
       'CAMERA: locked off, static tripod shot. No movement at all.',
-      'ACTION: a single naturally-lit guest sits at the table behind the plate, blurred slightly out of focus (the plate stays sharp). Pick ONE of these diverse profiles RANDOMLY across reels: a mid-30s woman of maghrebi origin in a linen blouse, OR a 50yo afro-french man in a button-up shirt, OR a 28yo asian-french woman in a knit sweater, OR a 40yo south-european man in a navy polo. The guest lifts a fork (real hand, 5 fingers correctly rendered, visible pores, natural skin texture, slight asymmetry), takes a small bite of the dish, then sets the fork down. Eyes lower toward the plate in concentration, then a small genuine half-smile of satisfaction (NOT a posed commercial grin). The whole gesture takes 4 seconds.',
+      'ACTION (CONTEXT-AWARE — strictly limited to what is plausibly visible in frame 1): the guest (already present in the input image) performs ONE small natural gesture over 3-4 seconds. IF a fork is in their hand or beside the plate → they lift the fork to take a small bite then set it back down. ELSE IF a glass is on the table → they slowly raise the glass to lip-height then lower it. ELSE → they lean slightly forward, hands resting flat on the table beside the plate, and a small genuine half-smile of pleasure spreads across their face. Eyes lower toward the plate (never to camera).',
+      'STRICTLY FORBIDDEN ACTIONS (these betray AI insertion of objects that are not in the input): blowing candles unless candles are visibly lit in frame 1, clinking glasses, pouring wine from a bottle, smelling a flower unless flowers are in frame 1, holding a phone, taking a selfie, any gesture that requires an object NOT visible in the input.',
       'CINEMATOGRAPHY: Leica M11 50mm Summilux at f/2 1/500s ISO 400, golden-hour ambient lighting from the existing window, Portra 400 grain, very shallow depth of field with the dish in sharp focus and the guest softly blurred, natural ambient occlusion under the plate.',
       'STYLE REFERENCE: Mary Ellen Mark intimate documentary portrait, Cass Bird candid editorial — NOT commercial food advertising, NOT a glossy ad smile.',
       'SCALE: the plate continues to occupy 18-25% of frame, the guest fills upper-third of frame from chest to chin (face partly out of frame is OK and preferred).',
@@ -112,7 +113,8 @@ const MOTION_PRESETS: Record<MotionPreset, { label: string; prompt: string; reco
     prompt: [
       'LOCKED ELEMENTS: the plated dish at the center of the table in frame 1, the venue (walls, decor, lighting), the table surface, ambient color — all stay identical.',
       'CAMERA: slow gentle pull-back (~6% wider by the end) to reveal the social context. No rotation, no whip pan.',
-      'ACTION: two diverse guests sit across from each other at the table behind the dish, looking DELIGHTED to eat (small genuine smiles, lips slightly parted in anticipation — NOT posed grins). Pick a casting that varies post-to-post: e.g. mid-40s maghrebi-french couple, OR two friends one afro-french one asian-french early-30s, OR a 60yo south-european grandfather + his 30yo daughter. They lean slightly toward the dish, one hand reaches in with a serving fork (real hand, 5 fingers rendered correctly, natural skin texture), they exchange a brief warm glance. Eyes do NOT look at camera. Heads visible, NOT cropped.',
+      'ACTION (CONTEXT-AWARE — only what is plausibly visible in frame 1): the two guests (already in the input image) share ONE small moment over 3-4 seconds — they lean slightly toward the dish, exchange a brief warm glance, one of them gestures softly with an open hand toward the plate. IF a serving fork or shared utensil is in the scene → one guest picks something off the plate; ELSE → both keep hands resting on the table near the plate. Eyes do NOT look at camera. Heads visible, NOT cropped.',
+      'STRICTLY FORBIDDEN ACTIONS: clinking glasses (unless full glasses are visible), blowing candles (unless lit candles are present), passing a phone, taking a photo of the dish, any gesture involving objects NOT visible in the input image.',
       'CINEMATOGRAPHY: Hasselblad X2D 80mm prime f/2.8 1/250s ISO 400, warm ambient pendant + window light, Portra 400 film grain, deep editorial color, both guests softly framed with the dish as the rooted center of focus.',
       'STYLE REFERENCE: Brendan George Ko convivial culinary editorial, Cereal Magazine — slow living, NOT a TV ad.',
       'SCALE: the plate occupies ~15-20% in the wider frame, each guest fills ~12-15% (chest up). Plate stays anchored center. Tables and chairs MUST NOT visually overlap or merge.',
@@ -264,6 +266,9 @@ export async function POST(req: NextRequest) {
         refinedStillUrl: build.url,
         postId: `${postId}-att${attempt}-guest`,
         aspect,
+        businessType: body.businessType ? String(body.businessType).slice(0, 100) : undefined,
+        audienceHint: body.audienceHint ? String(body.audienceHint).slice(0, 200) : undefined,
+        eventHint: body.eventHint ? String(body.eventHint).slice(0, 200) : undefined,
       });
       stillForQa = stage2.url;
       // Verify visually that a guest actually appeared. Seedream sometimes

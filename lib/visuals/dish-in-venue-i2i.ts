@@ -132,17 +132,54 @@ const NEGATIVE_REFINE = [
 // declarative ones ("with"). The 0.55 strength previously kept the
 // scene fixed because nothing told the model to MODIFY it. 0.65 +
 // imperative wording = guest reliably appears.
-const ADD_GUEST_PROMPT = [
-  'Add a single seated guest behind the plate in this exact restaurant interior. The dish should look DESIRABLE — the guest should look DELIGHTED to eat it.',
-  'The guest sits naturally at the same table where the plate already is, body partly visible (shoulders to chest area), HEAD VISIBLE (do NOT crop the head at the top — keep the face in the upper third of the frame). Eyes look downward toward the dish with a SMALL GENUINE SMILE of anticipation/pleasure, lips slightly parted (NOT looking at camera, NOT a posed commercial grin). Real human skin with visible pores, micro-imperfections, subtle asymmetry, soft natural shadows under chin.',
-  'CASTING (vary across reels): a mid-30s woman of maghrebi origin in a linen blouse, OR a 50yo afro-french man in a button-up shirt, OR a 28yo asian-french woman in a knit sweater, OR a 40yo south-european man in a navy polo. ONE person only.',
-  'OPTIONAL INTERACTION (pick one randomly per reel): (a) one hand lifting a fork already loaded with food halfway between plate and mouth, (b) both hands gently framing the bowl from the sides, (c) leaning slightly forward in interest with hands resting flat on the table beside the plate, (d) a glass of wine raised in the foreground softly out of focus. Hands MUST be drawn correctly: 5 fingers each, natural anatomy, holding utensils realistically.',
-  'PRESERVE STRICTLY: the same plate (identical shape and color), the same food on it, the same table (same shape, same surface, same size — do NOT enlarge or change the table), the same chairs in the same positions (do NOT clip or overlap chairs with the new table), the same walls, windows, doors, plants, lighting fixtures, camera angle, perspective, ambient color grade. The plate stays at 18-25% of frame area — anchored center-bottom on the SAME table as input.',
-  'NO TABLE/CHAIR OVERLAP: chairs and tables must not visually intersect or melt together. Each piece of furniture remains a discrete object with clear separation.',
-  'Shot on a Leica M11 with a 50mm Summilux at f/2, warm golden-hour ambient light from the existing window source, Kodak Portra 400 film grain, very shallow depth of field with the plate tack-sharp and the guest softly blurred.',
-  'Editorial documentary photography reference: Mary Ellen Mark intimate portraits, Cass Bird candid editorial, Brendan George Ko culinary documentary. Mood: cozy, intimate, the kind of moment a real customer would post from their phone — joyful but understated. NOT a glossy commercial ad. NOT MasterChef.',
-  'BANNED: cropped or missing head, ring-light catchlight in eyes, plastic doll skin, deformed hands, extra fingers, missing fingers, two right hands, holding a phone, sad/blank/uncomfortable expression, woman-as-model casting, anyone looking at camera, posed grin, table merged with chair, multiple tables stacked, oversized table, AI portrait artifacts, midjourney style, stable diffusion, CGI, 3D render, anime, cartoon, illustration. Zero text, zero watermark.',
-].join(' ');
+function buildAddGuestPrompt(ctx?: {
+  businessType?: string;
+  audienceHint?: string;
+  eventHint?: string;
+}): string {
+  const businessLine = ctx?.businessType
+    ? `BUSINESS CONTEXT: this is a ${ctx.businessType}. The guest casting MUST match the typical clientele — choose age, dress code and posture that a real customer of this exact venue tier would have (a 60yo couple at a gastronomic table is plausible; a 22yo solo at a casual coffee bar is plausible; pick what fits).`
+    : '';
+  const audienceLine = ctx?.audienceHint
+    ? `AUDIENCE HINT: ${ctx.audienceHint}. Cast someone who looks like a member of this audience.`
+    : '';
+  // When the post is tied to a current event/trend, the visual must
+  // betray that link without text — e.g. a winter holiday post shows a
+  // sweater + warm light + a glimpse of decoration; a back-to-school
+  // moment shows a workbag on the chair. We delegate the specific cue
+  // to the LLM upstream; this prompt just enforces "make the link
+  // visible without being kitsch".
+  const eventLine = ctx?.eventHint
+    ? `EVENT / TREND LINK (mandatory visual cue): the scene is part of a post about "${ctx.eventHint}". Show a single SUBTLE contextual element that signals this without being literal or kitschy (e.g. seasonal lighting tone, a piece of period-appropriate clothing on the guest, a single object on the corner of the table that hints at the moment). NO text, NO obvious props labels.`
+    : '';
+  return [
+    'Add a single seated guest behind the plate in this exact restaurant interior. The dish should look DESIRABLE — the guest should look DELIGHTED to eat it.',
+    'The guest sits naturally at the same table where the plate already is, body partly visible (shoulders to chest area), HEAD VISIBLE (do NOT crop the head at the top — keep the face in the upper third of the frame). Eyes look downward toward the dish with a SMALL GENUINE SMILE of anticipation/pleasure, lips slightly parted (NOT looking at camera, NOT a posed commercial grin). Real human skin with visible pores, micro-imperfections, subtle asymmetry, soft natural shadows under chin.',
+    businessLine,
+    audienceLine,
+    eventLine,
+    // Casting rotation pool — caller side picks one based on context.
+    // Updated to span far broader profiles (silhouette, age, dress) so
+    // the feed stops defaulting to the same "mid-30s pretty model".
+    'CASTING POOL (vary post-to-post, pick what fits the business context): mid-30s woman of maghrebi origin in a linen blouse | 50yo afro-french man in a button-up shirt | 28yo asian-french woman in a knit sweater | 40yo south-european man in a navy polo | 60yo grandmother of european origin in a wool cardigan | 22yo south-asian student in a casual t-shirt | 45yo bearded artisan in denim apron | 35yo non-binary person with short hair in a black turtleneck | 70yo retired man in a flat cap. ONE person only.',
+    // Contextual interaction — ONLY use an interaction that is actually
+    // visible/plausible in the scene. Founder caught a previous test where
+    // the AI added "blowing candles" although there were no candles → kills
+    // the realism. Cure: explicitly list "only if visible" gates.
+    'CONTEXTUAL INTERACTION (CRITICAL — pick ONE that matches what is actually visible in the input image):',
+    '  (a) if cutlery is plausibly on the table → one hand holding a fork lifted halfway between plate and mouth, food clearly bitten;',
+    '  (b) if a glass / drinkware is plausibly in the scene → one hand raising the glass slightly out of focus in the foreground;',
+    '  (c) DEFAULT (always safe) → both hands resting flat on the table near the plate, body leaning slightly forward in interest;',
+    '  (d) if a napkin is plausibly present → one hand bringing a napkin gently to the corner of the mouth post-bite.',
+    'STRICTLY FORBIDDEN INTERACTIONS: blowing out candles (unless candles are actually in the input image), pouring wine from a bottle (unless bottle is in the input), smelling a flower (unless flowers are in the input), holding a phone, taking a selfie, clinking glasses, eating with hands when cutlery is present.',
+    'Hands MUST be drawn correctly: 5 fingers each, natural anatomy, holding utensils realistically.',
+    'PRESERVE STRICTLY: the same plate (identical shape and color), the same food on it, the same table (same shape, same surface, same size — do NOT enlarge or change the table), the same chairs in the same positions (do NOT clip or overlap chairs with the new table), the same walls, windows, doors, plants, lighting fixtures, camera angle, perspective, ambient color grade. The plate stays at 18-25% of frame area — anchored center-bottom on the SAME table as input.',
+    'NO TABLE/CHAIR OVERLAP: chairs and tables must not visually intersect or melt together. Each piece of furniture remains a discrete object with clear separation.',
+    'Shot on a Leica M11 with a 50mm Summilux at f/2, warm golden-hour ambient light from the existing window source, Kodak Portra 400 film grain, very shallow depth of field with the plate tack-sharp and the guest softly blurred.',
+    'Editorial documentary photography reference: Mary Ellen Mark intimate portraits, Cass Bird candid editorial, Brendan George Ko culinary documentary. Mood: cozy, intimate, the kind of moment a real customer would post from their phone — joyful but understated. NOT a glossy commercial ad. NOT MasterChef.',
+    'BANNED: cropped or missing head, ring-light catchlight in eyes, plastic doll skin, deformed hands, extra fingers, missing fingers, two right hands, holding a phone, sad/blank/uncomfortable expression, anyone looking at camera, posed grin, table merged with chair, multiple tables stacked, oversized table, AI portrait artifacts, midjourney style, stable diffusion, CGI, 3D render, anime, cartoon, illustration. Zero text, zero watermark.',
+  ].filter(Boolean).join(' ');
+}
 
 /**
  * Stage 2: run a 2nd Seedream i2i pass on the refined still to introduce
@@ -157,10 +194,18 @@ export async function addGuestToRefinedStill(params: {
   refinedStillUrl: string;
   postId: string;
   aspect?: 'square' | 'story';
+  businessType?: string;
+  audienceHint?: string;
+  eventHint?: string;
 }): Promise<{ url: string; with_guest: boolean }> {
   if (!SEEDREAM_API_KEY) return { url: params.refinedStillUrl, with_guest: false };
   const size = params.aspect === 'square' ? '1920x1920' : '1440x2560';
   try {
+    const prompt = buildAddGuestPrompt({
+      businessType: params.businessType,
+      audienceHint: params.audienceHint,
+      eventHint: params.eventHint,
+    });
     const res = await fetch(SEEDREAM_API_URL, {
       method: 'POST',
       headers: {
@@ -169,7 +214,7 @@ export async function addGuestToRefinedStill(params: {
       },
       body: JSON.stringify({
         model: 'seedream-4-5-251128',
-        prompt: ADD_GUEST_PROMPT,
+        prompt,
         image: params.refinedStillUrl,
         // 2026-06-06: bumped 0.55→0.65 after first test produced no guest.
         // Lower values keep too much of the input (no person introduced);
