@@ -394,17 +394,7 @@ export async function POST(req: NextRequest) {
       } catch { /* keep polling */ }
     }
 
-    // 2026-06-06 — Audio layer.
-    // Founder ask: "si y'a une voix dans les reels si le client est francais
-    // ca doit etre en francais derriere sinon pas de voix... si on peut
-    // trouver des librairies libre de droit peu etre c'est mieux".
-    // Strategy:
-    //   - Lookup client language. If FR/EN supported by ElevenLabs → generate
-    //     a short voiceover (the caption hook). Else → no voice.
-    //   - Fetch a royalty-free Pixabay Music track matched by motion preset.
-    //   - Mux video + voice (foreground) + music (ducked under voice or solo).
-    // The whole audio layer is OPT-IN via body.withAudio === true to keep
-    // existing tests reproducible. Cost: ~€0.013 TTS + €0 music = trivial.
+    // 2026-06-06 — Audio layer. OPT-IN via body.withAudio === true.
     let audioMuxed: any = null;
     if (videoUrl && body.withAudio === true) {
       try {
