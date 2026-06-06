@@ -127,15 +127,18 @@ const NEGATIVE_REFINE = [
  * strength (0.55) so Seedream can introduce a guest, but locks the
  * plate + venue identity hard via prompt.
  */
+// Direct, action-oriented prompt. Seedream i2i responds better to
+// imperative composition instructions ("add", "place") than to soft
+// declarative ones ("with"). The 0.55 strength previously kept the
+// scene fixed because nothing told the model to MODIFY it. 0.65 +
+// imperative wording = guest reliably appears.
 const ADD_GUEST_PROMPT = [
-  'Editorial photograph of this restaurant interior — same exact room, same exact dish on the same table — with ONE naturally-lit guest now seated behind the plate.',
-  'PRESERVE EXACTLY: the room (walls, doors, windows, plants, chairs, ceiling, light fixtures), the plate, the food on the plate, the table, the ambient color grade, the existing camera angle and perspective.',
-  'ADD ONE GUEST behind the plate, partially out of frame (chest up only, head softly framed, eyes downward toward the plate — NOT facing camera). Pick the casting RANDOMLY across reels so the feed varies: a mid-30s woman of maghrebi origin in a linen blouse, OR a 50yo afro-french man in a button-up shirt, OR a 28yo asian-french woman in a knit sweater, OR a 40yo south-european man in a navy polo. Real human skin texture with visible pores, micro-imperfections, subtle asymmetry. Hands NOT visible in this still (will be added in i2v if needed).',
-  'EXPRESSION: small genuine half-smile or focused concentration — NEVER a posed front-facing commercial grin. Body slightly forward, leaning toward the dish in interest.',
-  'CINEMATOGRAPHY: Leica M11 50mm Summilux at f/2 1/500s ISO 400, golden-hour ambient light from the existing window, Portra 400 grain, very shallow depth of field with the plate sharp and the guest softly blurred.',
-  'STYLE REFERENCE: Mary Ellen Mark intimate documentary portrait, Cass Bird candid editorial. NOT commercial advertising. NOT a glossy smile.',
-  'SCALE LOCK: plate still occupies 18-25% of frame area, guest fills upper-third (chest to chin), head partly out of frame at top is acceptable and preferred.',
-  'STRICTLY BANNED: more than one guest, guest looking at camera, posed commercial grin, ring-light catchlight in eyes, plastic doll skin, deformed/extra fingers, anyone holding a phone, second plate or duplicated dish, changed walls or different chairs, AI portrait artifacts, midjourney style, stable diffusion default, dall-e style, CGI, 3D render, anime, cartoon. ZERO text, ZERO watermark.',
+  'Add a single seated person behind the plate in this exact restaurant interior.',
+  'The person is sitting at the table where the plate already is, body chest-up, head softly cropped at top of frame, eyes lowered toward the dish with focused concentration (NOT looking at camera). Cast a real human with authentic skin texture, visible pores, slight asymmetry. Vary the casting across reels: a mid-30s woman of maghrebi origin in a linen blouse, OR a 50yo afro-french man in a button-up shirt, OR a 28yo asian-french woman in a knit sweater, OR a 40yo south-european man in a navy polo. ONE person only.',
+  'Preserve everything else exactly: the same plate, same food, same table, same walls, same windows, same chairs, same lighting, same camera angle, same ambient color grade. The plate must remain the visual anchor at 18-25% of frame.',
+  'Shot on a Leica M11 with a 50mm Summilux at f/2, golden-hour ambient light from the existing window, Kodak Portra 400 film grain, very shallow depth of field with the plate sharp and the person softly blurred.',
+  'Editorial documentary photography (Mary Ellen Mark, Cass Bird), NOT a commercial ad, NOT a posed front-facing smile.',
+  'Zero text, zero watermark, zero logo in the image.',
 ].join(' ');
 
 /**
@@ -165,13 +168,17 @@ export async function addGuestToRefinedStill(params: {
         model: 'seedream-4-5-251128',
         prompt: ADD_GUEST_PROMPT,
         image: params.refinedStillUrl,
-        // Higher strength (0.55) lets Seedream introduce the guest while
-        // the explicit "preserve room/plate/table" prompt prevents the
-        // venue identity from drifting. Tested: 0.45 leaves guest absent,
-        // 0.65 starts changing venue color/decor.
-        image_strength: 0.55,
-        strength: 0.55,
-        negative_prompt: 'no guest, empty restaurant, multiple guests, two people, three people, crowd, posed model, smiling at camera, perfect symmetry, plastic skin, doll skin, deformed hands, extra fingers, missing fingers, mutated hand, ring light catchlight, ' + NEGATIVE_REFINE,
+        // 2026-06-06: bumped 0.55→0.65 after first test produced no guest.
+        // Lower values keep too much of the input (no person introduced);
+        // 0.65 is the sweet spot where Seedream actively changes the scene
+        // to add a guest while the explicit "preserve room/plate" prompt
+        // holds the venue identity. 0.75+ starts drifting walls/chairs.
+        image_strength: 0.65,
+        strength: 0.65,
+        // Crucial: removed "no guest"/"empty restaurant" from negative —
+        // those were INSTRUCTING the model to AVOID generating a person.
+        // Keep only the "guest-quality" negatives (no posed smile, no AI tells).
+        negative_prompt: 'multiple guests, two people, three people, crowd, group of people, posed model, smiling at camera, looking at camera, perfect symmetry, plastic skin, doll skin, deformed hands, extra fingers, missing fingers, mutated hand, ring light catchlight, midjourney style, stable diffusion default, dall-e style, CGI, 3D render, anime, cartoon, illustration, vector art, text, words, letters, watermark, logo, caption',
         size,
         response_format: 'url',
         seed: -1,
@@ -180,12 +187,16 @@ export async function addGuestToRefinedStill(params: {
       signal: AbortSignal.timeout(60_000),
     });
     if (!res.ok) {
-      console.warn('[add-guest] Seedream HTTP', res.status);
+      const errTxt = await res.text().catch(() => '');
+      console.warn('[add-guest] Seedream HTTP', res.status, errTxt.substring(0, 250));
       return { url: params.refinedStillUrl, with_guest: false };
     }
     const data = await res.json();
     const tempUrl = data.data?.[0]?.url || data.images?.[0]?.url || null;
-    if (!tempUrl) return { url: params.refinedStillUrl, with_guest: false };
+    if (!tempUrl) {
+      console.warn('[add-guest] No URL in Seedream response:', JSON.stringify(data).substring(0, 250));
+      return { url: params.refinedStillUrl, with_guest: false };
+    }
 
     // Cache the result
     const fetched = await fetch(tempUrl);
@@ -365,5 +376,61 @@ Pass threshold: score >= 7.`,
   } catch (e: any) {
     console.warn('[dish-in-venue-i2i] QA threw:', e?.message);
     return { pass: true, score: 5, verdict: 'qa_threw', issues: [] };
+  }
+}
+
+/**
+ * Quick Claude vision check: is there a clearly visible person/guest
+ * in this image? Used after addGuestToRefinedStill to confirm Stage 2
+ * actually introduced a human (Seedream sometimes silently keeps the
+ * scene empty even with imperative prompts).
+ */
+export async function detectGuestInStill(stillUrl: string): Promise<{ guestVisible: boolean; reason: string }> {
+  const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
+  if (!ANTHROPIC_KEY) return { guestVisible: false, reason: 'no_api_key' };
+  let imageData: { type: 'base64'; media_type: string; data: string } | null = null;
+  try {
+    const r = await fetch(stillUrl);
+    if (!r.ok) return { guestVisible: false, reason: `fetch_${r.status}` };
+    const ct = r.headers.get('content-type') || 'image/jpeg';
+    const buf = Buffer.from(await r.arrayBuffer());
+    imageData = { type: 'base64', media_type: ct, data: buf.toString('base64') };
+  } catch (e: any) {
+    return { guestVisible: false, reason: `fetch_threw:${e?.message?.substring(0, 40)}` };
+  }
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': ANTHROPIC_KEY,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 200,
+        system: 'You answer a single yes/no question about an image. Return STRICT JSON: {"guest_visible": true|false, "reason": "<one short sentence>"}. A "guest" means a clearly identifiable human person in the scene — body, head, hands, or face visible. A pair of empty chairs is NOT a guest. A reflection/shadow alone is NOT a guest.',
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: imageData },
+            { type: 'text', text: 'Is there a clearly visible human guest/person in this restaurant scene?' },
+          ],
+        }],
+      }),
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!res.ok) return { guestVisible: false, reason: `api_${res.status}` };
+    const data = await res.json();
+    const text = data?.content?.[0]?.text || '';
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) return { guestVisible: false, reason: 'no_json' };
+    const parsed = JSON.parse(match[0]);
+    return {
+      guestVisible: !!parsed.guest_visible,
+      reason: String(parsed.reason || ''),
+    };
+  } catch (e: any) {
+    return { guestVisible: false, reason: `threw:${e?.message?.substring(0, 40)}` };
   }
 }

@@ -25,7 +25,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth-server';
-import { buildDishInVenueRefinedStill, addGuestToRefinedStill, qaRefinedStillWithVision } from '@/lib/visuals/dish-in-venue-i2i';
+import { buildDishInVenueRefinedStill, addGuestToRefinedStill, qaRefinedStillWithVision, detectGuestInStill } from '@/lib/visuals/dish-in-venue-i2i';
 import { createClient } from '@supabase/supabase-js';
 
 export const runtime = 'nodejs';
@@ -229,6 +229,7 @@ export async function POST(req: NextRequest) {
     // Stage 2 — add a guest if the motion preset requires people
     let stillForQa = build.url;
     let guestAdded = false;
+    let guestVerdict: any = null;
     if (wantsGuest) {
       const stage2 = await addGuestToRefinedStill({
         refinedStillUrl: build.url,
@@ -236,12 +237,20 @@ export async function POST(req: NextRequest) {
         aspect,
       });
       stillForQa = stage2.url;
-      guestAdded = stage2.with_guest;
+      // Verify visually that a guest actually appeared. Seedream sometimes
+      // returns the same scene unchanged even with imperative prompts.
+      const guestCheck = await detectGuestInStill(stillForQa);
+      guestAdded = guestCheck.guestVisible;
+      guestVerdict = guestCheck;
+      if (!guestAdded) {
+        stillAttempts.push({ attempt, stillUrl: stillForQa, refined: build.refined, guestAdded: false, guestVerdict, skipped_qa: 'no_guest_in_still' });
+        continue; // try another attempt — don't waste i2v on a guest-less still for a guest preset
+      }
     }
 
     const qa = await qaRefinedStillWithVision(stillForQa);
     lastQa = qa;
-    stillAttempts.push({ attempt, stillUrl: stillForQa, refined: build.refined, guestAdded, qa });
+    stillAttempts.push({ attempt, stillUrl: stillForQa, refined: build.refined, guestAdded, guestVerdict, qa });
     if (qa.pass) {
       passingStillUrl = stillForQa;
       break;
