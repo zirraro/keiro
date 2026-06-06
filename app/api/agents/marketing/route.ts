@@ -1109,9 +1109,9 @@ Date : ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric
             let tkToken = adminProf.tiktok_access_token;
 
             // Try refresh if needed
-            if (adminProf.tiktok_refresh_token && process.env.TIKTOK_CLIENT_KEY) {
+            if (adminProf.tiktok_refresh_token && process.env.TIKTOK_CLIENT_KEY && process.env.TIKTOK_CLIENT_SECRET) {
               try {
-                const refreshed = await refreshTikTokToken(adminProf.tiktok_refresh_token, process.env.TIKTOK_CLIENT_KEY);
+                const refreshed = await refreshTikTokToken(adminProf.tiktok_refresh_token, process.env.TIKTOK_CLIENT_KEY, process.env.TIKTOK_CLIENT_SECRET);
                 tkToken = refreshed.access_token;
                 // Save refreshed token
                 await supabase.from('profiles').update({

@@ -48,9 +48,11 @@ export async function POST(req: NextRequest) {
       console.log('[TikTokSync] Token expired, refreshing...');
 
       const clientKey = process.env.TIKTOK_CLIENT_KEY!;
+      const clientSecret = process.env.TIKTOK_CLIENT_SECRET!;
       const refreshedTokens = await refreshTikTokToken(
         profile.tiktok_refresh_token,
-        clientKey
+        clientKey,
+        clientSecret,
       );
 
       // Update tokens in database

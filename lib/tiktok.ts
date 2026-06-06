@@ -106,11 +106,22 @@ export async function exchangeTikTokCode(
 }
 
 /**
- * Refresh access token using refresh token
+ * Refresh access token using refresh token.
+ *
+ * 2026-06-06 — Founder caught daily reconnect bug: mrzirraro had to
+ * reconnect TikTok every 24h. Root cause: this function was calling
+ * /v2/oauth/token/ WITHOUT client_secret. TikTok refresh_token grant
+ * REQUIRES both client_key AND client_secret in the form body — same
+ * as the authorization_code exchange. Without secret, TikTok returns
+ * an empty access_token (no explicit error), and the caller treated
+ * it as a real "refresh broken" → triggered reauth email → client
+ * had to reconnect daily. Fix: take clientSecret as second arg, send
+ * it in the body. Callers updated to forward env.TIKTOK_CLIENT_SECRET.
  */
 export async function refreshTikTokToken(
   refreshToken: string,
-  clientKey: string
+  clientKey: string,
+  clientSecret: string,
 ): Promise<TikTokTokenResponse> {
   const response = await fetch(`${TIKTOK_API_BASE}/v2/oauth/token/`, {
     method: 'POST',
@@ -119,6 +130,7 @@ export async function refreshTikTokToken(
     },
     body: new URLSearchParams({
       client_key: clientKey,
+      client_secret: clientSecret,
       grant_type: 'refresh_token',
       refresh_token: refreshToken,
     }),

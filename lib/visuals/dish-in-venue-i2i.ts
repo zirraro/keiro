@@ -122,6 +122,90 @@ const NEGATIVE_REFINE = [
 ].join(', ');
 
 /**
+ * People-add prompt — Stage 2 for "guest_enjoying" / "duo_sharing"
+ * presets. Runs after the standard dish-in-venue refinement. Higher
+ * strength (0.55) so Seedream can introduce a guest, but locks the
+ * plate + venue identity hard via prompt.
+ */
+const ADD_GUEST_PROMPT = [
+  'Editorial photograph of this restaurant interior — same exact room, same exact dish on the same table — with ONE naturally-lit guest now seated behind the plate.',
+  'PRESERVE EXACTLY: the room (walls, doors, windows, plants, chairs, ceiling, light fixtures), the plate, the food on the plate, the table, the ambient color grade, the existing camera angle and perspective.',
+  'ADD ONE GUEST behind the plate, partially out of frame (chest up only, head softly framed, eyes downward toward the plate — NOT facing camera). Pick the casting RANDOMLY across reels so the feed varies: a mid-30s woman of maghrebi origin in a linen blouse, OR a 50yo afro-french man in a button-up shirt, OR a 28yo asian-french woman in a knit sweater, OR a 40yo south-european man in a navy polo. Real human skin texture with visible pores, micro-imperfections, subtle asymmetry. Hands NOT visible in this still (will be added in i2v if needed).',
+  'EXPRESSION: small genuine half-smile or focused concentration — NEVER a posed front-facing commercial grin. Body slightly forward, leaning toward the dish in interest.',
+  'CINEMATOGRAPHY: Leica M11 50mm Summilux at f/2 1/500s ISO 400, golden-hour ambient light from the existing window, Portra 400 grain, very shallow depth of field with the plate sharp and the guest softly blurred.',
+  'STYLE REFERENCE: Mary Ellen Mark intimate documentary portrait, Cass Bird candid editorial. NOT commercial advertising. NOT a glossy smile.',
+  'SCALE LOCK: plate still occupies 18-25% of frame area, guest fills upper-third (chest to chin), head partly out of frame at top is acceptable and preferred.',
+  'STRICTLY BANNED: more than one guest, guest looking at camera, posed commercial grin, ring-light catchlight in eyes, plastic doll skin, deformed/extra fingers, anyone holding a phone, second plate or duplicated dish, changed walls or different chairs, AI portrait artifacts, midjourney style, stable diffusion default, dall-e style, CGI, 3D render, anime, cartoon. ZERO text, ZERO watermark.',
+].join(' ');
+
+/**
+ * Stage 2: run a 2nd Seedream i2i pass on the refined still to introduce
+ * a guest in the scene. Returns the new URL on success, falls back to
+ * the input refined still on failure (so the pipeline degrades to "no
+ * guest" instead of returning null).
+ *
+ * Cost: ~€0.025 added on top of the stage-1 refinement (~€0.05 total
+ * stills for people-interaction reels vs €0.025 for plain ones).
+ */
+export async function addGuestToRefinedStill(params: {
+  refinedStillUrl: string;
+  postId: string;
+  aspect?: 'square' | 'story';
+}): Promise<{ url: string; with_guest: boolean }> {
+  if (!SEEDREAM_API_KEY) return { url: params.refinedStillUrl, with_guest: false };
+  const size = params.aspect === 'square' ? '1920x1920' : '1440x2560';
+  try {
+    const res = await fetch(SEEDREAM_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${SEEDREAM_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'seedream-4-5-251128',
+        prompt: ADD_GUEST_PROMPT,
+        image: params.refinedStillUrl,
+        // Higher strength (0.55) lets Seedream introduce the guest while
+        // the explicit "preserve room/plate/table" prompt prevents the
+        // venue identity from drifting. Tested: 0.45 leaves guest absent,
+        // 0.65 starts changing venue color/decor.
+        image_strength: 0.55,
+        strength: 0.55,
+        negative_prompt: 'no guest, empty restaurant, multiple guests, two people, three people, crowd, posed model, smiling at camera, perfect symmetry, plastic skin, doll skin, deformed hands, extra fingers, missing fingers, mutated hand, ring light catchlight, ' + NEGATIVE_REFINE,
+        size,
+        response_format: 'url',
+        seed: -1,
+        watermark: false,
+      }),
+      signal: AbortSignal.timeout(60_000),
+    });
+    if (!res.ok) {
+      console.warn('[add-guest] Seedream HTTP', res.status);
+      return { url: params.refinedStillUrl, with_guest: false };
+    }
+    const data = await res.json();
+    const tempUrl = data.data?.[0]?.url || data.images?.[0]?.url || null;
+    if (!tempUrl) return { url: params.refinedStillUrl, with_guest: false };
+
+    // Cache the result
+    const fetched = await fetch(tempUrl);
+    if (!fetched.ok) return { url: tempUrl, with_guest: true };
+    const buf = Buffer.from(await fetched.arrayBuffer());
+    const sb = admin();
+    const path = `composites-i2i-guest/${params.postId}-${Date.now()}.jpg`;
+    const { error: upErr } = await sb.storage
+      .from('business-assets')
+      .upload(path, buf, { contentType: 'image/jpeg', upsert: true });
+    if (upErr) return { url: tempUrl, with_guest: true };
+    const { data: pub } = sb.storage.from('business-assets').getPublicUrl(path);
+    return { url: pub?.publicUrl || tempUrl, with_guest: true };
+  } catch (e: any) {
+    console.warn('[add-guest] threw:', e?.message);
+    return { url: params.refinedStillUrl, with_guest: false };
+  }
+}
+
+/**
  * Build the integrated still. Returns null on hard failure (caller handles).
  */
 export async function buildDishInVenueRefinedStill(params: {

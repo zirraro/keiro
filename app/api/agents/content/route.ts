@@ -1591,11 +1591,12 @@ async function publishToTikTok(
       console.log('[Content] TikTok token expired, refreshing...');
       try {
         const clientKey = process.env.TIKTOK_CLIENT_KEY || process.env.NEXT_PUBLIC_TIKTOK_CLIENT_KEY;
-        if (!clientKey) {
+        const clientSecret = process.env.TIKTOK_CLIENT_SECRET;
+        if (!clientKey || !clientSecret) {
           await releaseTtClaim();
-          return { success: false, error: 'TIKTOK_CLIENT_KEY not configured' };
+          return { success: false, error: 'TIKTOK_CLIENT_KEY/SECRET not configured' };
         }
-        const refreshed = await refreshTikTokToken(refreshToken, clientKey);
+        const refreshed = await refreshTikTokToken(refreshToken, clientKey, clientSecret);
         accessToken = refreshed.access_token;
         // Update tokens in DB — on the SAME profile we read from
         // (post owner if set, else admin). Previously this UPDATE was

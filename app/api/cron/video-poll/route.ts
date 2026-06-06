@@ -322,7 +322,8 @@ async function publishToTikTok(
     if (tokenExpiry && tokenExpiry < new Date()) {
       console.log('[video-poll] TikTok token expired, refreshing...');
       const clientKey = process.env.TIKTOK_CLIENT_KEY || '';
-      const refreshResult = await refreshTikTokToken(adminProfile.tiktok_refresh_token, clientKey);
+      const clientSecret = process.env.TIKTOK_CLIENT_SECRET || '';
+      const refreshResult = await refreshTikTokToken(adminProfile.tiktok_refresh_token, clientKey, clientSecret);
       if (refreshResult?.access_token) {
         accessToken = refreshResult.access_token;
         await supabase.from('profiles').update({

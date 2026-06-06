@@ -25,7 +25,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth-server';
-import { buildDishInVenueRefinedStill, qaRefinedStillWithVision } from '@/lib/visuals/dish-in-venue-i2i';
+import { buildDishInVenueRefinedStill, addGuestToRefinedStill, qaRefinedStillWithVision } from '@/lib/visuals/dish-in-venue-i2i';
 import { createClient } from '@supabase/supabase-js';
 
 export const runtime = 'nodejs';
@@ -211,7 +211,9 @@ export async function POST(req: NextRequest) {
   let passingStillUrl: string | null = null;
   let lastBuild: any = null;
   let lastQa: any = null;
+  const wantsGuest = motion === 'guest_enjoying' || motion === 'duo_sharing';
   for (let attempt = 1; attempt <= maxStillRetries; attempt++) {
+    // Stage 1 — composite + dish-in-venue refinement
     const build = await buildDishInVenueRefinedStill({
       venueUrl,
       dishUrl,
@@ -223,11 +225,25 @@ export async function POST(req: NextRequest) {
       stillAttempts.push({ attempt, error: build.error || 'no_url' });
       continue;
     }
-    const qa = await qaRefinedStillWithVision(build.url);
+
+    // Stage 2 — add a guest if the motion preset requires people
+    let stillForQa = build.url;
+    let guestAdded = false;
+    if (wantsGuest) {
+      const stage2 = await addGuestToRefinedStill({
+        refinedStillUrl: build.url,
+        postId: `${postId}-att${attempt}-guest`,
+        aspect,
+      });
+      stillForQa = stage2.url;
+      guestAdded = stage2.with_guest;
+    }
+
+    const qa = await qaRefinedStillWithVision(stillForQa);
     lastQa = qa;
-    stillAttempts.push({ attempt, stillUrl: build.url, refined: build.refined, qa });
+    stillAttempts.push({ attempt, stillUrl: stillForQa, refined: build.refined, guestAdded, qa });
     if (qa.pass) {
-      passingStillUrl = build.url;
+      passingStillUrl = stillForQa;
       break;
     }
   }

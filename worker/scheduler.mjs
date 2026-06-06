@@ -68,6 +68,11 @@ const GLOBAL_SCHEDULE = [
   { cron: '0 2 * * 0',    slot: 'weekly_enrichment', label: 'Weekly Agent Knowledge Refresh' },
   // Hourly check for Instagram token expiry → email client to reconnect
   { cron: '30 * * * *',   path: '/api/cron/process-ig-reauth', label: 'IG Reauth Email' },
+  // Hourly proactive TikTok refresh — keeps every connected client alive
+  // by rotating access_token via refresh_token BEFORE it expires. The
+  // refresh_token lifetime is 365j, so as long as we refresh within
+  // that window the user never has to reconnect.
+  { cron: '15 * * * *',   path: '/api/cron/tiktok-token-refresh', label: 'TikTok Token Proactive Refresh' },
   // Daily 08:30 UTC — TikTok + LinkedIn token lifecycle. Only emails
   // clients whose tokens really expire < 24h AND can't be refreshed
   // (no refresh_token OR refresh has been failing). Skips refresh-

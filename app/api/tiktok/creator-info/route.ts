@@ -38,7 +38,8 @@ export async function GET(req: NextRequest) {
     if (tokenExpiry <= new Date()) {
       const refreshed = await refreshTikTokToken(
         profile.tiktok_refresh_token,
-        process.env.TIKTOK_CLIENT_KEY!
+        process.env.TIKTOK_CLIENT_KEY!,
+        process.env.TIKTOK_CLIENT_SECRET!,
       );
       const newExpiry = new Date();
       newExpiry.setSeconds(newExpiry.getSeconds() + refreshed.expires_in);
