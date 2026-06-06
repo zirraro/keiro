@@ -2116,7 +2116,6 @@ export async function GET(request: NextRequest) {
             if (visualUrl) skipFields.visual_url = visualUrl;
             await supabase.from('content_calendar').update(skipFields).eq('id', post.id);
             console.log(`[Content] ${fullPost.platform} post ${post.id} held for manual validation (auto_publish=false)`);
-            publishedPosts.push({ platform: fullPost.platform, format: fullPost.format, hook: fullPost.hook || '', publication_error: 'auto_publish_disabled_held_for_manual_validation' });
             continue;
           }
 
