@@ -31,7 +31,7 @@ function hashIp(ip: string): string {
 const PREVIEW_BOT_PATTERNS = [
   /facebookexternalhit/i,
   /tiktokbot/i,
-  /tiktok\/i,
+  /tiktok/i,
   /tiktok-link-preview/i,
   /twitterbot/i,
   /linkedinbot/i,
