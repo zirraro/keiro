@@ -2103,6 +2103,55 @@ export async function GET(request: NextRequest) {
             }
           }
 
+          // 2026-06-07 — Boost mode (TikTok manual CML sound). When the
+          // client tagged this post as "boost", we skip auto-publish on
+          // TikTok and instead mark it awaiting manual publish: the
+          // client opens TikTok app, drops the trending sound from CML,
+          // and posts. The video + caption are saved so they download
+          // and re-upload manually. Notification is sent in parallel.
+          if ((fullPost as any).boost_mode === true && fullPost.platform === 'tiktok') {
+            await supabase.from('content_calendar').update({
+              status: 'awaiting_manual_publish',
+              awaiting_manual_publish_at: new Date().toISOString(),
+              publish_diagnostic: 'boost_mode:tiktok_manual_cml_sound',
+              updated_at: new Date().toISOString(),
+            }).eq('id', post.id);
+            console.log(`[Content] TikTok post ${post.id} held for manual boost (client adds CML sound in-app)`);
+            // Fire-and-forget client notification
+            (async () => {
+              try {
+                const { data: ownerProfile } = await supabase
+                  .from('profiles').select('email, first_name').eq('id', (fullPost as any).user_id).maybeSingle();
+                if (ownerProfile?.email) {
+                  const { sendEmailWithFallback } = await import('@/lib/email/send-with-fallback');
+                  const siteBase = process.env.NEXT_PUBLIC_SITE_URL || 'https://keiroai.com';
+                  await sendEmailWithFallback({
+                    to: ownerProfile.email,
+                    toName: ownerProfile.first_name || 'toi',
+                    subject: '🚀 Reel boost prêt — ajoute le son trending dans TikTok',
+                    html: `<div style="font-family:-apple-system,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#0f172a;">
+                      <h2 style="color:#0c1a3a;margin:0 0 12px;">Salut ${ownerProfile.first_name || 'toi'} 👋</h2>
+                      <p>Lena a préparé un reel TikTok en mode <strong>boost manuel</strong>. Pour maximiser la portée, ajoute un son trending depuis la TikTok Commercial Music Library (CML) :</p>
+                      <ol style="line-height:1.6;">
+                        <li>Ouvre la planning sur <a href="${siteBase}/assistant/agent/content">KeiroAI</a></li>
+                        <li>Télécharge la vidéo du reel</li>
+                        <li>Ouvre l'app TikTok → Créer → Upload</li>
+                        <li>Choisis « Ajouter un son » → onglet Commercial → pick le son tendance qui matche</li>
+                        <li>Publie ✓</li>
+                      </ol>
+                      <p style="font-size:13px;color:#64748b;">2 minutes pour 5-10× plus de portée potentielle. C'est la stratégie que toutes les agences sociales utilisent pour viraliser les reels TikTok.</p>
+                    </div>`,
+                    textContent: `Salut ${ownerProfile.first_name || 'toi'}, Lena a préparé un reel TikTok en mode boost manuel. Télécharge depuis ${siteBase}/assistant/agent/content puis uploade dans TikTok app en ajoutant un son trending depuis la CML. 2 min pour 5-10× plus de portée.`,
+                    fromName: 'KeiroAI Lena',
+                    fromEmail: 'contact@keiroai.com',
+                    tags: ['tiktok_boost_ready'],
+                  });
+                }
+              } catch { /* notif best-effort */ }
+            })();
+            continue;
+          }
+
           // 2026-06-06 — Founder ask: planning toggle "Valider les publications"
           // (= auto_publish off). When off, we generate + queue but DO NOT
           // publish. Post stays as pending_approval so it appears in the
