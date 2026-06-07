@@ -1648,6 +1648,19 @@ export default function AgentWorkspacePage() {
     }
   }, [messages, isLoading, userScrolledUp]);
 
+  // 2026-06-07 — Founder ask: "faudrait que la conversation s'ouvre direct
+  // avec le bas de la conv". When the chat opens (or un-minimises), jump
+  // straight to the last message — no smooth scroll, no half-way landing.
+  useEffect(() => {
+    if (chatOpen && !chatMinimised) {
+      setUserScrolledUp(false);
+      // Wait a tick for the DOM to render the messages, then snap to end.
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
+      }, 50);
+    }
+  }, [chatOpen, chatMinimised]);
+
   const handleSend = useCallback(async () => {
     const text = input.trim(); if (!text || isLoading) return;
     setMessages(prev => [...prev, { id: generateId(), role: 'user', content: text, created_at: new Date().toISOString() }]);
@@ -2783,16 +2796,18 @@ export default function AgentWorkspacePage() {
       {/* ═══ CHAT SLIDE-OVER ═══ */}
       {chatOpen && !chatMinimised && (
         <>
-          {isMobile && <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" onClick={() => setChatMinimised(true)} />}
-          {/* 2026-06-07 — Mobile chat is now a 75vh bottom-sheet (not
-              fullscreen). User sees the page content above + can tap
-              outside or swipe the handle to minimise. Founder caught
-              this UX trap: "ca prend tout l'ecran on peut plus reduire". */}
-          <div className={`fixed z-50 flex flex-col ${isMobile ? 'inset-x-0 bottom-0 rounded-t-2xl shadow-2xl shadow-black/50 overflow-hidden' : 'bottom-4 right-4 w-[380px] rounded-2xl shadow-2xl shadow-black/50 overflow-hidden'}`} style={{ animation: 'slideIn 0.25s ease-out', height: isMobile ? '75vh' : 'min(480px, calc(100vh - 100px))' }}>
+          {isMobile && <div className="fixed inset-0 z-[55] bg-black/40 backdrop-blur-sm" onClick={() => setChatMinimised(true)} />}
+          {/* 2026-06-07 — Mobile chat is now a 78vh bottom-sheet that
+              sits ABOVE the BottomNav (z-[60] vs nav z-50). Drag-handle
+              kept for affordance but the primary minimise is the clear
+              button in the header (founder caught: "le reduire c'est un
+              peu cache"). Auto-scrolls to last message on open
+              ("faudrait que la conversation s'ouvre direct avec le bas"). */}
+          <div className={`fixed z-[60] flex flex-col ${isMobile ? 'inset-x-0 bottom-0 rounded-t-2xl shadow-2xl shadow-black/50 overflow-hidden' : 'bottom-4 right-4 w-[380px] rounded-2xl shadow-2xl shadow-black/50 overflow-hidden'}`} style={{ animation: 'slideIn 0.25s ease-out', height: isMobile ? '78vh' : 'min(480px, calc(100vh - 100px))' }}>
             {isMobile && (
               <button
                 onClick={() => setChatMinimised(true)}
-                className="absolute top-2 left-1/2 -translate-x-1/2 z-10 w-12 h-1.5 rounded-full bg-white/30 hover:bg-white/50 transition"
+                className="absolute top-2 left-1/2 -translate-x-1/2 z-10 w-12 h-1.5 rounded-full bg-white/40 hover:bg-white/60 transition"
                 aria-label="Réduire la conversation"
                 title="Réduire — la conversation reste active"
               />
@@ -2809,11 +2824,12 @@ export default function AgentWorkspacePage() {
                   the backdrop too. */}
               <button
                 onClick={() => setChatMinimised(true)}
-                className="w-10 h-10 min-w-[40px] min-h-[40px] rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors flex-shrink-0"
+                className="px-3 h-10 min-h-[40px] rounded-full bg-white/20 hover:bg-white/30 flex items-center gap-1.5 transition-colors flex-shrink-0"
                 aria-label="Réduire la conversation"
                 title="Réduire (garde la conversation ouverte)"
               >
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 12h14" /></svg>
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 12h14" /></svg>
+                <span className="text-white text-xs font-medium hidden xs:inline sm:hidden">Réduire</span>
               </button>
               <button
                 onClick={() => { setChatOpen(false); setChatMinimised(false); }}
