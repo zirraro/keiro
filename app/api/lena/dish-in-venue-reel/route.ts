@@ -419,8 +419,15 @@ export async function POST(req: NextRequest) {
       } catch { /* keep polling */ }
     }
 
-    // 2026-06-06 — Audio layer. OPT-IN via body.withAudio === true.
-    if (videoUrl && body.withAudio === true) {
+    // 2026-06-07 — Founder rule: reels are NEVER silent (except TikTok
+    // DRAFT mode where the client adds CML sound in-app). For DIRECT
+    // posts we always mux at least music (Jamendo) and add voice if a
+    // script is provided + language is supported.
+    const tiktokDraftMode = body.tiktokDraftMode === true;
+    // Auto-enable audio unless explicitly disabled OR we're in TikTok
+    // draft mode (where adding audio would conflict with the in-app sound).
+    const wantAudio = body.withAudio !== false && !tiktokDraftMode;
+    if (videoUrl && wantAudio) {
       try {
         const { getClientLanguage } = await import('@/lib/agents/client-language');
         const lang = await admin().from('business_dossiers')

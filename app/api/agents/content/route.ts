@@ -3080,6 +3080,11 @@ export async function POST(request: NextRequest) {
                           signal: AbortSignal.timeout(60_000),
                         });
                         const i2vData = await i2vReq.json().catch(() => null);
+                        // 2026-06-07 — Always-audio rule: pipe the silent
+                        // i2v output through audio mux (Jamendo music + optional
+                        // ElevenLabs voice) before publish. Founder: "non il
+                        // me semble plus pertinent d'avoir toujours qqch
+                        // donc go" — applies to TikTok AND Instagram reels.
                         if (i2vData?.ok && i2vData?.taskId) {
                           // Poll up to 120s for completion
                           const deadline = Date.now() + 120_000;
@@ -3094,7 +3099,33 @@ export async function POST(request: NextRequest) {
                               });
                               const pdata = await pr.json().catch(() => null);
                               if (pdata?.status === 'completed' && pdata?.videoUrl) {
-                                videoUrl = pdata.videoUrl;
+                                let rawVideoUrl: string = pdata.videoUrl;
+                                // Always-audio mux: Jamendo bg + optional voice.
+                                try {
+                                  const moodByMotion: Record<string, any> = {
+                                    parallax: 'calm_minimal',
+                                    dolly_steam: 'ambient_warm',
+                                    window_light: 'soft_ambient_slow',
+                                  };
+                                  const { pickJamendoMusic } = await import('@/lib/audio/jamendo-music');
+                                  const musicPick = await pickJamendoMusic({ mood: moodByMotion[pickedMotion] || 'ambient_warm', minDurationSec: 5 });
+                                  if (musicPick?.url) {
+                                    const { muxReelAudio } = await import('@/lib/audio/reel-audio-mux');
+                                    const mix = await muxReelAudio({
+                                      videoUrl: rawVideoUrl,
+                                      musicUrl: musicPick.url,
+                                      postId: post.id,
+                                      durationSec: 5,
+                                    });
+                                    if (mix.url && mix.url !== rawVideoUrl) {
+                                      rawVideoUrl = mix.url;
+                                      console.log(`[Content] dvr reel audio muxed (Jamendo) for ${post.id}`);
+                                    }
+                                  }
+                                } catch (audioErr: any) {
+                                  console.warn('[Content] dvr audio mux failed (ship silent):', audioErr?.message);
+                                }
+                                videoUrl = rawVideoUrl;
                                 updateData.video_url = videoUrl;
                                 updateData.visual_url = build.url;
                                 updateData.publish_diagnostic = `dvr_reel:motion=${pickedMotion},rng=${dvrRng.toFixed(2)},score=${qa.score}`;
