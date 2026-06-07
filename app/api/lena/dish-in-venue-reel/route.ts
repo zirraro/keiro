@@ -40,6 +40,19 @@ type MotionPreset = 'dolly_steam' | 'parallax' | 'chef_hand' | 'window_light' | 
 //   - ACTION block (1 single subtle motion, no more)
 //   - CINEMATOGRAPHY block (camera + lens + lighting + film stock)
 //   - BANNED block (explicit anti-AI tells)
+// 2026-06-07 — Global rules prepended to every motion preset. Founder
+// caught the last reel had AI-generated text and unjustified transitions:
+// "attention aux reels et video les textes generes direct dedant meme si
+// quelques mots ca peut etre pas beau don a eviter et je t'ai demandé le
+// plus naturel possible pour faire comme si c'etait un photographe stp
+// les transitions ok mais justifiees et surtout pertinent". These rules
+// are absolute and apply to every preset.
+const GLOBAL_REEL_RULES = [
+  'ABSOLUTE RULE 1 — ZERO text in the video: no captions, no titles, no labels, no overlays, no signage with text, no logos with readable text, no menu names, no street signs with text, no watermark, no subtitle. Not a single letter. If Seedance feels the urge to add a word, it MUST NOT.',
+  'ABSOLUTE RULE 2 — SINGLE continuous shot only: no cuts, no jump cuts, no fade-to-black, no transitions, no scene changes. One unbroken take like a real photographer would film. The whole clip is the same camera position evolving smoothly.',
+  'ABSOLUTE RULE 3 — Photographer realism: this must look like a frame from a real Vogue/Cereal/Apartamento editorial, not a video edit. No fancy effects, no motion graphics, no AI animation tells.',
+].join(' ');
+
 const MOTION_PRESETS: Record<MotionPreset, { label: string; prompt: string; recommendedFor: string }> = {
   dolly_steam: {
     label: 'Dolly slow + vapeur',
@@ -308,7 +321,9 @@ export async function POST(req: NextRequest) {
 
   // ─── i2v dispatch ─────────────────────────────────────────────
   const preset = MOTION_PRESETS[motion];
-  const prompt = preset.prompt;
+  // Prepend the absolute rules (no text, single shot, photographer realism)
+  // so they outrank any soft hint Seedance might infer from the preset.
+  const prompt = `${GLOBAL_REEL_RULES} ${preset.prompt}`;
   const siteBase = process.env.NEXT_PUBLIC_SITE_URL || `${req.nextUrl.protocol}//${req.nextUrl.host}`;
   let i2vRes: any;
   try {

@@ -302,10 +302,22 @@ function JadeTiktokLive({ tab }: { tab: 'dms' | 'comments' | 'follows' }) {
         <div className="font-bold text-white mb-1">TikTok connecté ✅</div>
         <div className="text-xs">Aucun {tabLabel} pour l&apos;instant. Jade alimente cette liste en continu — reviens dans quelques heures.</div>
         {tab === 'dms' && (
-          <div className="mt-2 text-[11px] text-white/40">⚠️ TikTok n&apos;expose pas d&apos;API DM grand public. Chaque message préparé inclut un lien « Ouvrir dans TikTok » pour envoi manuel en 1 clic.</div>
+          <div className="mt-2 text-[11px] text-white/50 space-y-1">
+            <div>📨 <strong>Stratégie DM TikTok :</strong> Jade fait la <strong>prospection</strong> (analyse des comptes pertinents → message + visuel personnalisé prêts). Le <strong>suivi</strong> reste humain (le 1er message reçu, c&apos;est toi qui réponds).</div>
+            <div>🔗 Le visuel arrive en lien URL public (pas en pièce jointe — TikTok rejette / les destinataires se méfient des screenshots).</div>
+            <div>⚠️ TikTok n&apos;a pas d&apos;API DM grand public. Chaque draft inclut un bouton « Ouvrir dans TikTok » → copier le message + envoyer en 1 clic.</div>
+          </div>
         )}
         {tab === 'follows' && (
-          <div className="mt-2 text-[11px] text-white/40">⚠️ TikTok n&apos;expose pas d&apos;API follow. Chaque suggestion ouvre le profil pour follow manuel en 1 clic.</div>
+          <div className="mt-2 text-[11px] text-white/50 space-y-1">
+            <div>🎯 <strong>Comptes analysés selon la cible client</strong> (audience, secteur, taille de compte). Jade priorise les profils où ton taux de réponse historique est le plus haut.</div>
+            <div>⚠️ TikTok n&apos;a pas d&apos;API follow. Chaque suggestion ouvre le profil pour follow + 1ère interaction (commentaire, partage) manuels en 1 clic.</div>
+          </div>
+        )}
+        {tab === 'comments' && (
+          <div className="mt-2 text-[11px] text-white/50">
+            ✅ Axel répond automatiquement à TOUS les commentaires sur tes vidéos TikTok (cron toutes les heures). Cette liste se remplit dès qu&apos;un commentaire arrive.
+          </div>
         )}
       </div>
     );
