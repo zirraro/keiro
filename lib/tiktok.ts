@@ -722,8 +722,16 @@ export async function publishTikTokVideoViaFileUpload(
     video_cover_timestamp_ms?: number;
     brand_content_toggle?: boolean;
     brand_organic_toggle?: boolean;
+    /**
+     * 2026-06-07 — When true, uploads the video to the user's TikTok
+     * INBOX (draft) instead of publishing directly. The user opens the
+     * TikTok app, sees the draft, picks a CML trending sound + edits
+     * caption, then publishes. Used for "boost mode" reels.
+     * Endpoint switches to /v2/post/publish/inbox/video/init/.
+     */
+    draft?: boolean;
   }
-): Promise<{ publish_id: string }> {
+): Promise<{ publish_id: string; is_draft?: boolean }> {
   console.log('[TikTok] Publishing video via FILE_UPLOAD method');
   console.log('[TikTok] Video URL:', videoUrl);
   console.log('[TikTok] Caption:', caption.substring(0, 100));
@@ -943,34 +951,50 @@ export async function publishTikTokVideoViaFileUpload(
   // Step 3: Initialize upload with TikTok
   console.log('[TikTok] Initializing TikTok upload...');
 
-  const postInfo: Record<string, any> = {
-    title: caption.substring(0, 2200), // TikTok allows up to 2200 chars
-    privacy_level: options?.privacy_level ?? 'PUBLIC_TO_EVERYONE',
-    disable_duet: options?.disable_duet ?? false,
-    disable_comment: options?.disable_comment ?? false,
-    disable_stitch: options?.disable_stitch ?? false,
-    video_cover_timestamp_ms: options?.video_cover_timestamp_ms ?? 1000,
-  };
+  const isDraft = options?.draft === true;
 
-  // Content disclosure (required by TikTok guidelines)
-  if (options?.brand_content_toggle || options?.brand_organic_toggle) {
-    postInfo.brand_content_toggle = options.brand_content_toggle ?? false;
-    postInfo.brand_organic_toggle = options.brand_organic_toggle ?? false;
-  }
+  // DRAFT mode: simpler body — no post_info, video lands in user's
+  // TikTok inbox for them to finalize (privacy, sound, caption tweak) in-app.
+  // DIRECT_POST mode: full post_info with privacy + options.
+  const requestBody: Record<string, any> = isDraft
+    ? {
+        source_info: {
+          source: 'FILE_UPLOAD',
+          video_size: videoSize,
+          chunk_size: chunkSize,
+          total_chunk_count: totalChunkCount,
+        },
+      }
+    : {
+        post_info: {
+          title: caption.substring(0, 2200),
+          privacy_level: options?.privacy_level ?? 'PUBLIC_TO_EVERYONE',
+          disable_duet: options?.disable_duet ?? false,
+          disable_comment: options?.disable_comment ?? false,
+          disable_stitch: options?.disable_stitch ?? false,
+          video_cover_timestamp_ms: options?.video_cover_timestamp_ms ?? 1000,
+          ...(options?.brand_content_toggle || options?.brand_organic_toggle
+            ? {
+                brand_content_toggle: options.brand_content_toggle ?? false,
+                brand_organic_toggle: options.brand_organic_toggle ?? false,
+              }
+            : {}),
+        },
+        source_info: {
+          source: 'FILE_UPLOAD',
+          video_size: videoSize,
+          chunk_size: chunkSize,
+          total_chunk_count: totalChunkCount,
+        },
+      };
 
-  const requestBody = {
-    post_info: postInfo,
-    source_info: {
-      source: 'FILE_UPLOAD',
-      video_size: videoSize,
-      chunk_size: chunkSize,
-      total_chunk_count: totalChunkCount,
-    },
-  };
+  console.log(`[TikTok] Request body (${isDraft ? 'DRAFT/inbox' : 'DIRECT_POST'}):`, JSON.stringify(requestBody, null, 2));
 
-  console.log('[TikTok] Request body:', JSON.stringify(requestBody, null, 2));
-
-  const initResponse = await fetch(`${TIKTOK_API_BASE}/v2/post/publish/video/init/`, {
+  // Endpoint depends on mode: inbox/video/init for drafts, video/init for direct
+  const endpoint = isDraft
+    ? `${TIKTOK_API_BASE}/v2/post/publish/inbox/video/init/`
+    : `${TIKTOK_API_BASE}/v2/post/publish/video/init/`;
+  const initResponse = await fetch(endpoint, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${accessToken}`,
@@ -1149,9 +1173,9 @@ export async function publishTikTokVideoViaFileUpload(
   }
 
   console.log('[TikTok] All chunks uploaded successfully');
-  console.log('[TikTok] Video published successfully via FILE_UPLOAD:', publishId);
+  console.log(`[TikTok] Video ${isDraft ? 'sent to inbox (DRAFT)' : 'published'} via FILE_UPLOAD:`, publishId);
 
-  return { publish_id: publishId };
+  return { publish_id: publishId, is_draft: isDraft };
 }
 
 /**
