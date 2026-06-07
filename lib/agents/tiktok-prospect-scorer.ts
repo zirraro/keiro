@@ -126,10 +126,10 @@ export async function scoreOneTiktokProspect(
   const result = await callMatchModel({
     prospectProfile: {
       handle: prospect.tiktok_handle,
-      bio: scraped.bio,
-      domaine: scraped.domaine,
+      bio: scraped.insta_bio || (scraped.website_description as any),
+      domaine: (scraped as any).domaine,
       ambiance: scraped.ambiance,
-      follower_count: (scraped as any).followers,
+      follower_count: scraped.follower_count,
     },
     clientPersona: ctx.audiencePersona,
     businessType: ctx.businessType,
