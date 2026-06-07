@@ -440,7 +440,9 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        // 2. Music — Pixabay royalty-free, matched by motion preset
+        // 2. Music — Jamendo (Pixabay has no music API, only images/videos).
+        // Jamendo: 600k+ royalty-free tracks, 35k req/mo free, full
+        // commercial license OK for TikTok/IG/LinkedIn embedding.
         const moodByMotion: Record<string, any> = {
           dolly_steam: 'ambient_warm',
           parallax: 'calm_minimal',
@@ -452,8 +454,8 @@ export async function POST(req: NextRequest) {
         };
         let musicUrl: string | null = null;
         try {
-          const { pickPixabayMusic } = await import('@/lib/audio/pixabay-music');
-          const pick = await pickPixabayMusic({
+          const { pickJamendoMusic } = await import('@/lib/audio/jamendo-music');
+          const pick = await pickJamendoMusic({
             mood: moodByMotion[motion] || 'ambient_warm',
             minDurationSec: duration,
           });
