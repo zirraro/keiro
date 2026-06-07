@@ -203,7 +203,7 @@ function JadeTabs({ network }: { network: JadeNetwork }) {
  * Data sources (2026-06-07):
  *   - comments: agent_logs where agent='tiktok_comments' AND
  *     action='reply_sent' AND user_id=current → already-replied comments
- *     (Axel auto-reply is wired via /api/agents/tiktok-comments).
+ *     (Jade auto-reply is wired via /api/agents/tiktok-comments).
  *   - dms: dm_queue where channel='tiktok' AND user_id=current — Jade
  *     prepares drafts here. TikTok has no public DM API for general apps
  *     so each draft includes a "Open profile in TikTok" deep link to
@@ -316,7 +316,7 @@ function JadeTiktokLive({ tab }: { tab: 'dms' | 'comments' | 'follows' }) {
         )}
         {tab === 'comments' && (
           <div className="mt-2 text-[11px] text-white/50">
-            ✅ Axel répond automatiquement à TOUS les commentaires sur tes vidéos TikTok (cron toutes les heures). Cette liste se remplit dès qu&apos;un commentaire arrive.
+            ✅ Jade répond automatiquement à TOUS les commentaires sur tes vidéos TikTok (cron toutes les heures). Cette liste se remplit dès qu&apos;un commentaire arrive.
           </div>
         )}
       </div>
@@ -1670,7 +1670,7 @@ function LenaCommentsSection() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Load + persist Axel's auto-reply setting.
+  // Load + persist Jade's auto-reply setting.
   useEffect(() => {
     fetch('/api/agents/settings?agent_id=instagram_comments', { credentials: 'include' })
       .then(r => r.json())
@@ -1753,7 +1753,7 @@ function LenaCommentsSection() {
       )}
 
       {/* Auto-reply master toggle — clear on/off so the client knows
-          exactly whether Axel will reply on his own. When ON, every new
+          exactly whether Jade will reply on his own. When ON, every new
           comment gets an AI reply automatically; when OFF, the client
           handles each one from this list. */}
       {!isDemo && (
@@ -1761,14 +1761,14 @@ function LenaCommentsSection() {
           <button
             onClick={toggleAutoReply}
             disabled={!autoReplyLoaded}
-            aria-label={autoReply ? 'Disable Axel auto-reply' : 'Enable Axel auto-reply'}
+            aria-label={autoReply ? 'Disable Jade auto-reply' : 'Enable Jade auto-reply'}
             className={`w-11 h-6 rounded-full relative transition-colors flex-shrink-0 ${autoReply ? 'bg-emerald-500' : 'bg-white/15'}`}
           >
             <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${autoReply ? 'right-0.5' : 'left-0.5'}`} />
           </button>
           <div className="flex-1 min-w-0">
             <div className="text-[11px] font-semibold text-white">
-              {autoReply ? 'Auto-reply ON — Axel répond seul' : 'Auto-reply OFF — tu valides chaque réponse'}
+              {autoReply ? 'Auto-reply ON — Jade répond seul' : 'Auto-reply OFF — tu valides chaque réponse'}
             </div>
             <div className="text-[10px] text-white/50 mt-0.5">
               {autoReply

@@ -190,7 +190,7 @@ const ADMIN_NAMES: Record<string, { name: string; subtitle: string }> = {
   chatbot: { name: 'Max Chatbot Group', subtitle: 'Supervision Chatbot — Tous clients' },
   whatsapp: { name: 'Stella WhatsApp Group', subtitle: 'Supervision WhatsApp — Tous clients' },
   onboarding: { name: 'Clara Onboarding Group', subtitle: 'Supervision Onboarding — Tous clients' },
-  tiktok_comments: { name: 'Axel TikTok Group', subtitle: 'Supervision TikTok — Tous clients' },
+  tiktok_comments: { name: 'Jade TikTok Group', subtitle: 'Supervision TikTok — Tous clients' },
   instagram_comments: { name: 'Commentaires IG Group', subtitle: 'Supervision Commentaires — Tous clients' },
   linkedin: { name: 'Emma LinkedIn Group', subtitle: 'Supervision LinkedIn — Tous clients' },
   rh: { name: 'Sara RH Group', subtitle: 'Supervision Juridique — Tous clients' },
@@ -357,7 +357,7 @@ export default function AgentDashboard({ agentId, agentName, gradientFrom, gradi
               rh: { label: 'Activer Sara', url: '#', msg: 'Voici un apercu des documents que Sara peut generer : contrats, CGV, RGPD. Active-la pour commencer.' },
               chatbot: { label: 'Installer Max sur ton site', url: '#', msg: 'Voici un apercu des conversations que Max aura avec tes visiteurs. Installe le widget sur ton site pour demarrer.' },
               whatsapp: { label: 'Configurer WhatsApp', url: '#', msg: 'Voici un apercu de Stella en action. Configure ton numero WhatsApp pour activer les réponses automatiques.' },
-              tiktok_comments: { label: 'Connecter TikTok', url: '/api/auth/tiktok-oauth', msg: 'Voici un apercu de l\'engagement TikTok par Axel. Connecte TikTok pour activer.' },
+              tiktok_comments: { label: 'Connecter TikTok', url: '/api/auth/tiktok-oauth', msg: 'Voici un apercu de l\'engagement TikTok par Jade. Connecte TikTok pour activer.' },
               instagram_comments: { label: 'Connecter Instagram', url: '/api/auth/instagram-oauth', msg: 'Voici un apercu des réponses automatiques a tes commentaires Instagram.' },
             };
             const cfg = previews[agentId];

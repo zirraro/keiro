@@ -34,7 +34,7 @@ const TEAM_PACKS: AgentTeamPack[] = [
     gradientFrom: '#3b82f6',
     gradientTo: '#2563eb',
     minPlan: 'pro',
-    description: 'Tout Createur + Hugo + Felix + Leo + Axel — croissance',
+    description: 'Tout Createur + Hugo + Felix + Leo + Jade (TikTok) — croissance',
   },
   {
     name: 'Pack Business',
