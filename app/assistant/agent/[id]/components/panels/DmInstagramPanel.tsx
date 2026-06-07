@@ -187,9 +187,140 @@ function JadeTabs({ network }: { network: JadeNetwork }) {
         <div data-tour="dm-follows"><ManualFollowsList /></div>
       )}
 
-      {/* TikTok / LinkedIn — sample data + connect CTA */}
-      {network === 'tiktok' && <JadeNetworkPlaceholder network="tiktok" tab={tab} />}
+      {/* TikTok — real data when connected, placeholder when not */}
+      {network === 'tiktok' && (
+        tiktokConnected
+          ? <JadeTiktokLive tab={tab} />
+          : <JadeNetworkPlaceholder network="tiktok" tab={tab} />
+      )}
+      {/* LinkedIn — same pattern (placeholder until LI scope granted) */}
       {network === 'linkedin' && <JadeNetworkPlaceholder network="linkedin" tab={tab} />}
+    </div>
+  );
+}
+
+/**
+ * Live TikTok data for Jade — pulls REAL rows from the same tables the
+ * agent populates so the panel finally stops showing fake samples once
+ * the user is connected.
+ *
+ * Data sources (2026-06-07):
+ *   - comments: agent_logs where agent='tiktok_comments' AND
+ *     action='reply_sent' AND user_id=current → already-replied comments
+ *     (Axel auto-reply is wired via /api/agents/tiktok-comments).
+ *   - dms: dm_queue where channel='tiktok' AND user_id=current — Jade
+ *     prepares drafts here. TikTok has no public DM API for general apps
+ *     so each draft includes a "Open profile in TikTok" deep link to
+ *     send the message manually (human-in-the-loop pattern).
+ *   - follows: crm_prospects filtered on tiktok_handle for the current
+ *     user — the prospect scraper feeds these. Each row links to the
+ *     public TikTok profile so the client can follow manually.
+ */
+function JadeTiktokLive({ tab }: { tab: 'dms' | 'comments' | 'follows' }) {
+  const [rows, setRows] = useState<Array<{ who: string; msg: string; href?: string; ts?: string }>>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const sb = (await import('@/lib/supabase/client')).supabaseBrowser();
+        const { data: { user } } = await sb.auth.getUser();
+        if (!user) { setLoading(false); return; }
+        let out: typeof rows = [];
+
+        if (tab === 'comments') {
+          const { data } = await sb
+            .from('agent_logs')
+            .select('created_at, data')
+            .eq('agent', 'tiktok_comments')
+            .eq('action', 'reply_sent')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(20);
+          out = (data || []).map((r: any) => ({
+            who: '@' + (r.data?.username || 'commenter'),
+            msg: r.data?.reply_text || r.data?.original_text || '(comment auto-reply envoyée)',
+            ts: r.created_at,
+            href: r.data?.video_id ? `https://www.tiktok.com/embed/v2/${r.data.video_id}` : undefined,
+          }));
+        } else if (tab === 'dms') {
+          const { data } = await sb
+            .from('dm_queue')
+            .select('created_at, target, message, status')
+            .eq('user_id', user.id)
+            .eq('channel', 'tiktok')
+            .order('created_at', { ascending: false })
+            .limit(20);
+          out = (data || []).map((r: any) => ({
+            who: r.target || '@cible',
+            msg: `[${r.status}] ${r.message?.substring(0, 140) || ''}`,
+            ts: r.created_at,
+            href: r.target && r.target.startsWith('@') ? `https://www.tiktok.com/${r.target}` : undefined,
+          }));
+        } else {
+          const { data } = await sb
+            .from('crm_prospects')
+            .select('company, tiktok_handle, score, created_at')
+            .eq('user_id', user.id)
+            .not('tiktok_handle', 'is', null)
+            .order('score', { ascending: false })
+            .limit(20);
+          out = (data || []).map((r: any) => ({
+            who: r.tiktok_handle?.startsWith('@') ? r.tiktok_handle : `@${r.tiktok_handle}`,
+            msg: `${r.company || 'prospect'} · Match ${r.score || 0}%`,
+            ts: r.created_at,
+            href: r.tiktok_handle ? `https://www.tiktok.com/${r.tiktok_handle.startsWith('@') ? r.tiktok_handle : '@' + r.tiktok_handle}` : undefined,
+          }));
+        }
+        if (!cancelled) setRows(out);
+      } catch {}
+      if (!cancelled) setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [tab]);
+
+  const tabLabel = tab === 'dms' ? 'messages prêts à envoyer' : tab === 'comments' ? 'commentaires auto-répondus' : 'comptes à suivre';
+
+  if (loading) {
+    return <div className="text-white/40 text-sm p-4">Chargement…</div>;
+  }
+  if (rows.length === 0) {
+    return (
+      <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-4 text-sm text-white/60">
+        <div className="font-bold text-white mb-1">TikTok connecté ✅</div>
+        <div className="text-xs">Aucun {tabLabel} pour l&apos;instant. Jade alimente cette liste en continu — reviens dans quelques heures.</div>
+        {tab === 'dms' && (
+          <div className="mt-2 text-[11px] text-white/40">⚠️ TikTok n&apos;expose pas d&apos;API DM grand public. Chaque message préparé inclut un lien « Ouvrir dans TikTok » pour envoi manuel en 1 clic.</div>
+        )}
+        {tab === 'follows' && (
+          <div className="mt-2 text-[11px] text-white/40">⚠️ TikTok n&apos;expose pas d&apos;API follow. Chaque suggestion ouvre le profil pour follow manuel en 1 clic.</div>
+        )}
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-2">
+      {rows.map((r, i) => (
+        <div key={i} className="rounded-lg bg-white/5 border border-white/10 p-3 flex items-start gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-bold text-cyan-300 truncate">{r.who}</div>
+            <div className="text-xs text-white/70 mt-0.5">{r.msg}</div>
+            {r.ts && <div className="text-[10px] text-white/30 mt-1">{new Date(r.ts).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}</div>}
+          </div>
+          {r.href && (
+            <a
+              href={r.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-shrink-0 text-[10px] px-2 py-1 rounded bg-cyan-500/20 border border-cyan-500/30 text-cyan-200 hover:bg-cyan-500/30 transition"
+            >
+              Ouvrir →
+            </a>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
