@@ -561,7 +561,40 @@ export async function POST(request: NextRequest) {
       } catch {}
     }
 
-    const systemPrompt = agentConfig.systemPrompt + activityContext + statsContext + partnerContext;
+    // 2026-06-07 — Domain-level knowledge priming.
+    // Pull top directives from clients in the SAME business_type so the
+    // agent anticipates the kind of changes/preferences this client is
+    // likely to want. Plus a natural-ack instruction so the assistant
+    // confirms directives in its own voice (no robotic "✓ noted" suffix).
+    let peerInsightsContext = '';
+    try {
+      const { data: dossier } = await supabase
+        .from('business_dossiers')
+        .select('business_type')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      const businessType = dossier?.business_type;
+      if (businessType) {
+        const { data: peerInsights } = await supabase
+          .from('agent_knowledge')
+          .select('summary, content, confidence')
+          .eq('agent', agent === 'ceo' || agent === 'marketing' ? 'content' : agent)
+          .eq('category', 'client_directive')
+          .eq('business_type', businessType)
+          .order('confidence', { ascending: false })
+          .limit(8);
+        if (peerInsights && peerInsights.length > 0) {
+          peerInsightsContext = `\n\nINSIGHTS COMMUNS DES CLIENTS DU MEME DOMAINE (${businessType}) — anticipe ces attentes naturellement sans citer les autres clients :\n` +
+            peerInsights.map((p: any) => `• ${(p.content || p.summary || '').substring(0, 200)}`).join('\n');
+        }
+      }
+    } catch { /* knowledge enrich is best-effort */ }
+
+    // Natural ack: instead of a hardcoded "✓ Noté" suffix, instruct the
+    // LLM to confirm changes in its own conversational voice.
+    const naturalAckGuide = `\n\nQUAND LE CLIENT TE DEMANDE UN CHANGEMENT (horaire, fréquence, stratégie, ton, plateforme, etc.) : confirme NATURELLEMENT dans ta réponse que tu prends en compte la demande, sans formule robotique ("✓ Noté"). Sois conversationnel. Exemple : "OK, à partir de demain je décale la publi Insta à 8h" ou "Reçu, je passe en mode tips éducationnels pour les 2 prochaines semaines".`;
+
+    const systemPrompt = agentConfig.systemPrompt + activityContext + statsContext + partnerContext + peerInsightsContext + naturalAckGuide;
 
     let reply = await callGeminiChat({
       system: systemPrompt,
@@ -749,44 +782,30 @@ Retourne UNIQUEMENT du JSON valide.`,
             }
             console.log(`[AgentChat] Directive saved for ${targetAgentId} (user ${user.id.substring(0, 8)}): ${directives.join(', ')}`);
 
-            // 2026-06-07 — Founder ask: "dise au client c'est bien pris en
-            // compte". Append a visible acknowledgment to the reply when
-            // directives were saved so the client SEES the agent took the
-            // change on board (not just a generic chat answer).
-            const ackLines: string[] = [];
-            if (directives.length > 0) {
-              ackLines.push(`✓ Note bien prise en compte : ${directives.slice(0, 2).join(' / ')}${directives.length > 2 ? ` (+${directives.length - 2})` : ''}`);
-            }
-            if (Object.keys(settings).length > 0) {
-              const settingsList = Object.entries(settings).map(([k, v]) => `${k}=${v}`).join(', ');
-              ackLines.push(`✓ Réglages mis à jour : ${settingsList.substring(0, 160)}`);
-            }
-            if (schedule) {
-              ackLines.push(`✓ Planning de publication mis à jour`);
-            }
-            if (ackLines.length > 0) {
-              reply = `${reply}\n\n${ackLines.join('\n')}`;
-            }
-
-            // 2026-06-07 — Founder ask: "le partager avec le pool de
-            // connaissance mais adapter les demandes spécifiquement à ce
-            // client". The directive STAYS per-client (above), but we
-            // also save an anonymized learning to agent_knowledge so
-            // the system improves over time. Other clients in the same
-            // business_type benefit from the pattern without copying the
-            // specific data.
+            // 2026-06-07 — Knowledge pool by category/domain.
+            // Founder: "il faut quand meme que ce soit par categorie
+            // domaine qu'on puisse accumuler une expertise des attentes
+            // du meme type et anticiper les client similaire".
+            // We save the directive into agent_knowledge with the
+            // business_type field properly populated (the column exists),
+            // so future clients in the same domain benefit from accumulated
+            // patterns. Confidence rises when the same directive recurs
+            // across multiple clients (handled by a separate consolidation
+            // step — for now we just stamp each occurrence).
             try {
               const { data: dossier } = await supabase
                 .from('business_dossiers')
                 .select('business_type')
                 .eq('user_id', user.id)
                 .maybeSingle();
+              const businessType = dossier?.business_type || 'unspecified';
               for (const directive of directives) {
                 await supabase.from('agent_knowledge').insert({
                   agent: targetAgentId,
                   category: 'client_directive',
-                  content: `Client demande (${dossier?.business_type || 'unspecified'}): ${directive.substring(0, 280)}`,
-                  summary: `Directive client ${targetAgentId}: ${directive.substring(0, 100)}`,
+                  business_type: businessType,
+                  content: directive.substring(0, 280),
+                  summary: `Attente client (${businessType}, agent=${targetAgentId}): ${directive.substring(0, 100)}`,
                   confidence: 0.6,
                   source: 'agent_chat',
                   created_by: 'client_chat',
