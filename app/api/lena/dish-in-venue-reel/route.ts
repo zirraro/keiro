@@ -58,8 +58,8 @@ const MOTION_PRESETS: Record<MotionPreset, { label: string; prompt: string; reco
     recommendedFor: 'plat froid (dessert, salade) ou installation propre',
     prompt: [
       'LOCKED ELEMENTS (must stay identical to frame 1): the plated dish, the venue background, every object on the table, the wall texture and color, the position of every element in frame.',
-      'CAMERA: extremely subtle horizontal parallax, no more than 4% lateral drift over the duration, perfectly steady — like a steadicam holding breath. No dolly, NO zoom, NO rotation, NO tilt.',
-      'ACTION: the natural daylight subtly shifts — as if a cloud has just passed and the warmth deepens by 5%. The shadows on the plate elongate a touch. NO human enters, NO objects move.',
+      'CAMERA: continuous slow horizontal parallax 8-10% lateral drift over the duration combined with a 4% push-in by the last second. Smooth steadicam, no jitter. No rotation, no whip, no zoom.',
+      'ACTION: the natural daylight noticeably shifts over the clip — the warm tone deepens by 10%, shadows lengthen slightly, a single thin wisp of steam may rise from the dish near the start. NO human enters, NO objects move, but the LIGHT and ATMOSPHERE evolve so the frame breathes.',
       'CINEMATOGRAPHY: Hasselblad X2D with an 80mm prime f/2.8, soft window light from the side (left or right of frame, NOT front), Portra 400 grain, deep micro-contrast on the dish, ambient occlusion under the plate.',
       'STYLE REFERENCE: Apartamento magazine, Kinfolk slow-living photography, NOT instagram filter, NOT VSCO.',
       'BANNED: zoom, rotation, lens flare, glow halo, ring-light catchlight if any reflective surface, magenta cyan, motion blur, midjourney style, CGI, 3D render, cartoon, illustration, instagram filter, vsco filter, hdr glow. NO text in the video.',
@@ -97,9 +97,9 @@ const MOTION_PRESETS: Record<MotionPreset, { label: string; prompt: string; reco
     label: 'Client savoure le plat',
     recommendedFor: 'plat signature avec ambiance vivante',
     prompt: [
-      'LOCKED ELEMENTS: the plated dish at the lower-center of frame 1, the venue background (walls, doors, plants, chairs, ceiling, light fixtures), the table surface, the ambient color grade — everything stays exactly as in the input image.',
-      'CAMERA: locked off, static tripod shot. No movement at all.',
-      'ACTION (CONTEXT-AWARE — strictly limited to what is plausibly visible in frame 1): the guest (already present in the input image) performs ONE small natural gesture over 3-4 seconds. IF a fork is in their hand or beside the plate → they lift the fork to take a small bite then set it back down. ELSE IF a glass is on the table → they slowly raise the glass to lip-height then lower it. ELSE → they lean slightly forward, hands resting flat on the table beside the plate, and a small genuine half-smile of pleasure spreads across their face. Eyes lower toward the plate (never to camera).',
+      'LOCKED ELEMENTS: the plated dish, the venue, the table, the guest already in frame 1 (same person identity, same clothing).',
+      'CAMERA: smooth slow continuous push-in toward the table, ending ~6-7% closer by the last second. Rack-focus shift mid-clip: starts with the plate tack-sharp and guest softly blurred, then 60% of the way through the focus eases toward the guest face while the plate stays readable in the foreground. No zoom, no rotation, no whip pan, no handheld shake — silky dolly only.',
+      'ACTION (CONTEXT-AWARE, emotionally readable over 5-7 seconds): the guest progressively transitions from anticipation → tasting → satisfaction. (1) First 2s: eyes glance up briefly with a curious half-smile, then drop to the plate as a slow exhale of anticipation parts the lips. (2) Middle 3s: ONE plausible interaction — IF a fork is visible → they lift food halfway to the lips, pause, then bite; ELSE IF a glass is visible → they raise it slowly past frame; ELSE → they lean forward another 1° and slowly bring one hand toward the rim of the plate as if about to pick up cutlery. (3) Last 2s: head tilts a fraction, eyes close briefly in satisfaction, smile broadens by 10%. Every micro-movement subtle and human, never theatrical. Eyes NEVER look at camera.',
       'STRICTLY FORBIDDEN ACTIONS (these betray AI insertion of objects that are not in the input): blowing candles unless candles are visibly lit in frame 1, clinking glasses, pouring wine from a bottle, smelling a flower unless flowers are in frame 1, holding a phone, taking a selfie, any gesture that requires an object NOT visible in the input.',
       'CINEMATOGRAPHY: Leica M11 50mm Summilux at f/2 1/500s ISO 400, golden-hour ambient lighting from the existing window, Portra 400 grain, very shallow depth of field with the dish in sharp focus and the guest softly blurred, natural ambient occlusion under the plate.',
       'STYLE REFERENCE: Mary Ellen Mark intimate documentary portrait, Cass Bird candid editorial — NOT commercial food advertising, NOT a glossy ad smile.',
@@ -208,7 +208,11 @@ export async function POST(req: NextRequest) {
   const dishUrl = String(body.dishUrl || '').trim();
   const venueUrl = String(body.venueUrl || '').trim();
   const postId = String(body.postId || `lena-dvr-${Date.now()}`).trim();
-  const duration = Math.max(5, Math.min(10, Number(body.duration) || 5));
+  // 2026-06-07 — Default duration bumped 5→8s after founder feedback:
+  // 5s is too tight for a TikTok reel — the action barely happens.
+  // 8s gives breathing room for hook + reaction without exploding cost
+  // (Seedance bills per second; 8s vs 5s = +€0.06 per reel).
+  const duration = Math.max(5, Math.min(10, Number(body.duration) || 8));
   const aspect: 'square' | 'story' = body.aspect === 'square' ? 'square' : 'story';
   const motion: MotionPreset = (['dolly_steam', 'parallax', 'chef_hand', 'window_light', 'guest_enjoying', 'duo_sharing', 'chef_kitchen'].includes(body.motion) ? body.motion : 'dolly_steam') as MotionPreset;
   // maxStillRetries: how many i2i refinement attempts before giving up.
@@ -371,6 +375,7 @@ export async function POST(req: NextRequest) {
   let videoUrl: string | null = null;
   let publishResult: any = null;
   let audioMuxed: any = null;
+  let reelQa: any = null;
   if (autoPublishTiktok) {
     // Poll up to 120s for video completion. Seedance typically returns in 30-60s.
     const pollDeadline = Date.now() + 120_000;
@@ -461,6 +466,30 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // 2026-06-07 — Reel-level QA on the actual VIDEO (3 keyframes). The
+    // still-only QA can score 9/10 and still ship a static, dead-looking
+    // reel. reviewGeneratedReel extracts early/mid/late frames and asks
+    // Sonnet whether the action makes sense and the subject identity
+    // holds. hard_fail → don't publish.
+    if (videoUrl) {
+      try {
+        const { reviewGeneratedReel } = await import('@/lib/visuals/reel-qa');
+        reelQa = await reviewGeneratedReel({
+          videoUrl,
+          postId,
+          visualBrief: body.tiktokCaption || preset.recommendedFor,
+          businessType: body.businessType ? String(body.businessType) : undefined,
+        });
+        console.log(`[lena-dvr] reel QA: ${reelQa.verdict} — ${reelQa.issue || 'ok'}`);
+        if (reelQa.verdict === 'hard_fail') {
+          // Block publish — record the reason and surface in response.
+          videoUrl = null;
+        }
+      } catch (e: any) {
+        console.warn('[lena-dvr] reel QA threw (non-fatal):', e?.message);
+      }
+    }
+
     if (videoUrl) {
       // Create content_calendar row + publish to TikTok via existing pipeline.
       // We use the existing publish_single action so all production guards run.
@@ -515,6 +544,7 @@ export async function POST(req: NextRequest) {
     aspect,
     videoUrl,
     audioMuxed,
+    reelQa,
     publishResult,
     poll: `/api/seedream/i2v?taskId=${i2vRes.taskId}`,
   });
