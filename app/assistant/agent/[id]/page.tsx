@@ -1354,6 +1354,11 @@ export default function AgentWorkspacePage() {
 
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesScrollRef = useRef<HTMLDivElement>(null);
+  // 2026-06-07 — Founder ask: stop forcing scroll to bottom on every new
+  // message — user gets bounced when scrolled up reading older context.
+  // Only auto-scroll when the user is ALREADY near the bottom.
+  const [userScrolledUp, setUserScrolledUp] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -1634,7 +1639,14 @@ export default function AgentWorkspacePage() {
   }, [settings, handleSaveSettings]);
 
   // ─── Chat handlers ───────────────────────────────────
-  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, isLoading]);
+  useEffect(() => {
+    // Only auto-scroll when the user is near the bottom (didn't scroll up
+    // intentionally). Stops the "snap-back-to-bottom" annoyance when the
+    // user is reading older messages and a new one arrives.
+    if (!userScrolledUp) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, isLoading, userScrolledUp]);
 
   const handleSend = useCallback(async () => {
     const text = input.trim(); if (!text || isLoading) return;
@@ -2772,7 +2784,19 @@ export default function AgentWorkspacePage() {
       {chatOpen && !chatMinimised && (
         <>
           {isMobile && <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" onClick={() => setChatMinimised(true)} />}
-          <div className={`fixed z-50 flex flex-col ${isMobile ? 'inset-0' : 'bottom-4 right-4 w-[380px] rounded-2xl shadow-2xl shadow-black/50 overflow-hidden'}`} style={{ animation: 'slideIn 0.25s ease-out', ...(!isMobile ? { height: 'min(480px, calc(100vh - 100px))' } : {}), ...(isMobile ? { paddingTop: 'env(safe-area-inset-top, 0px)' } : {}) }}>
+          {/* 2026-06-07 — Mobile chat is now a 75vh bottom-sheet (not
+              fullscreen). User sees the page content above + can tap
+              outside or swipe the handle to minimise. Founder caught
+              this UX trap: "ca prend tout l'ecran on peut plus reduire". */}
+          <div className={`fixed z-50 flex flex-col ${isMobile ? 'inset-x-0 bottom-0 rounded-t-2xl shadow-2xl shadow-black/50 overflow-hidden' : 'bottom-4 right-4 w-[380px] rounded-2xl shadow-2xl shadow-black/50 overflow-hidden'}`} style={{ animation: 'slideIn 0.25s ease-out', height: isMobile ? '75vh' : 'min(480px, calc(100vh - 100px))' }}>
+            {isMobile && (
+              <button
+                onClick={() => setChatMinimised(true)}
+                className="absolute top-2 left-1/2 -translate-x-1/2 z-10 w-12 h-1.5 rounded-full bg-white/30 hover:bg-white/50 transition"
+                aria-label="Réduire la conversation"
+                title="Réduire — la conversation reste active"
+              />
+            )}
             {/* Header */}
             <div className="flex items-center gap-2 px-3 py-3 flex-shrink-0" style={{ background: `linear-gradient(135deg, ${gf}, ${gt})` }}>
               <div className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 bg-white/15">
@@ -2801,7 +2825,16 @@ export default function AgentWorkspacePage() {
               </button>
             </div>
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#0a1628]">
+            <div
+              ref={messagesScrollRef}
+              onScroll={(e) => {
+                const el = e.currentTarget;
+                const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+                setUserScrolledUp(!nearBottom);
+              }}
+              className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-3 bg-[#0a1628]"
+              style={{ WebkitOverflowScrolling: 'touch' }}
+            >
               {messages.length === 0 && !isLoading && (
                 <div className="flex flex-col items-center justify-center h-full text-center px-4">
                   <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ background: `linear-gradient(135deg, ${gf}40, ${gt}40)` }}><span className="text-3xl">{icon}</span></div>
@@ -2822,6 +2855,19 @@ export default function AgentWorkspacePage() {
               ))}
               {isLoading && <div className="flex justify-start"><div className="bg-white/[0.07] rounded-xl px-4 py-3 rounded-bl-sm"><div className="flex gap-1.5"><div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" /><div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.15s' }} /><div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.3s' }} /></div></div></div>}
               <div ref={messagesEndRef} />
+              {userScrolledUp && (
+                <button
+                  onClick={() => {
+                    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+                    setUserScrolledUp(false);
+                  }}
+                  className="sticky bottom-2 left-1/2 -translate-x-1/2 w-9 h-9 rounded-full bg-purple-600/90 hover:bg-purple-500 text-white shadow-lg flex items-center justify-center transition"
+                  aria-label="Aller en bas"
+                  title="Aller au dernier message"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
+                </button>
+              )}
             </div>
             {/* Input */}
             <div className="border-t border-white/10 bg-[#0f1f3d] p-3 flex-shrink-0" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0.75rem))' }}>
