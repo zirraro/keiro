@@ -281,6 +281,36 @@ function ContentWorkflow({ isConnected }: { isConnected?: boolean }) {
             {(post.format === 'carrousel' || post.format === 'carousel') && (
               <div className="absolute top-1 left-1 text-xs text-white drop-shadow">{'\u{1F4DA}'}</div>
             )}
+            {/* 2026-06-07 — Boost badge on TikTok reels: toggles boost_mode
+                so the cron skips auto-publish and emails the client to
+                drop a CML trending sound in-app for max reach. */}
+            {post.platform === 'tiktok' && (post.format === 'reel' || post.format === 'video') && post.status !== 'published' && (
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  try {
+                    const sb = (await import('@/lib/supabase/client')).supabaseBrowser();
+                    const newVal = !post.boost_mode;
+                    await sb.from('content_calendar').update({ boost_mode: newVal }).eq('id', post.id);
+                    (post as any).boost_mode = newVal;
+                    // Force re-render by triggering a small state bump
+                    setSelectedPost({ ...post });
+                    setTimeout(() => setSelectedPost(null), 50);
+                  } catch {}
+                }}
+                title={post.boost_mode ? '🚀 Boost ON — son CML manuel TikTok app' : 'Active boost — son trending CML manuel'}
+                className={`absolute bottom-0.5 right-0.5 text-[10px] px-1.5 py-0.5 rounded cursor-pointer transition-all ${
+                  post.boost_mode
+                    ? 'bg-orange-500/90 text-white font-bold ring-1 ring-orange-200'
+                    : 'bg-black/40 text-white/60 hover:bg-orange-500/50 hover:text-white'
+                }`}
+              >
+                {post.boost_mode ? '🚀 BOOST' : '🚀'}
+              </div>
+            )}
           </button>
         ))}
       </div>
