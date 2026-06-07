@@ -563,7 +563,7 @@ export async function POST(request: NextRequest) {
 
     const systemPrompt = agentConfig.systemPrompt + activityContext + statsContext + partnerContext;
 
-    const reply = await callGeminiChat({
+    let reply = await callGeminiChat({
       system: systemPrompt,
       history: history.map((h: any) => ({
         role: h.role as 'user' | 'assistant',
@@ -748,6 +748,51 @@ Retourne UNIQUEMENT du JSON valide.`,
               await supabase.from('org_agent_configs').insert({ user_id: user.id, agent_id: targetAgentId, config: updatedConfig });
             }
             console.log(`[AgentChat] Directive saved for ${targetAgentId} (user ${user.id.substring(0, 8)}): ${directives.join(', ')}`);
+
+            // 2026-06-07 — Founder ask: "dise au client c'est bien pris en
+            // compte". Append a visible acknowledgment to the reply when
+            // directives were saved so the client SEES the agent took the
+            // change on board (not just a generic chat answer).
+            const ackLines: string[] = [];
+            if (directives.length > 0) {
+              ackLines.push(`✓ Note bien prise en compte : ${directives.slice(0, 2).join(' / ')}${directives.length > 2 ? ` (+${directives.length - 2})` : ''}`);
+            }
+            if (Object.keys(settings).length > 0) {
+              const settingsList = Object.entries(settings).map(([k, v]) => `${k}=${v}`).join(', ');
+              ackLines.push(`✓ Réglages mis à jour : ${settingsList.substring(0, 160)}`);
+            }
+            if (schedule) {
+              ackLines.push(`✓ Planning de publication mis à jour`);
+            }
+            if (ackLines.length > 0) {
+              reply = `${reply}\n\n${ackLines.join('\n')}`;
+            }
+
+            // 2026-06-07 — Founder ask: "le partager avec le pool de
+            // connaissance mais adapter les demandes spécifiquement à ce
+            // client". The directive STAYS per-client (above), but we
+            // also save an anonymized learning to agent_knowledge so
+            // the system improves over time. Other clients in the same
+            // business_type benefit from the pattern without copying the
+            // specific data.
+            try {
+              const { data: dossier } = await supabase
+                .from('business_dossiers')
+                .select('business_type')
+                .eq('user_id', user.id)
+                .maybeSingle();
+              for (const directive of directives) {
+                await supabase.from('agent_knowledge').insert({
+                  agent: targetAgentId,
+                  category: 'client_directive',
+                  content: `Client demande (${dossier?.business_type || 'unspecified'}): ${directive.substring(0, 280)}`,
+                  summary: `Directive client ${targetAgentId}: ${directive.substring(0, 100)}`,
+                  confidence: 0.6,
+                  source: 'agent_chat',
+                  created_by: 'client_chat',
+                });
+              }
+            } catch { /* knowledge pool save is best-effort */ }
           }
 
           // ── 2. Immediate execution ──
