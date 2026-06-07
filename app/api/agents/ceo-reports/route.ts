@@ -378,7 +378,15 @@ async function handleClientBrief(
       // Per-client `preferred_day` (0=Sun..6=Sat) overrides the default
       // Sunday for the weekly brief — Noah picks the best engagement day
       // based on Brevo opens (populated by the weekly best-day analysis cron).
-      const freq: string = prefs?.frequency || ceoConfig?.config?.report_frequency || 'weekly';
+      // 2026-06-07 — Default by plan tier when prefs missing.
+      // Founder noticed Noah only fired once a week ("pourquoi le client
+      // Noah ne recoit plus les rapport chaque jour"). The hard-coded
+      // 'weekly' default was wrong for premium tiers that include daily
+      // briefs. New ladder: paid tiers default to daily, free → weekly.
+      const planTier = (client.subscription_plan || 'free').toLowerCase();
+      const PAID_DAILY = new Set(['pro', 'fondateurs', 'business', 'elite', 'agence']);
+      const planDefault = PAID_DAILY.has(planTier) ? 'daily' : 'weekly';
+      const freq: string = prefs?.frequency || ceoConfig?.config?.report_frequency || planDefault;
       const preferredDay: number = typeof prefs?.preferred_day === 'number'
         ? prefs.preferred_day
         : 0; // default: Sunday
