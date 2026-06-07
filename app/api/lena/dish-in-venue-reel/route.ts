@@ -447,23 +447,17 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        // 2. Music — Jamendo (Pixabay has no music API, only images/videos).
-        // Jamendo: 600k+ royalty-free tracks, 35k req/mo free, full
-        // commercial license OK for TikTok/IG/LinkedIn embedding.
-        const moodByMotion: Record<string, any> = {
-          dolly_steam: 'ambient_warm',
-          parallax: 'calm_minimal',
-          window_light: 'soft_ambient_slow',
-          chef_hand: 'energetic_kitchen',
-          guest_enjoying: 'warm_jazz_intimate',
-          duo_sharing: 'warm_jazz_intimate',
-          chef_kitchen: 'energetic_kitchen',
-        };
+        // 2. Music — Jamendo with context-aware mood (motion + pillar + business)
         let musicUrl: string | null = null;
         try {
-          const { pickJamendoMusic } = await import('@/lib/audio/jamendo-music');
+          const { pickJamendoMusic, pickMoodFromContext } = await import('@/lib/audio/jamendo-music');
+          const mood = pickMoodFromContext({
+            motion,
+            pillar: body.pillar ? String(body.pillar) : undefined,
+            businessType: body.businessType ? String(body.businessType) : undefined,
+          });
           const pick = await pickJamendoMusic({
-            mood: moodByMotion[motion] || 'ambient_warm',
+            mood,
             minDurationSec: duration,
           });
           if (pick?.url) musicUrl = pick.url;

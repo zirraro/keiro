@@ -3102,13 +3102,13 @@ export async function POST(request: NextRequest) {
                                 let rawVideoUrl: string = pdata.videoUrl;
                                 // Always-audio mux: Jamendo bg + optional voice.
                                 try {
-                                  const moodByMotion: Record<string, any> = {
-                                    parallax: 'calm_minimal',
-                                    dolly_steam: 'ambient_warm',
-                                    window_light: 'soft_ambient_slow',
-                                  };
-                                  const { pickJamendoMusic } = await import('@/lib/audio/jamendo-music');
-                                  const musicPick = await pickJamendoMusic({ mood: moodByMotion[pickedMotion] || 'ambient_warm', minDurationSec: 5 });
+                                  const { pickJamendoMusic, pickMoodFromContext } = await import('@/lib/audio/jamendo-music');
+                                  const mood = pickMoodFromContext({
+                                    motion: pickedMotion,
+                                    pillar: (post as any).pillar || undefined,
+                                    businessType: clientSettings?.business_type || undefined,
+                                  });
+                                  const musicPick = await pickJamendoMusic({ mood, minDurationSec: 5 });
                                   if (musicPick?.url) {
                                     const { muxReelAudio } = await import('@/lib/audio/reel-audio-mux');
                                     const mix = await muxReelAudio({

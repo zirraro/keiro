@@ -39,6 +39,45 @@ const MOOD_TAGS: Record<MusicMood, string[]> = {
   soft_ambient_slow: ['ambient', 'slow', 'contemplative'],
 };
 
+/**
+ * Pick the best mood given context (motion preset is the strongest signal,
+ * pillar refines, business_type adds vibe). Returns one of the 6 known moods.
+ *
+ * Founder 2026-06-07: "musique ou voix qui s'adapte au sujet theme ect" —
+ * one music-by-mood mapping that takes all 3 signals into account.
+ */
+export function pickMoodFromContext(opts: {
+  motion?: string;
+  pillar?: string;       // 'trends' | 'tips' | 'social_proof' | 'demo'
+  businessType?: string;
+}): MusicMood {
+  const bt = (opts.businessType || '').toLowerCase();
+  const pillar = (opts.pillar || '').toLowerCase();
+  const motion = (opts.motion || '').toLowerCase();
+
+  // Pillar-driven override (energy + intent matter more than the motion preset).
+  if (pillar === 'trends') return 'energetic_kitchen';      // upbeat to ride the trend wave
+  if (pillar === 'social_proof') return 'uplifting_acoustic'; // feel-good win story
+  if (pillar === 'demo') return 'ambient_warm';              // confident cinematic
+  if (pillar === 'tips') return 'calm_minimal';              // educational + clean
+
+  // Business-type vibe overrides for static dish reels
+  if (/restaurant|bistro|brasserie|gastrono/.test(bt)) return 'warm_jazz_intimate';
+  if (/cafe|boulang|patisserie|coffee/.test(bt)) return 'soft_ambient_slow';
+  if (/sport|fitness|gym/.test(bt)) return 'energetic_kitchen';
+  if (/coiffeur|salon|barbi|beaut/.test(bt)) return 'uplifting_acoustic';
+  if (/hotel|spa/.test(bt)) return 'calm_minimal';
+  if (/fleurist/.test(bt)) return 'soft_ambient_slow';
+  if (/medic|dent|kin/.test(bt)) return 'calm_minimal';
+
+  // Motion preset fallback
+  if (motion === 'dolly_steam' || motion === 'chef_kitchen') return 'energetic_kitchen';
+  if (motion === 'parallax' || motion === 'window_light') return 'calm_minimal';
+  if (motion === 'guest_enjoying' || motion === 'duo_sharing') return 'warm_jazz_intimate';
+
+  return 'ambient_warm';
+}
+
 export interface JamendoTrack {
   id: string;
   url: string;          // direct MP3 URL
