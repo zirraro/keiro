@@ -49,7 +49,11 @@ type MotionPreset = 'dolly_steam' | 'parallax' | 'chef_hand' | 'window_light' | 
 // are absolute and apply to every preset.
 const GLOBAL_REEL_RULES = [
   'ABSOLUTE RULE 1 — ZERO text in the video: no captions, no titles, no labels, no overlays, no signage with text, no logos with readable text, no menu names, no street signs with text, no watermark, no subtitle. Not a single letter. If Seedance feels the urge to add a word, it MUST NOT.',
-  'ABSOLUTE RULE 2 — SINGLE continuous shot only: no cuts, no jump cuts, no fade-to-black, no transitions, no scene changes. One unbroken take like a real photographer would film. The whole clip is the same camera position evolving smoothly.',
+  // 2026-06-07 — Founder clarification: cuts/transitions are NOT banned
+  // outright, only when they break the narrative. A well-justified cut
+  // (e.g. matched-on-action close-up of the dish after a wide shot) is
+  // welcome. What we ban is JARRING transitions that betray AI animation.
+  'RULE 2 — Cuts only if narratively justified. Default = single continuous shot. Allowed: a single matched-on-action cut from wide to close-up of the SAME dish/subject; a focus pull that reads as a deliberate edit. BANNED: fade-to-black, dissolve, whip-pan transition, glitch effect, jump cut to a different scene, anything that screams motion-graphics or AI tells. If unsure, stay on one continuous shot.',
   'ABSOLUTE RULE 3 — Photographer realism: this must look like a frame from a real Vogue/Cereal/Apartamento editorial, not a video edit. No fancy effects, no motion graphics, no AI animation tells.',
 ].join(' ');
 

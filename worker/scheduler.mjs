@@ -73,6 +73,8 @@ const GLOBAL_SCHEDULE = [
   // refresh_token lifetime is 365j, so as long as we refresh within
   // that window the user never has to reconnect.
   { cron: '15 * * * *',   path: '/api/cron/tiktok-token-refresh', label: 'TikTok Token Proactive Refresh' },
+  // Hourly TikTok prospect scoring — ranks comptes à follow per client persona.
+  { cron: '45 * * * *',   path: '/api/cron/tiktok-prospect-score', label: 'TikTok Prospect Scoring (persona match)' },
   // Daily 08:30 UTC — TikTok + LinkedIn token lifecycle. Only emails
   // clients whose tokens really expire < 24h AND can't be refreshed
   // (no refresh_token OR refresh has been failing). Skips refresh-
