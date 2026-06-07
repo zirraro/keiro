@@ -40,7 +40,11 @@ async function callClaude({ system, message, maxTokens = 2000 }: { system: strin
 }
 
 export const runtime = 'nodejs';
-export const maxDuration = 300;
+// 2026-06-07 — Bumped 300→600s after morning_batch timeout caught in
+// admin digest. The bottleneck is long video generation (Seedance up to
+// 90s) + multi-chunk TikTok upload (~30-60s) + IG carousel polling
+// (~20-40s). 300s was too tight when several happened in a row.
+export const maxDuration = 600;
 
 /**
  * Strip cross-platform mentions from a caption right before publish.
