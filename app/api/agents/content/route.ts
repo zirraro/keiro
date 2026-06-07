@@ -2119,6 +2119,59 @@ export async function GET(request: NextRequest) {
             continue;
           }
 
+          // 2026-06-07 — Pre-publish QA gate (ALL platforms IG/TT/LI).
+          // Founder ask: "le control qualite doit etre sur tout les posts
+          // insta et tiktok et linkedin pour s'assurer de ce qui est posté".
+          // For videos → reviewGeneratedReel (3-keyframe Sonnet check).
+          // For images/carousels → scoreVisualQuality (Sonnet still review).
+          // hard_fail → block publish + log; soft_fail → log + ship.
+          // Cost per post: ~€0.003 (Sonnet vision call).
+          try {
+            if (videoUrl && (fullPost.format === 'reel' || fullPost.format === 'video')) {
+              const { reviewGeneratedReel } = await import('@/lib/visuals/reel-qa');
+              const rqa = await reviewGeneratedReel({
+                videoUrl,
+                postId: post.id,
+                visualBrief: fullPost.visual_description || fullPost.hook || '',
+                businessType: clientSettings?.business_type || undefined,
+              });
+              console.log(`[Content] pre-publish reel QA: ${rqa.verdict} — ${rqa.issue || 'ok'}`);
+              if (rqa.verdict === 'hard_fail') {
+                await supabase.from('content_calendar').update({
+                  status: 'publish_failed',
+                  publish_diagnostic: `reel_qa_hard_fail:${(rqa.issue || 'unknown').substring(0, 120)}`,
+                  updated_at: new Date().toISOString(),
+                }).eq('id', post.id);
+                console.warn(`[Content] BLOCK publish ${post.id} on ${fullPost.platform}: reel QA hard fail`);
+                continue;
+              }
+            } else if (visualUrl) {
+              const { scoreVisualQuality } = await import('@/lib/visuals/qa-check');
+              const sqa = await scoreVisualQuality(
+                visualUrl,
+                fullPost.visual_description || fullPost.hook || '',
+                'the intended subject of this post',
+              );
+              console.log(`[Content] pre-publish visual QA: score=${sqa.score}/10 — flags=${(sqa.amateur_flags || []).join(',')}`);
+              // Hard rejection: blur or AI-tells at score <= 2 (catastrophic).
+              const fatalFlags = ['blurry_subject', 'out_of_focus'];
+              const hasFatal = (sqa.amateur_flags || []).some((f: string) => fatalFlags.includes(f));
+              if (hasFatal || sqa.score <= 2) {
+                await supabase.from('content_calendar').update({
+                  status: 'publish_failed',
+                  publish_diagnostic: `visual_qa_block:score=${sqa.score},flags=${(sqa.amateur_flags || []).join('|').substring(0, 80)}`,
+                  updated_at: new Date().toISOString(),
+                }).eq('id', post.id);
+                console.warn(`[Content] BLOCK publish ${post.id} on ${fullPost.platform}: visual QA score=${sqa.score}`);
+                continue;
+              }
+            }
+          } catch (qaErr: any) {
+            // QA threw — log but don't block (better to ship a possibly-OK
+            // post than to silently halt the pipeline on a Sonnet hiccup).
+            console.warn(`[Content] pre-publish QA threw (non-blocking): ${qaErr?.message?.substring(0, 120)}`);
+          }
+
           // Publish to platform
           const postWithMedia = { ...fullPost, visual_url: visualUrl, video_url: videoUrl };
           const updateFields: Record<string, any> = { updated_at: new Date().toISOString() };
