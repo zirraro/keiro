@@ -187,13 +187,9 @@ function JadeTabs({ network }: { network: JadeNetwork }) {
         <div data-tour="dm-follows"><ManualFollowsList /></div>
       )}
 
-      {/* TikTok — real data when connected, placeholder when not */}
-      {network === 'tiktok' && (
-        tiktokConnected
-          ? <JadeTiktokLive tab={tab} />
-          : <JadeNetworkPlaceholder network="tiktok" tab={tab} />
-      )}
-      {/* LinkedIn — same pattern (placeholder until LI scope granted) */}
+      {/* TikTok — JadeTiktokLive auto-detects connection itself */}
+      {network === 'tiktok' && <JadeTiktokLive tab={tab} />}
+      {/* LinkedIn — placeholder until r_member_social scope granted */}
       {network === 'linkedin' && <JadeNetworkPlaceholder network="linkedin" tab={tab} />}
     </div>
   );
@@ -219,6 +215,7 @@ function JadeTabs({ network }: { network: JadeNetwork }) {
 function JadeTiktokLive({ tab }: { tab: 'dms' | 'comments' | 'follows' }) {
   const [rows, setRows] = useState<Array<{ who: string; msg: string; href?: string; ts?: string }>>([]);
   const [loading, setLoading] = useState(true);
+  const [connected, setConnected] = useState<boolean | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -228,6 +225,15 @@ function JadeTiktokLive({ tab }: { tab: 'dms' | 'comments' | 'follows' }) {
         const sb = (await import('@/lib/supabase/client')).supabaseBrowser();
         const { data: { user } } = await sb.auth.getUser();
         if (!user) { setLoading(false); return; }
+        // Check TikTok connection on the user's profile
+        const { data: profile } = await sb
+          .from('profiles')
+          .select('tiktok_access_token')
+          .eq('id', user.id)
+          .maybeSingle();
+        const isConnected = !!profile?.tiktok_access_token;
+        if (!cancelled) setConnected(isConnected);
+        if (!isConnected) { if (!cancelled) setLoading(false); return; }
         let out: typeof rows = [];
 
         if (tab === 'comments') {
@@ -285,6 +291,10 @@ function JadeTiktokLive({ tab }: { tab: 'dms' | 'comments' | 'follows' }) {
 
   if (loading) {
     return <div className="text-white/40 text-sm p-4">Chargement…</div>;
+  }
+  if (connected === false) {
+    // Show the standard "connect TikTok" CTA when not yet linked
+    return <JadeNetworkPlaceholder network="tiktok" tab={tab} />;
   }
   if (rows.length === 0) {
     return (
