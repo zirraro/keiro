@@ -3,7 +3,7 @@
 import type { Network } from './NetworkSelector';
 import { useLanguage } from '@/lib/i18n/context';
 
-export type Tab = 'all-creations' | 'images' | 'videos' | 'drafts' | 'tiktok-drafts' | 'linkedin-drafts' | 'twitter-drafts' | 'calendar';
+export type Tab = 'all-creations' | 'images' | 'videos' | 'favorites' | 'drafts' | 'tiktok-drafts' | 'linkedin-drafts' | 'twitter-drafts' | 'calendar';
 
 interface TabNavigationProps {
   activeTab: Tab;
@@ -15,10 +15,11 @@ interface TabNavigationProps {
   linkedinDraftCount: number;
   twitterDraftCount: number;
   scheduledCount: number;
+  favoritesCount?: number;
   visibleNetworks?: Network[];
 }
 
-export default function TabNavigation({ activeTab, onTabChange, imageCount, videoCount, draftCount, tiktokDraftCount, linkedinDraftCount, twitterDraftCount, scheduledCount, visibleNetworks }: TabNavigationProps) {
+export default function TabNavigation({ activeTab, onTabChange, imageCount, videoCount, draftCount, tiktokDraftCount, linkedinDraftCount, twitterDraftCount, scheduledCount, favoritesCount = 0, visibleNetworks }: TabNavigationProps) {
   const { t } = useLanguage();
   const totalCount = imageCount + videoCount;
   const showNetwork = (network: Network) => !visibleNetworks || visibleNetworks.includes(network);
@@ -82,6 +83,28 @@ export default function TabNavigation({ activeTab, onTabChange, imageCount, vide
                 : 'bg-neutral-100 text-neutral-600'
             }`}>
               {videoCount}
+            </span>
+          )}
+        </button>
+
+        {/* Favoris: regroupe les images + vidéos avec ❤️ */}
+        <button
+          onClick={() => onTabChange('favorites')}
+          className={`pb-4 px-2 font-semibold transition-all relative flex items-center gap-1 ${
+            activeTab === 'favorites'
+              ? 'text-rose-600 border-b-2 border-rose-600'
+              : 'text-neutral-600 hover:text-neutral-900'
+          }`}
+        >
+          <span aria-hidden="true">❤️</span>
+          {t.library.favorites || 'Favoris'}
+          {favoritesCount > 0 && (
+            <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+              activeTab === 'favorites'
+                ? 'bg-rose-100 text-rose-700'
+                : 'bg-neutral-100 text-neutral-600'
+            }`}>
+              {favoritesCount}
             </span>
           )}
         </button>

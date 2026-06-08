@@ -2262,6 +2262,7 @@ function LibraryContent() {
             tiktokDraftCount={stats.total_tiktok_drafts}
             linkedinDraftCount={stats.total_linkedin_drafts}
             twitterDraftCount={stats.total_twitter_drafts}
+            favoritesCount={images.filter((i: any) => i.is_favorite).length + myVideos.filter((v: any) => v.is_favorite).length}
             scheduledCount={scheduledPosts.filter((p: any) => {
               // 2026-06-08 — Count only posts that are still ahead and
               // actually pending. Founder saw a badge number with no
@@ -2336,6 +2337,68 @@ function LibraryContent() {
                       onMoveToFolder={(video) => setItemToMoveToFolder({ id: video.id, type: 'video' })}
                       onEdit={(video) => setEditingVideo(video)}
                     />
+                  ) : activeTab === 'favorites' ? (
+                    <div className="space-y-8">
+                      {/* Images favorites */}
+                      {(() => {
+                        const favImages = images.filter((i: any) => i.is_favorite);
+                        const favVideos = myVideos.filter((v: any) => v.is_favorite);
+                        if (favImages.length === 0 && favVideos.length === 0) {
+                          return (
+                            <div className="rounded-xl border border-dashed border-neutral-300 p-10 text-center">
+                              <div className="text-4xl mb-2">❤️</div>
+                              <div className="text-sm text-neutral-600 font-medium">{(t.library as any).noFavoritesYet || 'Pas encore de favoris'}</div>
+                              <p className="text-xs text-neutral-500 mt-1">{(t.library as any).noFavoritesHelp || 'Clique sur le ❤️ d\'une image ou vidéo pour la retrouver ici.'}</p>
+                            </div>
+                          );
+                        }
+                        return (
+                          <>
+                            {favImages.length > 0 && (
+                              <section>
+                                <h3 className="text-sm font-bold text-neutral-700 mb-3 flex items-center gap-2">
+                                  <span>❤️</span>{(t.library as any).favoriteImages || 'Images favorites'}
+                                  <span className="text-xs text-neutral-400 font-normal">({favImages.length})</span>
+                                </h3>
+                                <MyImagesTab
+                                  images={favImages}
+                                  user={user}
+                                  isGuest={isGuest}
+                                  onRefresh={loadImages}
+                                  onDelete={deleteImage}
+                                  onToggleFavorite={toggleFavorite}
+                                  onPublishToInstagram={(image: any) => openPlatformChoiceModal(image)}
+                                  onPublishToTikTok={(image: any) => openTikTokModalForImage(image)}
+                                  onTitleEdit={handleTitleEdit}
+                                  onDownload={downloadImage}
+                                  onSchedule={openScheduleModal}
+                                  onMoveToFolder={(image: any) => setItemToMoveToFolder({ id: image.id, type: 'image' })}
+                                  onEditImage={(image: any) => setEditingImage(image)}
+                                />
+                              </section>
+                            )}
+                            {favVideos.length > 0 && (
+                              <section>
+                                <h3 className="text-sm font-bold text-neutral-700 mb-3 flex items-center gap-2">
+                                  <span>❤️</span>{(t.library as any).favoriteVideos || 'Vidéos favorites'}
+                                  <span className="text-xs text-neutral-400 font-normal">({favVideos.length})</span>
+                                </h3>
+                                <MyVideosTab
+                                  videos={favVideos}
+                                  onRefresh={loadMyVideos}
+                                  onDelete={handleDeleteVideo}
+                                  onToggleFavorite={handleToggleVideoFavorite}
+                                  onPublishToTikTok={openPlatformChoiceModalForVideo}
+                                  onTitleEdit={handleVideoTitleEdit}
+                                  onMoveToFolder={(video: any) => setItemToMoveToFolder({ id: video.id, type: 'video' })}
+                                  onEdit={(video: any) => setEditingVideo(video)}
+                                />
+                              </section>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </div>
                   ) : activeTab === 'drafts' ? (
                     <InstagramDraftsTab
                       drafts={instagramDrafts}
