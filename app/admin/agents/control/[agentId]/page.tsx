@@ -19,6 +19,7 @@ interface ClientRow {
   actions_breakdown: Record<string, number>;
   kpis: Record<string, any>;
   volume: Record<string, any>;
+  health: { score: number; level: 'green' | 'amber' | 'red'; label: string; reasons: string[] };
 }
 
 interface Panel {
@@ -34,6 +35,9 @@ interface Panel {
     total_errors_24h: number;
     total_errors_7d: number;
     success_rate_24h: number;
+    health_red: number;
+    health_amber: number;
+    health_green: number;
   };
   clients: ClientRow[];
 }
@@ -116,14 +120,15 @@ export default function AgentControlPage() {
         </div>
 
         {/* KPI strip */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 mb-6">
           <Kpi label="Clients actifs" value={`${data.summary.active_clients}/${data.summary.total_clients}`} />
           <Kpi label="Runs 24h" value={data.summary.total_runs_24h} />
           <Kpi label="Runs 7j" value={data.summary.total_runs_7d} />
           <Kpi label="Erreurs 24h" value={data.summary.total_errors_24h} color={data.summary.total_errors_24h > 0 ? 'red' : 'green'} />
-          <Kpi label="Erreurs 7j" value={data.summary.total_errors_7d} />
           <Kpi label="Success 24h" value={`${data.summary.success_rate_24h}%`} color={data.summary.success_rate_24h >= 95 ? 'green' : data.summary.success_rate_24h >= 80 ? 'amber' : 'red'} />
-          <Kpi label="Réseaux" value={data.networks.join(', ') || '—'} />
+          <Kpi label="🚨 Rouge" value={data.summary.health_red ?? 0} color={(data.summary.health_red ?? 0) > 0 ? 'red' : 'green'} />
+          <Kpi label="⚠️ Ambre" value={data.summary.health_amber ?? 0} color={(data.summary.health_amber ?? 0) > 0 ? 'amber' : undefined} />
+          <Kpi label="✅ Vert" value={data.summary.health_green ?? 0} color="green" />
         </div>
 
         {/* Per-client table */}
@@ -137,6 +142,7 @@ export default function AgentControlPage() {
             <table className="min-w-full text-xs">
               <thead className="bg-white/[0.03] text-[10px] text-white/50 uppercase tracking-wider">
                 <tr>
+                  <th className="px-3 py-2 text-left">Health</th>
                   <th className="px-3 py-2 text-left">Client</th>
                   <th className="px-3 py-2 text-left">Plan</th>
                   <th className="px-3 py-2 text-right">Runs 24h</th>
@@ -153,11 +159,24 @@ export default function AgentControlPage() {
                   const sinceRun = c.last_run_at ? formatRelative(c.last_run_at) : '—';
                   const volumeStr = renderVolume(agentId, c.volume);
                   return (
-                    <tr key={c.user_id} className={`border-t border-white/5 hover:bg-white/[0.04] cursor-pointer ${c.errors_24h > 0 ? 'bg-red-500/5' : ''}`} onClick={(e) => {
+                    <tr key={c.user_id} className={`border-t border-white/5 hover:bg-white/[0.04] cursor-pointer ${c.health.level === 'red' ? 'bg-red-500/5' : c.health.level === 'amber' ? 'bg-amber-500/5' : ''}`} onClick={(e) => {
                       // Don't navigate when clicking a pilot button
                       if ((e.target as HTMLElement).closest('button')) return;
                       router.push(`/admin/agents/control/${agentId}/${c.user_id}`);
                     }}>
+                      <td className="px-3 py-2">
+                        <span
+                          className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold border ${
+                            c.health.level === 'red' ? 'bg-red-500/15 border-red-500/40 text-red-300' :
+                            c.health.level === 'amber' ? 'bg-amber-500/15 border-amber-500/40 text-amber-300' :
+                            'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
+                          }`}
+                          title={c.health.reasons.join(' · ') || 'OK'}
+                        >
+                          {c.health.level === 'red' ? '🚨' : c.health.level === 'amber' ? '⚠️' : '✅'}
+                          {c.health.score}
+                        </span>
+                      </td>
                       <td className="px-3 py-2">
                         <div className="font-medium text-white truncate max-w-[180px] underline-offset-2 hover:underline" title={c.email}>{c.email || c.user_id.substring(0, 8)}</div>
                         {c.paused && <span className="text-[9px] text-amber-300 uppercase">⏸ paused</span>}
@@ -196,7 +215,7 @@ export default function AgentControlPage() {
                   );
                 })}
                 {data.clients.length === 0 && (
-                  <tr><td colSpan={9} className="px-3 py-8 text-center text-white/40">Aucun client actif sur cet agent (7 derniers jours)</td></tr>
+                  <tr><td colSpan={10} className="px-3 py-8 text-center text-white/40">Aucun client actif sur cet agent (7 derniers jours)</td></tr>
                 )}
               </tbody>
             </table>

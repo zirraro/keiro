@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
+import { computeHealthScore } from '@/lib/agents/health-score';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -186,7 +187,20 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ agentId: st
     volumeMetrics = byUser;
   }
 
-  // ── 4. Build per-client rows ──
+  // ── 3.5. Active anomalies indexed by user_id for health score ──
+  const { data: anomalies } = await supabase
+    .from('anomaly_alerts')
+    .select('user_id, severity')
+    .eq('agent', agentId)
+    .is('resolved_at', null);
+  const anomaliesByUser: Record<string, Array<{ severity: 'P0' | 'P1' | 'P2' }>> = {};
+  for (const a of (anomalies || []) as any[]) {
+    const uid = a.user_id || '__global__';
+    if (!anomaliesByUser[uid]) anomaliesByUser[uid] = [];
+    anomaliesByUser[uid].push({ severity: a.severity });
+  }
+
+  // ── 4. Build per-client rows + health score ──
   const rows = (clients || []).map((c: any) => {
     const stats = byClient[c.id] || {
       runs24h: 0, runs7d: 0, errors24h: 0, errors7d: 0,
@@ -194,6 +208,13 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ agentId: st
       actionsBreakdown: {},
     };
     const volume = volumeMetrics[c.id] || {};
+    const health = computeHealthScore({
+      runs_7d: stats.runs7d,
+      errors_7d: stats.errors7d,
+      last_run_at: stats.lastRunAt,
+      paused: !!c.scheduling_paused_at,
+      active_anomalies: anomaliesByUser[c.id] || [],
+    });
     return {
       user_id: c.id,
       email: c.email,
@@ -213,11 +234,16 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ agentId: st
         return acc;
       }, {}),
       volume,
+      health,
     };
   }).filter(r => r.runs_7d > 0 || (AGENT_KPI_FIELDS[agentId] || []).some(f => r.kpis[f.label]));
 
-  // Sort: errors first, then most active
+  // Sort: health worst first (RED → AMBER → GREEN), then errors, then activity
   rows.sort((a, b) => {
+    const levelRank = { red: 0, amber: 1, green: 2 };
+    const la = levelRank[a.health.level];
+    const lb = levelRank[b.health.level];
+    if (la !== lb) return la - lb;
     if (a.errors_24h !== b.errors_24h) return b.errors_24h - a.errors_24h;
     return b.runs_7d - a.runs_7d;
   });
@@ -229,6 +255,11 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ agentId: st
   const totalErrors7d = rows.reduce((s, r) => s + r.errors_7d, 0);
   const activeClients = rows.filter(r => r.runs_7d > 0).length;
   const successRate24h = totalRuns24h > 0 ? Math.round(((totalRuns24h - totalErrors24h) / totalRuns24h) * 100) : 100;
+  const healthDistribution = {
+    red: rows.filter(r => r.health.level === 'red').length,
+    amber: rows.filter(r => r.health.level === 'amber').length,
+    green: rows.filter(r => r.health.level === 'green').length,
+  };
 
   return NextResponse.json({
     ok: true,
@@ -243,6 +274,9 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ agentId: st
       total_errors_24h: totalErrors24h,
       total_errors_7d: totalErrors7d,
       success_rate_24h: successRate24h,
+      health_red: healthDistribution.red,
+      health_amber: healthDistribution.amber,
+      health_green: healthDistribution.green,
     },
     clients: rows,
   });

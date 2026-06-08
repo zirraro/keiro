@@ -103,11 +103,37 @@ export default function AdminAgentReportsPage() {
               {PRESETS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
             </select>
           </div>
-          <div className="flex gap-2 items-end">
+          <div className="flex gap-2 items-end no-print">
             <button onClick={run} disabled={loading} className="flex-1 px-3 py-2 text-xs rounded-lg bg-cyan-600 hover:bg-cyan-700 disabled:opacity-50">{loading ? '…' : 'Générer'}</button>
-            <button onClick={downloadCsv} className="px-3 py-2 text-xs rounded-lg bg-white/10 hover:bg-white/15">⬇ CSV</button>
+            <button onClick={downloadCsv} className="px-3 py-2 text-xs rounded-lg bg-white/10 hover:bg-white/15" title="Télécharger CSV">⬇ CSV</button>
+            <button onClick={() => window.print()} className="px-3 py-2 text-xs rounded-lg bg-white/10 hover:bg-white/15" title="Imprimer ou exporter PDF">🖨 PDF</button>
           </div>
         </div>
+
+        {/* Print-only header — only visible when window.print() */}
+        <div className="hidden print:block print-header mb-4">
+          <h1 className="text-xl font-bold">KeiroAI — Rapport agent</h1>
+          <div className="text-sm">Agent: {agent || 'Tous'} · Client: {userId || 'Tous'} · Période: {preset} · Généré le {new Date().toLocaleString('fr-FR')}</div>
+        </div>
+
+        <style jsx global>{`
+          @media print {
+            body { background: white !important; color: black !important; }
+            .no-print { display: none !important; }
+            .print-header { color: black !important; }
+            table { color: black !important; }
+            .rounded-2xl, .rounded-xl { border-radius: 6px !important; }
+            .bg-white\\/\\[0\\.02\\], .bg-white\\/5, .bg-red-500\\/5, .bg-cyan-500\\/5, .bg-purple-500\\/5, .bg-emerald-500\\/5, .bg-amber-500\\/5 { background: #f9fafb !important; }
+            .border-white\\/10, .border-white\\/5 { border-color: #e5e7eb !important; }
+            .text-white, .text-white\\/80, .text-white\\/70, .text-white\\/60, .text-white\\/50, .text-white\\/40 { color: #1f2937 !important; }
+            .text-cyan-300, .text-cyan-400 { color: #0891b2 !important; }
+            .text-emerald-300, .text-emerald-400 { color: #047857 !important; }
+            .text-red-300, .text-red-400 { color: #dc2626 !important; }
+            .text-amber-300, .text-amber-400 { color: #d97706 !important; }
+            .max-h-96, .max-h-72 { max-height: none !important; overflow: visible !important; }
+            .overflow-x-auto, .overflow-y-auto { overflow: visible !important; }
+          }
+        `}</style>
 
         {loading && <div className="text-center py-12 text-white/40">Chargement…</div>}
         {data && data.ok && (

@@ -2313,6 +2313,54 @@ export async function GET(request: NextRequest) {
               platformSuccess = true;
               console.log(`[Content] TikTok published for post ${post.id}: ${ttResult.publish_id}`);
 
+              // 2026-06-09 — TikTok Photo Mode teaser (alternative aux
+              // Stories deprecated 2024). On schedule un post Photo
+              // Mode 6-10h plus tard avec le visual + 1 sticker
+              // "Nouveau post" en caption. Drive le trafic vers le
+              // reel TikTok publié.
+              if (fullPost.format === 'video' || fullPost.format === 'reel') {
+                try {
+                  const delayHours = 6 + Math.floor(Math.random() * 4); // 6-10h
+                  const teaserAt = new Date(Date.now() + delayHours * 60 * 60 * 1000);
+                  const variants = [
+                    '📌 Nouveau reel — link in bio ↑',
+                    '👀 Tu l\'as vu ? Notre dernier reel',
+                    '🔥 Reel du jour — swipe pour découvrir',
+                  ];
+                  const tCaption = variants[Math.floor(Math.random() * variants.length)];
+                  // Dedup : skip si une autre TT photo mode est en queue dans les 12h
+                  const { count: nearbyTtPhoto } = await supabase
+                    .from('content_calendar')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('user_id', fullPost.user_id)
+                    .eq('platform', 'tiktok')
+                    .eq('format', 'photo')
+                    .gte('scheduled_date', new Date(Date.now() - 12 * 3600 * 1000).toISOString().split('T')[0]);
+                  if ((nearbyTtPhoto || 0) === 0) {
+                    await supabase.from('content_calendar').insert({
+                      user_id: fullPost.user_id,
+                      org_id: fullPost.org_id || null,
+                      platform: 'tiktok',
+                      format: 'photo',
+                      hook: 'TT Photo Mode teaser — nouveau reel',
+                      caption: tCaption,
+                      hashtags: ['#fyp', '#pourtoi', '#nouveau'],
+                      visual_url: fullPost.visual_url || postWithMedia.visual_url,
+                      scheduled_date: teaserAt.toISOString().split('T')[0],
+                      scheduled_time: teaserAt.toISOString(),
+                      status: 'approved',
+                      auto_publish: true,
+                      pillar: fullPost.pillar || null,
+                      source: 'tt_photo_mode_teaser',
+                      parent_post_id: post.id,
+                    });
+                    console.log(`[Content] TT Photo Mode teaser scheduled for ${post.id} @ +${delayHours}h`);
+                  }
+                } catch (ttPhotoErr: any) {
+                  console.warn(`[Content] TT Photo Mode teaser failed for ${post.id}:`, ttPhotoErr?.message);
+                }
+              }
+
               // 2026-06-08 — Founder rule (lib/credits/constants.ts:67-68):
               // "1 génération = 2 publications". A TikTok reel can be
               // republished on Instagram, BUT:
