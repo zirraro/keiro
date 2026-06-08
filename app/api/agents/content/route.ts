@@ -1988,8 +1988,14 @@ export async function GET(request: NextRequest) {
     // plan baseline is 1 Instagram post per day — and even when bumped,
     // never two within hours. We cap at 1 publication / 4h / platform.
     const MIN_GAP_HOURS_BETWEEN_PUBLISH = 4;
-    async function recentlyPublishedSamePlatform(platform: string, uid: string | null): Promise<boolean> {
+    // 2026-06-09 — Stories (IG) and Photo Mode (TT) bypass the 4h gap.
+    // They are ephemeral content that lives alongside feed posts, not in
+    // competition with them. Blocking a story because a feed post just
+    // went live would kill the new library-recycle strategy.
+    async function recentlyPublishedSamePlatform(platform: string, uid: string | null, currentFormat?: string): Promise<boolean> {
       if (!uid) return false;
+      const fmt = (currentFormat || '').toLowerCase();
+      if (fmt === 'story' || fmt === 'photo') return false;
       const since = new Date(Date.now() - MIN_GAP_HOURS_BETWEEN_PUBLISH * 3600 * 1000).toISOString();
       const { count } = await supabase
         .from('content_calendar')
@@ -1997,6 +2003,7 @@ export async function GET(request: NextRequest) {
         .eq('user_id', uid)
         .eq('platform', platform)
         .eq('status', 'published')
+        .not('format', 'in', '(story,photo)')
         .gte('published_at', since);
       return (count || 0) > 0;
     }
@@ -2011,7 +2018,8 @@ export async function GET(request: NextRequest) {
           // was published within the last 4h. Prevents the double-shot
           // scenario the founder reported (two IG posts 4 seconds apart).
           const postPlatform = (post as any).platform || 'instagram';
-          if (await recentlyPublishedSamePlatform(postPlatform, userId)) {
+          const slotFormat = (post as any).format || '';
+          if (await recentlyPublishedSamePlatform(postPlatform, userId, slotFormat)) {
             console.warn(`[Content] Spacing guard: skipping post ${post.id} on ${postPlatform} — already published within 4h.`);
             continue;
           }
