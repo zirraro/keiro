@@ -79,6 +79,28 @@ async function persist(slug: string, query: string, url: string | null, source: 
   }
 }
 
+/**
+ * Wikipedia REST API summary endpoint — returns a thumbnail image for
+ * any article title. Works great for named entities (people, places,
+ * events, brands). Free, no auth, fast.
+ */
+async function wikipediaThumbnail(query: string, lang: 'fr' | 'en' = 'fr'): Promise<string | null> {
+  const title = encodeURIComponent(query.replace(/\s+/g, '_'));
+  const url = `https://${lang}.wikipedia.org/api/rest_v1/page/summary/${title}`;
+  try {
+    const r = await fetch(url, {
+      signal: AbortSignal.timeout(5000),
+      headers: { 'User-Agent': 'KeiroAI/1.0 (https://keiroai.com)' },
+    });
+    if (!r.ok) return null;
+    const data: any = await r.json();
+    // originalimage is usually a larger version; thumbnail is small (~50-300px)
+    return data?.originalimage?.source || data?.thumbnail?.source || null;
+  } catch {
+    return null;
+  }
+}
+
 async function resolveOne(rawQuery: string): Promise<string | null> {
   const query = (rawQuery || '').trim();
   if (!query) return null;
@@ -88,32 +110,47 @@ async function resolveOne(rawQuery: string): Promise<string | null> {
   const cached = await lookupCached(slug);
   if (cached !== undefined) return cached;
 
-  // Try Pixabay (free, photo-realistic, no attribution)
   let imageUrl: string | null = null;
-  try {
-    const hits = await searchPixabayImages({ query, count: 5, orientation: 'horizontal' });
-    if (hits.length > 0) {
-      // Prefer the highest-quality variant Pixabay returned
-      imageUrl = hits[0].webformatURL || hits[0].largeImageURL || hits[0].previewURL || null;
-    }
-  } catch {
-    /* swallow */
+  let source = 'none';
+
+  // 1) Wikipedia FR — most trends are named entities (people, events).
+  imageUrl = await wikipediaThumbnail(query, 'fr');
+  if (imageUrl) source = 'wikipedia-fr';
+
+  // 2) Wikipedia EN — for non-French entities ("hbo max", "spacex").
+  if (!imageUrl) {
+    imageUrl = await wikipediaThumbnail(query, 'en');
+    if (imageUrl) source = 'wikipedia-en';
   }
 
-  // If keyword had a stop word like "vs", retry with just the first word
+  // 3) Pixabay — only if a key is configured; cheap free fallback for
+  //    generic topics like "marketing" or "entrepreneur".
+  if (!imageUrl && process.env.PIXABAY_API_KEY) {
+    try {
+      const hits = await searchPixabayImages({ query, count: 3, orientation: 'horizontal' });
+      if (hits.length > 0) {
+        imageUrl = hits[0].webformatURL || hits[0].largeImageURL || hits[0].previewURL || null;
+        if (imageUrl) source = 'pixabay';
+      }
+    } catch {
+      /* swallow */
+    }
+  }
+
+  // 4) Last resort: retry with the first significant word if multi-word
   if (!imageUrl) {
-    const head = query.split(/\s+/)[0];
-    if (head && head.length >= 3 && head !== query) {
-      try {
-        const hits = await searchPixabayImages({ query: head, count: 3, orientation: 'horizontal' });
-        if (hits.length > 0) imageUrl = hits[0].webformatURL || hits[0].largeImageURL || null;
-      } catch {
-        /* swallow */
+    const head = query.split(/\s+/).find((w) => w.length >= 3);
+    if (head && head !== query) {
+      imageUrl = await wikipediaThumbnail(head, 'fr');
+      if (imageUrl) source = 'wikipedia-fr-head';
+      if (!imageUrl) {
+        imageUrl = await wikipediaThumbnail(head, 'en');
+        if (imageUrl) source = 'wikipedia-en-head';
       }
     }
   }
 
-  await persist(slug, query, imageUrl, imageUrl ? 'pixabay' : 'none');
+  await persist(slug, query, imageUrl, source);
   return imageUrl;
 }
 
