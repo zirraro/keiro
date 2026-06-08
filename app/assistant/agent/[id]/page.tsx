@@ -8,6 +8,7 @@ import type { ClientAgent } from '@/lib/agents/client-context';
 import { CLIENT_AGENTS } from '@/lib/agents/client-context';
 import UpsellBanner from '@/app/components/UpsellBanner';
 import AgentOrdersHint from './components/AgentOrdersHint';
+import CreditPackModal from '@/components/CreditPackModal';
 
 const CrmDashboard = dynamic(() => import('./components/CrmDashboard'), { ssr: false });
 const AgentDashboard = dynamic(() => import('./components/AgentDashboard'), { ssr: false });
@@ -1364,6 +1365,11 @@ export default function AgentWorkspacePage() {
   const [chatMinimised, setChatMinimised] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
+  // 2026-06-09 — Modal "boost crédits" : déclenché manuellement via le
+  // bouton ou auto si on détecte budget RED côté serveur. Garde le
+  // client en activité même quand son plan touche sa limite mensuelle.
+  const [showCreditModal, setShowCreditModal] = useState(false);
+  const [creditModalReason, setCreditModalReason] = useState<'budget_red' | 'quota_exhausted' | 'manual'>('manual');
   const [isLoading, setIsLoading] = useState(false);
 
   // Files
@@ -2938,7 +2944,14 @@ export default function AgentWorkspacePage() {
             <div className="border-t border-white/10 bg-[#0f1f3d] p-3 flex-shrink-0" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0.75rem))' }}>
               {/* 2026-06-08 — Discoverable list of orders this agent
                   understands. Click an example → pre-fills the chat input. */}
-              <div className="mb-2 flex justify-end">
+              <div className="mb-2 flex justify-between items-center gap-2">
+                <button
+                  onClick={() => setShowCreditModal(true)}
+                  className="text-[11px] font-medium rounded-full px-2 py-1 border border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/15 transition"
+                  title="Recharger en crédits pour continuer les générations"
+                >
+                  💎 Recharger crédits
+                </button>
                 <AgentOrdersHint
                   agentId={params?.id as string || ''}
                   onPickExample={(text) => {
@@ -2962,6 +2975,15 @@ export default function AgentWorkspacePage() {
       )}
 
       <style jsx>{`@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }`}</style>
+
+      {/* Credit pack purchase modal — triggered manuellement ou auto sur budget RED */}
+      {showCreditModal && (
+        <CreditPackModal
+          reason={creditModalReason}
+          source={params?.id as string}
+          onClose={() => setShowCreditModal(false)}
+        />
+      )}
     </div>
   );
 }

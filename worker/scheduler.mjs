@@ -51,7 +51,12 @@ const GLOBAL_SCHEDULE = [
   { cron: '0 */2 * * *',  slot: 'email_inbound_poll', label: 'Inbound Email Poll (Gmail/Outlook/IMAP)' },
   // Instagram comments auto-reply hourly (client-side cadence too strict
   // would trip Meta; hourly is comfortable on all plans).
-  { cron: '15 * * * *',   slot: 'ig_comments_reply', label: 'IG Comments Auto-Reply (all active clients)' },
+  // 2026-06-09 — Cadence 2h au lieu de 1h. IG accepte largement
+  // <24h pour les réponses commentaires; les nouveaux commentaires
+  // sont déjà captés en temps réel par le webhook Meta. Cette tâche
+  // est juste le fallback batch — passer en 2h coupe -50% des
+  // appels Haiku (~-€0.50/mois) sans dégrader l'expérience client.
+  { cron: '15 */2 * * *', slot: 'ig_comments_reply', label: 'IG Comments Auto-Reply (every 2h)' },
   { cron: '0 7 * * 1',    path: '/api/agents/weekly-trends', label: 'Weekly Trends (Monday)' },
   // 2026-06-03 — Daily refresh of winning content patterns by sector
   // (TikTok / Insta / LinkedIn / Google trends) for Lena to anchor her
