@@ -97,12 +97,20 @@ export default function ServiceHealthPage() {
             <h1 className="text-2xl font-bold">Service Health — Diagnostics Noah</h1>
             <p className="text-white/50 text-sm mt-1">Fenêtre 7j · Catch-up technical gaps + analyse cause racine</p>
           </div>
-          <button
-            onClick={load}
-            className="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm font-medium transition"
-          >
-            ↻ Recharger
-          </button>
+          <div className="flex gap-2">
+            <a
+              href="/admin/agents/control"
+              className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 rounded-lg text-sm font-medium transition"
+            >
+              🎛️ Agent Control Center
+            </a>
+            <button
+              onClick={load}
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm font-medium transition"
+            >
+              ↻ Recharger
+            </button>
+          </div>
         </div>
 
         {/* Summary KPIs */}
