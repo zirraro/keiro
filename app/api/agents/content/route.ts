@@ -2234,6 +2234,67 @@ export async function GET(request: NextRequest) {
               if (igResult.permalink) updateFields.instagram_permalink = igResult.permalink;
               platformSuccess = true;
               console.log(`[Content] Instagram published for post ${post.id}: ${igResult.permalink || '(story — no permalink)'}`);
+
+              // 2026-06-09 — Founder ask: "très peu de story avec agent
+              // lena alors qu on a pas mal de biblioteque d'image et
+              // reel en plus on peut mettre nouveau post pour faire
+              // cliquer les gens dans la story faut une stratgie story
+              // insta et tiktok qui s'integre a la stratgeie des publi".
+              //
+              // When a feed post (image, carrousel, reel) publishes
+              // successfully on Instagram and the format isn't already
+              // 'story', schedule an Instagram Story teaser ~45-90 min
+              // later that says "Nouveau post" and drives clicks. Same
+              // visual_url, status='approved' so the cron picks it up.
+              if (fullPost.format !== 'story' && igResult.permalink) {
+                try {
+                  const delayMin = 45 + Math.floor(Math.random() * 45); // 45-90 min
+                  const storyAt = new Date(Date.now() + delayMin * 60 * 1000);
+                  const teaserCaption = (() => {
+                    const variants = [
+                      '🔔 Nouveau post — swipe up',
+                      '✨ On vient de publier — tape pour voir',
+                      '👉 Petit nouveau sur le feed',
+                      '📌 Ne le manquez pas — c\'est en ligne',
+                      '🔗 Lien direct vers le nouveau post',
+                    ];
+                    return variants[Math.floor(Math.random() * variants.length)];
+                  })();
+                  // Dedup guard: only ONE teaser story per parent post
+                  // and not more than 1 IG story scheduled within 3h.
+                  const { count: nearbyStories } = await supabase
+                    .from('content_calendar')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('user_id', fullPost.user_id)
+                    .eq('platform', 'instagram')
+                    .eq('format', 'story')
+                    .gte('scheduled_date', new Date(Date.now() - 3 * 3600 * 1000).toISOString().split('T')[0]);
+                  if ((nearbyStories || 0) === 0) {
+                    await supabase.from('content_calendar').insert({
+                      user_id: fullPost.user_id,
+                      org_id: fullPost.org_id || null,
+                      platform: 'instagram',
+                      format: 'story',
+                      hook: 'Nouveau post — story teaser',
+                      caption: teaserCaption,
+                      hashtags: [],
+                      visual_url: fullPost.visual_url,
+                      scheduled_date: storyAt.toISOString().split('T')[0],
+                      scheduled_time: storyAt.toISOString(),
+                      status: 'approved',
+                      auto_publish: true,
+                      pillar: fullPost.pillar || null,
+                      source: 'new_post_story_teaser',
+                      parent_post_id: post.id,
+                    });
+                    console.log(`[Content] Story teaser scheduled for post ${post.id} @ +${delayMin}min`);
+                  } else {
+                    console.log(`[Content] Story teaser skipped for ${post.id} — recent story already in queue`);
+                  }
+                } catch (storyErr: any) {
+                  console.warn(`[Content] Story teaser scheduling failed for ${post.id}:`, storyErr?.message);
+                }
+              }
             } else if (igResult.error?.includes('Duplicate')) {
               // Duplicate detected — skip this post, don't retry
               updateFields.status = 'skipped';

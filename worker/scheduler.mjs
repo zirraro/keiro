@@ -106,6 +106,12 @@ const GLOBAL_SCHEDULE = [
   // so the fix mutualises automatically to every other client of the
   // same business_type. Pattern decays after 72h of silence.
   { cron: '45 4 * * *',   path: '/api/cron/detect-error-patterns', label: 'Detect Cross-Client Error Patterns (knowledge mutualisation)' },
+  // 2026-06-09 — Every 30min. Real-time anomaly detector (6 kinds:
+  // error_burst, success_drop, publish_silence, agent_down,
+  // new_error_pattern, token_expiring). P0 anomalies trigger an
+  // immediate admin email (rate-limited 1/hour). Lets the founder
+  // react within 12-24h instead of waiting for the morning digest.
+  { cron: '*/30 * * * *', path: '/api/cron/detect-anomalies', label: 'Real-time Anomaly Detection (12-24h SLA)' },
 ];
 
 // Agent endpoint mapping (for per-client direct calls)

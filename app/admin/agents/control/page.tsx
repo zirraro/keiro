@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface AgentTile {
@@ -37,10 +37,48 @@ interface Summary {
   active_clients: number;
 }
 
+interface Alert {
+  id: number;
+  severity: 'P0' | 'P1' | 'P2';
+  kind: string;
+  agent: string;
+  user_id: string | null;
+  client_email: string | null;
+  title: string;
+  detail: string;
+  sample_error: string | null;
+  count_in_window: number;
+  first_seen: string;
+  last_seen: string;
+}
+
 export default function AdminAgentsControlIndex() {
   const router = useRouter();
   const [summaries, setSummaries] = useState<Record<string, Summary>>({});
   const [loading, setLoading] = useState(true);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [alertsSummary, setAlertsSummary] = useState<{ p0: number; p1: number; p2: number; total: number }>({ p0: 0, p1: 0, p2: 0, total: 0 });
+
+  const loadAlerts = useCallback(async () => {
+    try {
+      const r = await fetch('/api/admin/agents/anomalies', { credentials: 'include' });
+      if (r.ok) {
+        const j = await r.json();
+        setAlerts(j.alerts || []);
+        setAlertsSummary(j.summary || { p0: 0, p1: 0, p2: 0, total: 0 });
+      }
+    } catch { /* swallow */ }
+  }, []);
+
+  const resolveAlert = useCallback(async (id: number) => {
+    await fetch('/api/admin/agents/anomalies', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'resolve', id }),
+    });
+    await loadAlerts();
+  }, [loadAlerts]);
 
   useEffect(() => {
     (async () => {
@@ -60,17 +98,72 @@ export default function AdminAgentsControlIndex() {
       }
       setSummaries(out);
       setLoading(false);
+      loadAlerts();
     })();
-  }, []);
+    // Auto-refresh alerts every 60s
+    const interval = setInterval(loadAlerts, 60000);
+    return () => clearInterval(interval);
+  }, [loadAlerts]);
 
   return (
     <div className="min-h-screen bg-[#0c1a3a] text-white p-4 sm:p-6">
       <div className="max-w-6xl mx-auto">
-        <div className="mb-6">
-          <button onClick={() => router.push('/admin/service-health')} className="text-xs text-cyan-400 hover:underline mb-2">← Service Health</button>
-          <h1 className="text-2xl font-bold">Agent Control Center</h1>
-          <p className="text-xs text-white/40 mt-1">Pilot every agent across all KeiroAI clients · Trigger runs, pause/resume, monitor errors</p>
+        <div className="mb-6 flex items-start justify-between flex-wrap gap-3">
+          <div>
+            <button onClick={() => router.push('/admin/service-health')} className="text-xs text-cyan-400 hover:underline mb-2">← Service Health</button>
+            <h1 className="text-2xl font-bold">Agent Control Center</h1>
+            <p className="text-xs text-white/40 mt-1">Pilot every agent across all KeiroAI clients · Trigger runs, pause/resume, monitor errors · Live alerts /30min</p>
+          </div>
+          <a href="/admin/agents/reports" className="px-3 py-2 text-xs rounded-lg bg-white/10 hover:bg-white/15 text-white">📊 Rapports détaillés</a>
         </div>
+
+        {/* 🚨 Live alerts panel — refreshed every 60s */}
+        {alertsSummary.total > 0 && (
+          <div className="rounded-2xl border border-red-500/30 bg-red-500/5 p-4 mb-6">
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+              <h2 className="text-sm font-bold text-red-300 flex items-center gap-2">
+                🚨 Alertes live <span className="text-[10px] text-white/40 font-normal">(scan toutes les 30min)</span>
+              </h2>
+              <div className="flex gap-2 text-[11px]">
+                {alertsSummary.p0 > 0 && <span className="px-2 py-0.5 rounded-full bg-red-600 text-white font-bold">P0 ×{alertsSummary.p0}</span>}
+                {alertsSummary.p1 > 0 && <span className="px-2 py-0.5 rounded-full bg-orange-600 text-white font-bold">P1 ×{alertsSummary.p1}</span>}
+                {alertsSummary.p2 > 0 && <span className="px-2 py-0.5 rounded-full bg-slate-600 text-white">P2 ×{alertsSummary.p2}</span>}
+              </div>
+            </div>
+            <ul className="space-y-2 max-h-72 overflow-y-auto">
+              {alerts.slice(0, 12).map((a) => {
+                const sevColor = a.severity === 'P0' ? 'border-red-500/40 bg-red-500/10' : a.severity === 'P1' ? 'border-orange-500/40 bg-orange-500/10' : 'border-slate-500/40 bg-slate-500/10';
+                const sevText = a.severity === 'P0' ? 'text-red-300' : a.severity === 'P1' ? 'text-orange-300' : 'text-slate-300';
+                return (
+                  <li key={a.id} className={`rounded-lg border ${sevColor} px-3 py-2`}>
+                    <div className="flex items-start justify-between gap-2 flex-wrap">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`text-[10px] font-bold ${sevText}`}>{a.severity}</span>
+                          <span className="text-[10px] uppercase tracking-wider text-white/40">{a.kind}</span>
+                          <span className="text-[10px] text-white/30">×{a.count_in_window}</span>
+                        </div>
+                        <p className="text-[12px] font-semibold text-white mt-0.5">{a.title}</p>
+                        <p className="text-[11px] text-white/60 mt-0.5">{a.detail}</p>
+                        {a.client_email && <p className="text-[10px] text-amber-300 mt-0.5">Client : {a.client_email}</p>}
+                      </div>
+                      <div className="flex gap-1.5 flex-shrink-0">
+                        <button
+                          onClick={() => router.push(`/admin/agents/control/${a.agent}${a.user_id ? '/' + a.user_id : ''}`)}
+                          className="px-2 py-1 text-[10px] rounded bg-cyan-600 hover:bg-cyan-700"
+                        >→ Voir</button>
+                        <button
+                          onClick={() => resolveAlert(a.id)}
+                          className="px-2 py-1 text-[10px] rounded bg-white/10 hover:bg-emerald-600"
+                        >✓</button>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {ACTIVE_AGENTS.map((a) => {
