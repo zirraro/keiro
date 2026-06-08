@@ -88,6 +88,10 @@ const GLOBAL_SCHEDULE = [
   // hit Google's 30-day cache ToS limit. Caps at 30 entries/run + bails
   // if daily Places budget already spent. Cheapest possible refresh.
   { cron: '15 3 * * *',   path: '/api/cron/prospect-pool-refresh', label: 'Prospect Pool Refresh (>25 days)' },
+  // 2026-06-08 — Daily 06:30 UTC. Aggregates the previous 24h of
+  // directive failures (client chat orders no agent could honor) into
+  // ONE email to admin. Emails ONLY if there are failures.
+  { cron: '30 6 * * *',   path: '/api/cron/directive-failures-digest', label: 'Directive Failures Daily Digest' },
 ];
 
 // Agent endpoint mapping (for per-client direct calls)

@@ -749,6 +749,37 @@ Retourne UNIQUEMENT du JSON valide.`,
           // ── 1. Save directives + settings + schedule ──
           const targetAgentId = agent === 'ceo' || agent === 'marketing' ? 'content' : agent;
 
+          // 2026-06-08 — Typed directives layer. For each free-text
+          // directive we extracted, also try the deterministic classifier
+          // → if it matches a canonical intent (posting_hours,
+          // inspire_account, focus_topic, …) the agent route will act
+          // on it concretely. Falls through to 'custom' so the agent
+          // still gets a shot at honoring un-anticipated orders.
+          try {
+            const { quickClassifyDirective, saveTypedDirective } = await import('@/lib/agents/typed-directives');
+            for (const d of directives) {
+              const typed = quickClassifyDirective(d, targetAgentId) || {
+                type: 'custom' as const,
+                value: { instruction: d },
+                raw_text: d,
+                confidence: 0.5,
+                agent_id: targetAgentId,
+                source: 'chat' as const,
+              };
+              await saveTypedDirective(supabase, user.id, typed);
+            }
+            // Also: capture from the verbatim user message itself in
+            // case the extractor missed an intent the deterministic
+            // classifier catches (e.g. user typed "publie à 9h" but
+            // the LLM didn't surface it as a directive).
+            const fromMessage = quickClassifyDirective(message, targetAgentId);
+            if (fromMessage) {
+              await saveTypedDirective(supabase, user.id, fromMessage);
+            }
+          } catch (e: any) {
+            console.warn('[AgentChat] typed-directive save failed:', e?.message);
+          }
+
           if (directives.length > 0 || Object.keys(settings).length > 0 || schedule) {
             const { data: existing } = await supabase
               .from('org_agent_configs')

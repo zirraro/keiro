@@ -5081,6 +5081,23 @@ ${upcomingEvents.map(e => `  • ${e}`).join('\n')}
     ? `\n━━━ DIRECTIVES STRATÉGIQUES (à RESPECTER en priorité) ━━━\n${allDirectives.map((d, i) => `${i + 1}. ${d.text}${d.source === 'business_type' ? '  (commun aux ' + detectedBusinessType + 's)' : ''}`).join('\n')}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`
     : '';
 
+  // 2026-06-08 — Typed directives layer (canonical intents from
+  // chat/wizard). These are richer than free-text: each comes with a
+  // type the prompt builder can render specifically (e.g. posting_hours
+  // → schedule block, inspire_account → study-this-account block,
+  // focus_topic → bias-next-posts block). Falls back gracefully if the
+  // table doesn't exist or the user has no typed orders.
+  let typedDirectivesBlock = '';
+  if (userId) {
+    try {
+      const { loadTypedDirectives, directivesPromptBlock } = await import('@/lib/agents/typed-directives');
+      const typed = await loadTypedDirectives(supabase, userId, 'content');
+      typedDirectivesBlock = directivesPromptBlock(typed);
+    } catch (e: any) {
+      console.warn('[Content] typed directives load failed:', e?.message);
+    }
+  }
+
   // Channel-aware voice — without this Léna leaks LinkedIn-isms onto IG
   // captions ("algo LinkedIn", "B2B", "decision-makers") or talks
   // about FYP on a LinkedIn post. Each platform has its own voice.
@@ -5208,7 +5225,7 @@ ${upcomingEvents.map(e => `  • ${e}`).join('\n')}
   }
 
   const enhancedPrompt = `Génère 1 post ÉLITE pour aujourd'hui (${todayStr}).
-${trendsContext}${eventContext}${directivesBlock}${trendWinnersBlock}
+${trendsContext}${eventContext}${typedDirectivesBlock}${directivesBlock}${trendWinnersBlock}
 ${sharedIntelligence ? `━━━ INTELLIGENCE PARTAGÉE (données de TOUS les agents) ━━━\n${sharedIntelligence}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` : ''}${visualReferences ? `\n${visualReferences}\n` : ''}${naturalismBlock}${inspirationBlock}${channelVoice}${newsAngleBlock}${globalLearningBlock}${dissatisfactionBlock}
 Plateforme : ${platform}
 Format suggéré : ${format}
