@@ -112,6 +112,11 @@ const GLOBAL_SCHEDULE = [
   // immediate admin email (rate-limited 1/hour). Lets the founder
   // react within 12-24h instead of waiting for the morning digest.
   { cron: '*/30 * * * *', path: '/api/cron/detect-anomalies', label: 'Real-time Anomaly Detection (12-24h SLA)' },
+  // 2026-06-09 — Monday 06:00 UTC (~08:00 Paris). Weekly admin
+  // report HTML email with per-agent KPIs (current vs prior week
+  // delta), volume, active anomalies, knowledge mutualised. Admin
+  // peut imprimer en PDF depuis sa boîte mail.
+  { cron: '0 6 * * 1',    path: '/api/cron/admin-weekly-report', label: 'Weekly Admin Report (Monday 8h)' },
 ];
 
 // Agent endpoint mapping (for per-client direct calls)

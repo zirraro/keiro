@@ -214,6 +214,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ agentId: st
       last_run_at: stats.lastRunAt,
       paused: !!c.scheduling_paused_at,
       active_anomalies: anomaliesByUser[c.id] || [],
+      plan: c.subscription_plan,
     });
     return {
       user_id: c.id,

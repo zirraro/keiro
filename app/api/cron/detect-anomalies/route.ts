@@ -390,12 +390,43 @@ export async function GET(req: NextRequest) {
     await sendImmediateAdminEmail(supabase, newP0);
   }
 
-  // ── 9. Auto-resolve anomalies that haven't been seen in 6h ──
+  // ── 9. Auto-resolve anomalies ──
+  // (a) Silent for > 6h → resolved with reason='auto_silence'
   const since6h = new Date(Date.now() - 6 * 3600 * 1000).toISOString();
   await supabase.from('anomaly_alerts')
-    .update({ resolved_at: new Date().toISOString() } as any)
+    .update({ resolved_at: new Date().toISOString(), resolution_reason: 'auto_silence_6h' } as any)
     .lt('last_seen', since6h)
     .is('resolved_at', null);
+
+  // (b) Recovery detection : si une anomalie 'error_burst' a un
+  //     fingerprint qui ne s'est PAS redéclenché dans le scan courant
+  //     ET le pattern global existe maintenant dans agent_knowledge
+  //     (= fix mutualisé écrit par detect-error-patterns), on résoud
+  //     avec reason='knowledge_mutualised'. Force le rétablissement
+  //     même avant 6h de silence.
+  const activeFingerprints = new Set(detected.map(d => d.fingerprint));
+  const { data: openAlerts } = await supabase
+    .from('anomaly_alerts')
+    .select('id, agent, fingerprint, kind, last_seen')
+    .is('resolved_at', null)
+    .in('kind', ['error_burst', 'new_error_pattern']);
+  for (const oa of (openAlerts || []) as any[]) {
+    if (activeFingerprints.has(oa.fingerprint)) continue;
+    // Vérifie si knowledge mutualisée existe
+    const { data: k } = await supabase
+      .from('agent_knowledge')
+      .select('id, updated_at')
+      .eq('agent', oa.agent)
+      .eq('category', 'error_pattern')
+      .eq('source', `${oa.agent}::${oa.fingerprint}`)
+      .gte('updated_at', oa.last_seen)
+      .maybeSingle();
+    if (k?.id) {
+      await supabase.from('anomaly_alerts')
+        .update({ resolved_at: new Date().toISOString(), resolution_reason: 'knowledge_mutualised' } as any)
+        .eq('id', oa.id);
+    }
+  }
 
   return NextResponse.json({
     ok: true,
