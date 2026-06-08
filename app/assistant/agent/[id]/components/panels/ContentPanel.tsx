@@ -35,8 +35,8 @@ function ContentCalendarInline({ posts, onSelectPost }: { posts: any[]; onSelect
   const STATUS_DOT: Record<string, string> = { draft: 'bg-amber-500', approved: 'bg-blue-500', published: 'bg-emerald-500', publish_failed: 'bg-red-500' };
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.02] p-2 mb-3">
-      <div className="grid grid-cols-7 gap-1">
+    <div className="rounded-xl border border-white/10 bg-white/[0.02] p-2 mb-3 overflow-x-auto">
+      <div className="grid grid-cols-7 gap-1 min-w-[480px] sm:min-w-0">
         {days.map((d, i) => {
           const dateStr = d.toISOString().split('T')[0];
           const isToday = dateStr === todayStr;
@@ -111,7 +111,7 @@ function ContentDirectionInput() {
         <span className="text-sm">{'\u{1F4A1}'}</span>
         <span className="text-xs font-medium text-white/70">{p.contentDirectionTitle}</span>
       </div>
-      <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-2">
         <input
           type="text"
           value={direction}
@@ -608,7 +608,7 @@ function NetworkPreviewTab({
           Without the cap, 3 cols on a 1200px+ viewport blew up to
           400px tiles, which felt like a TV display, not a feed
           preview. Mobile already lands at ~120px tiles. */}
-      <div className="grid grid-cols-3 gap-0.5 sm:gap-1 rounded-xl overflow-hidden bg-black/20 max-w-md mx-auto">
+      <div className="grid grid-cols-3 gap-0.5 sm:gap-1 rounded-xl overflow-hidden bg-black/20 max-w-[95vw] sm:max-w-md mx-auto">
         {cur.posts.map(post => (
           <button
             key={post.id}
@@ -641,7 +641,7 @@ function NetworkPreviewTab({
           onClick={() => setLightbox(null)}
         >
           <div
-            className="bg-gray-950 rounded-2xl shadow-2xl max-w-md w-full max-h-[92vh] overflow-y-auto border border-white/10"
+            className="bg-gray-950 rounded-2xl shadow-2xl max-w-[95vw] sm:max-w-md w-full max-h-[92vh] overflow-y-auto border border-white/10"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between p-3 border-b border-white/10">

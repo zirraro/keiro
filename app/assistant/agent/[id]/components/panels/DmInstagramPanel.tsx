@@ -693,7 +693,7 @@ function ManualFollowsList() {
           : <>Touche le handle pour ouvrir Instagram{isMobile ? ' dans l\'appli' : ''}, appuie sur Suivre, puis valide avec ✓ ici. Jade les DM après un petit temps de chauffe.</>}
       </div>
       {funnel && (
-        <div className="grid grid-cols-4 gap-2 mb-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
           <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-2 text-center">
             <div className="text-base font-bold text-amber-300">{funnel.queued}</div>
             <div className="text-[10px] text-amber-300/60">{en ? 'In queue' : 'En attente'}</div>
@@ -1181,14 +1181,14 @@ function DmConversationsLive() {
             {/* Header */}
             <div className="px-3 py-2.5 border-b border-white/5 bg-white/[0.02] flex items-center gap-2">
               <button onClick={() => setSelectedConv(null)} className="sm:hidden text-white/40 hover:text-white/60 text-lg p-1 min-w-[44px] min-h-[44px] flex items-center justify-center">{'\u2190'}</button>
-              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-[10px] text-white font-bold">
+              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-[10px] text-white font-bold flex-shrink-0">
                 {selected.participant.username[0]?.toUpperCase()}
               </div>
-              <div>
-                <span className="text-xs font-bold text-white">@{selected.participant.username}</span>
-                <div className="text-[10px] text-white/45">{p.dmConvsMessagesCount.replace('{n}', String(selected.messages.length))}</div>
+              <div className="min-w-0 flex-1">
+                <span className="text-xs font-bold text-white truncate block">@{selected.participant.username}</span>
+                <div className="text-[10px] text-white/45 truncate">{p.dmConvsMessagesCount.replace('{n}', String(selected.messages.length))}</div>
               </div>
-              <div className="ml-auto flex items-center gap-2">
+              <div className="ml-auto flex items-center gap-1 flex-shrink-0 flex-wrap justify-end">
                 <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/20">
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                   <span className="text-[10px] text-emerald-400 font-medium">{p.dmConvsBadgeAi}</span>
@@ -1236,7 +1236,7 @@ function DmConversationsLive() {
             <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2.5">
               {(selected.messages as any[]).map((msg: any, i: number) => (
                 <div key={msg.id || i} className={`flex ${msg.fromMe ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[80%] px-3 py-2 rounded-2xl text-xs leading-relaxed ${
+                  <div className={`max-w-[85%] sm:max-w-[80%] px-3 py-2 rounded-2xl text-xs leading-relaxed break-words ${
                     msg.fromMe
                       ? 'bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-br-md'
                       : 'bg-white/10 text-white/80 rounded-bl-md'
@@ -1291,7 +1291,7 @@ function DmConversationsLive() {
               </button>
             </div>
             {/* Reply input */}
-            <div className="border-t border-white/5 px-3 py-2.5 flex gap-2 bg-white/[0.02]">
+            <div className="border-t border-white/5 px-3 py-2.5 flex gap-2 flex-wrap bg-white/[0.02]">
               <input
                 type="text"
                 value={replyText}
