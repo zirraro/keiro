@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/lib/i18n/context';
+import DisplayImage from '@/components/DisplayImage';
 
 export interface CreationItem {
   id: string;
@@ -90,9 +91,10 @@ export default function CreationCard({
       <div className={`relative aspect-video bg-neutral-900 overflow-hidden${item.type === 'image' ? ' cursor-pointer' : ''}`} onClick={item.type === 'image' ? () => setShowPreview(true) : undefined}>
         {item.type === 'image' ? (
           <>
-            <img
+            <DisplayImage
               src={item.url}
               alt={item.title || 'Image'}
+              width={400}
               className="w-full h-full object-cover"
               loading="lazy"
             />
@@ -275,9 +277,10 @@ export default function CreationCard({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <img
+          <DisplayImage
             src={item.url}
             alt={item.title || 'Image'}
+            width={1600}
             className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           />

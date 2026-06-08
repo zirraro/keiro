@@ -2,6 +2,7 @@
 
 import BookDemoButton from '@/components/BookDemoButton';
 import AddContentButton from './AddContentButton';
+import CreditChip from '@/components/CreditChip';
 import { useLanguage } from '@/lib/i18n/context';
 
 interface GalleryHeaderProps {
@@ -43,6 +44,7 @@ export default function GalleryHeader({ user, stats, isGuest, onUpload, onUpload
 
         {/* Action buttons */}
         <div className="flex items-center gap-3">
+          {user && <CreditChip source="gallery" />}
           {(user || isGuest) && onUploadComplete && (
             <AddContentButton onUploadComplete={onUploadComplete} />
           )}

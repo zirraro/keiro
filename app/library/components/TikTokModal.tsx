@@ -6,6 +6,7 @@ import TikTokCarouselModal from './TikTokCarouselModal';
 import AudioEditorWidget from './AudioEditorWidget';
 import ImageEditModal from './ImageEditModal';
 import { useLanguage } from '@/lib/i18n/context';
+import DisplayImage from '@/components/DisplayImage';
 
 type SavedImage = {
   id: string;
@@ -1356,9 +1357,10 @@ export default function TikTokModal({ image, images, video, videos, onClose, onP
                       })()}
                     </div>
                   ) : activeTab === 'images' && selectedImage ? (
-                    <img
+                    <DisplayImage
                       src={selectedImage.image_url}
                       alt={selectedImage.title || 'Selected'}
+                      width={720}
                       className="w-full h-full object-cover"
                     />
                   ) : null}

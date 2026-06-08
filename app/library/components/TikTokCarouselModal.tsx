@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { useLanguage } from '@/lib/i18n/context';
+import DisplayImage from '@/components/DisplayImage';
 
 type SavedImage = {
   id: string;
@@ -543,9 +544,10 @@ export default function TikTokCarouselModal({ images, onClose }: TikTokCarouselM
                         className="w-full h-full object-contain"
                       />
                     ) : (
-                      <img
+                      <DisplayImage
                         src={selectedImages[0].thumbnail_url || selectedImages[0].image_url}
                         alt={t.library.iemPreview}
+                        width={720}
                         className="w-full h-full object-contain"
                       />
                     )}
@@ -855,7 +857,7 @@ export default function TikTokCarouselModal({ images, onClose }: TikTokCarouselM
                       >
                         {selectedImages.map((img, i) => (
                           <div key={img.id || i} className="snap-center flex-shrink-0 w-full h-full relative">
-                            <img src={img.image_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                            <DisplayImage src={img.image_url} alt="" width={720} className="absolute inset-0 w-full h-full object-cover" />
                           </div>
                         ))}
                       </div>

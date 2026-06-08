@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/lib/i18n/context';
+import DisplayImage from '@/components/DisplayImage';
 
 type SavedImage = {
   id: string;
@@ -95,9 +96,10 @@ export default function ImageCard({
           made every gallery tile a wide cinema crop, very off for what
           is overwhelmingly square IG content. */}
       <div className="relative aspect-square bg-neutral-900 cursor-pointer overflow-hidden" onClick={() => setShowPreview(true)}>
-        <img
+        <DisplayImage
           src={image.thumbnail_url || image.image_url}
           alt={image.title || image.news_title || 'Image'}
+          width={400}
           className="w-full h-full object-cover"
           loading="lazy"
         />
@@ -301,9 +303,10 @@ export default function ImageCard({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <img
+          <DisplayImage
             src={image.image_url}
             alt={image.title || image.news_title || 'Image'}
+            width={1600}
             className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           />

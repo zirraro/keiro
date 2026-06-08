@@ -911,6 +911,63 @@ function PricingPageInner() {
           </div>
         </div>
 
+        {/* Credit Packs — Boosters à la demande */}
+        <div className="max-w-5xl mx-auto mb-20">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold mb-2">💎 Packs à la demande</h2>
+            <p className="text-neutral-600 text-sm">
+              Tu as épuisé ton quota mensuel ou besoin de plus pour une grosse campagne ?
+              <br />
+              Recharge sans changer de plan, à utiliser à ton rythme.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[
+              { id: 'starter', label: 'Starter', credits: 50, price: '14,99', bonus: 'Idéal pour 1 reel + 5 posts', recommended: false },
+              { id: 'pro', label: 'Pro', credits: 150, price: '39,99', bonus: '3 reels + 30 posts • -11% vs Starter', recommended: true },
+              { id: 'expert', label: 'Expert', credits: 300, price: '69,99', bonus: '6 reels + 60 posts • -23% vs Starter', recommended: false },
+            ].map(pack => (
+              <div
+                key={pack.id}
+                className={`relative rounded-2xl border-2 p-6 transition-all ${
+                  pack.recommended
+                    ? 'border-cyan-400 bg-gradient-to-br from-cyan-50 to-white shadow-xl scale-[1.02]'
+                    : 'border-neutral-200 bg-white hover:shadow-md'
+                }`}
+              >
+                {pack.recommended && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 bg-cyan-500 text-white text-[10px] font-bold rounded-full">
+                    MEILLEUR RATIO
+                  </div>
+                )}
+                <div className="text-center">
+                  <div className="text-sm font-semibold text-neutral-500 uppercase tracking-wider mb-2">
+                    Pack {pack.label}
+                  </div>
+                  <div className="text-4xl font-extrabold text-[#0c1a3a] mb-1">
+                    {pack.credits} <span className="text-base font-medium text-neutral-500">crédits</span>
+                  </div>
+                  <div className="text-2xl font-bold text-cyan-600 mb-3">{pack.price} €</div>
+                  <p className="text-xs text-neutral-600 mb-5">{pack.bonus}</p>
+                  <Link
+                    href="/assistant"
+                    className={`block w-full py-2.5 rounded-xl text-sm font-bold transition ${
+                      pack.recommended
+                        ? 'bg-gradient-to-r from-cyan-500 to-cyan-400 text-[#0c1a3a] hover:opacity-90'
+                        : 'bg-[#0c1a3a] text-white hover:bg-[#0c1a3a]/90'
+                    }`}
+                  >
+                    Acheter ce pack
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="text-center text-xs text-neutral-400 mt-4">
+            Les crédits achetés en pack n'expirent pas. Paiement unique, aucun engagement.
+          </p>
+        </div>
+
         {/* FAQ Section */}
 
         <div className="max-w-3xl mx-auto">

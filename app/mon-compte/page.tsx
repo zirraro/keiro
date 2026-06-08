@@ -9,6 +9,7 @@ import FeedbackPopup from '@/components/FeedbackPopup';
 import FeedbackModal from '@/components/FeedbackModal';
 import { useFeedbackPopup } from '@/hooks/useFeedbackPopup';
 import { useLanguage } from '@/lib/i18n/context';
+import CreditChip from '@/components/CreditChip';
 
 import { PLAN_CREDITS, CREDIT_PACKS, FEATURE_LABELS } from '@/lib/credits/constants';
 import { startCheckout } from '@/lib/stripe/checkout';
@@ -339,6 +340,7 @@ function MonComptePage() {
                 <span className="text-xs text-neutral-400">{isEn ? 'Member since' : 'Membre depuis'} {memberSince}</span>
               </div>
             </div>
+            <div className="ml-auto"><CreditChip source="account" /></div>
           </div>
         </div>
 

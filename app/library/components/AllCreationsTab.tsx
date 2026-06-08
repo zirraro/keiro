@@ -3,6 +3,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import FolderHeader from './FolderHeader';
 import CreationCard, { CreationItem } from './CreationCard';
+import DisplayImage from '@/components/DisplayImage';
 import { useLanguage } from '@/lib/i18n/context';
 
 interface Folder {
@@ -375,7 +376,7 @@ export default function AllCreationsTab({
             <div key={`${item.type}-${item.id}`} className="flex items-center gap-4 p-3 bg-neutral-50 rounded-lg hover:bg-neutral-100 transition-colors">
               <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
                 {item.type === 'image' ? (
-                  <img src={item.url} alt={item.title || 'Image'} className="w-full h-full object-cover" />
+                  <DisplayImage src={item.url} alt={item.title || 'Image'} width={160} className="w-full h-full object-cover" />
                 ) : (
                   <video src={item.url} className="w-full h-full object-cover" />
                 )}

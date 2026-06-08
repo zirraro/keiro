@@ -3,6 +3,7 @@ import { TwitterXIcon, XIcon } from './Icons';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import ImageEditModal from './ImageEditModal';
 import { useLanguage } from '@/lib/i18n/context';
+import DisplayImage from '@/components/DisplayImage';
 
 type SavedImage = {
   id: string;
@@ -417,7 +418,7 @@ export default function TwitterModal({ image, images, video, videos, onClose, on
                         {activeTab === 'videos' && selectedVideo ? (
                           <video src={selectedVideo.video_url} controls className="w-full h-full object-cover" />
                         ) : activeTab === 'images' && selectedImage ? (
-                          <img src={selectedImage.image_url} alt="Preview" className="w-full h-full object-cover" />
+                          <DisplayImage src={selectedImage.image_url} alt="Preview" width={1080} className="w-full h-full object-cover" />
                         ) : null}
                       </div>
                     )}

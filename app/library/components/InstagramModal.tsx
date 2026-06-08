@@ -7,6 +7,7 @@ import AudioEditorWidget from './AudioEditorWidget';
 import ImageEditModal from './ImageEditModal';
 import { useLanguage } from '@/lib/i18n/context';
 import { DemoCaption } from '@/components/meta/DemoCaption';
+import DisplayImage from '@/components/DisplayImage';
 
 type SavedImage = {
   id: string;
@@ -985,9 +986,10 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                         })()}
                       </div>
                     ) : activeTab === 'images' && selectedImage ? (
-                      <img
+                      <DisplayImage
                         src={selectedImage.image_url}
                         alt={selectedImage.title || selectedImage.news_title || 'Preview'}
+                        width={1080}
                         className="w-full h-full object-cover"
                       />
                     ) : null}
