@@ -142,10 +142,25 @@ async function loadAgentLearnings(orgId: string | null = null): Promise<string> 
 async function generateAIEmails(
   prospects: Array<{ prospect: any; category: string; step: number }>,
   learnings: string,
+  ownerUserId: string | null = null,
+  supabaseClient: any = null,
 ): Promise<Map<string, { subject: string; textBody: string; htmlBody: string }>> {
   const results = new Map<string, { subject: string; textBody: string; htmlBody: string }>();
 
   if (!process.env.GEMINI_API_KEY || prospects.length === 0) return results;
+
+  // 2026-06-08 — Load client's typed directives for Hugo
+  // (email_signature, email_subject_style, language_tone, custom, ...).
+  let directivesBlock = '';
+  if (ownerUserId && supabaseClient) {
+    try {
+      const { loadTypedDirectives, directivesPromptBlock } = await import('@/lib/agents/typed-directives');
+      const typed = await loadTypedDirectives(supabaseClient, ownerUserId, 'email');
+      directivesBlock = directivesPromptBlock(typed);
+    } catch (e: any) {
+      console.warn('[EmailDaily] typed directives load failed:', e?.message);
+    }
+  }
 
   // Build batch prompt with rich prospect data
   const prospectList = prospects.map((p, i) => {
@@ -350,7 +365,7 @@ Réponds en JSON — un tableau d'objets, un par prospect :
 ]
 Si le nom du commerce est douteux/introuvable/incohérent, mets "skip": true et "reason": "explication".
 
-UNIQUEMENT du JSON valide, pas de markdown, pas d'explication.`,
+UNIQUEMENT du JSON valide, pas de markdown, pas d'explication.${directivesBlock}`,
       message: prospectList,
       maxTokens: 3000,
     });
@@ -1377,7 +1392,7 @@ export async function GET(request: NextRequest) {
           step: 10,
         }));
 
-        const aiEmails = await generateAIEmails(batchInput, learnings);
+        const aiEmails = await generateAIEmails(batchInput, learnings, clientUserId, supabase);
 
         let warmSentCount = 0;
         for (const prospect of warmProspects) {
@@ -1801,7 +1816,7 @@ export async function GET(request: NextRequest) {
         // Process in batches of 10 to stay within token limits
         for (let i = 0; i < batchForAI.length; i += 10) {
           const batch = batchForAI.slice(i, i + 10);
-          const batchResult = await generateAIEmails(batch, learnings);
+          const batchResult = await generateAIEmails(batch, learnings, clientUserId, supabase);
           batchResult.forEach((v, k) => aiEmails.set(k, v));
         }
       }

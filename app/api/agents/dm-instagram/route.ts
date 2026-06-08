@@ -111,6 +111,8 @@ async function generateDM(
   prospect: any,
   platform: 'instagram' | 'tiktok' = 'instagram',
   liveSnapshot: IgProfileSnapshot | null = null,
+  ownerUserId: string | null = null,
+  supabaseClient: any = null,
 ): Promise<{ dm_text: string; personalization_detail: string; follow_up_3d: string; follow_up_7d?: string; response_interested?: string; response_skeptical?: string; tone_notes?: string; pre_comments?: string[] } | null> {
   if (!process.env.GEMINI_API_KEY) return null;
 
@@ -145,9 +147,23 @@ async function generateDM(
     ? `\n\n${snapshotToPromptContext(liveSnapshot)}\n\nIMPORTANT: écris un DM qui prouve que tu viens de regarder le profil — cite spécifiquement un élément ci-dessus (un post récent, la bio, le site). Sans cela le DM ne doit PAS être envoyé.`
     : '';
 
+  // 2026-06-08 — Inject this client's typed directives (dm_tone,
+  // dm_blacklist_handles, dm_target_niches, language_tone, custom, …)
+  // so Jade respects the orders the client gave through chat.
+  let directivesBlock = '';
+  if (ownerUserId && supabaseClient) {
+    try {
+      const { loadTypedDirectives, directivesPromptBlock } = await import('@/lib/agents/typed-directives');
+      const typed = await loadTypedDirectives(supabaseClient, ownerUserId, 'dm_instagram');
+      directivesBlock = directivesPromptBlock(typed);
+    } catch (e: any) {
+      console.warn('[DMAgent] typed directives load failed:', e?.message);
+    }
+  }
+
   try {
     const rawText = await callGemini({
-      system: getDMSystemPrompt(platform),
+      system: getDMSystemPrompt(platform) + directivesBlock,
       message: prospectData + liveContext,
       maxTokens: 1000,
       thinking: true,
@@ -392,7 +408,7 @@ async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram', 
         // AI call to write a DM that won't be delivered.
         if (!snapshot.exists) return { prospect, category, dm: null, snapshot };
       }
-      const dm = await generateDM(prospect, platform, snapshot);
+      const dm = await generateDM(prospect, platform, snapshot, clientUserId, supabase);
       return { prospect, category, dm, snapshot };
     }));
     dmResults.push(...batchDms);
