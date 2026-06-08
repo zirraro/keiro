@@ -1661,6 +1661,21 @@ export default function AgentWorkspacePage() {
     }
   }, [chatOpen, chatMinimised]);
 
+  // 2026-06-08 — Mobile chat input was hidden under the BottomNav even
+  // with z-index priority. Tag the body so a global CSS rule hides the
+  // nav while the chat is open (see globals.css `body[data-chat-open]`).
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    if (chatOpen && !chatMinimised && isMobile) {
+      document.body.setAttribute('data-chat-open', '1');
+    } else {
+      document.body.removeAttribute('data-chat-open');
+    }
+    return () => {
+      document.body.removeAttribute('data-chat-open');
+    };
+  }, [chatOpen, chatMinimised, isMobile]);
+
   const handleSend = useCallback(async () => {
     const text = input.trim(); if (!text || isLoading) return;
     setMessages(prev => [...prev, { id: generateId(), role: 'user', content: text, created_at: new Date().toISOString() }]);

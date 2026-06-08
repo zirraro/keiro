@@ -1353,3 +1353,14 @@ button[aria-disabled="true"] {
 .sticky-cta-bar a {
   color: inherit;
 }
+
+/* Mobile chat: hide the BottomNav while the agent chat is open so the
+   input bar isn't covered. Triggered by page.tsx setting
+   document.body[data-chat-open]. */
+body[data-chat-open] nav.lg\:hidden,
+body[data-chat-open] [data-bottom-nav] {
+  display: none !important;
+}
+body[data-chat-open] {
+  overflow: hidden;
+}
