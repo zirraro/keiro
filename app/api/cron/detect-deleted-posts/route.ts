@@ -129,15 +129,17 @@ export async function GET(req: NextRequest) {
 
       // Feed the negative pattern to Léna's knowledge layer.
       const summary = `Post supprimé par le client (${post.platform}, ${post.format || 'post'}, pillar=${post.pillar || '?'}). Hook : "${(post.hook || '').substring(0, 140)}". Léna : tire les leçons — évite cette combinaison hook+pillar+format dans les 14 prochains jours pour ce client.`;
-      await supabase.from('agent_knowledge').insert({
-        agent: 'content',
-        category: 'client_deleted_post',
-        content: summary,
-        summary: `[${post.platform}] Deleted post — pillar=${post.pillar || '?'}, format=${post.format || '?'}`,
-        confidence: 0.85,
-        source: 'detect-deleted-posts',
-        created_by: 'cron',
-      }).catch(() => { /* table may not exist or RLS */ });
+      try {
+        await supabase.from('agent_knowledge').insert({
+          agent: 'content',
+          category: 'client_deleted_post',
+          content: summary,
+          summary: `[${post.platform}] Deleted post — pillar=${post.pillar || '?'}, format=${post.format || '?'}`,
+          confidence: 0.85,
+          source: 'detect-deleted-posts',
+          created_by: 'cron',
+        });
+      } catch { /* table may not exist or RLS */ }
     }
   }
 
