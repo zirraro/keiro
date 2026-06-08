@@ -519,6 +519,30 @@ async function getEmailData(
     sequenceProgress[step] = (sequenceProgress[step] || 0) + 1;
   }
 
+  // 2026-06-08 — Real "sent / opened / clicked / replied" counts from
+  // crm_activities so the funnel reflects actual email volume, not
+  // distinct-prospect counts. Previous build was showing 0 because the
+  // panel reads stats.sent/opened/clicked/replied but getEmailData was
+  // only returning totalOpens/totalClicks (different keys + per-prospect).
+  const since30d = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
+  const actByTypeQuery = supabase
+    .from('crm_activities')
+    .select('type', { count: 'exact', head: false })
+    .gte('created_at', since30d);
+  if (orgId) actByTypeQuery.eq('org_id', orgId);
+  else actByTypeQuery.eq('user_id', userId);
+  const { data: actByType } = await actByTypeQuery.limit(20000);
+  let sentCount = 0;
+  let openedCount = 0;
+  let clickedCount = 0;
+  let repliedCount = 0;
+  for (const a of (actByType || []) as any[]) {
+    if (a.type === 'email') sentCount++;
+    else if (a.type === 'email_opened') openedCount++;
+    else if (a.type === 'email_clicked') clickedCount++;
+    else if (a.type === 'email_replied') repliedCount++;
+  }
+
   // Recent email activities (sent, opened, replied) — strict per-account
   // isolation. crm_activities carries user_id + org_id; older rows may have
   // user_id NULL (back-filled before the column existed) so we additionally
@@ -580,9 +604,15 @@ async function getEmailData(
     totalProspects: prospectList.length,
     totalOpens,
     totalClicks,
-    openRate: totalWithEmail > 0 ? Math.round((totalOpens / Math.max(totalWithEmail, 1)) * 100) : 0,
-    clickRate: totalWithEmail > 0 ? Math.round((totalClicks / Math.max(totalWithEmail, 1)) * 100) : 0,
+    openRate: sentCount > 0 ? Math.round((openedCount / sentCount) * 100) : 0,
+    clickRate: sentCount > 0 ? Math.round((clickedCount / sentCount) * 100) : 0,
     sequenceProgress,
+    // 2026-06-08 — Aliases the panel funnel reads (was missing → showing 0).
+    sent: sentCount,
+    opened: openedCount,
+    clicked: clickedCount,
+    replied: repliedCount,
+    sequences: sequenceProgress,
     recentEmails,
     // 2026-06-02: split metrics for the panel funnel
     splitMetrics: {

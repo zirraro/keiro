@@ -342,6 +342,34 @@ function EmailPlanningView() {
         </div>
       </div>
 
+      {/* Past 7 days — real sends from agent_logs */}
+      {data.sent_past_7d && (
+        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+          <h3 className="text-white font-bold text-sm mb-3">{en ? 'Sent over the past 7 days' : 'Envoyés sur les 7 derniers jours'}</h3>
+          <div className="space-y-2">
+            {Object.entries(data.sent_past_7d as Record<string, number>).map(([key, count]) => {
+              const all = Object.values(data.sent_past_7d as Record<string, number>);
+              const maxPast = Math.max(1, ...all.map((n: any) => Number(n) || 0));
+              const w = ((Number(count) || 0) / maxPast) * 100;
+              const d = new Date(key + 'T00:00:00');
+              const label = d.toLocaleDateString(en ? 'en-US' : 'fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+              return (
+                <div key={key} className="flex items-center gap-2">
+                  <div className="text-[11px] w-20 sm:w-24 text-white/60">{label}</div>
+                  <div className="flex-1 h-5 bg-white/5 rounded-md overflow-hidden flex items-center relative">
+                    <div className="h-full rounded-md" style={{ width: `${w}%`, background: 'linear-gradient(90deg, #22c55eaa, #06b6d4aa)' }} />
+                    <div className="absolute left-2 text-[10px] font-bold text-white drop-shadow">{count > 0 ? count : ''}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-3 text-[10px] text-white/40">
+            {en ? 'Total sent: ' : 'Total envoyé : '}<strong className="text-white/80">{data.recent.sent_7d ?? 0}</strong>
+          </div>
+        </div>
+      )}
+
       {/* 7-day chart */}
       <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
         <h3 className="text-white font-bold text-sm mb-3">{en ? 'Sends over the next 7 days' : 'Envois sur 7 jours'}</h3>
@@ -400,10 +428,15 @@ function EmailPlanningView() {
           <h3 className="text-white font-bold text-sm mb-3">{en ? 'Prospect queue' : 'File de prospects'}</h3>
           <div className="space-y-2 text-xs">
             <div className="flex justify-between"><span className="text-emerald-300/80">{en ? 'Eligible (Hugo will email)' : 'Éligibles (Hugo va emailer)'}</span><span className="text-white font-bold">{data.queue.eligible}</span></div>
-            <div className="flex justify-between"><span className="text-white/40">{en ? 'Completed sequence' : 'Séquence terminée'}</span><span className="text-white/60">{data.queue.blocked_completed}</span></div>
+            <div className="flex justify-between pl-3 text-white/40"><span>{en ? 'First sends' : 'Premiers envois'}</span><span className="text-white/60">{data.queue.first_sends ?? 0}</span></div>
+            <div className="flex justify-between pl-3 text-white/40"><span>{en ? 'Follow-ups' : 'Relances'}</span><span className="text-white/60">{data.queue.follow_ups ?? 0}</span></div>
+            <div className="flex justify-between pt-1"><span className="text-white/40">{en ? 'Completed sequence' : 'Séquence terminée'}</span><span className="text-white/60">{data.queue.blocked_completed}</span></div>
             <div className="flex justify-between"><span className="text-white/40">{en ? 'Bounced / invalid' : 'Rebond / invalide'}</span><span className="text-white/60">{data.queue.blocked_bounced}</span></div>
             <div className="flex justify-between"><span className="text-white/40">{en ? 'Dead / client / lost' : 'Mort / client / perdu'}</span><span className="text-white/60">{data.queue.blocked_dead}</span></div>
-            <div className="pt-2 border-t border-white/5 flex justify-between"><span className="text-white/60">{en ? 'Total CRM' : 'CRM total'}</span><span className="text-white font-medium">{data.queue.total}</span></div>
+            {(data.queue.without_email ?? 0) > 0 && (
+              <div className="flex justify-between text-amber-300/80"><span>{en ? 'No email yet (Léo to find)' : 'Sans email (à trouver par Léo)'}</span><span className="font-medium">{data.queue.without_email}</span></div>
+            )}
+            <div className="pt-2 border-t border-white/5 flex justify-between"><span className="text-white/60">{en ? 'Total CRM' : 'CRM total'}</span><span className="text-white font-medium">{data.queue.total_crm ?? data.queue.total}</span></div>
           </div>
         </div>
       </div>

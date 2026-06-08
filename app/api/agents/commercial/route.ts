@@ -491,7 +491,11 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
           // Email sending uses getSequenceForProspect() which falls back to 'pme' for the template
         }
 
-        if (!prospect.quartier && result.quartier && result.quartier_confidence >= 70) {
+        // 2026-06-08 — Drop quartier confidence floor 70→55. Founder
+        // ask: prospects often missing quartier/ville. Gemini frequently
+        // returns 60–69% confidence on a correct guess; the scrape
+        // pipeline (Phase 2/3) can correct via website meta anyway.
+        if (!prospect.quartier && result.quartier && result.quartier_confidence >= 55) {
           updates.quartier = result.quartier;
         }
 

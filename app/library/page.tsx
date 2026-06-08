@@ -31,6 +31,7 @@ import LinkedInConnectionModal from './components/LinkedInConnectionModal';
 import LinkedInDraftsTab, { LinkedInDraft } from './components/LinkedInDraftsTab';
 import TwitterWidget from './components/TwitterWidget';
 import TwitterModal from './components/TwitterModal';
+import TwitterEarlyAccessModal from './components/TwitterEarlyAccessModal';
 import TwitterDraftsTab, { TwitterDraft } from './components/TwitterDraftsTab';
 import PlatformChoiceModal from './components/PlatformChoiceModal';
 import MyVideosTab from './components/MyVideosTab';
@@ -2630,13 +2631,11 @@ function LibraryContent() {
         />
       )}
 
-      {/* Modal Twitter/X */}
+      {/* X / Twitter — early-access waitlist (publication pas encore dispo).
+          On garde TwitterModal en code (drafts) mais on n'ouvre PAS le module
+          de publication tant qu'on n'a pas shippé l'intégration. */}
       {showTwitterModal && (
-        <TwitterModal
-          image={selectedImageForTwitter || undefined}
-          images={images}
-          video={selectedVideoForTwitter || undefined}
-          videos={myVideos}
+        <TwitterEarlyAccessModal
           onClose={() => {
             setShowTwitterModal(false);
             setSelectedImageForTwitter(null);
@@ -2644,6 +2643,16 @@ function LibraryContent() {
             setDraftTwitterCaptionToEdit(undefined);
             setDraftTwitterHashtagsToEdit(undefined);
           }}
+        />
+      )}
+      {/* eslint-disable-next-line @typescript-eslint/no-unused-vars */}
+      {false && (
+        <TwitterModal
+          image={selectedImageForTwitter || undefined}
+          images={images}
+          video={selectedVideoForTwitter || undefined}
+          videos={myVideos}
+          onClose={() => setShowTwitterModal(false)}
           onSave={saveTwitterDraft}
           draftCaption={draftTwitterCaptionToEdit}
           draftHashtags={draftTwitterHashtagsToEdit}
