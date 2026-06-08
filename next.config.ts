@@ -49,6 +49,23 @@ const nextConfig: NextConfig = {
           { key: 'Content-Security-Policy', value: "default-src 'self' https://www.instagram.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.instagram.com https://*.instagram.com https://*.cdninstagram.com; style-src 'self' 'unsafe-inline' https://www.instagram.com; img-src 'self' data: blob: https:; frame-src 'self' https://www.instagram.com https://*.instagram.com; connect-src 'self' https://www.instagram.com https://*.instagram.com https://graph.facebook.com; base-uri 'self';" },
         ],
       },
+      // 2026-06-09 — Aggressive cache for static assets to reduce VPS
+      // bandwidth and improve perceived perf. _next/static is content-
+      // hashed by Next so 1-year immutable is safe.
+      {
+        source: '/_next/static/(.*)',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
+      },
+      {
+        source: '/_next/image(.*)',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=86400, stale-while-revalidate=2592000' }],
+      },
+      // Static files in /public (favicon, manifest, etc.) — cached 1 week
+      // with revalidate so updates eventually propagate.
+      {
+        source: '/(favicon.ico|robots.txt|manifest.webmanifest|icon.svg|og-image.png)',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=604800, stale-while-revalidate=86400' }],
+      },
     ];
   },
 };

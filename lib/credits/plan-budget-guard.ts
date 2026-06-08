@@ -1,0 +1,111 @@
+/**
+ * Per-plan monthly budget guard — protège la marge 80% côté serveur.
+ *
+ * Founder rule 2026-06-09 : "les marges aussi sur createur a 80%". Pour
+ * un Créateur à 49 €/mois, marge 80% = max 9.80 €/mois de coût infra.
+ * Si un client gourmand pousse la cadence (auto-publish, regen i2i en
+ * boucle, etc.), on doit le freiner avant qu'il bouffe la marge.
+ *
+ * Garde-fou en 3 paliers :
+ *   - GREEN : cost <= 60% du budget mensuel → laisse passer
+ *   - AMBER : 60-85% → laisse passer mais préfère les modes éco
+ *             (Haiku au lieu de Sonnet, skip i2i de luxe, reuse)
+ *   - RED   : > 85% → block les ops chères (génération nouvelle reel,
+ *             nouvel i2i Seedream). L'agent affiche un fallback : reuse
+ *             d'une asset existante.
+ */
+
+// Plan cost ceilings (EUR/mois) pour viser 80% margin.
+// On laisse 20% de marge de manœuvre par rapport au ceiling théorique
+// (cost = revenue × 0.20) pour absorber les pics légitimes.
+export const PLAN_COST_CEILING: Record<string, number> = {
+  free: 1.5,           // gratuit → cap symbolique
+  createur: 9.80,      // 49 × 0.20
+  pro: 19.80,          // 99 × 0.20
+  fondateurs: 15.80,   // 79 × 0.20 (early bird locked)
+  business: 39.80,     // 199 × 0.20
+  elite: 59.80,        // 299 × 0.20 (legacy)
+  agence: 99.80,       // 499 × 0.20
+  admin: 99999,        // pas de cap pour admin
+};
+
+export type BudgetLevel = 'green' | 'amber' | 'red';
+
+export interface BudgetState {
+  plan: string;
+  ceiling: number;
+  spent: number;
+  pct: number;
+  level: BudgetLevel;
+  allow_expensive: boolean;  // false = block new reel/i2i generation
+  prefer_eco: boolean;       // true = use Haiku/Gemini, reuse assets
+}
+
+/**
+ * Compute the budget state for a client given their plan + estimated
+ * cost-month-to-date. Use this BEFORE expensive operations to decide
+ * whether to proceed or fallback to eco mode.
+ */
+export function evaluateBudget(plan: string | null | undefined, costMtdEur: number): BudgetState {
+  const planKey = (plan || 'free').toLowerCase();
+  const ceiling = PLAN_COST_CEILING[planKey] ?? PLAN_COST_CEILING.free;
+  const pct = ceiling > 0 ? Math.round((costMtdEur / ceiling) * 100) : 0;
+  let level: BudgetLevel = 'green';
+  if (pct >= 85) level = 'red';
+  else if (pct >= 60) level = 'amber';
+  return {
+    plan: planKey,
+    ceiling,
+    spent: costMtdEur,
+    pct,
+    level,
+    allow_expensive: level !== 'red',
+    prefer_eco: level !== 'green',
+  };
+}
+
+/**
+ * Quick DB lookup : estimate cost-month-to-date for a client. Used by
+ * agent routes before expensive ops. Cheap aggregation : 4 count queries.
+ */
+export async function estimateClientCostMtd(
+  supabase: any,
+  userId: string,
+): Promise<number> {
+  if (!userId) return 0;
+  const monthStart = new Date();
+  monthStart.setUTCDate(1);
+  monthStart.setUTCHours(0, 0, 0, 0);
+  const since = monthStart.toISOString();
+
+  try {
+    const [
+      { data: logs },
+      { data: posts },
+      { count: emailsCount },
+    ] = await Promise.all([
+      supabase.from('agent_logs').select('agent').eq('user_id', userId).gte('created_at', since).limit(5000),
+      supabase.from('content_calendar').select('format').eq('user_id', userId).eq('status', 'published').gte('published_at', since),
+      supabase.from('crm_activities').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('type', 'email').gte('created_at', since),
+    ]);
+
+    let cost = 0.40; // OVH share
+    for (const l of (logs || []) as any[]) {
+      // Heuristic agent → model mapping (matches cost-margin route)
+      if (['hugo', 'jade', 'ami', 'noah', 'ceo', 'email', 'dm_instagram', 'reviews', 'marketing'].includes(l.agent)) {
+        cost += 0.012 * 0.55; // Sonnet w/ prompt caching
+      } else if (['instagram_comments', 'tiktok_comments'].includes(l.agent)) {
+        cost += 0.0015; // Haiku
+      } else {
+        cost += 0.001; // Gemini
+      }
+    }
+    for (const p of (posts || []) as any[]) {
+      cost += p.format === 'video' || p.format === 'reel' ? 0.30 : 0.04;
+    }
+    cost += (emailsCount || 0) * 0.0003;
+    return cost;
+  } catch {
+    return 0;
+  }
+}

@@ -2066,16 +2066,45 @@ export async function GET(request: NextRequest) {
           const postFormat = (fullPost.format || 'post').toLowerCase();
           let videoUrl = fullPost.video_url || null;
           if ((postFormat === 'reel' || postFormat === 'video') && !videoUrl) {
-            console.log(`[Content] Auto-publish: ${postFormat} needs video — generating...`);
-            const desc = fullPost.visual_description || fullPost.hook || fullPost.caption;
-            if (desc) {
-              const vidResult = await generateVideoWithNarration(desc, fullPost.caption || desc, postFormat, 5);
-              videoUrl = vidResult.videoUrl;
-              if (vidResult.coverUrl && !visualUrl) visualUrl = vidResult.coverUrl;
+            // 2026-06-09 — Plan-budget guard. Avant de générer une vidéo
+            // Seedance (~0.30 €), vérifier que le client n'est pas en zone
+            // RED de sa marge. Si oui, downgrade en image post (0.04 €).
+            // Garantit la marge 80% côté serveur, indépendamment de la
+            // pression de la cadence.
+            let budgetAllowsVideo = true;
+            try {
+              const ownerId = (fullPost as any).user_id || null;
+              if (ownerId) {
+                const { estimateClientCostMtd, evaluateBudget } = await import('@/lib/credits/plan-budget-guard');
+                const { data: prof } = await supabase.from('profiles').select('subscription_plan').eq('id', ownerId).maybeSingle();
+                const planPlan = (prof as any)?.subscription_plan || 'free';
+                const mtd = await estimateClientCostMtd(supabase, ownerId);
+                const budget = evaluateBudget(planPlan, mtd);
+                if (!budget.allow_expensive) {
+                  budgetAllowsVideo = false;
+                  console.warn(`[Content] BUDGET RED for ${ownerId.substring(0, 8)} (${budget.pct}% of ${budget.ceiling}€) — downgrading reel → post`);
+                  await supabase.from('content_calendar').update({
+                    format: 'post',
+                    notes: `Auto-downgrade reel→post (budget plan ${planPlan} at ${budget.pct}%)`,
+                  }).eq('id', post.id);
+                }
+              }
+            } catch (budgetErr: any) {
+              console.warn('[Content] budget guard threw, allowing video:', budgetErr?.message);
             }
-            if (!videoUrl && visualUrl) {
-              console.log(`[Content] Video failed for post ${post.id} — downgrading to image post`);
-              await supabase.from('content_calendar').update({ format: 'post' }).eq('id', post.id);
+
+            if (budgetAllowsVideo) {
+              console.log(`[Content] Auto-publish: ${postFormat} needs video — generating...`);
+              const desc = fullPost.visual_description || fullPost.hook || fullPost.caption;
+              if (desc) {
+                const vidResult = await generateVideoWithNarration(desc, fullPost.caption || desc, postFormat, 5);
+                videoUrl = vidResult.videoUrl;
+                if (vidResult.coverUrl && !visualUrl) visualUrl = vidResult.coverUrl;
+              }
+              if (!videoUrl && visualUrl) {
+                console.log(`[Content] Video failed for post ${post.id} — downgrading to image post`);
+                await supabase.from('content_calendar').update({ format: 'post' }).eq('id', post.id);
+              }
             }
           }
 
