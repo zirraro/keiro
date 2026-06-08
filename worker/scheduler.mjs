@@ -122,6 +122,12 @@ const GLOBAL_SCHEDULE = [
   // delta), volume, active anomalies, knowledge mutualised. Admin
   // peut imprimer en PDF depuis sa boîte mail.
   { cron: '0 6 * * 1',    path: '/api/cron/admin-weekly-report', label: 'Weekly Admin Report (Monday 8h)' },
+  // 2026-06-09 — Daily 09:00 UTC (~11:00 Paris, IG story prime time).
+  // When a client has NO story published in the last 20h, recycle one
+  // from the gallery (favorites > recent > oldest). Caps at 1 IG
+  // story + 1 TT Photo Mode per client per 18h. Avoids reusing the
+  // same asset within 60 days. Complements the post-publish teaser.
+  { cron: '0 9 * * *',    path: '/api/cron/story-library-recycle', label: 'Library Story Recycle (silent-slot filler)' },
 ];
 
 // Agent endpoint mapping (for per-client direct calls)
