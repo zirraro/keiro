@@ -237,7 +237,13 @@ async function getPlaceDetails(placeId: string) {
   const apiKey = process.env.GOOGLE_MAPS_API_KEY;
   if (!apiKey) return null;
 
-  const fields = 'name,formatted_address,formatted_phone_number,website,rating,user_ratings_total,business_status,url,types';
+  // 2026-06-08 — Add `reviews` (text) and `opening_hours` to the
+  // fetch. Both are already in the tiers we're paying (Atmosphere +
+  // Contact respectively), so adding them does NOT increase per-call
+  // cost. This is what gives Hugo/Jade material for personalised
+  // outreach ("vu vos avis sur la terrasse…") and what the founder
+  // calls "notes google" in the CRM.
+  const fields = 'name,formatted_address,formatted_phone_number,website,rating,user_ratings_total,reviews,opening_hours,business_status,url,types';
   const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=${fields}&language=fr&key=${apiKey}`;
 
   try {
@@ -596,6 +602,16 @@ async function runGMapsScan(orgId: string | null = null, userId: string | null =
             instagram,
           });
 
+          // Distill review texts into a short, structured note we can
+          // surface in the CRM card and feed into Hugo/Jade for hyper-
+          // personalised outreach. Max 5 reviews comes back; we keep
+          // the 3 most recent with their rating.
+          const reviewsArr = Array.isArray((details as any).reviews) ? (details as any).reviews.slice(0, 3) : [];
+          const reviewsSummary = reviewsArr.length > 0
+            ? reviewsArr.map((r: any) => `★${r.rating ?? '?'} (${r.relative_time_description || ''}): ${(r.text || '').replace(/\s+/g, ' ').slice(0, 240)}`).join('\n')
+            : null;
+          const openingHours = ((details as any).opening_hours?.weekday_text || []) as string[];
+
           // Insert into crm_prospects with status 'identifie' (ready for enrichment)
           const { data: insertedProspect, error: insertError } = await supabase.from('crm_prospects').insert({
             company: details.name,
@@ -609,6 +625,19 @@ async function runGMapsScan(orgId: string | null = null, userId: string | null =
             google_maps_url: details.url || null,
             google_rating: details.rating || null,
             google_reviews: details.user_ratings_total || null,
+            // 2026-06-08 — Founder ask: missing notes Google. Drop the
+            // review excerpts into the `notes` column so they show in
+            // the CRM card and into business_notes (jsonb) for Hugo to
+            // weave into outreach.
+            ...(reviewsSummary ? { notes: reviewsSummary } : {}),
+            ...((reviewsSummary || openingHours.length > 0) ? {
+              business_notes: {
+                google_reviews_excerpt: reviewsSummary,
+                opening_hours: openingHours,
+                fetched_from: 'google_places',
+                fetched_at: now,
+              }
+            } : {}),
             score,
             temperature: getTemperature(score),
             // CHECK constraint crm_prospects_source_check restricts source
