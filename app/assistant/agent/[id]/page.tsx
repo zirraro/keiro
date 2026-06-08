@@ -7,6 +7,7 @@ import dynamic from 'next/dynamic';
 import type { ClientAgent } from '@/lib/agents/client-context';
 import { CLIENT_AGENTS } from '@/lib/agents/client-context';
 import UpsellBanner from '@/app/components/UpsellBanner';
+import AgentOrdersHint from './components/AgentOrdersHint';
 
 const CrmDashboard = dynamic(() => import('./components/CrmDashboard'), { ssr: false });
 const AgentDashboard = dynamic(() => import('./components/AgentDashboard'), { ssr: false });
@@ -2935,6 +2936,17 @@ export default function AgentWorkspacePage() {
             </div>
             {/* Input */}
             <div className="border-t border-white/10 bg-[#0f1f3d] p-3 flex-shrink-0" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0.75rem))' }}>
+              {/* 2026-06-08 — Discoverable list of orders this agent
+                  understands. Click an example → pre-fills the chat input. */}
+              <div className="mb-2 flex justify-end">
+                <AgentOrdersHint
+                  agentId={params?.id as string || ''}
+                  onPickExample={(text) => {
+                    setInput(text);
+                    inputRef.current?.focus();
+                  }}
+                />
+              </div>
               <div className="flex items-end gap-2">
                 <textarea ref={inputRef} value={input} onChange={e => { setInput(e.target.value); e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'; }} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} placeholder={`Message a ${dn}...`} rows={1} className="flex-1 px-3 py-2.5 border border-white/15 rounded-xl text-[13px] text-white placeholder-white/35 bg-white/5 focus:ring-2 focus:ring-purple-500/50 outline-none resize-none" style={{ maxHeight: 100 }} disabled={isLoading} />
                 <button onClick={toggleVoiceInput} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all flex-shrink-0 ${isRecording ? 'bg-red-500 animate-pulse' : 'bg-white/10 hover:bg-white/20'}`} title={isRecording ? 'Arreter' : 'Dicter'}>
