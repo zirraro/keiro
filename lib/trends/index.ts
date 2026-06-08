@@ -9,6 +9,7 @@ import { fetchTikTokTrendingMusicFR, type TikTokTrendingSong } from './tiktokMus
 import { fetchAllSocialTrends, type SocialTrend } from './socialTrends';
 import { fetchInstagramRealTrends, type InstagramRealTrend } from './instagramRealTrends';
 import { fetchTikTokCreativeCenterTrends, type TikTokRealTrend } from './tiktokCreativeCenter';
+import { enrichTrendThumbnails } from './thumbnail-resolver';
 import { createClient } from '@supabase/supabase-js';
 
 export type TrendingData = {
@@ -121,6 +122,19 @@ export async function fetchAllTrends(force = false, region = 'fr'): Promise<Tren
   for (const t of tiktokRealHashtags) {
     if (t.hashtag) keywords.push(t.hashtag.toLowerCase());
   }
+
+  // 2026-06-08 — Enrich Instagram/TikTok/LinkedIn trend cards with a
+  // topic-coherent Pixabay thumbnail when the upstream source didn't
+  // provide one. Cached in DB → resolved once and reused across all
+  // clients/regions. Pure no-op for items that already have imageUrl.
+  await Promise.all([
+    enrichTrendThumbnails(instagramTrends, { imageKey: 'imageUrl' as any, titleKey: 'title' as any }),
+    enrichTrendThumbnails(tiktokTrends, { imageKey: 'imageUrl' as any, titleKey: 'title' as any }),
+    enrichTrendThumbnails(linkedinTrends, { imageKey: 'imageUrl' as any, titleKey: 'title' as any }),
+    // Google Trends cards read pictureUrl — many already come with one
+    // from the upstream feed, but enrich the leftovers.
+    enrichTrendThumbnails(googleTrends as any[], { imageKey: 'pictureUrl' as any, titleKey: 'title' as any }),
+  ]).catch((e) => console.warn('[Trends] thumbnail enrichment partial fail:', e?.message));
 
   const data: TrendingData = {
     googleTrends,

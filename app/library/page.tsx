@@ -2262,7 +2262,17 @@ function LibraryContent() {
             tiktokDraftCount={stats.total_tiktok_drafts}
             linkedinDraftCount={stats.total_linkedin_drafts}
             twitterDraftCount={stats.total_twitter_drafts}
-            scheduledCount={scheduledPosts.length}
+            scheduledCount={scheduledPosts.filter((p: any) => {
+              // 2026-06-08 — Count only posts that are still ahead and
+              // actually pending. Founder saw a badge number with no
+              // visible event on the month; the badge was inflated by
+              // already-published rows + posts dated in the past.
+              if (!p) return false;
+              const status = (p.status || '').toLowerCase();
+              if (status && status !== 'scheduled' && status !== 'pending') return false;
+              const when = p.scheduled_for ? Date.parse(p.scheduled_for) : 0;
+              return when > Date.now() - 60 * 60 * 1000; // tolerate last hour
+            }).length}
             visibleNetworks={selectedNetworks}
           />
         </div>
