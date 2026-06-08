@@ -133,9 +133,16 @@ export async function GET(request: NextRequest) {
 ${topPostsSummary}`;
     }
 
+    // 2026-06-08 — Marketing typed directives (per client)
+    let marketingDirectives = '';
+    try {
+      const { directiveBlockFor } = await import('@/lib/agents/typed-directives');
+      marketingDirectives = await directiveBlockFor(supabase, clientUserId, 'marketing');
+    } catch { /* best-effort */ }
+
     // Generate marketing analysis
     const analysis = await callGemini({
-      system: `Tu es le CMO virtuel de KeiroAI. Tu gères TOUTE la stratégie marketing de manière quasi-autonome.
+      system: `Tu es le CMO virtuel de KeiroAI. Tu gères TOUTE la stratégie marketing de manière quasi-autonome.${marketingDirectives}
 
 Tu analyses les performances cross-canal, tu décides des ajustements, tu donnes des ordres aux agents, et tu remontes le bilan au CEO.
 

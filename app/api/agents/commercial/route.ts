@@ -217,8 +217,18 @@ async function enrichProspect(prospect: {
   type: string | null;
   quartier: string | null;
   note_google: number | null;
-}): Promise<EnrichmentResult | null> {
+}, ownerUserId: string | null = null, supabaseClient: any = null): Promise<EnrichmentResult | null> {
   if (!process.env.GEMINI_API_KEY) return null;
+
+  // 2026-06-08 — Inject client typed directives (prospection_zones,
+  // prospection_excluded_types, language_tone, custom, ...).
+  let directivesBlock = '';
+  if (ownerUserId && supabaseClient) {
+    try {
+      const { directiveBlockFor } = await import('@/lib/agents/typed-directives');
+      directivesBlock = await directiveBlockFor(supabaseClient, ownerUserId, 'commercial');
+    } catch { /* best-effort */ }
+  }
 
   const prospectAnalysisPrompt = `Analyse ce prospect et enrichis les données manquantes :
 
@@ -248,7 +258,7 @@ Réponds UNIQUEMENT en JSON valide, sans markdown, sans explication hors du JSON
 
   try {
     const rawText = await callGemini({
-      system: getCommercialSystemPrompt(),
+      system: getCommercialSystemPrompt() + directivesBlock,
       message: prospectAnalysisPrompt,
       maxTokens: 2000,
     });
@@ -448,7 +458,7 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
         }
         const batch = prospects.slice(b, b + BATCH_SIZE);
         const batchResults = await Promise.all(batch.map(async (p) => {
-          const r = await enrichProspect(p);
+          const r = await enrichProspect(p, clientUserId, supabase);
           return { prospect: p, result: r };
         }));
         enrichResults.push(...batchResults);

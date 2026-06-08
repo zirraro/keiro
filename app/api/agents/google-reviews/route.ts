@@ -127,7 +127,7 @@ export async function GET(req: NextRequest) {
           previous_replies: pastReplies,
         };
 
-        const decision = await generateReviewReply(ctx, dossier || null);
+        const decision = await generateReviewReply(ctx, dossier || null, userId, supabase);
 
         if (decision.action === 'reply') {
           const posted = await replyToReview(accessToken, r.name, decision.body).catch(() => false);

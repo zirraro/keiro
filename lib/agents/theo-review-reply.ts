@@ -61,8 +61,20 @@ function preClassify(ctx: ReviewContext): 'escalate' | 'ok_to_try' {
 export async function generateReviewReply(
   review: ReviewContext,
   dossier: DossierContext | null,
+  ownerUserId: string | null = null,
+  supabaseClient: any = null,
 ): Promise<ReviewDecision> {
   const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
+
+  // 2026-06-08 — Client typed directives for Théo (language_tone,
+  // brand_signature, custom, ...).
+  let directivesBlock = '';
+  if (ownerUserId && supabaseClient) {
+    try {
+      const { directiveBlockFor } = await import('@/lib/agents/typed-directives');
+      directivesBlock = await directiveBlockFor(supabaseClient, ownerUserId, 'reviews');
+    } catch { /* best-effort */ }
+  }
 
   const preCheck = preClassify(review);
   if (preCheck === 'escalate') {
@@ -139,7 +151,7 @@ ${pastRepliesBlock}
 === AVIS À TRAITER ===
 Note : ${review.rating}⭐
 Auteur : ${review.author}
-Texte : "${(review.text || '').substring(0, 1000)}"`,
+Texte : "${(review.text || '').substring(0, 1000)}"${directivesBlock}`,
         messages: [{ role: 'user', content: 'Génère ta décision maintenant en JSON strict.' }],
       }),
     });

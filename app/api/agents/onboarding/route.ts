@@ -219,8 +219,15 @@ export async function GET(request: NextRequest) {
         // Generate message via Gemini
         const stepPrompt = getOnboardingStepPrompt(item.step_key, context);
 
+        // 2026-06-08 — typed directives for Clara onboarding (per-client)
+        let onboardingDirectives = '';
+        try {
+          const { directiveBlockFor } = await import('@/lib/agents/typed-directives');
+          onboardingDirectives = await directiveBlockFor(supabase, item.user_id || null, 'onboarding');
+        } catch { /* best-effort */ }
+
         const messageText = (await callGemini({
-          system: getOnboardingSystemPrompt() + '\n\n' + sharedPrompt,
+          system: getOnboardingSystemPrompt() + '\n\n' + sharedPrompt + onboardingDirectives,
           message: stepPrompt,
           maxTokens: 500,
         })).trim();

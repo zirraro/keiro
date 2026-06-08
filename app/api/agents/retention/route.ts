@@ -273,8 +273,16 @@ export async function GET(request: NextRequest) {
 
         // Generate message via Claude
         const prompt = getRetentionMessagePrompt(messageType, msgContext);
+
+        // 2026-06-08 — typed directives for retention agent
+        let retentionDirectives = '';
+        try {
+          const { directiveBlockFor } = await import('@/lib/agents/typed-directives');
+          retentionDirectives = await directiveBlockFor(supabase, client.id || null, 'retention');
+        } catch { /* best-effort */ }
+
         const messageText = (await callGemini({
-          system: getRetentionSystemPrompt() + '\n\n' + sharedPrompt,
+          system: getRetentionSystemPrompt() + '\n\n' + sharedPrompt + retentionDirectives,
           message: prompt,
           maxTokens: 300,
         })).trim();

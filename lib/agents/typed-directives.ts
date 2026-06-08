@@ -302,3 +302,25 @@ export function directivesPromptBlock(directives: TypedDirective[]): string {
     ? `\n━━━ DIRECTIVES CLIENT (À RESPECTER STRICTEMENT) ━━━\n${lines.join('\n')}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`
     : '';
 }
+
+/**
+ * One-call sugar: load + render in one shot. Returns '' if no userId,
+ * no directives, or anything throws — agents can append it to their
+ * system prompt blindly:
+ *
+ *   const directivesBlock = await directiveBlockFor(supabase, userId, 'commercial');
+ *   await callGemini({ system: basePrompt + directivesBlock, ... });
+ */
+export async function directiveBlockFor(
+  supabase: any,
+  userId: string | null | undefined,
+  agentId: string,
+): Promise<string> {
+  if (!userId || !supabase) return '';
+  try {
+    const typed = await loadTypedDirectives(supabase, userId, agentId);
+    return directivesPromptBlock(typed);
+  } catch {
+    return '';
+  }
+}

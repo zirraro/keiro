@@ -403,9 +403,16 @@ PERFORMANCE GLOBALE : ${gscReport.summary.totalClicks} clics, ${gscReport.summar
       console.warn('[SEOAgent] GSC data unavailable:', gscError.message);
     }
 
+    // 2026-06-08 — SEO typed directives
+    let seoDirectives = '';
+    try {
+      const { directiveBlockFor } = await import('@/lib/agents/typed-directives');
+      seoDirectives = await directiveBlockFor(supabase, clientUserId, 'seo');
+    } catch { /* best-effort */ }
+
     // Call Gemini 2.0 Flash with elite prompt + CRM data
     const rawText = await callGemini({
-      system: getSeoWriterPrompt(),
+      system: getSeoWriterPrompt() + seoDirectives,
       message: `Ecris un article de blog SEO optimise pour le mot-cle principal : "${targetKeyword}"
 
 DONNÉES BUSINESS EN TEMPS RÉEL (utilise-les pour rendre l'article crédible et data-driven) :

@@ -210,9 +210,23 @@ async function runStrategicAnalysis(orgId: string | null = null): Promise<NextRe
       recentPerformance: perfText,
     });
 
+    // 2026-06-08 — AMI is admin-scope but the founder can still
+    // chat-direct it ("concentre-toi sur les restaurants ce mois"
+    // etc.). Load directives written against agent_id='amit' from
+    // any admin user.
+    let amiDirectives = '';
+    try {
+      const { data: adminProfile } = await getSupabaseAdmin()
+        .from('profiles').select('id').eq('is_admin', true).limit(1).maybeSingle();
+      if (adminProfile?.id) {
+        const { directiveBlockFor } = await import('@/lib/agents/typed-directives');
+        amiDirectives = await directiveBlockFor(getSupabaseAdmin(), adminProfile.id, 'amit');
+      }
+    } catch { /* best-effort */ }
+
     console.log('[AMIT] Calling Gemini for strategic analysis...');
     const rawResponse = await callGemini({
-      system: systemPrompt,
+      system: systemPrompt + amiDirectives,
       message: analysisPrompt,
       maxTokens: 4000,
       thinking: true,

@@ -232,11 +232,18 @@ export async function POST(req: NextRequest) {
           const LANG_LABEL: Record<string, string> = { fr: 'French', en: 'English', es: 'Spanish', de: 'German', unknown: 'French' };
           const targetLang = LANG_LABEL[lang] || 'French';
 
+          // 2026-06-08 — typed directives for ig-comments reply tone/blacklist
+          let igCommentDirectives = '';
+          try {
+            const { directiveBlockFor } = await import('@/lib/agents/typed-directives');
+            igCommentDirectives = await directiveBlockFor(supabase, targetUserId || null, 'instagram_comments');
+          } catch { /* best-effort */ }
+
           const ant = new Anthropic({ apiKey });
           const r = await ant.messages.create({
             model: 'claude-haiku-4-5-20251001',
             max_tokens: 200,
-            system: `You write Instagram comment replies as the brand owner.
+            system: `You write Instagram comment replies as the brand owner.${igCommentDirectives}
 
 LANGUAGE LOCK (non-negotiable): The comment is in ${targetLang}. Write your ENTIRE reply in ${targetLang}. Not a single word in another language.
 
