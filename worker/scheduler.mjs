@@ -100,6 +100,12 @@ const GLOBAL_SCHEDULE = [
   // verification status; flips profiles.managed_email_status from
   // 'pending_dns' to 'connected' once DKIM is enabled.
   { cron: '*/30 * * * *', path: '/api/cron/managed-email-verify', label: 'Managed Email Domain Verify' },
+  // 2026-06-08 — Daily 04:45 UTC, BEFORE the morning digest. Detects
+  // error patterns recurring across multiple clients and writes them
+  // as shared learnings in agent_knowledge (category='error_pattern')
+  // so the fix mutualises automatically to every other client of the
+  // same business_type. Pattern decays after 72h of silence.
+  { cron: '45 4 * * *',   path: '/api/cron/detect-error-patterns', label: 'Detect Cross-Client Error Patterns (knowledge mutualisation)' },
 ];
 
 // Agent endpoint mapping (for per-client direct calls)

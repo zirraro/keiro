@@ -153,9 +153,13 @@ export default function AgentControlPage() {
                   const sinceRun = c.last_run_at ? formatRelative(c.last_run_at) : '—';
                   const volumeStr = renderVolume(agentId, c.volume);
                   return (
-                    <tr key={c.user_id} className={`border-t border-white/5 ${c.errors_24h > 0 ? 'bg-red-500/5' : ''}`}>
+                    <tr key={c.user_id} className={`border-t border-white/5 hover:bg-white/[0.04] cursor-pointer ${c.errors_24h > 0 ? 'bg-red-500/5' : ''}`} onClick={(e) => {
+                      // Don't navigate when clicking a pilot button
+                      if ((e.target as HTMLElement).closest('button')) return;
+                      router.push(`/admin/agents/control/${agentId}/${c.user_id}`);
+                    }}>
                       <td className="px-3 py-2">
-                        <div className="font-medium text-white truncate max-w-[180px]" title={c.email}>{c.email || c.user_id.substring(0, 8)}</div>
+                        <div className="font-medium text-white truncate max-w-[180px] underline-offset-2 hover:underline" title={c.email}>{c.email || c.user_id.substring(0, 8)}</div>
                         {c.paused && <span className="text-[9px] text-amber-300 uppercase">⏸ paused</span>}
                       </td>
                       <td className="px-3 py-2 text-white/60">{c.plan}</td>
