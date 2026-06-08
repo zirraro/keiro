@@ -127,26 +127,20 @@ export default function InstagramWidget({
           setPosts(transformedPosts);
         }
 
-        // Check how fresh the cached data is. If it's older than 2 minutes OR we
-        // have no posts at all, fire a sync in the background to pick up anything
-        // Lena or the client published since the last visit. The result reloads
-        // the widget through the loadData(true) tail below.
-        const mostRecent = instagramPosts?.[0];
-        const lastSync = mostRecent?.synced_at ? new Date(mostRecent.synced_at).getTime() : 0;
-        const isStale = !instagramPosts || instagramPosts.length === 0 || (Date.now() - lastSync > 2 * 60_000);
-
-        if (isStale) {
-          console.log('[InstagramWidget] Data stale or empty — triggering background sync');
-          fetch('/api/instagram/sync-media', { method: 'POST', credentials: 'include' })
-            .then(r => r.json())
-            .then(data => {
-              if (data.ok) {
-                // Reload from DB quietly — no spinner, posts just update in place
-                setTimeout(() => loadData(true), 1500);
-              }
-            })
-            .catch(err => console.error('[InstagramWidget] Sync failed:', err));
-        }
+        // 2026-06-08 — Founder ask: thumbnails must always be fresh
+        // when the user lands on the gallery. Drop the staleness guard
+        // and always fire a background sync on mount/focus. Keeps the
+        // request out of the loading path (silent=true) so the UI
+        // doesn't flicker.
+        console.log('[InstagramWidget] Connected — triggering background sync to refresh thumbnails');
+        fetch('/api/instagram/sync-media', { method: 'POST', credentials: 'include' })
+          .then(r => r.json())
+          .then(data => {
+            if (data.ok) {
+              setTimeout(() => loadData(true), 1200);
+            }
+          })
+          .catch(err => console.error('[InstagramWidget] Sync failed:', err));
       }
     } catch (error) {
       console.error('[InstagramWidget] Error:', error);
