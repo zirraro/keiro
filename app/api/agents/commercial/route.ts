@@ -9,7 +9,12 @@ import { calculateScore, calculateTemperature } from '@/lib/agents/scoring';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const maxDuration = 300;
+// 2026-06-08 — Founder digest flagged a recurring 300s timeout on Phase 3
+// (cron_prospect_external). Moving the cap to 600s now that we're on the
+// OVH VPS (no Vercel 300s limit) lets Phase 3 finish even with 4 Gemini
+// Search calls (~60-90s each, batched 2 in parallel). MAX_RUN_MS below
+// stays at 540s to leave reporting margin.
+export const maxDuration = 600;
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -371,7 +376,9 @@ export async function POST(request: NextRequest) {
  */
 async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' = 'full', orgId: string | null = null, clientUserId: string | null = null): Promise<NextResponse> {
   const runStartTime = Date.now();
-  const MAX_RUN_MS = 250_000; // Hard limit: 250s to leave 50s margin for reporting
+  // 2026-06-08 — Was 250s when we were on Vercel (300s cap). VPS allows
+  // 600s now → bumped to 540s leaving 60s for reporting + DB inserts.
+  const MAX_RUN_MS = 540_000;
 
   try {
     const supabase = getSupabaseAdmin();

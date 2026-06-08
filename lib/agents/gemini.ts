@@ -296,6 +296,10 @@ export async function callGeminiWithSearch({ system, message, maxTokens = 2000 }
     throw new Error('GEMINI_API_KEY non configurée');
   }
 
+  // 2026-06-08 — Per-call 90s timeout. Phase 3 commercial blew the 300s
+  // budget because one slow Search call could hang up to 120s. With this
+  // signal a hung call aborts and the caller moves on; the prospector
+  // still makes progress with the other searches in its batch.
   const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -315,6 +319,7 @@ export async function callGeminiWithSearch({ system, message, maxTokens = 2000 }
         temperature: 0.3,
       },
     }),
+    signal: AbortSignal.timeout(90_000),
   });
 
   if (!response.ok) {
