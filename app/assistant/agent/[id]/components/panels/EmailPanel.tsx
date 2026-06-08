@@ -406,6 +406,18 @@ function EmailInbox({ emails, gradientFrom }: { emails: any[]; gradientFrom: str
   const [inboxFilter, setInboxFilter] = useState<'all' | 'inbox' | 'sent' | 'auto'>('all');
   const threadEndRef = useRef<HTMLDivElement>(null);
 
+  // 2026-06-08 — Founder bug: switching tabs (tous → envoyé) kept the
+  // previously-selected conversation in the right pane even when that
+  // prospect was no longer in the new tab's list, making it look like
+  // "the wrong account loaded". Reset the selection whenever the
+  // filter changes so the panel cleanly redraws to the new tab's
+  // first conversation.
+  useEffect(() => {
+    setSelectedId(null);
+    setThread([]);
+    setThreadProspect(null);
+  }, [inboxFilter]);
+
   // Filter emails by type
   const filteredEmails = emails.filter(e => {
     if (inboxFilter === 'inbox') return e.direction === 'incoming';
