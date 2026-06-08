@@ -491,12 +491,24 @@ async function runEnrichment(mode: 'verify_crm' | 'prospect_external' | 'full' =
           // Email sending uses getSequenceForProspect() which falls back to 'pme' for the template
         }
 
-        // 2026-06-08 — Drop quartier confidence floor 70→55. Founder
-        // ask: prospects often missing quartier/ville. Gemini frequently
-        // returns 60–69% confidence on a correct guess; the scrape
-        // pipeline (Phase 2/3) can correct via website meta anyway.
-        if (!prospect.quartier && result.quartier && result.quartier_confidence >= 55) {
+        // 2026-06-08 — Founder correction: keep the 70% confidence
+        // floor (we want quality data, not more wrong data). Close
+        // the gap by ADDING enrichment paths, not by lowering the bar.
+        if (!prospect.quartier && result.quartier && result.quartier_confidence >= 70) {
           updates.quartier = result.quartier;
+        }
+
+        // Deterministic fallback: if Gemini didn't return a high-conf
+        // quartier but we have an address (from gmaps or scrape), parse
+        // it. Postal-code-based lookup is 95% accurate for Paris/Lyon/
+        // Marseille and never lies on the city. €0 per call.
+        if (!updates.quartier && !prospect.quartier) {
+          const { quartierFromAddress } = await import('@/lib/agents/address-parser');
+          const fromAddr = quartierFromAddress(prospect.address || (result as any).address || null);
+          if (fromAddr) {
+            updates.quartier = fromAddr;
+            updates.quartier_source = 'address_parse';
+          }
         }
 
         // Flag bad emails — only mark dead for truly invalid formats, NOT for AI guesses

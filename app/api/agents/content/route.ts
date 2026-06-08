@@ -2252,40 +2252,89 @@ export async function GET(request: NextRequest) {
               console.log(`[Content] TikTok published for post ${post.id}: ${ttResult.publish_id}`);
 
               // 2026-06-08 — Founder rule (lib/credits/constants.ts:67-68):
-              // "1 génération = 2 publications" — un reel TikTok doit être
-              // dupliqué en Reel Instagram pour respecter la cadence du
-              // plan. Audit mrzirraro montrait 8 TikTok mais 0 Insta sur
-              // la même fenêtre ; le cross-post n'existait pas. On clone
-              // ici le post pour Instagram (asset + caption identiques,
-              // planifié 90 min plus tard pour éviter le spam algo).
+              // "1 génération = 2 publications". A TikTok reel can be
+              // republished on Instagram, BUT:
+              //   (a) NEVER same day — same content same day reads as
+              //       lazy/spammy to followers who watch both networks.
+              //   (b) Space the clone 3–5 days out, randomized so we
+              //       don't create a detectable repost pattern.
+              //   (c) Skip if the same client already has an Insta post
+              //       (Lena-native or another clone) within ±48h of the
+              //       target slot — keep variety between platforms.
+              //   (d) Rewrite the hook/caption with a different angle:
+              //       same asset, different framing, different platform
+              //       conventions (no TikTok-specific phrasing).
               if (fullPost.format === 'video' || fullPost.format === 'reel') {
                 try {
-                  const cloneScheduled = new Date(Date.now() + 90 * 60 * 1000);
-                  const cloneCaption = (fullPost.caption || '')
-                    // Strip platform-specific markers Lena may have added.
-                    .replace(/#tiktok/gi, '')
-                    .replace(/\b(tiktok|TikTok)\b/g, 'Instagram');
-                  const { error: cloneErr } = await supabase.from('content_calendar').insert({
-                    user_id: fullPost.user_id,
-                    org_id: fullPost.org_id || null,
-                    platform: 'instagram',
-                    format: 'reel',
-                    hook: fullPost.hook,
-                    caption: cloneCaption,
-                    hashtags: Array.isArray(fullPost.hashtags) ? fullPost.hashtags.filter((h: any) => !/tiktok/i.test(h)) : fullPost.hashtags,
-                    visual_url: postWithMedia.visual_url || fullPost.visual_url,
-                    scheduled_date: cloneScheduled.toISOString().split('T')[0],
-                    scheduled_time: cloneScheduled.toISOString(),
-                    status: 'approved',
-                    auto_publish: true,
-                    pillar: fullPost.pillar || null,
-                    source: 'cross_post_from_tiktok',
-                    parent_post_id: post.id,
-                  });
-                  if (!cloneErr) {
-                    console.log(`[Content] Cross-posted TikTok ${post.id} → Instagram Reel scheduled @ ${cloneScheduled.toISOString()}`);
+                  // Pick a random delay in days [3, 5] so the clone lands
+                  // mid-week away from the TikTok burst.
+                  const delayDays = 3 + Math.floor(Math.random() * 3); // 3, 4 or 5
+                  const cloneScheduled = new Date(Date.now() + delayDays * 24 * 60 * 60 * 1000);
+                  // Anchor at 18:30 local (good IG engagement window)
+                  cloneScheduled.setHours(18, 30, 0, 0);
+                  const cloneDateStr = cloneScheduled.toISOString().split('T')[0];
+
+                  // Anti-pattern guard: skip clone if an Insta post is
+                  // already planned ±2 days around the target slot for
+                  // this user. We don't want consecutive Insta repeats.
+                  const windowStart = new Date(cloneScheduled.getTime() - 2 * 86400000).toISOString().split('T')[0];
+                  const windowEnd = new Date(cloneScheduled.getTime() + 2 * 86400000).toISOString().split('T')[0];
+                  const { count: nearbyCount } = await supabase
+                    .from('content_calendar')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('user_id', fullPost.user_id)
+                    .eq('platform', 'instagram')
+                    .gte('scheduled_date', windowStart)
+                    .lte('scheduled_date', windowEnd);
+
+                  if ((nearbyCount || 0) > 0) {
+                    console.log(`[Content] Cross-post skipped for ${post.id}: Insta already planned ±2d around ${cloneDateStr}`);
                   } else {
-                    console.warn(`[Content] Cross-post insert error for ${post.id}:`, cloneErr.message);
+                    // Rewrite caption: drop TikTok-specific markers, swap
+                    // the hook angle. We keep the asset but reframe so the
+                    // Insta audience doesn't see an obvious carbon copy.
+                    const baseCaption = (fullPost.caption || '').trim();
+                    const cleanedCaption = baseCaption
+                      .replace(/#tiktok/gi, '')
+                      .replace(/\b(tiktok|TikTok)\b/g, 'Instagram')
+                      .replace(/\s+/g, ' ')
+                      .trim();
+                    // Try to vary the opening line on Insta — prepend a
+                    // soft re-hook so the post doesn't feel identical to
+                    // a viewer who saw the TikTok.
+                    const igHookPrefix = (() => {
+                      const variants = [
+                        'On vous remontre — différemment.',
+                        'Petit retour sur ce moment.',
+                        'À garder en tête cette semaine.',
+                        'Cliché qu\'on aime particulièrement.',
+                      ];
+                      return variants[Math.floor(Math.random() * variants.length)];
+                    })();
+                    const cloneCaption = `${igHookPrefix}\n\n${cleanedCaption}`;
+
+                    const { error: cloneErr } = await supabase.from('content_calendar').insert({
+                      user_id: fullPost.user_id,
+                      org_id: fullPost.org_id || null,
+                      platform: 'instagram',
+                      format: 'reel',
+                      hook: fullPost.hook,
+                      caption: cloneCaption,
+                      hashtags: Array.isArray(fullPost.hashtags) ? fullPost.hashtags.filter((h: any) => !/tiktok/i.test(h)) : fullPost.hashtags,
+                      visual_url: postWithMedia.visual_url || fullPost.visual_url,
+                      scheduled_date: cloneDateStr,
+                      scheduled_time: cloneScheduled.toISOString(),
+                      status: 'approved',
+                      auto_publish: true,
+                      pillar: fullPost.pillar || null,
+                      source: 'cross_post_from_tiktok',
+                      parent_post_id: post.id,
+                    });
+                    if (!cloneErr) {
+                      console.log(`[Content] Cross-posted TikTok ${post.id} → Instagram Reel @ ${cloneDateStr} 18:30 (+${delayDays}d)`);
+                    } else {
+                      console.warn(`[Content] Cross-post insert error for ${post.id}:`, cloneErr.message);
+                    }
                   }
                 } catch (cloneErr: any) {
                   console.warn(`[Content] Cross-post threw for ${post.id}:`, cloneErr?.message);

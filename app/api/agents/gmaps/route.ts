@@ -602,6 +602,22 @@ async function runGMapsScan(orgId: string | null = null, userId: string | null =
             instagram,
           });
 
+          // 2026-06-08 — Parse city/quartier from the formatted_address
+          // for free. The scan zone (`zone.name`) is what the OPERATOR
+          // named the geographic batch (e.g., "11e Paris" or "Bastille")
+          // but the address itself carries the canonical sub-quartier
+          // via the postal code (75011 → "11e — Bastille"). Use the
+          // address-derived value when it's more specific than the scan
+          // zone, otherwise fall back to the zone name.
+          const { parseAddressDeterministic } = await import('@/lib/agents/address-parser');
+          const parsedAddr = parseAddressDeterministic(details.formatted_address || null);
+          const finalQuartier = parsedAddr.quartier && parsedAddr.confidence >= 70
+            ? parsedAddr.quartier
+            : zone.name;
+          const finalVille = parsedAddr.ville || null;
+          const finalPostal = parsedAddr.postal_code || null;
+          const quartierSource = parsedAddr.confidence >= 70 ? 'address_parse' : 'scan_zone';
+
           // Distill review texts into a short, structured note we can
           // surface in the CRM card and feed into Hugo/Jade for hyper-
           // personalised outreach. Max 5 reviews comes back; we keep
@@ -616,7 +632,10 @@ async function runGMapsScan(orgId: string | null = null, userId: string | null =
           const { data: insertedProspect, error: insertError } = await supabase.from('crm_prospects').insert({
             company: details.name,
             type: businessType,
-            quartier: zone.name,
+            quartier: finalQuartier,
+            ...(finalVille ? { ville: finalVille } : {}),
+            ...(finalPostal ? { postal_code: finalPostal } : {}),
+            quartier_source: quartierSource,
             phone: details.formatted_phone_number || null,
             website: details.website || null,
             address: details.formatted_address || null,
