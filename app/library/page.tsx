@@ -2578,6 +2578,11 @@ function LibraryContent() {
           onSave={saveInstagramDraft}
           draftCaption={draftCaptionToEdit}
           draftHashtags={draftHashtagsToEdit}
+          onSchedule={(image) => {
+            // Save the modal's edits into draft first, then open the scheduler.
+            setShowInstagramModal(false);
+            openScheduleModal(image);
+          }}
         />
       )}
 

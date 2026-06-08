@@ -47,9 +47,13 @@ interface InstagramModalProps {
   onSave: (image: SavedImage, caption: string, hashtags: string[], status: 'draft' | 'ready') => Promise<void>;
   draftCaption?: string;
   draftHashtags?: string[];
+  // 2026-06-08 — Schedule button (founder ask: ajouter Planifier
+  // dans les modaux Insta/TikTok/LinkedIn). Parent wires this to the
+  // existing ScheduleModal opener.
+  onSchedule?: (image: SavedImage, caption: string, hashtags: string[]) => void;
 }
 
-export default function InstagramModal({ image, images, video, videos, onClose, onSave, draftCaption, draftHashtags }: InstagramModalProps) {
+export default function InstagramModal({ image, images, video, videos, onClose, onSave, draftCaption, draftHashtags, onSchedule }: InstagramModalProps) {
   const { t } = useLanguage();
   const [caption, setCaption] = useState(draftCaption || '');
   const [hashtags, setHashtags] = useState<string[]>(draftHashtags || []);
@@ -656,18 +660,24 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start sm:items-center justify-center z-[60] p-2 sm:p-4 pt-[72px] sm:pt-[88px] pb-[80px] sm:pb-4 overflow-y-auto">
       <div className="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[calc(100vh-160px)] sm:max-h-[calc(100vh-120px)] overflow-hidden flex flex-col my-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 sm:p-6 border-b bg-gradient-to-r from-purple-50 to-pink-50">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <InstagramIcon className="w-6 h-6 sm:w-8 sm:h-8 text-pink-600" />
-            <h2 className="text-lg sm:text-2xl font-bold text-neutral-900">{t.library.prepareInstagramPost}</h2>
+        {/* Header — connexion en petit, plus de place pour le module */}
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b bg-gradient-to-r from-purple-50 to-pink-50">
+          <div className="flex items-center gap-2 min-w-0">
+            <InstagramIcon className="w-5 h-5 sm:w-6 sm:h-6 text-pink-600 shrink-0" />
+            <h2 className="text-base sm:text-lg font-bold text-neutral-900 truncate">{t.library.prepareInstagramPost}</h2>
+            {!checkingConnection && isInstagramConnected && instagramUsername && (
+              <span className="hidden sm:inline-flex items-center gap-1 text-[11px] text-green-700 bg-green-50 px-2 py-0.5 rounded-full border border-green-200 ml-2">
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                @{instagramUsername}
+              </span>
+            )}
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-full hover:bg-white/50 transition-colors"
+            className="p-1.5 rounded-full hover:bg-white/50 transition-colors shrink-0"
             aria-label="Fermer"
           >
-            <XIcon className="w-5 h-5 sm:w-6 sm:h-6 text-neutral-600" />
+            <XIcon className="w-5 h-5 text-neutral-600" />
           </button>
         </div>
 
@@ -1484,31 +1494,29 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
           </div>
         </div>
 
-        {/* FOOTER - Boutons action */}
-        <div className="border-t p-4 sm:p-6 bg-neutral-50">
-          {/* Statut de connexion Instagram (discret) */}
-          {!checkingConnection && isInstagramConnected && (
-            <div className="mb-3">
-              <div className="flex items-center justify-center gap-2 text-xs text-green-700 bg-green-50 rounded-lg py-2 px-3 border border-green-200">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span>{t.library.connected} : <strong>@{instagramUsername}</strong></span>
-              </div>
+        {/* FOOTER - Boutons action (connexion affichée dans le header, plus compact) */}
+        <div className="border-t p-3 sm:p-4 bg-neutral-50">
+          {/* Mobile-only connection badge (le header en cache pour mobile) */}
+          {!checkingConnection && isInstagramConnected && instagramUsername && (
+            <div className="sm:hidden mb-2 text-center">
+              <span className="inline-flex items-center gap-1 text-[10px] text-green-700 bg-green-50 px-2 py-0.5 rounded-full border border-green-200">
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                @{instagramUsername}
+              </span>
             </div>
           )}
 
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+          <div className="flex flex-col sm:flex-row gap-2">
             <button
               onClick={onClose}
-              className="px-4 sm:px-6 py-2 sm:py-3 border border-neutral-300 rounded-lg font-medium text-neutral-700 hover:bg-neutral-100 transition-colors text-sm sm:text-base"
+              className="px-3 sm:px-4 py-2 border border-neutral-300 rounded-lg font-medium text-neutral-700 hover:bg-neutral-100 transition-colors text-xs sm:text-sm"
             >
               {t.library.cancel}
             </button>
             <button
               onClick={() => handleSave('draft')}
               disabled={saving || !caption.trim()}
-              className={`flex-1 px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium text-white transition-colors flex items-center justify-center gap-2 text-sm sm:text-base ${
+              className={`flex-1 px-3 sm:px-4 py-2 rounded-lg font-medium text-white transition-colors flex items-center justify-center gap-1.5 text-xs sm:text-sm ${
                 saving || !caption.trim()
                   ? 'bg-neutral-400 cursor-not-allowed'
                   : 'bg-neutral-700 hover:bg-neutral-800'
@@ -1516,13 +1524,28 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
             >
               {saving ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                   <span>{t.library.savingInProgress}</span>
                 </>
               ) : (
                 <span>{t.library.draft}</span>
               )}
             </button>
+            {/* 2026-06-08 — Schedule button (always visible if onSchedule wired and image selected) */}
+            {onSchedule && selectedImage && (
+              <button
+                onClick={() => onSchedule(selectedImage, caption, hashtags)}
+                disabled={!caption.trim()}
+                className={`flex-1 px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-1.5 text-xs sm:text-sm ${
+                  !caption.trim()
+                    ? 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+                    : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                }`}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                <span>{(t.library as any).schedule || 'Planifier'}</span>
+              </button>
+            )}
 
             {/* Boutons de publication Instagram (seulement si connecté) */}
             {isInstagramConnected ? (
@@ -1532,7 +1555,7 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
                   onClick={handlePublishNow}
                   disabled={publishing || !caption.trim()}
                   title="Publishes this image and caption to your Instagram Business account by calling the Graph API: POST /{ig-id}/media to create a media container, then POST /{ig-id}/media_publish to publish it. This is a manual human action — nothing is published automatically."
-                  className={`w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg font-medium text-white transition-all flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm ${
+                  className={`w-full px-3 sm:px-4 py-2 rounded-lg font-medium text-white transition-all flex items-center justify-center gap-1.5 text-xs sm:text-sm ${
                     publishing || !caption.trim()
                       ? 'bg-neutral-400 cursor-not-allowed'
                       : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl'

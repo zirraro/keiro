@@ -151,8 +151,8 @@ export function EmailConnectBanner({ connections }: { connections?: Record<strin
 
   const handleDisconnectSmtp = useCallback(async () => {
     const msg = en
-      ? 'Remove SMTP credentials? Hugo will fall back to Gmail or contact@keiroai.com.'
-      : 'Supprimer les identifiants SMTP ? Hugo basculera sur Gmail ou contact@keiroai.com.';
+      ? 'Disconnect SMTP credentials? Hugo will fall back to Gmail or contact@keiroai.com.'
+      : 'Déconnecter les identifiants SMTP ? Hugo basculera sur Gmail ou contact@keiroai.com.';
     if (typeof window !== 'undefined' && !window.confirm(msg)) return;
     try {
       await fetch('/api/auth/smtp', { method: 'DELETE', credentials: 'include' });
@@ -201,7 +201,7 @@ export function EmailConnectBanner({ connections }: { connections?: Record<strin
               <p className="text-xs font-bold text-emerald-400">{en ? 'Custom SMTP connected' : 'SMTP personnalisé connecté'}</p>
               <p className="text-[10px] text-white/50">{en ? 'Hugo sends from' : 'Hugo envoie depuis'} <strong className="text-white/80">{smtpFromEmail}</strong></p>
             </div>
-            <button onClick={handleDisconnectSmtp} className="text-[10px] text-white/45 hover:text-red-400/60 transition">{en ? 'Remove' : 'Supprimer'}</button>
+            <button onClick={handleDisconnectSmtp} className="text-[10px] text-white/45 hover:text-red-400/60 transition">{en ? 'Disconnect' : 'Déconnecter'}</button>
           </div>
         )}
       </div>
