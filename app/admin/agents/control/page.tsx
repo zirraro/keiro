@@ -114,6 +114,7 @@ export default function AdminAgentsControlIndex() {
             <h1 className="text-2xl font-bold">Agent Control Center</h1>
             <p className="text-xs text-white/40 mt-1">Pilot every agent across all KeiroAI clients · Trigger runs, pause/resume, monitor errors · Live alerts /30min</p>
           </div>
+          <a href="/admin/cost-margin" className="px-3 py-2 text-xs rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white">💰 Cost vs Margin</a>
           <a href="/admin/agents/reports" className="px-3 py-2 text-xs rounded-lg bg-white/10 hover:bg-white/15 text-white">📊 Rapports détaillés</a>
         </div>
 

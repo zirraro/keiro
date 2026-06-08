@@ -28,6 +28,12 @@ export interface LlmCallOptions {
   providerOnly?: 'anthropic' | 'gemini';
   // Tag for logging
   callTag?: string;
+  // 2026-06-09 — Enable Anthropic prompt caching on the system prompt
+  // (cache_control: { type: 'ephemeral' }). For repeated calls with
+  // the same system prompt within 5min, the cached read is 10× cheaper.
+  // Default: true if system >= 1024 tokens (~ 4096 chars) — Claude only
+  // caches above this threshold. Set false to disable explicitly.
+  cacheSystem?: boolean;
 }
 
 export interface LlmCallResult {
@@ -61,19 +67,35 @@ export async function callLlmWithFallback(opts: LlmCallOptions): Promise<LlmCall
     return { text, provider: 'gemini', modelUsed: 'gemini-pro-1.5', durationMs: Date.now() - start };
   }
 
+  // 2026-06-09 — Prompt caching : Anthropic charges 10× LESS on cached
+  // reads of long system prompts. Threshold is ~1024 tokens (4096 chars
+  // ~). We auto-enable above that to cut the Claude bill ~50% on
+  // high-volume agents (Hugo/Jade/Lena send the same multi-KB system
+  // prompt thousands of times per month).
+  const shouldCache = (opts.cacheSystem !== false) && opts.system.length >= 4096;
+  // Use the 'extended' beta header so cache hits cost is reflected
+  // properly. Anthropic returns usage.cache_creation_input_tokens and
+  // usage.cache_read_input_tokens to confirm caching took place.
+  const headers: Record<string, string> = {
+    'x-api-key': ANTHROPIC_KEY,
+    'anthropic-version': '2023-06-01',
+    'content-type': 'application/json',
+  };
+  if (shouldCache) {
+    headers['anthropic-beta'] = 'prompt-caching-2024-07-31';
+  }
+
   // Try Claude first
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: {
-        'x-api-key': ANTHROPIC_KEY,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
+      headers,
       body: JSON.stringify({
         model: claudeModel,
         max_tokens: opts.maxTokens ?? 2000,
-        system: opts.system,
+        system: shouldCache
+          ? [{ type: 'text', text: opts.system, cache_control: { type: 'ephemeral' } }]
+          : opts.system,
         messages: [{ role: 'user', content: opts.message }],
       }),
     });
