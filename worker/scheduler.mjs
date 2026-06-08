@@ -96,6 +96,10 @@ const GLOBAL_SCHEDULE = [
   // Instagram/TikTok (= they didn't like it) and feed the negative
   // signal back into Léna's knowledge so she avoids that pattern.
   { cron: '15 7,12,17,22 * * *', path: '/api/cron/detect-deleted-posts', label: 'Detect Client-Deleted Posts (Léna learning)' },
+  // 2026-06-08 — Every 30min. Polls Brevo for managed-email domain
+  // verification status; flips profiles.managed_email_status from
+  // 'pending_dns' to 'connected' once DKIM is enabled.
+  { cron: '*/30 * * * *', path: '/api/cron/managed-email-verify', label: 'Managed Email Domain Verify' },
 ];
 
 // Agent endpoint mapping (for per-client direct calls)
