@@ -48,7 +48,16 @@ type MotionPreset = 'dolly_steam' | 'parallax' | 'chef_hand' | 'window_light' | 
 // les transitions ok mais justifiees et surtout pertinent". These rules
 // are absolute and apply to every preset.
 const GLOBAL_REEL_RULES = [
-  'ABSOLUTE RULE 1 — ZERO text in the video: no captions, no titles, no labels, no overlays, no signage with text, no logos with readable text, no menu names, no street signs with text, no watermark, no subtitle. Not a single letter. If Seedance feels the urge to add a word, it MUST NOT.',
+  // 2026-06-08 — Founder reinforcement: "0 text c'est 0 sauf si
+  // coherent et dans la langue du client donc vaut mieux eviter le
+  // texte pour eviter les erreur in generation". A reel with Chinese
+  // or Korean characters is a hard failure — clients see it and
+  // immediately know it's AI-generated junk. Banned scripts list is
+  // enumerated explicitly because Seedance was leaking CJK glyphs on
+  // ~3% of generations. The post-generation reel QA also rejects any
+  // detected text in foreign scripts.
+  'ABSOLUTE RULE 1 — ZERO text in the video: no captions, no titles, no labels, no overlays, no signage with text, no logos with readable text, no menu names, no street signs with text, no watermark, no subtitle, no neon sign with letters. Not a single letter, hiragana, hangul, kanji, hanzi, Cyrillic, Arabic, Devanagari, Thai, or ANY script in ANY language. If the venue had a sign in the input image, it must appear blurred or out of focus so no character is readable. If Seedance feels the urge to add a word, it MUST NOT — the entire video is REJECTED.',
+  'ABSOLUTE RULE 1B — Language lock: if (against rule 1) any text leaks in despite the ban, it MUST be in French only when the client is French. Chinese, Japanese, Korean, English-on-a-French-business, or any non-client-language characters = INSTANT REJECT, the video is regenerated. Default is still: NO TEXT AT ALL.',
   // 2026-06-07 — Founder clarification: cuts/transitions are NOT banned
   // outright, only when they break the narrative. A well-justified cut
   // (e.g. matched-on-action close-up of the dish after a wide shot) is
@@ -501,6 +510,7 @@ export async function POST(req: NextRequest) {
           postId,
           visualBrief: body.tiktokCaption || preset.recommendedFor,
           businessType: body.businessType ? String(body.businessType) : undefined,
+          clientLanguage: (body.clientLanguage || body.language || 'fr').toString(),
         });
         console.log(`[lena-dvr] reel QA: ${reelQa.verdict} — ${reelQa.issue || 'ok'}`);
         if (reelQa.verdict === 'hard_fail') {

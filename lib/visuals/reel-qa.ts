@@ -82,6 +82,7 @@ export async function reviewGeneratedReel(input: {
   postId: string;
   visualBrief?: string;        // what the reel was supposed to show
   businessType?: string;
+  clientLanguage?: string;     // 2026-06-08: 'fr' | 'en' | etc — used to flag foreign-script text
 }): Promise<ReelQaVerdict> {
   if (!process.env.ANTHROPIC_API_KEY) return { verdict: 'pass' };
   const tmp = tmpdir();
@@ -113,15 +114,18 @@ export async function reviewGeneratedReel(input: {
     ]);
     if (!u1 || !u2 || !u3) return { verdict: 'pass' };
 
+    const clientLang = (input.clientLanguage || 'fr').toLowerCase();
+    const expectedScript = clientLang === 'fr' || clientLang === 'en' || clientLang === 'es' || clientLang === 'de' || clientLang === 'it' || clientLang === 'pt' ? 'Latin alphabet only' : 'client language script only';
+
     const system = `You are a senior video editor reviewing a generated short-form reel BEFORE it ships to the client's social media. You see 3 keyframes (early / middle / late) from the same reel.
 
 Your single job: catch PHYSICAL or LOGICAL errors that would embarrass the client. NOT aesthetic preferences. Specific things to flag:
 
-HARD FAILS (reel must NOT ship):
+HARD FAILS (reel must NOT ship — ALL of these mean hard_fail):
+- ⚠️ ANY VISIBLE TEXT, CHARACTER, GLYPH OR LETTER ANYWHERE IN THE FRAME. This includes: Chinese / Japanese / Korean / Cyrillic / Arabic / Devanagari / Thai / any non-Latin script when the client speaks ${clientLang}, gibberish words, broken neon signs, AI-hallucinated captions, watermarks, logos with readable text, menu boards. Even ONE foreign character = hard_fail. The brief explicitly required ZERO text. Expected script if any text accidentally appears: ${expectedScript}. Client language: ${clientLang.toUpperCase()}.
 - An action and its effect don't match (scissors cutting empty air, chef stirring an empty pan, brush painting nothing).
 - Body parts in impossible positions (hands with 7 fingers, two left feet, head detached).
 - Subject IDENTITY changes between frames when it shouldn't (different person mid-clip).
-- Critical text/branding visibly broken (gibberish letters where a brand sign should be).
 - Severe motion artefacts: melting faces, morphing furniture, disintegrating tools.
 
 SOFT FAILS (reviewable, may still ship):
@@ -132,6 +136,7 @@ SOFT FAILS (reviewable, may still ship):
 PASS:
 - Physically coherent action.
 - Identity preserved.
+- ZERO visible text in any language.
 - Minor AI quirks but the message lands.
 
 Return STRICT JSON:
@@ -139,7 +144,9 @@ Return STRICT JSON:
   "verdict": "pass" | "soft_fail" | "hard_fail",
   "issue": "<one short sentence describing the worst issue, or empty>",
   "confidence": 0..1,
-  "notes": ["<one note per frame, what you saw>"]
+  "notes": ["<one note per frame, what you saw>"],
+  "has_text": true | false,
+  "text_language": "<detected script if has_text, else 'none'>"
 }
 
 JSON only. No preamble.`;
@@ -172,11 +179,31 @@ JSON only. No preamble.`;
     if (!m) return { verdict: 'pass' };
     const parsed = JSON.parse(m[0]);
 
-    const verdict: 'pass' | 'soft_fail' | 'hard_fail' =
+    let verdict: 'pass' | 'soft_fail' | 'hard_fail' =
       ['pass', 'soft_fail', 'hard_fail'].includes(parsed.verdict) ? parsed.verdict : 'pass';
+    let issue = typeof parsed.issue === 'string' ? parsed.issue.substring(0, 240) : undefined;
+
+    // 2026-06-08 — Defense in depth: even if Sonnet rated this 'pass',
+    // any non-Latin text on a French/EN/ES/DE/IT/PT client = force
+    // hard_fail. Founder rule: "0 text c'est 0 sauf si coherent et
+    // dans la langue du client".
+    const latinLangs = new Set(['fr', 'en', 'es', 'de', 'it', 'pt', 'nl', 'sv', 'da', 'no']);
+    if (parsed.has_text === true && latinLangs.has(clientLang)) {
+      const detectedScript = (parsed.text_language || '').toLowerCase();
+      const foreignScripts = ['chinese', 'japanese', 'korean', 'hanzi', 'kanji', 'hiragana', 'katakana', 'hangul', 'cyrillic', 'arabic', 'devanagari', 'thai', 'hebrew', 'greek'];
+      const isForeignScript = foreignScripts.some((s) => detectedScript.includes(s));
+      // Also fail if text is "gibberish" (which often shows up as random
+      // foreign-looking characters) for a Latin-language client.
+      const isGibberish = /gibberish|broken|garbled|random/.test(detectedScript);
+      if (isForeignScript || isGibberish) {
+        verdict = 'hard_fail';
+        issue = `Foreign-script text detected (${detectedScript}) — reject for ${clientLang.toUpperCase()} client`;
+      }
+    }
+
     return {
       verdict,
-      issue: typeof parsed.issue === 'string' ? parsed.issue.substring(0, 240) : undefined,
+      issue,
       confidence: Number.isFinite(parsed.confidence) ? parsed.confidence : undefined,
       notes: Array.isArray(parsed.notes) ? parsed.notes.slice(0, 4).map((n: any) => String(n).substring(0, 160)) : undefined,
     };

@@ -2093,6 +2093,7 @@ export async function GET(request: NextRequest) {
                 postId: post.id,
                 visualBrief: fullPost.visual_description || fullPost.hook || '',
                 businessType: clientSettings?.business_type || undefined,
+                clientLanguage: (clientSettings as any)?.language || (clientSettings as any)?.brand_language || 'fr',
               });
               if (qa.verdict === 'hard_fail') {
                 console.warn(`[Content] Reel QA HARD FAIL for ${post.id}: ${qa.issue}. Downgrading to still post.`);
