@@ -9,6 +9,7 @@ import { CLIENT_AGENTS } from '@/lib/agents/client-context';
 import UpsellBanner from '@/app/components/UpsellBanner';
 import AgentOrdersHint from './components/AgentOrdersHint';
 import CreditPackModal from '@/components/CreditPackModal';
+import CreditBalanceChip from '@/components/CreditBalanceChip';
 
 const CrmDashboard = dynamic(() => import('./components/CrmDashboard'), { ssr: false });
 const AgentDashboard = dynamic(() => import('./components/AgentDashboard'), { ssr: false });
@@ -2945,13 +2946,7 @@ export default function AgentWorkspacePage() {
               {/* 2026-06-08 — Discoverable list of orders this agent
                   understands. Click an example → pre-fills the chat input. */}
               <div className="mb-2 flex justify-between items-center gap-2">
-                <button
-                  onClick={() => setShowCreditModal(true)}
-                  className="text-[11px] font-medium rounded-full px-2 py-1 border border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/15 transition"
-                  title="Recharger en crédits pour continuer les générations"
-                >
-                  💎 Recharger crédits
-                </button>
+                <CreditBalanceChip onBuyPack={() => { setCreditModalReason('manual'); setShowCreditModal(true); }} />
                 <AgentOrdersHint
                   agentId={params?.id as string || ''}
                   onPickExample={(text) => {

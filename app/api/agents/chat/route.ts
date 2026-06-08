@@ -596,9 +596,18 @@ export async function POST(request: NextRequest) {
 
     const systemPrompt = agentConfig.systemPrompt + activityContext + statsContext + partnerContext + peerInsightsContext + naturalAckGuide;
 
+    // 2026-06-09 — Token budget guard : tronque l'historique au-delà
+    // des 20 derniers messages. Sur conversation longue (>50 msgs),
+    // ça économise 50-70% des tokens input sans dégrader la qualité
+    // perceptible (un agent n'a besoin que du contexte récent).
+    // Le SYSTEM PROMPT garde l'intégralité du contexte (cached prompt).
+    const trimmedHistory = Array.isArray(history) && history.length > 20
+      ? history.slice(-20)
+      : history;
+
     let reply = await callGeminiChat({
       system: systemPrompt,
-      history: history.map((h: any) => ({
+      history: (trimmedHistory || []).map((h: any) => ({
         role: h.role as 'user' | 'assistant',
         content: h.content,
       })),

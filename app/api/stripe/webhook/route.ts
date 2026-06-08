@@ -344,6 +344,41 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
           type: 'pack',
           userId: profileId,
         });
+
+        // 2026-06-09 — Email confirmation au CLIENT (Brevo) — accusé
+        // discret + tips d'usage. Pas de pression à dépenser, juste
+        // valider que les crédits sont arrivés + suggérer 1 idée.
+        try {
+          if (packEmail && process.env.BREVO_API_KEY) {
+            const packLabel = planKey.replace('pack_', '').replace(/^./, (c: string) => c.toUpperCase());
+            const tip = credits >= 200
+              ? `Tu peux générer ~${Math.floor(credits / 35)} vidéos TikTok supp ou ${Math.floor(credits / 3)} images en plus ce mois-ci.`
+              : credits >= 100
+                ? `Tu peux générer ~${Math.floor(credits / 35)} reels ou ${Math.floor(credits / 3)} images.`
+                : `Tu peux générer ~${Math.floor(credits / 3)} images ou ~${credits} emails de plus.`;
+            await fetch('https://api.brevo.com/v3/smtp/email', {
+              method: 'POST',
+              headers: { 'accept': 'application/json', 'content-type': 'application/json', 'api-key': process.env.BREVO_API_KEY },
+              body: JSON.stringify({
+                sender: { name: 'KeiroAI', email: 'contact@keiroai.com' },
+                to: [{ email: packEmail }],
+                subject: `✨ +${credits} crédits ajoutés à ton compte`,
+                htmlContent: `<div style="font-family:system-ui,-apple-system,sans-serif;max-width:560px;margin:24px auto;color:#0f172a">
+                  <h2 style="color:#0c1a3a;margin:0 0 8px 0">Merci ! 🎉</h2>
+                  <p style="color:#475569;margin:0 0 14px 0;font-size:14px">Ton pack <strong>${packLabel}</strong> est actif. <strong>+${credits} crédits</strong> sont disponibles dans ton compte KeiroAI à l'instant.</p>
+                  <div style="background:#f1f5f9;border-radius:8px;padding:14px;margin:14px 0">
+                    <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Avec ces crédits</div>
+                    <div style="font-size:14px;color:#0f172a">${tip}</div>
+                  </div>
+                  <a href="https://keiroai.com/assistant" style="display:inline-block;background:#0c1a3a;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px">Continuer mes générations →</a>
+                  <p style="margin-top:18px;color:#94a3b8;font-size:11px">Une question ? Réponds à cet email, on lit tout.</p>
+                </div>`,
+              }),
+            });
+          }
+        } catch (mailErr: any) {
+          console.warn('[Webhook] client pack confirmation mail failed:', mailErr?.message);
+        }
       }
     } else {
       // Fallback: identifier par montant (ancien payment link)
