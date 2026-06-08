@@ -92,6 +92,10 @@ const GLOBAL_SCHEDULE = [
   // directive failures (client chat orders no agent could honor) into
   // ONE email to admin. Emails ONLY if there are failures.
   { cron: '30 6 * * *',   path: '/api/cron/directive-failures-digest', label: 'Directive Failures Daily Digest' },
+  // 2026-06-08 — 4× per day. Detect posts the client deleted on
+  // Instagram/TikTok (= they didn't like it) and feed the negative
+  // signal back into Léna's knowledge so she avoids that pattern.
+  { cron: '15 7,12,17,22 * * *', path: '/api/cron/detect-deleted-posts', label: 'Detect Client-Deleted Posts (Léna learning)' },
 ];
 
 // Agent endpoint mapping (for per-client direct calls)
