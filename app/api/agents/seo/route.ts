@@ -403,11 +403,22 @@ PERFORMANCE GLOBALE : ${gscReport.summary.totalClicks} clics, ${gscReport.summar
       console.warn('[SEOAgent] GSC data unavailable:', gscError.message);
     }
 
-    // 2026-06-08 — SEO typed directives
+    // 2026-06-08 — SEO typed directives. generateArticle() is called
+    // from many sites without a clientUserId; we look it up via orgId
+    // if available, else fall back to admin-scope directives.
     let seoDirectives = '';
     try {
+      let resolvedUserId: string | null = null;
+      if (orgId) {
+        const { data: org } = await supabase
+          .from('organizations')
+          .select('owner_user_id')
+          .eq('id', orgId)
+          .maybeSingle();
+        resolvedUserId = (org as any)?.owner_user_id || null;
+      }
       const { directiveBlockFor } = await import('@/lib/agents/typed-directives');
-      seoDirectives = await directiveBlockFor(supabase, clientUserId, 'seo');
+      seoDirectives = await directiveBlockFor(supabase, resolvedUserId, 'seo');
     } catch { /* best-effort */ }
 
     // Call Gemini 2.0 Flash with elite prompt + CRM data
