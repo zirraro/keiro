@@ -72,10 +72,12 @@ interface AnomalyRow {
   title: string;
   detail: string;
   user_id: string | null;
+  client_email?: string | null;
   first_seen: string;
   last_seen: string;
   count_in_window: number;
   resolved_at: string | null;
+  resolution_reason: string | null;
 }
 
 const AGENT_LABELS: Record<string, { name: string; emoji: string; mission: string }> = {
@@ -259,7 +261,12 @@ export default function AgentSupervisionPage() {
 
         {/* ─── TAB: Anomalies ─── */}
         {tab === 'anomalies' && (
-          <AnomaliesTab anomalies={anomalies} />
+          <AnomaliesTab
+            anomalies={anomalies}
+            agentId={agentId}
+            audits={audits}
+            onRunAudit={runAudit}
+          />
         )}
 
         {/* ─── TAB: Audits archive ─── */}
@@ -435,9 +442,29 @@ function ClientsTab({ data, audits, agentId, busy, auditing, onPilot, onAudit, o
   );
 }
 
-function AnomaliesTab({ anomalies }: { anomalies: AnomalyRow[] }) {
+function AnomaliesTab({ anomalies, agentId, audits, onRunAudit }: { anomalies: AnomalyRow[]; agentId: string; audits: Audit[]; onRunAudit: (userId: string) => void }) {
   const open = anomalies.filter(a => !a.resolved_at);
   const resolved = anomalies.filter(a => a.resolved_at);
+
+  // Index audits per user_id pour montrer ce qui a déjà été fait
+  const auditByUser: Record<string, Audit> = {};
+  for (const a of audits) {
+    if (!a.user_id) continue;
+    if (!auditByUser[a.user_id] || new Date(a.created_at) > new Date(auditByUser[a.user_id].created_at)) {
+      auditByUser[a.user_id] = a;
+    }
+  }
+
+  const resolveAnomaly = async (id: string, reason: string) => {
+    await fetch('/api/admin/agents/anomalies', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'resolve', id, reason }),
+    });
+    window.location.reload();
+  };
+
   return (
     <div className="space-y-4">
       <Card title={`🚨 Anomalies ouvertes (${open.length})`}>
@@ -446,14 +473,39 @@ function AnomaliesTab({ anomalies }: { anomalies: AnomalyRow[] }) {
             {open.map(a => {
               const ageH = (Date.now() - new Date(a.first_seen).getTime()) / 3600000;
               const slaBreach = ageH > 12;
+              const lastAudit = a.user_id ? auditByUser[a.user_id] : null;
               return (
                 <li key={a.id} className={`rounded-lg border px-3 py-2 ${slaBreach ? 'border-red-500/40 bg-red-500/10' : a.severity === 'P0' ? 'border-red-500/30 bg-red-500/5' : a.severity === 'P1' ? 'border-amber-500/30 bg-amber-500/5' : 'border-white/10 bg-white/[0.02]'}`}>
-                  <div className="flex justify-between gap-2 mb-1 text-[10px]">
-                    <span className="font-bold">{a.severity} · {a.kind}</span>
-                    <span className={slaBreach ? 'text-red-300 font-bold' : 'text-white/40'}>{slaBreach && '⏰ SLA breach · '}{Math.round(ageH)}h</span>
+                  <div className="flex justify-between gap-2 mb-1 text-[10px] flex-wrap">
+                    <span className="font-bold">{a.severity} · {a.kind}{a.client_email && <span className="text-white/50 ml-2">@ {a.client_email}</span>}</span>
+                    <span className={slaBreach ? 'text-red-300 font-bold' : 'text-white/40'}>{slaBreach && '⏰ SLA breach · '}{Math.round(ageH)}h · ×{a.count_in_window}</span>
                   </div>
                   <p className="text-xs text-white/90">{a.title}</p>
                   <p className="text-[10px] text-white/50 mt-1">{a.detail}</p>
+
+                  {/* Traçabilité : qu'est-ce qui a été tenté ? */}
+                  {lastAudit && (
+                    <div className="mt-2 p-2 rounded bg-white/[0.04] border border-white/10">
+                      <div className="text-[10px] uppercase tracking-wider text-white/40 mb-0.5">Dernière action superviseur</div>
+                      <div className="text-[10px] text-white/70">
+                        Audit {lastAudit.severity.toUpperCase()} · {formatRelative(lastAudit.created_at)} · statut <strong>{lastAudit.status}</strong>
+                        {lastAudit.resolution_kind && <> · résolution <em>{lastAudit.resolution_kind}</em></>}
+                        {lastAudit.knowledge_id && <span className="text-cyan-300 ml-1">🧠 mutualisé</span>}
+                      </div>
+                      {lastAudit.resolution_note && <div className="text-[10px] text-white/60 italic mt-0.5">"{lastAudit.resolution_note}"</div>}
+                    </div>
+                  )}
+
+                  {/* Actions superviseur */}
+                  <div className="mt-2 flex gap-1.5 flex-wrap">
+                    {a.user_id && (
+                      <button onClick={() => onRunAudit(a.user_id!)} className="px-2 py-1 text-[10px] rounded bg-purple-600 hover:bg-purple-700 text-white">🔍 Audit</button>
+                    )}
+                    {a.user_id && (
+                      <a href={`/admin/agents/control/${agentId}/${a.user_id}`} className="px-2 py-1 text-[10px] rounded bg-cyan-600 hover:bg-cyan-700 text-white">→ Voir client</a>
+                    )}
+                    <button onClick={() => { const r = window.prompt('Raison de résolution :', 'manual_resolved_by_admin'); if (r) resolveAnomaly(a.id, r); }} className="px-2 py-1 text-[10px] rounded bg-emerald-600 hover:bg-emerald-700 text-white">✓ Marquer résolu</button>
+                  </div>
                 </li>
               );
             })}
@@ -462,11 +514,16 @@ function AnomaliesTab({ anomalies }: { anomalies: AnomalyRow[] }) {
       </Card>
       <Card title={`✅ Anomalies résolues récemment (${resolved.length})`}>
         {resolved.length === 0 ? <p className="text-xs text-white/40">—</p> : (
-          <ul className="space-y-1 max-h-72 overflow-y-auto">
+          <ul className="space-y-1.5 max-h-96 overflow-y-auto">
             {resolved.slice(0, 30).map(a => (
-              <li key={a.id} className="text-[11px] text-white/60 flex justify-between gap-2 px-2 py-1 border-b border-white/5">
-                <span className="truncate">{a.title}</span>
-                <span className="text-white/40 whitespace-nowrap">{formatRelative(a.resolved_at!)}</span>
+              <li key={a.id} className="text-[11px] px-2 py-1.5 border-b border-white/5">
+                <div className="flex justify-between gap-2 mb-0.5">
+                  <span className="text-white/80 truncate font-medium">{a.title}</span>
+                  <span className="text-white/40 whitespace-nowrap">{formatRelative(a.resolved_at!)}</span>
+                </div>
+                {a.resolution_reason && (
+                  <div className="text-[10px] text-emerald-300/80">→ {a.resolution_reason}</div>
+                )}
               </li>
             ))}
           </ul>

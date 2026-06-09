@@ -854,6 +854,11 @@ export function ContentPanel({ data, agentName, gradientFrom, gradientTo }: Pane
             );
           })}
         </div>
+        {/* 2026-06-09 — Toggle "Valider chaque publication" déplacé ici
+            dans la section planning Léna (était sur le dashboard). */}
+        <div className="mt-3 pt-3 border-t border-purple-500/20">
+          <ValidatePublicationsToggle />
+        </div>
       </div>
       {weeklyToast && (
         <div className={`mb-3 px-3 py-2 rounded-lg text-xs ${weeklyToast.kind === 'ok' ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300' : 'bg-rose-500/10 border border-rose-500/30 text-rose-300'}`}>
@@ -861,12 +866,17 @@ export function ContentPanel({ data, agentName, gradientFrom, gradientTo }: Pane
         </div>
       )}
 
-      {/* 2026-06-09 — Slider mix image/vidéo. Le client pose son curseur,
-          Léna recalcule la cadence + le coût + la marge en direct. */}
+      {/* 2026-06-09 — Slider mix image/vidéo COMPACT (juste les chiffres
+          + crédits restants + upsell pack si quota faible). */}
       <div className="mb-3">
         <CadenceMixSlider
           plan={((data as any).clientPlan || 'createur').toLowerCase()}
           initialRatio={((data as any).contentVideoRatio as number) || 40}
+          onBuyPack={() => {
+            // Le parent (agent/[id]/page.tsx) écoute cet event et ouvre
+            // le CreditPackModal avec reason='quota_exhausted'.
+            window.dispatchEvent(new CustomEvent('keiro:openCreditModal', { detail: { reason: 'quota_exhausted', source: 'content_mix_slider' } }));
+          }}
           onApply={async (ratio) => {
             try {
               const res = await fetch('/api/agents/content', {
@@ -889,13 +899,8 @@ export function ContentPanel({ data, agentName, gradientFrom, gradientTo }: Pane
         />
       </div>
 
-      {/* 2026-06-06 — Founder ask: planning toggle "Valider les publications".
-          When ON (default), client validates each post manually (Meta-compliant
-          framing). When OFF, Léna auto-publishes — our actual product value.
-          The flag lives in org_agent_configs.config.auto_publish; the cron
-          skips publishing when auto_publish === false and the post stays
-          pending_approval in the planning so the client can publish manually. */}
-      <ValidatePublicationsToggle />
+      {/* ValidatePublicationsToggle déplacé dans la card "Planning à
+          l'avance" — section planning de Léna (founder ask 2026-06-09). */}
 
       {/* Network selector — always visible, single source of truth for the
           rest of the panel. Connected networks have a green dot; not-yet

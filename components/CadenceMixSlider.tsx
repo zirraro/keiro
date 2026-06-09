@@ -3,91 +3,89 @@
 import { useEffect, useState } from 'react';
 
 /**
- * Cadence mix slider — le client positionne son curseur entre 0% (full
- * images) et 100% (full vidéos). Affiche en LIVE la cadence résultante
- * + le coût estimé + la marge.
+ * Cadence mix slider — VUE CLIENT COMPACTE.
  *
- * Founder rule 2026-06-09 : "que le client mange ses crédits — il pose
- * son curseur où il veut, nous on s'adapte avec validation".
+ * Founder rules 2026-06-09 :
+ *   - "Prend trop de place" → version compacte 1-2 lignes max
+ *   - "On donne pas le detail recycle ou pas" → juste les chiffres
+ *   - "Sans les couts sans les marges" → admin-only, retiré ici
+ *   - "Le client suit le decompte de ses credits"
+ *   - "Si quota atteint, propose upsell credits"
  *
- * Usage :
- *   <CadenceMixSlider plan="createur" onApply={(ratio) => ...} />
+ * Le composant fetch :
+ *   1. /api/agents/content/cadence-preview pour les chiffres du mix
+ *   2. /api/credits/balance pour les crédits restants
  *
- * Le `onApply` reçoit le ratio choisi pour que le parent puisse le
- * persister dans la config Léna (org_agent_configs.config.video_ratio).
+ * Si crédits < 10% → bandeau upsell pack.
  */
 
 interface Cadence {
   ig_posts_per_week: number;
-  ig_posts_per_day: number;
   ig_reels_per_week: number;
   tt_videos_per_week: number;
-  tt_videos_per_day: number;
-  tt_photos_per_day: number;
-  stories_per_day: number;
   linkedin_per_week: number;
 }
 
 interface Preview {
   ok: boolean;
-  plan: string;
-  video_ratio: number;
-  monthly_budget_eur: number;
-  fixed_costs_eur: number;
-  gen_budget_eur: number;
   cadence: Cadence;
-  estimated_cost_per_month_eur: number;
-  margin_pct: number;
-  warnings: string[];
+}
+
+interface CreditBalance {
+  balance: number;
+  monthlyAllowance: number;
 }
 
 interface Props {
-  plan: 'createur' | 'pro' | 'business' | 'elite' | 'agence' | 'fondateurs' | string;
+  plan: string;
   initialRatio?: number;
-  onApply?: (ratio: number, preview: Preview) => void;
-  /** If false, hides the "Appliquer" button — useful for read-only preview */
-  showApply?: boolean;
+  onApply?: (ratio: number) => void;
+  onBuyPack?: () => void;
 }
 
-export default function CadenceMixSlider({ plan, initialRatio = 40, onApply, showApply = true }: Props) {
+export default function CadenceMixSlider({ plan, initialRatio = 40, onApply, onBuyPack }: Props) {
   const [ratio, setRatio] = useState(initialRatio);
-  const [preview, setPreview] = useState<Preview | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [cadence, setCadence] = useState<Cadence | null>(null);
+  const [credits, setCredits] = useState<CreditBalance | null>(null);
+  const [applying, setApplying] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
     fetch(`/api/agents/content/cadence-preview?plan=${plan}&video_ratio=${ratio}`)
       .then(r => r.json())
-      .then((j: Preview) => { if (!cancelled) setPreview(j); })
-      .catch(() => {})
-      .finally(() => { if (!cancelled) setLoading(false); });
+      .then((j: Preview) => { if (!cancelled && j.ok) setCadence(j.cadence); })
+      .catch(() => {});
     return () => { cancelled = true; };
   }, [plan, ratio]);
 
-  const marginColor = preview?.margin_pct == null ? 'text-white/50'
-    : preview.margin_pct >= 80 ? 'text-emerald-400'
-    : preview.margin_pct >= 70 ? 'text-amber-400'
-    : 'text-red-400';
+  useEffect(() => {
+    fetch('/api/credits/balance', { credentials: 'include' })
+      .then(r => r.json())
+      .then((j: any) => {
+        if (typeof j?.balance === 'number') {
+          setCredits({ balance: j.balance, monthlyAllowance: j.monthlyAllowance || j.balance });
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const pctRemaining = credits && credits.monthlyAllowance > 0
+    ? Math.round((credits.balance / credits.monthlyAllowance) * 100)
+    : 100;
+  const lowCredits = pctRemaining < 15;
+
+  const handleApply = async () => {
+    if (!onApply) return;
+    setApplying(true);
+    try { await onApply(ratio); } finally { setApplying(false); }
+  };
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
-      <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-        <div>
-          <h3 className="text-sm font-bold text-white">⚖️ Ton mix contenu</h3>
-          <p className="text-[11px] text-white/50">Positionne le curseur — on s'adapte pour rester dans ton budget plan {plan}.</p>
-        </div>
-        {preview && (
-          <div className="text-right">
-            <div className="text-[10px] uppercase tracking-wider text-white/40">Marge estimée</div>
-            <div className={`text-lg font-bold ${marginColor}`}>{preview.margin_pct}%</div>
-          </div>
-        )}
-      </div>
-
-      <div className="mb-4">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-[11px] text-white/60">100% Images</span>
+    <div className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2.5">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        {/* Mix label + slider */}
+        <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+          <span className="text-[11px] text-white/60 whitespace-nowrap">⚖️ Mix</span>
           <input
             type="range"
             min={0}
@@ -95,82 +93,52 @@ export default function CadenceMixSlider({ plan, initialRatio = 40, onApply, sho
             step={5}
             value={ratio}
             onChange={(e) => setRatio(parseInt(e.target.value, 10))}
-            className="flex-1 accent-cyan-500"
+            className="flex-1 accent-cyan-500 max-w-[180px]"
           />
-          <span className="text-[11px] text-white/60">100% Vidéos</span>
+          <span className="text-[11px] font-bold text-cyan-400 whitespace-nowrap min-w-[55px]">{ratio}% vidéo</span>
         </div>
-        <div className="flex justify-between text-[10px] text-white/40">
-          <span>0%</span>
-          <span className="font-bold text-cyan-400">{ratio}% vidéo</span>
-          <span>100%</span>
+
+        {/* Cadence quick view — par réseau, juste les chiffres */}
+        {cadence && (
+          <div className="flex items-center gap-2 text-[11px] flex-wrap">
+            <span className="text-white/70">📷 <strong>{cadence.ig_posts_per_week}</strong>/sem IG</span>
+            {cadence.ig_reels_per_week > 0 && <span className="text-white/70">🎬 <strong>{cadence.ig_reels_per_week}</strong>/sem reel</span>}
+            <span className="text-white/70">🎥 <strong>{cadence.tt_videos_per_week}</strong>/sem TT</span>
+            {cadence.linkedin_per_week > 0 && <span className="text-white/70">💼 <strong>{cadence.linkedin_per_week}</strong>/sem LI</span>}
+          </div>
+        )}
+
+        {/* Crédits restants + bouton apply */}
+        <div className="flex items-center gap-2">
+          {credits && (
+            <div
+              className={`text-[10px] px-2 py-1 rounded-full border ${
+                lowCredits
+                  ? 'border-amber-500/40 bg-amber-500/10 text-amber-300'
+                  : 'border-white/10 bg-white/5 text-white/60'
+              }`}
+              title={`${credits.balance} crédits restants sur ${credits.monthlyAllowance}`}
+            >
+              {credits.balance} cr
+            </div>
+          )}
+          <button
+            onClick={handleApply}
+            disabled={applying}
+            className="px-3 py-1 rounded-lg bg-gradient-to-r from-cyan-500 to-cyan-400 text-[#0c1a3a] text-[11px] font-bold hover:opacity-90 transition disabled:opacity-40"
+          >
+            {applying ? '...' : 'Appliquer'}
+          </button>
         </div>
       </div>
 
-      {loading && !preview && (
-        <div className="text-xs text-white/40">Calcul en cours...</div>
+      {/* Upsell quand crédits faibles */}
+      {lowCredits && onBuyPack && (
+        <div className="mt-2 flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30">
+          <span className="text-[11px] text-amber-300">⚡ Quota faible ({pctRemaining}% restants)</span>
+          <button onClick={onBuyPack} className="text-[10px] font-bold px-2 py-1 rounded bg-amber-500 text-[#0c1a3a] hover:opacity-90">💎 Booster</button>
+        </div>
       )}
-
-      {preview && (
-        <>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
-            <KpiTile label="📷 IG posts" main={`${preview.cadence.ig_posts_per_day}/jour`} sub={`${preview.cadence.ig_posts_per_week}/sem`} />
-            <KpiTile label="🎬 IG reels" main={`${preview.cadence.ig_reels_per_week}/sem`} sub="" />
-            <KpiTile label="🎥 TT vidéos" main={`${preview.cadence.tt_videos_per_week}/sem`} sub={preview.cadence.tt_videos_per_day >= 1 ? `~${preview.cadence.tt_videos_per_day}/jour` : ''} />
-            <KpiTile label="🖼 TT Photo Mode" main={`${preview.cadence.tt_photos_per_day}/jour`} sub="recycle (gratuit)" />
-            <KpiTile label="📌 Stories" main={`${preview.cadence.stories_per_day}/jour`} sub="recycle + teaser" />
-            <KpiTile label="💼 LinkedIn" main={`${preview.cadence.linkedin_per_week}/sem`} sub={preview.cadence.linkedin_per_week === 0 ? 'plan supérieur' : ''} />
-          </div>
-
-          <div className="rounded-lg border border-white/10 bg-white/[0.01] p-3 mb-3">
-            <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
-              <div>
-                <div className="text-white/40 uppercase">Budget plan</div>
-                <div className="text-sm font-bold text-white">{preview.monthly_budget_eur}€/mois</div>
-              </div>
-              <div>
-                <div className="text-white/40 uppercase">Coût estimé</div>
-                <div className={`text-sm font-bold ${preview.estimated_cost_per_month_eur > preview.monthly_budget_eur ? 'text-red-400' : 'text-emerald-400'}`}>
-                  {preview.estimated_cost_per_month_eur}€
-                </div>
-              </div>
-              <div>
-                <div className="text-white/40 uppercase">Marge</div>
-                <div className={`text-sm font-bold ${marginColor}`}>{preview.margin_pct}%</div>
-              </div>
-            </div>
-          </div>
-
-          {preview.warnings.length > 0 && (
-            <ul className="space-y-1 mb-3">
-              {preview.warnings.map((w, i) => (
-                <li key={i} className="text-[10px] text-amber-300 flex items-start gap-1">
-                  <span>⚠️</span><span>{w}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {showApply && onApply && (
-            <button
-              onClick={() => onApply(ratio, preview)}
-              disabled={preview.warnings.some(w => w.includes('dépasse'))}
-              className="w-full py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-cyan-400 text-[#0c1a3a] text-sm font-bold hover:opacity-90 transition disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              Appliquer ce mix
-            </button>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
-function KpiTile({ label, main, sub }: { label: string; main: string; sub: string }) {
-  return (
-    <div className="rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2">
-      <div className="text-[10px] uppercase tracking-wider text-white/40">{label}</div>
-      <div className="text-sm font-bold text-white mt-0.5">{main}</div>
-      {sub && <div className="text-[10px] text-white/40 mt-0.5">{sub}</div>}
     </div>
   );
 }

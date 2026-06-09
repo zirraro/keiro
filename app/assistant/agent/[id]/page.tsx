@@ -1373,6 +1373,18 @@ export default function AgentWorkspacePage() {
   const [creditModalReason, setCreditModalReason] = useState<'budget_red' | 'quota_exhausted' | 'manual'>('manual');
   const [isLoading, setIsLoading] = useState(false);
 
+  // 2026-06-09 — Listen for credit modal open events from child components
+  // (e.g. CadenceMixSlider quand le quota est faible).
+  useEffect(() => {
+    const onOpen = (e: any) => {
+      const reason = e?.detail?.reason || 'manual';
+      setCreditModalReason(reason);
+      setShowCreditModal(true);
+    };
+    window.addEventListener('keiro:openCreditModal', onOpen as any);
+    return () => window.removeEventListener('keiro:openCreditModal', onOpen as any);
+  }, []);
+
   // Files
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [uploading, setUploading] = useState(false);
