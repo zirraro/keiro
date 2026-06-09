@@ -153,10 +153,10 @@ function computeCadence(plan: string, videoRatio: number, opts: ComputeOpts = {}
   // nombre. On garde des sanity caps anti-spam (~ratio max réaliste).
   //
   // Hard sanity caps (anti-spam, pas margin) :
-  //   TT vidéos    : max 2/jour soit 14/sem (algo anti-spam IG/TT)
+  //   TT vidéos    : max ~1.5/jour soit 10/sem (algo TT tolère plus)
   //   IG reels     : max 1/jour soit 7/sem
-  //   IG posts     : max 3/jour soit 21/sem
-  //   LinkedIn     : max 2/jour soit 14/sem
+  //   IG posts     : max 2/jour soit 14/sem (au-delà = sature feed)
+  //   LinkedIn     : max 1/jour soit 7/sem (algo LI pénalise spam pro)
 
   // Vidéos uniquement vers les réseaux actifs (TT prioritaire si actif)
   let ttVideosMonth = 0;
@@ -190,10 +190,10 @@ function computeCadence(plan: string, videoRatio: number, opts: ComputeOpts = {}
   }
 
   // Budget-driven counts (no plan cap, sanity cap only)
-  const SANITY_TT_VIDS_PER_WEEK = 14;
+  const SANITY_TT_VIDS_PER_WEEK = 10;
   const SANITY_IG_REELS_PER_WEEK = 7;
-  const SANITY_IG_POSTS_PER_WEEK = 21;
-  const SANITY_LI_PER_WEEK = 14;
+  const SANITY_IG_POSTS_PER_WEEK = 14;
+  const SANITY_LI_PER_WEEK = 7;
 
   const ttVideosPerWeek = ttActive ? Math.min(SANITY_TT_VIDS_PER_WEEK, Math.round(ttVideosMonth / 4.33)) : 0;
   const igReelsPerWeek  = igActive ? Math.min(SANITY_IG_REELS_PER_WEEK, Math.round(igReelsMonth / 4.33)) : 0;
