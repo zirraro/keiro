@@ -173,26 +173,36 @@ function computeCadence(plan: string, videoRatio: number, opts: ComputeOpts = {}
   //   - IG reels kick in seulement après 50% video_ratio
   //   - Stories = cap.stories_X × 7 (recycle gratuit, quotidien)
 
-  const ratioForTT = Math.min(1, videoRatio / 50);            // max TT vids dès 50%
-  const ratioForIGReel = Math.max(0, (videoRatio - 50) / 50); // IG reels à partir de 50%
+  // 2026-06-09 v4 — Mix vraiment évolutif (founder spec) :
+  //   50% = base 7 IG image + 7 TT photo + 3 TT reel + stories quotidiennes
+  //   <50% = boost images (plus d'IG posts/jour + TT photos/jour)
+  //   >50% = boost reels (TT vids + IG reels) + images diminuent
+  //   stories restent constantes sur toute la range (recycle gratuit)
+  const imageBoostUp = Math.max(0, (50 - videoRatio) / 50);   // 1 à 0%, 0 à 50%+
+  const imageBoostDown = Math.max(0, (videoRatio - 50) / 50); // 0 à 0-50%, 1 à 100%
+  const videoBoostUp = Math.max(0, (videoRatio - 50) / 50);   // 0 à 0-50%, 1 à 100%
 
-  // TT : quota total = cap.tt × 7, dont vidéos = ratio × cap.tt_videos
-  const ttVideosPerWeek = ttActive ? Math.round(cap.tt_videos_per_week * ratioForTT) : 0;
+  // Images : 50% = base (cap × 7), 0% = ×2 base, 100% = 0
+  const imageMultiplier = 1 + imageBoostUp - imageBoostDown;
+  const baseIgWeekly = cap.ig * 7;
+  const baseTtPhotosWeekly = 7;  // TT Photo Mode 1/jour recycle (gratuit) baseline
 
-  // IG reels seulement au-dessus 50% (avant TT capture tout)
-  const igReelsPerWeek = igActive ? Math.round(cap.ig_reels_per_week * ratioForIGReel) : 0;
+  const igPostsPerWeek = igActive ? Math.max(0, Math.round(baseIgWeekly * imageMultiplier)) : 0;
+  const ttPhotosWeekly = ttActive ? Math.max(0, Math.round(baseTtPhotosWeekly * imageMultiplier)) : 0;
 
-  // IG posts = quota IG total moins reels (le total publi/jour reste constant)
-  const igTotalWeekly = cap.ig * 7;
-  const igPostsPerWeek = igActive ? Math.max(0, igTotalWeekly - igReelsPerWeek) : 0;
+  // Vidéos : 0% = 0, 50% = max plan cap (3 Créateur), 100% = max + 50% boost
+  const videoMultiplier = Math.min(1, videoRatio / 50) + videoBoostUp * 0.5;
+  const ttVideosPerWeek = ttActive ? Math.round(cap.tt_videos_per_week * videoMultiplier) : 0;
+  const igReelsPerWeek = igActive ? Math.round(cap.ig_reels_per_week * videoBoostUp * 2) : 0;
 
-  // LinkedIn cap.li × 7 si actif
+  // LinkedIn cap.li × 7 si actif (non affecté par mix image/video)
   const liPerWeek = liActive ? cap.li * 7 : 0;
 
   // Compteurs mensuels (informational)
   const ttVideosMonth = ttVideosPerWeek * 4.33;
   const igReelsMonth = igReelsPerWeek * 4.33;
   const igImagesMonth = igPostsPerWeek * 4.33;
+  const ttPhotosMonth = ttPhotosWeekly * 4.33;
   const liImagesMonth = liPerWeek * 4.33;
   const liAllowed = liActive;
 
@@ -201,12 +211,17 @@ function computeCadence(plan: string, videoRatio: number, opts: ComputeOpts = {}
   const ttVideosPerDay  = +(ttVideosPerWeek / 7).toFixed(1);
   const storiesPerDay   = Math.max(cap.stories_ig, cap.stories_tt); // 1 IG + 1 TT in Créateur
 
-  // Estimated true monthly cost based on capped counts
+  // Estimated true monthly cost based on capped counts.
+  // TT Photo Mode : 7/sem baseline gratuit (recycle library). Au-delà
+  // de 7/sem (boost image extrême), les TT photos additionnels sont
+  // de la nouvelle génération = coût image.
+  const ttPhotosNewWeekly = Math.max(0, ttPhotosWeekly - 7);
   const estCost =
     fixedCosts +
     ttVideosPerWeek * 4.33 * COST.video_clip_5s +
     igReelsPerWeek  * 4.33 * COST.video_clip_5s +
     igPostsPerWeek  * 4.33 * COST.image_seedream +
+    ttPhotosNewWeekly * 4.33 * COST.image_seedream +
     liPerWeek       * 4.33 * COST.image_seedream;
 
   const margin = revenue > 0 ? Math.round(((revenue - estCost) / revenue) * 100) : 0;
@@ -234,10 +249,11 @@ function computeCadence(plan: string, videoRatio: number, opts: ComputeOpts = {}
   };
   const creditsPerVideo = creditsPerVideoByPlan[plan] ?? CREDIT_COSTS.video_5s;
   const creditsConsumed = Math.round(
-    igPostsPerWeek  * 4.33 * creditsPerImage +
-    igReelsPerWeek  * 4.33 * creditsPerVideo +
-    ttVideosPerWeek * 4.33 * creditsPerVideo +
-    liPerWeek       * 4.33 * creditsPerImage
+    igPostsPerWeek    * 4.33 * creditsPerImage +
+    igReelsPerWeek    * 4.33 * creditsPerVideo +
+    ttVideosPerWeek   * 4.33 * creditsPerVideo +
+    ttPhotosNewWeekly * 4.33 * creditsPerImage +
+    liPerWeek         * 4.33 * creditsPerImage
   );
   const planCredits = PLAN_CREDITS[plan] ?? 0;
   const creditsPct = planCredits > 0 ? Math.round((creditsConsumed / planCredits) * 100) : 0;
@@ -328,7 +344,7 @@ function computeCadence(plan: string, videoRatio: number, opts: ComputeOpts = {}
       ig_reels_per_week: igReelsPerWeek,
       tt_videos_per_week: ttVideosPerWeek,
       tt_videos_per_day: ttVideosPerDay,
-      tt_photos_per_day: cap.stories_tt,
+      tt_photos_per_day: +(ttPhotosWeekly / 7).toFixed(1),
       stories_per_day: storiesPerDay,
       linkedin_per_week: liPerWeek,
     },
