@@ -27,6 +27,31 @@ interface LiveCosts {
   margin_pct: number | null;
 }
 
+function computeAlerts(data: LiveCosts): { level: 'critical' | 'warning' | 'info'; message: string }[] {
+  const alerts: { level: 'critical' | 'warning' | 'info'; message: string }[] = [];
+  if (data.margin_pct !== null) {
+    if (data.margin_pct < 60) alerts.push({ level: 'critical', message: `🚨 Marge ${data.margin_pct}% — sous le seuil critique 60%` });
+    else if (data.margin_pct < 70) alerts.push({ level: 'warning', message: `⚠️ Marge ${data.margin_pct}% — sous l'objectif 70%` });
+    else if (data.margin_pct < 80) alerts.push({ level: 'info', message: `ℹ️ Marge ${data.margin_pct}% — légèrement sous la cible 80%` });
+  }
+  if (data.projection && data.monthly_revenue_estimate > 0) {
+    if (data.projection.end_of_month_eur > data.monthly_revenue_estimate) {
+      alerts.push({ level: 'critical', message: `🚨 Projection ${data.projection.end_of_month_eur.toFixed(0)}€ DÉPASSE revenu ${data.monthly_revenue_estimate}€` });
+    } else if (data.projection.end_of_month_eur > data.monthly_revenue_estimate * 0.7) {
+      alerts.push({ level: 'warning', message: `⚠️ Projection ${data.projection.end_of_month_eur.toFixed(0)}€ proche du revenu ${data.monthly_revenue_estimate}€` });
+    }
+  }
+  // Spike detection : si top client > 30% du total
+  if (data.top_clients.length > 0 && data.totals.eur > 0) {
+    const topClient = data.top_clients[0];
+    const topShare = (topClient.eur / data.totals.eur) * 100;
+    if (topShare > 30) {
+      alerts.push({ level: 'warning', message: `⚡ Top client (${topClient.email}) consomme ${topShare.toFixed(0)}% du total` });
+    }
+  }
+  return alerts;
+}
+
 const PROVIDER_COLORS: Record<string, string> = {
   anthropic: 'bg-amber-500',
   gemini: 'bg-blue-500',
@@ -99,6 +124,28 @@ export default function LiveCostsPage() {
             ))}
           </div>
         </div>
+
+        {/* Alerts section */}
+        {(() => {
+          const alerts = computeAlerts(data);
+          if (alerts.length === 0) return null;
+          return (
+            <div className="mb-4 space-y-2">
+              {alerts.map((a, i) => {
+                const cls = a.level === 'critical'
+                  ? 'border-red-500/40 bg-red-500/10 text-red-300'
+                  : a.level === 'warning'
+                    ? 'border-amber-500/40 bg-amber-500/10 text-amber-300'
+                    : 'border-cyan-500/30 bg-cyan-500/5 text-cyan-300';
+                return (
+                  <div key={i} className={`rounded-lg border px-3 py-2 text-sm font-medium ${cls}`}>
+                    {a.message}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
 
         {/* Top KPIs */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">

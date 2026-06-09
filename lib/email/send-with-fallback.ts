@@ -82,6 +82,18 @@ async function sendViaBrevoApi(opts: SendEmailOpts): Promise<{ ok: boolean; stat
     });
     if (res.ok) {
       const data = await res.json().catch(() => ({}));
+      // 2026-06-09 — log Brevo email cost (0€ inclus dans plan, mais
+      // on suit le volume pour limites)
+      try {
+        const { logApiCost } = await import('@/lib/admin/api-cost-logger');
+        logApiCost({
+          provider: 'brevo',
+          kind: 'email_sent',
+          units: 1,
+          cost_eur: 0, // inclus dans plan Brevo (mais counter quota important)
+          metadata: { messageId: data.messageId, to_count: (opts.to as any)?.length || 1 },
+        }).catch(() => {});
+      } catch { /* silent */ }
       return { ok: true, status: res.status, messageId: data.messageId };
     }
     const errText = await res.text().catch(() => '');

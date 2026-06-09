@@ -139,6 +139,22 @@ export async function POST(req: NextRequest) {
     console.log('[GenerateAudioTTS] Audio URL:', audioUrl);
     console.log('[GenerateAudioTTS] Estimated duration:', estimatedDuration, 'seconds');
 
+    // 2026-06-09 — log ElevenLabs cost (fire-and-forget)
+    try {
+      const { logApiCost, PROVIDER_EUR } = await import('@/lib/admin/api-cost-logger');
+      const chars = finalText.length;
+      const costEur = (chars / 1000) * PROVIDER_EUR.elevenlabs_per_1k_chars;
+      logApiCost({
+        provider: 'elevenlabs',
+        kind: 'tts',
+        units: chars,
+        cost_eur: costEur,
+        user_id: user.id,
+        agent: 'studio',
+        metadata: { voice: voiceId, language, duration_sec: estimatedDuration, chars },
+      }).catch(() => {});
+    } catch { /* silent */ }
+
     // --- Deduct credits after success ---
     let newBalance: number | undefined;
     if (!isAdminUser) {

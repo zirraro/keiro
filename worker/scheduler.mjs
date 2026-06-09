@@ -128,6 +128,10 @@ const GLOBAL_SCHEDULE = [
   // story + 1 TT Photo Mode per client per 18h. Avoids reusing the
   // same asset within 60 days. Complements the post-publish teaser.
   { cron: '0 9 * * *',    path: '/api/cron/story-library-recycle', label: 'Library Story Recycle (silent-slot filler)' },
+  // 2026-06-09 — Daily 07:00 UTC. Vérifie projection coûts MTD vs
+  // revenu mensuel. Email admin avec breakdown si marge projetée < 70%
+  // ou spike clients > 5× avg.
+  { cron: '0 7 * * *',    path: '/api/cron/daily-cost-check', label: 'Daily Cost Projection Check (admin alerts)' },
   // 2026-06-09 — Daily 06:00 UTC (avant le digest matin). Audite
   // automatiquement les 30 paires (agent, client) les plus à risque
   // — pré-détection des dégradations avant qu'elles deviennent un
