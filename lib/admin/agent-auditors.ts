@@ -334,50 +334,72 @@ async function auditDmInstagram(supabase: SupabaseClient, userId: string, client
   const findings: Finding[] = [];
   const metrics: Record<string, any> = {};
 
-  // DM funnel
-  const { count: convsTotal } = await supabase.from('instagram_conversations').select('id', { count: 'exact', head: true }).eq('user_id', userId);
-  const { count: convsReplied7 } = await supabase.from('instagram_conversations').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('last_outbound_at', daysAgo(7));
-  metrics.conversations_total = convsTotal || 0;
-  metrics.conversations_replied_7d = convsReplied7 || 0;
+  // Pull all dm_instagram logs over 30 days and aggregate from data payload.
+  // We don't query dm_queue directly because it uses org_id (multi-tenant)
+  // and may not link cleanly to user_id without an extra join.
+  const logs30 = await fetchAgentLogs(supabase, 'dm_instagram', userId, daysAgo(30));
 
-  // 24h window compliance — sends with messaging_type=MESSAGE_TAG should be flagged
-  const { data: outsideWindow } = await supabase
-    .from('instagram_messages')
-    .select('id, status, created_at')
-    .eq('user_id', userId)
-    .eq('messaging_type', 'MESSAGE_TAG')
-    .gte('created_at', daysAgo(7));
-  const tagsUsed = (outsideWindow || []).length;
-  metrics.message_tag_sends_7d = tagsUsed;
-  if (tagsUsed > 5) {
+  let sent7 = 0, sent30 = 0;
+  let replied7 = 0, replied30 = 0;
+  let humanAgentSends7 = 0;
+  let aiOffRuns = 0;
+  const since7 = daysAgo(7);
+
+  for (const l of logs30) {
+    const d = l.data || {};
+    const within7 = l.created_at >= since7;
+    if (typeof d.sent === 'number') { sent30 += d.sent; if (within7) sent7 += d.sent; }
+    if (typeof d.replied === 'number') { replied30 += d.replied; if (within7) replied7 += d.replied; }
+    if (within7 && (d.messaging_type === 'MESSAGE_TAG' || d.human_agent === true)) {
+      humanAgentSends7 += d.sent || 1;
+    }
+    if (l.action === 'auto_reply' && d.skipped_reason === 'ai_off') aiOffRuns++;
+  }
+
+  const replyRate7 = sent7 > 0 ? Math.round((replied7 / sent7) * 100) : null;
+  const replyRate30 = sent30 > 0 ? Math.round((replied30 / sent30) * 100) : null;
+
+  metrics.dms_sent_7d = sent7;
+  metrics.dms_sent_30d = sent30;
+  metrics.dms_replied_7d = replied7;
+  metrics.dms_replied_30d = replied30;
+  metrics.reply_rate_pct_7d = replyRate7;
+  metrics.reply_rate_pct_30d = replyRate30;
+  metrics.human_agent_sends_7d = humanAgentSends7;
+  metrics.ai_off_skips_30d = aiOffRuns;
+
+  if (humanAgentSends7 > 10) {
     findings.push({
       code: 'human_agent_overuse',
-      severity: tagsUsed > 20 ? 'red' : 'amber',
-      title: `${tagsUsed} send(s) hors-24h en mode Human Agent`,
-      detail: 'Volume élevé d\'envois hors fenêtre — risque Meta rate-limit.',
-      evidence: { tagsUsed },
-      suggested_fix: 'Inciter à répondre dans les 24h, ou ralentir la cadence.',
+      severity: humanAgentSends7 > 30 ? 'red' : 'amber',
+      title: `${humanAgentSends7} envois Human Agent (hors fenêtre 24h) sur 7j`,
+      detail: 'Volume élevé d\'envois hors fenêtre — risque rate-limit Meta + perception spam.',
+      evidence: { humanAgentSends7 },
+      suggested_fix: 'Régler la cadence + répondre dans les 24h pour rester en fenêtre standard.',
       mutualisable: true,
     });
   }
 
-  // Auto-mode toggle history — was auto OFF for long stretches?
-  const { data: aiToggles } = await supabase
-    .from('instagram_conversation_state')
-    .select('user_id, ai_active, updated_at')
-    .eq('user_id', userId)
-    .order('updated_at', { ascending: false })
-    .limit(20);
-  const inactiveConvs = (aiToggles || []).filter((t: any) => t.ai_active === false).length;
-  metrics.conversations_with_ai_off = inactiveConvs;
-  if (inactiveConvs > (convsTotal || 0) * 0.5 && (convsTotal || 0) >= 4) {
+  if (sent30 >= 30 && replyRate30 !== null && replyRate30 < 8) {
     findings.push({
-      code: 'ai_off_too_many_convs',
+      code: 'dm_reply_rate_low',
+      severity: replyRate30 < 3 ? 'red' : 'amber',
+      title: `Taux de réponse ${replyRate30}% — seuil 8% non atteint`,
+      detail: 'Les DM partent mais peu génèrent une conversation. Premier message à revoir.',
+      evidence: { sent30, replied30, replyRate30 },
+      suggested_fix: 'Revoir le premier message Jade : moins promo, plus personnalisé.',
+      mutualisable: true,
+    });
+  }
+
+  if (aiOffRuns > 20 && logs30.length >= 30) {
+    findings.push({
+      code: 'ai_off_too_often',
       severity: 'amber',
-      title: `IA désactivée sur ${inactiveConvs} conversations`,
-      detail: 'Beaucoup de prises en main humaines — soit le client préfère manuel, soit Jade rate des replies.',
-      evidence: { inactiveConvs, totalConvs: convsTotal },
-      suggested_fix: 'Discuter avec le client : régler la qualité ou accepter le pattern.',
+      title: `${aiOffRuns} runs auto-skip pour cause AI désactivée`,
+      detail: 'Le client a coupé l\'IA très souvent — soit préférence, soit Jade rate.',
+      evidence: { aiOffRuns, totalRuns: logs30.length },
+      suggested_fix: 'Vérifier la qualité des réponses Jade + parler avec le client.',
       mutualisable: false,
     });
   }
@@ -389,20 +411,64 @@ async function auditEmail(supabase: SupabaseClient, userId: string, client: any)
   const findings: Finding[] = [];
   const metrics: Record<string, any> = {};
 
-  const { data: emails } = await supabase
-    .from('email_sends')
-    .select('id, status, opened_at, replied_at, bounced_at, created_at')
-    .eq('user_id', userId)
-    .gte('created_at', daysAgo(30));
+  // emails_sent uses client_id (not user_id). Query both shapes to be safe.
+  let { data: emails } = await supabase
+    .from('emails_sent')
+    .select('id, status, opened_at, replied_at, bounced_at, sent_at')
+    .eq('client_id', userId)
+    .gte('sent_at', daysAgo(30));
+  if (!emails || emails.length === 0) {
+    // Fallback: some agents may write to alternative table — recompute via agent_logs
+    const logs = await fetchAgentLogs(supabase, 'email', userId, daysAgo(30));
+    let sent = 0, opened = 0, replied = 0, bounced = 0;
+    for (const l of logs) {
+      const d = l.data || {};
+      if (typeof d.sent === 'number') sent += d.sent;
+      if (typeof d.opened === 'number') opened += d.opened;
+      if (typeof d.replied === 'number') replied += d.replied;
+      if (typeof d.bounced === 'number') bounced += d.bounced;
+    }
+    metrics.emails_sent_30d = sent;
+    metrics.open_rate_pct = sent ? Math.round((opened / sent) * 100) : null;
+    metrics.reply_rate_pct = sent ? Math.round((replied / sent) * 100) : null;
+    metrics.bounce_rate_pct = sent ? Math.round((bounced / sent) * 100) : null;
+    metrics._source = 'agent_logs';
+    if (sent >= 20) {
+      if (sent && opened / sent < 0.10) {
+        findings.push({
+          code: 'open_rate_low',
+          severity: opened / sent < 0.05 ? 'red' : 'amber',
+          title: `Open rate ${Math.round((opened / sent) * 100)}% — sous 10%`,
+          detail: 'Probable problème de réputation domaine ou de sujet.',
+          evidence: { opened, sent },
+          suggested_fix: 'Vérifier Brevo deliverability + revoir les sujets.',
+          mutualisable: true,
+        });
+      }
+      if (sent && bounced / sent > 0.05) {
+        findings.push({
+          code: 'bounce_rate_high',
+          severity: bounced / sent > 0.15 ? 'red' : 'amber',
+          title: `Bounce rate ${Math.round((bounced / sent) * 100)}% — liste à purger`,
+          detail: 'Trop de hard-bounces dégrade la réputation.',
+          evidence: { bounced, sent },
+          suggested_fix: 'Purger les emails invalides chez Léo + activer email-verifier.',
+          mutualisable: true,
+        });
+      }
+    }
+    return { findings, metrics };
+  }
 
-  const total = emails?.length || 0;
-  const opened = (emails || []).filter((e: any) => e.opened_at).length;
-  const replied = (emails || []).filter((e: any) => e.replied_at).length;
-  const bounced = (emails || []).filter((e: any) => e.bounced_at).length;
+  const total = emails.length;
+  const opened = emails.filter((e: any) => e.opened_at).length;
+  const replied = emails.filter((e: any) => e.replied_at).length;
+  const bounced = emails.filter((e: any) => e.bounced_at).length;
   metrics.emails_sent_30d = total;
   metrics.open_rate_pct = total ? Math.round((opened / total) * 100) : null;
   metrics.reply_rate_pct = total ? Math.round((replied / total) * 100) : null;
   metrics.bounce_rate_pct = total ? Math.round((bounced / total) * 100) : null;
+  metrics._source = 'emails_sent';
 
   if (total >= 20) {
     const openRate = (opened / total) * 100;

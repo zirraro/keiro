@@ -4299,7 +4299,23 @@ async function generateWeekWithVisuals(supabase: any, publishAll: boolean, orgId
   const daysUntilMonday = currentDay === 0 ? 1 : (8 - currentDay);
   mondayDate.setDate(mondayDate.getDate() + daysUntilMonday);
 
-  const prompt = getWeeklyPlanPrompt({ existingPlanned }) + visualDedupContext;
+  // 2026-06-09 — Inject mutualised supervision learnings.
+  // Patterns/résolutions venues d'audits sur d'autres clients du
+  // même business_type sont rendues disponibles dans le prompt
+  // pour que Léna les respecte automatiquement.
+  let knowledgeBlock = '';
+  if (userId) {
+    try {
+      const { applicableKnowledge, knowledgeAsPromptBlock, recordKnowledgeUsage } = await import('@/lib/admin/knowledge-applier');
+      const rows = await applicableKnowledge(supabase, 'content', userId, { minConfidence: 0.5, limit: 12 });
+      knowledgeBlock = knowledgeAsPromptBlock(rows);
+      recordKnowledgeUsage(supabase, rows.map(r => r.id)).catch(() => {});
+    } catch (e: any) {
+      console.warn('[Content] knowledge-applier failed:', e?.message);
+    }
+  }
+
+  const prompt = getWeeklyPlanPrompt({ existingPlanned }) + visualDedupContext + knowledgeBlock;
   const systemPrompt = getContentSystemPrompt();
 
   let rawText: string;

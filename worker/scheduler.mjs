@@ -128,6 +128,12 @@ const GLOBAL_SCHEDULE = [
   // story + 1 TT Photo Mode per client per 18h. Avoids reusing the
   // same asset within 60 days. Complements the post-publish teaser.
   { cron: '0 9 * * *',    path: '/api/cron/story-library-recycle', label: 'Library Story Recycle (silent-slot filler)' },
+  // 2026-06-09 — Daily 06:00 UTC (avant le digest matin). Audite
+  // automatiquement les 30 paires (agent, client) les plus à risque
+  // — pré-détection des dégradations avant qu'elles deviennent un
+  // problème client visible. Les audits scheduled apparaissent dans
+  // l'onglet Audits avec trigger_kind='scheduled'.
+  { cron: '0 6 * * *',    path: '/api/cron/auto-audit-at-risk', label: 'Auto-audit clients at-risk (anticipation)' },
 ];
 
 // Agent endpoint mapping (for per-client direct calls)

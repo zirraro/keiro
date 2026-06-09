@@ -264,7 +264,12 @@ export default function AgentSupervisionPage() {
 
         {/* ─── TAB: Audits archive ─── */}
         {tab === 'audits' && (
-          <AuditsTab audits={audits} onOpen={(a) => setCurrentAudit(a)} />
+          <AuditsTab
+            audits={audits}
+            agentId={agentId}
+            onOpen={(a) => setCurrentAudit(a)}
+            onAfterBatch={loadAudits}
+          />
         )}
 
         {/* ─── TAB: Knowledge ─── */}
@@ -471,12 +476,79 @@ function AnomaliesTab({ anomalies }: { anomalies: AnomalyRow[] }) {
   );
 }
 
-function AuditsTab({ audits, onOpen }: { audits: Audit[]; onOpen: (a: Audit) => void }) {
+function AuditsTab({ audits, agentId, onOpen, onAfterBatch }: { audits: Audit[]; agentId: string; onOpen: (a: Audit) => void; onAfterBatch: () => void }) {
+  const [filter, setFilter] = useState<'all' | 'open' | 'mutualised' | 'resolved' | 'red' | 'amber'>('all');
+  const [batching, setBatching] = useState<string | null>(null);
+
+  const filtered = audits.filter(a => {
+    if (filter === 'all') return true;
+    if (filter === 'red' || filter === 'amber') return a.severity === filter;
+    if (filter === 'open') return a.status === 'open';
+    if (filter === 'mutualised') return a.status === 'mutualised';
+    if (filter === 'resolved') return a.status === 'resolved' || a.status === 'auto_resolved';
+    return true;
+  });
+
+  const runBatch = async (target: 'all' | 'red' | 'amber' | 'never_audited') => {
+    setBatching(target);
+    try {
+      const r = await fetch('/api/admin/agents/audit-batch', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agent: agentId, filter: target }),
+      });
+      const j = await r.json();
+      if (j.ok) {
+        alert(`Batch audits : ${j.processed} clients audités\nRED ${j.breakdown.red} · AMBER ${j.breakdown.amber} · GREEN ${j.breakdown.green}`);
+        onAfterBatch();
+      } else {
+        alert(`Batch failed: ${j.error || 'unknown'}`);
+      }
+    } finally { setBatching(null); }
+  };
+
+  const exportCsv = () => {
+    const rows = ['date,severity,client,findings,status,resolution_kind,trigger,knowledge_id'];
+    for (const a of filtered) {
+      rows.push([
+        a.created_at,
+        a.severity,
+        (a.client_email || a.user_id || '').replace(/,/g, ' '),
+        String(a.findings?.length || 0),
+        a.status,
+        a.resolution_kind || '',
+        a.trigger_kind,
+        a.knowledge_id || '',
+      ].join(','));
+    }
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `audits-${agentId}-${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.02] overflow-hidden">
-      <div className="px-4 py-3 border-b border-white/5">
-        <h2 className="text-sm font-bold">Archive des audits ({audits.length})</h2>
-        <p className="text-[10px] text-white/40">Tout ce que le superviseur (ou l'auto-audit cron) a inspecté. Cliquer pour revoir.</p>
+      <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between flex-wrap gap-2">
+        <h2 className="text-sm font-bold">Archive des audits ({filtered.length}/{audits.length})</h2>
+        <div className="flex flex-wrap gap-2">
+          <select value={filter} onChange={e => setFilter(e.target.value as any)} className="px-2 py-1 text-[10px] rounded bg-white/5 border border-white/10 text-white">
+            <option value="all">Tous</option>
+            <option value="open">Ouverts</option>
+            <option value="mutualised">Mutualisés</option>
+            <option value="resolved">Résolus</option>
+            <option value="red">Sévérité RED</option>
+            <option value="amber">Sévérité AMBER</option>
+          </select>
+          <button onClick={() => runBatch('red')} disabled={!!batching} className="px-2 py-1 text-[10px] rounded bg-red-600 hover:bg-red-700 text-white disabled:opacity-50">⚡ Audit clients RED</button>
+          <button onClick={() => runBatch('amber')} disabled={!!batching} className="px-2 py-1 text-[10px] rounded bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-50">⚡ Audit clients AMBER</button>
+          <button onClick={() => runBatch('never_audited')} disabled={!!batching} className="px-2 py-1 text-[10px] rounded bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50">⚡ Audit jamais auditeé</button>
+          <button onClick={exportCsv} className="px-2 py-1 text-[10px] rounded bg-cyan-600 hover:bg-cyan-700 text-white">📥 CSV</button>
+        </div>
       </div>
       <div className="overflow-x-auto">
         <table className="min-w-full text-xs">
@@ -492,7 +564,7 @@ function AuditsTab({ audits, onOpen }: { audits: Audit[]; onOpen: (a: Audit) => 
             </tr>
           </thead>
           <tbody>
-            {audits.map(a => (
+            {filtered.map(a => (
               <tr key={a.id} className="border-t border-white/5 hover:bg-white/[0.04]">
                 <td className="px-3 py-2 text-white/60">{new Date(a.created_at).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}</td>
                 <td className="px-3 py-2"><span className={`px-2 py-0.5 rounded text-[10px] font-bold ${a.severity === 'red' ? 'bg-red-500/15 text-red-300' : a.severity === 'amber' ? 'bg-amber-500/15 text-amber-300' : 'bg-emerald-500/15 text-emerald-300'}`}>{a.severity}</span></td>
@@ -503,7 +575,7 @@ function AuditsTab({ audits, onOpen }: { audits: Audit[]; onOpen: (a: Audit) => 
                 <td className="px-3 py-2 text-right"><button onClick={() => onOpen(a)} className="text-cyan-400 hover:underline text-[10px]">ouvrir →</button></td>
               </tr>
             ))}
-            {audits.length === 0 && <tr><td colSpan={7} className="px-3 py-8 text-center text-white/40">Aucun audit. Lance un audit depuis l'onglet Clients.</td></tr>}
+            {filtered.length === 0 && <tr><td colSpan={7} className="px-3 py-8 text-center text-white/40">{audits.length === 0 ? 'Aucun audit. Lance un audit depuis l\'onglet Clients.' : 'Aucun audit ne matche le filtre.'}</td></tr>}
           </tbody>
         </table>
       </div>
