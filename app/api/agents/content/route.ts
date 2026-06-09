@@ -2863,12 +2863,43 @@ export async function POST(request: NextRequest) {
           }).catch(() => { /* swallow — best effort */ });
         } catch { /* swallow */ }
 
+        // 4. Pré-flight check crédits — vérifie que le client a assez
+        //    pour la prochaine semaine de cadence. Si non, on inclut
+        //    une alerte upsell dans la réponse.
+        let creditsAlert: { kind: 'pack' | 'upgrade'; message: string } | null = null;
+        try {
+          const { getCreditsBalance } = await import('@/lib/credits/server');
+          const { resolveEffectivePlan } = await import('@/lib/credits/plan-budget-guard');
+          const balance = await getCreditsBalance(userId);
+          const effectivePlan = await resolveEffectivePlan(supabase, userId, 'content');
+          // Estimation rapide : appelle cadence-preview pour les crédits
+          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `https://${request.headers.get('host')}`;
+          const previewRes = await fetch(`${baseUrl}/api/agents/content/cadence-preview?plan=${effectivePlan}&video_ratio=${ratio}`);
+          const preview = await previewRes.json();
+          if (preview.ok) {
+            const weeklyConsumption = Math.round(preview.credits_consumed_per_month / 4.33);
+            if (balance < weeklyConsumption) {
+              creditsAlert = {
+                kind: balance < weeklyConsumption / 2 ? 'upgrade' : 'pack',
+                message: balance < weeklyConsumption / 2
+                  ? `Crédits insuffisants (${balance} restants, besoin ~${weeklyConsumption}/sem). Le plan Pro (2× Créateur) couvrirait largement.`
+                  : `Crédits faibles (${balance} restants pour ~${weeklyConsumption}/sem cadence). Un pack de boost te garantit la cadence du mois.`,
+              };
+            }
+          }
+        } catch (creditsErr: any) {
+          console.warn('[Content] credits pre-check failed:', creditsErr?.message);
+        }
+
         return NextResponse.json({
           ok: true,
           video_ratio: ratio,
           parked_future_posts: parkedCount,
           regeneration_triggered: true,
-          message: `Mix ${ratio}% vidéo appliqué — ${parkedCount} post(s) futurs basculés en draft (visuels gardés pour réutilisation), Léna régénère les 7 prochains jours en arrière-plan.`,
+          credits_alert: creditsAlert,
+          message: creditsAlert
+            ? `Mix ${ratio}% appliqué ⚠️ ${creditsAlert.message}`
+            : `Mix ${ratio}% vidéo appliqué — ${parkedCount} post(s) futurs basculés en draft, Léna régénère les 7 prochains jours en arrière-plan.`,
         });
       }
 

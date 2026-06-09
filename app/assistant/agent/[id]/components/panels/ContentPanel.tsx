@@ -840,14 +840,25 @@ export function ContentPanel({ data, agentName, gradientFrom, gradientTo }: Pane
               });
               const j = await res.json();
               if (j.ok) {
-                setWeeklyToast({ kind: 'ok', msg: `✓ Mix ${ratio}% vidéo appliqué — la prochaine planification s'adaptera.` });
+                // 2026-06-09 — si crédits insuffisants, déclencher modal upsell
+                if (j.credits_alert) {
+                  setWeeklyToast({ kind: 'err', msg: j.message });
+                  window.dispatchEvent(new CustomEvent('keiro:openCreditModal', {
+                    detail: {
+                      reason: j.credits_alert.kind === 'upgrade' ? 'quota_exhausted' : 'budget_red',
+                      source: 'content_mix_slider_apply',
+                    },
+                  }));
+                } else {
+                  setWeeklyToast({ kind: 'ok', msg: j.message || `✓ Mix ${ratio}% appliqué — Léna régénère les 7 prochains jours.` });
+                }
               } else {
                 setWeeklyToast({ kind: 'err', msg: `Erreur : ${j.error || 'inconnu'}` });
               }
             } catch (e: any) {
               setWeeklyToast({ kind: 'err', msg: e?.message || 'set failed' });
             }
-            setTimeout(() => setWeeklyToast(null), 6000);
+            setTimeout(() => setWeeklyToast(null), 8000);
           }}
         />
       </div>

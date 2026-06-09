@@ -141,12 +141,14 @@ export interface PlanCadence {
 
 export const PLAN_DAILY_PUBLISH: Record<string, PlanCadence> = {
   free:       { ig: 0, tt: 0, li: 0, stories_ig: 0, stories_tt: 0, ig_reels_per_week: 0, tt_videos_per_week: 0 },
+  // Founder rule 2026-06-09 : "Pro c'est tout simplement le double"
+  // Créateur = 1× base, Pro = 2× Créateur, Business = 3×, etc.
   createur:   { ig: 1, tt: 1, li: 0, stories_ig: 1, stories_tt: 1, ig_reels_per_week: 1, tt_videos_per_week: 3 },
-  pro:        { ig: 2, tt: 1, li: 1, stories_ig: 2, stories_tt: 1, ig_reels_per_week: 3, tt_videos_per_week: 7 },
-  fondateurs: { ig: 2, tt: 1, li: 1, stories_ig: 2, stories_tt: 1, ig_reels_per_week: 2, tt_videos_per_week: 5 },
-  business:   { ig: 3, tt: 2, li: 2, stories_ig: 3, stories_tt: 2, ig_reels_per_week: 4, tt_videos_per_week: 10 },
-  elite:      { ig: 4, tt: 3, li: 3, stories_ig: 4, stories_tt: 2, ig_reels_per_week: 6, tt_videos_per_week: 14 },
-  agence:     { ig: 5, tt: 4, li: 3, stories_ig: 5, stories_tt: 3, ig_reels_per_week: 8, tt_videos_per_week: 21 },
+  pro:        { ig: 2, tt: 2, li: 1, stories_ig: 2, stories_tt: 2, ig_reels_per_week: 2, tt_videos_per_week: 6 },
+  fondateurs: { ig: 2, tt: 2, li: 1, stories_ig: 2, stories_tt: 2, ig_reels_per_week: 2, tt_videos_per_week: 6 },
+  business:   { ig: 3, tt: 3, li: 2, stories_ig: 3, stories_tt: 3, ig_reels_per_week: 3, tt_videos_per_week: 9 },
+  elite:      { ig: 4, tt: 4, li: 3, stories_ig: 4, stories_tt: 4, ig_reels_per_week: 4, tt_videos_per_week: 12 },
+  agence:     { ig: 5, tt: 5, li: 3, stories_ig: 5, stories_tt: 5, ig_reels_per_week: 5, tt_videos_per_week: 15 },
   admin:      { ig: 99, tt: 99, li: 99, stories_ig: 99, stories_tt: 99, ig_reels_per_week: 99, tt_videos_per_week: 99 },
 };
 
