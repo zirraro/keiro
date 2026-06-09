@@ -397,14 +397,16 @@ export const FREE_BLOCKED_FEATURES = [
 export const VIDEO_DURATIONS = [5, 10, 15, 30, 45, 60, 90] as const;
 
 /**
- * Calcule le coût en crédits d'une vidéo selon sa durée
+ * Calcule le coût en crédits d'une vidéo selon sa durée.
+ * Source de vérité : CREDIT_COSTS (mis à jour 2026-06-09 avec
+ * ratio cr/€ supérieur au image_t2i pour cohérence économique).
  */
 export function getVideoCreditCost(duration: number): number {
-  if (duration <= 5) return 15;
-  if (duration <= 10) return 25;
-  if (duration <= 15) return 35;
-  if (duration <= 30) return 50;
-  if (duration <= 45) return 65;
-  if (duration <= 60) return 80;
-  return 110; // 90s
+  if (duration <= 5) return CREDIT_COSTS.video_5s;
+  if (duration <= 10) return CREDIT_COSTS.video_10s;
+  if (duration <= 15) return CREDIT_COSTS.video_15s;
+  if (duration <= 30) return CREDIT_COSTS.video_30s;
+  if (duration <= 45) return CREDIT_COSTS.video_45s;
+  if (duration <= 60) return CREDIT_COSTS.video_60s;
+  return CREDIT_COSTS.video_90s; // 90s
 }

@@ -16,48 +16,37 @@ export default function SubscriptionModal({ isOpen, onClose }: SubscriptionModal
   const monthSuffix = isEn ? "/mo" : "/mois";
   const plans = [
     {
-      name: "Starter",
-      emoji: "\u{1F680}",
-      price: "49\u20AC",
+      name: "Créateur",
+      emoji: "\u{1F4A1}",
+      price: "49€",
       subtitle: monthSuffix,
-      description: isEn ? "Freelancer & solo creator" : "Freelance & createur solo",
+      description: isEn ? "Local business & entrepreneur" : "Commerce & entrepreneur",
       features: isEn
-        ? ["400 credits/mo", "Instagram auto-publish", "Content + DM agents", "Edit studio"]
-        : ["400 credits/mois", "Publication auto Instagram", "Agent contenu + DM", "Studio edition"],
+        ? ["1,000 credits/mo", "2 networks (IG/TT/LI)", "Léna + Clara + Ami", "3 TT videos/week"]
+        : ["1 000 crédits/mois", "2 réseaux (IG/TT/LI)", "Léna + Clara + Ami", "3 vidéos TT/semaine"],
+      highlight: false,
+    },
+    {
+      name: "Pro",
+      emoji: "\u{1F680}",
+      price: "99€",
+      subtitle: monthSuffix,
+      description: isEn ? "Growing business" : "TPE & entrepreneur ambitieux",
+      features: isEn
+        ? ["3,000 credits/mo", "All 3 networks", "All agents unlocked", "4-5 TT videos/week"]
+        : ["3 000 crédits/mois", "Les 3 réseaux", "Tous les agents", "4-5 vidéos TT/semaine"],
       highlight: true,
       badge: isEn ? "Popular" : "Populaire",
     },
     {
-      name: "Pro",
-      emoji: "\u{1F4BC}",
-      price: "99\u20AC",
-      subtitle: monthSuffix,
-      description: isEn ? "Premium onboarding" : "Onboarding premium",
-      features: isEn
-        ? ["Everything in Starter", "30 videos/mo", "Content calendar", "Style kit"]
-        : ["Tout Starter", "30 videos/mois", "Calendrier contenus", "Kit de style"],
-      highlight: false,
-    },
-    {
       name: "Business",
       emoji: "\u{1F3E2}",
-      price: "199\u20AC",
+      price: "199€",
       subtitle: monthSuffix,
-      description: isEn ? "Full automation" : "Automatisation complete",
+      description: isEn ? "SMB & multi-location" : "PME & multi-points de vente",
       features: isEn
-        ? ["15+ AI agents", "2000 credits/mo", "Finance + legal", "Website integration"]
-        : ["15+ agents IA", "2000 credits/mois", "Finance + juridique", "Integration site web"],
-      highlight: true,
-    },
-    {
-      name: "Business",
-      emoji: "\u{1F3C6}",
-      price: "349\u20AC",
-      subtitle: monthSuffix,
-      description: isEn ? "Includes monthly strategy" : "Strategie mensuelle incluse",
-      features: isEn
-        ? ["Everything in Pro", "Unlimited video", "5-user team", "Advanced analytics"]
-        : ["Tout Pro", "Video illimitee", "Equipe 5 users", "Analytics avances"],
+        ? ["6,000 credits/mo", "Multi-account (1+5)", "15+ AI agents", "Long-form videos (90s)"]
+        : ["6 000 crédits/mois", "Multi-comptes (1+5)", "15+ agents IA", "Vidéos longues (90s)"],
       highlight: false,
     },
   ];
@@ -69,8 +58,11 @@ export default function SubscriptionModal({ isOpen, onClose }: SubscriptionModal
         <div className="flex justify-between items-start mb-4">
           <div>
             <h2 className="text-2xl font-bold text-neutral-900">
-              {isEn ? "Unlock every feature" : "Debloquez toutes les fonctionnalites"}
+              {isEn ? "Unlock every feature" : "Débloquez toutes les fonctionnalités"}
             </h2>
+            <p className="text-sm text-neutral-500 mt-1">
+              {isEn ? "Or buy a credit pack to keep generating without upgrading." : "Ou prends un pack crédits pour continuer sans changer de plan."}
+            </p>
           </div>
           <button
             onClick={onClose}
@@ -82,39 +74,55 @@ export default function SubscriptionModal({ isOpen, onClose }: SubscriptionModal
           </button>
         </div>
 
+        {/* Quick pack option — low-friction alternative to plan upgrade */}
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-2xl p-4 sm:p-5 mb-6">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex-1 min-w-[200px]">
+              <div className="font-bold text-amber-800 mb-1">
+                {isEn ? "\u{1F48E} Just need more credits ?" : "\u{1F48E} Besoin juste de crédits ?"}
+              </div>
+              <p className="text-xs text-amber-700">
+                {isEn
+                  ? "Packs from 14.99€ (60 credits) to 69.99€ (400 credits). One-time, no engagement."
+                  : "Packs de 14,99€ (60 crédits) à 69,99€ (400 crédits). Paiement unique, aucun engagement."}
+              </p>
+            </div>
+            <Link
+              href="/pricing#packs"
+              className="px-4 py-2 rounded-xl bg-amber-500 text-white text-sm font-bold hover:opacity-90 whitespace-nowrap"
+            >
+              {isEn ? "See packs" : "Voir les packs"}
+            </Link>
+          </div>
+        </div>
+
         {/* Trial banner — prominent */}
         <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-2xl p-4 sm:p-5 mb-6 text-center">
           <div className="text-3xl sm:text-4xl font-black text-green-700 mb-1">
-            {isEn ? <>0{'\u20AC'} for 7 days</> : <>0{'\u20AC'} pendant 7 jours</>}
+            {isEn ? <>0{'€'} for 7 days</> : <>0{'€'} pendant 7 jours</>}
           </div>
           <p className="text-sm sm:text-base text-green-600 font-medium">
-            {isEn ? 'All AI agents unlocked · Cancel in 1 click anytime' : <>Tous les agents IA debloques {'\u00B7'} Annulation en 1 clic a tout moment</>}
+            {isEn ? 'All AI agents unlocked · Cancel in 1 click anytime' : <>Tous les agents IA débloqués {'·'} Annulation en 1 clic à tout moment</>}
           </p>
           <p className="text-xs text-green-500 mt-1">
-            {isEn ? 'Card required, nothing charged during the trial' : 'Carte requise, aucun debit pendant l\u2019essai'}
+            {isEn ? 'Card required, nothing charged during the trial' : 'Carte requise, aucun débit pendant l’essai'}
           </p>
         </div>
 
         {/* Plans */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {plans.map((plan) => (
             <div
               key={plan.name}
               className={`rounded-2xl border p-5 hover:shadow-lg transition-all relative ${
                 plan.highlight
                   ? "border-2 border-amber-400 bg-gradient-to-br from-amber-50 to-orange-50"
-                  : plan.highlight
-                  ? "border-2 border-[#0c1a3a]/20 bg-[#0c1a3a]/5 shadow-md"
                   : "border-neutral-200 bg-white"
               }`}
             >
               {plan.badge && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
-                    plan.highlight
-                      ? "bg-amber-500 text-white"
-                      : "bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white"
-                  }`}>
+                  <span className="px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap bg-amber-500 text-white">
                     {plan.badge}
                   </span>
                 </div>
@@ -128,40 +136,30 @@ export default function SubscriptionModal({ isOpen, onClose }: SubscriptionModal
                   <span className="text-2xl font-bold">{plan.price}</span>
                   {plan.subtitle && <span className="text-xs text-neutral-500">{plan.subtitle}</span>}
                 </div>
-                {plan.description && (
-                  <p className="text-xs text-neutral-500">{plan.description}</p>
-                )}
+                <p className="text-xs text-neutral-500">{plan.description}</p>
               </div>
 
-              <ul className="space-y-1.5 mb-4">
-                {plan.features.map((feature, idx) => (
-                  <li key={idx} className="flex items-start gap-1.5 text-xs">
-                    <span className={plan.highlight ? "text-amber-500" : "text-[#0c1a3a]"}>{'\u2713'}</span>
-                    <span className="text-neutral-700">{feature}</span>
+              <ul className="space-y-2 mb-4">
+                {plan.features.map((feature, i) => (
+                  <li key={i} className="text-xs text-neutral-700 flex items-start gap-1.5">
+                    <span className="text-green-500 mt-0.5">{'✓'}</span>
+                    <span>{feature}</span>
                   </li>
                 ))}
               </ul>
 
               <Link
-                href="/checkout/upsell?plan=createur"
-                className={`block w-full py-3 text-center text-sm font-bold rounded-xl transition min-h-[44px] ${
+                href={`/pricing#${plan.name.toLowerCase()}`}
+                className={`block w-full py-2 rounded-xl text-center text-xs font-bold transition ${
                   plan.highlight
-                    ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:shadow-lg"
-                    : plan.highlight
-                    ? "bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white hover:shadow-lg"
-                    : "bg-neutral-100 text-neutral-900 hover:bg-neutral-200"
+                    ? "bg-amber-500 text-white hover:bg-amber-600"
+                    : "bg-[#0c1a3a] text-white hover:bg-[#1e3a5f]"
                 }`}
               >
-                {isEn ? 'Start 7-day free trial' : 'Essai gratuit 7 jours'}
+                {isEn ? `Start ${plan.name}` : `Choisir ${plan.name}`}
               </Link>
-              <p className="text-center text-[10px] text-neutral-400 mt-1">{isEn ? <>0{'\u20AC'} for 7d {'\u00B7'} Cancel in 1 click</> : <>0{'\u20AC'} pendant 7j {'\u00B7'} Annulation en 1 clic</>}</p>
             </div>
           ))}
-        </div>
-
-        {/* Footer */}
-        <div className="mt-6 text-center text-sm text-neutral-500">
-          <Link href="/pricing" className="text-[#0c1a3a] hover:underline font-medium">{isEn ? 'See the full comparison' : 'Voir la comparaison complete'}</Link>
         </div>
       </div>
     </div>
