@@ -34,13 +34,34 @@ const FORBIDDEN_CONTENT: RegExp[] = [
   /\bcopyright(ed)?\s+(character|logo|brand)/i,
 ];
 
-// Named celebrities / copyrighted entities (échantillon — extensible).
-// Block car Seedream peut générer une similarité que Meta auto-flag.
-const NAMED_ENTITIES: RegExp[] = [
-  /\b(disney|marvel|pixar|warner|nintendo|sony\s+pictures)\b/i,
-  /\b(mickey\s+mouse|harry\s+potter|spider-?man|batman|superman|pokemon|pikachu)\b/i,
-  /\b(messi|ronaldo|beyonc[ée]|taylor\s+swift|kardashian|musk)\b/i,
-];
+// Copyright handling — founder rule 2026-06-09:
+// "pas trop dur sur les copyrights, on veut surfer sur les grosses
+// marques aussi, nos créations restent originales".
+//
+// → Block UNIQUEMENT la reproduction directe d'IP (l'image générée
+//   reproduit littéralement le perso/logo) ET la likeness de
+//   célébrités nommées (risque légal réel via droit à l'image).
+// → Autorisé : référence ambiance, inspiration, vibes, mention
+//   brand en contexte marketing. C'est de la culture visuelle
+//   partagée, pas de la contrefaçon.
+//
+// Pattern de DIRECT REPRODUCTION : "(a|the|featuring|with) [CHARACTER]"
+// suivi d'un nom propre IP. On capture le contexte qui dit "génère
+// littéralement ce truc", pas "inspire-toi de".
+
+// Characters dont Seedream produira une copie reconnaissable si on
+// les nomme comme sujet. Block UNIQUEMENT si le contexte suggère
+// reproduction (a/the/featuring/with/of/wearing/holding).
+const COPYRIGHTED_CHARACTERS = /\b(?:a|the|with|featuring|of|wearing|holding|as|like)\s+(?:little\s+|a\s+|the\s+)?(mickey\s+mouse|donald\s+duck|elsa|anna(?!\s+wintour)|olaf|mois?ana|pikachu|charizard|mario|luigi|sonic|spider-?man|iron\s+man|batman|superman|hulk|thor|captain\s+america|harry\s+potter|hermione|gandalf|frodo|yoda|darth\s+vader|princess\s+leia|simba|nemo|woody|buzz\s+lightyear|shrek|elsa|stitch|baby\s+yoda|grogu|peppa\s+pig|bluey)\b/i;
+
+// Logos / trademarks — block si "logo of X" ou "X logo on" sont
+// littéralement dans le prompt (Seedream tentera de le reproduire).
+const TRADEMARK_LOGO = /\b(logo|emblem|trademark|crest|wordmark)\s+(?:of|du|de)\s+(apple|nike|adidas|coca-?cola|pepsi|mcdonald|starbucks|disney|netflix|amazon|tesla|gucci|chanel|louis\s+vuitton|rolex|ferrari|bmw|mercedes)|(?:apple|nike|adidas|coca-?cola|pepsi|mcdonald|starbucks|disney|netflix|amazon|tesla|gucci|chanel|louis\s+vuitton|rolex|ferrari|bmw|mercedes)\s+logo\b/i;
+
+// Celebrity likeness — droit à l'image, risque légal réel.
+// Block si le nom est associé à un mot impliquant un portrait
+// photographique (face, portrait, likeness, photo of, lookalike).
+const CELEBRITY_LIKENESS = /\b(?:portrait|face|photo|photograph|likeness|lookalike|standing|smiling|posing|holding)\s+(?:of\s+)?(messi|ronaldo|mbapp[ée]|beyonc[ée]|taylor\s+swift|kim\s+kardashian|kanye|drake|rihanna|adele|elon\s+musk|mark\s+zuckerberg|steve\s+jobs|tim\s+cook|bill\s+gates|emmanuel\s+macron|joe\s+biden|donald\s+trump|barack\s+obama|kylie\s+jenner)\b|\b(messi|ronaldo|mbapp[ée]|beyonc[ée]|taylor\s+swift|kim\s+kardashian|kanye|drake|rihanna|adele|elon\s+musk|mark\s+zuckerberg|steve\s+jobs|tim\s+cook|bill\s+gates|emmanuel\s+macron|joe\s+biden|donald\s+trump|barack\s+obama|kylie\s+jenner)['']?s\s+(?:face|portrait|likeness)/i;
 
 // Markup leakage — parfois le LLM laisse traîner des artifacts.
 const MARKUP_LEAK: RegExp[] = [
@@ -107,18 +128,40 @@ export function validateImagePrompt(prompt: string, ctx?: { format?: string; bus
     }
   }
 
-  // ─── 4. NAMED ENTITIES / COPYRIGHT (block) ────────────────
-  for (const rx of NAMED_ENTITIES) {
-    const m = trimmed.match(rx);
-    if (m) {
-      findings.push({
-        code: 'copyright_named_entity',
-        severity: 'block',
-        message: `Référence à une entité copyrightée/célébrité : "${m[0]}"`,
-        evidence: { match: m[0] },
-        suggestion: 'Remplacer par une description générique (style, époque, atmosphère).',
-      });
-    }
+  // ─── 4. COPYRIGHT — uniquement reproduction directe (block) ──
+  // On laisse passer "Apple keynote vibes", "spirit of Disney magic",
+  // "Black Friday energy" — c'est de l'inspiration marketing. Block
+  // seulement si Seedream tenterait littéralement de reproduire un
+  // perso/logo/visage.
+  const charMatch = trimmed.match(COPYRIGHTED_CHARACTERS);
+  if (charMatch) {
+    findings.push({
+      code: 'direct_character_reproduction',
+      severity: 'block',
+      message: `Reproduction directe d'un perso IP : "${charMatch[0]}"`,
+      evidence: { match: charMatch[0] },
+      suggestion: 'Remplacer par une description générique du concept (magie féérique, héros masqué, ambiance Noël Disney...).',
+    });
+  }
+  const logoMatch = trimmed.match(TRADEMARK_LOGO);
+  if (logoMatch) {
+    findings.push({
+      code: 'trademark_logo_reproduction',
+      severity: 'block',
+      message: `Logo/marque déposée à reproduire : "${logoMatch[0]}"`,
+      evidence: { match: logoMatch[0] },
+      suggestion: 'Évoquer le style sans nommer le logo. Utiliser des éléments visuels génériques.',
+    });
+  }
+  const celebMatch = trimmed.match(CELEBRITY_LIKENESS);
+  if (celebMatch) {
+    findings.push({
+      code: 'celebrity_likeness',
+      severity: 'block',
+      message: `Likeness de célébrité (droit à l'image) : "${celebMatch[0]}"`,
+      evidence: { match: celebMatch[0] },
+      suggestion: 'Décrire un archétype (un footballeur, une chanteuse pop, un CEO tech) sans nom propre.',
+    });
   }
 
   // ─── 5. LONG PROMPT (warn) ────────────────────────────────

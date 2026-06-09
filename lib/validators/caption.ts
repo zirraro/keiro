@@ -74,6 +74,26 @@ const SPAM_CTA: RegExp[] = [
   /\bdouble[\s-]?tap\s+si/i,
 ];
 
+// ─── Quality enrichments (warn-level only, never block) ──────
+// "Très/super/incroyable/magnifique/génial" sans contexte = fluff.
+// Pas un block — Léna peut les utiliser ponctuellement — mais
+// 2+ occurrences = signal de paresse rédactionnelle.
+const GENERIC_ADJECTIVES = /\b(super|g[ée]nial|incroyable|magnifique|extraordinaire|fantastique|top|cool|sympa|chouette|joli)\b/gi;
+
+// Verbe-être / avoir / passive omniprésent = écriture molle.
+const WEAK_VERBS = /\b(est|sont|était|étaient|a été|sera|seront|avoir|nous avons|on a|c'est|il y a)\b/gi;
+
+// Signaux de specificity — au moins UN devrait apparaître pour
+// donner du concret au lecteur :
+//   - chiffre/quantité (3, 12h30, 5€, 30%)
+//   - jour/date (lundi, vendredi, demain, 14 mars)
+//   - lieu/quartier
+//   - sens (texture, odeur, son, goût)
+const SPECIFIC_NUMBERS = /\b(\d{1,4})(€|h|h\d{2}|\s*%|\s*(pers|min|sec|kg|g|cl|cm|m))\b/i;
+const TIME_SPECIFIC   = /\b(lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche|aujourd['']hui|demain|ce\s+(soir|matin|midi)|midi|\d{1,2}h\d{0,2})\b/i;
+const SENSORY_WORDS   = /\b(croustillant|fondant|moelleux|crémeux|fumé|tiède|brûlant|glac[ée]|parfumé|épicé|sucré|salé|acidulé|amer|frais|texture|odeur|parfum|saveur|arôme)\b/i;
+const PLACE_HINT      = /\b(quartier|rue|avenue|boulevard|place|métro|à\s+côté|en\s+face|près\s+de|en\s+plein\s+cœur)\b/i;
+
 const PLATFORM_LIMITS: Record<string, { captionMax: number; hashtagMax: number; emojiMax: number }> = {
   instagram: { captionMax: 2200, hashtagMax: 10, emojiMax: 8 },
   tiktok:    { captionMax: 2200, hashtagMax: 8,  emojiMax: 6 },
@@ -263,6 +283,96 @@ export function validateCaption(post: PostInput, ctx: ValidationContext): Valida
         message: `Hook identique à un post récent (×${hookHits + 1}).`,
         evidence: { hook, occurrences: hookHits + 1 },
         suggestion: 'Varier l\'ouverture — angle / question / image / chiffre.',
+      });
+    }
+  }
+
+  // ─── 8. QUALITY ENRICHMENTS (warn/info, jamais block) ─────
+  // Founder rule : "augmenter qualité sans brider créativité".
+  // Ces checks sont des SIGNAUX, pas des gardes-fous bloquants.
+  if (!isShortFormat && caption.length >= 60) {
+    // Specificity : un post fort cite AU MOINS un détail concret
+    const hasNumbers = SPECIFIC_NUMBERS.test(caption);
+    const hasTime    = TIME_SPECIFIC.test(caption);
+    const hasSensory = SENSORY_WORDS.test(caption);
+    const hasPlace   = PLACE_HINT.test(caption);
+    const specHits = [hasNumbers, hasTime, hasSensory, hasPlace].filter(Boolean).length;
+    if (specHits === 0) {
+      findings.push({
+        code: 'low_specificity',
+        severity: 'warn',
+        message: 'Aucun détail concret (chiffre, heure, lieu, sensoriel) — texte abstrait.',
+        evidence: { hasNumbers, hasTime, hasSensory, hasPlace },
+        suggestion: 'Ajouter un chiffre, une heure, un lieu ou un détail sensoriel pour ancrer le post.',
+      });
+    } else if (specHits === 1) {
+      findings.push({
+        code: 'specificity_thin',
+        severity: 'info',
+        message: 'Un seul ancrage concret — un 2ᵉ détail renforcerait l\'effet.',
+        evidence: { specHits },
+      });
+    }
+
+    // Generic adjectives — fluff signal
+    const genericHits = (caption.match(GENERIC_ADJECTIVES) || []).length;
+    if (genericHits >= 3) {
+      findings.push({
+        code: 'generic_adjectives',
+        severity: 'warn',
+        message: `${genericHits} adjectifs génériques (super/génial/incroyable...) — perçu comme fluff.`,
+        evidence: { count: genericHits },
+        suggestion: 'Remplacer par des descripteurs sensoriels précis (croustillant, fumé, tiède, ...).',
+      });
+    } else if (genericHits === 2) {
+      findings.push({
+        code: 'generic_adjectives_borderline',
+        severity: 'info',
+        message: `${genericHits} adjectifs génériques détectés — surveille la densité.`,
+      });
+    }
+
+    // Weak verbs density — too many être/avoir/c'est = écriture molle
+    const weakHits = (caption.match(WEAK_VERBS) || []).length;
+    const wordsCount = caption.split(/\s+/).length;
+    const weakRatio = wordsCount > 0 ? weakHits / wordsCount : 0;
+    if (weakHits >= 4 && weakRatio > 0.12) {
+      findings.push({
+        code: 'weak_verbs_density',
+        severity: 'warn',
+        message: `${weakHits} verbes faibles (être/avoir/c'est) sur ${wordsCount} mots — texte mou.`,
+        evidence: { weakHits, wordsCount, weakRatio: Math.round(weakRatio * 100) },
+        suggestion: 'Remplacer par des verbes d\'action (croque, glisse, déborde, fume, mijote...).',
+      });
+    }
+
+    // Caption all questions / no statement = lecteur n'a pas d'info
+    const questionMarks = (caption.match(/\?/g) || []).length;
+    const periods       = (caption.match(/[.!]/g) || []).length;
+    if (questionMarks >= 3 && periods < questionMarks) {
+      findings.push({
+        code: 'questions_only',
+        severity: 'warn',
+        message: 'Caption composée uniquement de questions — donne du contenu, pas que de l\'interrogatif.',
+        evidence: { questionMarks, periods },
+      });
+    }
+  }
+
+  // ─── 9. CAPTION ↔ HOOK COHERENCE (info) ───────────────────
+  if (hook && caption && hook.length >= 10 && caption.length >= 50) {
+    // Si le hook mentionne un mot-clé totalement absent du caption,
+    // signal de décrochage. Ex: hook "23h47" mais caption parle de
+    // matinée → incohérence narrative.
+    const hookKeywords = hook.toLowerCase().match(/\b[a-zà-ÿ]{5,}\b/gi) || [];
+    const captionLower = caption.toLowerCase();
+    const orphan = hookKeywords.filter(kw => !captionLower.includes(kw.toLowerCase()));
+    if (hookKeywords.length >= 2 && orphan.length === hookKeywords.length) {
+      findings.push({
+        code: 'hook_caption_disconnect',
+        severity: 'info',
+        message: 'Hook et caption ne partagent aucun mot-clé — risque de cohérence narrative.',
+        evidence: { hookKeywords, orphan },
       });
     }
   }

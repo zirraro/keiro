@@ -67,6 +67,40 @@ function detectColorFamily(text: string): string | null {
   return null;
 }
 
+// Lighting buckets — pour detecter la monotonie lumineuse
+const LIGHTING_BUCKETS: Record<string, RegExp> = {
+  golden:    /\b(golden\s+hour|sunset|sunrise|magic\s+hour|warm\s+sun)\b/i,
+  studio:    /\b(studio\s+light|professional\s+lighting|softbox)\b/i,
+  natural:   /\b(natural\s+light|daylight|window\s+light|overcast)\b/i,
+  dramatic:  /\b(dramatic\s+light|chiaroscuro|moody\s+light|low\s+key|shadows)\b/i,
+  neon:      /\b(neon|cyberpunk|night\s+light|street\s+light)\b/i,
+  ambient:   /\b(ambient|candle\s+light|fireplace|warm\s+glow)\b/i,
+};
+
+function detectLighting(text: string): string | null {
+  for (const [bucket, rx] of Object.entries(LIGHTING_BUCKETS)) {
+    if (rx.test(text)) return bucket;
+  }
+  return null;
+}
+
+// Composition buckets
+const COMPOSITION_BUCKETS: Record<string, RegExp> = {
+  topdown:   /\b(top-?down|overhead|bird['']?s?\s+eye|flat\s+lay)\b/i,
+  closeup:   /\b(close-?up|macro|extreme\s+close)\b/i,
+  hero:      /\b(hero\s+shot|three-?quarter\s+view)\b/i,
+  wide:      /\b(wide\s+shot|establishing\s+shot|landscape|environment)\b/i,
+  portrait:  /\b(portrait|over-?the-?shoulder|profile)\b/i,
+  symmetric: /\b(symmetric(al)?|centered|frontal)\b/i,
+};
+
+function detectComposition(text: string): string | null {
+  for (const [bucket, rx] of Object.entries(COMPOSITION_BUCKETS)) {
+    if (rx.test(text)) return bucket;
+  }
+  return null;
+}
+
 // Dish keywords for restaurant/traiteur — used to check the dish-venue
 // rule fires when relevant.
 const DISH_KEYWORDS = /\b(plat|dish|burger|pizza|salade|salad|cookie|tarte|cake|pasta|p[âa]tes|burrata|sushi|po[êe]l[ée]e|risotto|gratin|tiramisu|brioche|pain|sandwich|wrap|bowl|noodle|nem|samossa|tapas)\b/i;
@@ -169,7 +203,44 @@ export function validateVisualCoherence(post: PostInput, ctx: ValidationContext)
     }
   }
 
-  // ─── 5. DISH-VENUE RULE (info, never block) ───────────────
+  // ─── 5. LIGHTING / COMPOSITION VARIETY (warn) ─────────────
+  if (visualDesc && recent.length >= 5) {
+    const currentLighting = detectLighting(visualDesc);
+    const currentComposition = detectComposition(visualDesc);
+    const recentLightings = recent.slice(0, 7)
+      .map(r => r.visual_description ? detectLighting(r.visual_description) : null)
+      .filter(Boolean) as string[];
+    const recentCompositions = recent.slice(0, 7)
+      .map(r => r.visual_description ? detectComposition(r.visual_description) : null)
+      .filter(Boolean) as string[];
+
+    if (currentLighting) {
+      const sameLight = recentLightings.filter(l => l === currentLighting).length;
+      if (sameLight >= 4) {
+        findings.push({
+          code: 'lighting_monotony',
+          severity: 'warn',
+          message: `Lumière "${currentLighting}" répétée (×${sameLight + 1} sur 8 derniers posts).`,
+          evidence: { currentLighting, sameLight },
+          suggestion: 'Varier : golden→studio, natural→dramatic, ou neon pour rompre la routine.',
+        });
+      }
+    }
+    if (currentComposition) {
+      const sameComp = recentCompositions.filter(c => c === currentComposition).length;
+      if (sameComp >= 4) {
+        findings.push({
+          code: 'composition_monotony',
+          severity: 'warn',
+          message: `Composition "${currentComposition}" répétée (×${sameComp + 1}).`,
+          evidence: { currentComposition, sameComp },
+          suggestion: 'Alterner top-down ↔ close-up ↔ hero shot ↔ wide pour casser la routine visuelle.',
+        });
+      }
+    }
+  }
+
+  // ─── 6. DISH-VENUE RULE (info, never block) ───────────────
   // For food businesses, when a dish is mentioned in the brief but
   // the brief reads like a hero shot of the dish without the venue,
   // we flag for telemetry. Léna may still publish — this is just a

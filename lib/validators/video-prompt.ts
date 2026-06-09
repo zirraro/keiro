@@ -26,10 +26,13 @@ const FORBIDDEN_CONTENT: RegExp[] = [
   /\b(child|minor|underage)\s+(model|portrait|actor)/i,
 ];
 
-const NAMED_ENTITIES: RegExp[] = [
-  /\b(disney|marvel|pixar|warner|nintendo)\b/i,
-  /\b(mickey\s+mouse|harry\s+potter|spider-?man|batman|superman|pokemon|pikachu)\b/i,
-];
+// Copyright — même règle que image-prompt : block uniquement
+// reproduction directe d'IP, autorise référence ambiance.
+const DIRECT_CHAR_REPRODUCTION = /\b(?:a|the|with|featuring|of|wearing|holding|as|like)\s+(?:little\s+|a\s+|the\s+)?(mickey\s+mouse|donald\s+duck|elsa|olaf|pikachu|charizard|mario|luigi|sonic|spider-?man|iron\s+man|batman|superman|hulk|harry\s+potter|hermione|yoda|darth\s+vader|simba|shrek|baby\s+yoda|grogu|peppa\s+pig|bluey)\b/i;
+
+const TRADEMARK_LOGO_VIDEO = /\b(logo|emblem|trademark)\s+(?:of|du|de)\s+(apple|nike|adidas|coca-?cola|pepsi|mcdonald|starbucks|disney|netflix|amazon|tesla)|(?:apple|nike|adidas|coca-?cola|pepsi|mcdonald|starbucks|disney|netflix|amazon|tesla)\s+logo\b/i;
+
+const CELEB_LIKENESS_VIDEO = /\b(?:portrait|face|photo|likeness|lookalike|standing|smiling|posing)\s+(?:of\s+)?(messi|ronaldo|mbapp[ée]|beyonc[ée]|taylor\s+swift|kim\s+kardashian|elon\s+musk|emmanuel\s+macron|donald\s+trump|barack\s+obama)\b/i;
 
 const MARKUP_LEAK: RegExp[] = [
   /\{[a-z_]+\}/i,
@@ -109,16 +112,33 @@ export function validateVideoPrompt(prompt: string, opts?: { duration?: number; 
     }
   }
 
-  for (const rx of NAMED_ENTITIES) {
-    const m = trimmed.match(rx);
-    if (m) {
-      findings.push({
-        code: 'copyright_named_entity',
-        severity: 'block',
-        message: `Entité copyrightée : "${m[0]}"`,
-        evidence: { match: m[0] },
-      });
-    }
+  const charM = trimmed.match(DIRECT_CHAR_REPRODUCTION);
+  if (charM) {
+    findings.push({
+      code: 'direct_character_reproduction',
+      severity: 'block',
+      message: `Reproduction perso IP : "${charM[0]}"`,
+      evidence: { match: charM[0] },
+      suggestion: 'Évoquer l\'archétype sans nommer le perso.',
+    });
+  }
+  const logoM = trimmed.match(TRADEMARK_LOGO_VIDEO);
+  if (logoM) {
+    findings.push({
+      code: 'trademark_logo_reproduction',
+      severity: 'block',
+      message: `Logo marque : "${logoM[0]}"`,
+      evidence: { match: logoM[0] },
+    });
+  }
+  const celebM = trimmed.match(CELEB_LIKENESS_VIDEO);
+  if (celebM) {
+    findings.push({
+      code: 'celebrity_likeness',
+      severity: 'block',
+      message: `Likeness célébrité : "${celebM[0]}"`,
+      evidence: { match: celebM[0] },
+    });
   }
 
   // ─── 5. FRENCH PROMPT (block) ─────────────────────────────
