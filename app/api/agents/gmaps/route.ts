@@ -223,6 +223,18 @@ async function searchPlaces(query: string, lat: number, lng: number, radius: num
     const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
     if (!res.ok) return [];
     const data = await res.json();
+    // 2026-06-09 — log Places cost (fire-and-forget) — point chaud cost!
+    try {
+      const { logApiCost, placesCostEur } = await import('@/lib/admin/api-cost-logger');
+      logApiCost({
+        provider: 'places',
+        kind: 'text_search',
+        units: 1,
+        cost_eur: placesCostEur('text_search', 1),
+        agent: 'gmaps',
+        metadata: { query, results_count: (data.results || []).length },
+      }).catch(() => {});
+    } catch { /* silent */ }
     return (data.results || []).slice(0, MAX_RESULTS_PER_QUERY);
   } catch (e: any) {
     console.warn(`[GMaps] Search failed for "${query}":`, e.message);
@@ -250,6 +262,18 @@ async function getPlaceDetails(placeId: string) {
     const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
     if (!res.ok) return null;
     const data = await res.json();
+    // 2026-06-09 — log Places Details cost
+    try {
+      const { logApiCost, placesCostEur } = await import('@/lib/admin/api-cost-logger');
+      logApiCost({
+        provider: 'places',
+        kind: 'place_details',
+        units: 1,
+        cost_eur: placesCostEur('place_details', 1),
+        agent: 'gmaps',
+        metadata: { placeId },
+      }).catch(() => {});
+    } catch { /* silent */ }
     return data.result || null;
   } catch {
     return null;

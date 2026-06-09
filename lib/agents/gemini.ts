@@ -189,6 +189,25 @@ async function callGeminiWithRetry(
 
   const data = await response.json();
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  // 2026-06-09 — log Gemini cost (fire-and-forget)
+  try {
+    const { logApiCost, geminiCostEur } = await import('@/lib/admin/api-cost-logger');
+    const usage = data.usageMetadata || {};
+    const modelStr = body.model || '';
+    const model = modelStr.includes('flash') ? 'flash' : 'pro';
+    const costEur = geminiCostEur({
+      input_tokens: usage.promptTokenCount || 0,
+      output_tokens: usage.candidatesTokenCount || 0,
+      grounding_queries: data.candidates?.[0]?.groundingMetadata ? 1 : 0,
+    }, model as any);
+    logApiCost({
+      provider: 'gemini',
+      kind: `${model}_${data.candidates?.[0]?.groundingMetadata ? 'grounded' : 'normal'}`,
+      units: (usage.promptTokenCount || 0) + (usage.candidatesTokenCount || 0),
+      cost_eur: costEur,
+      metadata: { model: modelStr, usage },
+    }).catch(() => {});
+  } catch { /* silent */ }
   return text;
 }
 
