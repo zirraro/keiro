@@ -66,6 +66,9 @@ export default function CostMarginPage() {
             <h1 className="text-2xl font-bold">💰 Cost vs Margin Audit</h1>
             <p className="text-xs text-white/40 mt-1">Coûts estimés 30j × revenu plan · Cible 80% marge</p>
           </div>
+          <a href="/admin/cost-margin/live" className="px-3 py-2 text-xs rounded-lg bg-gradient-to-r from-cyan-500 to-purple-500 text-white font-bold hover:opacity-90">
+            💸 Live Cost Pilot →
+          </a>
         </div>
 
         {/* Global */}
