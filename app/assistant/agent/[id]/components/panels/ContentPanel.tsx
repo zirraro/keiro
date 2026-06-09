@@ -826,6 +826,10 @@ export function ContentPanel({ data, agentName, gradientFrom, gradientTo }: Pane
             // le CreditPackModal avec reason='quota_exhausted'.
             window.dispatchEvent(new CustomEvent('keiro:openCreditModal', { detail: { reason: 'quota_exhausted', source: 'content_mix_slider' } }));
           }}
+          onUpgradePlan={() => {
+            // Redirige vers /pricing pour upgrade du plan
+            window.location.href = '/pricing#plans';
+          }}
           onApply={async (ratio) => {
             try {
               const res = await fetch('/api/agents/content', {

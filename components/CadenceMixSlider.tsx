@@ -31,11 +31,11 @@ interface Cadence {
 interface Preview {
   ok: boolean;
   cadence: Cadence;
-}
-
-interface CreditBalance {
-  balance: number;
-  monthlyAllowance: number;
+  credits_consumed_per_month: number;
+  plan_credits_total: number;
+  credits_pct: number;
+  credits_status: 'ok' | 'close' | 'exceeded';
+  warnings: string[];
 }
 
 interface Props {
@@ -43,6 +43,7 @@ interface Props {
   initialRatio?: number;
   onApply?: (ratio: number) => void;
   onBuyPack?: () => void;
+  onUpgradePlan?: () => void;
 }
 
 // ─── Platform logos (inline SVG, no external dep) ──────────────
@@ -76,39 +77,29 @@ const LinkedInLogo = ({ size = 14 }: { size?: number }) => (
   </svg>
 );
 
-export default function CadenceMixSlider({ plan, initialRatio = 40, onApply, onBuyPack }: Props) {
+export default function CadenceMixSlider({ plan, initialRatio = 40, onApply, onBuyPack, onUpgradePlan }: Props) {
   const [ratio, setRatio] = useState(initialRatio);
-  const [cadence, setCadence] = useState<Cadence | null>(null);
-  const [credits, setCredits] = useState<CreditBalance | null>(null);
+  const [preview, setPreview] = useState<Preview | null>(null);
   const [applying, setApplying] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     fetch(`/api/agents/content/cadence-preview?plan=${plan}&video_ratio=${ratio}`)
       .then(r => r.json())
-      .then((j: Preview) => { if (!cancelled && j.ok) setCadence(j.cadence); })
+      .then((j: Preview) => { if (!cancelled && j.ok) setPreview(j); })
       .catch(() => {});
     return () => { cancelled = true; };
   }, [plan, ratio]);
 
-  useEffect(() => {
-    fetch('/api/credits/balance', { credentials: 'include' })
-      .then(r => r.json())
-      .then((j: any) => {
-        if (typeof j?.balance === 'number') {
-          setCredits({ balance: j.balance, monthlyAllowance: j.monthlyAllowance || j.balance });
-        }
-      })
-      .catch(() => {});
-  }, []);
-
-  const pctRemaining = credits && credits.monthlyAllowance > 0
-    ? Math.round((credits.balance / credits.monthlyAllowance) * 100)
-    : 100;
-  const lowCredits = pctRemaining < 15;
+  const cadence = preview?.cadence;
+  const creditsConsumed = preview?.credits_consumed_per_month ?? 0;
+  const creditsTotal = preview?.plan_credits_total ?? 0;
+  const creditsPct = preview?.credits_pct ?? 0;
+  const creditsStatus = preview?.credits_status ?? 'ok';
 
   const handleApply = async () => {
     if (!onApply) return;
+    if (creditsStatus === 'exceeded') return; // block apply quand dépasse
     setApplying(true);
     try { await onApply(ratio); } finally { setApplying(false); }
   };
@@ -146,24 +137,42 @@ export default function CadenceMixSlider({ plan, initialRatio = 40, onApply, onB
 
   return (
     <div className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-3">
-      {/* Title row + crédits envelope */}
+      {/* Title row + crédits envelope live (suit le curseur) */}
       <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
         <div className="flex items-center gap-2">
           <span className="text-[11px] font-semibold text-white/80">⚖️ Mix contenu</span>
         </div>
-        {credits && (
+        {preview && creditsTotal > 0 && (
           <div
-            className={`text-[10px] px-2 py-0.5 rounded-full border ${
-              lowCredits
-                ? 'border-amber-500/40 bg-amber-500/10 text-amber-300'
-                : 'border-white/10 bg-white/5 text-white/70'
+            className={`text-[10px] px-2 py-0.5 rounded-full border font-medium ${
+              creditsStatus === 'exceeded'
+                ? 'border-red-500/40 bg-red-500/10 text-red-300'
+                : creditsStatus === 'close'
+                  ? 'border-amber-500/40 bg-amber-500/10 text-amber-300'
+                  : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
             }`}
-            title={`Crédits restants ce mois sur ton plan`}
+            title={`Avec ce mix, Léna consommera ~${creditsConsumed} crédits sur les ${creditsTotal} de ton plan`}
           >
-            {credits.balance}<span className="text-white/40"> / {credits.monthlyAllowance}</span> crédits
+            <strong>{creditsConsumed}</strong>
+            <span className="text-white/40"> / {creditsTotal}</span>
+            <span className="ml-1">crédits ({creditsPct}%)</span>
           </div>
         )}
       </div>
+
+      {/* Progress bar fine sous l'envelope (lisuel) */}
+      {preview && creditsTotal > 0 && (
+        <div className="h-1 rounded-full bg-white/5 mb-2 overflow-hidden">
+          <div
+            className={`h-full transition-all ${
+              creditsStatus === 'exceeded' ? 'bg-red-400' :
+              creditsStatus === 'close' ? 'bg-amber-400' :
+              'bg-emerald-400'
+            }`}
+            style={{ width: `${Math.min(100, creditsPct)}%` }}
+          />
+        </div>
+      )}
 
       {/* Slider row : Image LEFT, Vidéo RIGHT */}
       <div className="flex items-center gap-2 mb-3">
@@ -204,24 +213,50 @@ export default function CadenceMixSlider({ plan, initialRatio = 40, onApply, onB
         </div>
       )}
 
+      {/* Upsell selon position du curseur */}
+      {creditsStatus === 'exceeded' && (
+        <div className="mt-1 mb-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30">
+          <p className="text-[11px] text-red-300 mb-2">
+            🚨 Ce mix consommerait <strong>{creditsConsumed} crédits</strong> mais ton plan {plan} n'en couvre que <strong>{creditsTotal}</strong>.
+          </p>
+          <div className="flex gap-2 flex-wrap">
+            {onBuyPack && (
+              <button onClick={onBuyPack} className="text-[11px] font-bold px-3 py-1.5 rounded bg-amber-500 text-[#0c1a3a] hover:opacity-90">
+                💎 Acheter un pack
+              </button>
+            )}
+            {onUpgradePlan && plan !== 'pro' && plan !== 'business' && (
+              <button onClick={onUpgradePlan} className="text-[11px] font-bold px-3 py-1.5 rounded bg-gradient-to-r from-cyan-500 to-cyan-400 text-[#0c1a3a] hover:opacity-90">
+                🚀 Passer Pro
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+      {creditsStatus === 'close' && (
+        <div className="mt-1 mb-2 flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30">
+          <span className="text-[11px] text-amber-300">⚡ Mix proche du plafond ({creditsPct}% de tes crédits). Un pack te donnerait du confort.</span>
+          {onBuyPack && (
+            <button onClick={onBuyPack} className="text-[10px] font-bold px-2 py-1 rounded bg-amber-500 text-[#0c1a3a] hover:opacity-90 whitespace-nowrap">💎 Booster</button>
+          )}
+        </div>
+      )}
+
       {/* Apply button */}
       <div className="flex items-center justify-end gap-2">
         <button
           onClick={handleApply}
-          disabled={applying}
-          className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-cyan-500 to-cyan-400 text-[#0c1a3a] text-xs font-bold hover:opacity-90 transition disabled:opacity-40"
+          disabled={applying || creditsStatus === 'exceeded'}
+          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition disabled:opacity-40 ${
+            creditsStatus === 'exceeded'
+              ? 'bg-white/10 text-white/40 cursor-not-allowed'
+              : 'bg-gradient-to-r from-cyan-500 to-cyan-400 text-[#0c1a3a] hover:opacity-90'
+          }`}
+          title={creditsStatus === 'exceeded' ? 'Mix dépasse ton quota — réduis le ratio vidéo ou prends un pack/upgrade' : ''}
         >
-          {applying ? 'Application...' : 'Appliquer ce mix'}
+          {applying ? 'Application...' : creditsStatus === 'exceeded' ? '⚠️ Quota dépassé' : 'Appliquer ce mix'}
         </button>
       </div>
-
-      {/* Upsell pack quand crédits faibles */}
-      {lowCredits && onBuyPack && (
-        <div className="mt-2 flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30">
-          <span className="text-[11px] text-amber-300">⚡ Quota faible ({pctRemaining}% restants ce mois)</span>
-          <button onClick={onBuyPack} className="text-[10px] font-bold px-2 py-1 rounded bg-amber-500 text-[#0c1a3a] hover:opacity-90">💎 Booster</button>
-        </div>
-      )}
     </div>
   );
 }

@@ -32,6 +32,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { PLAN_COST_CEILING, PLAN_DAILY_PUBLISH } from '@/lib/credits/plan-budget-guard';
+import { CREDIT_COSTS, PLAN_CREDITS } from '@/lib/credits/constants';
 
 export const runtime = 'nodejs';
 export const maxDuration = 10;
@@ -76,6 +77,14 @@ interface CadenceOutput {
   };
   estimated_cost_per_month_eur: number;
   margin_pct: number;
+  /** Credits consumed by THIS specific cadence per month */
+  credits_consumed_per_month: number;
+  /** Total plan credit allowance */
+  plan_credits_total: number;
+  /** Percent of plan credits used (0-100+) */
+  credits_pct: number;
+  /** Status: ok | close | exceeded */
+  credits_status: 'ok' | 'close' | 'exceeded';
   warnings: string[];
 }
 
@@ -133,6 +142,27 @@ function computeCadence(plan: string, videoRatio: number): CadenceOutput {
 
   const margin = revenue > 0 ? Math.round(((revenue - estCost) / revenue) * 100) : 0;
 
+  // ─── Credit consumption per month (client-facing) ─────────
+  // Convention :
+  //   image_t2i = 4 cr (toute nouvelle image gen IG/LI/TT)
+  //   video_15s = 35 cr (reels/vidéos par défaut 15s)
+  //   stories recycle / TT photo recycle = 0 cr (la lib existe)
+  //   briefs LLM = négligeable côté crédits client
+  // On compte les NOUVELLES générations seulement, pas les recycles.
+  const creditsPerImage = CREDIT_COSTS.image_t2i;     // 4
+  const creditsPerVideo = CREDIT_COSTS.video_15s;     // 35
+  const creditsConsumed = Math.round(
+    igPostsPerWeek  * 4.33 * creditsPerImage +
+    igReelsPerWeek  * 4.33 * creditsPerVideo +
+    ttVideosPerWeek * 4.33 * creditsPerVideo +
+    liPerWeek       * 4.33 * creditsPerImage
+  );
+  const planCredits = PLAN_CREDITS[plan] ?? 0;
+  const creditsPct = planCredits > 0 ? Math.round((creditsConsumed / planCredits) * 100) : 0;
+  let creditsStatus: 'ok' | 'close' | 'exceeded' = 'ok';
+  if (creditsPct > 100) creditsStatus = 'exceeded';
+  else if (creditsPct >= 85) creditsStatus = 'close';
+
   const warnings: string[] = [];
   if (estCost > ceiling) {
     warnings.push(`Coût estimé ${estCost.toFixed(2)}€ dépasse le plafond ${ceiling}€ — quotas auto-cappés au plan.`);
@@ -142,6 +172,11 @@ function computeCadence(plan: string, videoRatio: number): CadenceOutput {
   }
   if (margin < 70) {
     warnings.push(`Marge ${margin}% sous le seuil 70% — affiner le mix.`);
+  }
+  if (creditsStatus === 'exceeded') {
+    warnings.push(`Ce mix consomme ${creditsConsumed} crédits/mois mais ton plan ne couvre que ${planCredits}. Prends un pack ou passe au plan supérieur.`);
+  } else if (creditsStatus === 'close') {
+    warnings.push(`Mix proche de la limite (${creditsPct}% de ton quota mensuel) — un pack te donnerait du confort.`);
   }
 
   return {
@@ -162,6 +197,10 @@ function computeCadence(plan: string, videoRatio: number): CadenceOutput {
     },
     estimated_cost_per_month_eur: +estCost.toFixed(2),
     margin_pct: margin,
+    credits_consumed_per_month: creditsConsumed,
+    plan_credits_total: planCredits,
+    credits_pct: creditsPct,
+    credits_status: creditsStatus,
     warnings,
   };
 }
