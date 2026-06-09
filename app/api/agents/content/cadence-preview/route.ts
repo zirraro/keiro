@@ -85,13 +85,46 @@ interface CadenceOutput {
   credits_pct: number;
   /** Status: ok | close | exceeded */
   credits_status: 'ok' | 'close' | 'exceeded';
+  /** Safe ancillary buffer — usage keeps margin >= 75% */
+  safe_buffer_credits: number;
+  /** Warn buffer — usage drops margin to 70-75% */
+  warn_buffer_credits: number;
+  /** Total credits available beyond publications (might be > safe) */
+  remaining_credits: number;
   warnings: string[];
 }
 
-function computeCadence(plan: string, videoRatio: number): CadenceOutput {
+interface ComputeOpts {
+  /** Réseaux que le client veut activer.
+   *  Créateur : max 2 sur les 3 (sinon block + upsell).
+   *  Pro+     : up to 3.
+   *  Si undefined : défaut = ['instagram', 'tiktok'] (Créateur) ou tous (Pro+).
+   */
+  enabled_networks?: ('instagram' | 'tiktok' | 'linkedin')[];
+}
+
+function computeCadence(plan: string, videoRatio: number, opts: ComputeOpts = {}): CadenceOutput {
   const ceiling = PLAN_COST_CEILING[plan] ?? PLAN_COST_CEILING.free;
   const revenue = PLAN_REVENUE[plan] ?? 0;
   const cap = PLAN_DAILY_PUBLISH[plan] ?? PLAN_DAILY_PUBLISH.free;
+
+  // Founder rule 2026-06-09 : Créateur peut activer LinkedIn mais
+  // doit sacrifier 1 ou 2 réseaux (max 2 réseaux actifs simultanément).
+  // Pro+ : tous les réseaux activables.
+  const isCreateur = plan === 'createur';
+  const defaultNetworks: ('instagram' | 'tiktok' | 'linkedin')[] =
+    isCreateur ? ['instagram', 'tiktok'] : ['instagram', 'tiktok', 'linkedin'];
+  const requested = opts.enabled_networks || defaultNetworks;
+  // Filter to allowed + dedupe
+  const networks = Array.from(new Set(requested.filter(n => ['instagram', 'tiktok', 'linkedin'].includes(n))));
+  const maxNetworks = isCreateur ? 2 : 3;
+  const tooManyNetworks = networks.length > maxNetworks;
+  // Apply cap : si client demande 3 mais Créateur, on tronque à 2
+  // (le frontend prévient avant via warnings)
+  const activeNetworks = networks.slice(0, maxNetworks);
+  const igActive = activeNetworks.includes('instagram');
+  const ttActive = activeNetworks.includes('tiktok');
+  const liActive = activeNetworks.includes('linkedin');
 
   // Fixed costs that exist regardless of mix
   const fixedBriefs = COST.brief_anthropic * 30 * 1.5;       // ~30 briefs/mois × 1.5 (planning + retry)
@@ -111,21 +144,61 @@ function computeCadence(plan: string, videoRatio: number): CadenceOutput {
   const videosPerMonth = Math.floor(budgetForVideos / COST.video_clip_5s);
   const imagesPerMonth = Math.floor(budgetForImages / COST.image_seedream);
 
-  // Distribute videos: 80% TikTok + 20% IG (reel) — TT prioritaire car
-  // c'est là que la vidéo paie le plus en reach.
-  const ttVideosMonth = Math.round(videosPerMonth * 0.80);
-  const igReelsMonth  = Math.max(0, videosPerMonth - ttVideosMonth);
+  // 2026-06-09 — Founder ask : le curseur doit VRAIMENT scaler avec
+  // le mix. Plus vers vidéo = plus de 3 TT/sem possibles. Marge baisse
+  // un peu mais reste ~80% objectif.
+  //
+  // Stratégie : on supprime les hard caps "tt_videos_per_week",
+  // "ig_reels_per_week" du plan et on laisse le budget driver le
+  // nombre. On garde des sanity caps anti-spam (~ratio max réaliste).
+  //
+  // Hard sanity caps (anti-spam, pas margin) :
+  //   TT vidéos    : max 2/jour soit 14/sem (algo anti-spam IG/TT)
+  //   IG reels     : max 1/jour soit 7/sem
+  //   IG posts     : max 3/jour soit 21/sem
+  //   LinkedIn     : max 2/jour soit 14/sem
 
-  // Distribute images: 70% IG feed + 30% LinkedIn (si plan le permet)
-  const liAllowed = (cap.li || 0) > 0;
-  const igImagesMonth = liAllowed ? Math.round(imagesPerMonth * 0.70) : imagesPerMonth;
-  const liImagesMonth = liAllowed ? imagesPerMonth - igImagesMonth : 0;
+  // Vidéos uniquement vers les réseaux actifs (TT prioritaire si actif)
+  let ttVideosMonth = 0;
+  let igReelsMonth = 0;
+  if (ttActive && igActive) {
+    ttVideosMonth = Math.round(videosPerMonth * 0.80);
+    igReelsMonth = videosPerMonth - ttVideosMonth;
+  } else if (ttActive) {
+    ttVideosMonth = videosPerMonth;
+  } else if (igActive) {
+    igReelsMonth = videosPerMonth;
+  }
+  // LinkedIn n'a pas de reel — vidéos = IG/TT uniquement
 
-  // Apply plan caps (hard limits)
-  const ttVideosPerWeek = Math.min(cap.tt_videos_per_week, Math.round(ttVideosMonth / 4.33));
-  const igReelsPerWeek  = Math.min(cap.ig_reels_per_week, Math.round(igReelsMonth / 4.33));
-  const igPostsPerWeek  = Math.min(cap.ig * 7, Math.round(igImagesMonth / 4.33));
-  const liPerWeek       = Math.min((cap.li || 0) * 7, Math.round(liImagesMonth / 4.33));
+  const liAllowed = liActive;
+  // Images distribuées entre réseaux actifs IG + LI uniquement
+  let igImagesMonth = 0;
+  let liImagesMonth = 0;
+  if (igActive && liActive) {
+    igImagesMonth = Math.round(imagesPerMonth * 0.70);
+    liImagesMonth = imagesPerMonth - igImagesMonth;
+  } else if (igActive) {
+    igImagesMonth = imagesPerMonth;
+  } else if (liActive) {
+    liImagesMonth = imagesPerMonth;
+  } else if (ttActive) {
+    // Cas Créateur LI+TT sans IG : TT photos = recycle (gratuit) +
+    // un peu de génération photo
+    igImagesMonth = 0;
+    liImagesMonth = 0;
+  }
+
+  // Budget-driven counts (no plan cap, sanity cap only)
+  const SANITY_TT_VIDS_PER_WEEK = 14;
+  const SANITY_IG_REELS_PER_WEEK = 7;
+  const SANITY_IG_POSTS_PER_WEEK = 21;
+  const SANITY_LI_PER_WEEK = 14;
+
+  const ttVideosPerWeek = ttActive ? Math.min(SANITY_TT_VIDS_PER_WEEK, Math.round(ttVideosMonth / 4.33)) : 0;
+  const igReelsPerWeek  = igActive ? Math.min(SANITY_IG_REELS_PER_WEEK, Math.round(igReelsMonth / 4.33)) : 0;
+  const igPostsPerWeek  = igActive ? Math.min(SANITY_IG_POSTS_PER_WEEK, Math.round(igImagesMonth / 4.33)) : 0;
+  const liPerWeek       = liActive ? Math.min(SANITY_LI_PER_WEEK, Math.round(liImagesMonth / 4.33)) : 0;
 
   // Per-day rounding (informational — clients see "1.5/jour" as "1-2/jour")
   const igPostsPerDay   = +(igPostsPerWeek / 7).toFixed(1);
@@ -173,23 +246,57 @@ function computeCadence(plan: string, videoRatio: number): CadenceOutput {
   const planCredits = PLAN_CREDITS[plan] ?? 0;
   const creditsPct = planCredits > 0 ? Math.round((creditsConsumed / planCredits) * 100) : 0;
   let creditsStatus: 'ok' | 'close' | 'exceeded' = 'ok';
-  if (creditsPct > 100) creditsStatus = 'exceeded';
-  else if (creditsPct >= 85) creditsStatus = 'close';
+  // Marge < 65% = block (équivalent dépassement crédits)
+  if (creditsPct > 100 || margin < 65) creditsStatus = 'exceeded';
+  else if (creditsPct >= 85 || margin < 75) creditsStatus = 'close';
+
+  // ─── Safe ancillary buffer ────────────────────────────────
+  // Founder rule 2026-06-09 : "619 cr restants me parait beaucoup —
+  // si client génère vidéos en autonomie on est vite hors marge —
+  // adapter + bloquer/upsell + gardefous".
+  //
+  // On distingue 3 zones dans les crédits restants :
+  //   - SAFE buffer : ce que le client peut consommer en studio
+  //     sans faire descendre la marge globale < 75%
+  //   - WARN buffer : entre 75% et 65% — upsell pack suggéré
+  //   - DANGER zone : sous 65% — block studio gen vidéo cher
+  //
+  // Calcul du SAFE buffer :
+  //   margeFloor = 75% -> coût max = revenue × 0.25
+  //   coûtPublication actuel = estCost (déjà calculé)
+  //   coûtAncillaryMax = revenue × 0.25 - estCost
+  //   safeBufferCredits = coûtAncillaryMax / coûtMoyenParCredit
+  const marginFloor75 = revenue * 0.25;   // cost max pour 75% margin
+  const marginFloor70 = revenue * 0.30;   // cost max pour 70% margin
+  const ancillaryBudget75 = Math.max(0, marginFloor75 - estCost);
+  const ancillaryBudget70 = Math.max(0, marginFloor70 - estCost);
+  // Coût moyen par crédit ancillary : mix image i2i (3cr=0.03€) +
+  // chat (1cr=0.0007€) + narration (2cr=0.01€) ≈ 0.012€/cr moyen.
+  const avgCostPerAncillaryCredit = 0.012;
+  const safeCredits = Math.round(ancillaryBudget75 / avgCostPerAncillaryCredit);
+  const warnCredits = Math.round(ancillaryBudget70 / avgCostPerAncillaryCredit);
+  const remainingCredits = Math.max(0, planCredits - creditsConsumed);
+  // Capper le "safe" au "vraiment restant" — pas la peine de dire
+  // qu'on a 500 cr safe si plan en a que 200 dispos
+  const safeBufferCredits = Math.min(remainingCredits, safeCredits);
+  const warnBufferCredits = Math.min(remainingCredits, warnCredits);
 
   const warnings: string[] = [];
-  if (estCost > ceiling) {
-    warnings.push(`Coût estimé ${estCost.toFixed(2)}€ dépasse le plafond ${ceiling}€ — quotas auto-cappés au plan.`);
+  if (tooManyNetworks) {
+    warnings.push(`Plan ${plan} : max ${maxNetworks} réseaux actifs simultanément. Désactive ${networks.length - maxNetworks} ou passe au plan Pro.`);
   }
-  if (videoRatio > 80 && plan === 'createur') {
-    warnings.push('Très fort ratio vidéo sur Créateur — la cadence images sera quasi-nulle.');
-  }
-  if (margin < 70) {
-    warnings.push(`Marge ${margin}% sous le seuil 70% — affiner le mix.`);
+  if (margin < 65) {
+    warnings.push(`Marge ${margin}% sous le seuil critique 65% — mix bloqué, ajuste ou upgrade.`);
+  } else if (margin < 75) {
+    warnings.push(`Marge ${margin}% sous l'objectif 80% — un pack ou un upgrade rétablirait le confort.`);
   }
   if (creditsStatus === 'exceeded') {
     warnings.push(`Ce mix consomme ${creditsConsumed} crédits/mois mais ton plan ne couvre que ${planCredits}. Prends un pack ou passe au plan supérieur.`);
   } else if (creditsStatus === 'close') {
     warnings.push(`Mix proche de la limite (${creditsPct}% de ton quota mensuel) — un pack te donnerait du confort.`);
+  }
+  if (videoRatio > 80 && plan === 'createur') {
+    warnings.push('Fort ratio vidéo : la cadence images devient nulle (revenir à 60-70% si tu veux garder du contenu image).');
   }
 
   return {
@@ -214,6 +321,9 @@ function computeCadence(plan: string, videoRatio: number): CadenceOutput {
     plan_credits_total: planCredits,
     credits_pct: creditsPct,
     credits_status: creditsStatus,
+    safe_buffer_credits: safeBufferCredits,
+    warn_buffer_credits: warnBufferCredits,
+    remaining_credits: remainingCredits,
     warnings,
   };
 }
@@ -222,11 +332,15 @@ export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const plan = (url.searchParams.get('plan') || 'createur').toLowerCase();
   const videoRatio = parseInt(url.searchParams.get('video_ratio') || '40', 10);
+  const networksParam = url.searchParams.get('networks');
+  const enabled_networks = networksParam
+    ? networksParam.split(',').map(s => s.trim().toLowerCase()) as ('instagram' | 'tiktok' | 'linkedin')[]
+    : undefined;
 
   if (!PLAN_COST_CEILING[plan]) {
     return NextResponse.json({ ok: false, error: 'plan inconnu' }, { status: 400 });
   }
 
-  const result = computeCadence(plan, videoRatio);
+  const result = computeCadence(plan, videoRatio, { enabled_networks });
   return NextResponse.json({ ok: true, ...result });
 }

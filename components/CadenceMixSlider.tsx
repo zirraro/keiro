@@ -35,6 +35,10 @@ interface Preview {
   plan_credits_total: number;
   credits_pct: number;
   credits_status: 'ok' | 'close' | 'exceeded';
+  safe_buffer_credits: number;
+  warn_buffer_credits: number;
+  remaining_credits: number;
+  margin_pct: number;
   warnings: string[];
 }
 
@@ -77,19 +81,50 @@ const LinkedInLogo = ({ size = 14 }: { size?: number }) => (
   </svg>
 );
 
+type Net = 'instagram' | 'tiktok' | 'linkedin';
+
 export default function CadenceMixSlider({ plan, initialRatio = 40, onApply, onBuyPack, onUpgradePlan }: Props) {
   const [ratio, setRatio] = useState(initialRatio);
+  const isCreateur = plan === 'createur';
+  // Default networks selon plan
+  const [enabledNets, setEnabledNets] = useState<Set<Net>>(() =>
+    new Set<Net>(isCreateur ? ['instagram', 'tiktok'] : ['instagram', 'tiktok', 'linkedin'])
+  );
   const [preview, setPreview] = useState<Preview | null>(null);
   const [applying, setApplying] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/agents/content/cadence-preview?plan=${plan}&video_ratio=${ratio}`)
+    const netsParam = Array.from(enabledNets).join(',');
+    fetch(`/api/agents/content/cadence-preview?plan=${plan}&video_ratio=${ratio}&networks=${netsParam}`)
       .then(r => r.json())
       .then((j: Preview) => { if (!cancelled && j.ok) setPreview(j); })
       .catch(() => {});
     return () => { cancelled = true; };
-  }, [plan, ratio]);
+  }, [plan, ratio, enabledNets]);
+
+  const toggleNet = (net: Net) => {
+    setEnabledNets(prev => {
+      const next = new Set(prev);
+      if (next.has(net)) {
+        if (next.size === 1) return next; // garder au moins 1 réseau
+        next.delete(net);
+      } else {
+        // Créateur : max 2 réseaux — désactiver le plus ancien si besoin
+        if (isCreateur && next.size >= 2) {
+          // Stratégie : conserver TikTok par défaut (priorité), désactiver l'autre
+          const toRemove: Net = net === 'tiktok'
+            ? (next.has('instagram') ? 'instagram' : 'linkedin')
+            : net === 'linkedin'
+              ? (next.has('instagram') ? 'instagram' : 'tiktok')
+              : (next.has('linkedin') ? 'linkedin' : 'tiktok');
+          next.delete(toRemove);
+        }
+        next.add(net);
+      }
+      return next;
+    });
+  };
 
   const cadence = preview?.cadence;
   const creditsConsumed = preview?.credits_consumed_per_month ?? 0;
@@ -137,10 +172,49 @@ export default function CadenceMixSlider({ plan, initialRatio = 40, onApply, onB
 
   return (
     <div className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-3">
+      {/* Network toggles — Créateur : 2 max, sinon upsell */}
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
+        <span className="text-[10px] uppercase tracking-wider text-white/40 mr-1">Réseaux actifs</span>
+        {(['instagram', 'tiktok', 'linkedin'] as Net[]).map(net => {
+          const active = enabledNets.has(net);
+          const Logo = net === 'instagram' ? <InstagramLogo size={12} />
+                     : net === 'tiktok'    ? <TikTokLogo size={12} />
+                     :                       <LinkedInLogo size={12} />;
+          return (
+            <button
+              key={net}
+              onClick={() => toggleNet(net)}
+              className={`inline-flex items-center gap-1 px-2 py-1 rounded-full border text-[10px] font-medium transition ${
+                active
+                  ? 'border-cyan-400/40 bg-cyan-500/10 text-cyan-300'
+                  : 'border-white/10 bg-white/[0.02] text-white/40 hover:text-white/70'
+              }`}
+            >
+              {Logo}
+              <span className="capitalize">{net === 'tiktok' ? 'TikTok' : net === 'linkedin' ? 'LinkedIn' : 'Insta'}</span>
+            </button>
+          );
+        })}
+        {isCreateur && (
+          <span className="text-[10px] text-white/40 ml-auto">
+            Max 2 réseaux (plan Créateur) — <button onClick={onUpgradePlan} className="text-cyan-400 hover:underline">Pro</button> pour les 3
+          </span>
+        )}
+      </div>
+
       {/* Title row + crédits envelope live (suit le curseur) */}
       <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
         <div className="flex items-center gap-2">
           <span className="text-[11px] font-semibold text-white/80">⚖️ Mix contenu</span>
+          {preview && (
+            <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+              preview.margin_pct >= 80 ? 'bg-emerald-500/10 text-emerald-300' :
+              preview.margin_pct >= 75 ? 'bg-amber-500/10 text-amber-300' :
+              'bg-red-500/10 text-red-300'
+            }`}>
+              {preview.margin_pct}% marge
+            </span>
+          )}
         </div>
         {preview && creditsTotal > 0 && (
           <div
@@ -210,6 +284,16 @@ export default function CadenceMixSlider({ plan, initialRatio = 40, onApply, onB
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Safe buffer ancillary — pas le "remaining" brut qui peut tuer la marge */}
+      {preview && preview.safe_buffer_credits > 0 && (
+        <div className="mb-3 px-2 py-1.5 rounded-lg bg-white/[0.03] border border-white/5 text-[10px] text-white/60">
+          💡 <strong className="text-emerald-300">{preview.safe_buffer_credits} crédits "safe"</strong> pour studio édition + chat sans toucher la marge.
+          {preview.warn_buffer_credits > preview.safe_buffer_credits && (
+            <span> · Au-delà jusqu'à {preview.warn_buffer_credits} cr, marge tombe à ~70% (upsell suggéré).</span>
+          )}
         </div>
       )}
 
