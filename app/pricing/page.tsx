@@ -500,7 +500,7 @@ function PricingPageInner() {
               <ul className="space-y-3 text-sm text-neutral-700">
                 <li><span className="font-semibold text-cyan-700">{locale === 'fr' ? 'C\u2019est comme...' : 'It\u2019s like...'}</span> {locale === 'fr' ? 'Avoir une équipe marketing complète à temps plein' : 'Having a full-time complete marketing team'}</li>
                 <li><span className="font-semibold text-cyan-700">{locale === 'fr' ? 'Ça remplace...' : 'It replaces...'}</span> {locale === 'fr' ? 'Un graphiste (800\u20AC) + un CM (1 500\u20AC) + un comptable (200\u20AC) + 3 outils SaaS' : 'A designer (\u20AC800) + a CM (\u20AC1,500) + an accountant (\u20AC200) + 3 SaaS tools'}</li>
-                <li><span className="font-semibold text-cyan-700">{locale === 'fr' ? 'En concret...' : 'Concretely...'}</span> {locale === 'fr' ? '15+ agents, CRM, finance, juridique, chatbot, 4 500 crédits/mois' : '15+ agents, CRM, finance, legal, chatbot, 4,500 credits/month'}</li>
+                <li><span className="font-semibold text-cyan-700">{locale === 'fr' ? 'En concret...' : 'Concretely...'}</span> {locale === 'fr' ? '15+ agents, CRM, finance, juridique, chatbot, 6 000 crédits/mois' : '15+ agents, CRM, finance, legal, chatbot, 6,000 credits/month'}</li>
                 <li><span className="font-semibold text-cyan-700">{locale === 'fr' ? 'C\u2019est rentabilisé si...' : 'It pays for itself with...'}</span> {locale === 'fr' ? '3 clients en plus par mois (restaurant) / 2 ventes (boutique)' : '3 extra clients/month (restaurant) / 2 sales (shop)'}</li>
               </ul>
             </div>

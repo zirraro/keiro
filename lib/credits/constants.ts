@@ -202,11 +202,14 @@ export function getPlanQuotas(plan: string | null | undefined) {
 // BUSINESS (199 EUR, pool 4500 cr) : multi-account + vidéos 15-30s.
 export const PLAN_CREDITS: Record<string, number> = {
   free: 20,
-  createur: 1000,      // 375 publications + 625 buffer (studio/chat/gen libre)
-  pro: 2000,           // 890 publications + 1110 buffer
-  fondateurs: 3000,    // Tier intermédiaire
-  business: 4500,      // Multi-account + headroom large
-  elite: 6000,         // Legacy
+  // 2026-06-09 recalibrage après bump CREDIT_COSTS (video 5s 15→40,
+  // 10s 25→65, 15s 35→95). Les pools doivent suivre pour que la
+  // cadence cible reste sustainable au mix 50% (~80% pool).
+  createur: 1000,      // 5s vids : 50% mix = ~990 cr (99% pool) - close → pack
+  pro: 3000,           // 10s vids : 50% mix = ~2400 cr (80% pool) - confort
+  fondateurs: 4000,    // tier intermédiaire
+  business: 6000,      // 15s vids + multi-account
+  elite: 8000,         // Legacy
   agence: 999999,      // Sur devis
   admin: 999999,
   // Deprecated plans (kept for existing user data)

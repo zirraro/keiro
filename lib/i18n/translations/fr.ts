@@ -258,7 +258,7 @@ export const fr: Translations = {
       '1 000 crédits/mois (publi + création libre + chat)',
     ],
     planProTitle: 'Pro',
-    planProSubtitle: '2 000 crédits/mois — TPE & entrepreneur ambitieux',
+    planProSubtitle: '3 000 crédits/mois — TPE & entrepreneur ambitieux',
     planProBullets: [
       '<strong>Tous les agents actifs</strong> : Léna, Jade, Hugo, Léo, Théo, Ami, Clara',
       'Tout Créateur +',
@@ -268,7 +268,7 @@ export const fr: Translations = {
       'Hugo emails de prospection avec stratégie adaptative',
       'Théo : réputation Google + SEO local et online',
       '~240 prospects qualifiés/mois via Léo',
-      '2 000 crédits/mois (large buffer studio + chat)',
+      '3 000 crédits/mois (large buffer studio + chat)',
     ],
     planFondateursTitle: 'Fondateurs',
     planFondateursSubtitle: '= Accès Business complet — jusqu\'au 25 mai 2026, prix verrouillé',
@@ -279,10 +279,10 @@ export const fr: Translations = {
       'Multi-comptes (1+3)',
       'Appel onboarding + support prioritaire',
       'Prix verrouillé à vie (jusqu\'au 25 mai 2026)',
-      '3 000 crédits/mois',
+      '4 000 crédits/mois',
     ],
     planBusinessTitle: 'Business',
-    planBusinessSubtitle: '4 500 crédits — PME, agence, multi-points de vente',
+    planBusinessSubtitle: '6 000 crédits — PME, agence, multi-points de vente',
     planBusinessBullets: [
       '<strong>Tous les agents actifs</strong> avec priorité sur les nouveaux',
       'Tout Pro +',
@@ -290,7 +290,7 @@ export const fr: Translations = {
       'Multi-comptes (1+5) — gère plusieurs commerces depuis un seul espace',
       'Vidéos longues format (45s, 60s, 90s)',
       'Support prioritaire dédié',
-      '4 500 crédits/mois',
+      '6 000 crédits/mois',
     ],
     // Elite plan retired May 2026 — replaced by Agence/Sur devis below.
     // Bullets kept for legacy clients grandfathered into the old plan.
