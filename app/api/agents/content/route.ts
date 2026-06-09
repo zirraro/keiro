@@ -2750,10 +2750,16 @@ export async function POST(request: NextRequest) {
       case 'set_video_ratio': {
         // 2026-06-09 — Le client pose son curseur image/vidéo dans le
         // panel. On persiste dans org_agent_configs.config.video_ratio
-        // pour que la prochaine generate_weekly l'utilise.
+        // ET on applique INSTANTANÉMENT :
+        //   1. Cancel les approved posts dated > today (le planning
+        //      doit refléter le nouveau mix dès le lendemain).
+        //   2. Trigger async generate_weekly weeks=1 pour recréer.
+        //      Le prochain publish_scheduled cron prendra les nouveaux.
         const ratioRaw = parseInt(String(body.video_ratio ?? body.ratio ?? '40'), 10);
         const ratio = Math.max(0, Math.min(100, isNaN(ratioRaw) ? 40 : ratioRaw));
         if (!userId) return NextResponse.json({ ok: false, error: 'no user' }, { status: 401 });
+
+        // 1. Persist new ratio
         const { data: existing } = await supabase
           .from('org_agent_configs')
           .select('id, config')
@@ -2773,7 +2779,55 @@ export async function POST(request: NextRequest) {
             config: { video_ratio: ratio },
           });
         }
-        return NextResponse.json({ ok: true, video_ratio: ratio });
+
+        // 2. "Cancel" future approved posts (date > today) → on les
+        //    bascule en status='draft' et on les TAGUE comme banque
+        //    visuelle réutilisable. Les visuels générés sont gardés :
+        //    Léna peut les recycler plus tard pour CE client ou comme
+        //    inspiration cross-client (visual_reuse pool).
+        //    Founder rule 2026-06-09 : "garder pour utilisation
+        //    ulterieure ou generation reel pour les autres clients".
+        const todayStr = new Date().toISOString().split('T')[0];
+        const { data: parked, error: cancelErr } = await supabase
+          .from('content_calendar')
+          .update({
+            status: 'draft',
+            qa_notes: `parked_for_video_ratio_change_to_${ratio}pct — visual asset reusable`,
+            source: 'parked_by_mix_change',
+          })
+          .eq('user_id', userId)
+          .eq('status', 'approved')
+          .gt('scheduled_date', todayStr)
+          .select('id, visual_url, format');
+        const parkedCount = parked?.length || 0;
+        if (cancelErr) {
+          console.warn('[Content] set_video_ratio park error:', cancelErr.message);
+        }
+
+        // 3. Trigger async generate_weekly (fire-and-forget). On clone
+        //    la request avec un cookie d'auth pour que l'endpoint
+        //    voit le user.
+        try {
+          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `https://${request.headers.get('host')}`;
+          const cookieHeader = request.headers.get('cookie') || '';
+          // Fire and forget — l'admin verra l'updated planning à l'ouverture
+          fetch(`${baseUrl}/api/agents/content`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'cookie': cookieHeader,
+            },
+            body: JSON.stringify({ action: 'generate_weekly', weeks: 1 }),
+          }).catch(() => { /* swallow — best effort */ });
+        } catch { /* swallow */ }
+
+        return NextResponse.json({
+          ok: true,
+          video_ratio: ratio,
+          parked_future_posts: parkedCount,
+          regeneration_triggered: true,
+          message: `Mix ${ratio}% vidéo appliqué — ${parkedCount} post(s) futurs basculés en draft (visuels gardés pour réutilisation), Léna régénère les 7 prochains jours en arrière-plan.`,
+        });
       }
 
       case 'generate_weekly': {
@@ -4415,7 +4469,38 @@ async function generateWeekWithVisuals(supabase: any, publishAll: boolean, orgId
     }
   }
 
-  const prompt = getWeeklyPlanPrompt({ existingPlanned }) + visualDedupContext + knowledgeBlock;
+  // 2026-06-09 — Cadence mix : on lit le curseur image/vidéo du client
+  // et on instruit Léna directement dans le prompt.
+  let cadenceBlock = '';
+  if (userId) {
+    try {
+      const { data: cfgRow } = await supabase
+        .from('org_agent_configs')
+        .select('config')
+        .eq('user_id', userId)
+        .eq('agent_id', 'content')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const videoRatio = ((cfgRow as any)?.config?.video_ratio ?? 40) as number;
+      const { resolveEffectivePlan } = await import('@/lib/credits/plan-budget-guard');
+      const effectivePlan = await resolveEffectivePlan(supabase, userId, 'content');
+      // Récupère le preview de cadence pour l'injecter en chiffres concrets
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      try {
+        const previewRes = await fetch(`${baseUrl}/api/agents/content/cadence-preview?plan=${effectivePlan}&video_ratio=${videoRatio}`);
+        const preview = await previewRes.json();
+        if (preview.ok) {
+          const c = preview.cadence;
+          cadenceBlock = `\n## CADENCE OBLIGATOIRE (plan ${effectivePlan}, mix ${videoRatio}% vidéo)\n\nRespecte STRICTEMENT cette répartition sur la semaine :\n- Instagram : ${c.ig_posts_per_week} posts feed + ${c.ig_reels_per_week} reel(s) + 1 story/jour (recycle)\n- TikTok : ${c.tt_videos_per_week} vidéo(s) + 1 photo mode/jour (recycle)\n- LinkedIn : ${c.linkedin_per_week} post(s)/semaine ${c.linkedin_per_week === 0 ? '(LinkedIn DÉSACTIVÉ pour ce plan)' : ''}\n\nNE GÉNÈRE PAS plus que ces quantités. Si LinkedIn = 0, NE crée AUCUN post LinkedIn.\n`;
+        }
+      } catch { /* fallback: no cadence block */ }
+    } catch (e: any) {
+      console.warn('[Content] cadence injection failed:', e?.message);
+    }
+  }
+
+  const prompt = getWeeklyPlanPrompt({ existingPlanned }) + visualDedupContext + cadenceBlock + knowledgeBlock;
   const systemPrompt = getContentSystemPrompt();
 
   let rawText: string;
