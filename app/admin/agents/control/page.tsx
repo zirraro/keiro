@@ -58,6 +58,7 @@ export default function AdminAgentsControlIndex() {
   const [loading, setLoading] = useState(true);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [alertsSummary, setAlertsSummary] = useState<{ p0: number; p1: number; p2: number; total: number }>({ p0: 0, p1: 0, p2: 0, total: 0 });
+  const [auditCounts, setAuditCounts] = useState<Record<string, { open: number; total: number; red: number }>>({});
 
   const loadAlerts = useCallback(async () => {
     try {
@@ -99,6 +100,22 @@ export default function AdminAgentsControlIndex() {
       setSummaries(out);
       setLoading(false);
       loadAlerts();
+      // Aggregate audit counts per agent in one go
+      try {
+        const r = await fetch('/api/admin/agents/audit?limit=500', { credentials: 'include' });
+        if (r.ok) {
+          const j = await r.json();
+          const counts: Record<string, { open: number; total: number; red: number }> = {};
+          for (const a of (j.audits || []) as any[]) {
+            if (!a.agent) continue;
+            counts[a.agent] = counts[a.agent] || { open: 0, total: 0, red: 0 };
+            counts[a.agent].total += 1;
+            if (a.status === 'open') counts[a.agent].open += 1;
+            if (a.severity === 'red') counts[a.agent].red += 1;
+          }
+          setAuditCounts(counts);
+        }
+      } catch { /* swallow */ }
     })();
     // Auto-refresh alerts every 60s
     const interval = setInterval(loadAlerts, 60000);
@@ -116,6 +133,21 @@ export default function AdminAgentsControlIndex() {
           </div>
           <a href="/admin/cost-margin" className="px-3 py-2 text-xs rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white">💰 Cost vs Margin</a>
           <a href="/admin/agents/reports" className="px-3 py-2 text-xs rounded-lg bg-white/10 hover:bg-white/15 text-white">📊 Rapports détaillés</a>
+          <button
+            onClick={async () => {
+              const r = await fetch('/api/admin/agents/audit-batch', {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ agent: 'content', filter: 'red' }),
+              });
+              const j = await r.json();
+              if (j.ok) alert(`Audit batch: ${j.processed} clients RED auditeé\nDétails: RED ${j.breakdown.red} · AMBER ${j.breakdown.amber} · GREEN ${j.breakdown.green}`);
+              else alert(`Erreur: ${j.error}`);
+            }}
+            className="px-3 py-2 text-xs rounded-lg bg-purple-600 hover:bg-purple-700 text-white"
+            title="Lance un audit immédiat sur tous les clients RED Léna (proxy pour test rapide)"
+          >🔍 Audit batch Léna RED</button>
         </div>
 
         {/* 🚨 Live alerts panel — refreshed every 60s */}
@@ -178,11 +210,16 @@ export default function AdminAgentsControlIndex() {
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="text-2xl">{a.emoji}</div>
-                  {s && s.total_errors_24h > 0 && (
-                    <span className="text-[10px] bg-red-500/20 text-red-300 border border-red-500/30 rounded-full px-2 py-0.5 font-bold">
-                      {s.total_errors_24h} erreur{s.total_errors_24h > 1 ? 's' : ''}
-                    </span>
-                  )}
+                  <div className="flex gap-1 flex-wrap">
+                    {auditCounts[a.id]?.open > 0 && (
+                      <span className="text-[10px] bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded-full px-2 py-0.5 font-bold" title={`${auditCounts[a.id].open} audit(s) ouvert(s) sur ${auditCounts[a.id].total} total`}>🔍 {auditCounts[a.id].open}</span>
+                    )}
+                    {s && s.total_errors_24h > 0 && (
+                      <span className="text-[10px] bg-red-500/20 text-red-300 border border-red-500/30 rounded-full px-2 py-0.5 font-bold">
+                        {s.total_errors_24h} err
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <h2 className="text-sm font-bold text-white">{a.name}</h2>
                 <p className="text-[11px] text-white/50 mt-0.5 mb-2">{a.description}</p>
