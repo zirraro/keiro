@@ -162,47 +162,39 @@ function computeCadence(plan: string, videoRatio: number, opts: ComputeOpts = {}
   //   IG posts     : max 2/jour soit 14/sem (au-delà = sature feed)
   //   LinkedIn     : max 1/jour soit 7/sem (algo LI pénalise spam pro)
 
-  // Vidéos uniquement vers les réseaux actifs (TT prioritaire si actif)
-  let ttVideosMonth = 0;
-  let igReelsMonth = 0;
-  if (ttActive && igActive) {
-    ttVideosMonth = Math.round(videosPerMonth * 0.80);
-    igReelsMonth = videosPerMonth - ttVideosMonth;
-  } else if (ttActive) {
-    ttVideosMonth = videosPerMonth;
-  } else if (igActive) {
-    igReelsMonth = videosPerMonth;
-  }
-  // LinkedIn n'a pas de reel — vidéos = IG/TT uniquement
+  // 2026-06-09 v3 — Plan-aware caps + scaling par ratio.
+  // Founder rule : "à 50% mix Créateur = 7 IG posts + 3 TT reels +
+  // stories, pas 14 IG. Pro = multi-publi par jour, Créateur = 1/jour".
+  //
+  // Modèle :
+  //   - Quota TOTAL par réseau = cap.X × 7 (1/jour Créateur, 2/jour Pro)
+  //   - Mix distribue entre vidéo/image DANS ce quota
+  //   - TT vidéos prioritaires (TT = plateforme native vidéo)
+  //   - IG reels kick in seulement après 50% video_ratio
+  //   - Stories = cap.stories_X × 7 (recycle gratuit, quotidien)
 
+  const ratioForTT = Math.min(1, videoRatio / 50);            // max TT vids dès 50%
+  const ratioForIGReel = Math.max(0, (videoRatio - 50) / 50); // IG reels à partir de 50%
+
+  // TT : quota total = cap.tt × 7, dont vidéos = ratio × cap.tt_videos
+  const ttVideosPerWeek = ttActive ? Math.round(cap.tt_videos_per_week * ratioForTT) : 0;
+
+  // IG reels seulement au-dessus 50% (avant TT capture tout)
+  const igReelsPerWeek = igActive ? Math.round(cap.ig_reels_per_week * ratioForIGReel) : 0;
+
+  // IG posts = quota IG total moins reels (le total publi/jour reste constant)
+  const igTotalWeekly = cap.ig * 7;
+  const igPostsPerWeek = igActive ? Math.max(0, igTotalWeekly - igReelsPerWeek) : 0;
+
+  // LinkedIn cap.li × 7 si actif
+  const liPerWeek = liActive ? cap.li * 7 : 0;
+
+  // Compteurs mensuels (informational)
+  const ttVideosMonth = ttVideosPerWeek * 4.33;
+  const igReelsMonth = igReelsPerWeek * 4.33;
+  const igImagesMonth = igPostsPerWeek * 4.33;
+  const liImagesMonth = liPerWeek * 4.33;
   const liAllowed = liActive;
-  // Images distribuées entre réseaux actifs IG + LI uniquement
-  let igImagesMonth = 0;
-  let liImagesMonth = 0;
-  if (igActive && liActive) {
-    igImagesMonth = Math.round(imagesPerMonth * 0.70);
-    liImagesMonth = imagesPerMonth - igImagesMonth;
-  } else if (igActive) {
-    igImagesMonth = imagesPerMonth;
-  } else if (liActive) {
-    liImagesMonth = imagesPerMonth;
-  } else if (ttActive) {
-    // Cas Créateur LI+TT sans IG : TT photos = recycle (gratuit) +
-    // un peu de génération photo
-    igImagesMonth = 0;
-    liImagesMonth = 0;
-  }
-
-  // Budget-driven counts (no plan cap, sanity cap only)
-  const SANITY_TT_VIDS_PER_WEEK = 10;
-  const SANITY_IG_REELS_PER_WEEK = 7;
-  const SANITY_IG_POSTS_PER_WEEK = 14;
-  const SANITY_LI_PER_WEEK = 7;
-
-  const ttVideosPerWeek = ttActive ? Math.min(SANITY_TT_VIDS_PER_WEEK, Math.round(ttVideosMonth / 4.33)) : 0;
-  const igReelsPerWeek  = igActive ? Math.min(SANITY_IG_REELS_PER_WEEK, Math.round(igReelsMonth / 4.33)) : 0;
-  const igPostsPerWeek  = igActive ? Math.min(SANITY_IG_POSTS_PER_WEEK, Math.round(igImagesMonth / 4.33)) : 0;
-  const liPerWeek       = liActive ? Math.min(SANITY_LI_PER_WEEK, Math.round(liImagesMonth / 4.33)) : 0;
 
   // Per-day rounding (informational — clients see "1.5/jour" as "1-2/jour")
   const igPostsPerDay   = +(igPostsPerWeek / 7).toFixed(1);

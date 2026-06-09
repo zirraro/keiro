@@ -462,6 +462,7 @@ async function generateVisual(visualDescription: string, format: string, userIdF
     // carrousel, post = 1:1 (1920x1920 = 3,686,400)
 
     console.log(`[Content] Generating visual with Seedream (${width}x${height})...`);
+    const _seedreamStart = Date.now();
 
     const seedreamRes = await fetch(SEEDREAM_API_URL, {
       method: 'POST',
@@ -492,6 +493,22 @@ async function generateVisual(visualDescription: string, format: string, userIdF
 
     const seedreamData = await seedreamRes.json();
     const tempUrl = seedreamData.data?.[0]?.url || null;
+
+    // 2026-06-09 — log cost (fire-and-forget)
+    if (tempUrl) {
+      try {
+        const { logApiCost, PROVIDER_EUR } = await import('@/lib/admin/api-cost-logger');
+        logApiCost({
+          provider: 'seedream',
+          kind: 'image_gen',
+          units: 1,
+          cost_eur: PROVIDER_EUR.seedream_image,
+          user_id: userIdForReuse || null,
+          agent: 'content',
+          metadata: { width, height, format, duration_ms: Date.now() - _seedreamStart },
+        }).catch(() => {});
+      } catch { /* silent */ }
+    }
 
     if (!tempUrl) {
       console.warn('[Content] Seedream returned no image URL');
@@ -1505,6 +1522,19 @@ Output UNIQUEMENT le prompt vidéo, rien d'autre.`,
         if (result.status === 'completed' && result.videoUrl) {
           videoUrl = result.videoUrl;
           console.log(`[Content] Kling T2V completed: ${videoUrl.substring(0, 80)}...`);
+          // 2026-06-09 — log cost
+          try {
+            const { logApiCost, PROVIDER_EUR } = await import('@/lib/admin/api-cost-logger');
+            const cost = duration >= 10 ? PROVIDER_EUR.kling_10s : PROVIDER_EUR.kling_5s;
+            logApiCost({
+              provider: 'kling',
+              kind: duration >= 10 ? 'video_10s' : 'video_5s',
+              units: 1,
+              cost_eur: cost,
+              agent: 'content',
+              metadata: { duration, taskId: klingTaskId },
+            }).catch(() => {});
+          } catch { /* silent */ }
           break;
         }
         if (result.status === 'failed') {

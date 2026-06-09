@@ -103,6 +103,19 @@ export async function callLlmWithFallback(opts: LlmCallOptions): Promise<LlmCall
     if (res.ok) {
       const data = await res.json();
       const text = (data.content?.[0]?.text || '').trim();
+      // 2026-06-09 — instrument cost (fire-and-forget)
+      try {
+        const { logApiCost, anthropicCostEur } = await import('@/lib/admin/api-cost-logger');
+        const modelKind = claudeModel.includes('haiku') ? 'haiku' : claudeModel.includes('opus') ? 'opus' : 'sonnet';
+        const costEur = anthropicCostEur(data.usage || {}, modelKind as any);
+        logApiCost({
+          provider: 'anthropic',
+          kind: `${modelKind}_${(data.usage?.cache_read_input_tokens || 0) > 0 ? 'cached' : 'fresh'}`,
+          units: (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0),
+          cost_eur: costEur,
+          metadata: { model: claudeModel, usage: data.usage },
+        }).catch(() => {});
+      } catch { /* silent */ }
       return { text, provider: 'anthropic', modelUsed: claudeModel, durationMs: Date.now() - start };
     }
 
