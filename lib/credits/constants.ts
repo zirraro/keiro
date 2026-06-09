@@ -157,19 +157,39 @@ export function getPlanQuotas(plan: string | null | undefined) {
   return PLAN_QUOTAS[key] || PLAN_QUOTAS.free;
 }
 
-// Crédits par plan — Grille mai 2026 (rev pour cadence vidéo TikTok)
-// Logique : chaque plan doit financer 3-4 vidéos TikTok par semaine
-// (réutilisées en Reels Instagram, donc 1 generation = 2 publications)
-// + des images supplémentaires + les actions des agents inclus.
-// Marge cible ~80% sur agrégat. Voir PLAN_QUOTAS pour le détail.
+// Crédits par plan — Grille juin 2026 (recalibrée founder ask 2026-06-09).
+//
+// PRINCIPE : le pool doit couvrir A) publications (valeur principale),
+// B) studio édition (i2i, retouches), C) agent chat / suggestions, D)
+// génération libre. Marge cible 80% sur publications, légère baisse
+// acceptée si le client pousse sur les usages annexes.
+//
+// CRÉATEUR (49 EUR, pool 1000 cr) — calibrage 2026-06-09 :
+//   Publications target (3 TT reels 5s + 1 IG reel 5s + 1 IG/jour) :
+//     - 13 TT vids/mois × 15 cr (video_5s) = 195 cr
+//     - 4 IG reels/mois × 15 cr             = 60 cr
+//     - 30 IG posts/mois × 4 cr             = 120 cr
+//     - Stories recycle (gratuit)           = 0 cr
+//     ≈ 375 cr publications (37.5% du pool)
+//   Reste 625 cr pour studio, chat, gen libre.
+//   Coût réel publi : ~6.62 EUR/mois + 1.50 briefs + 1.94 fixes = ~10.06
+//   Marge : (49 - 10.06) / 49 ≈ 80.5% ✓
+//
+// PRO (99 EUR, pool 2000 cr) :
+//   4 TT vids/sem en 10s (25 cr) = 17 × 25 = 425 cr
+//   2 IG reels/sem en 10s        = 9 × 25 = 225 cr
+//   60 IG posts/mois             = 240 cr
+//   ≈ 890 cr publications, 1110 pour annexe.
+//
+// BUSINESS (199 EUR, pool 4500 cr) : multi-account + vidéos 15-30s.
 export const PLAN_CREDITS: Record<string, number> = {
   free: 20,
-  createur: 600,       // ~3 vids/sem + 60 images = ~600 cr
-  pro: 1500,           // ~4-5 vids/sem + 150 images + actions = ~1500 cr
-  fondateurs: 2500,    // Tier intermédiaire (early adopters)
-  business: 3500,      // ~5+ vids/sem + 400 images + multi-account
-  elite: 6000,         // Plan retiré pour les nouveaux signups — kept for legacy
-  agence: 999999,      // Sur devis — illimité
+  createur: 1000,      // 375 publications + 625 buffer (studio/chat/gen libre)
+  pro: 2000,           // 890 publications + 1110 buffer
+  fondateurs: 3000,    // Tier intermédiaire
+  business: 4500,      // Multi-account + headroom large
+  elite: 6000,         // Legacy
+  agence: 999999,      // Sur devis
   admin: 999999,
   // Deprecated plans (kept for existing user data)
   sprint: 120,

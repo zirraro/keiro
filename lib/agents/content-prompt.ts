@@ -189,11 +189,14 @@ CHOIX DU FORMAT PAR SUJET (briefé dans 'format' du JSON) :
   - Comparaison "avant/après" multi-points → carrousel 4-7 slides
   - Annonce simple / phrase choc visuelle → photo unique (rare)
 
-RESPECT BUDGET CRÉDITS :
-  - Plan CRÉATEUR (€49) : max 1 vidéo TT/jour, durée ≤ 15s par défaut, 30s si l'angle le justifie absolument
-  - Plan PRO (€99) : 1-2 vidéos TT/jour, durée libre 7-60s selon brief
-  - Plan BUSINESS+ : free
-  Si tu dépasses, le système downgrade en photo automatiquement → tu perds en performance. Aligne le format demandé sur le crédit dispo.
+RESPECT BUDGET CRÉDITS — DURÉE VIDÉO PAR PLAN (founder rule 2026-06-09) :
+  - Plan CRÉATEUR (€49) : 3 vidéos TT/sem MAX, durée DÉFAUT 5s (TT FYP-optimisé).
+    Permettre 10s uniquement si l'angle l'exige ABSOLUMENT (storytelling fort)
+    et compter dans le budget (1 vidéo 10s = 25 cr au lieu de 15 cr).
+  - Plan PRO (€99) : 4-5 vidéos TT/sem, durée DÉFAUT 10s, 15s si brief le justifie.
+  - Plan BUSINESS+ : durée libre 7-60s selon brief.
+  Si tu dépasses le pool crédits, le système skip ou downgrade automatiquement.
+  Pour Créateur : préférer 5s + transitions punchy aux longues durées molles.
 
 PRIORITÉ HOOK PREMIERE SECONDE (vidéo) :
   Les TikTok < 1s de watch-time décrochent → JAMAIS de fade-in, JAMAIS de bumper "Aujourd'hui je vais vous parler de". Toujours :

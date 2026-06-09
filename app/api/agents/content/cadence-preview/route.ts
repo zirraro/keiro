@@ -143,14 +143,27 @@ function computeCadence(plan: string, videoRatio: number): CadenceOutput {
   const margin = revenue > 0 ? Math.round(((revenue - estCost) / revenue) * 100) : 0;
 
   // ─── Credit consumption per month (client-facing) ─────────
-  // Convention :
-  //   image_t2i = 4 cr (toute nouvelle image gen IG/LI/TT)
-  //   video_15s = 35 cr (reels/vidéos par défaut 15s)
-  //   stories recycle / TT photo recycle = 0 cr (la lib existe)
-  //   briefs LLM = négligeable côté crédits client
+  // Convention 2026-06-09 :
+  //   - image_t2i = 4 cr (toute nouvelle image)
+  //   - Durée vidéo par défaut DÉPEND DU PLAN :
+  //       Créateur → 5s (15 cr) - optimisé TT FYP
+  //       Pro      → 10s (25 cr)
+  //       Business+ → 15s (35 cr)
+  //   - Stories recycle / TT photo recycle = 0 cr (la lib existe)
+  //   - briefs LLM = négligeable côté crédits client
   // On compte les NOUVELLES générations seulement, pas les recycles.
-  const creditsPerImage = CREDIT_COSTS.image_t2i;     // 4
-  const creditsPerVideo = CREDIT_COSTS.video_15s;     // 35
+  const creditsPerImage = CREDIT_COSTS.image_t2i;        // 4
+  const creditsPerVideoByPlan: Record<string, number> = {
+    free: CREDIT_COSTS.video_5s,           // 15
+    createur: CREDIT_COSTS.video_5s,       // 15 — duré 5s par défaut
+    pro: CREDIT_COSTS.video_10s,           // 25 — durée 10s
+    fondateurs: CREDIT_COSTS.video_10s,    // 25
+    business: CREDIT_COSTS.video_15s,      // 35 — durée 15s
+    elite: CREDIT_COSTS.video_15s,         // 35
+    agence: CREDIT_COSTS.video_30s,        // 50
+    admin: CREDIT_COSTS.video_5s,
+  };
+  const creditsPerVideo = creditsPerVideoByPlan[plan] ?? CREDIT_COSTS.video_5s;
   const creditsConsumed = Math.round(
     igPostsPerWeek  * 4.33 * creditsPerImage +
     igReelsPerWeek  * 4.33 * creditsPerVideo +
