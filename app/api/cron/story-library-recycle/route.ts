@@ -160,7 +160,7 @@ async function recycleForUser(
           hashtags: [],
           visual_url: asset.url,
           scheduled_date: at.toISOString().split('T')[0],
-          scheduled_time: at.toISOString(),
+          scheduled_time: at.toISOString().split('T')[1].substring(0, 8), // HH:MM:SS
           status: 'approved',
           auto_publish: true,
           source: 'story_library_recycle',
@@ -204,7 +204,7 @@ async function recycleForUser(
           hashtags: ['#fyp', '#pourtoi'],
           visual_url: asset.url,
           scheduled_date: at.toISOString().split('T')[0],
-          scheduled_time: at.toISOString(),
+          scheduled_time: at.toISOString().split('T')[1].substring(0, 8), // HH:MM:SS
           status: 'approved',
           auto_publish: true,
           source: 'story_library_recycle',
