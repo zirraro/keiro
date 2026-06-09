@@ -20,6 +20,7 @@ import { supabaseBrowser } from '@/lib/supabase/client';
 import { useLanguage } from '@/lib/i18n/context';
 import { sampleFor } from '@/lib/meta/sample-insights';
 import type { PanelProps } from './types';
+import CadenceMixSlider from '@/components/CadenceMixSlider';
 
 // ─── Inline Editorial Calendar for Content Agent ─────────────
 function ContentCalendarInline({ posts, onSelectPost }: { posts: any[]; onSelectPost: (p: any) => void }) {
@@ -859,6 +860,34 @@ export function ContentPanel({ data, agentName, gradientFrom, gradientTo }: Pane
           {weeklyToast.msg}
         </div>
       )}
+
+      {/* 2026-06-09 — Slider mix image/vidéo. Le client pose son curseur,
+          Léna recalcule la cadence + le coût + la marge en direct. */}
+      <div className="mb-3">
+        <CadenceMixSlider
+          plan={((data as any).clientPlan || 'createur').toLowerCase()}
+          initialRatio={((data as any).contentVideoRatio as number) || 40}
+          onApply={async (ratio) => {
+            try {
+              const res = await fetch('/api/agents/content', {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'set_video_ratio', video_ratio: ratio }),
+              });
+              const j = await res.json();
+              if (j.ok) {
+                setWeeklyToast({ kind: 'ok', msg: `✓ Mix ${ratio}% vidéo appliqué — la prochaine planification s'adaptera.` });
+              } else {
+                setWeeklyToast({ kind: 'err', msg: `Erreur : ${j.error || 'inconnu'}` });
+              }
+            } catch (e: any) {
+              setWeeklyToast({ kind: 'err', msg: e?.message || 'set failed' });
+            }
+            setTimeout(() => setWeeklyToast(null), 6000);
+          }}
+        />
+      </div>
 
       {/* 2026-06-06 — Founder ask: planning toggle "Valider les publications".
           When ON (default), client validates each post manually (Meta-compliant

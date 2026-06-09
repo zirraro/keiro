@@ -2747,6 +2747,35 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ ok: true, publish_mode: mode });
       }
 
+      case 'set_video_ratio': {
+        // 2026-06-09 — Le client pose son curseur image/vidéo dans le
+        // panel. On persiste dans org_agent_configs.config.video_ratio
+        // pour que la prochaine generate_weekly l'utilise.
+        const ratioRaw = parseInt(String(body.video_ratio ?? body.ratio ?? '40'), 10);
+        const ratio = Math.max(0, Math.min(100, isNaN(ratioRaw) ? 40 : ratioRaw));
+        if (!userId) return NextResponse.json({ ok: false, error: 'no user' }, { status: 401 });
+        const { data: existing } = await supabase
+          .from('org_agent_configs')
+          .select('id, config')
+          .eq('user_id', userId)
+          .eq('agent_id', 'content')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (existing?.id) {
+          const newConfig = { ...((existing as any).config || {}), video_ratio: ratio };
+          await supabase.from('org_agent_configs').update({ config: newConfig }).eq('id', (existing as any).id);
+        } else {
+          await supabase.from('org_agent_configs').insert({
+            user_id: userId,
+            agent_id: 'content',
+            is_enabled: true,
+            config: { video_ratio: ratio },
+          });
+        }
+        return NextResponse.json({ ok: true, video_ratio: ratio });
+      }
+
       case 'generate_weekly': {
         // 2026-06-04 — Founder ask : "on choisi 7 jours 14 et 21 et 30
         // engros 1 semaine 2 smeaines 3 semaines et le mois entier".

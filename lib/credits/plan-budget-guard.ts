@@ -141,7 +141,7 @@ export interface PlanCadence {
 
 export const PLAN_DAILY_PUBLISH: Record<string, PlanCadence> = {
   free:       { ig: 0, tt: 0, li: 0, stories_ig: 0, stories_tt: 0, ig_reels_per_week: 0, tt_videos_per_week: 0 },
-  createur:   { ig: 1, tt: 1, li: 0, stories_ig: 1, stories_tt: 1, ig_reels_per_week: 1, tt_videos_per_week: 2 },
+  createur:   { ig: 1, tt: 1, li: 0, stories_ig: 1, stories_tt: 1, ig_reels_per_week: 1, tt_videos_per_week: 3 },
   pro:        { ig: 2, tt: 1, li: 1, stories_ig: 2, stories_tt: 1, ig_reels_per_week: 3, tt_videos_per_week: 7 },
   fondateurs: { ig: 2, tt: 1, li: 1, stories_ig: 2, stories_tt: 1, ig_reels_per_week: 2, tt_videos_per_week: 5 },
   business:   { ig: 3, tt: 2, li: 2, stories_ig: 3, stories_tt: 2, ig_reels_per_week: 4, tt_videos_per_week: 10 },
