@@ -240,7 +240,7 @@ async function auditContent(supabase: SupabaseClient, userId: string, client: an
   // Format mix vs sector (Léna quality bar)
   const { data: posts30 } = await supabase
     .from('content_calendar')
-    .select('format, status, published_at, source, parent_post_id, visual_url')
+    .select('format, status, published_at, source, parent_post_id, visual_url, qa_severity, qa_quality_score, qa_findings')
     .eq('user_id', userId)
     .gte('created_at', daysAgo(30));
 
@@ -306,6 +306,39 @@ async function auditContent(supabase: SupabaseClient, userId: string, client: an
       detail: 'Plusieurs publications n\'ont pas abouti. Vérifier les tokens IG/TT + les visuels.',
       evidence: { failed, total: totalPosts, rate: publishFailRate },
       suggested_fix: 'Inspecter publish_diagnostic dans content_calendar.',
+      mutualisable: true,
+    });
+  }
+
+  // QA validators rolling stats (Phase 1 validators)
+  const qaBlocked = (posts30 || []).filter((p: any) => p.qa_severity === 'block').length;
+  const qaWarned = (posts30 || []).filter((p: any) => p.qa_severity === 'warn').length;
+  const qaScored = (posts30 || []).filter((p: any) => typeof p.qa_quality_score === 'number');
+  const avgQuality = qaScored.length > 0
+    ? Math.round(qaScored.reduce((a: number, b: any) => a + (b.qa_quality_score || 0), 0) / qaScored.length)
+    : null;
+  metrics.qa_blocked_30d = qaBlocked;
+  metrics.qa_warned_30d = qaWarned;
+  metrics.avg_quality_score_30d = avgQuality;
+  if (qaBlocked >= 3 && totalPosts >= 10) {
+    findings.push({
+      code: 'qa_block_recurring',
+      severity: qaBlocked >= 8 ? 'red' : 'amber',
+      title: `${qaBlocked} post(s) bloqués par les validators QA sur 30j`,
+      detail: 'Léna répète des fioritures détectées (AI-tells, claims, doublons). Pool mutualisé à enrichir.',
+      evidence: { qaBlocked, totalPosts, avgQuality },
+      suggested_fix: 'Mutualiser les patterns récurrents dans agent_knowledge pour qu\'ils soient évités dans le prompt système.',
+      mutualisable: true,
+    });
+  }
+  if (avgQuality !== null && avgQuality < 70 && qaScored.length >= 10) {
+    findings.push({
+      code: 'avg_quality_low',
+      severity: avgQuality < 50 ? 'red' : 'amber',
+      title: `Quality score moyen ${avgQuality}/100 — qualité contenu à remonter`,
+      detail: 'Trop de findings cumulés sur les derniers posts (cap warnings + AI-tells + similarités).',
+      evidence: { avgQuality, sampleSize: qaScored.length },
+      suggested_fix: 'Audit findings details + ajustement prompt système ou directives client.',
       mutualisable: true,
     });
   }

@@ -4358,10 +4358,60 @@ async function generateWeekWithVisuals(supabase: any, publishAll: boolean, orgId
     status: string;
     instagram_permalink?: string;
     publication_error?: string;
+    qa_severity?: string;
+    qa_findings?: number;
   }> = [];
+
+  // 2026-06-09 — Quality validators (Phase 1).
+  // Run batch validation on the entire week plan BEFORE insert.
+  // Catches AI-tells, forbidden claims, duplicate hooks/captions,
+  // intra-batch replication. Posts flagged `block` are inserted as
+  // status='draft_qa_failed' (not auto-publishable, admin reviews
+  // via /admin/agents/control). `warn` lets the post through but
+  // logs in agent_logs so the supervisor audit picks it up.
+  let qaResults: any[] = [];
+  if (userId && weekPlan.length > 0) {
+    try {
+      const { validatePostBatch } = await import('@/lib/validators');
+      const { data: qaProfile } = await supabase.from('profiles').select('business_type').eq('id', userId).maybeSingle();
+      const businessType = (qaProfile as any)?.business_type || null;
+      const batchOut = await validatePostBatch(
+        supabase,
+        weekPlan.map((p: any) => ({
+          caption: p.caption,
+          hook: p.hook,
+          hashtags: p.hashtags,
+          visual_description: p.thumbnail_description || p.visual_description,
+          format: p.format,
+          platform: p.platform,
+        })),
+        { user_id: userId, business_type: businessType, platform: 'instagram', format: 'post' },
+      );
+      qaResults = batchOut.results;
+      console.log(`[Content] QA batch: ${batchOut.summary.block} block / ${batchOut.summary.warn} warn / ${batchOut.summary.ok} clean · avg_quality=${batchOut.summary.avg_quality}`);
+      // Log to agent_logs so the supervisor audit picks it up
+      await supabase.from('agent_logs').insert({
+        agent: 'content',
+        action: 'qa_validation_batch',
+        status: batchOut.summary.block > 0 ? 'error' : 'success',
+        user_id: userId,
+        data: {
+          batch_size: weekPlan.length,
+          block: batchOut.summary.block,
+          warn: batchOut.summary.warn,
+          ok: batchOut.summary.ok,
+          avg_quality: batchOut.summary.avg_quality,
+          findings_sample: qaResults.slice(0, 3).map((r: any) => r.findings),
+        },
+      }).then(() => {}, () => {});
+    } catch (qaErr: any) {
+      console.warn('[Content] QA batch failed (non-blocking):', qaErr?.message);
+    }
+  }
 
   // Process posts sequentially (Seedream rate limits)
   for (const post of weekPlan) {
+    const qa = qaResults[weekPlan.indexOf(post)] || null;
     const dayNum = dayMap[(post.day || '').toLowerCase()] ?? null;
     let scheduledDate = mondayDate.toISOString().split('T')[0];
 
@@ -4381,6 +4431,17 @@ async function generateWeekWithVisuals(supabase: any, publishAll: boolean, orgId
     const platform = post.platform || 'instagram';
     const format = post.format || 'post';
 
+    // QA gate: a `block`-severity finding routes to draft_qa_failed
+    // instead of draft. Admin will review via supervision cockpit.
+    // `warn` and below pass through normally.
+    const qaSeverity = (qa as any)?.severity || 'clean';
+    const initialStatus = qaSeverity === 'block' ? 'draft_qa_failed' : 'draft';
+    const qaFindings = (qa as any)?.findings || [];
+    const qaNotes = qaFindings.length > 0
+      ? qaFindings.map((f: any) => `[${f.severity}] ${f.code}: ${f.message}`).join(' · ')
+      : null;
+    const qaScore = (qa as any)?.quality_score ?? null;
+
     // Insert into content_calendar
     const { data: inserted, error: insertError } = await supabase.from('content_calendar').insert({
       platform,
@@ -4394,7 +4455,11 @@ async function generateWeekWithVisuals(supabase: any, publishAll: boolean, orgId
       script: post.script || null,
       scheduled_date: scheduledDate,
       scheduled_time: scheduledTime,
-      status: 'draft',
+      status: initialStatus,
+      qa_severity: qaSeverity,
+      qa_quality_score: qaScore,
+      qa_notes: qaNotes,
+      qa_findings: qaFindings.length ? qaFindings : null,
       ai_generated: true,
       user_id: userId || null,
     }).select().single();
@@ -4416,6 +4481,22 @@ async function generateWeekWithVisuals(supabase: any, publishAll: boolean, orgId
     // Generate visual with Seedream (with dedup check on visual_description)
     const visualDesc = post.thumbnail_description || post.visual_description || post.hook || post.caption;
     let visualUrl: string | null = null;
+    // QA block → skip Seedream entirely (économie ~0.04€ + temps).
+    // L'admin re-générera après revue.
+    if (qaSeverity === 'block') {
+      console.warn(`[Content] QA blocked post ${inserted?.id} — skipping visual generation. Findings: ${qaNotes}`);
+      results.push({
+        day: post.day || '?',
+        platform,
+        format,
+        hook: post.hook || '',
+        visual_url: null,
+        status: 'draft_qa_failed',
+        qa_severity: qaSeverity,
+        qa_findings: qaFindings.length,
+      });
+      continue;
+    }
     if (visualDesc) {
       // Check if a very similar visual_description was already used recently
       const { data: similarPosts } = await supabase
