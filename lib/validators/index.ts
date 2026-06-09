@@ -15,10 +15,14 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { validateCaption } from './caption';
 import { validateVisualCoherence } from './visual-coherence';
+import { validateImagePrompt } from './image-prompt';
+import { validateVideoPrompt } from './video-prompt';
+import { validateImageOutput, validateVideoOutput, headProbe } from './media-output';
 import type { PostInput, ValidationContext, Finding, ValidationResult } from './types';
 import { aggregate } from './types';
 
 export type { Finding, ValidationResult, Severity, PostInput, ValidationContext } from './types';
+export { validateCaption, validateVisualCoherence, validateImagePrompt, validateVideoPrompt, validateImageOutput, validateVideoOutput, headProbe };
 
 async function fetchRecentPosts(supabase: SupabaseClient, userId: string, platform?: string, days = 30) {
   const since = new Date(Date.now() - days * 24 * 3600 * 1000).toISOString();

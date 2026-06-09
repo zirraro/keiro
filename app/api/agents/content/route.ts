@@ -436,6 +436,20 @@ async function generateVisual(visualDescription: string, format: string, userIdF
     const rawPrompt = (optimizedText || visualDescription) + NO_TEXT_SUFFIX;
     const imagePrompt = rawPrompt.length > 2000 ? rawPrompt.substring(0, 2000) : rawPrompt;
 
+    // ── Pre-flight validator (Phase 1) — économise 0,04 €/call sur prompt cassé.
+    try {
+      const { validateImagePrompt } = await import('@/lib/validators');
+      const v = validateImagePrompt(imagePrompt, { format });
+      if (v.severity === 'block') {
+        console.warn(`[Content] Image prompt BLOCKED by validator (q=${v.quality_score}). Skipping Seedream call.`);
+        console.warn(`[Content] Findings: ${v.findings.map(f => f.code).join(', ')}`);
+        return null;
+      }
+      if (v.severity === 'warn') {
+        console.log(`[Content] Image prompt warnings (q=${v.quality_score}): ${v.findings.map(f => f.code).join(', ')}`);
+      }
+    } catch { /* validator failure must not block hot path */ }
+
     // Determine aspect ratio based on format
     // Seedream requires minimum 3,686,400 pixels — ALL sizes must meet this
     let width = 1920;
@@ -1449,6 +1463,19 @@ Output UNIQUEMENT le prompt vidéo, rien d'autre.`,
 
     const videoPrompt = (videoPromptRaw || visualDescription).substring(0, 250);
     console.log(`[Content] Video prompt: "${videoPrompt.substring(0, 100)}..."`);
+
+    // ── Pre-flight validator — économise ~0,30 €/clip sur prompt cassé.
+    try {
+      const { validateVideoPrompt } = await import('@/lib/validators');
+      const v = validateVideoPrompt(videoPrompt, { duration, format });
+      if (v.severity === 'block') {
+        console.warn(`[Content] Video prompt BLOCKED (q=${v.quality_score}): ${v.findings.map(f => f.code).join(', ')}`);
+        return { videoUrl: null, coverUrl: imageUrl };
+      }
+      if (v.severity === 'warn') {
+        console.log(`[Content] Video prompt warnings (q=${v.quality_score}): ${v.findings.map(f => f.code).join(', ')}`);
+      }
+    } catch { /* validator failure must not block hot path */ }
 
     // ═══ PROVIDER ORDER: Kling primary, Seedance fallback ═══
     // To swap on 2026-03-24: move Seedance block above Kling block
