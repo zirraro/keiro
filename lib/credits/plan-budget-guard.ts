@@ -109,19 +109,91 @@ export async function resolveEffectivePlan(
 }
 
 /**
- * Per-plan daily publication quotas (used to gate publish-time
- * decisions independently from monthly cost budget).
+ * Per-plan daily publication quotas — calibres pour garder 80% margin.
+ *
+ * Modele Createur (49 EUR/mois, ceiling 9.80 EUR) :
+ *   - IG feed: 1/jour (mix post + 1 reel/semaine) ~ 2.74 EUR/mois
+ *   - IG stories: 1/jour recycle + teaser auto post-publish (~0 EUR)
+ *   - TT: 1/jour mais MAJORITAIREMENT photo mode (recycle ~0 EUR)
+ *         + 2 vidéos/semaine seulement (~2.48 EUR/mois)
+ *   - LI: off
+ *   Total Lena ~6.72 EUR/mois -> marge ~81% sur 49 EUR
+ *
+ * Modele Pro (99 EUR/mois, ceiling 19.80 EUR) :
+ *   - IG feed: 2/jour (~3 EUR) + 2-3 reels/sem (~3 EUR)
+ *   - IG stories: 2/jour
+ *   - TT: 1 vidéo/jour (~9.30 EUR) + 1 photo mode/jour (recycle)
+ *   - LI: 1/jour
+ *   Total ~19.30 EUR/mois -> marge ~78% sur 99 EUR
+ *
+ * `tt_videos_per_week` est important: limite les couteux video gen
+ * meme si le quota tt journalier est "1" (Photo Mode prend le relais).
  */
-export const PLAN_DAILY_PUBLISH: Record<string, { ig: number; tt: number; li: number; stories_ig: number; stories_tt: number }> = {
-  free:       { ig: 0, tt: 0, li: 0, stories_ig: 0, stories_tt: 0 },
-  createur:   { ig: 1, tt: 1, li: 1, stories_ig: 1, stories_tt: 1 },
-  pro:        { ig: 2, tt: 2, li: 2, stories_ig: 2, stories_tt: 1 },
-  fondateurs: { ig: 2, tt: 2, li: 1, stories_ig: 2, stories_tt: 1 },
-  business:   { ig: 3, tt: 3, li: 2, stories_ig: 3, stories_tt: 2 },
-  elite:      { ig: 4, tt: 4, li: 3, stories_ig: 4, stories_tt: 2 },
-  agence:     { ig: 5, tt: 5, li: 3, stories_ig: 5, stories_tt: 3 },
-  admin:      { ig: 99, tt: 99, li: 99, stories_ig: 99, stories_tt: 99 },
+export interface PlanCadence {
+  ig: number;                   // posts feed IG / jour
+  tt: number;                   // contenus TT / jour (incluant photos)
+  li: number;                   // posts LinkedIn / jour
+  stories_ig: number;           // stories IG / jour (recycle + teaser)
+  stories_tt: number;           // photo mode TT / jour (recycle + teaser)
+  ig_reels_per_week: number;    // cap reels IG hebdo (couteux)
+  tt_videos_per_week: number;   // cap videos TT hebdo (couteux)
+}
+
+export const PLAN_DAILY_PUBLISH: Record<string, PlanCadence> = {
+  free:       { ig: 0, tt: 0, li: 0, stories_ig: 0, stories_tt: 0, ig_reels_per_week: 0, tt_videos_per_week: 0 },
+  createur:   { ig: 1, tt: 1, li: 0, stories_ig: 1, stories_tt: 1, ig_reels_per_week: 1, tt_videos_per_week: 2 },
+  pro:        { ig: 2, tt: 1, li: 1, stories_ig: 2, stories_tt: 1, ig_reels_per_week: 3, tt_videos_per_week: 7 },
+  fondateurs: { ig: 2, tt: 1, li: 1, stories_ig: 2, stories_tt: 1, ig_reels_per_week: 2, tt_videos_per_week: 5 },
+  business:   { ig: 3, tt: 2, li: 2, stories_ig: 3, stories_tt: 2, ig_reels_per_week: 4, tt_videos_per_week: 10 },
+  elite:      { ig: 4, tt: 3, li: 3, stories_ig: 4, stories_tt: 2, ig_reels_per_week: 6, tt_videos_per_week: 14 },
+  agence:     { ig: 5, tt: 4, li: 3, stories_ig: 5, stories_tt: 3, ig_reels_per_week: 8, tt_videos_per_week: 21 },
+  admin:      { ig: 99, tt: 99, li: 99, stories_ig: 99, stories_tt: 99, ig_reels_per_week: 99, tt_videos_per_week: 99 },
 };
+
+/**
+ * Helper : count how many publish slots are already used today
+ * on a given platform/format for this user. Used by the publish
+ * loop to enforce PLAN_DAILY_PUBLISH caps in real time.
+ */
+export async function countPublishedToday(
+  supabase: any,
+  userId: string,
+  platform: string,
+  formats?: string[],
+): Promise<number> {
+  if (!userId) return 0;
+  const today = new Date().toISOString().split('T')[0];
+  let q = supabase
+    .from('content_calendar')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('platform', platform)
+    .eq('status', 'published')
+    .gte('published_at', today + 'T00:00:00Z')
+    .lte('published_at', today + 'T23:59:59Z');
+  if (formats && formats.length > 0) q = q.in('format', formats);
+  const { count } = await q;
+  return count || 0;
+}
+
+export async function countPublishedThisWeek(
+  supabase: any,
+  userId: string,
+  platform: string,
+  formats: string[],
+): Promise<number> {
+  if (!userId) return 0;
+  const since = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+  const { count } = await supabase
+    .from('content_calendar')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('platform', platform)
+    .eq('status', 'published')
+    .in('format', formats)
+    .gte('published_at', since);
+  return count || 0;
+}
 
 /**
  * Quick DB lookup : estimate cost-month-to-date for a client. Used by

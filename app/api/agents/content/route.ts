@@ -2050,6 +2050,49 @@ export async function GET(request: NextRequest) {
             console.warn(`[Content] Spacing guard: skipping post ${post.id} on ${postPlatform} — already published within 4h.`);
             continue;
           }
+
+          // 2026-06-09 — Plan cadence cap. Respecte PLAN_DAILY_PUBLISH
+          // (avec plan_override per-agent si défini). Bloque le publish
+          // si on dépasse la cadence quotidienne ou hebdo du plan.
+          try {
+            const { resolveEffectivePlan, PLAN_DAILY_PUBLISH, countPublishedToday, countPublishedThisWeek } = await import('@/lib/credits/plan-budget-guard');
+            const effectivePlan = await resolveEffectivePlan(supabase, userId || '', 'content');
+            const cadence = PLAN_DAILY_PUBLISH[effectivePlan] || PLAN_DAILY_PUBLISH.free;
+            const fmt = slotFormat.toLowerCase();
+            // Stories / Photo Mode: cap stories_X
+            if (fmt === 'story' || fmt === 'photo') {
+              const cap = postPlatform === 'instagram' ? cadence.stories_ig : cadence.stories_tt;
+              const used = await countPublishedToday(supabase, userId || '', postPlatform, ['story','photo']);
+              if (used >= cap) {
+                console.warn(`[Content] Cadence cap: ${postPlatform} ${fmt} ${used}/${cap} (plan ${effectivePlan}) — skip post ${post.id}.`);
+                await supabase.from('content_calendar').update({ status: 'skipped', qa_notes: `cadence_cap_reached:${effectivePlan}:${postPlatform}_${fmt}_${used}/${cap}` }).eq('id', post.id);
+                continue;
+              }
+            } else {
+              // Feed content: cap by platform quota + weekly video/reel cap
+              const feedFormats = ['post','image','carrousel','reel','video','text'];
+              const usedFeed = await countPublishedToday(supabase, userId || '', postPlatform, feedFormats);
+              const feedCap = postPlatform === 'instagram' ? cadence.ig : postPlatform === 'tiktok' ? cadence.tt : cadence.li;
+              if (usedFeed >= feedCap) {
+                console.warn(`[Content] Cadence cap: ${postPlatform} feed ${usedFeed}/${feedCap} (plan ${effectivePlan}) — skip post ${post.id}.`);
+                await supabase.from('content_calendar').update({ status: 'skipped', qa_notes: `cadence_cap_reached:${effectivePlan}:${postPlatform}_feed_${usedFeed}/${feedCap}` }).eq('id', post.id);
+                continue;
+              }
+              // Weekly cap on expensive video/reel
+              if (fmt === 'reel' || fmt === 'video') {
+                const usedWeek = await countPublishedThisWeek(supabase, userId || '', postPlatform, ['reel','video']);
+                const weekCap = postPlatform === 'instagram' ? cadence.ig_reels_per_week : cadence.tt_videos_per_week;
+                if (usedWeek >= weekCap) {
+                  console.warn(`[Content] Weekly video cap: ${postPlatform} ${fmt} ${usedWeek}/${weekCap}/sem (plan ${effectivePlan}) — downgrade to image post ${post.id}.`);
+                  // Downgrade reel → image post au lieu de skip
+                  await supabase.from('content_calendar').update({ format: postPlatform === 'tiktok' ? 'photo' : 'post', qa_notes: `weekly_video_cap_reached:${effectivePlan}:${usedWeek}/${weekCap}` }).eq('id', post.id);
+                  // Continue with the updated format
+                }
+              }
+            }
+          } catch (cadenceErr: any) {
+            console.warn('[Content] cadence cap check failed (non-blocking):', cadenceErr?.message);
+          }
           // If notify mode and post is draft (not yet approved), send notification instead of publishing
           if (publishMode === 'notify' && post.status === 'draft') {
             const { data: fullPostForNotify } = await supabase.from('content_calendar').select('*').eq('id', post.id).single();
