@@ -232,8 +232,8 @@ export async function GET(req: NextRequest) {
   // Connected = has IG creds and/or TT creds.
   const { data: clients } = await supabase
     .from('profiles')
-    .select('id, email, plan, instagram_business_account_id, instagram_igaa_token, facebook_page_access_token, tiktok_open_id, tiktok_access_token')
-    .neq('plan', 'free')
+    .select('id, email, subscription_plan, instagram_business_account_id, instagram_igaa_token, facebook_page_access_token, tiktok_user_id, tiktok_access_token')
+    .neq('subscription_plan', 'free')
     .limit(500);
 
   if (!clients || clients.length === 0) {
@@ -243,12 +243,12 @@ export async function GET(req: NextRequest) {
   const results: RecycleResult[] = [];
   for (const c of clients) {
     const igConnected = !!(c.instagram_business_account_id && (c.instagram_igaa_token || c.facebook_page_access_token));
-    const ttConnected = !!(c.tiktok_open_id && c.tiktok_access_token);
+    const ttConnected = !!(c.tiktok_user_id && c.tiktok_access_token);
     if (!igConnected && !ttConnected) continue;
     try {
       const r = await recycleForUser(
         supabase,
-        { id: c.id, email: c.email, plan: c.plan },
+        { id: c.id, email: c.email, plan: (c as any).subscription_plan },
         igConnected,
         ttConnected,
       );

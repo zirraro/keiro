@@ -65,6 +65,65 @@ export function evaluateBudget(plan: string | null | undefined, costMtdEur: numb
 }
 
 /**
+ * 2026-06-09 — Resolve effective plan for a (client × agent) pair.
+ *
+ * Founder ask: tester les quotas Créateur sur Léna tout en gardant
+ * subscription_plan=pro pour les autres agents.
+ *
+ * Lookup order:
+ *   1. org_agent_configs.config.plan_override (per-agent override)
+ *   2. profiles.subscription_plan (default)
+ *
+ * Returns the plan string to feed into evaluateBudget / quota checks.
+ */
+export async function resolveEffectivePlan(
+  supabase: any,
+  userId: string,
+  agentId: string,
+): Promise<string> {
+  if (!userId) return 'free';
+  try {
+    // Per-agent override (most-recent row wins if duplicates)
+    const { data: agentCfg } = await supabase
+      .from('org_agent_configs')
+      .select('config')
+      .eq('user_id', userId)
+      .eq('agent_id', agentId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const override = (agentCfg as any)?.config?.plan_override;
+    if (override && typeof override === 'string') {
+      return override.toLowerCase();
+    }
+    // Fallback to subscription_plan
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('subscription_plan')
+      .eq('id', userId)
+      .maybeSingle();
+    return ((profile as any)?.subscription_plan || 'free').toLowerCase();
+  } catch {
+    return 'free';
+  }
+}
+
+/**
+ * Per-plan daily publication quotas (used to gate publish-time
+ * decisions independently from monthly cost budget).
+ */
+export const PLAN_DAILY_PUBLISH: Record<string, { ig: number; tt: number; li: number; stories_ig: number; stories_tt: number }> = {
+  free:       { ig: 0, tt: 0, li: 0, stories_ig: 0, stories_tt: 0 },
+  createur:   { ig: 1, tt: 1, li: 1, stories_ig: 1, stories_tt: 1 },
+  pro:        { ig: 2, tt: 2, li: 2, stories_ig: 2, stories_tt: 1 },
+  fondateurs: { ig: 2, tt: 2, li: 1, stories_ig: 2, stories_tt: 1 },
+  business:   { ig: 3, tt: 3, li: 2, stories_ig: 3, stories_tt: 2 },
+  elite:      { ig: 4, tt: 4, li: 3, stories_ig: 4, stories_tt: 2 },
+  agence:     { ig: 5, tt: 5, li: 3, stories_ig: 5, stories_tt: 3 },
+  admin:      { ig: 99, tt: 99, li: 99, stories_ig: 99, stories_tt: 99 },
+};
+
+/**
  * Quick DB lookup : estimate cost-month-to-date for a client. Used by
  * agent routes before expensive ops. Cheap aggregation : 4 count queries.
  */

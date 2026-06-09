@@ -2110,9 +2110,10 @@ export async function GET(request: NextRequest) {
             try {
               const ownerId = (fullPost as any).user_id || null;
               if (ownerId) {
-                const { estimateClientCostMtd, evaluateBudget } = await import('@/lib/credits/plan-budget-guard');
-                const { data: prof } = await supabase.from('profiles').select('subscription_plan').eq('id', ownerId).maybeSingle();
-                const planPlan = (prof as any)?.subscription_plan || 'free';
+                const { estimateClientCostMtd, evaluateBudget, resolveEffectivePlan } = await import('@/lib/credits/plan-budget-guard');
+                // 2026-06-09 — Plan override per-agent: Léna peut tourner
+                // sur quotas Créateur même si le compte est Pro globalement.
+                const planPlan = await resolveEffectivePlan(supabase, ownerId, 'content');
                 const mtd = await estimateClientCostMtd(supabase, ownerId);
                 const budget = evaluateBudget(planPlan, mtd);
                 if (!budget.allow_expensive) {
@@ -2120,7 +2121,7 @@ export async function GET(request: NextRequest) {
                   console.warn(`[Content] BUDGET RED for ${ownerId.substring(0, 8)} (${budget.pct}% of ${budget.ceiling}€) — downgrading reel → post`);
                   await supabase.from('content_calendar').update({
                     format: 'post',
-                    notes: `Auto-downgrade reel→post (budget plan ${planPlan} at ${budget.pct}%)`,
+                    qa_notes: `Auto-downgrade reel→post (budget plan ${planPlan} at ${budget.pct}%)`,
                   }).eq('id', post.id);
                 }
               }
