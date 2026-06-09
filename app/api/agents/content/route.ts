@@ -1232,6 +1232,18 @@ Output UNIQUEMENT le prompt vidéo, rien d'autre.`,
           const videoUrl = extractSeedanceVideoUrl(statusData);
           if (videoUrl) {
             console.log(`[Content] Seedance T2V completed: ${videoUrl.substring(0, 80)}...`);
+            // 2026-06-09 — log Seedance cost (fire-and-forget)
+            try {
+              const { logApiCost, PROVIDER_EUR } = await import('@/lib/admin/api-cost-logger');
+              logApiCost({
+                provider: 'seedance',
+                kind: 'video_10s',
+                units: 1,
+                cost_eur: PROVIDER_EUR.seedance_10s,
+                agent: 'content',
+                metadata: { fallback: 'kling_failed' },
+              }).catch(() => {});
+            } catch { /* silent */ }
             const cachedUrl = await cacheVideoToStorage(videoUrl, `tiktok-${Date.now()}`);
             return cachedUrl || videoUrl;
           }

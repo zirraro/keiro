@@ -43,6 +43,20 @@ export async function POST(request: NextRequest) {
         break;
       case 'invoice.paid':
         await handleInvoicePaid(event.data.object as Stripe.Invoice);
+        // 2026-06-09 — log Stripe fees (1.4% + 0.25€ Europe)
+        try {
+          const inv = event.data.object as Stripe.Invoice;
+          const amountEur = (inv.amount_paid || 0) / 100;
+          const fee = amountEur * 0.014 + 0.25;
+          const { logApiCost } = await import('@/lib/admin/api-cost-logger');
+          logApiCost({
+            provider: 'stripe',
+            kind: 'invoice_fee',
+            units: 1,
+            cost_eur: fee,
+            metadata: { invoice_id: inv.id, amount_paid_eur: amountEur, customer: inv.customer },
+          }).catch(() => {});
+        } catch { /* silent */ }
         break;
       case 'customer.subscription.updated':
         await handleSubscriptionUpdated(event.data.object as Stripe.Subscription);

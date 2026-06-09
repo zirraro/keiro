@@ -175,6 +175,20 @@ export async function POST(request: Request) {
 
       const url = data.data?.[0]?.url;
       const b64 = data.data?.[0]?.b64_image;
+      if (url || b64) {
+        // 2026-06-09 — log Studio i2i cost (fire-and-forget)
+        try {
+          const { logApiCost, PROVIDER_EUR } = await import('@/lib/admin/api-cost-logger');
+          logApiCost({
+            provider: 'seedream',
+            kind: 'image_i2i',
+            units: 1,
+            cost_eur: PROVIDER_EUR.seedream_image,
+            agent: 'studio',
+            metadata: { label },
+          }).catch(() => {});
+        } catch { /* silent */ }
+      }
       if (url) return url;
       if (b64) return `data:image/png;base64,${b64}`;
       console.error(`[I2I] ${label} — no image in response:`, JSON.stringify(data).substring(0, 300));
