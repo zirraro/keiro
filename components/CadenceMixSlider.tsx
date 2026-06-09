@@ -38,7 +38,8 @@ interface Preview {
   safe_buffer_credits: number;
   warn_buffer_credits: number;
   remaining_credits: number;
-  margin_pct: number;
+  upsell_suggested: boolean;
+  upsell_kind: 'pack' | 'upgrade' | 'none';
   warnings: string[];
 }
 
@@ -206,15 +207,6 @@ export default function CadenceMixSlider({ plan, initialRatio = 40, onApply, onB
       <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
         <div className="flex items-center gap-2">
           <span className="text-[11px] font-semibold text-white/80">⚖️ Mix contenu</span>
-          {preview && (
-            <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-              preview.margin_pct >= 80 ? 'bg-emerald-500/10 text-emerald-300' :
-              preview.margin_pct >= 75 ? 'bg-amber-500/10 text-amber-300' :
-              'bg-red-500/10 text-red-300'
-            }`}>
-              {preview.margin_pct}% marge
-            </span>
-          )}
         </div>
         {preview && creditsTotal > 0 && (
           <div
@@ -287,41 +279,42 @@ export default function CadenceMixSlider({ plan, initialRatio = 40, onApply, onB
         </div>
       )}
 
-      {/* Safe buffer ancillary — pas le "remaining" brut qui peut tuer la marge */}
+      {/* Crédits restants pour création libre + autres usages KeiroAI */}
       {preview && preview.safe_buffer_credits > 0 && (
         <div className="mb-3 px-2 py-1.5 rounded-lg bg-white/[0.03] border border-white/5 text-[10px] text-white/60">
-          💡 <strong className="text-emerald-300">{preview.safe_buffer_credits} crédits "safe"</strong> pour studio édition + chat sans toucher la marge.
-          {preview.warn_buffer_credits > preview.safe_buffer_credits && (
-            <span> · Au-delà jusqu'à {preview.warn_buffer_credits} cr, marge tombe à ~70% (upsell suggéré).</span>
-          )}
+          💡 Il te reste <strong className="text-emerald-300">{preview.safe_buffer_credits} crédits</strong> pour la création libre (Studio, génération d'images, narration, chat avec tes agents).
         </div>
       )}
 
-      {/* Upsell selon position du curseur */}
-      {creditsStatus === 'exceeded' && (
-        <div className="mt-1 mb-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30">
-          <p className="text-[11px] text-red-300 mb-2">
-            🚨 Ce mix consommerait <strong>{creditsConsumed} crédits</strong> mais ton plan {plan} n'en couvre que <strong>{creditsTotal}</strong>.
+      {/* Upsell driven by API (upsell_suggested + upsell_kind) */}
+      {preview?.upsell_suggested && preview.upsell_kind === 'upgrade' && (
+        <div className="mt-1 mb-2 px-3 py-2 rounded-lg bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border border-cyan-500/30">
+          <p className="text-[11px] text-cyan-200 mb-2">
+            🚀 Pour ce niveau de vidéo, le plan <strong>Pro</strong> est mieux adapté — plus de cadence, 3 réseaux activés, durées vidéo libres.
           </p>
           <div className="flex gap-2 flex-wrap">
-            {onBuyPack && (
-              <button onClick={onBuyPack} className="text-[11px] font-bold px-3 py-1.5 rounded bg-amber-500 text-[#0c1a3a] hover:opacity-90">
-                💎 Acheter un pack
+            {onUpgradePlan && (
+              <button onClick={onUpgradePlan} className="text-[11px] font-bold px-3 py-1.5 rounded bg-gradient-to-r from-cyan-500 to-cyan-400 text-[#0c1a3a] hover:opacity-90">
+                🚀 Voir le plan Pro
               </button>
             )}
-            {onUpgradePlan && plan !== 'pro' && plan !== 'business' && (
-              <button onClick={onUpgradePlan} className="text-[11px] font-bold px-3 py-1.5 rounded bg-gradient-to-r from-cyan-500 to-cyan-400 text-[#0c1a3a] hover:opacity-90">
-                🚀 Passer Pro
+            {onBuyPack && (
+              <button onClick={onBuyPack} className="text-[11px] font-medium px-3 py-1.5 rounded border border-white/20 text-white/80 hover:bg-white/5">
+                💎 Pack de crédits
               </button>
             )}
           </div>
         </div>
       )}
-      {creditsStatus === 'close' && (
-        <div className="mt-1 mb-2 flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30">
-          <span className="text-[11px] text-amber-300">⚡ Mix proche du plafond ({creditsPct}% de tes crédits). Un pack te donnerait du confort.</span>
+      {preview?.upsell_suggested && preview.upsell_kind === 'pack' && (
+        <div className="mt-1 mb-2 flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 flex-wrap">
+          <span className="text-[11px] text-amber-300">
+            ⚡ {creditsStatus === 'close' ? `Mix proche du plafond (${creditsPct}%)` : 'Tu pousses bien — un pack de crédits évite toute interruption'}
+          </span>
           {onBuyPack && (
-            <button onClick={onBuyPack} className="text-[10px] font-bold px-2 py-1 rounded bg-amber-500 text-[#0c1a3a] hover:opacity-90 whitespace-nowrap">💎 Booster</button>
+            <button onClick={onBuyPack} className="text-[10px] font-bold px-2 py-1 rounded bg-amber-500 text-[#0c1a3a] hover:opacity-90 whitespace-nowrap">
+              💎 Booster
+            </button>
           )}
         </div>
       )}

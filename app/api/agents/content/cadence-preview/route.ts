@@ -91,6 +91,10 @@ interface CadenceOutput {
   warn_buffer_credits: number;
   /** Total credits available beyond publications (might be > safe) */
   remaining_credits: number;
+  /** Should we propose an upsell ? */
+  upsell_suggested: boolean;
+  /** Kind of upsell : 'pack' (credit pack) or 'upgrade' (plan supérieur) */
+  upsell_kind: 'pack' | 'upgrade' | 'none';
   warnings: string[];
 }
 
@@ -283,12 +287,7 @@ function computeCadence(plan: string, videoRatio: number, opts: ComputeOpts = {}
 
   const warnings: string[] = [];
   if (tooManyNetworks) {
-    warnings.push(`Plan ${plan} : max ${maxNetworks} réseaux actifs simultanément. Désactive ${networks.length - maxNetworks} ou passe au plan Pro.`);
-  }
-  if (margin < 65) {
-    warnings.push(`Marge ${margin}% sous le seuil critique 65% — mix bloqué, ajuste ou upgrade.`);
-  } else if (margin < 75) {
-    warnings.push(`Marge ${margin}% sous l'objectif 80% — un pack ou un upgrade rétablirait le confort.`);
+    warnings.push(`Plan ${plan} : max ${maxNetworks} réseaux actifs simultanément. Désactive ${networks.length - maxNetworks} ou passe au plan Pro pour les 3.`);
   }
   if (creditsStatus === 'exceeded') {
     warnings.push(`Ce mix consomme ${creditsConsumed} crédits/mois mais ton plan ne couvre que ${planCredits}. Prends un pack ou passe au plan supérieur.`);
@@ -297,6 +296,32 @@ function computeCadence(plan: string, videoRatio: number, opts: ComputeOpts = {}
   }
   if (videoRatio > 80 && plan === 'createur') {
     warnings.push('Fort ratio vidéo : la cadence images devient nulle (revenir à 60-70% si tu veux garder du contenu image).');
+  }
+
+  // ─── Upsell trigger ───────────────────────────────────────
+  // Founder rule 2026-06-09: "à partir de 80% video on propose un
+  // upsell tu vois ? faut revoir le calcul des credits et couts".
+  // Logique :
+  //   - video_ratio >= 80 sur Créateur/Free → 'upgrade' (Pro débloque vidéo)
+  //   - video_ratio >= 70 OU credits_pct >= 70 OU creditsStatus close
+  //     → 'pack' (pack crédits suffit)
+  //   - exceeded ou margin < 65 → 'upgrade' direct (gros dépassement)
+  //   - sinon 'none'
+  let upsellKind: 'pack' | 'upgrade' | 'none' = 'none';
+  let upsellSuggested = false;
+  const isLowPlan = plan === 'createur' || plan === 'free';
+  if (creditsStatus === 'exceeded' || margin < 65) {
+    upsellKind = isLowPlan ? 'upgrade' : 'pack';
+    upsellSuggested = true;
+  } else if (videoRatio >= 80 && isLowPlan) {
+    upsellKind = 'upgrade';
+    upsellSuggested = true;
+  } else if (videoRatio >= 70 || creditsPct >= 70 || creditsStatus === 'close') {
+    upsellKind = 'pack';
+    upsellSuggested = true;
+  } else if (tooManyNetworks) {
+    upsellKind = 'upgrade';
+    upsellSuggested = true;
   }
 
   return {
@@ -324,6 +349,8 @@ function computeCadence(plan: string, videoRatio: number, opts: ComputeOpts = {}
     safe_buffer_credits: safeBufferCredits,
     warn_buffer_credits: warnBufferCredits,
     remaining_credits: remainingCredits,
+    upsell_suggested: upsellSuggested,
+    upsell_kind: upsellKind,
     warnings,
   };
 }
