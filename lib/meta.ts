@@ -83,12 +83,36 @@ export async function publishToFacebookPage(pageId: string, pageAccessToken: str
   return graphPOST<{ id: string }>(`/${pageId}/feed`, pageAccessToken, { message });
 }
 
+/**
+ * 2026-06-09 — Founder digest fix : "Only photo or video can be accepted
+ * as media type". Cause : URL Supabase avec format=auto sert WebP que
+ * Meta refuse. Solution : retirer le param format ou forcer JPG.
+ */
+function sanitizeImageUrlForMeta(url: string): string {
+  if (!url) return url;
+  try {
+    const u = new URL(url);
+    // Si c'est une URL Supabase Image Transformation, retirer format=auto
+    if (u.pathname.includes('/storage/v1/render/image/')) {
+      u.searchParams.delete('format');
+      u.searchParams.set('format', 'jpg'); // force JPG pour Meta
+    }
+    return u.toString();
+  } catch {
+    return url;
+  }
+}
+
 export async function publishImageToInstagram(igUserId: string, pageAccessToken: string, imageUrl: string, caption?: string): Promise<{ id: string; permalink?: string }> {
   try {
     console.log('[publishImageToInstagram] Step 1: Creating media container...', { tokenType: isIgaaToken(pageAccessToken) ? 'IGAA' : 'FB' });
+    const safeUrl = sanitizeImageUrlForMeta(imageUrl);
+    if (safeUrl !== imageUrl) {
+      console.log('[publishImageToInstagram] Sanitized WebP URL → JPG for Meta compat');
+    }
     // 1) Créer un "container"
     const container = await graphPOST<{ id: string }>(`/${igUserId}/media`, pageAccessToken, {
-      image_url: imageUrl,
+      image_url: safeUrl,
       caption: caption || "",
     }, { igUserId });
     console.log('[publishImageToInstagram] Container created:', container.id);
@@ -139,9 +163,10 @@ export async function publishImageToInstagram(igUserId: string, pageAccessToken:
 export async function publishStoryToInstagram(igUserId: string, pageAccessToken: string, imageUrl: string): Promise<{ id: string }> {
   try {
     console.log('[publishStoryToInstagram] Step 1: Creating story media container...');
+    const safeUrl = sanitizeImageUrlForMeta(imageUrl);
     // 1) Créer un "container" pour une story
     const container = await graphPOST<{ id: string }>(`/${igUserId}/media`, pageAccessToken, {
-      image_url: imageUrl,
+      image_url: safeUrl,
       media_type: "STORIES",
     }, { igUserId });
 
@@ -184,8 +209,9 @@ export async function publishCarouselToInstagram(
       const imageUrl = imageUrls[i];
       console.log(`[publishCarouselToInstagram] Creating child ${i + 1}/${imageUrls.length}...`);
 
+      const safeChildUrl = sanitizeImageUrlForMeta(imageUrl);
       const childContainer = await graphPOST<{ id: string }>(`/${igUserId}/media`, pageAccessToken, {
-        image_url: imageUrl,
+        image_url: safeChildUrl,
         is_carousel_item: true,
       }, { igUserId });
 

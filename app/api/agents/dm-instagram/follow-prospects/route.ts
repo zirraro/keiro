@@ -88,10 +88,16 @@ export async function POST(req: NextRequest) {
       .limit(1)
       .maybeSingle();
     if (!admin?.instagram_business_account_id || !admin.facebook_page_access_token) {
+      // 2026-06-09 — Founder digest fix : ne pas crasher l'agent en
+      // erreur si IG business pas configuré. C'est un état attendu
+      // (DM = optionnel pour beaucoup de clients). Retour soft skip.
       return NextResponse.json({
-        ok: false,
-        error: 'No Instagram Business account connected — can\'t follow prospects',
-      }, { status: 400 });
+        ok: true,
+        skipped: true,
+        skip_reason: 'no_ig_business_account',
+        message: 'Instagram Business non configuré — follow skip. DM auto-reply continue à fonctionner.',
+        followed: 0,
+      }, { status: 200 });
     }
     resolvedIgId = admin.instagram_business_account_id;
     resolvedToken = admin.facebook_page_access_token;

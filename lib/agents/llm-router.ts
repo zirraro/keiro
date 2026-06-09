@@ -147,6 +147,22 @@ export async function smartLlmCall(opts: {
 export function detectLenaComplexity(brief: string): TaskComplexity {
   if (!brief) return 'standard';
   const lowered = brief.toLowerCase();
+  // 2026-06-09 — Founder rule : "utilise Sonnet pour un meilleur lien
+  // business client × actualité et attirer l'attention sur les réseaux".
+  // Le planning hebdo de Léna doit être en Sonnet (creative critique).
+  // Détecte les signaux du planning : cadence, history, mix...
+  const planningSignals = [
+    'cadence obligatoire',
+    'historique news',
+    'mix contenu',
+    'savoir mutualisé',
+    'visuels récents',
+    'plan ma semaine',
+    'génère un plan',
+    'weekly plan',
+  ];
+  if (planningSignals.some(s => lowered.includes(s))) return 'complex';
+
   const complexSignals = [
     'mix', 'mixer', 'mélange', 'fusion', 'combine',
     'actualité', 'news', 'tendance du jour', 'breaking',

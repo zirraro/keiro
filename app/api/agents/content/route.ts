@@ -4504,20 +4504,34 @@ async function generateWeekWithVisuals(supabase: any, publishAll: boolean, orgId
 
   console.log(`[Content] generate_week: starting (publishAll=${publishAll})`);
 
-  // Get last 10 published posts for context (including visual_description for dedup)
+  // 2026-06-09 — Étend à 30 jours pour anti-réutilisation news.
+  // Founder rule: une news utilisée dans les 30 derniers jours
+  // = INTERDIT de la reprendre (sauf événements calendrier marketing).
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
   const { data: recentPosts } = await supabase
     .from('content_calendar')
     .select('platform, format, pillar, hook, caption, visual_description, scheduled_date')
+    .eq('user_id', userId || '')
     .in('status', ['draft', 'approved', 'published'])
+    .gte('scheduled_date', thirtyDaysAgo)
     .order('scheduled_date', { ascending: false })
-    .limit(10);
+    .limit(60);
 
-  const existingPlanned = recentPosts?.map((p: any) => `${p.scheduled_date} ${p.platform} ${p.pillar}: ${p.hook || p.caption?.substring(0, 50)}`).join('\n') || '';
+  const existingPlanned = recentPosts?.slice(0, 10).map((p: any) => `${p.scheduled_date} ${p.platform} ${p.pillar}: ${p.hook || p.caption?.substring(0, 50)}`).join('\n') || '';
 
   // Extract recent visuals for anti-duplication
-  const recentVisualDescs = recentPosts?.map((p: any) => (p.visual_description || '').substring(0, 100)).filter((v: string) => v.length > 10) || [];
+  const recentVisualDescs = recentPosts?.slice(0, 15).map((p: any) => (p.visual_description || '').substring(0, 100)).filter((v: string) => v.length > 10) || [];
   const visualDedupContext = recentVisualDescs.length > 0
     ? `\nVISUELS RÉCENTS (INTERDIT de réutiliser ces concepts/scènes/couleurs) :\n${recentVisualDescs.map((v: string, i: number) => `${i + 1}. ${v}`).join('\n')}\n→ Chaque visual_description de la semaine doit être UNIQUE et DIFFÉRENT de tous ces visuels ET différent des autres posts de la semaine.\n→ VARIE les couleurs dominantes : max 1 post violet sur 5, alterne ambre/bleu/vert/corail/noir/blanc.\n→ VARIE les cibles prospects : restaurant, coiffeur, boutique, coach, fleuriste, freelance... pas le même 2 fois de suite.\n`
+    : '';
+
+  // 2026-06-09 — Anti-réutilisation news/trends sur 30 derniers jours.
+  // Extrait les hooks + captions des 30 derniers jours pour fournir
+  // l'historique à Léna. Elle doit éviter toute redite (sauf événements
+  // calendrier marketing comme Black Friday).
+  const recentHooksFull = recentPosts?.map((p: any) => p.hook).filter(Boolean) as string[];
+  const newsHistoryContext = recentHooksFull.length > 0
+    ? `\nHISTORIQUE NEWS/HOOKS UTILISÉS (30 DERNIERS JOURS — NE PAS RÉUTILISER) :\n${recentHooksFull.slice(0, 30).map((h: string, i: number) => `${i + 1}. ${h}`).join('\n')}\n→ Aucun de ces angles/news ne doit revenir cette semaine, SAUF si c'est un évènement du calendrier marketing (soldes, Black Friday, fêtes, rentrée).\n→ Si tu manques d'idées fraîches, préfère un post evergreen (tips/social_proof/demo) plutôt que de recycler.\n`
     : '';
 
   // Calculate next Monday
@@ -4573,7 +4587,7 @@ async function generateWeekWithVisuals(supabase: any, publishAll: boolean, orgId
     }
   }
 
-  const prompt = getWeeklyPlanPrompt({ existingPlanned }) + visualDedupContext + cadenceBlock + knowledgeBlock;
+  const prompt = getWeeklyPlanPrompt({ existingPlanned }) + visualDedupContext + newsHistoryContext + cadenceBlock + knowledgeBlock;
   const systemPrompt = getContentSystemPrompt();
 
   let rawText: string;
