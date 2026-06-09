@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 
 interface ErrorBucket {
@@ -36,24 +36,58 @@ interface Drilldown {
   directives: Array<{ type: string; value: any; raw_text: string; confidence: number; source: string; updated_at: string }>;
 }
 
+interface AuditSummary {
+  id: string;
+  severity: 'green' | 'amber' | 'red';
+  findings: Array<{ code: string; severity: string; title: string; detail: string }>;
+  recommendations: any[];
+  status: string;
+  resolution_kind: string | null;
+  resolution_note: string | null;
+  resolved_at: string | null;
+  knowledge_id: string | null;
+  trigger_kind: string;
+  created_at: string;
+  client_business_type?: string | null;
+  client_email?: string | null;
+  metrics?: any;
+}
+
 export default function ClientDrilldownPage() {
   const params = useParams();
   const router = useRouter();
   const agentId = params?.agentId as string;
   const userId = params?.userId as string;
   const [data, setData] = useState<Drilldown | null>(null);
+  const [audits, setAudits] = useState<AuditSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [auditing, setAuditing] = useState(false);
+  const [selectedAudit, setSelectedAudit] = useState<AuditSummary | null>(null);
 
-  const load = async () => {
-    setLoading(true);
+  const loadDrill = useCallback(async () => {
     try {
       const r = await fetch(`/api/admin/agents/control/${agentId}/${userId}`, { credentials: 'include' });
       if (r.ok) setData(await r.json());
-    } finally { setLoading(false); }
-  };
+    } catch {}
+  }, [agentId, userId]);
 
-  useEffect(() => { load(); }, [agentId, userId]);
+  const loadAudits = useCallback(async () => {
+    try {
+      const r = await fetch(`/api/admin/agents/audit?agent=${agentId}&user_id=${userId}&limit=50`, { credentials: 'include' });
+      if (r.ok) {
+        const j = await r.json();
+        setAudits(j.audits || []);
+      }
+    } catch {}
+  }, [agentId, userId]);
+
+  useEffect(() => {
+    setLoading(true);
+    Promise.all([loadDrill(), loadAudits()]).finally(() => setLoading(false));
+  }, [loadDrill, loadAudits]);
+
+  const load = loadDrill;
 
   const pilot = async (action: 'trigger' | 'pause' | 'resume') => {
     setBusy(true);
@@ -66,6 +100,39 @@ export default function ClientDrilldownPage() {
       });
       await load();
     } finally { setBusy(false); }
+  };
+
+  const runAudit = async () => {
+    setAuditing(true);
+    try {
+      const r = await fetch('/api/admin/agents/audit', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agent: agentId, user_id: userId }),
+      });
+      const j = await r.json();
+      if (j.ok && j.audit) {
+        setSelectedAudit(j.audit);
+        await loadAudits();
+      } else {
+        alert(`Audit failed: ${j.error || 'unknown'}`);
+      }
+    } finally { setAuditing(false); }
+  };
+
+  const resolveAudit = async (auditId: string, kind: string, note?: string, knowledge?: any) => {
+    const r = await fetch(`/api/admin/agents/audit/${auditId}`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kind, note, knowledge }),
+    });
+    if (r.ok) {
+      const j = await r.json();
+      setSelectedAudit(j.audit);
+      await loadAudits();
+    }
   };
 
   if (loading) return <div className="min-h-screen bg-[#0c1a3a] text-white p-6 flex items-center justify-center"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-400" /></div>;
@@ -94,14 +161,15 @@ export default function ClientDrilldownPage() {
               {(c.smtp_host || c.managed_email_from) && <span>Email : ✓</span>}
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            <button onClick={runAudit} disabled={auditing} className="px-3 py-2 text-xs rounded-lg bg-purple-600 hover:bg-purple-700 disabled:opacity-50 font-bold" title="Audit supervision approfondi (persistant)">🔍 {auditing ? 'Audit en cours...' : 'Lancer audit'}</button>
             <button onClick={() => pilot('trigger')} disabled={busy} className="px-3 py-2 text-xs rounded-lg bg-cyan-600 hover:bg-cyan-700 disabled:opacity-50">▶ Trigger now</button>
             {c.scheduling_paused_at ? (
               <button onClick={() => pilot('resume')} disabled={busy} className="px-3 py-2 text-xs rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50">Resume</button>
             ) : (
               <button onClick={() => pilot('pause')} disabled={busy} className="px-3 py-2 text-xs rounded-lg bg-amber-600 hover:bg-amber-700 disabled:opacity-50">Pause</button>
             )}
-            <button onClick={load} className="px-3 py-2 text-xs rounded-lg bg-white/10 hover:bg-white/15">↻</button>
+            <button onClick={() => { setLoading(true); Promise.all([loadDrill(), loadAudits()]).finally(() => setLoading(false)); }} className="px-3 py-2 text-xs rounded-lg bg-white/10 hover:bg-white/15">↻</button>
           </div>
         </div>
 
@@ -241,6 +309,142 @@ export default function ClientDrilldownPage() {
               </tbody>
             </table>
           </div>
+        </div>
+
+        {/* ─── Historique des audits sur ce client × cet agent ─── */}
+        <div className="rounded-2xl border border-purple-500/20 bg-purple-500/5 overflow-hidden mt-6">
+          <div className="px-4 py-3 border-b border-purple-500/20 flex items-center justify-between flex-wrap gap-2">
+            <h3 className="text-sm font-bold">📋 Historique audits supervision ({audits.length})</h3>
+            <button onClick={runAudit} disabled={auditing} className="px-3 py-1.5 text-[11px] rounded bg-purple-600 hover:bg-purple-700 text-white font-bold disabled:opacity-50">🔍 {auditing ? 'En cours...' : 'Nouvel audit'}</button>
+          </div>
+          {audits.length === 0 ? (
+            <p className="px-4 py-6 text-xs text-white/40 text-center">Aucun audit lancé pour ce client. Clique "Lancer audit" en haut pour démarrer.</p>
+          ) : (
+            <table className="min-w-full text-xs">
+              <thead className="bg-white/[0.03] text-[10px] text-white/50 uppercase tracking-wider">
+                <tr>
+                  <th className="px-3 py-2 text-left">Quand</th>
+                  <th className="px-3 py-2 text-left">Sévérité</th>
+                  <th className="px-3 py-2 text-left">Findings</th>
+                  <th className="px-3 py-2 text-left">Statut</th>
+                  <th className="px-3 py-2 text-left">Trigger</th>
+                  <th className="px-3 py-2 text-left">Résolution</th>
+                  <th className="px-3 py-2"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {audits.map((a) => (
+                  <tr key={a.id} className="border-t border-white/5 hover:bg-white/[0.04]">
+                    <td className="px-3 py-2 text-white/60 text-[11px]">{new Date(a.created_at).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}</td>
+                    <td className="px-3 py-2"><span className={`px-2 py-0.5 rounded text-[10px] font-bold ${a.severity === 'red' ? 'bg-red-500/15 text-red-300' : a.severity === 'amber' ? 'bg-amber-500/15 text-amber-300' : 'bg-emerald-500/15 text-emerald-300'}`}>{a.severity}</span></td>
+                    <td className="px-3 py-2 text-white/70 text-[11px]">{a.findings?.length || 0} item(s){a.findings?.length ? ` — ${a.findings[0].title}` : ''}</td>
+                    <td className="px-3 py-2 text-[10px]">
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                        a.status === 'open' ? 'bg-amber-500/15 text-amber-300' :
+                        a.status === 'mutualised' ? 'bg-cyan-500/15 text-cyan-300' :
+                        'bg-emerald-500/15 text-emerald-300'
+                      }`}>{a.status}</span>
+                    </td>
+                    <td className="px-3 py-2 text-[10px] text-white/40">{a.trigger_kind}</td>
+                    <td className="px-3 py-2 text-[10px] text-white/60">{a.resolution_kind || '—'}{a.knowledge_id && <span className="text-cyan-300 ml-1">🧠</span>}</td>
+                    <td className="px-3 py-2 text-right"><button onClick={() => setSelectedAudit(a)} className="text-cyan-400 hover:underline text-[10px]">ouvrir →</button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+
+      {/* Audit modal */}
+      {selectedAudit && (
+        <DrillAuditModal audit={selectedAudit} onClose={() => setSelectedAudit(null)} onResolve={(kind, note, k) => resolveAudit(selectedAudit.id, kind, note, k)} />
+      )}
+    </div>
+  );
+}
+
+function DrillAuditModal({ audit, onClose, onResolve }: { audit: AuditSummary; onClose: () => void; onResolve: (kind: string, note?: string, k?: any) => void }) {
+  const [note, setNote] = useState('');
+  const [knowledgeSummary, setKnowledgeSummary] = useState(audit.recommendations?.[0]?.knowledge_payload?.summary || '');
+  const [knowledgeContent, setKnowledgeContent] = useState(audit.recommendations?.[0]?.knowledge_payload?.content || '');
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const callResolve = async (kind: string) => {
+    setBusy(kind);
+    try {
+      const k = kind === 'mutualise_to_knowledge' ? {
+        summary: knowledgeSummary,
+        content: knowledgeContent,
+        business_type: audit.client_business_type || 'global',
+        category: 'error_pattern',
+      } : undefined;
+      await onResolve(kind, note || undefined, k);
+      onClose();
+    } finally { setBusy(null); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3" onClick={onClose}>
+      <div className="bg-[#0c1a3a] border border-white/10 rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
+          <h3 className="text-lg font-bold flex items-center gap-2">
+            <span className={`px-2 py-0.5 rounded text-xs ${audit.severity === 'red' ? 'bg-red-500/20 text-red-300' : audit.severity === 'amber' ? 'bg-amber-500/20 text-amber-300' : 'bg-emerald-500/20 text-emerald-300'}`}>{audit.severity.toUpperCase()}</span>
+            Audit du {new Date(audit.created_at).toLocaleString('fr-FR')}
+          </h3>
+          <button onClick={onClose} className="text-white/40 hover:text-white text-xl">×</button>
+        </div>
+        <div className="px-5 py-4 space-y-4">
+          <div>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-white/60 mb-2">Findings ({audit.findings?.length || 0})</h4>
+            {(!audit.findings || audit.findings.length === 0) ? <p className="text-xs text-emerald-400">Aucun problème détecté 🎉</p> : (
+              <ul className="space-y-2">
+                {audit.findings.map((f: any, i: number) => (
+                  <li key={i} className={`rounded-lg border px-3 py-2 ${f.severity === 'red' ? 'border-red-500/30 bg-red-500/5' : f.severity === 'amber' ? 'border-amber-500/30 bg-amber-500/5' : 'border-white/10 bg-white/[0.02]'}`}>
+                    <div className="flex justify-between gap-2 mb-1">
+                      <span className="text-[11px] font-bold text-white">{f.title}</span>
+                      <span className="text-[10px] text-white/40 uppercase">{f.code}</span>
+                    </div>
+                    <p className="text-[11px] text-white/70">{f.detail}</p>
+                    {f.suggested_fix && <p className="text-[10px] text-cyan-300 mt-1">💡 {f.suggested_fix}</p>}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <details className="rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2">
+            <summary className="cursor-pointer text-[11px] text-white/60">📊 Snapshot métriques</summary>
+            <pre className="text-[10px] text-white/60 mt-2 whitespace-pre-wrap font-mono">{JSON.stringify(audit.metrics, null, 2)}</pre>
+          </details>
+
+          {audit.status !== 'open' ? (
+            <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 px-3 py-2">
+              <p className="text-xs"><strong>Statut :</strong> {audit.status} · <em>{audit.resolution_kind}</em></p>
+              {audit.resolution_note && <p className="text-[11px] text-white/70 mt-1">{audit.resolution_note}</p>}
+              {audit.resolved_at && <p className="text-[10px] text-white/40 mt-1">Résolu le {new Date(audit.resolved_at).toLocaleString('fr-FR')}</p>}
+              {audit.knowledge_id && <p className="text-[10px] text-cyan-300 mt-1">🧠 Mutualisé dans le pool (knowledge_id : {audit.knowledge_id.substring(0, 8)})</p>}
+            </div>
+          ) : (
+            <div className="space-y-3 border-t border-white/10 pt-4">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-white/60">Résolution</h4>
+              <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Note (optionnel)" className="w-full rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-xs text-white" rows={2} />
+              <details className="rounded-lg border border-cyan-500/30 bg-cyan-500/5 px-3 py-2">
+                <summary className="cursor-pointer text-xs font-bold text-cyan-300">🧠 Mutualiser dans le pool de connaissance</summary>
+                <div className="mt-2 space-y-2">
+                  <input value={knowledgeSummary} onChange={e => setKnowledgeSummary(e.target.value)} placeholder="Summary" className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white" />
+                  <textarea value={knowledgeContent} onChange={e => setKnowledgeContent(e.target.value)} placeholder="Content détaillé" className="w-full rounded bg-white/5 border border-white/10 px-2 py-1 text-xs text-white" rows={4} />
+                  <p className="text-[10px] text-white/40">Business type : <strong>{audit.client_business_type || 'global'}</strong></p>
+                  <button onClick={() => callResolve('mutualise_to_knowledge')} disabled={!knowledgeSummary || busy === 'mutualise_to_knowledge'} className="w-full py-2 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold disabled:opacity-50">{busy === 'mutualise_to_knowledge' ? '...' : '🧠 Mutualiser + clôturer'}</button>
+                </div>
+              </details>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <button onClick={() => callResolve('manual_fix')} disabled={!!busy} className="py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold disabled:opacity-50">✅ Fix manuel</button>
+                <button onClick={() => callResolve('auto_fix')} disabled={!!busy} className="py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold disabled:opacity-50">⚡ Auto-fix</button>
+                <button onClick={() => callResolve('no_action')} disabled={!!busy} className="py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white text-xs disabled:opacity-50">🗄 Archiver</button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

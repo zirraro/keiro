@@ -12,21 +12,30 @@ function sb() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 }
 
-export async function GET(_req: NextRequest) {
+export async function GET(req: NextRequest) {
   const { user, error } = await getAuthUser();
   if (error || !user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
   const supabase = sb();
   const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).maybeSingle();
   if (!profile?.is_admin) return NextResponse.json({ error: 'Admin only' }, { status: 403 });
 
-  const { data } = await supabase
+  const url = new URL(req.url);
+  const agentFilter = url.searchParams.get('agent');
+  const includeResolved = url.searchParams.get('include_resolved') === 'true';
+  const limit = Math.min(parseInt(url.searchParams.get('limit') || '50', 10) || 50, 200);
+
+  let q = supabase
     .from('anomaly_alerts')
     .select('*')
-    .is('resolved_at', null)
     .order('severity', { ascending: true })
     .order('count_in_window', { ascending: false })
     .order('last_seen', { ascending: false })
-    .limit(50);
+    .limit(limit);
+
+  if (!includeResolved) q = q.is('resolved_at', null);
+  if (agentFilter) q = q.eq('agent', agentFilter);
+
+  const { data } = await q;
 
   // Resolve client email for rows with user_id
   const ids = [...new Set((data || []).map((d: any) => d.user_id).filter(Boolean))] as string[];
@@ -50,6 +59,7 @@ export async function GET(_req: NextRequest) {
       p2: alerts.filter((a: any) => a.severity === 'P2').length,
     },
     alerts,
+    anomalies: alerts, // alias for cockpit
   });
 }
 
