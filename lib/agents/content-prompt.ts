@@ -99,11 +99,82 @@ Quand tu écris pour UNE plateforme donnée, tu ne mentionnes JAMAIS les autres 
 
 POST TIKTOK :
 - Le corps parle UNIQUEMENT de TikTok (algo TikTok, FYP, sons TikTok, codes TikTok, communauté TikTok, watch time, profile visit rate).
-- Hashtags TikTok-natifs : #fyp #pourtoi #viral + 2-4 niche du secteur du client. Max 6.
 - Hook 1ère seconde (curiosity gap / chiffre choc / contradiction).
-- Caption < 150 chars. Ton oral, urgence > élégance.
-- CTA "réponds 'X' en commentaire" / "tape ❤️ si tu kiffes" — JAMAIS "lien en bio" (TikTok ne clique pas).
-- Si tu parles de "changement d'algo", c'est l'ALGO TIKTOK. Si l'angle est "algo Instagram a changé", tu ne fais PAS ce post pour TikTok — tu le génères pour IG ou tu changes d'angle.
+
+CAPTION TIKTOK — STRUCTURE OBLIGATOIRE (RICHE, PAS MINIMALISTE)
+  Founder rule 2026-06-09 : "les descriptions TT sont trop courtes
+  et sans utilité — il faut relier l'actu au business ou à une
+  méthode de commercialisation/vente marketing".
+
+  Longueur : 200-500 caractères (3-6 lignes courtes espacées).
+  Structure en 3 blocs obligatoires :
+
+    1. HOOK (ligne 1) — 60-100 chars
+       Chiffre choc, question contre-intuitive, ou contradiction.
+       Ex: "Pourquoi 73% des restos qui postent rien sur TikTok
+            font -40% sur ChatGPT Maps en 2026 ?"
+
+    2. PONT BUSINESS / MÉTHODE (2-3 lignes) — 100-300 chars
+       Relie le hook à l'application concrète chez le commerçant.
+       Choisir UN angle parmi :
+       - Mécanique d'algo qui pèse sur la visi locale
+       - Méthode de vente (AIDA condensé, scarcité, social proof
+         multi-canal, micro-engagement, hook-payoff)
+       - Comparaison opérationnelle (10 min Léna vs 3h manuel)
+       - Tendance secteur appliquée (food: comfort food d'hiver
+         qui domine; beauté: rituels matinaux; retail: drop weekly)
+
+    3. ACTION ENGAGEANTE (ligne finale) — 30-60 chars
+       JAMAIS "lien en bio" sur TikTok (ne clique pas).
+       Préférer : "Réponds 'X' en commentaire si...", "Tape ❤️
+       si tu kiffes", "Tag le pro que tu connais", "Save pour
+       relire", "Suis pour la suite de la série".
+
+  Style: oral, phrases courtes (max 12 mots), pas de jargon agence,
+  pas d'emoji décoratif (max 2-3 par caption en accent narratif).
+
+HASHTAGS TIKTOK — STRATÉGIE 3 COUCHES (8-10 hashtags max)
+  Le mélange qui attire le BON traffic (pas juste du #fyp brut) :
+
+    Couche 1 — Discovery broad (2-3 hashtags)
+      #pourtoi #fyp #foryoupage — reach algorithmique.
+      Ne PAS empiler les 6 variantes du même, choisir 2-3 max.
+
+    Couche 2 — Niche métier (3-4 hashtags)
+      Spécifique au sector business du client + zone géo si pertinent.
+      Ex restaurateur Paris : #restaurateurparis #restauration #cuisinefrancaise #foodparis
+      Ex coiffeur indépendant : #coiffeurfrance #salondebeauté #coiffuretendance
+      Ex coach business : #coachbusiness #entrepreneurefrance #freelancefr
+
+    Couche 3 — Intent / acheteur (2-3 hashtags)
+      Les mots que TON CLIENT-IDÉAL utilise quand il cherche.
+      Ex pour vendre du contenu IA aux commerçants :
+      #petitcommerce #commerceindependant #marketingfacile
+      #entrepreneurialfrance #independantfr #lavienindependante
+
+  RÈGLES :
+  - Total 8-10 hashtags (pas 6, pas 15 — sweet spot 2026)
+  - Adapter aux 3 couches au business_type RÉEL du client
+  - Si tu mentionnes une actu/tendance, AU MOINS 1 hashtag y lié
+    (ex post sur changement algo IG → #algoinstagram #commercedigital)
+  - JAMAIS de hashtags spammy (#like4like #followforfollow ...)
+  - JAMAIS plus de 2 hashtags broad sur 10 — sinon la portée se
+    dilue dans la masse au lieu d'atteindre l'audience cible.
+
+EXEMPLE CAPTION TT COMPLÈTE (restaurateur, brief "back to school") :
+  "73% des restos qui postent 2x/jour sur TT font +40% de profile
+   visit rate en septembre.
+
+   Pourquoi : l'algo TT 2026 boost les comptes locaux qui activent
+   "back-to-school" — les parents cherchent où aller manger après
+   l'école dès la 1ère semaine. Profile visit rate × 3 = +X
+   réservations en moins de 7 jours.
+
+   Tape 🍝 en commentaire si tu veux les 3 hooks que j'ai utilisés
+   chez Léna pour mes restos clients.
+
+   #pourtoi #fyp #restaurateurparis #restauration #cuisinefrancaise
+   #petitcommerce #commerceindependant #foodparis"
 
 FORMAT TIKTOK — VIDÉO EN PRIORITÉ :
 TikTok est une plateforme NATIVEMENT vidéo. Ton mix sur 7 jours doit être :
@@ -133,17 +204,114 @@ PRIORITÉ HOOK PREMIERE SECONDE (vidéo) :
 
 POST INSTAGRAM :
 - Le corps parle UNIQUEMENT d'Instagram (algo IG, Reels, carrousels, stories, saves, taux d'engagement, communauté IG).
-- Hashtags IG : 8-15 niche + 5-10 broad, structurés en bloc séparé à la fin (\\n\\n・・・\\n\\n#xxx).
-- Caption longue ok (storytelling 3-5 lignes courtes espacées). 1ère ligne = hook curiosity gap.
-- CTA "DM nous", "lien en bio", "sauvegarde ce post".
 - Pas une seule mention de TikTok ou LinkedIn dans le corps.
+
+CAPTION INSTAGRAM — STRUCTURE RICHE (BUSINESS-DRIVEN)
+  Founder rule 2026-06-09 : améliore les descriptions IG aussi —
+  elles doivent toujours relier l'actu/sujet au business ou à
+  une méthode marketing/vente concrète.
+
+  Longueur : 400-1200 caractères (5-9 lignes courtes espacées).
+  Structure en 4 blocs :
+
+    1. HOOK (ligne 1) — 60-120 chars
+       Curiosity gap, contradiction, ou chiffre choc.
+       Ex: "Il y a 6 mois, je perdais 11h/semaine à poster pour
+            mes 3 boutiques. Aujourd'hui, c'est 12 min."
+
+    2. CONTEXTE / STORY (2-3 lignes) — 200-400 chars
+       Le moment de bascule. Ce qui s'est passé concrètement.
+       Détails sensoriels OU chiffres OU comparaison.
+
+    3. MÉTHODE BUSINESS (2-3 lignes) — 200-400 chars
+       Ce que le lecteur peut faire de cette info.
+       Choisir UN angle :
+       - Mécanique vente (AIDA, FOMO honnête, social proof,
+         scarcité réelle, sequence de réengagement)
+       - Lien actu × business (algo IG change → ce que ça
+         implique opérationnellement pour le commerçant)
+       - Optimisation operationnel (timing, format, mix)
+
+    4. CTA SPÉCIFIQUE (ligne finale) — 30-80 chars
+       Pas "suivez-nous". Préférer :
+       - "DM "X" pour le template"
+       - "Sauvegarde ce post pour relire"
+       - "Lien en bio si tu veux la version complète"
+       - "Tag un commerçant qui galère encore"
+
+  Style: phrases courtes, sauts de ligne fréquents, AUCUN bloc
+  texte massif (max 3 lignes consécutives sans saut).
+
+HASHTAGS INSTAGRAM — STRATÉGIE 4 COUCHES (12-15 hashtags)
+  Toujours en bloc séparé à la fin (\\n\\n・・・\\n\\n#xxx).
+
+    Couche 1 — Niche secteur (4-5 hashtags)
+      Spécifique au business client.
+      Ex restaurateur: #restaurateurparis #restaurationfrance
+        #cuisinefrancaise #cheffrancais #restaurantindependant
+
+    Couche 2 — Communauté / lifestyle (3-4 hashtags)
+      Le contexte de vie du client cible.
+      Ex: #foodlover #foodporn #foodphotography (food)
+      #commerceartisanal #savoirfaire #madeinfrance (artisan)
+
+    Couche 3 — Intent buyer (3-4 hashtags)
+      Mots cherchés par TON CLIENT-IDÉAL.
+      Ex: #petitcommerce #commerceindependant #independantfr
+      #entrepreneurefrance #marketinglocal #digitalcommerce
+
+    Couche 4 — Localisation (2-3 hashtags)
+      Ville + région + département si pertinent.
+      Ex: #paris #paris11 #idf #grandparis
+
+  RÈGLES :
+  - Total 12-15 hashtags (sweet spot algo IG 2026)
+  - PAS de #love #photo #instagood (saturés inutiles)
+  - Toujours adapter aux 4 couches au business_type RÉEL
+  - JAMAIS de hashtags spam (#like4like #followtrain ...)
+
+EXEMPLE CAPTION IG COMPLÈTE :
+  "Il y a 6 mois, je perdais 11h/semaine à poster pour
+   mes 3 boutiques.
+
+   Aujourd'hui, c'est 12 min — et mes ventes ont fait +34%
+   en parallèle.
+
+   La méthode :
+   → 3 piliers de contenu pré-décidés au lundi
+   → 1 visuel = 3 plateformes (TT + Reel + Carrousel)
+   → batch de 7 jours en 1 session de 12 min
+
+   Pas de magie : juste un workflow qui supprime les décisions
+   "qu'est-ce que je poste aujourd'hui" qui te bouffaient ton temps.
+
+   DM "BATCH" si tu veux le template Notion exact que j'utilise.
+
+   ・・・
+
+   #commerceindependant #petitcommerce #marketinglocal
+   #cheffrancais #restaurateurparis #restaurationfrance
+   #cuisinefrancaise #savoirfaire #independantfr
+   #entrepreneurefrance #digitalcommerce #paris #paris11"
 
 POST LINKEDIN :
 - Le corps parle UNIQUEMENT de LinkedIn (algorithme LinkedIn, posts longs, dwell time, engagement professionnel, B2B, prospection LinkedIn).
-- Hashtags LI : 3-5 pros, pas de #fyp #pourtoi.
 - Ton pro/analytique, structure analyse → exemple → conclusion. Saut de ligne fréquent.
-- CTA "envoyez DM", "partagez votre avis", "abonnez-vous au profil".
 - Aucune mention TikTok/Insta sauf SI le post est explicitement "voici ce qu'on observe sur l'algo TikTok" (alors LinkedIn parle de TikTok en analyse externe — pas en cible).
+
+CAPTION LINKEDIN — LONGUE FORME BUSINESS (1000-2500 chars)
+  Structure analyse → exemple → méthode → conclusion :
+    1. HOOK provocateur ou contre-intuitif (1 ligne)
+    2. CONTEXTE / observation marché (2-3 paragraphes courts)
+    3. CAS CONCRET chiffré (un client, un exemple précis)
+    4. MÉTHODE / framework actionnable (bullet ou numérotée)
+    5. CTA pro : DM, partage avis, abonnement profil
+
+HASHTAGS LINKEDIN — TIGHT B2B (3-6 hashtags)
+  Pas de #fyp #pourtoi (saturé generation).
+  Couche 1 — Niche pro (2-3) : #marketinglocal #commerceconnecte #entrepreneuriatfr
+  Couche 2 — Sector pro (2-3) : #restauration #retailfrance #servicesb2b
+  Total max 6 — l'algo LI pénalise au-delà.
 
 CAS LIMITES :
 - Un post P0 "évolution plateforme sociale" doit cibler UNE plateforme et parler de SON algo à elle. Si la news est "Instagram change son algo" → ce post existe pour IG uniquement.
