@@ -4,18 +4,36 @@
  */
 
 // Coût en crédits par fonctionnalité
-// Philosophie : images accessibles, vidéos progressives, IA cheap pour engagement
+// Founder rule 2026-06-09: "augmenter le cout des generations video/
+// images certainement" — l'ancien ratio image/video ne reflétait pas
+// la réalité économique (vidéo = 7x plus cher en € que image, le
+// crédit doit suivre).
+//
+// Nouveau pricing reflète : 1 crédit ≈ 0,01€ de coût réel.
+//   - image_t2i Seedream → 0.045€ → 5 cr
+//   - video Seedance 5s  → 0.31€  → 35 cr (×7 vs image)
+//   - video 10s          → 0.55€  → 60 cr
+//   - video 15s          → 0.83€  → 90 cr
+//   - video 30s          → 1.65€  → 165 cr (mais cap 130 pour offrir
+//                                              un sweet-spot client)
+//
+// Conséquence : la courbe slider mix devient monotone (plus de
+// vidéo = plus de crédits consommés) et l'upsell se déclenche
+// vraiment quand le client pousse vers vidéo.
 export const CREDIT_COSTS = {
-  image_t2i: 4,
-  image_i2i: 3,
-  video_5s: 15,
-  video_10s: 25,
-  video_15s: 35,
-  video_30s: 50,
-  video_45s: 65,
-  video_60s: 80,
-  video_90s: 110,
-  audio_tts: 2,
+  // image_t2i ratio cr/€ ≈ 110, video_5s ratio ≈ 129 → video plus
+  // "premium" en crédits que image → courbe slider monotone (plus
+  // de vidéo = plus de crédits consommés).
+  image_t2i: 5,
+  image_i2i: 4,
+  video_5s: 40,        // 0.31€ → 40 cr (ratio 129 cr/€)
+  video_10s: 65,       // 0.55€ → 65 cr (ratio 118 cr/€)
+  video_15s: 95,       // 0.83€ → 95 cr
+  video_30s: 140,      // 1.65€ → 140 cr
+  video_45s: 185,
+  video_60s: 235,
+  video_90s: 320,
+  audio_tts: 3,
   text_suggest: 1,
   narration_suggest: 1,
   marketing_chat: 1,
