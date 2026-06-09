@@ -806,67 +806,16 @@ export function ContentPanel({ data, agentName, gradientFrom, gradientTo }: Pane
 
   return (
     <>
-      {/* Weekly planning CTA + auto-publish hint. Always visible to the
-          client so they understand: posts are generated a week ahead,
-          they can edit/delete each one BEFORE its scheduled time, and
-          if auto-publish is ON they ship without further validation. */}
-      <div className="rounded-xl border border-purple-500/30 bg-gradient-to-r from-purple-900/20 to-pink-900/20 p-3 mb-3">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="text-2xl">{'\u{1F4C5}'}</div>
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-bold text-white">Planning à l&apos;avance</div>
-            <div className="text-[11px] text-white/50">Génère 1 à 4 semaines de posts — modifie/supprime chaque post avant sa date</div>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {([
-            { weeks: 1, label: '7 jours', sub: '1 semaine' },
-            { weeks: 2, label: '14 jours', sub: '2 semaines' },
-            { weeks: 3, label: '21 jours', sub: '3 semaines' },
-            { weeks: 4, label: '30 jours', sub: '1 mois' },
-          ] as const).map(opt => {
-            const isLoading = planningWeeks === opt.weeks;
-            return (
-              <button
-                key={opt.weeks}
-                onClick={() => planWeek(opt.weeks)}
-                disabled={planningWeekly}
-                className={`px-2 py-2.5 rounded-lg text-xs font-bold transition-all border ${
-                  isLoading
-                    ? 'bg-purple-600 text-white border-purple-400 cursor-wait'
-                    : planningWeekly
-                      ? 'bg-white/5 text-white/30 border-white/10 cursor-not-allowed'
-                      : 'bg-white/10 text-white border-purple-500/30 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 hover:border-transparent hover:scale-105 active:scale-95'
-                }`}
-              >
-                {isLoading ? (
-                  <>
-                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto mb-1" />
-                    <div className="text-[9px] text-white/70">en cours…</div>
-                  </>
-                ) : (
-                  <>
-                    <div>✨ {opt.label}</div>
-                    <div className="text-[9px] text-white/40 mt-0.5">{opt.sub}</div>
-                  </>
-                )}
-              </button>
-            );
-          })}
-        </div>
-        {/* 2026-06-09 — Toggle "Valider chaque publication" déplacé ici
-            dans la section planning Léna (était sur le dashboard). */}
-        <div className="mt-3 pt-3 border-t border-purple-500/20">
-          <ValidatePublicationsToggle />
-        </div>
-      </div>
+      {/* Planning à l'avance + Valider toggle DÉPLACÉS dans l'onglet
+          Planning (founder ask 2026-06-09 : "toute cette partie la
+          doit etre dans l onglet planning pas dashboard"). */}
       {weeklyToast && (
         <div className={`mb-3 px-3 py-2 rounded-lg text-xs ${weeklyToast.kind === 'ok' ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300' : 'bg-rose-500/10 border border-rose-500/30 text-rose-300'}`}>
           {weeklyToast.msg}
         </div>
       )}
 
-      {/* 2026-06-09 — Slider mix image/vidéo COMPACT (juste les chiffres
+      {/* Slider mix image/vidéo COMPACT (juste les chiffres
           + crédits restants + upsell pack si quota faible). */}
       <div className="mb-3">
         <CadenceMixSlider

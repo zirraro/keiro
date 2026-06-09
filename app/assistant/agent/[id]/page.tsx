@@ -10,6 +10,7 @@ import UpsellBanner from '@/app/components/UpsellBanner';
 import AgentOrdersHint from './components/AgentOrdersHint';
 import CreditPackModal from '@/components/CreditPackModal';
 import CreditBalanceChip from '@/components/CreditBalanceChip';
+import WeeklyPlanCard from './components/WeeklyPlanCard';
 
 const CrmDashboard = dynamic(() => import('./components/CrmDashboard'), { ssr: false });
 const AgentDashboard = dynamic(() => import('./components/AgentDashboard'), { ssr: false });
@@ -2253,7 +2254,10 @@ export default function AgentWorkspacePage() {
           <EmailPlanningView />
         )}
         {activeTab === 'planning' && agentId !== 'email' && (
-          <EditorialCalendarFull agentId={agentId} />
+          <>
+            {agentId === 'content' && <WeeklyPlanCard />}
+            <EditorialCalendarFull agentId={agentId} />
+          </>
         )}
         {false && (
           <div className="space-y-6">
