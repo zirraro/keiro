@@ -6,6 +6,7 @@ import { getAmitSystemPrompt, getAmitAnalysisPrompt } from '@/lib/agents/amit-pr
 import { saveLearning, saveAgentFeedback, getAllAgentLearnings, getAgentFeedbacks } from '@/lib/agents/learning';
 import { loadContextWithAvatar } from '@/lib/agents/shared-context';
 
+import { sendBrevoCompat } from '@/lib/email/brevo-compat';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -449,19 +450,11 @@ async function emailReportToFounder(report: any): Promise<void> {
   // Fallback: Brevo
   if (!emailSent && process.env.BREVO_API_KEY) {
     try {
-      const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
-        method: 'POST',
-        headers: {
-          'accept': 'application/json',
-          'api-key': process.env.BREVO_API_KEY,
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({
+      const brevoRes = await sendBrevoCompat({
           sender: { name: 'KeiroAI AMIT', email: 'contact@keiroai.com' },
           to: FOUNDER_EMAILS.map(e => ({ email: e })),
           subject: emailSubject,
           htmlContent: emailHtml,
-        }),
       });
 
       if (brevoRes.ok) {

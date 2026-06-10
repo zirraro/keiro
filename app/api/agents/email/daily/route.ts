@@ -9,6 +9,7 @@ import { loadContextWithAvatar } from '@/lib/agents/shared-context';
 import { canSendEmail } from '@/lib/agents/email-dedup';
 import { saveLearning, saveAgentFeedback } from '@/lib/agents/learning';
 
+import { sendBrevoCompat } from '@/lib/email/brevo-compat';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -1023,13 +1024,7 @@ async function sendEmail(
     // Priority 2: Brevo (primary fallback)
     if (!sendSuccess && process.env.BREVO_API_KEY) {
       try {
-        const brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
-          method: 'POST',
-          headers: {
-            'api-key': process.env.BREVO_API_KEY,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
+        const brevoResponse = await sendBrevoCompat({
             sender: { name: 'Victor de KeiroAI', email: 'contact@keiroai.com' },
             replyTo: { email: 'contact@keiroai.com', name: 'Victor de KeiroAI' },
             to: [{ email: prospect.email, name: prospect.first_name || prospect.company || '' }],
@@ -1043,7 +1038,6 @@ async function sendEmail(
               'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
             },
             tags: ['cold-sequence', `step-${step}`, category, prospect.type || 'unknown'],
-          }),
         });
 
         if (brevoResponse.ok) {

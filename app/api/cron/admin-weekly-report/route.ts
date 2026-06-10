@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+import { sendBrevoCompat } from '@/lib/email/brevo-compat';
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
@@ -177,15 +178,11 @@ export async function GET(req: NextRequest) {
   const adminEmail = process.env.ADMIN_EMAIL || 'mrzirraro@gmail.com';
   if (!apiKey) return NextResponse.json({ ok: false, error: 'BREVO_API_KEY missing' });
 
-  const res = await fetch('https://api.brevo.com/v3/smtp/email', {
-    method: 'POST',
-    headers: { 'accept': 'application/json', 'content-type': 'application/json', 'api-key': apiKey },
-    body: JSON.stringify({
+  const res = await sendBrevoCompat({
       sender: { name: 'KeiroAI Weekly', email: 'admin@keiroai.com' },
       to: [{ email: adminEmail }],
       subject: `📊 KeiroAI hebdo · ${(published || []).length} publi · ${emailsSent || 0} emails · ${anomActive.length} alertes`,
       htmlContent: html,
-    }),
   });
 
   return NextResponse.json({

@@ -8,6 +8,7 @@ import { getClientPrompt } from '@/lib/agents/client-prompts';
 import { formatDossierForPrompt, loadBusinessDossier } from '@/lib/agents/client-context';
 import { enrichAgentContext } from '@/lib/agents/enrich-context';
 
+import { sendBrevoCompat } from '@/lib/email/brevo-compat';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -503,10 +504,7 @@ N'utilise les actions QUE quand le client DEMANDE explicitement.`;
         const { data: clientProfile } = await supabase.from('profiles').select('email').eq('id', user.id).single();
         if (clientProfile?.email && body) {
           // Send via Brevo
-          const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
-            method: 'POST',
-            headers: { 'api-key': process.env.BREVO_API_KEY || '', 'Content-Type': 'application/json' },
-            body: JSON.stringify({
+          const brevoRes = await sendBrevoCompat({
               sender: { name: 'Noah — KeiroAI', email: 'contact@keiroai.com' },
               to: [{ email: clientProfile.email }],
               subject,
@@ -521,7 +519,6 @@ N'utilise les actions QUE quand le client DEMANDE explicitement.`;
                 <hr style="border:none;border-top:1px solid #eee;margin:24px 0"/>
                 <p style="font-size:12px;color:#999">Envoye par Noah, ton directeur strategie KeiroAI</p>
               </div>`,
-            }),
           });
           console.log(`[ClientChat] Email sent to ${clientProfile.email}: ${brevoRes.ok ? 'OK' : 'FAIL'}`);
         }

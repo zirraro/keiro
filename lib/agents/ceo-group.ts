@@ -15,6 +15,7 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { saveKnowledge } from './knowledge-rag';
 
+import { sendBrevoCompat } from '@/lib/email/brevo-compat';
 interface ClientReport {
   client_id: string;
   client_name: string;
@@ -179,10 +180,7 @@ export async function sendCeoGroupReport(
     `<tr><td style="padding:4px 8px;font-size:12px;">${f.agent}</td><td style="padding:4px 8px;font-size:12px;">${f.action}</td><td style="padding:4px 8px;font-size:12px;color:#ef4444;">${f.error?.substring(0, 80) || 'N/A'}</td></tr>`
   ).join('');
 
-  await fetch('https://api.brevo.com/v3/smtp/email', {
-    method: 'POST',
-    headers: { 'accept': 'application/json', 'api-key': BREVO_KEY, 'content-type': 'application/json' },
-    body: JSON.stringify({
+  await sendBrevoCompat({
       sender: { name: 'Noah CEO Group', email: 'contact@keiroai.com' },
       to: [{ email: 'contact@keiroai.com' }],
       subject: `${report.codeRecommendations.length > 0 ? '\uD83D\uDEE0' : '\u2705'} CEO Group — Reco code ${period} (${report.successRate}% succes, ${report.codeRecommendations.length} reco)`,
@@ -229,7 +227,6 @@ export async function sendCeoGroupReport(
         </div>
         <div style="background:#f9fafb;padding:12px;text-align:center;color:#9ca3af;font-size:11px;border-radius:0 0 12px 12px;">Noah CEO Group — KeiroAI Admin</div>
       </div>`,
-    }),
   }).catch(() => {});
 
   // Log the report

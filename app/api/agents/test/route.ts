@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getAuthUser } from '@/lib/auth-server';
 import { getEmailTemplate } from '@/lib/agents/email-templates';
 
+import { sendBrevoCompat } from '@/lib/email/brevo-compat';
 export const runtime = 'nodejs';
 export const maxDuration = 120;
 
@@ -118,21 +119,13 @@ export async function POST(request: NextRequest) {
           try {
             const template = getEmailTemplate(testType, step, vars, 0);
 
-            const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
-              method: 'POST',
-              headers: {
-                'accept': 'application/json',
-                'api-key': process.env.BREVO_API_KEY!,
-                'content-type': 'application/json',
-              },
-              body: JSON.stringify({
+            const brevoRes = await sendBrevoCompat({
                 sender: { name: 'Oussama — KeiroAI', email: 'contact@keiroai.com' },
                 to: [{ email: testEmail, name: testCompany }],
                 subject: `[TEST Step ${step}] ${template.subject}`,
                 htmlContent: template.htmlBody,
                 textContent: template.textBody,
                 tags: ['test', `step-${step}`, testType],
-              }),
             });
 
             if (brevoRes.ok) {

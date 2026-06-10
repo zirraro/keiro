@@ -11,6 +11,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 
+import { sendBrevoCompat } from '@/lib/email/brevo-compat';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const ADMIN_EMAIL = 'contact@keiroai.com';
@@ -202,10 +203,7 @@ Sois concis et technique. Format HTML pour email.`,
     // The CEO report (cron morning + evening) aggregates all errors
     const BREVO_KEY_DISABLED = false;
     if (BREVO_KEY_DISABLED) {
-      await fetch('https://api.brevo.com/v3/smtp/email', {
-        method: 'POST',
-        headers: { 'accept': 'application/json', 'api-key': process.env.BREVO_API_KEY || '', 'content-type': 'application/json' },
-        body: JSON.stringify({
+      await sendBrevoCompat({
           sender: { name: 'KeiroAI Error Alert', email: 'contact@keiroai.com' },
           to: [{ email: ADMIN_EMAIL }],
           subject: `🔴 Erreur Agent ${report.agent} — ${report.action}`,
@@ -228,7 +226,6 @@ Sois concis et technique. Format HTML pour email.`,
               KeiroAI Error Escalation System — Automatique
             </div>
           </div>`,
-        }),
       }).catch(() => {});
     }
 

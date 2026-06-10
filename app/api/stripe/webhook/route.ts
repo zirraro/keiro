@@ -4,6 +4,7 @@ import { PLAN_CREDITS } from '@/lib/credits/constants';
 import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 
+import { sendBrevoCompat } from '@/lib/email/brevo-compat';
 export const runtime = 'edge';
 
 function getSupabaseAdmin() {
@@ -370,10 +371,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
               : credits >= 100
                 ? `Tu peux générer ~${Math.floor(credits / 35)} reels ou ${Math.floor(credits / 3)} images.`
                 : `Tu peux générer ~${Math.floor(credits / 3)} images ou ~${credits} emails de plus.`;
-            await fetch('https://api.brevo.com/v3/smtp/email', {
-              method: 'POST',
-              headers: { 'accept': 'application/json', 'content-type': 'application/json', 'api-key': process.env.BREVO_API_KEY },
-              body: JSON.stringify({
+            await sendBrevoCompat({
                 sender: { name: 'KeiroAI', email: 'contact@keiroai.com' },
                 to: [{ email: packEmail }],
                 subject: `✨ +${credits} crédits ajoutés à ton compte`,
@@ -387,7 +385,6 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
                   <a href="https://keiroai.com/assistant" style="display:inline-block;background:#0c1a3a;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:14px">Continuer mes générations →</a>
                   <p style="margin-top:18px;color:#94a3b8;font-size:11px">Une question ? Réponds à cet email, on lit tout.</p>
                 </div>`,
-              }),
             });
           }
         } catch (mailErr: any) {
@@ -490,15 +487,11 @@ async function notifyFounderPayment(info: {
   // Fallback Brevo
   if (BREVO_API_KEY) {
     try {
-      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
-        method: 'POST',
-        headers: { 'accept': 'application/json', 'api-key': BREVO_API_KEY, 'content-type': 'application/json' },
-        body: JSON.stringify({
+      const res = await sendBrevoCompat({
           sender: { name: 'KeiroAI', email: 'contact@keiroai.com' },
           to: FOUNDER_EMAILS.map(email => ({ email })),
           subject,
           htmlContent: html,
-        }),
       });
       if (res.ok) {
         console.log('[Webhook] Payment notification sent via Brevo');
@@ -786,16 +779,12 @@ async function sendCancellationEmail(email: string, planName: string) {
   // Try Brevo first
   if (BREVO_API_KEY) {
     try {
-      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
-        method: 'POST',
-        headers: { 'accept': 'application/json', 'api-key': BREVO_API_KEY, 'content-type': 'application/json' },
-        body: JSON.stringify({
+      const res = await sendBrevoCompat({
           sender: { name: 'KeiroAI', email: 'contact@keiroai.com' },
           to: [{ email }],
           subject: 'Confirmation d\'annulation de votre abonnement KeiroAI',
           htmlContent: html,
           replyTo: { email: 'contact@keiroai.com' },
-        }),
       });
       if (res.ok) {
         console.log('[Webhook] Cancellation email sent via Brevo to', email);
@@ -988,15 +977,11 @@ async function handleTrialWillEnd(subscription: Stripe.Subscription) {
     }
   } else if (BREVO_KEY) {
     try {
-      await fetch('https://api.brevo.com/v3/smtp/email', {
-        method: 'POST',
-        headers: { 'accept': 'application/json', 'api-key': BREVO_KEY, 'content-type': 'application/json' },
-        body: JSON.stringify({
+      await sendBrevoCompat({
           sender: { name: 'KeiroAI', email: 'contact@keiroai.com' },
           to: [{ email: profile.email }],
           subject: `Votre essai gratuit se termine le ${dateStr} — KeiroAI`,
           htmlContent: html,
-        }),
       });
       console.log('[Webhook] Trial ending email sent via Brevo to:', profile.email);
     } catch (e: any) {

@@ -6,6 +6,7 @@ import { getSequenceForProspect } from '@/lib/agents/scoring';
 import { canSendEmail } from '@/lib/agents/email-dedup';
 import { isBlacklisted } from '@/lib/agents/hugo-engine';
 
+import { sendBrevoCompat } from '@/lib/email/brevo-compat';
 export const runtime = 'nodejs';
 export const maxDuration = 120;
 
@@ -326,10 +327,7 @@ export async function POST(request: NextRequest) {
     // Brevo fallback (300/day free) when Resend quota exceeded or fails
     if (!sendSuccess && process.env.BREVO_API_KEY) {
       try {
-        const brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
-          method: 'POST',
-          headers: { 'api-key': process.env.BREVO_API_KEY, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+        const brevoResponse = await sendBrevoCompat({
             sender: { name: 'Victor de KeiroAI', email: 'contact@keiroai.com' },
             to: [{ email: prospect.email, name: prospect.first_name || prospect.company || '' }],
             replyTo: { email: 'contact@keiroai.com', name: 'Victor de KeiroAI' },
@@ -338,7 +336,6 @@ export async function POST(request: NextRequest) {
             textContent: template.textBody,
             headers: { 'X-Mailin-custom': prospect_id },
             tags: ['cold-sequence', `step-${template_step}`, category],
-          }),
         });
         if (brevoResponse.ok) {
           const brevoData = await brevoResponse.json();

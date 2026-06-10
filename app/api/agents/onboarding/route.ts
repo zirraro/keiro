@@ -7,6 +7,7 @@ import { canSendEmail } from '@/lib/agents/email-dedup';
 import { saveLearning, saveAgentFeedback } from '@/lib/agents/learning';
 import { loadContextWithAvatar } from '@/lib/agents/shared-context';
 
+import { sendBrevoCompat } from '@/lib/email/brevo-compat';
 export const runtime = 'nodejs';
 export const maxDuration = 120;
 
@@ -516,21 +517,13 @@ async function sendOnboardingEmail(opts: {
   // Try Brevo first (primary — better deliverability + tracking via webhooks)
   if (process.env.BREVO_API_KEY) {
     try {
-      const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
-        method: 'POST',
-        headers: {
-          'accept': 'application/json',
-          'api-key': process.env.BREVO_API_KEY,
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({
+      const brevoRes = await sendBrevoCompat({
           sender: { name: 'Victor de KeiroAI', email: 'contact@keiroai.com' },
           to: [{ email: to, name: toName }],
           subject,
           textContent,
           headers: { 'X-Mailin-custom': userId },
           tags,
-        }),
       });
 
       if (brevoRes.ok) {

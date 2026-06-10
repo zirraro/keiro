@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { saveLearning } from '@/lib/agents/learning';
 import { saveKnowledge } from '@/lib/agents/knowledge-rag';
 
+import { sendBrevoCompat } from '@/lib/email/brevo-compat';
 // Plan floors mirror lib/agents/service-guarantees.ts. Duplicated inline
 // because Noah's evening brief renders HTML (the shared helper outputs
 // markdown). Keep the two in sync; if they drift, the brief lies.
@@ -159,10 +160,7 @@ Format HTML pour email. Sois direct et actionable.`,
         return `<tr><td style="padding:4px 8px;">${icon} ${a}</td><td style="padding:4px 8px;">${d.runs}</td><td style="padding:4px 8px;color:${d.errors > 0 ? '#ef4444' : '#22c55e'}">${d.errors}</td><td style="padding:4px 8px;font-size:11px;color:#888;">${d.lastAction}</td></tr>`;
       }).join('');
 
-      const emailRes = await fetch('https://api.brevo.com/v3/smtp/email', {
-        method: 'POST',
-        headers: { 'accept': 'application/json', 'api-key': BREVO_KEY, 'content-type': 'application/json' },
-        body: JSON.stringify({
+      const emailRes = await sendBrevoCompat({
           sender: { name: 'Noah CEO IA', email: 'contact@keiroai.com' },
           to: [{ email: ADMIN_EMAIL }],
           subject: `${totalErrors > 0 ? '\u{1F6A8}' : '\u2705'} Rapport amelioration agents — ${totalErrors} echecs, ${errorRate}% error rate`,
@@ -203,7 +201,6 @@ Format HTML pour email. Sois direct et actionable.`,
             </div>
             <div style="background:#f9fafb;padding:12px;text-align:center;color:#9ca3af;font-size:11px;border-radius:0 0 12px 12px;">Noah CEO IA — KeiroAI</div>
           </div>`,
-        }),
       });
       if (!emailRes.ok) {
         const errText = await emailRes.text().catch(() => '');
@@ -261,10 +258,7 @@ Format HTML pour email. Sois direct et actionable.`,
       </div>`;
     }).filter(Boolean).join('');
 
-    const statusEmailRes = await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: { 'accept': 'application/json', 'api-key': BREVO_KEY, 'content-type': 'application/json' },
-      body: JSON.stringify({
+    const statusEmailRes = await sendBrevoCompat({
         sender: { name: 'Noah CEO IA', email: 'contact@keiroai.com' },
         to: [{ email: ADMIN_EMAIL }],
         subject: `\u{1F4CB} Etat des taches ${period} — ${totalRuns} actions, ${totalErrors} erreurs`,
@@ -294,7 +288,6 @@ Format HTML pour email. Sois direct et actionable.`,
           </div>
           <div style="background:#f9fafb;padding:12px;text-align:center;color:#9ca3af;font-size:11px;border-radius:0 0 12px 12px;">Noah CEO IA — KeiroAI | Rapport automatique ${period}</div>
         </div>`,
-      }),
     });
     if (!statusEmailRes.ok) {
       const errText = await statusEmailRes.text().catch(() => '');
@@ -1666,10 +1659,7 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
       // Send email — skipped when phase=catchup_only (founder split flow 2026-05-27)
       if (!skipEmail && BREVO_CLIENT_KEY && prefs?.email_enabled !== false && client.email) {
         const sendStart = Date.now();
-        const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
-          method: 'POST',
-          headers: { 'accept': 'application/json', 'api-key': BREVO_CLIENT_KEY, 'content-type': 'application/json' },
-          body: JSON.stringify({
+        const brevoRes = await sendBrevoCompat({
             sender: { name: 'Noah CEO IA', email: 'contact@keiroai.com' },
             to: [{ email: client.email }],
             subject: isEvening
@@ -1692,10 +1682,6 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
             // fast idempotent lookup in /api/webhooks/brevo.
             tags: ['noah_brief', isEvening ? 'evening' : 'morning'],
             headers: { 'X-Mailin-custom': JSON.stringify({ uid: client.id, kind: 'noah_brief', slot: isEvening ? 'evening' : 'morning' }) },
-          }),
-        }).catch((err: any) => {
-          console.error(`[Noah brief] Brevo network error for ${client.email}:`, err?.message);
-          return null;
         });
         // 2026-06-10 — Log Noah brief sends for traceability (founder
         // ask: "pourquoi le client mrzirraro@gmail.com ne reçoit plus

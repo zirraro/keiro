@@ -26,6 +26,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+import { sendBrevoCompat } from '@/lib/email/brevo-compat';
 export const runtime = 'nodejs';
 export const maxDuration = 120;
 
@@ -150,15 +151,11 @@ async function sendImmediateAdminEmail(supabase: any, anomaliesP0: Anomaly[]) {
   html += '</div>';
 
   try {
-    await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: { 'accept': 'application/json', 'content-type': 'application/json', 'api-key': apiKey },
-      body: JSON.stringify({
+    await sendBrevoCompat({
         sender: { name: 'KeiroAI Alerts', email: 'admin@keiroai.com' },
         to: [{ email: adminEmail }],
         subject: `🚨 ${anomaliesP0.length} anomalie${anomaliesP0.length > 1 ? 's' : ''} P0 — action <12h`,
         htmlContent: html,
-      }),
     });
     // Mark all P0 rows as sent
     for (const a of anomaliesP0) {

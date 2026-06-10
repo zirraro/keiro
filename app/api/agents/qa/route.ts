@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { escalateAgentError } from '@/lib/agents/error-escalation';
 import { QA_MODULES, QA_GROUPS, type QACheck } from '@/lib/agents/qa-modules';
 
+import { sendBrevoCompat } from '@/lib/email/brevo-compat';
 export const runtime = 'nodejs';
 export const maxDuration = 300;
 
@@ -92,15 +93,11 @@ export async function POST(req: NextRequest) {
       return `<tr><td style="padding:3px 6px;">${icon}</td><td style="padding:3px 6px;">${c.name}</td><td style="padding:3px 6px;color:${color};font-weight:bold;font-size:11px;">${c.status}</td><td style="padding:3px 6px;font-size:12px;">${c.message}</td>${c.fix ? `<td style="padding:3px 6px;font-size:11px;color:#3b82f6;">${c.fix}</td>` : '<td></td>'}</tr>`;
     }).join('');
 
-    await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: { 'accept': 'application/json', 'api-key': BREVO_KEY, 'content-type': 'application/json' },
-      body: JSON.stringify({
+    await sendBrevoCompat({
         sender: { name: 'KeiroAI QA Agent', email: 'contact@keiroai.com' },
         to: [{ email: ADMIN_EMAIL }],
         subject: `${critical > 0 ? '🔴' : score >= 80 ? '✅' : '⚠️'} QA ${mode} — ${score}/100 | ${critical}C ${fail}F ${warn}W`,
         htmlContent: `<div style="font-family:Arial,sans-serif;max-width:800px;margin:0 auto;"><div style="background:linear-gradient(135deg,#0c1a3a,#1e3a5f);color:white;padding:16px;border-radius:12px 12px 0 0;"><h2 style="margin:0;font-size:16px;">🧪 QA Report — ${score}/100</h2><p style="margin:4px 0 0;color:#a0aec0;font-size:12px;">${now.toLocaleString('fr-FR')} | ${mode} | ${modulesToRun.length} modules</p></div><div style="background:white;padding:16px;border:1px solid #e5e7eb;"><table style="width:100%;border-collapse:collapse;font-size:12px;"><thead><tr style="background:#f9fafb;"><th style="padding:4px;text-align:left;"></th><th style="padding:4px;text-align:left;">Check</th><th style="padding:4px;">Status</th><th style="padding:4px;text-align:left;">Details</th><th style="padding:4px;text-align:left;">Fix</th></tr></thead><tbody>${rows}</tbody></table></div><div style="background:#f9fafb;padding:8px;text-align:center;color:#9ca3af;font-size:10px;border-radius:0 0 12px 12px;">QA Agent | [${modulesToRun.join(',')}]</div></div>`,
-      }),
     }).catch(() => {});
   }
 
