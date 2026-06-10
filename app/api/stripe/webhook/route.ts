@@ -5,7 +5,10 @@ import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 
 import { sendBrevoCompat } from '@/lib/email/brevo-compat';
-export const runtime = 'edge';
+// 2026-06-10 — Switched from 'edge' to 'nodejs' because brevo-compat
+// pulls in nodemailer (for Brevo SMTP fallback) which requires Node
+// streams. Stripe webhook does not need Edge latency — Node is fine.
+export const runtime = 'nodejs';
 
 function getSupabaseAdmin() {
   return createClient(
