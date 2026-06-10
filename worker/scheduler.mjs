@@ -132,6 +132,12 @@ const GLOBAL_SCHEDULE = [
   // revenu mensuel. Email admin avec breakdown si marge projetée < 70%
   // ou spike clients > 5× avg.
   { cron: '0 7 * * *',    path: '/api/cron/daily-cost-check', label: 'Daily Cost Projection Check (admin alerts)' },
+  // 2026-06-10 — Toutes les 6h. Vérifie que la clé Brevo est valide.
+  // Founder ask: "pourquoi le client mrzirraro ne reçoit plus de mail
+  // de noah". Diagnostic: clé Brevo révoquée, tous les emails échouent
+  // silencieusement (.catch swallowait l'erreur). Ce cron log un error
+  // dans agent_logs si la clé est invalide → visible dans /admin/agents.
+  { cron: '0 */6 * * *',  path: '/api/cron/brevo-health-check', label: 'Brevo API key health check (every 6h)' },
   // 2026-06-09 — Daily 06:00 UTC (avant le digest matin). Audite
   // automatiquement les 30 paires (agent, client) les plus à risque
   // — pré-détection des dégradations avant qu'elles deviennent un

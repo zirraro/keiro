@@ -1877,10 +1877,43 @@ async function publishToTikTok(
     // Vary between photo and video: if no video exists and format isn't video-specific, publish as photo
     if (!hasVideo && hasImage && !isVideoFormat) {
       console.log(`[Content] TikTok: publishing as PHOTO (format: ${format}, has image: ${hasImage})`);
+      // 2026-06-10 — Founder rule: TikTok PHOTO publications MUST be a
+      // carousel of AT LEAST 2 coherent images. A single-photo TT post
+      // still shows the carousel icon in the feed which felt broken
+      // (user reported "icone caroussel mais 1 seule photo"). We build a
+      // narrative companion using LLM slides[] when available, falling
+      // back to a single semantic variation if not. If the companion
+      // generation fails we still publish the single photo (better than
+      // skipping the post entirely).
+      const tiktokPhotoUrls: string[] = [visualUrl!];
+      const baseDescTT = (post as any).visual_description || (post as any).hook || (post as any).caption || 'premium product';
+      const ttSlides: Array<{ visual?: string; text?: string; style?: string }> = Array.isArray((post as any).slides) ? (post as any).slides : [];
+      const ttSlidesToUse = ttSlides.slice(1, 5); // TikTok feels best with 2-5 photos
+      if (ttSlidesToUse.length > 0) {
+        console.log(`[Content] TikTok carousel: using ${ttSlidesToUse.length} per-slide visuals from LLM`);
+        for (const s of ttSlidesToUse) {
+          const slideDesc = s.visual?.trim();
+          if (!slideDesc) continue;
+          try {
+            const varUrl = await generateVisual(slideDesc, 'carrousel');
+            if (varUrl) tiktokPhotoUrls.push(varUrl);
+          } catch { /* skip slide on error */ }
+        }
+      }
+      if (tiktokPhotoUrls.length === 1) {
+        // Generate 1 narrative companion (TikTok min for a true carousel
+        // feeling). Keep it cheap — 1 extra image only, not 3.
+        const companion = `${baseDescTT}. CARROUSEL SLIDE 2 — visuellement complémentaire de slide 1: si slide 1 est un plan large, ce slide est un détail (close-up sur un geste, une texture, une expression authentique). Si slide 1 montre un produit, ce slide montre le moment où le client en profite. Même univers, même lumière naturelle, même palette, mais nouveau cadrage et nouvelle énergie. Photographie éditoriale, peau réelle, NO AI tells, NO repeated subject framing.`;
+        try {
+          const varUrl = await generateVisual(companion, 'carrousel');
+          if (varUrl) tiktokPhotoUrls.push(varUrl);
+        } catch { /* skip on error */ }
+      }
+      console.log(`[Content] TikTok PHOTO carousel: publishing ${tiktokPhotoUrls.length} image(s)`);
       try {
         const result = await initTikTokPhotoUpload(
           accessToken,
-          [visualUrl],
+          tiktokPhotoUrls,
           fullCaption.substring(0, 2200),
         );
         // 2026-06-03 — Draft submissions (TikTok inbox, MEDIA_UPLOAD
@@ -1922,9 +1955,16 @@ async function publishToTikTok(
     if (!videoUrl) {
       // Last resort: try photo if we have an image
       if (hasImage) {
-        console.log('[Content] TikTok: video generation failed, attempting photo as last resort');
+        console.log('[Content] TikTok: video generation failed, attempting photo (carousel) as last resort');
+        // Same 2-photo carousel rule as primary photo path.
+        const fallbackUrls: string[] = [visualUrl!];
         try {
-          const result = await initTikTokPhotoUpload(accessToken, [visualUrl!], fullCaption.substring(0, 2200));
+          const companion = `${(post as any).visual_description || post.caption || 'premium product'}. CARROUSEL SLIDE 2 — visuellement complémentaire: cadrage opposé (détail vs large, geste vs scène), même lumière et même univers. Photographie éditoriale, NO AI tells.`;
+          const varUrl = await generateVisual(companion, 'carrousel');
+          if (varUrl) fallbackUrls.push(varUrl);
+        } catch { /* keep single photo on companion failure */ }
+        try {
+          const result = await initTikTokPhotoUpload(accessToken, fallbackUrls, fullCaption.substring(0, 2200));
           if (result.is_draft) {
             await releaseTtClaim();
             return { success: false, error: 'tiktok_draft_needs_manual_finalize', publish_id: result.publish_id };

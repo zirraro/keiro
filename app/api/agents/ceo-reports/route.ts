@@ -1665,7 +1665,8 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
 
       // Send email — skipped when phase=catchup_only (founder split flow 2026-05-27)
       if (!skipEmail && BREVO_CLIENT_KEY && prefs?.email_enabled !== false && client.email) {
-        await fetch('https://api.brevo.com/v3/smtp/email', {
+        const sendStart = Date.now();
+        const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
           method: 'POST',
           headers: { 'accept': 'application/json', 'api-key': BREVO_CLIENT_KEY, 'content-type': 'application/json' },
           body: JSON.stringify({
@@ -1692,7 +1693,56 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
             tags: ['noah_brief', isEvening ? 'evening' : 'morning'],
             headers: { 'X-Mailin-custom': JSON.stringify({ uid: client.id, kind: 'noah_brief', slot: isEvening ? 'evening' : 'morning' }) },
           }),
-        }).catch(() => {});
+        }).catch((err: any) => {
+          console.error(`[Noah brief] Brevo network error for ${client.email}:`, err?.message);
+          return null;
+        });
+        // 2026-06-10 — Log Noah brief sends for traceability (founder
+        // ask: "pourquoi le client mrzirraro@gmail.com ne reçoit plus
+        // de mail de noah"). On loggue chaque envoi avec son résultat
+        // pour pouvoir diagnostiquer.
+        const elapsed = Date.now() - sendStart;
+        let brevoMsgId: string | null = null;
+        let brevoStatus: number = 0;
+        let brevoError: string | null = null;
+        if (brevoRes) {
+          brevoStatus = brevoRes.status;
+          try {
+            const j: any = await brevoRes.json();
+            brevoMsgId = j?.messageId || null;
+            if (!brevoRes.ok) brevoError = (j?.message || JSON.stringify(j)).substring(0, 200);
+          } catch {}
+        }
+        await supabase.from('agent_logs').insert({
+          agent: 'ceo',
+          action: isEvening ? 'client_evening_sent' : 'client_brief_sent',
+          status: brevoStatus >= 200 && brevoStatus < 300 ? 'success' : 'error',
+          user_id: client.id,
+          error_message: brevoError,
+          data: {
+            recipient: client.email,
+            brevo_status: brevoStatus,
+            brevo_message_id: brevoMsgId,
+            elapsed_ms: elapsed,
+            slot: isEvening ? 'evening' : 'morning',
+            freq,
+          },
+        }).then(() => {}, () => {});
+      } else if (skipEmail) {
+        // catchup_only phase — pas d'email envoyé, normal
+      } else {
+        // Brief n'a pas pu être envoyé : on loggue la raison
+        await supabase.from('agent_logs').insert({
+          agent: 'ceo',
+          action: isEvening ? 'client_evening_skipped' : 'client_brief_skipped',
+          status: 'error',
+          user_id: client.id,
+          error_message: !BREVO_CLIENT_KEY ? 'BREVO_API_KEY missing' :
+                         prefs?.email_enabled === false ? 'email_enabled=false in client_brief_preferences' :
+                         !client.email ? 'no email on profile' :
+                         'unknown',
+          data: { has_brevo: !!BREVO_CLIENT_KEY, email_enabled: prefs?.email_enabled !== false, has_email: !!client.email },
+        }).then(() => {}, () => {});
       }
 
       // ── Individual agent notifications (opt-in via agent settings) ──
