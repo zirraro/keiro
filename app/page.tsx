@@ -103,7 +103,7 @@ function HomeKeiroInner() {
                       {locale === 'fr' ? 'Ce que ton équipe IA produit chaque mois' : 'What your AI team delivers each month'}
                     </h3>
                     <p className="text-[11px] text-white/50 mt-0.5">
-                      {locale === 'fr' ? 'Moyenne mesurée sur les comptes Pro et Business actifs' : 'Average measured across active Pro & Business accounts'}
+                      {locale === 'fr' ? 'Objectifs de production par plan (exemple illustratif)' : 'Production targets per plan (illustrative example)'}
                     </p>
                   </div>
                   <div className="flex items-center gap-1.5 px-2 py-0.5 bg-green-500/20 rounded-full flex-shrink-0">
@@ -1106,99 +1106,54 @@ function HomeKeiroInner() {
       </div>
       {/* ═══ END HIDDEN SECTIONS ═══ */}
 
-      {/* TÉMOIGNAGES CLIENTS */}
+      {/* PROGRAMME PILOTE — honnête early-stage (remplace les anciens témoignages
+          fictifs : pas de faux clients, pas de métriques non sourcées). Les vrais
+          cas clients viendront ici dès les premiers retours mesurés. */}
       <section className="mx-auto max-w-6xl px-6 py-12">
         <div className="text-center mb-10">
-          <h2 className="text-2xl sm:text-3xl font-bold mb-2">{t.home.testimonialsTitle}</h2>
-          <p className="text-neutral-600">{t.home.testimonialsSub}</p>
+          <span className="inline-block mb-3 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-bold">
+            {locale === 'fr' ? 'PROGRAMME PILOTE' : 'PILOT PROGRAM'}
+          </span>
+          <h2 className="text-2xl sm:text-3xl font-bold mb-2">
+            {locale === 'fr' ? 'Rejoins nos premiers clients' : 'Join our first clients'}
+          </h2>
+          <p className="text-neutral-600 max-w-2xl mx-auto">
+            {locale === 'fr'
+              ? "KeiroAI est en lancement. Plutôt que d'inventer des témoignages, on est transparents : voici ce que ton équipe d'agents fait pour toi dès le premier jour. Les vrais retours clients apparaîtront ici."
+              : "KeiroAI is launching. Instead of faking testimonials, we keep it honest: here is what your agent team does for you from day one. Real client feedback will appear here."}
+          </p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-6">
           {[
             {
-              photo: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=160&h=160&fit=crop&crop=face',
-              text: t.home.testimonial1Text,
-              name: t.home.testimonial1Name,
-              role: t.home.testimonial1Role,
-              result_fr: '+47% de réservations en 2 mois',
-              result_en: '+47% bookings in 2 months',
-              sector_fr: 'Restaurant · Paris 11e',
-              sector_en: 'Restaurant · Paris 11th',
-              accentClass: 'text-purple-500',
+              icon: '🎬',
+              title_fr: 'Publie pour toi', title_en: 'Publishes for you',
+              desc_fr: 'Léna crée et publie tes posts Instagram, TikTok et LinkedIn — visuels, textes, hashtags.',
+              desc_en: 'Léna creates and publishes your Instagram, TikTok and LinkedIn posts — visuals, copy, hashtags.',
             },
             {
-              photo: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=160&h=160&fit=crop&crop=face',
-              text: t.home.testimonial2Text,
-              name: t.home.testimonial2Name,
-              role: t.home.testimonial2Role,
-              result_fr: '1ère vente Insta en 15 jours',
-              result_en: 'First Insta sale in 15 days',
-              sector_fr: 'Boutique déco · Lyon',
-              sector_en: 'Decor shop · Lyon',
-              accentClass: 'text-[#6b9fd4]',
+              icon: '🎯',
+              title_fr: 'Trouve des clients', title_en: 'Finds clients',
+              desc_fr: 'Léo identifie des prospects locaux, Jade prépare des messages personnalisés à envoyer en 1 clic.',
+              desc_en: 'Léo finds local prospects, Jade prepares personalised messages ready to send in one click.',
             },
             {
-              photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=160&h=160&fit=crop&crop=face',
-              text: t.home.testimonial3Text,
-              name: t.home.testimonial3Name,
-              role: t.home.testimonial3Role,
-              result_fr: '+340% de vues TikTok',
-              result_en: '+340% TikTok views',
-              sector_fr: 'Coach sportif · Marseille',
-              sector_en: 'Fitness coach · Marseille',
-              accentClass: 'text-[#6b9fd4]',
+              icon: '💬',
+              title_fr: 'Répond 24/7', title_en: 'Replies 24/7',
+              desc_fr: 'Jade répond aux DMs et commentaires, Théo répond aux avis Google — dans ton ton de marque.',
+              desc_en: 'Jade answers DMs and comments, Théo replies to Google reviews — in your brand voice.',
             },
-          ].map((t_, i) => (
+          ].map((c, i) => (
             <div key={i} className="bg-white rounded-2xl premium-card p-6 hover:shadow-soft-lg hover:-translate-y-0.5 transition-all">
-              <div className={`flex items-center gap-1 mb-4 ${t_.accentClass}`}>
-                <span>⭐</span>
-                <span>⭐</span>
-                <span>⭐</span>
-                <span>⭐</span>
-                <span>⭐</span>
-              </div>
-
-              {/* Key metric chip — the single number that makes this testimonial
-                  credible at a glance, before the reader parses the prose. */}
-              <div className="inline-block mb-3 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-bold">
-                {locale === 'en' ? t_.result_en : t_.result_fr}
-              </div>
-
-              <p className="text-neutral-700 mb-4 leading-relaxed">{t_.text}</p>
-
-              <div className="flex items-center gap-3 pt-3 border-t border-neutral-100">
-                <img
-                  src={t_.photo}
-                  alt={t_.name}
-                  className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm"
-                  loading="lazy"
-                  onError={(e) => {
-                    // If Unsplash fails, fall back to initial badge
-                    const img = e.target as HTMLImageElement;
-                    img.style.display = 'none';
-                    const next = img.nextElementSibling as HTMLElement | null;
-                    if (next) next.style.display = 'flex';
-                  }}
-                />
-                <div
-                  className="w-12 h-12 rounded-full bg-[#0c1a3a] items-center justify-center text-white font-bold text-lg"
-                  style={{ display: 'none' }}
-                >
-                  {t_.name?.[0] || '?'}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="font-bold text-neutral-900 truncate">{t_.name}</div>
-                  <div className="text-xs text-neutral-500 truncate">{t_.role}</div>
-                  <div className="text-[11px] text-neutral-400 truncate">
-                    {locale === 'en' ? t_.sector_en : t_.sector_fr}
-                  </div>
-                </div>
-              </div>
+              <div className="text-3xl mb-3">{c.icon}</div>
+              <h3 className="font-bold text-neutral-900 mb-2">{locale === 'en' ? c.title_en : c.title_fr}</h3>
+              <p className="text-neutral-600 text-sm leading-relaxed">{locale === 'en' ? c.desc_en : c.desc_fr}</p>
             </div>
           ))}
         </div>
 
-        {/* CTA après témoignages */}
+        {/* CTA après pilote */}
         <div className="mt-10 text-center">
           <a href="/checkout/upsell?plan=createur" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold text-lg hover:shadow-xl transition-all hover:-translate-y-0.5">
             {t.home.testimonialCta}
@@ -1207,7 +1162,6 @@ function HomeKeiroInner() {
             {t.home.testimonialCtaSub}
           </p>
         </div>
-        <p className="text-xs text-center text-neutral-400 mt-2 italic">{locale === 'fr' ? 'Retours basés sur des tests utilisateurs' : 'Feedback collected from user tests'}</p>
       </section>
 
       {/* ═══ MORE HIDDEN SECTIONS ═══ */}

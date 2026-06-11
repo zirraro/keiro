@@ -13,21 +13,19 @@ import { StickyCtaBar } from "@/components/ui/StickyCtaBar";
 
 export const metadata: Metadata = {
   title: {
-    default: "Keiro - Créez des visuels marketing IA qui surfent sur l'actualité",
-    template: "%s | Keiro"
+    default: "KeiroAI — Ton équipe d'agents IA marketing pour commerces locaux | 49€/mois",
+    template: "%s | KeiroAI"
   },
-  description: "Générez des visuels marketing professionnels en quelques secondes grâce à l'IA. Associez votre business aux actualités tendances pour maximiser l'engagement sur les réseaux sociaux.",
+  description: "7 agents IA qui publient sur tes réseaux, prospectent et répondent à tes clients 24/7. Essai gratuit 7 jours.",
   keywords: [
-    "création visuelle IA",
-    "marketing visuel",
-    "actualités marketing",
-    "contenu réseaux sociaux",
-    "génération image IA",
-    "marketing automation",
-    "visuels Instagram",
-    "design automatique",
-    "IA marketing",
-    "content marketing"
+    "agents IA marketing",
+    "marketing automation commerce local",
+    "publication réseaux sociaux automatique",
+    "prospection automatisée",
+    "community manager IA",
+    "marketing Instagram TikTok",
+    "IA marketing PME",
+    "agent IA réseaux sociaux"
   ],
   authors: [{ name: "Keiro" }],
   creator: "Keiro",
@@ -40,22 +38,22 @@ export const metadata: Metadata = {
     type: "website",
     locale: "fr_FR",
     url: "https://www.keiroai.com",
-    title: "Keiro - Créez des visuels marketing IA qui surfent sur l'actualité",
-    description: "Générez des visuels marketing professionnels en quelques secondes grâce à l'IA. Associez votre business aux actualités tendances.",
-    siteName: "Keiro",
+    title: "KeiroAI — Ton équipe d'agents IA marketing pour commerces locaux",
+    description: "7 agents IA qui publient sur tes réseaux, prospectent et répondent à tes clients 24/7. Essai gratuit 7 jours.",
+    siteName: "KeiroAI",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Keiro - Visuels marketing IA"
+        alt: "KeiroAI - Équipe d'agents IA marketing"
       }
     ]
   },
   twitter: {
     card: "summary_large_image",
-    title: "Keiro - Visuels marketing IA sur l'actualité",
-    description: "Générez des visuels marketing professionnels en quelques secondes grâce à l'IA.",
+    title: "KeiroAI — Ton équipe d'agents IA marketing 24/7",
+    description: "7 agents IA qui publient, prospectent et répondent à tes clients. Essai gratuit 7 jours.",
     images: ["/og-image.png"],
     creator: "@KeiroAI"
   },
@@ -111,15 +109,10 @@ export default function RootLayout({
               "operatingSystem": "Web",
               "offers": {
                 "@type": "Offer",
-                "price": "0",
+                "price": "49",
                 "priceCurrency": "EUR"
               },
-              "aggregateRating": {
-                "@type": "AggregateRating",
-                "ratingValue": "4.8",
-                "ratingCount": "127"
-              },
-              "description": "Plateforme IA de création de visuels marketing basés sur l'actualité pour maximiser l'engagement sur les réseaux sociaux."
+              "description": "Équipe d'agents IA marketing pour commerces locaux : publication réseaux sociaux, prospection et réponses clients en autonomie."
             })
           }}
         />
