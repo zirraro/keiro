@@ -41,19 +41,28 @@ export type ReviewDecision =
  */
 function preClassify(ctx: ReviewContext): 'escalate' | 'ok_to_try' {
   const lower = (ctx.text || '').toLowerCase();
-  // Hard-escalate signals: legal threats, health/safety claims, alleged
-  // crime, name-and-shame. Human MUST handle these.
+  // Founder decision (brief v2 2026-06-11): Théo n'auto-répond QU'aux avis
+  // 4-5★. Tout avis < 4★ part en escalade humaine — un avis mitigé ou négatif
+  // mal géré = crise client, le risque ne vaut jamais l'automatisation.
+  if (ctx.rating < 4) return 'escalate';
+
+  // Hard-escalate signals even on a 4-5★ review (e.g. high rating but mentions
+  // a health/legal issue in the text). Human MUST handle these.
   const hardSignals = [
-    'avocat', 'tribunal', 'plainte', 'procès', 'lawsuit',
-    'intox', 'intoxication', 'vomi', 'hospital', 'malade', 'poison',
+    // légal / litige
+    'avocat', 'tribunal', 'plainte', 'procès', 'proces', 'lawsuit', 'litige',
+    'menace', 'justice', 'mise en demeure', 'remboursement', 'rembours', 'dédommag', 'dedommag',
+    // santé / hygiène / sécurité
+    'intox', 'intoxication', 'vomi', 'hospital', 'malade', 'poison', 'hygiène', 'hygiene',
+    'allergie', 'allergique', 'blessé', 'blesse', 'blessure', 'cheveu', 'insecte', 'cafard', 'périmé', 'perime',
+    // crime / fraude
     'voleur', 'arnaque', 'escroc', 'fraud', 'scam',
-    'raciste', 'racis', 'discrimination', 'harass',
+    // discrimination / harcèlement / insulte staff
+    'raciste', 'racis', 'discrimination', 'harass', 'insulte', 'agressif', 'agression',
+    // faux avis
+    'faux avis', 'jamais mis les pieds', 'jamais venu', 'jamais été', 'concurrent',
   ];
   if (hardSignals.some(s => lower.includes(s))) return 'escalate';
-
-  // Very negative very short review ("Nul.") — risky to auto-reply without
-  // knowing context.
-  if (ctx.rating <= 2 && ctx.text.length < 40) return 'escalate';
 
   return 'ok_to_try';
 }
@@ -92,7 +101,7 @@ export async function generateReviewReply(
     ? '⭐ Avis POSITIF : remercier chaleureusement + citer UN détail précis de son commentaire + petite invitation à revenir.'
     : review.rating === 3
       ? '⭐⭐⭐ Avis MITIGÉ : reconnaître le point positif ET le point d\'amélioration cités, proposer une solution concrète si on en a une dans le dossier, sinon proposer de reprendre contact.'
-      : '⚠️ Avis NÉGATIF (1-2⭐) : reconnaître sincèrement le problème précis qu\'il évoque, éviter toute justification défensive, proposer une action concrète (remboursement, geste commercial, rappel téléphonique). Si on ne peut PAS proposer d\'action précise depuis le dossier, ESCALATE.';
+      : '⚠️ Avis < 4⭐ : NE PAS auto-répondre — renvoyer {"action":"escalate"}. Les avis mitigés/négatifs sont gérés par un humain (jamais de promesse de compensation ou de remboursement automatisée).';
 
   const dossierBlock = dossier ? [
     `Business : ${dossier.company_name || '?'}`,
@@ -132,7 +141,12 @@ ${ratingLine}
 - BANNI : minimiser un reproche ("c'est exceptionnel chez nous", "ce n'est pas notre habitude") avant d'avoir reconnu le problème.
 - BANNI : copier la formule des previous_replies — varie les ouvertures et les structures pour ne pas donner l'impression de réponses pré-écrites.
 
-━━━ RÈGLES DURES ━━━
+━━━ RÈGLES DURES — INTERDICTIONS LÉGALES ABSOLUES (même sur une réponse validée) ━━━
+- NE JAMAIS admettre une faute, une responsabilité, ou une erreur du commerce ("nous avons fauté", "c'est de notre faute", "vous avez raison nous avons mal fait"). Reconnaître un RESSENTI ("je comprends votre déception") n'est PAS admettre une faute.
+- NE JAMAIS promettre de compensation, remboursement, geste commercial, repas offert, réduction, ou avoir.
+- NE JAMAIS mentionner un montant (€, %, gratuité chiffrée).
+- NE JAMAIS accuser ou contredire le reviewer, ni mettre en doute sa parole, ni l'accuser d'être un faux client/concurrent.
+- En cas de doute sur l'un de ces points → {"action":"escalate"}.
 - Ne JAMAIS inventer une offre, un horaire, une personne, un événement qui ne figure pas dans le dossier.
 - Si tu ne peux pas répondre honnêtement (info manquante, reproche public à ne pas commenter), réponds UNIQUEMENT : {"action":"escalate","reason":"..."}
 - 3 à 6 phrases maximum.
