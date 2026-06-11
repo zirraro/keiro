@@ -4403,8 +4403,29 @@ async function generateWeeklyPlan(supabase: any, filterPlatform?: string, draftO
     .gte('scheduled_date', mondayDate.toISOString().split('T')[0])
     .lte('scheduled_date', sundayDate.toISOString().split('T')[0]);
 
-  if (thisWeek && thisWeek.length >= 7) {
-    return NextResponse.json({ ok: true, message: `Week starting ${mondayDate.toISOString().split('T')[0]} already planned`, postsPlanned: thisWeek.length, inserted: 0 });
+  // Founder rule 2026-06-11: publier TOUS LES JOURS sur les 2 réseaux (IG + TikTok).
+  // The week is "already planned" ONLY when every one of the 7 days already has
+  // BOTH an Instagram and a TikTok slot. The old `length >= 7` check stopped at
+  // 7 posts total, which let the planner cover one network/day and skip the
+  // other — Créateur ended up ~1 réseau/jour au lieu de 2.
+  const planFilter = filterPlatform && filterPlatform !== 'all' ? filterPlatform : null;
+  const coverageNeeded: string[] = planFilter ? [planFilter] : ['instagram', 'tiktok'];
+  const byDayCoverage = new Map<string, Set<string>>();
+  for (const r of (thisWeek || []) as any[]) {
+    const set = byDayCoverage.get(r.scheduled_date) || new Set<string>();
+    set.add(r.platform);
+    byDayCoverage.set(r.scheduled_date, set);
+  }
+  let fullyCoveredDays = 0;
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(mondayDate);
+    d.setDate(d.getDate() + i);
+    const ds = d.toISOString().split('T')[0];
+    const set = byDayCoverage.get(ds);
+    if (set && coverageNeeded.every(p => set.has(p))) fullyCoveredDays++;
+  }
+  if (fullyCoveredDays >= 7) {
+    return NextResponse.json({ ok: true, message: `Week starting ${mondayDate.toISOString().split('T')[0]} already covered (${coverageNeeded.join('+')} daily)`, postsPlanned: (thisWeek || []).length, inserted: 0 });
   }
 
   const prompt = getWeeklyPlanPrompt({ existingPlanned });

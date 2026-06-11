@@ -978,7 +978,14 @@ export function getWeeklyPlanPrompt(context: {
 }): string {
   const { weekTrends, followerCount, topPosts, existingPlanned } = context;
 
-  return `Planifie 7 publications ÉLITE pour la semaine de KeiroAI.
+  return `Planifie la semaine ÉLITE complète de KeiroAI — PUBLICATION QUOTIDIENNE SUR 2 RÉSEAUX.
+
+⛔ CADENCE OBLIGATOIRE — pour CHAQUE jour de la semaine (lundi → dimanche, les 7 jours), tu planifies AU MINIMUM :
+  • 1 publication INSTAGRAM (post/carrousel/reel selon le mix)
+  • 1 publication TIKTOK (photo mode ou vidéo selon le mix)
+Soit AU MOINS 14 publications sur la semaine (7 IG + 7 TikTok), plus les stories. JAMAIS un jour sans Instagram ET sans TikTok. Le champ "platform" de chaque objet est obligatoire ("instagram" ou "tiktok").
+
+MIX IMAGE / VIDÉO : équilibre image et vidéo sur la semaine selon la stratégie (par défaut ~50/50). TikTok privilégie le format natif vidéo ; Instagram alterne carrousel image et reel. Reste dans la marge — pas de sur-production vidéo si le mix penche image.
 
 OBJECTIF STRATÉGIQUE : Chaque post doit faire progresser vers les 1000 abonnés Instagram. Priorité = engagement (saves + partages > likes).
 
@@ -1016,13 +1023,13 @@ DIVERSITÉ VISUELLE OBLIGATOIRE :
 - Privilégie les scènes de vie réelle des commerçants, les compositions graphiques créatives, les illustrations conceptuelles
 - JAMAIS 2 posts consécutifs avec le même style visuel
 
-ANTI-DUPLICATION STRICTE (7 POSTS = 7 VISUELS UNIQUES) :
-- Chaque visual_description DOIT décrire une scène COMPLÈTEMENT DIFFÉRENTE des 6 autres
+ANTI-DUPLICATION STRICTE (CHAQUE VISUEL EST UNIQUE) :
+- Chaque visual_description DOIT décrire une scène COMPLÈTEMENT DIFFÉRENTE de toutes les autres de la semaine
 - INTERDIT : réutiliser le même concept en changeant juste les mots (ex: "bakery scene" et "pastry shop scene" = DOUBLON)
 - VARIE les couleurs dominantes : max 1 post violet, alterne ambre/bleu nuit/vert sauge/corail/noir/blanc crème
 - VARIE les cibles prospects : restaurant, coiffeur, boutique, coach, fleuriste, freelance, artisan (chacun 1 max)
 - VARIE les compositions DANS LE REGISTRE PHOTOGRAPHIQUE : plan serré sur le geste, scène de vie commerçant, macro produit, nature morte éditoriale, portrait du commerçant. Pas d'isométrique 3D, pas de clay, pas de minimaliste géométrique, pas de gradient art.
 
-Retourne UNIQUEMENT un tableau JSON : [{ "day": "lundi", ...contentJSON }, ...]
-Pas de markdown, pas de commentaires. Juste le JSON.`;
+Retourne UNIQUEMENT un tableau JSON d'AU MOINS 14 objets (1 Instagram + 1 TikTok PAR JOUR sur les 7 jours) : [{ "day": "lundi", "platform": "instagram", ...contentJSON }, { "day": "lundi", "platform": "tiktok", ...contentJSON }, ...]
+Chaque objet DOIT avoir un champ "platform" ("instagram" ou "tiktok") et un "day". Pas de markdown, pas de commentaires. Juste le JSON.`;
 }
