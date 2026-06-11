@@ -19,6 +19,15 @@ function getSupabaseAdmin() {
 
 const FOUNDER_EMAILS = ['contact@keiroai.com'];
 
+// A run counts as an ERROR only when it explicitly logged an error-like
+// status. Many healthy agents write their run row WITHOUT a status field
+// (email daily_cold/daily_warm, content daily_post_generated, etc.).
+// The old logic counted any non-success status (including null/undefined)
+// as an error, which dragged success_rate toward 0 % and falsely marked
+// busy agents DOWN even when every run succeeded. Real failures are always
+// logged with one of these statuses.
+const ERROR_STATUSES = ['error', 'failed', 'failure', 'critical', 'ko', 'timeout', 'fatal'];
+
 // Agents qui DOIVENT s'executer via des crons scheduler quotidiens.
 // Absence de run reussi en 48h = probleme reel.
 const SCHEDULED_AGENTS = [
@@ -145,14 +154,15 @@ async function runHealthCheck(orgId: string | null = null): Promise<HealthReport
     const sparseThresholdH = SPARSE_SCHEDULED_AGENTS[agentName] || 0;
     const isSparse = sparseThresholdH > 0;
     const agentLogs = logs.filter((l: any) => l.agent === agentName);
-    const successStatuses = ['ok', 'success', 'active', 'confirmed'];
+    const isError = (l: any) => ERROR_STATUSES.includes(String(l.status || '').toLowerCase());
 
-    // Last successful run (within the agent's lookback window)
+    // Last successful run (within the agent's lookback window) — any run row
+    // that wasn't explicitly an error counts as a success.
     const lookbackHours = isSparse ? sparseThresholdH : 48;
     const lookbackIso = new Date(now.getTime() - lookbackHours * 3600000).toISOString();
     const lastSuccess = agentLogs
       .filter((l: any) => l.created_at >= lookbackIso)
-      .find((l: any) => successStatuses.includes(l.status));
+      .find((l: any) => !isError(l));
     const lastSuccessDate = lastSuccess?.created_at || null;
 
     // 24h metrics — ignore learning/feedback-style actions that don't represent
@@ -160,7 +170,7 @@ async function runHealthCheck(orgId: string | null = null): Promise<HealthReport
     const runLike = (l: any) => !/^(learning|agent_feedback|webhook_|hot_prospect_click|heartbeat)/.test(l.action || '');
     const logs24h = agentLogs.filter((l: any) => l.created_at >= twentyFourHoursAgo).filter(runLike);
     const totalRuns24h = logs24h.length;
-    const errorCount24h = logs24h.filter((l: any) => !successStatuses.includes(l.status)).length;
+    const errorCount24h = logs24h.filter(isError).length;
     const successRate = totalRuns24h > 0 ? ((totalRuns24h - errorCount24h) / totalRuns24h) * 100 : -1;
 
     // Classify
@@ -287,8 +297,7 @@ async function runHealthCheck(orgId: string | null = null): Promise<HealthReport
         .from('agent_logs')
         .select('agent, action, status, data, created_at')
         .in('agent', downAgentNames)
-        .neq('status', 'ok')
-        .neq('status', 'success')
+        .in('status', ERROR_STATUSES)
         .gte('created_at', twentyFourHoursAgo)
         .order('created_at', { ascending: false })
         .limit(20);

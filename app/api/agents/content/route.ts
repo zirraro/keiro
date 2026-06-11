@@ -7,6 +7,7 @@ import { publishImageToInstagram, publishStoryToInstagram, publishCarouselToInst
 import { publishTikTokVideoViaFileUpload, initTikTokPhotoUpload, refreshTikTokToken } from '@/lib/tiktok';
 import { createT2VTask, checkT2VTask } from '@/lib/kling';
 import { publishReelToInstagram } from '@/lib/meta';
+import { ANTI_AI_REALISM } from '@/lib/visuals/realism';
 // Ken Burns + FFmpeg removed — doesn't work on Vercel serverless
 // Video pipeline now uses Seedance T2V / Kling T2V
 import { completeDirective, loadContextWithAvatar } from '@/lib/agents/shared-context';
@@ -222,7 +223,7 @@ ABSOLUTELY FORBIDDEN:
 - Studio gradients, flat-design backgrounds, isometric/3D-render aesthetics
 - Stock-photo cliché props (Macbook, coffee + notebook combo, etc.)
 - Saturated post-processing — keep it natural and grounded
-
+${ANTI_AI_REALISM}
 Output ONLY the optimized English prompt — pure visual description, no jargon, no markdown.`;
 
 // Default export — keep the legacy name pointing to the KeiroAI guide
@@ -426,9 +427,27 @@ async function generateVisual(visualDescription: string, format: string, userIdF
       }
     }
 
-    // Optimize the visual description into an elite Seedream prompt
+    // Optimize the visual description into an elite Seedream prompt.
+    // Client posts (userIdForReuse set) must read as a REAL photo, never as a
+    // KeiroAI-branded render — so we drop the violet brand identity and inject
+    // the anti-AI realism block. KeiroAI's own marketing keeps the brand guide.
+    const isClientPost = !!userIdForReuse;
+    const t2iSystem = isClientPost
+      ? `You are an elite prompt engineer for Seedream (text-to-image AI). You serve a LOCAL-BUSINESS client (restaurant, café, boutique, salon, florist, etc.). The output must look like an AUTHENTIC PHOTOGRAPH a real person shot for this business — NOT a branded graphic, NOT a 3D render.
+
+DO NOT inject any KeiroAI brand colors (no violet, purple, lilac, amber unless the scene naturally has them). Use natural editorial photography language: real natural light, real materials and textures, authentic atmosphere for this kind of business.
+
+QUALITY STANDARDS:
+- Editorial / lifestyle photography — REAL PHOTOGRAPH, not CGI, not flat design, not isometric.
+- Phrasing to use: "documentary photo", "natural light photograph", "shot on a 35mm lens", "candid photographic still".
+- Soft natural light, realistic depth of field (never aggressive macro bokeh), believable textures.
+
+ABSOLUTELY FORBIDDEN: text/letters/numbers, phones/screens/mockups, studio gradients, flat-design or 3D-render aesthetics, stock-photo clichés, over-saturation.
+${ANTI_AI_REALISM}
+Output ONLY the optimized English prompt — pure visual description, no jargon, no markdown.`
+      : SEEDREAM_STYLE_GUIDE;
     const optimizedText = await callClaude({
-      system: SEEDREAM_STYLE_GUIDE,
+      system: t2iSystem,
       message: `Create a PREMIUM visual prompt for a ${format} post.\n\nVisual brief: ${visualDescription}\n\nFormat context: ${format === 'carrousel' || format === 'post' ? 'Square format (1:1), must look stunning as Instagram grid thumbnail. Professional photography quality, magazine-level composition.' : format === 'story' ? 'Vertical 9:16 story format. MUST be visually STRIKING and PREMIUM — think high-end magazine ad or luxury brand story. Bold typography-ready composition, dramatic lighting, professional product photography or lifestyle shot. This is the FIRST thing people see, it must STOP the scroll.' : format === 'reel' || format === 'video' ? 'Vertical 9:16 video thumbnail format. Bold, eye-catching, cinematic feel.' : 'Horizontal 16:9 LinkedIn format, professional and corporate-friendly.'}\n\nIMPORTANT: Do NOT include any hex color codes, aspect ratios, numbers, or technical specifications. Describe colors by name only. Output a PURE VISUAL DESCRIPTION. Make it PREMIUM quality — not basic, not generic. Think Vogue, Apple, Nike level visuals.`,
       maxTokens: 400,
     });

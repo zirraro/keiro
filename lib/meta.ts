@@ -103,6 +103,56 @@ function sanitizeImageUrlForMeta(url: string): string {
   }
 }
 
+/**
+ * Meta's IG Graph API only accepts JPG/PNG images and MP4/MOV videos for
+ * media containers. Anything else (WebP, GIF, PDF, unknown blobs) is rejected
+ * with the cryptic "Only photo or video can be accepted as media type" 400,
+ * which then surfaces as a silent publish failure. These guards reject bad
+ * media BEFORE the upload so the caller can skip cleanly with a clear reason
+ * instead of burning a Graph API round-trip on a doomed container.
+ */
+const META_IMAGE_EXT = ['jpg', 'jpeg', 'png'];
+const META_VIDEO_EXT = ['mp4', 'mov'];
+
+export class UnsupportedMediaError extends Error {
+  code = 'UNSUPPORTED_MEDIA';
+  constructor(message: string) {
+    super(message);
+    this.name = 'UnsupportedMediaError';
+  }
+}
+
+function mediaExtension(url: string): string {
+  try {
+    const u = new URL(url);
+    // Supabase render-transform URLs carry the effective format in ?format=
+    const fmt = u.searchParams.get('format');
+    if (fmt && fmt !== 'auto') return fmt.toLowerCase();
+    const m = u.pathname.toLowerCase().match(/\.([a-z0-9]+)$/);
+    return m ? m[1] : '';
+  } catch {
+    return '';
+  }
+}
+
+function assertSupportedImageForMeta(url: string): void {
+  const ext = mediaExtension(url);
+  // Empty extension = opaque/signed CDN URL; let Meta validate it (almost
+  // always jpg/png in practice). Only reject formats we KNOW Meta refuses.
+  if (!ext || META_IMAGE_EXT.includes(ext)) return;
+  throw new UnsupportedMediaError(
+    `Unsupported image format ".${ext}" for Instagram (JPG/PNG only): ${url.slice(0, 120)}`
+  );
+}
+
+function assertSupportedVideoForMeta(url: string): void {
+  const ext = mediaExtension(url);
+  if (!ext || META_VIDEO_EXT.includes(ext)) return;
+  throw new UnsupportedMediaError(
+    `Unsupported video format ".${ext}" for Instagram (MP4/MOV only): ${url.slice(0, 120)}`
+  );
+}
+
 export async function publishImageToInstagram(igUserId: string, pageAccessToken: string, imageUrl: string, caption?: string): Promise<{ id: string; permalink?: string }> {
   try {
     console.log('[publishImageToInstagram] Step 1: Creating media container...', { tokenType: isIgaaToken(pageAccessToken) ? 'IGAA' : 'FB' });
@@ -110,6 +160,7 @@ export async function publishImageToInstagram(igUserId: string, pageAccessToken:
     if (safeUrl !== imageUrl) {
       console.log('[publishImageToInstagram] Sanitized WebP URL → JPG for Meta compat');
     }
+    assertSupportedImageForMeta(safeUrl);
     // 1) Créer un "container"
     const container = await graphPOST<{ id: string }>(`/${igUserId}/media`, pageAccessToken, {
       image_url: safeUrl,
@@ -164,6 +215,7 @@ export async function publishStoryToInstagram(igUserId: string, pageAccessToken:
   try {
     console.log('[publishStoryToInstagram] Step 1: Creating story media container...');
     const safeUrl = sanitizeImageUrlForMeta(imageUrl);
+    assertSupportedImageForMeta(safeUrl);
     // 1) Créer un "container" pour une story
     const container = await graphPOST<{ id: string }>(`/${igUserId}/media`, pageAccessToken, {
       image_url: safeUrl,
@@ -210,6 +262,7 @@ export async function publishCarouselToInstagram(
       console.log(`[publishCarouselToInstagram] Creating child ${i + 1}/${imageUrls.length}...`);
 
       const safeChildUrl = sanitizeImageUrlForMeta(imageUrl);
+      assertSupportedImageForMeta(safeChildUrl);
       const childContainer = await graphPOST<{ id: string }>(`/${igUserId}/media`, pageAccessToken, {
         image_url: safeChildUrl,
         is_carousel_item: true,
@@ -326,6 +379,7 @@ export async function publishReelToInstagram(
   try {
     console.log('[publishReelToInstagram] Step 1: Creating REELS media container...');
     console.log('[publishReelToInstagram] Video URL:', videoUrl.substring(0, 100));
+    assertSupportedVideoForMeta(videoUrl);
 
     // 1) Create a REELS container
     const container = await graphPOST<{ id: string }>(`/${igUserId}/media`, pageAccessToken, {

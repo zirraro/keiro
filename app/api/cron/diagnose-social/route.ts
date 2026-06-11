@@ -46,52 +46,104 @@ export async function GET(request: NextRequest) {
     .select('id, instagram_business_account_id, facebook_page_access_token, linkedin_access_token, tiktok_access_token')
     .eq('is_admin', true)
     .limit(1)
-    .single();
+    .maybeSingle();
 
   if (!admin) {
-    checks.push({ check: 'admin_profile', platform: 'general', status: 'critical', detail: 'No admin profile found in database.' });
-    hasCritical = true;
-  } else {
-    // ── 2. Instagram checks ──
-    const hasIgId = !!admin.instagram_business_account_id;
-    const hasIgToken = !!admin.facebook_page_access_token;
+    checks.push({ check: 'admin_profile', platform: 'general', status: 'warning', detail: 'No admin profile found in database.' });
+  }
 
-    if (!hasIgId || !hasIgToken) {
+  // ── 2. Instagram checks (multi-tenant) ──
+  // KeiroAI is multi-tenant: each CLIENT connects their own Instagram
+  // Business account. The admin profile usually has NO IG of its own, so a
+  // missing admin IG is NOT a failure. What matters is whether the clients
+  // who have IG connected still have valid tokens — and whether anything is
+  // scheduled that nobody can publish.
+  {
+    // A profile is "IG-connected" when it has both a business account id and
+    // a usable page/IGAA token.
+    const { data: igProfiles } = await supabase
+      .from('profiles')
+      .select('id, instagram_username, instagram_business_account_id, facebook_page_access_token, instagram_igaa_token')
+      .not('instagram_business_account_id', 'is', null);
+
+    const connected = (igProfiles || []).filter(
+      (p: any) => p.instagram_business_account_id && (p.facebook_page_access_token || p.instagram_igaa_token)
+    );
+
+    // Pick a validation target: prefer admin's own IG, else the first
+    // connected client. Validates that the Graph API still answers.
+    const validationTarget = (admin?.instagram_business_account_id && admin?.facebook_page_access_token)
+      ? { id: admin.instagram_business_account_id, token: admin.facebook_page_access_token, label: 'admin' }
+      : connected.length > 0
+        ? {
+            id: connected[0].instagram_business_account_id,
+            token: connected[0].facebook_page_access_token || connected[0].instagram_igaa_token,
+            label: connected[0].instagram_username || connected[0].id,
+          }
+        : null;
+
+    if (connected.length === 0) {
+      // Nobody connected. Only a problem if there are IG posts waiting.
+      const todayDateIg = new Date().toISOString().split('T')[0];
+      const { count: pendingIg } = await supabase
+        .from('content_calendar')
+        .select('id', { count: 'exact', head: true })
+        .in('status', ['approved', 'draft'])
+        .lte('scheduled_date', todayDateIg)
+        .eq('platform', 'instagram');
+      if ((pendingIg || 0) > 0) {
+        checks.push({
+          check: 'instagram_tokens',
+          platform: 'instagram',
+          status: 'critical',
+          detail: `${pendingIg} IG post(s) scheduled but no client has Instagram connected.`,
+        });
+        hasCritical = true;
+      } else {
+        checks.push({
+          check: 'instagram_tokens',
+          platform: 'instagram',
+          status: 'warning',
+          detail: 'No Instagram Business account connected (no clients linked yet).',
+        });
+      }
+    } else {
       checks.push({
         check: 'instagram_tokens',
         platform: 'instagram',
-        status: 'critical',
-        detail: `Missing: ${!hasIgId ? 'instagram_business_account_id' : ''}${!hasIgId && !hasIgToken ? ' + ' : ''}${!hasIgToken ? 'facebook_page_access_token' : ''}`,
+        status: 'ok',
+        detail: `${connected.length} client(s) with Instagram connected.`,
       });
-      hasCritical = true;
-    } else {
-      checks.push({ check: 'instagram_tokens', platform: 'instagram', status: 'ok', detail: 'Tokens present.' });
 
-      // Test Meta Graph API
-      try {
-        const igAccount = await graphGET<{ id: string; username?: string }>(
-          `/${admin.instagram_business_account_id}`,
-          admin.facebook_page_access_token,
-          { fields: 'id,username' }
-        );
-        checks.push({
-          check: 'instagram_api',
-          platform: 'instagram',
-          status: 'ok',
-          detail: `Meta API OK. IG: @${igAccount.username || igAccount.id}`,
-        });
-      } catch (err: any) {
-        const errMsg = (err.message || '').substring(0, 200);
-        checks.push({
-          check: 'instagram_api',
-          platform: 'instagram',
-          status: 'critical',
-          detail: `Meta Graph API failed: ${errMsg}`,
-        });
-        hasCritical = true;
+      // Validate one live account against the Graph API.
+      if (validationTarget) {
+        try {
+          const igAccount = await graphGET<{ id: string; username?: string }>(
+            `/${validationTarget.id}`,
+            validationTarget.token,
+            { fields: 'id,username' }
+          );
+          checks.push({
+            check: 'instagram_api',
+            platform: 'instagram',
+            status: 'ok',
+            detail: `Meta API OK (${validationTarget.label}). IG: @${igAccount.username || igAccount.id}`,
+          });
+        } catch (err: any) {
+          const errMsg = (err.message || '').substring(0, 200);
+          checks.push({
+            check: 'instagram_api',
+            platform: 'instagram',
+            status: 'critical',
+            detail: `Meta Graph API failed (${validationTarget.label}): ${errMsg}`,
+          });
+          hasCritical = true;
+        }
       }
     }
+  }
 
+  if (admin) {
     // ── 3. LinkedIn checks ──
     const hasLinkedin = !!admin.linkedin_access_token;
     if (!hasLinkedin) {

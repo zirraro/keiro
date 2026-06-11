@@ -54,6 +54,30 @@ const FLOORS: Record<Plan, Partial<Record<string, number>>> = {
   admin:      { posts_published: 5, emails_sent: 100, prospects_added: 100, dms_prepared: 25 },
 };
 
+/**
+ * Flat {posts, emails, prospects, dms} view of a plan's daily floors.
+ *
+ * Single source of truth for Noah's HTML evening brief, which can't consume
+ * `buildServiceGuaranteeSection` (that one outputs markdown). Previously the
+ * brief kept its own hard-coded copy of these numbers and it DRIFTED — a
+ * Créateur client was measured against Pro-level email/prospect floors it
+ * never had, so the brief always showed "posts manquants" and never reached
+ * 100 %. Deriving from FLOORS guarantees each plan is scored against its own
+ * targets. A 0 floor means the plan doesn't include that agent → the brief
+ * hides that line entirely.
+ */
+export function getPlanFloorsFlat(
+  plan: string,
+): { posts: number; emails: number; prospects: number; dms: number } {
+  const f = FLOORS[(String(plan || '').toLowerCase() as Plan)] || {};
+  return {
+    posts: f.posts_published ?? 0,
+    emails: f.emails_sent ?? 0,
+    prospects: f.prospects_added ?? 0,
+    dms: f.dms_prepared ?? 0,
+  };
+}
+
 const AGENTS: AgentFloor[] = [
   { agent: 'lena',  emoji: '🎬', label: 'Léna (contenu)',  unit: 'posts publiés',  metricKey: 'posts_published' },
   { agent: 'hugo',  emoji: '✉️', label: 'Hugo (emails)',   unit: 'emails envoyés', metricKey: 'emails_sent' },

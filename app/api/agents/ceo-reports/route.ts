@@ -4,19 +4,12 @@ import { saveLearning } from '@/lib/agents/learning';
 import { saveKnowledge } from '@/lib/agents/knowledge-rag';
 
 import { sendBrevoCompat } from '@/lib/email/brevo-compat';
-// Plan floors mirror lib/agents/service-guarantees.ts. Duplicated inline
-// because Noah's evening brief renders HTML (the shared helper outputs
-// markdown). Keep the two in sync; if they drift, the brief lies.
-const PLAN_FLOORS: Record<string, { posts: number; emails: number; prospects: number; dms: number }> = {
-  free:       { posts: 0, emails: 0,  prospects: 0,  dms: 0  },
-  createur:   { posts: 2, emails: 25, prospects: 15, dms: 6  },
-  pro:        { posts: 4, emails: 45, prospects: 32, dms: 12 },
-  business:   { posts: 5, emails: 70, prospects: 55, dms: 18 },
-  fondateurs: { posts: 5, emails: 70, prospects: 55, dms: 18 },
-  elite:      { posts: 6, emails: 90, prospects: 75, dms: 22 },
-  agence:     { posts: 6, emails: 90, prospects: 75, dms: 22 },
-  admin:      { posts: 6, emails: 100, prospects: 100, dms: 25 },
-};
+import { getPlanFloorsFlat } from '@/lib/agents/service-guarantees';
+// Plan floors come from the single source of truth in
+// lib/agents/service-guarantees.ts (getPlanFloorsFlat). The brief renders
+// HTML while the shared helper outputs markdown, but both now read the SAME
+// numbers — so a Créateur is scored on Créateur targets (posts + DMs only),
+// a Pro on Pro targets, etc. Each plan can reach 100 %.
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -699,17 +692,10 @@ async function handleClientBrief(
         const evCronSecret = process.env.CRON_SECRET || '';
         const evBaseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keiroai.com';
         const evPlan = (client.subscription_plan || 'createur').toLowerCase();
-        const evFloors: Record<string, { posts: number; emails: number; prospects: number; dms: number }> = {
-          free:       { posts: 0, emails: 0,  prospects: 0,  dms: 0  },
-          createur:   { posts: 2, emails: 25, prospects: 15, dms: 6  },
-          pro:        { posts: 4, emails: 45, prospects: 32, dms: 12 },
-          business:   { posts: 5, emails: 70, prospects: 55, dms: 18 },
-          fondateurs: { posts: 5, emails: 70, prospects: 55, dms: 18 },
-          elite:      { posts: 6, emails: 90, prospects: 75, dms: 22 },
-          agence:     { posts: 6, emails: 90, prospects: 75, dms: 22 },
-          admin:      { posts: 6, emails: 100, prospects: 100, dms: 25 },
-        };
-        const evFloor = evFloors[evPlan] || evFloors.createur;
+        // Catch-up fires only the agents the client's plan actually includes.
+        // Créateur (posts + DMs only) won't trigger Hugo/Léo because their
+        // email/prospect floors are 0 — no wasted runs, no phantom "missing".
+        const evFloor = getPlanFloorsFlat(evPlan);
 
         // Decide which agents to fire
         const tasks: Array<{ name: string; url: string; method: string; body?: any }> = [];
@@ -1496,7 +1482,7 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
       // guarantees. Per founder feedback 2026-05-17: must be honest,
       // optimistic on % when delivered, no exaggeration.
       const planKey = (client.subscription_plan || 'createur').toLowerCase();
-      const floors = PLAN_FLOORS[planKey] || PLAN_FLOORS.createur;
+      const floors = getPlanFloorsFlat(planKey);
       // Founder ask 2026-06-01: DM line = "% des DMs entrants répondus",
       // pas un quota cold. Si 0 DM entrant aujourd'hui → 100% par
       // construction (rien à répondre = service tenu). Le cold DM

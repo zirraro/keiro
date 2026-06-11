@@ -1936,6 +1936,10 @@ export async function GET(request: NextRequest) {
     await supabase.from('agent_logs').insert({
       agent: 'email',
       action: type === 'warm' ? 'daily_warm' : 'daily_cold',
+      // Explicit success status so the Ops health check counts this run as a
+      // success. A batch that sent at least one email (or had nothing to send)
+      // is a healthy run; only a batch where everything failed is an error.
+      status: results.length > 0 && successCount === 0 ? 'error' : 'ok',
       data: {
         total: results.length,
         success: successCount,

@@ -22,6 +22,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import { ANTI_AI_REALISM } from '@/lib/visuals/realism';
 
 const SEEDREAM_API_KEY = process.env.SEEDREAM_API_KEY || '341cd095-2c11-49da-82e7-dc2db23c565c';
 const SEEDREAM_API_URL = 'https://ark.ap-southeast.bytepluses.com/api/v3/images/generations';
@@ -129,7 +130,8 @@ news/event" AND "this is THIS business". Use one of these techniques:
 A "neutral" business image that could run any week of the year FAILS
 the news-binding rule. If the brief mentions a news/trend angle and
 you cannot find a way to anchor it visually, surface a question
-back rather than producing a generic image.`;
+back rather than producing a generic image.
+${ANTI_AI_REALISM}`;
 
 const NEGATIVE_PROMPT = 'text, words, letters, numbers, writing, typography, signs, labels, captions, watermarks, logos, headlines, slogans, brand names, price tags, menus, screens with text, readable characters, digits';
 const NO_TEXT_SUFFIX = '\nCRITICAL: Absolutely NO text, NO letters, NO words, NO numbers, NO writing, NO signs, NO labels, NO watermarks, NO logos, NO digits, NO characters, NO typography anywhere in the image. The image must contain ZERO readable text or number-like shapes. Pure photographic visual only.';
