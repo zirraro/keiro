@@ -2105,6 +2105,43 @@ export async function GET(request: NextRequest) {
         publishMode = 'notify';
       }
     }
+
+    // Per-client autonomy toggle (Léna's planning tab → org_agent_configs,
+    // agent_id='content'). When the client has turned a network's auto-publish
+    // OFF, scheduled posts on that network must NOT silently auto-publish —
+    // they go to validation (notify → pending_approval, validated 1-by-1).
+    // We ONLY honour the toggle when a config row exists: clients who never
+    // opened the settings keep the legacy auto behaviour (no surprise flip).
+    let clientAutoByNetwork: Record<string, boolean> | null = null;
+    if (userId) {
+      const { data: cfgRows } = await supabase
+        .from('org_agent_configs')
+        .select('config, created_at')
+        .eq('user_id', userId)
+        .eq('agent_id', 'content')
+        .order('created_at', { ascending: false })
+        .limit(1);
+      const cfg = cfgRows?.[0]?.config;
+      if (cfg) {
+        clientAutoByNetwork = {
+          instagram: cfg.auto_mode_instagram ?? cfg.auto_mode ?? false,
+          tiktok: cfg.auto_mode_tiktok ?? cfg.auto_mode ?? false,
+          linkedin: cfg.auto_mode_linkedin ?? cfg.auto_mode ?? false,
+        };
+      }
+    }
+    // Resolve the effective publish mode for a given post platform: admin
+    // 'notify' always wins; otherwise the client's per-network toggle decides;
+    // no client config → fall back to the existing default.
+    const resolvePublishMode = (platform: string): string => {
+      if (publishMode === 'notify') return 'notify';
+      if (clientAutoByNetwork) {
+        const on = clientAutoByNetwork[(platform || 'instagram').toLowerCase()] ?? false;
+        return on ? 'auto' : 'notify';
+      }
+      return publishMode;
+    };
+
     const unpublished = todayPosts.filter((p: any) => p.status === 'draft' || p.status === 'approved');
     const maxPublishPerSlot = slot === 'tiktok' ? 2 : 1; // TikTok slot can do 2 (video + photo)
 
@@ -2194,8 +2231,10 @@ export async function GET(request: NextRequest) {
           } catch (cadenceErr: any) {
             console.warn('[Content] cadence cap check failed (non-blocking):', cadenceErr?.message);
           }
-          // If notify mode and post is draft (not yet approved), send notification instead of publishing
-          if (publishMode === 'notify' && post.status === 'draft') {
+          // If notify mode and post is draft (not yet approved), send notification instead of publishing.
+          // Mode is resolved per-platform from the client's auto-publish toggle.
+          const postPublishMode = resolvePublishMode(postPlatform);
+          if (postPublishMode === 'notify' && post.status === 'draft') {
             const { data: fullPostForNotify } = await supabase.from('content_calendar').select('*').eq('id', post.id).single();
             if (fullPostForNotify) {
               // Generate visual if missing (so notification has the preview)
