@@ -204,7 +204,7 @@ function HomeKeiroInner() {
                         ))}
                       </div>
                       <span className="text-[10px] text-white/40 ml-2">
-                        {locale === 'fr' ? '+ 9 autres agents spécialisés' : '+ 9 more specialised agents'}
+                        {locale === 'fr' ? 'Ton équipe IA complète' : 'Your full AI team'}
                       </span>
                     </div>
                   );
@@ -1821,10 +1821,10 @@ function HomeKeiroInner() {
               price={billingPeriod === 'annual' ? `490\u20AC ${t.common.perYear}` : `49\u20AC ${t.common.perMonth}`}
               subtitle={locale === 'fr' ? 'Boutiques, restos, freelances' : 'Shops, restaurants, freelancers'}
               bullets={[
-                locale === 'fr' ? '7 agents inclus' : '7 agents included',
+                locale === 'fr' ? '5 agents inclus' : '5 agents included',
                 locale === 'fr' ? '400 credits/mois' : '400 credits/month',
-                locale === 'fr' ? 'Contenu, Email, DM, CRM' : 'Content, Email, DM, CRM',
-                locale === 'fr' ? 'Avis Google auto' : 'Google reviews auto',
+                locale === 'fr' ? 'Contenu, DM, Prospection, CRM' : 'Content, DM, Prospecting, CRM',
+                locale === 'fr' ? 'Stratégie + onboarding inclus' : 'Strategy + onboarding included',
               ]}
               ctaLabel={locale === 'fr' ? 'Essai gratuit 7 jours' : 'Start free trial'}
               trialNote={locale === 'fr' ? '0\u20AC pendant 7j \u00B7 Annulation en 1 clic' : '\u20AC0 for 7 days \u00B7 Cancel in 1 click'}
@@ -1843,10 +1843,10 @@ function HomeKeiroInner() {
               priceNote={billingPeriod === 'annual' ? t.home.priceNotePro : undefined}
               subtitle={locale === 'fr' ? 'Restos, hotels, commerces qui veulent grandir' : 'Restaurants, hotels, growing businesses'}
               bullets={[
-                locale === 'fr' ? '10 agents inclus' : '10 agents included',
+                locale === 'fr' ? '7 agents inclus' : '7 agents included',
                 locale === 'fr' ? '800 credits/mois' : '800 credits/month',
-                locale === 'fr' ? 'Tout Createur + SEO' : 'All Creator + SEO',
-                locale === 'fr' ? 'Chatbot 24/7 + RH' : 'Chatbot 24/7 + HR',
+                locale === 'fr' ? 'Tout Créateur + Emails (Hugo)' : 'All Creator + Email (Hugo)',
+                locale === 'fr' ? 'Avis Google (Théo) + chatbot 24/7' : 'Google reviews (Théo) + chatbot 24/7',
               ]}
               ctaLabel={billingPeriod === 'annual' ? t.home.ctaProAnnual : locale === 'fr' ? 'Essai gratuit 7 jours' : 'Start free trial'}
               trialNote={locale === 'fr' ? '0\u20AC pendant 7j \u00B7 Annulation en 1 clic' : '\u20AC0 for 7 days \u00B7 Cancel in 1 click'}
@@ -1861,7 +1861,7 @@ function HomeKeiroInner() {
               special
               highlight
               bullets={[
-                locale === 'fr' ? '15+ agents inclus' : '15+ agents included',
+                locale === 'fr' ? 'Équipe complète (7 agents) · volume ×2' : 'Full team (7 agents) · 2× volume',
                 locale === 'fr' ? '2 000 credits/mois' : '2,000 credits/month',
                 locale === 'fr' ? 'Tout Pro + Finance' : 'All Pro + Finance',
                 locale === 'fr' ? 'LinkedIn, Ads, WhatsApp (bientôt)' : 'LinkedIn, Ads, WhatsApp (soon)',
