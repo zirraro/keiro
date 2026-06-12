@@ -327,7 +327,7 @@ function HomeKeiroInner() {
                       <svg className="w-8 h-8 text-purple-400" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                     </div>
                     <p className="text-white font-bold text-sm mb-1">{locale === 'fr' ? 'Presentation video' : 'Video Presentation'}</p>
-                    <p className="text-white/40 text-xs">{locale === 'fr' ? 'Bientot disponible' : 'Coming soon'}</p>
+                    <p className="text-white/40 text-xs">{locale === 'fr' ? 'Bientôt disponible' : 'Coming soon'}</p>
                   </div>
                 </div>
               </div>
@@ -531,11 +531,11 @@ function HomeKeiroInner() {
               {locale === 'fr' ? 'Une équipe d’agents IA ultra-spécialisés' : 'A team of ultra-specialised AI agents'}
             </div>
             <h2 className="text-xl sm:text-3xl md:text-4xl font-bold text-white mb-2 sm:mb-3">
-              {locale === 'fr' ? 'Une equipe complete qui travaille pour vous' : 'A complete team working for you'}
+              {locale === 'fr' ? 'Une équipe complète qui travaille pour vous' : 'A complete team working for you'}
             </h2>
             <p className="text-white/50 max-w-2xl mx-auto">
               {locale === 'fr'
-                ? 'Chaque equipe a un objectif clair. Vos agents executent, apprennent et s\'ameliorent automatiquement — 24/7.'
+                ? 'Chaque équipe a un objectif clair. Vos agents exécutent, apprennent et s\'améliorent automatiquement — 24/7.'
                 : 'Each team has a clear objective. Your agents execute, learn, and improve automatically — 24/7.'}
             </p>
           </div>
@@ -548,7 +548,7 @@ function HomeKeiroInner() {
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-white font-bold text-lg">{locale === 'fr' ? 'Acquisition & conversion' : 'Acquisition & conversion'}</h3>
-                    <p className="text-white/70 text-xs">{locale === 'fr' ? 'Prospection, emails, DMs sur tes 3 reseaux' : 'Prospecting, emails, DMs across 3 networks'}</p>
+                    <p className="text-white/70 text-xs">{locale === 'fr' ? 'Prospection, emails, DMs sur tes 3 réseaux' : 'Prospecting, emails, DMs across 3 networks'}</p>
                   </div>
                   <div className="text-right">
                     <div className="text-white font-bold text-2xl">3</div>
@@ -559,7 +559,7 @@ function HomeKeiroInner() {
               <div className="p-4">
                 <div className="grid grid-cols-1 gap-2 mb-3">
                   {[
-                    { icon: '\u{1F91D}', name: 'Leo', role: locale === 'fr' ? 'Prospection CRM' : 'CRM prospecting', avatar: '/avatars-3d/commercial.png' },
+                    { icon: '\u{1F91D}', name: 'Léo', role: locale === 'fr' ? 'Prospection CRM' : 'CRM prospecting', avatar: '/avatars-3d/commercial.png' },
                     { icon: '\u{1F4E7}', name: 'Hugo', role: locale === 'fr' ? 'Emails auto' : 'Auto emails', avatar: '/avatars-3d/email.png' },
                     { icon: '\u{1F4AC}', name: 'Jade', role: locale === 'fr' ? 'DM + commentaires IG/TT/LI' : 'DMs + comments IG/TT/LI', avatar: '/avatars-3d/dm_instagram.png' },
                   ].map(a => (
@@ -575,7 +575,7 @@ function HomeKeiroInner() {
                   ))}
                 </div>
                 <div className="flex items-center gap-3 text-[10px]">
-                  <span className="text-blue-400 font-semibold">{locale === 'fr' ? 'Resultat' : 'Result'}</span>
+                  <span className="text-blue-400 font-semibold">{locale === 'fr' ? 'Résultat' : 'Result'}</span>
                   <span className="text-white/40">{locale === 'fr' ? 'Pipeline qui ne s\'arrete jamais' : 'Pipeline that never stops'}</span>
                 </div>
               </div>
@@ -586,8 +586,8 @@ function HomeKeiroInner() {
               <div className="bg-gradient-to-r from-purple-600 to-violet-500 px-5 py-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-white font-bold text-lg">{locale === 'fr' ? 'Presence & visibilite' : 'Presence & visibility'}</h3>
-                    <p className="text-white/70 text-xs">{locale === 'fr' ? 'Contenu reseaux + Google + reputation' : 'Content + Google + reputation'}</p>
+                    <h3 className="text-white font-bold text-lg">{locale === 'fr' ? 'Présence & visibilité' : 'Presence & visibility'}</h3>
+                    <p className="text-white/70 text-xs">{locale === 'fr' ? 'Contenu réseaux + Google + réputation' : 'Content + Google + reputation'}</p>
                   </div>
                   <div className="text-right">
                     <div className="text-white font-bold text-2xl">2</div>
@@ -598,8 +598,8 @@ function HomeKeiroInner() {
               <div className="p-4">
                 <div className="grid grid-cols-1 gap-2 mb-3">
                   {[
-                    { icon: '\u2728', name: 'Lena', role: locale === 'fr' ? 'Publication auto IG/TT/LI' : 'Auto-publish IG/TT/LI', avatar: '/avatars-3d/content.png' },
-                    { icon: '\u{1F4CD}', name: 'Theo', role: locale === 'fr' ? 'Reputation Google + SEO' : 'Google reputation + SEO', avatar: '/avatars-3d/gmaps.png' },
+                    { icon: '\u2728', name: 'L\u00e9na', role: locale === 'fr' ? 'Publication auto IG/TT/LI' : 'Auto-publish IG/TT/LI', avatar: '/avatars-3d/content.png' },
+                    { icon: '\u{1F4CD}', name: 'Th\u00e9o', role: locale === 'fr' ? 'R\u00e9putation Google + SEO' : 'Google reputation + SEO', avatar: '/avatars-3d/gmaps.png' },
                   ].map(a => (
                     <div key={a.name} className="flex items-center gap-2.5 bg-white/5 rounded-lg px-2.5 py-2">
                       <div className="relative flex-shrink-0">
@@ -611,7 +611,7 @@ function HomeKeiroInner() {
                   ))}
                 </div>
                 <div className="flex items-center gap-3 text-[10px]">
-                  <span className="text-purple-400 font-semibold">{locale === 'fr' ? 'Resultat' : 'Result'}</span>
+                  <span className="text-purple-400 font-semibold">{locale === 'fr' ? 'Résultat' : 'Result'}</span>
                   <span className="text-white/40">{locale === 'fr' ? 'Visibilite maximale sur tous les canaux' : 'Maximum visibility everywhere'}</span>
                 </div>
               </div>
@@ -634,7 +634,7 @@ function HomeKeiroInner() {
               <div className="p-4">
                 <div className="grid grid-cols-1 gap-2 mb-3">
                   {[
-                    { icon: '\u{1F3AF}', name: 'Ami', role: locale === 'fr' ? 'Directrice strategie — analyse et recommande' : 'Strategy director — analyzes & recommends' },
+                    { icon: '\u{1F3AF}', name: 'Ami', role: locale === 'fr' ? 'Directrice stratégie — analyse et recommande' : 'Strategy director — analyzes & recommends' },
                     { icon: '\u{1F680}', name: 'Clara', role: locale === 'fr' ? 'Onboarding + suivi long terme' : 'Onboarding + long-term support' },
                   ].map(a => (
                     <div key={a.name} className="flex items-center gap-2 bg-white/5 rounded-lg px-2.5 py-2">
@@ -644,7 +644,7 @@ function HomeKeiroInner() {
                   ))}
                 </div>
                 <div className="flex items-center gap-3 text-[10px]">
-                  <span className="text-pink-400 font-semibold">{locale === 'fr' ? 'Resultat' : 'Result'}</span>
+                  <span className="text-pink-400 font-semibold">{locale === 'fr' ? 'Résultat' : 'Result'}</span>
                   <span className="text-white/40">{locale === 'fr' ? 'Tu sais quoi faire, tes agents savent comment' : 'You know what to do, your agents know how'}</span>
                 </div>
               </div>
@@ -674,7 +674,7 @@ function HomeKeiroInner() {
               </div>
               <div className="flex-1 text-center md:text-left">
                 <p className="text-white font-semibold text-sm mb-1">
-                  {locale === 'fr' ? 'Pas un chatbot. Une equipe qui execute.' : 'Not a chatbot. A team that executes.'}
+                  {locale === 'fr' ? 'Pas un chatbot. Une équipe qui exécute.' : 'Not a chatbot. A team that executes.'}
                 </p>
                 <p className="text-white/40 text-xs mb-3">
                   {locale === 'fr'
@@ -1817,12 +1817,12 @@ function HomeKeiroInner() {
           {/* Plans Grid — 3 plans principaux */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
             <Plan
-              title={`\uD83D\uDC8E ${locale === 'fr' ? 'Createur' : 'Creator'}`}
+              title={`\uD83D\uDC8E ${locale === 'fr' ? 'Créateur' : 'Creator'}`}
               price={billingPeriod === 'annual' ? `490\u20AC ${t.common.perYear}` : `49\u20AC ${t.common.perMonth}`}
               subtitle={locale === 'fr' ? 'Boutiques, restos, freelances' : 'Shops, restaurants, freelancers'}
               bullets={[
                 locale === 'fr' ? '5 agents inclus' : '5 agents included',
-                locale === 'fr' ? '400 credits/mois' : '400 credits/month',
+                locale === 'fr' ? '400 crédits/mois' : '400 credits/month',
                 locale === 'fr' ? 'Contenu, DM, Prospection, CRM' : 'Content, DM, Prospecting, CRM',
                 locale === 'fr' ? 'Stratégie + onboarding inclus' : 'Strategy + onboarding included',
               ]}
@@ -1844,7 +1844,7 @@ function HomeKeiroInner() {
               subtitle={locale === 'fr' ? 'Restos, hotels, commerces qui veulent grandir' : 'Restaurants, hotels, growing businesses'}
               bullets={[
                 locale === 'fr' ? '7 agents inclus' : '7 agents included',
-                locale === 'fr' ? '800 credits/mois' : '800 credits/month',
+                locale === 'fr' ? '800 crédits/mois' : '800 credits/month',
                 locale === 'fr' ? 'Tout Créateur + Emails (Hugo)' : 'All Creator + Email (Hugo)',
                 locale === 'fr' ? 'Avis Google (Théo) + chatbot 24/7' : 'Google reviews (Théo) + chatbot 24/7',
               ]}
@@ -1862,7 +1862,7 @@ function HomeKeiroInner() {
               highlight
               bullets={[
                 locale === 'fr' ? 'Équipe complète (7 agents) · volume ×2' : 'Full team (7 agents) · 2× volume',
-                locale === 'fr' ? '2 000 credits/mois' : '2,000 credits/month',
+                locale === 'fr' ? '2 000 crédits/mois' : '2,000 credits/month',
                 locale === 'fr' ? 'Tout Pro + Finance' : 'All Pro + Finance',
                 locale === 'fr' ? 'LinkedIn, Ads, WhatsApp (bientôt)' : 'LinkedIn, Ads, WhatsApp (soon)',
               ]}
@@ -2099,7 +2099,7 @@ function HomeKeiroInner() {
               <div className="bg-neutral-50 rounded-xl p-4 mb-4 text-left text-sm">
                 <p className="font-semibold text-neutral-800 mb-2">{locale === 'fr' ? 'Le Plan Pro inclut en plus :' : 'Pro also includes:'}</p>
                 <ul className="space-y-1.5 text-neutral-700">
-                  <li className="flex items-start gap-2"><span className="text-green-500 mt-0.5">✓</span> {locale === 'fr' ? '1 200 credits/mois (3x plus)' : '1,200 credits/month (3× more)'}</li>
+                  <li className="flex items-start gap-2"><span className="text-green-500 mt-0.5">✓</span> {locale === 'fr' ? '1 200 crédits/mois (3x plus)' : '1,200 credits/month (3× more)'}</li>
                   <li className="flex items-start gap-2"><span className="text-green-500 mt-0.5">✓</span> {locale === 'fr' ? 'Publication auto Instagram + TikTok + LinkedIn' : 'Auto-publishing Instagram + TikTok + LinkedIn'}</li>
                   <li className="flex items-start gap-2"><span className="text-green-500 mt-0.5">✓</span> {locale === 'fr' ? 'Agent commercial + Email + WhatsApp' : 'Sales agent + Email + WhatsApp'}</li>
                   <li className="flex items-start gap-2"><span className="text-green-500 mt-0.5">✓</span> {locale === 'fr' ? 'CRM intégré + pipeline de vente' : 'Integrated CRM + sales pipeline'}</li>
