@@ -68,7 +68,7 @@ function HomeKeiroInner() {
                   down to "click → test". */}
               <MagneticButton>
               <a href="/generate" className="cta-keep-white inline-block px-5 py-3 min-h-[48px] rounded-xl bg-white font-semibold shadow-lg shadow-white/20 hover:shadow-xl hover:shadow-white/30 hover:-translate-y-0.5 transition-all flex items-center gap-1.5" style={{ color: '#0c1a3a' }}>
-                ⚡ {locale === 'fr' ? 'Tester gratuitement (sans carte)' : 'Try for free (no card)'}
+                ⚡ {locale === 'fr' ? 'Tester gratuitement' : 'Try it free'}
               </a>
               </MagneticButton>
               <a href="#exemple" className="px-5 py-3 min-h-[48px] rounded-xl border-2 border-white/40 text-white font-medium hover:bg-white/10 hover:border-white/60 transition-all flex items-center">
@@ -239,7 +239,7 @@ function HomeKeiroInner() {
                 <p className="text-[10px] sm:text-xs text-purple-200">{t.home.freeTrialSubtitle || (locale === 'fr' ? 'Carte requise, aucun débit. Annulation en 1 clic à tout moment.' : 'Card required, no charge. Cancel in 1 click anytime.')}</p>
               </div>
             </div>
-            <Link href="/checkout/upsell?plan=createur" className="px-7 py-3 rounded-xl bg-white text-[#0c1a3a] font-extrabold hover:bg-purple-50 transition-all text-sm whitespace-nowrap shadow-lg hover:shadow-2xl hover:scale-105">
+            <Link href="/essai?plan=createur" className="px-7 py-3 rounded-xl bg-white text-[#0c1a3a] font-extrabold hover:bg-purple-50 transition-all text-sm whitespace-nowrap shadow-lg hover:shadow-2xl hover:scale-105">
               {t.home.freeTrialCta || (locale === 'fr' ? 'Essai gratuit 7 jours' : 'Start free trial')} →
             </Link>
           </div>
@@ -298,7 +298,7 @@ function HomeKeiroInner() {
             <a href="#tarifs" className="text-xs sm:text-sm text-purple-700 font-semibold hover:text-purple-900 underline-offset-4 hover:underline">
               {locale === 'fr' ? 'Voir tout en détail ↓' : 'See everything ↓'}
             </a>
-            <Link href="/checkout/upsell?plan=createur" className="px-4 py-2 min-h-[40px] rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white text-xs sm:text-sm font-bold shadow hover:shadow-lg transition">
+            <Link href="/essai?plan=createur" className="px-4 py-2 min-h-[40px] rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white text-xs sm:text-sm font-bold shadow hover:shadow-lg transition">
               {locale === 'fr' ? '⚡ Essai gratuit 7j' : '⚡ Start free trial'}
             </Link>
           </div>
@@ -318,19 +318,8 @@ function HomeKeiroInner() {
               <p className="text-sm text-neutral-600 mb-4">
                 {t.home.videoSubtitle}
               </p>
-
-              {/* Video placeholder — presentation a venir */}
-              <div className="bg-gradient-to-br from-[#0c1a3a] to-[#1e3a5f] rounded-lg shadow-md overflow-hidden">
-                <div className="relative w-full flex items-center justify-center" style={{ paddingBottom: '56.25%' }}>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
-                    <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mb-3">
-                      <svg className="w-8 h-8 text-purple-400" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                    </div>
-                    <p className="text-white font-bold text-sm mb-1">{locale === 'fr' ? 'Presentation video' : 'Video Presentation'}</p>
-                    <p className="text-white/40 text-xs">{locale === 'fr' ? 'Bientôt disponible' : 'Coming soon'}</p>
-                  </div>
-                </div>
-              </div>
+              {/* Video placeholder retiré du DOM tant que la vidéo n'existe pas
+                  (brief v3 §C.5 — pas de "Bientôt disponible" vaporware). */}
             </div>
 
             {/* Points clés à droite */}
@@ -423,7 +412,7 @@ function HomeKeiroInner() {
 
         {/* CTA après pilote */}
         <div className="mt-10 text-center">
-          <a href="/checkout/upsell?plan=createur" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold text-lg hover:shadow-xl transition-all hover:-translate-y-0.5">
+          <a href="/essai?plan=createur" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold text-lg hover:shadow-xl transition-all hover:-translate-y-0.5">
             {t.home.testimonialCta}
           </a>
           <p className="mt-3 text-sm text-neutral-600">
@@ -514,7 +503,7 @@ function HomeKeiroInner() {
             <p className="text-sm sm:text-base text-white/70 mb-4 sm:mb-6 max-w-2xl mx-auto">
               {locale === 'fr' ? 'Une équipe d’agents IA spécialisés qui travaillent 24/7 : création, publication, DMs, emails, SEO, avis Google, CRM, analytics. Tout est automatisé.' : 'A team of specialised AI agents working 24/7: creation, publishing, DMs, emails, SEO, Google reviews, CRM, analytics. All automated.'}
             </p>
-            <Link href="/checkout/upsell?plan=createur" className="inline-block px-6 sm:px-10 py-3 sm:py-4 bg-white text-[#0c1a3a] font-extrabold text-sm sm:text-base rounded-xl hover:shadow-2xl hover:scale-105 transition-all">
+            <Link href="/essai?plan=createur" className="inline-block px-6 sm:px-10 py-3 sm:py-4 bg-white text-[#0c1a3a] font-extrabold text-sm sm:text-base rounded-xl hover:shadow-2xl hover:scale-105 transition-all">
               {locale === 'fr' ? 'Essai gratuit 7 jours \u2014 0\u20AC ' : 'Free trial 7 days \u2014 \u20AC0 '}{'\u2192'}
             </Link>
             <p className="text-xs text-white/40 mt-2">{locale === 'fr' ? 'Carte requise, aucun débit. Annulation en 1 clic.' : 'Card required, no charge. Cancel in 1 click.'}</p>
@@ -572,7 +561,7 @@ function HomeKeiroInner() {
                 <p className="text-[11px] text-purple-700 dark:text-purple-300 mt-0.5">{t.home.freeTrialPricingNote || (locale === 'fr' ? '0€ pendant 7 jours • Carte requise • Annulation à tout moment' : '€0 for 7 days • Card required • Cancel anytime')}</p>
               </div>
               <Link
-                href="/checkout/upsell?plan=createur"
+                href="/essai?plan=createur"
                 className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#0c1a3a] to-purple-700 text-white text-sm font-bold hover:shadow-lg transition-all hover:-translate-y-0.5 whitespace-nowrap flex-shrink-0"
               >
                 {t.home.freeTrialCta || (locale === 'fr' ? 'Essai gratuit 7 jours' : 'Start free trial')}
@@ -922,7 +911,7 @@ function HomeKeiroInner() {
           </div>
         </div>
         <div className="mt-10 text-center">
-          <a href="/checkout/upsell?plan=createur" className="px-6 py-3 rounded-xl bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-medium hover:shadow-lg hover:-translate-y-0.5 transition-all">
+          <a href="/essai?plan=createur" className="px-6 py-3 rounded-xl bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-medium hover:shadow-lg hover:-translate-y-0.5 transition-all">
             {t.home.tryNow}
           </a>
         </div>
@@ -1303,7 +1292,7 @@ function QuizAndCalculator() {
 
           <div className="flex gap-3">
             <a
-              href="/checkout/upsell?plan=createur"
+              href="/essai?plan=createur"
               className="flex-1 px-6 py-3 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold rounded-xl hover:shadow-lg transition-all text-center"
             >
               {t.home.quizStartWith} {getRecommendedPlan()} →
@@ -1384,7 +1373,7 @@ function QuizAndCalculator() {
           </div>
 
           <a
-            href="/checkout/upsell?plan=createur"
+            href="/essai?plan=createur"
             className="block w-full px-6 py-3 bg-gradient-to-r from-[#0c1a3a] to-[#1e3a5f] text-white font-semibold rounded-xl hover:shadow-lg transition-all text-center"
           >
             {t.home.calcCta} {savings.toLocaleString()}€{t.common.perMonth} →
@@ -1466,7 +1455,7 @@ function Plan({
           {ctaLabel}
         </button>
       ) : (
-        <a href={ctaHref || "/checkout/upsell?plan=createur"} className={ctaClassName}>
+        <a href={ctaHref || "/essai?plan=createur"} className={ctaClassName}>
           {ctaLabel}
         </a>
       )}

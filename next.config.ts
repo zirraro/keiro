@@ -21,6 +21,13 @@ const nextConfig: NextConfig = {
       { source: '/oembed-demo', destination: '/oembed-demo.html' },
     ];
   },
+  async redirects() {
+    return [
+      // brief v3 §C.5 — "upsell" ne doit pas être visible dans l'URL avant
+      // inscription. /checkout/upsell → /essai (301, query préservée).
+      { source: '/checkout/upsell', destination: '/essai', permanent: true },
+    ];
+  },
   async headers() {
     return [
       // Standard security headers for every route except the oembed demo.

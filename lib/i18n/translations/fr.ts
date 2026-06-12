@@ -232,7 +232,7 @@ export const fr: Translations = {
     pricingBadge: '7 jours gratuits — tous les agents débloqués',
     pricingTitle: 'Offres & Tarifs',
     pricingSubtitle: 'Choisissez le plan qui correspond à vos besoins',
-    pricingFoundersNote: '*Fondateurs Pro : 149€/mois pour les les inscrits avant le 25 mai 2026, ensuite 349€/mois (Business)',
+    pricingFoundersNote: '',
     sprintTrialTitle: 'Essai gratuit 7 jours',
     sprintTrialDesc: 'Tous les agents débloqués — carte requise, aucun débit pendant 7 jours',
     sprintTrialNote: '0€ pendant 7 jours • Carte requise • Annulation à tout moment',
@@ -572,7 +572,7 @@ export const fr: Translations = {
     ctaTitle: 'Prêt à transformer votre marketing ?',
     ctaSubtitle: 'Rejoignez les premiers entrepreneurs qui délèguent leur marketing à une équipe dédiée',
     ctaCta: 'Commencer gratuitement →',
-    foundersNote: '*Fondateurs Pro : 149€/mois = accès Business complet pour les les inscrits avant le 25 mai 2026. Prix verrouillé à vie.',
+    foundersNote: '',
     // TikTok stats
     tiktokStat1Desc: 'Plus de portée organique qu\'Instagram',
     tiktokStat2Desc: 'Vues gratuites sur 1 vidéo virale',
