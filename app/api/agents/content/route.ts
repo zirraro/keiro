@@ -9,7 +9,7 @@ import { createT2VTask, checkT2VTask } from '@/lib/kling';
 import { publishReelToInstagram } from '@/lib/meta';
 import { ANTI_AI_REALISM } from '@/lib/visuals/realism';
 import { recordAutoPublish } from '@/lib/agents/auto-publish-cap';
-import { mentionsMoney, hasConfiguredPrices } from '@/lib/agents/publish-price-guard';
+import { runPublishGate, logGateVerdict } from '@/lib/agents/publish-gate';
 // Ken Burns + FFmpeg removed — doesn't work on Vercel serverless
 // Video pipeline now uses Seedance T2V / Kling T2V
 import { completeDirective, loadContextWithAvatar } from '@/lib/agents/shared-context';
@@ -2236,20 +2236,22 @@ export async function GET(request: NextRequest) {
           // If notify mode and post is draft (not yet approved), send notification instead of publishing.
           // Mode is resolved per-platform from the client's auto-publish toggle.
           let postPublishMode = resolvePublishMode(postPlatform);
-          // Interim price safety net (brief v3 §1 filet 2): an AUTO post that
-          // mentions a money amount for a client with no configured price goes
-          // to validation, so a "prix inventé" can never auto-publish. Removed
-          // once the full QA gate (Section 3) is live.
-          if (postPublishMode === 'auto' && post.status === 'draft') {
+          // QA gate (brief v3 Section 3): brand-kit-grounded checks on the post
+          // text BEFORE auto-publish (prix hors kit, promo invalide, sujet
+          // interdit, orthographe). A failed gate routes the post to validation —
+          // never bypassed by the auto toggle. Supersedes the interim price guard.
+          if (postPublishMode === 'auto' && post.status === 'draft' && userId) {
             try {
               const { data: pcap } = await supabase.from('content_calendar').select('caption, hook').eq('id', post.id).single();
-              const txt = `${pcap?.caption || ''} ${pcap?.hook || ''}`;
-              if (mentionsMoney(txt) && !(await hasConfiguredPrices(supabase, userId))) {
+              const gateText = `${pcap?.caption || ''} ${pcap?.hook || ''}`.trim();
+              const verdict = await runPublishGate(supabase, { orgId: userId, agent: 'content', channel: postPlatform as any, text: gateText, lang: 'fr' });
+              await logGateVerdict(supabase, userId, { agent: 'content', channel: postPlatform as any }, verdict, post.id);
+              if (!verdict.pass) {
                 postPublishMode = 'notify';
                 await supabase.from('content_calendar')
-                  .update({ qa_notes: 'price_guard: mention de montant sans prix configuré dans le brand kit — à valider' })
+                  .update({ qa_notes: 'QA gate: ' + verdict.violations.map(v => v.rule).join(', ') })
                   .eq('id', post.id);
-                console.log(`[Content] Price guard: post ${post.id} mentions money but client has no configured prices → validation`);
+                console.log(`[Content] QA gate FAIL post ${post.id}: ${verdict.violations.map(v => v.rule).join(',')} → validation`);
               }
             } catch { /* non-blocking */ }
           }
