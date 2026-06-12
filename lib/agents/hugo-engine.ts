@@ -433,7 +433,9 @@ export async function handleReply(
       });
 
       await supabase.from('crm_prospects').update({
-        temperature: 'dead', status: 'perdu', email_sequence_status: 'stopped', updated_at: now,
+        temperature: 'dead', status: 'perdu', email_sequence_status: 'stopped',
+        no_outbound: true, // ne JAMAIS recontacter (tout canal), survit au réengagement
+        updated_at: now,
       }).eq('id', reply.prospect_id);
 
       return 'blacklisted';

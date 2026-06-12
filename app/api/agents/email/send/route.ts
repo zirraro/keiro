@@ -109,6 +109,15 @@ export async function POST(request: NextRequest) {
     // so a follow-up email never lands on someone who asked us to stop. Also
     // refuse to send if the prospect record itself was flipped to dead/stopped
     // (safety belt — Brevo webhook unsubscribes flip the prospect status).
+    // Anti-collision NOAH (brief v3 §3.5): a persistent no_outbound flag means
+    // the prospect asked never to be contacted again on ANY channel — survives
+    // re-engagement. Refuse the send outright.
+    if (prospect.no_outbound) {
+      return NextResponse.json(
+        { ok: false, error: 'Prospect en no_outbound (ne pas recontacter)', blocked: 'no_outbound' },
+        { status: 200 },
+      );
+    }
     const ownerForBlacklist = body?.user_id || prospect.user_id || null;
     if (ownerForBlacklist) {
       const blocked = await isBlacklisted(supabase, ownerForBlacklist, prospect.email).catch(() => false);

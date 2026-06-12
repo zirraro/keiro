@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
 
     await supabase.from('crm_prospects').update({
       dm_status: 'blocked',
+      no_outbound: true, // bloqué = ne plus jamais contacter (tout canal)
       updated_at: now,
     }).eq('id', dm.prospect_id);
 

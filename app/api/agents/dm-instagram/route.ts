@@ -345,7 +345,8 @@ async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram', 
     const dmOk = isTikTok ? true : (!p.dm_status || p.dm_status === 'none'); // TikTok DMs are separate from IG dm_status
     const tempOk = !p.temperature || p.temperature !== 'dead';
     const statusOk = !p.status || !['client', 'client_pro', 'client_fondateurs', 'lost', 'perdu', 'sprint'].includes(p.status);
-    return dmOk && tempOk && statusOk;
+    const outboundOk = !p.no_outbound; // anti-collision: jamais recontacter un opt-out (tout canal)
+    return dmOk && tempOk && statusOk && outboundOk;
   }).slice(0, MAX_DM_PER_DAY * 3);
 
   if (!prospects || prospects.length === 0) {
