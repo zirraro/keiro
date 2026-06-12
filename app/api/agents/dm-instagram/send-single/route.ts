@@ -63,6 +63,7 @@ export async function POST(req: NextRequest) {
     dm_status: 'sent',
     dm_sent_at: now,
     status: 'contacte',
+    active_channel: 'dm', // anti-collision: ce prospect est désormais "owned" par le DM
     updated_at: now,
   }).eq('id', dm.prospect_id);
 

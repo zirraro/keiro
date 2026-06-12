@@ -346,7 +346,8 @@ async function runDMPreparation(platform: 'instagram' | 'tiktok' = 'instagram', 
     const tempOk = !p.temperature || p.temperature !== 'dead';
     const statusOk = !p.status || !['client', 'client_pro', 'client_fondateurs', 'lost', 'perdu', 'sprint'].includes(p.status);
     const outboundOk = !p.no_outbound; // anti-collision: jamais recontacter un opt-out (tout canal)
-    return dmOk && tempOk && statusOk && outboundOk;
+    const channelOk = !p.active_channel || p.active_channel === 'dm'; // 1 canal sortant actif/prospect — laisse l'email tranquille si déjà owned
+    return dmOk && tempOk && statusOk && outboundOk && channelOk;
   }).slice(0, MAX_DM_PER_DAY * 3);
 
   if (!prospects || prospects.length === 0) {

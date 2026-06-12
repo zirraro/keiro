@@ -118,6 +118,15 @@ export async function POST(request: NextRequest) {
         { status: 200 },
       );
     }
+    // Channel lock: if this prospect is already engaged on DMs, email stays off
+    // it (1 active outbound channel per prospect). Cleared when the prospect
+    // goes dead/no_outbound (filtered above) — DM ownership otherwise persists.
+    if (prospect.active_channel === 'dm') {
+      return NextResponse.json(
+        { ok: false, error: 'Prospect déjà actif sur le canal DM', blocked: 'channel_lock' },
+        { status: 200 },
+      );
+    }
     const ownerForBlacklist = body?.user_id || prospect.user_id || null;
     if (ownerForBlacklist) {
       const blocked = await isBlacklisted(supabase, ownerForBlacklist, prospect.email).catch(() => false);
@@ -376,6 +385,7 @@ export async function POST(request: NextRequest) {
         last_email_sent_at: now,
         email_sequence_status: 'in_progress',
         email_subject_variant: selectedVariant,
+        active_channel: 'email', // anti-collision: ce prospect est désormais "owned" par l'email
         updated_at: now,
       })
       .eq('id', prospect_id);
