@@ -284,6 +284,11 @@ export async function POST(request: NextRequest) {
               reason: 'hard_bounce',
               source: 'brevo_webhook',
             }, { onConflict: 'client_id,email' });
+            // Hard-pause if this pushes the 7d bounce rate over 3% (protect domain).
+            try {
+              const { checkAndPauseOnBounce } = await import('@/lib/agents/hugo-engine');
+              await checkAndPauseOnBounce(supabase, bounceClientId);
+            } catch { /* non-fatal */ }
           }
           break;
         }

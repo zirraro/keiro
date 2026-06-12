@@ -464,6 +464,53 @@ export async function isBlacklisted(supabase: SupabaseClient, clientId: string, 
   return data.some((r: any) => r.client_id === clientId || GLOBAL_SUPPRESS_REASONS.includes(r.reason));
 }
 
+// ─── Hard-pause sur bounce rate (brief v3 §3.1) ─────────────
+// Un domaine brûlé est irrécupérable. Au-delà de 3 % de hard bounce sur 7 jours
+// glissants (avec un volume minimal pour éviter le bruit), on STOPPE les envois
+// du client (pas juste un allongement de warmup) jusqu'à reprise manuelle.
+const BOUNCE_HARD_PAUSE_RATE = 0.03;
+const BOUNCE_MIN_VOLUME = 20;
+const HUGO_PAUSE_HOURS = 48;
+
+export async function isHugoPaused(supabase: SupabaseClient, clientId: string): Promise<boolean> {
+  if (!clientId) return false;
+  const { data } = await supabase.from('profiles').select('hugo_paused_until').eq('id', clientId).maybeSingle();
+  return !!((data as any)?.hugo_paused_until && new Date((data as any).hugo_paused_until) > new Date());
+}
+
+/** Recompute the client's 7-day hard-bounce rate; pause sends if it crosses the
+ *  threshold. Call after each hard bounce. Returns whether a pause was set. */
+export async function checkAndPauseOnBounce(supabase: SupabaseClient, clientId: string): Promise<{ paused: boolean; rate: number }> {
+  if (!clientId) return { paused: false, rate: 0 };
+  const since = new Date(Date.now() - 7 * 86400 * 1000).toISOString();
+  const { count: sent } = await supabase.from('crm_prospects')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', clientId)
+    .gte('last_email_sent_at', since);
+  const { count: bounced } = await supabase.from('crm_prospects')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', clientId)
+    .eq('email_sequence_status', 'bounced')
+    .gte('updated_at', since);
+  const total = sent || 0;
+  const rate = total > 0 ? (bounced || 0) / total : 0;
+  if (total >= BOUNCE_MIN_VOLUME && rate >= BOUNCE_HARD_PAUSE_RATE) {
+    const until = new Date(Date.now() + HUGO_PAUSE_HOURS * 3600 * 1000).toISOString();
+    await supabase.from('profiles').update({
+      hugo_paused_until: until,
+      hugo_pause_reason: `Bounce ${(rate * 100).toFixed(1)}% ≥ 3% (${bounced}/${total} sur 7j) — envois Hugo en pause, vérifier le domaine/la liste`,
+    }).eq('id', clientId);
+    await supabase.from('agent_logs').insert({
+      agent: 'email', action: 'hugo_bounce_pause', status: 'error', user_id: clientId,
+      error_message: `Hugo paused: bounce ${(rate * 100).toFixed(1)}% (${bounced}/${total})`,
+      data: { severity: 'critical', rate, sent: total, bounced, paused_until: until },
+      created_at: new Date().toISOString(),
+    });
+    return { paused: true, rate };
+  }
+  return { paused: false, rate };
+}
+
 // ─── Autonomy Escalation (J+14 → level 1→2) ────────────────
 
 export async function checkAutonomyEscalation(supabase: SupabaseClient, clientId: string): Promise<void> {

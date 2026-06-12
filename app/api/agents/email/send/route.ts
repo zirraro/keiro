@@ -4,7 +4,7 @@ import { getAuthUser } from '@/lib/auth-server';
 import { getEmailTemplate } from '@/lib/agents/email-templates';
 import { getSequenceForProspect } from '@/lib/agents/scoring';
 import { canSendEmail } from '@/lib/agents/email-dedup';
-import { isBlacklisted } from '@/lib/agents/hugo-engine';
+import { isBlacklisted, isHugoPaused } from '@/lib/agents/hugo-engine';
 
 import { sendBrevoCompat } from '@/lib/email/brevo-compat';
 export const runtime = 'nodejs';
@@ -128,6 +128,14 @@ export async function POST(request: NextRequest) {
       );
     }
     const ownerForBlacklist = body?.user_id || prospect.user_id || null;
+    // Hugo hard-pause (brief v3 §3.1): if this client's bounce rate tripped the
+    // pause, refuse ALL sends until it's manually cleared — protect the domain.
+    if (ownerForBlacklist && await isHugoPaused(supabase, ownerForBlacklist).catch(() => false)) {
+      return NextResponse.json(
+        { ok: false, error: 'Envois Hugo en pause (bounce rate élevé — vérifier le domaine)', blocked: 'hugo_paused' },
+        { status: 200 },
+      );
+    }
     if (ownerForBlacklist) {
       const blocked = await isBlacklisted(supabase, ownerForBlacklist, prospect.email).catch(() => false);
       if (blocked) {
