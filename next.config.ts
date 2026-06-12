@@ -49,9 +49,20 @@ const nextConfig: NextConfig = {
           { key: 'Content-Security-Policy', value: "default-src 'self' https://www.instagram.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.instagram.com https://*.instagram.com https://*.cdninstagram.com; style-src 'self' 'unsafe-inline' https://www.instagram.com; img-src 'self' data: blob: https:; frame-src 'self' https://www.instagram.com https://*.instagram.com; connect-src 'self' https://www.instagram.com https://*.instagram.com https://graph.facebook.com; base-uri 'self';" },
         ],
       },
-      // 2026-06-09 — Aggressive cache for static assets to reduce VPS
-      // bandwidth and improve perceived perf. _next/static is content-
-      // hashed by Next so 1-year immutable is safe.
+      // 2026-06-12 — Sane cache for HTML PAGES. Next's App Router defaults
+      // static pages to `s-maxage=31536000` (cache forever in shared caches),
+      // so a redeploy never propagates to any intermediary/CDN/proxy — exactly
+      // the prod/repo divergence reported on 2026-06-12. Override document
+      // routes (NOT _next assets, NOT api) with a short shared-cache TTL +
+      // stale-while-revalidate so deploys go live within minutes while keeping
+      // good perceived perf. Browsers (which ignore s-maxage) always revalidate.
+      {
+        source: '/((?!oembed-demo|api/|_next/).*)',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=0, s-maxage=120, stale-while-revalidate=600' }],
+      },
+      // Aggressive cache for static assets to reduce VPS bandwidth and improve
+      // perceived perf. _next/static is content-hashed by Next so 1-year
+      // immutable is safe.
       {
         source: '/_next/static/(.*)',
         headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
