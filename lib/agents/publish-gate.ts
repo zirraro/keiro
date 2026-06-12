@@ -147,8 +147,16 @@ export async function runPublishGate(supabase: any, input: GateInput): Promise<G
   if (amounts.length > 0) {
     const hasActivePrices = kit.exists && !kit.no_public_prices && kit.prices.length > 0;
     if (!hasActivePrices) {
-      for (const a of amounts) {
-        violations.push({ rule: 'NO_PRICES_CONFIGURED', detail: `${a.value}€ mentionné mais aucun prix configuré dans le brand kit`, span: a.span });
+      // No usable prices. Block money mentions when EITHER the client has a kit
+      // (explicit: empty prices or no_public_prices) OR this is client content
+      // (Léna interim safety, brief v3 §1 filet 2). For other agents on an
+      // account with NO kit at all (e.g. KeiroAI's own sales replies), don't
+      // over-block — there's nothing to validate against.
+      const enforceNoPrices = kit.exists || input.agent === 'content';
+      if (enforceNoPrices) {
+        for (const a of amounts) {
+          violations.push({ rule: 'NO_PRICES_CONFIGURED', detail: `${a.value}€ mentionné mais aucun prix configuré dans le brand kit`, span: a.span });
+        }
       }
     } else {
       const validOfferValues = kit.offers

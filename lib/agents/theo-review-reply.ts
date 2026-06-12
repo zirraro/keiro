@@ -180,9 +180,27 @@ Texte : "${(review.text || '').substring(0, 1000)}"${directivesBlock}`,
     const parsed = JSON.parse(txt);
 
     if (parsed?.action === 'reply' && typeof parsed.body === 'string' && parsed.body.trim().length > 10) {
+      const replyBody = String(parsed.body).substring(0, 1500).trim();
+      // QA gate (brief v3 §3) — deterministic backstop on the generated reply.
+      // A review reply that slips an amount, an unconfigured promo, a forbidden
+      // topic or a compensation promise is ESCALATED to a human, never posted.
+      if (ownerUserId && supabaseClient) {
+        try {
+          const { runPublishGate, logGateVerdict } = await import('@/lib/agents/publish-gate');
+          const verdict = await runPublishGate(supabaseClient, { orgId: ownerUserId, agent: 'gmaps_reply', channel: 'google', text: replyBody, lang: 'fr' });
+          await logGateVerdict(supabaseClient, ownerUserId, { agent: 'gmaps_reply', channel: 'google' }, verdict);
+          if (!verdict.pass) {
+            return {
+              action: 'escalate',
+              reason: `QA gate: ${verdict.violations.map(v => v.rule).join(', ')} — réponse à relire par un humain.`,
+              draft_for_human: replyBody,
+            };
+          }
+        } catch { /* gate failure must not block the legitimate reply path */ }
+      }
       return {
         action: 'reply',
-        body: String(parsed.body).substring(0, 1500).trim(),
+        body: replyBody,
         rationale: String(parsed.rationale || '').substring(0, 400),
       };
     }
