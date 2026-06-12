@@ -207,8 +207,14 @@ export async function POST(req: NextRequest) {
     }
 
     // ─── Purge prospects (all or by status) ─────────────────────────────
+    // Founder rule 2026-06-12: on ne SUPPRIME JAMAIS un prospect du CRM — on le
+    // passe en 'dead' (temperature) / 'perdu' (status). Les fiches restent la
+    // base d'infos partagée des agents ; une suppression dure perdrait
+    // l'historique et le flag no_outbound. "Purge" = soft-archive.
     if (body.action === 'purge' || body.action === 'purge_all') {
-      let query = supabase.from('crm_prospects').delete();
+      let query = supabase
+        .from('crm_prospects')
+        .update({ temperature: 'dead', status: 'perdu', updated_at: new Date().toISOString() });
       if (body.status) {
         query = query.eq('status', body.status);
       } else {
@@ -216,10 +222,10 @@ export async function POST(req: NextRequest) {
       }
       const { data, error } = await query.select('id');
       if (error) {
-        console.error('[Admin CRM] Purge error:', error);
+        console.error('[Admin CRM] Purge (soft) error:', error);
         return NextResponse.json({ error: 'Erreur lors de la purge' }, { status: 500 });
       }
-      return NextResponse.json({ ok: true, deleted: data?.length || 0 });
+      return NextResponse.json({ ok: true, archived: data?.length || 0, deleted: 0, soft: true });
     }
 
     // ─── Create Activity ───────────────────────────────────────────────

@@ -8,6 +8,7 @@ import { publishTikTokVideoViaFileUpload, initTikTokPhotoUpload, refreshTikTokTo
 import { createT2VTask, checkT2VTask } from '@/lib/kling';
 import { publishReelToInstagram } from '@/lib/meta';
 import { ANTI_AI_REALISM } from '@/lib/visuals/realism';
+import { recordAutoPublish } from '@/lib/agents/auto-publish-cap';
 // Ken Burns + FFmpeg removed — doesn't work on Vercel serverless
 // Video pipeline now uses Seedance T2V / Kling T2V
 import { completeDirective, loadContextWithAvatar } from '@/lib/agents/shared-context';
@@ -2746,6 +2747,12 @@ export async function GET(request: NextRequest) {
             updateFields.status = 'published';
             updateFields.published_at = new Date().toISOString();
             published++;
+            // Cap-60: count this as an AUTO publication only when it shipped
+            // without manual validation (post was a draft + toggle was 'auto').
+            // Manually-approved posts (status='approved') don't count.
+            if (post.status === 'draft' && postPublishMode === 'auto') {
+              recordAutoPublish(supabase, userId, postPlatform).catch(() => {});
+            }
           } else if (!updateFields.status) {
             updateFields.status = 'approved'; // Remettre en approved si pas publie
           }
