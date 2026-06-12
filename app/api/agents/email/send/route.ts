@@ -271,6 +271,24 @@ export async function POST(request: NextRequest) {
           .eq('id', clientUserId)
           .single();
         if (smtpProfile?.smtp_host && smtpProfile?.smtp_user && smtpProfile?.smtp_pass) {
+          // SPF/DMARC preflight (brief v3 §3.1): never send from the client's
+          // OWN domain unless it's authenticated — an unauthenticated domain
+          // burns irreversibly. If it fails, skip SMTP and fall through to the
+          // authenticated KeiroAI domain (Resend) so prospection keeps running,
+          // and log a config warning for the client.
+          const { checkDomainAuth, domainOf } = await import('@/lib/email/domain-auth');
+          const sendDomain = domainOf(smtpProfile.smtp_from_email || smtpProfile.smtp_user);
+          const auth = await checkDomainAuth(sendDomain).catch(() => ({ ok: true } as any));
+          if (!auth.ok) {
+            console.warn(`[EmailAgent] SMTP domain ${sendDomain} non authentifié (${auth.reason}) — skip SMTP, fallback domaine KeiroAI`);
+            await supabase.from('agent_logs').insert({
+              agent: 'email', action: 'email_domain_auth_warning', status: 'error', user_id: clientUserId,
+              error_message: `Domaine ${sendDomain} non authentifié: ${auth.reason}. Configure SPF + DMARC (et DKIM) pour envoyer depuis ton domaine.`,
+              data: { severity: 'warning', domain: sendDomain, spf: auth.spf, dmarc: auth.dmarc },
+              created_at: new Date().toISOString(),
+            }).catch(() => {});
+            throw new Error(`domain_not_authenticated:${sendDomain}`);
+          }
           const nodemailer = await import('nodemailer');
           const transport = nodemailer.default.createTransport({
             host: smtpProfile.smtp_host,
