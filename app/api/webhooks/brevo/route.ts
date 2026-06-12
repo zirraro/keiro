@@ -270,6 +270,21 @@ export async function POST(request: NextRequest) {
             data: { bounce_reason: event.reason },
             created_at: now,
           });
+
+          // Brief v3 §3.1 — a hard bounce suppresses the address GLOBALLY
+          // (reason 'hard_bounce' ∈ GLOBAL_SUPPRESS_REASONS in hugo-engine), so
+          // no KeiroAI client ever re-emails a known-bad address and burns
+          // sender reputation. We don't delete the prospect (founder rule:
+          // dead only) — the fiche stays, just blacklisted for email.
+          const bounceClientId = prospect.user_id || prospect.created_by || null;
+          if (bounceClientId && prospect.email) {
+            await supabase.from('email_blacklist').upsert({
+              client_id: bounceClientId,
+              email: prospect.email,
+              reason: 'hard_bounce',
+              source: 'brevo_webhook',
+            }, { onConflict: 'client_id,email' });
+          }
           break;
         }
 

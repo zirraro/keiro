@@ -446,9 +446,20 @@ export async function handleReply(
 
 // ─── Blacklist Check ────────────────────────────────────────
 
+// Reasons that suppress an address GLOBALLY (across every KeiroAI client), per
+// brief v3 §3.1: an opt-out / complaint / hard bounce at ANY client must never
+// be emailed again by ANY client — protecting sender reputation cross-tenant.
+const GLOBAL_SUPPRESS_REASONS = ['unsubscribe', 'complaint', 'spam', 'spam_report', 'hard_bounce', 'abuse'];
+
 export async function isBlacklisted(supabase: SupabaseClient, clientId: string, email: string): Promise<boolean> {
-  const { data } = await supabase.from('email_blacklist').select('id').eq('client_id', clientId).eq('email', email).limit(1).maybeSingle();
-  return !!data;
+  const { data } = await supabase
+    .from('email_blacklist')
+    .select('client_id, reason')
+    .eq('email', email);
+  if (!data || data.length === 0) return false;
+  // Suppress if blacklisted for THIS client, OR globally for any opt-out/
+  // complaint/hard-bounce at any client.
+  return data.some((r: any) => r.client_id === clientId || GLOBAL_SUPPRESS_REASONS.includes(r.reason));
 }
 
 // ─── Autonomy Escalation (J+14 → level 1→2) ────────────────
