@@ -2466,23 +2466,55 @@ export async function GET(request: NextRequest) {
               }
             } else if (visualUrl) {
               const { scoreVisualQuality } = await import('@/lib/visuals/qa-check');
-              const sqa = await scoreVisualQuality(
-                visualUrl,
-                fullPost.visual_description || fullPost.hook || '',
-                'the intended subject of this post',
-              );
-              console.log(`[Content] pre-publish visual QA: score=${sqa.score}/10 — flags=${(sqa.amateur_flags || []).join(',')}`);
-              // Hard rejection: blur or AI-tells at score <= 2 (catastrophic).
+              const qaDesc = fullPost.visual_description || fullPost.hook || '';
               const fatalFlags = ['blurry_subject', 'out_of_focus'];
-              const hasFatal = (sqa.amateur_flags || []).some((f: string) => fatalFlags.includes(f));
-              if (hasFatal || sqa.score <= 2) {
-                await supabase.from('content_calendar').update({
-                  status: 'publish_failed',
-                  publish_diagnostic: `visual_qa_block:score=${sqa.score},flags=${(sqa.amateur_flags || []).join('|').substring(0, 80)}`,
-                  updated_at: new Date().toISOString(),
-                }).eq('id', post.id);
-                console.warn(`[Content] BLOCK publish ${post.id} on ${fullPost.platform}: visual QA score=${sqa.score}`);
-                continue;
+              const isBad = (s: any) => ((s.amateur_flags || []).some((f: string) => fatalFlags.includes(f)) || s.score <= 2);
+              let sqa = await scoreVisualQuality(visualUrl, qaDesc, 'the intended subject of this post');
+              console.log(`[Content] pre-publish visual QA: score=${sqa.score}/10 — flags=${(sqa.amateur_flags || []).join(',')}`);
+              // 2026-06-12 — Founder rule "on doit publier qqch sans tuer les
+              // marges". The QA used to mark publish_failed and GIVE UP. New
+              // ladder (cost-bounded, always ships something good):
+              //   1. ONE regeneration (max — €0.05, never an infinite loop)
+              //   2. still bad → REUSE a proven top library visual (0 gen cost,
+              //      already passed QA + has real engagement, on-brand)
+              //   3. no library candidate (brand new client) → hold for validation
+              if (isBad(sqa) && qaDesc) {
+                console.warn(`[Content] visual QA fail (score=${sqa.score}) post ${post.id} — 1 régénération`);
+                const regen = await generateVisual(qaDesc, fullPost.format || 'post', userId || undefined, fullPost.platform);
+                if (regen) {
+                  const cachedRegen = await cacheImageToStorage(regen, post.id);
+                  visualUrl = cachedRegen || regen;
+                  await supabase.from('content_calendar').update({ visual_url: visualUrl, updated_at: new Date().toISOString() }).eq('id', post.id);
+                  sqa = await scoreVisualQuality(visualUrl, qaDesc, 'the intended subject of this post');
+                  console.log(`[Content] re-QA after regen: score=${sqa.score}/10`);
+                }
+              }
+              if (isBad(sqa) && userId) {
+                let reused = false;
+                try {
+                  const { getReusableTopVisuals, markVisualReused } = await import('@/lib/visuals/visual-reuse');
+                  const top = await getReusableTopVisuals(supabase, userId, { platform: fullPost.platform, format: fullPost.format, limit: 3 });
+                  const candidate = (top || []).find((t: any) => t.visual_url && t.visual_url !== visualUrl);
+                  if (candidate?.visual_url) {
+                    visualUrl = candidate.visual_url;
+                    await supabase.from('content_calendar').update({ visual_url: visualUrl, qa_notes: `visual_qa_low_score${sqa.score}_reused_library`, updated_at: new Date().toISOString() }).eq('id', post.id);
+                    await markVisualReused(supabase, candidate.post_id, post.id).catch(() => {});
+                    console.log(`[Content] visual QA low → reused top library visual for post ${post.id} (publishing, 0 gen cost)`);
+                    reused = true;
+                  }
+                } catch (reuseErr: any) {
+                  console.warn(`[Content] library reuse fallback failed: ${reuseErr?.message?.substring(0, 100)}`);
+                }
+                if (!reused) {
+                  await supabase.from('content_calendar').update({
+                    status: 'pending_approval',
+                    visual_url: visualUrl,
+                    qa_notes: `visual_qa: score=${sqa.score} flags=${(sqa.amateur_flags || []).join('|').substring(0, 60)} — pas de visuel librairie, à valider`,
+                    updated_at: new Date().toISOString(),
+                  }).eq('id', post.id);
+                  console.warn(`[Content] HOLD post ${post.id} for validation: QA score=${sqa.score}, no library fallback`);
+                  continue;
+                }
               }
             }
           } catch (qaErr: any) {
