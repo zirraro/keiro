@@ -67,7 +67,7 @@ export function StickyCtaBar() {
           </span>
           <span className="hidden sm:inline text-white/50"> · </span>
           <span className="text-white/80">
-            {en ? 'no card required · cancel anytime' : 'sans carte bancaire · résilie quand tu veux'}
+            {en ? 'card required, no charge · cancel anytime' : 'carte requise, aucun débit · résilie quand tu veux'}
           </span>
         </p>
         <div className="flex items-center gap-2 shrink-0">
