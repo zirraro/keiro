@@ -60,6 +60,30 @@ export const maxDuration = 600;
  * cross-platform discussion ("L'algo Instagram a changé" on TikTok =
  * obvious self-tell). Leaves the rest of the caption intact.
  */
+// 2026-06-12 — Founder report: posts TikTok à 0 vue. Le reach TikTok dépend
+// fortement des hashtags de DÉCOUVERTE (le For You les utilise pour catégoriser)
+// en plus des tags de niche. On garantit un set optimisé : 1-2 tags découverte
+// FR + les tags de niche du LLM, dédupliqués et capés à 6 (limite guardrail).
+// Un post sous-taggé (0-2 hashtags) ou sans tag découverte = peu de portée.
+function optimizeTikTokHashtags(raw: string[]): string[] {
+  const clean = (raw || []).map(h => String(h).replace(/^#/, '').trim()).filter(Boolean);
+  const lower = new Set(clean.map(h => h.toLowerCase()));
+  const out = [...clean];
+  // Discovery tags FR (signalent le For You) — ajoutés s'ils manquent.
+  for (const d of ['pourtoi', 'fyp']) {
+    if (!lower.has(d) && out.length < 6) { out.push(d); lower.add(d); }
+  }
+  // Dédup + cap 6.
+  const seen = new Set<string>();
+  const final: string[] = [];
+  for (const h of out) {
+    const k = h.toLowerCase();
+    if (!seen.has(k)) { seen.add(k); final.push(h); }
+    if (final.length >= 6) break;
+  }
+  return final;
+}
+
 function sanitizePlatformMentions(caption: string, targetPlatform: 'tiktok' | 'instagram' | 'linkedin'): string {
   if (!caption) return caption;
   let out = caption;
@@ -1880,6 +1904,8 @@ async function publishToTikTok(
     // bypasses fresh LLM generation still ships clean copy.
     rawCaptionTT = sanitizePlatformMentions(rawCaptionTT, 'tiktok');
     hashtagsArr = hashtagsArr.filter((h: string) => !/(instagram|insta|linkedin|facebook|fb_)/i.test(String(h)));
+    // Optimise pour le reach TikTok : garantit des tags de découverte + niche.
+    hashtagsArr = optimizeTikTokHashtags(hashtagsArr);
     const hashtagLineTT = hashtagsArr.length > 0 ? hashtagsArr.map((h: string) => h.startsWith('#') ? h : `#${h}`).join(' ') : '';
     const fullCaption = rawCaptionTT + (hashtagLineTT ? '\n\n' + hashtagLineTT : '');
 
