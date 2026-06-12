@@ -1495,8 +1495,41 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
         ? 'Réponses DM (pas de DM aujourd\'hui)'
         : `Réponses DM (${dmReplies}/${dmIncoming})`;
 
+      // Founder ask 2026-06-12: éclater les posts PAR RÉSEAU (Instagram X/Y,
+      // TikTok X/Y, LinkedIn X/Y) — uniquement pour les réseaux que le client
+      // a activés (org_agent_configs content) ou connectés. Cible par réseau =
+      // cadence du plan de publication réel (plan_override content si défini).
+      let networkPostLines: any[] = [];
+      try {
+        const { PLAN_DAILY_PUBLISH } = await import('@/lib/credits/plan-budget-guard');
+        const { data: ccRow } = await supabase
+          .from('org_agent_configs').select('config')
+          .eq('user_id', client.id).eq('agent_id', 'content')
+          .order('created_at', { ascending: false }).limit(1).maybeSingle();
+        const cc: any = (ccRow as any)?.config || {};
+        const contentPlan = (cc.plan_override || planKey || 'createur').toLowerCase();
+        const cadence: any = PLAN_DAILY_PUBLISH[contentPlan] || PLAN_DAILY_PUBLISH.free;
+        const [igPub, ttPub, liPub] = await Promise.all([
+          supabase.from('content_calendar').select('id', { count: 'exact', head: true }).eq('user_id', client.id).eq('status', 'published').eq('platform', 'instagram').gte('published_at', sinceIso),
+          supabase.from('content_calendar').select('id', { count: 'exact', head: true }).eq('user_id', client.id).eq('status', 'published').eq('platform', 'tiktok').gte('published_at', sinceIso),
+          supabase.from('content_calendar').select('id', { count: 'exact', head: true }).eq('user_id', client.id).eq('status', 'published').eq('platform', 'linkedin').gte('published_at', sinceIso),
+        ]);
+        const nets = [
+          { emoji: '📸', label: 'Posts Instagram', on: cc.ig_enabled !== false, actual: igPub.count || 0, floor: cadence.ig },
+          { emoji: '🎵', label: 'Posts TikTok', on: cc.tt_enabled !== false, actual: ttPub.count || 0, floor: cadence.tt },
+          { emoji: '💼', label: 'Posts LinkedIn', on: cc.li_enabled === true, actual: liPub.count || 0, floor: cadence.li },
+        ];
+        networkPostLines = nets
+          .filter(n => n.on && n.floor > 0)
+          .map(n => ({ emoji: n.emoji, label: n.label, actual: n.actual, floor: n.floor, color: '#16a34a', display: `${n.actual}` }));
+      } catch { /* fallback to a single Posts line below */ }
+      // Fallback when no per-network data: keep the single aggregate line.
+      const postLines = networkPostLines.length > 0
+        ? networkPostLines
+        : [{ emoji: '🎨', label: 'Posts', actual: doneCounts.posts_published, floor: floors.posts, color: '#16a34a', display: `${doneCounts.posts_published}` }];
+
       const planPromise = [
-        { emoji: '🎨', label: 'Posts', actual: doneCounts.posts_published, floor: floors.posts, color: '#16a34a', display: `${doneCounts.posts_published}` },
+        ...postLines,
         { emoji: '✉️', label: 'Emails prospection', actual: doneCounts.emails_cold_sent, floor: floors.emails, color: '#2563eb', display: `${doneCounts.emails_cold_sent}` },
         { emoji: '🎯', label: 'Prospects', actual: doneCounts.prospects_added, floor: floors.prospects, color: '#7c3aed', display: `${doneCounts.prospects_added}` },
         // DM promise = % replies to incoming. floor=100 (we want 100% reply rate);
