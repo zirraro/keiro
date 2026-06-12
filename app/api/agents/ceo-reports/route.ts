@@ -1481,7 +1481,14 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
       // client sees today's work mapped against what their plan
       // guarantees. Per founder feedback 2026-05-17: must be honest,
       // optimistic on % when delivered, no exaggeration.
-      const planKey = (client.subscription_plan || 'createur').toLowerCase();
+      // Le plan du brief suit le plan_override du contenu si défini (un compte
+      // en test/Créateur via override doit voir des planchers Créateur, pas Pro
+      // — sinon il reste bloqué sous 100% sur un plancher email qu'il n'a pas).
+      const { data: briefCfgRow } = await supabase
+        .from('org_agent_configs').select('config')
+        .eq('user_id', client.id).eq('agent_id', 'content')
+        .order('created_at', { ascending: false }).limit(1).maybeSingle();
+      const planKey = ((((briefCfgRow as any)?.config?.plan_override) || client.subscription_plan || 'createur')).toLowerCase();
       const floors = getPlanFloorsFlat(planKey);
       // Founder ask 2026-06-01: DM line = "% des DMs entrants répondus",
       // pas un quota cold. Si 0 DM entrant aujourd'hui → 100% par
