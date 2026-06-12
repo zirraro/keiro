@@ -9,7 +9,8 @@ cd /opt/keiro
 echo "▶ git pull --rebase"
 git pull --rebase
 
-EXPECTED_SHA="$(git rev-parse --short HEAD)"
+# Normalise to 7 chars to match /api/version's shortSha.
+EXPECTED_SHA="$(git rev-parse --short=7 HEAD)"
 echo "▶ target commit: $EXPECTED_SHA"
 
 echo "▶ npm ci"
@@ -26,7 +27,8 @@ pm2 reload keiro-worker --update-env || true
 sleep 4
 fail=0
 for host in "https://keiroai.com" "https://www.keiroai.com"; do
-  got="$(curl -fsS --max-time 15 "$host/api/version?ts=$(date +%s)" | grep -oE '"shortSha":"[^"]+"' | cut -d'"' -f4 || echo "ERR")"
+  got="$(curl -fsSL --max-time 15 "$host/api/version?ts=$(date +%s)" | grep -oE '"shortSha":"[^"]+"' | cut -d'"' -f4 || echo "ERR")"
+  got="${got:0:7}"
   if [ "$got" = "$EXPECTED_SHA" ]; then
     echo "✅ $host serves $got"
   else

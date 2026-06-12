@@ -9,6 +9,7 @@ import { createT2VTask, checkT2VTask } from '@/lib/kling';
 import { publishReelToInstagram } from '@/lib/meta';
 import { ANTI_AI_REALISM } from '@/lib/visuals/realism';
 import { recordAutoPublish } from '@/lib/agents/auto-publish-cap';
+import { mentionsMoney, hasConfiguredPrices } from '@/lib/agents/publish-price-guard';
 // Ken Burns + FFmpeg removed — doesn't work on Vercel serverless
 // Video pipeline now uses Seedance T2V / Kling T2V
 import { completeDirective, loadContextWithAvatar } from '@/lib/agents/shared-context';
@@ -2234,7 +2235,24 @@ export async function GET(request: NextRequest) {
           }
           // If notify mode and post is draft (not yet approved), send notification instead of publishing.
           // Mode is resolved per-platform from the client's auto-publish toggle.
-          const postPublishMode = resolvePublishMode(postPlatform);
+          let postPublishMode = resolvePublishMode(postPlatform);
+          // Interim price safety net (brief v3 §1 filet 2): an AUTO post that
+          // mentions a money amount for a client with no configured price goes
+          // to validation, so a "prix inventé" can never auto-publish. Removed
+          // once the full QA gate (Section 3) is live.
+          if (postPublishMode === 'auto' && post.status === 'draft') {
+            try {
+              const { data: pcap } = await supabase.from('content_calendar').select('caption, hook').eq('id', post.id).single();
+              const txt = `${pcap?.caption || ''} ${pcap?.hook || ''}`;
+              if (mentionsMoney(txt) && !(await hasConfiguredPrices(supabase, userId))) {
+                postPublishMode = 'notify';
+                await supabase.from('content_calendar')
+                  .update({ qa_notes: 'price_guard: mention de montant sans prix configuré dans le brand kit — à valider' })
+                  .eq('id', post.id);
+                console.log(`[Content] Price guard: post ${post.id} mentions money but client has no configured prices → validation`);
+              }
+            } catch { /* non-blocking */ }
+          }
           if (postPublishMode === 'notify' && post.status === 'draft') {
             const { data: fullPostForNotify } = await supabase.from('content_calendar').select('*').eq('id', post.id).single();
             if (fullPostForNotify) {
