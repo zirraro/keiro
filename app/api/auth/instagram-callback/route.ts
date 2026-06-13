@@ -360,7 +360,9 @@ async function handleInstagramLoginCallback(opts: {
     console.log('[InstagramCallback/IGLogin] step2 GET https://graph.instagram.com/access_token (grant_type=ig_exchange_token, secretLen=%s)', igAppSecret.length);
     const longRes = await fetch(longUrl, { method: 'GET' });
     const longData = await longRes.json().catch(() => ({} as any));
-    console.log('[InstagramCallback/IGLogin] step2 response status=%s body=%s', longRes.status, JSON.stringify(longData).slice(0, 300));
+    // SECURITY: never log the token value itself.
+    console.log('[InstagramCallback/IGLogin] step2 status=%s gotToken=%s expiresInDays=%s',
+      longRes.status, !!longData.access_token, longData.expires_in ? Math.round(longData.expires_in / 86400) : '?');
     const igaaToken: string | null = longData.access_token || null;
     const igaaExpiresIn: number | null = typeof longData.expires_in === 'number' ? longData.expires_in : null;
     if (!igaaToken) {
