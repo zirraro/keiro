@@ -297,7 +297,7 @@ export async function initTikTokVideoUpload(
     body: JSON.stringify({
       post_info: {
         title: '',
-        privacy_level: 'SELF_ONLY', // Required for unaudited apps
+        privacy_level: 'PUBLIC_TO_EVERYONE', // 2026-06-13 app auditée — on publie en PUBLIC (jamais SELF_ONLY = 0 vue)
         disable_duet: false,
         disable_comment: false,
         disable_stitch: false,
@@ -404,7 +404,7 @@ export async function publishTikTokVideoFromUrl(
     body: JSON.stringify({
       post_info: {
         title: caption.substring(0, 150), // TikTok max title length
-        privacy_level: options?.privacy_level ?? 'SELF_ONLY', // Default SELF_ONLY for Sandbox
+        privacy_level: options?.privacy_level ?? 'PUBLIC_TO_EVERYONE', // 2026-06-13 app auditée — public par défaut (jamais SELF_ONLY)
         disable_duet: options?.disable_duet ?? false,
         disable_comment: options?.disable_comment ?? false,
         disable_stitch: options?.disable_stitch ?? false,
