@@ -88,12 +88,16 @@ export async function GET(req: NextRequest) {
       authUrl.searchParams.set('client_id', igAppId);
       authUrl.searchParams.set('redirect_uri', igRedirectUri);
       authUrl.searchParams.set('response_type', 'code');
+      // NOTE: instagram_business_manage_insights is intentionally absent.
+      // Insights/hashtags are NOT available via Instagram Login — Meta's own
+      // dashboard says "switch to the API setup with Facebook login" for those.
+      // Requesting it here would trigger an invalid_scope error and break the
+      // entire connect. Insights must be handled via the legacy FB Login path.
       authUrl.searchParams.set('scope', [
         'instagram_business_basic',
         'instagram_business_content_publish',
         'instagram_business_manage_comments',
         'instagram_business_manage_messages',
-        'instagram_business_manage_insights',
       ].join(','));
       authUrl.searchParams.set('state', stateEncoded);
       // force_reauth=true makes Instagram re-ask for credentials AND re-show
