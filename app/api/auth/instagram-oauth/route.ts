@@ -66,32 +66,63 @@ export async function GET(req: NextRequest) {
     };
     const stateEncoded = Buffer.from(JSON.stringify(statePayload)).toString('base64');
 
-    // URL d'autorisation Meta/Facebook
-    const authUrl = new URL('https://www.facebook.com/v20.0/dialog/oauth');
-    authUrl.searchParams.set('client_id', metaAppId);
-    authUrl.searchParams.set('redirect_uri', redirectUri);
-    authUrl.searchParams.set('scope', scopes);
-    authUrl.searchParams.set('response_type', 'code');
-    authUrl.searchParams.set('state', stateEncoded); // Pass user_id in state
-
-    // Re-prompt Meta's permission dialog. Used when recording the App
-    // Review screencast: a returning user normally sees only "Continue as
-    // Name", which hides the Page selector + IG account selector + the
-    // permissions grant screen Meta requires reviewers to see.
-    //
-    // ?reauth=1  — auth_type=rerequest (re-prompts declined perms only)
-    // ?reauth=full — auth_type=reauthenticate (forces FB password + full
-    //               permissions screen — closest thing to a fresh install)
-    //
-    // The "full" variant is what we expose from /meta-review's "Force
-    // fresh OAuth grant" button so the founder can record the screencast
-    // without having to navigate Facebook's app-revocation UI.
     const reauth = req.nextUrl.searchParams.get('reauth');
-    if (reauth === 'full') {
-      authUrl.searchParams.set('auth_type', 'reauthenticate');
-      authUrl.searchParams.set('auth_nonce', Date.now().toString(36));
-    } else if (reauth === '1') {
-      authUrl.searchParams.set('auth_type', 'rerequest');
+    // ?login=facebook forces the legacy Facebook Login for Business path
+    // (used only for debugging / accounts that still rely on a Page token).
+    const forceFacebook = req.nextUrl.searchParams.get('login') === 'facebook';
+
+    // === Instagram API with Instagram Login (Business Login for Instagram) ===
+    // This is the product our App Review targets (instagram_business_*).
+    // The client signs in with their INSTAGRAM professional account directly
+    // on instagram.com — NO Facebook account or Facebook Page required. This
+    // is what the reviewer expects to see for the instagram_business_*
+    // permissions; the old facebook.com flow caused the "screencast fails to
+    // demonstrate the end-to-end experience of the use case" rejections.
+    const igAppId = process.env.INSTAGRAM_APP_ID;
+    const igRedirectUri = process.env.INSTAGRAM_REDIRECT_URI || redirectUri;
+
+    let authUrl: URL;
+
+    if (igAppId && !forceFacebook) {
+      authUrl = new URL('https://www.instagram.com/oauth/authorize');
+      authUrl.searchParams.set('client_id', igAppId);
+      authUrl.searchParams.set('redirect_uri', igRedirectUri);
+      authUrl.searchParams.set('response_type', 'code');
+      authUrl.searchParams.set('scope', [
+        'instagram_business_basic',
+        'instagram_business_content_publish',
+        'instagram_business_manage_comments',
+        'instagram_business_manage_messages',
+        'instagram_business_manage_insights',
+      ].join(','));
+      authUrl.searchParams.set('state', stateEncoded);
+      // force_reauth=true makes Instagram re-ask for credentials AND re-show
+      // the full permission screen on every connect — so an App Review
+      // reviewer (or any fresh/private session) always sees the complete
+      // login + grant flow, every step. Opt out with ?reauth=never.
+      if (reauth !== 'never') {
+        authUrl.searchParams.set('force_reauth', 'true');
+      }
+      console.log('[InstagramOAuth] Using Instagram Login (instagram.com) flow');
+    } else {
+      // === Legacy: Instagram API with Facebook Login for Business ===
+      // Requires the client's IG account to be linked to a Facebook Page.
+      // Kept as fallback until INSTAGRAM_APP_ID is configured in the env.
+      authUrl = new URL('https://www.facebook.com/v20.0/dialog/oauth');
+      authUrl.searchParams.set('client_id', metaAppId);
+      authUrl.searchParams.set('redirect_uri', redirectUri);
+      authUrl.searchParams.set('scope', scopes);
+      authUrl.searchParams.set('response_type', 'code');
+      authUrl.searchParams.set('state', stateEncoded);
+      // ?reauth=1 → rerequest (declined perms only); ?reauth=full →
+      // reauthenticate (forces FB password + full permissions screen).
+      if (reauth === 'full') {
+        authUrl.searchParams.set('auth_type', 'reauthenticate');
+        authUrl.searchParams.set('auth_nonce', Date.now().toString(36));
+      } else if (reauth === '1') {
+        authUrl.searchParams.set('auth_type', 'rerequest');
+      }
+      console.log('[InstagramOAuth] Using legacy Facebook Login flow (INSTAGRAM_APP_ID not set)');
     }
 
     console.log('[InstagramOAuth] Redirecting to Meta OAuth:', authUrl.toString().substring(0, 100));

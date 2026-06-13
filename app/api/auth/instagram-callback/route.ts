@@ -58,6 +58,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // === Instagram API with Instagram Login (Business Login for Instagram) ===
+    // When INSTAGRAM_APP_ID is configured, the OAuth start used the
+    // instagram.com flow, so the `code` here is an Instagram Login code that
+    // must be exchanged on api.instagram.com (NOT graph.facebook.com). This
+    // yields an IGAA token scoped to a single Instagram professional account
+    // — no Facebook Page involved. lib/meta.ts auto-routes IGAA tokens to
+    // graph.instagram.com, so publish/comments/insights work unchanged.
+    const igAppId = process.env.INSTAGRAM_APP_ID;
+    const igAppSecret = process.env.INSTAGRAM_APP_SECRET;
+    const igRedirectUri = process.env.INSTAGRAM_REDIRECT_URI || redirectUri;
+
+    if (igAppId && igAppSecret) {
+      const igResult = await handleInstagramLoginCallback({
+        code, userId, igAppId, igAppSecret, igRedirectUri, supabase,
+      });
+      if (igResult) return igResult; // success or hard error → done
+      // null → fall through to legacy Facebook Login (defensive: lets an
+      // account that genuinely came through facebook.com still connect).
+      console.warn('[InstagramCallback] Instagram Login exchange did not resolve — falling back to Facebook Login flow');
+    }
+
     console.log('[InstagramCallback] Exchanging code for access token for user:', userId);
 
     // Étape 1: Échanger le code contre un access token
@@ -284,4 +305,156 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+/**
+ * Instagram API with Instagram Login — token exchange.
+ * Returns a NextResponse on success OR a hard error; returns null to let the
+ * caller fall back to the legacy Facebook Login flow (e.g. when the code did
+ * not actually come from instagram.com).
+ */
+async function handleInstagramLoginCallback(opts: {
+  code: string;
+  userId: string;
+  igAppId: string;
+  igAppSecret: string;
+  igRedirectUri: string;
+  supabase: any;
+}): Promise<NextResponse | null> {
+  const { code, userId, igAppId, igAppSecret, igRedirectUri, supabase } = opts;
+  try {
+    console.log('[InstagramCallback/IGLogin] Exchanging Instagram Login code for user:', userId);
+
+    // Step 1 — short-lived token (api.instagram.com, form-encoded POST).
+    const shortRes = await fetch('https://api.instagram.com/oauth/access_token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: igAppId,
+        client_secret: igAppSecret,
+        grant_type: 'authorization_code',
+        redirect_uri: igRedirectUri,
+        code: code.replace(/#_=_$/, ''),
+      }).toString(),
+    });
+    const shortText = await shortRes.text();
+    if (!shortRes.ok) {
+      // Most likely the code came from facebook.com → not an IG Login code.
+      console.warn('[InstagramCallback/IGLogin] Short-token exchange failed:', shortText.substring(0, 200));
+      return null;
+    }
+    let shortData: any;
+    try { shortData = JSON.parse(shortText); } catch { return null; }
+    const shortToken: string | undefined = shortData.access_token || shortData.data?.[0]?.access_token;
+    const shortUserId = String(shortData.user_id || shortData.data?.[0]?.user_id || '');
+    if (!shortToken) {
+      console.warn('[InstagramCallback/IGLogin] No short-lived access_token in response');
+      return null;
+    }
+
+    // Step 2 — exchange for a long-lived (60d) IGAA token.
+    const longRes = await fetch(
+      `https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${encodeURIComponent(igAppSecret)}&access_token=${encodeURIComponent(shortToken)}`
+    );
+    const longData = await longRes.json().catch(() => ({} as any));
+    const igaaToken: string | null = longData.access_token || null;
+    const igaaExpiresIn: number | null = typeof longData.expires_in === 'number' ? longData.expires_in : null;
+    if (!igaaToken) {
+      console.error('[InstagramCallback/IGLogin] Long-lived token exchange failed:', JSON.stringify(longData).substring(0, 200));
+      return NextResponse.json(
+        { ok: false, error: 'Connexion Instagram échouée (échange du token). Réessaie.' },
+        { status: 400 }
+      );
+    }
+
+    // Step 3 — profile basics (also resolves the IG user id reliably).
+    let username = '';
+    let profilePictureUrl: string | null = null;
+    let followersCount: number | null = null;
+    let mediaCount: number | null = null;
+    let igId = shortUserId;
+    try {
+      const meRes = await fetch(
+        `https://graph.instagram.com/v21.0/me?fields=user_id,username,profile_picture_url,followers_count,media_count&access_token=${encodeURIComponent(igaaToken)}`
+      );
+      if (meRes.ok) {
+        const me = await meRes.json();
+        igId = String(me.user_id || me.id || shortUserId);
+        username = me.username || '';
+        profilePictureUrl = me.profile_picture_url || null;
+        followersCount = typeof me.followers_count === 'number' ? me.followers_count : null;
+        mediaCount = typeof me.media_count === 'number' ? me.media_count : null;
+        console.log(`[InstagramCallback/IGLogin] Profile: @${username} (${followersCount ?? '?'} followers, ${mediaCount ?? '?'} media)`);
+      }
+    } catch (e: any) {
+      console.warn('[InstagramCallback/IGLogin] Profile fetch failed (non-fatal):', e.message);
+    }
+
+    if (!igId) {
+      console.error('[InstagramCallback/IGLogin] Could not resolve Instagram user id');
+      return NextResponse.json(
+        { ok: false, error: 'Impossible de récupérer ton compte Instagram. Réessaie.' },
+        { status: 400 }
+      );
+    }
+
+    // Step 4 — persist. The IGAA token is the single credential (no Page).
+    // lib/meta.ts routes IGAA tokens to graph.instagram.com automatically.
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({
+        meta_app_user_id: userId,
+        instagram_business_account_id: igId,
+        instagram_username: username || null,
+        instagram_access_token: igaaToken,
+        instagram_profile_picture_url: profilePictureUrl,
+        instagram_followers_count: followersCount,
+        instagram_media_count: mediaCount,
+        instagram_connected_at: new Date().toISOString(),
+        instagram_last_sync_at: new Date().toISOString(),
+        instagram_token_expiry: new Date(Date.now() + ((igaaExpiresIn ?? 60 * 86400) * 1000)).toISOString(),
+      })
+      .eq('id', userId);
+
+    if (updateError) {
+      console.error('[InstagramCallback/IGLogin] DB save error:', updateError);
+      return NextResponse.json(
+        { ok: false, error: 'Erreur lors de la sauvegarde des informations' },
+        { status: 500 }
+      );
+    }
+
+    console.log('[InstagramCallback/IGLogin] ✓ Connected via Instagram Login:', igId, username);
+    fireContentKickstart(supabase, userId);
+
+    return NextResponse.json({ ok: true, instagram: { id: igId, username } });
+  } catch (e: any) {
+    console.error('[InstagramCallback/IGLogin] Unexpected error:', e);
+    return null; // fall through to legacy Facebook flow
+  }
+}
+
+/**
+ * Fire-and-forget weekly plan generation for a freshly connected account so
+ * the content calendar isn't empty. Mirrors the FB-path kickstart.
+ */
+function fireContentKickstart(supabase: any, userId: string): void {
+  (async () => {
+    try {
+      const { count: existingPosts } = await supabase
+        .from('content_calendar')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId);
+      if ((existingPosts ?? 0) > 0) return;
+
+      const cronSecret = process.env.CRON_SECRET;
+      if (!cronSecret) return;
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://keiroai.com';
+      await fetch(`${baseUrl}/api/agents/content?user_id=${userId}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${cronSecret}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'generate_weekly', platform: 'instagram', draftOnly: false }),
+      });
+    } catch { /* fire-and-forget */ }
+  })().catch(() => {});
 }
