@@ -347,16 +347,20 @@ async function handleInstagramLoginCallback(opts: {
     try { shortData = JSON.parse(shortText); } catch { return null; }
     const shortToken: string | undefined = shortData.access_token || shortData.data?.[0]?.access_token;
     const shortUserId = String(shortData.user_id || shortData.data?.[0]?.user_id || '');
+    console.log('[InstagramCallback/IGLogin] step1 OK status=%s keys=%s hasData[]=%s tokenLen=%s tokenPrefix=%s userId=%s',
+      shortRes.status, Object.keys(shortData).join(','), Array.isArray(shortData.data),
+      shortToken?.length, String(shortToken).slice(0, 4), shortUserId);
     if (!shortToken) {
       console.warn('[InstagramCallback/IGLogin] No short-lived access_token in response');
       return null;
     }
 
     // Step 2 — exchange for a long-lived (60d) IGAA token.
-    const longRes = await fetch(
-      `https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${encodeURIComponent(igAppSecret)}&access_token=${encodeURIComponent(shortToken)}`
-    );
+    const longUrl = `https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${encodeURIComponent(igAppSecret)}&access_token=${encodeURIComponent(shortToken)}`;
+    console.log('[InstagramCallback/IGLogin] step2 GET https://graph.instagram.com/access_token (grant_type=ig_exchange_token, secretLen=%s)', igAppSecret.length);
+    const longRes = await fetch(longUrl, { method: 'GET' });
     const longData = await longRes.json().catch(() => ({} as any));
+    console.log('[InstagramCallback/IGLogin] step2 response status=%s body=%s', longRes.status, JSON.stringify(longData).slice(0, 300));
     const igaaToken: string | null = longData.access_token || null;
     const igaaExpiresIn: number | null = typeof longData.expires_in === 'number' ? longData.expires_in : null;
     if (!igaaToken) {
