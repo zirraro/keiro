@@ -281,12 +281,14 @@ export async function POST(request: NextRequest) {
           const auth = await checkDomainAuth(sendDomain).catch(() => ({ ok: true } as any));
           if (!auth.ok) {
             console.warn(`[EmailAgent] SMTP domain ${sendDomain} non authentifié (${auth.reason}) — skip SMTP, fallback domaine KeiroAI`);
-            await supabase.from('agent_logs').insert({
-              agent: 'email', action: 'email_domain_auth_warning', status: 'error', user_id: clientUserId,
-              error_message: `Domaine ${sendDomain} non authentifié: ${auth.reason}. Configure SPF + DMARC (et DKIM) pour envoyer depuis ton domaine.`,
-              data: { severity: 'warning', domain: sendDomain, spf: auth.spf, dmarc: auth.dmarc },
-              created_at: new Date().toISOString(),
-            }).catch(() => {});
+            try {
+              await supabase.from('agent_logs').insert({
+                agent: 'email', action: 'email_domain_auth_warning', status: 'error', user_id: clientUserId,
+                error_message: `Domaine ${sendDomain} non authentifié: ${auth.reason}. Configure SPF + DMARC (et DKIM) pour envoyer depuis ton domaine.`,
+                data: { severity: 'warning', domain: sendDomain, spf: auth.spf, dmarc: auth.dmarc },
+                created_at: new Date().toISOString(),
+              });
+            } catch { /* logging best-effort */ }
             throw new Error(`domain_not_authenticated:${sendDomain}`);
           }
           const nodemailer = await import('nodemailer');
