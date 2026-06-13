@@ -22,14 +22,17 @@ import { getAuthUser } from '@/lib/auth-server';
 export const runtime = 'nodejs';
 
 async function deletePermissionsViaToken(token: string): Promise<{ ok: boolean; status: number; body: string }> {
-  // Graph API DELETE /me/permissions revokes all permissions granted to
-  // this app for the user behind the token. Works with a user access
-  // token; will fail (190 / 200) on a page token or IGAA token, which
-  // is fine — we try every token we have and report which one worked.
+  // DELETE /me/permissions revokes all permissions granted to this app for
+  // the user behind the token, which resets the consent screen so the next
+  // OAuth shows the FULL permission list (needed for the App Review
+  // screencast). IGAA tokens (Instagram Login) live on graph.instagram.com;
+  // Facebook user/page tokens live on graph.facebook.com. Route by prefix.
+  const isIgaa = token.startsWith('IGAA');
+  const url = isIgaa
+    ? `https://graph.instagram.com/v21.0/me/permissions?access_token=${encodeURIComponent(token)}`
+    : `https://graph.facebook.com/v20.0/me/permissions?access_token=${encodeURIComponent(token)}`;
   try {
-    const res = await fetch(`https://graph.facebook.com/v20.0/me/permissions?access_token=${encodeURIComponent(token)}`, {
-      method: 'DELETE',
-    });
+    const res = await fetch(url, { method: 'DELETE' });
     const body = await res.text().catch(() => '');
     return { ok: res.ok, status: res.status, body: body.slice(0, 400) };
   } catch (e: any) {
