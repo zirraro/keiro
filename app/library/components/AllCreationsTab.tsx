@@ -4,6 +4,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import FolderHeader from './FolderHeader';
 import CreationCard, { CreationItem } from './CreationCard';
 import DisplayImage from '@/components/DisplayImage';
+import { ContinueDraftButton } from '@/components/ContinueDraftButton';
 import { useLanguage } from '@/lib/i18n/context';
 
 interface Folder {
@@ -385,7 +386,13 @@ export default function AllCreationsTab({
                 item={item}
                 onTitleEdit={(id, newTitle) => onTitleEdit(id, item.type, newTitle)}
               />
-              <div className="flex gap-1">
+              <div className="flex gap-1 items-center">
+                <ContinueDraftButton
+                  platform="instagram"
+                  mediaUrl={item.url}
+                  caption={item.title || ''}
+                  className="px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-xs font-semibold hover:opacity-90"
+                />
                 <button onClick={() => onToggleFavorite(item.id, item.type, !item.is_favorite)} className="p-2 rounded-lg hover:bg-white transition-colors" title={item.is_favorite ? t.library.actRemoveFromFav : t.library.actAddToFav}>
                   <svg className={`w-4 h-4 ${item.is_favorite ? 'text-pink-600' : 'text-neutral-400'}`} fill={item.is_favorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
