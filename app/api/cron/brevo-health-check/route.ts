@@ -52,17 +52,24 @@ export async function GET(req: NextRequest) {
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
+      // 2026-06-13 — Resend is the primary fallback (sendEmailWithFallback).
+      // When Brevo is down but Resend is configured, emails do NOT fail
+      // silently — so this is a WARNING (regenerate the key when convenient),
+      // not a CRITICAL outage. Only critical if BOTH providers are unavailable.
+      const resendCovers = !!process.env.RESEND_API_KEY;
       await supabase.from('agent_logs').insert({
         agent: 'ops',
         action: 'brevo_health_check',
-        status: 'error',
-        error_message: `Brevo API ${res.status}: ${data.message || data.code || 'unknown'}`,
+        status: resendCovers ? 'warn' : 'error',
+        error_message: `Brevo API ${res.status}: ${data.message || data.code || 'unknown'}${resendCovers ? ' (Resend prend le relais — non bloquant)' : ''}`,
         data: {
-          severity: 'critical',
+          severity: resendCovers ? 'warning' : 'critical',
           status_code: res.status,
           brevo_response: data,
           key_prefix: key.substring(0, 15),
-          impact: 'ALL emails fail silently: Noah briefs, admin alerts, credit packs, password resets',
+          impact: resendCovers
+            ? 'Brevo KO mais Resend assure la livraison — régénérer la clé Brevo quand possible'
+            : 'ALL emails fail: Brevo down AND no Resend fallback configured',
         },
       });
       return NextResponse.json({
