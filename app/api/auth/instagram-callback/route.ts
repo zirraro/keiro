@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getUserPages, getPageInstagramAccount } from '@/lib/meta';
 
-export const runtime = 'edge';
+// nodejs runtime: the Instagram Login flow does several sequential awaits
+// (token exchange + long-lived exchange + profile + DB write); edge runtime
+// was silently not persisting the final update. nodejs is what the working
+// force-fresh endpoint uses.
+export const runtime = 'nodejs';
 
 /**
  * POST /api/auth/instagram-callback
@@ -406,13 +410,14 @@ async function handleInstagramLoginCallback(opts: {
 
     // Step 4 — persist. The IGAA token is the single credential (no Page).
     // lib/meta.ts routes IGAA tokens to graph.instagram.com automatically.
-    const { error: updateError } = await supabase
+    const { data: updated, error: updateError } = await supabase
       .from('profiles')
       .update({
         meta_app_user_id: userId,
         instagram_business_account_id: igId,
         instagram_username: username || null,
         instagram_access_token: igaaToken,
+        instagram_igaa_token: igaaToken,
         instagram_profile_picture_url: profilePictureUrl,
         instagram_followers_count: followersCount,
         instagram_media_count: mediaCount,
@@ -420,17 +425,26 @@ async function handleInstagramLoginCallback(opts: {
         instagram_last_sync_at: new Date().toISOString(),
         instagram_token_expiry: new Date(Date.now() + ((igaaExpiresIn ?? 60 * 86400) * 1000)).toISOString(),
       })
-      .eq('id', userId);
+      .eq('id', userId)
+      .select('id, instagram_username, instagram_business_account_id');
 
     if (updateError) {
-      console.error('[InstagramCallback/IGLogin] DB save error:', updateError);
+      console.error('[InstagramCallback/IGLogin] DB save error:', updateError.message);
       return NextResponse.json(
         { ok: false, error: 'Erreur lors de la sauvegarde des informations' },
         { status: 500 }
       );
     }
+    if (!updated || updated.length === 0) {
+      // .eq matched no row → the user has no profiles row with this id.
+      console.error('[InstagramCallback/IGLogin] UPDATE matched 0 rows for id=%s — profile row missing', userId);
+      return NextResponse.json(
+        { ok: false, error: 'Profil introuvable pour enregistrer la connexion. Reconnecte-toi à KeiroAI et réessaie.' },
+        { status: 400 }
+      );
+    }
 
-    console.log('[InstagramCallback/IGLogin] ✓ Connected via Instagram Login:', igId, username);
+    console.log('[InstagramCallback/IGLogin] ✓ Connected & persisted (%d row) via Instagram Login: %s %s', updated.length, igId, username);
     fireContentKickstart(supabase, userId);
 
     return NextResponse.json({ ok: true, instagram: { id: igId, username } });
