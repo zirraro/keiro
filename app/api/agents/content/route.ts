@@ -2523,9 +2523,35 @@ export async function GET(request: NextRequest) {
                   const candidate = (top || []).find((t: any) => t.visual_url && t.visual_url !== visualUrl);
                   if (candidate?.visual_url) {
                     visualUrl = candidate.visual_url;
-                    await supabase.from('content_calendar').update({ visual_url: visualUrl, qa_notes: `visual_qa_low_score${sqa.score}_reused_library`, updated_at: new Date().toISOString() }).eq('id', post.id);
+                    // Caption↔visuel coherence (brief v3 B.3): the reused visual
+                    // is a DIFFERENT subject than the post's caption → regenerate
+                    // the caption to match the visual (jamais légende sujet A sur
+                    // photo sujet B). The visual choisit, la légende s'adapte.
+                    let newCaption: string | null = null;
+                    if (candidate.visual_description) {
+                      try {
+                        const cap = await callClaude({
+                          system: getContentSystemPrompt(),
+                          message: `Réécris UNE légende courte (2-4 lignes aérées, ton incarné, 1 CTA naturel non agressif, AUCUN hashtag) qui colle EXACTEMENT à ce visuel : "${candidate.visual_description}". Plateforme ${fullPost.platform}. Réponds UNIQUEMENT la légende, rien d'autre.`,
+                          maxTokens: 220,
+                        });
+                        if (cap && cap.trim().length > 10) newCaption = cap.trim();
+                      } catch { /* keep original caption on failure */ }
+                    }
+                    const upd: Record<string, any> = { visual_url: visualUrl, qa_notes: `visual_qa_low_score${sqa.score}_reused_library`, updated_at: new Date().toISOString() };
+                    if (newCaption) { upd.caption = newCaption; (fullPost as any).caption = newCaption; }
+                    await supabase.from('content_calendar').update(upd).eq('id', post.id);
                     await markVisualReused(supabase, candidate.post_id, post.id).catch(() => {});
-                    console.log(`[Content] visual QA low → reused top library visual for post ${post.id} (publishing, 0 gen cost)`);
+                    // Metric qa_visual_block_rate (brief v3 B.3): trace each QA-driven
+                    // fallback so a runaway broken generator (>30%/7j) is visible.
+                    try {
+                      await supabase.from('agent_logs').insert({
+                        agent: 'content', action: 'qa_visual_block', status: 'warn', user_id: userId,
+                        data: { post_id: post.id, score: sqa.score, flags: sqa.amateur_flags || [], resolution: 'reused_library', caption_regenerated: !!newCaption },
+                        created_at: new Date().toISOString(),
+                      });
+                    } catch { /* best-effort */ }
+                    console.log(`[Content] visual QA low → reused top library visual for post ${post.id}${newCaption ? ' + caption régénérée' : ''} (publishing, 0 gen cost)`);
                     reused = true;
                   }
                 } catch (reuseErr: any) {
@@ -2538,6 +2564,13 @@ export async function GET(request: NextRequest) {
                     qa_notes: `visual_qa: score=${sqa.score} flags=${(sqa.amateur_flags || []).join('|').substring(0, 60)} — pas de visuel librairie, à valider`,
                     updated_at: new Date().toISOString(),
                   }).eq('id', post.id);
+                  try {
+                    await supabase.from('agent_logs').insert({
+                      agent: 'content', action: 'qa_visual_block', status: 'warn', user_id: userId,
+                      data: { post_id: post.id, score: sqa.score, flags: sqa.amateur_flags || [], resolution: 'held_for_validation' },
+                      created_at: new Date().toISOString(),
+                    });
+                  } catch { /* best-effort */ }
                   console.warn(`[Content] HOLD post ${post.id} for validation: QA score=${sqa.score}, no library fallback`);
                   continue;
                 }
