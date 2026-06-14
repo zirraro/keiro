@@ -49,11 +49,11 @@ function UpsellContent() {
               <p className="text-xs text-neutral-400 uppercase font-bold mb-1">Createur</p>
               <p className="text-xl font-bold text-neutral-900 mb-2">49€<span className="text-sm font-normal text-neutral-400">/mois</span></p>
               <ul className="text-[11px] text-neutral-600 space-y-1">
-                <li>{'\u2713'} 7 agents IA</li>
-                <li>{'\u2713'} 400 credits/mois</li>
-                <li>{'\u2713'} Contenu + Email + DM + CRM</li>
-                <li>{'\u2713'} Avis Google auto</li>
-                <li className="text-neutral-300">{'\u2717'} SEO, Chatbot, RH</li>
+                <li>{'\u2713'} 5 agents IA</li>
+                <li>{'\u2713'} L\u00e9na \u00b7 Jade \u00b7 L\u00e9o \u00b7 Ami \u00b7 Clara</li>
+                <li>{'\u2713'} Contenu + DMs + Prospection + Strat\u00e9gie</li>
+                <li>{'\u2713'} 400 cr\u00e9dits/mois</li>
+                <li className="text-neutral-300">{'\u2717'} Th\u00e9o (avis) & Hugo (emails) \u2192 Pro</li>
               </ul>
             </button>
 
@@ -72,11 +72,11 @@ function UpsellContent() {
                 <span className="text-xs text-neutral-400 line-through ml-1">99€</span>
               </div>
               <ul className="text-[11px] text-neutral-700 space-y-1">
-                <li className="font-semibold text-green-600">{'\u2713'} 10 agents IA</li>
-                <li>{'\u2713'} 800 credits/mois (2x)</li>
-                <li className="font-semibold text-green-600">{'\u2713'} + SEO blog + Chatbot 24/7</li>
-                <li className="font-semibold text-green-600">{'\u2713'} + Sara juridique/RH</li>
-                <li>{'\u2713'} Tout Createur inclus</li>
+                <li className="font-semibold text-green-600">{'\u2713'} 7 agents IA</li>
+                <li>{'\u2713'} Tout Cr\u00e9ateur inclus</li>
+                <li className="font-semibold text-green-600">{'\u2713'} + Th\u00e9o \u2014 avis Google auto</li>
+                <li className="font-semibold text-green-600">{'\u2713'} + Hugo \u2014 emails & prospection</li>
+                <li>{'\u2713'} 800 cr\u00e9dits/mois (2\u00d7)</li>
               </ul>
             </button>
           </div>
