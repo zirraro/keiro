@@ -71,6 +71,9 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
   const [errorTitle, setErrorTitle] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [errorTechnical, setErrorTechnical] = useState('');
+  // Post-publish success: holds the live Instagram URL so we can show a REAL
+  // clickable link (window.open after the async publish gets popup-blocked).
+  const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
 
   // État pour le modal carrousel
   const [showCarouselModal, setShowCarouselModal] = useState(false);
@@ -493,18 +496,12 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
         // Let the InstagramWidget refresh its thumbnail grid immediately.
         try { window.dispatchEvent(new Event('keiro:instagram-post-published')); } catch {}
 
-        // Message de succès plus engageant
-        const successMessage = t.library.publishSuccess + '\n\n' + t.library.publishSuccessDetails + '\n\n' + t.library.congratulations;
-        alert(successMessage);
-
-        // Proposer d'ouvrir Instagram pour voir le post
-        const openPost = window.confirm(t.library.openInstagramToSeePost);
-        if (openPost) {
-          const instagramUrl = data.post?.permalink || `https://www.instagram.com/${instagramUsername}/`;
-          window.open(instagramUrl, '_blank');
-        }
-
-        onClose();
+        // Show an in-app success modal with a REAL <a target="_blank"> link.
+        // A window.open() here is popup-blocked because the publish is async
+        // (the click's user-activation is gone after the await). The link is
+        // a fresh user gesture, so it always opens Instagram.
+        const instagramUrl = data.post?.permalink || `https://www.instagram.com/${instagramUsername}/`;
+        setPublishedUrl(instagramUrl);
       } else {
         throw new Error(data.error || t.library.publishError);
       }
@@ -564,17 +561,9 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
       const data = await response.json();
 
       if (data.ok) {
-        // Message de succès plus engageant pour la story
-        const confirmMessage = t.library.storyPublishSuccess + '\n\n' + t.library.storyPublishSuccessDetails + '\n\n' + t.library.congratulations;
-        alert(confirmMessage);
-
-        // Ouvrir Instagram dans un nouvel onglet (si possible)
-        const openInstagram = window.confirm(t.library.openInstagramToSeeStory);
-        if (openInstagram) {
-          window.open(`https://www.instagram.com/${instagramUsername}/`, '_blank');
-        }
-
-        onClose();
+        // Same popup-blocker-safe success modal (real <a> link) as the post
+        // flow — window.open after the async publish gets blocked.
+        setPublishedUrl(`https://www.instagram.com/${instagramUsername}/`);
       } else {
         throw new Error(data.error || t.library.publishError);
       }
@@ -1647,6 +1636,31 @@ export default function InstagramModal({ image, images, video, videos, onClose, 
         errorMessage={errorMessage}
         technicalError={errorTechnical}
       />
+
+      {/* Modal de succès post-publication — lien RÉEL (jamais bloqué par le navigateur) */}
+      {publishedUrl && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => { setPublishedUrl(null); onClose(); }}>
+          <div className="relative bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center" onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => { setPublishedUrl(null); onClose(); }} aria-label="Close" className="absolute top-3 right-3 w-7 h-7 rounded-full bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center text-neutral-500">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4 mt-1">
+              <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+            </div>
+            <h3 className="text-lg font-bold text-neutral-900 mb-1">{t.library.publishSuccess}</h3>
+            <p className="text-sm text-neutral-500 mb-5">{t.library.publishSuccessDetails}</p>
+            <a
+              href={publishedUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => { setPublishedUrl(null); onClose(); }}
+              className="block w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-500 text-white font-semibold hover:shadow-lg transition-all"
+            >
+              {t.library.openInstagramToSeePost}
+            </a>
+          </div>
+        </div>
+      )}
 
       {/* Modal Carrousel */}
       {showCarouselModal && (
