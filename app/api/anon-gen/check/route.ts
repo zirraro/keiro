@@ -1,7 +1,8 @@
 export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+// @ts-ignore — pg ships no bundled types and @types/pg is not installed
+import { Client } from 'pg';
 import crypto from 'crypto';
 
 /**
@@ -11,10 +12,11 @@ import crypto from 'crypto';
  * quota. Guarantees 1 free generation per IP and prevents bypassing the
  * client-side localStorage counter by clearing it.
  *
- * Returns { allowed: true } and increments when the IP still has a free gen,
- * { allowed: false, gate: 'signup' } once exhausted. Fails OPEN on any error
- * so a tracking glitch never blocks a legitimate first generation.
+ * Returns { allowed: true } and consumes one credit when the IP still has a
+ * free gen, { allowed: false, gate: 'signup' } once exhausted. Fails OPEN on
+ * any error so a tracking glitch never blocks a legitimate first generation.
  *
+ * Storage: public.anon_gen_log on the Postgres pointed to by POSTGRES_URL.
  * Privacy: the IP is stored HASHED (sha256 + salt), never in clear.
  */
 
@@ -32,42 +34,37 @@ function hashIp(ip: string): string {
 }
 
 export async function POST(req: NextRequest) {
+  const connectionString = process.env.POSTGRES_URL;
+  if (!connectionString) {
+    return NextResponse.json({ ok: true, allowed: true, failOpen: true });
+  }
+  const client = new Client({ connectionString, ssl: { rejectUnauthorized: false } });
   try {
     const ipHash = hashIp(getIp(req));
-    const sb = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    await client.connect();
+    // Atomic: insert count=1, or increment on conflict; return the new count.
+    const res = await client.query(
+      `insert into public.anon_gen_log (ip_hash, count, last_at)
+       values ($1, 1, now())
+       on conflict (ip_hash) do update
+         set count = public.anon_gen_log.count + 1, last_at = now()
+       returning count;`,
+      [ipHash],
     );
-
-    const { data: row } = await sb
-      .from('anon_gen_log')
-      .select('count')
-      .eq('ip_hash', ipHash)
-      .maybeSingle();
-
-    const used = row?.count ?? 0;
-
-    if (used >= FREE_PER_IP) {
-      return NextResponse.json({ ok: true, allowed: false, used, gate: 'signup' });
-    }
-
-    // Consume one free generation for this IP.
-    await sb
-      .from('anon_gen_log')
-      .upsert(
-        { ip_hash: ipHash, count: used + 1, last_at: new Date().toISOString() },
-        { onConflict: 'ip_hash' },
-      );
-
+    const used: number = res.rows?.[0]?.count ?? 1;
+    const allowed = used <= FREE_PER_IP;
     return NextResponse.json({
       ok: true,
-      allowed: true,
-      used: used + 1,
-      remaining: Math.max(0, FREE_PER_IP - (used + 1)),
+      allowed,
+      used,
+      remaining: Math.max(0, FREE_PER_IP - used),
+      ...(allowed ? {} : { gate: 'signup' }),
     });
   } catch (e: any) {
     // Fail OPEN — never block a real first generation on a tracking error.
     console.error('[anon-gen/check] error (failing open):', e?.message);
     return NextResponse.json({ ok: true, allowed: true, failOpen: true });
+  } finally {
+    try { await client.end(); } catch { /* ignore */ }
   }
 }

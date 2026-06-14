@@ -1,3 +1,7 @@
+-- Applied on the POSTGRES_URL database (Neon pooler) — used directly by
+-- /api/anon-gen/check via the `pg` client, NOT via the Supabase REST API.
+-- Already applied 2026-06-14 (CREATE TABLE run over pg). Kept for the record.
+--
 -- Per-IP anonymous generation quota (server-side source of truth).
 -- Guarantees the 1st free generation per IP and prevents bypassing the
 -- client-side localStorage counter by clearing it. IPs are stored HASHED
