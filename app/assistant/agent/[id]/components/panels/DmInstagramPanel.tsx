@@ -1158,6 +1158,19 @@ function DmConversationsLive() {
   const humanCount = displayConvs.filter(needsHuman).length;
   const shownConvs = humanOnly ? displayConvs.filter(needsHuman) : displayConvs;
 
+  // Is the currently-open conversation outside Meta's 24h window? If so the AI
+  // auto-reply CANNOT apply (only a human + HUMAN_AGENT tag), so the AI toggle
+  // is forced visually OFF and disabled for that thread. The underlying global
+  // setting is untouched and re-applies on a <24h conversation.
+  const selectedOutside24h = (() => {
+    if (!selected) return false;
+    const lastInbound = [...selected.messages].reverse().find((m: any) => !m.fromMe);
+    const refTime = lastInbound?.created_time
+      ? new Date(lastInbound.created_time).getTime()
+      : (selected.updated_time ? new Date(selected.updated_time).getTime() : null);
+    return refTime ? (Date.now() - refTime) / 3600000 > 24 : false;
+  })();
+
   return (
     <div>
     {isDemo && (
@@ -1363,14 +1376,19 @@ function DmConversationsLive() {
                 "You" while typing, back to "AI" when idle. */}
             <div className="border-t border-white/5 px-3 pt-2 pb-1 bg-white/[0.02] flex items-center justify-between">
               <span className="text-[10px] text-white/40">
-                {aiActive && !userTyping ? `\u{1F916} ${p.dmConvsBadgeAi}` : `\u270D\uFE0F ${p.dmConvsBadgeYou}`}
+                {selectedOutside24h
+                  ? (en ? '\uD83E\uDDD1 Human reply required (>24h)' : '\uD83E\uDDD1 R\u00E9ponse humaine requise (>24h)')
+                  : (aiActive && !userTyping ? `\u{1F916} ${p.dmConvsBadgeAi}` : `\u270D\uFE0F ${p.dmConvsBadgeYou}`)}
               </span>
               <button
-                onClick={() => persistAiMode(!aiActive)}
-                className={`w-9 h-5 rounded-full relative transition-colors ${aiActive && !userTyping ? 'bg-emerald-500' : 'bg-blue-500'}`}
-                title={aiActive ? (en ? 'Disable AI' : 'Desactiver l\'IA') : (en ? 'Enable AI' : 'Activer l\'IA')}
+                onClick={() => { if (!selectedOutside24h) persistAiMode(!aiActive); }}
+                disabled={selectedOutside24h}
+                className={`w-9 h-5 rounded-full relative transition-colors ${selectedOutside24h ? 'bg-white/10 opacity-60 cursor-not-allowed' : (aiActive && !userTyping ? 'bg-emerald-500' : 'bg-blue-500')}`}
+                title={selectedOutside24h
+                  ? (en ? 'AI auto-reply is disabled outside the 24h window \u2014 a human must reply (HUMAN_AGENT).' : "R\u00E9ponse auto IA d\u00E9sactiv\u00E9e hors de la fen\u00EAtre 24h \u2014 un humain doit r\u00E9pondre (HUMAN_AGENT).")
+                  : (aiActive ? (en ? 'Disable AI for all conversations' : "D\u00E9sactiver l'IA pour toutes les conversations") : (en ? 'Enable AI' : "Activer l'IA"))}
               >
-                <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${aiActive && !userTyping ? 'right-0.5' : 'left-0.5'}`} />
+                <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${(!selectedOutside24h && aiActive && !userTyping) ? 'right-0.5' : 'left-0.5'}`} />
               </button>
             </div>
             {/* Reply input */}
