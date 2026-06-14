@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 
 /**
  * Wrapper around <img> that requests a WebP-optimized variant from
@@ -49,7 +49,10 @@ function toRenderUrl(src: string, width?: number, quality = 80): string {
   const params = new URLSearchParams();
   if (width) params.set('width', String(width));
   params.set('quality', String(quality));
-  params.set('format', 'auto'); // WebP if supported
+  // NOTE: do NOT send format=auto — Supabase's transformation API rejects it
+  // (400 "format must be equal to one of the allowed values") and that broke
+  // EVERY gallery thumbnail. Omitting format lets Supabase auto-serve WebP
+  // based on the browser's Accept header (verified: 200 image/webp).
   // Resize hint — fit instead of cover so we never crop unexpectedly
   params.set('resize', 'contain');
   return `${base}/storage/v1/render/image/public/${rest}?${params.toString()}`;
@@ -77,12 +80,17 @@ export default function DisplayImage({
     return toRenderUrl(src, width, quality);
   }, [src, width, quality, original]);
 
+  // If the transformed (render) URL fails for any reason, fall back to the
+  // untouched original so a thumbnail is never broken.
+  const [imgSrc, setImgSrc] = useState(finalSrc);
+  useEffect(() => { setImgSrc(finalSrc); }, [finalSrc]);
+
   if (!finalSrc) return null;
 
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={finalSrc}
+      src={imgSrc || src || ''}
       alt={alt}
       width={width}
       height={height}
@@ -91,7 +99,10 @@ export default function DisplayImage({
       className={className}
       style={style}
       onClick={onClick}
-      onError={onError}
+      onError={(e) => {
+        if (src && imgSrc !== src) { setImgSrc(src); return; } // retry with original
+        onError?.(e);
+      }}
       draggable={draggable}
       title={title}
     />
