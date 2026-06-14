@@ -70,14 +70,13 @@ export default function MetaReviewPage() {
             </div>
           </div>
           <a
-            href={`${SITE}/login?lang=en&demo=1&redirect=%2Fassistant%3Flang%3Den%26demo%3D1`}
+            href={`${SITE}/login?lang=en&redirect=%2Fassistant%3Flang%3Den`}
             className="inline-flex items-center justify-center px-5 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm"
           >
             Open the login page (English)
           </a>
           <p className="text-xs text-neutral-500 mt-3">
-            The link above opens the login form in English (<code>?lang=en</code>),
-            enables the <strong>demo annotation mode</strong> (<code>?demo=1</code>),
+            The link above opens the login form in English (<code>?lang=en</code>)
             and redirects you to the workspace dashboard after sign-in. The
             reviewer account is <strong>email-confirmed and ready to use
             immediately</strong> — no email verification click is required. It
@@ -91,21 +90,6 @@ export default function MetaReviewPage() {
             or Facebook Page is required</strong>: KeiroAI uses Business Login
             for Instagram (you sign in directly with the Instagram account).
           </p>
-          <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
-            <div className="text-xs font-bold uppercase tracking-wider text-blue-800 mb-1">
-              Demo annotation mode
-            </div>
-            <p className="text-xs text-blue-900 leading-relaxed">
-              The login link above carries <code>?demo=1</code>. While this flag
-              is set, every Meta-critical button in the workspace shows a small
-              inline caption directly underneath it stating exactly which Graph
-              API endpoint will be called on click and which permission is
-              required. This is intentionally exhaustive so the screencast can
-              be recorded <strong>without subtitles or narration</strong> — the
-              UI itself documents every action visibly. Regular customers do not
-              see these captions (the flag is off by default).
-            </p>
-          </div>
         </section>
 
         <section className="bg-white border border-neutral-200 rounded-2xl p-6 mb-8 shadow-sm">
@@ -492,7 +476,7 @@ export default function MetaReviewPage() {
         <section className="bg-white border border-neutral-200 rounded-2xl p-6 mb-8 shadow-sm">
           <h2 className="text-lg font-bold text-neutral-900 mb-3">3.quater Audit log — verify human-in-the-loop yourself</h2>
           <p className="text-sm text-neutral-700 mb-3">
-            Once logged in as the reviewer, open <a className="text-blue-700 underline" href="/meta-audit?lang=en&demo=1">/meta-audit</a>.
+            Once logged in as the reviewer, open <a className="text-blue-700 underline" href="/meta-audit?lang=en">/meta-audit</a>.
             This page lists the last 50 Graph API write calls our app has
             made (DM sends, comment replies, publishes, HUMAN_AGENT-tagged
             sends), along with the user_id that triggered each call, the
