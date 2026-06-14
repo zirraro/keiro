@@ -29,6 +29,7 @@ import { OnboardingPanel } from './panels/OnboardingPanel';
 import { ContentPanel } from './panels/ContentPanel';
 import { DmInstagramPanel } from './panels/DmInstagramPanel';
 import { EmailPanel } from './panels/EmailPanel';
+import { useLanguage } from '@/lib/i18n/context';
 
 // SOCIAL_NETWORKS + SocialConnectBanners + EmailConnectBanner + HotProspectsAlert → extracted to panels/SharedBanners.tsx
 
@@ -250,6 +251,8 @@ function AgentActivityBanner({ agentId, data, gradientFrom }: { agentId: string;
 }
 
 export default function AgentDashboard({ agentId, agentName, gradientFrom, gradientTo, data }: AgentDashboardProps) {
+  const { locale } = useLanguage();
+  const en = locale === 'en';
   // Set global connection flags for child components
   if (typeof window !== 'undefined') {
     (window as any).__igConnected = !!(data as any).connections?.instagram;
@@ -261,7 +264,7 @@ export default function AgentDashboard({ agentId, agentName, gradientFrom, gradi
   const isAdmin = !!(data as any).supervision?.isAdmin;
   const adminOverride = isAdmin ? ADMIN_NAMES[agentId] : null;
   const displayName = adminOverride?.name || agentName;
-  const subtitle = adminOverride?.subtitle || config?.subtitle || 'Tableau de bord';
+  const subtitle = adminOverride?.subtitle || config?.subtitle || (en ? 'Dashboard' : 'Tableau de bord');
   const Panel = config?.Panel ?? GenericPanel;
 
   return (
@@ -297,9 +300,9 @@ export default function AgentDashboard({ agentId, agentName, gradientFrom, gradi
             onClick={() => { try { (window as any).__openCampaignWizard?.(); } catch {} }}
             className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-bold rounded-xl hover:shadow-lg hover:shadow-emerald-500/20 transition-all min-h-[44px] flex items-center gap-2"
           >
-            <span>{'\u26A1'}</span> Lancer une campagne
+            <span>{'\u26A1'}</span> {en ? 'Launch a campaign' : 'Lancer une campagne'}
           </button>
-          <span className="text-[10px] text-white/50">Configure et active en 30 secondes</span>
+          <span className="text-[10px] text-white/50">{en ? 'Configure and activate in 30 seconds' : 'Configure et active en 30 secondes'}</span>
         </div>
       )}
 
@@ -308,23 +311,23 @@ export default function AgentDashboard({ agentId, agentName, gradientFrom, gradi
         <div className="mx-5 mt-3 rounded-xl border border-indigo-500/20 bg-indigo-900/10 p-4">
           <div className="flex items-center gap-2 mb-3">
             <span className="text-sm">{'\u{1F6E1}\uFE0F'}</span>
-            <h3 className="text-xs font-bold text-indigo-300 uppercase tracking-wider">Supervision cross-clients</h3>
+            <h3 className="text-xs font-bold text-indigo-300 uppercase tracking-wider">{en ? 'Cross-client supervision' : 'Supervision cross-clients'}</h3>
             <span className="ml-auto text-[10px] text-indigo-400/50">24h</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
             <div className="bg-indigo-900/20 rounded-lg p-2 text-center">
               <div className="text-lg font-bold text-white">{(data as any).supervision.totalActions24h}</div>
-              <div className="text-[10px] text-indigo-300/60">Actions</div>
+              <div className="text-[10px] text-indigo-300/60">{en ? 'Actions' : 'Actions'}</div>
             </div>
             <div className="bg-indigo-900/20 rounded-lg p-2 text-center">
               <div className={`text-lg font-bold ${(data as any).supervision.totalErrors24h > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
                 {(data as any).supervision.totalErrors24h}
               </div>
-              <div className="text-[10px] text-indigo-300/60">Erreurs</div>
+              <div className="text-[10px] text-indigo-300/60">{en ? 'Errors' : 'Erreurs'}</div>
             </div>
             <div className="bg-indigo-900/20 rounded-lg p-2 text-center">
               <div className="text-lg font-bold text-white">{(data as any).supervision.clients?.length || 0}</div>
-              <div className="text-[10px] text-indigo-300/60">Clients</div>
+              <div className="text-[10px] text-indigo-300/60">{en ? 'Clients' : 'Clients'}</div>
             </div>
           </div>
           {(data as any).supervision.clients?.length > 0 && (
@@ -336,8 +339,8 @@ export default function AgentDashboard({ agentId, agentName, gradientFrom, gradi
                     <span className="text-xs text-white/70">{c.name}</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-[10px] text-white/40">{c.actions} actions</span>
-                    {c.errors > 0 && <span className="text-[10px] text-red-400 font-bold">{c.errors} err</span>}
+                    <span className="text-[10px] text-white/40">{c.actions} {en ? 'actions' : 'actions'}</span>
+                    {c.errors > 0 && <span className="text-[10px] text-red-400 font-bold">{c.errors} {en ? 'err' : 'err'}</span>}
                   </div>
                 </div>
               ))}
@@ -350,7 +353,16 @@ export default function AgentDashboard({ agentId, agentName, gradientFrom, gradi
       {!(data as any)[Object.keys(data).find(k => k.endsWith('Stats')) || ''] && !['marketing', 'onboarding', 'dm_instagram', 'email', 'content', 'gmaps', 'instagram_comments'].includes(agentId) && !(data as any).supervision?.isAdmin && !(data as any).connections?.instagram && (
         <div className="px-5 pt-3">
           {(() => {
-            const previews: Record<string, { label: string; url: string; msg: string }> = {
+            const previews: Record<string, { label: string; url: string; msg: string }> = en ? {
+              seo: { label: 'Add your website', url: '#', msg: 'Here is a preview of what Oscar can do for your SEO. Add your website and he will analyze everything automatically.' },
+              ads: { label: 'Connect Meta Ads', url: '#', msg: 'Here is a preview of Felix in action. Connect your ad accounts and he will optimize your ROAS automatically.' },
+              finance: { label: 'Activate tracking', url: '#', msg: 'Here is a preview of financial tracking by Louis. Tracking is active automatically with your subscription.' },
+              rh: { label: 'Activate Sara', url: '#', msg: 'Here is a preview of the documents Sara can generate: contracts, T&Cs, GDPR. Activate her to get started.' },
+              chatbot: { label: 'Install Max on your site', url: '#', msg: 'Here is a preview of the conversations Max will have with your visitors. Install the widget on your site to start.' },
+              whatsapp: { label: 'Configure WhatsApp', url: '#', msg: 'Here is a preview of Stella in action. Configure your WhatsApp number to activate automatic replies.' },
+              tiktok_comments: { label: 'Connect TikTok', url: '/api/auth/tiktok-oauth', msg: 'Here is a preview of TikTok engagement by Jade. Connect TikTok to activate.' },
+              instagram_comments: { label: 'Connect Instagram', url: '/api/auth/instagram-oauth', msg: 'Here is a preview of automatic replies to your Instagram comments.' },
+            } : {
               seo: { label: 'Renseigner ton site web', url: '#', msg: 'Voici un apercu de ce qu\'Oscar peut faire pour ton SEO. Renseigne ton site web et il analysera tout automatiquement.' },
               ads: { label: 'Connecter Meta Ads', url: '#', msg: 'Voici un apercu de Felix en action. Connecte tes comptes pub et il optimisera ton ROAS automatiquement.' },
               finance: { label: 'Activer le suivi', url: '#', msg: 'Voici un apercu du suivi financier par Louis. Le suivi est actif automatiquement avec ton abonnement.' },

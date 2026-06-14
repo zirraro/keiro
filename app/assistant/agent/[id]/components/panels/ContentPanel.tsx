@@ -24,6 +24,8 @@ import CadenceMixSlider from '@/components/CadenceMixSlider';
 
 // ─── Inline Editorial Calendar for Content Agent ─────────────
 function ContentCalendarInline({ posts, onSelectPost }: { posts: any[]; onSelectPost: (p: any) => void }) {
+  const { locale } = useLanguage();
+  const en = locale === 'en';
   const now = new Date();
   const days: Date[] = [];
   for (let i = -3; i <= 3; i++) {
@@ -32,7 +34,7 @@ function ContentCalendarInline({ posts, onSelectPost }: { posts: any[]; onSelect
     days.push(d);
   }
   const todayStr = now.toISOString().split('T')[0];
-  const dayNames = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+  const dayNames = en ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] : ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
   const STATUS_DOT: Record<string, string> = { draft: 'bg-amber-500', approved: 'bg-blue-500', published: 'bg-emerald-500', publish_failed: 'bg-red-500' };
 
   return (
@@ -135,7 +137,8 @@ function ContentDirectionInput() {
 
 // Content workflow: fetch posts by status, allow approve/skip/schedule — Instagram grid style
 function ContentWorkflow({ isConnected }: { isConnected?: boolean }) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const en = locale === 'en';
   const p = t.panels;
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -302,7 +305,7 @@ function ContentWorkflow({ isConnected }: { isConnected?: boolean }) {
                     setTimeout(() => setSelectedPost(null), 50);
                   } catch {}
                 }}
-                title={post.boost_mode ? '🚀 Boost ON — son CML manuel TikTok app' : 'Active boost — son trending CML manuel'}
+                title={post.boost_mode ? (en ? '🚀 Boost ON — manual CML sound in TikTok app' : '🚀 Boost ON — son CML manuel TikTok app') : (en ? 'Enable boost — manual trending CML sound' : 'Active boost — son trending CML manuel')}
                 className={`absolute bottom-0.5 right-0.5 text-[10px] px-1.5 py-0.5 rounded cursor-pointer transition-all ${
                   post.boost_mode
                     ? 'bg-orange-500/90 text-white font-bold ring-1 ring-orange-200'
@@ -344,6 +347,8 @@ function ContentWorkflow({ isConnected }: { isConnected?: boolean }) {
 // than a single blended engagement number that hides whether growth is
 // on Instagram or TikTok.
 function PerNetworkStats({ stats }: { stats: any }) {
+  const { locale } = useLanguage();
+  const en = locale === 'en';
   const byNet = stats.byNetwork || {};
   const ig = byNet.instagram || {};
   const tk = byNet.tiktok || {};
@@ -473,7 +478,7 @@ function PerNetworkStats({ stats }: { stats: any }) {
               href={cur.connectUrl}
               className="ml-auto px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 text-white text-[10px] font-bold transition"
             >
-              Connecter →
+              {en ? 'Connect →' : 'Connecter →'}
             </a>
           )}
         </div>
@@ -489,7 +494,9 @@ function PerNetworkStats({ stats }: { stats: any }) {
 
         {usingSample && (
           <div className="mt-3 rounded-lg bg-amber-500/10 border border-amber-400/20 px-3 py-2 text-[11px] text-amber-200/90">
-            Données d&apos;exemple. Connecte {cur.label} pour voir tes vrais chiffres mis à jour en live (à chaque connexion, publication, like, commentaire).
+            {en
+              ? <>Sample data. Connect {cur.label} to see your real numbers updated live (on every connection, post, like, comment).</>
+              : <>Données d&apos;exemple. Connecte {cur.label} pour voir tes vrais chiffres mis à jour en live (à chaque connexion, publication, like, commentaire).</>}
           </div>
         )}
       </div>
@@ -514,6 +521,8 @@ function NetworkPreviewTab({
   // mismatched network inside the per-network section.
   singleNetwork?: boolean;
 } = {}) {
+  const { locale } = useLanguage();
+  const en = locale === 'en';
   const NETWORKS = [
     { key: 'instagram', label: 'Instagram', color: '#e1306c', icon: '\u{1F4F8}' },
     { key: 'tiktok', label: 'TikTok', color: '#00f2ea', icon: '\u{1F3B5}' },
@@ -573,14 +582,14 @@ function NetworkPreviewTab({
 
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs text-white/40">
-          {cur.loading ? 'Chargement...' : cur.connected ? `${cur.posts.length} post(s) recent(s)` : `${net.label} non connecte`}
+          {cur.loading ? (en ? 'Loading...' : 'Chargement...') : cur.connected ? (en ? `${cur.posts.length} recent post(s)` : `${cur.posts.length} post(s) recent(s)`) : (en ? `${net.label} not connected` : `${net.label} non connecte`)}
         </span>
         <button
           onClick={() => load(active)}
           disabled={cur.loading}
           className="text-[10px] text-white/50 hover:text-white/80 disabled:opacity-40"
         >
-          {cur.loading ? '...' : '\u21BB Rafraichir'}
+          {cur.loading ? '...' : (en ? '\u21BB Refresh' : '\u21BB Rafraichir')}
         </button>
       </div>
 
@@ -593,13 +602,13 @@ function NetworkPreviewTab({
       {!cur.loading && !cur.connected && (
         <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 text-center">
           <div className="text-xl mb-1">{net.icon}</div>
-          <p className="text-xs text-white/50">Connecte {net.label} pour voir tes publications ici.</p>
+          <p className="text-xs text-white/50">{en ? `Connect ${net.label} to see your posts here.` : `Connecte ${net.label} pour voir tes publications ici.`}</p>
         </div>
       )}
 
       {cur.connected && cur.posts.length === 0 && !cur.loading && (
         <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 text-center text-xs text-white/40">
-          Aucune publication trouvee.
+          {en ? 'No posts found.' : 'Aucune publication trouvee.'}
         </div>
       )}
 
@@ -632,7 +641,9 @@ function NetworkPreviewTab({
       </div>
 
       <p className="text-[10px] text-white/30 mt-3 text-center">
-        Tap une vignette pour voir caption, stats et lien natif. La suppression côté Instagram/TikTok se fait dans l'app native (Meta n'autorise pas la suppression par API).
+        {en
+          ? <>Tap a thumbnail to see caption, stats and native link. Deleting on Instagram/TikTok is done in the native app (Meta does not allow deletion via API).</>
+          : <>Tap une vignette pour voir caption, stats et lien natif. La suppression côté Instagram/TikTok se fait dans l'app native (Meta n'autorise pas la suppression par API).</>}
       </p>
 
       {/* Lightbox — mobile-first bottom sheet, modal on desktop */}
@@ -681,7 +692,7 @@ function NetworkPreviewTab({
               })()}
               {lightbox.timestamp && (
                 <p className="text-[10px] text-white/40">
-                  Publié le {new Date(lightbox.timestamp).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  {en ? 'Published on ' : 'Publié le '}{new Date(lightbox.timestamp).toLocaleDateString(en ? 'en-US' : 'fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
                 </p>
               )}
               {lightbox.permalink && (
@@ -691,7 +702,7 @@ function NetworkPreviewTab({
                   rel="noopener noreferrer"
                   className="block w-full text-center px-3 py-3 min-h-[48px] rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 hover:opacity-90 text-white text-xs font-bold transition flex items-center justify-center gap-1.5"
                 >
-                  Ouvrir dans {net.label} {'\u2197'}
+                  {en ? 'Open in ' : 'Ouvrir dans '}{net.label} {'\u2197'}
                 </a>
               )}
             </div>
@@ -756,7 +767,8 @@ const LENA_NETWORKS = [
 type LenaNetworkKey = 'instagram' | 'tiktok' | 'linkedin';
 
 export function ContentPanel({ data, agentName, gradientFrom, gradientTo }: PanelProps) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const en = locale === 'en';
   const p = t.panels;
   const stats = data.contentStats || { postsGenerated: 0, scheduledPosts: 0, recentContent: [] };
   const connections: Record<string, boolean> = (data as any).connections || {};
@@ -778,8 +790,12 @@ export function ContentPanel({ data, agentName, gradientFrom, gradientTo }: Pane
   const [weeklyToast, setWeeklyToast] = useState<{ kind: 'ok' | 'err'; msg: string } | null>(null);
   const planWeek = async (weeks: 1 | 2 | 3 | 4) => {
     if (planningWeekly) return;
-    const daysLabel = weeks === 1 ? '7 jours' : weeks === 2 ? '14 jours' : weeks === 3 ? '21 jours' : '30 jours (1 mois)';
-    if (!window.confirm(`Léna va planifier ${daysLabel} de contenu (IG + TikTok + LinkedIn selon ce qui est connecté).\n\nTu pourras modifier ou supprimer chaque post avant sa date de publication.\n\nDémarrer la génération ?`)) return;
+    const daysLabel = en
+      ? (weeks === 1 ? '7 days' : weeks === 2 ? '14 days' : weeks === 3 ? '21 days' : '30 days (1 month)')
+      : (weeks === 1 ? '7 jours' : weeks === 2 ? '14 jours' : weeks === 3 ? '21 jours' : '30 jours (1 mois)');
+    if (!window.confirm(en
+      ? `Léna will plan ${daysLabel} of content (IG + TikTok + LinkedIn depending on what's connected).\n\nYou can edit or delete each post before its publication date.\n\nStart generation?`
+      : `Léna va planifier ${daysLabel} de contenu (IG + TikTok + LinkedIn selon ce qui est connecté).\n\nTu pourras modifier ou supprimer chaque post avant sa date de publication.\n\nDémarrer la génération ?`)) return;
     setPlanningWeekly(true);
     setPlanningWeeks(weeks);
     try {
@@ -791,9 +807,11 @@ export function ContentPanel({ data, agentName, gradientFrom, gradientTo }: Pane
       });
       const d = await res.json();
       if (d.ok) {
-        setWeeklyToast({ kind: 'ok', msg: `✓ ${d.inserted || 0} posts planifiés sur ${daysLabel}. Édite ou supprime chaque post avant sa date dans le Planning.` });
+        setWeeklyToast({ kind: 'ok', msg: en
+          ? `✓ ${d.inserted || 0} posts planned over ${daysLabel}. Edit or delete each post before its date in Planning.`
+          : `✓ ${d.inserted || 0} posts planifiés sur ${daysLabel}. Édite ou supprime chaque post avant sa date dans le Planning.` });
       } else {
-        setWeeklyToast({ kind: 'err', msg: `Erreur : ${d.error || 'inconnu'}` });
+        setWeeklyToast({ kind: 'err', msg: en ? `Error: ${d.error || 'unknown'}` : `Erreur : ${d.error || 'inconnu'}` });
       }
     } catch (e: any) {
       setWeeklyToast({ kind: 'err', msg: e?.message || 'Plan failed' });
@@ -850,10 +868,10 @@ export function ContentPanel({ data, agentName, gradientFrom, gradientTo }: Pane
                     },
                   }));
                 } else {
-                  setWeeklyToast({ kind: 'ok', msg: j.message || `✓ Mix ${ratio}% appliqué — Léna régénère les 7 prochains jours.` });
+                  setWeeklyToast({ kind: 'ok', msg: j.message || (en ? `✓ Mix ${ratio}% applied — Léna regenerates the next 7 days.` : `✓ Mix ${ratio}% appliqué — Léna régénère les 7 prochains jours.`) });
                 }
               } else {
-                setWeeklyToast({ kind: 'err', msg: `Erreur : ${j.error || 'inconnu'}` });
+                setWeeklyToast({ kind: 'err', msg: en ? `Error: ${j.error || 'unknown'}` : `Erreur : ${j.error || 'inconnu'}` });
               }
             } catch (e: any) {
               setWeeklyToast({ kind: 'err', msg: e?.message || 'set failed' });
@@ -998,6 +1016,8 @@ function NetworkSection({
 }
 
 function ValidatePublicationsToggle() {
+  const { locale } = useLanguage();
+  const en = locale === 'en';
   const [autoPublish, setAutoPublish] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -1074,11 +1094,11 @@ function ValidatePublicationsToggle() {
       <div className="flex items-center gap-3">
         <div className="text-2xl">{validateMode ? '✋' : '⚡'}</div>
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-bold text-white">Valider chaque publication</div>
+          <div className="text-sm font-bold text-white">{en ? 'Validate each publication' : 'Valider chaque publication'}</div>
           <div className="text-[11px] text-white/50">
             {validateMode
-              ? 'Léna prépare les posts dans le planning. TU valides chaque post manuellement avant publication (IG/TikTok/LinkedIn).'
-              : 'Léna publie automatiquement aux horaires planifiés. Pas de validation manuelle.'}
+              ? (en ? 'Léna prepares the posts in the planning. YOU validate each post manually before publishing (IG/TikTok/LinkedIn).' : 'Léna prépare les posts dans le planning. TU valides chaque post manuellement avant publication (IG/TikTok/LinkedIn).')
+              : (en ? 'Léna publishes automatically at the scheduled times. No manual validation.' : 'Léna publie automatiquement aux horaires planifiés. Pas de validation manuelle.')}
           </div>
         </div>
         <button
@@ -1087,7 +1107,7 @@ function ValidatePublicationsToggle() {
           className={`relative w-12 h-6 rounded-full transition-colors flex-shrink-0 ${
             validateMode ? 'bg-cyan-500' : 'bg-white/20'
           } ${saving ? 'opacity-50' : ''}`}
-          aria-label="Toggle valider publications"
+          aria-label={en ? 'Toggle validate publications' : 'Toggle valider publications'}
         >
           <span
             className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
@@ -1453,6 +1473,8 @@ function NetworkStrategyHints({ network, hasActivity: _hasActivity }: { network:
 type InspirationNetwork = 'instagram' | 'tiktok' | 'linkedin';
 
 function InspirationBox({ network }: { network: InspirationNetwork }) {
+  const { locale } = useLanguage();
+  const en = locale === 'en';
   const [open, setOpen] = useState(false);
   const [handle, setHandle] = useState('');
   const [busy, setBusy] = useState(false);
@@ -1501,7 +1523,7 @@ function InspirationBox({ network }: { network: InspirationNetwork }) {
         body: JSON.stringify(body),
       });
       const j = await res.json();
-      if (!j.ok) setError(j.error || 'Échec analyse');
+      if (!j.ok) setError(j.error || (en ? 'Analysis failed' : 'Échec analyse'));
       else if (network === 'tiktok') {
         // Shape tiktok-analyze response into the brief format used by the UI
         setBrief({
@@ -1515,7 +1537,7 @@ function InspirationBox({ network }: { network: InspirationNetwork }) {
         setBrief(j.brief);
       }
     } catch (e: any) {
-      setError(e.message || 'Erreur');
+      setError(e.message || (en ? 'Error' : 'Erreur'));
     } finally {
       setBusy(false);
     }

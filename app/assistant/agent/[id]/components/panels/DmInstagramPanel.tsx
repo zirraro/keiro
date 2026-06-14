@@ -64,7 +64,8 @@ export function JadeNetworkSelector({ network, onChange }: { network: JadeNetwor
  * comments → comments, follows → connexions on LinkedIn, etc.).
  */
 function JadeKpiRow({ network, connected, stats }: { network: JadeNetwork; connected: boolean; stats: any }) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const en = locale === 'en';
   const p = t.panels;
 
   let display: { sent: number; replies: number; drafted: number; prospects: number };
@@ -102,9 +103,11 @@ function JadeKpiRow({ network, connected, stats }: { network: JadeNetwork; conne
       <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3 mb-3 flex items-center gap-2.5">
         <span className="text-base">{'\u{1F4CA}'}</span>
         <div className="flex-1 min-w-0">
-          <div className="text-[11px] font-semibold text-white/80">Tes stats Jade apparaitront ici</div>
+          <div className="text-[11px] font-semibold text-white/80">{en ? 'Your Jade stats will appear here' : 'Tes stats Jade apparaitront ici'}</div>
           <div className="text-[10px] text-white/50">
-            Lance ta première campagne (Prepare DMs · Follow · Send queued) et les chiffres se remplissent en live.
+            {en
+              ? 'Launch your first campaign (Prepare DMs · Follow · Send queued) and the numbers fill in live.'
+              : 'Lance ta première campagne (Prepare DMs · Follow · Send queued) et les chiffres se remplissent en live.'}
           </div>
         </div>
       </div>
@@ -112,9 +115,13 @@ function JadeKpiRow({ network, connected, stats }: { network: JadeNetwork; conne
   }
 
   const labels = network === 'linkedin'
-    ? { sent: 'Messages envoyés', replies: 'Réponses', drafted: 'À envoyer', prospects: 'Connexions ciblées' }
+    ? (en
+        ? { sent: 'Messages sent', replies: 'Replies', drafted: 'To send', prospects: 'Targeted connections' }
+        : { sent: 'Messages envoyés', replies: 'Réponses', drafted: 'À envoyer', prospects: 'Connexions ciblées' })
     : network === 'tiktok'
-      ? { sent: 'DMs envoyés', replies: 'Réponses', drafted: 'À envoyer', prospects: 'Créateurs ciblés' }
+      ? (en
+          ? { sent: 'DMs sent', replies: 'Replies', drafted: 'To send', prospects: 'Targeted creators' }
+          : { sent: 'DMs envoyés', replies: 'Réponses', drafted: 'À envoyer', prospects: 'Créateurs ciblés' })
       : { sent: p.dmKpiSent, replies: p.dmKpiResponses, drafted: p.dmKpiPrepared, prospects: p.dmKpiProspects };
 
   return (
@@ -124,8 +131,8 @@ function JadeKpiRow({ network, connected, stats }: { network: JadeNetwork; conne
           <span className="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 font-semibold">Sample data</span>
           <span className="text-white/40">
             {network === 'instagram'
-              ? 'Connecte Instagram pour remplacer ces chiffres-exemple par ton activité Jade en live.'
-              : `Connecte ${network === 'tiktok' ? 'TikTok' : 'LinkedIn'} pour activer les vraies données.`}
+              ? (en ? 'Connect Instagram to replace these sample numbers with your live Jade activity.' : 'Connecte Instagram pour remplacer ces chiffres-exemple par ton activité Jade en live.')
+              : (en ? `Connect ${network === 'tiktok' ? 'TikTok' : 'LinkedIn'} to activate real data.` : `Connecte ${network === 'tiktok' ? 'TikTok' : 'LinkedIn'} pour activer les vraies données.`)}
           </span>
         </div>
       )}
@@ -213,6 +220,8 @@ function JadeTabs({ network }: { network: JadeNetwork }) {
  *     public TikTok profile so the client can follow manually.
  */
 function JadeTiktokLive({ tab }: { tab: 'dms' | 'comments' | 'follows' }) {
+  const { locale } = useLanguage();
+  const en = locale === 'en';
   const [rows, setRows] = useState<Array<{ who: string; msg: string; href?: string; ts?: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState<boolean | null>(null);
@@ -287,10 +296,12 @@ function JadeTiktokLive({ tab }: { tab: 'dms' | 'comments' | 'follows' }) {
     return () => { cancelled = true; };
   }, [tab]);
 
-  const tabLabel = tab === 'dms' ? 'messages prêts à envoyer' : tab === 'comments' ? 'commentaires auto-répondus' : 'comptes à suivre';
+  const tabLabel = en
+    ? (tab === 'dms' ? 'messages ready to send' : tab === 'comments' ? 'auto-replied comments' : 'accounts to follow')
+    : (tab === 'dms' ? 'messages prêts à envoyer' : tab === 'comments' ? 'commentaires auto-répondus' : 'comptes à suivre');
 
   if (loading) {
-    return <div className="text-white/40 text-sm p-4">Chargement…</div>;
+    return <div className="text-white/40 text-sm p-4">{en ? 'Loading…' : 'Chargement…'}</div>;
   }
   if (connected === false) {
     // Show the standard "connect TikTok" CTA when not yet linked
@@ -299,24 +310,45 @@ function JadeTiktokLive({ tab }: { tab: 'dms' | 'comments' | 'follows' }) {
   if (rows.length === 0) {
     return (
       <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-4 text-sm text-white/60">
-        <div className="font-bold text-white mb-1">TikTok connecté ✅</div>
-        <div className="text-xs">Aucun {tabLabel} pour l&apos;instant. Jade alimente cette liste en continu — reviens dans quelques heures.</div>
+        <div className="font-bold text-white mb-1">{en ? 'TikTok connected ✅' : 'TikTok connecté ✅'}</div>
+        <div className="text-xs">{en ? <>No {tabLabel} yet. Jade keeps feeding this list — check back in a few hours.</> : <>Aucun {tabLabel} pour l&apos;instant. Jade alimente cette liste en continu — reviens dans quelques heures.</>}</div>
         {tab === 'dms' && (
           <div className="mt-2 text-[11px] text-white/50 space-y-1">
-            <div>📨 <strong>Stratégie DM TikTok :</strong> Jade fait la <strong>prospection</strong> (analyse des comptes pertinents → message + visuel personnalisé prêts). Le <strong>suivi</strong> reste humain (le 1er message reçu, c&apos;est toi qui réponds).</div>
-            <div>🔗 Le visuel arrive en lien URL public (pas en pièce jointe — TikTok rejette / les destinataires se méfient des screenshots).</div>
-            <div>⚠️ TikTok n&apos;a pas d&apos;API DM grand public. Chaque draft inclut un bouton « Ouvrir dans TikTok » → copier le message + envoyer en 1 clic.</div>
+            {en ? (
+              <>
+                <div>📨 <strong>TikTok DM strategy:</strong> Jade does the <strong>prospecting</strong> (analyzes relevant accounts → personalized message + visual ready). <strong>Follow-up</strong> stays human (when the first reply comes in, you answer it).</div>
+                <div>🔗 The visual comes as a public URL link (not an attachment — TikTok rejects them / recipients distrust screenshots).</div>
+                <div>⚠️ TikTok has no public DM API. Each draft includes an "Open in TikTok" button → copy the message + send in 1 click.</div>
+              </>
+            ) : (
+              <>
+                <div>📨 <strong>Stratégie DM TikTok :</strong> Jade fait la <strong>prospection</strong> (analyse des comptes pertinents → message + visuel personnalisé prêts). Le <strong>suivi</strong> reste humain (le 1er message reçu, c&apos;est toi qui réponds).</div>
+                <div>🔗 Le visuel arrive en lien URL public (pas en pièce jointe — TikTok rejette / les destinataires se méfient des screenshots).</div>
+                <div>⚠️ TikTok n&apos;a pas d&apos;API DM grand public. Chaque draft inclut un bouton « Ouvrir dans TikTok » → copier le message + envoyer en 1 clic.</div>
+              </>
+            )}
           </div>
         )}
         {tab === 'follows' && (
           <div className="mt-2 text-[11px] text-white/50 space-y-1">
-            <div>🎯 <strong>Comptes analysés selon la cible client</strong> (audience, secteur, taille de compte). Jade priorise les profils où ton taux de réponse historique est le plus haut.</div>
-            <div>⚠️ TikTok n&apos;a pas d&apos;API follow. Chaque suggestion ouvre le profil pour follow + 1ère interaction (commentaire, partage) manuels en 1 clic.</div>
+            {en ? (
+              <>
+                <div>🎯 <strong>Accounts analyzed against the client target</strong> (audience, sector, account size). Jade prioritizes the profiles where your historical reply rate is highest.</div>
+                <div>⚠️ TikTok has no follow API. Each suggestion opens the profile for a manual follow + first interaction (comment, share) in 1 click.</div>
+              </>
+            ) : (
+              <>
+                <div>🎯 <strong>Comptes analysés selon la cible client</strong> (audience, secteur, taille de compte). Jade priorise les profils où ton taux de réponse historique est le plus haut.</div>
+                <div>⚠️ TikTok n&apos;a pas d&apos;API follow. Chaque suggestion ouvre le profil pour follow + 1ère interaction (commentaire, partage) manuels en 1 clic.</div>
+              </>
+            )}
           </div>
         )}
         {tab === 'comments' && (
           <div className="mt-2 text-[11px] text-white/50">
-            ✅ Jade répond automatiquement à TOUS les commentaires sur tes vidéos TikTok (cron toutes les heures). Cette liste se remplit dès qu&apos;un commentaire arrive.
+            {en
+              ? <>✅ Jade automatically replies to ALL comments on your TikTok videos (cron every hour). This list fills up as soon as a comment arrives.</>
+              : <>✅ Jade répond automatiquement à TOUS les commentaires sur tes vidéos TikTok (cron toutes les heures). Cette liste se remplit dès qu&apos;un commentaire arrive.</>}
           </div>
         )}
       </div>
@@ -329,7 +361,7 @@ function JadeTiktokLive({ tab }: { tab: 'dms' | 'comments' | 'follows' }) {
           <div className="flex-1 min-w-0">
             <div className="text-xs font-bold text-cyan-300 truncate">{r.who}</div>
             <div className="text-xs text-white/70 mt-0.5">{r.msg}</div>
-            {r.ts && <div className="text-[10px] text-white/30 mt-1">{new Date(r.ts).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}</div>}
+            {r.ts && <div className="text-[10px] text-white/30 mt-1">{new Date(r.ts).toLocaleString(en ? 'en-US' : 'fr-FR', { dateStyle: 'short', timeStyle: 'short' })}</div>}
           </div>
           {r.href && (
             <a
@@ -338,7 +370,7 @@ function JadeTiktokLive({ tab }: { tab: 'dms' | 'comments' | 'follows' }) {
               rel="noopener noreferrer"
               className="flex-shrink-0 text-[10px] px-2 py-1 rounded bg-cyan-500/20 border border-cyan-500/30 text-cyan-200 hover:bg-cyan-500/30 transition"
             >
-              Ouvrir →
+              {en ? 'Open →' : 'Ouvrir →'}
             </a>
           )}
         </div>
@@ -354,9 +386,13 @@ function JadeTiktokLive({ tab }: { tab: 'dms' | 'comments' | 'follows' }) {
  * scope are wired, this gets replaced by live data loaders.
  */
 function JadeNetworkPlaceholder({ network, tab }: { network: 'tiktok' | 'linkedin'; tab: 'dms' | 'comments' | 'follows' }) {
+  const { locale } = useLanguage();
+  const en = locale === 'en';
   const networkLabel = network === 'tiktok' ? 'TikTok' : 'LinkedIn';
   const oauth = network === 'tiktok' ? '/api/auth/tiktok-oauth' : '/api/auth/linkedin-oauth';
-  const tabLabel = tab === 'dms' ? 'messages privés' : tab === 'comments' ? 'commentaires' : 'follows / connexions';
+  const tabLabel = en
+    ? (tab === 'dms' ? 'direct messages' : tab === 'comments' ? 'comments' : 'follows / connections')
+    : (tab === 'dms' ? 'messages privés' : tab === 'comments' ? 'commentaires' : 'follows / connexions');
 
   const samples = tab === 'dms'
     ? [
@@ -380,7 +416,7 @@ function JadeNetworkPlaceholder({ network, tab }: { network: 'tiktok' | 'linkedi
     <div>
       <div className="flex items-center gap-2 mb-3 text-[10px]">
         <span className="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 font-semibold">Sample data</span>
-        <span className="text-white/40">Exemples — connecte {networkLabel} pour voir tes vrais {tabLabel}.</span>
+        <span className="text-white/40">{en ? `Examples — connect ${networkLabel} to see your real ${tabLabel}.` : `Exemples — connecte ${networkLabel} pour voir tes vrais ${tabLabel}.`}</span>
       </div>
 
       <a
@@ -391,7 +427,7 @@ function JadeNetworkPlaceholder({ network, tab }: { network: 'tiktok' | 'linkedi
             : 'bg-gradient-to-r from-blue-600 to-blue-800 hover:opacity-90'
         }`}
       >
-        Connecter {networkLabel} {'→'}
+        {en ? 'Connect ' : 'Connecter '}{networkLabel} {'→'}
       </a>
 
       <div className="space-y-2 max-h-[420px] overflow-y-auto">
@@ -860,6 +896,7 @@ function mergeMessageArrays(
 
 function DmConversationsLive() {
   const { t, locale } = useLanguage();
+  const en = locale === 'en';
   const p = t.panels;
   const dateLocale = locale === 'en' ? 'en-US' : 'fr-FR';
   const [convs, setConvs] = useState<Array<{
@@ -1285,7 +1322,7 @@ function DmConversationsLive() {
               <button
                 onClick={() => persistAiMode(!aiActive)}
                 className={`w-9 h-5 rounded-full relative transition-colors ${aiActive && !userTyping ? 'bg-emerald-500' : 'bg-blue-500'}`}
-                title={aiActive ? 'Desactiver l\'IA' : 'Activer l\'IA'}
+                title={aiActive ? (en ? 'Disable AI' : 'Desactiver l\'IA') : (en ? 'Enable AI' : 'Activer l\'IA')}
               >
                 <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${aiActive && !userTyping ? 'right-0.5' : 'left-0.5'}`} />
               </button>
@@ -1421,7 +1458,8 @@ function DmCard({ dm, statusColors }: { dm: { target: string; status: string; me
 // Inline comments section for Lena
 
 function CommentCard({ comment: c, isDemo, onUpdate, hidePostHeader }: { comment: any; isDemo: boolean; onUpdate: (id: string, data: any) => void; hidePostHeader?: boolean }) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const en = locale === 'en';
   const p = t.panels;
   const [replyText, setReplyText] = useState('');
   const [showReply, setShowReply] = useState(false);
@@ -1574,7 +1612,7 @@ function CommentCard({ comment: c, isDemo, onUpdate, hidePostHeader }: { comment
                 title="Posts a reply via the Graph API (POST /{comment-id}/replies). Permission: instagram_business_manage_comments."
                 className="px-2.5 py-1.5 bg-emerald-600/20 text-emerald-400 text-[10px] font-medium rounded-lg hover:bg-emerald-600/30 transition min-h-[32px] disabled:opacity-50"
               >
-                {sending ? '...' : (p.dmCommentCardReplyAuto || 'Réponse auto')}
+                {sending ? '...' : (p.dmCommentCardReplyAuto || (en ? 'Auto reply' : 'Réponse auto'))}
               </button>
               <button
                 onClick={() => {
@@ -1587,13 +1625,13 @@ function CommentCard({ comment: c, isDemo, onUpdate, hidePostHeader }: { comment
                 }}
                 className="px-2.5 py-1.5 bg-amber-600/20 text-amber-400 text-[10px] font-medium rounded-lg hover:bg-amber-600/30 transition min-h-[32px]"
               >
-                💡 Suggérer
+                💡 {en ? 'Suggest' : 'Suggérer'}
               </button>
               <button
                 onClick={() => setShowReply(true)}
                 className="px-2.5 py-1.5 bg-blue-600/20 text-blue-400 text-[10px] font-medium rounded-lg hover:bg-blue-600/30 transition min-h-[32px]"
               >
-                ✍️ Écrire
+                ✍️ {en ? 'Write' : 'Écrire'}
               </button>
             </div>
             {!isDemo && (
@@ -1618,7 +1656,7 @@ function CommentCard({ comment: c, isDemo, onUpdate, hidePostHeader }: { comment
                     }
                   }
                 }}
-                placeholder={p.dmCommentCardPlaceholder || 'Tape ta réponse…'}
+                placeholder={p.dmCommentCardPlaceholder || (en ? 'Type your reply…' : 'Tape ta réponse…')}
                 autoFocus
                 className="flex-1 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-[11px] text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
               />
@@ -1635,7 +1673,7 @@ function CommentCard({ comment: c, isDemo, onUpdate, hidePostHeader }: { comment
                 title="Sends your custom reply to this Instagram comment via the Graph API (POST /{comment-id}/replies)."
                 className="px-3 py-1.5 bg-blue-600 text-white text-[10px] font-bold rounded-lg disabled:opacity-40 min-h-[32px]"
               >
-                {sending ? '...' : (p.sendBtn || 'Envoyer')}
+                {sending ? '...' : (p.sendBtn || (en ? 'Send' : 'Envoyer'))}
               </button>
               <button onClick={() => setShowReply(false)} className="text-white/30 hover:text-white/60 text-xs px-1">✕</button>
             </div>
@@ -1647,7 +1685,8 @@ function CommentCard({ comment: c, isDemo, onUpdate, hidePostHeader }: { comment
 }
 
 function LenaCommentsSection() {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const en = locale === 'en';
   const p = t.panels;
   const [comments, setComments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1768,12 +1807,14 @@ function LenaCommentsSection() {
           </button>
           <div className="flex-1 min-w-0">
             <div className="text-[11px] font-semibold text-white">
-              {autoReply ? 'Auto-reply ON — Jade répond seul' : 'Auto-reply OFF — tu valides chaque réponse'}
+              {autoReply
+                ? (en ? 'Auto-reply ON — Jade replies on her own' : 'Auto-reply ON — Jade répond seul')
+                : (en ? 'Auto-reply OFF — you validate each reply' : 'Auto-reply OFF — tu valides chaque réponse')}
             </div>
             <div className="text-[10px] text-white/50 mt-0.5">
               {autoReply
-                ? "Chaque nouveau commentaire est posté avec une réponse IA pertinente dans les 5 min."
-                : "Sélectionne les commentaires en attente ci-dessous et choisis Reply, Suggest ou Skip."}
+                ? (en ? 'Every new comment is posted with a relevant AI reply within 5 min.' : "Chaque nouveau commentaire est posté avec une réponse IA pertinente dans les 5 min.")
+                : (en ? 'Select the pending comments below and choose Reply, Suggest or Skip.' : "Sélectionne les commentaires en attente ci-dessous et choisis Reply, Suggest ou Skip.")}
             </div>
           </div>
         </div>
@@ -1791,7 +1832,7 @@ function LenaCommentsSection() {
                 : 'bg-white/5 text-white/50 border border-white/10 hover:text-white/80'
             }`}
           >
-            {f === 'pending' ? `À répondre (${counts.pending})` : f === 'replied' ? `Répondus (${counts.replied})` : `Tous (${counts.all})`}
+            {f === 'pending' ? (en ? `To reply (${counts.pending})` : `À répondre (${counts.pending})`) : f === 'replied' ? (en ? `Replied (${counts.replied})` : `Répondus (${counts.replied})`) : (en ? `All (${counts.all})` : `Tous (${counts.all})`)}
           </button>
         ))}
         {filter === 'pending' && counts.pending > 0 && (
@@ -1803,7 +1844,7 @@ function LenaCommentsSection() {
             }}
             className="ml-auto text-[10px] text-white/40 hover:text-white"
           >
-            {selected.size === counts.pending ? 'Tout désélectionner' : 'Tout sélectionner'}
+            {selected.size === counts.pending ? (en ? 'Deselect all' : 'Tout désélectionner') : (en ? 'Select all' : 'Tout sélectionner')}
           </button>
         )}
       </div>
@@ -1811,16 +1852,16 @@ function LenaCommentsSection() {
       {/* Bulk-reply bar — appears the moment the client has selected at least one pending comment. */}
       {filter === 'pending' && selected.size > 0 && (
         <div className="rounded-lg border border-purple-500/30 bg-purple-500/10 p-2 mb-2 flex items-center gap-2">
-          <span className="text-[11px] text-purple-200 font-semibold flex-1">{selected.size} sélectionné(s)</span>
+          <span className="text-[11px] text-purple-200 font-semibold flex-1">{selected.size} {en ? 'selected' : 'sélectionné(s)'}</span>
           <button
             onClick={replySelected}
             disabled={replyingBatch}
             className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-[10px] font-bold rounded-lg disabled:opacity-50"
           >
-            {replyingBatch ? '...' : `IA répond aux ${selected.size}`}
+            {replyingBatch ? '...' : (en ? `AI replies to ${selected.size}` : `IA répond aux ${selected.size}`)}
           </button>
           <button onClick={() => setSelected(new Set())} className="text-[10px] text-white/40 hover:text-white px-2">
-            Annuler
+            {en ? 'Cancel' : 'Annuler'}
           </button>
         </div>
       )}
@@ -1834,16 +1875,16 @@ function LenaCommentsSection() {
           className="block rounded-xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] p-4 text-center transition"
         >
           <span className="text-xl">{'\u{1F4AC}'}</span>
-          <p className="text-xs text-white/60 mt-1">Aucun commentaire pour le moment</p>
-          <p className="text-[10px] text-white/40 mt-1">Tes vrais commentaires Instagram apparaitront ici dès qu'un visiteur en laisse un. Fetched live via GET /&lt;media-id&gt;/comments.</p>
-          <p className="text-[10px] text-purple-300 mt-2">Voir tes posts sur Instagram ↗</p>
+          <p className="text-xs text-white/60 mt-1">{en ? 'No comments yet' : 'Aucun commentaire pour le moment'}</p>
+          <p className="text-[10px] text-white/40 mt-1">{en ? <>Your real Instagram comments will appear here as soon as a visitor leaves one. Fetched live via GET /&lt;media-id&gt;/comments.</> : <>Tes vrais commentaires Instagram apparaitront ici dès qu'un visiteur en laisse un. Fetched live via GET /&lt;media-id&gt;/comments.</>}</p>
+          <p className="text-[10px] text-purple-300 mt-2">{en ? 'See your posts on Instagram ↗' : 'Voir tes posts sur Instagram ↗'}</p>
         </a>
       )}
 
       {/* Empty state within a filter (e.g. all replied) */}
       {!isDemo && counts.all > 0 && visible.length === 0 && (
         <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3 text-center text-[11px] text-white/40">
-          {filter === 'pending' ? 'Tous les commentaires sont traités 👌' : 'Aucun commentaire répondu pour le moment.'}
+          {filter === 'pending' ? (en ? 'All comments handled 👌' : 'Tous les commentaires sont traités 👌') : (en ? 'No replied comments yet.' : 'Aucun commentaire répondu pour le moment.')}
         </div>
       )}
 
@@ -1894,6 +1935,8 @@ function PostGroup({
   setSelected: React.Dispatch<React.SetStateAction<Set<string>>>;
   onUpdate: (id: string, data: any) => void;
 }) {
+  const { locale } = useLanguage();
+  const en = locale === 'en';
   const postThumb: string | null = post?.thumbnail_url || null;
   const postCaption: string = post?.caption || '';
   const postPermalink: string | null = post?.permalink || null;
@@ -1910,7 +1953,7 @@ function PostGroup({
           rel="noopener noreferrer"
           onClick={(e) => { if (!postPermalink || isDemo) e.preventDefault(); }}
           className={`flex items-center gap-3 px-3 py-2.5 border-b border-white/10 bg-white/[0.04] ${postPermalink && !isDemo ? 'hover:bg-white/[0.07] transition cursor-pointer' : ''}`}
-          title={postPermalink && !isDemo ? 'Ouvrir le post sur Instagram' : ''}
+          title={postPermalink && !isDemo ? (en ? 'Open the post on Instagram' : 'Ouvrir le post sur Instagram') : ''}
         >
           {postThumb && (
             <img src={postThumb} alt="" className="w-14 h-14 rounded-md object-cover flex-shrink-0" loading="lazy" />
@@ -1919,18 +1962,18 @@ function PostGroup({
             <div className="flex items-center gap-1.5 mb-0.5">
               <span className="text-[10px] text-white/40">{mediaBadge}</span>
               <span className="text-[10px] font-bold text-white/80 truncate">
-                {postCaption ? postCaption.substring(0, 80) : 'Post Instagram'}
+                {postCaption ? postCaption.substring(0, 80) : (en ? 'Instagram post' : 'Post Instagram')}
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] text-purple-300/70 font-semibold">{comments.length} commentaire{comments.length > 1 ? 's' : ''}</span>
+              <span className="text-[10px] text-purple-300/70 font-semibold">{comments.length} {en ? `comment${comments.length > 1 ? 's' : ''}` : `commentaire${comments.length > 1 ? 's' : ''}`}</span>
               {post?.posted_at && (
-                <span className="text-[10px] text-white/30">· publié {new Date(post.posted_at).toLocaleDateString()}</span>
+                <span className="text-[10px] text-white/30">· {en ? 'published' : 'publié'} {new Date(post.posted_at).toLocaleDateString()}</span>
               )}
             </div>
           </div>
           {postPermalink && !isDemo && (
-            <span className="text-[11px] text-purple-300 font-semibold flex-shrink-0">Ouvrir ↗</span>
+            <span className="text-[11px] text-purple-300 font-semibold flex-shrink-0">{en ? 'Open ↗' : 'Ouvrir ↗'}</span>
           )}
         </a>
       )}
@@ -1949,7 +1992,7 @@ function PostGroup({
                     if (n.has(c.comment_id)) n.delete(c.comment_id); else n.add(c.comment_id);
                     return n;
                   })}
-                  aria-label={checked ? 'Désélectionner' : 'Sélectionner'}
+                  aria-label={checked ? (en ? 'Deselect' : 'Désélectionner') : (en ? 'Select' : 'Sélectionner')}
                   className={`absolute left-1.5 top-3 w-5 h-5 rounded border-2 ${checked ? 'bg-purple-500 border-purple-500' : 'bg-transparent border-white/30'} flex items-center justify-center`}
                 >
                   {checked && <span className="text-white text-[10px] font-bold">✓</span>}
@@ -1969,7 +2012,8 @@ function PostGroup({
 /** Pending DM Queue — client can preview and mass-send prepared DMs */
 
 function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const en = locale === 'en';
   const p = t.panels;
   const [queue, setQueue] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
@@ -2057,7 +2101,7 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
           ...prev,
           [dm.id]: {
             kind: 'invalid',
-            text: v.warning || p.dmUnreachableAlert.replace('{handle}', cleanHandle).replace('{reason}', 'compte introuvable'),
+            text: v.warning || p.dmUnreachableAlert.replace('{handle}', cleanHandle).replace('{reason}', en ? 'account not found' : 'compte introuvable'),
           },
         }));
         return;
@@ -2072,7 +2116,7 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
         ...prev,
         [dm.id]: {
           kind,
-          text: v?.warning || 'Profil vérifié — message copié, ouvre Instagram pour le coller.',
+          text: v?.warning || (en ? 'Profile verified — message copied, open Instagram to paste it.' : 'Profil vérifié — message copié, ouvre Instagram pour le coller.'),
           snapshot: snapSummary,
           deeplink,
         },
@@ -2093,7 +2137,7 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
         ...prev,
         [dm.id]: {
           kind: 'warning',
-          text: 'Pré-vérification indisponible. Message copié, colle-le dans Instagram.',
+          text: en ? 'Pre-check unavailable. Message copied, paste it into Instagram.' : 'Pré-vérification indisponible. Message copié, colle-le dans Instagram.',
           deeplink: `https://ig.me/m/${cleanHandle}`,
         },
       }));
@@ -2182,13 +2226,13 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
                 <div>{status.text}</div>
                 {status.snapshot && (
                   <div className="mt-1 text-[10px] text-white/60">
-                    {typeof status.snapshot.followers_count === 'number' && `${status.snapshot.followers_count} abonnés · `}
+                    {typeof status.snapshot.followers_count === 'number' && `${status.snapshot.followers_count} ${en ? 'followers' : 'abonnés'} · `}
                     {typeof status.snapshot.media_count === 'number' && `${status.snapshot.media_count} posts`}
                     {status.snapshot.biography && (
                       <div className="mt-1 italic line-clamp-2">« {status.snapshot.biography.substring(0, 120)} »</div>
                     )}
                     {status.snapshot.recent_post_caption && (
-                      <div className="mt-1 text-white/50 line-clamp-2">Dernier post : « {status.snapshot.recent_post_caption.substring(0, 100)} »</div>
+                      <div className="mt-1 text-white/50 line-clamp-2">{en ? 'Latest post: ' : 'Dernier post : '}« {status.snapshot.recent_post_caption.substring(0, 100)} »</div>
                     )}
                   </div>
                 )}
@@ -2203,7 +2247,7 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
                       onClick={() => removeFromQueue(dm.id)}
                       className="px-4 py-2.5 min-h-[44px] bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-300 text-xs font-bold rounded-lg transition"
                     >
-                      {'\u{1F5D1}'} Retirer du canal DM
+                      {'\u{1F5D1}'} {en ? 'Remove from DM channel' : 'Retirer du canal DM'}
                     </button>
                   ) : (
                     <button
@@ -2222,7 +2266,7 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
                   <button
                     onClick={() => markBlocked(dm.id)}
                     className="px-3 py-2.5 min-h-[44px] text-xs text-red-400/60 hover:text-red-400 transition"
-                    title="Le prospect a bloqué les DMs — retire-le du canal"
+                    title={en ? 'The prospect has DMs disabled — remove them from the channel' : 'Le prospect a bloqué les DMs — retire-le du canal'}
                   >
                     {'\u{1F6AB}'} {p.dmBtnBlockedMark}
                   </button>
@@ -2242,7 +2286,7 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
                     disabled={sending === dm.id}
                     className="px-4 py-2.5 min-h-[44px] bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-xs font-bold rounded-lg transition disabled:opacity-40"
                   >
-                    {'\u2713'} Bien envoyé
+                    {'\u2713'} {en ? 'Sent successfully' : 'Bien envoyé'}
                   </button>
                   <button
                     onClick={() => {
@@ -2250,13 +2294,13 @@ function PendingDMQueue({ gradientFrom }: { gradientFrom: string }) {
                     }}
                     className="px-3 py-2.5 min-h-[44px] text-xs text-white/50 hover:text-white/80 border border-white/10 rounded-lg transition"
                   >
-                    {'\u{1F517}'} Rouvrir Instagram
+                    {'\u{1F517}'} {en ? 'Reopen Instagram' : 'Rouvrir Instagram'}
                   </button>
                   <button
                     onClick={() => markBlocked(dm.id)}
                     className="px-3 py-2.5 min-h-[44px] text-xs text-red-400/60 hover:text-red-400 transition"
                   >
-                    {'\u{1F6AB}'} DMs bloqués
+                    {'\u{1F6AB}'} {en ? 'DMs blocked' : 'DMs bloqués'}
                   </button>
                 </>
               )}
@@ -2292,6 +2336,8 @@ interface ActionConfig {
 }
 
 function ActionConfirmModal({ config, onClose }: { config: ActionConfig; onClose: (result?: { kind: 'ok' | 'err'; text: string }) => void }) {
+  const { locale } = useLanguage();
+  const en = locale === 'en';
   const [params, setParams] = useState<Record<string, any>>(() => {
     const init: Record<string, any> = {};
     for (const f of config.fields) init[f.key] = f.default;
@@ -2305,7 +2351,7 @@ function ActionConfirmModal({ config, onClose }: { config: ActionConfig; onClose
       const result = await config.run(params);
       onClose(result);
     } catch (e: any) {
-      onClose({ kind: 'err', text: e?.message || 'Erreur réseau' });
+      onClose({ kind: 'err', text: e?.message || (en ? 'Network error' : 'Erreur réseau') });
     } finally {
       setBusy(false);
     }
@@ -2369,7 +2415,7 @@ function ActionConfirmModal({ config, onClose }: { config: ActionConfig; onClose
           <div className="px-5 pb-3">
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-500/10 border border-purple-500/25 text-purple-200 text-[11px]">
               <div className="w-3 h-3 rounded-full border-2 border-purple-300/30 border-t-purple-300 animate-spin" />
-              <span>Action en cours… Jade traite les conversations, ça prend généralement 5-30s</span>
+              <span>{en ? 'Action in progress… Jade is processing the conversations, this usually takes 5-30s' : 'Action en cours… Jade traite les conversations, ça prend généralement 5-30s'}</span>
             </div>
           </div>
         )}
@@ -2379,7 +2425,7 @@ function ActionConfirmModal({ config, onClose }: { config: ActionConfig; onClose
             disabled={busy}
             className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/80 text-xs font-semibold transition disabled:opacity-50"
           >
-            Annuler
+            {en ? 'Cancel' : 'Annuler'}
           </button>
           <button
             onClick={confirm}
@@ -2389,10 +2435,10 @@ function ActionConfirmModal({ config, onClose }: { config: ActionConfig; onClose
             {busy ? (
               <>
                 <div className="w-3 h-3 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                <span>Lancement en cours…</span>
+                <span>{en ? 'Launching…' : 'Lancement en cours…'}</span>
               </>
             ) : (
-              <span>Confirmer et lancer</span>
+              <span>{en ? 'Confirm and launch' : 'Confirmer et lancer'}</span>
             )}
           </button>
         </div>
@@ -2402,6 +2448,8 @@ function ActionConfirmModal({ config, onClose }: { config: ActionConfig; onClose
 }
 
 function JadeCampaignActions({ p }: { p: any }) {
+  const { locale } = useLanguage();
+  const en = locale === 'en';
   const [activeAction, setActiveAction] = useState<ActionConfig | null>(null);
   const [toast, setToast] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
 
@@ -2420,25 +2468,25 @@ function JadeCampaignActions({ p }: { p: any }) {
       desc: p.dmCampaignPrepareDesc,
       icon: '\u{1F4AC}',
       classes: 'bg-pink-500/10 border-pink-500/20 hover:bg-pink-500/20 text-pink-400',
-      confirmTitle: 'Préparer une vague de DMs',
-      confirmIntro: 'Jade va sélectionner des prospects qualifiés et préparer un draft de DM personnalisé pour chacun. Tu pourras les relire avant l\'envoi.',
+      confirmTitle: en ? 'Prepare a wave of DMs' : 'Préparer une vague de DMs',
+      confirmIntro: en ? 'Jade will select qualified prospects and prepare a personalized DM draft for each. You can review them before sending.' : 'Jade va sélectionner des prospects qualifiés et préparer un draft de DM personnalisé pour chacun. Tu pourras les relire avant l\'envoi.',
       fields: [
-        { key: 'count', label: 'Nombre de DMs à préparer', type: 'number', default: 20, min: 5, max: 50, help: 'Max 50 pour éviter le rate-limit Meta.' },
-        { key: 'slot', label: 'Bucket de prospects', type: 'select', default: 'morning', options: [
-          { value: 'morning', label: 'Prospects du matin (hot leads)' },
-          { value: 'afternoon', label: 'Prospects de l\'après-midi (qualified)' },
-          { value: 'evening', label: 'Prospects du soir (warm)' },
+        { key: 'count', label: en ? 'Number of DMs to prepare' : 'Nombre de DMs à préparer', type: 'number', default: 20, min: 5, max: 50, help: en ? 'Max 50 to avoid the Meta rate-limit.' : 'Max 50 pour éviter le rate-limit Meta.' },
+        { key: 'slot', label: en ? 'Prospect bucket' : 'Bucket de prospects', type: 'select', default: 'morning', options: [
+          { value: 'morning', label: en ? 'Morning prospects (hot leads)' : 'Prospects du matin (hot leads)' },
+          { value: 'afternoon', label: en ? 'Afternoon prospects (qualified)' : 'Prospects de l\'après-midi (qualified)' },
+          { value: 'evening', label: en ? 'Evening prospects (warm)' : 'Prospects du soir (warm)' },
         ]},
-        { key: 'tone', label: 'Ton du message', type: 'select', default: 'founder', options: [
-          { value: 'founder', label: 'Founder voice — Victor décontracté' },
-          { value: 'pro', label: 'Pro — courtois et structuré' },
-          { value: 'playful', label: 'Playful — fun, emoji friendly' },
+        { key: 'tone', label: en ? 'Message tone' : 'Ton du message', type: 'select', default: 'founder', options: [
+          { value: 'founder', label: en ? 'Founder voice — Victor casual' : 'Founder voice — Victor décontracté' },
+          { value: 'pro', label: en ? 'Pro — courteous and structured' : 'Pro — courtois et structuré' },
+          { value: 'playful', label: en ? 'Playful — fun, emoji friendly' : 'Playful — fun, emoji friendly' },
         ]},
         // 2026-06-04 — Founder ask : "quand on clique sur prepare dm
         // met la fonction avec image". Toggle qui demande à Jade de
         // générer un visuel personnalisé pour CHAQUE prospect (pas
         // juste les top 10 du batch auto).
-        { key: 'with_image', label: '📸 Joindre un visuel personnalisé par prospect (recommandé)', type: 'toggle', default: true, help: 'Jade scrape le profil Insta + génère une image documentaire matchant le secteur du prospect. Coût : +€0.03 par visuel.' },
+        { key: 'with_image', label: en ? '📸 Attach a personalized visual per prospect (recommended)' : '📸 Joindre un visuel personnalisé par prospect (recommandé)', type: 'toggle', default: true, help: en ? 'Jade scrapes the Insta profile + generates a documentary image matching the prospect\'s sector. Cost: +€0.03 per visual.' : 'Jade scrape le profil Insta + génère une image documentaire matchant le secteur du prospect. Coût : +€0.03 par visuel.' },
       ],
       run: async (params) => {
         const qs = new URLSearchParams({
@@ -2449,10 +2497,10 @@ function JadeCampaignActions({ p }: { p: any }) {
         });
         const r = await fetch(`/api/agents/dm-instagram?${qs.toString()}`, { method: 'POST', credentials: 'include' });
         const j = await r.json().catch(() => ({}));
-        if (!r.ok) return { kind: 'err' as const, text: j.error || 'Préparation échouée' };
+        if (!r.ok) return { kind: 'err' as const, text: j.error || (en ? 'Preparation failed' : 'Préparation échouée') };
         const prepared = j?.prepared ?? j?.queued ?? params.count;
-        const imgPart = params.with_image ? ' (avec visuel personnalisé)' : '';
-        return { kind: 'ok' as const, text: `${prepared} DMs préparés${imgPart}. Va les relire dans l'onglet DMs.` };
+        const imgPart = params.with_image ? (en ? ' (with personalized visual)' : ' (avec visuel personnalisé)') : '';
+        return { kind: 'ok' as const, text: en ? `${prepared} DMs prepared${imgPart}. Go review them in the DMs tab.` : `${prepared} DMs préparés${imgPart}. Va les relire dans l'onglet DMs.` };
       },
     },
     {
@@ -2461,50 +2509,50 @@ function JadeCampaignActions({ p }: { p: any }) {
       desc: p.dmCampaignFollowDesc,
       icon: '\u{1F465}',
       classes: 'bg-cyan-500/10 border-cyan-500/20 hover:bg-cyan-500/20 text-cyan-400',
-      confirmTitle: 'Follow warm-up — préparer ta liste',
-      confirmIntro: 'Meta n\'autorise PAS le follow programmatique pour les comptes Business. Jade vérifie chaque handle, score le compte (bio + 3 derniers posts), et te met une liste de candidats à follow manuellement dans l\'onglet "À suivre". Tu tapes Follow sur Instagram → tu coches ✓ ici → Jade sait quand DM.',
+      confirmTitle: en ? 'Follow warm-up — prepare your list' : 'Follow warm-up — préparer ta liste',
+      confirmIntro: en ? 'Meta does NOT allow programmatic follows for Business accounts. Jade checks each handle, scores the account (bio + last 3 posts), and gives you a list of candidates to follow manually in the "To follow" tab. You tap Follow on Instagram → you check ✓ here → Jade knows when to DM.' : 'Meta n\'autorise PAS le follow programmatique pour les comptes Business. Jade vérifie chaque handle, score le compte (bio + 3 derniers posts), et te met une liste de candidats à follow manuellement dans l\'onglet "À suivre". Tu tapes Follow sur Instagram → tu coches ✓ ici → Jade sait quand DM.',
       fields: [
-        { key: 'count', label: 'Nombre de candidats à préparer', type: 'number', default: 10, min: 3, max: 25, help: 'Combien de prospects Jade analyse pour ta liste de follow manuelle. Meta flag au-delà de 20-25 follows/jour effectifs — reste safe.' },
-        { key: 'filter', label: 'Filtrer les prospects', type: 'select', default: 'hot', options: [
-          { value: 'hot', label: 'Hot prospects uniquement (score ≥ 70)' },
-          { value: 'warm', label: 'Warm prospects (score 40-70)' },
-          { value: 'all', label: 'Tous les prospects qualifiés' },
+        { key: 'count', label: en ? 'Number of candidates to prepare' : 'Nombre de candidats à préparer', type: 'number', default: 10, min: 3, max: 25, help: en ? 'How many prospects Jade analyzes for your manual follow list. Meta flags beyond 20-25 effective follows/day — stay safe.' : 'Combien de prospects Jade analyse pour ta liste de follow manuelle. Meta flag au-delà de 20-25 follows/jour effectifs — reste safe.' },
+        { key: 'filter', label: en ? 'Filter prospects' : 'Filtrer les prospects', type: 'select', default: 'hot', options: [
+          { value: 'hot', label: en ? 'Hot prospects only (score ≥ 70)' : 'Hot prospects uniquement (score ≥ 70)' },
+          { value: 'warm', label: en ? 'Warm prospects (score 40-70)' : 'Warm prospects (score 40-70)' },
+          { value: 'all', label: en ? 'All qualified prospects' : 'Tous les prospects qualifiés' },
         ]},
       ],
       run: async (params) => {
         const r = await fetch(`/api/agents/dm-instagram/follow-prospects?count=${params.count}&filter=${params.filter}`, { method: 'POST', credentials: 'include' });
         const j = await r.json().catch(() => ({}));
-        if (!r.ok) return { kind: 'err' as const, text: j.error || 'Échec du follow' };
+        if (!r.ok) return { kind: 'err' as const, text: j.error || (en ? 'Follow failed' : 'Échec du follow') };
         const queued = j.queued_for_manual_follow ?? j.followed ?? 0;
         const skipped = j.skipped ?? 0;
         const candidates = j.candidates ?? queued + skipped;
         if (queued === 0 && skipped === 0 && candidates === 0) {
-          return { kind: 'ok' as const, text: j.message || 'Pipeline déjà chaud — aucun candidat à préparer. Lance Léo si tu veux de nouveaux prospects.' };
+          return { kind: 'ok' as const, text: j.message || (en ? 'Pipeline already warm — no candidates to prepare. Run Léo if you want new prospects.' : 'Pipeline déjà chaud — aucun candidat à préparer. Lance Léo si tu veux de nouveaux prospects.') };
         }
-        return { kind: 'ok' as const, text: `✓ ${queued} candidats préparés (sur ${candidates} analysés, ${skipped} ignorés). Ouvre l\'onglet "À suivre" pour les follow manuellement sur Instagram.` };
+        return { kind: 'ok' as const, text: en ? `✓ ${queued} candidates prepared (out of ${candidates} analyzed, ${skipped} skipped). Open the "To follow" tab to follow them manually on Instagram.` : `✓ ${queued} candidats préparés (sur ${candidates} analysés, ${skipped} ignorés). Ouvre l\'onglet "À suivre" pour les follow manuellement sur Instagram.` };
       },
     },
     {
       key: 'send_queued',
-      label: 'Send queued DMs',
-      desc: 'Envoie les DMs préparés en file',
+      label: en ? 'Send queued DMs' : 'Send queued DMs',
+      desc: en ? 'Send the prepared DMs in queue' : 'Envoie les DMs préparés en file',
       icon: '\u{1F4E4}',
       classes: 'bg-purple-500/10 border-purple-500/20 hover:bg-purple-500/20 text-purple-400',
-      confirmTitle: 'Envoyer les DMs en file',
-      confirmIntro: 'Jade va envoyer les DMs préparés vers les prospects via Graph API (instagram_business_manage_messages). Chaque envoi est tracé dans /meta-audit.',
+      confirmTitle: en ? 'Send queued DMs' : 'Envoyer les DMs en file',
+      confirmIntro: en ? 'Jade will send the prepared DMs to prospects via Graph API (instagram_business_manage_messages). Each send is logged in /meta-audit.' : 'Jade va envoyer les DMs préparés vers les prospects via Graph API (instagram_business_manage_messages). Chaque envoi est tracé dans /meta-audit.',
       fields: [
-        { key: 'count', label: 'Combien envoyer dans cette vague', type: 'number', default: 10, min: 1, max: 30, help: 'Conseil : 10-15 par vague avec pause de 1h entre vagues pour rester naturel.' },
-        { key: 'pace', label: 'Délai entre DMs', type: 'select', default: 'human', options: [
-          { value: 'human', label: 'Humain — 30 à 90 sec entre DMs' },
-          { value: 'fast', label: 'Rapide — 5 à 15 sec (moins safe)' },
+        { key: 'count', label: en ? 'How many to send in this wave' : 'Combien envoyer dans cette vague', type: 'number', default: 10, min: 1, max: 30, help: en ? 'Tip: 10-15 per wave with a 1h pause between waves to stay natural.' : 'Conseil : 10-15 par vague avec pause de 1h entre vagues pour rester naturel.' },
+        { key: 'pace', label: en ? 'Delay between DMs' : 'Délai entre DMs', type: 'select', default: 'human', options: [
+          { value: 'human', label: en ? 'Human — 30 to 90 sec between DMs' : 'Humain — 30 à 90 sec entre DMs' },
+          { value: 'fast', label: en ? 'Fast — 5 to 15 sec (less safe)' : 'Rapide — 5 à 15 sec (moins safe)' },
         ]},
       ],
       run: async (params) => {
         const r = await fetch(`/api/agents/dm-instagram/send-queue?count=${params.count}&pace=${params.pace}`, { method: 'POST', credentials: 'include' });
         const j = await r.json().catch(() => ({}));
-        if (!r.ok) return { kind: 'err' as const, text: j.error || 'Envoi de la file échoué' };
+        if (!r.ok) return { kind: 'err' as const, text: j.error || (en ? 'Queue send failed' : 'Envoi de la file échoué') };
         const sent = j?.sent ?? j?.delivered ?? null;
-        return { kind: 'ok' as const, text: sent !== null ? `${sent} DMs envoyés depuis la file.` : 'File en cours de traitement — revérifie dans 1 min.' };
+        return { kind: 'ok' as const, text: sent !== null ? (en ? `${sent} DMs sent from the queue.` : `${sent} DMs envoyés depuis la file.`) : (en ? 'Queue being processed — check again in 1 min.' : 'File en cours de traitement — revérifie dans 1 min.') };
       },
     },
     {
@@ -2513,20 +2561,20 @@ function JadeCampaignActions({ p }: { p: any }) {
       desc: p.dmCampaignCommentsDesc,
       icon: '\u{1F4DD}',
       classes: 'bg-blue-500/10 border-blue-500/20 hover:bg-blue-500/20 text-blue-400',
-      confirmTitle: 'Générer des commentaires communauté',
-      confirmIntro: 'Jade va générer des commentaires authentiques pour engager des prospects sur leurs posts récents. Chaque draft est review avant publication.',
+      confirmTitle: en ? 'Generate community comments' : 'Générer des commentaires communauté',
+      confirmIntro: en ? 'Jade will generate authentic comments to engage prospects on their recent posts. Each draft is reviewed before publishing.' : 'Jade va générer des commentaires authentiques pour engager des prospects sur leurs posts récents. Chaque draft est review avant publication.',
       fields: [
-        { key: 'count', label: 'Nombre de commentaires à générer', type: 'number', default: 8, min: 3, max: 25 },
-        { key: 'tone', label: 'Ton des commentaires', type: 'select', default: 'warm', options: [
-          { value: 'warm', label: 'Chaleureux — proche, encourageant' },
-          { value: 'pro', label: 'Pro — observateur, expert' },
-          { value: 'playful', label: 'Fun — léger, complice' },
+        { key: 'count', label: en ? 'Number of comments to generate' : 'Nombre de commentaires à générer', type: 'number', default: 8, min: 3, max: 25 },
+        { key: 'tone', label: en ? 'Comments tone' : 'Ton des commentaires', type: 'select', default: 'warm', options: [
+          { value: 'warm', label: en ? 'Warm — close, encouraging' : 'Chaleureux — proche, encourageant' },
+          { value: 'pro', label: en ? 'Pro — observant, expert' : 'Pro — observateur, expert' },
+          { value: 'playful', label: en ? 'Fun — light, complicit' : 'Fun — léger, complice' },
         ]},
       ],
       run: async (params) => {
         const r = await fetch(`/api/agents/content?slot=community&count=${params.count}&tone=${params.tone}`, { method: 'GET', credentials: 'include' });
-        if (!r.ok) return { kind: 'err' as const, text: 'Génération commentaires échouée' };
-        return { kind: 'ok' as const, text: `${params.count} commentaires en cours de génération — disponibles dans l'onglet Comments dans ~30 sec.` };
+        if (!r.ok) return { kind: 'err' as const, text: en ? 'Comment generation failed' : 'Génération commentaires échouée' };
+        return { kind: 'ok' as const, text: en ? `${params.count} comments being generated — available in the Comments tab in ~30 sec.` : `${params.count} commentaires en cours de génération — disponibles dans l'onglet Comments dans ~30 sec.` };
       },
     },
     {
@@ -2535,31 +2583,31 @@ function JadeCampaignActions({ p }: { p: any }) {
       desc: p.dmCampaignAutoReplyDesc,
       icon: '\u{1F504}',
       classes: 'bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/20 text-emerald-400',
-      confirmTitle: 'Auto-réponse aux DMs entrants',
-      confirmIntro: 'Jade va générer une réponse drafted pour chaque DM entrant non répondu. Tu valides chaque réponse avant qu\'elle parte (Human-in-the-loop strict).',
+      confirmTitle: en ? 'Auto-reply to incoming DMs' : 'Auto-réponse aux DMs entrants',
+      confirmIntro: en ? 'Jade will generate a drafted reply for each unanswered incoming DM. You validate each reply before it goes out (strict human-in-the-loop).' : 'Jade va générer une réponse drafted pour chaque DM entrant non répondu. Tu valides chaque réponse avant qu\'elle parte (Human-in-the-loop strict).',
       fields: [
-        { key: 'style', label: 'Style de réponse', type: 'select', default: 'warm', options: [
-          { value: 'warm', label: 'Chaleureux — Victor décontracté' },
-          { value: 'concise', label: 'Concis — direct au but' },
-          { value: 'detailed', label: 'Détaillé — questions de qualification' },
+        { key: 'style', label: en ? 'Reply style' : 'Style de réponse', type: 'select', default: 'warm', options: [
+          { value: 'warm', label: en ? 'Warm — Victor casual' : 'Chaleureux — Victor décontracté' },
+          { value: 'concise', label: en ? 'Concise — straight to the point' : 'Concis — direct au but' },
+          { value: 'detailed', label: en ? 'Detailed — qualification questions' : 'Détaillé — questions de qualification' },
         ]},
         // Founder ask 2026-06-02: removed dead "autosend formules simples" toggle
         // (was never used server-side). Kept the on-demand initiator: when DM
         // agent is "AI actif", Jade répond à TOUS les DMs auto. Ce bouton sert
         // juste à kicker un cycle de poll immédiat sans attendre le cron 10 min.
-        { key: 'force_now', label: 'Lancer un cycle de poll immédiat (sans attendre les 10 min du cron)', type: 'toggle', default: true, help: 'Sans cocher, le poll se fait toutes les 10 min en arrière-plan. Coche pour kicker maintenant.' },
+        { key: 'force_now', label: en ? 'Run an immediate poll cycle (without waiting for the 10 min cron)' : 'Lancer un cycle de poll immédiat (sans attendre les 10 min du cron)', type: 'toggle', default: true, help: en ? 'Without checking, the poll runs every 10 min in the background. Check to kick it now.' : 'Sans cocher, le poll se fait toutes les 10 min en arrière-plan. Coche pour kicker maintenant.' },
       ],
       run: async (params) => {
         const r = await fetch(`/api/agents/dm-instagram/auto-reply?style=${params.style}`, { method: 'POST', credentials: 'include' });
         const j = await r.json().catch(() => ({}));
-        if (!r.ok) return { kind: 'err' as const, text: j.error || 'Réponses auto échouées' };
+        if (!r.ok) return { kind: 'err' as const, text: j.error || (en ? 'Auto-replies failed' : 'Réponses auto échouées') };
         const replied = j.replied ?? 0;
         const skipped = j.skipped ?? 0;
         const total = j.total_conversations ?? 0;
         if (j.skipped_reason === 'ai_off') {
-          return { kind: 'err' as const, text: 'AI Jade est en pause — réactive le toggle "AI" en haut du panel pour relancer.' };
+          return { kind: 'err' as const, text: en ? 'Jade AI is paused — re-enable the "AI" toggle at the top of the panel to restart.' : 'AI Jade est en pause — réactive le toggle "AI" en haut du panel pour relancer.' };
         }
-        return { kind: 'ok' as const, text: `${replied} réponse(s) envoyée(s), ${skipped} déjà répondu(s), ${total} conversations scannées. Jade répond à tous les nouveaux DMs en auto.` };
+        return { kind: 'ok' as const, text: en ? `${replied} reply(ies) sent, ${skipped} already replied, ${total} conversations scanned. Jade auto-replies to all new DMs.` : `${replied} réponse(s) envoyée(s), ${skipped} déjà répondu(s), ${total} conversations scannées. Jade répond à tous les nouveaux DMs en auto.` };
       },
     },
   ];
@@ -2685,7 +2733,8 @@ function JadeHeader({ connected, p }: { connected: boolean; p: any }) {
 }
 
 export function DmInstagramPanel({ data, agentName, gradientFrom, gradientTo }: PanelProps) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const en = locale === 'en';
   const p = t.panels;
   const stats = data.dmStats || {
     dmsSent: 0,
@@ -2749,8 +2798,8 @@ export function DmInstagramPanel({ data, agentName, gradientFrom, gradientTo }: 
               <div className="text-white font-bold text-sm">{networkLabel}</div>
               <div className="text-[10px] text-white/50 mt-0.5">
                 {networkConnected
-                  ? `${networkLabel} connecté — DMs, commentaires, engagement gérés depuis Jade`
-                  : `Connecte ${networkLabel} pour activer les vraies données et les actions sur ce réseau`}
+                  ? (en ? `${networkLabel} connected — DMs, comments, engagement managed from Jade` : `${networkLabel} connecté — DMs, commentaires, engagement gérés depuis Jade`)
+                  : (en ? `Connect ${networkLabel} to activate real data and actions on this network` : `Connecte ${networkLabel} pour activer les vraies données et les actions sur ce réseau`)}
               </div>
             </div>
             {!networkConnected && (
@@ -2762,7 +2811,7 @@ export function DmInstagramPanel({ data, agentName, gradientFrom, gradientTo }: 
                     : 'bg-gradient-to-r from-blue-600 to-blue-800 hover:opacity-90'
                 }`}
               >
-                Connecter →
+                {en ? 'Connect →' : 'Connecter →'}
               </a>
             )}
           </div>

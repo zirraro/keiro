@@ -28,7 +28,8 @@ const AMI_NETWORKS: { key: AmiNetwork; label: string; icon: string; color: strin
 ];
 
 export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: PanelProps) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+  const en = locale === 'en';
   const p = t.panels;
   const gs = data.globalStats;
   const recs = data.recommendations ?? [];
@@ -83,10 +84,10 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
             stats={(gs as any).tiktok}
             connectUrl="/api/auth/tiktok-oauth"
             icon={'\u{1F3B5}'}
-            labelLikes="Likes totaux"
+            labelLikes={en ? 'Total likes' : 'Likes totaux'}
             labelEngagement={p.marketingLabelEngagement}
-            labelFollowers="Abonn\u00e9s"
-            labelPosts="Vid\u00e9os"
+            labelFollowers={en ? 'Followers' : 'Abonn\u00e9s'}
+            labelPosts={en ? 'Videos' : 'Vid\u00e9os'}
           />
         )}
         {network === 'linkedin' && (
@@ -96,10 +97,10 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
             stats={(gs as any).linkedin}
             connectUrl="/api/auth/linkedin-oauth"
             icon={'\u{1F4BC}'}
-            labelLikes="R\u00e9actions"
+            labelLikes={en ? 'Reactions' : 'R\u00e9actions'}
             labelEngagement={p.marketingLabelEngagement}
-            labelFollowers="Connexions"
-            labelPosts="Posts publi\u00e9s"
+            labelFollowers={en ? 'Connections' : 'Connexions'}
+            labelPosts={en ? 'Posts published' : 'Posts publi\u00e9s'}
           />
         )}
 
@@ -107,9 +108,11 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
         <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-3 mt-3 mb-4">
           <div className="flex items-center justify-between gap-3">
             <div className="flex-1 min-w-0">
-              <div className="text-[11px] font-semibold text-blue-300">Audit Graph API</div>
+              <div className="text-[11px] font-semibold text-blue-300">{en ? 'Graph API Audit' : 'Audit Graph API'}</div>
               <div className="text-[10px] text-white/50 mt-0.5">
-                Toutes les lectures Insights sont trac\u00e9es avec le tag <code className="text-[10px] text-blue-200">instagram_business_manage_insights</code> dans /meta-audit
+                {en
+                  ? <>All Insights reads are logged with the <code className="text-[10px] text-blue-200">instagram_business_manage_insights</code> tag in /meta-audit</>
+                  : <>Toutes les lectures Insights sont trac\u00e9es avec le tag <code className="text-[10px] text-blue-200">instagram_business_manage_insights</code> dans /meta-audit</>}
               </div>
             </div>
             <a
@@ -118,7 +121,7 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
               rel="noopener noreferrer"
               className="px-3 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 text-[10px] font-semibold transition flex-shrink-0"
             >
-              Voir l&apos;audit \u2197
+              {en ? 'View audit \u2197' : <>Voir l&apos;audit \u2197</>}
             </a>
           </div>
         </div>
@@ -133,17 +136,19 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
             bouton, on demande via le chat". */}
         {gs.recommendation && (
           <>
-            <SectionTitle>AMI t&apos;interpr\u00e8te</SectionTitle>
+            <SectionTitle>{en ? 'AMI reads it for you' : <>AMI t&apos;interpr\u00e8te</>}</SectionTitle>
             <div className="rounded-xl border border-cyan-500/30 bg-gradient-to-br from-cyan-500/10 to-purple-500/5 p-4 mb-3">
               <div className="flex items-start gap-2">
                 <span className="text-lg">{'\u{1F4A1}'}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-bold text-cyan-300 mb-1 uppercase tracking-wider">Analyse strat\u00e9gique</p>
+                  <p className="text-[10px] font-bold text-cyan-300 mb-1 uppercase tracking-wider">{en ? 'Strategic analysis' : 'Analyse strat\u00e9gique'}</p>
                   <p className="text-xs text-white/85 leading-relaxed">{gs.recommendation}</p>
                 </div>
               </div>
               <p className="mt-3 pt-3 border-t border-white/10 text-[10px] text-white/40 leading-relaxed">
-                \ud83d\udcac Pour appliquer cette analyse, ouvre le chat d&apos;AMI ou celui de l&apos;agent concern\u00e9 (L\u00e9na, Jade, Hugo, L\u00e9o, Th\u00e9o) et dis-lui ce que tu veux ajuster. La r\u00e8gle est persist\u00e9e et appliqu\u00e9e \u00e0 chaque ex\u00e9cution suivante.
+                {en
+                  ? <>\ud83d\udcac To apply this analysis, open AMI&apos;s chat or that of the relevant agent (L\u00e9na, Jade, Hugo, L\u00e9o, Th\u00e9o) and tell it what you want to adjust. The rule is persisted and applied on every subsequent run.</>
+                  : <>\ud83d\udcac Pour appliquer cette analyse, ouvre le chat d&apos;AMI ou celui de l&apos;agent concern\u00e9 (L\u00e9na, Jade, Hugo, L\u00e9o, Th\u00e9o) et dis-lui ce que tu veux ajuster. La r\u00e8gle est persist\u00e9e et appliqu\u00e9e \u00e0 chaque ex\u00e9cution suivante.</>}
               </p>
             </div>
           </>
@@ -192,27 +197,27 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
         {(gs as any).jade && (
           ((gs as any).jade.dms_sent_7d > 0 || (gs as any).jade.comments_replied_7d > 0 || (gs as any).jade.follows_pending > 0) && (
             <>
-              <SectionTitle>Jade \u2014 7 derniers jours</SectionTitle>
+              <SectionTitle>{en ? 'Jade \u2014 last 7 days' : 'Jade \u2014 7 derniers jours'}</SectionTitle>
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4">
                 <div className="rounded-lg bg-white/[0.04] border border-white/10 p-3 text-center">
                   <div className="text-lg font-bold text-purple-300">{fmt((gs as any).jade.dms_sent_7d)}</div>
-                  <div className="text-[10px] text-white/50">DMs envoy\u00e9s</div>
+                  <div className="text-[10px] text-white/50">{en ? 'DMs sent' : 'DMs envoy\u00e9s'}</div>
                 </div>
                 <div className="rounded-lg bg-white/[0.04] border border-white/10 p-3 text-center">
                   <div className="text-lg font-bold text-pink-300">{fmt((gs as any).jade.comments_replied_7d)}</div>
-                  <div className="text-[10px] text-white/50">Commentaires r\u00e9pondus</div>
+                  <div className="text-[10px] text-white/50">{en ? 'Comments replied' : 'Commentaires r\u00e9pondus'}</div>
                 </div>
                 <div className="rounded-lg bg-white/[0.04] border border-white/10 p-3 text-center">
                   <div className="text-lg font-bold text-amber-300">{fmt((gs as any).jade.follows_pending)}</div>
-                  <div className="text-[10px] text-white/50">Follows \u00e0 valider</div>
+                  <div className="text-[10px] text-white/50">{en ? 'Follows to confirm' : 'Follows \u00e0 valider'}</div>
                 </div>
                 <div className="rounded-lg bg-white/[0.04] border border-white/10 p-3 text-center">
                   <div className="text-lg font-bold text-emerald-300">{fmt((gs as any).jade.follows_confirmed)}</div>
-                  <div className="text-[10px] text-white/50">Follows confirm\u00e9s</div>
+                  <div className="text-[10px] text-white/50">{en ? 'Follows confirmed' : 'Follows confirm\u00e9s'}</div>
                 </div>
                 <div className="rounded-lg bg-white/[0.04] border border-white/10 p-3 text-center col-span-2 sm:col-span-1">
                   <div className="text-lg font-bold text-cyan-300">{fmt((gs as any).jade.after_follow_dms_7d)}</div>
-                  <div className="text-[10px] text-white/50">DMs post-follow</div>
+                  <div className="text-[10px] text-white/50">{en ? 'Post-follow DMs' : 'DMs post-follow'}</div>
                 </div>
               </div>
             </>
@@ -285,7 +290,9 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
 
       <div className="bg-white/5 rounded-xl border border-white/10 p-4 mt-4">
         <p className="text-xs text-white/50 italic">
-          {agentName} a analyse {fmt(data.totalMessages ?? 0)} donnees cette semaine.
+          {en
+            ? `${agentName} analyzed ${fmt(data.totalMessages ?? 0)} data points this week.`
+            : `${agentName} a analyse ${fmt(data.totalMessages ?? 0)} donnees cette semaine.`}
         </p>
       </div>
     </>
@@ -315,6 +322,8 @@ function NetworkInsightSection({
   labelPosts: string;
   labelReach?: string;
 }) {
+  const { locale } = useLanguage();
+  const en = locale === 'en';
   // When the network isn't connected we still render the metric grid —
   // populated with realistic SAMPLE numbers — so the user sees what the
   // panel will look like once they connect. A prominent "Sample" badge
@@ -348,8 +357,8 @@ function NetworkInsightSection({
           </div>
           <div className={`text-[10px] mt-0.5 ${usingSample ? 'text-amber-300/80' : 'text-emerald-400'}`}>
             {usingSample
-              ? `Données d'exemple — connecte ${label} pour voir tes vrais chiffres`
-              : 'Live data via API'}
+              ? (en ? `Sample data — connect ${label} to see your real numbers` : `Données d'exemple — connecte ${label} pour voir tes vrais chiffres`)
+              : (en ? 'Live data via API' : 'Live data via API')}
           </div>
         </div>
         {usingSample && (
@@ -357,7 +366,7 @@ function NetworkInsightSection({
             href={connectUrl}
             className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 text-white text-[10px] font-bold flex-shrink-0 transition"
           >
-            Connecter →
+            {en ? 'Connect →' : 'Connecter →'}
           </a>
         )}
       </div>
@@ -384,6 +393,8 @@ function NetworkInsightSection({
 // org_agent_configs.<agent>_directives so each agent picks it up
 // on next run.
 function AmiOrchestrateButton({ recommendation }: { recommendation: string }) {
+  const { locale } = useLanguage();
+  const en = locale === 'en';
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -400,11 +411,11 @@ function AmiOrchestrateButton({ recommendation }: { recommendation: string }) {
         body: JSON.stringify({ source: 'ami', directive: recommendation }),
       });
       const j = await r.json().catch(() => ({}));
-      if (!r.ok || !j.ok) { setError(j.error || 'Échec'); return; }
+      if (!r.ok || !j.ok) { setError(j.error || (en ? 'Failed' : 'Échec')); return; }
       setDone(true);
       setTimeout(() => setDone(false), 4000);
     } catch (e: any) {
-      setError(e?.message || 'Erreur réseau');
+      setError(e?.message || (en ? 'Network error' : 'Erreur réseau'));
     } finally {
       setBusy(false);
     }
@@ -422,7 +433,7 @@ function AmiOrchestrateButton({ recommendation }: { recommendation: string }) {
             : 'bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/30'
       }`}
     >
-      {busy ? '…' : done ? '✓ Appliqué aux agents' : error ? `⚠ ${error}` : '⚡ Appliquer aux agents'}
+      {busy ? '…' : done ? (en ? '✓ Applied to agents' : '✓ Appliqué aux agents') : error ? `⚠ ${error}` : (en ? '⚡ Apply to agents' : '⚡ Appliquer aux agents')}
     </button>
   );
 }
