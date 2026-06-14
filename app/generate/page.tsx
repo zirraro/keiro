@@ -1466,6 +1466,18 @@ export default function GeneratePage() {
         setShowConversionPopup(true);
         return;
       }
+      // action === 'generate': the client localStorage counter allows it, but
+      // confirm against the SERVER-SIDE per-IP quota so clearing localStorage
+      // can't grant unlimited free generations. Guarantees exactly 1 free gen
+      // per IP. Fails open so a tracking glitch never blocks a real first gen.
+      try {
+        const ipCheck = await fetch('/api/anon-gen/check', { method: 'POST' }).then(r => r.json()).catch(() => null);
+        if (ipCheck && ipCheck.allowed === false) {
+          stashAnonPending();
+          setShowConversionPopup(true);
+          return;
+        }
+      } catch { /* fail open — allow the generation */ }
     } else if (isAdmin) {
       console.log('[Generate] Admin user detected - bypassing ALL generation limits');
     }
