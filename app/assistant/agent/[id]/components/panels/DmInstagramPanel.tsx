@@ -907,6 +907,7 @@ function DmConversationsLive() {
   }>>([]);
   const [loading, setLoading] = useState(true);
   const [selectedConv, setSelectedConv] = useState<string | null>(null);
+  const [humanOnly, setHumanOnly] = useState(false);
   const [replyText, setReplyText] = useState('');
   const [sending, setSending] = useState(false);
   // 2026-06-03 — init from localStorage to avoid flicker (was useState(true)
@@ -1039,6 +1040,14 @@ function DmConversationsLive() {
     return () => clearInterval(interval);
   }, [fetchConversations, userTyping]);
 
+  // Auto-open the most recent conversation on desktop so messages are visible
+  // directly (no extra click). On mobile we keep the list view first.
+  useEffect(() => {
+    if (selectedConv) return;
+    if (typeof window !== 'undefined' && window.innerWidth < 640) return;
+    if (convs.length > 0) setSelectedConv(convs[0].id);
+  }, [convs, selectedConv]);
+
   // Auto-scroll to bottom of messages (within container, not page)
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -1132,6 +1141,23 @@ function DmConversationsLive() {
   const displayConvs = isDemo ? DEMO_DM_CONVERSATIONS : convs;
   const selected = displayConvs.find(c => c.id === selectedConv);
 
+  // Conversations awaiting a HUMAN reply = an unanswered inbound message
+  // outside Meta's 24h window. Jade cannot auto-reply there (compliance) —
+  // only a human with the HUMAN_AGENT tag can. Uses updated_time fallback so
+  // it counts correctly as soon as the list loads (before messages fetch).
+  const needsHuman = (c: any) => {
+    const lastMsg = c.messages[c.messages.length - 1];
+    const isUnread = !lastMsg || !lastMsg.fromMe;
+    const lastInbound = [...c.messages].reverse().find((m: any) => !m.fromMe);
+    const refTime = lastInbound?.created_time
+      ? new Date(lastInbound.created_time).getTime()
+      : (c.updated_time ? new Date(c.updated_time).getTime() : null);
+    const hrs = refTime ? (Date.now() - refTime) / 3600000 : 0;
+    return isUnread && hrs > 24;
+  };
+  const humanCount = displayConvs.filter(needsHuman).length;
+  const shownConvs = humanOnly ? displayConvs.filter(needsHuman) : displayConvs;
+
   return (
     <div>
     {isDemo && (
@@ -1165,8 +1191,20 @@ function DmConversationsLive() {
         <div className={`${selectedConv ? 'hidden sm:block' : ''} w-full sm:w-56 border-r border-white/10 overflow-y-auto`}>
           <div className="px-3 py-2.5 border-b border-purple-500/20 bg-purple-900/20">
             <span className="text-[10px] font-semibold uppercase tracking-wider text-purple-300/60">{'\u{1F4AC}'} {p.dmConvsSidebarLabel}</span>
+            {humanCount > 0 && (
+              <button
+                onClick={() => setHumanOnly(v => !v)}
+                className={`mt-1.5 w-full flex items-center justify-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold border transition-colors ${humanOnly ? 'bg-amber-500/25 border-amber-500/50 text-amber-200' : 'bg-amber-500/10 border-amber-500/25 text-amber-300/80 hover:bg-amber-500/20'}`}
+                title="Conversations hors fenêtre 24h — réponse humaine requise (Jade ne répond pas automatiquement hors 24h)"
+              >
+                {'⏳'} {en ? `Awaiting human reply (${humanCount})` : `En attente de réponse humaine (${humanCount})`}
+              </button>
+            )}
           </div>
-          {displayConvs.map(conv => {
+          {shownConvs.length === 0 && humanOnly && (
+            <div className="px-3 py-6 text-center text-[10px] text-white/40">{en ? 'No conversation awaiting a human reply.' : 'Aucune conversation en attente de réponse humaine.'}</div>
+          )}
+          {shownConvs.map(conv => {
             const lastMsg = conv.messages[conv.messages.length - 1];
             const isUnread = lastMsg && !lastMsg.fromMe;
             // Compute Meta's 24h messaging window state for this conv.
@@ -1176,8 +1214,14 @@ function DmConversationsLive() {
             // inbound was; if no inbound exists, treat as in-window so
             // the UI doesn't shout "needs human agent" on fresh threads.
             const lastInbound = [...conv.messages].reverse().find((m: any) => !m.fromMe);
-            const lastInboundTime = lastInbound?.created_time ? new Date(lastInbound.created_time).getTime() : null;
-            const hoursSince = lastInboundTime ? (Date.now() - lastInboundTime) / 3600000 : 0;
+            // Fall back to the conversation's updated_time when the per-conv
+            // messages aren't loaded yet (the list endpoint returns none) so
+            // the >24h badge shows as soon as the list loads — not only after
+            // the thread is opened.
+            const refTime = lastInbound?.created_time
+              ? new Date(lastInbound.created_time).getTime()
+              : (conv.updated_time ? new Date(conv.updated_time).getTime() : null);
+            const hoursSince = refTime ? (Date.now() - refTime) / 3600000 : 0;
             const outsideWindow = hoursSince > 24;
             return (
               <button
@@ -1190,7 +1234,7 @@ function DmConversationsLive() {
                   <span className="text-xs font-medium text-white truncate">@{conv.participant.username}</span>
                   {/* Window badge — orange when >24h so the user spots
                       conversations that will need the HUMAN_AGENT tag. */}
-                  {outsideWindow && lastInbound && (
+                  {outsideWindow && (
                     <span
                       className="ml-auto px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex-shrink-0"
                       title="Outside the 24h messaging window — send will use messaging_type=MESSAGE_TAG, tag=HUMAN_AGENT"
