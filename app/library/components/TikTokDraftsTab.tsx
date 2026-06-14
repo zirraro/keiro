@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { TrashIcon } from './Icons';
 import PlatformChoiceModal from './PlatformChoiceModal';
+import { useLanguage } from '@/lib/i18n/context';
 
 export type TikTokDraft = {
   id: string;
@@ -29,6 +30,8 @@ interface TikTokDraftsTabProps {
 }
 
 export default function TikTokDraftsTab({ drafts, onEdit, onDelete, onPublish, onSchedule, onBackToImages, onRefresh, onPrepareInstagram, onPrepareTikTok }: TikTokDraftsTabProps) {
+  const { locale } = useLanguage();
+  const en = locale === 'en';
   const [activeCategory, setActiveCategory] = useState<'all' | 'draft' | 'converted' | 'published'>('all');
   const [showPlatformChoice, setShowPlatformChoice] = useState(false);
   const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
@@ -68,7 +71,7 @@ export default function TikTokDraftsTab({ drafts, onEdit, onDelete, onPublish, o
           <ol className="text-sm text-neutral-600 text-left space-y-2">
             <li className="flex items-start gap-2">
               <span className="font-semibold text-cyan-600">1.</span>
-              <span>Cliquez sur "Préparer un post" dans le widget TikTok</span>
+              <span>{en ? 'Click "Prepare a post" in the TikTok widget' : 'Cliquez sur "Préparer un post" dans le widget TikTok'}</span>
             </li>
             <li className="flex items-start gap-2">
               <span className="font-semibold text-cyan-600">2.</span>
@@ -87,7 +90,7 @@ export default function TikTokDraftsTab({ drafts, onEdit, onDelete, onPublish, o
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
-          Préparer un post
+          {en ? 'Prepare a post' : 'Préparer un post'}
         </button>
         {showPlatformChoice && (
           <PlatformChoiceModal

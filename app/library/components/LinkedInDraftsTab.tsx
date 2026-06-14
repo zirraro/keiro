@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { LinkedInIcon, TrashIcon } from './Icons';
+import { useLanguage } from '@/lib/i18n/context';
 
 export type LinkedInDraft = {
   id: string;
@@ -27,6 +28,8 @@ interface LinkedInDraftsTabProps {
 }
 
 export default function LinkedInDraftsTab({ drafts, onEdit, onDelete, onSchedule, onPrepareLinkedIn, linkedinConnected, onPublish, onSaveCaption }: LinkedInDraftsTabProps) {
+  const { locale } = useLanguage();
+  const en = locale === 'en';
   const [activeCategory, setActiveCategory] = useState<'all' | 'draft' | 'published'>('all');
   const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
   const [editedCaption, setEditedCaption] = useState<string>('');
@@ -70,7 +73,7 @@ export default function LinkedInDraftsTab({ drafts, onEdit, onDelete, onSchedule
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
-          Préparer un post LinkedIn
+          {en ? 'Prepare a LinkedIn post' : 'Préparer un post LinkedIn'}
         </button>
       </div>
     );

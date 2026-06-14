@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { TwitterXIcon, TrashIcon } from './Icons';
+import { useLanguage } from '@/lib/i18n/context';
 
 export type TwitterDraft = {
   id: string;
@@ -24,6 +25,8 @@ interface TwitterDraftsTabProps {
 }
 
 export default function TwitterDraftsTab({ drafts, onEdit, onDelete, onSchedule, onPrepareTwitter }: TwitterDraftsTabProps) {
+  const { locale } = useLanguage();
+  const en = locale === 'en';
   const [activeCategory, setActiveCategory] = useState<'all' | 'draft' | 'published'>('all');
 
   const filteredDrafts = activeCategory === 'all'
@@ -54,7 +57,7 @@ export default function TwitterDraftsTab({ drafts, onEdit, onDelete, onSchedule,
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
-          Préparer un tweet
+          {en ? 'Prepare a tweet' : 'Préparer un tweet'}
         </button>
       </div>
     );

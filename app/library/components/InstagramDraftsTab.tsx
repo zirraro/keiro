@@ -3,6 +3,7 @@ import { InstagramIcon, TrashIcon } from './Icons';
 import InstagramHelpGuide from './InstagramHelpGuide';
 import PlatformChoiceModal from './PlatformChoiceModal';
 import PostPreview from '@/app/assistant/agent/[id]/components/PostPreview';
+import { useLanguage } from '@/lib/i18n/context';
 
 export type InstagramDraft = {
   id: string;
@@ -31,6 +32,8 @@ interface InstagramDraftsTabProps {
 }
 
 export default function InstagramDraftsTab({ drafts, onEdit, onDelete, onPublish, onSchedule, onBackToImages, onPrepareInstagram, onPrepareTikTok, onSaveCaption }: InstagramDraftsTabProps) {
+  const { locale } = useLanguage();
+  const en = locale === 'en';
   const [activeCategory, setActiveCategory] = useState<'all' | 'draft' | 'published'>('all');
   const [showPlatformChoice, setShowPlatformChoice] = useState(false);
   const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
@@ -81,7 +84,7 @@ export default function InstagramDraftsTab({ drafts, onEdit, onDelete, onPublish
             </li>
             <li className="flex items-start gap-2">
               <span className="font-semibold text-purple-600">2.</span>
-              <span>Survolez une image et cliquez sur "Préparer post"</span>
+              <span>{en ? 'Hover an image and click "Prepare post"' : 'Survolez une image et cliquez sur "Préparer post"'}</span>
             </li>
             <li className="flex items-start gap-2">
               <span className="font-semibold text-purple-600">3.</span>
@@ -96,7 +99,7 @@ export default function InstagramDraftsTab({ drafts, onEdit, onDelete, onPublish
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
-          Préparer un post
+          {en ? 'Prepare a post' : 'Préparer un post'}
         </button>
         {showPlatformChoice && (
           <PlatformChoiceModal

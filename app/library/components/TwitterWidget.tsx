@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { TwitterXIcon } from './Icons';
+import { useLanguage } from '@/lib/i18n/context';
 
 interface TwitterWidgetProps {
   isGuest?: boolean;
@@ -29,6 +30,8 @@ export default function TwitterWidget({
   onJoinWaitlist,
   hasJoinedWaitlist = false
 }: TwitterWidgetProps) {
+  const { locale } = useLanguage();
+  const en = locale === 'en';
   const connected = false;
 
   return (
@@ -53,7 +56,7 @@ export default function TwitterWidget({
             <TwitterXIcon className={`${isCollapsed ? 'w-8 h-8' : 'w-6 h-6'} text-neutral-900`} />
             {!isCollapsed && (
               <div>
-                <h3 className="text-sm font-bold text-neutral-900">Vos posts X</h3>
+                <h3 className="text-sm font-bold text-neutral-900">{en ? 'Your X posts' : 'Vos posts X'}</h3>
                 <p className="text-xs text-neutral-500">{isGuest ? 'Aperçu démo' : 'Non connecté'}</p>
               </div>
             )}
@@ -65,9 +68,9 @@ export default function TwitterWidget({
                 ? 'w-full px-2 py-1.5 text-[10px]'
                 : 'px-3 py-1.5 text-xs'
             }`}
-            title={isCollapsed ? "Préparer un post" : ""}
+            title={isCollapsed ? (en ? 'Prepare a post' : 'Préparer un post') : ""}
           >
-            {isCollapsed ? '+ Post' : 'Préparer un post'}
+            {isCollapsed ? '+ Post' : (en ? 'Prepare a post' : 'Préparer un post')}
           </button>
         </div>
       </div>

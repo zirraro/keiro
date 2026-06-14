@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import Link from 'next/link';
 import PlatformChoiceModal from './PlatformChoiceModal';
+import { useLanguage } from '@/lib/i18n/context';
 
 // Images de démo pour le mode visiteur
 const DEMO_POSTS = [
@@ -40,6 +41,8 @@ export default function InstagramWidget({
   onToggleCollapse,
   onConnect
 }: InstagramWidgetProps) {
+  const { locale } = useLanguage();
+  const en = locale === 'en';
   const [profile, setProfile] = useState<any>(null);
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(!isGuest);
@@ -192,7 +195,7 @@ export default function InstagramWidget({
               </svg>
               {!isCollapsed && (
                 <div>
-                  <h3 className="font-semibold text-neutral-900 text-sm">Vos posts Instagram</h3>
+                  <h3 className="font-semibold text-neutral-900 text-sm">{en ? 'Your Instagram posts' : 'Vos posts Instagram'}</h3>
                   <p className="text-xs text-neutral-500">{isGuest ? 'Aperçu démo' : 'Non connecté'}</p>
                 </div>
               )}
@@ -211,9 +214,9 @@ export default function InstagramWidget({
                   ? 'w-full px-2 py-1.5 text-[10px]'
                   : 'px-3 py-1.5 text-xs'
               }`}
-              title={isCollapsed ? "Préparer un post" : ""}
+              title={isCollapsed ? (en ? 'Prepare a post' : 'Préparer un post') : ""}
             >
-              {isCollapsed ? '+ Post' : 'Préparer un post'}
+              {isCollapsed ? '+ Post' : (en ? 'Prepare a post' : 'Préparer un post')}
             </button>
           </div>
         </div>
@@ -264,7 +267,7 @@ export default function InstagramWidget({
             </svg>
             {!isCollapsed && (
               <div>
-                <h3 className="font-semibold text-neutral-900 text-sm">Vos posts Instagram</h3>
+                <h3 className="font-semibold text-neutral-900 text-sm">{en ? 'Your Instagram posts' : 'Vos posts Instagram'}</h3>
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs text-neutral-500">@{profile.instagram_username}</span>
                   <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">✓</span>
@@ -311,9 +314,9 @@ export default function InstagramWidget({
                   ? 'w-full px-2 py-1.5 text-[10px]'
                   : 'px-3 py-1.5 text-xs'
               }`}
-              title={isCollapsed ? "Préparer un post" : ""}
+              title={isCollapsed ? (en ? 'Prepare a post' : 'Préparer un post') : ""}
             >
-              {isCollapsed ? '+ Post' : 'Préparer un post'}
+              {isCollapsed ? '+ Post' : (en ? 'Prepare a post' : 'Préparer un post')}
             </button>
           </div>
         </div>

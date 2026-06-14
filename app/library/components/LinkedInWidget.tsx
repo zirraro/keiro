@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { LinkedInIcon } from './Icons';
 import { supabaseBrowser } from '@/lib/supabase/client';
+import { useLanguage } from '@/lib/i18n/context';
 
 interface LinkedInWidgetProps {
   isGuest?: boolean;
@@ -21,6 +22,8 @@ export default function LinkedInWidget({
   onConnectionChange,
   onConnect
 }: LinkedInWidgetProps) {
+  const { locale } = useLanguage();
+  const en = locale === 'en';
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
   const [username, setUsername] = useState<string>('');
@@ -142,7 +145,7 @@ export default function LinkedInWidget({
             <LinkedInIcon className={`${isCollapsed ? 'w-8 h-8' : 'w-6 h-6'} text-[#0077B5]`} />
             {!isCollapsed && (
               <div>
-                <h3 className="text-sm font-bold text-neutral-900">Vos posts LinkedIn</h3>
+                <h3 className="text-sm font-bold text-neutral-900">{en ? 'Your LinkedIn posts' : 'Vos posts LinkedIn'}</h3>
                 {connected ? (
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-neutral-600 font-medium">{username}</span>
@@ -176,9 +179,9 @@ export default function LinkedInWidget({
                   ? 'w-full px-2 py-1.5 text-[10px]'
                   : 'px-3 py-1.5 text-xs'
               }`}
-              title={isCollapsed ? "Préparer un post" : ""}
+              title={isCollapsed ? (en ? 'Prepare a post' : 'Préparer un post') : ""}
             >
-              {isCollapsed ? '+ Post' : 'Préparer un post'}
+              {isCollapsed ? '+ Post' : (en ? 'Prepare a post' : 'Préparer un post')}
             </button>
           </div>
         </div>

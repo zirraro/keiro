@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabaseBrowser } from '@/lib/supabase/client';
+import { useLanguage } from '@/lib/i18n/context';
 
 interface TikTokWidgetProps {
   onConnect?: () => void;
@@ -12,6 +13,8 @@ interface TikTokWidgetProps {
 }
 
 export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = false, onToggleCollapse, refreshTrigger }: TikTokWidgetProps) {
+  const { locale } = useLanguage();
+  const en = locale === 'en';
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
   const [hasAccount, setHasAccount] = useState(false);
@@ -232,7 +235,7 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
               </svg>
               {!isCollapsed && (
                 <div>
-                  <h3 className="text-sm font-bold text-neutral-900">Vos posts TikTok</h3>
+                  <h3 className="text-sm font-bold text-neutral-900">{en ? 'Your TikTok posts' : 'Vos posts TikTok'}</h3>
                   <p className="text-xs text-neutral-500">Non connecté</p>
                 </div>
               )}
@@ -244,9 +247,9 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
                   ? 'w-full px-2 py-1.5 text-[10px]'
                   : 'px-3 py-1.5 text-xs'
               }`}
-              title={isCollapsed ? "Préparer un post" : ""}
+              title={isCollapsed ? (en ? 'Prepare a post' : 'Préparer un post') : ""}
             >
-              {isCollapsed ? '+ Post' : 'Préparer un post'}
+              {isCollapsed ? '+ Post' : (en ? 'Prepare a post' : 'Préparer un post')}
             </button>
           </div>
         </div>
@@ -297,7 +300,7 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
             </svg>
             {!isCollapsed && (
               <div>
-                <h3 className="text-sm font-bold text-neutral-900">Vos posts TikTok</h3>
+                <h3 className="text-sm font-bold text-neutral-900">{en ? 'Your TikTok posts' : 'Vos posts TikTok'}</h3>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-neutral-600 font-medium">
                     {tiktokUsername ? `@${tiktokUsername}` : 'Compte TikTok'}
@@ -334,9 +337,9 @@ export default function TikTokWidget({ onConnect, onPreparePost, isCollapsed = f
                   ? 'w-full px-2 py-1.5 text-[10px]'
                   : 'px-3 py-1.5 text-xs'
               }`}
-              title={isCollapsed ? "Préparer un post" : ""}
+              title={isCollapsed ? (en ? 'Prepare a post' : 'Préparer un post') : ""}
             >
-              {isCollapsed ? '+ Post' : 'Préparer un post'}
+              {isCollapsed ? '+ Post' : (en ? 'Prepare a post' : 'Préparer un post')}
             </button>
           </div>
         </div>
