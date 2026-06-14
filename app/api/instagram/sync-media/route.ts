@@ -43,8 +43,15 @@ export async function POST() {
     }
 
     // 2. Récupérer posts Instagram via API Graph (caption + thumbnail pour Reels)
+    // Dual-host: IGAA tokens (Instagram Login) only work on graph.instagram.com
+    // with /me/media; legacy Facebook page tokens use graph.facebook.com with
+    // /{ig-id}/media. Using the wrong host returns an error and the whole sync
+    // aborts → stale posts + deleted posts never reconciled. (Founder bug.)
     const fields = 'id,caption,media_url,thumbnail_url,media_type,timestamp,permalink';
-    const instagramApiUrl = `https://graph.facebook.com/v20.0/${profile.instagram_business_account_id}/media?fields=${fields}&limit=24&access_token=${profile.instagram_access_token}`;
+    const isIgaa = typeof profile.instagram_access_token === 'string' && profile.instagram_access_token.startsWith('IGAA');
+    const instagramApiUrl = isIgaa
+      ? `https://graph.instagram.com/v21.0/me/media?fields=${fields}&limit=24&access_token=${profile.instagram_access_token}`
+      : `https://graph.facebook.com/v20.0/${profile.instagram_business_account_id}/media?fields=${fields}&limit=24&access_token=${profile.instagram_access_token}`;
 
     console.log('[SyncMedia] Fetching Instagram posts...');
     const response = await fetch(instagramApiUrl, { cache: 'no-store' });
