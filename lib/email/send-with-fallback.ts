@@ -124,7 +124,17 @@ async function sendViaResend(opts: SendEmailOpts): Promise<{ ok: boolean; status
     if (opts.textContent) body.text = opts.textContent;
     if (opts.replyTo) body.reply_to = opts.replyTo;
     if (opts.inReplyTo) body.headers = { 'In-Reply-To': opts.inReplyTo, 'References': opts.inReplyTo };
-    if (opts.tags) body.tags = opts.tags.map(name => ({ name, value: name }));
+    // Resend rejects duplicate tag names and non-ASCII chars (422
+    // "The 'x' tag is duplicated" / validation_error). Sanitize + dedupe
+    // so a repeated sector tag (coach, pme, restaurant…) never blocks the
+    // send — this was silently failing ALL fallback emails.
+    if (opts.tags && opts.tags.length) {
+      const seen = new Set<string>();
+      const cleanTags = opts.tags
+        .map(t => String(t).replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 256))
+        .filter(t => t && !seen.has(t) && (seen.add(t), true));
+      if (cleanTags.length) body.tags = cleanTags.map(name => ({ name, value: name }));
+    }
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },

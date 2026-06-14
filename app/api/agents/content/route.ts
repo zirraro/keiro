@@ -2662,6 +2662,13 @@ export async function GET(request: NextRequest) {
               console.warn(`[Content] Duplicate post ${post.id} — auto-skipped`);
               await supabase.from('content_calendar').update(updateFields).eq('id', post.id);
               continue;
+            } else if (igResult.error?.startsWith('daily_cap_reached') || igResult.error?.includes('rate_limit')) {
+              // Expected safety behaviour, NOT an error: the publisher already
+              // postponed this post to a later date to respect the daily cap /
+              // min-spacing that protect our Meta permissions. Do NOT escalate
+              // — escalating inflated the admin digest error count with false
+              // positives. Leave status as-is (post is rescheduled).
+              console.log(`[Content] IG publish postponed (${igResult.error}) for post ${post.id} — expected, not escalated`);
             } else {
               console.error(`[Content] Instagram publish FAILED for post ${post.id}: ${igResult.error}`);
               escalateAgentError({ agent: 'content', action: 'publish_instagram', error: igResult.error || 'Unknown IG error', platform: 'instagram', postId: post.id, context: `Hook: ${fullPost.hook?.substring(0, 80)}` }).catch(() => {});
