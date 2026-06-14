@@ -18,6 +18,7 @@ import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type D
 import { arrayMove, SortableContext, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useLanguage } from '@/lib/i18n/context';
+import InfoTooltip from '@/components/InfoTooltip';
 
 // Translation key per agent id — falls back to the client-context `title`
 // when no localised override is present (keeps legacy agents working).
@@ -111,42 +112,43 @@ function SortableAgentCard({ agent, avatars, summary: _summary, onClick, isActiv
 
   return (
     <div ref={setNodeRef} style={style} {...attributes}>
-      <div className="w-full rounded-2xl bg-white/[0.03] border border-white/10 hover:border-white/25 hover:bg-white/[0.06] transition-all text-left overflow-hidden group relative">
+      <div className="w-full rounded-2xl bg-white/[0.04] border border-white/10 hover:border-white/30 hover:bg-white/[0.07] transition-all text-left overflow-hidden group relative">
         {/* Drag handle — top gradient bar */}
         <div
-          className="h-2 cursor-grab active:cursor-grabbing hover:h-3 transition-all"
+          className="h-1.5 cursor-grab active:cursor-grabbing hover:h-2.5 transition-all"
           style={{ background: `linear-gradient(90deg, ${agent.gradientFrom}, ${agent.gradientTo})` }}
           {...listeners}
           title={dragLabel}
         />
-        {/* Clickable content → opens agent. Mini per-agent counters were
-            removed here: they were showing 0 for most rows because our
-            backend summary only hydrates a few agent-specific metrics,
-            which looked broken. Card now stays clean — full metrics live
-            in the agent's own workspace. */}
-        <button onClick={onClick} className="w-full text-left p-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-full flex-shrink-0 overflow-hidden" style={{ background: `linear-gradient(135deg, ${agent.gradientFrom}, ${agent.gradientTo})`, padding: '2px' }}>
-              <div className="w-full h-full rounded-full overflow-hidden bg-gray-900 flex items-center justify-center">
+        {/* Activation toggle — top-right corner */}
+        <button
+          onClick={(e) => { e.stopPropagation(); onToggle?.(); }}
+          className={`absolute top-3.5 right-3 z-10 w-9 h-5 rounded-full flex-shrink-0 transition-colors ${isActivated ? 'bg-green-500/40' : 'bg-white/10'}`}
+          title={isActivated ? activeLabel : inactiveLabel}
+        >
+          <div className={`absolute top-[3px] w-[14px] h-[14px] rounded-full transition-all ${isActivated ? 'left-[18px] bg-green-400' : 'left-[3px] bg-white/30'}`} />
+        </button>
+        {/* Clickable content → opens agent. Larger avatar (64px) so the
+            agent's image reads clearly; name + role bigger; an "i" explains
+            what the agent does (prospect-friendly, replaces demo captions). */}
+        <button onClick={onClick} className="w-full text-left p-4">
+          <div className="flex items-start gap-3">
+            <div className="w-16 h-16 rounded-2xl flex-shrink-0 overflow-hidden" style={{ background: `linear-gradient(135deg, ${agent.gradientFrom}, ${agent.gradientTo})`, padding: '2px' }}>
+              <div className="w-full h-full rounded-[14px] overflow-hidden bg-gray-900 flex items-center justify-center">
                 {avatars[agent.id] ? (
                   <img src={avatars[agent.id]!} alt={agent.displayName} className="w-full h-full object-cover scale-[1.15]" style={{ objectPosition: 'center 15%' }} />
                 ) : (
-                  <span className="text-base">{agent.icon}</span>
+                  <span className="text-2xl">{agent.icon}</span>
                 )}
               </div>
             </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-white font-bold text-xs truncate">{agent.displayName}</div>
-              <div className="text-white/30 text-[10px] truncate">{agentTitle}</div>
+            <div className="min-w-0 flex-1 pt-0.5 pr-8">
+              <div className="flex items-center gap-1.5">
+                <span className="text-white font-bold text-sm truncate">{agent.displayName}</span>
+                {agent.description && <InfoTooltip text={agent.description} />}
+              </div>
+              <div className="text-white/45 text-[11px] leading-snug mt-1 line-clamp-2">{agentTitle}</div>
             </div>
-            {/* Activation toggle */}
-            <button
-              onClick={(e) => { e.stopPropagation(); onToggle?.(); }}
-              className={`relative w-8 h-[18px] rounded-full flex-shrink-0 transition-colors ${isActivated ? 'bg-green-500/40' : 'bg-white/10'}`}
-              title={isActivated ? activeLabel : inactiveLabel}
-            >
-              <div className={`absolute top-[2px] w-[14px] h-[14px] rounded-full transition-all ${isActivated ? 'left-[15px] bg-green-400' : 'left-[2px] bg-white/30'}`} />
-            </button>
           </div>
         </button>
       </div>
