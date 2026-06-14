@@ -32,6 +32,9 @@ export default function InstagramCarouselModal({ images, onClose }: InstagramCar
   const [isInstagramConnected, setIsInstagramConnected] = useState(false);
   const [instagramUsername, setInstagramUsername] = useState<string | null>(null);
   const [checkingConnection, setCheckingConnection] = useState(true);
+  // Post-publish success URL — shown via a real <a> link (window.open after
+  // the async publish gets popup-blocked).
+  const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
 
   // Galerie et sélection multiple
   const [availableImages, setAvailableImages] = useState<SavedImage[]>(images || []);
@@ -227,17 +230,8 @@ export default function InstagramCarouselModal({ images, onClose }: InstagramCar
       const data = await response.json();
 
       if (data.ok) {
-        const successMessage = `${t.library.icmSuccessTitle}\n\n${data.post.imageCount} ${t.library.icmSuccessImages}\n${t.library.icmSuccessEngagement}\n\n${t.library.icmSuccessCongrats}`;
-        alert(successMessage);
-
-        if (data.post.permalink) {
-          const openPost = window.confirm(t.library.openInstagramToSeePost);
-          if (openPost) {
-            window.open(data.post.permalink, '_blank');
-          }
-        }
-
-        onClose();
+        // Real-link success modal (popup-blocker-safe).
+        setPublishedUrl(data.post.permalink || `https://www.instagram.com/${instagramUsername}/`);
       } else {
         throw new Error(data.error || t.library.publishError);
       }
@@ -255,6 +249,24 @@ export default function InstagramCarouselModal({ images, onClose }: InstagramCar
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+      {publishedUrl && (
+        <div className="absolute inset-0 z-[60] flex items-center justify-center p-4 bg-black/70" onClick={() => { setPublishedUrl(null); onClose(); }}>
+          <div className="relative bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center" onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => { setPublishedUrl(null); onClose(); }} aria-label="Close" className="absolute top-3 right-3 w-7 h-7 rounded-full bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center text-neutral-500">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4 mt-1">
+              <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+            </div>
+            <h3 className="text-lg font-bold text-neutral-900 mb-1">{t.library.publishSuccess}</h3>
+            <p className="text-sm text-neutral-500 mb-5">{t.library.publishSuccessDetails}</p>
+            <a href={publishedUrl} target="_blank" rel="noopener noreferrer" onClick={() => { setPublishedUrl(null); onClose(); }}
+              className="block w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-500 text-white font-semibold hover:shadow-lg transition-all">
+              {t.library.openInstagramToSeePost}
+            </a>
+          </div>
+        </div>
+      )}
       <div className="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 sm:p-6 border-b bg-gradient-to-r from-purple-50 to-[#0c1a3a]/5">
