@@ -8,7 +8,8 @@
  * outside the selector since they aggregate across all networks.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { supabaseBrowser } from '@/lib/supabase/client';
 import {
   fmt, fmtCurrency, fmtDate,
   KpiCard, SectionTitle, EmptyState, DonutChart, ProgressBar, ActivityFeed,
@@ -34,6 +35,25 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
   const gs = data.globalStats;
   const recs = data.recommendations ?? [];
   const [network, setNetwork] = useState<AmiNetwork>('instagram');
+
+  // Connected account handles so each network section shows WHICH account
+  // is connected (e.g. @keiro_ai), not just "Live".
+  const [accounts, setAccounts] = useState<{ instagram?: string | null; tiktok?: string | null; linkedin?: string | null }>({});
+  useEffect(() => {
+    (async () => {
+      try {
+        const sb = supabaseBrowser();
+        const { data: { user } } = await sb.auth.getUser();
+        if (!user) return;
+        const { data: prof } = await sb
+          .from('profiles')
+          .select('instagram_username, tiktok_username, linkedin_username')
+          .eq('id', user.id)
+          .maybeSingle();
+        if (prof) setAccounts({ instagram: prof.instagram_username, tiktok: prof.tiktok_username, linkedin: prof.linkedin_username });
+      } catch { /* silent */ }
+    })();
+  }, []);
 
   // If globalStats is available, show the master dashboard
   if (gs) {
@@ -68,6 +88,7 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
             network="instagram"
             label="Instagram"
             stats={(gs as any).instagram}
+            accountName={accounts.instagram}
             connectUrl="/api/auth/instagram-oauth"
             icon={'\u{1F4F8}'}
             labelLikes={p.marketingLabelLikes}
@@ -82,6 +103,7 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
             network="tiktok"
             label="TikTok"
             stats={(gs as any).tiktok}
+            accountName={accounts.tiktok}
             connectUrl="/api/auth/tiktok-oauth"
             icon={'\u{1F3B5}'}
             labelLikes={en ? 'Total likes' : 'Likes totaux'}
@@ -95,6 +117,7 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
             network="linkedin"
             label="LinkedIn"
             stats={(gs as any).linkedin}
+            accountName={accounts.linkedin}
             connectUrl="/api/auth/linkedin-oauth"
             icon={'\u{1F4BC}'}
             labelLikes={en ? 'Reactions' : 'R\u00e9actions'}
@@ -308,7 +331,7 @@ export function MarketingPanel({ data, agentName, gradientFrom, gradientTo }: Pa
 // Used in the AMI/Marketing dashboard as the "Insights" demo
 // surface for Meta App Review (instagram_business_manage_insights).
 function NetworkInsightSection({
-  network, label, stats, connectUrl, icon,
+  network, label, stats, connectUrl, icon, accountName,
   labelLikes, labelEngagement, labelFollowers, labelPosts, labelReach,
 }: {
   network: 'instagram' | 'tiktok' | 'linkedin';
@@ -316,6 +339,7 @@ function NetworkInsightSection({
   stats: any;
   connectUrl: string;
   icon: string;
+  accountName?: string | null;
   labelLikes: string;
   labelEngagement: string;
   labelFollowers: string;
@@ -358,7 +382,9 @@ function NetworkInsightSection({
           <div className={`text-[10px] mt-0.5 ${usingSample ? 'text-amber-300/80' : 'text-emerald-400'}`}>
             {usingSample
               ? (en ? `Sample data — connect ${label} to see your real numbers` : `Données d'exemple — connecte ${label} pour voir tes vrais chiffres`)
-              : (en ? 'Live data via API' : 'Live data via API')}
+              : accountName
+                ? <><span className="text-white font-semibold">{network === 'linkedin' ? accountName : `@${String(accountName).replace(/^@/, '')}`}</span> · {en ? 'Live data via API' : 'Données live via API'}</>
+                : (en ? 'Live data via API' : 'Données live via API')}
           </div>
         </div>
         {usingSample && (
