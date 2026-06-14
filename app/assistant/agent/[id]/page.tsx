@@ -11,6 +11,29 @@ import AgentOrdersHint from './components/AgentOrdersHint';
 import CreditPackModal from '@/components/CreditPackModal';
 import CreditBalanceChip from '@/components/CreditBalanceChip';
 import WeeklyPlanCard from './components/WeeklyPlanCard';
+import InfoTooltip from '@/components/InfoTooltip';
+
+// Per-tab explanations shown by the "i" next to each agent tab (FR/EN).
+function tabInfoText(key: string, agentId: string, isEn: boolean): string {
+  switch (key) {
+    case 'dashboard':
+      return isEn ? "Overview: this agent's recent activity, key stats and pending actions." : "Vue d'ensemble : activité récente de l'agent, stats clés et actions en attente.";
+    case 'planning':
+      return agentId === 'email'
+        ? (isEn ? 'Plan and review your email sequences and sends before they go out.' : 'Planifie et relis tes séquences et envois email avant leur départ.')
+        : (isEn ? 'Editorial calendar: generate, schedule and approve your posts ahead (Instagram / TikTok / LinkedIn).' : "Calendrier éditorial : génère, planifie et valide tes posts à l'avance (Instagram / TikTok / LinkedIn).");
+    case 'editor':
+      return isEn ? 'Edit the documents (contracts, sheets) this agent generates.' : "Édite les documents (contrats, fiches) générés par cet agent.";
+    case 'documents':
+      return isEn ? 'Files you share with this agent (brand kit, attachments, references).' : "Fichiers que tu partages avec cet agent (brand kit, pièces jointes, références).";
+    case 'settings':
+      return isEn ? 'Agent settings: auto mode, frequency, style and connections.' : "Réglages de l'agent : mode automatique, fréquence, style et connexions.";
+    case 'profile':
+      return isEn ? 'Your business profile, shared with every agent so they stay on-brand.' : "Ton profil entreprise, partagé avec tous les agents pour rester fidèle à ta marque.";
+    default:
+      return '';
+  }
+}
 
 const CrmDashboard = dynamic(() => import('./components/CrmDashboard'), { ssr: false });
 const AgentDashboard = dynamic(() => import('./components/AgentDashboard'), { ssr: false });
@@ -2104,6 +2127,7 @@ export default function AgentWorkspacePage() {
                 style={activeTab === tab.key ? { background: `linear-gradient(135deg, ${gf}, ${gt})` } : undefined}
               >
                 <span>{tab.icon}</span> {tab.label}
+                <InfoTooltip text={tabInfoText(tab.key, agentId, isEn)} className="ml-0.5" />
               </button>
             ))}
           </div>
