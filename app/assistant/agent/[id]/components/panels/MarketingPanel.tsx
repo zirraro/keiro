@@ -383,8 +383,8 @@ function NetworkInsightSection({
             {usingSample
               ? (en ? `Sample data — connect ${label} to see your real numbers` : `Données d'exemple — connecte ${label} pour voir tes vrais chiffres`)
               : accountName
-                ? <><span className="text-white font-semibold">{network === 'linkedin' ? accountName : `@${String(accountName).replace(/^@/, '')}`}</span> · {en ? 'Live data via API' : 'Données live via API'}</>
-                : (en ? 'Live data via API' : 'Données live via API')}
+                ? <span className="text-white font-semibold">{network === 'linkedin' ? accountName : `@${String(accountName).replace(/^@/, '')}`}</span>
+                : 'Live'}
           </div>
         </div>
         {usingSample && (
