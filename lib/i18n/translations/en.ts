@@ -2018,7 +2018,7 @@ export const en: Translations = {
     icmFacebookPage: 'Linked Facebook Page',
     icmMetaSuite: 'Meta Business Suite',
     icmImportant: 'Important',
-    icmImportantDesc: 'Your Instagram account must be professional and linked to a Facebook Page.',
+    icmImportantDesc: 'An Instagram professional account (Business or Creator) is all you need — no Facebook Page required.',
     icmNeedHelp: 'Need help with the setup?',
     icmBookCall: 'Book a free call (15 min)',
     icmConnectBtn: 'Connect Instagram',

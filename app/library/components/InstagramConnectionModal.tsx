@@ -17,7 +17,7 @@ export default function InstagramConnectionModal({ isOpen, onClose }: InstagramC
   };
 
   const openMetaGuide = () => {
-    window.open('https://developers.facebook.com/docs/instagram-api', '_blank');
+    window.open('https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login', '_blank');
   };
 
   return (
@@ -72,20 +72,11 @@ export default function InstagramConnectionModal({ isOpen, onClose }: InstagramC
 
           <div className="border border-neutral-200 rounded-lg p-3">
             <h3 className="text-sm font-semibold text-neutral-900 mb-2">{t.library.connWhatYouNeed}</h3>
-            <div className="flex gap-4 text-xs text-neutral-700">
-              <div className="flex items-center gap-1.5">
-                <span className="bg-purple-100 text-purple-700 font-bold rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 text-[10px]">1</span>
-                <span>{t.library.icmNeedProAccount}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="bg-purple-100 text-purple-700 font-bold rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 text-[10px]">2</span>
-                <span>{t.library.icmNeedFbPage}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="bg-purple-100 text-purple-700 font-bold rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 text-[10px]">3</span>
-                <span>{t.library.icmNeedMeta}</span>
-              </div>
+            <div className="flex items-center gap-2 text-xs text-neutral-700">
+              <span className="bg-purple-100 text-purple-700 font-bold rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0 text-[10px]">{'✓'}</span>
+              <span><strong>{t.library.icmNeedProAccount}</strong></span>
             </div>
+            <p className="text-[11px] text-neutral-500 mt-1.5">{t.library.icmImportantDesc}</p>
           </div>
 
           <button

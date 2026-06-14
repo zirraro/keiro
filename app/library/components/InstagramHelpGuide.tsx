@@ -53,29 +53,6 @@ export default function InstagramHelpGuide() {
               </div>
             </div>
 
-            <div className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded-full bg-purple-500 text-white flex items-center justify-center flex-shrink-0 text-xs font-bold">
-                3
-              </div>
-              <div>
-                <p className="font-semibold text-neutral-900 text-sm">{t.library.ihgStep3Title}</p>
-                <p className="text-xs text-neutral-600">
-                  {t.library.ihgStep3Desc}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded-full bg-purple-500 text-white flex items-center justify-center flex-shrink-0 text-xs font-bold">
-                4
-              </div>
-              <div>
-                <p className="font-semibold text-neutral-900 text-sm">{t.library.ihgStep4Title}</p>
-                <p className="text-xs text-neutral-600">
-                  {t.library.ihgStep4Desc}
-                </p>
-              </div>
-            </div>
           </div>
 
           {/* CTA Buttons */}
@@ -90,7 +67,7 @@ export default function InstagramHelpGuide() {
               {t.library.ihgBookCall}
             </button>
             <a
-              href="https://developers.facebook.com/docs/instagram-api"
+              href="https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-4 py-2 bg-white text-purple-600 border-2 border-purple-300 rounded-lg font-semibold hover:bg-purple-50 transition-colors text-sm"
