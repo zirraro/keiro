@@ -83,7 +83,7 @@ export default function FreeTrialGate() {
           <div className="text-center mb-4 sm:mb-5">
             <div className="text-3xl sm:text-4xl mb-2">🎉</div>
             <h2 className="text-xl sm:text-2xl font-black text-neutral-900 mb-2 leading-tight">
-              Pas mal, hein ? Crée ton compte pour 2 gens en plus
+              Pas mal, hein ? Crée ton compte pour 2 générations en plus
             </h2>
             <p className="text-xs sm:text-sm text-neutral-600 leading-relaxed">
               Email + mot de passe. <strong>Pas de carte.</strong> Tu débloques 2 générations supplémentaires + accès aux <strong>agents qui automatisent</strong> ta com (publication auto IG/TikTok, DMs, emails…).
