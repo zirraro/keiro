@@ -1300,16 +1300,18 @@ function DmConversationsLive() {
               const inWindow = hours <= 24;
               const days = Math.floor(hours / 24);
               return inWindow ? (
-                <div className="px-3 py-2 border-b border-white/5 bg-emerald-500/[0.06] flex items-center gap-2 text-[10px]">
+                <div className="px-3 py-2 border-b border-white/5 bg-emerald-500/[0.06] flex items-center gap-2 text-[10px] flex-wrap">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
-                  <span className="text-emerald-300 font-semibold">In the 24h messaging window</span>
-                  <span className="text-white/40">\u00b7 Last customer message {Math.floor(hours)}h ago. Sends use the standard <code>POST /me/messages</code> path.</span>
+                  <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-200 font-bold">{en ? 'Auto-reply ON' : 'R\u00e9ponse auto ACTIVE'}</span>
+                  <span className="text-emerald-300 font-semibold">{en ? 'In the 24h messaging window' : 'Dans la fen\u00eatre 24h'}</span>
+                  <span className="text-white/40">\u00b7 {en ? `Last customer message ${Math.floor(hours)}h ago.` : `Dernier message client il y a ${Math.floor(hours)}h.`}</span>
                 </div>
               ) : (
-                <div className="px-3 py-2 border-b border-white/5 bg-amber-500/[0.08] flex items-center gap-2 text-[10px]">
+                <div className="px-3 py-2 border-b border-white/5 bg-amber-500/[0.08] flex items-center gap-2 text-[10px] flex-wrap">
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
-                  <span className="text-amber-300 font-semibold">Outside 24h \u00b7 Human Agent mode</span>
-                  <span className="text-white/50">\u00b7 Customer wrote {days}d{Math.floor(hours - days * 24)}h ago. Your manual reply is sent with <code>messaging_type=MESSAGE_TAG&amp;tag=HUMAN_AGENT</code>.</span>
+                  <span className="px-1.5 py-0.5 rounded bg-amber-500/25 text-amber-200 font-bold">{en ? 'Auto-reply OFF' : 'R\u00e9ponse auto D\u00c9SACTIV\u00c9E'}</span>
+                  <span className="text-amber-300 font-semibold">{en ? 'Outside 24h \u00b7 human reply required' : 'Hors 24h \u00b7 r\u00e9ponse humaine requise'}</span>
+                  <span className="text-white/50">\u00b7 {en ? `Customer wrote ${days}d${Math.floor(hours - days * 24)}h ago \u2014 your manual reply is sent with the HUMAN_AGENT tag.` : `Client a \u00e9crit il y a ${days}j${Math.floor(hours - days * 24)}h \u2014 ta r\u00e9ponse manuelle part avec le tag HUMAN_AGENT.`}</span>
                 </div>
               );
             })()}
