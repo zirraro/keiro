@@ -781,6 +781,29 @@ export default function GeneratePage() {
     localStorage.removeItem('keiro_generate_form_state');
   }, [authUserId]);
 
+  /* --- Restore an anonymous generation after signup --- */
+  // A visitor who generated while logged out (then hit the email/signup gate)
+  // has their last image + form stashed in `keiro_anon_pending_gen`. When they
+  // come back (typically right after creating an account), restore it so the
+  // work isn't lost. Runs once on mount; TTL 2h.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('keiro_anon_pending_gen');
+      if (!raw) return;
+      const s = JSON.parse(raw);
+      localStorage.removeItem('keiro_anon_pending_gen');
+      if (s.savedAt && Date.now() - new Date(s.savedAt).getTime() > 2 * 60 * 60 * 1000) return;
+      if (s.generatedImageUrl) setGeneratedImageUrl(s.generatedImageUrl);
+      if (s.businessType) setBusinessType(s.businessType);
+      if (s.businessDescription) setBusinessDescription(s.businessDescription);
+      if (s.targetAudience) setTargetAudience(s.targetAudience);
+      if (s.tone) setTone(s.tone);
+      if (s.visualStyle) setVisualStyle(s.visualStyle);
+      if (s.platform) setPlatform(s.platform);
+      if (s.businessType) { setWizardPhase('configure'); setFormStep(1); }
+    } catch { /* ignore */ }
+  }, []);
+
   // Seed business identity from the signup questionnaire (business_dossiers)
   // when no localStorage state restored anything. Founder ask: business
   // + description should pre-fill from signup, the other generation
@@ -1420,11 +1443,26 @@ export default function GeneratePage() {
     if (!isAdmin && !user) {
       const action = generationLimit.requiredAction;
       console.log('[Generate] Freemium check:', { action, count: generationLimit.count });
+      // Stash the visitor's last generation + form so it survives signup
+      // and can be restored when they come back (founder ask: a generation
+      // made while logged out must not be lost).
+      const stashAnonPending = () => {
+        try {
+          const httpImg = generatedImageUrl && generatedImageUrl.startsWith('http') ? generatedImageUrl : null;
+          localStorage.setItem('keiro_anon_pending_gen', JSON.stringify({
+            generatedImageUrl: httpImg,
+            businessType, businessDescription, targetAudience, tone, visualStyle, platform,
+            savedAt: new Date().toISOString(),
+          }));
+        } catch { /* quota / unavailable — non-fatal */ }
+      };
       if (action === 'email_gate') {
+        stashAnonPending();
         setShowEditEmailGate(true);
         return;
       }
       if (action === 'signup_gate') {
+        stashAnonPending();
         setShowConversionPopup(true);
         return;
       }
