@@ -81,11 +81,15 @@ export default function MetaReviewPage() {
             and redirects you to the workspace dashboard after sign-in. The
             reviewer account is <strong>email-confirmed and ready to use
             immediately</strong> — no email verification click is required. It
-            is pre-provisioned with an Instagram Business account (<strong>@keiro_ai</strong>),
-            a connected Facebook Page (<strong>KeiroAI</strong>), the Business
-            plan (top tier, all features unlocked), and 5,000 credits. The
-            trial period extends to April 2027, so the entire review window
-            is covered.
+            is pre-provisioned with the Business plan (top tier, all features
+            unlocked) and credits, and the trial extends to 2028, so the entire
+            review window is covered. The Instagram professional account
+            <strong> @keiro_ai</strong> is provided for testing and is currently
+            <strong> NOT connected</strong> on purpose — so your very first
+            action, clicking <em>Connect Instagram</em>, shows the complete
+            Instagram login + permission-grant flow. <strong>No Facebook account
+            or Facebook Page is required</strong>: KeiroAI uses Business Login
+            for Instagram (you sign in directly with the Instagram account).
           </p>
           <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
             <div className="text-xs font-bold uppercase tracking-wider text-blue-800 mb-1">
@@ -128,16 +132,17 @@ export default function MetaReviewPage() {
             <Step n={1} title="Sign in with the credentials in section 1.">
               You land on <code>/assistant</code>, the workspace dashboard.
             </Step>
-            <Step n={2} title="Open the Instagram badge in the top-right.">
-              The reviewer account is already connected to <strong>@keiro_ai</strong>.
-              The badge displays the IG Business account ID (17841476766717246) and
-              the FB page ID (772774919255471).
+            <Step n={2} title="Click 'Connect Instagram' (top-right badge).">
+              The reviewer account starts <strong>disconnected</strong>, so this
+              opens the full Business Login for Instagram flow.
             </Step>
-            <Step n={3} title="Disconnect &amp; reconnect to see the full Meta login flow.">
-              Click <em>Disconnect Instagram</em> in <em>Settings → Connections</em>,
-              then click <em>Connect Instagram Business</em>. This opens the
-              standard Facebook OAuth dialog where you select the Page and IG
-              Business account to grant access.
+            <Step n={3} title="Sign in with the Instagram account and grant access.">
+              You are redirected to <code>instagram.com</code> and sign in with
+              the <strong>@keiro_ai</strong> Instagram professional account
+              (credentials provided). Instagram then shows the full permission
+              grant screen — review it and tap <em>Allow</em>. No Facebook
+              account or Page is involved. The badge then turns green and shows
+              the IG Business account ID (17841476766717246).
             </Step>
           </ol>
 
@@ -213,14 +218,14 @@ export default function MetaReviewPage() {
             instagram_business_manage_comments — moderate &amp; reply to comments
           </h3>
           <ol className="space-y-3 mb-6">
-            <Step n={1} title="Open the Axel — Comments panel.">
+            <Step n={1} title="Open the Jade — Comments panel.">
               KeiroAI fetches recent comments via
               <code> /{`<media-id>`}/comments</code> for the latest published posts.
               They are listed inside the workspace with the original commenter
               handle, text, and timestamp.
             </Step>
             <Step n={2} title="Click Generate reply on any comment.">
-              Axel composes a personalised reply draft. You review it.
+              Jade composes a personalised reply draft. You review it.
             </Step>
             <Step n={3} title="Click Send reply — the human-triggered API call.">
               We POST to <code>/{`<comment-id>`}/replies</code>. The reply
@@ -370,34 +375,30 @@ export default function MetaReviewPage() {
             the screencast:</strong>
           </p>
           <ol className="space-y-3 mb-3">
-            <Step n={1} title="Click 'Connect Instagram Business' inside KeiroAI.">
-              The button is in the workspace header (yellow asset badge if not
+            <Step n={1} title="Click 'Connect Instagram' inside KeiroAI.">
+              The button is in the workspace header (asset badge when not
               connected) and on the Settings page.
             </Step>
-            <Step n={2} title="Redirect to facebook.com/dialog/oauth.">
-              Standard Meta-hosted dialog. The reviewer is asked to log in to
-              Facebook (if not already) and select a Business Page.
+            <Step n={2} title="Redirect to instagram.com/oauth/authorize.">
+              Instagram-hosted login (Business Login for Instagram). You sign in
+              with the <strong>@keiro_ai</strong> Instagram professional account
+              credentials (provided in section 1). No Facebook account or
+              Facebook Page is involved.
             </Step>
-            <Step n={3} title="Asset selection screen.">
-              Meta presents the list of Pages and the linked IG Business
-              accounts. The reviewer picks <strong>KeiroAI</strong> Page and
-              <strong> @keiro_ai</strong> Instagram Business account.
+            <Step n={3} title="Permission grant screen — the human action.">
+              Instagram presents the full list of permissions our app requests.
+              You review and tap <em>Allow</em>. This is the &quot;person
+              granting access&quot; step Meta requires to be visible.
             </Step>
-            <Step n={4} title="Permission grant screen — the human action.">
-              Meta presents the full list of permissions our app is asking
-              for. The reviewer reviews and clicks <em>Continue</em>. This is
-              the &quot;person granting access&quot; step Meta requires to be
-              visible.
+            <Step n={4} title="Redirect back to /instagram-callback.">
+              We exchange the short-lived code for a long-lived Instagram access
+              token (IGAA, ~60 days) via <code>graph.instagram.com</code>, store
+              it encrypted, and return you to the workspace dashboard.
             </Step>
-            <Step n={5} title="Redirect back to /api/auth/instagram-callback.">
-              We exchange the short-lived code for a long-lived IGAA access
-              token + Page access token, store them encrypted, and bounce the
-              reviewer back to the workspace dashboard.
-            </Step>
-            <Step n={6} title="Asset badge turns green.">
+            <Step n={5} title="Asset badge turns green.">
               The IG asset badge in the workspace header now shows
               <strong> @keiro_ai</strong> with profile picture and follower
-              count, confirming the OAuth grant succeeded.
+              count, confirming the grant succeeded.
             </Step>
           </ol>
           <p className="text-xs text-neutral-500 mb-4">
@@ -410,44 +411,29 @@ export default function MetaReviewPage() {
 
           <div className="rounded-lg border border-amber-300 bg-amber-50 p-4">
             <div className="text-sm font-semibold text-amber-900 mb-2">
-              How to force the full Meta permissions dialog (Page selector + IG selector + grant screen)
+              Seeing the full permission grant
             </div>
             <p className="text-xs text-amber-900/90 leading-relaxed mb-3">
-              On a returning Facebook account, Meta hides the full grant
-              dialog and only shows &quot;Continue as Name&quot; / &quot;Réassocier&quot;.
-              The button below revokes the app server-side and reopens the
-              full dialog in a single click — no Facebook settings hunting
-              needed. (Two slower fallbacks are documented underneath.)
+              The reviewer test account starts <strong>disconnected</strong>, so
+              clicking <em>Connect Instagram</em> already shows the complete
+              Instagram login + permission-grant screen. If you ever need to
+              restart a fresh grant after connecting (Instagram otherwise shows
+              a short &quot;already connected&quot; screen), the button below
+              revokes the app and reopens the full Instagram Login flow in one
+              click.
             </p>
 
             <ForceFreshButton />
 
             <details className="mt-4 text-xs text-amber-900/80">
-              <summary className="cursor-pointer font-semibold">Fallback methods</summary>
-              <ol className="list-decimal pl-5 space-y-2 mt-2">
-                <li>
-                  <strong>URL-only force re-prompt.</strong> Hit
-                  <a className="text-blue-700 underline ml-1" href="/api/auth/instagram-oauth?reauth=full">
-                    /api/auth/instagram-oauth?reauth=full
-                  </a>
-                  directly. Passes <code>auth_type=reauthenticate</code> to
-                  Meta so Facebook re-asks for the password and re-renders
-                  the full permissions screen. (No token revocation — if Meta
-                  still skips the grant screen, use the button above which
-                  revokes first.)
-                </li>
-                <li>
-                  <strong>Manual revoke from Facebook (cleanest baseline).</strong>
-                  In Facebook on desktop: profile picture → <em>Paramètres et
-                  confidentialité</em> → <em>Paramètres</em> → left sidebar
-                  <em> Applications et sites Web</em> (or <em>Intégrations
-                  professionnelles</em>) → find <em>KeiroAI</em> → click
-                  <em> Supprimer</em>. <strong>Do NOT</strong> check the
-                  &quot;Supprimer toutes les publications, vidéos et événements
-                  liés à KeiroAI&quot; option — that one would delete your
-                  published Instagram content. Just click <em>Remove</em>.
-                </li>
-              </ol>
+              <summary className="cursor-pointer font-semibold">Manual alternative</summary>
+              <p className="mt-2 leading-relaxed">
+                In the Instagram app or on instagram.com (logged in as
+                <strong> @keiro_ai</strong>): <em>Settings → Apps and websites →
+                Active → KEIROAI-IG → Remove</em>. The next
+                <em> Connect Instagram</em> then shows the full permission grant
+                again.
+              </p>
             </details>
           </div>
         </section>
