@@ -175,48 +175,17 @@ async function recycleForUser(
     }
   }
 
-  // ─── TT Photo Mode ───
-  if (ttConnected) {
-    const { count: nearTtPhotos } = await supabase
-      .from('content_calendar')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('platform', 'tiktok')
-      .eq('format', 'photo')
-      .gte('created_at', twentyHoursAgo);
-
-    if ((nearTtPhotos || 0) > 0) {
-      res.tt_skipped_reason = 'recent_photo_within_20h';
-    } else {
-      const asset = pickAsset();
-      if (!asset) {
-        res.tt_skipped_reason = 'no_eligible_asset';
-      } else {
-        const delayMin = 90 + Math.floor(Math.random() * 120); // 90-210min (offset IG)
-        const at = new Date(now.getTime() + delayMin * 60 * 1000);
-        const caption = pickCaption(asset.kind);
-        const { error } = await supabase.from('content_calendar').insert({
-          user_id: user.id,
-          platform: 'tiktok',
-          format: 'photo',
-          hook: 'Library recycle — TT Photo Mode',
-          caption,
-          hashtags: ['#fyp', '#pourtoi'],
-          visual_url: asset.url,
-          scheduled_date: at.toISOString().split('T')[0],
-          scheduled_time: at.toISOString().split('T')[1].substring(0, 8), // HH:MM:SS
-          status: 'approved',
-          auto_publish: true,
-          source: 'story_library_recycle',
-        });
-        if (!error) {
-          res.tt_scheduled = { visual_url: asset.url, caption, scheduled_time: at.toISOString() };
-        } else {
-          res.tt_skipped_reason = `insert_error:${error.message.substring(0, 80)}`;
-        }
-      }
-    }
-  }
+  // ─── TT Photo Mode — DISABLED 2026-06-15 ───
+  // TikTok "Photo Mode" is a PERMANENT FEED post, not an ephemeral story.
+  // Recycling an old library image with a generic throwaway caption + 2
+  // hashtags was polluting the TikTok feed (founder report: "dernier post
+  // tiktok 2 images, description quasi inutile, ~0 hashtag"). Posting weak
+  // recycled content to the feed hurts the algo more than staying silent.
+  // The TikTok feed now keeps ONLY the real Léna creative posts (proper
+  // caption, discovery hashtags, QA'd visuals). Library recycling remains for
+  // IG STORIES only (ephemeral, low-stakes). Re-enable only behind a proper
+  // generated caption + hashtags + QA if we ever want feed recycling back.
+  res.tt_skipped_reason = 'tiktok_feed_recycle_disabled';
 
   return res;
 }
