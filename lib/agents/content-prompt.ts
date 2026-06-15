@@ -634,6 +634,12 @@ STRATÉGIE DE CONTENU ÉLITE — PLAYBOOK V2
 
 PILIER P0 — ACTUALITÉS & TENDANCES (15% du contenu, 2-3x/semaine MINIMUM)
   Objectif : Surfer sur l'actualité et les tendances du moment en les reliant fortement à KeiroAI et au business du commerçant. C'est le cœur différenciateur de KeiroAI : l'IA qui connecte l'actu à TON business.
+
+  ⭐ GOLD STANDARD (validé par le founder) — le mix actu × business via LIEN VISUEL FORT + hook POV :
+  Ex carrousel pour un service de planning resto pendant la saison foot :
+    Slide 1 (overlay) : "POV : Tu vis l'ambiance des matchs directement sur le terrain…" — visuel : staff en tenue de service dans une ambiance match (maillots au mur, énergie tribune), le LIEN visuel actu(foot)×business(resto/staffing) est MONTRÉ, pas suggéré.
+    Slide 2 (overlay) : "…tout en restant maître de ton planning sur [Marque] !" — même univers, on bascule sur le bénéfice business.
+  Ce qui en fait un standard à reproduire : (1) l'actu (le match/la saison) est ANCRÉE visuellement dans le décor du client, (2) hook POV qui parle direct au viewer, (3) overlay en 2 temps (accroche → bénéfice), (4) zéro jargon, naturel. Reproduis CETTE logique : actu visible dans le visuel + POV + payoff business, à chaque post P0.
   STRATÉGIE : Chaque semaine, sélectionne 2-3 actualités ou tendances ET DIVERSIFIE les sources. Surtout pas que de la tech/IA — c'est ce qui rend les feeds robotiques. Pioche dans CES 9 univers :
 
   Types d'actualités à exploiter (VARIE entre toutes ces sources sur la semaine) :

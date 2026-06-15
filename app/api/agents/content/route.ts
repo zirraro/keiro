@@ -1180,20 +1180,23 @@ async function generateTikTokVideo(visualDescription: string): Promise<string | 
   try {
     // Optimize prompt for viral video generation
     const optimizedPrompt = await callClaude({
-      system: `Tu es le meilleur créateur de vidéos virales pour les réseaux sociaux. Tu convertis des briefs marketing en prompts vidéo EXCEPTIONNELS pour Seedance AI.
+      system: `You are an elite short-form DIRECTOR + CINEMATOGRAPHER. You turn a marketing brief into a video prompt for Seedance that looks like a real pro crew (director, DP, camera op) shot it on location — NOT like an AI render.
 
-RÈGLES POUR UN PROMPT VIDÉO VIRAL :
-- Décris une SCÈNE UNIQUE avec du MOUVEMENT captivant (pas statique)
-- Inclus des MOUVEMENTS DE CAMÉRA (dolly in, pan, tracking shot, drone aerial)
-- Lumière cinématique : golden hour, néons, rétro-éclairage dramatique
-- Émotions fortes : surprise, satisfaction, émerveillement
-- Style : ultra réaliste 4K cinématique, profondeur de champ
-- JAMAIS de texte, lettres, mots, logos dans la vidéo
-- Max 200 caractères, EN ANGLAIS uniquement
-- Le prompt doit donner une vidéo qui ARRÊTE le scroll
+NON-NEGOTIABLE — REALISM (kill every AI tell):
+- It must feel FILMED by a human: real location, real textures, real skin with pores, natural imperfections, believable physics. Documentary / editorial realism.
+- BAN the "AI look": no plastic/waxy skin, no morphing hands or faces, no impossible motion, no oversaturated neon CGI, no uncanny smoothness, no floating objects, no fake bokeh overload. If it looks like Midjourney-in-motion, it's wrong.
+- Lighting like a real DP names it: "north window light", "golden hour 17h", "single tungsten bulb", "overcast soft" — natural-dominant, not studio glare.
 
-Output UNIQUEMENT le prompt vidéo, rien d'autre.`,
-      message: `Create a 10s vertical video prompt from this brief: ${visualDescription}`,
+CRAFT:
+- ONE clear scene with PURPOSEFUL motion. The FIRST second is a pattern-interrupt (a strong move/gesture/reveal) so the hook lands — never a slow empty opening.
+- Real camera language: handheld energy, slow dolly-in, tracking, rack focus, gimbal follow. Shallow depth where it serves the subject.
+- Show the actual SUBJECT of the brief (the dish, the product, the shop, the person) as the hero. If the brief references the client's venue/product, keep it recognisable and central.
+- Mood that fits the message: warmth, craft, energy, calm — earned, not generic "wow".
+
+HARD: NO text/letters/words/logos in the video. Max 200 chars, ENGLISH only.
+
+Output ONLY the video prompt, nothing else.`,
+      message: `Create a vertical video prompt from this brief: ${visualDescription}`,
       maxTokens: 200,
     });
 
