@@ -131,9 +131,11 @@ function SortableAgentCard({ agent, avatars, summary: _summary, onClick, isActiv
         {/* Clickable content → opens agent. Larger avatar (64px) so the
             agent's image reads clearly; name + role bigger; an "i" explains
             what the agent does (prospect-friendly, replaces demo captions). */}
-        <button onClick={onClick} className="w-full text-left p-4">
-          <div className="flex items-start gap-3">
-            <div className="w-16 h-16 rounded-2xl flex-shrink-0 overflow-hidden" style={{ background: `linear-gradient(135deg, ${agent.gradientFrom}, ${agent.gradientTo})`, padding: '2px' }}>
+        <button onClick={onClick} className="w-full text-left p-3 sm:p-4">
+          {/* Mobile: vertical, centered (the 2-col grid is narrow → a 64px
+              avatar + side text crammed the name). Desktop: horizontal. */}
+          <div className="flex flex-col items-center text-center gap-2 sm:flex-row sm:items-start sm:text-left sm:gap-3">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl flex-shrink-0 overflow-hidden" style={{ background: `linear-gradient(135deg, ${agent.gradientFrom}, ${agent.gradientTo})`, padding: '2px' }}>
               <div className="w-full h-full rounded-[14px] overflow-hidden bg-gray-900 flex items-center justify-center">
                 {avatars[agent.id] ? (
                   <img src={avatars[agent.id]!} alt={agent.displayName} className="w-full h-full object-cover scale-[1.15]" style={{ objectPosition: 'center 15%' }} />
@@ -142,12 +144,12 @@ function SortableAgentCard({ agent, avatars, summary: _summary, onClick, isActiv
                 )}
               </div>
             </div>
-            <div className="min-w-0 flex-1 pt-0.5 pr-8">
-              <div className="flex items-center gap-1.5">
-                <span className="text-white font-bold text-sm truncate">{agent.displayName}</span>
+            <div className="min-w-0 flex-1 w-full sm:pt-0.5 sm:pr-8">
+              <div className="flex items-center justify-center sm:justify-start gap-1.5">
+                <span className="text-white font-bold text-[13px] sm:text-sm truncate">{agent.displayName}</span>
                 {agent.description && <InfoTooltip text={agent.description} />}
               </div>
-              <div className="text-white/45 text-[11px] leading-snug mt-1 line-clamp-2">{agentTitle}</div>
+              <div className="text-white/45 text-[10px] sm:text-[11px] leading-snug mt-0.5 sm:mt-1 line-clamp-2">{agentTitle}</div>
             </div>
           </div>
         </button>

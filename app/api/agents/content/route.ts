@@ -1188,8 +1188,9 @@ NON-NEGOTIABLE — REALISM (kill every AI tell):
 - Lighting like a real DP names it: "north window light", "golden hour 17h", "single tungsten bulb", "overcast soft" — natural-dominant, not studio glare.
 
 CRAFT:
-- ONE clear scene with PURPOSEFUL motion. The FIRST second is a pattern-interrupt (a strong move/gesture/reveal) so the hook lands — never a slow empty opening.
+- ONE clear scene with PURPOSEFUL, DYNAMIC motion. The FIRST second is a pattern-interrupt (a strong move/gesture/reveal) so the hook lands — never a slow empty opening.
 - Real camera language: handheld energy, slow dolly-in, tracking, rack focus, gimbal follow. Shallow depth where it serves the subject.
+- PEOPLE (when the scene has them): stage REAL, believable humans in a genuine MOMENT — mid-gesture, mid-laugh, working, serving, tasting — never a stiff pose to camera. Cast diversity (age, origin, gender) naturally. A director + DP staged this, with real wardrobe and real hands doing real things.
 - Show the actual SUBJECT of the brief (the dish, the product, the shop, the person) as the hero. If the brief references the client's venue/product, keep it recognisable and central.
 - Mood that fits the message: warmth, craft, energy, calm — earned, not generic "wow".
 
