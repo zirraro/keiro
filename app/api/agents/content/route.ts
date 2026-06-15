@@ -3893,6 +3893,20 @@ export async function POST(request: NextRequest) {
                                       .order('performance_score', { ascending: false })
                                       .limit(6);
                                     topPerformerHooks = (tops || []).map((t: any) => t.hook).filter(Boolean);
+                                    // Also feed in hooks the owner learned by pasting viral URLs
+                                    // (the more URLs they feed, the smarter generation gets).
+                                    const { data: learned } = await supabase
+                                      .from('agent_logs')
+                                      .select('data')
+                                      .eq('agent', 'content')
+                                      .eq('action', 'hook_learned')
+                                      .eq('user_id', ownerId)
+                                      .order('created_at', { ascending: false })
+                                      .limit(6);
+                                    for (const l of learned || []) {
+                                      const ah = (l as any).data?.adapted_hook;
+                                      if (ah) topPerformerHooks.push(ah);
+                                    }
                                   } catch { /* best-effort */ }
                                   const hookText = await generateReelHook({
                                     topic: (post as any).hook || (post as any).visual_description || post.caption || desc,
