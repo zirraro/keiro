@@ -137,7 +137,7 @@ export async function runI2vMontage(opts: {
     // Jamendo music (always-audio rule).
     try {
       const { pickJamendoMusic, pickMoodFromContext } = await import('@/lib/audio/jamendo-music');
-      const mood = opts.mood || pickMoodFromContext({ motion: undefined as any });
+      const mood: any = opts.mood || pickMoodFromContext({ motion: undefined as any });
       const music = await pickJamendoMusic({ mood, minDurationSec: 8 });
       if (music?.url) {
         const { muxReelAudio } = await import('@/lib/audio/reel-audio-mux');
