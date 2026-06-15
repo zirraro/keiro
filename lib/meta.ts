@@ -470,6 +470,7 @@ export type IgOwnMedia = {
   comments_count?: number;
   permalink?: string;
   impressions?: number;
+  views?: number;
   reach?: number;
   saved?: number;
 };
