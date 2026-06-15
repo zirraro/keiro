@@ -1480,6 +1480,13 @@ function InspirationBox({ network }: { network: InspirationNetwork }) {
   const [busy, setBusy] = useState(false);
   const [brief, setBrief] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  // "Paste a viral URL → extract the hook" (safe oEmbed, no scraping).
+  const [hookUrl, setHookUrl] = useState('');
+  const [hookCaption, setHookCaption] = useState('');
+  const [hookBusy, setHookBusy] = useState(false);
+  const [hookRes, setHookRes] = useState<any>(null);
+  const [hookNeedCaption, setHookNeedCaption] = useState(false);
+  const [hookErr, setHookErr] = useState<string | null>(null);
 
   const cfg = {
     instagram: { label: 'Instagram', icon: '\u{1F4F8}', accent: 'pink', placeholder: '@bistrot_marais', supported: true },
@@ -1555,6 +1562,24 @@ function InspirationBox({ network }: { network: InspirationNetwork }) {
     }
   };
 
+  const extractHook = async () => {
+    const u = hookUrl.trim();
+    if (!u) return;
+    setHookBusy(true); setHookErr(null); setHookRes(null);
+    try {
+      const res = await fetch('/api/agents/hook-extract', {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: u, caption: hookCaption.trim() || undefined }),
+      });
+      const j = await res.json();
+      if (j.ok) { setHookRes(j); setHookNeedCaption(false); }
+      else if (j.needCaption) { setHookNeedCaption(true); setHookErr(j.message || (en ? 'Paste the caption too' : 'Colle aussi la légende')); }
+      else setHookErr(j.error || (en ? 'Extraction failed' : 'Échec extraction'));
+    } catch (e: any) { setHookErr(e.message); }
+    finally { setHookBusy(false); }
+  };
+
   const accent = cfg.accent === 'pink' ? 'border-pink-500/20 bg-pink-500/5' :
                  cfg.accent === 'cyan' ? 'border-cyan-500/20 bg-cyan-500/5' :
                  'border-blue-500/20 bg-blue-500/5';
@@ -1619,6 +1644,48 @@ function InspirationBox({ network }: { network: InspirationNetwork }) {
                   : `${cfg.label} live analyser arrives soon — saving your reference now means Léna can use it the day the feature ships.`}
               </p>
             </>
+          )}
+
+          {/* Paste a viral URL → extract its hook (safe oEmbed, no scraping).
+              The more URLs fed, the smarter Léna's auto hooks get. */}
+          {network !== 'linkedin' && (
+            <div className="mt-2 pt-3 border-t border-white/10 space-y-2">
+              <div className="text-[10px] font-bold text-white/80">
+                {en ? '🪝 Paste a viral video URL → extract its hook' : '🪝 Colle l\'URL d\'une vidéo virale → extrais son hook'}
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={hookUrl}
+                  onChange={e => setHookUrl(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') extractHook(); }}
+                  placeholder={network === 'tiktok' ? 'https://www.tiktok.com/@.../video/...' : 'https://www.instagram.com/reel/...'}
+                  className="flex-1 bg-black/30 border border-white/10 rounded px-3 py-2 text-xs text-white placeholder-white/30"
+                />
+                <button onClick={extractHook} disabled={hookBusy || !hookUrl.trim()} className={`px-4 py-2 ${accentBtn} text-white text-xs font-bold rounded disabled:opacity-50`}>
+                  {hookBusy ? '...' : (en ? 'Extract' : 'Extraire')}
+                </button>
+              </div>
+              {hookNeedCaption && (
+                <textarea
+                  value={hookCaption}
+                  onChange={e => setHookCaption(e.target.value)}
+                  placeholder={en ? 'Paste the post caption here too…' : 'Colle aussi la légende du post ici…'}
+                  rows={2}
+                  className="w-full bg-black/30 border border-white/10 rounded px-3 py-2 text-xs text-white placeholder-white/30"
+                />
+              )}
+              {hookErr && <p className="text-[10px] text-amber-400">{hookErr}</p>}
+              {hookRes && (
+                <div className="bg-black/30 border border-white/10 rounded-lg p-3 text-[11px] text-white/80 space-y-1.5">
+                  {hookRes.source_hook && <div><strong className={accentText}>{en ? 'Source hook:' : 'Hook source :'}</strong> "{hookRes.source_hook}"</div>}
+                  {hookRes.formula && <div><strong className={accentText}>{en ? 'Formula:' : 'Formule :'}</strong> {hookRes.formula}</div>}
+                  {hookRes.why && <div className="text-white/60">{hookRes.why}</div>}
+                  {hookRes.adapted_hook && <div className="mt-1 pt-1.5 border-t border-white/10"><strong className={accentText}>{en ? 'For you:' : 'Pour toi :'}</strong> "{hookRes.adapted_hook}"</div>}
+                  <div className="text-[9px] text-white/40">{en ? 'Saved — Léna will draw from it on your next reels.' : 'Enregistré — Léna s\'en inspirera sur tes prochains reels.'}</div>
+                </div>
+              )}
+            </div>
           )}
         </div>
       )}
