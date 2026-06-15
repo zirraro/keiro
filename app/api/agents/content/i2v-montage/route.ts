@@ -64,13 +64,13 @@ export async function POST(req: NextRequest) {
       tools: [{ name: 'montage', description: 'cinematic montage plan', input_schema: {
         type: 'object',
         properties: {
-          pixabay_query: { type: 'string', description: '2-4 English keywords to find REAL stock photos of this subject (the shop/product/scene)' },
+          pixabay_query: { type: 'string', description: 'ONE very concrete, photographable subject in 2-3 English keywords (e.g. "artisan bakery bread", "barista coffee shop", "florist bouquet shop"). It must return a COHERENT set of real photos of the SAME kind of place/subject — never abstract concepts.' },
           scenes: { type: 'array', items: { type: 'string' }, minItems: plan.sceneCount, maxItems: plan.sceneCount,
-            description: `${plan.sceneCount} short English i2v motion prompts — distinct beats of the SAME ${businessType || 'business'} scene, cinematic, real and natural (camera move + subtle action), NO text in video` },
+            description: `${plan.sceneCount} short English i2v MOTION prompts for ONE continuous coherent scene in the SAME place. Each is just a CAMERA MOVE + subtle natural action that works on ANY photo of "${'${pixabay_query}'}" (e.g. "slow push-in, natural light, gentle steam", "slow pan across the counter", "rack focus to the hands at work"). Keep them generic enough to fit different photos of the same subject so the montage stays coherent. Realistic, natural, NO text, NO scene that contradicts the others.` },
         }, required: ['pixabay_query', 'scenes'], additionalProperties: false,
       } as any }],
       tool_choice: { type: 'tool', name: 'montage' },
-      messages: [{ role: 'user', content: `Build a ${plan.durationSec}s cinematic reel for ${company || businessType || 'a local business'}.\nSubject/brief: "${String(subject).slice(0, 400)}"\nProducts: ${mainProducts}\n\nReturn ${plan.sceneCount} distinct scene motion-prompts (same place/subject, different angle/beat) + a Pixabay query for real base photos.` }],
+      messages: [{ role: 'user', content: `Build a ${plan.durationSec}s COHERENT cinematic reel for ${company || businessType || 'a local business'}.\nSubject/brief: "${String(subject).slice(0, 400)}"\nProducts: ${mainProducts}\n\nCRITICAL: all ${plan.sceneCount} clips must look like ONE continuous scene in the SAME real place — pick ONE concrete photographable subject for pixabay_query, and write camera-motion prompts that work on any photo of that subject (so stitched clips feel coherent, not random). The link to the business must be obvious and natural.` }],
     });
     const tu = r.content.find((b: any) => b.type === 'tool_use') as any;
     if (tu?.input?.scenes?.length) scenes = tu.input.scenes;
