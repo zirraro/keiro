@@ -66,20 +66,26 @@ export const maxDuration = 600;
 // FR + les tags de niche du LLM, dédupliqués et capés à 6 (limite guardrail).
 // Un post sous-taggé (0-2 hashtags) ou sans tag découverte = peu de portée.
 function optimizeTikTokHashtags(raw: string[]): string[] {
+  // 2026-06-15 — Founder: TikTok posts need MORE hashtags (broad + niche) to be
+  // pushed. Cap raised 6 → 10 (TikTok sweet spot 2026), and discovery tags are
+  // GUARANTEED first so they're never dropped when the LLM already filled the
+  // list. Order: discovery (For You signal) → the LLM's niche/intent tags.
+  const TARGET = 10;
   const clean = (raw || []).map(h => String(h).replace(/^#/, '').trim()).filter(Boolean);
   const lower = new Set(clean.map(h => h.toLowerCase()));
-  const out = [...clean];
-  // Discovery tags FR (signalent le For You) — ajoutés s'ils manquent.
+  // Discovery tags first (guaranteed), then the niche tags from the LLM.
+  const ordered: string[] = [];
   for (const d of ['pourtoi', 'fyp']) {
-    if (!lower.has(d) && out.length < 6) { out.push(d); lower.add(d); }
+    if (!lower.has(d)) ordered.push(d);
   }
-  // Dédup + cap 6.
+  ordered.push(...clean);
+  // Dédup + cap at TARGET.
   const seen = new Set<string>();
   const final: string[] = [];
-  for (const h of out) {
+  for (const h of ordered) {
     const k = h.toLowerCase();
     if (!seen.has(k)) { seen.add(k); final.push(h); }
-    if (final.length >= 6) break;
+    if (final.length >= TARGET) break;
   }
   return final;
 }
@@ -2494,26 +2500,29 @@ export async function GET(request: NextRequest) {
               const { scoreVisualQuality } = await import('@/lib/visuals/qa-check');
               const qaDesc = fullPost.visual_description || fullPost.hook || '';
               const fatalFlags = ['blurry_subject', 'out_of_focus'];
-              const isBad = (s: any) => ((s.amateur_flags || []).some((f: string) => fatalFlags.includes(f)) || s.score <= 2);
+              // Founder quality rule (2026-06-15): ship only visuals that score
+              // at least QUALITY_FLOOR/10. "On accepte moins de 8 mais pas trop
+              // bas" → floor = 7. Below that (or any fatal flag) we regenerate.
+              const QUALITY_FLOOR = 7;
+              const isBad = (s: any) => ((s.amateur_flags || []).some((f: string) => fatalFlags.includes(f)) || s.score < QUALITY_FLOOR);
               let sqa = await scoreVisualQuality(visualUrl, qaDesc, 'the intended subject of this post');
               console.log(`[Content] pre-publish visual QA: score=${sqa.score}/10 — flags=${(sqa.amateur_flags || []).join(',')}`);
-              // 2026-06-12 — Founder rule "on doit publier qqch sans tuer les
-              // marges". The QA used to mark publish_failed and GIVE UP. New
-              // ladder (cost-bounded, always ships something good):
-              //   1. ONE regeneration (max — €0.05, never an infinite loop)
-              //   2. still bad → REUSE a proven top library visual (0 gen cost,
-              //      already passed QA + has real engagement, on-brand)
+              // Cost-bounded quality ladder (quality first, margin controlled):
+              //   1. up to 2 regenerations to reach the ≥7 floor (bounded cost)
+              //   2. still below floor → REUSE a proven top library visual
+              //      (0 gen cost, already passed QA + real engagement, on-brand)
               //   3. no library candidate (brand new client) → hold for validation
-              if (isBad(sqa) && qaDesc) {
-                console.warn(`[Content] visual QA fail (score=${sqa.score}) post ${post.id} — 1 régénération`);
+              let regenAttempts = 0;
+              while (isBad(sqa) && qaDesc && regenAttempts < 2) {
+                regenAttempts++;
+                console.warn(`[Content] visual QA below floor (score=${sqa.score}<${QUALITY_FLOOR}) post ${post.id} — regen ${regenAttempts}/2`);
                 const regen = await generateVisual(qaDesc, fullPost.format || 'post', userId || undefined, fullPost.platform);
-                if (regen) {
-                  const cachedRegen = await cacheImageToStorage(regen, post.id);
-                  visualUrl = cachedRegen || regen;
-                  await supabase.from('content_calendar').update({ visual_url: visualUrl, updated_at: new Date().toISOString() }).eq('id', post.id);
-                  sqa = await scoreVisualQuality(visualUrl, qaDesc, 'the intended subject of this post');
-                  console.log(`[Content] re-QA after regen: score=${sqa.score}/10`);
-                }
+                if (!regen) break;
+                const cachedRegen = await cacheImageToStorage(regen, post.id);
+                visualUrl = cachedRegen || regen;
+                await supabase.from('content_calendar').update({ visual_url: visualUrl, updated_at: new Date().toISOString() }).eq('id', post.id);
+                sqa = await scoreVisualQuality(visualUrl, qaDesc, 'the intended subject of this post');
+                console.log(`[Content] re-QA after regen ${regenAttempts}: score=${sqa.score}/10`);
               }
               if (isBad(sqa) && userId) {
                 let reused = false;

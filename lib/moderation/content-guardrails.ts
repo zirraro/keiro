@@ -185,10 +185,12 @@ export async function checkPublishGuardrails(content: VideoContent): Promise<Gua
     if (downRank.length > 0) {
       blocked.push(`Termes downrank TikTok détectés: ${downRank.slice(0, 3).join(', ')} — reach suppressed.`);
     }
-    // TikTok auto-flags captions with > 6 hashtags as spammy now
-    if (tags.length > 6) {
-      warnings.push(`${tags.length} hashtags > 6 recommandé TikTok algo — gardé les 6 premiers.`);
-      sanitizedTags = sanitizedTags.slice(0, 6);
+    // TikTok 2026 sweet spot is ~8-10 hashtags (discovery + niche) for reach.
+    // Cap at 10 to stay clean without starving the For You signal (was 6,
+    // which under-tagged posts and killed reach — founder report).
+    if (tags.length > 10) {
+      warnings.push(`${tags.length} hashtags > 10 — gardé les 10 premiers.`);
+      sanitizedTags = sanitizedTags.slice(0, 10);
     }
   }
 

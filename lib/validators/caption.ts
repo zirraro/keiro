@@ -96,7 +96,7 @@ const PLACE_HINT      = /\b(quartier|rue|avenue|boulevard|place|métro|à\s+côt
 
 const PLATFORM_LIMITS: Record<string, { captionMax: number; hashtagMax: number; emojiMax: number }> = {
   instagram: { captionMax: 2200, hashtagMax: 10, emojiMax: 8 },
-  tiktok:    { captionMax: 2200, hashtagMax: 8,  emojiMax: 6 },
+  tiktok:    { captionMax: 2200, hashtagMax: 10, emojiMax: 6 },
   linkedin:  { captionMax: 3000, hashtagMax: 5,  emojiMax: 4 },
   twitter:   { captionMax: 280,  hashtagMax: 3,  emojiMax: 3 },
 };
