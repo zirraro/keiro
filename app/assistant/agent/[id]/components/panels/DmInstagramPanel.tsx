@@ -1779,19 +1779,24 @@ function LenaCommentsSection() {
   const [repliedPeriod, setRepliedPeriod] = useState<'all' | '24h' | '7d' | '30d'>('all');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [replyingBatch, setReplyingBatch] = useState(false);
+  const [catchingUp, setCatchingUp] = useState(false);
+
+  const refetchComments = useCallback(async () => {
+    try {
+      const r = await fetch('/api/agents/instagram-comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action: 'fetch_comments' }),
+      });
+      const d = await r.json();
+      if (d.comments) setComments(d.comments);
+    } catch {}
+  }, []);
 
   useEffect(() => {
-    fetch('/api/agents/instagram-comments', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ action: 'fetch_comments' }),
-    })
-      .then(r => r.json())
-      .then(d => { if (d.comments) setComments(d.comments); })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+    refetchComments().finally(() => setLoading(false));
+  }, [refetchComments]);
 
   // Load + persist Jade's auto-reply setting.
   useEffect(() => {
@@ -1811,8 +1816,23 @@ function LenaCommentsSection() {
         credentials: 'include',
         body: JSON.stringify({ agent_id: 'instagram_comments', auto_mode: next }),
       });
-    } catch { setAutoReply(!next); }
-  }, [autoReply]);
+      // Turning it ON catches up immediately: reply to every pending /
+      // unanswered comment now, instead of waiting for the next webhook
+      // (which only fires on NEW comments) or the periodic cron.
+      if (next) {
+        setCatchingUp(true);
+        try {
+          await fetch('/api/agents/instagram-comments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ action: 'auto_reply_all' }),
+          });
+          await refetchComments();
+        } finally { setCatchingUp(false); }
+      }
+    } catch { setAutoReply(!next); setCatchingUp(false); }
+  }, [autoReply, refetchComments]);
 
   const replySingle = useCallback(async (commentId: string, mediaId: string, customReply?: string) => {
     try {
@@ -1890,9 +1910,9 @@ function LenaCommentsSection() {
         <div className="rounded-xl border border-emerald-500/15 bg-emerald-500/5 p-3 mb-3 flex items-center gap-3">
           <button
             onClick={toggleAutoReply}
-            disabled={!autoReplyLoaded}
+            disabled={!autoReplyLoaded || catchingUp}
             aria-label={autoReply ? 'Disable Jade auto-reply' : 'Enable Jade auto-reply'}
-            className={`w-11 h-6 rounded-full relative transition-colors flex-shrink-0 ${autoReply ? 'bg-emerald-500' : 'bg-white/15'}`}
+            className={`w-11 h-6 rounded-full relative transition-colors flex-shrink-0 ${catchingUp ? 'opacity-60' : ''} ${autoReply ? 'bg-emerald-500' : 'bg-white/15'}`}
           >
             <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${autoReply ? 'right-0.5' : 'left-0.5'}`} />
           </button>
@@ -1903,8 +1923,10 @@ function LenaCommentsSection() {
                 : (en ? 'Auto-reply OFF — you validate each reply' : 'Auto-reply OFF — tu valides chaque réponse')}
             </div>
             <div className="text-[10px] text-white/50 mt-0.5">
-              {autoReply
-                ? (en ? 'Every new comment is posted with a relevant AI reply within 5 min.' : "Chaque nouveau commentaire est posté avec une réponse IA pertinente dans les 5 min.")
+              {catchingUp
+                ? (en ? '⏳ Replying to all pending comments now…' : '⏳ Réponse à tous les commentaires en attente en cours…')
+                : autoReply
+                ? (en ? 'New comments get a reply automatically — and pending ones were just answered.' : "Les nouveaux commentaires reçoivent une réponse automatiquement — et ceux en attente viennent d'être traités.")
                 : (en ? 'Select the pending comments below and choose Reply, Suggest or Skip.' : "Sélectionne les commentaires en attente ci-dessous et choisis Reply, Suggest ou Skip.")}
             </div>
           </div>
