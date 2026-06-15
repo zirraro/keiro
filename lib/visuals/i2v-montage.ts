@@ -71,6 +71,99 @@ export function chooseMontagePlan(opts: {
   return { kind: 'montage', durationSec: dur, sceneCount, perClipSec, reason: `cinematic montage ${dur}s / ${sceneCount} scenes` };
 }
 
+/**
+ * Orchestrate a real-image i2v montage:
+ *   for each scene → pick a real Pixabay photo → animate it (i2v ~perClipSec) →
+ *   stitch all clips → mux Jamendo music → (20%) hook overlay → return URL.
+ * Each i2v poll takes minutes, so this runs in a long-lived context (the
+ * dedicated montage endpoint on the VPS — no serverless timeout). Returns the
+ * final reel URL, or null on failure (caller falls back to the single clip).
+ */
+export async function runI2vMontage(opts: {
+  scenes: string[];
+  pixabayQuery: string;
+  perClipSec: number;
+  postId: string;
+  internalBase: string;
+  cronSecret: string;
+  userId: string;
+  mood?: string;
+  hookTopic?: string;
+  hookLang?: 'fr' | 'en';
+}): Promise<string | null> {
+  const { scenes, pixabayQuery, perClipSec, postId, internalBase, cronSecret, userId } = opts;
+  try {
+    const { searchPixabayImages } = await import('@/lib/stock/pixabay');
+    const pics = await searchPixabayImages({ query: pixabayQuery, count: 12, orientation: 'vertical' });
+    if (!pics.length) return null; // no real base → bail (caller uses single path)
+
+    const clipUrls: string[] = [];
+    for (let i = 0; i < scenes.length; i++) {
+      const baseImg = pics[i % pics.length]?.largeImageURL;
+      if (!baseImg) continue;
+      try {
+        // Kick off i2v from the REAL image with this scene's cinematic prompt.
+        const startRes = await fetch(`${internalBase}/api/seedream/i2v`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', authorization: `Bearer ${cronSecret}` },
+          body: JSON.stringify({ imageUrl: baseImg, prompt: scenes[i], duration: perClipSec, userId }),
+        });
+        const startData = await startRes.json().catch(() => null);
+        const taskId = startData?.taskId;
+        if (!taskId) continue;
+        // Poll up to ~150s for this clip.
+        const deadline = Date.now() + 150_000;
+        let clipUrl: string | null = null;
+        while (Date.now() < deadline) {
+          await new Promise(r => setTimeout(r, 6000));
+          const pr = await fetch(`${internalBase}/api/seedream/i2v`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', authorization: `Bearer ${cronSecret}` },
+            body: JSON.stringify({ taskId, userId }),
+          });
+          const pd = await pr.json().catch(() => null);
+          if (pd?.status === 'completed' && pd?.videoUrl) { clipUrl = pd.videoUrl; break; }
+          if (pd?.status === 'failed') break;
+        }
+        if (clipUrl) clipUrls.push(clipUrl);
+      } catch { /* skip this scene */ }
+    }
+
+    if (clipUrls.length === 0) return null;
+    // Stitch the real-image clips into one vertical reel.
+    let finalUrl = await concatVideoClips(clipUrls, postId);
+    if (!finalUrl) finalUrl = clipUrls[0];
+
+    // Jamendo music (always-audio rule).
+    try {
+      const { pickJamendoMusic, pickMoodFromContext } = await import('@/lib/audio/jamendo-music');
+      const mood = opts.mood || pickMoodFromContext({ motion: undefined as any });
+      const music = await pickJamendoMusic({ mood, minDurationSec: 8 });
+      if (music?.url) {
+        const { muxReelAudio } = await import('@/lib/audio/reel-audio-mux');
+        const mix = await muxReelAudio({ videoUrl: finalUrl, musicUrl: music.url, postId, durationSec: scenes.length * perClipSec });
+        if (mix.url && mix.url !== finalUrl) finalUrl = mix.url;
+      }
+    } catch { /* ship without audio */ }
+
+    // ~20% on-screen text hook (visual hook is primary).
+    if (Math.random() < 0.2 && opts.hookTopic) {
+      try {
+        const { generateReelHook, overlayReelHook } = await import('@/lib/visuals/reel-hook');
+        const hook = await generateReelHook({ topic: opts.hookTopic, platform: 'tiktok', lang: opts.hookLang || 'fr' });
+        if (hook) {
+          const hk = await overlayReelHook({ videoUrl: finalUrl, hookText: hook, postId });
+          if (hk.applied && hk.url) finalUrl = hk.url;
+        }
+      } catch { /* no overlay */ }
+    }
+
+    return finalUrl;
+  } catch {
+    return null;
+  }
+}
+
 async function fetchBuf(url: string, ms = 25_000): Promise<Buffer | null> {
   try { const r = await fetch(url, { signal: AbortSignal.timeout(ms) }); if (!r.ok) return null; return Buffer.from(await r.arrayBuffer()); }
   catch { return null; }
