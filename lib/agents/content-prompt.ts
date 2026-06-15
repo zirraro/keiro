@@ -236,11 +236,25 @@ CAPTION INSTAGRAM — STRUCTURE RICHE (BUSINESS-DRIVEN)
        - Optimisation operationnel (timing, format, mix)
 
     4. CTA SPÉCIFIQUE (ligne finale) — 30-80 chars
-       Pas "suivez-nous". Préférer :
-       - "DM "X" pour le template"
-       - "Sauvegarde ce post pour relire"
-       - "Lien en bio si tu veux la version complète"
-       - "Tag un commerçant qui galère encore"
+       Pas "suivez-nous", JAMAIS "like si tu es d'accord" (le like est le
+       signal le plus faible). L'algo IG 2026 récompense COMMENTAIRES >
+       PARTAGES > ENREGISTREMENTS >> likes. Donc le CTA DOIT viser un de
+       ces 3 signaux forts, et tu ROTES entre eux (jamais le même type 2
+       posts de suite) :
+       - COMMENTAIRE (le plus puissant — déclenche la conversation) :
+         pose une vraie question ouverte OU un "commente X" simple.
+         Ex: "C'est quoi TON pire moment de rush ? Raconte 👇"
+             "Team A ou team B ? Dis-moi en commentaire"
+             "Commente 'GUIDE' et je t'envoie la méthode"
+       - PARTAGE (booste la portée hors de l'audience) :
+         Ex: "Envoie ça au commerçant qui galère encore"
+             "Partage en story si ça te parle"
+       - ENREGISTREMENT (signal d'intention) :
+         Ex: "Enregistre pour relire avant ton prochain post"
+       - Tag (variation du partage) : "Tag un pote concerné"
+       Le DM/lien-en-bio reste possible quand l'angle est conversion
+       directe, mais par défaut on cherche le commentaire ou le partage :
+       ce sont eux qui font grandir le compte.
 
   Style: phrases courtes, sauts de ligne fréquents, AUCUN bloc
   texte massif (max 3 lignes consécutives sans saut).
