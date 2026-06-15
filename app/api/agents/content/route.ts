@@ -437,6 +437,18 @@ Keep the SUBJECT and SPACE recognisable — never invent new elements or change 
   }
 }
 
+// Derive a short Pixabay search query from a rich visual brief (drop stopwords
+// + short tokens, keep the first meaningful keywords). Returns null if nothing.
+function derivePixabayQuery(desc: string): string | null {
+  const STOP = new Set(['avec', 'dans', 'pour', 'une', 'un', 'des', 'les', 'the', 'and', 'with', 'sur', 'plan', 'photo', 'image', 'natural', 'light', 'real', 'scene', 'shot', 'lens', 'depth', 'field', 'composition', 'background', 'foreground', 'mood', 'style', 'editorial', 'lifestyle', 'documentary']);
+  const words = (desc || '')
+    .toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ').split(/\s+/)
+    .filter(w => w.length >= 4 && !STOP.has(w));
+  if (!words.length) return null;
+  return words.slice(0, 4).join(' ');
+}
+
 async function generateVisual(visualDescription: string, format: string, userIdForReuse?: string, platformForReuse?: string): Promise<string | null> {
   try {
     // 2026-06-03 — Levier 3: visual reuse INTRA-client.
@@ -456,6 +468,38 @@ async function generateVisual(visualDescription: string, format: string, userIdF
         }
       } catch (reuseErr: any) {
         console.warn('[Content] visual-reuse check failed (non-fatal):', reuseErr?.message?.slice(0, 100));
+      }
+    }
+
+    // ── Pixabay real-photo base (i2i) ──
+    // Founder 2026-06-15: when the client has no asset, don't always t2i from
+    // scratch — sometimes GROUND the visual in a REAL royalty-free Pixabay photo
+    // and re-render it (more natural, less "AI", free + ToS-safe). ~30% of
+    // photo-format visuals. Any failure falls through to pure t2i below.
+    if (format !== 'reel' && format !== 'video' && format !== 'text' && Math.random() < 0.3) {
+      try {
+        const { searchPixabayImages } = await import('@/lib/stock/pixabay');
+        const query = derivePixabayQuery(visualDescription);
+        if (query) {
+          const imgs = await searchPixabayImages({
+            query,
+            count: 8,
+            orientation: format === 'story' ? 'vertical' : 'all',
+          });
+          if (imgs.length > 0) {
+            const pick = imgs[Math.floor(Math.random() * Math.min(imgs.length, 8))];
+            if (pick?.largeImageURL) {
+              // strength 0.5 = keep the real-photo realism, restyle to the brief.
+              const grounded = await generateVisualFromReference(pick.largeImageURL, visualDescription, format, 0.5);
+              if (grounded) {
+                console.log(`[Content] Pixabay-grounded visual (query="${query}") — real-photo i2i base`);
+                return grounded;
+              }
+            }
+          }
+        }
+      } catch (pixErr: any) {
+        console.warn('[Content] Pixabay base failed (fallback t2i):', pixErr?.message?.slice(0, 80));
       }
     }
 
