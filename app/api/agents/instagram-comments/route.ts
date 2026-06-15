@@ -148,8 +148,14 @@ export async function POST(req: NextRequest) {
 
       for (const post of postsWithComments) {
         try {
-          const comments = await fetchGraph<{ data: Array<{ id: string; text: string; username: string; timestamp: string; replied_to?: any }> }>(
-            `/${post.id}/comments`, { fields: 'id,text,username,timestamp,replied_to' }
+          // Resolve the commenter handle from BOTH `username` (root) and
+          // `from{username}`. On Instagram Login the root `username` is often
+          // empty for third-party commenters while `from.username` is set
+          // (and vice-versa depending on the API version) — requesting both
+          // and falling back maximizes how often we show the real @handle
+          // instead of the "instagram_user" placeholder. (Founder bug.)
+          const comments = await fetchGraph<{ data: Array<{ id: string; text: string; username?: string; timestamp: string; replied_to?: any; from?: { id?: string; username?: string } }> }>(
+            `/${post.id}/comments`, { fields: 'id,text,username,timestamp,replied_to,from{id,username}' }
           );
 
           const postCtx = {
@@ -162,8 +168,9 @@ export async function POST(req: NextRequest) {
           };
 
           for (const c of comments.data || []) {
+            const authorUsername = c.username || c.from?.username || '';
             // Hide our own replies from the listing.
-            if (selfUsernameFetch && (c.username || '').toLowerCase() === selfUsernameFetch) continue;
+            if (selfUsernameFetch && authorUsername.toLowerCase() === selfUsernameFetch) continue;
             // Hide replies-to-replies: keep only top-level commenter
             // threads so the UI doesn't loop on its own.
             if (c.replied_to) continue;
@@ -182,7 +189,7 @@ export async function POST(req: NextRequest) {
               media_id: post.id,
               comment_id: c.id,
               text: c.text,
-              username: c.username,
+              username: authorUsername,
               timestamp: c.timestamp,
               replied: !!existing,
               post: postCtx,

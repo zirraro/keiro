@@ -773,6 +773,25 @@ ${history ? `\nCONVERSATION :\n${history}` : ''}${businessContext}${ragContext}`
         // ─── Small delay to appear more human (not instant bot reply) ──
         await new Promise(r => setTimeout(r, 2000 + Math.random() * 3000)); // 2-5s delay
 
+        // ─── Defense-in-depth: never auto-reply outside the 24h window ──
+        // The webhook normally fires on a fresh inbound (<24h), but if Meta
+        // re-delivers a stale event we must NOT send a standard auto-reply:
+        // outside the Meta 24h messaging window only a HUMAN may reply
+        // (with the HUMAN_AGENT tag, triggered from the panel). This guard
+        // is independent of the AI toggle — it can never be bypassed.
+        const inboundAgeMs = timestamp ? (Date.now() - Number(timestamp)) : 0;
+        if (inboundAgeMs > 24 * 60 * 60 * 1000) {
+          console.log(`[InstagramWebhook] Inbound is ${Math.round(inboundAgeMs / 3600000)}h old (>24h) for ${recipientId} — human reply required, no auto-reply`);
+          await supabase.from('agent_logs').insert({
+            agent: 'dm_instagram',
+            action: 'webhook_skipped_outside_24h',
+            status: 'ok',
+            data: { sender_id: senderId, recipient_id: recipientId, message_age_hours: Math.round(inboundAgeMs / 3600000) },
+            created_at: now,
+          });
+          continue;
+        }
+
         // ─── Send auto-reply if we have one AND AI toggle is ON ─────────
         // The AI toggle is the Meta Human Agent protocol switch: when the
         // business owner flips it OFF, the webhook stops sending replies
