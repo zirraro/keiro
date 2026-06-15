@@ -1954,13 +1954,20 @@ async function publishToTikTok(
         }
       }
       if (tiktokPhotoUrls.length === 1) {
-        // Generate 1 narrative companion (TikTok min for a true carousel
-        // feeling). Keep it cheap — 1 extra image only, not 3.
-        const companion = `${baseDescTT}. CARROUSEL SLIDE 2 — visuellement complémentaire de slide 1: si slide 1 est un plan large, ce slide est un détail (close-up sur un geste, une texture, une expression authentique). Si slide 1 montre un produit, ce slide montre le moment où le client en profite. Même univers, même lumière naturelle, même palette, mais nouveau cadrage et nouvelle énergie. Photographie éditoriale, peau réelle, NO AI tells, NO repeated subject framing.`;
-        try {
-          const varUrl = await generateVisual(companion, 'carrousel');
-          if (varUrl) tiktokPhotoUrls.push(varUrl);
-        } catch { /* skip on error */ }
+        // No usable LLM slides → build 2 narrative companions so the carousel
+        // has 3 images (a real swipe, not a lonely 2-photo post the founder
+        // flagged). Both stay in the SAME universe as slide 1 (same business,
+        // same light, same palette) — only the framing/energy changes.
+        const companions = [
+          `${baseDescTT}. CARROUSEL SLIDE 2 — MÊME commerce et MÊME univers que slide 1, nouveau cadrage: un détail serré (close-up sur un geste, une texture, une expression authentique). Même lumière naturelle, même palette. Photographie éditoriale, peau réelle, NO AI tells.`,
+          `${baseDescTT}. CARROUSEL SLIDE 3 — MÊME commerce que slide 1: le moment où le client en profite OU une preuve tangible liée à CE commerce (cadrage large vivant ou macro d'un objet du lieu). Énergie chaude, golden hour. Personnes différentes de slide 2. Photographie éditoriale, NO AI tells, NO repeated framing.`,
+        ];
+        for (const companion of companions) {
+          try {
+            const varUrl = await generateVisual(companion, 'carrousel');
+            if (varUrl) tiktokPhotoUrls.push(varUrl);
+          } catch { /* skip on error */ }
+        }
       }
       console.log(`[Content] TikTok PHOTO carousel: publishing ${tiktokPhotoUrls.length} image(s)`);
       try {
