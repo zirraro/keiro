@@ -67,13 +67,11 @@ export async function POST(req: NextRequest) {
     //     periodic cron. We delegate to /reply_comment so the quality
     //     generation + dedup + reservation logic is reused as-is.
     const cronSecret = process.env.CRON_SECRET;
-    // Self-origin for the internal call. Force the bare domain (no www): a
-    // www→bare 301 silently drops the POST body (same gotcha as the Brevo
-    // webhook), so we normalise here.
-    const selfOrigin = (() => {
-      try { const u = new URL(req.url); return `${u.protocol}//${u.host}`.replace('://www.', '://'); }
-      catch { return 'https://keiroai.com'; }
-    })();
+    // Internal base URL for the self-call. The server cannot fetch its OWN
+    // public domain from inside (loopback to https://keiroai.com fails on the
+    // VPS — "fetch failed"), so we hit the local app port directly. Override
+    // with INTERNAL_API_URL if the topology changes.
+    const selfOrigin = process.env.INTERNAL_API_URL || `http://127.0.0.1:${process.env.PORT || 3000}`;
 
     for (const entry of entries) {
       const changes = entry.changes || [];
