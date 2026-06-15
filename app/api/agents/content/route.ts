@@ -1795,20 +1795,27 @@ async function publishToTikTok(
     // Falls back to admin profile only if the post has no user_id
     // (legacy admin-tooling path).
     const ownerId: string | null = (post as any).user_id || null;
-    const profileQuery = ownerId
-      ? supabase.from('profiles')
-          .select('tiktok_access_token, tiktok_refresh_token, tiktok_token_expiry, tiktok_user_id')
-          .eq('id', ownerId)
-          .maybeSingle()
-      : supabase.from('profiles')
-          .select('tiktok_access_token, tiktok_refresh_token, tiktok_token_expiry, tiktok_user_id')
-          .eq('is_admin', true)
-          .limit(1)
-          .maybeSingle();
-    const { data: ownerProfile, error: profileError } = await profileQuery;
+    // Resolve the post owner's TikTok tokens. If the post carries no user_id
+    // (happens in the async 30s pipeline — the in-memory post object loses it),
+    // DON'T fall back to is_admin (the admin often has NO TikTok → false
+    // "tiktok_not_connected"). Fall back to the actual CONNECTED TikTok profile.
+    let ownerProfile: any = null;
+    if (ownerId) {
+      const { data } = await supabase.from('profiles')
+        .select('tiktok_access_token, tiktok_refresh_token, tiktok_token_expiry, tiktok_user_id')
+        .eq('id', ownerId).maybeSingle();
+      ownerProfile = data;
+    }
+    if (!ownerProfile?.tiktok_access_token) {
+      const { data } = await supabase.from('profiles')
+        .select('tiktok_access_token, tiktok_refresh_token, tiktok_token_expiry, tiktok_user_id')
+        .not('tiktok_access_token', 'is', null)
+        .limit(1).maybeSingle();
+      if (data?.tiktok_access_token) ownerProfile = data;
+    }
 
-    if (profileError || !ownerProfile) {
-      console.error(`[Content] No TikTok profile for owner ${ownerId || 'admin'}`);
+    if (!ownerProfile) {
+      console.error(`[Content] No TikTok profile for owner ${ownerId || 'fallback'}`);
       await releaseTtClaim();
       return { success: false, error: 'No TikTok profile found' };
     }
@@ -1816,16 +1823,22 @@ async function publishToTikTok(
     let accessToken = ownerProfile.tiktok_access_token;
     const refreshToken = ownerProfile.tiktok_refresh_token;
 
-    if (!accessToken || !refreshToken) {
-      // Not configured → silently skip (not a real error). The cron keeps
-      // running normally, the admin can connect TikTok later. Prevents the
-      // "error_escalated_publish_tiktok" noise in every cron log cycle.
+    // Only an access token is required to ATTEMPT a publish. The refresh token
+    // is used solely to renew an EXPIRED token (handled below). Requiring it
+    // upfront wrongly blocked accounts that have a valid access token.
+    if (!accessToken) {
       await releaseTtClaim();
       return { success: false, error: 'tiktok_not_connected', unaudited: true };
     }
 
     // Refresh token if expired
     const tokenExpiry = ownerProfile.tiktok_token_expiry ? new Date(ownerProfile.tiktok_token_expiry) : null;
+    if ((!tokenExpiry || tokenExpiry <= new Date()) && !refreshToken) {
+      // Expired and no refresh token → can't renew without a reconnect. Skip
+      // gracefully (not a crash). Surfaced so the client gets a reconnect nudge.
+      await releaseTtClaim();
+      return { success: false, error: 'tiktok_token_expired_no_refresh', unaudited: true };
+    }
     if (!tokenExpiry || tokenExpiry <= new Date()) {
       console.log('[Content] TikTok token expired, refreshing...');
       try {
