@@ -445,6 +445,23 @@ async function handleInstagramLoginCallback(opts: {
     }
 
     console.log('[InstagramCallback/IGLogin] ✓ Connected & persisted (%d row) via Instagram Login: %s %s', updated.length, igId, username);
+
+    // Subscribe THIS account to the webhook fields we act on so events are
+    // delivered automatically — without this, the app only receives whatever
+    // the dashboard defaulted to (we saw accounts subscribed to `messages`
+    // only, so new comments never reached the comment auto-reply). Done for
+    // every connection so it's automatic, not a manual per-account step.
+    try {
+      const subRes = await fetch(
+        `https://graph.instagram.com/v21.0/me/subscribed_apps?subscribed_fields=comments,messages&access_token=${encodeURIComponent(igaaToken)}`,
+        { method: 'POST' }
+      );
+      const subJson = await subRes.json().catch(() => ({}));
+      console.log('[InstagramCallback/IGLogin] webhook subscribe (comments,messages):', JSON.stringify(subJson).slice(0, 120));
+    } catch (e: any) {
+      console.warn('[InstagramCallback/IGLogin] webhook subscribe failed (non-fatal):', e?.message);
+    }
+
     fireContentKickstart(supabase, userId);
 
     return NextResponse.json({ ok: true, instagram: { id: igId, username } });
