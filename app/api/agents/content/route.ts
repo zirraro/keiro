@@ -3847,6 +3847,31 @@ export async function POST(request: NextRequest) {
           let videoUrl = post.video_url || null;
           if ((pFormat === 'reel' || pFormat === 'video') && !videoUrl && !post.video_job_id) {
             const desc = post.visual_description || post.hook || post.caption;
+            // ── Auto i2v-montage ──
+            // Léna decides (chooseMontagePlan): part of TikTok reels become
+            // longer cinematic montages grounded in REAL Pixabay images. We
+            // fire the ISOLATED montage endpoint (it generates + publishes),
+            // mark the post (video_job_id sentinel) to avoid re-firing on the
+            // next cron pass, and skip the standard 10s gen (no double-publish).
+            if (desc && post.platform === 'tiktok') {
+              try {
+                const { chooseMontagePlan } = await import('@/lib/visuals/i2v-montage');
+                const mSeed = String(post.id || '').split('').reduce((a: number, c: string) => (a * 31 + c.charCodeAt(0)) | 0, 0);
+                const mPlan = chooseMontagePlan({ pillar: (post as any).pillar, topicLength: (post.caption || '').length, format: 'reel', seed: mSeed });
+                if (mPlan.kind === 'montage') {
+                  await supabase.from('content_calendar').update({ video_job_id: `montage_${Date.now()}` }).eq('id', post.id);
+                  const internalBase = process.env.INTERNAL_API_URL || `http://127.0.0.1:${process.env.PORT || 3000}`;
+                  fetch(`${internalBase}/api/agents/content/i2v-montage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', authorization: `Bearer ${process.env.CRON_SECRET}` },
+                    body: JSON.stringify({ postId: post.id }),
+                  }).then(() => console.log(`[Content] i2v-montage fired for reel ${post.id} (${mPlan.durationSec}s)`))
+                    .catch((e: any) => console.warn('[Content] montage fire failed:', e?.message));
+                  console.log(`[Content] reel ${post.id} → montage ${mPlan.durationSec}s, skip standard gen`);
+                  continue;
+                }
+              } catch (mErr: any) { console.warn('[Content] montage plan check failed, normal gen:', mErr?.message); }
+            }
             if (desc) {
               // 2026-06-06 — Founder ask: "même stratégie d'utilisation des
               // images donne par le client que pour insta donc pas systématiquement".
