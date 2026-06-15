@@ -1539,21 +1539,23 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
         ...postLines,
         { emoji: '✉️', label: 'Emails prospection', actual: doneCounts.emails_cold_sent, floor: floors.emails, color: '#2563eb', display: `${doneCounts.emails_cold_sent}` },
         { emoji: '🎯', label: 'Prospects', actual: doneCounts.prospects_added, floor: floors.prospects, color: '#7c3aed', display: `${doneCounts.prospects_added}` },
-        // DM promise = % replies to incoming. floor=100 (we want 100% reply rate);
-        // actual = dmReplyPct (so the bar renders correctly). 0 incoming → 100% automatically.
-        { emoji: '💬', label: dmReplyLabel, actual: dmReplyPct, floor: 100, color: '#a855f7', display: `${dmReplyPct}%`, isPct: true },
+        // Founder 2026-06-15: ce bloc ne montre QUE des actions AUTOMATIQUES
+        // (la valeur faite par les agents). Les DMs = touche humaine/manuelle
+        // → affichés à part, jamais comme métrique de valeur auto ici.
       ];
       const metFloors = planPromise.filter(p => p.floor > 0 && p.actual >= p.floor).length;
       const totalFloors = planPromise.filter(p => p.floor > 0).length;
       const overallPct = totalFloors > 0
         ? Math.min(100, Math.round((planPromise.filter(p => p.floor > 0).reduce((s, p) => s + Math.min(1, p.actual / p.floor), 0) / totalFloors) * 100))
         : 0;
+      // Total des actions automatiques réelles du jour (la VRAIE valeur perçue).
+      const autoActionsTotal = planPromise.reduce((s, p) => s + (Number(p.actual) || 0), 0);
       const planLabel = planKey.charAt(0).toUpperCase() + planKey.slice(1);
       const planPromiseHtml = totalFloors > 0 ? `
-<h4 style="margin:16px 0 8px;color:#374151;font-size:13px;">🎯 Ton plan ${planLabel} — engagement du jour</h4>
+<h4 style="margin:16px 0 8px;color:#374151;font-size:13px;">✨ Ce que Keiro a automatisé pour toi aujourd'hui</h4>
 <div style="background:#fafafa;border-radius:10px;padding:12px;margin:0 0 12px;border:1px solid #e5e7eb;">
   <div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 10px;">
-    <div style="font-size:12px;color:#374151;"><strong>${metFloors}/${totalFloors}</strong> engagements tenus aujourd'hui</div>
+    <div style="font-size:12px;color:#374151;"><strong>${autoActionsTotal}</strong> action${autoActionsTotal > 1 ? 's' : ''} réalisée${autoActionsTotal > 1 ? 's' : ''} automatiquement aujourd'hui</div>
     <div style="font-size:18px;font-weight:bold;color:${overallPct >= 80 ? '#16a34a' : overallPct >= 50 ? '#d97706' : '#dc2626'};">${overallPct}%</div>
   </div>
   ${planPromise.filter(p => p.floor > 0).map(p => {
@@ -1676,7 +1678,7 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
           user_id: client.id,
           agent: 'ceo',
           type: 'brief',
-          title: isEvening ? 'Debrief du soir — Noah' : 'Brief du matin — Noah',
+          title: isEvening ? 'Ton débrief du soir — Keiro' : 'Ton brief du matin — Keiro',
           message: briefHtml.replace(/<[^>]*>/g, '').substring(0, 300),
           data: { html: briefHtml, agentActivity: agentSummary, prospects: prospectCount, hot: hotCount },
         });
@@ -1686,14 +1688,14 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
       if (!skipEmail && BREVO_CLIENT_KEY && prefs?.email_enabled !== false && client.email) {
         const sendStart = Date.now();
         const brevoRes = await sendBrevoCompat({
-            sender: { name: 'Noah CEO IA', email: 'contact@keiroai.com' },
+            sender: { name: 'Keiro', email: 'contact@keiroai.com' },
             to: [{ email: client.email }],
             subject: isEvening
-              ? `\u{1F319} Noah — Debrief du soir · ${totalDone} actions${hotCount > 0 ? ` · ${hotCount} chaud${hotCount > 1 ? 's' : ''} a relancer demain` : ''}`
-              : `\u{1F4CB} Noah — ${totalDone} actions aujourd'hui${hotCount > 0 ? ` · ${hotCount} chaud${hotCount > 1 ? 's' : ''} a contacter` : ''}`,
+              ? `\u{1F319} Keiro — Ton débrief du soir · ${totalDone} actions${hotCount > 0 ? ` · ${hotCount} chaud${hotCount > 1 ? 's' : ''} a relancer demain` : ''}`
+              : `\u{1F4CB} Keiro — ${totalDone} actions aujourd'hui${hotCount > 0 ? ` · ${hotCount} chaud${hotCount > 1 ? 's' : ''} a contacter` : ''}`,
             htmlContent: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
               <div style="background:linear-gradient(135deg,#0c1a3a,#1e3a5f);color:white;padding:16px 20px;border-radius:12px 12px 0 0;">
-                <h2 style="margin:0;font-size:16px;">\u{1F9E0} Noah — ${isEvening ? 'Debrief du soir' : 'Brief du jour'}</h2>
+                <h2 style="margin:0;font-size:16px;">\u{1F9E0} Keiro — ${isEvening ? 'Ton débrief du soir' : 'Ton brief du jour'}</h2>
                 <p style="margin:4px 0 0;color:#a0aec0;font-size:12px;">${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
               </div>
               <div style="background:white;padding:20px;border:1px solid #e5e7eb;">
