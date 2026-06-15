@@ -1374,21 +1374,25 @@ function DmConversationsLive() {
             {/* Inline AI / You toggle — sits right above the composer so the
                 client sees the current mode at a glance. Auto-switches to
                 "You" while typing, back to "AI" when idle. */}
-            <div className="border-t border-white/5 px-3 pt-2 pb-1 bg-white/[0.02] flex items-center justify-between">
-              <span className="text-[10px] text-white/40">
+            <div className="border-t border-white/5 px-3 pt-2 pb-1 bg-white/[0.02] flex items-center justify-between gap-2">
+              <span className="text-[10px] text-white/40 truncate">
                 {selectedOutside24h
-                  ? (en ? '\uD83E\uDDD1 Human reply required (>24h)' : '\uD83E\uDDD1 R\u00E9ponse humaine requise (>24h)')
+                  ? (en ? '\uD83E\uDDD1 >24h \u2014 human reply only (AI never auto-replies here)' : "\uD83E\uDDD1 >24h \u2014 r\u00E9ponse humaine seule (l'IA n'auto-r\u00E9pond jamais ici)")
                   : (aiActive && !userTyping ? `\u{1F916} ${p.dmConvsBadgeAi}` : `\u270D\uFE0F ${p.dmConvsBadgeYou}`)}
               </span>
+              {/* The toggle is the GLOBAL auto-reply switch (auto_mode). It is
+                  always clickable so the owner can turn the AI off everywhere.
+                  Regardless of this switch, the backend NEVER auto-replies to a
+                  conversation older than 24h (compliance \u2014 only a human send
+                  with the HUMAN_AGENT tag is allowed there). */}
               <button
-                onClick={() => { if (!selectedOutside24h) persistAiMode(!aiActive); }}
-                disabled={selectedOutside24h}
-                className={`w-9 h-5 rounded-full relative transition-colors ${selectedOutside24h ? 'bg-white/10 opacity-60 cursor-not-allowed' : (aiActive && !userTyping ? 'bg-emerald-500' : 'bg-blue-500')}`}
-                title={selectedOutside24h
-                  ? (en ? 'AI auto-reply is disabled outside the 24h window \u2014 a human must reply (HUMAN_AGENT).' : "R\u00E9ponse auto IA d\u00E9sactiv\u00E9e hors de la fen\u00EAtre 24h \u2014 un humain doit r\u00E9pondre (HUMAN_AGENT).")
-                  : (aiActive ? (en ? 'Disable AI for all conversations' : "D\u00E9sactiver l'IA pour toutes les conversations") : (en ? 'Enable AI' : "Activer l'IA"))}
+                onClick={() => persistAiMode(!aiActive)}
+                className={`w-9 h-5 rounded-full relative transition-colors flex-shrink-0 ${aiActive ? 'bg-emerald-500' : 'bg-white/15'}`}
+                title={aiActive
+                  ? (en ? 'AI auto-reply is ON for all conversations within the 24h window. Click to turn it OFF everywhere.' : "R\u00E9ponse auto IA ACTIVE pour toutes les conversations dans la fen\u00EAtre 24h. Cliquer pour la D\u00C9SACTIVER partout.")
+                  : (en ? 'AI auto-reply is OFF. Click to turn it ON.' : "R\u00E9ponse auto IA D\u00C9SACTIV\u00C9E. Cliquer pour l'ACTIVER.")}
               >
-                <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${(!selectedOutside24h && aiActive && !userTyping) ? 'right-0.5' : 'left-0.5'}`} />
+                <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${aiActive ? 'right-0.5' : 'left-0.5'}`} />
               </button>
             </div>
             {/* Reply input */}
