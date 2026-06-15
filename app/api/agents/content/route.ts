@@ -3952,11 +3952,13 @@ export async function POST(request: NextRequest) {
                                 } catch (audioErr: any) {
                                   console.warn('[Content] dvr audio mux failed (ship silent):', audioErr?.message);
                                 }
-                                // ── Reel Hook Engine — worked scroll-stopping
-                                // hook burned on the first ~2.6s. Hook is biased
-                                // by THIS client's own top-performing hooks
-                                // (first-party "reverse engineering", free).
-                                try {
+                                // ── Reel Hook Engine ──
+                                // The PRIMARY hook on a reel is VISUAL (the
+                                // strong opening shot, handled by the video
+                                // prompt). On-screen TEXT overlay is used only
+                                // ~20% of the time (founder: pas de texte
+                                // systématique sur les reels).
+                                if (Math.random() < 0.2) try {
                                   const { generateReelHook, overlayReelHook } = await import('@/lib/visuals/reel-hook');
                                   let topPerformerHooks: string[] = [];
                                   try {

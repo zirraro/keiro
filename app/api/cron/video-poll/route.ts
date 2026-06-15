@@ -89,11 +89,11 @@ export async function GET(request: NextRequest) {
           const cachedUrl = await cacheVideoToStorage(supabase, job.final_video_url, `content-long-${Date.now()}`);
           let finalVideoUrl = cachedUrl || job.final_video_url;
 
-          // ── Hook Engine on async reels too ──
-          // The on-screen hook (first ~2.6s) is a major TikTok/Reels retention
-          // lever (founder: "un hook dans les reels systématiquement"). The dvr
-          // path already does it; this async 30s path didn't → wire it here.
-          try {
+          // ── Hook Engine on async reels ──
+          // The primary hook is VISUAL (the opening shot). On-screen TEXT
+          // overlay is applied only ~20% of the time (founder: pas de texte
+          // systématique sur les reels).
+          if (Math.random() < 0.2) try {
             const { generateReelHook, overlayReelHook } = await import('@/lib/visuals/reel-hook');
             let topHooks: string[] = [];
             try {
