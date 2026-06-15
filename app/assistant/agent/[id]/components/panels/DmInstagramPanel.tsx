@@ -1532,6 +1532,26 @@ function CommentCard({ comment: c, isDemo, onUpdate, hidePostHeader }: { comment
   const [replyText, setReplyText] = useState('');
   const [showReply, setShowReply] = useState(false);
   const [sending, setSending] = useState(false);
+  const [suggesting, setSuggesting] = useState(false);
+
+  // Suggest = ask the server to generate a high-quality, context-aware draft
+  // (post caption + brand voice) and pre-fill the editor with it. The owner
+  // reviews/edits before sending. NEVER a hardcoded template.
+  const suggestReply = useCallback(async () => {
+    if (isDemo) { setReplyText(en ? 'Love that you liked it — the pistachio is our quiet bestseller!' : 'Content que ça te plaise — la pistache c\'est notre best-seller discret !'); setShowReply(true); return; }
+    setSuggesting(true);
+    setShowReply(true);
+    try {
+      const res = await fetch('/api/agents/instagram-comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action: 'suggest_reply', comment_id: c.comment_id, media_id: c.media_id }),
+      });
+      const data = await res.json();
+      if (data?.ok && data.reply) setReplyText(data.reply);
+    } catch {} finally { setSuggesting(false); }
+  }, [c.comment_id, c.media_id, isDemo, en]);
 
   const sendReply = useCallback(async (customReply?: string) => {
     setSending(true);
@@ -1683,17 +1703,12 @@ function CommentCard({ comment: c, isDemo, onUpdate, hidePostHeader }: { comment
                 {sending ? '...' : (p.dmCommentCardReplyAuto || (en ? 'Auto reply' : 'Réponse auto'))}
               </button>
               <button
-                onClick={() => {
-                  // Suggest = pre-fill the input with a context-aware draft
-                  const draft = c.text?.toLowerCase().includes('?')
-                    ? 'Bonne question ! On te répond en DM 👌'
-                    : 'Merci beaucoup, ça nous fait super plaisir 🙏';
-                  setReplyText(draft);
-                  setShowReply(true);
-                }}
-                className="px-2.5 py-1.5 bg-amber-600/20 text-amber-400 text-[10px] font-medium rounded-lg hover:bg-amber-600/30 transition min-h-[32px]"
+                onClick={suggestReply}
+                disabled={suggesting}
+                title="Generates a context-aware draft (post + brand voice) you can review and edit before sending."
+                className="px-2.5 py-1.5 bg-amber-600/20 text-amber-400 text-[10px] font-medium rounded-lg hover:bg-amber-600/30 transition min-h-[32px] disabled:opacity-50"
               >
-                💡 {en ? 'Suggest' : 'Suggérer'}
+                {suggesting ? '…' : `💡 ${en ? 'Suggest' : 'Suggérer'}`}
               </button>
               <button
                 onClick={() => setShowReply(true)}

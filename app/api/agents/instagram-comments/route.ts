@@ -11,6 +11,197 @@ function getSupabase() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 }
 
+// Quality model for client-facing comment replies. Haiku produced generic,
+// templated replies the founder rejected ("pas terrible du tout") — Sonnet
+// gives the warmth, specificity and brand voice the quality bar demands.
+const COMMENT_REPLY_MODEL = 'claude-sonnet-4-6';
+
+/**
+ * Shared, high-quality system prompt for Jade's Instagram comment replies —
+ * used by BOTH the suggest/manual path and the auto-reply path so the voice is
+ * consistent. The good/bad few-shot is what lifts the model off generic
+ * templates and onto a real owner's voice.
+ */
+function buildCommentReplySystem(opts: {
+  targetLang: string;
+  brandContext?: string;
+  postContext?: string;
+  commenterInfo?: string;
+  allowEmoji: boolean;
+  forbiddenEmojis?: string;
+  shouldSuggestShared?: boolean;
+  directives?: string;
+}): string {
+  const { targetLang, brandContext, postContext, commenterInfo, allowEmoji, forbiddenEmojis, shouldSuggestShared, directives } = opts;
+  const isFr = targetLang === 'French';
+  return `You ARE the owner of this business replying to a comment on your own Instagram post. Not a community manager, not a brand account — the actual person behind the shop, with real warmth and a little personality.${directives || ''}
+
+LANGUAGE LOCK (non-negotiable): The comment is in ${targetLang}. Write your ENTIRE reply in ${targetLang}. Not a single word in another language — not even the greeting or a "thanks".
+
+QUALITY BAR — this is the whole point, hit it every time:
+- 1–2 short sentences. Spontaneous and human, NEVER a template.
+- Be SPECIFIC to THIS comment and THIS post: name the exact product / dish / detail they reacted to. Generic praise back ("merci beaucoup !", "ça nous fait plaisir") is forbidden — it reads like a bot.
+- Add something real: a genuine reaction, a small insider detail, or a light open question that invites them to keep talking.
+- Match the commenter's exact energy, register and language.
+- If it's a real question, answer it CONCRETELY from the business info below. Never deflect.
+- If it's just an emoji or one word ("top", "🔥"), reply with a warm, specific one-liner still tied to the post — never a pitch.
+
+HARD BANS (instant fail):
+- "${isFr ? 'merci pour votre commentaire' : 'thanks for your comment'}", "${isFr ? "n'hésitez pas" : 'feel free to'}", "${isFr ? 'cordialement' : 'best regards'}", "${isFr ? 'nous vous remercions' : 'we thank you'}".
+- ANY deflection to DM: "${isFr ? 'on te répond en DM' : 'we will DM you'}", "${isFr ? 'DM-moi' : 'DM me'}", "${isFr ? 'envoie-nous un message privé' : 'send us a private message'}", "${isFr ? 'pour plus d\'infos' : 'for more info'}". Meta flags this as spam. Answer in the reply itself.
+- No hashtags, no links, no sales pitch.
+- Never the words "IA", "AI", "intelligence artificielle", "automatisé", "chatbot".
+
+${allowEmoji
+  ? `EMOJI: at most ONE, and only if it genuinely adds warmth. Most natural replies have none — prefer zero.${forbiddenEmojis ? ` Do NOT use these (over-used lately): ${forbiddenEmojis}` : ''}`
+  : `EMOJI: none this time. Plain text only — it reads more natural and avoids repetition.`}
+
+${shouldSuggestShared ? `COMMUNITY HOOK (do it this time, subtly): if the comment reveals a clear passion, lightly hint at a shared future moment around it — invitation feel, never a pitch.\n` : ''}GOOD vs BAD (illustrative — ice-cream post, French):
+  Comment: "Super bon ! Vous l'avez au melon ?"
+  ❌ "Merci beaucoup, ça nous fait super plaisir 🙏"  (generic, ignores the question)
+  ❌ "Bonne question ! On te répond en DM 👌"  (DM deflection = spam flag)
+  ✅ "Pas encore le melon, mais la pastèque cartonne en ce moment — tu validerais ?"
+${brandContext ? `\nYOUR BUSINESS: ${brandContext}` : ''}${postContext ? `\nTHE POST they commented on: ${postContext}` : ''}${commenterInfo || ''}
+
+Output ONLY the reply text in ${targetLang}. Nothing else — no quotes, no preamble.`;
+}
+
+/**
+ * Generate a single high-quality comment reply with full context (post caption,
+ * brand dossier, commenter snapshot). Shared by the suggest path and the manual
+ * single-reply path. Returns the reply text, or null if generation failed.
+ */
+async function generateCommentReply(args: {
+  supabase: any;
+  anthropic: Anthropic;
+  comment_id: string;
+  token: string;
+  igId?: string;
+  targetUserId?: string | null;
+  fetchCommenter?: boolean;
+}): Promise<string | null> {
+  const { supabase, anthropic, comment_id, token, igId, targetUserId, fetchCommenter } = args;
+
+  // 1. Comment text + the caption of the post it was made on (one call).
+  let commentText = '';
+  let commenterUsername = '';
+  let postCaption = '';
+  try {
+    const cmt = await graphGET<{ text?: string; username?: string; media?: { caption?: string } }>(
+      `/${comment_id}`, token, { fields: 'text,username,media{caption}' }
+    );
+    commentText = cmt?.text || '';
+    commenterUsername = cmt?.username || '';
+    postCaption = cmt?.media?.caption || '';
+  } catch { /* fall back to language-blind reply */ }
+
+  // 2. Language of the comment.
+  const { detectLanguage } = await import('@/lib/agents/language-detect');
+  const lang = detectLanguage(commentText);
+  const LANG_LABEL: Record<string, string> = { fr: 'French', en: 'English', es: 'Spanish', de: 'German', unknown: 'French' };
+  const targetLang = LANG_LABEL[lang] || 'French';
+
+  // 3. Brand dossier so the reply is on-brand and can answer questions.
+  let brandContext = '';
+  if (targetUserId) {
+    try {
+      const { data: dossier } = await supabase
+        .from('business_dossiers')
+        .select('company_name, business_type, brand_tone, main_products')
+        .eq('user_id', targetUserId)
+        .maybeSingle();
+      if (dossier) {
+        brandContext = [
+          dossier.company_name && `"${dossier.company_name}"`,
+          dossier.business_type,
+          dossier.main_products && `offers: ${dossier.main_products}`,
+          dossier.brand_tone && `tone: ${dossier.brand_tone}`,
+        ].filter(Boolean).join(' — ');
+      }
+    } catch { /* best-effort */ }
+  }
+
+  // 4. Owner's typed directives for this agent (tone / blacklist).
+  let directives = '';
+  try {
+    const { directiveBlockFor } = await import('@/lib/agents/typed-directives');
+    directives = await directiveBlockFor(supabase, targetUserId || null, 'instagram_comments');
+  } catch { /* best-effort */ }
+
+  // 5. Commenter snapshot (optional — adds first-name / niche personalisation).
+  let commenterInfo = '';
+  if (fetchCommenter && commenterUsername && igId) {
+    try {
+      const { getInstagramProfileSnapshot, readProfileFromVisuals } = await import('@/lib/agents/ig-profile-snapshot');
+      const snap = await getInstagramProfileSnapshot(commenterUsername, igId, token);
+      if (snap.exists) {
+        const vision = await readProfileFromVisuals(snap).catch(() => null);
+        const p = vision?.personalization || {};
+        const bits: string[] = [];
+        if (p.first_name) bits.push(`first name ${p.first_name}`);
+        if (p.niche) bits.push(`niche ${p.niche}`);
+        if (snap.biography) bits.push(`bio "${String(snap.biography).slice(0, 150)}"`);
+        if (bits.length) commenterInfo = `\nABOUT @${commenterUsername} (use to personalise naturally, never creepy): ${bits.join(', ')}`;
+      }
+    } catch { /* best-effort */ }
+  }
+
+  // 6. Emoji rotation — default to none, forbid recently over-used ones.
+  const allowEmoji = Math.random() < 0.35;
+  let forbiddenEmojis = '';
+  try {
+    const { data: recent } = await supabase
+      .from('agent_logs')
+      .select('data')
+      .eq('agent', 'instagram_comments')
+      .eq('status', 'success')
+      .order('created_at', { ascending: false })
+      .limit(8);
+    const EMOJI_RE = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu;
+    const set = new Set<string>();
+    for (const r of recent || []) {
+      const m = String(r.data?.reply || r.data?.message_preview || '').match(EMOJI_RE) || [];
+      for (const e of m) set.add(e);
+    }
+    forbiddenEmojis = Array.from(set).join(' ');
+  } catch { /* best-effort */ }
+
+  const shouldSuggestShared = Math.random() < 0.12;
+
+  const system = buildCommentReplySystem({
+    targetLang,
+    brandContext,
+    postContext: postCaption ? `"${postCaption.slice(0, 240)}"` : '',
+    commenterInfo,
+    allowEmoji,
+    forbiddenEmojis,
+    shouldSuggestShared,
+    directives,
+  });
+
+  try {
+    const r = await anthropic.messages.create({
+      model: COMMENT_REPLY_MODEL,
+      max_tokens: 200,
+      system,
+      messages: [{
+        role: 'user',
+        content: commentText
+          ? `Comment from @${commenterUsername || 'user'}: "${commentText}"\n\nWrite your reply now.`
+          : `Reply to comment id ${comment_id}. Write your reply now.`,
+      }],
+    });
+    let reply = r.content.filter((b: any) => b.type === 'text').map((b: any) => b.text).join('').trim();
+    reply = reply.replace(/^["'«»\s]+|["'«»\s]+$/g, '').trim();
+    if (!allowEmoji && reply) {
+      reply = reply.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '').replace(/\s{2,}/g, ' ').trim();
+    }
+    return reply || null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * POST /api/agents/instagram-comments
  * Manage Instagram comments: fetch, reply, moderate.
@@ -212,71 +403,63 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  if (action === 'suggest_reply') {
+    // Generate a high-quality DRAFT reply WITHOUT posting it. Powers the
+    // "Suggest" button — the owner reviews/edits, then sends via reply_comment.
+    // (Previously the Suggest button inserted a hardcoded "On te répond en DM"
+    //  string — a Meta spam-flag AND exactly the template the quality bar bans.)
+    const { comment_id } = body;
+    if (!comment_id) return NextResponse.json({ error: 'comment_id requis' }, { status: 400 });
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) return NextResponse.json({ error: 'ANTHROPIC_API_KEY missing' }, { status: 500 });
+    // Resolve whose brand dossier to use: explicit user_id, else the authed user.
+    let suggestUid: string | null = targetUserId || null;
+    if (!suggestUid && !isCron) {
+      const { user } = await getAuthUser().catch(() => ({ user: null }));
+      suggestUid = user?.id || null;
+    }
+    const reply = await generateCommentReply({
+      supabase,
+      anthropic: new Anthropic({ apiKey }),
+      comment_id,
+      token,
+      igId,
+      targetUserId: suggestUid,
+      fetchCommenter: true,
+    });
+    if (!reply) return NextResponse.json({ ok: false, error: 'generation_failed' }, { status: 502 });
+    return NextResponse.json({ ok: true, reply });
+  }
+
   if (action === 'reply_comment') {
     // Reply to a specific comment. We accept either a body.message (sent
     // verbatim) or body.custom_reply (alias used by the new Comments UI).
-    // If neither is provided we generate one via Claude using the brand
-    // dossier so the bulk-reply button can fire on raw comment ids.
+    // If neither is provided we generate one with full context (post caption +
+    // brand dossier + commenter snapshot) so the bulk-reply button is high
+    // quality, not a generic template.
     const { comment_id, custom_reply } = body;
     let message = (body.message || custom_reply || '').trim();
     if (!comment_id) return NextResponse.json({ error: 'comment_id requis' }, { status: 400 });
 
     if (!message) {
-      // Generate a contextual reply if the client didn't pass one. We
-      // need the actual comment text to detect language + write a
-      // relevant reply — fetch it from Graph API first.
       const apiKey = process.env.ANTHROPIC_API_KEY;
-      let commentText = '';
-      try {
-        const cmt = await graphGET<{ text: string; username: string }>(`/${comment_id}`, token, { fields: 'text,username' });
-        commentText = cmt?.text || '';
-      } catch { /* fall back to language-blind reply */ }
-
       if (apiKey) {
-        try {
-          const { detectLanguage } = await import('@/lib/agents/language-detect');
-          const lang = detectLanguage(commentText);
-          const LANG_LABEL: Record<string, string> = { fr: 'French', en: 'English', es: 'Spanish', de: 'German', unknown: 'French' };
-          const targetLang = LANG_LABEL[lang] || 'French';
-
-          // 2026-06-08 — typed directives for ig-comments reply tone/blacklist
-          let igCommentDirectives = '';
-          try {
-            const { directiveBlockFor } = await import('@/lib/agents/typed-directives');
-            igCommentDirectives = await directiveBlockFor(supabase, targetUserId || null, 'instagram_comments');
-          } catch { /* best-effort */ }
-
-          const ant = new Anthropic({ apiKey });
-          const r = await ant.messages.create({
-            model: 'claude-haiku-4-5-20251001',
-            max_tokens: 200,
-            system: `You write Instagram comment replies as the brand owner.${igCommentDirectives}
-
-LANGUAGE LOCK (non-negotiable): The comment is in ${targetLang}. Write your ENTIRE reply in ${targetLang}. Not a single word in another language.
-
-QUALITY BAR:
-- 1-2 sentences max. Conversational, like a real human reply, not a corporate template.
-- Warm but specific. If the comment praises a product/dish/service, acknowledge that exact thing.
-- BAN: "merci pour votre commentaire", "n'hésitez pas à", "cordialement", any AI-sounding formal closure.
-- BAN: emoji spam (max 1), hashtags, links, "DM-moi pour plus d'infos" (Meta flags this as spam).
-- NEVER say "IA", "intelligence artificielle", "automatisé".
-- If the comment is just an emoji or single word, reply with a matching warm 1-line thanks — never paste a pitch.
-- If the comment is a real question, answer it directly, not "DM-moi" deflection.`,
-            messages: [{
-              role: 'user',
-              content: commentText
-                ? `Reply briefly and naturally in ${targetLang} to this Instagram comment: "${commentText}"`
-                : `Reply briefly and naturally in ${targetLang} to this Instagram comment id ${comment_id}.`,
-            }],
-          });
-          message = r.content
-            .filter((b): b is any => b.type === 'text')
-            .map((b: any) => b.text)
-            .join('')
-            .slice(0, 600) || (lang === 'en' ? 'Thanks!' : lang === 'es' ? '¡Gracias!' : lang === 'de' ? 'Danke!' : 'Merci !');
-        } catch {
-          message = 'Merci !';
+        // Resolve dossier owner: explicit user_id, else the authed user.
+        let genUid: string | null = targetUserId || null;
+        if (!genUid && !isCron) {
+          const { user } = await getAuthUser().catch(() => ({ user: null }));
+          genUid = user?.id || null;
         }
+        const gen = await generateCommentReply({
+          supabase,
+          anthropic: new Anthropic({ apiKey }),
+          comment_id,
+          token,
+          igId,
+          targetUserId: genUid,
+          fetchCommenter: true,
+        });
+        message = gen || 'Merci !';
       } else {
         message = 'Merci !';
       }
@@ -386,9 +569,10 @@ QUALITY BAR:
       ? `Commerce: ${dossier.company_name || ''}. Type: ${dossier.business_type || ''}. Ton: ${dossier.brand_tone || 'chaleureux'}. Produits: ${dossier.main_products || ''}.`
       : '';
 
-    // Fetch unreplied comments
-    const media = await graphGET<{ data: Array<{ id: string }> }>(
-      `/${igId}/media`, token, { fields: 'id', limit: '5' }
+    // Fetch unreplied comments. Pull the caption too so each reply can be
+    // specific to the post it's under (quality bar — generic replies rejected).
+    const media = await graphGET<{ data: Array<{ id: string; caption?: string }> }>(
+      `/${igId}/media`, token, { fields: 'id,caption', limit: '5' }
     );
 
     let replied = 0;
@@ -612,42 +796,36 @@ QUALITY BAR:
           const allowEmoji = Math.random() < 0.35;
           const forbiddenEmojiList = Array.from(recentEmojis).join(' ');
 
+          // Typed directives (tone / blacklist) for this owner.
+          let igDirectives = '';
+          try {
+            const { directiveBlockFor } = await import('@/lib/agents/typed-directives');
+            igDirectives = await directiveBlockFor(supabase, dossierUserId || null, 'instagram_comments');
+          } catch { /* best-effort */ }
+
           const response = await anthropic.messages.create({
-            model: 'claude-haiku-4-5-20251001',
-            max_tokens: 150,
+            model: COMMENT_REPLY_MODEL,
+            max_tokens: 200,
+            system: buildCommentReplySystem({
+              targetLang,
+              brandContext,
+              postContext: post.caption ? `"${String(post.caption).slice(0, 240)}"` : '',
+              commenterInfo: commenterPersonalisation
+                ? `\nABOUT @${c.username} (personalise naturally, never creepy): ${commenterPersonalisation.replace(/\n+/g, ' ').trim()}`
+                : '',
+              allowEmoji,
+              forbiddenEmojis: forbiddenEmojiList,
+              shouldSuggestShared,
+              directives: igDirectives,
+            }),
             messages: [{
               role: 'user',
-              content: `${langHint}${langLock}
-
-Tu gères les commentaires Instagram d'un commerce. Réponds comme le propriétaire — pas comme un community manager.
-
-QUALITY BAR :
-- Max 2 phrases courtes. Conversationnel, JAMAIS du "Merci pour votre commentaire".
-- INTERDIT : "n'hésitez pas", "cordialement", "nous vous remercions", "DM-moi pour plus d'infos" (Meta tag ça comme spam).
-- INTERDIT : "IA", "intelligence artificielle", "automatisé".
-- ZÉRO hashtag, ZÉRO lien.
-- Si le commentaire est juste "top" ou un emoji → réponse chaleureuse 1 ligne, jamais de pitch.
-- Si c'est une vraie question → réponds directement, ne renvoie pas en DM.
-- Si tu connais le prénom du commentateur, utilise-le naturellement.
-
-RÈGLE EMOJI (importante, le founder a explicitement insisté 2026-05-24) :
-${allowEmoji
-  ? `- UN SEUL emoji max, SEULEMENT s'il apporte vraiment quelque chose. La plupart des réponses naturelles n'en ont pas. PRÉFÈRE ne PAS en mettre.\n${forbiddenEmojiList ? `- INTERDIT cette fois (déjà sur-utilisés ces derniers temps) : ${forbiddenEmojiList}` : ''}`
-  : `- ZÉRO emoji cette fois. Réponse 100% texte. C'est plus naturel et ça évite la répétition.`}
-
-STRATÉGIE "LIEN COMMUNAUTAIRE" (validée par le founder le 2026-05-23) :
-${shouldSuggestShared
-  ? `- ACTIVE: pour CE commentaire, propose subtilement une activité partagée future entre clients qui partagent cette passion. Ne le force pas si le commentaire n'a pas de passion identifiable.`
-  : `- Réagis avec chaleur et spécificité, sans proposer d'activité partagée cette fois.`}
-${brandContext}
-${commenterPersonalisation}
-Commentaire de @${c.username}: "${c.text}"
-${langLock}
-Réponds UNIQUEMENT avec le texte de la réponse${detectedLang !== 'fr' && detectedLang !== 'unknown' ? `, en ${targetLang}` : ''}.`,
+              content: `${langHint}${langLock}\nComment from @${c.username}: "${c.text}"\n\nWrite your reply now.`,
             }],
           });
 
           let reply = response.content[0].type === 'text' ? response.content[0].text.trim() : '';
+          reply = reply.replace(/^["'«»\s]+|["'«»\s]+$/g, '').trim();
           if (!reply) {
             // Release the reservation so a later run can retry this comment
             await supabase.from('agent_logs').delete()
@@ -671,8 +849,8 @@ Réponds UNIQUEMENT avec le texte de la réponse${detectedLang !== 'fr' && detec
               console.warn(`[IG-Comments] Lang mismatch: expected ${detectedLang}, got ${replyLang}. Forcing regeneration.`);
               try {
                 const retry = await anthropic.messages.create({
-                  model: 'claude-haiku-4-5-20251001',
-                  max_tokens: 150,
+                  model: COMMENT_REPLY_MODEL,
+                  max_tokens: 200,
                   system: `You write Instagram comment replies. Reply ONLY in ${targetLang}. The comment is in ${targetLang}, so YOUR REPLY must be in ${targetLang}. No French allowed. No mixed language. Casual, conversational tone — like a business owner, not a community manager. Max 2 short sentences. No hashtags, no links, no "DM me", no AI mention.`,
                   messages: [{
                     role: 'user',
