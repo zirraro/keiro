@@ -3877,6 +3877,41 @@ export async function POST(request: NextRequest) {
                                 } catch (audioErr: any) {
                                   console.warn('[Content] dvr audio mux failed (ship silent):', audioErr?.message);
                                 }
+                                // ── Reel Hook Engine — worked scroll-stopping
+                                // hook burned on the first ~2.6s. Hook is biased
+                                // by THIS client's own top-performing hooks
+                                // (first-party "reverse engineering", free).
+                                try {
+                                  const { generateReelHook, overlayReelHook } = await import('@/lib/visuals/reel-hook');
+                                  let topPerformerHooks: string[] = [];
+                                  try {
+                                    const { data: tops } = await supabase
+                                      .from('content_calendar')
+                                      .select('hook')
+                                      .eq('user_id', ownerId)
+                                      .not('performance_score', 'is', null)
+                                      .order('performance_score', { ascending: false })
+                                      .limit(6);
+                                    topPerformerHooks = (tops || []).map((t: any) => t.hook).filter(Boolean);
+                                  } catch { /* best-effort */ }
+                                  const hookText = await generateReelHook({
+                                    topic: (post as any).hook || (post as any).visual_description || post.caption || desc,
+                                    platform: post.platform,
+                                    lang: 'fr',
+                                    topPerformerHooks,
+                                  });
+                                  if (hookText) {
+                                    const hk = await overlayReelHook({ videoUrl: rawVideoUrl, hookText, postId: post.id });
+                                    if (hk.applied && hk.url) {
+                                      rawVideoUrl = hk.url;
+                                      console.log(`[Content] reel hook burned for ${post.id}: "${hookText}"`);
+                                    } else {
+                                      console.log(`[Content] reel hook skipped (${hk.reason}) for ${post.id}`);
+                                    }
+                                  }
+                                } catch (hookErr: any) {
+                                  console.warn('[Content] reel hook step failed (non-blocking):', hookErr?.message);
+                                }
                                 videoUrl = rawVideoUrl;
                                 updateData.video_url = videoUrl;
                                 updateData.visual_url = build.url;
