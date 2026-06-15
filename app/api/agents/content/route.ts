@@ -3308,10 +3308,16 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // If all platforms failed, mark as publish_failed; otherwise success.
+        // If all platforms failed, decide between a REAL failure and an
+        // expected safety guard (daily cap / rate-limit / account not
+        // connected). Guard-blocked posts are NOT failures — they're
+        // rescheduled, so we keep them 'approved' (ship on the next slot) and
+        // don't pollute the digest with false "publications bloquées".
+        const joinedErr = errors.join(' | ');
+        const isGuard = /daily_cap|rate_limit|non connect|not connect|cadence_cap/i.test(joinedErr);
         if (errors.length > 0 && !pubPermalink && !pubPublishId) {
-          pubUpdate.status = 'publish_failed';
-          pubUpdate.publish_diagnostic = errors.join(' | ').substring(0, 500);
+          pubUpdate.status = isGuard ? 'approved' : 'publish_failed';
+          pubUpdate.publish_diagnostic = (isGuard ? 'rescheduled: ' : '') + joinedErr.substring(0, 480);
           delete pubUpdate.published_at;
         } else {
           pubUpdate.status = 'published';
