@@ -60,26 +60,77 @@ export async function POST(req: NextRequest) {
     const entries = body.entry || [];
 
     // Non-DM events (comments / mentions / story_insights / ig_account_review)
-    // arrive under entry.changes[]. We don't need the full payload here —
-    // any of these means "stats moved for this IG Business account", so we
-    // refresh the cached followers/media counts so Léna + AMI stay live.
+    // arrive under entry.changes[]. Two jobs here:
+    //  1) any change means "stats moved" → refresh cached counts (Léna + AMI).
+    //  2) a NEW comment, when the owner's comment auto-reply toggle is ON, gets
+    //     replied to in real time (within seconds) instead of waiting for the
+    //     periodic cron. We delegate to /reply_comment so the quality
+    //     generation + dedup + reservation logic is reused as-is.
+    const cronSecret = process.env.CRON_SECRET;
+    // Self-origin for the internal call. Force the bare domain (no www): a
+    // www→bare 301 silently drops the POST body (same gotcha as the Brevo
+    // webhook), so we normalise here.
+    const selfOrigin = (() => {
+      try { const u = new URL(req.url); return `${u.protocol}//${u.host}`.replace('://www.', '://'); }
+      catch { return 'https://keiroai.com'; }
+    })();
+
     for (const entry of entries) {
       const changes = entry.changes || [];
       if (changes.length === 0) continue;
       const igBusinessId: string | undefined = entry.id;
       if (!igBusinessId) continue;
+
+      let ownerId: string | null = null;
       try {
         const { data: ownerProfile } = await supabase
           .from('profiles')
           .select('id')
           .eq('instagram_business_account_id', igBusinessId)
           .maybeSingle();
-        if (ownerProfile?.id) {
+        ownerId = ownerProfile?.id || null;
+        if (ownerId) {
           const { bumpInstagramInsights } = await import('@/lib/meta/insights-shared');
           // fire-and-forget — webhook must ack fast
-          bumpInstagramInsights(supabase, ownerProfile.id).catch(() => {});
+          bumpInstagramInsights(supabase, ownerId).catch(() => {});
         }
       } catch { /* non-fatal */ }
+
+      // ── Real-time comment auto-reply ──
+      const commentChanges = changes.filter((ch: any) => ch?.field === 'comments' && ch?.value?.id);
+      if (ownerId && commentChanges.length > 0 && cronSecret) {
+        let commentsAutoOn = false;
+        try {
+          const { data: cfg } = await supabase
+            .from('org_agent_configs')
+            .select('config')
+            .eq('user_id', ownerId)
+            .eq('agent_id', 'instagram_comments')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          commentsAutoOn = cfg?.config?.auto_mode === true;
+        } catch { /* default OFF */ }
+
+        for (const ch of commentChanges) {
+          const v = ch.value;
+          if (v.parent_id) continue;                                   // only top-level comments
+          if (String(v.from?.id || '') === String(igBusinessId)) continue; // never reply to ourselves (loop guard)
+          if (!commentsAutoOn) {
+            console.log(`[InstagramWebhook] comment ${v.id} for ${ownerId} — auto-reply OFF, surfaces in panel on next load`);
+            continue;
+          }
+          // fire-and-forget; reply_comment dedups so duplicate webhook
+          // deliveries can't double-reply.
+          fetch(`${selfOrigin}/api/agents/instagram-comments`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${cronSecret}` },
+            body: JSON.stringify({ action: 'reply_comment', comment_id: v.id, user_id: ownerId }),
+          })
+            .then(() => console.log(`[InstagramWebhook] comment auto-reply fired for ${v.id}`))
+            .catch((e: any) => console.warn('[InstagramWebhook] comment auto-reply failed:', e?.message));
+        }
+      }
     }
 
     for (const entry of entries) {
