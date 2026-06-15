@@ -87,7 +87,37 @@ export async function GET(request: NextRequest) {
 
           // Cache video to Supabase Storage for permanent URL
           const cachedUrl = await cacheVideoToStorage(supabase, job.final_video_url, `content-long-${Date.now()}`);
-          const finalVideoUrl = cachedUrl || job.final_video_url;
+          let finalVideoUrl = cachedUrl || job.final_video_url;
+
+          // ── Hook Engine on async reels too ──
+          // The on-screen hook (first ~2.6s) is a major TikTok/Reels retention
+          // lever (founder: "un hook dans les reels systématiquement"). The dvr
+          // path already does it; this async 30s path didn't → wire it here.
+          try {
+            const { generateReelHook, overlayReelHook } = await import('@/lib/visuals/reel-hook');
+            let topHooks: string[] = [];
+            try {
+              const { data: tops } = await supabase.from('agent_logs')
+                .select('data').eq('agent', 'content').eq('action', 'hook_learned')
+                .eq('user_id', post.user_id).order('created_at', { ascending: false }).limit(6);
+              topHooks = (tops || []).map((t: any) => t.data?.adapted_hook).filter(Boolean);
+            } catch { /* best-effort */ }
+            const hookText = await generateReelHook({
+              topic: (post as any).hook || post.caption || 'reel',
+              platform: post.platform,
+              lang: 'fr',
+              topPerformerHooks: topHooks,
+            });
+            if (hookText) {
+              const hk = await overlayReelHook({ videoUrl: finalVideoUrl, hookText, postId: post.id });
+              if (hk.applied && hk.url) {
+                finalVideoUrl = hk.url;
+                console.log(`[video-poll] reel hook burned for ${post.id}: "${hookText}"`);
+              }
+            }
+          } catch (hookErr: any) {
+            console.warn('[video-poll] reel hook step failed (non-blocking):', hookErr?.message);
+          }
 
           const updateData: Record<string, any> = {
             video_url: finalVideoUrl,
