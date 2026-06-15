@@ -489,17 +489,20 @@ export async function getOwnInstagramMedia(
     );
     const posts = data.data || [];
 
-    // Fetch insights for each post (impressions, reach, saved)
+    // Fetch insights for each post. 'impressions' was REMOVED in Graph v22
+    // (Jan 2025) and made every call fail (flooding logs). 'views' is its
+    // supported replacement and works across feed + reels. (founder: track
+    // views after each post to diagnose near-0 reach.)
     for (const post of posts) {
       try {
         const insights = await graphGET<{
           data: Array<{ name: string; values: Array<{ value: number }> }>;
         }>(`/${post.id}/insights`, pageAccessToken, {
-          metric: 'impressions,reach,saved',
+          metric: 'views,reach,saved',
         });
         for (const metric of insights.data || []) {
           const val = metric.values?.[0]?.value || 0;
-          if (metric.name === 'impressions') post.impressions = val;
+          if (metric.name === 'views') { post.views = val; post.impressions = val; /* back-compat */ }
           if (metric.name === 'reach') post.reach = val;
           if (metric.name === 'saved') post.saved = val;
         }
