@@ -259,6 +259,55 @@ CAPTION INSTAGRAM — STRUCTURE RICHE (BUSINESS-DRIVEN)
   Style: phrases courtes, sauts de ligne fréquents, AUCUN bloc
   texte massif (max 3 lignes consécutives sans saut).
 
+CONVERSION & LEAD MAGNET (stratégie — ~1 post sur 4, pas plus)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Objectif : transformer la portée en PROSPECTS CHAUDS captés (et ajoutés au CRM),
+tout en boostant le post. Le levier roi sur IG/TikTok = le "comment-to-DM" : une
+contrepartie de valeur en échange d'un commentaire (mot-clé) → la réponse part en
+DM → le contact devient un prospect chaud. Ça capture l'info ET ça explose les
+commentaires (donc la portée). Pas besoin de page de capture pour la mécanique
+native IG/TikTok : le commentaire + le DM suffisent (Jade gère). Une page/landing
+n'est utile QUE si on veut un email/téléphone hors-plateforme (plus de friction).
+
+Mécaniques à insérer (rotation, jamais 2 fois la même d'affilée, seulement quand
+le post s'y prête) :
+- CODE / OFFRE contre commentaire : "Commente PROMO et je t'envoie -10% sur ta
+  note ce week-end" (resto), "Commente PANIER pour -10% sur ta 1ère commande".
+- GUIDE / CHECKLIST / TEMPLATE gratuit (lead magnet de valeur) : "Commente GUIDE
+  et je t'envoie ma checklist des 7 erreurs à éviter".
+- ACCÈS / LISTE D'ATTENTE : "Commente PLACE pour réserver une des 10 places".
+- QUIZ / DIAGNOSTIC : "Réponds A, B ou C → je t'envoie ton plan perso en DM".
+- DÉFI / CONCOURS léger : "Tag 2 amis + commente → 1 gagne le panier du mois".
+- DEMO / RDV (B2B) : "Commente DEMO, je t'envoie le lien pour voir en 15 min".
+Règles : la contrepartie doit être RÉELLE et tenable (jamais de fausse promo —
+voir QA kit prix/offre). Le mot-clé est COURT et MAJUSCULE. Annonce clairement la
+contrepartie dans la légende. Une seule mécanique par post. Jamais "DM-moi pour
+infos" sans contrepartie (= spam). Chaque commentaire capté = prospect à
+qualifier dans le CRM (chaud), Jade enchaîne en DM.
+
+CONTENU DE VALEUR (give-first — le moteur du follow + du footfall)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Principe : on DONNE de la vraie valeur gratuite liée au métier → les gens
+suivent pour ça → la confiance se crée → ils viennent acheter / sur place. C'est
+aussi ce qui génère le plus de saves/partages/commentaires (= boost algo IG,
+TikTok ET LinkedIn). Vise ~40-50% du feed en contenu de valeur (le reste : preuve
+sociale, coulisses, offres).
+
+Décline la valeur SELON LE MÉTIER du client (exemples) :
+- Restaurant / food : une recette signature simplifiée, l'astuce du chef, le
+  dressage en 30s, "comment réussir X à la maison", accord mets/vin.
+- Bijoux / artisanat : DIY facile, comment entretenir/nettoyer ses bijoux,
+  comment associer/porter, l'histoire d'une pièce, behind-the-scenes atelier.
+- Vêtements / mode : 3 façons de porter une pièce, accord des couleurs, capsule
+  wardrobe, morpho-conseils, entretien du tissu.
+- Coiffure / beauté : routine maison, le geste pro à copier, produit décrypté.
+- Tout commerce local : "les erreurs à éviter", tuto express, mini-formation.
+Règle : la valeur est CONCRÈTE et applicable tout de suite (le viewer repart avec
+un truc utile), pas une pub déguisée. Le produit/lieu apparaît naturellement dans
+la démonstration (on voit le resto, l'atelier, la boutique) → ça donne envie de
+venir SANS vendre frontalement. Format idéal : reel/carrousel "tuto" avec un hook
+fort + CTA save/partage. La valeur d'abord, la conversion suit.
+
 HASHTAGS INSTAGRAM — STRATÉGIE 4 COUCHES (12-15 hashtags)
   Toujours en bloc séparé à la fin (\\n\\n・・・\\n\\n#xxx).
 
