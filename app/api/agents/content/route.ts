@@ -2688,6 +2688,14 @@ export async function GET(request: NextRequest) {
               // — escalating inflated the admin digest error count with false
               // positives. Leave status as-is (post is rescheduled).
               console.log(`[Content] IG publish postponed (${igResult.error}) for post ${post.id} — expected, not escalated`);
+            } else if (igResult.error?.includes('non connect') || igResult.error?.includes('not connect')) {
+              // The account is intentionally disconnected (instagram_business_account_id
+              // cleared) or has no token. This is NOT a failure — there is simply
+              // nothing to publish to. Escalating it flooded the admin digest with
+              // false "publications bloquées" errors every cron cycle. Skip quietly:
+              // mark the post on hold so it ships once the account reconnects.
+              await supabase.from('content_calendar').update({ status: 'approved', publish_error: 'account_disconnected_skipped' }).eq('id', post.id);
+              console.log(`[Content] IG not connected for post ${post.id} — skipped (not escalated, will ship on reconnect)`);
             } else {
               console.error(`[Content] Instagram publish FAILED for post ${post.id}: ${igResult.error}`);
               escalateAgentError({ agent: 'content', action: 'publish_instagram', error: igResult.error || 'Unknown IG error', platform: 'instagram', postId: post.id, context: `Hook: ${fullPost.hook?.substring(0, 80)}` }).catch(() => {});
