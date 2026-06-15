@@ -95,18 +95,17 @@ export async function generateReelHook(args: {
   const winnersBlock = winners.length
     ? `\nThis account's OWN best-performing hooks (reverse-engineer what already works HERE — same energy/structure, fresh angle, never copy verbatim):\n- ${winners.join('\n- ')}`
     : '';
+  // Shared, research-grounded hook knowledge base (same source the Studio uses).
+  const { buildHookKnowledgeBlock, hookSeed } = await import('@/lib/agents/hook-knowledge');
+  const knowledge = buildHookKnowledgeBlock({ lang: args.lang === 'en' ? 'en' : 'fr', count: 6, seed: hookSeed(args.topic) });
   try {
     const r = await new Anthropic({ apiKey }).messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 60,
-      system: `You write the on-screen HOOK that opens a vertical ${args.platform} reel — the 0-2.5s text that stops the thumb. Output ONLY the hook, in ${lang}, 3 to 7 words, no quotes, no hashtag, no emoji, no period.
+      system: `You write the on-screen HOOK that opens a vertical ${args.platform} reel — the 0-2.5s text that stops the thumb (it must land in the first 3 seconds, ~10-14 words spoken). Output ONLY the hook, in ${lang}, 3 to 7 words, no quotes, no hashtag, no emoji, no period.
 
-It must do ONE of these (rotate, pick what fits the topic best):
-- Curiosity gap ("Ce détail change tout")
-- Bold/contrarian claim ("Arrête de poster à 18h")
-- Pattern interrupt / stop ("Personne ne te dira ça")
-- Number/stakes ("3 erreurs qui tuent ton reach")
-- POV / call-out ("Si ton commerce est vide à 14h")
+${knowledge}
+
 Make it concrete to the topic. Punchy, spoken, human. Never generic ("Découvre nos services"). Never the word "IA".${winnersBlock}`,
       messages: [{ role: 'user', content: `Topic of this reel: "${args.topic.slice(0, 300)}"\n\nWrite the hook now.` }],
     });
