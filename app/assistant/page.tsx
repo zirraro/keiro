@@ -527,7 +527,13 @@ export default function AssistantPage() {
   useEffect(() => {
     async function init() {
       const supabase = supabaseBrowser();
-      const { data: { user } } = await supabase.auth.getUser();
+      // getSession() reads the session from local storage (near-instant) vs
+      // getUser() which makes an Auth-server round-trip on every page load —
+      // that round-trip was gating the whole agents page behind the loading
+      // screen. Server APIs still validate auth from the cookie, so UI gating
+      // on the cached session is safe.
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user ?? null;
       setUser(user);
 
       if (user) {

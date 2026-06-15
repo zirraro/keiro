@@ -129,9 +129,12 @@ export async function GET(req: NextRequest) {
         const data = await res.json();
         const count = data.data?.length || 0;
         console.log(`[DM-conversations] ✓ ${ep.label} returned ${count} conversations`);
-        if (count > 0) {
-          return await processConversations(data, ep.token, [igUserId, pageId || ''], ep.apiType);
-        }
+        // Return on the FIRST working endpoint, even with 0 conversations.
+        // Endpoints are ordered by authority (IGAA first) so the first OK
+        // response IS the truth — previously a 0-result kept falling through
+        // to 3-4 more sequential Graph calls (~1-2s wasted) on every empty or
+        // low-DM account. Only keep trying when an endpoint actually ERRORS.
+        return await processConversations(data, ep.token, [igUserId, pageId || ''], ep.apiType);
       } else {
         const errText = await res.text().catch(() => '');
         const errMsg = `${ep.label}: HTTP ${res.status} — ${errText.substring(0, 150)}`;

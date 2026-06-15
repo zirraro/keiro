@@ -301,14 +301,16 @@ export async function POST(req: NextRequest) {
     // empty posts saves a lot of Graph API calls.
     try {
       const mediaPath = useIgaa ? '/me/media' : `/${igId}/media`;
-      // Page through up to 4 batches of 50 (200 posts total) to find
-      // posts with comments. Comments live deep in the history on
-      // long-running accounts — diagnosed on @keiro_ai which had 22
-      // comments across 5 posts within the first 150.
+      // Page through recent media to find posts with comments. Capped at 2
+      // pages (100 posts) — each page is a SEQUENTIAL Graph call (cursor
+      // pagination can't be parallelised), so 4 pages cost ~2s of pure
+      // listing latency before we even read a comment. Comments on active
+      // accounts sit on recent posts; 100 is plenty. We also EARLY-EXIT as
+      // soon as we've found posts with comments after the first page.
       type Media = { id: string; caption?: string; timestamp: string; media_url?: string; thumbnail_url?: string; permalink?: string; media_type?: string; comments_count?: number };
       const collected: Media[] = [];
       let after: string | undefined;
-      for (let page = 0; page < 4; page++) {
+      for (let page = 0; page < 2; page++) {
         const batch: any = await fetchGraph<{ data: Media[]; paging?: { cursors?: { after?: string } } }>(
           mediaPath,
           {
@@ -319,6 +321,9 @@ export async function POST(req: NextRequest) {
         );
         collected.push(...((batch?.data as Media[]) || []));
         after = batch?.paging?.cursors?.after;
+        // Early exit: if the posts seen so far already include some with
+        // comments, no need to keep paging deeper.
+        if (collected.some(p => (p.comments_count || 0) > 0)) break;
         if (!after || (batch?.data || []).length < 50) break;
       }
 
@@ -412,6 +417,10 @@ export async function POST(req: NextRequest) {
         comments: allComments,
         total: allComments.length,
         meta: { posts_scanned: collected.length, posts_with_comments: postsWithComments.length },
+      }, {
+        // Short private cache so re-opening the tab within 20s is instant
+        // instead of re-hitting the Graph API every click.
+        headers: { 'Cache-Control': 'private, max-age=20' },
       });
     } catch (e: any) {
       return NextResponse.json({ error: e.message }, { status: 500 });
