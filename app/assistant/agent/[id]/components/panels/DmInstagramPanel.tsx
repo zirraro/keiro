@@ -1776,6 +1776,7 @@ function LenaCommentsSection() {
   const [autoReply, setAutoReply] = useState<boolean>(false);
   const [autoReplyLoaded, setAutoReplyLoaded] = useState(false);
   const [filter, setFilter] = useState<'pending' | 'all' | 'replied'>('pending');
+  const [repliedPeriod, setRepliedPeriod] = useState<'all' | '24h' | '7d' | '30d'>('all');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [replyingBatch, setReplyingBatch] = useState(false);
 
@@ -1861,8 +1862,15 @@ function LenaCommentsSection() {
 
   const pending = sourceList.filter(c => !c.replied);
   const replied = sourceList.filter(c => c.replied);
+  // Period filter on the Replied tab (by reply date).
+  const withinPeriod = (iso: string | null | undefined, period: typeof repliedPeriod) => {
+    if (period === 'all' || !iso) return true;
+    const days = period === '24h' ? 1 : period === '7d' ? 7 : 30;
+    return (Date.now() - new Date(iso).getTime()) <= days * 86400000;
+  };
+  const repliedFiltered = replied.filter(c => withinPeriod(c.replied_at, repliedPeriod));
   const counts = { all: sourceList.length, pending: pending.length, replied: replied.length };
-  const visible = filter === 'all' ? sourceList : filter === 'replied' ? replied : pending;
+  const visible = filter === 'all' ? sourceList : filter === 'replied' ? repliedFiltered : pending;
 
   return (
     <div className={isDemo ? 'opacity-95' : ''}>
@@ -1931,6 +1939,27 @@ function LenaCommentsSection() {
           </button>
         )}
       </div>
+
+      {/* Period filter — only on the Replied tab, filters by reply date. */}
+      {filter === 'replied' && counts.replied > 0 && (
+        <div className="flex items-center gap-1 mb-2 text-[9px]">
+          <span className="text-white/30 mr-0.5">{en ? 'Period:' : 'Période :'}</span>
+          {(['all', '24h', '7d', '30d'] as const).map(per => (
+            <button
+              key={per}
+              onClick={() => setRepliedPeriod(per)}
+              className={`px-2 py-0.5 rounded-full font-medium transition ${
+                repliedPeriod === per
+                  ? 'bg-emerald-500/25 text-emerald-200 border border-emerald-500/40'
+                  : 'bg-white/5 text-white/40 border border-white/10 hover:text-white/70'
+              }`}
+            >
+              {per === 'all' ? (en ? 'All' : 'Tous') : per === '24h' ? (en ? '24h' : '24h') : per === '7d' ? (en ? '7 days' : '7 jours') : (en ? '30 days' : '30 jours')}
+            </button>
+          ))}
+          <span className="ml-auto text-white/30">{repliedFiltered.length}/{counts.replied}</span>
+        </div>
+      )}
 
       {/* Bulk-reply bar — appears the moment the client has selected at least one pending comment. */}
       {filter === 'pending' && selected.size > 0 && (

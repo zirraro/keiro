@@ -46,23 +46,29 @@ QUALITY BAR — this is the whole point, hit it every time:
 - If it's a real question, answer it CONCRETELY from the business info below. Never deflect.
 - If it's just an emoji or one word ("top", "🔥"), reply with a warm, specific one-liner still tied to the post — never a pitch.
 
+SUBTLE CONVERSION (the goal IS to convert — but lightly):
+- Quietly put the business and what makes it great forward. Make the reader a little more curious / more sold WITHOUT it reading like an ad.
+- A light, natural CTA is welcome ABOUT ONCE every few replies — and only when it fits: "${isFr ? 'passe tester' : 'come try it'}", "${isFr ? 'viens voir' : 'come see'}", "${isFr ? 'le lien est en bio' : 'link in bio'}", a gentle invitation. Vary it; never the same line twice.
+- Tone dial: warm human FIRST, soft nudge SECOND. Most of the reply is genuine connection; the promotion is a light touch at the end, not the whole message.
+- If they ask to buy/sign up, answer plainly and helpfully — that's a hot lead, guide them.
+
 HARD BANS (instant fail):
 - "${isFr ? 'merci pour votre commentaire' : 'thanks for your comment'}", "${isFr ? "n'hésitez pas" : 'feel free to'}", "${isFr ? 'cordialement' : 'best regards'}", "${isFr ? 'nous vous remercions' : 'we thank you'}".
-- ANY deflection to DM: "${isFr ? 'on te répond en DM' : 'we will DM you'}", "${isFr ? 'DM-moi' : 'DM me'}", "${isFr ? 'envoie-nous un message privé' : 'send us a private message'}", "${isFr ? 'pour plus d\'infos' : 'for more info'}". Meta flags this as spam. Answer in the reply itself.
-- NO PITCH, NO SELLING. This is a comment reply for connection, not conversion. NEVER propose to work together, "${isFr ? 'on peut démarrer' : 'we can get started'}", "${isFr ? 'notre offre' : 'our offer'}", "${isFr ? 'nos services' : 'our services'}", a CTA, a price, or anything that turns the reply into an ad. Even if you ARE a service business, you reply as a warm human acknowledging the comment — full stop. The ONLY exception: the commenter EXPLICITLY asks to buy/sign up ("${isFr ? 'comment je m\'inscris' : 'how do I sign up'}") — then answer that one question plainly, still no hard sell.
-- No hashtags, no links.
+- DM deflection as an answer-dodge: "${isFr ? 'on te répond en DM' : 'we will DM you'}", "${isFr ? 'DM-moi pour plus d\'infos' : 'DM me for more info'}". If they asked a question, ANSWER it here — then you may add a light invite.
+- Desperate / pushy selling: no "${isFr ? 'on peut démarrer dès cette semaine' : 'we can start this week'}", no price-dropping, no repeated CTAs, no begging. One soft touch max.
+- No hashtags, no links in the text body (the bio link can be referenced in words).
 - Never the words "IA", "AI", "intelligence artificielle", "automatisé", "chatbot".
 
 ${allowEmoji
   ? `EMOJI: at most ONE, and only if it genuinely adds warmth. Most natural replies have none — prefer zero.${forbiddenEmojis ? ` Do NOT use these (over-used lately): ${forbiddenEmojis}` : ''}`
   : `EMOJI: none this time. Plain text only — it reads more natural and avoids repetition.`}
 
-${shouldSuggestShared ? `COMMUNITY HOOK (do it this time, subtly): if the comment reveals a clear passion, lightly hint at a shared future moment around it — invitation feel, never a pitch.\n` : ''}GOOD vs BAD (illustrative — ice-cream post, French):
+${shouldSuggestShared ? `COMMUNITY HOOK (do it this time, subtly): if the comment reveals a clear passion, lightly hint at a shared future moment around it — invitation feel, never a pitch.\n` : ''}GOOD vs BAD (illustrative — ice-cream shop post, French):
   Comment: "Super bon ! Vous l'avez au melon ?"
-  ❌ "Merci beaucoup, ça nous fait super plaisir 🙏"  (generic, ignores the question)
-  ❌ "Bonne question ! On te répond en DM 👌"  (DM deflection = spam flag)
-  ❌ "Pas encore ! Si tu veux qu'on booste ta visibilité, on peut démarrer cette semaine."  (PITCH = instant fail)
-  ✅ "Pas encore le melon, mais la pastèque cartonne en ce moment — tu validerais ?"
+  ❌ "Merci beaucoup, ça nous fait super plaisir 🙏"  (generic, ignores the question, zero pull)
+  ❌ "Bonne question ! On te répond en DM 👌"  (DM dodge = spam flag)
+  ❌ "Pas encore ! Mais viens vite, profite de -20%, on peut te réserver un pot dès cette semaine !!"  (desperate/pushy = fail)
+  ✅ "Pas encore le melon, mais la pastèque maison cartonne en ce moment — passe la tester ce week-end, tu m'en diras des nouvelles 😏"  (answers + warm + ONE light invite)
 ${brandContext ? `\nYOUR BUSINESS: ${brandContext}` : ''}${postContext ? `\nTHE POST they commented on: ${postContext}` : ''}${commenterInfo || ''}
 
 Output ONLY the reply text in ${targetLang}. Nothing else — no quotes, no preamble.`;
@@ -320,16 +326,6 @@ export async function POST(req: NextRequest) {
       // ones entirely to avoid useless API calls.
       const postsWithComments = collected.filter(p => (p.comments_count || 0) > 0);
 
-      const allComments: Array<{
-        media_id: string;
-        comment_id: string;
-        text: string;
-        username: string;
-        timestamp: string;
-        replied: boolean;
-        post: { caption: string; thumbnail_url: string | null; permalink: string | null; media_type: string | null; posted_at: string };
-      }> = [];
-
       // Same self-username probe used by auto_reply_all — needed here
       // so the UI list doesn't surface Jade's own replies as 'pending
       // comments to reply to'.
@@ -339,57 +335,74 @@ export async function POST(req: NextRequest) {
         selfUsernameFetch = (me?.username || '').toLowerCase() || null;
       } catch { /* non-fatal */ }
 
-      for (const post of postsWithComments) {
+      // Fetch every post's comments IN PARALLEL (was sequential — the main
+      // source of the slow tab load when several posts have comments).
+      const perPost = await Promise.all(postsWithComments.map(async (post) => {
         try {
           // Resolve the commenter handle from BOTH `username` (root) and
           // `from{username}`. On Instagram Login the root `username` is often
-          // empty for third-party commenters while `from.username` is set
-          // (and vice-versa depending on the API version) — requesting both
-          // and falling back maximizes how often we show the real @handle
-          // instead of the "instagram_user" placeholder. (Founder bug.)
+          // empty for third-party commenters while `from.username` is set.
           const comments = await fetchGraph<{ data: Array<{ id: string; text: string; username?: string; timestamp: string; replied_to?: any; from?: { id?: string; username?: string } }> }>(
             `/${post.id}/comments`, { fields: 'id,text,username,timestamp,replied_to,from{id,username}' }
           );
-
           const postCtx = {
             caption: (post.caption || '').slice(0, 240),
-            // For videos/reels, thumbnail_url is the frame image; for images, media_url is the image.
             thumbnail_url: post.thumbnail_url || post.media_url || null,
             permalink: post.permalink || null,
             media_type: post.media_type || null,
             posted_at: post.timestamp || '',
           };
-
-          for (const c of comments.data || []) {
-            const authorUsername = c.username || c.from?.username || '';
-            // Hide our own replies from the listing.
-            if (selfUsernameFetch && authorUsername.toLowerCase() === selfUsernameFetch) continue;
-            // Hide replies-to-replies: keep only top-level commenter
-            // threads so the UI doesn't loop on its own.
-            if (c.replied_to) continue;
-
-            // Check if already replied (kept loose: any action with
-            // this comment_id counts).
-            const { data: existing } = await supabase
-              .from('agent_logs')
-              .select('id')
-              .eq('agent', 'instagram_comments')
-              .filter('data->>comment_id', 'eq', c.id)
-              .limit(1)
-              .maybeSingle();
-
-            allComments.push({
+          return (comments.data || [])
+            .filter((c) => {
+              const u = (c.username || c.from?.username || '').toLowerCase();
+              if (selfUsernameFetch && u === selfUsernameFetch) return false; // hide our own replies
+              if (c.replied_to) return false;                                  // hide replies-to-replies
+              return true;
+            })
+            .map((c) => ({
               media_id: post.id,
               comment_id: c.id,
               text: c.text,
-              username: authorUsername,
+              username: c.username || c.from?.username || '',
               timestamp: c.timestamp,
-              replied: !!existing,
               post: postCtx,
+            }));
+        } catch { return []; }
+      }));
+      const flat = perPost.flat();
+
+      // ONE batched lookup of our replies for these comments (was an N+1
+      // query — one DB round-trip per comment). Gives us replied state, the
+      // reply TEXT (shown under the comment) and the reply DATE (date filter).
+      const repliedMap = new Map<string, { reply: string; replied_at: string }>();
+      const ids = flat.map((c) => c.comment_id).filter(Boolean);
+      if (ids.length) {
+        const { data: logs } = await supabase
+          .from('agent_logs')
+          .select('data, created_at')
+          .eq('agent', 'instagram_comments')
+          .filter('data->>comment_id', 'in', `(${ids.join(',')})`)
+          .order('created_at', { ascending: false });
+        for (const row of logs || []) {
+          const cid = (row as any).data?.comment_id;
+          if (cid && !repliedMap.has(cid)) {
+            repliedMap.set(cid, {
+              reply: (row as any).data?.reply || (row as any).data?.message_preview || '',
+              replied_at: (row as any).created_at,
             });
           }
-        } catch {}
+        }
       }
+
+      const allComments = flat.map((c) => {
+        const r = repliedMap.get(c.comment_id);
+        return {
+          ...c,
+          replied: !!r,
+          reply_text: r?.reply || null,
+          replied_at: r?.replied_at || null,
+        };
+      });
 
       // Sort newest comment first so the UI shows the most recent on top.
       allComments.sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
