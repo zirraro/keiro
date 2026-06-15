@@ -523,6 +523,17 @@ const STATUS_LABELS: Record<string, string> = {
   skipped: 'En pause',
   deleted_on_ig: 'Archivé',
 };
+const STATUS_LABELS_EN: Record<string, string> = {
+  draft: 'Draft',
+  approved: 'Scheduled',
+  published: 'Published',
+  publish_failed: 'Awaiting retry',
+  retry_pending: 'Awaiting retry',
+  skipped: 'Paused',
+  deleted_on_ig: 'Archived',
+};
+const statusLabel = (status: string, en: boolean): string =>
+  (en ? STATUS_LABELS_EN : STATUS_LABELS)[status] || status;
 const PLATFORM_META: Record<string, { label: string; emoji: string; tag: string }> = {
   instagram: { label: 'Instagram', emoji: '\u{1F4F7}', tag: 'IG' },
   tiktok:    { label: 'TikTok',    emoji: '\u{1F3B5}', tag: 'TT' },
@@ -1088,7 +1099,7 @@ function DayList({ cursor, byDay, onSelect, en, tCal }: { cursor: Date; byDay: M
                 {p.visual_url ? (
                   <div className="aspect-video relative">
                     <img src={p.visual_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                    <span className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-bold text-white ${STATUS_DOT[p.status] || 'bg-white/20'}`}>{STATUS_LABELS[p.status]}</span>
+                    <span className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-bold text-white ${STATUS_DOT[p.status] || 'bg-white/20'}`}>{statusLabel(p.status, en)}</span>
                     <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-black/60 text-white">{meta?.emoji} {meta?.label}</span>
                   </div>
                 ) : (
@@ -1184,7 +1195,7 @@ function PostModal({ selected: initial, onClose, en, tCal }: { selected: any; on
       <div className="bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
           <div className="flex items-center gap-2">
-            <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${STATUS_DOT[selected.status] || 'bg-white/10'} text-white`}>{STATUS_LABELS[selected.status] || selected.status}</span>
+            <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${STATUS_DOT[selected.status] || 'bg-white/10'} text-white`}>{statusLabel(selected.status, en)}</span>
             <span className="text-[10px] text-white/40">{PLATFORM_META[selected.platform || 'instagram']?.label} · {selected.format} · {selected.scheduled_date}</span>
           </div>
           <button onClick={onClose} className="text-white/40 hover:text-white p-1.5"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
