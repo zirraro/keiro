@@ -5762,7 +5762,12 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
   let trendsNewsItems: string[] = [];
   let trendsUpcomingEvents: string[] = [];
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.keiroai.com';
+    // Internal calls MUST hit the local app port — the VPS cannot fetch its own
+    // public URL from inside (loopback "fetch failed", same gotcha as the
+    // webhook). Hitting the public URL silently failed → news/trends came back
+    // empty → Léna fell back to the seasonal calendar event instead of a real
+    // actuality. Localhost fixes the autonomous real-news selection.
+    const baseUrl = process.env.INTERNAL_API_URL || `http://127.0.0.1:${process.env.PORT || 3000}`;
     const [trendsRes, newsRes] = await Promise.allSettled([
       fetch(`${baseUrl}/api/trends`, { signal: AbortSignal.timeout(5000) }),
       // Pull the FULL news list so we can stratify by category (same
