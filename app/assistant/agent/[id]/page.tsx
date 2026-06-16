@@ -2138,7 +2138,6 @@ export default function AgentWorkspacePage() {
                 style={activeTab === tab.key ? { background: `linear-gradient(135deg, ${gf}, ${gt})` } : undefined}
               >
                 <span>{tab.icon}</span> {tab.label}
-                <InfoTooltip text={tabInfoText(tab.key, agentId, isEn)} className="ml-0.5" />
               </button>
             ))}
           </div>
