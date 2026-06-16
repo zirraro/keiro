@@ -3298,8 +3298,10 @@ export async function POST(request: NextRequest) {
         let pubPublishId: string | undefined;
         const errors: string[] = [];
 
-        // Publish to target platform
-        if ((targetPlatform === 'instagram' || targetPlatform === 'all') && pubPost.visual_url) {
+        // Publish to target platform. A reel/video carries video_url (no
+        // visual_url) — gate on EITHER so montage reels actually publish
+        // instead of being silently marked 'published' with nothing sent.
+        if ((targetPlatform === 'instagram' || targetPlatform === 'all') && (pubPost.visual_url || pubPost.video_url)) {
           const igResult = await publishToInstagram(pubPost, supabase, orgId, userId);
           if (igResult.success && igResult.permalink) {
             pubUpdate.instagram_permalink = igResult.permalink;
@@ -3310,7 +3312,7 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        if ((targetPlatform === 'tiktok' || targetPlatform === 'all') && pubPost.visual_url) {
+        if ((targetPlatform === 'tiktok' || targetPlatform === 'all') && (pubPost.visual_url || pubPost.video_url)) {
           const ttResult = await publishToTikTok(pubPost, supabase);
           if (ttResult.success && ttResult.publish_id) {
             pubUpdate.tiktok_publish_id = ttResult.publish_id;
@@ -3328,12 +3330,17 @@ export async function POST(request: NextRequest) {
         // don't pollute the digest with false "publications bloquées".
         const joinedErr = errors.join(' | ');
         const isGuard = /daily_cap|rate_limit|non connect|not connect|cadence_cap/i.test(joinedErr);
-        if (errors.length > 0 && !pubPermalink && !pubPublishId) {
+        if (pubPermalink || pubPublishId) {
+          pubUpdate.status = 'published'; // a real publish actually happened
+        } else if (errors.length > 0) {
           pubUpdate.status = isGuard ? 'approved' : 'publish_failed';
           pubUpdate.publish_diagnostic = (isGuard ? 'rescheduled: ' : '') + joinedErr.substring(0, 480);
           delete pubUpdate.published_at;
         } else {
-          pubUpdate.status = 'published';
+          // Nothing was published and no error (e.g. no media) → keep it
+          // pending instead of falsely marking 'published'.
+          pubUpdate.status = 'approved';
+          delete pubUpdate.published_at;
         }
 
         const { error } = await supabase.from('content_calendar').update(pubUpdate).eq('id', body.postId);
