@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
 import { chooseMontagePlan, runI2vMontage, MontagePlan } from '@/lib/visuals/i2v-montage';
+import { assessReelQuality } from '@/lib/visuals/reel-qc';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -26,6 +27,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
   const body = await req.json().catch(() => ({}));
+
+  // QC-only mode: assess an existing reel video without regenerating it.
+  // Body: { qcOnly: true, videoUrl, businessType?, subject? }
+  if (body.qcOnly && body.videoUrl) {
+    const qc = await assessReelQuality(body.videoUrl, { businessType: body.businessType, subject: body.subject });
+    return NextResponse.json({ ok: !!qc, qc });
+  }
+
   const postId: string = body.postId;
   if (!postId) return NextResponse.json({ error: 'postId required' }, { status: 400 });
 
@@ -109,8 +118,30 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'montage_failed', plan, pixabayQuery, sceneCount: scenes.length });
   }
 
-  // Persist the montage video, then publish via the standard publish action.
+  // Persist the montage video.
   await supabase.from('content_calendar').update({ video_url: finalUrl, format: 'reel', updated_at: new Date().toISOString() }).eq('id', post.id);
+
+  // ── QUALITY CONTROL GATE (founder: standard QC) ──
+  // Score the finished reel on continuity / business coherence / realism. Below
+  // threshold → HOLD it (draft) instead of publishing a weak reel. Stored on the
+  // post so it's visible + auditable. QC null (infra hiccup) → publish anyway.
+  const qc = await assessReelQuality(finalUrl, { businessType: businessType || post.pillar, subject });
+  if (qc) {
+    await supabase.from('content_calendar').update({
+      qa_quality_score: qc.score,
+      qa_severity: qc.pass ? 'ok' : 'low',
+      qa_notes: qc.summary,
+      qa_findings: qc as any,
+      updated_at: new Date().toISOString(),
+    }).eq('id', post.id);
+  }
+  if (qc && !qc.pass) {
+    // Hold for review — do NOT publish a sub-bar reel.
+    await supabase.from('content_calendar').update({ status: 'draft' }).eq('id', post.id);
+    return NextResponse.json({ ok: true, qc, published: false, held: true, reason: 'qc_below_threshold', plan, sceneCount: scenes.length, pixabayQuery, video_url: finalUrl });
+  }
+
+  // Passed QC (or QC unavailable) → publish via the standard publish action.
   let published = false;
   try {
     const pubRes = await fetch(`${internalBase}/api/agents/content?user_id=${post.user_id}`, {
@@ -121,5 +152,5 @@ export async function POST(req: NextRequest) {
     published = !!pubJson?.ok;
   } catch { /* surfaced below */ }
 
-  return NextResponse.json({ ok: true, plan, sceneCount: scenes.length, pixabayQuery, video_url: finalUrl, published });
+  return NextResponse.json({ ok: true, qc, plan, sceneCount: scenes.length, pixabayQuery, video_url: finalUrl, published });
 }
