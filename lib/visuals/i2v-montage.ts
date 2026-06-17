@@ -116,37 +116,55 @@ export async function runI2vMontage(opts: {
     if (!pics.length) return null; // no real base → bail (caller uses single path)
 
     const clipUrls: string[] = [];
+    // FRAME-CHAINING (founder's key insight): scene 0 animates the best real
+    // Pixabay photo; every subsequent scene starts its i2v FROM THE LAST FRAME
+    // of the previous clip. The montage becomes ONE continuous evolving shot —
+    // consecutive plans are visually linked, and whatever carries the
+    // actuality/business link stays on screen across every plan. We only need
+    // ONE strong establishing image instead of N matching photos.
+    let currentImg = (await rehostImage(pics[0]?.largeImageURL || '', postId, 0)) || pics[0]?.largeImageURL || '';
+    let pixCursor = 1; // fallback source if a clip fails and the chain breaks
     for (let i = 0; i < scenes.length; i++) {
-      const rawImg = pics[i % pics.length]?.largeImageURL;
-      if (!rawImg) continue;
-      // Re-host on Supabase so Seedance (primary) can actually download it.
-      const baseImg = (await rehostImage(rawImg, postId, i)) || rawImg;
+      if (!currentImg) {
+        // Chain broken (previous clip failed) → reseed from another Pixabay photo.
+        const nx = pics[pixCursor++ % pics.length]?.largeImageURL;
+        currentImg = (nx && (await rehostImage(nx, postId, 100 + i))) || nx || '';
+        if (!currentImg) continue;
+      }
+      let clipUrl: string | null = null;
       try {
-        // Kick off i2v from the REAL image with this scene's cinematic prompt.
         const startRes = await fetch(`${internalBase}/api/seedream/i2v`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', authorization: `Bearer ${cronSecret}` },
-          body: JSON.stringify({ imageUrl: baseImg, prompt: scenes[i], duration: perClipSec, userId }),
+          body: JSON.stringify({ imageUrl: currentImg, prompt: scenes[i], duration: perClipSec, userId }),
         });
         const startData = await startRes.json().catch(() => null);
         const taskId = startData?.taskId;
-        if (!taskId) continue;
-        // Poll up to ~150s for this clip.
-        const deadline = Date.now() + 150_000;
-        let clipUrl: string | null = null;
-        while (Date.now() < deadline) {
-          await new Promise(r => setTimeout(r, 6000));
-          const pr = await fetch(`${internalBase}/api/seedream/i2v`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', authorization: `Bearer ${cronSecret}` },
-            body: JSON.stringify({ taskId, userId }),
-          });
-          const pd = await pr.json().catch(() => null);
-          if (pd?.status === 'completed' && pd?.videoUrl) { clipUrl = pd.videoUrl; break; }
-          if (pd?.status === 'failed') break;
+        if (taskId) {
+          const deadline = Date.now() + 150_000;
+          while (Date.now() < deadline) {
+            await new Promise(r => setTimeout(r, 6000));
+            const pr = await fetch(`${internalBase}/api/seedream/i2v`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', authorization: `Bearer ${cronSecret}` },
+              body: JSON.stringify({ taskId, userId }),
+            });
+            const pd = await pr.json().catch(() => null);
+            if (pd?.status === 'completed' && pd?.videoUrl) { clipUrl = pd.videoUrl; break; }
+            if (pd?.status === 'failed') break;
+          }
         }
-        if (clipUrl) clipUrls.push(clipUrl);
-      } catch { /* skip this scene */ }
+      } catch { /* handled below */ }
+
+      if (clipUrl) {
+        clipUrls.push(clipUrl);
+        // Continuity: next scene starts from THIS clip's last frame.
+        if (i < scenes.length - 1) {
+          currentImg = (await extractLastFrame(clipUrl, postId, i)) || '';
+        }
+      } else {
+        currentImg = ''; // force a fresh Pixabay reseed next iteration
+      }
     }
 
     if (clipUrls.length === 0) return null;
@@ -207,6 +225,37 @@ async function rehostImage(url: string, postId: string, i: number): Promise<stri
     const { data } = sb.storage.from('business-assets').getPublicUrl(obj);
     return data?.publicUrl || null;
   } catch { return null; }
+}
+
+/**
+ * Extract the LAST frame of a clip and upload it as a JPG. This is the key to
+ * montage continuity (founder): the next scene's i2v starts FROM this frame, so
+ * consecutive clips flow as ONE evolving shot instead of disconnected images —
+ * and whatever makes the actuality/business link visible stays on screen across
+ * every plan. Returns the Supabase URL of the frame, or null on failure.
+ */
+async function extractLastFrame(videoUrl: string, postId: string, idx: number): Promise<string | null> {
+  const tmp = path.join(os.tmpdir(), `lastframe-${postId}-${idx}-${Date.now()}`);
+  try {
+    const buf = await fetchBuf(videoUrl, 30_000);
+    if (!buf || buf.length < 5000) return null;
+    await fs.mkdir(tmp, { recursive: true });
+    const vid = path.join(tmp, 'in.mp4');
+    const img = path.join(tmp, 'last.jpg');
+    await fs.writeFile(vid, buf);
+    const ff = getFfmpegPath();
+    // Seek ~0.25s before the end and grab one high-quality frame.
+    await execPromise(`"${ff}" -y -sseof -0.25 -i "${vid}" -frames:v 1 -q:v 2 "${img}"`, { timeout: 60_000, maxBuffer: 1024 * 1024 * 40 });
+    const out = await fs.readFile(img).catch(() => null);
+    if (!out || out.length < 2000) return null;
+    const sb = admin();
+    const obj = `reels-i2v-chain/${postId}-${idx}-${Date.now()}.jpg`;
+    const { error } = await sb.storage.from('business-assets').upload(obj, out, { contentType: 'image/jpeg', upsert: true });
+    if (error) return null;
+    const { data } = sb.storage.from('business-assets').getPublicUrl(obj);
+    return data?.publicUrl || null;
+  } catch { return null; }
+  finally { try { await fs.rm(tmp, { recursive: true, force: true }); } catch {} }
 }
 
 /**
