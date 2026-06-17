@@ -25,6 +25,10 @@ export type BusinessNewsAngle = {
   angle: string;
   // Concrete idea Léna should turn into a post (hook + visual hint).
   postIdea: string;
+  // ONE concrete, photographable image that makes the actuality↔business
+  // link VISIBLE at a glance on a muted, scrolling feed (the founder's
+  // hard requirement: "lien fort visuellement"). Drives visual_description.
+  visualLink: string;
   // Whether Sonnet judged this image-overlay-worthy (hint for the
   // overlay decider downstream — soft signal, not binding).
   overlayWorthy: boolean;
@@ -73,11 +77,15 @@ WHAT TO AVOID:
 - Forcing a connection that isn't there. If NONE of the headlines genuinely connect to the business, return null.
 - Re-picking an angle that's been used recently.
 
+THE VISUAL LINK IS NON-NEGOTIABLE:
+The post is seen MUTED, while scrolling. The viewer must SEE the connection between the actuality and the business in under 1 second — not read it. So describe ONE concrete, photographable/filmable image where the news theme and the business are BOTH visible in the same frame (e.g. news = heatwave → "a frosty artisan ice-cream counter, condensation on the glass, summer light"; news = AI boom → "a baker checking tomorrow's orders on a tablet at dawn, flour on the screen"). No abstract concepts, no charts, no text-as-image. If you can't picture a strong shared frame, the angle is too weak — return { "picked": null }.
+
 OUTPUT — STRICT JSON:
 {
   "picked": "the exact headline / trend / event you chose, copy-pasted",
   "angle": "one sentence in ${lang === 'fr' ? 'French' : 'English'} stating the lens",
-  "postIdea": "one short paragraph in ${lang === 'fr' ? 'French' : 'English'} describing what the post should be about — hook idea + visual hint + emotion to provoke",
+  "postIdea": "one short paragraph in ${lang === 'fr' ? 'French' : 'English'} describing what the post should be about — hook idea + emotion to provoke",
+  "visualLink": "one concrete photographable/filmable shot (in ${lang === 'fr' ? 'French' : 'English'}) where the actuality AND the business are visible in the SAME frame",
   "overlayWorthy": true | false
 }
 
@@ -150,6 +158,7 @@ Choose the strongest connection and return JSON. If nothing in ${input.prefer ? 
       picked: String(parsed.picked).substring(0, 240),
       angle: String(parsed.angle || '').substring(0, 280),
       postIdea: String(parsed.postIdea || '').substring(0, 600),
+      visualLink: String(parsed.visualLink || '').substring(0, 300),
       overlayWorthy: parsed.overlayWorthy === true,
     };
   } catch {
@@ -167,8 +176,10 @@ export function angleToPromptBlock(a: BusinessNewsAngle): string {
 Sujet retenu : ${a.picked}
 Angle (lens) : ${a.angle}
 Idée de post : ${a.postIdea}
+${a.visualLink ? `🎯 LIEN VISUEL OBLIGATOIRE (à incarner dans visual_description) : ${a.visualLink}
+   → Le spectateur scrolle en muet : il doit VOIR le lien actu↔business en <1s. Le visual_description DOIT décrire ce plan concret (l'actu et le business dans le MÊME cadre). Pas d'image abstraite, pas de texte-image.` : ''}
 ${a.overlayWorthy ? '→ Sonnet juge que cette idée pourrait gagner avec un overlay punchy si la composition s\'y prête.' : '→ Sonnet juge que ce post peut très bien tenir SANS overlay texte.'}
 
-EXÉCUTE cet angle. Ne le réécris pas, ne le dilue pas. Le hook, la caption et le visual_description doivent INCARNER cette idée.
+EXÉCUTE cet angle. Ne le réécris pas, ne le dilue pas. Le hook, la caption et le visual_description doivent INCARNER cette idée — surtout le LIEN VISUEL.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
 }
