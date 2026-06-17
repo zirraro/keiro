@@ -66,20 +66,31 @@ export async function POST(req: NextRequest) {
       for (const m of media) {
         if (!m.permalink) continue;
 
+        const views = m.views || m.impressions || 0;
         const engagement = {
           like_count: m.like_count || 0,
           comments_count: m.comments_count || 0,
+          views,                       // Graph v22 metric (replaces impressions)
           impressions: m.impressions || 0,
           reach: m.reach || 0,
           saved: m.saved || 0,
           synced_at: new Date().toISOString(),
         };
+        // Performance score = weighted engagement signal AMI + the reel-hook
+        // learning read from. Saves/comments/shares weigh more than likes
+        // (they drive reach), normalised lightly by views.
+        const perfScore = Math.round(
+          (m.saved || 0) * 5 +
+          (m.comments_count || 0) * 4 +
+          (m.like_count || 0) * 1 +
+          Math.min(50, Math.round(views / 20)),
+        );
 
         // Update any content_calendar row owned by this client whose permalink matches.
         // Using eq on the permalink is exact — IG permalinks are stable.
         const { data: updatedRows } = await supabase
           .from('content_calendar')
-          .update({ engagement_data: engagement })
+          .update({ engagement_data: engagement, performance_score: perfScore })
           .eq('user_id', client.id)
           .eq('instagram_permalink', m.permalink)
           .select('id');
