@@ -5761,6 +5761,7 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
   let trendsTrendItems: string[] = [];
   let trendsNewsItems: string[] = [];
   let trendsUpcomingEvents: string[] = [];
+  let trendsAvoidThemes: string[] = []; // themes over-used in recent posts → don't repeat
   try {
     // Internal calls MUST hit the local app port — the VPS cannot fetch its own
     // public URL from inside (loopback "fetch failed", same gotcha as the
@@ -5834,12 +5835,30 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
       return count;
     };
     const NEWS_REUSE_CAP = 2;
+    // THEME-level dedup (founder: "la même news levées de fonds / data center
+    // est trop utilisée — 1-2 fois puis varie"). The title-match cap missed
+    // this because different headlines share a theme. Detect keywords that
+    // recur a lot across recent posts and treat them as over-used themes:
+    // exclude any news/trend that mentions them, and feed them to the angle
+    // picker as avoid-topics.
+    const STOP_THEME = new Set(['avec','dans','pour','les','des','une','un','que','qui','sur','aux','ton','ses','est','son','tes','vous','nous','plus','tout','tous','cette','comme','mais','leur','elle','ette','votre','notre']);
+    const freq = new Map<string, number>();
+    for (const w of recentTextBlob.split(/[^a-zàâçéèêëîïôûùüœ]+/i)) {
+      if (w.length < 5 || STOP_THEME.has(w)) continue;
+      freq.set(w, (freq.get(w) || 0) + 1);
+    }
+    trendsAvoidThemes = [...freq.entries()].filter(([, c]) => c >= 3).sort((a, b) => b[1] - a[1]).map(([w]) => w).slice(0, 20);
+    const hasOverusedTheme = (text: string) => {
+      const t = text.toLowerCase();
+      return trendsAvoidThemes.some(theme => t.includes(theme));
+    };
     const filteredNews = stratified.filter(headline => {
-      // headline format: "[Catégorie] Titre…" — keep the title slice
       const title = headline.replace(/^\[[^\]]+\]\s*/, '').slice(0, 60);
-      return countOccurrences(recentTextBlob, title) < NEWS_REUSE_CAP;
+      if (countOccurrences(recentTextBlob, title) >= NEWS_REUSE_CAP) return false;
+      if (hasOverusedTheme(headline)) return false; // theme already milked recently
+      return true;
     });
-    const filteredTrends = trendItems.filter((t: string) => countOccurrences(recentTextBlob, String(t).toLowerCase().slice(0, 40)) < NEWS_REUSE_CAP);
+    const filteredTrends = trendItems.filter((t: string) => countOccurrences(recentTextBlob, String(t).toLowerCase().slice(0, 40)) < NEWS_REUSE_CAP && !hasOverusedTheme(String(t)));
     const newsItems = filteredNews.slice(0, 12);
     trendsTrendItems = filteredTrends;
     trendsNewsItems = newsItems;
@@ -6120,9 +6139,14 @@ ${upcomingEvents.map(e => `  • ${e}`).join('\n')}
       // Hard avoid list — passed via body / clientSettings to force
       // variety when content_angle history isn't reliable.
       const avoidTopicsRaw = (clientSettings as any)?._avoid_topics;
-      const avoidTopics = Array.isArray(avoidTopicsRaw)
+      const callerAvoid = Array.isArray(avoidTopicsRaw)
         ? avoidTopicsRaw.map((t: any) => String(t).slice(0, 80)).slice(0, 10)
-        : undefined;
+        : [];
+      // Merge caller avoid-list with the auto-detected over-used themes so the
+      // picker never re-anchors on a topic we've already milked (founder:
+      // levées de fonds / data center repeated too much).
+      const avoidMerged = [...callerAvoid, ...trendsAvoidThemes].slice(0, 20);
+      const avoidTopics = avoidMerged.length ? avoidMerged : undefined;
       const angle = await pickBusinessNewsAngle({
         businessType: dossierForAngle?.business_type || detectedBusinessType || (clientSettings as any)?.business_type,
         businessSummary: dossierSummary,
