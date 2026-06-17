@@ -137,6 +137,10 @@ export async function POST(request: Request) {
     // Seedance prompt formatting
     const truncatedPrompt = optimisedBrief.length > 250 ? optimisedBrief.substring(0, 250) : optimisedBrief;
     const textPrompt = `${truncatedPrompt} --camerafixed false --duration ${duration}`;
+    // Kling only accepts duration "5" or "10" (any other value → HTTP 400
+    // "duration value 'N' is invalid"). Snap the requested duration to the
+    // nearest valid Kling value so montage clips (perClipSec ~9-10) don't fail.
+    const klingDuration = Number(duration) >= 8 ? '10' : '5';
 
     // Helper: convert URL to base64 for Kling
     async function toBase64(url: string): Promise<string> {
@@ -165,7 +169,7 @@ export async function POST(request: Request) {
         const klingTaskId = await createI2VTask({
           image: imageBase64,
           prompt: optimisedBrief || 'Animate this image with smooth cinematic camera movement',
-          duration: String(duration),
+          duration: klingDuration,
         });
         resultTaskId = klingTaskId;
         provider = 'k';

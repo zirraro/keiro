@@ -82,7 +82,7 @@ export function chooseMontagePlan(opts: {
   const w = deep ? [15, 20, 30, 20, 15] : [40, 25, 20, 10, 5];
   let acc = 0; let pickIdx = 0;
   for (let i = 0; i < w.length; i++) { acc += w[i]; if (seed < acc) { pickIdx = i; break; } }
-  const perClipSec = 9;
+  const perClipSec = 10; // valid for both Seedance (~10 cap) and Kling (5|10)
   if (pickIdx === 0) return { kind: 'single', durationSec: 10, sceneCount: 1, perClipSec: 10, reason: 'snappy single-beat' };
   const dur = [20, 30, 45, 60][pickIdx - 1];
   const sceneCount = Math.max(2, Math.round(dur / perClipSec));
@@ -117,8 +117,10 @@ export async function runI2vMontage(opts: {
 
     const clipUrls: string[] = [];
     for (let i = 0; i < scenes.length; i++) {
-      const baseImg = pics[i % pics.length]?.largeImageURL;
-      if (!baseImg) continue;
+      const rawImg = pics[i % pics.length]?.largeImageURL;
+      if (!rawImg) continue;
+      // Re-host on Supabase so Seedance (primary) can actually download it.
+      const baseImg = (await rehostImage(rawImg, postId, i)) || rawImg;
       try {
         // Kick off i2v from the REAL image with this scene's cinematic prompt.
         const startRes = await fetch(`${internalBase}/api/seedream/i2v`, {
@@ -185,6 +187,26 @@ export async function runI2vMontage(opts: {
 async function fetchBuf(url: string, ms = 25_000): Promise<Buffer | null> {
   try { const r = await fetch(url, { signal: AbortSignal.timeout(ms) }); if (!r.ok) return null; return Buffer.from(await r.arrayBuffer()); }
   catch { return null; }
+}
+
+/**
+ * Re-host a stock image (Pixabay) on Supabase before feeding it to the i2v
+ * provider. Seedance fetches the image URL server-side and FAILS on Pixabay
+ * URLs ("resource download failed") — so without this, the primary (better)
+ * provider always falls back. Supabase public URLs download fine. Returns the
+ * Supabase URL, or null on failure (caller falls back to the raw URL).
+ */
+async function rehostImage(url: string, postId: string, i: number): Promise<string | null> {
+  try {
+    const buf = await fetchBuf(url, 20_000);
+    if (!buf || buf.length < 3000) return null;
+    const sb = admin();
+    const obj = `reels-i2v-src/${postId}-${Date.now()}-${i}.jpg`;
+    const { error } = await sb.storage.from('business-assets').upload(obj, buf, { contentType: 'image/jpeg', upsert: true });
+    if (error) return null;
+    const { data } = sb.storage.from('business-assets').getPublicUrl(obj);
+    return data?.publicUrl || null;
+  } catch { return null; }
 }
 
 /**

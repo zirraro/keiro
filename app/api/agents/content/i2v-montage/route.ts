@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     ? (body.durationSec <= 14
         // Forced short reel → single real-image i2v clip (≤10s Seedance cap).
         ? { kind: 'montage', durationSec: body.durationSec, sceneCount: 1, perClipSec: Math.min(10, body.durationSec), reason: 'forced single' }
-        : { kind: 'montage', durationSec: body.durationSec, sceneCount: Math.max(2, Math.round(body.durationSec / 9)), perClipSec: 9, reason: 'forced montage' })
+        : { kind: 'montage', durationSec: body.durationSec, sceneCount: Math.max(2, Math.round(body.durationSec / 10)), perClipSec: 10, reason: 'forced montage' })
     : chooseMontagePlan({ pillar: post.pillar, topicLength: (post.caption || '').length, format: 'reel', seed: (post.id || '').split('').reduce((a: number, c: string) => (a * 31 + c.charCodeAt(0)) | 0, 0) });
 
   // Only the AUTO path may skip (single-beat handled by the normal reel flow);
