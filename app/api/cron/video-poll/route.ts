@@ -334,6 +334,11 @@ async function publishToTikTok(
   videoUrl: string,
   supabase: any
 ): Promise<{ success: boolean; publish_id?: string; error?: string }> {
+  // TikTok cooldown (see content/route.ts) — hold posts while throttled.
+  if (process.env.TIKTOK_AUTOPOST_PAUSED === '1') {
+    console.log('[video-poll] TikTok auto-post paused — holding post for later');
+    return { success: false, error: 'tiktok_autopost_paused' };
+  }
   try {
     const { data: adminProfile } = await supabase
       .from('profiles')

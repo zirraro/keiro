@@ -108,12 +108,20 @@ export async function runI2vMontage(opts: {
   mood?: string;
   hookTopic?: string;
   hookLang?: 'fr' | 'en';
+  // Personalized establishing image (founder: don't always start from generic
+  // stock). Priority resolved by the caller: client's real asset → a
+  // business-precise generated/internet-inspired image → Pixabay. When set,
+  // scene 0 animates THIS image and the rest frame-chains from it.
+  baseImageUrl?: string;
 }): Promise<string | null> {
   const { scenes, pixabayQuery, perClipSec, postId, internalBase, cronSecret, userId } = opts;
   try {
     const { searchPixabayImages } = await import('@/lib/stock/pixabay');
+    // Pixabay is now only the FALLBACK reseed source if the chain breaks — the
+    // establishing base comes from baseImageUrl (client/business-precise) when
+    // the caller resolved one.
     const pics = await searchPixabayImages({ query: pixabayQuery, count: 12, orientation: 'vertical' });
-    if (!pics.length) return null; // no real base → bail (caller uses single path)
+    if (!pics.length && !opts.baseImageUrl) return null; // no base at all → bail
 
     const clipUrls: string[] = [];
     // FRAME-CHAINING (founder's key insight): scene 0 animates the best real
@@ -122,8 +130,12 @@ export async function runI2vMontage(opts: {
     // consecutive plans are visually linked, and whatever carries the
     // actuality/business link stays on screen across every plan. We only need
     // ONE strong establishing image instead of N matching photos.
-    let currentImg = (await rehostImage(pics[0]?.largeImageURL || '', postId, 0)) || pics[0]?.largeImageURL || '';
-    let pixCursor = 1; // fallback source if a clip fails and the chain breaks
+    // Establishing base: personalized image if the caller resolved one
+    // (client asset / business-precise generated), else the best Pixabay photo.
+    let currentImg = opts.baseImageUrl
+      ? ((await rehostImage(opts.baseImageUrl, postId, 0)) || opts.baseImageUrl)
+      : ((await rehostImage(pics[0]?.largeImageURL || '', postId, 0)) || pics[0]?.largeImageURL || '');
+    let pixCursor = opts.baseImageUrl ? 0 : 1; // Pixabay only reseeds on chain break
     for (let i = 0; i < scenes.length; i++) {
       if (!currentImg) {
         // Chain broken (previous clip failed) → reseed from another Pixabay photo.

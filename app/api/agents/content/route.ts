@@ -1751,6 +1751,21 @@ async function publishToTikTok(
   post: { id?: string; format?: string; caption?: string; hashtags?: string[]; visual_url?: string; video_url?: string },
   supabase: any
 ): Promise<{ success: boolean; publish_id?: string; error?: string; unaudited?: boolean }> {
+  // ─── TIKTOK COOLDOWN ─── 2026-06-17: the account got reach-throttled (~June 10
+  // reach 250→0). Founder decision: PAUSE TikTok auto-posting + human cadence to
+  // recover, keep publishing on Instagram. When TIKTOK_AUTOPOST_PAUSED=1 we hold
+  // the row (it stays publishable for a manual/later push) instead of posting.
+  if (process.env.TIKTOK_AUTOPOST_PAUSED === '1') {
+    if (post.id) {
+      try {
+        await supabase.from('content_calendar')
+          .update({ status: 'draft', awaiting_manual_publish_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+          .eq('id', post.id);
+      } catch { /* best-effort */ }
+    }
+    console.log('[TikTok] auto-post paused (TIKTOK_AUTOPOST_PAUSED=1) — holding post for later');
+    return { success: false, error: 'tiktok_autopost_paused' };
+  }
   // ─── ATOMIC CLAIM ─── same pattern as publishToInstagram so two
   // concurrent crons can't publish the same TikTok row twice.
   if (post.id) {
@@ -3329,7 +3344,7 @@ export async function POST(request: NextRequest) {
         // rescheduled, so we keep them 'approved' (ship on the next slot) and
         // don't pollute the digest with false "publications bloquées".
         const joinedErr = errors.join(' | ');
-        const isGuard = /daily_cap|rate_limit|non connect|not connect|cadence_cap/i.test(joinedErr);
+        const isGuard = /daily_cap|rate_limit|non connect|not connect|cadence_cap|autopost_paused/i.test(joinedErr);
         if (pubPermalink || pubPublishId) {
           pubUpdate.status = 'published'; // a real publish actually happened
         } else if (errors.length > 0) {

@@ -37,11 +37,21 @@ export async function POST(req: NextRequest) {
 
   // Business context for coherent real-image queries + scene briefs.
   let businessType = '', mainProducts = '', company = '';
+  let clientBaseImage = ''; // founder: prefer the client's REAL photo as base
   try {
     const { data: d } = await supabase.from('business_dossiers')
-      .select('company_name, business_type, main_products').eq('user_id', post.user_id).maybeSingle();
-    if (d) { businessType = d.business_type || ''; mainProducts = d.main_products || ''; company = d.company_name || ''; }
+      .select('company_name, business_type, main_products, uploaded_files, logo_url').eq('user_id', post.user_id).maybeSingle();
+    if (d) {
+      businessType = d.business_type || ''; mainProducts = d.main_products || ''; company = d.company_name || '';
+      // 1) Client's own uploaded business photo = most personalized + natural.
+      const files: any[] = Array.isArray(d.uploaded_files) ? d.uploaded_files : [];
+      const img = files.find(f => /^image\//i.test(f?.type || '') || /\.(jpe?g|png|webp)$/i.test(f?.url || ''));
+      if (img?.url) clientBaseImage = img.url;
+    }
   } catch { /* best-effort */ }
+  // 2) Else: leave clientBaseImage empty → runI2vMontage grounds in an
+  //    internet-inspired photo PRECISE to this business (Pixabay query built
+  //    from the company/products below), never a generic stock cliché.
 
   const plan: MontagePlan = body.durationSec
     ? (body.durationSec <= 14
@@ -69,13 +79,13 @@ export async function POST(req: NextRequest) {
       tools: [{ name: 'montage', description: 'cinematic montage plan', input_schema: {
         type: 'object',
         properties: {
-          pixabay_query: { type: 'string', description: 'ONE very concrete, photographable subject in 2-3 English keywords (e.g. "artisan bakery bread", "barista coffee shop", "florist bouquet shop"). It must return a COHERENT set of real photos of the SAME kind of place/subject — never abstract concepts. The subject must VISUALLY scream the business so the link is obvious on a muted feed.' },
+          pixabay_query: { type: 'string', description: 'ONE very concrete, photographable subject in 2-3 English keywords PRECISE to THIS specific business — derive it from the real activity/products, not a generic category (e.g. a sushi place → "sushi chef counter" not "restaurant"; a tattoo studio → "tattoo artist ink" not "shop"; a yoga studio → "yoga studio class" not "sport"). It must return a COHERENT set of real photos of the SAME kind of place AND visually scream THIS business on a muted feed. Never abstract concepts.' },
           scenes: { type: 'array', items: { type: 'string' }, minItems: plan.sceneCount, maxItems: plan.sceneCount,
             description: `${plan.sceneCount} English i2v MOTION prompts forming ONE cinematic STORY ARC in the SAME place — a real little narrative, not random clips. Order them as a story: (1) wide ESTABLISHING shot setting the place, then BUILD into closer detail, a human gesture/action, the product/result, and a CLOSING beat that lands the feeling. Each prompt = a CAMERA MOVE + subtle natural action that fits ANY photo of "${'${pixabay_query}'}" (e.g. "slow cinematic push-in, soft morning light", "gentle pan revealing the counter", "rack focus onto the hands at work", "slow pull-back closing on the finished product"). Each beat should flow into the next so a crossfade feels natural (end on a calm/open frame). Realistic, natural, NO on-screen text, no beat that contradicts another. ${plan.sceneCount === 1 ? 'For this single beat: the one strongest, most cinematic shot of the subject.' : ''}` },
         }, required: ['pixabay_query', 'scenes'], additionalProperties: false,
       } as any }],
       tool_choice: { type: 'tool', name: 'montage' },
-      messages: [{ role: 'user', content: `Build a ${plan.durationSec}s COHERENT cinematic reel for ${company || businessType || 'a local business'} as a REAL STORY (${plan.sceneCount} scene${plan.sceneCount > 1 ? 's' : ''}).\nSubject/brief: "${String(subject).slice(0, 400)}"\nProducts: ${mainProducts}\n\nCRITICAL:\n- Pick ONE concrete photographable subject for pixabay_query whose VISUAL link to the business is unmistakable.\n- The ${plan.sceneCount} clips must read as ONE continuous scene in the SAME real place AND progress like a tiny story (establishing → build → action → reveal → close), so stitched + crossfaded clips feel directed, not random.\n- Camera-motion prompts must work on any photo of that subject. Natural, realistic, cinematic. No text.` }],
+      messages: [{ role: 'user', content: `Build a ${plan.durationSec}s COHERENT cinematic reel for ${company || businessType || 'a local business'} as a REAL STORY (${plan.sceneCount} scene${plan.sceneCount > 1 ? 's' : ''}).\nSubject/brief: "${String(subject).slice(0, 400)}"\nProducts: ${mainProducts}\n\n${clientBaseImage ? 'NOTE: scene 1 animates the CLIENT\'S OWN real photo (already chosen). Write camera-motion prompts generic enough to flow naturally from that real image — do not assume a specific stock subject.\n' : ''}CRITICAL:\n- pixabay_query must be PRECISE to ${company || businessType || 'this business'} (products: ${mainProducts || 'n/a'}) — the exact activity, not a generic category. The visual link must be unmistakable.\n- The ${plan.sceneCount} clips must read as ONE continuous scene in the SAME real place AND progress like a tiny story (establishing → build → action → reveal → close), so stitched + crossfaded clips feel directed, not random.\n- Camera-motion prompts must work on any photo of that subject. Natural, realistic, cinematic. No text.` }],
     });
     const tu = r.content.find((b: any) => b.type === 'tool_use') as any;
     if (tu?.input?.scenes?.length) scenes = tu.input.scenes;
@@ -92,6 +102,7 @@ export async function POST(req: NextRequest) {
     scenes, pixabayQuery, perClipSec: plan.perClipSec, postId: post.id,
     internalBase, cronSecret, userId: post.user_id,
     hookTopic: post.hook || post.caption || subject, hookLang: 'fr',
+    baseImageUrl: clientBaseImage || undefined, // client photo → else business-precise stock
   });
 
   if (!finalUrl) {
