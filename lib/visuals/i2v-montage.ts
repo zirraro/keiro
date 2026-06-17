@@ -27,6 +27,24 @@ function getFfmpegPath(): string {
   return 'ffmpeg';
 }
 
+function getFfprobePath(): string {
+  try { const i = require('@ffprobe-installer/ffprobe'); if (i?.path) return i.path; } catch {}
+  return 'ffprobe';
+}
+
+/** Probe a local clip's duration in seconds (fallback to `fallback` on failure). */
+async function probeDurationSec(filePath: string, fallback = 9): Promise<number> {
+  try {
+    const fp = getFfprobePath();
+    const { stdout } = await execPromise(
+      `"${fp}" -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${filePath}"`,
+      { timeout: 20_000 },
+    );
+    const d = parseFloat(String(stdout).trim());
+    return Number.isFinite(d) && d > 0.3 ? d : fallback;
+  } catch { return fallback; }
+}
+
 function admin() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { autoRefreshToken: false, persistSession: false } });
@@ -60,13 +78,13 @@ export function chooseMontagePlan(opts: {
   const seed = ((opts.seed || 0) % 100 + 100) % 100;
   const deep = (opts.topicLength || 0) > 240; // rich brief → can sustain a longer story
   // Weighted buckets (sum 100). Deeper topics skew longer.
-  // single | 30 | 45 | 60
-  const w = deep ? [25, 35, 25, 15] : [45, 35, 15, 5];
+  // single(10) | 20 | 30 | 45 | 60
+  const w = deep ? [15, 20, 30, 20, 15] : [40, 25, 20, 10, 5];
   let acc = 0; let pickIdx = 0;
   for (let i = 0; i < w.length; i++) { acc += w[i]; if (seed < acc) { pickIdx = i; break; } }
   const perClipSec = 9;
-  if (pickIdx === 0) return { kind: 'single', durationSec: 10, sceneCount: 1, perClipSec, reason: 'snappy single-beat' };
-  const dur = [30, 45, 60][pickIdx - 1];
+  if (pickIdx === 0) return { kind: 'single', durationSec: 10, sceneCount: 1, perClipSec: 10, reason: 'snappy single-beat' };
+  const dur = [20, 30, 45, 60][pickIdx - 1];
   const sceneCount = Math.max(2, Math.round(dur / perClipSec));
   return { kind: 'montage', durationSec: dur, sceneCount, perClipSec, reason: `cinematic montage ${dur}s / ${sceneCount} scenes` };
 }
@@ -195,16 +213,47 @@ export async function concatVideoClips(clipUrls: string[], postId: string): Prom
 
     const ff = getFfmpegPath();
     const out = path.join(tmp, 'out.mp4');
-    // Normalize each clip to 1080x1920 / 30fps then concat — robust to mixed
-    // input specs (the concat demuxer fails on mismatched codecs).
     const inputs = localPaths.map(p => `-i "${p}"`).join(' ');
+    // Each clip → normalized 1080x1920 / 30fps stream.
     const scale = localPaths
-      .map((_, i) => `[${i}:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,fps=30[v${i}]`)
+      .map((_, i) => `[${i}:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,fps=30,format=yuv420p[v${i}]`)
       .join(';');
-    const concatIns = localPaths.map((_, i) => `[v${i}]`).join('');
-    const filter = `${scale};${concatIns}concat=n=${localPaths.length}:v=1:a=0[v]`;
-    const cmd = `"${ff}" -y ${inputs} -filter_complex "${filter}" -map "[v]" -c:v libx264 -pix_fmt yuv420p -preset fast -crf 23 "${out}"`;
-    await execPromise(cmd, { timeout: 180_000, maxBuffer: 1024 * 1024 * 80 });
+
+    // PRIMARY path: real cinematic xfade transitions between scenes (founder
+    // wants "vraies transitions / vrai lien entre les scènes"). Compute exact
+    // offsets from each clip's real duration; vary the transition style so cuts
+    // feel directed, not mechanical. On ANY failure, fall back to hard concat.
+    let built = false;
+    try {
+      const durs: number[] = [];
+      for (const p of localPaths) durs.push(await probeDurationSec(p));
+      const T = 0.6; // crossfade length
+      const styles = ['fade', 'smoothleft', 'smoothright', 'slideup', 'circleopen', 'fadeblack'];
+      let chain = '';
+      let prev = 'v0';
+      let cum = durs[0];
+      for (let k = 1; k < localPaths.length; k++) {
+        const off = Math.max(0.1, cum - T);
+        const label = k === localPaths.length - 1 ? 'vout' : `x${k}`;
+        const tr = styles[(k - 1) % styles.length];
+        chain += `;[${prev}][v${k}]xfade=transition=${tr}:duration=${T}:offset=${off.toFixed(2)}[${label}]`;
+        cum = cum + durs[k] - T;
+        prev = label;
+      }
+      const filter = `${scale}${chain}`;
+      const cmd = `"${ff}" -y ${inputs} -filter_complex "${filter}" -map "[vout]" -c:v libx264 -pix_fmt yuv420p -preset fast -crf 22 "${out}"`;
+      await execPromise(cmd, { timeout: 240_000, maxBuffer: 1024 * 1024 * 80 });
+      const probe = await fs.stat(out).catch(() => null);
+      if (probe && probe.size > 10_000) built = true;
+    } catch { /* fall back to hard concat below */ }
+
+    if (!built) {
+      // FALLBACK: hard concat (robust to anything xfade can't handle).
+      const concatIns = localPaths.map((_, i) => `[v${i}]`).join('');
+      const filter = `${scale};${concatIns}concat=n=${localPaths.length}:v=1:a=0[v]`;
+      const cmd = `"${ff}" -y ${inputs} -filter_complex "${filter}" -map "[v]" -c:v libx264 -pix_fmt yuv420p -preset fast -crf 23 "${out}"`;
+      await execPromise(cmd, { timeout: 180_000, maxBuffer: 1024 * 1024 * 80 });
+    }
 
     const outBuf = await fs.readFile(out);
     if (outBuf.length < 10_000) return null;
