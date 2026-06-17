@@ -1398,9 +1398,9 @@ async function handleClientBrief(
             method: 'POST',
             headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
             body: JSON.stringify({
-              model: 'claude-haiku-4-5-20251001',
-              max_tokens: 500,
-              system: `Tu es Noah, stratège chez KeiroAI. Tu envoies un ${isEvening ? 'DEBRIEF DU SOIR' : 'BRIEF DU MATIN'} court et chaleureux à ${clientName}.
+              model: 'claude-sonnet-4-6',
+              max_tokens: 700,
+              system: `Tu es Keiro, le stratège IA de ${clientName}. Tu envoies un ${isEvening ? 'DEBRIEF DU SOIR' : 'BRIEF DU MATIN'} court, chaleureux ET stratégique à ${clientName}.
 
 CONTEXTE CLIENT:
 ${clientContext || 'Nouveau client, pas encore de profil complet.'}
@@ -1409,10 +1409,14 @@ FORMAT OBLIGATOIRE — HTML brut, tutoiement, zero jargon, 3 blocs SEULEMENT (le
 
 <p style="margin:0 0 14px;font-size:14px;"><strong>${isEvening ? `Bonsoir ${clientName} 🌙` : `Salut ${clientName} 👋`}</strong> — une phrase punchy de félicitations ou d'accompagnement. ${isEvening ? 'Reconnais le travail accompli (ex: "belle journée, tes agents ont poussé fort" ou "journée calme, on reprend demain").' : 'Donne le ton de la journée qui commence (ex: "journée à fort potentiel" ou "journée de consolidation").'}</p>
 
-<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">${isEvening ? '📌 À lancer demain (tâche humaine)' : '📌 Ce que tu dois faire aujourd\u2019hui'}</h4>
+<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">${isEvening ? '💡 Mes recos pour booster ton business (à faire demain)' : '💡 Mes recos pour booster ton business'}</h4>
 <ul style="margin:0 0 12px;padding-left:18px;font-size:13px;">
-  — 1 à 3 actions humaines concrètes. Verbe d'action + objet clair (ex: "Valide les 3 posts en attente dans Léna", "Relance les ${hotCount || 'X'} prospects chauds").
-  — Si agent en MANUEL ou prospects chauds en attente, priorise-les.
+  — 1 à 3 actions HUMAINES concrètes que TOI seul peux faire, déduites des vrais chiffres du jour ci-dessous, et qui font GAGNER des clients :
+    • Prospects CHAUDS (${hotCount || 0}) → "Appelle/relance tes ${hotCount || 'X'} prospects chauds — ils sont prêts à convertir" (PRIORITÉ).
+    • Emails ouverts sans réponse → "X prospects ont ouvert ton email : un message perso peut les débloquer."
+    • Comptes à suivre manuellement → "Suis les X comptes proposés, ça relance ta visibilité."
+    • Posts en attente de validation → "Valide les X posts pour garder la cadence."
+  — Toujours : verbe d'action + objet + POURQUOI (bénéfice business). Pas de tâche cosmétique. Priorise prospects chauds et agents en MANUEL.
   — Si rien d'urgent : dis-le simplement ("${isEvening ? 'Rien à faire demain côté humain, tout tourne en auto' : 'Rien à faire aujourd\u2019hui, tout tourne en auto'}").
 </ul>
 
@@ -1425,7 +1429,7 @@ REGLES ABSOLUES:
 - Tutoiement. Chaleureux, encourageant, comme un coach business.
 - NE PAS rédiger de bloc "ce qui a été fait / stats" — c'est le template qui ajoute les chiffres après ton texte.
 - Pas de phrase de transition ("Voici", "Je vous informe", "N'hésite pas").
-- Pas de signature ni "Noah" final — le template la gère.
+- Pas de signature "Keiro"/"Noah" en double — le template la gère. Ne mentionne JAMAIS "Noah" (l'expéditeur, c'est Keiro).
 - Pas de mention KeiroAI, erreurs, taux d'erreur.
 - Si journée calme (0 action) : reste positif ("Tes agents préparent la journée de demain").
 - SORTIE: HTML brut uniquement. NE PAS entourer la réponse de \`\`\`html ... \`\`\` ni de balises markdown. Commence directement par <p>.
@@ -1702,7 +1706,7 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
                 ${briefHtml}
               </div>
               <div style="background:#f9fafb;padding:12px;text-align:center;color:#9ca3af;font-size:11px;border-radius:0 0 12px 12px;">
-                Noah — Ton stratège chez KeiroAI
+                Keiro — Ton stratège
               </div>
             </div>`,
             // Tag so the Brevo webhook can identify brief opens and feed
