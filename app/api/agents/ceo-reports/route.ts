@@ -118,31 +118,76 @@ export async function POST(req: NextRequest) {
     // Build AI analysis with Claude
     let aiAnalysis = '';
     const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
+    // Learning loop (founder 2026-06-17): the digest doesn't just report — every
+    // working solution it identifies is written as a reusable PREVENTION RULE
+    // into agent_knowledge, the pool agents consult before each run
+    // (applicableKnowledge). So a problem analysed once becomes an automatic
+    // guard for next time, across all clients.
+    let learnedRules: Array<{ agent: string; summary: string; content: string }> = [];
     if (ANTHROPIC_KEY && failures.length > 0) {
       try {
         const res = await fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
           headers: { 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
           body: JSON.stringify({
-            model: 'claude-haiku-4-5-20251001',
-            max_tokens: 2000,
-            system: `Tu es Noah, CEO IA de KeiroAI. Tu analyses les echecs des agents et proposes des ameliorations CODE concretes.
-Pour chaque probleme, donne:
-1. Agent concerne
-2. Probleme identifie
-3. Impact business
-4. Solution code concrete (snippet ou modification precise)
-5. Priorite (P0/P1/P2)
-
-Format HTML pour email. Sois direct et actionable.`,
-            messages: [{ role: 'user', content: `Echecs des dernieres 24h:\n${failures.map((f: any) => `${f.agent}: ${f.data?.error || f.data?.action || 'unknown'}`).join('\n')}\n\nSucces: ${successes.length}\nTotal runs: ${totalRuns}\nError rate: ${errorRate}%` }],
+            model: 'claude-sonnet-4-6',
+            max_tokens: 2500,
+            tools: [{ name: 'analysis', description: 'structured agent-failure analysis', input_schema: {
+              type: 'object',
+              properties: {
+                issues: { type: 'array', items: { type: 'object', properties: {
+                  agent: { type: 'string', description: 'agent id concerned (email, content, dm_instagram, ...)' },
+                  problem: { type: 'string', description: 'root cause in 1-2 sentences (FR)' },
+                  impact: { type: 'string', description: 'concrete business impact (FR)' },
+                  solution: { type: 'string', description: 'concrete CODE/config fix — file + change (FR)' },
+                  prevention_rule: { type: 'string', description: 'ONE reusable, actionable rule (FR) the agent must follow to AVOID this next time. Phrase it as a standing instruction, business-type-agnostic, that makes sense injected into the agent prompt (e.g. "Avant tout envoi email, valider les adresses et purger les bounces des 30 derniers jours").' },
+                  priority: { type: 'string', enum: ['P0', 'P1', 'P2'] },
+                }, required: ['agent', 'problem', 'impact', 'solution', 'prevention_rule', 'priority'], additionalProperties: false } },
+              }, required: ['issues'], additionalProperties: false,
+            } as any }],
+            tool_choice: { type: 'tool', name: 'analysis' },
+            system: `Tu es Noah, CEO IA de KeiroAI. Tu analyses les échecs des agents des dernières 24h. Pour CHAQUE problème distinct : cause racine, impact business, solution code concrète, ET une règle de prévention réutilisable qui empêchera la récidive. Sois chirurgical : regroupe les échecs d'une même cause, priorise (P0 = bloque des clients maintenant). Maximum 5 issues, les plus impactantes.`,
+            messages: [{ role: 'user', content: `Échecs 24h:\n${failures.map((f: any) => `${f.agent}: ${f.data?.error || f.data?.action || 'unknown'}`).join('\n')}\n\nSuccès: ${successes.length} · Total runs: ${totalRuns} · Error rate: ${errorRate}%` }],
           }),
         });
         if (res.ok) {
           const data = await res.json();
-          aiAnalysis = data.content?.[0]?.text || '';
+          const tu = (data.content || []).find((b: any) => b.type === 'tool_use');
+          const issues: any[] = tu?.input?.issues || [];
+          if (issues.length) {
+            const prioRank: any = { P0: 0, P1: 1, P2: 2 };
+            issues.sort((a, b) => (prioRank[a.priority] ?? 3) - (prioRank[b.priority] ?? 3));
+            aiAnalysis = issues.map((it) => `
+<div style="margin:0 0 10px;padding:10px;background:#faf5ff;border-left:3px solid ${it.priority === 'P0' ? '#dc2626' : it.priority === 'P1' ? '#d97706' : '#8b5cf6'};border-radius:6px;font-size:13px;">
+  <strong>[${it.priority}] ${it.agent}</strong> — ${it.problem}
+  <div style="color:#6b7280;font-size:12px;margin:4px 0;">📉 ${it.impact}</div>
+  <div style="margin:4px 0;"><strong>🔧 Solution :</strong> ${it.solution}</div>
+  <div style="margin:4px 0;color:#166534;"><strong>🧠 Règle apprise (injectée aux agents) :</strong> ${it.prevention_rule}</div>
+</div>`).join('');
+            learnedRules = issues
+              .filter((it) => it.prevention_rule && it.agent)
+              .map((it) => ({ agent: String(it.agent), summary: String(it.problem).slice(0, 160), content: String(it.prevention_rule).slice(0, 600) }));
+          }
         }
       } catch { /* silent */ }
+    }
+
+    // Feed working prevention rules into the global agent-knowledge pool.
+    if (learnedRules.length) {
+      for (const r of learnedRules) {
+        try {
+          const { data: exists } = await supabase
+            .from('agent_knowledge').select('id')
+            .eq('agent', r.agent).eq('summary', r.summary).maybeSingle();
+          if (!exists) {
+            await supabase.from('agent_knowledge').insert({
+              agent: r.agent, category: 'incident_prevention', summary: r.summary,
+              content: r.content, confidence: 0.6, business_type: null,
+              source: 'admin_digest', usage_count: 0,
+            });
+          }
+        } catch { /* best-effort — never block the digest */ }
+      }
     }
 
     // Send email
