@@ -135,13 +135,21 @@ export async function runI2vMontage(opts: {
     let currentImg = opts.baseImageUrl
       ? ((await rehostImage(opts.baseImageUrl, postId, 0)) || opts.baseImageUrl)
       : ((await rehostImage(pics[0]?.largeImageURL || '', postId, 0)) || pics[0]?.largeImageURL || '');
-    let pixCursor = opts.baseImageUrl ? 0 : 1; // Pixabay only reseeds on chain break
+    let pixCursor = opts.baseImageUrl ? 0 : 1; // Pixabay only reseeds if we have NO frame yet
+    // QC 2026-06-17: continuity broke because a failed clip reseeded from a
+    // DIFFERENT Pixabay product (bocal→vase, framboise→viennoiserie). Keep the
+    // last GOOD frame as the thread: on failure we retry from it (same subject),
+    // never a new product. Pixabay reseed only when no good frame exists yet.
+    let lastGoodImg = currentImg;
     for (let i = 0; i < scenes.length; i++) {
       if (!currentImg) {
-        // Chain broken (previous clip failed) → reseed from another Pixabay photo.
-        const nx = pics[pixCursor++ % pics.length]?.largeImageURL;
-        currentImg = (nx && (await rehostImage(nx, postId, 100 + i))) || nx || '';
-        if (!currentImg) continue;
+        if (lastGoodImg) {
+          currentImg = lastGoodImg; // preserve the visual thread
+        } else {
+          const nx = pics[pixCursor++ % pics.length]?.largeImageURL;
+          currentImg = (nx && (await rehostImage(nx, postId, 100 + i))) || nx || '';
+          if (!currentImg) continue;
+        }
       }
       let clipUrl: string | null = null;
       try {
@@ -172,10 +180,12 @@ export async function runI2vMontage(opts: {
         clipUrls.push(clipUrl);
         // Continuity: next scene starts from THIS clip's last frame.
         if (i < scenes.length - 1) {
-          currentImg = (await extractLastFrame(clipUrl, postId, i)) || '';
+          const lf = await extractLastFrame(clipUrl, postId, i);
+          if (lf) { currentImg = lf; lastGoodImg = lf; }
+          else { currentImg = lastGoodImg; } // couldn't extract → keep last good thread
         }
       } else {
-        currentImg = ''; // force a fresh Pixabay reseed next iteration
+        currentImg = lastGoodImg; // failed → continue from last good frame, NOT a new product
       }
     }
 
