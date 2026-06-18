@@ -126,13 +126,16 @@ export async function POST(req: NextRequest) {
   //   4. i2v / multi-stock behind explicit flags.
   const sceneN = Math.min(3, Math.max(1, plan.sceneCount)); // fewer cuts = coherent
   const perClip = Math.max(6, Math.round(plan.durationSec / sceneN));
+  // Capture non-null values — TS loses `post` narrowing inside the closure below.
+  const pId: string = post.id;
+  const pUserId: string = (post.user_id || '') as string;
 
   async function generateOnce(): Promise<{ url: string | null; method: string }> {
     if (clientVideos.length > 0) {
-      return { method: 'client_footage', url: await finalizeReel(clientVideos.slice(0, plan.sceneCount), { postId: post.id, durationSec: plan.durationSec, hookTopic, hookLang: 'fr' }) };
+      return { method: 'client_footage', url: await finalizeReel(clientVideos.slice(0, plan.sceneCount), { postId: pId, durationSec: plan.durationSec, hookTopic, hookLang: 'fr' }) };
     }
     if (body.useI2v === true) {
-      return { method: 'i2v', url: await runI2vMontage({ scenes, pixabayQuery, perClipSec: plan.perClipSec, postId: post.id, internalBase, cronSecret, userId: post.user_id, hookTopic, hookLang: 'fr', baseImageUrl: clientBaseImage || undefined }) };
+      return { method: 'i2v', url: await runI2vMontage({ scenes, pixabayQuery, perClipSec: plan.perClipSec, postId: pId, internalBase, cronSecret, userId: pUserId, hookTopic, hookLang: 'fr', baseImageUrl: clientBaseImage || undefined }) };
     }
     if (body.useStock === true) {
       let stock: string[] = [];
@@ -142,20 +145,20 @@ export async function POST(req: NextRequest) {
         const scored = imgs.map((im: any) => ({ url: im.largeImageURL, score: qWords.reduce((s, w) => s + ((im.tags || '').toLowerCase().includes(w) ? 1 : 0), 0) })).filter((x: any) => x.url && x.score > 0).sort((a: any, b: any) => b.score - a.score);
         stock = scored.length ? scored.map((x: any) => x.url) : imgs.map((i: any) => i.largeImageURL).filter(Boolean);
       } catch { /* optional */ }
-      return { method: 'stock_kenburns', url: await runKenBurnsMontage({ photos: [...clientPhotos, ...stock], perClipSec: perClip, sceneCount: sceneN, postId: post.id, hookTopic, hookLang: 'fr' }) };
+      return { method: 'stock_kenburns', url: await runKenBurnsMontage({ photos: [...clientPhotos, ...stock], perClipSec: perClip, sceneCount: sceneN, postId: pId, hookTopic, hookLang: 'fr' }) };
     }
     // DEFAULT — client photos if any, else a GENERATED coherent hero image.
     let photos: string[] = clientPhotos.slice(0, 3);
     if (photos.length === 0) {
       const heroPrompt = `${String(subject).slice(0, 400)}. Photographie documentaire ultra-réaliste prise sur le vif, lumière naturelle douce, objectif 35mm, profondeur de champ réaliste, couleurs naturelles et chaleureuses, cadrage vertical 9:16, ambiance authentique de ${company || businessType || 'commerce local'}. Aucun texte, aucun logo. PAS un rendu 3D, PAS une illustration — une vraie photo.`;
       try {
-        const hero = await generateJadeImage(heroPrompt, 'story', post.user_id);
+        const hero = await generateJadeImage(heroPrompt, 'story', pUserId || undefined);
         if (hero) photos = [hero];
       } catch { /* fall through */ }
     }
     if (photos.length === 0) return { method: 'generated', url: null };
     // Multi-move Ken Burns on the SAME coherent image(s) → guaranteed continuity.
-    return { method: clientPhotos.length ? 'client_photos' : 'generated', url: await runKenBurnsMontage({ photos, perClipSec: perClip, sceneCount: sceneN, postId: post.id, hookTopic, hookLang: 'fr' }) };
+    return { method: clientPhotos.length ? 'client_photos' : 'generated', url: await runKenBurnsMontage({ photos, perClipSec: perClip, sceneCount: sceneN, postId: pId, hookTopic, hookLang: 'fr' }) };
   }
 
   // RETRY for showcase quality (founder): regenerate up to 3× until QC passes;
