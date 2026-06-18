@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
 import { chooseMontagePlan, runI2vMontage, runKenBurnsMontage, finalizeReel, MontagePlan } from '@/lib/visuals/i2v-montage';
 import { searchPixabayImages } from '@/lib/stock/pixabay';
-import { generateJadeImage } from '@/lib/visuals/jade-prompter';
+import { generateJadeImage, generateJadeImageFromReference } from '@/lib/visuals/jade-prompter';
 import { assessReelQuality } from '@/lib/visuals/reel-qc';
 
 export const runtime = 'nodejs';
@@ -156,7 +156,25 @@ export async function POST(req: NextRequest) {
       const heroPrompt = `${String(subject).slice(0, 380)}. Photographie documentaire ultra-réaliste prise sur le vif, lumière naturelle douce, objectif 35mm, profondeur de champ réaliste, couleurs naturelles et chaleureuses, cadrage vertical 9:16, ambiance authentique de ${company || businessType || 'commerce local'}. PAS un rendu 3D, PAS une illustration — une vraie photo. ABSOLUMENT AUCUN texte, lettre, mot, chiffre, panneau écrit, affiche avec écriture, enseigne lisible : toute affiche ou pancarte doit être vierge ou montrer seulement une image/photo sans aucun caractère.`;
       try {
         const hero = await generateJadeImage(heroPrompt, 'story', pUserId || undefined);
-        if (hero) photos = [hero];
+        if (hero) {
+          photos = [hero];
+          // MULTI-PLAN (showcase): 2 coherent variations of the SAME scene via
+          // i2i (low strength keeps the venue; negative blocks "different venue")
+          // → real shot variety (wide + detail) instead of one monotone image.
+          // Gated by body.multiPlan to protect margin on auto/volume content.
+          if (body.multiPlan === true) {
+            const varBriefs = [
+              `Autre plan de LA MÊME scène (${company || businessType || 'commerce'}) : plan plus large d'ensemble, même lieu, même style, même lumière, sans texte. ${String(subject).slice(0, 160)}`,
+              `Autre plan de LA MÊME scène (${company || businessType || 'commerce'}) : gros plan sur un détail/produit, même lieu, même style, sans texte. ${String(subject).slice(0, 160)}`,
+            ];
+            for (const vb of varBriefs) {
+              try {
+                const v = await generateJadeImageFromReference(hero, vb, 'story', 0.42, pUserId || undefined);
+                if (v) photos.push(v);
+              } catch { /* keep what we have */ }
+            }
+          }
+        }
       } catch { /* fall through */ }
     }
     if (photos.length === 0) return { method: 'generated', url: null };
@@ -164,8 +182,9 @@ export async function POST(req: NextRequest) {
     // moves on one image make elements appear/disappear). Multiple real photos →
     // multi-segment with transitions.
     const uniq = Array.from(new Set(photos));
-    const sc = uniq.length === 1 ? 1 : Math.min(uniq.length, sceneN);
-    const pc = uniq.length === 1 ? plan.durationSec : perClip;
+    const maxShots = body.multiPlan === true ? Math.min(uniq.length, 3) : sceneN;
+    const sc = uniq.length === 1 ? 1 : Math.min(uniq.length, maxShots);
+    const pc = sc <= 1 ? plan.durationSec : Math.max(6, Math.round(plan.durationSec / sc));
     return { method: clientPhotos.length ? 'client_photos' : 'generated', url: await runKenBurnsMontage({ photos: uniq, perClipSec: pc, sceneCount: sc, postId: pId, hookTopic, hookLang: 'fr' }) };
   }
 
