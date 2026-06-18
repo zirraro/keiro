@@ -39,6 +39,15 @@ export async function POST(req: NextRequest) {
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
 
   const num = (v: any) => (v == null || v === '' ? undefined : Number(v));
+  // Density proxy: # of pooled businesses sharing a zone ≈ commercial density of
+  // that zone (the founder's HARD criterion). Cheap, derivable now, no API call.
+  const zoneCounts: Record<string, number> = {};
+  for (const r of rows || []) { const z = String(r.zone || ''); if (z) zoneCounts[z] = (zoneCounts[z] || 0) + 1; }
+  const densityFor = (zone: string | null | undefined): number | undefined => {
+    const c = zoneCounts[String(zone || '')] || 0;
+    if (!c) return undefined;
+    if (c >= 15) return 70; if (c >= 8) return 55; if (c >= 4) return 38; return 20;
+  };
   const out = (rows || []).map((r: any) => {
    try {
     const typeStr = String(r.business_type || (Array.isArray(r.types) ? r.types.join(' ') : (r.types || '')));
@@ -50,7 +59,7 @@ export async function POST(req: NextRequest) {
       isChainOrFranchise: r.is_chain === true || undefined,
       underAgencyContract: r.under_contract === true || undefined,
       hasAnyDigitalPresence: hasPresence,
-      densityScore: num(r.density_score),
+      densityScore: num(r.density_score) ?? densityFor(r.zone),
       contactChannel,
       lastInstaPostDaysAgo: num(r.last_post_days_ago),
       priorEffortEvidence: r.prior_effort_evidence === true || undefined,
