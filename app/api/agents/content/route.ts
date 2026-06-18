@@ -65,26 +65,25 @@ export const maxDuration = 600;
 // en plus des tags de niche. On garantit un set optimisé : 1-2 tags découverte
 // FR + les tags de niche du LLM, dédupliqués et capés à 6 (limite guardrail).
 // Un post sous-taggé (0-2 hashtags) ou sans tag découverte = peu de portée.
+// Reach-bait tags TikTok now treats as a SPAM signal (the 2020 belief that
+// #fyp/#pourtoi boosts reach is reversed in 2026 — they flag low-effort content
+// and SUPPRESS it). Over-tagging is also penalised. Expert fix 2026-06-19:
+// strip reach-bait, keep only NICHE/relevant tags, cap at 5.
+const REACH_BAIT_TAGS = new Set([
+  'fyp', 'fypシ', 'fypage', 'foryou', 'foryoupage', 'fy', 'pourtoi', 'pourtoipage',
+  'viral', 'viralvideo', 'viraltiktok', 'trend', 'trending', 'explore', 'explorepage',
+  'tiktok', 'tiktokfrance', 'tiktokviral', 'like', 'follow', 'abonnetoi',
+]);
 function optimizeTikTokHashtags(raw: string[]): string[] {
-  // 2026-06-15 — Founder: TikTok posts need MORE hashtags (broad + niche) to be
-  // pushed. Cap raised 6 → 10 (TikTok sweet spot 2026), and discovery tags are
-  // GUARANTEED first so they're never dropped when the LLM already filled the
-  // list. Order: discovery (For You signal) → the LLM's niche/intent tags.
-  const TARGET = 10;
-  const clean = (raw || []).map(h => String(h).replace(/^#/, '').trim()).filter(Boolean);
-  const lower = new Set(clean.map(h => h.toLowerCase()));
-  // Discovery tags first (guaranteed), then the niche tags from the LLM.
-  const ordered: string[] = [];
-  for (const d of ['pourtoi', 'fyp']) {
-    if (!lower.has(d)) ordered.push(d);
-  }
-  ordered.push(...clean);
-  // Dédup + cap at TARGET.
+  const TARGET = 5; // niche sweet spot — over-tagging reads as spam
   const seen = new Set<string>();
   const final: string[] = [];
-  for (const h of ordered) {
-    const k = h.toLowerCase();
-    if (!seen.has(k)) { seen.add(k); final.push(h); }
+  for (const h of raw || []) {
+    const tag = String(h).replace(/^#/, '').trim();
+    const k = tag.toLowerCase();
+    if (!tag || REACH_BAIT_TAGS.has(k) || seen.has(k)) continue; // drop reach-bait + dups
+    seen.add(k);
+    final.push(tag);
     if (final.length >= TARGET) break;
   }
   return final;
@@ -981,6 +980,13 @@ async function publishToInstagram(
     // Build caption with hashtags — visually clean formatting
     let hashtagsArr = Array.isArray(post.hashtags) ? post.hashtags : [];
     let rawCaption = (post.caption || '').trim();
+
+    // Strip reach-bait hashtags (#fyp/#pourtoi… = spam signal in 2026, suppress
+    // reach) from BOTH the array and inline #tags in the caption — IG + TikTok.
+    hashtagsArr = hashtagsArr.filter((h: any) => !REACH_BAIT_TAGS.has(String(h).replace(/^#/, '').trim().toLowerCase()));
+    rawCaption = rawCaption
+      .replace(/#([\p{L}0-9_]+)/gu, (m, t) => (REACH_BAIT_TAGS.has(String(t).toLowerCase()) ? '' : m))
+      .replace(/[ \t]{2,}/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
 
     // 2026-06-03 — Pre-publish guardrails. Catches Meta/TikTok policy
     // violations (hate, medical/finance claims, shadow-banned tags,
