@@ -151,15 +151,22 @@ export async function POST(req: NextRequest) {
     // DEFAULT — client photos if any, else a GENERATED coherent hero image.
     let photos: string[] = clientPhotos.slice(0, 3);
     if (photos.length === 0) {
-      const heroPrompt = `${String(subject).slice(0, 400)}. Photographie documentaire ultra-réaliste prise sur le vif, lumière naturelle douce, objectif 35mm, profondeur de champ réaliste, couleurs naturelles et chaleureuses, cadrage vertical 9:16, ambiance authentique de ${company || businessType || 'commerce local'}. Aucun texte, aucun logo. PAS un rendu 3D, PAS une illustration — une vraie photo.`;
+      // Strong NO-TEXT (QC: AI gibberish on posters/signs is a rédhibitoire AI
+      // tell). Force signs/posters to be blank or pure imagery.
+      const heroPrompt = `${String(subject).slice(0, 380)}. Photographie documentaire ultra-réaliste prise sur le vif, lumière naturelle douce, objectif 35mm, profondeur de champ réaliste, couleurs naturelles et chaleureuses, cadrage vertical 9:16, ambiance authentique de ${company || businessType || 'commerce local'}. PAS un rendu 3D, PAS une illustration — une vraie photo. ABSOLUMENT AUCUN texte, lettre, mot, chiffre, panneau écrit, affiche avec écriture, enseigne lisible : toute affiche ou pancarte doit être vierge ou montrer seulement une image/photo sans aucun caractère.`;
       try {
         const hero = await generateJadeImage(heroPrompt, 'story', pUserId || undefined);
         if (hero) photos = [hero];
       } catch { /* fall through */ }
     }
     if (photos.length === 0) return { method: 'generated', url: null };
-    // Multi-move Ken Burns on the SAME coherent image(s) → guaranteed continuity.
-    return { method: clientPhotos.length ? 'client_photos' : 'generated', url: await runKenBurnsMontage({ photos, perClipSec: perClip, sceneCount: sceneN, postId: pId, hookTopic, hookLang: 'fr' }) };
+    // ONE coherent image → a SINGLE continuous Ken Burns move (QC: multi-region
+    // moves on one image make elements appear/disappear). Multiple real photos →
+    // multi-segment with transitions.
+    const uniq = Array.from(new Set(photos));
+    const sc = uniq.length === 1 ? 1 : Math.min(uniq.length, sceneN);
+    const pc = uniq.length === 1 ? plan.durationSec : perClip;
+    return { method: clientPhotos.length ? 'client_photos' : 'generated', url: await runKenBurnsMontage({ photos: uniq, perClipSec: pc, sceneCount: sc, postId: pId, hookTopic, hookLang: 'fr' }) };
   }
 
   // RETRY for showcase quality (founder): regenerate up to 3× until QC passes;

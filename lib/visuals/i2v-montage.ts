@@ -269,15 +269,22 @@ export async function kenBurnsClip(photoUrl: string, postId: string, idx: number
     // read as "frames quasi-identiques, aucun mouvement"). Faster zoom + each
     // variant frames a DIFFERENT region so 3 segments on one hero explore the
     // scene (detail → traverse → reveal) instead of looking frozen.
-    const zin = `min(zoom+0.0022,1.55)`;
-    const zout = `if(lte(zoom,1.0),1.55,max(1.001,zoom-0.0022))`;
+    // Duration-AWARE zoom step so the motion spreads smoothly over the WHOLE
+    // clip (a fixed step hits the cap early then freezes the rest — reads as
+    // "no motion" to QC). Reach ~1.38 exactly at the last frame.
+    const zStep = (0.38 / frames).toFixed(6);
+    const zStepSlow = (0.26 / frames).toFixed(6);
+    const zin = `min(zoom+${zStep},1.5)`;
+    const zout = `if(lte(zoom,1.0),1.38,max(1.0,zoom-${zStep}))`;
     const cx = `iw/2-(iw/zoom/2)`, cy = `ih/2-(ih/zoom/2)`;
+    // v0 = gentle CENTERED zoom-in: smooth, continuous, keeps everything in
+    // frame (no element popping in/out). Best for a single-image reel.
     const variants = [
-      { z: zin, x: cx, y: `(ih-ih/zoom)*0.12` },                  // zoom in → upper detail
-      { z: `min(zoom+0.0008,1.30)`, x: `(iw-iw/zoom)*on/${frames}`, y: cy }, // traverse L→R at mid-zoom
-      { z: zout, x: cx, y: cy },                                  // pull back → full reveal
-      { z: zin, x: `(iw-iw/zoom)*0.85`, y: `(ih-ih/zoom)*0.80` }, // zoom in → lower-right detail
-      { z: `min(zoom+0.0008,1.30)`, x: cx, y: `(ih-ih/zoom)*on/${frames}` }, // descend top→bottom
+      { z: zin, x: cx, y: cy },                                                // centered zoom-in (safe default, single-image)
+      { z: `min(zoom+${zStepSlow},1.28)`, x: `(iw-iw/zoom)*on/${frames}`, y: cy }, // traverse L→R + slow zoom
+      { z: zout, x: cx, y: cy },                                               // pull back → reveal
+      { z: zin, x: cx, y: `(ih-ih/zoom)*0.12` },                               // zoom in → upper
+      { z: `min(zoom+${zStepSlow},1.28)`, x: cx, y: `(ih-ih/zoom)*on/${frames}` }, // descend top→bottom
     ];
     const v = variants[((variant % variants.length) + variants.length) % variants.length];
     // Normalize to a 2160x3840 (9:16) canvas first so the pan/zoom never
