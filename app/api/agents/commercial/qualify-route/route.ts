@@ -40,7 +40,9 @@ export async function POST(req: NextRequest) {
 
   const num = (v: any) => (v == null || v === '' ? undefined : Number(v));
   const out = (rows || []).map((r: any) => {
-    const sector = detectSector(r.business_type || r.types);
+   try {
+    const typeStr = String(r.business_type || (Array.isArray(r.types) ? r.types.join(' ') : (r.types || '')));
+    const sector = detectSector(typeStr);
     const hasPresence = !!(r.instagram || r.website || r.place_id || r.google_maps_url);
     const contactChannel: ProspectSignals['contactChannel'] = r.instagram ? 'dm_open' : r.website ? 'email' : null;
     const loc = r.raw_data?.geometry?.location || r.raw_data?.location || {};
@@ -75,6 +77,9 @@ export async function POST(req: NextRequest) {
       instagram: r.instagram, lat: num(loc.lat) ?? num(loc.latitude), lng: num(loc.lng) ?? num(loc.longitude),
       qualification, accroche,
     };
+   } catch {
+    return { id: r.place_id, company: r.name, sector: 'autre' as const, qualification: qualifyProspect({}), accroche: undefined, lat: undefined, lng: undefined };
+   }
   });
 
   const actionable = out.filter(p => !p.qualification.disqualified && p.qualification.tier !== 'ignore')
