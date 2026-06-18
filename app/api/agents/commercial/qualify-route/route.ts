@@ -28,23 +28,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
   const body = await req.json().catch(() => ({}));
-  const userId: string | undefined = body.userId;
-  if (!userId) return NextResponse.json({ error: 'userId required' }, { status: 400 });
+  // prospect_pool is a SHARED pool keyed by place_id + zone (no user_id).
+  // Optional `zone` filter targets a client's chalandise; else scans the pool.
+  const zone: string | undefined = body.zone;
 
   const supabase = sb();
-  // Pull this client's prospect pool (defensive column select).
-  const { data: rows, error } = await supabase
-    .from('prospect_pool')
-    .select('*')
-    .eq('user_id', userId)
-    .limit(500);
+  let q = supabase.from('prospect_pool').select('*').limit(500);
+  if (zone) q = q.eq('zone', zone);
+  const { data: rows, error } = await q;
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
 
   const num = (v: any) => (v == null || v === '' ? undefined : Number(v));
   const out = (rows || []).map((r: any) => {
-    const sector = detectSector(r.type || r.business_type || r.category);
-    const hasPresence = !!(r.instagram || r.website || r.google_place_id || r.google_maps_url);
-    const contactChannel: ProspectSignals['contactChannel'] = r.instagram ? 'dm_open' : (r.website || r.email) ? 'email' : null;
+    const sector = detectSector(r.business_type || r.types);
+    const hasPresence = !!(r.instagram || r.website || r.place_id || r.google_maps_url);
+    const contactChannel: ProspectSignals['contactChannel'] = r.instagram ? 'dm_open' : r.website ? 'email' : null;
+    const loc = r.raw_data?.geometry?.location || r.raw_data?.location || {};
     const signals: ProspectSignals = {
       isChainOrFranchise: r.is_chain === true || undefined,
       underAgencyContract: r.under_contract === true || undefined,
@@ -72,8 +71,8 @@ export async function POST(req: NextRequest) {
       }
     }
     return {
-      id: r.id, company: r.company, sector, quartier: r.quartier, address: r.address,
-      instagram: r.instagram, lat: num(r.latitude) ?? num(r.lat), lng: num(r.longitude) ?? num(r.lng),
+      id: r.place_id, company: r.name, sector, quartier: r.zone, address: r.address,
+      instagram: r.instagram, lat: num(loc.lat) ?? num(loc.latitude), lng: num(loc.lng) ?? num(loc.longitude),
       qualification, accroche,
     };
   });
