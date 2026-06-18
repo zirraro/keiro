@@ -265,15 +265,19 @@ export async function kenBurnsClip(photoUrl: string, postId: string, idx: number
     const ff = getFfmpegPath();
     const fps = 30;
     const frames = Math.max(2, Math.round(durationSec * fps));
-    const zin = `min(zoom+0.0012,1.35)`;
-    const zout = `if(lte(zoom,1.0),1.35,max(1.001,zoom-0.0012))`;
+    // Stronger, clearly-visible motion (QC 2026-06-18: subtle moves on one image
+    // read as "frames quasi-identiques, aucun mouvement"). Faster zoom + each
+    // variant frames a DIFFERENT region so 3 segments on one hero explore the
+    // scene (detail → traverse → reveal) instead of looking frozen.
+    const zin = `min(zoom+0.0022,1.55)`;
+    const zout = `if(lte(zoom,1.0),1.55,max(1.001,zoom-0.0022))`;
     const cx = `iw/2-(iw/zoom/2)`, cy = `ih/2-(ih/zoom/2)`;
     const variants = [
-      { z: zin, x: cx, y: cy },                                   // zoom in, centered
-      { z: zout, x: cx, y: cy },                                  // zoom out, centered
-      { z: zin, x: `(iw-iw/zoom)*on/${frames}`, y: cy },          // pan left→right + zoom
-      { z: zin, x: `(iw-iw/zoom)*(1-on/${frames})`, y: cy },      // pan right→left + zoom
-      { z: zin, x: cx, y: `(ih-ih/zoom)*on/${frames}` },          // pan top→bottom + zoom
+      { z: zin, x: cx, y: `(ih-ih/zoom)*0.12` },                  // zoom in → upper detail
+      { z: `min(zoom+0.0008,1.30)`, x: `(iw-iw/zoom)*on/${frames}`, y: cy }, // traverse L→R at mid-zoom
+      { z: zout, x: cx, y: cy },                                  // pull back → full reveal
+      { z: zin, x: `(iw-iw/zoom)*0.85`, y: `(ih-ih/zoom)*0.80` }, // zoom in → lower-right detail
+      { z: `min(zoom+0.0008,1.30)`, x: cx, y: `(ih-ih/zoom)*on/${frames}` }, // descend top→bottom
     ];
     const v = variants[((variant % variants.length) + variants.length) % variants.length];
     // Normalize to a 2160x3840 (9:16) canvas first so the pan/zoom never
