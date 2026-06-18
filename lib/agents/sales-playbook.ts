@@ -94,6 +94,25 @@ export const SECTORS: Record<Sector, SectorFiche> = {
   autre: { label: 'Autre commerce local', circle: 3, angoisse: "Manque de temps pour une présence en ligne régulière.", desire: "Visibilité régulière sans y penser.", heroAgent: 'Léna', vocabUse: ['tes clients', 'ton activité', 'sans y penser'], vocabAvoid: ['ROI', 'funnel', 'KPI'], objections: [], channelOptimal: 'terrain > DM > email', saison: 'janvier, septembre' },
 };
 
+/**
+ * Saisonnalité d'attaque par secteur (mois 1-12 où la fenêtre d'achat s'ouvre).
+ * Janvier (creux + résolutions) + septembre (rentrée) = quasi-universels ; on
+ * ajoute les pics spécifiques. Sert de DÉCLENCHEUR actif (signal de score) +
+ * à choisir l'accroche "creux saisonnier".
+ */
+const SEASON_MONTHS: Partial<Record<Sector, number[]>> = {
+  institut_beaute: [1, 9, 11], onglerie: [1, 9, 11], coiffure: [1, 9, 11, 12],
+  spa: [1, 11, 12], massage: [1, 9], barbier: [9, 12],
+  coach_sportif: [1, 9], yoga_pilates: [1, 9], dieteticien: [1, 9], naturopathe: [1, 9],
+  restaurant: [1, 9], fleuriste: [2, 5, 12], caviste: [11, 12], boutique_mode: [1, 6, 9, 11],
+  tatoueur: [9], concept_store: [9, 11, 12], autre: [1, 9],
+};
+
+export function isSectorInSeason(sector: Sector, month1to12: number): boolean {
+  const m = SEASON_MONTHS[sector] || [1, 9];
+  return m.includes(month1to12);
+}
+
 /** Map a free-text business_type to a Sector key. */
 export function detectSector(businessType?: string): Sector {
   const t = (businessType || '').toLowerCase();

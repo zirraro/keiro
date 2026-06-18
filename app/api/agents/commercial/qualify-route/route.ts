@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { qualifyProspect, ProspectSignals } from '@/lib/agents/prospect-qualification';
 import { buildWalkingRoutes, GeoProspect } from '@/lib/agents/prospect-routes';
-import { detectSector, buildProspectAccroche } from '@/lib/agents/sales-playbook';
+import { detectSector, buildProspectAccroche, isSectorInSeason } from '@/lib/agents/sales-playbook';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
 
   const num = (v: any) => (v == null || v === '' ? undefined : Number(v));
+  const curMonth = new Date().getMonth() + 1; // 1-12, for seasonal trigger
   // Density proxy: # of pooled businesses sharing a zone ≈ commercial density of
   // that zone (the founder's HARD criterion). Cheap, derivable now, no API call.
   const zoneCounts: Record<string, number> = {};
@@ -66,7 +67,8 @@ export async function POST(req: NextRequest) {
       googleReviewsCount: num(r.google_reviews),
       googleReviewsUnansweredPct: num(r.reviews_unanswered_pct),
       googleRating: num(r.google_rating),
-      activeTrigger: r.active_trigger === true || undefined,
+      // Déclencheur : drapeau data si présent, sinon saisonnalité du secteur ce mois-ci.
+      activeTrigger: r.active_trigger === true || isSectorInSeason(sector, curMonth),
     };
     const qualification = qualifyProspect(signals);
     // DM accroche from the strongest available signal (Jade — to personalise).
@@ -95,8 +97,10 @@ export async function POST(req: NextRequest) {
     .sort((a, b) => b.qualification.score - a.qualification.score);
   const priority = actionable.filter(p => p.qualification.tier === 'priority');
 
-  // Walking routes from the priority set that has coordinates.
-  const geo: GeoProspect[] = priority
+  // Walking routes from the ACTIONABLE set (priority + maybe) that has coords —
+  // the founder's Saturday tour shouldn't wait on the rare 70+ when 40-69 in a
+  // dense block are worth visiting too.
+  const geo: GeoProspect[] = actionable
     .filter(p => Number.isFinite(p.lat as any) && Number.isFinite(p.lng as any))
     .map(p => ({ id: p.id, company: p.company, lat: p.lat as number, lng: p.lng as number, score: p.qualification.score }));
   const routes = buildWalkingRoutes(geo);
