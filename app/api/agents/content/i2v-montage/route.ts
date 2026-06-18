@@ -163,13 +163,15 @@ export async function POST(req: NextRequest) {
           // → real shot variety (wide + detail) instead of one monotone image.
           // Gated by body.multiPlan to protect margin on auto/volume content.
           if (body.multiPlan === true) {
+            // Strict consistency anchors (QC: i2i drifted on lighting + props).
+            const consist = `EXACTEMENT le même lieu, la même lumière (même température de couleur, même direction), les mêmes accessoires et le même style que l'image de référence. Ne change QUE le cadrage. Sans texte.`;
             const varBriefs = [
-              `Autre plan de LA MÊME scène (${company || businessType || 'commerce'}) : plan plus large d'ensemble, même lieu, même style, même lumière, sans texte. ${String(subject).slice(0, 160)}`,
-              `Autre plan de LA MÊME scène (${company || businessType || 'commerce'}) : gros plan sur un détail/produit, même lieu, même style, sans texte. ${String(subject).slice(0, 160)}`,
+              `Même scène (${company || businessType || 'commerce'}), plan PLUS LARGE d'ensemble. ${consist} ${String(subject).slice(0, 130)}`,
+              `Même scène (${company || businessType || 'commerce'}), GROS PLAN sur un détail/produit au premier plan. ${consist} ${String(subject).slice(0, 130)}`,
             ];
             for (const vb of varBriefs) {
               try {
-                const v = await generateJadeImageFromReference(hero, vb, 'story', 0.42, pUserId || undefined);
+                const v = await generateJadeImageFromReference(hero, vb, 'story', 0.35, pUserId || undefined);
                 if (v) photos.push(v);
               } catch { /* keep what we have */ }
             }
