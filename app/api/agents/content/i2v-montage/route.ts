@@ -129,13 +129,14 @@ export async function POST(req: NextRequest) {
   // Capture non-null values — TS loses `post` narrowing inside the closure below.
   const pId: string = post.id;
   const pUserId: string = (post.user_id || '') as string;
+  const cs: string = cronSecret;
 
   async function generateOnce(): Promise<{ url: string | null; method: string }> {
     if (clientVideos.length > 0) {
       return { method: 'client_footage', url: await finalizeReel(clientVideos.slice(0, plan.sceneCount), { postId: pId, durationSec: plan.durationSec, hookTopic, hookLang: 'fr' }) };
     }
     if (body.useI2v === true) {
-      return { method: 'i2v', url: await runI2vMontage({ scenes, pixabayQuery, perClipSec: plan.perClipSec, postId: pId, internalBase, cronSecret, userId: pUserId, hookTopic, hookLang: 'fr', baseImageUrl: clientBaseImage || undefined }) };
+      return { method: 'i2v', url: await runI2vMontage({ scenes, pixabayQuery, perClipSec: plan.perClipSec, postId: pId, internalBase, cronSecret: cs, userId: pUserId, hookTopic, hookLang: 'fr', baseImageUrl: clientBaseImage || undefined }) };
     }
     if (body.useStock === true) {
       let stock: string[] = [];
