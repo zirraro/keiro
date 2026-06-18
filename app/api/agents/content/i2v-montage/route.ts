@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
 import { chooseMontagePlan, runI2vMontage, runKenBurnsMontage, finalizeReel, MontagePlan } from '@/lib/visuals/i2v-montage';
 import { searchPixabayImages } from '@/lib/stock/pixabay';
+import { generateJadeImage } from '@/lib/visuals/jade-prompter';
 import { assessReelQuality } from '@/lib/visuals/reel-qc';
 
 export const runtime = 'nodejs';
@@ -113,76 +114,86 @@ export async function POST(req: NextRequest) {
   const internalBase = process.env.INTERNAL_API_URL || `http://127.0.0.1:${process.env.PORT || 3000}`;
   const hookTopic = post.hook || post.caption || subject;
 
-  // ── MIX INTELLIGENT (founder decision 2026-06-17) ──
-  // Realism > everything (QC proved i2v-of-stock hallucinates). Priority:
-  //   1. Client's own VIDEO footage → stitch it directly (best, fully real).
-  //   2. DEFAULT → Ken Burns cinematic pan/zoom on REAL photos (client first,
-  //      then business-precise stock). Zero AI generation = zero artefacts.
-  //   3. i2v ONLY when explicitly requested (body.useI2v) — reserved for photos
-  //      that genuinely benefit from motion.
+  // ── MIX INTELLIGENT + GÉNÉRATION SCRIPTÉE (founder 2026-06-18) ──
+  // QC proved BOTH i2v-of-stock (hallucinates) AND Ken-Burns-of-MANY-stock-photos
+  // (incoherent "3 univers sans rapport") fail. The reliable path: ONE coherent
+  // image + multi-move Ken Burns on the SAME image → continuity can't break.
+  // Priority:
+  //   1. Client VIDEO footage → stitch (best, fully real).
+  //   2. Client PHOTOS → Ken Burns on their real images (never hallucinate them).
+  //   3. DEFAULT → GENERATE one business-precise photorealistic hero image
+  //      (Seedream élite, anti-AI) → multi-move Ken Burns on it.
+  //   4. i2v / multi-stock behind explicit flags.
+  const sceneN = Math.min(3, Math.max(1, plan.sceneCount)); // fewer cuts = coherent
+  const perClip = Math.max(6, Math.round(plan.durationSec / sceneN));
+
+  async function generateOnce(): Promise<{ url: string | null; method: string }> {
+    if (clientVideos.length > 0) {
+      return { method: 'client_footage', url: await finalizeReel(clientVideos.slice(0, plan.sceneCount), { postId: post.id, durationSec: plan.durationSec, hookTopic, hookLang: 'fr' }) };
+    }
+    if (body.useI2v === true) {
+      return { method: 'i2v', url: await runI2vMontage({ scenes, pixabayQuery, perClipSec: plan.perClipSec, postId: post.id, internalBase, cronSecret, userId: post.user_id, hookTopic, hookLang: 'fr', baseImageUrl: clientBaseImage || undefined }) };
+    }
+    if (body.useStock === true) {
+      let stock: string[] = [];
+      try {
+        const qWords = pixabayQuery.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+        const imgs = await searchPixabayImages({ query: pixabayQuery, count: 30, orientation: 'vertical', lang: 'en' });
+        const scored = imgs.map((im: any) => ({ url: im.largeImageURL, score: qWords.reduce((s, w) => s + ((im.tags || '').toLowerCase().includes(w) ? 1 : 0), 0) })).filter((x: any) => x.url && x.score > 0).sort((a: any, b: any) => b.score - a.score);
+        stock = scored.length ? scored.map((x: any) => x.url) : imgs.map((i: any) => i.largeImageURL).filter(Boolean);
+      } catch { /* optional */ }
+      return { method: 'stock_kenburns', url: await runKenBurnsMontage({ photos: [...clientPhotos, ...stock], perClipSec: perClip, sceneCount: sceneN, postId: post.id, hookTopic, hookLang: 'fr' }) };
+    }
+    // DEFAULT — client photos if any, else a GENERATED coherent hero image.
+    let photos: string[] = clientPhotos.slice(0, 3);
+    if (photos.length === 0) {
+      const heroPrompt = `${String(subject).slice(0, 400)}. Photographie documentaire ultra-réaliste prise sur le vif, lumière naturelle douce, objectif 35mm, profondeur de champ réaliste, couleurs naturelles et chaleureuses, cadrage vertical 9:16, ambiance authentique de ${company || businessType || 'commerce local'}. Aucun texte, aucun logo. PAS un rendu 3D, PAS une illustration — une vraie photo.`;
+      try {
+        const hero = await generateJadeImage(heroPrompt, 'story', post.user_id);
+        if (hero) photos = [hero];
+      } catch { /* fall through */ }
+    }
+    if (photos.length === 0) return { method: 'generated', url: null };
+    // Multi-move Ken Burns on the SAME coherent image(s) → guaranteed continuity.
+    return { method: clientPhotos.length ? 'client_photos' : 'generated', url: await runKenBurnsMontage({ photos, perClipSec: perClip, sceneCount: sceneN, postId: post.id, hookTopic, hookLang: 'fr' }) };
+  }
+
+  // RETRY for showcase quality (founder): regenerate up to 3× until QC passes;
+  // keep the best attempt. Also measures margin (how many tries needed).
   let finalUrl: string | null = null;
   let method = '';
-  if (clientVideos.length > 0) {
-    method = 'client_footage';
-    finalUrl = await finalizeReel(clientVideos.slice(0, plan.sceneCount), {
-      postId: post.id, durationSec: plan.durationSec, hookTopic, hookLang: 'fr',
-    });
-  } else if (body.useI2v === true) {
-    method = 'i2v';
-    finalUrl = await runI2vMontage({
-      scenes, pixabayQuery, perClipSec: plan.perClipSec, postId: post.id,
-      internalBase, cronSecret, userId: post.user_id, hookTopic, hookLang: 'fr',
-      baseImageUrl: clientBaseImage || undefined,
-    });
-  } else {
-    method = 'ken_burns';
-    // Real photos: client first, then business-precise stock to fill.
-    // CRITICAL (QC 2026-06-18): the query is ENGLISH so search lang must be 'en'
-    // (default 'fr' returned off-topic junk — torches, dark rooms), and we keep
-    // only photos whose TAGS actually match the business so the montage is
-    // coherent and on-subject (no hallucinated/irrelevant scenes).
-    let stock: string[] = [];
-    try {
-      const qWords = pixabayQuery.toLowerCase().split(/\s+/).filter(w => w.length > 3);
-      const imgs = await searchPixabayImages({ query: pixabayQuery, count: 30, orientation: 'vertical', lang: 'en' });
-      const scored = imgs
-        .map((im: any) => ({ url: im.largeImageURL, score: qWords.reduce((s, w) => s + ((im.tags || '').toLowerCase().includes(w) ? 1 : 0), 0) }))
-        .filter((x: any) => x.url && x.score > 0)
-        .sort((a: any, b: any) => b.score - a.score);
-      stock = scored.length ? scored.map((x: any) => x.url) : imgs.map((i: any) => i.largeImageURL).filter(Boolean);
-    } catch { /* stock optional */ }
-    const photos = [...clientPhotos, ...stock];
-    finalUrl = await runKenBurnsMontage({
-      photos, perClipSec: plan.perClipSec, sceneCount: plan.sceneCount, postId: post.id,
-      hookTopic, hookLang: 'fr',
-    });
+  let qc: any = null;
+  let attempts = 0;
+  const MAX_ATTEMPTS = 3;
+  let best: { url: string; qc: any; method: string } | null = null;
+  while (attempts < MAX_ATTEMPTS) {
+    attempts++;
+    const gen = await generateOnce();
+    method = gen.method;
+    if (!gen.url) continue;
+    const thisQc = await assessReelQuality(gen.url, { businessType: businessType || post.pillar, subject });
+    if (!best || (thisQc?.score ?? 0) > (best.qc?.score ?? 0)) best = { url: gen.url, qc: thisQc, method: gen.method };
+    if (!thisQc || thisQc.pass) { finalUrl = gen.url; qc = thisQc; break; } // pass / QC down → ship
+    // client footage/photos won't improve by retrying → don't waste attempts
+    if (gen.method === 'client_footage' || gen.method === 'client_photos') { finalUrl = gen.url; qc = thisQc; break; }
   }
+  if (!finalUrl && best) { finalUrl = best.url; qc = best.qc; method = best.method; }
 
   if (!finalUrl) {
-    return NextResponse.json({ ok: false, error: 'montage_failed', method, plan, pixabayQuery, sceneCount: scenes.length });
+    return NextResponse.json({ ok: false, error: 'montage_failed', method, plan, pixabayQuery, sceneCount: sceneN, attempts });
   }
 
-  // Persist the montage video.
+  // Persist the montage video + QC.
   await supabase.from('content_calendar').update({ video_url: finalUrl, format: 'reel', updated_at: new Date().toISOString() }).eq('id', post.id);
-
-  // ── QUALITY CONTROL GATE (founder: standard QC) ──
-  // Score the finished reel on continuity / business coherence / realism. Below
-  // threshold → HOLD it (draft) instead of publishing a weak reel. Stored on the
-  // post so it's visible + auditable. QC null (infra hiccup) → publish anyway.
-  const qc = await assessReelQuality(finalUrl, { businessType: businessType || post.pillar, subject });
   if (qc) {
     await supabase.from('content_calendar').update({
-      qa_quality_score: qc.score,
-      qa_severity: qc.pass ? 'ok' : 'low',
-      qa_notes: qc.summary,
-      qa_findings: qc as any,
-      updated_at: new Date().toISOString(),
+      qa_quality_score: qc.score, qa_severity: qc.pass ? 'ok' : 'low',
+      qa_notes: qc.summary, qa_findings: qc as any, updated_at: new Date().toISOString(),
     }).eq('id', post.id);
   }
   if (qc && !qc.pass) {
-    // Hold for review — do NOT publish a sub-bar reel.
     await supabase.from('content_calendar').update({ status: 'draft' }).eq('id', post.id);
-    return NextResponse.json({ ok: true, method, qc, published: false, held: true, reason: 'qc_below_threshold', plan, sceneCount: scenes.length, pixabayQuery, video_url: finalUrl });
+    return NextResponse.json({ ok: true, method, qc, attempts, published: false, held: true, reason: 'qc_below_threshold', plan, sceneCount: sceneN, video_url: finalUrl });
   }
 
   // Passed QC (or QC unavailable) → publish via the standard publish action.
@@ -196,5 +207,5 @@ export async function POST(req: NextRequest) {
     published = !!pubJson?.ok;
   } catch { /* surfaced below */ }
 
-  return NextResponse.json({ ok: true, method, qc, plan, sceneCount: scenes.length, pixabayQuery, video_url: finalUrl, published });
+  return NextResponse.json({ ok: true, method, qc, attempts, plan, sceneCount: sceneN, pixabayQuery, video_url: finalUrl, published });
 }
