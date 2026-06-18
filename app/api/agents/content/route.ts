@@ -5862,7 +5862,10 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
       if (w.length < 5 || STOP_THEME.has(w)) continue;
       freq.set(w, (freq.get(w) || 0) + 1);
     }
-    trendsAvoidThemes = [...freq.entries()].filter(([, c]) => c >= 3).sort((a, b) => b[1] - a[1]).map(([w]) => w).slice(0, 20);
+    // Founder 2026-06-18: une actu max 2 fois (3 seulement si event calendrier).
+    // Donc dès qu'un thème apparaît 2× dans les posts récents, on le bannit pour
+    // le prochain → il ne dépassera pas 2 usages. Plus agressif qu'avant (3).
+    trendsAvoidThemes = [...freq.entries()].filter(([, c]) => c >= 2).sort((a, b) => b[1] - a[1]).map(([w]) => w).slice(0, 30);
     const hasOverusedTheme = (text: string) => {
       const t = text.toLowerCase();
       return trendsAvoidThemes.some(theme => t.includes(theme));

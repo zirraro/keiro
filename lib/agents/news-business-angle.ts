@@ -64,6 +64,12 @@ export async function pickBusinessNewsAngle(input: {
 
 Your job: given a flat list of news, trends, and upcoming events PLUS a description of one local business, pick the SINGLE item that creates the strongest, most natural angle for a social media post — and write that angle.
 
+SURF THE BIGGEST CURRENT TRENDS — DIVERSIFY:
+- Pick what's genuinely BUZZING right now across ALL domains: culture, cinéma/séries, sport, musique/concerts/festivals, célébrités/acteurs, politique, science, viral social trends — NOT only tech/AI/business. The more a topic recurs in the news/social feeds, the better to surf it.
+- Then MIX that trend with the business via a CREATIVE, surprising link. The trend is the hook that grabs attention; the business is the payoff. This mix IS the value: a fresh, smart, on-trend bridge that no competitor makes.
+- The angle can be PROVOCATIVE, cheeky or funny if it fits the brand — it must STOP the scroll.
+- VARY across days: do NOT keep returning to the same theme (e.g. AI, levées de fonds). If a theme is in the banned list below, pick a different domain entirely.
+
 WHAT MAKES AN ANGLE STRONG:
 - It's specific to THIS business, not "any restaurant" or "any salon".
 - It surprises the reader: a non-obvious connection, a contrarian take, a stat.

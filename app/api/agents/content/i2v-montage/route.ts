@@ -137,10 +137,19 @@ export async function POST(req: NextRequest) {
   } else {
     method = 'ken_burns';
     // Real photos: client first, then business-precise stock to fill.
+    // CRITICAL (QC 2026-06-18): the query is ENGLISH so search lang must be 'en'
+    // (default 'fr' returned off-topic junk — torches, dark rooms), and we keep
+    // only photos whose TAGS actually match the business so the montage is
+    // coherent and on-subject (no hallucinated/irrelevant scenes).
     let stock: string[] = [];
     try {
-      const imgs = await searchPixabayImages({ query: pixabayQuery, count: Math.max(8, plan.sceneCount + 4), orientation: 'vertical' });
-      stock = imgs.map((i: any) => i.largeImageURL).filter(Boolean);
+      const qWords = pixabayQuery.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+      const imgs = await searchPixabayImages({ query: pixabayQuery, count: 30, orientation: 'vertical', lang: 'en' });
+      const scored = imgs
+        .map((im: any) => ({ url: im.largeImageURL, score: qWords.reduce((s, w) => s + ((im.tags || '').toLowerCase().includes(w) ? 1 : 0), 0) }))
+        .filter((x: any) => x.url && x.score > 0)
+        .sort((a: any, b: any) => b.score - a.score);
+      stock = scored.length ? scored.map((x: any) => x.url) : imgs.map((i: any) => i.largeImageURL).filter(Boolean);
     } catch { /* stock optional */ }
     const photos = [...clientPhotos, ...stock];
     finalUrl = await runKenBurnsMontage({

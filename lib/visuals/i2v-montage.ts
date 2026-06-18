@@ -120,7 +120,7 @@ export async function runI2vMontage(opts: {
     // Pixabay is now only the FALLBACK reseed source if the chain breaks — the
     // establishing base comes from baseImageUrl (client/business-precise) when
     // the caller resolved one.
-    const pics = await searchPixabayImages({ query: pixabayQuery, count: 12, orientation: 'vertical' });
+    const pics = await searchPixabayImages({ query: pixabayQuery, count: 12, orientation: 'vertical', lang: 'en' });
     if (!pics.length && !opts.baseImageUrl) return null; // no base at all → bail
 
     const clipUrls: string[] = [];
