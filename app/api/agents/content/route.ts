@@ -859,7 +859,10 @@ async function publishToInstagram(
           .eq('platform', 'instagram')
           .eq('status', 'published')
           .gte('published_at', todayStart.toISOString());
-        if ((publishedToday || 0) >= dailyLimit) {
+        // IG_CAP_BYPASS=1 — founder-authorized one-day override (showcase batch).
+        // Leave it OFF normally: the cap protects the account from the kind of
+        // burst posting that likely throttled TikTok.
+        if ((publishedToday || 0) >= dailyLimit && process.env.IG_CAP_BYPASS !== '1') {
           console.warn(`[Content] Daily IG cap reached for user ${effectivePostOwnerId.slice(0, 8)}: ${publishedToday}/${dailyLimit} — postponing to tomorrow`);
           // Reschedule this post to tomorrow so the cron doesn't loop
           // on it every 30 min for the rest of the day. Keep status
