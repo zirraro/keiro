@@ -190,43 +190,137 @@ export async function runI2vMontage(opts: {
     }
 
     if (clipUrls.length === 0) return null;
-    // Stitch the real-image clips into one vertical reel.
-    let finalUrl = await concatVideoClips(clipUrls, postId);
-    if (!finalUrl) finalUrl = clipUrls[0];
-
-    // Jamendo music (always-audio rule).
-    try {
-      const { pickJamendoMusic, pickMoodFromContext } = await import('@/lib/audio/jamendo-music');
-      const mood: any = opts.mood || pickMoodFromContext({ motion: undefined as any });
-      const music = await pickJamendoMusic({ mood, minDurationSec: 8 });
-      if (music?.url) {
-        const { muxReelAudio } = await import('@/lib/audio/reel-audio-mux');
-        const mix = await muxReelAudio({ videoUrl: finalUrl, musicUrl: music.url, postId, durationSec: scenes.length * perClipSec });
-        if (mix.url && mix.url !== finalUrl) finalUrl = mix.url;
-      }
-    } catch { /* ship without audio */ }
-
-    // ~20% on-screen text hook (visual hook is primary).
-    if (Math.random() < 0.2 && opts.hookTopic) {
-      try {
-        const { generateReelHook, overlayReelHook } = await import('@/lib/visuals/reel-hook');
-        const hook = await generateReelHook({ topic: opts.hookTopic, platform: 'tiktok', lang: opts.hookLang || 'fr' });
-        if (hook) {
-          const hk = await overlayReelHook({ videoUrl: finalUrl, hookText: hook, postId });
-          if (hk.applied && hk.url) finalUrl = hk.url;
-        }
-      } catch { /* no overlay */ }
-    }
-
-    return finalUrl;
+    return await finalizeReel(clipUrls, {
+      postId, durationSec: scenes.length * perClipSec,
+      mood: opts.mood, hookTopic: opts.hookTopic, hookLang: opts.hookLang,
+    });
   } catch {
     return null;
   }
 }
 
+/**
+ * Shared post-production for any montage (i2v OR Ken Burns): stitch clips with
+ * cinematic crossfades → mux Jamendo music → ~20% on-screen hook → upload.
+ * Returns the final reel URL (or the first clip on concat failure), or null.
+ */
+export async function finalizeReel(clipUrls: string[], opts: {
+  postId: string;
+  durationSec: number;
+  mood?: string;
+  hookTopic?: string;
+  hookLang?: 'fr' | 'en';
+}): Promise<string | null> {
+  const clips = (clipUrls || []).filter(Boolean);
+  if (clips.length === 0) return null;
+  let finalUrl = await concatVideoClips(clips, opts.postId);
+  if (!finalUrl) finalUrl = clips[0];
+
+  // Jamendo music (always-audio rule).
+  try {
+    const { pickJamendoMusic, pickMoodFromContext } = await import('@/lib/audio/jamendo-music');
+    const mood: any = opts.mood || pickMoodFromContext({ motion: undefined as any });
+    const music = await pickJamendoMusic({ mood, minDurationSec: 8 });
+    if (music?.url) {
+      const { muxReelAudio } = await import('@/lib/audio/reel-audio-mux');
+      const mix = await muxReelAudio({ videoUrl: finalUrl, musicUrl: music.url, postId: opts.postId, durationSec: opts.durationSec });
+      if (mix.url && mix.url !== finalUrl) finalUrl = mix.url;
+    }
+  } catch { /* ship without audio */ }
+
+  // ~20% on-screen text hook (visual hook is primary).
+  if (Math.random() < 0.2 && opts.hookTopic) {
+    try {
+      const { generateReelHook, overlayReelHook } = await import('@/lib/visuals/reel-hook');
+      const hook = await generateReelHook({ topic: opts.hookTopic, platform: 'tiktok', lang: opts.hookLang || 'fr' });
+      if (hook) {
+        const hk = await overlayReelHook({ videoUrl: finalUrl, hookText: hook, postId: opts.postId });
+        if (hk.applied && hk.url) finalUrl = hk.url;
+      }
+    } catch { /* no overlay */ }
+  }
+  return finalUrl;
+}
+
 async function fetchBuf(url: string, ms = 25_000): Promise<Buffer | null> {
   try { const r = await fetch(url, { signal: AbortSignal.timeout(ms) }); if (!r.ok) return null; return Buffer.from(await r.arrayBuffer()); }
   catch { return null; }
+}
+
+/**
+ * Ken Burns clip: slow cinematic pan/zoom over ONE real photo → 1080x1920 mp4.
+ * NO AI generation → 100% photographic, zero hallucination/morphing (the
+ * realism the founder wants; QC kept flagging i2v artefacts). `variant` cycles
+ * the camera move so a montage doesn't feel mechanical. Returns the clip URL.
+ */
+export async function kenBurnsClip(photoUrl: string, postId: string, idx: number, durationSec: number, variant: number): Promise<string | null> {
+  const tmp = path.join(os.tmpdir(), `kb-${postId}-${idx}-${Date.now()}`);
+  try {
+    const buf = await fetchBuf(photoUrl, 25_000);
+    if (!buf || buf.length < 2000) return null;
+    await fs.mkdir(tmp, { recursive: true });
+    const img = path.join(tmp, 'in.jpg');
+    const out = path.join(tmp, 'out.mp4');
+    await fs.writeFile(img, buf);
+    const ff = getFfmpegPath();
+    const fps = 30;
+    const frames = Math.max(2, Math.round(durationSec * fps));
+    const zin = `min(zoom+0.0012,1.35)`;
+    const zout = `if(lte(zoom,1.0),1.35,max(1.001,zoom-0.0012))`;
+    const cx = `iw/2-(iw/zoom/2)`, cy = `ih/2-(ih/zoom/2)`;
+    const variants = [
+      { z: zin, x: cx, y: cy },                                   // zoom in, centered
+      { z: zout, x: cx, y: cy },                                  // zoom out, centered
+      { z: zin, x: `(iw-iw/zoom)*on/${frames}`, y: cy },          // pan left→right + zoom
+      { z: zin, x: `(iw-iw/zoom)*(1-on/${frames})`, y: cy },      // pan right→left + zoom
+      { z: zin, x: cx, y: `(ih-ih/zoom)*on/${frames}` },          // pan top→bottom + zoom
+    ];
+    const v = variants[((variant % variants.length) + variants.length) % variants.length];
+    // Normalize to a 2160x3840 (9:16) canvas first so the pan/zoom never
+    // letterboxes, then zoompan to 1080x1920.
+    const vf = `scale=2160:3840:force_original_aspect_ratio=increase,crop=2160:3840,zoompan=z='${v.z}':d=${frames}:x='${v.x}':y='${v.y}':s=1080x1920:fps=${fps},format=yuv420p`;
+    const cmd = `"${ff}" -y -loop 1 -i "${img}" -vf "${vf}" -t ${durationSec} -c:v libx264 -pix_fmt yuv420p -preset fast -crf 22 "${out}"`;
+    await execPromise(cmd, { timeout: 120_000, maxBuffer: 1024 * 1024 * 80 });
+    const outBuf = await fs.readFile(out).catch(() => null);
+    if (!outBuf || outBuf.length < 10_000) return null;
+    const sb = admin();
+    const obj = `reels-kenburns/${postId}-${idx}-${Date.now()}.mp4`;
+    const { error } = await sb.storage.from('business-assets').upload(obj, outBuf, { contentType: 'video/mp4', upsert: true });
+    if (error) return null;
+    const { data } = sb.storage.from('business-assets').getPublicUrl(obj);
+    return data?.publicUrl || null;
+  } catch { return null; }
+  finally { try { await fs.rm(tmp, { recursive: true, force: true }); } catch {} }
+}
+
+/**
+ * Ken Burns montage (DEFAULT path): one cinematic pan/zoom clip per real photo,
+ * stitched with crossfades + music + hook. Photos should be ordered
+ * client-first then business-precise stock. Returns the final reel URL.
+ */
+export async function runKenBurnsMontage(opts: {
+  photos: string[];
+  perClipSec: number;
+  sceneCount: number;
+  postId: string;
+  mood?: string;
+  hookTopic?: string;
+  hookLang?: 'fr' | 'en';
+}): Promise<string | null> {
+  try {
+    const photos = (opts.photos || []).filter(Boolean);
+    if (!photos.length) return null;
+    const clipUrls: string[] = [];
+    for (let i = 0; i < opts.sceneCount; i++) {
+      const clip = await kenBurnsClip(photos[i % photos.length], opts.postId, i, opts.perClipSec, i);
+      if (clip) clipUrls.push(clip);
+    }
+    if (!clipUrls.length) return null;
+    return await finalizeReel(clipUrls, {
+      postId: opts.postId, durationSec: clipUrls.length * opts.perClipSec,
+      mood: opts.mood, hookTopic: opts.hookTopic, hookLang: opts.hookLang,
+    });
+  } catch { return null; }
 }
 
 /**

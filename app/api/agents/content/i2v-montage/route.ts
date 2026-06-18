@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
-import { chooseMontagePlan, runI2vMontage, MontagePlan } from '@/lib/visuals/i2v-montage';
+import { chooseMontagePlan, runI2vMontage, runKenBurnsMontage, finalizeReel, MontagePlan } from '@/lib/visuals/i2v-montage';
+import { searchPixabayImages } from '@/lib/stock/pixabay';
 import { assessReelQuality } from '@/lib/visuals/reel-qc';
 
 export const runtime = 'nodejs';
@@ -44,23 +45,26 @@ export async function POST(req: NextRequest) {
     .eq('id', postId).single();
   if (!post) return NextResponse.json({ error: 'post not found' }, { status: 404 });
 
-  // Business context for coherent real-image queries + scene briefs.
+  // Business context + the client's REAL assets (founder mix: footage client →
+  // Ken Burns sur vraies photos → i2v seulement si pertinent).
   let businessType = '', mainProducts = '', company = '';
-  let clientBaseImage = ''; // founder: prefer the client's REAL photo as base
+  const clientPhotos: string[] = [];
+  const clientVideos: string[] = [];
   try {
     const { data: d } = await supabase.from('business_dossiers')
       .select('company_name, business_type, main_products, uploaded_files, logo_url').eq('user_id', post.user_id).maybeSingle();
     if (d) {
       businessType = d.business_type || ''; mainProducts = d.main_products || ''; company = d.company_name || '';
-      // 1) Client's own uploaded business photo = most personalized + natural.
       const files: any[] = Array.isArray(d.uploaded_files) ? d.uploaded_files : [];
-      const img = files.find(f => /^image\//i.test(f?.type || '') || /\.(jpe?g|png|webp)$/i.test(f?.url || ''));
-      if (img?.url) clientBaseImage = img.url;
+      for (const f of files) {
+        const u = String(f?.url || '');
+        if (!u) continue;
+        if (/^video\//i.test(f?.type || '') || /\.(mp4|mov|webm|m4v)$/i.test(u)) clientVideos.push(u);
+        else if (/^image\//i.test(f?.type || '') || /\.(jpe?g|png|webp)$/i.test(u)) clientPhotos.push(u);
+      }
     }
   } catch { /* best-effort */ }
-  // 2) Else: leave clientBaseImage empty → runI2vMontage grounds in an
-  //    internet-inspired photo PRECISE to this business (Pixabay query built
-  //    from the company/products below), never a generic stock cliché.
+  const clientBaseImage = clientPhotos[0] || '';
 
   const plan: MontagePlan = body.durationSec
     ? (body.durationSec <= 14
@@ -107,15 +111,46 @@ export async function POST(req: NextRequest) {
   }
 
   const internalBase = process.env.INTERNAL_API_URL || `http://127.0.0.1:${process.env.PORT || 3000}`;
-  const finalUrl = await runI2vMontage({
-    scenes, pixabayQuery, perClipSec: plan.perClipSec, postId: post.id,
-    internalBase, cronSecret, userId: post.user_id,
-    hookTopic: post.hook || post.caption || subject, hookLang: 'fr',
-    baseImageUrl: clientBaseImage || undefined, // client photo → else business-precise stock
-  });
+  const hookTopic = post.hook || post.caption || subject;
+
+  // ── MIX INTELLIGENT (founder decision 2026-06-17) ──
+  // Realism > everything (QC proved i2v-of-stock hallucinates). Priority:
+  //   1. Client's own VIDEO footage → stitch it directly (best, fully real).
+  //   2. DEFAULT → Ken Burns cinematic pan/zoom on REAL photos (client first,
+  //      then business-precise stock). Zero AI generation = zero artefacts.
+  //   3. i2v ONLY when explicitly requested (body.useI2v) — reserved for photos
+  //      that genuinely benefit from motion.
+  let finalUrl: string | null = null;
+  let method = '';
+  if (clientVideos.length > 0) {
+    method = 'client_footage';
+    finalUrl = await finalizeReel(clientVideos.slice(0, plan.sceneCount), {
+      postId: post.id, durationSec: plan.durationSec, hookTopic, hookLang: 'fr',
+    });
+  } else if (body.useI2v === true) {
+    method = 'i2v';
+    finalUrl = await runI2vMontage({
+      scenes, pixabayQuery, perClipSec: plan.perClipSec, postId: post.id,
+      internalBase, cronSecret, userId: post.user_id, hookTopic, hookLang: 'fr',
+      baseImageUrl: clientBaseImage || undefined,
+    });
+  } else {
+    method = 'ken_burns';
+    // Real photos: client first, then business-precise stock to fill.
+    let stock: string[] = [];
+    try {
+      const imgs = await searchPixabayImages({ query: pixabayQuery, count: Math.max(8, plan.sceneCount + 4), orientation: 'vertical' });
+      stock = imgs.map((i: any) => i.largeImageURL).filter(Boolean);
+    } catch { /* stock optional */ }
+    const photos = [...clientPhotos, ...stock];
+    finalUrl = await runKenBurnsMontage({
+      photos, perClipSec: plan.perClipSec, sceneCount: plan.sceneCount, postId: post.id,
+      hookTopic, hookLang: 'fr',
+    });
+  }
 
   if (!finalUrl) {
-    return NextResponse.json({ ok: false, error: 'montage_failed', plan, pixabayQuery, sceneCount: scenes.length });
+    return NextResponse.json({ ok: false, error: 'montage_failed', method, plan, pixabayQuery, sceneCount: scenes.length });
   }
 
   // Persist the montage video.
@@ -138,7 +173,7 @@ export async function POST(req: NextRequest) {
   if (qc && !qc.pass) {
     // Hold for review — do NOT publish a sub-bar reel.
     await supabase.from('content_calendar').update({ status: 'draft' }).eq('id', post.id);
-    return NextResponse.json({ ok: true, qc, published: false, held: true, reason: 'qc_below_threshold', plan, sceneCount: scenes.length, pixabayQuery, video_url: finalUrl });
+    return NextResponse.json({ ok: true, method, qc, published: false, held: true, reason: 'qc_below_threshold', plan, sceneCount: scenes.length, pixabayQuery, video_url: finalUrl });
   }
 
   // Passed QC (or QC unavailable) → publish via the standard publish action.
@@ -152,5 +187,5 @@ export async function POST(req: NextRequest) {
     published = !!pubJson?.ok;
   } catch { /* surfaced below */ }
 
-  return NextResponse.json({ ok: true, qc, plan, sceneCount: scenes.length, pixabayQuery, video_url: finalUrl, published });
+  return NextResponse.json({ ok: true, method, qc, plan, sceneCount: scenes.length, pixabayQuery, video_url: finalUrl, published });
 }
