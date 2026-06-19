@@ -5,6 +5,7 @@ import { chooseMontagePlan, runI2vMontage, runKenBurnsMontage, finalizeReel, Mon
 import { searchPixabayImages } from '@/lib/stock/pixabay';
 import { generateJadeImage, generateJadeImageFromReference } from '@/lib/visuals/jade-prompter';
 import { assessReelQuality } from '@/lib/visuals/reel-qc';
+import { curateCoherentPhotos } from '@/lib/visuals/photo-curator';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -152,6 +153,21 @@ export async function POST(req: NextRequest) {
         stock = scored.length ? scored.map((x: any) => x.url) : imgs.map((i: any) => i.largeImageURL).filter(Boolean);
       } catch { /* optional */ }
       return { method: 'stock_kenburns', url: await runKenBurnsMontage({ photos: [...clientPhotos, ...stock], perClipSec: perClip, sceneCount: sceneN, postId: pId, hookTopic, hookLang: 'fr', bakeAudio }) };
+    }
+    if (body.realShowcase === true) {
+      // VRAI COMMERCE (founder): vraies photos internet, sélection FINE par
+      // vision → série cohérente premium. Réalisme 9, zéro IA. Client photos
+      // d'abord si dispo.
+      let cands: { url: string; thumb: string; tags?: string }[] = [];
+      try {
+        const imgs = await searchPixabayImages({ query: pixabayQuery, count: 24, orientation: 'vertical', lang: 'en' });
+        cands = imgs.map((im: any) => ({ url: im.largeImageURL, thumb: im.webformatURL || im.previewURL, tags: im.tags }));
+      } catch { /* optional */ }
+      const curated = await curateCoherentPhotos(cands, { businessType: businessType || String(subject).slice(0, 60), want: 3 });
+      const photos = [...clientPhotos.slice(0, 3), ...curated].slice(0, 3);
+      if (!photos.length) return { method: 'real_showcase', url: null };
+      const sc = Math.min(photos.length, 3);
+      return { method: 'real_showcase', url: await runKenBurnsMontage({ photos, perClipSec: Math.max(6, Math.round(plan.durationSec / sc)), sceneCount: sc, postId: pId, hookTopic, hookLang: 'fr', bakeAudio }) };
     }
     // DEFAULT — client photos if any, else a GENERATED coherent hero image.
     let photos: string[] = clientPhotos.slice(0, 3);
