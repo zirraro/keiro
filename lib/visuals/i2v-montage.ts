@@ -293,7 +293,11 @@ export async function kenBurnsClip(photoUrl: string, postId: string, idx: number
     const v = variants[((variant % variants.length) + variants.length) % variants.length];
     // Normalize to a 2160x3840 (9:16) canvas first so the pan/zoom never
     // letterboxes, then zoompan to 1080x1920.
-    const vf = `scale=2160:3840:force_original_aspect_ratio=increase,crop=2160:3840,zoompan=z='${v.z}':d=${frames}:x='${v.x}':y='${v.y}':s=1080x1920:fps=${fps},format=yuv420p`;
+    // Uniform cinematic GRADE on every clip (QC: real-business photos mix warm
+    // interior / cold exterior → continuity breaks; "étalonnage" unifies them).
+    // Gentle contrast + saturation + warm push → one cohesive look across shots.
+    const grade = `eq=contrast=1.06:saturation=1.08:brightness=0.01,colorbalance=rm=0.04:gm=0.01:bm=-0.04`;
+    const vf = `scale=2160:3840:force_original_aspect_ratio=increase,crop=2160:3840,zoompan=z='${v.z}':d=${frames}:x='${v.x}':y='${v.y}':s=1080x1920:fps=${fps},${grade},format=yuv420p`;
     const cmd = `"${ff}" -y -loop 1 -i "${img}" -vf "${vf}" -t ${durationSec} -c:v libx264 -pix_fmt yuv420p -preset fast -crf 22 "${out}"`;
     await execPromise(cmd, { timeout: 120_000, maxBuffer: 1024 * 1024 * 80 });
     const outBuf = await fs.readFile(out).catch(() => null);
