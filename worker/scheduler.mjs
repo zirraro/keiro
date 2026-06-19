@@ -93,6 +93,10 @@ const GLOBAL_SCHEDULE = [
   // hit Google's 30-day cache ToS limit. Caps at 30 entries/run + bails
   // if daily Places budget already spent. Cheapest possible refresh.
   { cron: '15 3 * * *',   path: '/api/cron/prospect-pool-refresh', label: 'Prospect Pool Refresh (>25 days)' },
+  // Daily commercial GPS enrichment — geocodes pool prospects (Places geometry)
+  // so Léo's qualify-route can cluster them into walking tours. Bounded (30/run,
+  // no retry) + respects the daily Places budget. Progressive over days.
+  { cron: '45 3 * * *',   path: '/api/agents/commercial/enrich-geo', label: 'Commercial GPS Enrich (tournées)' },
   // 2026-06-08 — Daily 06:30 UTC. Aggregates the previous 24h of
   // directive failures (client chat orders no agent could honor) into
   // ONE email to admin. Emails ONLY if there are failures.

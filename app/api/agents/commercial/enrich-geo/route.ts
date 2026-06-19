@@ -66,3 +66,6 @@ export async function POST(req: NextRequest) {
     spent_eur: finalGuard.spent, budget_eur: finalGuard.budget,
   });
 }
+
+// The global cron worker calls endpoints via GET — alias to POST (default batch).
+export async function GET(req: NextRequest) { return POST(req); }

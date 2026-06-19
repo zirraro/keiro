@@ -3884,23 +3884,26 @@ export async function POST(request: NextRequest) {
             // fire the ISOLATED montage endpoint (it generates + publishes),
             // mark the post (video_job_id sentinel) to avoid re-firing on the
             // next cron pass, and skip the standard 10s gen (no double-publish).
-            if (desc && post.platform === 'tiktok') {
+            // Route ALL reels (IG + TikTok, montage AND single) through the QC'd
+            // generated-hero pipeline — the old standard gen looked AI. Single
+            // plans pass a short durationSec → the montage endpoint's forced
+            // generated-hero path. (Founder 2026-06-19: IG was bypassing it.)
+            if (desc && (post.platform === 'tiktok' || post.platform === 'instagram')) {
               try {
                 const { chooseMontagePlan } = await import('@/lib/visuals/i2v-montage');
                 const mSeed = String(post.id || '').split('').reduce((a: number, c: string) => (a * 31 + c.charCodeAt(0)) | 0, 0);
                 const mPlan = chooseMontagePlan({ pillar: (post as any).pillar, topicLength: (post.caption || '').length, format: 'reel', seed: mSeed });
-                if (mPlan.kind === 'montage') {
-                  await supabase.from('content_calendar').update({ video_job_id: `montage_${Date.now()}` }).eq('id', post.id);
-                  const internalBase = process.env.INTERNAL_API_URL || `http://127.0.0.1:${process.env.PORT || 3000}`;
-                  fetch(`${internalBase}/api/agents/content/i2v-montage`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', authorization: `Bearer ${process.env.CRON_SECRET}` },
-                    body: JSON.stringify({ postId: post.id }),
-                  }).then(() => console.log(`[Content] i2v-montage fired for reel ${post.id} (${mPlan.durationSec}s)`))
-                    .catch((e: any) => console.warn('[Content] montage fire failed:', e?.message));
-                  console.log(`[Content] reel ${post.id} → montage ${mPlan.durationSec}s, skip standard gen`);
-                  continue;
-                }
+                const durationSec = mPlan.kind === 'single' ? 10 : mPlan.durationSec;
+                await supabase.from('content_calendar').update({ video_job_id: `montage_${Date.now()}` }).eq('id', post.id);
+                const internalBase = process.env.INTERNAL_API_URL || `http://127.0.0.1:${process.env.PORT || 3000}`;
+                fetch(`${internalBase}/api/agents/content/i2v-montage`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', authorization: `Bearer ${process.env.CRON_SECRET}` },
+                  body: JSON.stringify({ postId: post.id, durationSec }),
+                }).then(() => console.log(`[Content] i2v-montage fired for reel ${post.id} (${durationSec}s, ${mPlan.kind})`))
+                  .catch((e: any) => console.warn('[Content] montage fire failed:', e?.message));
+                console.log(`[Content] reel ${post.id} → pipeline ${durationSec}s (${post.platform}), skip standard gen`);
+                continue;
               } catch (mErr: any) { console.warn('[Content] montage plan check failed, normal gen:', mErr?.message); }
             }
             if (desc) {
