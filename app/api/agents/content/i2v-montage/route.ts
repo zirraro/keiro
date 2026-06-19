@@ -130,13 +130,18 @@ export async function POST(req: NextRequest) {
   const pId: string = post.id;
   const pUserId: string = (post.user_id || '') as string;
   const cs: string = cronSecret;
+  // TikTok PREPARE mode (founder): deliver the reel SILENT (no baked music) so a
+  // trending TikTok sound is added in-app (top reach factor the API can't do),
+  // then hold as DRAFT (don't auto-publish). bakeAudio=false drives the silence.
+  const prepareMode = body.prepareMode === true;
+  const bakeAudio = !prepareMode;
 
   async function generateOnce(): Promise<{ url: string | null; method: string }> {
     if (clientVideos.length > 0) {
-      return { method: 'client_footage', url: await finalizeReel(clientVideos.slice(0, plan.sceneCount), { postId: pId, durationSec: plan.durationSec, hookTopic, hookLang: 'fr' }) };
+      return { method: 'client_footage', url: await finalizeReel(clientVideos.slice(0, plan.sceneCount), { postId: pId, durationSec: plan.durationSec, hookTopic, hookLang: 'fr', bakeAudio }) };
     }
     if (body.useI2v === true) {
-      return { method: 'i2v', url: await runI2vMontage({ scenes, pixabayQuery, perClipSec: plan.perClipSec, postId: pId, internalBase, cronSecret: cs, userId: pUserId, hookTopic, hookLang: 'fr', baseImageUrl: clientBaseImage || undefined }) };
+      return { method: 'i2v', url: await runI2vMontage({ scenes, pixabayQuery, perClipSec: plan.perClipSec, postId: pId, internalBase, cronSecret: cs, userId: pUserId, hookTopic, hookLang: 'fr', baseImageUrl: clientBaseImage || undefined, bakeAudio }) };
     }
     if (body.useStock === true) {
       let stock: string[] = [];
@@ -146,7 +151,7 @@ export async function POST(req: NextRequest) {
         const scored = imgs.map((im: any) => ({ url: im.largeImageURL, score: qWords.reduce((s, w) => s + ((im.tags || '').toLowerCase().includes(w) ? 1 : 0), 0) })).filter((x: any) => x.url && x.score > 0).sort((a: any, b: any) => b.score - a.score);
         stock = scored.length ? scored.map((x: any) => x.url) : imgs.map((i: any) => i.largeImageURL).filter(Boolean);
       } catch { /* optional */ }
-      return { method: 'stock_kenburns', url: await runKenBurnsMontage({ photos: [...clientPhotos, ...stock], perClipSec: perClip, sceneCount: sceneN, postId: pId, hookTopic, hookLang: 'fr' }) };
+      return { method: 'stock_kenburns', url: await runKenBurnsMontage({ photos: [...clientPhotos, ...stock], perClipSec: perClip, sceneCount: sceneN, postId: pId, hookTopic, hookLang: 'fr', bakeAudio }) };
     }
     // DEFAULT — client photos if any, else a GENERATED coherent hero image.
     let photos: string[] = clientPhotos.slice(0, 3);
@@ -187,7 +192,7 @@ export async function POST(req: NextRequest) {
     const maxShots = body.multiPlan === true ? Math.min(uniq.length, 3) : sceneN;
     const sc = uniq.length === 1 ? 1 : Math.min(uniq.length, maxShots);
     const pc = sc <= 1 ? plan.durationSec : Math.max(6, Math.round(plan.durationSec / sc));
-    return { method: clientPhotos.length ? 'client_photos' : 'generated', url: await runKenBurnsMontage({ photos: uniq, perClipSec: pc, sceneCount: sc, postId: pId, hookTopic, hookLang: 'fr' }) };
+    return { method: clientPhotos.length ? 'client_photos' : 'generated', url: await runKenBurnsMontage({ photos: uniq, perClipSec: pc, sceneCount: sc, postId: pId, hookTopic, hookLang: 'fr', bakeAudio }) };
   }
 
   // RETRY for showcase quality (founder): regenerate up to 3× until QC passes;
@@ -226,6 +231,19 @@ export async function POST(req: NextRequest) {
   if (qc && !qc.pass) {
     await supabase.from('content_calendar').update({ status: 'draft' }).eq('id', post.id);
     return NextResponse.json({ ok: true, method, qc, attempts, published: false, held: true, reason: 'qc_below_threshold', plan, sceneCount: sceneN, video_url: finalUrl });
+  }
+
+  // TikTok PREPARE mode → hold as DRAFT (silent video ready) + instruct to add a
+  // trending TikTok sound in-app before posting. Do NOT auto-publish.
+  if (prepareMode) {
+    const moodHint = /restau|food|cafe|boulang|patiss/i.test(businessType || subject) ? 'gourmand / chaleureux' : 'doux / inspirant';
+    const note = `🎵 MODE PREPARE TikTok — vidéo livrée SANS musique. Avant de publier dans l'app : ajoute un SON TENDANCE du moment (Découvrir → ambiance ${moodHint}), garde-la courte (≤12s), publie depuis l'app (reach natif). Hashtags niche only (pas de #fyp).`;
+    await supabase.from('content_calendar').update({
+      status: 'draft', awaiting_manual_publish_at: new Date().toISOString(),
+      qa_notes: `${note}${qc?.summary ? ' | QC: ' + qc.summary : ''}`.slice(0, 480),
+      updated_at: new Date().toISOString(),
+    }).eq('id', post.id);
+    return NextResponse.json({ ok: true, method, qc, attempts, prepareMode: true, published: false, draft: true, note, video_url: finalUrl });
   }
 
   // Passed QC (or QC unavailable) → publish via the standard publish action.

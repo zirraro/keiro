@@ -108,6 +108,7 @@ export async function runI2vMontage(opts: {
   mood?: string;
   hookTopic?: string;
   hookLang?: 'fr' | 'en';
+  bakeAudio?: boolean;
   // Personalized establishing image (founder: don't always start from generic
   // stock). Priority resolved by the caller: client's real asset → a
   // business-precise generated/internet-inspired image → Pixabay. When set,
@@ -192,7 +193,7 @@ export async function runI2vMontage(opts: {
     if (clipUrls.length === 0) return null;
     return await finalizeReel(clipUrls, {
       postId, durationSec: scenes.length * perClipSec,
-      mood: opts.mood, hookTopic: opts.hookTopic, hookLang: opts.hookLang,
+      mood: opts.mood, hookTopic: opts.hookTopic, hookLang: opts.hookLang, bakeAudio: opts.bakeAudio,
     });
   } catch {
     return null;
@@ -210,14 +211,17 @@ export async function finalizeReel(clipUrls: string[], opts: {
   mood?: string;
   hookTopic?: string;
   hookLang?: 'fr' | 'en';
+  bakeAudio?: boolean; // default true; false = leave SILENT (TikTok prepare mode:
+                       // the user adds a trending TikTok sound in-app, which the
+                       // API can't do and which is a top reach factor).
 }): Promise<string | null> {
   const clips = (clipUrls || []).filter(Boolean);
   if (clips.length === 0) return null;
   let finalUrl = await concatVideoClips(clips, opts.postId);
   if (!finalUrl) finalUrl = clips[0];
 
-  // Jamendo music (always-audio rule).
-  try {
+  // Jamendo music (always-audio rule) — skipped in TikTok prepare mode.
+  if (opts.bakeAudio !== false) try {
     const { pickJamendoMusic, pickMoodFromContext } = await import('@/lib/audio/jamendo-music');
     const mood: any = opts.mood || pickMoodFromContext({ motion: undefined as any });
     const music = await pickJamendoMusic({ mood, minDurationSec: 8 });
@@ -317,6 +321,7 @@ export async function runKenBurnsMontage(opts: {
   mood?: string;
   hookTopic?: string;
   hookLang?: 'fr' | 'en';
+  bakeAudio?: boolean;
 }): Promise<string | null> {
   try {
     const photos = (opts.photos || []).filter(Boolean);
@@ -329,7 +334,7 @@ export async function runKenBurnsMontage(opts: {
     if (!clipUrls.length) return null;
     return await finalizeReel(clipUrls, {
       postId: opts.postId, durationSec: clipUrls.length * opts.perClipSec,
-      mood: opts.mood, hookTopic: opts.hookTopic, hookLang: opts.hookLang,
+      mood: opts.mood, hookTopic: opts.hookTopic, hookLang: opts.hookLang, bakeAudio: opts.bakeAudio,
     });
   } catch { return null; }
 }
