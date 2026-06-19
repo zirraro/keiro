@@ -92,6 +92,15 @@ export async function generateEmail(
   // Get RAG context for personalization
   const ragContext = await getAgentKnowledgeContext(supabase, 'email', `email ${step.type} pour ${prospect.sector || 'business'}`).catch(() => '');
 
+  // Sector language from the sales playbook (pain point + words to use/avoid) so
+  // the copy hits the prospect's exact vocabulary, not generic marketing.
+  let sectorBlock = '';
+  try {
+    const { detectSector, SECTORS } = await import('@/lib/agents/sales-playbook');
+    const fiche = SECTORS[detectSector(prospect.sector)];
+    sectorBlock = `\n━━━ LANGAGE DU SECTEUR (${fiche.label}) ━━━\nDouleur n°1 du décideur (ouvre par là, jamais par le produit) : "${fiche.angoisse}"\nMOTS À UTILISER : ${fiche.vocabUse.join(', ')}.\nMOTS À BANNIR (jargon = mur) : ${fiche.vocabAvoid.join(', ')}.\n`;
+  } catch { /* playbook optional */ }
+
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -108,7 +117,7 @@ Tu rediges un email de prospection ${step.type} pour le client.
 - AUTORITÉ : une observation pertinente sur le marché du prospect (saisonnalité, changement algo, tendance secteur récente). Tu prouves que tu connais leur game.
 
 Si le mail n'a aucune des 3 dimensions → il est creux et générique → re-écris. Tolérance zéro.
-
+${sectorBlock}
 REGLES ABSOLUES:
 - Ne JAMAIS mentionner KeiroAI, agents IA, ou automatisation.
 - Ecrire comme si c'etait ${client.sender_name} qui ecrivait a la main, avec son rythme et ses petites imperfections.
