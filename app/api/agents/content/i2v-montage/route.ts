@@ -155,19 +155,31 @@ export async function POST(req: NextRequest) {
       return { method: 'stock_kenburns', url: await runKenBurnsMontage({ photos: [...clientPhotos, ...stock], perClipSec: perClip, sceneCount: sceneN, postId: pId, hookTopic, hookLang: 'fr', bakeAudio }) };
     }
     if (body.realShowcase === true) {
-      // VRAI COMMERCE (founder): vraies photos internet, sélection FINE par
-      // vision → série cohérente premium. Réalisme 9, zéro IA. Client photos
-      // d'abord si dispo.
-      let cands: { url: string; thumb: string; tags?: string }[] = [];
-      try {
-        const imgs = await searchPixabayImages({ query: pixabayQuery, count: 24, orientation: 'vertical', lang: 'en' });
-        cands = imgs.map((im: any) => ({ url: im.largeImageURL, thumb: im.webformatURL || im.previewURL, tags: im.tags }));
-      } catch { /* optional */ }
-      const curated = await curateCoherentPhotos(cands, { businessType: businessType || String(subject).slice(0, 60), want: 3 });
-      const photos = [...clientPhotos.slice(0, 3), ...curated].slice(0, 3);
+      // VRAI COMMERCE (founder): un commerce a déjà publié SES photos → même lieu
+      // = cohérent + réel. Priorité : photos client → photos Google du commerce
+      // (body.placeId) → en dernier recours stock générique curé par vision.
+      let photos: string[] = clientPhotos.slice(0, 4);
+      if (photos.length < 3 && body.placeId) {
+        try {
+          const { fetchPlaceBusinessPhotos } = await import('@/lib/places/place-photos');
+          const { isUnderDailyBudget } = await import('@/lib/places/prospect-pool');
+          const g = await isUnderDailyBudget(supabase);
+          if (g.ok) { const res = await fetchPlaceBusinessPhotos(String(body.placeId), supabase, { count: 4 }); photos.push(...res.photos); }
+        } catch { /* fall through */ }
+      }
+      if (photos.length < 2) {
+        // Last resort: vision-curated generic stock (least coherent).
+        let cands: { url: string; thumb: string; tags?: string }[] = [];
+        try {
+          const imgs = await searchPixabayImages({ query: pixabayQuery, count: 24, orientation: 'vertical', lang: 'en' });
+          cands = imgs.map((im: any) => ({ url: im.largeImageURL, thumb: im.webformatURL || im.previewURL, tags: im.tags }));
+        } catch { /* optional */ }
+        photos.push(...await curateCoherentPhotos(cands, { businessType: businessType || String(subject).slice(0, 60), want: 3 }));
+      }
+      photos = photos.slice(0, 3);
       if (!photos.length) return { method: 'real_showcase', url: null };
       const sc = Math.min(photos.length, 3);
-      return { method: 'real_showcase', url: await runKenBurnsMontage({ photos, perClipSec: Math.max(6, Math.round(plan.durationSec / sc)), sceneCount: sc, postId: pId, hookTopic, hookLang: 'fr', bakeAudio }) };
+      return { method: photos === clientPhotos ? 'client_photos' : 'real_business_photos', url: await runKenBurnsMontage({ photos, perClipSec: Math.max(6, Math.round(plan.durationSec / sc)), sceneCount: sc, postId: pId, hookTopic, hookLang: 'fr', bakeAudio }) };
     }
     // DEFAULT — client photos if any, else a GENERATED coherent hero image.
     let photos: string[] = clientPhotos.slice(0, 3);
