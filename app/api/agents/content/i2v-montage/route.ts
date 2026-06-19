@@ -176,6 +176,13 @@ export async function POST(req: NextRequest) {
         } catch { /* optional */ }
         photos.push(...await curateCoherentPhotos(cands, { businessType: businessType || String(subject).slice(0, 60), want: 3 }));
       }
+      // Curate the business's OWN photos to the most VISUALLY CONSISTENT subset
+      // (QC: a venue's Google photos mix exterior/interior/detail → continuity
+      // breaks). Vision keeps the 3 that flow best together.
+      if (photos.length > 3) {
+        const cur = await curateCoherentPhotos(photos.map(u => ({ url: u, thumb: u })), { businessType: businessType || String(subject).slice(0, 60), want: 3 });
+        if (cur.length >= 2) photos = cur;
+      }
       photos = photos.slice(0, 3);
       if (!photos.length) return { method: 'real_showcase', url: null };
       const sc = Math.min(photos.length, 3);
