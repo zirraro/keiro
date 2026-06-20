@@ -849,6 +849,24 @@ async function publishToInstagram(
         const cfgLimit = (cfg?.config as any)?.daily_publish_limit_instagram;
         if (Number.isInteger(cfgLimit) && cfgLimit >= 0 && cfgLimit <= 50) dailyLimit = cfgLimit;
 
+        // ── ACCOUNT WARMING (PSAD §3.2) — a brand-new account that suddenly
+        // auto-posts looks like a bot → throttle/shadowban (exactly what hit our
+        // TikTok). Ramp by published history on THIS platform: COLD (<8 posts) =
+        // 1/day, WARMING (<21) = 2/day, WARM = plan cap. Established accounts
+        // unaffected. Cap is a CEILING (min with the plan limit).
+        try {
+          const { count: totalPubIg } = await supabase
+            .from('content_calendar')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', effectivePostOwnerId).eq('platform', 'instagram').eq('status', 'published');
+          const t = totalPubIg || 0;
+          const warmingCap = t < 8 ? 1 : t < 21 ? 2 : 99;
+          if (warmingCap < dailyLimit) {
+            console.log(`[Content] Warming ramp IG user ${effectivePostOwnerId.slice(0, 8)}: ${t} posts → cap ${warmingCap}/j (was ${dailyLimit})`);
+            dailyLimit = warmingCap;
+          }
+        } catch { /* best-effort */ }
+
         const todayStart = new Date();
         todayStart.setUTCHours(0, 0, 0, 0);
         const { count: publishedToday } = await supabase
