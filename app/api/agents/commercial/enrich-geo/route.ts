@@ -52,9 +52,10 @@ export async function POST(req: NextRequest) {
       await incrementDailySpend(supabase, { details_calls: 1 });
       if (!res.ok) { failed++; continue; }
       const data = await res.json();
-      const loc = data?.result?.geometry?.location;
-      if (!loc || !Number.isFinite(loc.lat)) { failed++; continue; }
-      const rawData = { ...(r.raw_data || {}), geometry: { location: { lat: loc.lat, lng: loc.lng } } };
+      const loc = data?.result?.geometry?.location || {};
+      const la = Number(loc.lat), lo = Number(loc.lng); // Google may return strings
+      if (!Number.isFinite(la) || !Number.isFinite(lo)) { failed++; continue; }
+      const rawData = { ...(r.raw_data || {}), geometry: { location: { lat: la, lng: lo } } };
       await supabase.from('prospect_pool').update({ raw_data: rawData }).eq('place_id', r.place_id);
       enriched++;
     } catch { failed++; }

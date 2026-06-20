@@ -192,7 +192,7 @@ export async function runI2vMontage(opts: {
 
     if (clipUrls.length === 0) return null;
     return await finalizeReel(clipUrls, {
-      postId, durationSec: scenes.length * perClipSec,
+      postId, durationSec: clipUrls.length * perClipSec, // real clips produced, not scenes requested
       mood: opts.mood, hookTopic: opts.hookTopic, hookLang: opts.hookLang, bakeAudio: opts.bakeAudio,
     });
   } catch {
@@ -420,15 +420,17 @@ export async function concatVideoClips(clipUrls: string[], postId: string): Prom
   try {
     await fs.mkdir(tmp, { recursive: true });
     const localPaths: string[] = [];
+    const okUrls: string[] = []; // track which source URL each downloaded clip came from
     for (let i = 0; i < urls.length; i++) {
       const buf = await fetchBuf(urls[i]);
       if (!buf || buf.length < 5000) continue;
       const p = path.join(tmp, `c${i}.mp4`);
       await fs.writeFile(p, buf);
       localPaths.push(p);
+      okUrls.push(urls[i]);
     }
     if (localPaths.length === 0) return null;
-    if (localPaths.length === 1) return urls[urls.indexOf(urls[0])]; // only one usable → caller keeps it
+    if (localPaths.length === 1) return okUrls[0]; // the single clip that actually downloaded
 
     const ff = getFfmpegPath();
     const out = path.join(tmp, 'out.mp4');

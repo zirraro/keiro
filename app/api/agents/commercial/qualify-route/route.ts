@@ -57,8 +57,8 @@ export async function POST(req: NextRequest) {
     const contactChannel: ProspectSignals['contactChannel'] = r.instagram ? 'dm_open' : r.website ? 'email' : null;
     const loc = r.raw_data?.geometry?.location || r.raw_data?.location || {};
     const signals: ProspectSignals = {
-      isChainOrFranchise: r.is_chain === true || undefined,
-      underAgencyContract: r.under_contract === true || undefined,
+      isChainOrFranchise: (r.is_chain === true || r.is_chain === 'true') || undefined,
+      underAgencyContract: (r.under_contract === true || r.under_contract === 'true') || undefined,
       hasAnyDigitalPresence: hasPresence,
       densityScore: num(r.density_score) ?? densityFor(r.zone),
       contactChannel,
@@ -112,6 +112,7 @@ export async function POST(req: NextRequest) {
       disqualified: out.filter(p => p.qualification.disqualified).length,
       priority: priority.length,
       maybe: actionable.length - priority.length,
+      geocoded: geo.length, // 0 → pool pas encore enrichi GPS (≠ aucun cluster)
       routes: routes.length,
     },
     routes,

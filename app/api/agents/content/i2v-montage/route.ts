@@ -142,7 +142,9 @@ export async function POST(req: NextRequest) {
       return { method: 'client_footage', url: await finalizeReel(clientVideos.slice(0, plan.sceneCount), { postId: pId, durationSec: plan.durationSec, hookTopic, hookLang: 'fr', bakeAudio }) };
     }
     if (body.useI2v === true) {
-      return { method: 'i2v', url: await runI2vMontage({ scenes, pixabayQuery, perClipSec: plan.perClipSec, postId: pId, internalBase, cronSecret: cs, userId: pUserId, hookTopic, hookLang: 'fr', baseImageUrl: clientBaseImage || undefined, bakeAudio }) };
+      // Cap scenes to sceneN (≤3) like the other modes — i2v is the costliest
+      // path (1 Seedance job + 150s poll per scene), don't run the full plan.
+      return { method: 'i2v', url: await runI2vMontage({ scenes: scenes.slice(0, sceneN), pixabayQuery, perClipSec: plan.perClipSec, postId: pId, internalBase, cronSecret: cs, userId: pUserId, hookTopic, hookLang: 'fr', baseImageUrl: clientBaseImage || undefined, bakeAudio }) };
     }
     if (body.useStock === true) {
       let stock: string[] = [];
@@ -159,6 +161,7 @@ export async function POST(req: NextRequest) {
       // = cohérent + réel. Priorité : photos client → photos Google du commerce
       // (body.placeId) → en dernier recours stock générique curé par vision.
       let photos: string[] = clientPhotos.slice(0, 4);
+      const usedClientPhotos = clientPhotos.length >= 2; // real client photos dominate → no retry
       if (photos.length < 3 && body.placeId) {
         try {
           const { fetchPlaceBusinessPhotos } = await import('@/lib/places/place-photos');
@@ -186,7 +189,7 @@ export async function POST(req: NextRequest) {
       photos = photos.slice(0, 3);
       if (!photos.length) return { method: 'real_showcase', url: null };
       const sc = Math.min(photos.length, 3);
-      return { method: photos === clientPhotos ? 'client_photos' : 'real_business_photos', url: await runKenBurnsMontage({ photos, perClipSec: Math.max(6, Math.round(plan.durationSec / sc)), sceneCount: sc, postId: pId, hookTopic, hookLang: 'fr', bakeAudio }) };
+      return { method: usedClientPhotos ? 'client_photos' : 'real_business_photos', url: await runKenBurnsMontage({ photos, perClipSec: Math.max(6, Math.round(plan.durationSec / sc)), sceneCount: sc, postId: pId, hookTopic, hookLang: 'fr', bakeAudio }) };
     }
     // DEFAULT — client photos if any, else a GENERATED coherent hero image.
     let photos: string[] = clientPhotos.slice(0, 3);
@@ -236,7 +239,12 @@ export async function POST(req: NextRequest) {
   let method = '';
   let qc: any = null;
   let attempts = 0;
-  const MAX_ATTEMPTS = 3;
+  // Cap at 2 to protect margin: a generated/multiPlan retry re-runs Seedream
+  // (1 hero + 2 i2i) + a vision QC, so 2 attempts is the worst-case ceiling.
+  const MAX_ATTEMPTS = 2;
+  // Methods built on FIXED real assets won't improve by retrying (same photos →
+  // same result) → never retry them. Only generated/stock (random) benefit.
+  const NO_RETRY = new Set(['client_footage', 'client_photos', 'real_business_photos']);
   let best: { url: string; qc: any; method: string } | null = null;
   while (attempts < MAX_ATTEMPTS) {
     attempts++;
@@ -246,8 +254,7 @@ export async function POST(req: NextRequest) {
     const thisQc = await assessReelQuality(gen.url, { businessType: businessType || post.pillar, subject });
     if (!best || (thisQc?.score ?? 0) > (best.qc?.score ?? 0)) best = { url: gen.url, qc: thisQc, method: gen.method };
     if (!thisQc || thisQc.pass) { finalUrl = gen.url; qc = thisQc; break; } // pass / QC down → ship
-    // client footage/photos won't improve by retrying → don't waste attempts
-    if (gen.method === 'client_footage' || gen.method === 'client_photos') { finalUrl = gen.url; qc = thisQc; break; }
+    if (NO_RETRY.has(gen.method)) { finalUrl = gen.url; qc = thisQc; break; } // fixed assets → no point retrying
   }
   if (!finalUrl && best) { finalUrl = best.url; qc = best.qc; method = best.method; }
 
