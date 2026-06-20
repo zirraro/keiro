@@ -97,6 +97,10 @@ const GLOBAL_SCHEDULE = [
   // so Léo's qualify-route can cluster them into walking tours. Bounded (30/run,
   // no retry) + respects the daily Places budget. Progressive over days.
   { cron: '45 3 * * *',   path: '/api/agents/commercial/enrich-geo', label: 'Commercial GPS Enrich (tournées)' },
+  // Daily TikTok health check — detect 0-view streaks (suppression) per account,
+  // flag a protective pause + alert. Brief is already pause-aware. Detection
+  // only → no risk on the publish flow.
+  { cron: '0 4 * * *',    path: '/api/cron/tiktok-health-check', label: 'TikTok Health Check (suppression detect)' },
   // 2026-06-08 — Daily 06:30 UTC. Aggregates the previous 24h of
   // directive failures (client chat orders no agent could honor) into
   // ONE email to admin. Emails ONLY if there are failures.

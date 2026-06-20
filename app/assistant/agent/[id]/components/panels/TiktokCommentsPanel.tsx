@@ -83,6 +83,24 @@ export function TiktokCommentsPanel({ data, agentName, gradientFrom, gradientTo 
         gradientTo={gradientTo}
       />
 
+      {/* Services TikTok — ce qui est automatisé vs manuel (honnête + cohérent) */}
+      <SectionTitle>Services TikTok</SectionTitle>
+      <div className="space-y-2 mb-3">
+        <div className="bg-white/5 rounded-lg border border-white/10 p-3">
+          <div className="flex items-center gap-2 text-[11px]"><span>✅</span><span className="text-white/80 font-semibold">Publication automatique</span></div>
+          <p className="text-white/45 text-[10px] mt-1">Tes reels sont générés en qualité contrôlée et publiés automatiquement selon une cadence saine. En récupération algorithmique, la diffusion passe en pause protectrice quelques jours — normal et temporaire, ça repart plus fort.</p>
+        </div>
+        <div className="bg-white/5 rounded-lg border border-white/10 p-3">
+          <div className="flex items-center gap-2 text-[11px]"><span>✅</span><span className="text-white/80 font-semibold">Réponses aux commentaires</span></div>
+          <p className="text-white/45 text-[10px] mt-1">Les commentaires reçus sont traités automatiquement (mode auto ci-dessus).</p>
+        </div>
+        <div className="bg-white/5 rounded-lg border border-white/10 p-3">
+          <div className="flex items-center gap-2 text-[11px]"><span>✋</span><span className="text-white/80 font-semibold">Suivre des comptes / prospection — manuel</span></div>
+          <p className="text-white/45 text-[10px] mt-1">L&apos;API TikTok n&apos;autorise pas le follow ni le DM automatiques. On te <strong className="text-white/70">prépare</strong> les comptes pertinents à suivre (scoring persona) ; tu les ouvres et suis en 1 clic. Préparation par Keiro, action par toi.</p>
+          <a href="/assistant/crm" className="inline-block mt-2 px-3 py-1.5 bg-white/10 text-white/70 text-[10px] rounded-lg hover:bg-white/15 transition-all">Voir les comptes à suivre →</a>
+        </div>
+      </div>
+
       {/* Quick actions */}
       <div className="flex flex-wrap gap-2 mt-3">
         <a href="/generate" className="px-4 py-2 bg-gradient-to-r from-fuchsia-600 to-pink-600 text-white text-xs font-semibold rounded-xl hover:opacity-90 transition-all">
