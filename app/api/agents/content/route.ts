@@ -3884,6 +3884,14 @@ export async function POST(request: NextRequest) {
             // fire the ISOLATED montage endpoint (it generates + publishes),
             // mark the post (video_job_id sentinel) to avoid re-firing on the
             // next cron pass, and skip the standard 10s gen (no double-publish).
+            // TikTok auto-post paused (throttle recovery) → don't generate or
+            // publish TikTok content at all (no wasted compute, no error in the
+            // digest). Hold the post as draft for when TikTok resumes.
+            if (post.platform === 'tiktok' && process.env.TIKTOK_AUTOPOST_PAUSED === '1') {
+              await supabase.from('content_calendar').update({ status: 'draft', publish_diagnostic: 'tiktok_autopost_paused_skipped', updated_at: new Date().toISOString() }).eq('id', post.id);
+              console.log(`[Content] TikTok paused → skip gen for ${post.id} (held draft)`);
+              continue;
+            }
             // Route ALL reels (IG + TikTok, montage AND single) through the QC'd
             // generated-hero pipeline — the old standard gen looked AI. Single
             // plans pass a short durationSec → the montage endpoint's forced
@@ -6151,11 +6159,23 @@ ${upcomingEvents.map(e => `  • ${e}`).join('\n')}
           .maybeSingle();
         dossierForAngle = d;
       }
-      // Pull recent angles used so Sonnet doesn't repeat itself
-      const recentAnglesUsed: string[] = (recentGrid || [])
-        .map((p: any) => p.content_angle || '')
-        .filter((a: string) => a && a.length > 0)
-        .slice(0, 5);
+      // Pull recent angles ACTUALLY used (last 30d) so we never repeat an actu —
+      // stored in agent_logs keyed by user (the content_angle column doesn't
+      // exist; this is the reliable cross-generation memory). Founder priority:
+      // jamais 2 fois la même actu/trend.
+      let recentAnglesUsed: string[] = [];
+      try {
+        const since30 = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
+        const { data: usedLogs } = await supabase
+          .from('agent_logs')
+          .select('data, created_at')
+          .eq('agent', 'content').eq('action', 'content_angle_picked')
+          .eq('data->>user_id', userId)
+          .gte('created_at', since30)
+          .order('created_at', { ascending: false })
+          .limit(25);
+        recentAnglesUsed = (usedLogs || []).map((l: any) => l.data?.picked || '').filter(Boolean).slice(0, 15);
+      } catch { /* memory best-effort */ }
       const { pickBusinessNewsAngle, angleToPromptBlock } = await import('@/lib/agents/news-business-angle');
       const dossierSummary = dossierForAngle?.ai_summary || dossierForAngle?.company_description;
       const dossierOffer = dossierForAngle?.value_proposition || dossierForAngle?.unique_selling_points;
@@ -6175,7 +6195,8 @@ ${upcomingEvents.map(e => `  • ${e}`).join('\n')}
       // Merge caller avoid-list with the auto-detected over-used themes so the
       // picker never re-anchors on a topic we've already milked (founder:
       // levées de fonds / data center repeated too much).
-      const avoidMerged = [...callerAvoid, ...trendsAvoidThemes].slice(0, 20);
+      // Used angles → HARD ban too (picker returns null rather than reuse).
+      const avoidMerged = [...callerAvoid, ...trendsAvoidThemes, ...recentAnglesUsed].slice(0, 30);
       const avoidTopics = avoidMerged.length ? avoidMerged : undefined;
       const angle = await pickBusinessNewsAngle({
         businessType: dossierForAngle?.business_type || detectedBusinessType || (clientSettings as any)?.business_type,
@@ -6192,6 +6213,14 @@ ${upcomingEvents.map(e => `  • ${e}`).join('\n')}
       });
       if (angle) {
         newsAngleBlock = angleToPromptBlock(angle);
+        // Persist so future generations never repeat this actu (founder priority).
+        try {
+          await supabase.from('agent_logs').insert({
+            agent: 'content', action: 'content_angle_picked', status: 'success',
+            data: { user_id: userId, picked: String(angle.picked).slice(0, 200), angle: String(angle.angle).slice(0, 200) },
+            created_at: new Date().toISOString(),
+          });
+        } catch { /* logging best-effort */ }
         console.log(`[Content] News angle picked (Sonnet): "${angle.picked.substring(0, 60)}..." → ${angle.angle.substring(0, 60)}`);
       }
     }
