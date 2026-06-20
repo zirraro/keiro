@@ -1556,6 +1556,8 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
       // a activés (org_agent_configs content) ou connectés. Cible par réseau =
       // cadence du plan de publication réel (plan_override content si défini).
       let networkPostLines: any[] = [];
+      let pauseNote = ''; // client-facing reassurance if a platform is on protective pause
+      const ttProtectivePause = process.env.TIKTOK_AUTOPOST_PAUSED === '1';
       try {
         const { PLAN_DAILY_PUBLISH } = await import('@/lib/credits/plan-budget-guard');
         const { data: ccRow } = await supabase
@@ -1570,9 +1572,15 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
           supabase.from('content_calendar').select('id', { count: 'exact', head: true }).eq('user_id', client.id).eq('status', 'published').eq('platform', 'tiktok').gte('published_at', sinceIso),
           supabase.from('content_calendar').select('id', { count: 'exact', head: true }).eq('user_id', client.id).eq('status', 'published').eq('platform', 'linkedin').gte('published_at', sinceIso),
         ]);
+        // TikTok on protective pause → exclude it from the % (don't penalise the
+        // client for a deliberate, temporary protective pause) + reassure them.
+        const ttOn = cc.tt_enabled !== false && !ttProtectivePause;
+        if (ttProtectivePause && cc.tt_enabled !== false) {
+          pauseNote = `<div style="margin:10px 0;padding:10px;background:#fffbeb;border-radius:8px;border-left:3px solid #f59e0b;font-size:12px;color:#92400e;">🛡️ <strong>Diffusion TikTok en pause protectrice quelques jours</strong> — c'est normal et volontaire : on laisse l'algorithme se "réchauffer" pour repartir plus fort (on évite le sur-postage qui bride la portée). Ta présence Instagram, elle, continue à plein régime. Rien à faire de ton côté.</div>`;
+        }
         const nets = [
           { emoji: '📸', label: 'Posts Instagram', on: cc.ig_enabled !== false, actual: igPub.count || 0, floor: cadence.ig },
-          { emoji: '🎵', label: 'Posts TikTok', on: cc.tt_enabled !== false, actual: ttPub.count || 0, floor: cadence.tt },
+          { emoji: '🎵', label: 'Posts TikTok', on: ttOn, actual: ttPub.count || 0, floor: cadence.tt },
           { emoji: '💼', label: 'Posts LinkedIn', on: cc.li_enabled === true, actual: liPub.count || 0, floor: cadence.li },
         ];
         networkPostLines = nets
@@ -1719,7 +1727,7 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
       const upsellHtml = (globalThis as any).__noah_upsell || '';
       // Clear globalThis flag so the next client iteration starts clean
       (globalThis as any).__noah_upsell = '';
-      briefHtml = `${achievementsHtml}${briefHtml}${planPromiseHtml}${upsellHtml}${statsStripHtml}${footerNote}`;
+      briefHtml = `${achievementsHtml}${briefHtml}${planPromiseHtml}${pauseNote}${upsellHtml}${statsStripHtml}${footerNote}`;
 
       // Save as in-app notification — skipped when phase=catchup_only
       if (!skipEmail && prefs?.inapp_enabled !== false) {
