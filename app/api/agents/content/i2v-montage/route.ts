@@ -193,7 +193,7 @@ export async function POST(req: NextRequest) {
     if (photos.length === 0) {
       // Strong NO-TEXT (QC: AI gibberish on posters/signs is a rédhibitoire AI
       // tell). Force signs/posters to be blank or pure imagery.
-      const heroPrompt = `${String(subject).slice(0, 380)}. Photographie documentaire ultra-réaliste prise sur le vif, lumière naturelle douce, objectif 35mm, profondeur de champ réaliste, couleurs naturelles et chaleureuses, cadrage vertical 9:16, ambiance authentique de ${company || businessType || 'commerce local'}. PAS un rendu 3D, PAS une illustration — une vraie photo. ABSOLUMENT AUCUN texte, lettre, mot, chiffre, panneau écrit, affiche avec écriture, enseigne lisible : toute affiche ou pancarte doit être vierge ou montrer seulement une image/photo sans aucun caractère.`;
+      const heroPrompt = `${String(subject).slice(0, 360)}. Photographie documentaire ultra-réaliste prise sur le vif d'un ${company || businessType || 'commerce local'}. CRAFT PHOTO/CINÉMA : composition règle des tiers, sujet principal net au premier plan + léger bokeh d'arrière-plan (profondeur), angle flatteur à hauteur humaine, lumière MOTIVÉE et douce (fenêtre nord / golden hour), micro-détails de matière, couleurs naturelles et chaleureuses, grain subtil de vrai capteur, objectif 35mm. Cadrage vertical 9:16. PAS un rendu 3D, PAS une illustration, PAS de studio plat — une vraie photo prise par un humain. ABSOLUMENT AUCUN texte, lettre, chiffre, panneau écrit, enseigne lisible : toute affiche doit être vierge ou purement visuelle.`;
       try {
         const hero = await generateJadeImage(heroPrompt, 'story', pUserId || undefined);
         if (hero) {

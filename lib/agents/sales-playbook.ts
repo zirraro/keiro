@@ -12,6 +12,10 @@ export type Sector =
   | 'institut_beaute' | 'onglerie' | 'barbier' | 'coiffure' | 'spa' | 'massage'
   | 'coach_sportif' | 'yoga_pilates' | 'tatoueur' | 'naturopathe' | 'dieteticien'
   | 'restaurant' | 'fleuriste' | 'caviste' | 'boutique_mode' | 'concept_store'
+  | 'boulangerie' | 'patisserie' | 'chocolatier' | 'traiteur' | 'opticien'
+  | 'bijouterie' | 'boucherie' | 'fromagerie' | 'primeur' | 'photographe'
+  | 'immobilier' | 'agence_voyage' | 'animalerie' | 'toilettage' | 'auto_ecole'
+  | 'pressing' | 'decoration' | 'poterie'
   | 'autre';
 
 export interface SectorFiche {
@@ -92,6 +96,25 @@ export const SECTORS: Record<Sector, SectorFiche> = {
   boutique_mode: { label: 'Boutique mode', circle: 3, angoisse: "Concurrence du e-commerce, présence à entretenir.", desire: "Trafic en boutique + nouveautés vues.", heroAgent: 'Léna → Théo', vocabUse: ['tes pièces', 'tes nouveautés', 'tes clientes'], vocabAvoid: ['ROI', 'funnel'], objections: [], channelOptimal: 'DM > terrain', saison: 'soldes, rentrée, fêtes' },
   concept_store: { label: 'Concept store', circle: 3, angoisse: "Raconter l'univers de la boutique régulièrement.", desire: "Communauté + trafic.", heroAgent: 'Léna', vocabUse: ['ton univers', 'ta sélection', 'tes clients'], vocabAvoid: ['ROI', 'KPI'], objections: [], channelOptimal: 'DM > terrain', saison: 'rentrée, fêtes' },
   autre: { label: 'Autre commerce local', circle: 3, angoisse: "Manque de temps pour une présence en ligne régulière.", desire: "Visibilité régulière sans y penser.", heroAgent: 'Léna', vocabUse: ['tes clients', 'ton activité', 'sans y penser'], vocabAvoid: ['ROI', 'funnel', 'KPI'], objections: [], channelOptimal: 'terrain > DM > email', saison: 'janvier, septembre' },
+  // Secteurs étendus (démarcher plus de commerces) — fiches compactes.
+  boulangerie: { label: 'Boulangerie', circle: 3, angoisse: "Mes produits sont beaux le matin mais personne ne les voit en ligne.", desire: "File du matin + ventes l'après-midi, image gourmande.", heroAgent: 'Léna → Théo', vocabUse: ['tes produits', 'le matin', 'tes clients', 'fait maison'], vocabAvoid: ['ROI', 'funnel'], objections: [], channelOptimal: 'terrain > DM', saison: 'fêtes, galette (janvier), rentrée' },
+  patisserie: { label: 'Pâtisserie', circle: 3, angoisse: "Mes créations méritent d'être vues, je n'ai pas le temps de poster.", desire: "Commandes (events, fêtes) + image premium gourmande.", heroAgent: 'Léna', vocabUse: ['tes créations', 'tes gâteaux', 'commandes'], vocabAvoid: ['ROI', 'funnel'], objections: [], channelOptimal: 'DM > terrain', saison: 'fêtes, St-Valentin, mariages' },
+  chocolatier: { label: 'Chocolatier', circle: 3, angoisse: "Tout se joue sur quelques pics dans l'année et je rate la visibilité.", desire: "Ventes sur Pâques/Noël + image artisanale.", heroAgent: 'Léna', vocabUse: ['tes créations', 'artisanal', 'tes clients'], vocabAvoid: ['ROI', 'funnel'], objections: [], channelOptimal: 'DM > terrain', saison: 'Pâques, Noël, St-Valentin' },
+  traiteur: { label: 'Traiteur', circle: 3, angoisse: "Je vis des events mais ma vitrine en ligne ne les vend pas.", desire: "Devis events + portfolio appétissant.", heroAgent: 'Léna → Théo', vocabUse: ['tes prestations', 'tes events', 'tes clients'], vocabAvoid: ['ROI', 'funnel'], objections: [], channelOptimal: 'email > DM', saison: 'mariages (printemps-été), fêtes' },
+  opticien: { label: 'Opticien', circle: 3, angoisse: "Concurrence des chaînes, je dois montrer mon conseil et mes montures.", desire: "Trafic en boutique + image conseil.", heroAgent: 'Léna → Théo', vocabUse: ['tes montures', 'ton conseil', 'tes clients'], vocabAvoid: ['ROI', 'funnel'], objections: [], channelOptimal: 'terrain > DM', saison: 'rentrée, janvier' },
+  bijouterie: { label: 'Bijouterie', circle: 3, angoisse: "Mes pièces sont précieuses mais invisibles en ligne.", desire: "Ventes cadeaux + image d'exception.", heroAgent: 'Léna → Théo', vocabUse: ['tes pièces', 'tes créations', 'tes clients'], vocabAvoid: ['ROI', 'funnel'], objections: [], channelOptimal: 'DM > terrain', saison: 'fêtes, St-Valentin, fête des mères' },
+  boucherie: { label: 'Boucherie / Charcuterie', circle: 3, angoisse: "Je perds des clients face aux supermarchés, mon savoir-faire ne se voit pas.", desire: "Fidéliser + montrer la qualité, commandes fêtes.", heroAgent: 'Léna → Théo', vocabUse: ['tes produits', 'ton savoir-faire', 'tes clients'], vocabAvoid: ['ROI', 'funnel'], objections: [], channelOptimal: 'terrain > DM', saison: 'fêtes, BBQ (été)' },
+  fromagerie: { label: 'Fromagerie', circle: 3, angoisse: "Mon expertise se transmet mal en ligne.", desire: "Clients réguliers + plateaux events.", heroAgent: 'Léna', vocabUse: ['tes fromages', 'tes plateaux', 'affinage'], vocabAvoid: ['ROI', 'funnel'], objections: [], channelOptimal: 'terrain > DM', saison: 'fêtes' },
+  primeur: { label: 'Primeur / Épicerie', circle: 3, angoisse: "Je dois rappeler aux gens que le frais local existe à côté de chez eux.", desire: "Trafic régulier + image fraîcheur locale.", heroAgent: 'Léna', vocabUse: ['tes produits', 'frais', 'local', 'tes clients'], vocabAvoid: ['ROI', 'funnel'], objections: [], channelOptimal: 'terrain > DM', saison: 'saisons produits' },
+  photographe: { label: 'Photographe', circle: 2, angoisse: "Mon portfolio doit tourner pour décrocher des shootings.", desire: "Demandes de shooting régulières.", heroAgent: 'Léna', vocabUse: ['ton portfolio', 'tes shootings', 'tes clients'], vocabAvoid: ['ROI', 'funnel'], objections: [], channelOptimal: 'DM Instagram', saison: 'mariages (printemps-été), fêtes' },
+  immobilier: { label: 'Agence immobilière', circle: 3, angoisse: "Mes biens et mon agence manquent de visibilité locale.", desire: "Mandats + leads acquéreurs.", heroAgent: 'Léna → Hugo', vocabUse: ['tes biens', 'ton secteur', 'tes mandats'], vocabAvoid: ['funnel', 'KPI'], objections: [], channelOptimal: 'email > DM', saison: 'printemps, rentrée' },
+  agence_voyage: { label: 'Agence de voyage', circle: 3, angoisse: "Le rêve se vend par l'image et je n'ai pas le temps de poster.", desire: "Demandes de devis voyage.", heroAgent: 'Léna → Hugo', vocabUse: ['tes destinations', 'évasion', 'tes clients'], vocabAvoid: ['ROI', 'funnel'], objections: [], channelOptimal: 'DM > email', saison: 'janvier (réservations été), automne (hiver)' },
+  animalerie: { label: 'Animalerie', circle: 3, angoisse: "Les maîtres achètent en ligne, je dois recréer le lien.", desire: "Trafic + fidélité, image conseil.", heroAgent: 'Léna', vocabUse: ['tes animaux', 'tes clients', 'conseil'], vocabAvoid: ['ROI', 'funnel'], objections: [], channelOptimal: 'DM > terrain', saison: 'rentrée, fêtes' },
+  toilettage: { label: 'Toilettage', circle: 2, angoisse: "Mes avant/après sont parfaits pour Insta mais je ne poste pas.", desire: "Agenda rempli + fidélité.", heroAgent: 'Léna → Théo', vocabUse: ['tes toilettages', 'avant/après', 'tes clients'], vocabAvoid: ['ROI', 'funnel'], objections: [], channelOptimal: 'DM > terrain', saison: 'printemps (mue), fêtes' },
+  auto_ecole: { label: 'Auto-école', circle: 3, angoisse: "Les jeunes choisissent sur les réseaux et les avis.", desire: "Inscriptions + bons avis.", heroAgent: 'Théo → Léna', vocabUse: ['tes élèves', 'taux de réussite', 'tes moniteurs'], vocabAvoid: ['ROI', 'funnel'], objections: [], channelOptimal: 'DM > terrain', saison: 'rentrée, été (avant vacances)' },
+  pressing: { label: 'Pressing', circle: 3, angoisse: "Service de proximité oublié, je dois rappeler mon existence.", desire: "Trafic régulier de quartier.", heroAgent: 'Léna', vocabUse: ['ton service', 'tes clients', 'rapidité'], vocabAvoid: ['ROI', 'funnel'], objections: [], channelOptimal: 'terrain > DM', saison: 'rentrée, avant fêtes' },
+  decoration: { label: 'Décoration / Ameublement', circle: 3, angoisse: "Mon univers déco doit inspirer en ligne pour faire venir en boutique.", desire: "Trafic + ventes, image inspirante.", heroAgent: 'Léna', vocabUse: ['ton univers', 'tes pièces', 'tes clients'], vocabAvoid: ['ROI', 'funnel'], objections: [], channelOptimal: 'DM > terrain', saison: 'rentrée, fêtes, printemps' },
+  poterie: { label: 'Atelier de poterie / céramique', circle: 2, angoisse: "Mon artisanat se raconte mal sans contenu régulier.", desire: "Ventes + inscriptions ateliers.", heroAgent: 'Léna', vocabUse: ['tes créations', 'fait main', 'tes ateliers'], vocabAvoid: ['ROI', 'funnel'], objections: [], channelOptimal: 'DM Instagram', saison: 'fêtes, rentrée (ateliers)' },
 };
 
 /**
@@ -105,7 +128,12 @@ const SEASON_MONTHS: Partial<Record<Sector, number[]>> = {
   spa: [1, 11, 12], massage: [1, 9], barbier: [9, 12],
   coach_sportif: [1, 9], yoga_pilates: [1, 9], dieteticien: [1, 9], naturopathe: [1, 9],
   restaurant: [1, 9], fleuriste: [2, 5, 12], caviste: [11, 12], boutique_mode: [1, 6, 9, 11],
-  tatoueur: [9], concept_store: [9, 11, 12], autre: [1, 9],
+  tatoueur: [9], concept_store: [9, 11, 12],
+  boulangerie: [1, 9, 12], patisserie: [2, 5, 12], chocolatier: [2, 4, 12], traiteur: [4, 5, 6, 9, 12],
+  opticien: [1, 9], bijouterie: [2, 5, 12], boucherie: [7, 8, 12], fromagerie: [12], primeur: [6, 9],
+  photographe: [4, 5, 6, 9], immobilier: [3, 4, 9], agence_voyage: [1, 9, 10], animalerie: [9, 12],
+  toilettage: [3, 4, 12], auto_ecole: [6, 9], pressing: [9, 11], decoration: [3, 9, 11], poterie: [9, 11, 12],
+  autre: [1, 9],
 };
 
 export function isSectorInSeason(sector: Sector, month1to12: number): boolean {
@@ -127,6 +155,24 @@ export function detectSector(businessType?: string): Sector {
   if (/tatou|tattoo/.test(t)) return 'tatoueur';
   if (/naturopath/.test(t)) return 'naturopathe';
   if (/diété|diete|nutrition/.test(t)) return 'dieteticien';
+  if (/boulang/.test(t)) return 'boulangerie';
+  if (/patiss|pâtiss/.test(t)) return 'patisserie';
+  if (/chocolat/.test(t)) return 'chocolatier';
+  if (/traiteur/.test(t)) return 'traiteur';
+  if (/opticien|lunett|optique/.test(t)) return 'opticien';
+  if (/bijou|joaill|orfèvr|orfevr/.test(t)) return 'bijouterie';
+  if (/boucher|charcut/.test(t)) return 'boucherie';
+  if (/fromag/.test(t)) return 'fromagerie';
+  if (/primeur|épicerie|epicerie|fruits et légumes/.test(t)) return 'primeur';
+  if (/photograph/.test(t)) return 'photographe';
+  if (/immobil|agence immo/.test(t)) return 'immobilier';
+  if (/voyage|agence de voyage|tourisme/.test(t)) return 'agence_voyage';
+  if (/animaler|animal/.test(t)) return 'animalerie';
+  if (/toilettage|toiletteur/.test(t)) return 'toilettage';
+  if (/auto-?école|auto-?ecole|conduite|permis/.test(t)) return 'auto_ecole';
+  if (/pressing|blanchiss|laverie/.test(t)) return 'pressing';
+  if (/décorat|decorat|ameublement|déco\b|meuble/.test(t)) return 'decoration';
+  if (/poterie|céramiq|ceramiq/.test(t)) return 'poterie';
   if (/restau|bistro|brasserie|pizz|burger|food/.test(t)) return 'restaurant';
   if (/fleurist|fleur/.test(t)) return 'fleuriste';
   if (/caviste|vin|cave/.test(t)) return 'caviste';

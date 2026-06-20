@@ -281,14 +281,21 @@ export async function kenBurnsClip(photoUrl: string, postId: string, idx: number
     const zin = `min(zoom+${zStep},1.5)`;
     const zout = `if(lte(zoom,1.0),1.38,max(1.0,zoom-${zStep}))`;
     const cx = `iw/2-(iw/zoom/2)`, cy = `ih/2-(ih/zoom/2)`;
-    // v0 = gentle CENTERED zoom-in: smooth, continuous, keeps everything in
-    // frame (no element popping in/out). Best for a single-image reel.
+    // Rich, varied camera-move repertoire (founder: "toujours le même zoom" →
+    // diversifier beaucoup plus). 11 distinct moves: zoom in/out, traverses,
+    // diagonals, drifts, corner pulls. v0 = safe centered zoom for single-image.
     const variants = [
-      { z: zin, x: cx, y: cy },                                                // centered zoom-in (safe default, single-image)
-      { z: `min(zoom+${zStepSlow},1.28)`, x: `(iw-iw/zoom)*on/${frames}`, y: cy }, // traverse L→R + slow zoom
-      { z: zout, x: cx, y: cy },                                               // pull back → reveal
-      { z: zin, x: cx, y: `(ih-ih/zoom)*0.12` },                               // zoom in → upper
-      { z: `min(zoom+${zStepSlow},1.28)`, x: cx, y: `(ih-ih/zoom)*on/${frames}` }, // descend top→bottom
+      { z: zin, x: cx, y: cy },                                                          // 0 centered zoom-in (safe default)
+      { z: `min(zoom+${zStepSlow},1.28)`, x: `(iw-iw/zoom)*on/${frames}`, y: cy },        // 1 traverse L→R
+      { z: `min(zoom+${zStepSlow},1.28)`, x: `(iw-iw/zoom)*(1-on/${frames})`, y: cy },    // 2 traverse R→L
+      { z: zout, x: cx, y: cy },                                                          // 3 pull back / reveal
+      { z: zin, x: cx, y: `(ih-ih/zoom)*0.10` },                                          // 4 zoom into upper third
+      { z: zin, x: cx, y: `(ih-ih/zoom)*0.90` },                                          // 5 zoom into lower third
+      { z: `min(zoom+${zStepSlow},1.30)`, x: `(iw-iw/zoom)*on/${frames}`, y: `(ih-ih/zoom)*on/${frames}` }, // 6 diagonal TL→BR
+      { z: `min(zoom+${zStepSlow},1.30)`, x: `(iw-iw/zoom)*(1-on/${frames})`, y: `(ih-ih/zoom)*on/${frames}` }, // 7 diagonal TR→BL
+      { z: zin, x: `(iw-iw/zoom)*0.15`, y: cy },                                          // 8 zoom into left
+      { z: zin, x: `(iw-iw/zoom)*0.85`, y: cy },                                          // 9 zoom into right
+      { z: `min(zoom+${zStepSlow},1.22)`, x: cx, y: `(ih-ih/zoom)*(1-on/${frames})` },    // 10 rise bottom→top
     ];
     const v = variants[((variant % variants.length) + variants.length) % variants.length];
     // Normalize to a 2160x3840 (9:16) canvas first so the pan/zoom never
@@ -331,8 +338,13 @@ export async function runKenBurnsMontage(opts: {
     const photos = (opts.photos || []).filter(Boolean);
     if (!photos.length) return null;
     const clipUrls: string[] = [];
+    // Randomize the camera move per clip so reels don't all feel identical
+    // (founder). Single-image reel keeps the safe centered zoom (variant 0);
+    // multi-clip spreads varied moves (i*3 keeps consecutive clips distinct).
+    const moveBase = Math.floor(Math.random() * 11);
     for (let i = 0; i < opts.sceneCount; i++) {
-      const clip = await kenBurnsClip(photos[i % photos.length], opts.postId, i, opts.perClipSec, i);
+      const variant = opts.sceneCount === 1 ? 0 : (moveBase + i * 3) % 11;
+      const clip = await kenBurnsClip(photos[i % photos.length], opts.postId, i, opts.perClipSec, variant);
       if (clip) clipUrls.push(clip);
     }
     if (!clipUrls.length) return null;
@@ -435,14 +447,17 @@ export async function concatVideoClips(clipUrls: string[], postId: string): Prom
       const durs: number[] = [];
       for (const p of localPaths) durs.push(await probeDurationSec(p));
       const T = 0.6; // crossfade length
-      const styles = ['fade', 'smoothleft', 'smoothright', 'slideup', 'circleopen', 'fadeblack'];
+      // Wide, randomized transition repertoire so cuts feel directed + varied
+      // (founder: transitions naturelles et variées).
+      const styles = ['fade', 'smoothleft', 'smoothright', 'smoothup', 'smoothdown', 'slideleft', 'slideup', 'circleopen', 'circleclose', 'fadeblack', 'dissolve', 'wipeleft', 'diagtl', 'radial'];
+      const tStart = Math.floor(Math.random() * styles.length);
       let chain = '';
       let prev = 'v0';
       let cum = durs[0];
       for (let k = 1; k < localPaths.length; k++) {
         const off = Math.max(0.1, cum - T);
         const label = k === localPaths.length - 1 ? 'vout' : `x${k}`;
-        const tr = styles[(k - 1) % styles.length];
+        const tr = styles[(tStart + k - 1) % styles.length];
         chain += `;[${prev}][v${k}]xfade=transition=${tr}:duration=${T}:offset=${off.toFixed(2)}[${label}]`;
         cum = cum + durs[k] - T;
         prev = label;
