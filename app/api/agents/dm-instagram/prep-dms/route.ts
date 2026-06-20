@@ -33,7 +33,9 @@ async function handle(userId: string | undefined) {
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
 
   const out = (rows || []).map((r: any) => {
-    const sector = detectSector(r.business_type);
+    // Infer sector from business_type, else from the company name (enrichment:
+    // ne jamais rester "autre" si le nom donne l'info).
+    const sector = detectSector(r.business_type || r.company || '');
     // Pick the accroche from the strongest available signal.
     let signal: 'compte_dormant' | 'avis_sans_reponse' | 'creux_saisonnier' = 'creux_saisonnier';
     const lastDays = r.last_post_date ? Math.round((Date.now() - new Date(r.last_post_date).getTime()) / 86400000) : null;

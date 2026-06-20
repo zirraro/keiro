@@ -197,8 +197,10 @@ export function buildProspectAccroche(opts: {
   switch (opts.signal) {
     case 'compte_dormant':
       return `${hi} j'ai vu que votre dernier post date du ${opts.lastPostDate || '[date]'} — vos ${oeuvre} méritent d'être vus plus souvent. Imaginez ce rythme tenu chaque semaine sans que vous y passiez une minute.`;
-    case 'avis_sans_reponse':
-      return `${hi} vous avez ${opts.reviewsCount ?? '[N]'} avis à ${opts.rating ?? '[note]'} — un vrai atout. Mais ${opts.unansweredReviews ?? '[X]'} sont sans réponse, et Google valorise les établissements qui répondent. On peut s'en occuper (vous validez d'un tap).`;
+    case 'avis_sans_reponse': {
+      const cnt = opts.reviewsCount ? `${opts.reviewsCount} avis${opts.rating ? ` à ${opts.rating}` : ''}` : 'de beaux avis';
+      return `${hi} vous avez ${cnt} — un vrai atout. Mais répondre à chacun (même en deux mots) booste votre visibilité Google, et peu d'établissements le font. On peut s'en occuper, vous validez d'un tap.`;
+    }
     case 'ouverture_recente':
       return `${hi} félicitations pour l'ouverture ! Le moment idéal pour installer une présence régulière dès le départ, pendant que vous gérez le reste.`;
     case 'creux_saisonnier':

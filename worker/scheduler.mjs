@@ -101,6 +101,9 @@ const GLOBAL_SCHEDULE = [
   // flag a protective pause + alert. Brief is already pause-aware. Detection
   // only → no risk on the publish flow.
   { cron: '0 4 * * *',    path: '/api/cron/tiktok-health-check', label: 'TikTok Health Check (suppression detect)' },
+  // Daily CRM enrichment — infer missing business_type from company name (free)
+  // so Jade accroches + qualification have real sector data.
+  { cron: '20 4 * * *',   path: '/api/agents/commercial/enrich-crm', label: 'CRM Enrich (business_type from name)' },
   // 2026-06-08 — Daily 06:30 UTC. Aggregates the previous 24h of
   // directive failures (client chat orders no agent could honor) into
   // ONE email to admin. Emails ONLY if there are failures.

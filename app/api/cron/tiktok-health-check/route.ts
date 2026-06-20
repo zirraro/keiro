@@ -51,22 +51,37 @@ async function run() {
     let streak = 0;
     for (const v of views) { if (v === 0) streak++; else break; }
     const suspected = streak >= ZERO_STREAK_FLAG;
-    if (suspected) {
-      // Set per-client health-pause flag in the content config (merge).
+
+    // Load current state to detect transitions (pause ↔ resume).
+    let cfgRow: any = null, cfg: any = {};
+    try {
+      const r = await supabase.from('org_agent_configs').select('id, config')
+        .eq('user_id', c.id).eq('agent_id', 'content').order('created_at', { ascending: false }).limit(1).maybeSingle();
+      cfgRow = r.data; cfg = (cfgRow?.config) || {};
+    } catch { /* best-effort */ }
+    const wasPaused = cfg.tiktok_health_paused === true;
+    const writeCfg = async (next: any) => {
       try {
-        const { data: cfgRow } = await supabase.from('org_agent_configs').select('id, config')
-          .eq('user_id', c.id).eq('agent_id', 'content').order('created_at', { ascending: false }).limit(1).maybeSingle();
-        const cfg = { ...((cfgRow as any)?.config || {}), tiktok_health_paused: true, tiktok_health_paused_at: new Date().toISOString(), tiktok_zero_streak: streak };
-        if (cfgRow?.id) await supabase.from('org_agent_configs').update({ config: cfg }).eq('id', cfgRow.id);
-        else await supabase.from('org_agent_configs').insert({ user_id: c.id, agent_id: 'content', config: cfg });
+        if (cfgRow?.id) await supabase.from('org_agent_configs').update({ config: next }).eq('id', cfgRow.id);
+        else await supabase.from('org_agent_configs').insert({ user_id: c.id, agent_id: 'content', config: next });
       } catch { /* best-effort */ }
-      await supabase.from('agent_logs').insert({
-        agent: 'content', action: 'tiktok_suppression_suspected', status: 'error',
-        data: { user_id: c.id, zero_streak: streak, severity: 'warning', note: 'pause protectrice TikTok recommandée — cooldown + contenu natif' },
-        created_at: new Date().toISOString(),
-      }).then(() => {}, () => {});
+    };
+
+    let transition: string | null = null;
+    if (suspected && !wasPaused) {
+      // New suppression → protective pause + alert (brief will notify + 100% the %).
+      await writeCfg({ ...cfg, tiktok_health_paused: true, tiktok_health_paused_at: new Date().toISOString(), tiktok_zero_streak: streak });
+      await supabase.from('agent_logs').insert({ agent: 'content', action: 'tiktok_suppression_suspected', status: 'error', data: { user_id: c.id, zero_streak: streak, severity: 'warning', note: 'pause protectrice TikTok auto — cooldown + contenu natif' }, created_at: new Date().toISOString() }).then(() => {}, () => {});
+      transition = 'paused';
+    } else if (!suspected && wasPaused) {
+      // Reach recovered → auto-resume + notify (the evening brief surfaces this).
+      const next = { ...cfg }; delete next.tiktok_health_paused; delete next.tiktok_health_paused_at; delete next.tiktok_zero_streak;
+      next.tiktok_health_resumed_at = new Date().toISOString();
+      await writeCfg(next);
+      await supabase.from('agent_logs').insert({ agent: 'content', action: 'tiktok_suppression_recovered', status: 'success', data: { user_id: c.id, note: 'TikTok reprend — diffusion réactivée automatiquement' }, created_at: new Date().toISOString() }).then(() => {}, () => {});
+      transition = 'resumed';
     }
-    results.push({ user: c.id, streak, suspected });
+    results.push({ user: c.id, streak, suspected, wasPaused, transition });
   }
   return NextResponse.json({ ok: true, checked: results.length, suspected: results.filter(r => r.suspected).length, results });
 }

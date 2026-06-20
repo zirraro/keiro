@@ -1557,7 +1557,8 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
       // cadence du plan de publication réel (plan_override content si défini).
       let networkPostLines: any[] = [];
       let pauseNote = ''; // client-facing reassurance if a platform is on protective pause
-      const ttProtectivePause = process.env.TIKTOK_AUTOPOST_PAUSED === '1';
+      // Global env pause OR per-client auto-pause set by the health-check cron.
+      let ttProtectivePause = process.env.TIKTOK_AUTOPOST_PAUSED === '1';
       try {
         const { PLAN_DAILY_PUBLISH } = await import('@/lib/credits/plan-budget-guard');
         const { data: ccRow } = await supabase
@@ -1565,6 +1566,7 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
           .eq('user_id', client.id).eq('agent_id', 'content')
           .order('created_at', { ascending: false }).limit(1).maybeSingle();
         const cc: any = (ccRow as any)?.config || {};
+        if (cc.tiktok_health_paused === true) ttProtectivePause = true; // auto-pause par le health-check
         const contentPlan = (cc.plan_override || planKey || 'createur').toLowerCase();
         const cadence: any = PLAN_DAILY_PUBLISH[contentPlan] || PLAN_DAILY_PUBLISH.free;
         const [igPub, ttPub, liPub] = await Promise.all([
@@ -1575,8 +1577,12 @@ ${hotCount > 0 ? `<h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">📌 
         // TikTok on protective pause → exclude it from the % (don't penalise the
         // client for a deliberate, temporary protective pause) + reassure them.
         const ttOn = cc.tt_enabled !== false && !ttProtectivePause;
+        const resumedAt = cc.tiktok_health_resumed_at ? new Date(cc.tiktok_health_resumed_at).getTime() : 0;
+        const justResumed = resumedAt && (Date.now() - resumedAt) < 36 * 3600 * 1000;
         if (ttProtectivePause && cc.tt_enabled !== false) {
-          pauseNote = `<div style="margin:10px 0;padding:10px;background:#fffbeb;border-radius:8px;border-left:3px solid #f59e0b;font-size:12px;color:#92400e;">🛡️ <strong>Diffusion TikTok en pause protectrice quelques jours</strong> — c'est normal et volontaire : on laisse l'algorithme se "réchauffer" pour repartir plus fort (on évite le sur-postage qui bride la portée). Ta présence Instagram, elle, continue à plein régime. Rien à faire de ton côté.</div>`;
+          pauseNote = `<div style="margin:10px 0;padding:10px;background:#fffbeb;border-radius:8px;border-left:3px solid #f59e0b;font-size:12px;color:#92400e;">🛡️ <strong>Diffusion TikTok en pause protectrice quelques jours</strong> — c'est normal et prévu dans ta stratégie : on laisse l'algorithme se "réchauffer" pour repartir plus fort (on évite le sur-postage qui bride la portée). Ta présence Instagram continue à plein régime. Rien à faire de ton côté — tes objectifs du jour sont tenus à 100% (la pause est volontaire, pas un manque).</div>`;
+        } else if (justResumed && cc.tt_enabled !== false) {
+          pauseNote = `<div style="margin:10px 0;padding:10px;background:#ecfdf5;border-radius:8px;border-left:3px solid #16a34a;font-size:12px;color:#166534;">🚀 <strong>Ta diffusion TikTok a repris</strong> — la pause protectrice a porté ses fruits, on relance la publication automatiquement. Rien à faire de ton côté.</div>`;
         }
         const nets = [
           { emoji: '📸', label: 'Posts Instagram', on: cc.ig_enabled !== false, actual: igPub.count || 0, floor: cadence.ig },
