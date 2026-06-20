@@ -1793,6 +1793,22 @@ async function publishToTikTok(
     console.log('[TikTok] auto-post paused (TIKTOK_AUTOPOST_PAUSED=1) — holding post for later');
     return { success: false, error: 'tiktok_autopost_paused' };
   }
+  // ─── PER-CLIENT HEALTH PAUSE ─── the health-check cron flags an account whose
+  // reach collapsed (0-view streak). Honor it here so an auto-paused client stops
+  // publishing (the brief already notifies + adjusts the %). Closes the loop.
+  if (post.id) {
+    try {
+      const { data: pr } = await supabase.from('content_calendar').select('user_id').eq('id', post.id).maybeSingle();
+      if (pr?.user_id) {
+        const { data: hcfg } = await supabase.from('org_agent_configs').select('config').eq('user_id', pr.user_id).eq('agent_id', 'content').order('created_at', { ascending: false }).limit(1).maybeSingle();
+        if ((hcfg?.config as any)?.tiktok_health_paused === true) {
+          await supabase.from('content_calendar').update({ status: 'draft', awaiting_manual_publish_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', post.id);
+          console.log('[TikTok] per-client health pause — holding post');
+          return { success: false, error: 'tiktok_autopost_paused' };
+        }
+      }
+    } catch { /* best-effort — don't block on a config read */ }
+  }
   // ─── ATOMIC CLAIM ─── same pattern as publishToInstagram so two
   // concurrent crons can't publish the same TikTok row twice.
   if (post.id) {
