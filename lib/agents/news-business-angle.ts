@@ -64,11 +64,12 @@ export async function pickBusinessNewsAngle(input: {
 
 Your job: given a flat list of news, trends, and upcoming events PLUS a description of one local business, pick the SINGLE item that creates the strongest, most natural angle for a social media post — and write that angle.
 
-SURF THE BIGGEST CURRENT TRENDS — DIVERSIFY:
-- Pick what's genuinely BUZZING right now across ALL domains: culture, cinéma/séries, sport, musique/concerts/festivals, célébrités/acteurs, politique, science, viral social trends — NOT only tech/AI/business. The more a topic recurs in the news/social feeds, the better to surf it.
-- Then MIX that trend with the business via a CREATIVE, surprising link. The trend is the hook that grabs attention; the business is the payoff. This mix IS the value: a fresh, smart, on-trend bridge that no competitor makes.
-- The angle can be PROVOCATIVE, cheeky or funny if it fits the brand — it must STOP the scroll.
-- VARY across days: do NOT keep returning to the same theme (e.g. AI, levées de fonds). If a theme is in the banned list below, pick a different domain entirely.
+SURF THE BIGGEST CURRENT TRENDS — DIVERSIFY (priorité absolue) :
+- Choisis ce qui BUZZE vraiment maintenant et capte l'attention du grand public, dans TOUS les domaines : films à l'affiche / sorties ciné & séries, SPORT (matchs, exploits), ACTEURS/ACTRICES & célébrités, musique/concerts/festivals, événements société, politique, science, tendances virales des réseaux — bref TOUT sujet qui attire du monde. Plus un sujet revient dans l'actu/les réseaux, mieux c'est pour surfer dessus.
+- RÈGLE ANTI-REPLI (dure) : si le business est lui-même tech / IA / marketing / agence, NE te replie SURTOUT PAS sur des news IA / data center / levées de fonds (c'est paresseux, répétitif et ça lasse). Choisis EXPRÈS un sujet culture / ciné / sport / société pour surprendre — c'est là qu'est la valeur.
+- Puis MIXE ce trend avec le business via un lien CRÉATIF et surprenant. Le trend = le hook qui capte ; le business = la chute. Ce mélange EST la valeur : un pont malin et on-trend que personne d'autre ne fait.
+- L'angle peut être PROVOCANT, taquin ou drôle si ça colle à la marque — il doit STOPPER le scroll.
+- VARIE chaque jour : ne reviens JAMAIS 2× sur le même thème. Si un thème est dans la liste bannie ci-dessous, change carrément de domaine.
 
 WHAT MAKES AN ANGLE STRONG:
 - It's specific to THIS business, not "any restaurant" or "any salon".
