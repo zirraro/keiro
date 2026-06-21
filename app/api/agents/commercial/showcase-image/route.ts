@@ -25,17 +25,25 @@ export async function POST(req: NextRequest) {
   const userId: string = body.userId || 'd7d3ae4a-c420-40e1-b2c9-b983d960d1fb';
   const supabase = sb();
 
-  const prompt = `${String(vd).slice(0, 360)}. Photographie documentaire ultra-réaliste d'un ${businessType}. Composition règle des tiers, sujet net au premier plan + léger bokeh, lumière naturelle motivée (golden hour / fenêtre), couleurs naturelles chaleureuses, grain 35mm subtil. PAS un rendu 3D, PAS une illustration — une vraie photo. AUCUN texte, lettre, chiffre, enseigne lisible.`;
-
+  const craft = `Photographie documentaire ultra-réaliste, composition règle des tiers, lumière naturelle motivée (golden hour / fenêtre), couleurs naturelles chaleureuses, grain 35mm subtil. PAS un rendu 3D, PAS une illustration — une vraie photo. AUCUN texte, lettre, chiffre, enseigne lisible.`;
+  // 3 angles/propositions DISTINCTS du même business (founder: pas 3 images
+  // identiques — variété d'angles + d'offres).
+  const ANGLES = [
+    { tag: 'plan large', p: `Plan LARGE d'ambiance d'un ${businessType} : on voit le lieu/l'espace dans son ensemble, accueillant. ${vd}.` },
+    { tag: 'détail produit', p: `GROS PLAN sur LE produit/la prestation signature d'un ${businessType} (le détail qui donne envie). ${vd}.` },
+    { tag: 'lifestyle', p: `Scène LIFESTYLE dans un ${businessType} : une personne en situation (cliente/artisan) qui vit le moment, émotion authentique, donne envie de venir. ${vd}.` },
+  ];
   const urls: string[] = [];
   for (let i = 0; i < count; i++) {
+    const a = ANGLES[i % ANGLES.length];
+    const prompt = `${a.p.slice(0, 340)} ${craft}`;
     try {
-      const url = await generateJadeImage(prompt, i % 2 === 0 ? 'post' : 'story', userId);
+      const url = await generateJadeImage(prompt, i === 0 ? 'post' : 'story', userId);
       if (!url) continue;
       await supabase.from('saved_images').insert({
         user_id: userId, image_url: url, business_type: businessType,
-        title: `[${businessType}] Vitrine image`, ai_model: 'seedream',
-        generation_prompt: prompt.slice(0, 500), tags: ['vitrine', 'demarchage'],
+        title: `[${businessType}] Vitrine image — ${a.tag}`, ai_model: 'seedream',
+        generation_prompt: prompt.slice(0, 500), tags: ['vitrine', 'demarchage', a.tag],
         is_favorite: false, download_count: 0, view_count: 0,
       });
       urls.push(url);
