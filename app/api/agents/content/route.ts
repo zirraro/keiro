@@ -5950,21 +5950,41 @@ async function generateDailyPost(supabase: any, todayStr: string, dayOfWeek: num
       '2-2': ['Chandeleur — crepes'],
       '3-17': ['Saint-Patrick — vert, convivialite'],
       '5-1': ['Fete du travail — muguet'],
-      '5-25': ['Fete des meres — cadeaux, attention'],
-      '6-15': ['Fete des peres'],
       '6-21': ['Fete de la Musique — ambiance, concerts, fete', 'Ete — soldes, vacances, terrasses'],
-      '6-23': ['Soldes d\'ete (debut ~fin juin) — promos'],
+      '6-24': ['Feux de la Saint-Jean — fete, ambiance'],
       '7-14': ['Fete nationale — bleu blanc rouge, feu d\'artifice'],
       '8-15': ['Assomption — vacances, fin d\'ete'],
       '9-1': ['Rentree — nouveau depart, objectifs'],
       '10-1': ['Octobre rose (sensibilisation) — solidarite'],
+      '10-4': ['Journee mondiale des animaux — animalerie, toilettage'],
+      '10-16': ['Journee mondiale du pain — boulangerie, patisserie'],
       '10-31': ['Halloween — deco, ambiance, deguisements'],
+      '11-1': ['Toussaint — recueillement, fleurs'],
       '11-11': ['Armistice — ferie'],
-      '11-25': ['Black Friday — promos, urgence'],
       '12-6': ['Saint-Nicolas (Est/Nord) — gourmandises'],
       '12-25': ['Noel — cadeaux, fetes, convivialite'],
       '12-31': ['Reveillon — bilan, celebration'],
     };
+    // Dates VARIABLES françaises — calculées pour l'année en cours (sinon faux).
+    const yr = now.getFullYear();
+    const nthSundayOfMonth = (year: number, month1: number, n: number) => {
+      const first = new Date(Date.UTC(year, month1 - 1, 1));
+      const firstSun = 1 + ((7 - first.getUTCDay()) % 7);
+      return firstSun + (n - 1) * 7;
+    };
+    const lastSundayOfMonth = (year: number, month1: number) => {
+      const last = new Date(Date.UTC(year, month1, 0)).getUTCDate();
+      const lastDow = new Date(Date.UTC(year, month1 - 1, last)).getUTCDay();
+      return last - lastDow;
+    };
+    // Black Friday = 4e vendredi de novembre ; fête des mères = dernier dim mai
+    // (sauf coïncidence Pentecôte → +1 sem, cas rare ignoré) ; pères = 3e dim juin.
+    const addEvent = (key: string, ev: string) => { EVENT_CALENDAR[key] = [...(EVENT_CALENDAR[key] || []), ev]; };
+    addEvent(`5-${lastSundayOfMonth(yr, 5)}`, 'Fete des meres — cadeaux, attention');
+    addEvent(`6-${nthSundayOfMonth(yr, 6, 3)}`, 'Fete des peres — cadeaux'); // peut coincider avec la Fete de la Musique
+    const fri4Nov = (() => { const first = new Date(Date.UTC(yr, 10, 1)); const firstFri = 1 + ((5 - first.getUTCDay() + 7) % 7); return firstFri + 21; })();
+    addEvent(`11-${fri4Nov}`, 'Black Friday — promos, urgence');
+    addEvent(`11-${fri4Nov + 3}`, 'Cyber Monday — promos en ligne');
     // Check ±3 days for upcoming events
     const upcomingEvents: string[] = [];
     for (let offset = -1; offset <= 3; offset++) {
