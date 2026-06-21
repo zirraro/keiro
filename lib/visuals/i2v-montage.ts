@@ -342,8 +342,14 @@ export async function runKenBurnsMontage(opts: {
     // (founder). Single-image reel keeps the safe centered zoom (variant 0);
     // multi-clip spreads varied moves (i*3 keeps consecutive clips distinct).
     const moveBase = Math.floor(Math.random() * 11);
+    // Founder: vary the hook — NOT always a centered zoom. Even a single-image
+    // reel gets a RANDOM move (zoom in/out, traverse, drift, rise) so every reel
+    // opens differently. Safe subset (keeps the subject framed on one continuous move).
+    const SAFE_SINGLE = [0, 1, 2, 3, 10];
     for (let i = 0; i < opts.sceneCount; i++) {
-      const variant = opts.sceneCount === 1 ? 0 : (moveBase + i * 3) % 11;
+      const variant = opts.sceneCount === 1
+        ? SAFE_SINGLE[Math.floor(Math.random() * SAFE_SINGLE.length)]
+        : (moveBase + i * 3) % 11;
       const clip = await kenBurnsClip(photos[i % photos.length], opts.postId, i, opts.perClipSec, variant);
       if (clip) clipUrls.push(clip);
     }
