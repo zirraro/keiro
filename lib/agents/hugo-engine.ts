@@ -504,6 +504,13 @@ export async function checkAndPauseOnBounce(supabase: SupabaseClient, clientId: 
   const total = sent || 0;
   const rate = total > 0 ? (bounced || 0) / total : 0;
   if (total >= BOUNCE_MIN_VOLUME && rate >= BOUNCE_HARD_PAUSE_RATE) {
+    // 2026-06-22 — Digest fix #3 : n'alerter qu'à la TRANSITION (pas
+    // déjà en pause). checkAndPauseOnBounce est appelée après chaque
+    // hard bounce → sans ce garde, on spammerait admin+client à chaque
+    // bounce tant que le taux reste haut.
+    const { data: prof } = await supabase.from('profiles')
+      .select('hugo_paused_until, email, full_name').eq('id', clientId).maybeSingle();
+    const wasAlreadyPaused = !!((prof as any)?.hugo_paused_until && new Date((prof as any).hugo_paused_until) > new Date());
     const until = new Date(Date.now() + HUGO_PAUSE_HOURS * 3600 * 1000).toISOString();
     await supabase.from('profiles').update({
       hugo_paused_until: until,
@@ -512,9 +519,32 @@ export async function checkAndPauseOnBounce(supabase: SupabaseClient, clientId: 
     await supabase.from('agent_logs').insert({
       agent: 'email', action: 'hugo_bounce_pause', status: 'error', user_id: clientId,
       error_message: `Hugo paused: bounce ${(rate * 100).toFixed(1)}% (${bounced}/${total})`,
-      data: { severity: 'critical', rate, sent: total, bounced, paused_until: until },
+      data: { severity: 'critical', rate, sent: total, bounced, paused_until: until, transition: !wasAlreadyPaused },
       created_at: new Date().toISOString(),
     });
+    if (!wasAlreadyPaused) {
+      // Alerte admin (une seule fois par épisode de pause)
+      try {
+        const { sendEmailWithFallback } = await import('@/lib/email/send-with-fallback');
+        await sendEmailWithFallback({
+          to: 'contact@keiroai.com',
+          toName: 'Admin KeiroAI',
+          subject: `🔴 Hugo en pause — bounce ${(rate * 100).toFixed(1)}% (${(prof as any)?.email || clientId})`,
+          html: `<p>Les envois Hugo sont <strong>mis en pause</strong> pour <strong>${(prof as any)?.full_name || (prof as any)?.email || clientId}</strong>.</p>
+            <p>Taux de hard bounce 7j : <strong>${(rate * 100).toFixed(1)}%</strong> (${bounced}/${total}) — seuil ${(BOUNCE_HARD_PAUSE_RATE * 100).toFixed(0)}%.</p>
+            <p>Pause jusqu'au ${new Date(until).toLocaleString('fr-FR')}. Action : nettoyer la liste (emails invalides) + vérifier l'auth domaine (SPF/DKIM/DMARC) avant reprise.</p>`,
+          textContent: `Hugo en pause pour ${(prof as any)?.email || clientId} — bounce ${(rate * 100).toFixed(1)}% (${bounced}/${total}). Nettoyer la liste + vérifier le domaine.`,
+          fromName: 'KeiroAI Ops', fromEmail: 'contact@keiroai.com', tags: ['hugo_bounce_pause'],
+        });
+      } catch { /* alerte best-effort */ }
+      // Notif in-app client (le digest CEO du soir reprendra le contexte)
+      try {
+        await notifyClient(supabase, clientId, {
+          type: 'hugo_paused_bounce',
+          urgency: 'high',
+        });
+      } catch { /* best-effort */ }
+    }
     return { paused: true, rate };
   }
   return { paused: false, rate };

@@ -22,6 +22,19 @@ if (!CRON_SECRET) {
   process.exit(1);
 }
 
+// 2026-06-22 — Digest fix #2 : les slots content (pre_recap_catchup,
+// afternoon_batch) génèrent plusieurs posts + images en une passe et
+// dépassent parfois 5 min → undici coupait à exactement 300s avec un
+// "fetch failed" faussement compté comme erreur. Le VPS auto-hébergé
+// n'a AUCUN cap serverless : on relève le timeout headers/body à 10 min.
+try {
+  const { Agent, setGlobalDispatcher } = await import('undici');
+  setGlobalDispatcher(new Agent({ headersTimeout: 600000, bodyTimeout: 600000, connectTimeout: 30000 }));
+  console.log('[Worker] ⏱  undici timeout relevé à 600s (slots content lourds)');
+} catch (e) {
+  console.log(`[Worker] ⚠️ undici timeout non modifiable (${e.message}) — défaut 300s conservé`);
+}
+
 // ──────────────────────────────────────────────────────────
 // GLOBAL schedule — system-level jobs (not per-client)
 // ──────────────────────────────────────────────────────────
@@ -188,7 +201,12 @@ const DISABLED_AGENTS_WORKER = new Set([
 // gmaps: each attempt burns ~1300 Places API calls; a timeout followed by
 // 3 retries (April 2026 pattern) racked up ~€150/day per client until
 // billing credits ran out. Cost-sensitive agents go here.
-const NO_RETRY_AGENTS = new Set(['gmaps']);
+// content (2026-06-22): a heavy generation slot that times out is usually
+// still running server-side (Claude + image gen + reels). Retrying re-fires
+// the whole batch → duplicate posts + doubled LLM/image cost. With the 600s
+// undici timeout above, a real success now completes in one attempt; a true
+// failure self-heals on the next frequent slot. So: single attempt.
+const NO_RETRY_AGENTS = new Set(['gmaps', 'content']);
 
 // ──────────────────────────────────────────────────────────
 // Per-client schedules — fetched from DB every 15 min

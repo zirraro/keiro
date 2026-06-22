@@ -48,6 +48,25 @@ export async function escalateAgentError(report: ErrorReport): Promise<void> {
   // Skip known non-errors — nothing to learn from, nothing to email about
   if (NON_ERROR_SENTINELS.has(report.error)) return;
 
+  // 2026-06-22 — Founder challenge du digest : les "erreurs" TikTok du
+  // digest (6) ne sont PAS des bugs, c'est notre pause volontaire
+  // anti-throttle 0-vues (TIKTOK_AUTOPOST_PAUSED) + les garde-fous de
+  // cadence/débit. Ce sont des décisions stratégiques, pas des échecs.
+  // On les loggue en 'info' (traçable) sans escalade ni pollution du
+  // taux d'erreur du digest. (cf. isGuard regex côté content/route.ts)
+  if (/autopost_paused|cadence_cap|daily_cap|rate_limit|tiktok_health_paused/i.test(report.error)) {
+    try {
+      await getSupabase().from('agent_logs').insert({
+        agent: report.agent,
+        action: `guard_skipped_${report.action}`,
+        status: 'info',
+        data: { reason: 'intentional_guard_not_an_error', guard: report.error.substring(0, 120), platform: report.platform || null },
+        created_at: new Date().toISOString(),
+      });
+    } catch {}
+    return;
+  }
+
   // 2026-06-05 — Founder ask: "pas necessaire pour admin a l'erreur"
   // pour les erreurs token TikTok (le client reçoit déjà un email
   // direct via notifyClientTikTokReauth). Le digest fin de journée
