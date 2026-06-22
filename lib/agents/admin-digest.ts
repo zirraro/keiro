@@ -397,6 +397,87 @@ Output : JSON seul, zéro markdown, zéro intro.`;
   }
 }
 
+/**
+ * 2026-06-22 — Remédiation autonome AVANT l'envoi du digest.
+ *
+ * Founder : "si il peut régler l'erreur avant envoi du digest en toute
+ * autonomie c'est mieux — le digest sert à régler des problèmes". On ne
+ * touche PAS au code (ça, c'est une session Claude Code), mais on applique
+ * les self-heals SÛRS et RÉVERSIBLES sur l'état (content_calendar) pour les
+ * patterns connus. Chaque action est tracée + partagée dans le RAG pool pour
+ * que tous les agents en bénéficient. Retourne la liste de ce qui a été réglé.
+ */
+export async function autoRemediateIssues(
+  supabase: SupabaseClient,
+): Promise<Array<{ issue: string; action: string; count: number }>> {
+  const fixed: Array<{ issue: string; action: string; count: number }> = [];
+  const nowIso = new Date().toISOString();
+
+  // 1. Publications en échec TRANSITOIRE (timeout/5xx/réseau) → re-mises en
+  //    file (approved) pour le prochain slot. Une seule fois par post
+  //    (marqueur [auto_requeued]). Les échecs PERMANENTS (compte non
+  //    connecté, média invalide, token révoqué) ne sont PAS retentés.
+  try {
+    const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+    const { data: failed } = await supabase
+      .from('content_calendar')
+      .select('id, publish_diagnostic')
+      .eq('status', 'publish_failed')
+      .gte('updated_at', since)
+      .limit(100);
+    const RETRYABLE = /timeout|fetch failed|econn|socket|\b5\d\d\b|rate.?limit|temporar|try again|overload|network|ETIMEDOUT|ECONNRESET/i;
+    const PERMANENT = /not connect|non connect|invalid|unsupported|media|expired|revoked|permission|duplicate|policy|disabled/i;
+    const toRequeue = (failed || []).filter((p: any) => {
+      const d = String(p.publish_diagnostic || '');
+      if (d.includes('[auto_requeued]')) return false;
+      return RETRYABLE.test(d) && !PERMANENT.test(d);
+    });
+    for (const p of toRequeue) {
+      await supabase.from('content_calendar').update({
+        status: 'approved',
+        publish_diagnostic: (String(p.publish_diagnostic || '').slice(0, 300)) + ' [auto_requeued]',
+        updated_at: nowIso,
+      }).eq('id', p.id);
+    }
+    if (toRequeue.length) fixed.push({ issue: 'Publications en échec transitoire (timeout/5xx/réseau)', action: 'Re-mises en file (approved) pour le prochain slot de publication', count: toRequeue.length });
+  } catch { /* non-fatal */ }
+
+  // 2. Montages reels bloqués : sentinelle video_job_id 'montage_*' posée
+  //    depuis >90 min mais toujours sans vidéo → purge la sentinelle pour
+  //    que le prochain passage régénère (le montage avait échoué/timeout).
+  try {
+    const staleBefore = new Date(Date.now() - 90 * 60 * 1000).toISOString();
+    const { data: stuck } = await supabase
+      .from('content_calendar')
+      .select('id')
+      .like('video_job_id', 'montage_%')
+      .is('video_url', null)
+      .neq('status', 'published')
+      .lt('updated_at', staleBefore)
+      .limit(100);
+    for (const p of (stuck || [])) {
+      await supabase.from('content_calendar').update({ video_job_id: null, updated_at: nowIso }).eq('id', p.id);
+    }
+    if ((stuck || []).length) fixed.push({ issue: 'Montages reels bloqués (sentinelle orpheline)', action: 'Sentinelle video_job_id purgée → régénération au prochain passage', count: (stuck || []).length });
+  } catch { /* non-fatal */ }
+
+  // Trace + partage RAG (toujours) — tous les agents apprennent du self-heal.
+  if (fixed.length) {
+    await supabase.from('agent_logs').insert({
+      agent: 'ceo', action: 'auto_remediated', status: 'ok',
+      data: { fixed, at: nowIso }, created_at: nowIso,
+    }).catch(() => {});
+    for (const f of fixed) {
+      await saveKnowledge(supabase, {
+        content: `AUTO-REMÉDIATION ${nowIso.slice(0, 10)} : "${f.issue}" → ${f.action} (${f.count} élément(s)). Réglé en autonomie avant le digest admin.`,
+        summary: `Auto-fix: ${f.issue.slice(0, 60)} (${f.count})`,
+        agent: 'ceo', category: 'learning', source: 'auto_remediation', confidence: 0.75, org_id: undefined,
+      }).catch(() => {});
+    }
+  }
+  return fixed;
+}
+
 export async function sendAdminDailyDigest(
   supabase: SupabaseClient,
   periodHours: number = 24,
@@ -404,6 +485,11 @@ export async function sendAdminDailyDigest(
   // 2026-06-03 — Use multi-provider fallback (Brevo API → Resend → Brevo SMTP)
   // so admin digest never silently drops when one key is revoked.
   const { sendEmailWithFallback } = await import('@/lib/email/send-with-fallback');
+
+  // Remédiation autonome AVANT de bâtir le digest : on règle ce qui est
+  // sûrement auto-réparable, puis on rapporte ce qui reste + ce qui a été
+  // réglé. (Founder : régler en autonomie avant l'envoi.)
+  const autoFixed = await autoRemediateIssues(supabase).catch(() => [] as Array<{ issue: string; action: string; count: number }>);
 
   const { stats, digest, healthCauses, agentsDown } = await buildAdminDigest(supabase, periodHours);
 
@@ -533,6 +619,16 @@ export async function sendAdminDailyDigest(
             ${esc(digest?.health_summary || '')}
           </p>
 
+          ${autoFixed.length > 0 ? `
+            <h3 style="color:#111;font-size:14px;margin:20px 0 8px;">✅ Réglé automatiquement (${autoFixed.reduce((n, f) => n + f.count, 0)})</h3>
+            <div style="background:#f0fdf4;border-left:4px solid #16a34a;border-radius:8px;padding:12px;margin:8px 0;">
+              <div style="font-size:11px;color:#166534;margin-bottom:4px;">Remédiation autonome avant l'envoi — aucune action requise.</div>
+              <ul style="margin:6px 0 0;padding-left:18px;font-size:11px;color:#14532d;">
+                ${autoFixed.map(f => `<li><strong>${esc(f.issue)}</strong> — ${esc(f.action)} <em>(${f.count})</em></li>`).join('')}
+              </ul>
+            </div>
+          ` : ''}
+
           ${agentsDownBlocks ? `
             <h3 style="color:#111;font-size:14px;margin:20px 0 8px;">🔴 Agents DOWN / DEGRADED (${agentsDown.length})</h3>
             ${agentsDownBlocks}
@@ -583,7 +679,8 @@ export async function sendAdminDailyDigest(
   }
 
   if (digest) {
-    const ragSummary = `ADMIN DIGEST ${now.toISOString().slice(0, 10)}: ${digest.headline}. Success ${stats.success_rate}%, ${stats.total_errors}/${stats.total_runs} errors. Agents DOWN: ${downCount}. P0: ${p0Count}, P1: ${p1Count}. Top issues: ${digest.top_issues.map(i => i.title).join(' | ')}`;
+    const autoFixedSummary = autoFixed.length > 0 ? ` Auto-réglé: ${autoFixed.map(f => `${f.issue} (${f.count})`).join(', ')}.` : '';
+    const ragSummary = `ADMIN DIGEST ${now.toISOString().slice(0, 10)}: ${digest.headline}. Success ${stats.success_rate}%, ${stats.total_errors}/${stats.total_runs} errors. Agents DOWN: ${downCount}. P0: ${p0Count}, P1: ${p1Count}.${autoFixedSummary} Top issues: ${digest.top_issues.map(i => i.title).join(' | ')}`;
     await saveKnowledge(supabase, {
       content: ragSummary,
       summary: `Digest ${now.toISOString().slice(0, 10)} ${stats.success_rate}%`,
@@ -640,6 +737,8 @@ export async function sendAdminDailyDigest(
       agents_down: downCount,
       p0_count: p0Count,
       p1_count: p1Count,
+      auto_fixed_count: autoFixed.reduce((n, f) => n + f.count, 0),
+      auto_fixed: autoFixed,
     },
     created_at: now.toISOString(),
   }).throwOnError?.();

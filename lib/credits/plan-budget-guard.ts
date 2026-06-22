@@ -153,9 +153,19 @@ export const PLAN_DAILY_PUBLISH: Record<string, PlanCadence> = {
 };
 
 /**
+ * Sources de posts "supplémentaires" qui ne consomment PAS le quota
+ * quotidien du plan — ce sont des publications EN PLUS du calendrier
+ * normal (expériences contrôlées, plafonnées par ailleurs).
+ * 2026-06-22 — Founder : le test reels TikTok-0-vues→Instagram doit
+ * s'ajouter aux posts quotidiens, pas les remplacer ni les réduire.
+ */
+export const SUPPLEMENTARY_SOURCES = ['tt_to_ig_ab_test'];
+
+/**
  * Helper : count how many publish slots are already used today
  * on a given platform/format for this user. Used by the publish
  * loop to enforce PLAN_DAILY_PUBLISH caps in real time.
+ * Les posts de sources supplémentaires sont exclus du comptage.
  */
 export async function countPublishedToday(
   supabase: any,
@@ -172,7 +182,8 @@ export async function countPublishedToday(
     .eq('platform', platform)
     .eq('status', 'published')
     .gte('published_at', today + 'T00:00:00Z')
-    .lte('published_at', today + 'T23:59:59Z');
+    .lte('published_at', today + 'T23:59:59Z')
+    .not('source', 'in', `(${SUPPLEMENTARY_SOURCES.join(',')})`);
   if (formats && formats.length > 0) q = q.in('format', formats);
   const { count } = await q;
   return count || 0;
@@ -193,7 +204,8 @@ export async function countPublishedThisWeek(
     .eq('platform', platform)
     .eq('status', 'published')
     .in('format', formats)
-    .gte('published_at', since);
+    .gte('published_at', since)
+    .not('source', 'in', `(${SUPPLEMENTARY_SOURCES.join(',')})`);
   return count || 0;
 }
 

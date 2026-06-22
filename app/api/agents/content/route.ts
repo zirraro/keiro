@@ -2344,7 +2344,13 @@ export async function GET(request: NextRequest) {
           // scenario the founder reported (two IG posts 4 seconds apart).
           const postPlatform = (post as any).platform || 'instagram';
           const slotFormat = (post as any).format || '';
-          if (await recentlyPublishedSamePlatform(postPlatform, userId, slotFormat)) {
+          // 2026-06-22 — Posts supplémentaires (test reels TT-0-vues→IG) :
+          // publications EN PLUS du quotidien → exemptés du spacing guard ET
+          // du cap de cadence (ils ne consomment pas le quota, cf.
+          // SUPPLEMENTARY_SOURCES dans plan-budget-guard). Plafonnés par
+          // ailleurs (1/jour, 25 au total).
+          const isSupplementary = ((post as any).source || '') === 'tt_to_ig_ab_test';
+          if (!isSupplementary && await recentlyPublishedSamePlatform(postPlatform, userId, slotFormat)) {
             console.warn(`[Content] Spacing guard: skipping post ${post.id} on ${postPlatform} — already published within 4h.`);
             continue;
           }
@@ -2352,7 +2358,7 @@ export async function GET(request: NextRequest) {
           // 2026-06-09 — Plan cadence cap. Respecte PLAN_DAILY_PUBLISH
           // (avec plan_override per-agent si défini). Bloque le publish
           // si on dépasse la cadence quotidienne ou hebdo du plan.
-          try {
+          if (!isSupplementary) try {
             const { resolveEffectivePlan, PLAN_DAILY_PUBLISH, countPublishedToday, countPublishedThisWeek } = await import('@/lib/credits/plan-budget-guard');
             const effectivePlan = await resolveEffectivePlan(supabase, userId || '', 'content');
             const cadence = PLAN_DAILY_PUBLISH[effectivePlan] || PLAN_DAILY_PUBLISH.free;
@@ -3887,8 +3893,10 @@ export async function POST(request: NextRequest) {
 
         // Publish posts that already have visuals (skip disabled platforms)
         for (const post of (approvedWithVisuals || []).filter((p: any) => !skipPlatforms.has(p.platform || 'instagram'))) {
-          // Per-platform spacing check
-          if (userId) {
+          // Per-platform spacing check — exempté pour les posts supplémentaires
+          // (test reels TT-0-vues→IG : publications EN PLUS du quotidien).
+          const isSupplementaryExec = ((post as any).source || '') === 'tt_to_ig_ab_test';
+          if (userId && !isSupplementaryExec) {
             const { count: recentCount } = await supabase
               .from('content_calendar')
               .select('id', { count: 'exact', head: true })
