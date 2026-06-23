@@ -516,6 +516,9 @@ async function handleClientBrief(
       const sinceIso = since; // lookback window (24h by default)
       const oneWeekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
       const twoWeeksAgo = new Date(Date.now() - 14 * 86400000).toISOString();
+      // Fenêtre streak large (120j) : sinon le streak plafonnait à 14 et
+      // affichait "14 jours" à l'identique chaque jour (founder).
+      const streakSince = new Date(Date.now() - 120 * 86400000).toISOString();
       const [
         postsPublishedRes, postsDraftedRes,
         emailsSentRes, emailsOpenedRes, emailsClickedRes,
@@ -634,12 +637,13 @@ async function handleClientBrief(
           .select('id', { count: 'exact', head: true })
           .eq('user_id', client.id)
           .not('dm_sent_at', 'is', null),
-        // streak data: published_at dates over last 14 days
+        // streak data: published_at dates over last 120 days (le streak peut
+        // dépasser 14 — sinon il restait figé à "14 jours" chaque jour).
         supabase.from('content_calendar')
           .select('published_at')
           .eq('user_id', client.id)
           .eq('status', 'published')
-          .gte('published_at', twoWeeksAgo)
+          .gte('published_at', streakSince)
           .order('published_at', { ascending: false }),
         // this week hot (last 7d) vs prev week hot (7-14d)
         supabase.from('crm_prospects')
@@ -1392,13 +1396,29 @@ async function handleClientBrief(
           .map(r => r.published_at.slice(0, 10))
       );
       let streak = 0;
-      for (let i = 0; i < 14; i++) {
+      for (let i = 0; i < 120; i++) {
         const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
         if (publishedDays.has(d)) streak++;
         else break;
       }
-      if (streak >= 3) {
-        achievements.push(`🔥 <strong>${streak} jours d'affilée</strong> de publications Instagram — la régularité paie, continue !`);
+      // 2026-06-23 — Founder : on ne répète PLUS "bravo Xj" tous les jours
+      // (c'était figé à 14 + lassant). On ne célèbre le streak qu'aux PALIERS
+      // marquants, et avec une formulation VARIÉE, naturelle et humaine (jamais
+      // deux jours de suite la même phrase). Entre deux paliers, silence (le
+      // message d'accueil LLM en haut porte déjà la motivation du jour).
+      const STREAK_MILESTONES = [3, 7, 14, 21, 30, 45, 60, 90, 120];
+      const isStreakMilestone = STREAK_MILESTONES.includes(streak) || (streak > 120 && streak % 30 === 0);
+      if (isStreakMilestone) {
+        // Variation déterministe (par jour) → fraîcheur sans aléa instable.
+        const dayKey = Number(new Date().toISOString().slice(8, 10));
+        const streakLines = [
+          `🔥 <strong>${streak} jours sans rater une publication.</strong> C'est exactement cette régularité qui installe ta présence — peu de commerces tiennent ce rythme. Chapeau.`,
+          `🔥 <strong>${streak} jours d'affilée !</strong> Tes posts sont devenus un rendez-vous pour ton audience. On garde le cap ensemble.`,
+          `🔥 Déjà <strong>${streak} jours de suite</strong> en ligne. La constance, c'est 80% du résultat sur les réseaux — et tu l'as. Fier du chemin parcouru.`,
+          `🔥 <strong>${streak} jours consécutifs.</strong> Pendant que d'autres oublient de poster, ta vitrine tourne tous les jours. Ça finit toujours par payer.`,
+          `🔥 <strong>Cap des ${streak} jours d'affilée franchi.</strong> Cette régularité, c'est ce que l'algorithme récompense — continue comme ça, ça construit.`,
+        ];
+        achievements.push(streakLines[dayKey % streakLines.length]);
       }
 
       // Week-over-week hot prospects
@@ -1452,7 +1472,7 @@ ${clientContext || 'Nouveau client, pas encore de profil complet.'}
 
 FORMAT OBLIGATOIRE — HTML brut, tutoiement, zero jargon, 3 blocs SEULEMENT (les stats détaillées et la liste par agent sont ajoutées automatiquement par le template — tu n'as PAS à les réécrire):
 
-<p style="margin:0 0 14px;font-size:14px;"><strong>${isEvening ? `Bonsoir ${clientName} 🌙` : `Salut ${clientName} 👋`}</strong> — une phrase punchy de félicitations ou d'accompagnement. ${isEvening ? 'Reconnais le travail accompli (ex: "belle journée, tes agents ont poussé fort" ou "journée calme, on reprend demain").' : 'Donne le ton de la journée qui commence (ex: "journée à fort potentiel" ou "journée de consolidation").'}</p>
+<p style="margin:0 0 14px;font-size:14px;"><strong>${isEvening ? `Bonsoir ${clientName} 🌙` : `Salut ${clientName} 👋`}</strong> — une phrase d'accroche VIVANTE, comme un associé qui t'écrit, pas un robot. Elle doit refléter CE qui s'est VRAIMENT passé aujourd'hui (les vrais chiffres ci-dessous), donc être DIFFÉRENTE chaque jour — jamais une formule toute faite répétée. Varie le ton : tantôt fier, tantôt complice, tantôt motivant, tantôt rassurant un jour calme. Naturel, humain, chaleureux. ${isEvening ? 'Reconnais sincèrement le travail accompli sans en faire trop (ex: "grosse journée, ça a bien tourné", "journée tranquille — on recharge pour demain", "petit creux aujourd’hui, rien d’alarmant, on relance").' : 'Donne le ton du jour avec une vraie intention (ex: "on a de quoi faire de belles choses aujourd’hui", "journée parfaite pour relancer tes prospects chauds", "on consolide, tranquille").'} INTERDIT : "bravo" mécanique ou la même phrase que d'habitude.</p>
 
 <h4 style="margin:0 0 6px;color:#2563eb;font-size:13px;">${isEvening ? '💡 Mes recos pour booster ton business (à faire demain)' : '💡 Mes recos pour booster ton business'}</h4>
 <ul style="margin:0 0 12px;padding-left:18px;font-size:13px;">
