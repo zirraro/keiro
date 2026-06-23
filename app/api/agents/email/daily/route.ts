@@ -163,6 +163,24 @@ async function generateAIEmails(
     }
   }
 
+  // 2026-06-23 — Founder : "identifier ce qui fait OUVRIR + améliorer
+  // CONSTAMMENT le taux d'ouverture + partager dans le RAG". autoLearn écrit
+  // déjà les apprentissages open/click/reply dans le RAG ; ici on FERME la
+  // boucle en les RÉ-INJECTANT dans le prompt de génération des objets, pour
+  // que Victor applique ce qui fonctionne réellement chez nous (amélioration
+  // continue auto-renforcée).
+  let learningsBlock = '';
+  if (supabaseClient) {
+    try {
+      const { getActiveLearnings, formatLearningsForPrompt } = await import('@/lib/agents/learning');
+      const emailLearnings = await getActiveLearnings(supabaseClient, 'email', undefined, undefined);
+      if ((emailLearnings || []).length > 0) {
+        learningsBlock = '\n\n=== CE QUI MARCHE CHEZ NOUS (apprentissages perf email — APPLIQUE-LES pour maximiser l\'ouverture) ===\n'
+          + formatLearningsForPrompt(emailLearnings || [], []);
+      }
+    } catch (e: any) { console.warn('[EmailDaily] email learnings load failed:', e?.message); }
+  }
+
   // Build batch prompt with rich prospect data
   const prospectList = prospects.map((p, i) => {
     const pr = p.prospect;
@@ -366,7 +384,7 @@ Réponds en JSON — un tableau d'objets, un par prospect :
 ]
 Si le nom du commerce est douteux/introuvable/incohérent, mets "skip": true et "reason": "explication".
 
-UNIQUEMENT du JSON valide, pas de markdown, pas d'explication.${directivesBlock}`,
+UNIQUEMENT du JSON valide, pas de markdown, pas d'explication.${directivesBlock}${learningsBlock}`,
       message: prospectList,
       maxTokens: 3000,
     });
@@ -558,6 +576,42 @@ async function autoLearn(results: SendResult[], supabase: any, orgId: string | n
     if (activity.type === 'email_opened') byStep[step].opens++;
     if (activity.type === 'email_clicked') byStep[step].clicks++;
   }
+
+  // 2026-06-23 — Apprentissage par FEATURE D'OBJET (founder: "identifier ce qui
+  // fait ouvrir"). Corrèle les caractéristiques de l'objet (longueur, question,
+  // chiffre) avec l'ouverture réelle → saveLearning (RAG) → ré-injecté dans le
+  // prompt de Victor. Boucle d'amélioration continue du taux d'ouverture.
+  try {
+    const openedIds = new Set(opens.map((o: any) => o.prospect_id).filter(Boolean));
+    const feats: Record<string, { sent: number; open: number }> = {
+      'objet court (≤40 car.)': { sent: 0, open: 0 },
+      'objet avec une question (?)': { sent: 0, open: 0 },
+      'objet avec un chiffre': { sent: 0, open: 0 },
+      'objet long (>55 car.)': { sent: 0, open: 0 },
+    };
+    for (const e of emailsSent) {
+      const subj = String(e.data?.subject || ''); if (!subj) continue;
+      const opened = openedIds.has(e.prospect_id);
+      const bump = (k: string) => { feats[k].sent++; if (opened) feats[k].open++; };
+      if (subj.length <= 40) bump('objet court (≤40 car.)');
+      if (subj.length > 55) bump('objet long (>55 car.)');
+      if (subj.includes('?')) bump('objet avec une question (?)');
+      if (/\d/.test(subj)) bump('objet avec un chiffre');
+    }
+    const insights = Object.entries(feats).filter(([, d]) => d.sent >= 5).map(([k, d]) => ({ k, or: d.open / d.sent, sent: d.sent }));
+    if (insights.length >= 2) {
+      insights.sort((a, b) => b.or - a.or);
+      const best = insights[0], worst = insights[insights.length - 1];
+      if (best.or - worst.or >= 0.05) {
+        await saveLearning(supabase, {
+          agent: 'email', category: 'email',
+          learning: `Objets qui OUVRENT le mieux : "${best.k}" (taux d'ouverture ${(best.or * 100).toFixed(0)}%) vs "${worst.k}" (${(worst.or * 100).toFixed(0)}%). Privilégier "${best.k}" pour maximiser l'ouverture.`,
+          evidence: `${emailsSent.length} envois analysés sur 7j. ${best.k}: ${best.sent} env. ${worst.k}: ${worst.sent} env.`,
+          confidence: Math.min(80, 40 + best.sent * 2),
+        }, orgId);
+      }
+    }
+  } catch { /* feature-learning best-effort */ }
 
   const bestCategory = Object.entries(byCategory)
     .sort((a, b) => (b[1].clicks + b[1].opens + b[1].replies * 3) - (a[1].clicks + a[1].opens + a[1].replies * 3))[0];
