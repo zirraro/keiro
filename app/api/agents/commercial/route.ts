@@ -6,6 +6,7 @@ import { callGemini, callGeminiWithSearch } from '@/lib/agents/gemini';
 import { loadContextWithAvatar } from '@/lib/agents/shared-context';
 import { saveLearning, saveAgentFeedback } from '@/lib/agents/learning';
 import { calculateScore, calculateTemperature } from '@/lib/agents/scoring';
+import { validateEmail } from '@/lib/agents/email-validation';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -1160,8 +1161,25 @@ Retourne 8-12 prospects qualifiés AVEC EMAIL en JSON. Sois TRÈS concis dans de
           const newScore = calculateScore(newProspectData);
           const newTemp = calculateTemperature(newScore, newProspectData);
 
-          // Mark as verified if has enough data (email or instagram + company + type)
-          const hasEnoughData = !!(np.email || igHandle) && !!np.company;
+          // 2026-06-22 — Validation email À L'INSERTION (format + jetable + MX).
+          // Base de prospection fiable à la source : un email invalide est
+          // FLAGUÉ (email_invalid) — jamais utilisé par Hugo — sans supprimer le
+          // prospect (joignable via DM/tel). On NE marque PAS "verified" un
+          // prospect dont le seul canal est un email cassé.
+          let emailStatusForInsert: string | null = null;
+          if (np.email) {
+            try {
+              const ev = await validateEmail(np.email, { checkMx: true });
+              if (!ev.valid) {
+                emailStatusForInsert = 'email_invalid';
+                console.log(`[CommercialAgent] Email invalide (${ev.reason}) ${np.company}: ${np.email} → flag email_invalid`);
+              }
+            } catch { /* DNS blip — bénéfice du doute */ }
+          }
+          const emailUsable = !!np.email && emailStatusForInsert !== 'email_invalid';
+
+          // Mark as verified if has a USABLE channel (valid email or instagram) + company
+          const hasEnoughData = !!(emailUsable || igHandle) && !!np.company;
 
           const { error: insertError } = await supabase.from('crm_prospects').insert({
             company: np.company,
@@ -1186,6 +1204,7 @@ Retourne 8-12 prospects qualifiés AVEC EMAIL en JSON. Sois TRÈS concis dans de
             verified: hasEnoughData,
             verified_at: hasEnoughData ? nowISO : null,
             verified_by: hasEnoughData ? 'commercial' : null,
+            email_sequence_status: emailStatusForInsert,
             user_id: clientUserId || null,
             created_at: nowISO,
             updated_at: nowISO,
@@ -1226,6 +1245,7 @@ Retourne 8-12 prospects qualifiés AVEC EMAIL en JSON. Sois TRÈS concis dans de
               source: 'prospection_commerciale',
               source_agent: 'commercial',
               notes: [np.specialty, np.description, np.qualification_reason].filter(Boolean).join(' — ') || null,
+              email_sequence_status: emailStatusForInsert,
               created_at: nowISO,
               updated_at: nowISO,
             });
