@@ -389,6 +389,15 @@ export async function publishTikTokVideoFromUrl(
     disable_comment?: boolean;
     disable_stitch?: boolean;
     video_cover_timestamp_ms?: number;
+    /**
+     * 2026-06-22 — Déclaration AIGC. Quand le contenu est généré par IA, on
+     * met is_aigc=true : TikTok dit que le label est purement déclaratif et
+     * N'IMPACTE PAS la portée, alors que NE PAS déclarer un contenu IA (qu'il
+     * auto-détecte via C2PA/modèles) entraîne un délai de distribution 12-48h,
+     * un gel de l'engagement initial et des strikes cumulés → throttle/0-vues.
+     * Déclarer proactivement = pleine éligibilité de distribution immédiate.
+     */
+    is_aigc?: boolean;
   }
 ): Promise<{ publish_id: string }> {
   console.log('[TikTok] Publishing video from URL (PULL_FROM_URL method)');
@@ -409,6 +418,7 @@ export async function publishTikTokVideoFromUrl(
         disable_comment: options?.disable_comment ?? false,
         disable_stitch: options?.disable_stitch ?? false,
         video_cover_timestamp_ms: options?.video_cover_timestamp_ms ?? 1000,
+        is_aigc: options?.is_aigc ?? false,
       },
       source_info: {
         source: 'PULL_FROM_URL',
@@ -461,7 +471,7 @@ export async function initTikTokPhotoUpload(
   photoUrls: string[],
   title: string,
   description?: string,
-  options?: { privacyLevel?: string; disableComment?: boolean }
+  options?: { privacyLevel?: string; disableComment?: boolean; is_aigc?: boolean }
 ): Promise<{ publish_id: string; is_draft: boolean }> {
   if (photoUrls.length > 35) {
     throw new Error('TikTok photo posts support max 35 images');
@@ -519,6 +529,7 @@ export async function initTikTokPhotoUpload(
       auto_add_music: true,
       brand_content_toggle: false,
       brand_organic_toggle: false,
+      is_aigc: options?.is_aigc ?? false,
     },
     source_info: {
       source: 'PULL_FROM_URL',
@@ -722,6 +733,8 @@ export async function publishTikTokVideoViaFileUpload(
     video_cover_timestamp_ms?: number;
     brand_content_toggle?: boolean;
     brand_organic_toggle?: boolean;
+    /** 2026-06-22 — Déclaration AIGC (cf. publishTikTokVideoFromUrl). */
+    is_aigc?: boolean;
     /**
      * 2026-06-07 — When true, uploads the video to the user's TikTok
      * INBOX (draft) instead of publishing directly. The user opens the
@@ -973,6 +986,7 @@ export async function publishTikTokVideoViaFileUpload(
           disable_comment: options?.disable_comment ?? false,
           disable_stitch: options?.disable_stitch ?? false,
           video_cover_timestamp_ms: options?.video_cover_timestamp_ms ?? 1000,
+          is_aigc: options?.is_aigc ?? false,
           ...(options?.brand_content_toggle || options?.brand_organic_toggle
             ? {
                 brand_content_toggle: options.brand_content_toggle ?? false,

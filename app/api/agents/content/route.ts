@@ -2040,6 +2040,16 @@ async function publishToTikTok(
     const visualUrl = post.visual_url;
     const format = (post.format || '').toLowerCase();
 
+    // 2026-06-22 — Déclaration AIGC obligatoire + bénéfique (cf. lib/tiktok.ts).
+    // Notre pipeline est IA par défaut (Seedream hero, montages générés, slides
+    // companion IA) → is_aigc=true. On NE déclare PAS comme IA uniquement le
+    // média RÉEL fourni par le client / ses vraies photos Google (Ken Burns sur
+    // photo réelle = pas une génération IA). Sur-déclarer est sans coût (le label
+    // n'affecte pas la portée) ; sous-déclarer est ce qui causait les 0 vues.
+    const REAL_MEDIA_SOURCES = ['client_footage', 'client_video', 'client_photos', 'real_footage', 'real_business_photos'];
+    const isAigc = !REAL_MEDIA_SOURCES.includes(String((post as any).visual_source || 'ai_generated'));
+    console.log(`[Content] TikTok AIGC disclosure: is_aigc=${isAigc} (visual_source=${(post as any).visual_source || 'ai_generated'})`);
+
     // Decide: photo or video?
     // Video formats always get video; photo/carousel/static formats can use photo
     const isVideoFormat = format.includes('reel') || format.includes('vidéo') || format.includes('video');
@@ -2094,6 +2104,8 @@ async function publishToTikTok(
           accessToken,
           tiktokPhotoUrls,
           fullCaption.substring(0, 2200),
+          undefined,
+          { is_aigc: isAigc },
         );
         // 2026-06-03 — Draft submissions (TikTok inbox, MEDIA_UPLOAD
         // fallback) MUST NOT be reported as 'published'. Mark the
@@ -2143,7 +2155,7 @@ async function publishToTikTok(
           if (varUrl) fallbackUrls.push(varUrl);
         } catch { /* keep single photo on companion failure */ }
         try {
-          const result = await initTikTokPhotoUpload(accessToken, fallbackUrls, fullCaption.substring(0, 2200));
+          const result = await initTikTokPhotoUpload(accessToken, fallbackUrls, fullCaption.substring(0, 2200), undefined, { is_aigc: isAigc });
           if (result.is_draft) {
             await releaseTtClaim();
             return { success: false, error: 'tiktok_draft_needs_manual_finalize', publish_id: result.publish_id };
@@ -2167,7 +2179,7 @@ async function publishToTikTok(
       accessToken,
       videoUrl,
       fullCaption.substring(0, 2200),
-      { privacy_level: 'PUBLIC_TO_EVERYONE', draft: useDraft }
+      { privacy_level: 'PUBLIC_TO_EVERYONE', draft: useDraft, is_aigc: isAigc }
     );
     if (result.is_draft) {
       console.log(`[Content] TikTok video sent to INBOX: ${result.publish_id}`);

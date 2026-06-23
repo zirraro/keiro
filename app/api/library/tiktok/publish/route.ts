@@ -28,7 +28,11 @@ export const runtime = 'edge';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { videoUrl, caption, hashtags, privacyLevel, disableComment, disableDuet, disableStitch, brandContentToggle, brandOrganicToggle, _scheduledPublish, _userId } = body;
+    const { videoUrl, caption, hashtags, privacyLevel, disableComment, disableDuet, disableStitch, brandContentToggle, brandOrganicToggle, isAigc, _scheduledPublish, _userId } = body;
+    // 2026-06-22 — Déclaration AIGC. Les vidéos de la bibliothèque sont nos
+    // montages générés par IA → on déclare par défaut (le label n'impacte pas
+    // la portée ; ne PAS déclarer un contenu IA auto-détecté = throttle).
+    const aigc = isAigc !== false;
 
     // --- Auth: scheduled publish from cron OR normal user auth ---
     let userId: string | null = null;
@@ -223,6 +227,7 @@ export async function POST(req: NextRequest) {
           video_cover_timestamp_ms: 1000,
           brand_content_toggle: brandContentToggle ?? false,
           brand_organic_toggle: brandOrganicToggle ?? false,
+          is_aigc: aigc,
         }
       );
     } catch (publishError: any) {
