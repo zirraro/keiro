@@ -514,3 +514,59 @@ export async function concatVideoClips(clipUrls: string[], postId: string): Prom
     try { await fs.rm(tmp, { recursive: true, force: true }); } catch {}
   }
 }
+
+/**
+ * DUAL-REEL — "clip A (hook/format tendance) qui se RECOUPE sur le clip B (notre
+ * reel)". Founder 2026-06-23 : « 2 reels qui se ressemblent, un trendy et l'autre
+ * le nôtre, en transition qui vient se recouper/suivre ». On garde A court (le
+ * hook emprunté au format) puis une transition franche enchaîne sur B en entier.
+ *
+ * ⚠️ A et B doivent être des clips qu'on POSSÈDE (nos générations, stock libre,
+ * ou un clip dont le client a les droits). NE PAS embarquer un clip d'un autre
+ * créateur dans une publication : copyright + TikTok détecte le ré-upload =
+ * shadowban (la cause même des 0 vues qu'on vient de corriger). La banque de
+ * clips trend sert d'INSPIRATION de format ; ici on monte deux clips à nous.
+ */
+export async function dualReelMontage(opts: {
+  clipA: string;          // hook / format (joué court)
+  clipB: string;          // notre reel (joué en entier)
+  postId: string;
+  hookSec?: number;       // durée de A avant la transition (def 2.6s)
+}): Promise<string | null> {
+  const a = opts.clipA, b = opts.clipB;
+  if (!a || !b) return null;
+  const tmp = path.join(os.tmpdir(), `dual-${opts.postId}-${Date.now()}`);
+  try {
+    await fs.mkdir(tmp, { recursive: true });
+    const bufA = await fetchBuf(a), bufB = await fetchBuf(b);
+    if (!bufA || !bufB || bufA.length < 5000 || bufB.length < 5000) return null;
+    const pa = path.join(tmp, 'a.mp4'), pb = path.join(tmp, 'b.mp4'), out = path.join(tmp, 'out.mp4');
+    await fs.writeFile(pa, bufA); await fs.writeFile(pb, bufB);
+    const ff = getFfmpegPath();
+    const hook = Math.max(1.5, Math.min(opts.hookSec ?? 2.6, 5));
+    const T = 0.5; // overlap "recoupe"
+    const off = Math.max(0.5, hook - T);
+    // Transition franche qui accroche (zoom/whip/slide) — variée par postId.
+    const PUNCHY = ['zoomin', 'smoothleft', 'smoothup', 'circleopen', 'fadewhite', 'slideup'];
+    const seed = String(opts.postId).split('').reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 0);
+    const tr = PUNCHY[Math.abs(seed) % PUNCHY.length];
+    const norm = (label: string) => `scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,fps=30,format=yuv420p${label}`;
+    // A trimmé à `hook` s ; B en entier ; xfade en overlap.
+    const filter = [
+      `[0:v]trim=0:${hook.toFixed(2)},setpts=PTS-STARTPTS,${norm('[a]')}`,
+      `[1:v]${norm('[b]')}`,
+      `[a][b]xfade=transition=${tr}:duration=${T}:offset=${off.toFixed(2)}[vout]`,
+    ].join(';');
+    const cmd = `"${ff}" -y -i "${pa}" -i "${pb}" -filter_complex "${filter}" -map "[vout]" -c:v libx264 -pix_fmt yuv420p -preset fast -crf 22 "${out}"`;
+    await execPromise(cmd, { timeout: 240_000, maxBuffer: 1024 * 1024 * 80 });
+    const outBuf = await fs.readFile(out).catch(() => null);
+    if (!outBuf || outBuf.length < 10_000) return null;
+    const sb = admin();
+    const obj = `reels-dual/${opts.postId}-${Date.now()}.mp4`;
+    const { error } = await sb.storage.from('business-assets').upload(obj, outBuf, { contentType: 'video/mp4', upsert: true });
+    if (error) return null;
+    const { data } = sb.storage.from('business-assets').getPublicUrl(obj);
+    return data?.publicUrl || null;
+  } catch { return null; }
+  finally { try { await fs.rm(tmp, { recursive: true, force: true }); } catch {} }
+}

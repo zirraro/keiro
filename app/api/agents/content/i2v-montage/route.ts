@@ -38,6 +38,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: !!qc, qc });
   }
 
+  // Dual-reel mode: compose TWO owned clips (A = hook/format court, B = notre
+  // reel) avec une transition "recoupe", + musique. Body: { dual, clipA, clipB,
+  // postId?, hookSec?, hookTopic?, bakeAudio? }. (Founder 2026-06-23)
+  if (body.dual && body.clipA && body.clipB) {
+    const { dualReelMontage } = await import('@/lib/visuals/i2v-montage');
+    const dpId = body.postId || `dual-${Date.now()}`;
+    const composed = await dualReelMontage({ clipA: body.clipA, clipB: body.clipB, postId: dpId, hookSec: body.hookSec });
+    if (!composed) return NextResponse.json({ ok: false, error: 'dual_compose_failed' }, { status: 200 });
+    let finalUrl = composed;
+    try {
+      const fin = await finalizeReel([composed], { postId: dpId, durationSec: 30, hookTopic: body.hookTopic, hookLang: 'fr', bakeAudio: body.bakeAudio !== false });
+      if (fin) finalUrl = fin;
+    } catch { /* keep silent composed on finalize failure */ }
+    if (body.postId) {
+      await sb().from('content_calendar').update({ video_url: finalUrl, updated_at: new Date().toISOString() }).eq('id', body.postId);
+    }
+    return NextResponse.json({ ok: true, url: finalUrl });
+  }
+
   const postId: string = body.postId;
   if (!postId) return NextResponse.json({ error: 'postId required' }, { status: 400 });
 
